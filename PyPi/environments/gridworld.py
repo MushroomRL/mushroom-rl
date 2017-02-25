@@ -6,6 +6,8 @@ from PyPi.utils import spaces
 
 class GridWorld(gym.Env):
     def __init__(self, height, width, goal):
+        self.__name__ = 'GridWorld-v0'
+
         # MDP spaces
         self.observation_space = spaces.MultiDiscrete([[0, height - 1],
                                                        [0, width - 1]])

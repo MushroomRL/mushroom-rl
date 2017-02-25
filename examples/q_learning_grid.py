@@ -1,9 +1,13 @@
+import logging
+
 from PyPi.agent import Agent
 from PyPi import algorithms as algs
 from PyPi import approximators as apprxs
 from PyPi import environments as envs
 from PyPi import policy as pi
 
+logger = logging.getLogger('logger')
+logger.setLevel(logging.INFO)
 
 mdp = envs.GridWorld(3, 3, (2, 2))
 state_space = mdp.observation_space
@@ -22,6 +26,6 @@ agent = Agent(approximator, policy, discrete_actions=discrete_actions)
 
 alg_params = dict(gamma=mdp.gamma,
                   learning_rate=1)
-algorithm = algs.QLearning(agent, mdp, **alg_params)
+algorithm = algs.QLearning(agent, mdp, logger, **alg_params)
 
 algorithm.run(50)

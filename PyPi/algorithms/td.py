@@ -4,10 +4,10 @@ from PyPi.algorithms.algorithm import Algorithm
 
 
 class TD(Algorithm):
-    def __init__(self, agent, mdp, **params):
+    def __init__(self, agent, mdp, logger, **params):
         self.learning_rate = params.pop('learning_rate')
 
-        super(TD, self).__init__(agent, mdp, **params)
+        super(TD, self).__init__(agent, mdp, logger, **params)
 
     def step(self, state, action, reward, next_state, absorbing):
         sa = np.concatenate((state, action), axis=1)
@@ -23,16 +23,18 @@ class TD(Algorithm):
 
 
 class QLearning(TD):
-    def __init__(self, agent, mdp, **params):
-        super(QLearning, self).__init__(agent, mdp, **params)
+    def __init__(self, agent, mdp, logger, **params):
+        self.__name__ = 'Q-Learning'
+        super(QLearning, self).__init__(agent, mdp, logger, **params)
 
     def _next_action(self, next_state, absorbing):
         return self.agent.draw_action(next_state, absorbing, True)
 
 
 class SARSA(TD):
-    def __init__(self, agent, mdp, **params):
-        super(SARSA, self).__init__(agent, mdp, **params)
+    def __init__(self, agent, mdp, logger, **params):
+        self.__name__ = 'SARSA'
+        super(SARSA, self).__init__(agent, mdp, logger, **params)
 
     def _next_action(self, next_state, absorbing):
         return self.agent.draw_action(next_state, absorbing)

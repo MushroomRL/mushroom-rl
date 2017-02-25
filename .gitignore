@@ -1,0 +1,6 @@
+build/
+dist/
+PyPi.egg-info/
+.idea/
+*.pyc
+*.xml

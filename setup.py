@@ -22,11 +22,14 @@ with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
         requires_list.append(str(line))
 
 # specific dependencies for modules
+'''
 extras = {
     'dev': ['check-manifest'],
     'test': ['coverage'],
     'nn': ['keras', 'theano']
 }
+'''
+extras = dict()
 
 # Meta dependency groups.
 all_deps = []
@@ -90,5 +93,4 @@ setup(
     # In this case, 'data_file' will be installed into '<sys.prefix>/my_data'
     # data_files=[('my_data', ['data/data_file'])],
     tests_require=['nose2'],
-
 )
