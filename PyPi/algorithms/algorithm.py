@@ -41,13 +41,15 @@ class Algorithm(object):
             state = self.mdp.reset()
             absorbing = False
 
+            self.logger.info('Initial state: ' + str(state))
+
             J = 0.
             i = 0
             while not absorbing and i < self.mdp.horizon:
                 action = self.agent.draw_action(state, absorbing)
                 next_state, reward, absorbing, _ = self.mdp.step(action)
 
-                self.logger.info((state, action, next_state, reward))
+                self.logger.debug((state, action, next_state, reward))
 
                 if not evaluate:
                     self.step(state, action, reward, next_state, absorbing)
@@ -58,5 +60,9 @@ class Algorithm(object):
                 i += 1
 
             Js.append(J)
+
+            self.logger.info(('End state: ' + str(state) +
+                              '; ' + str(absorbing) +
+                              '; J: ' + str(J)))
 
         return np.array(Js)

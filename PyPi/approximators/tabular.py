@@ -3,6 +3,7 @@ import numpy as np
 
 class Tabular(object):
     def __init__(self, **apprx_params):
+        self.__name__ = 'Tabular'
         self._Q = np.zeros(apprx_params['shape'])
 
     def fit(self, x, y):
