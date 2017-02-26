@@ -6,6 +6,9 @@ class Tabular(object):
         self._Q = np.zeros(apprx_params['shape'])
 
     def fit(self, x, y):
+        assert x.shape[1] == len(self._Q.shape), 'tabular regressor dimension ' \
+                                                 'does not fit with input size.'
+
         dim = len(self._Q.shape)
         if dim > 1:
             idxs = list()
@@ -17,6 +20,9 @@ class Tabular(object):
             self._Q[x] = y
 
     def predict(self, x):
+        assert x.shape[1] == len(self._Q.shape), 'tabular regressor dimension ' \
+                                                 'does not fit with input size.'
+
         dim = len(self._Q.shape)
         if dim > 1:
             idxs = list()
