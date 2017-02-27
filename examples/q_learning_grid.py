@@ -5,7 +5,6 @@ from PyPi import algorithms as algs
 from PyPi import approximators as apprxs
 from PyPi import environments as envs
 from PyPi import policy as pi
-from PyPi.utils import loader
 from PyPi.utils import logger as l
 
 
@@ -25,10 +24,8 @@ parser.add_argument('--action-regression', action='store_true',
 parser.add_argument('--logging', default=1, type=int, help='Logging level')
 args = parser.parse_args()
 
-args = loader.load(args)
-
 # Logger
-logger = l.Logger(args.logging)
+l.Logger(args.logging)
 
 # MDP
 mdp = envs.GridWorld(8, 8, (7, 7))
@@ -43,7 +40,7 @@ policy = pi.EpsGreedy(epsilon)
 
 # Regressor
 discrete_actions = mdp.action_space.values
-apprx_params = dict(shape=(8, 8))
+apprx_params = dict(shape=(8, 8, 4))
 approximator = apprxs.Regressor(approximator_class=apprxs.Tabular,
                                 **apprx_params)
 if args.action_regression:
@@ -55,11 +52,11 @@ agent = Agent(approximator, policy, discrete_actions=discrete_actions)
 # Algorithm
 alg_params = dict(gamma=mdp.gamma,
                   learning_rate=1)
-algorithm = algs.QLearning(agent, mdp, logger, **alg_params)
+algorithm = algs.QLearning(agent, mdp, **alg_params)
 
 # Train
-algorithm.run(50)
+algorithm.run(50, collect=True)
 
 # Test
 agent.policy.set_epsilon(0)
-algorithm.run(10, True)
+algorithm.run(10, learn=False)

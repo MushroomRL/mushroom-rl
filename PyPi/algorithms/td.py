@@ -7,10 +7,10 @@ class TD(Algorithm):
     """
     Implements functions to run TD algorithms.
     """
-    def __init__(self, agent, mdp, logger, **params):
+    def __init__(self, agent, mdp, **params):
         self.learning_rate = params.pop('learning_rate')
 
-        super(TD, self).__init__(agent, mdp, logger, **params)
+        super(TD, self).__init__(agent, mdp, **params)
 
     def step(self, state, action, reward, next_state, absorbing):
         """
@@ -39,9 +39,9 @@ class QLearning(TD):
     """
     Q-Learning algorithm (Watkins, 1989).
     """
-    def __init__(self, agent, mdp, logger, **params):
+    def __init__(self, agent, mdp, **params):
         self.__name__ = 'Q-Learning'
-        super(QLearning, self).__init__(agent, mdp, logger, **params)
+        super(QLearning, self).__init__(agent, mdp, **params)
 
     def _next_action(self, next_state, absorbing):
         """
@@ -63,9 +63,9 @@ class SARSA(TD):
     """
     SARSA algorithm.
     """
-    def __init__(self, agent, mdp, logger, **params):
+    def __init__(self, agent, mdp, **params):
         self.__name__ = 'SARSA'
-        super(SARSA, self).__init__(agent, mdp, logger, **params)
+        super(SARSA, self).__init__(agent, mdp, **params)
 
     def _next_action(self, next_state, absorbing):
         """
