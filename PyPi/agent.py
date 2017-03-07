@@ -23,7 +23,7 @@ class Agent(object):
 
             samples = np.column_stack((state, actions))
 
-            predictions = self.approximator.predict(samples)
+            predictions = self.predict(samples)
 
             Q[:, action_idx] = predictions * (1 - absorbing)
 
@@ -53,3 +53,9 @@ class Agent(object):
             _, max_action = self.max_QA(state, absorbing)
 
             return max_action
+
+    def fit(self, x, y):
+        self.approximator.fit(x, y)
+
+    def predict(self, x):
+        return self.approximator.predict(x)

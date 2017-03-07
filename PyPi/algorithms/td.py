@@ -1,6 +1,7 @@
 import numpy as np
 
 from PyPi.algorithms.algorithm import Algorithm
+from PyPi.utils.dataset import parse_dataset
 
 
 class TD(Algorithm):
@@ -12,7 +13,7 @@ class TD(Algorithm):
 
         super(TD, self).__init__(agent, mdp, **params)
 
-    def step(self, state, action, reward, next_state, absorbing):
+    def fit(self, n_steps=1):
         """
         Updates Q function.
 
@@ -23,6 +24,11 @@ class TD(Algorithm):
             next_state (np.array): the state reached applying 'action' in 'state'
             absorbing (np.array): flag indicating whether 'next_state' is absorbing
         """
+        state, action, reward, next_state, absorbing, _ =\
+            parse_dataset(np.array(self._dataset)[-1, :],
+                          self.mdp.observation_space.dim,
+                          self.mdp.action_space.dim)
+
         sa = np.concatenate((state, action), axis=1)
         q_current = self.agent.approximator.predict(sa)
         a_n = self._next_action(next_state, absorbing)
@@ -33,6 +39,16 @@ class TD(Algorithm):
             reward + self.gamma * q_next - q_current)
 
         self.agent.approximator.fit(sa, q)
+
+    def learn(self,
+              n_iterations,
+              how_many=1,
+              n_fit_steps=1,
+              iterate_over='samples'):
+        super(TD, self).learn(n_iterations=n_iterations,
+                              how_many=1,
+                              n_fit_steps=1,
+                              iterate_over='samples')
 
 
 class QLearning(TD):

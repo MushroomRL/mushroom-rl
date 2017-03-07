@@ -28,7 +28,7 @@ args = parser.parse_args()
 l.Logger(args.logging)
 
 # MDP
-mdp = envs.GridWorld(8, 8, (7, 7))
+mdp = envs.GridWorld(3, 3, (2, 2))
 
 # Spaces
 state_space = mdp.observation_space
@@ -40,7 +40,7 @@ policy = pi.EpsGreedy(epsilon)
 
 # Regressor
 discrete_actions = mdp.action_space.values
-apprx_params = dict(shape=(8, 8, 4))
+apprx_params = dict(shape=(3, 3, 4))
 approximator = apprxs.Regressor(approximator_class=apprxs.Tabular,
                                 **apprx_params)
 if args.action_regression:
@@ -52,11 +52,13 @@ agent = Agent(approximator, policy, discrete_actions=discrete_actions)
 # Algorithm
 alg_params = dict(gamma=mdp.gamma,
                   learning_rate=1)
-algorithm = algs.QLearning(agent, mdp, **alg_params)
+alg = algs.FQI(agent, mdp, **alg_params)
+#alg = algs.QLearning(agent, mdp, **alg_params)
 
 # Train
-algorithm.run(50, collect=True)
+alg.learn(how_many=50, n_fit_steps=20)
+#alg.learn(500)
 
 # Test
 agent.policy.set_epsilon(0)
-algorithm.run(10, learn=False)
+print(alg.evaluate(10))
