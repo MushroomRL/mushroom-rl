@@ -61,4 +61,6 @@ alg.learn(how_many=50, n_fit_steps=20)
 
 # Test
 agent.policy.set_epsilon(0)
-print(alg.evaluate(10))
+
+import numpy as np
+print(alg.evaluate(np.array([[0, 0]])))

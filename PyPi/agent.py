@@ -2,13 +2,10 @@ import numpy as np
 
 
 class Agent(object):
-    def __init__(self, approximator, policy, discrete_actions=None):
+    def __init__(self, approximator, policy, discrete_actions):
         self.approximator = approximator
         self.policy = policy
-        if discrete_actions is None:
-            self._discrete_actions = self.approximator.action_values
-        else:
-            self._discrete_actions = discrete_actions
+        self._discrete_actions = discrete_actions
 
     def max_QA(self, state, absorbing):
         n_states = state.shape[0]

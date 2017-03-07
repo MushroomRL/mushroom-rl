@@ -15,8 +15,9 @@ class FQI(Batch):
         super(FQI, self).__init__(agent, mdp, **params)
 
     def fit(self, n_steps):
+        target = None
         for i in range(n_steps):
-            self.partial_fit(self._dataset, None)
+            target = self.partial_fit(self._dataset, target)
 
     def partial_fit(self, x, y):
         state, action, reward, next_states, absorbing, last =\
@@ -24,13 +25,15 @@ class FQI(Batch):
                           self.mdp.observation_space.dim,
                           self.mdp.action_space.dim)
         if y is None:
-            self.target = reward
+            y = reward
         else:
-            maxq, _ = self.agent.maxQA(next_states, absorbing)
-            self.target = reward + self.gamma * maxq
+            maxq, _ = self.agent.max_QA(next_states, absorbing)
+            y = reward + self.gamma * maxq
 
         sa = np.concatenate((state, action), axis=1)
         self.agent.fit(sa, y)
+
+        return y
 
     def learn(self,
               n_iterations=1,

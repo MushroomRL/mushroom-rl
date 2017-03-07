@@ -39,10 +39,10 @@ class Algorithm(object):
             self.move(how_many, iterate_over)
             self.fit(n_fit_steps)
 
-    def evaluate(self, n_episodes):
+    def evaluate(self, initial_states):
         Js = list()
-        for i in range(n_episodes):
-            self.state = self.mdp.reset()
+        for i in range(initial_states.shape[0]):
+            self.state = self.mdp.reset(initial_states[i, :])
             J = self.move(1, 'episodes', force_max_action=True)
             Js.append(J)
 
