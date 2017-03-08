@@ -12,7 +12,7 @@ class Box(gymspaces.Box):
 
     @property
     def dim(self):
-        return self.shape
+        return self.shape[0]
 
 
 class Discrete(gymspaces.Discrete):
@@ -62,7 +62,7 @@ class DiscreteValued(gym.Space):
 
     @property
     def values(self):
-        return self._values
+        return np.array([self._values]).reshape(-1, 1)
 
     @property
     def n_values(self):

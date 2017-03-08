@@ -26,6 +26,8 @@ class CarOnHill(gym.Env):
 
     def __init__(self):
         # MDP spaces
+        self.max_pos = 1.
+        self.max_velocity = 3.
         high = np.array([self.max_pos, self.max_velocity])
         self.observation_space = spaces.Box(low=-high, high=high)
         self.action_space = spaces.DiscreteValued([-4., 4.])
@@ -35,8 +37,6 @@ class CarOnHill(gym.Env):
         self.gamma = 0.95
 
         # MDP properties
-        self.max_pos = 1.
-        self.max_velocity = 3.
         self._g = 9.81
         self._m = 1
         self._dt = .1

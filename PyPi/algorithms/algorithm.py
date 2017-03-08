@@ -36,7 +36,7 @@ class Algorithm(object):
         """
         assert iterate_over == 'samples' or iterate_over == 'episodes'
         for i in range(n_iterations):
-            self.move(how_many, iterate_over)
+            self.move(how_many, iterate_over, collect=True)
             self.fit(n_fit_steps)
 
     def evaluate(self, initial_states):
@@ -46,9 +46,13 @@ class Algorithm(object):
             J = self.move(1, 'episodes', force_max_action=True)
             Js.append(J)
 
-        return Js
+        return np.array(Js).ravel()
 
-    def move(self, how_many, iterate_over, force_max_action=False):
+    def move(self,
+             how_many,
+             iterate_over,
+             force_max_action=False,
+             collect=False):
         Js = list()
         i = 0
         n_steps = 0
@@ -70,7 +74,8 @@ class Algorithm(object):
                                next_state,
                                absorbing))
 
-            self._dataset.append(sample)
+            if collect:
+                self._dataset.append(sample)
 
             self.state = next_state
 
