@@ -38,7 +38,7 @@ class TD(Algorithm):
         q = q_current + self.learning_rate * (
             reward + self.gamma * q_next - q_current)
 
-        self.agent.fit(sa, q)
+        self.agent.fit(sa, q, self.fit_params)
 
     def learn(self,
               n_iterations,

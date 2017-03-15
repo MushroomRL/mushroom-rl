@@ -1,4 +1,4 @@
 from .car_on_hill import CarOnHill
-from .gridworld import GridWorld
+from .grid_world import GridWorld
 
 __all__ = ['CarOnHill', 'GridWorld']

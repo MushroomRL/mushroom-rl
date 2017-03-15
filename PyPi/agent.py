@@ -51,8 +51,8 @@ class Agent(object):
 
             return max_action
 
-    def fit(self, x, y):
-        self.approximator.fit(x, y)
+    def fit(self, x, y, **fit_params):
+        self.approximator.fit(x, y, **fit_params)
 
     def predict(self, x):
         return self.approximator.predict(x)

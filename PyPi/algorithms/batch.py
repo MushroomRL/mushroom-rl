@@ -14,12 +14,25 @@ class FQI(Batch):
         self.__name__ = 'FQI'
         super(FQI, self).__init__(agent, mdp, **params)
 
-    def fit(self, n_steps):
+    def fit(self, n_iterations):
+        """
+        Fit loop.
+
+        # Arguments
+            n_iterations (int > 0): number of iterations
+        """
         target = None
-        for i in range(n_steps):
+        for i in range(n_iterations):
             target = self.partial_fit(self._dataset, target)
 
     def partial_fit(self, x, y):
+        """
+        Single fit iteration.
+
+        # Arguments
+            x (np.array): input dataset
+            y (np.array): target
+        """
         state, action, reward, next_states, absorbing, last =\
             parse_dataset(x,
                           self.mdp.observation_space.dim,
@@ -31,7 +44,7 @@ class FQI(Batch):
             y = reward + self.gamma * maxq
 
         sa = np.concatenate((state, action), axis=1)
-        self.agent.fit(sa, y)
+        self.agent.fit(sa, y, **self.fit_params)
 
         return y
 

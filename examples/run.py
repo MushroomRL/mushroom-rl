@@ -13,11 +13,6 @@ parser.add_argument('environment', type=str,
                     help='The name of the environment to solve.')
 parser.add_argument('algorithm', type=str,
                     help='The name of the algorithm to run.')
-parser.add_argument('--train-episodes', type=int, default=100,
-                    help='Number of train episodes.')
-parser.add_argument('--test-episodes', type=int, default=10,
-                    help='Number of test episodes.')
-parser.add_argument('--gamma', type=float, default=0.9, help='Discount factor')
 parser.add_argument('--action-regression', action='store_true',
                     help='If true, a separate regressor for each action'
                          'is used.')
@@ -28,20 +23,20 @@ args = parser.parse_args()
 l.Logger(args.logging)
 
 # MDP
-mdp = envs.GridWorld(3, 3, (2, 2))
+mdp = envs.CarOnHill()
 
 # Spaces
 state_space = mdp.observation_space
 action_space = mdp.action_space
 
 # Policy
-epsilon = .5
+epsilon = 1
 policy = pi.EpsGreedy(epsilon)
 
 # Regressor
 discrete_actions = mdp.action_space.values
-apprx_params = dict(shape=(3, 3, 4))
-approximator = apprxs.Regressor(approximator_class=apprxs.Tabular,
+apprx_params = dict(n_input=2, n_output=1, hidden_neurons=[10])
+approximator = apprxs.Regressor(approximator_class=apprxs.DenseNN,
                                 **apprx_params)
 if args.action_regression:
     approximator = apprxs.ActionRegressor(approximator, discrete_actions)
@@ -50,17 +45,26 @@ if args.action_regression:
 agent = Agent(approximator, policy, discrete_actions=discrete_actions)
 
 # Algorithm
+fit_params = dict(nb_epoch=20, batch_size=100)
 alg_params = dict(gamma=mdp.gamma,
-                  learning_rate=1)
+                  learning_rate=1,
+                  fit_params=fit_params)
 alg = algs.FQI(agent, mdp, **alg_params)
 #alg = algs.QLearning(agent, mdp, **alg_params)
 
 # Train
-alg.learn(how_many=50, n_fit_steps=20)
+alg.learn(how_many=1000, n_fit_steps=20)
 #alg.learn(500)
 
 # Test
 agent.policy.set_epsilon(0)
 
 import numpy as np
-print(alg.evaluate(np.array([[0, 0]])))
+
+initial_states = np.zeros((289, 2))
+cont = 0
+for i in range(-8, 9):
+    for j in range(-8, 9):
+        initial_states[cont, :] = [0.125 * i, 0.375 * j]
+        cont += 1
+print(np.mean(alg.evaluate(initial_states)))

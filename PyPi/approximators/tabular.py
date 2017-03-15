@@ -6,7 +6,7 @@ class Tabular(object):
         self.__name__ = 'Tabular'
         self._Q = np.zeros(apprx_params['shape'])
 
-    def fit(self, x, y):
+    def fit(self, x, y, **fit_params):
         assert x.shape[1] == len(self._Q.shape), 'tabular regressor dimension ' \
                                                  'does not fit with input size.'
 
