@@ -11,7 +11,6 @@ class Batch(Algorithm):
 
 class FQI(Batch):
     def __init__(self, agent, mdp, **params):
-        self.__name__ = 'FQI'
         super(FQI, self).__init__(agent, mdp, **params)
 
     def fit(self, n_iterations):
@@ -30,8 +29,8 @@ class FQI(Batch):
         Single fit iteration.
 
         # Arguments
-            x (np.array): input dataset
-            y (np.array): target
+            x (np.array): input dataset.
+            y (np.array): target.
         """
         state, action, reward, next_states, absorbing, last =\
             parse_dataset(x,

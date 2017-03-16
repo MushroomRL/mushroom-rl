@@ -3,6 +3,14 @@ from sklearn import preprocessing
 
 class Regressor(object):
     def __init__(self, approximator_class, **apprx_params):
+        """
+        Regressor class used to preprocess input and output before passing them
+        to the desired approximator.
+
+        # Arguments
+            approximator_class (object): the approximator class to use.
+            apprx_params (dict): other params.
+        """
         self.features = apprx_params.pop('features', None)
         self.input_scaled = apprx_params.pop('input_scaled', True)
         self.output_scaled = apprx_params.pop('output_scaled', True)

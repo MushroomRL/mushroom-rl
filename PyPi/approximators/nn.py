@@ -32,8 +32,8 @@ class DenseNN(object):
 
         self.model.fit(x, y, **fit_params)
 
-    def predict(self, x, **kwargs):
-        predictions = self.model.predict(x, **kwargs)
+    def predict(self, x):
+        predictions = self.model.predict(x)
 
         return predictions.ravel()
 

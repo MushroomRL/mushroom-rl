@@ -18,11 +18,11 @@ class TD(Algorithm):
         Updates Q function.
 
         # Arguments
-            state (np.array): the current state
-            action (np.array): the action performed in 'state'
-            reward (np.array): the reward obtained applying 'action'
-            next_state (np.array): the state reached applying 'action' in 'state'
-            absorbing (np.array): flag indicating whether 'next_state' is absorbing
+            state (np.array): the current state.
+            action (np.array): the action performed in 'state'.
+            reward (np.array): the reward obtained applying 'action'.
+            next_state (np.array): the state reached applying 'action' in 'state'.
+            absorbing (np.array): flag indicating whether 'next_state' is absorbing.
         """
         state, action, reward, next_state, absorbing, _ =\
             parse_dataset(np.array(self._dataset)[-1, :],
@@ -56,7 +56,6 @@ class QLearning(TD):
     Q-Learning algorithm (Watkins, 1989).
     """
     def __init__(self, agent, mdp, **params):
-        self.__name__ = 'Q-Learning'
         super(QLearning, self).__init__(agent, mdp, **params)
 
     def _next_action(self, next_state, absorbing):
@@ -67,10 +66,10 @@ class QLearning(TD):
             next_state (np.array): the state where next action has to be
                 evaluated.
             absorbing (np.array): flag indicating whether 'next_state' is
-                absorbing
+                absorbing.
 
         # Returns
-            action with the maximum action_value in 'next_state'
+            action with the maximum action_value in 'next_state'.
         """
         return self.agent.draw_action(next_state, absorbing, True)
 
@@ -80,7 +79,6 @@ class SARSA(TD):
     SARSA algorithm.
     """
     def __init__(self, agent, mdp, **params):
-        self.__name__ = 'SARSA'
         super(SARSA, self).__init__(agent, mdp, **params)
 
     def _next_action(self, next_state, absorbing):
@@ -89,9 +87,9 @@ class SARSA(TD):
 
         # Arguments
             next_state (np.array): the state where next action has to be
-                evaluated
+                evaluated.
             absorbing (np.array): flag indicating whether 'next_state' is
-                absorbing
+                absorbing.
 
         # Returns
             the action returned by the policy in 'next_state'.

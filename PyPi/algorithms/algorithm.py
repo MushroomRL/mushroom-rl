@@ -11,9 +11,9 @@ class Algorithm(object):
         Constructor.
 
         # Arguments
-            agent (object): the agent moving according to a policy
-            mdp (object): the environment in which the agent moves
-            params (dict): other params
+            agent (object): the agent moving according to a policy.
+            mdp (object): the environment in which the agent moves.
+            params (dict): other params.
         """
         self.agent = agent
         self.mdp = mdp
@@ -36,13 +36,13 @@ class Algorithm(object):
         and batch algorithms.
 
         # Arguments
-            n_iterations (int > 0): number of iterations
+            n_iterations (int > 0): number of iterations.
             how_many (int > 0): number of samples or episodes to collect in a
-                                single iteration of the loop
+                                single iteration of the loop.
             n_fit_steps (int > 0): number of fitting steps of the learning
-                                   algorithm
+                                   algorithm.
             iterate_over (string): whether to collect samples or episodes in a
-                                   single iteration of the loop
+                                   single iteration of the loop.
         """
         assert iterate_over == 'samples' or iterate_over == 'episodes'
         for i in range(n_iterations):
@@ -56,11 +56,11 @@ class Algorithm(object):
         # Arguments
             initial_states (np.array): the array of initial states from where to
                                        start the evaluation episodes. An
-                                       evaluation episode is run for each state
+                                       evaluation episode is run for each state.
 
         # Returns
             the list of discounted rewards obtained in the episodes started
-            from the provided initial states
+            from the provided initial states.
         """
         Js = list()
         for i in range(initial_states.shape[0]):
@@ -79,14 +79,14 @@ class Algorithm(object):
         Move the agent.
 
         # Arguments
-            how_many (int > 0): number of samples or episodes to collect
-            iterate_over (string): whether to collect samples or episodes
+            how_many (int > 0): number of samples or episodes to collect.
+            iterate_over (string): whether to collect samples or episodes.
             force_max_action (bool): whether to perform the greedy action given
-                                     by the policy or not
-            collect (bool): whether to store the collected data or not
+                                     by the policy or not.
+            collect (bool): whether to store the collected data or not.
 
         # Returns
-            the list of discounted rewards obtained in each episode
+            the list of discounted rewards obtained in each episode.
         """
         Js = list()
         i = 0
@@ -134,7 +134,7 @@ class Algorithm(object):
         Return the stored dataset.
 
         # Returns
-            the numpy array of the stored dataset
+            the numpy array of the stored dataset.
         """
         return np.array(self._dataset)
 
