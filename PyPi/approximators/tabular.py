@@ -2,8 +2,8 @@ import numpy as np
 
 
 class Tabular(object):
-    def __init__(self, shape):
-        self._Q = np.zeros(shape)
+    def __init__(self, **approximator_params):
+        self._Q = np.zeros(approximator_params['shape'])
 
     def fit(self, x, y, **fit_params):
         assert x.shape[1] == len(self._Q.shape), 'tabular regressor dimension ' \

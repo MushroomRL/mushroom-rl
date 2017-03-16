@@ -3,7 +3,6 @@ import argparse
 from keras.callbacks import EarlyStopping
 
 from PyPi.agent import Agent
-from PyPi import algorithms as algs
 from PyPi.utils import logger
 from PyPi.utils.loader import *
 
@@ -40,29 +39,32 @@ policy = get_policy(args.policy, **policy_params)
 
 # Regressor
 discrete_actions = mdp.action_space.values
-apprx_params = dict(n_input=2, n_output=1, hidden_neurons=[10])
+#apprx_params = dict(n_input=2, n_output=1, hidden_neurons=[10], loss='mse',
+#                    optimizer='rmsprop')
+apprx_params = dict(n_estimators=50, min_samples_split=5, min_samples_leaf=2,
+                    criterion='mse', input_scaled=False, output_scaled=False)
 approximator = get_approximator(args.approximator, **apprx_params)
-approximator = apprxs.ActionRegressor(approximator, discrete_actions)
+if args.action_regression:
+    approximator = apprxs.ActionRegressor(approximator, discrete_actions)
 
 # Agent
 agent = Agent(approximator, policy, discrete_actions=discrete_actions)
 
 # Algorithm
-es = EarlyStopping(monitor='val_loss', min_delta=0.005, patience=20)
-fit_params = dict(nb_epoch=500,
-                  batch_size=100,
-                  validation_split=0.1,
-                  callbacks=[es])
+#es = EarlyStopping(monitor='val_loss', min_delta=0.005, patience=20)
+#fit_params = dict(nb_epoch=500,
+#                  batch_size=100,
+#                  validation_split=0.1,
+#                  callbacks=[es])
+fit_params = dict()
 alg_params = dict(agent=agent,
                   mdp=mdp,
                   gamma=mdp.gamma,
-                  learning_rate=1,
                   fit_params=fit_params)
 alg = get_algorithm(args.algorithm, **alg_params)
 
 # Train
-alg.learn(how_many=10, n_fit_steps=20)
-#alg.learn(500)
+alg.learn(how_many=1000, n_fit_steps=20)
 
 # Test
 agent.policy.set_epsilon(0)
