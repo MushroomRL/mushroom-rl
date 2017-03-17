@@ -1,9 +1,9 @@
 PyPi
 ******
 
-**PyPi is a toolkit for Reinforcement Learning experiments.**
+**PyPi: a toolkit for Reinforcement Learning experiments.**
 
-.. contents:: **Contents of this document.**
+.. contents:: **Contents of this document:**
    :depth: 2
 
 What is PyPi
@@ -13,8 +13,11 @@ and makes a large use of Scikit-Learn (http://scikit-learn.org/stable/), Keras (
 and OpenAI Gym (https://gym.openai.com/) libraries. These libraries are well-known in the Machine Learning
 community and helps PyPi solving Reinforcement Learning problems significantly
 decreasing the implementation complexity.
+
 PyPi has the purpose to help Machine Learning researchers in solving Reinforcement
-Learning problems. PyPi is still under development and has only a small amount
+Learning problems.
+
+PyPi is still under development and has only a small amount
 of algorithms and MDPs implemented, but new features will be added soon. By choice,
 it is currently focused on value-based algorithms. Policy gradient and actor-critic
 algorithms will be added once the value-based section will be completed.
