@@ -26,7 +26,8 @@ class Algorithm(object):
         self.state = self.mdp.reset()
         self._dataset = list()
 
-    def learn(self, n_iterations, how_many, n_fit_steps, iterate_over):
+    def learn(self, n_iterations, how_many, n_fit_steps, iterate_over,
+              render=False):
         """
         TODO: da migliorare
 
@@ -46,10 +47,10 @@ class Algorithm(object):
         """
         assert iterate_over == 'samples' or iterate_over == 'episodes'
         for i in range(n_iterations):
-            self.move(how_many, iterate_over, collect=True)
+            self.move(how_many, iterate_over, collect=True, render=render)
             self.fit(n_fit_steps)
 
-    def evaluate(self, initial_states):
+    def evaluate(self, initial_states, render=False):
         """
         This function is used to evaluate the learned policy.
 
@@ -65,7 +66,7 @@ class Algorithm(object):
         Js = list()
         for i in range(initial_states.shape[0]):
             self.state = self.mdp.reset(initial_states[i, :])
-            J = self.move(1, 'episodes', force_max_action=True)
+            J = self.move(1, 'episodes', force_max_action=True, render=render)
             Js.append(J)
 
         return np.array(Js).ravel()
@@ -74,7 +75,8 @@ class Algorithm(object):
              how_many,
              iterate_over,
              force_max_action=False,
-             collect=False):
+             collect=False,
+             render=False):
         """
         Move the agent.
 
@@ -97,6 +99,9 @@ class Algorithm(object):
                                             absorbing=False,
                                             force_max_action=force_max_action)
             next_state, reward, absorbing, _ = self.mdp.step(action)
+
+            if render:
+                self.mdp._render()
 
             last = 0 if n_steps < self.mdp.horizon or not absorbing else 1
             sample = self.state.ravel().tolist() + action.ravel().tolist() + \

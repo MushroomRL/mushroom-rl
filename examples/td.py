@@ -4,6 +4,7 @@ import json
 from PyPi.agent import Agent
 from PyPi.utils import logger
 from PyPi.utils.loader import *
+from PyPi.utils import spaces
 
 
 parser = argparse.ArgumentParser()
@@ -36,14 +37,20 @@ policy = get_policy(config['policy']['name'],
                     **config['policy']['params'])
 
 # Regressor
-discrete_actions = mdp.action_space.values
 approximator = get_approximator(config['approximator']['name'],
                                 **config['approximator']['params'])
 if config['approximator']['action_regression']:
-    approximator = apprxs.ActionRegressor(approximator, discrete_actions)
+    if isinstance(mdp.action_space, spaces.Discrete) or\
+        isinstance(mdp.action_space, spaces.DiscreteValued) or\
+            isinstance(mdp.action_space, spaces.MultiDiscrete):
+        approximator = apprxs.ActionRegressor(approximator,
+                                              mdp.action_space.values)
+    else:
+        raise ValueError('Action regression cannot be done with continuous'
+                         'action spaces.')
 
 # Agent
-agent = Agent(approximator, policy, discrete_actions=discrete_actions)
+agent = Agent(approximator, policy, discrete_actions=mdp.action_space.values)
 
 # Algorithm
 alg = get_algorithm(config['algorithm']['name'],

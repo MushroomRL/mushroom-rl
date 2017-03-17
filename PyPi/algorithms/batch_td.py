@@ -4,12 +4,18 @@ from PyPi.algorithms import Algorithm
 from PyPi.utils.dataset import parse_dataset
 
 
-class Batch(Algorithm):
+class BatchTD(Algorithm):
+    """
+    Implements functions to run Batch algorithms.
+    """
     def __init__(self, agent, mdp, **params):
-        super(Batch, self).__init__(agent, mdp, **params)
+        super(BatchTD, self).__init__(agent, mdp, **params)
 
 
-class FQI(Batch):
+class FQI(BatchTD):
+    """
+    Fitted Q-Iteration algorithm (Ernst, 2005).
+    """
     def __init__(self, agent, mdp, **params):
         super(FQI, self).__init__(agent, mdp, **params)
 
@@ -51,8 +57,32 @@ class FQI(Batch):
               n_iterations=1,
               how_many=100,
               n_fit_steps=20,
-              iterate_over='episodes'):
+              iterate_over='episodes',
+              render=False):
         super(FQI, self).learn(n_iterations=n_iterations,
                                how_many=how_many,
                                n_fit_steps=n_fit_steps,
-                               iterate_over=iterate_over)
+                               iterate_over=iterate_over,
+                               render=render)
+
+
+class DoubleFQI(FQI):
+    """
+    Double Fitted Q-Iteration algorithm (D'Eramo et. al., 2017).
+    """
+    def __init__(self, agent, mdp, **params):
+        super(DoubleFQI, self).__init__(agent, mdp, **params)
+
+    def partial_fit(self, x, y):
+        pass
+
+
+class WeightedFQI(FQI):
+    """
+    Weighted Fitted Q-Iteration algorithm (D'Eramo et. al., 2017).
+    """
+    def __init__(self, agent, mdp, **params):
+        super(WeightedFQI, self).__init__(agent, mdp, **params)
+
+    def partial_fit(self, x, y):
+        pass

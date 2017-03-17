@@ -6,7 +6,7 @@ class EpsGreedy(object):
         self._epsilon = epsilon
 
     def __call__(self):
-        if np.random.uniform() > self._epsilon:
+        if np.random.uniform() < self._epsilon:
             return False
         return True
 

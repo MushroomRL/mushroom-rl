@@ -2,12 +2,34 @@ import numpy as np
 
 
 class Agent(object):
+    """
+    This class implements the functions to evaluate the Q-function
+    of the agent and drawing actions.
+    """
     def __init__(self, approximator, policy, discrete_actions):
+        """
+        Constructor.
+
+        # Arguments
+            approximator (object): the approximator of the Q function.
+            policy (object): the policy to use.
+            discrete_actions (np.array): the array containing the discretized
+                                         action values.
+        """
         self.approximator = approximator
         self.policy = policy
         self._discrete_actions = discrete_actions
 
     def max_QA(self, state, absorbing):
+        """
+        # Arguments
+            state (np.array): the state where the agent is.
+            absorbing (np.array): whether the state is absorbing or not
+
+        # Returns
+            an array of maximum Q-values and an array of their corresponding
+            actions values.
+        """
         n_states = state.shape[0]
         n_actions = self._discrete_actions.shape[0]
         action_dim = self._discrete_actions.shape[1]
@@ -39,8 +61,19 @@ class Agent(object):
         return r_q, r_a
 
     def draw_action(self, state, absorbing, force_max_action=False):
+        """
+        Compute an action according to the policy.
+
+        # Arguments
+            state (np.array): the state where the agent is.
+            absorbing (np.array): whether the state is absorbing or not.
+            force_max_action (bool): whether to select the best action or not.
+
+        # Returns
+            the selected action.
+        """
         if not force_max_action:
-            if not self.policy():
+            if self.policy():
                 _, max_action = self.max_QA(state, absorbing)
 
                 return max_action

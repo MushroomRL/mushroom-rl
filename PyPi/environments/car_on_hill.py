@@ -1,29 +1,16 @@
 import numpy as np
 import gym
-from gym.envs.registration import register
 from gym.utils import seeding
 from scipy.integrate import odeint
 
 from PyPi.utils import spaces
 
 
-register(
-    id='CarOnHill-v0',
-    entry_point='PyPi.environments.car_on_hill:CarOnHill'
-)
-
-
 class CarOnHill(gym.Env):
     """
     The Car On Hill environment as presented in:
     "Tree-Based Batch Mode Reinforcement Learning, D. Ernst et. al."
-
     """
-    metadata = {
-        'render.modes': ['human', 'rgb_array'],
-        'video.frames_per_second': 15
-    }
-
     def __init__(self):
         # MDP spaces
         self.max_pos = 1.
@@ -41,12 +28,13 @@ class CarOnHill(gym.Env):
         self._m = 1
         self._dt = .1
 
-        # gym attributes
-        self.viewer = None
-
         # MDP initialization
-        self.seed()
+        self._seed()
         self.reset()
+
+    def _seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        return [seed]
 
     def reset(self, state=None):
         if state is None:
@@ -56,8 +44,8 @@ class CarOnHill(gym.Env):
 
         return self.get_state()
 
-    def step(self, u):
-        sa = np.append(self._state, u)
+    def step(self, action):
+        sa = np.append(self._state, action)
         new_state = odeint(self._dpds, sa, [0, self._dt])
 
         self._state = new_state[-1, :-1]
@@ -96,6 +84,3 @@ class CarOnHill(gym.Env):
               diff_hill * diff_2_hill) / (self._m * (1 + diff_hill ** 2))
 
         return dp, ds, 0.
-
-    def _render(self, mode=None, close=None):
-        pass

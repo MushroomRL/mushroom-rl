@@ -1,4 +1,5 @@
 import gym
+from gym.utils import seeding
 import numpy as np
 
 from PyPi.utils import spaces
@@ -21,8 +22,12 @@ class GridWorld(gym.Env):
         self._goal = goal
 
         # MDP initialization
-        self.seed()
+        self._seed()
         self.reset()
+
+    def _seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        return [seed]
 
     def reset(self, state=None):
         if state is None:

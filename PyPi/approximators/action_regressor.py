@@ -4,11 +4,14 @@ import numpy as np
 
 
 class ActionRegressor(object):
+    """
+    This class is used to approximate the Q-function with a different
+    approximator for each action. It is often used in MDPs with discrete
+    actions and cannot be used in MDPs with continuous actions.
+    """
     def __init__(self, model, discrete_actions):
         """
-        This class is used to approximate the Q-function with a different
-        approximator for each action. It is often used in MDPs with discrete
-        actions and cannot be used in MDPs with continuous actions.
+        Constructor.
 
         # Arguments
             model (object): the model to approximate the Q-value of each action.

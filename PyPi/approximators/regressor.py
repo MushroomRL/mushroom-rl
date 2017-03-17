@@ -2,10 +2,13 @@ from sklearn import preprocessing
 
 
 class Regressor(object):
+    """
+    Regressor class used to preprocess input and output before passing them
+    to the desired approximator.
+    """
     def __init__(self, approximator_class, **apprx_params):
         """
-        Regressor class used to preprocess input and output before passing them
-        to the desired approximator.
+        Constructor.
 
         # Arguments
             approximator_class (object): the approximator class to use.

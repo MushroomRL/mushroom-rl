@@ -44,11 +44,13 @@ class TD(Algorithm):
               n_iterations,
               how_many=1,
               n_fit_steps=1,
-              iterate_over='samples'):
+              iterate_over='samples',
+              render=False):
         super(TD, self).learn(n_iterations=n_iterations,
                               how_many=how_many,
                               n_fit_steps=n_fit_steps,
-                              iterate_over=iterate_over)
+                              iterate_over=iterate_over,
+                              render=render)
 
 
 class QLearning(TD):
@@ -72,6 +74,28 @@ class QLearning(TD):
             action with the maximum action_value in 'next_state'.
         """
         return self.agent.draw_action(next_state, absorbing, True)
+
+
+class DoubleQLearning(TD):
+    """
+    Double Q-Learning algorithm (van Hasselt, 2010).
+    """
+    def __init__(self):
+        pass
+
+    def _next_action(self, next_state, absorbing):
+        pass
+
+
+class WeightedQLearning(TD):
+    """
+    Weighted Q-Learning algorithm (D'Eramo et. al., 2016).
+    """
+    def __init__(self):
+        pass
+
+    def _next_action(self, next_state, absorbing):
+        pass
 
 
 class SARSA(TD):
