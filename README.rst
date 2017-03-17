@@ -1,10 +1,18 @@
 PyPi
 ******
 
-**PyPi is a toolkit for Reinforcement Learning experiments**
+**PyPi is a toolkit for Reinforcement Learning experiments.**
 
-.. contents:: **Contents of this document**
+.. contents:: **Contents of this document.**
    :depth: 2
+
+What is PyPi
+============
+PyPi has the purpose to help Machine Learning researchers in solving Reinforcement
+Learning problems. PyPi is still under development and has only a small amount
+of algorithms and MDPs implemented, but new features will be added soon. By choice,
+it is currently focused on value-based algorithms. Policy gradient and actor-critic
+algorithms will be added once the value-based section will be completed.
 
 Installation
 ============
@@ -19,10 +27,8 @@ You can perform a minimal install of ``PyPi`` with:
 
 Installing everything
 ---------------------
-
 To install the whole set of features, you will need additional packages installed.
 You can install everything by running ``pip install -e '.[all]'``.
-
 
 What's new
 ----------
