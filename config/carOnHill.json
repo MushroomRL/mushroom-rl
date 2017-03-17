@@ -1,0 +1,39 @@
+{
+  "experiment": {
+    "name": "",
+    "date": ""
+  },
+  "algorithm": {
+    "name": "FQI",
+    "params": {
+      "gamma": 0.95,
+      "fit_params": {
+
+      }
+    }
+  },
+  "approximator": {
+    "name": "ExtraTrees",
+    "action_regression": 1,
+    "params": {
+      "n_estimators": 50,
+      "min_samples_split": 5,
+      "min_samples_leaf": 2,
+      "criterion": "mse",
+      "input_scaled": 0,
+      "output_scaled": 0
+    }
+  },
+  "environment": {
+    "name": "CarOnHill",
+    "params": {
+
+    }
+  },
+  "policy": {
+    "name": "EpsGreedy",
+    "params": {
+      "epsilon": 1
+    }
+  }
+}

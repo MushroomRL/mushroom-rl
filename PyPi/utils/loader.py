@@ -17,7 +17,9 @@ def load_class(module, name, instantiate=True, **params):
     raise ValueError(name + ' class not exists.')
 
 
-def get_algorithm(name, **algorithm_params):
+def get_algorithm(name, agent, mdp, **algorithm_params):
+    algorithm_params['agent'] = agent
+    algorithm_params['mdp'] = mdp
     return load_class(algs, name, **algorithm_params)
 
 
