@@ -52,7 +52,7 @@ alg = get_algorithm(config['algorithm']['name'],
                     **config['algorithm']['params'])
 
 # Train
-alg.learn(config['algorithm']['how_many'], config['algorithm']['n_fit_steps'])
+alg.learn(how_many=1000, n_fit_steps=20)
 
 # Test
 agent.policy.set_epsilon(0)

@@ -46,9 +46,9 @@ class TD(Algorithm):
               n_fit_steps=1,
               iterate_over='samples'):
         super(TD, self).learn(n_iterations=n_iterations,
-                              how_many=1,
-                              n_fit_steps=1,
-                              iterate_over='samples')
+                              how_many=how_many,
+                              n_fit_steps=n_fit_steps,
+                              iterate_over=iterate_over)
 
 
 class QLearning(TD):

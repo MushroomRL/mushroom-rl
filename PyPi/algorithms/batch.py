@@ -55,4 +55,4 @@ class FQI(Batch):
         super(FQI, self).learn(n_iterations=n_iterations,
                                how_many=how_many,
                                n_fit_steps=n_fit_steps,
-                               iterate_over='episodes')
+                               iterate_over=iterate_over)
