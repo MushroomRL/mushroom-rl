@@ -36,7 +36,7 @@ To install the whole set of features, you will need additional packages installe
 You can install everything by running ``pip install -e '.[all]'``.
 
 What's new
-----------
+==========
 - 17-03-2017: Environments and algorithms added.
 - 25-02-2017: Initial release.
 

@@ -103,7 +103,7 @@ class Algorithm(object):
             if render:
                 self.mdp._render()
 
-            last = 0 if n_steps < self.mdp.horizon or not absorbing else 1
+            last = 0 if n_steps < self.mdp.horizon and not absorbing else 1
             sample = self.state.ravel().tolist() + action.ravel().tolist() + \
                      [reward] + next_state.ravel().tolist() + \
                      [absorbing, last]
