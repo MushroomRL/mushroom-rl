@@ -8,6 +8,11 @@ PyPi
 
 What is PyPi
 ============
+PyPi is a toolkit for solving Reinforcement Learning problems. It is written in Python
+and makes a large use of Scikit-Learn (http://scikit-learn.org/stable/), Keras (https://keras.io/)
+and OpenAI Gym (https://gym.openai.com/) libraries. These libraries are well-known in the Machine Learning
+community and helps PyPi solving Reinforcement Learning problems significantly
+decreasing the implementation complexity.
 PyPi has the purpose to help Machine Learning researchers in solving Reinforcement
 Learning problems. PyPi is still under development and has only a small amount
 of algorithms and MDPs implemented, but new features will be added soon. By choice,
