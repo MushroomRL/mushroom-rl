@@ -6,15 +6,16 @@ import numpy as np
 class ActionRegressor(object):
     """
     This class is used to approximate the Q-function with a different
-    approximator for each action. It is often used in MDPs with discrete
-    actions and cannot be used in MDPs with continuous actions.
+    approximator of the provided class for each action. It is often used in MDPs
+    with discrete actions and cannot be used in MDPs with continuous actions.
     """
     def __init__(self, model, discrete_actions):
         """
         Constructor.
 
         # Arguments
-            model (object): the model to approximate the Q-value of each action.
+            model (object): the model to approximate the Q-function of each
+                action.
             discrete_actions (np.array): the values of the discrete actions.
         """
         self._discrete_actions = discrete_actions
@@ -29,9 +30,9 @@ class ActionRegressor(object):
         Fit the model.
 
         # Arguments
-            x (np.array): input.
+            x (np.array): input dataset containing states and actions.
             y (np.array): target.
-            fit_params (dict): other params.
+            fit_params (dict): other parameters.
         """
         for i in range(len(self.models)):
             action = self._discrete_actions[i]
@@ -39,17 +40,18 @@ class ActionRegressor(object):
                 (x[:, -self._action_dim:] == action)[:, 0]).ravel()
 
             if idxs.size:
-                self.models[i].fit(x[idxs, :-self._action_dim], y[idxs], **fit_params)
+                self.models[i].fit(x[idxs, :-self._action_dim], y[idxs],
+                                   **fit_params)
 
     def predict(self, x):
         """
         Predict.
 
         # Arguments
-            x (np.array): input.
+            x (np.array): input dataset containing states and actions.
 
         # Returns
-            the predictions of the model.
+            The predictions of the model.
         """
         predictions = np.zeros((x.shape[0]))
         for i in range(len(self.models)):

@@ -13,16 +13,9 @@ class TD(Algorithm):
 
         super(TD, self).__init__(agent, mdp, **params)
 
-    def fit(self, n_steps=1):
+    def fit(self, _):
         """
-        Updates Q function.
-
-        # Arguments
-            state (np.array): the current state.
-            action (np.array): the action performed in 'state'.
-            reward (np.array): the reward obtained applying 'action'.
-            next_state (np.array): the state reached applying 'action' in 'state'.
-            absorbing (np.array): flag indicating whether 'next_state' is absorbing.
+        Single fit step.
         """
         state, action, reward, next_state, absorbing, _ =\
             parse_dataset(np.array(self._dataset)[-1, :],
@@ -55,7 +48,8 @@ class TD(Algorithm):
 
 class QLearning(TD):
     """
-    Q-Learning algorithm (Watkins, 1989).
+    Q-Learning algorithm.
+    "Learning from Delayed Rewards". Watkins C.J.C.H.. 1989.
     """
     def __init__(self, agent, mdp, **params):
         super(QLearning, self).__init__(agent, mdp, **params)
@@ -67,18 +61,18 @@ class QLearning(TD):
         # Arguments
             next_state (np.array): the state where next action has to be
                 evaluated.
-            absorbing (np.array): flag indicating whether 'next_state' is
-                absorbing.
+            absorbing (np.array): whether 'next_state' is absorbing or not.
 
         # Returns
-            action with the maximum action_value in 'next_state'.
+            Action with the maximum action_value in 'next_state'.
         """
         return self.agent.draw_action(next_state, absorbing, True)
 
 
 class DoubleQLearning(TD):
     """
-    Double Q-Learning algorithm (van Hasselt, 2010).
+    Double Q-Learning algorithm.
+    "Double Q-Learning". van Hasselt H.. 2010.
     """
     def __init__(self):
         pass
@@ -89,7 +83,9 @@ class DoubleQLearning(TD):
 
 class WeightedQLearning(TD):
     """
-    Weighted Q-Learning algorithm (D'Eramo et. al., 2016).
+    Weighted Q-Learning algorithm.
+    "Estimating the Maximum Expected Value through Gaussian Approximation".
+    D'Eramo C. et. al.. 2016.
     """
     def __init__(self):
         pass
@@ -107,15 +103,14 @@ class SARSA(TD):
 
     def _next_action(self, next_state, absorbing):
         """
-        Compute the action returned by the policy in 'next_state'.
+        Compute the action with the maximum action-value in 'next_state'.
 
         # Arguments
             next_state (np.array): the state where next action has to be
                 evaluated.
-            absorbing (np.array): flag indicating whether 'next_state' is
-                absorbing.
+            absorbing (np.array): whether 'next_state' is absorbing or not.
 
         # Returns
-            the action returned by the policy in 'next_state'.
+            The action returned by the policy in 'next_state'.
         """
         return self.agent.draw_action(next_state, absorbing)

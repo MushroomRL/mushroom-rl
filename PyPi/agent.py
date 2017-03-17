@@ -14,7 +14,7 @@ class Agent(object):
             approximator (object): the approximator of the Q function.
             policy (object): the policy to use.
             discrete_actions (np.array): the array containing the discretized
-                                         action values.
+                action values.
         """
         self.approximator = approximator
         self.policy = policy
@@ -24,11 +24,11 @@ class Agent(object):
         """
         # Arguments
             state (np.array): the state where the agent is.
-            absorbing (np.array): whether the state is absorbing or not
+            absorbing (np.array): whether the state is absorbing or not.
 
         # Returns
-            an array of maximum Q-values and an array of their corresponding
-            actions values.
+            A np.array of maximum Q-values and a np.array of their corresponding
+            action values.
         """
         n_states = state.shape[0]
         n_actions = self._discrete_actions.shape[0]
@@ -70,7 +70,7 @@ class Agent(object):
             force_max_action (bool): whether to select the best action or not.
 
         # Returns
-            the selected action.
+            The selected action.
         """
         if not force_max_action:
             if self.policy():
@@ -85,7 +85,26 @@ class Agent(object):
             return max_action
 
     def fit(self, x, y, **fit_params):
+        """
+        Fit the Q-function approximator.
+
+        # Arguments
+            x (np.array): input dataset containing states (and action, if
+                action regression is not used).
+            y (np.array): target.
+            fit_params (dict): other parameters.
+        """
         self.approximator.fit(x, y, **fit_params)
 
     def predict(self, x):
+        """
+        Predict using the Q-function approximator.
+
+        # Arguments
+            x (np.array): input dataset containing states (and action, if
+                action regression is not used).
+
+        # Returns
+            The prediction of the Q-function approximator.
+        """
         return self.approximator.predict(x)

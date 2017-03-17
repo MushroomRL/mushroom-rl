@@ -32,18 +32,21 @@ class Algorithm(object):
         TODO: da migliorare
 
         This function is used to learn a policy. An iteration of the loop
-        consists in collecting a dataset and fitting the agent's Q-approximator
-        on that. This function generalizes the learning procedure of online
-        and batch algorithms.
+        consists in collecting a dataset and fitting the agent's Q-function
+        approximator on that. Multiple iterations can be done in order to append
+        new samples to the dataset using the newly learned policies. This
+        function generalizes the learning procedure of online and batch
+        algorithms.
 
         # Arguments
             n_iterations (int > 0): number of iterations.
             how_many (int > 0): number of samples or episodes to collect in a
-                                single iteration of the loop.
+                single iteration of the loop.
             n_fit_steps (int > 0): number of fitting steps of the learning
-                                   algorithm.
+                algorithm.
             iterate_over (string): whether to collect samples or episodes in a
-                                   single iteration of the loop.
+                single iteration of the loop.
+            render (bool): whether to render the environment or not.
         """
         assert iterate_over == 'samples' or iterate_over == 'episodes'
         for i in range(n_iterations):
@@ -56,11 +59,12 @@ class Algorithm(object):
 
         # Arguments
             initial_states (np.array): the array of initial states from where to
-                                       start the evaluation episodes. An
-                                       evaluation episode is run for each state.
+                start the evaluation episodes. An evaluation episode is run for
+                each state.
+            render (bool): whether to render the environment or not.
 
         # Returns
-            the list of discounted rewards obtained in the episodes started
+            The np.array of discounted rewards obtained in the episodes started
             from the provided initial states.
         """
         Js = list()
@@ -84,11 +88,12 @@ class Algorithm(object):
             how_many (int > 0): number of samples or episodes to collect.
             iterate_over (string): whether to collect samples or episodes.
             force_max_action (bool): whether to perform the greedy action given
-                                     by the policy or not.
+                by the policy or not.
             collect (bool): whether to store the collected data or not.
+            render (bool): whether to render the environment or not.
 
         # Returns
-            the list of discounted rewards obtained in each episode.
+            The list of discounted rewards obtained in each episode.
         """
         Js = list()
         i = 0
@@ -139,7 +144,7 @@ class Algorithm(object):
         Return the stored dataset.
 
         # Returns
-            the numpy array of the stored dataset.
+            The np.array of the stored dataset.
         """
         return np.array(self._dataset)
 

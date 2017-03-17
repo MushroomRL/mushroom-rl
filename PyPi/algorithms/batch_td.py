@@ -14,7 +14,8 @@ class BatchTD(Algorithm):
 
 class FQI(BatchTD):
     """
-    Fitted Q-Iteration algorithm (Ernst, 2005).
+    Fitted Q-Iteration algorithm.
+    "Tree-Based Batch Mode Reinforcement Learning", Ernst D. et.al.. 2005.
     """
     def __init__(self, agent, mdp, **params):
         super(FQI, self).__init__(agent, mdp, **params)
@@ -35,7 +36,8 @@ class FQI(BatchTD):
         Single fit iteration.
 
         # Arguments
-            x (np.array): input dataset.
+            x (np.array): input dataset containing states (and action, if
+                action regression is not used).
             y (np.array): target.
         """
         state, action, reward, next_states, absorbing, last =\
@@ -68,7 +70,9 @@ class FQI(BatchTD):
 
 class DoubleFQI(FQI):
     """
-    Double Fitted Q-Iteration algorithm (D'Eramo et. al., 2017).
+    Double Fitted Q-Iteration algorithm.
+    "Estimating the Maximum Expected Value in Continuous Reinforcement Learning
+    Problems". D'Eramo C. et. al.. 2017.
     """
     def __init__(self, agent, mdp, **params):
         super(DoubleFQI, self).__init__(agent, mdp, **params)
@@ -79,7 +83,9 @@ class DoubleFQI(FQI):
 
 class WeightedFQI(FQI):
     """
-    Weighted Fitted Q-Iteration algorithm (D'Eramo et. al., 2017).
+    Weighted Fitted Q-Iteration algorithm.
+    "Estimating the Maximum Expected Value in Continuous Reinforcement Learning
+    Problems". D'Eramo C. et. al.. 2017.
     """
     def __init__(self, agent, mdp, **params):
         super(WeightedFQI, self).__init__(agent, mdp, **params)

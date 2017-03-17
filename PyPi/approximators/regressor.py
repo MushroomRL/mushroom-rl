@@ -12,7 +12,7 @@ class Regressor(object):
 
         # Arguments
             approximator_class (object): the approximator class to use.
-            apprx_params (dict): other params.
+            apprx_params (dict): other parameters.
         """
         self.features = apprx_params.pop('features', None)
         self.input_scaled = apprx_params.pop('input_scaled', True)
@@ -21,6 +21,16 @@ class Regressor(object):
         self.model = approximator_class(**apprx_params)
 
     def fit(self, x, y, **fit_params):
+        """
+        Preprocess the input and output if requested and fit the model using
+        its fit function.
+
+        # Arguments
+            x (np.array): input dataset containing states (and action, if
+                action regression is not used).
+            y (np.array): target.
+            fit_params (dict): other parameters.
+        """
         if self.features:
             x = self.features.fit_transform(x)
 
@@ -35,6 +45,16 @@ class Regressor(object):
         self.model.fit(x, y, **fit_params)
 
     def predict(self, x):
+        """
+        Preprocess the input and output if requested and make the prediction.
+
+        # Arguments
+            x (np.array): input dataset containing states (and action, if
+                action regression is not used).
+
+        # Returns
+            The prediction of the model.
+        """
         if self.features:
             x = self.features.transform(x)
 
