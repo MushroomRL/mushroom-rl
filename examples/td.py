@@ -51,9 +51,9 @@ if config['approximator']['action_regression']:
 
 # Agent
 import numpy as np
-discrete_actions = np.linspace(
-    mdp.action_space.low, mdp.action_space.high, 5).reshape(-1, 1)
-agent = Agent(approximator, policy, discrete_actions=discrete_actions)
+#discrete_actions = np.linspace(
+#    mdp.action_space.low, mdp.action_space.high, 5).reshape(-1, 1)
+agent = Agent(approximator, policy, discrete_actions=mdp.action_space.values)
 
 # Algorithm
 alg = get_algorithm(config['algorithm']['name'],
@@ -62,7 +62,7 @@ alg = get_algorithm(config['algorithm']['name'],
                     **config['algorithm']['params'])
 
 # Train
-alg.learn(how_many=500, n_fit_steps=20)
+alg.learn(n_iterations=2000)
 
 # Test
 agent.policy.set_epsilon(0)
@@ -75,5 +75,6 @@ for i in range(-8, 9):
         initial_states[cont, :] = [0.125 * i, 0.375 * j]
         cont += 1
 '''
-initial_states = np.array([[-1, 1]])
-print(np.mean(alg.evaluate(initial_states, render=True)))
+
+initial_states = np.array([[0, 0]])
+print(np.mean(alg.evaluate(initial_states, render=False)))

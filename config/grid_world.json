@@ -1,0 +1,36 @@
+{
+  "experiment": {
+    "name": "",
+    "date": ""
+  },
+  "algorithm": {
+    "name": "QLearning",
+    "params": {
+      "gamma": 0.9,
+      "learning_rate": 1,
+      "fit_params": {
+      }
+    }
+  },
+  "approximator": {
+    "name": "Tabular",
+    "action_regression": 0,
+    "params": {
+      "shape": [3, 3, 4]
+    }
+  },
+  "environment": {
+    "name": "GridWorld",
+    "params": {
+      "width": 3,
+      "height": 3,
+      "goal": [2, 2]
+    }
+  },
+  "policy": {
+    "name": "EpsGreedy",
+    "params": {
+      "epsilon": 1
+    }
+  }
+}

@@ -12,10 +12,11 @@ class Tabular(object):
         # Arguments
             approximator_params (dict): parameters.
         """
-        self.approxim
+        self.__name__ = 'Tabular'
+
         self._Q = np.zeros(approximator_params['shape'])
 
-    def fit(self, x, y, _):
+    def fit(self, x, y, **fit_params):
         """
         Fit the model.
 
@@ -60,3 +61,6 @@ class Tabular(object):
             return self._Q[idxs]
         else:
             return self._Q[x]
+
+    def __str__(self):
+        return self.__name__

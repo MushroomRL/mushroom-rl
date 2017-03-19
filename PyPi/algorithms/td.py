@@ -24,14 +24,12 @@ class TD(Algorithm):
 
         sa = np.concatenate((state, action), axis=1)
         q_current = self.agent.approximator.predict(sa)
-        a_n = self._next_action(next_state, absorbing)
-        sa_n = np.concatenate((next_state, a_n), axis=1)
-        q_next = self.agent.approximator.predict(sa_n) * (1 - absorbing)
+        q_next = self._next_q(next_state, absorbing) * (1 - absorbing)
 
         q = q_current + self.learning_rate * (
             reward + self.gamma * q_next - q_current)
 
-        self.agent.fit(sa, q, self.fit_params)
+        self.agent.fit(sa, q, **self.fit_params)
 
     def learn(self,
               n_iterations,
@@ -45,6 +43,9 @@ class TD(Algorithm):
                               iterate_over=iterate_over,
                               render=render)
 
+    def __str__(self):
+        return self.__name__
+
 
 class QLearning(TD):
     """
@@ -52,9 +53,11 @@ class QLearning(TD):
     "Learning from Delayed Rewards". Watkins C.J.C.H.. 1989.
     """
     def __init__(self, agent, mdp, **params):
+        self.__name__ = 'QLearning'
+
         super(QLearning, self).__init__(agent, mdp, **params)
 
-    def _next_action(self, next_state, absorbing):
+    def _next_q(self, next_state, absorbing):
         """
         Compute the action with the maximum action-value in 'next_state'.
 
@@ -66,7 +69,10 @@ class QLearning(TD):
         # Returns
             Action with the maximum action_value in 'next_state'.
         """
-        return self.agent.draw_action(next_state, absorbing, True)
+        a_n = self.agent.draw_action(next_state, absorbing, True)
+        sa_n = np.concatenate((next_state, a_n), axis=1)
+
+        return self.agent.approximator.predict(sa_n)
 
 
 class DoubleQLearning(TD):
@@ -74,10 +80,12 @@ class DoubleQLearning(TD):
     Double Q-Learning algorithm.
     "Double Q-Learning". van Hasselt H.. 2010.
     """
-    def __init__(self):
-        pass
+    def __init__(self, agent, mdp, **params):
+        self.__name__ = 'DoubleQLearning'
 
-    def _next_action(self, next_state, absorbing):
+        super(DoubleQLearning, self).__init__(agent, mdp, **params)
+
+    def _next_q(self, next_state, absorbing):
         pass
 
 
@@ -87,10 +95,14 @@ class WeightedQLearning(TD):
     "Estimating the Maximum Expected Value through Gaussian Approximation".
     D'Eramo C. et. al.. 2016.
     """
-    def __init__(self):
-        pass
+    def __init__(self, agent, mdp, **params):
+        self.__name__ = 'WeightedQLearning'
 
-    def _next_action(self, next_state, absorbing):
+        self.exact = params.pop('exact', True)
+
+        super(WeightedQLearning, self).__init__(agent, mdp, **params)
+
+    def _next_q(self, next_state, absorbing):
         pass
 
 
@@ -99,9 +111,11 @@ class SARSA(TD):
     SARSA algorithm.
     """
     def __init__(self, agent, mdp, **params):
+        self.__name__ = 'SARSA'
+
         super(SARSA, self).__init__(agent, mdp, **params)
 
-    def _next_action(self, next_state, absorbing):
+    def _next_q(self, next_state, absorbing):
         """
         Compute the action with the maximum action-value in 'next_state'.
 
@@ -113,4 +127,7 @@ class SARSA(TD):
         # Returns
             The action returned by the policy in 'next_state'.
         """
-        return self.agent.draw_action(next_state, absorbing)
+        a_n = self.agent.draw_action(next_state, absorbing)
+        sa_n = np.concatenate((next_state, a_n), axis=1)
+
+        return self.agent.approximator.predict(sa_n)

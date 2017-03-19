@@ -15,8 +15,8 @@ class Regressor(object):
             apprx_params (dict): other parameters.
         """
         self.features = apprx_params.pop('features', None)
-        self.input_scaled = apprx_params.pop('input_scaled', True)
-        self.output_scaled = apprx_params.pop('output_scaled', True)
+        self.input_scaled = apprx_params.pop('input_scaled', False)
+        self.output_scaled = apprx_params.pop('output_scaled', False)
 
         self.model = approximator_class(**apprx_params)
 
@@ -64,3 +64,6 @@ class Regressor(object):
         y = self.model.predict(x)
 
         return self.pre_y.inverse_transform(y) if self.output_scaled else y
+
+    def __str__(self):
+        return str(self.model)

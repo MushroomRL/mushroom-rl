@@ -64,3 +64,6 @@ class ActionRegressor(object):
                     x[idxs, :-self._action_dim])
 
         return predictions
+
+    def __str__(self):
+        return str(self.models[0]) + ' with action regression.'

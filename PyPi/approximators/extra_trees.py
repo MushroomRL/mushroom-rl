@@ -12,6 +12,8 @@ class ExtraTrees(object):
         # Arguments
             approximator_params (dict): parameters.
         """
+        self.__name__ = 'ExtraTrees'
+
         self.approximator_params = approximator_params
 
     def fit(self, x, y, **fit_params):
@@ -46,3 +48,6 @@ class ExtraTrees(object):
 
     def _init(self):
         return ExtraTreesRegressor(**self.approximator_params)
+
+    def __str__(self):
+        return self.__name__

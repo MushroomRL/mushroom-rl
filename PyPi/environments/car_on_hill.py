@@ -12,6 +12,8 @@ class CarOnHill(gym.Env):
     "Tree-Based Batch Mode Reinforcement Learning, D. Ernst et. al."
     """
     def __init__(self):
+        self.__name__ = 'CarOnHill'
+
         # MDP spaces
         self.max_pos = 1.
         self.max_velocity = 3.
@@ -84,3 +86,6 @@ class CarOnHill(gym.Env):
               diff_hill * diff_2_hill) / (self._m * (1 + diff_hill ** 2))
 
         return dp, ds, 0.
+
+    def __str__(self):
+        return self.__name__

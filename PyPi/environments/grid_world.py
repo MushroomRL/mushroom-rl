@@ -7,6 +7,8 @@ from PyPi.utils import spaces
 
 class GridWorld(gym.Env):
     def __init__(self, height, width, goal):
+        self.__name__ = 'GridWorld'
+
         # MDP spaces
         self.observation_space = spaces.MultiDiscrete([[0, height - 1],
                                                        [0, width - 1]])
@@ -20,6 +22,9 @@ class GridWorld(gym.Env):
         self._height = height
         self._width = width
         self._goal = goal
+
+        assert self._goal[0] < self._height and self._goal[1] < self._width,\
+            'Goal position not suitable for the grid world dimension.'
 
         # MDP initialization
         self._seed()
@@ -62,3 +67,6 @@ class GridWorld(gym.Env):
 
     def get_state(self):
         return np.array([self._state])
+
+    def __str__(self):
+        return self.__name__

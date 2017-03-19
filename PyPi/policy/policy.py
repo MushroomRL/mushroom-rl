@@ -13,6 +13,8 @@ class EpsGreedy(object):
         epsilon (0 <= float <= 1): the exploration coefficient. It indicates
             the probability of performing a random actions in the current step.
         """
+        self.__name__ = 'EpsGreedy'
+
         self._epsilon = epsilon
 
     def __call__(self):
@@ -33,3 +35,6 @@ class EpsGreedy(object):
             the probability of performing a random actions in the current step.
         """
         self._epsilon = epsilon
+
+    def __str__(self):
+        return self.__name__

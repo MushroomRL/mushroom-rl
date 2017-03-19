@@ -48,6 +48,12 @@ class Algorithm(object):
                 single iteration of the loop.
             render (bool): whether to render the environment or not.
         """
+        self.logger.info('*** LEARN ***')
+        self.logger.info('Algorithm: ' + str(self))
+        self.logger.info('Approximator: ' + str(self.agent.approximator))
+        self.logger.info('Environment: ' + str(self.mdp))
+        self.logger.info('Policy: ' + str(self.agent.policy))
+
         assert iterate_over == 'samples' or iterate_over == 'episodes'
         for i in range(n_iterations):
             self.move(how_many, iterate_over, collect=True, render=render)
@@ -67,6 +73,14 @@ class Algorithm(object):
             The np.array of discounted rewards obtained in the episodes started
             from the provided initial states.
         """
+        self.logger.info('*** EVALUATION ***')
+        self.logger.info('Algorithm: ' + str(self))
+        self.logger.info('Approximator: ' + str(self.agent.approximator))
+        self.logger.info('Environment: ' + str(self.mdp))
+        self.logger.info('Policy: ' + str(self.agent.policy))
+        self.logger.info('Number of evaluation episodes: ' +
+                         str(initial_states.shape[0]))
+
         Js = list()
         for i in range(initial_states.shape[0]):
             self.state = self.mdp.reset(initial_states[i, :])
@@ -98,6 +112,11 @@ class Algorithm(object):
         Js = list()
         i = 0
         n_steps = 0
+        n_samples = 0
+
+        if iterate_over == 'episodes':
+            self.logger.info('Episodes: %d' % (i + 1))
+            self.logger.info(self.state)
         while i < how_many:
             J = 0.
             action = self.agent.draw_action(self.state,
@@ -106,7 +125,7 @@ class Algorithm(object):
             next_state, reward, absorbing, _ = self.mdp.step(action)
 
             if render:
-                self.mdp._render()
+                self.mdp.render()
 
             last = 0 if n_steps < self.mdp.horizon and not absorbing else 1
             sample = self.state.ravel().tolist() + action.ravel().tolist() + \
@@ -127,15 +146,32 @@ class Algorithm(object):
             J += self.gamma**n_steps * reward
 
             if last or absorbing:
+                if iterate_over == 'episodes':
+                    self.logger.info((self.state, reward, absorbing))
+
                 self.state = self.mdp.reset()
                 i += 1
                 n_steps = 0
+                n_samples += 1
 
                 Js.append(J)
+
+                if iterate_over == 'episodes':
+                    if i < how_many:
+                        self.logger.info('Episode: %d' % (i + 1))
+                        self.logger.info(self.state)
+
             else:
                 n_steps += 1
+                n_samples += 1
+
                 if iterate_over == 'samples':
                     i += 1
+
+        if iterate_over == 'episodes':
+            self.logger.info('Number of samples gathered: ' + str(n_samples))
+        else:
+            self.logger.debug('Number of samples gathered: ' + str(n_samples))
 
         return Js
 

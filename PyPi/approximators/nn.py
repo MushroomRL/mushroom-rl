@@ -13,6 +13,8 @@ class DenseNN(object):
         # Arguments
             approximator_params (dict): parameters.
         """
+        self.__name__ = 'DenseNN'
+
         self.approximator_params = approximator_params
 
     def fit(self, x, y, **fit_params):
@@ -62,3 +64,6 @@ class DenseNN(object):
         model.compile(loss=loss, optimizer=optimizer, **pars)
 
         return model
+
+    def __str__(self):
+        return self.__name__

@@ -11,6 +11,9 @@ class BatchTD(Algorithm):
     def __init__(self, agent, mdp, **params):
         super(BatchTD, self).__init__(agent, mdp, **params)
 
+    def __str__(self):
+        return self.__name__
+
 
 class FQI(BatchTD):
     """
@@ -18,6 +21,8 @@ class FQI(BatchTD):
     "Tree-Based Batch Mode Reinforcement Learning", Ernst D. et.al.. 2005.
     """
     def __init__(self, agent, mdp, **params):
+        self.__name__ = 'FQI'
+
         super(FQI, self).__init__(agent, mdp, **params)
 
     def fit(self, n_iterations):
@@ -51,6 +56,7 @@ class FQI(BatchTD):
             y = reward + self.gamma * maxq
 
         sa = np.concatenate((state, action), axis=1)
+
         self.agent.fit(sa, y, **self.fit_params)
 
         return y
@@ -75,6 +81,8 @@ class DoubleFQI(FQI):
     Problems". D'Eramo C. et. al.. 2017.
     """
     def __init__(self, agent, mdp, **params):
+        self.__name__ = 'DoubleFQI'
+
         super(DoubleFQI, self).__init__(agent, mdp, **params)
 
     def partial_fit(self, x, y):
@@ -88,6 +96,8 @@ class WeightedFQI(FQI):
     Problems". D'Eramo C. et. al.. 2017.
     """
     def __init__(self, agent, mdp, **params):
+        self.__name__ = 'WeightedFQI'
+
         super(WeightedFQI, self).__init__(agent, mdp, **params)
 
     def partial_fit(self, x, y):
