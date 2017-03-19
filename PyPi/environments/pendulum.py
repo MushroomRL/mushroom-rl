@@ -7,7 +7,8 @@ from PyPi.utils import spaces
 class Pendulum(gym.Env):
     def __init__(self):
         # MPD creation
-        self.env = gym.make('Pendulum-v0')
+        self.__name__ = 'Pendulum-v0'
+        self.env = gym.make(self.__name__)
 
         # MDP spaces
         high = np.array([np.pi, self.env.max_speed])

@@ -152,7 +152,6 @@ class Algorithm(object):
                 self.state = self.mdp.reset()
                 i += 1
                 n_steps = 0
-                n_samples += 1
 
                 Js.append(J)
 
