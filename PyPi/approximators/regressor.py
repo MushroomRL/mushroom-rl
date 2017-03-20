@@ -40,7 +40,7 @@ class Regressor(object):
 
         if self.output_scaled:
             self.pre_y = preprocessing.StandardScaler()
-            y = self.pre_y.fit_transform(y)
+            y = self.pre_y.fit_transform(y.reshape(-1, 1))
 
         self.model.fit(x, y, **fit_params)
 

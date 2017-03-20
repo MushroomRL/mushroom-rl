@@ -54,14 +54,17 @@ class DenseNN(object):
         n_output = pars.pop('n_output')
         loss = pars.pop('loss')
         optimizer = pars.pop('optimizer')
+        activation = pars.pop('activation', 'linear')
+        metrics = pars.pop('metrics', None)
 
         model = Sequential()
-        model.add(Dense(hidden_neurons[0], input_shape=(n_input,), **pars))
+        model.add(Dense(hidden_neurons[0], input_shape=(n_input,),
+                        activation=activation, **pars))
         for i in range(1, len(hidden_neurons)):
-            model.add(Dense(hidden_neurons[i], **pars))
+            model.add(Dense(hidden_neurons[i], activation=activation, **pars))
         model.add(Dense(n_output, activation='linear', **pars))
 
-        model.compile(loss=loss, optimizer=optimizer, **pars)
+        model.compile(loss=loss, optimizer=optimizer, metrics=metrics, **pars)
 
         return model
 

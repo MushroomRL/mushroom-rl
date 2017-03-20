@@ -8,20 +8,23 @@
     "params": {
       "gamma": 0.95,
       "fit_params": {
-
+        "nb_epoch": 100,
+        "validation_split": 0.1
       }
     }
   },
   "approximator": {
-    "name": "ExtraTrees",
-    "action_regression": 1,
+    "name": "DenseNN",
+    "action_regression": 0,
     "params": {
-      "n_estimators": 50,
-      "min_samples_split": 5,
-      "min_samples_leaf": 2,
-      "criterion": "mse",
-      "input_scaled": 0,
-      "output_scaled": 0
+      "n_input": 3,
+      "hidden_neurons": [10],
+      "n_output": 1,
+      "activation": "tanh",
+      "loss": "mse",
+      "optimizer": "rmsprop",
+      "input_scaled": 1,
+      "output_scaled": 1
     }
   },
   "environment": {
