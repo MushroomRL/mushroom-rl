@@ -57,9 +57,6 @@ discrete_actions = mdp.action_space.values
 agent = Agent(approximator, policy, discrete_actions=discrete_actions)
 
 # Algorithm
-from keras.callbacks import EarlyStopping
-es = EarlyStopping(monitor='val_loss', min_delta=1e-3, patience=10)
-config['algorithm']['params']['fit_params']['callbacks'] = [es]
 alg = get_algorithm(config['algorithm']['name'],
                     agent,
                     mdp,

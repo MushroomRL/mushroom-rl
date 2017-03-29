@@ -7,24 +7,17 @@
     "name": "FQI",
     "params": {
       "gamma": 0.95,
-      "fit_params": {
-        "nb_epoch": 100,
-        "validation_split": 0.1
-      }
+      "fit_params": {}
     }
   },
   "approximator": {
-    "name": "DenseNN",
-    "action_regression": 0,
+    "name": "ExtraTrees",
+    "action_regression": 1,
     "params": {
-      "n_input": 3,
-      "hidden_neurons": [10],
-      "n_output": 1,
-      "activation": "tanh",
-      "loss": "mse",
-      "optimizer": "rmsprop",
-      "input_scaled": 1,
-      "output_scaled": 1
+      "n_estimators": 50,
+      "criterion": "mse",
+      "min_samples_split": 5,
+      "min_samples_leaf": 2
     }
   },
   "environment": {

@@ -131,6 +131,7 @@ class Algorithm(object):
             sample = self.state.ravel().tolist() + action.ravel().tolist() + \
                      [reward] + next_state.ravel().tolist() + \
                      [absorbing, last]
+            n_samples += 1
 
             self.logger.debug((self.state,
                                action,
@@ -162,7 +163,6 @@ class Algorithm(object):
 
             else:
                 n_steps += 1
-                n_samples += 1
 
                 if iterate_over == 'samples':
                     i += 1
