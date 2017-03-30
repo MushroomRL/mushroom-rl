@@ -22,7 +22,7 @@ class CarOnHill(gym.Env):
         self.action_space = spaces.DiscreteValued([-4., 4.])
 
         # MDP parameters
-        self.horizon = 300
+        self.horizon = 100
         self.gamma = 0.95
 
         # MDP properties

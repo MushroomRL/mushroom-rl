@@ -123,6 +123,8 @@ class Algorithm(object):
                                             absorbing=False,
                                             force_max_action=force_max_action)
             next_state, reward, absorbing, _ = self.mdp.step(action)
+            J += self.gamma ** n_steps * reward
+            n_steps += 1
 
             if render:
                 self.mdp.render()
@@ -144,8 +146,6 @@ class Algorithm(object):
 
             self.state = next_state
 
-            J += self.gamma**n_steps * reward
-
             if last or absorbing:
                 if iterate_over == 'episodes':
                     self.logger.info((self.state, reward, absorbing))
@@ -162,8 +162,6 @@ class Algorithm(object):
                         self.logger.info(self.state)
 
             else:
-                n_steps += 1
-
                 if iterate_over == 'samples':
                     i += 1
 
