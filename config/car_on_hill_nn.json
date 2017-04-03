@@ -1,0 +1,42 @@
+{
+  "experiment": {
+    "name": "",
+    "date": ""
+  },
+  "algorithm": {
+    "name": "FQI",
+    "params": {
+      "gamma": 0.95,
+      "fit_params": {
+        "nb_epoch": 30,
+        "batch_size": 50 
+      }
+    }
+  },
+  "approximator": {
+    "name": "DenseNN",
+    "action_regression": 0,
+    "params": {
+      "n_input": 3,
+      "n_output": 1,
+      "hidden_neurons": [10],
+      "input_scaled": 1,
+      "output_scaled": 1,
+      "optimizer": "rmsprop",
+      "activation": "tanh",
+      "loss": "mse"
+    }
+  },
+  "environment": {
+    "name": "CarOnHill",
+    "params": {
+
+    }
+  },
+  "policy": {
+    "name": "EpsGreedy",
+    "params": {
+      "epsilon": 1
+    }
+  }
+}
