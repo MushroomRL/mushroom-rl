@@ -8,7 +8,7 @@
     "params": {
       "gamma": 0.95,
       "fit_params": {
-        "nb_epoch": 30,
+        "epochs": 30,
         "batch_size": 50 
       }
     }

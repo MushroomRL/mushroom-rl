@@ -68,13 +68,5 @@ alg.learn(how_many=1000, n_fit_steps=20)
 # Test
 agent.policy.set_epsilon(0)
 
-
-initial_states = np.zeros((289, 2))
-cont = 0
-for i in range(-8, 9):
-    for j in range(-8, 9):
-        initial_states[cont, :] = [0.125 * i, 0.375 * j]
-        cont += 1
-
-#initial_states = np.array([[0, 0]])
-print(np.mean(alg.evaluate(initial_states, render=False)))
+initial_states = np.zeros((10, 8))
+print(np.mean(alg.evaluate(initial_states, render=True)))

@@ -6,9 +6,10 @@ from PyPi.utils import spaces
 
 class Pendulum(gym.Env):
     def __init__(self):
-        # MPD creation
         self.__name__ = 'Pendulum-v0'
-        self.env = gym.make(self.__name__)
+
+        # MPD creation
+        self.env = gym.make(self.__name__).env
 
         # MDP spaces
         high = np.array([np.pi, self.env.max_speed])
