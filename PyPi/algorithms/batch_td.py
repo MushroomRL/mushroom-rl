@@ -11,6 +11,9 @@ class BatchTD(Algorithm):
     def __init__(self, agent, mdp, **params):
         super(BatchTD, self).__init__(agent, mdp, **params)
 
+    def callbacks(self):
+        pass
+
     def __str__(self):
         return self.__name__
 
@@ -42,8 +45,7 @@ class FQI(BatchTD):
         Single fit iteration.
 
         # Arguments
-            x (np.array): input dataset containing states (and action, if
-                action regression is not used).
+            x (np.array): input dataset.
             y (np.array): target.
         """
         state, action, reward, next_states, absorbing, last =\
@@ -59,20 +61,6 @@ class FQI(BatchTD):
         sa = np.concatenate((state, action), axis=1)
 
         self.agent.fit(sa, y, **self.fit_params)
-
-        return y
-
-    def learn(self,
-              n_iterations=1,
-              how_many=100,
-              n_fit_steps=20,
-              iterate_over='episodes',
-              render=False):
-        super(FQI, self).learn(n_iterations=n_iterations,
-                               how_many=how_many,
-                               n_fit_steps=n_fit_steps,
-                               iterate_over=iterate_over,
-                               render=render)
 
 
 class DoubleFQI(FQI):

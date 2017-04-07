@@ -2,6 +2,7 @@ import numpy as np
 
 from PyPi.algorithms.algorithm import Algorithm
 from PyPi.utils.dataset import parse_dataset
+from PyPi.utils.parameters import Parameter
 
 
 class TD(Algorithm):
@@ -9,7 +10,7 @@ class TD(Algorithm):
     Implements functions to run TD algorithms.
     """
     def __init__(self, agent, mdp, **params):
-        self.learning_rate = params.pop('learning_rate')
+        self.learning_rate = Parameter(params.pop('learning_rate'))
 
         super(TD, self).__init__(agent, mdp, **params)
 
@@ -31,17 +32,8 @@ class TD(Algorithm):
 
         self.agent.fit(sa, q, **self.fit_params)
 
-    def learn(self,
-              n_iterations,
-              how_many=1,
-              n_fit_steps=1,
-              iterate_over='samples',
-              render=False):
-        super(TD, self).learn(n_iterations=n_iterations,
-                              how_many=how_many,
-                              n_fit_steps=n_fit_steps,
-                              iterate_over=iterate_over,
-                              render=render)
+    def callbacks(self):
+        self.learning_rate()
 
     def __str__(self):
         return self.__name__

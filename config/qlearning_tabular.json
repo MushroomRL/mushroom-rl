@@ -7,7 +7,9 @@
     "name": "QLearning",
     "params": {
       "gamma": 0.9,
-      "learning_rate": 1,
+      "learning_rate": {
+        "value": 1
+      },
       "fit_params": {
       }
     }
@@ -30,7 +32,9 @@
   "policy": {
     "name": "EpsGreedy",
     "params": {
-      "epsilon": 1
+      "epsilon": {
+        "value": 1
+      }
     }
   }
 }

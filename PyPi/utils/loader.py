@@ -1,9 +1,59 @@
+import argparse
 import inspect
+import json
 
 from PyPi import algorithms as algs
 from PyPi import approximators as apprxs
 from PyPi import environments as envs
 from PyPi import policy as pi
+from PyPi.utils import logger
+from PyPi.utils import spaces
+
+
+def load_experiment():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', type=str, help='The path of the experiment'
+                                                   'configuration file.')
+    parser.add_argument('--logging', default=1, type=int, help='Logging level.')
+    args = parser.parse_args()
+
+    # Load config file
+    if args.config is not None:
+        load_path = args.config
+        with open(load_path) as f:
+            config = json.load(f)
+    else:
+        raise ValueError('Configuration file path missing.')
+
+    # Logger
+    logger.Logger(args.logging)
+
+    # MDP
+    mdp = get_environment(config['environment']['name'],
+                          **config['environment']['params'])
+
+    # Spaces
+    state_space = mdp.observation_space
+    action_space = mdp.action_space
+
+    # Policy
+    policy = get_policy(config['policy']['name'],
+                        **config['policy']['params'])
+
+    # Regressor
+    approximator = get_approximator(config['approximator']['name'],
+                                    **config['approximator']['params'])
+    if config['approximator']['action_regression']:
+        if isinstance(mdp.action_space, spaces.Discrete) or \
+                isinstance(mdp.action_space, spaces.DiscreteValued) or \
+                isinstance(mdp.action_space, spaces.MultiDiscrete):
+            approximator = apprxs.ActionRegressor(approximator,
+                                                  mdp.action_space.values)
+        else:
+            raise ValueError('Action regression cannot be done with continuous'
+                             ' action spaces.')
+
+    return mdp, policy, approximator, config
 
 
 def load_class(module, name, instantiate=True, **params):

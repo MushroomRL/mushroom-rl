@@ -51,19 +51,19 @@ class LunarLander(gym.Env):
         self.continuous = continuous
 
         # MDP initialization
-        self.env._seed()
+        self.env.seed()
         self.reset()
 
     def reset(self, state=None):
         if state is None:
-            self.env._reset()
+            self.env.reset()
         else:
             self.env.state = state
 
         return self.get_state()
 
     def step(self, action):
-        _, reward, absorbing, info = self.env._step(int(action[0, 0]))
+        _, reward, absorbing, info = self.env.step(int(action[0, 0]))
 
         return self.get_state(), reward, absorbing, info
 
@@ -84,7 +84,7 @@ class LunarLander(gym.Env):
         return np.array([state])
 
     def render(self, mode='human', close=False):
-        self.env._render(mode=mode, close=close)
+        self.env.render(mode=mode, close=close)
 
     def __str__(self):
         return self.__name__

@@ -27,7 +27,7 @@ class Algorithm(object):
         self._dataset = list()
 
     def learn(self, n_iterations, how_many, n_fit_steps, iterate_over,
-              render=False):
+              initial_dataset_size=None, render=False):
         """
         TODO: da migliorare
 
@@ -55,7 +55,15 @@ class Algorithm(object):
         self.logger.info('Policy: ' + str(self.agent.policy))
 
         assert iterate_over == 'samples' or iterate_over == 'episodes'
-        for i in range(n_iterations):
+
+        if initial_dataset_size is not None:
+            self.move(initial_dataset_size, iterate_over, collect=True,
+                      render=render)
+            self.fit(n_fit_steps)
+
+        for self.iteration in range(n_iterations):
+            self.apply_callbacks()
+
             self.move(how_many, iterate_over, collect=True, render=render)
             self.fit(n_fit_steps)
 
@@ -171,6 +179,10 @@ class Algorithm(object):
             self.logger.debug('Number of samples gathered: ' + str(n_samples))
 
         return Js
+
+    def apply_callbacks(self):
+        self.agent.policy.update()
+        self.callbacks()
 
     def get_dataset(self):
         """

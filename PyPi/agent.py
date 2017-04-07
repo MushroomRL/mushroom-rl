@@ -20,11 +20,13 @@ class Agent(object):
         self.policy = policy
         self._discrete_actions = discrete_actions
 
-    def max_QA(self, state, absorbing):
+    def max_QA(self, state, absorbing, target_approximator=None):
         """
         # Arguments
             state (np.array): the state where the agent is.
             absorbing (np.array): whether the state is absorbing or not.
+            target_approximator (object, None): the model to use to predict
+                the maximum Q-values.
 
         # Returns
             A np.array of maximum Q-values and a np.array of their corresponding
@@ -42,7 +44,10 @@ class Agent(object):
 
             samples = np.column_stack((state, actions))
 
-            predictions = self.predict(samples)
+            if target_approximator is None:
+                predictions = self.predict(samples)
+            else:
+                predictions = target_approximator.predict(samples)
 
             Q[:, action_idx] = predictions * (1 - absorbing)
 
@@ -108,3 +113,14 @@ class Agent(object):
             The prediction of the Q-function approximator.
         """
         return self.approximator.predict(x)
+
+    def train_on_batch(self, x, y, **fit_params):
+        """
+        Fit the Q-function approximator on one batch.
+
+        # Arguments
+            x (np.array): input dataset.
+            y (np.array): target.
+            fit_params (dict): other parameters.
+        """
+        self.approximator.train_on_batch(x, y, **fit_params)

@@ -1,11 +1,13 @@
 import numpy as np
 
+from PyPi.utils.parameters import Parameter
+
 
 class EpsGreedy(object):
     """
     Epsilon greedy policy.
     """
-    def __init__(self, epsilon):
+    def __init__(self, **params):
         """
         Constructor.
 
@@ -15,7 +17,7 @@ class EpsGreedy(object):
         """
         self.__name__ = 'EpsGreedy'
 
-        self._epsilon = epsilon
+        self._epsilon = Parameter(params.pop('epsilon'))
 
     def __call__(self):
         """
@@ -34,7 +36,12 @@ class EpsGreedy(object):
         epsilon (0 <= float <= 1): the exploration coefficient. It indicates
             the probability of performing a random actions in the current step.
         """
+        assert isinstance(epsilon, Parameter)
+
         self._epsilon = epsilon
+
+    def update(self):
+        self._epsilon()
 
     def __str__(self):
         return self.__name__

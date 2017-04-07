@@ -36,7 +36,9 @@
   "policy": {
     "name": "EpsGreedy",
     "params": {
-      "epsilon": 1
+      "epsilon": {
+        "value": 1
+      }
     }
   }
 }
