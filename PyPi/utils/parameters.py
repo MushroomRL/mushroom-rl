@@ -6,13 +6,14 @@ class Parameter(object):
         self.min_value = min_value
 
     def __call__(self):
+        return self.value
+
+    def update(self):
         if self.decay_type is None:
-            return self.value
+            return
         elif self.decay_type == 'linear':
-            value = self.value - self.decay_factor
+            self.value -= self.decay_factor
         elif self.decay_type == 'exponential':
-            value = self.value * self.decay_factor
+            self.value *= self.decay_factor
         else:
             raise ValueError('Selected decay_type not available')
-
-        return value if value >= self.min_value else self.min_value

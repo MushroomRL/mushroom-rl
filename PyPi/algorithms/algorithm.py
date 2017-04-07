@@ -62,7 +62,7 @@ class Algorithm(object):
             self.fit(n_fit_steps)
 
         for self.iteration in range(n_iterations):
-            self.apply_callbacks()
+            self.apply_updates()
 
             self.move(how_many, iterate_over, collect=True, render=render)
             self.fit(n_fit_steps)
@@ -180,9 +180,9 @@ class Algorithm(object):
 
         return Js
 
-    def apply_callbacks(self):
+    def apply_updates(self):
         self.agent.policy.update()
-        self.callbacks()
+        self.updates()
 
     def get_dataset(self):
         """

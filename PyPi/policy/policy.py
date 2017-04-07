@@ -24,7 +24,7 @@ class EpsGreedy(object):
         # Returns
             Flag indicating to perform the greedy action or the random one.
         """
-        if np.random.uniform() < self._epsilon:
+        if np.random.uniform() < self._epsilon():
             return False
         return True
 
@@ -41,7 +41,7 @@ class EpsGreedy(object):
         self._epsilon = epsilon
 
     def update(self):
-        self._epsilon()
+        self._epsilon.update()
 
     def __str__(self):
         return self.__name__

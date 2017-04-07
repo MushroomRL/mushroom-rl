@@ -27,13 +27,13 @@ class TD(Algorithm):
         q_current = self.agent.approximator.predict(sa)
         q_next = self._next_q(next_state, absorbing) * (1 - absorbing)
 
-        q = q_current + self.learning_rate * (
+        q = q_current + self.learning_rate() * (
             reward + self.gamma * q_next - q_current)
 
         self.agent.fit(sa, q, **self.fit_params)
 
-    def callbacks(self):
-        self.learning_rate()
+    def updates(self):
+        self.learning_rate.update()
 
     def __str__(self):
         return self.__name__

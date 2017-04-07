@@ -45,8 +45,8 @@ class DQN(Algorithm):
 
         self.agent.train_on_batch(sa, y, **self.fit_params)
 
-    def callbacks(self):
-        self.learning_rate()
+    def updates(self):
+        self.learning_rate.update()
         if self.iteration % self.target_update_frequency == 0:
             self.target_network.set_weights(
                 self.agent.approximator.get_weights())

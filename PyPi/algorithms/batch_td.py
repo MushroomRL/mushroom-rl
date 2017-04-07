@@ -11,7 +11,7 @@ class BatchTD(Algorithm):
     def __init__(self, agent, mdp, **params):
         super(BatchTD, self).__init__(agent, mdp, **params)
 
-    def callbacks(self):
+    def updates(self):
         pass
 
     def __str__(self):
@@ -61,6 +61,8 @@ class FQI(BatchTD):
         sa = np.concatenate((state, action), axis=1)
 
         self.agent.fit(sa, y, **self.fit_params)
+
+        return y
 
 
 class DoubleFQI(FQI):
