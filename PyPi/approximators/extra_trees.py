@@ -27,7 +27,7 @@ class ExtraTrees(object):
             fit_params (dict): other parameters.
         """
         if not hasattr(self, 'model'):
-            self.model = self._init()
+            self.model = self._initialize()
 
         self.model.fit(x, y, **fit_params)
 
@@ -46,7 +46,7 @@ class ExtraTrees(object):
 
         return predictions.ravel()
 
-    def _init(self):
+    def _initialize(self):
         return ExtraTreesRegressor(**self.approximator_params)
 
     def __str__(self):

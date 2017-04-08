@@ -138,9 +138,9 @@ class Algorithm(object):
                 self.mdp.render()
 
             last = 0 if n_steps < self.mdp.horizon and not absorbing else 1
-            sample = self.state.ravel().tolist() + action.ravel().tolist() + \
-                     [reward] + next_state.ravel().tolist() + \
-                     [absorbing, last]
+            sample = self.state.squeeze().tolist() + \
+                action.ravel().tolist() + [reward] + \
+                next_state.squeeze().tolist() + [absorbing, last]
             n_samples += 1
 
             self.logger.debug((self.state,

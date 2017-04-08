@@ -67,8 +67,5 @@ class Regressor(object):
 
         return self.pre_y.inverse_transform(y) if self.output_scaled else y
 
-    def clone(self):
-        return deepcopy(self)
-
     def __str__(self):
         return str(self.model)

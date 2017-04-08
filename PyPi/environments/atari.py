@@ -15,11 +15,12 @@ class Atari(gym.Env):
         'video.frames_per_second': 15
     }
 
-    def __init__(self, name='PongDeterministic-v3'):
-        self.__name__ = name
+    def __init__(self, game='PongDeterministic-v3'):
+        self.game = game
+        self.__name__ = game
 
         # MDP creation
-        self.env = gym.make(name)
+        self.env = gym.make(game)
 
         # MDP spaces
         self.action_space = spaces.Discrete(self.env.action_space.n)
@@ -69,3 +70,6 @@ class Atari(gym.Env):
 
     def render(self, mode='human', close=False):
         self.env.render(mode=mode, close=close)
+
+    def __str__(self):
+        return self.game

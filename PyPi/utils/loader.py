@@ -32,26 +32,25 @@ def load_experiment():
     mdp = get_environment(config['environment']['name'],
                           **config['environment']['params'])
 
-    # Spaces
-    state_space = mdp.observation_space
-    action_space = mdp.action_space
-
     # Policy
     policy = get_policy(config['policy']['name'],
                         **config['policy']['params'])
 
     # Regressor
-    approximator = get_approximator(config['approximator']['name'],
-                                    **config['approximator']['params'])
-    if config['approximator']['action_regression']:
-        if isinstance(mdp.action_space, spaces.Discrete) or \
-                isinstance(mdp.action_space, spaces.DiscreteValued) or \
-                isinstance(mdp.action_space, spaces.MultiDiscrete):
-            approximator = apprxs.ActionRegressor(approximator,
-                                                  mdp.action_space.values)
-        else:
-            raise ValueError('Action regression cannot be done with continuous'
-                             ' action spaces.')
+    if 'approximator' in config:
+        approximator = get_approximator(config['approximator']['name'],
+                                        **config['approximator']['params'])
+        if config['approximator']['action_regression']:
+            if isinstance(mdp.action_space, spaces.Discrete) or \
+                    isinstance(mdp.action_space, spaces.DiscreteValued) or \
+                    isinstance(mdp.action_space, spaces.MultiDiscrete):
+                approximator = apprxs.ActionRegressor(approximator,
+                                                      mdp.action_space.values)
+            else:
+                raise ValueError('Action regression cannot be done with continuous'
+                                 ' action spaces.')
+    else:
+        approximator = None
 
     return mdp, policy, approximator, config
 

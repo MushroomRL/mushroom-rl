@@ -1,0 +1,28 @@
+{
+  "experiment": {
+    "name": "",
+    "date": ""
+  },
+  "algorithm": {
+    "name": "DQN",
+    "params": {
+    }
+  },
+  "environment": {
+    "name": "Atari",
+    "params": {
+      "game": "PongDeterministic-v3"
+    }
+  },
+  "policy": {
+    "name": "EpsGreedy",
+    "params": {
+      "epsilon": {
+        "value": 1,
+        "decay_type": "linear",
+        "decay_rate": 9e-7,
+        "min_value": 0.1
+      }
+    }
+  }
+}
