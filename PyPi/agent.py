@@ -20,7 +20,7 @@ class Agent(object):
         self.policy = policy
         self._discrete_actions = discrete_actions
 
-    def max_QA(self, state, absorbing, target_approximator=None):
+    def max_QA(self, states, absorbing, target_approximator=None):
         """
         # Arguments
             state (np.array): the state where the agent is.
@@ -32,7 +32,7 @@ class Agent(object):
             A np.array of maximum Q-values and a np.array of their corresponding
             action values.
         """
-        n_states = state.shape[0]
+        n_states = states.shape[0]
         n_actions = self._discrete_actions.shape[0]
         action_dim = self._discrete_actions.shape[1]
 
@@ -40,9 +40,9 @@ class Agent(object):
         for action_idx in range(n_actions):
             actions = np.repeat(self._discrete_actions[action_idx],
                                 n_states,
-                                0)
+                                0).reshape(-1, 1)
 
-            samples = np.column_stack((state, actions))
+            samples = [states, actions]
 
             if target_approximator is None:
                 predictions = self.predict(samples)
@@ -65,12 +65,12 @@ class Agent(object):
 
         return r_q, r_a
 
-    def draw_action(self, state, absorbing, force_max_action=False):
+    def draw_action(self, states, absorbing, force_max_action=False):
         """
         Compute an action according to the policy.
 
         # Arguments
-            state (np.array): the state where the agent is.
+            states (np.array): the state where the agent is.
             absorbing (np.array): whether the state is absorbing or not.
             force_max_action (bool): whether to select the best action or not.
 
@@ -79,13 +79,13 @@ class Agent(object):
         """
         if not force_max_action:
             if self.policy():
-                _, max_action = self.max_QA(state, absorbing)
+                _, max_action = self.max_QA(states, absorbing)
 
                 return max_action
             return np.array([self._discrete_actions[
                 np.random.choice(range(self._discrete_actions.shape[0])), :]])
         else:
-            _, max_action = self.max_QA(state, absorbing)
+            _, max_action = self.max_QA(states, absorbing)
 
             return max_action
 

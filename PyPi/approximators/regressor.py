@@ -1,5 +1,4 @@
-from copy import deepcopy
-
+import numpy as np
 from sklearn import preprocessing
 
 
@@ -22,7 +21,7 @@ class Regressor(object):
 
         self.model = approximator_class(**apprx_params)
 
-    def fit(self, x, y, **fit_params):
+    def fit(self, x, y, exclude_actions=False, **fit_params):
         """
         Preprocess the input and output if requested and fit the model using
         its fit function.
@@ -33,6 +32,13 @@ class Regressor(object):
             y (np.array): target.
             fit_params (dict): other parameters.
         """
+        if not exclude_actions:
+            assert x[0].shape == x[1].shape, 'State and action arrays shape ' \
+                                             'must be equal.'
+            x = np.concatenate((x[0], x[1]), axis=1)
+        else:
+            x = x[0]
+
         if self.features:
             x = self.features.fit_transform(x)
 
@@ -46,7 +52,7 @@ class Regressor(object):
 
         self.model.fit(x, y, **fit_params)
 
-    def predict(self, x):
+    def predict(self, x, exclude_actions=False):
         """
         Preprocess the input and output if requested and make the prediction.
 
@@ -57,6 +63,13 @@ class Regressor(object):
         # Returns
             The prediction of the model.
         """
+        if not exclude_actions:
+            assert x[0].shape == x[1].shape, 'State and action arrays shape ' \
+                                             'must be equal.'
+            x = np.concatenate((x[0], x[1]), axis=1)
+        else:
+            x = x[0]
+
         if self.features:
             x = self.features.transform(x)
 

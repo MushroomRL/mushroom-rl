@@ -1,11 +1,11 @@
 numpy>=1.11
 scipy>=0.18
 gym>=0.3
-keras>=2.0.0
 tensorflow>=1.0.1
 future
 scikit-learn>=0.17
 pybrain>=0.3
 pygame
 joblib
-PIL
+keras
+pillow

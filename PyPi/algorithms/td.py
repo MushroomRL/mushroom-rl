@@ -23,7 +23,7 @@ class TD(Algorithm):
                           self.mdp.observation_space.dim,
                           self.mdp.action_space.dim)
 
-        sa = np.concatenate((state, action), axis=1)
+        sa = [state, action]
         q_current = self.agent.approximator.predict(sa)
         q_next = self._next_q(next_state, absorbing) * (1 - absorbing)
 
@@ -62,7 +62,7 @@ class QLearning(TD):
             Action with the maximum action_value in 'next_state'.
         """
         a_n = self.agent.draw_action(next_state, absorbing, True)
-        sa_n = np.concatenate((next_state, a_n), axis=1)
+        sa_n = [next_state, a_n]
 
         return self.agent.approximator.predict(sa_n)
 
@@ -120,6 +120,6 @@ class SARSA(TD):
             The action returned by the policy in 'next_state'.
         """
         a_n = self.agent.draw_action(next_state, absorbing)
-        sa_n = np.concatenate((next_state, a_n), axis=1)
+        sa_n = [next_state, a_n]
 
         return self.agent.approximator.predict(sa_n)
