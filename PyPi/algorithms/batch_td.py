@@ -58,7 +58,7 @@ class FQI(BatchTD):
             maxq, _ = self.agent.max_QA(next_states, absorbing)
             y = reward + self.gamma * maxq
 
-        sa = [state, action]
+        sa = (state, action)
         self.agent.fit(sa, y, **self.fit_params)
 
         return y

@@ -15,9 +15,9 @@
   },
   "approximator": {
     "name": "DenseNN",
-    "action_regression": 0,
+    "action_regression": 1,
     "params": {
-      "n_input": 3,
+      "n_input": 2,
       "n_output": 1,
       "hidden_neurons": [10],
       "input_scaled": 1,

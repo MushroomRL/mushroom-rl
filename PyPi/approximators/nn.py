@@ -19,7 +19,6 @@ class NN(object):
         self.__name__ = 'DenseNN'
 
         self.approximator_params = approximator_params
-        self.model = self._initialize()
 
     def fit(self, x, y, **fit_params):
         """
@@ -31,6 +30,9 @@ class NN(object):
             y (np.array): target.
             fit_params (dict): other parameters.
         """
+        if not hasattr(self, 'model'):
+            self.model = self._initialize()
+
         self.model.fit(x, y, **fit_params)
 
     def predict(self, x):

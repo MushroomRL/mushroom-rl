@@ -17,16 +17,14 @@ class EpsGreedy(object):
         """
         self.__name__ = 'EpsGreedy'
 
-        self._epsilon = Parameter(params.pop('epsilon'))
+        self._epsilon = Parameter(**params.pop('epsilon'))
 
     def __call__(self):
         """
         # Returns
             Flag indicating to perform the greedy action or the random one.
         """
-        if np.random.uniform() < self._epsilon():
-            return False
-        return True
+        return not np.random.uniform() < self._epsilon()
 
     def set_epsilon(self, epsilon):
         """

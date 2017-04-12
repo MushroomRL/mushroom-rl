@@ -42,7 +42,7 @@ class Agent(object):
                                 n_states,
                                 0).reshape(-1, 1)
 
-            samples = [states, actions]
+            samples = (states, actions)
 
             if target_approximator is None:
                 predictions = self.predict(samples)

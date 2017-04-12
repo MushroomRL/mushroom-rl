@@ -168,7 +168,6 @@ class Algorithm(object):
                     if i < how_many:
                         self.logger.info('Episode: %d' % (i + 1))
                         self.logger.info(self.state)
-
             else:
                 if iterate_over == 'samples':
                     i += 1
