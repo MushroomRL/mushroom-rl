@@ -1,3 +1,3 @@
-from .agent import Agent
+from PyPi.algorithms.agent import Agent
 
 __all__ = ['Agent']

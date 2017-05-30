@@ -2,11 +2,11 @@ import logging
 import numpy as np
 
 
-class Algorithm(object):
+class Core(object):
     """
     Implements the functions to run a generic algorithm.
     """
-    def __init__(self, agent, mdp, **params):
+    def __init__(self, agent, mdp):
         """
         Constructor.
 
@@ -17,11 +17,10 @@ class Algorithm(object):
         """
         self.agent = agent
         self.mdp = mdp
-        self.gamma = params.pop('gamma', mdp.gamma)
+
+        self.agent.initialize(self.mdp.get_info())
 
         self.logger = logging.getLogger('logger')
-
-        self.fit_params = params.pop('fit_params', dict())
 
         self.state = self.mdp.reset()
         self._dataset = list()
@@ -59,13 +58,13 @@ class Algorithm(object):
         if initial_dataset_size is not None:
             self.move(initial_dataset_size, iterate_over, collect=True,
                       render=render)
-            self.fit(n_fit_steps)
+            self.agent.fit(self._dataset, n_fit_steps)
 
         for self.iteration in range(n_iterations):
             self.apply_updates()
 
             self.move(how_many, iterate_over, collect=True, render=render)
-            self.fit(n_fit_steps)
+            self.agent.fit(self._dataset, n_fit_steps)
 
     def evaluate(self, initial_states, render=False):
         """
@@ -92,7 +91,7 @@ class Algorithm(object):
         Js = list()
         for i in range(initial_states.shape[0]):
             self.state = self.mdp.reset(initial_states[i, :])
-            J = self.move(1, 'episodes', force_max_action=True, render=render)
+            J = self.move(1, 'episodes', render=render)
             Js.append(J)
 
         return np.array(Js).ravel()
@@ -100,7 +99,6 @@ class Algorithm(object):
     def move(self,
              how_many,
              iterate_over,
-             force_max_action=False,
              collect=False,
              render=False):
         """
@@ -109,8 +107,6 @@ class Algorithm(object):
         # Arguments
             how_many (int > 0): number of samples or episodes to collect.
             iterate_over (string): whether to collect samples or episodes.
-            force_max_action (bool): whether to perform the greedy action given
-                by the policy or not.
             collect (bool): whether to store the collected data or not.
             render (bool): whether to render the environment or not.
 
@@ -128,10 +124,9 @@ class Algorithm(object):
         while i < how_many:
             J = 0.
             action = self.agent.draw_action(self.state,
-                                            absorbing=False,
-                                            force_max_action=force_max_action)
+                                            self.agent.approximator)
             next_state, reward, absorbing, _ = self.mdp.step(action)
-            J += self.gamma ** n_steps * reward
+            J += self.mdp.gamma ** n_steps * reward
             n_steps += 1
 
             if render:
@@ -181,7 +176,7 @@ class Algorithm(object):
 
     def apply_updates(self):
         self.agent.policy.update()
-        self.updates()
+        self.agent.updates()
 
     def get_dataset(self):
         """

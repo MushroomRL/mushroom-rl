@@ -7,7 +7,7 @@ class Regressor(object):
     Regressor class used to preprocess input and output before passing them
     to the desired approximator.
     """
-    def __init__(self, approximator_class, **apprx_params):
+    def __init__(self, approximator_class, **params):
         """
         Constructor.
 
@@ -15,11 +15,11 @@ class Regressor(object):
             approximator_class (object): the approximator class to use.
             apprx_params (dict): other parameters.
         """
-        self.features = apprx_params.pop('features', None)
-        self.input_scaled = apprx_params.pop('input_scaled', False)
-        self.output_scaled = apprx_params.pop('output_scaled', False)
+        self.features = params.pop('features', None)
+        self.input_scaled = params.pop('input_scaled', False)
+        self.output_scaled = params.pop('output_scaled', False)
 
-        self.model = approximator_class(**apprx_params)
+        self.model = approximator_class(**params)
 
     def fit(self, x, y, exclude_actions=False, **fit_params):
         """
@@ -33,8 +33,6 @@ class Regressor(object):
             fit_params (dict): other parameters.
         """
         if not exclude_actions:
-            assert x[0].shape == x[1].shape, 'State and action arrays shape ' \
-                                             'must be equal.'
             x = np.concatenate((x[0], x[1]), axis=1)
         else:
             x = x[0]
@@ -64,8 +62,6 @@ class Regressor(object):
             The prediction of the model.
         """
         if not exclude_actions:
-            assert x[0].shape == x[1].shape, 'State and action arrays shape ' \
-                                             'must be equal.'
             x = np.concatenate((x[0], x[1]), axis=1)
         else:
             x = x[0]

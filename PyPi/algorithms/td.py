@@ -1,36 +1,40 @@
 import numpy as np
 
-from PyPi.algorithms.algorithm import Algorithm
+from PyPi.algorithms.agent import Agent
 from PyPi.utils.dataset import parse_dataset
 from PyPi.utils.parameters import Parameter
 
 
-class TD(Algorithm):
+class TD(Agent):
     """
     Implements functions to run TD algorithms.
     """
     def __init__(self, agent, mdp, **params):
-        self.learning_rate = Parameter(params.pop('learning_rate'))
+        self.learning_rate = Parameter(
+            params['algorithm_params'].pop('learning_rate'))
 
         super(TD, self).__init__(agent, mdp, **params)
 
-    def fit(self, _):
+    def fit(self, dataset, n_fit_iterations=1):
         """
         Single fit step.
         """
+        assert n_fit_iterations == 1
+
         state, action, reward, next_state, absorbing, _ =\
-            parse_dataset(np.array(self._dataset)[-1, :],
-                          self.mdp.observation_space.dim,
-                          self.mdp.action_space.dim)
+            parse_dataset(np.array(dataset)[-1, :],
+                          self.mdp_info['observation_space'].dim,
+                          self.mdp_info['action_space'].dim)
 
         sa = (state, action)
-        q_current = self.agent.approximator.predict(sa)
-        q_next = self._next_q(next_state, absorbing) * (1 - absorbing)
+        q_current = self.approximator.predict(sa)
+        q_next = self._next_q(
+            next_state, self.approximator) if not absorbing else 0
 
         q = q_current + self.learning_rate() * (
-            reward + self.gamma * q_next - q_current)
+            reward + self.mdp_info['gamma'] * q_next - q_current)
 
-        self.agent.fit(sa, q, **self.fit_params)
+        self.approximator.fit(sa, q, **self.params['fit_params'])
 
     def updates(self):
         self.learning_rate.update()
@@ -49,7 +53,7 @@ class QLearning(TD):
 
         super(QLearning, self).__init__(agent, mdp, **params)
 
-    def _next_q(self, next_state, absorbing):
+    def _next_q(self, next_state, approximator, greedy_action=True):
         """
         Compute the action with the maximum action-value in 'next_state'.
 
@@ -61,10 +65,10 @@ class QLearning(TD):
         # Returns
             Action with the maximum action_value in 'next_state'.
         """
-        a_n = self.agent.draw_action(next_state, absorbing, True)
+        a_n = self.draw_action(next_state, approximator, greedy_action)
         sa_n = (next_state, a_n)
 
-        return self.agent.approximator.predict(sa_n)
+        return self.approximator.predict(sa_n)
 
 
 class DoubleQLearning(TD):
@@ -77,7 +81,7 @@ class DoubleQLearning(TD):
 
         super(DoubleQLearning, self).__init__(agent, mdp, **params)
 
-    def _next_q(self, next_state, absorbing):
+    def _next_q(self, next_state, approximator, greedy_action):
         pass
 
 
@@ -94,7 +98,7 @@ class WeightedQLearning(TD):
 
         super(WeightedQLearning, self).__init__(agent, mdp, **params)
 
-    def _next_q(self, next_state, absorbing):
+    def _next_q(self, next_state, approximator, greedy_action):
         pass
 
 
@@ -107,7 +111,7 @@ class SARSA(TD):
 
         super(SARSA, self).__init__(agent, mdp, **params)
 
-    def _next_q(self, next_state, absorbing):
+    def _next_q(self, next_state, approximator, greedy_action=False):
         """
         Compute the action with the maximum action-value in 'next_state'.
 
@@ -119,7 +123,7 @@ class SARSA(TD):
         # Returns
             The action returned by the policy in 'next_state'.
         """
-        a_n = self.agent.draw_action(next_state, absorbing)
+        a_n = self.draw_action(next_state, approximator, greedy_action)
         sa_n = [next_state, a_n]
 
-        return self.agent.approximator.predict(sa_n)
+        return self.approximator.predict(sa_n)

@@ -5,6 +5,7 @@ tensorflow>=1.0.1
 future
 scikit-learn>=0.17
 pybrain>=0.3
+matplotlib
 pygame
 joblib
 keras

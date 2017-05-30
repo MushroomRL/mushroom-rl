@@ -1,34 +1,46 @@
 import numpy as np
 from joblib import Parallel, delayed
+from sklearn.ensemble import ExtraTreesRegressor
 
-from PyPi.agent import Agent
-from PyPi.utils.loader import *
+from PyPi.algorithms.batch_td import FQI
+from PyPi.approximators import ActionRegressor
+from PyPi.core.core import Core
+from PyPi.environments import *
+from PyPi.policy import EpsGreedy
+from PyPi.utils import logger
 from PyPi.utils.parameters import Parameter
 
 
 def experiment():
     np.random.seed()
 
-    mdp, policy, approximator, config = load_experiment()
+    # MDP
+    mdp = CarOnHill()
+
+    # Policy
+    epsilon = Parameter(value=1)
+    discrete_actions = mdp.action_space.values
+    pi = EpsGreedy(epsilon=epsilon, discrete_actions=discrete_actions)
+
+    # Approximator
+    approximator_params = dict()
+    approximator = ActionRegressor(ExtraTreesRegressor,
+                                   discrete_actions=discrete_actions,
+                                   **approximator_params)
 
     # Agent
-    #discrete_actions = np.linspace(
-    #    mdp.action_space.low, mdp.action_space.high, 5).reshape(-1, 1)
-    discrete_actions = mdp.action_space.values
-    agent = Agent(approximator, policy, discrete_actions=discrete_actions)
+    algorithm_params = dict()
+    fit_params = dict()
+    agent_params = {'algorithm_params': algorithm_params,
+                    'fit_params': fit_params}
+    agent = FQI(approximator, pi, **agent_params)
 
     # Algorithm
-    #from keras.callbacks import EarlyStopping
-    #config['algorithm']['params']['fit_params']['callbacks'] =\
-    #    [EarlyStopping('loss', patience=20, min_delta=1e-4)]
-    alg = get_algorithm(config['algorithm']['name'],
-                        agent,
-                        mdp,
-                        **config['algorithm']['params'])
+    core = Core(agent, mdp)
 
     # Train
-    alg.learn(n_iterations=1, how_many=1000, n_fit_steps=20,
-              iterate_over='episodes')
+    core.learn(n_iterations=1, how_many=1000, n_fit_steps=20,
+               iterate_over='episodes')
 
     # Test
     agent.policy.set_epsilon(Parameter(0))
@@ -40,11 +52,13 @@ def experiment():
             initial_states[cont, :] = [0.125 * i, 0.375 * j]
             cont += 1
 
-    return np.mean(alg.evaluate(initial_states, render=False))
+    return np.mean(core.evaluate(initial_states, render=False))
 
 
 if __name__ == '__main__':
-    n_experiment = 3
+    n_experiment = 1
+
+    logger.Logger(1)
 
     Js = Parallel(n_jobs=-1)(delayed(experiment)() for _ in range(n_experiment))
     print(Js)

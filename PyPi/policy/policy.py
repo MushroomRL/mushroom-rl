@@ -1,5 +1,6 @@
 import numpy as np
 
+from PyPi.utils.dataset import max_QA
 from PyPi.utils.parameters import Parameter
 
 
@@ -7,7 +8,7 @@ class EpsGreedy(object):
     """
     Epsilon greedy policy.
     """
-    def __init__(self, **params):
+    def __init__(self, epsilon, discrete_actions):
         """
         Constructor.
 
@@ -17,14 +18,27 @@ class EpsGreedy(object):
         """
         self.__name__ = 'EpsGreedy'
 
-        self._epsilon = Parameter(**params.pop('epsilon'))
+        self._epsilon = Parameter(epsilon)
+        self.discrete_actions = discrete_actions
 
-    def __call__(self):
+    def __call__(self, states, approximator):
         """
+        Compute an action according to the policy.
+
+        # Arguments
+            states (np.array): the state where the agent is.
+            absorbing (np.array): whether the state is absorbing or not.
+            force_max_action (bool): whether to select the best action or not.
+
         # Returns
-            Flag indicating to perform the greedy action or the random one.
+            The selected action.
         """
-        return not np.random.uniform() < self._epsilon()
+        if not np.random.uniform() < self._epsilon():
+            _, max_action = max_QA(states, False, approximator,
+                                   self.discrete_actions)
+            return max_action
+        return np.array([self.discrete_actions[
+            np.random.choice(range(self.discrete_actions.shape[0])), :]])
 
     def set_epsilon(self, epsilon):
         """

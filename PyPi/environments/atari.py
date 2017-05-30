@@ -71,5 +71,11 @@ class Atari(gym.Env):
     def render(self, mode='human', close=False):
         self.env.render(mode=mode, close=close)
 
+    def get_info(self):
+        return {'observation_space': self.observation_space,
+                'action_space': self.action_space,
+                'gamma': self.gamma,
+                'horizon': self.horizon}
+
     def __str__(self):
         return self.game

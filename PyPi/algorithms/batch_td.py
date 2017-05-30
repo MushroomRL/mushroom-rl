@@ -1,10 +1,8 @@
-import numpy as np
-
-from PyPi.algorithms import Algorithm
-from PyPi.utils.dataset import parse_dataset
+from PyPi.algorithms.agent import Agent
+from PyPi.utils.dataset import max_QA, parse_dataset
 
 
-class BatchTD(Algorithm):
+class BatchTD(Agent):
     """
     Implements functions to run Batch algorithms.
     """
@@ -28,7 +26,7 @@ class FQI(BatchTD):
 
         super(FQI, self).__init__(agent, mdp, **params)
 
-    def fit(self, n_iterations):
+    def fit(self, dataset, n_iterations):
         """
         Fit loop.
 
@@ -38,9 +36,10 @@ class FQI(BatchTD):
         target = None
         for i in range(n_iterations):
             self.logger.info('Iteration: %d' % (i + 1))
-            target = self.partial_fit(self._dataset, target)
+            target = self.partial_fit(dataset, target,
+                                      **self.params['fit_params'])
 
-    def partial_fit(self, x, y):
+    def partial_fit(self, x, y, **fit_params):
         """
         Single fit iteration.
 
@@ -49,17 +48,17 @@ class FQI(BatchTD):
             y (np.array): target.
         """
         state, action, reward, next_states, absorbing, last =\
-            parse_dataset(x,
-                          self.mdp.observation_space.dim,
-                          self.mdp.action_space.dim)
+            parse_dataset(x, self.mdp_info['observation_space'].dim,
+                          self.mdp_info['action_space'].dim)
         if y is None:
             y = reward
         else:
-            maxq, _ = self.agent.max_QA(next_states, absorbing)
-            y = reward + self.gamma * maxq
+            maxq, _ = max_QA(next_states, absorbing, self.approximator,
+                             self.policy.discrete_actions)
+            y = reward + self.mdp_info['gamma'] * maxq
 
         sa = (state, action)
-        self.agent.fit(sa, y, **self.fit_params)
+        self.approximator.fit(sa, y, **fit_params)
 
         return y
 
@@ -75,7 +74,7 @@ class DoubleFQI(FQI):
 
         super(DoubleFQI, self).__init__(agent, mdp, **params)
 
-    def partial_fit(self, x, y):
+    def partial_fit(self, x, y, **fit_params):
         pass
 
 
@@ -90,5 +89,5 @@ class WeightedFQI(FQI):
 
         super(WeightedFQI, self).__init__(agent, mdp, **params)
 
-    def partial_fit(self, x, y):
+    def partial_fit(self, x, y, **fit_params):
         pass

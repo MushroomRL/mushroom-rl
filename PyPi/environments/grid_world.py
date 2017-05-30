@@ -68,5 +68,11 @@ class GridWorld(gym.Env):
     def get_state(self):
         return np.array([self._state])
 
+    def get_info(self):
+        return {'observation_space': self.observation_space,
+                'action_space': self.action_space,
+                'gamma': self.gamma,
+                'horizon': self.horizon}
+
     def __str__(self):
         return self.__name__
