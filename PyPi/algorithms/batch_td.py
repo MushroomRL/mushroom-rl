@@ -6,8 +6,8 @@ class BatchTD(Agent):
     """
     Implements functions to run Batch algorithms.
     """
-    def __init__(self, agent, mdp, **params):
-        super(BatchTD, self).__init__(agent, mdp, **params)
+    def __init__(self, approximator, policy, **params):
+        super(BatchTD, self).__init__(approximator, policy, **params)
 
     def updates(self):
         pass
@@ -21,10 +21,10 @@ class FQI(BatchTD):
     Fitted Q-Iteration algorithm.
     "Tree-Based Batch Mode Reinforcement Learning", Ernst D. et.al.. 2005.
     """
-    def __init__(self, agent, mdp, **params):
+    def __init__(self, approximator, policy, **params):
         self.__name__ = 'FQI'
 
-        super(FQI, self).__init__(agent, mdp, **params)
+        super(FQI, self).__init__(approximator, policy, **params)
 
     def fit(self, dataset, n_iterations):
         """
@@ -69,10 +69,10 @@ class DoubleFQI(FQI):
     "Estimating the Maximum Expected Value in Continuous Reinforcement Learning
     Problems". D'Eramo C. et. al.. 2017.
     """
-    def __init__(self, agent, mdp, **params):
+    def __init__(self, approximator, policy, **params):
         self.__name__ = 'DoubleFQI'
 
-        super(DoubleFQI, self).__init__(agent, mdp, **params)
+        super(DoubleFQI, self).__init__(approximator, policy, **params)
 
     def partial_fit(self, x, y, **fit_params):
         pass
@@ -84,10 +84,10 @@ class WeightedFQI(FQI):
     "Estimating the Maximum Expected Value in Continuous Reinforcement Learning
     Problems". D'Eramo C. et. al.. 2017.
     """
-    def __init__(self, agent, mdp, **params):
+    def __init__(self, approximator, policy, **params):
         self.__name__ = 'WeightedFQI'
 
-        super(WeightedFQI, self).__init__(agent, mdp, **params)
+        super(WeightedFQI, self).__init__(approximator, policy, **params)
 
     def partial_fit(self, x, y, **fit_params):
         pass

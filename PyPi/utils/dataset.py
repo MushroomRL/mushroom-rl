@@ -85,17 +85,18 @@ def select_samples(dataset, state_dim, action_dim, n_samples, parse=False):
                                                        action_dim)
 
 
-def max_QA(states, absorbing, target_approximator, discrete_actions):
+def max_QA(states, absorbing, approximator, discrete_actions):
     """
     # Arguments
         state (np.array): the state where the agent is.
         absorbing (np.array): whether the state is absorbing or not.
-        target_approximator (object, None): the model to use to predict
-            the maximum Q-values.
+        approximator (object): the approximator to use to compute the
+            action values.
+        discrete_actions (np.array): the values of the discrete actions.
 
     # Returns
-        A np.array of maximum Q-values and a np.array of their corresponding
-        action values.
+        A np.array of maximum action values and a np.array of their
+        corresponding actions.
     """
     n_states = states.shape[0]
     n_actions = discrete_actions.shape[0]
@@ -109,7 +110,7 @@ def max_QA(states, absorbing, target_approximator, discrete_actions):
 
         samples = (states, actions)
 
-        predictions = target_approximator.predict(samples)
+        predictions = approximator.predict(samples)
 
         Q[:, action_idx] = predictions * (1 - absorbing)
 

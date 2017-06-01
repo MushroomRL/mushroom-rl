@@ -13,12 +13,15 @@ class EpsGreedy(object):
         Constructor.
 
         # Arguments
-        epsilon (0 <= float <= 1): the exploration coefficient. It indicates
+        epsilon (Parameter): the exploration coefficient. It indicates
             the probability of performing a random actions in the current step.
+        discrete_actions (np.array): the values of the discrete actions.
         """
         self.__name__ = 'EpsGreedy'
 
-        self._epsilon = Parameter(epsilon)
+        assert isinstance(epsilon, Parameter)
+
+        self._epsilon = epsilon
         self.discrete_actions = discrete_actions
 
     def __call__(self, states, approximator):
@@ -27,8 +30,8 @@ class EpsGreedy(object):
 
         # Arguments
             states (np.array): the state where the agent is.
-            absorbing (np.array): whether the state is absorbing or not.
-            force_max_action (bool): whether to select the best action or not.
+            approximator (object): the approximator to use to compute the
+                action values.
 
         # Returns
             The selected action.
@@ -45,7 +48,7 @@ class EpsGreedy(object):
         Setter.
 
         # Arguments
-        epsilon (0 <= float <= 1): the exploration coefficient. It indicates
+        epsilon (Parameter): the exploration coefficient. It indicates
             the probability of performing a random actions in the current step.
         """
         assert isinstance(epsilon, Parameter)
@@ -53,6 +56,9 @@ class EpsGreedy(object):
         self._epsilon = epsilon
 
     def update(self):
+        """
+        Update epsilon.
+        """
         self._epsilon.update()
 
     def __str__(self):

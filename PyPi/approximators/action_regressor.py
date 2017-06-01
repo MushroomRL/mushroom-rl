@@ -14,9 +14,10 @@ class ActionRegressor(object):
         Constructor.
 
         # Arguments
-            model (object): the model to approximate the Q-function of each
-                action.
+            approximator_class (object): the model class to approximate the
+            Q-function of each action.
             discrete_actions (np.array): the values of the discrete actions.
+            **params (dict): parameters dictionary to co each regressor.
         """
         self._discrete_actions = discrete_actions
         self._action_dim = self._discrete_actions.shape[1]

@@ -28,8 +28,6 @@ class Core(object):
     def learn(self, n_iterations, how_many, n_fit_steps, iterate_over,
               initial_dataset_size=None, render=False):
         """
-        TODO: da migliorare
-
         This function is used to learn a policy. An iteration of the loop
         consists in collecting a dataset and fitting the agent's Q-function
         approximator on that. Multiple iterations can be done in order to append
@@ -47,12 +45,6 @@ class Core(object):
                 single iteration of the loop.
             render (bool): whether to render the environment or not.
         """
-        self.logger.info('*** LEARN ***')
-        self.logger.info('Algorithm: ' + str(self))
-        self.logger.info('Approximator: ' + str(self.agent.approximator))
-        self.logger.info('Environment: ' + str(self.mdp))
-        self.logger.info('Policy: ' + str(self.agent.policy))
-
         assert iterate_over == 'samples' or iterate_over == 'episodes'
 
         if initial_dataset_size is not None:
@@ -61,10 +53,10 @@ class Core(object):
             self.agent.fit(self._dataset, n_fit_steps)
 
         for self.iteration in range(n_iterations):
-            self.apply_updates()
-
             self.move(how_many, iterate_over, collect=True, render=render)
             self.agent.fit(self._dataset, n_fit_steps)
+
+            self.apply_updates()
 
     def evaluate(self, initial_states, render=False):
         """
@@ -80,14 +72,6 @@ class Core(object):
             The np.array of discounted rewards obtained in the episodes started
             from the provided initial states.
         """
-        self.logger.info('*** EVALUATION ***')
-        self.logger.info('Algorithm: ' + str(self))
-        self.logger.info('Approximator: ' + str(self.agent.approximator))
-        self.logger.info('Environment: ' + str(self.mdp))
-        self.logger.info('Policy: ' + str(self.agent.policy))
-        self.logger.info('Number of evaluation episodes: ' +
-                         str(initial_states.shape[0]))
-
         Js = list()
         for i in range(initial_states.shape[0]):
             self.state = self.mdp.reset(initial_states[i, :])
@@ -180,8 +164,6 @@ class Core(object):
 
     def get_dataset(self):
         """
-        Return the stored dataset.
-
         # Returns
             The np.array of the stored dataset.
         """
