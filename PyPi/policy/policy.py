@@ -8,7 +8,7 @@ class EpsGreedy(object):
     """
     Epsilon greedy policy.
     """
-    def __init__(self, epsilon, discrete_actions):
+    def __init__(self, epsilon, observation_space, action_space):
         """
         Constructor.
 
@@ -22,26 +22,27 @@ class EpsGreedy(object):
         assert isinstance(epsilon, Parameter)
 
         self._epsilon = epsilon
-        self.discrete_actions = discrete_actions
+        self.observation_space = observation_space
+        self.action_space = action_space
 
-    def __call__(self, states, approximator):
+    def __call__(self, state, approximator):
         """
         Compute an action according to the policy.
 
         # Arguments
-            states (np.array): the state where the agent is.
+            state (np.array): the state where the agent is.
             approximator (object): the approximator to use to compute the
                 action values.
 
         # Returns
             The selected action.
         """
-        if not np.random.uniform() < self._epsilon():
-            _, max_action = max_QA(states, False, approximator,
-                                   self.discrete_actions)
-            return max_action
-        return np.array([self.discrete_actions[
-            np.random.choice(range(self.discrete_actions.shape[0])), :]])
+        if not np.random.uniform() < self._epsilon(
+                self.observation_space.get_idx(state)):
+            _, max_action = max_QA(state, False, approximator,
+                                   self.action_space.values)
+            return self.action_space.get_idx(max_action)
+        return np.array([np.random.choice(range(self.action_space.n))])
 
     def set_epsilon(self, epsilon):
         """
@@ -54,12 +55,6 @@ class EpsGreedy(object):
         assert isinstance(epsilon, Parameter)
 
         self._epsilon = epsilon
-
-    def update(self):
-        """
-        Update epsilon.
-        """
-        self._epsilon.update()
 
     def __str__(self):
         return self.__name__

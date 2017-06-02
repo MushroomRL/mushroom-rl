@@ -19,13 +19,13 @@ def experiment():
 
     # Policy
     epsilon = Parameter(value=1)
-    discrete_actions = mdp.action_space.values
-    pi = EpsGreedy(epsilon=epsilon, discrete_actions=discrete_actions)
+    pi = EpsGreedy(epsilon=epsilon, observation_space=mdp.observation_space,
+                   action_space=mdp.action_space)
 
     # Approximator
     approximator_params = dict()
     approximator = ActionRegressor(ExtraTreesRegressor,
-                                   discrete_actions=discrete_actions,
+                                   discrete_actions=mdp.action_space.values,
                                    **approximator_params)
 
     # Agent

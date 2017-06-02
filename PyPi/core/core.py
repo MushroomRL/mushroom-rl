@@ -56,8 +56,6 @@ class Core(object):
             self.move(how_many, iterate_over, collect=True, render=render)
             self.agent.fit(self._dataset, n_fit_steps)
 
-            self.apply_updates()
-
     def evaluate(self, initial_states, render=False):
         """
         This function is used to evaluate the learned policy.
@@ -107,9 +105,10 @@ class Core(object):
             self.logger.info(self.state)
         while i < how_many:
             J = 0.
-            action = self.agent.draw_action(self.state,
+            action_idx = self.agent.draw_action(self.state,
                                             self.agent.approximator)
-            next_state, reward, absorbing, _ = self.mdp.step(action)
+            action_value = self.mdp.action_space.get_value(action_idx)
+            next_state, reward, absorbing, _ = self.mdp.step(action_idx)
             J += self.mdp.gamma ** n_steps * reward
             n_steps += 1
 
@@ -118,12 +117,12 @@ class Core(object):
 
             last = 0 if n_steps < self.mdp.horizon and not absorbing else 1
             sample = self.state.squeeze().tolist() + \
-                action.ravel().tolist() + [reward] + \
+                action_value.ravel().tolist() + [reward] + \
                 next_state.squeeze().tolist() + [absorbing, last]
             n_samples += 1
 
             self.logger.debug((self.state,
-                               action,
+                               action_value,
                                reward,
                                next_state,
                                absorbing))
@@ -157,10 +156,6 @@ class Core(object):
             self.logger.debug('Number of samples gathered: ' + str(n_samples))
 
         return Js
-
-    def apply_updates(self):
-        self.agent.policy.update()
-        self.agent.updates()
 
     def get_dataset(self):
         """

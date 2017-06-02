@@ -9,9 +9,6 @@ class BatchTD(Agent):
     def __init__(self, approximator, policy, **params):
         super(BatchTD, self).__init__(approximator, policy, **params)
 
-    def updates(self):
-        pass
-
     def __str__(self):
         return self.__name__
 
@@ -54,7 +51,7 @@ class FQI(BatchTD):
             y = reward
         else:
             maxq, _ = max_QA(next_states, absorbing, self.approximator,
-                             self.policy.discrete_actions)
+                             self.mdp_info['action_space'].values)
             y = reward + self.mdp_info['gamma'] * maxq
 
         sa = (state, action)

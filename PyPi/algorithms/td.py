@@ -1,4 +1,5 @@
 import numpy as np
+from copy import deepcopy
 
 from PyPi.algorithms.agent import Agent
 from PyPi.utils.dataset import parse_dataset
@@ -25,16 +26,15 @@ class TD(Agent):
                           self.mdp_info['action_space'].dim)
 
         sa = (state, action)
+        sa_idx = (self.mdp_info['observation_space'].get_idx(state),
+                  self.mdp_info['action_space'].get_idx(action))
         q_current = self.approximator.predict(sa)
         q_next = self._next_q(next_state) if not absorbing else 0
 
-        q = q_current + self.learning_rate() * (
+        q = q_current + self.learning_rate(sa_idx) * (
             reward + self.mdp_info['gamma'] * q_next - q_current)
 
         self.approximator.fit(sa, q, **self.params['fit_params'])
-
-    def updates(self):
-        self.learning_rate.update()
 
     def __str__(self):
         return self.__name__
@@ -77,6 +77,9 @@ class DoubleQLearning(TD):
 
         super(DoubleQLearning, self).__init__(approximator, policy, **params)
 
+        self.learning_rate = [deepcopy(self.learning_rate),
+                              deepcopy(self.learning_rate)]
+
         assert self.approximator.n_models == 2, 'The regressor ensemble must' \
                                                 ' have exactly 2 models.'
 
@@ -92,6 +95,8 @@ class DoubleQLearning(TD):
                           self.mdp_info['action_space'].dim)
 
         sa = (state, action)
+        sa_idx = np.append(self.mdp_info['observation_space'].get_idx(state),
+                           self.mdp_info['action_space'].get_idx(action))
 
         approximator_idx = 0
         if np.random.uniform() < 0.5:
@@ -101,16 +106,17 @@ class DoubleQLearning(TD):
         q_next = self._next_q(
             next_state, approximator_idx) if not absorbing else 0
 
-        q = q_current + self.learning_rate() * (
+        q = q_current + self.learning_rate[approximator_idx](sa_idx) * (
             reward + self.mdp_info['gamma'] * q_next - q_current)
 
         self.approximator[approximator_idx].fit(
             sa, q, **self.params['fit_params'])
 
-
     def _next_q(self, next_state, approximator_idx):
-        a_n = self.draw_action(next_state, self.approximator[approximator_idx])
-        sa_n = (next_state, a_n)
+        a_n_idx = self.draw_action(
+            next_state, self.approximator[approximator_idx])
+        a_n_value = self.mdp_info['action_space'].get_value(a_n_idx)
+        sa_n = (next_state, a_n_value)
 
         return self.approximator[1 - approximator_idx].predict(sa_n)
 
