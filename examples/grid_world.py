@@ -45,13 +45,11 @@ def experiment():
     core.learn(n_iterations=10000, how_many=1, n_fit_steps=1,
                iterate_over='samples')
 
-    _, _, reward, _, _, _ = parse_dataset(core.get_dataset(),
-                                          mdp.observation_space.dim,
-                                          mdp.action_space.dim)
+    _, _, reward, _, _, _ = parse_dataset(core.get_dataset())
     return reward
 
 if __name__ == '__main__':
-    n_experiment = 10
+    n_experiment = 1
 
     logger.Logger(1)
 

@@ -1,11 +1,10 @@
-import gym
-from gym.utils import seeding
 import numpy as np
 
+from PyPi.environments import Environment
 from PyPi.utils import spaces
 
 
-class GridWorld(gym.Env):
+class GridWorld(Environment):
     def __init__(self, height, width, goal):
         self.__name__ = 'GridWorld'
 
@@ -26,13 +25,7 @@ class GridWorld(gym.Env):
         assert self._goal[0] < self._height and self._goal[1] < self._width,\
             'Goal position not suitable for the grid world dimension.'
 
-        # MDP initialization
-        self._seed()
-        self.reset()
-
-    def _seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
+        super(GridWorld, self).__init__()
 
     def reset(self, state=None):
         if state is None:
@@ -65,20 +58,8 @@ class GridWorld(gym.Env):
 
         return self.get_state(), reward, absorbing, {}
 
-    def get_state(self):
-        return np.array([self._state])
 
-    def get_info(self):
-        return {'observation_space': self.observation_space,
-                'action_space': self.action_space,
-                'gamma': self.gamma,
-                'horizon': self.horizon}
-
-    def __str__(self):
-        return self.__name__
-
-
-class GridWorldVanHasselt(gym.Env):
+class GridWorldVanHasselt(Environment):
     def __init__(self, height=3, width=3, goal=(0, 2)):
         self.__name__ = 'GridWorldVanHasselt'
 
@@ -99,13 +80,7 @@ class GridWorldVanHasselt(gym.Env):
         assert self._goal[0] < self._height and self._goal[1] < self._width,\
             'Goal position not suitable for the grid world dimension.'
 
-        # MDP initialization
-        self._seed()
-        self.reset()
-
-    def _seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
+        super(GridWorldVanHasselt, self).__init__()
 
     def reset(self, state=None):
         if state is None:
@@ -137,15 +112,3 @@ class GridWorldVanHasselt(gym.Env):
             absorbing = False
 
         return self.get_state(), reward, absorbing, {}
-
-    def get_state(self):
-        return np.array([self._state])
-
-    def get_info(self):
-        return {'observation_space': self.observation_space,
-                'action_space': self.action_space,
-                'gamma': self.gamma,
-                'horizon': self.horizon}
-
-    def __str__(self):
-        return self.__name__

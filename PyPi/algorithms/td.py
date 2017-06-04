@@ -20,12 +20,10 @@ class TD(Agent):
         """
         assert n_fit_iterations == 1
 
-        state, action, reward, next_state, absorbing, _ =\
-            parse_dataset(np.array(dataset)[-1, :],
-                          self.mdp_info['observation_space'].dim,
-                          self.mdp_info['action_space'].dim)
+        state, action, reward, next_state, absorbing, _ = parse_dataset(
+            dataset[-1])
 
-        sa = (state, action)
+        sa = [state, action]
         sa_idx = (self.mdp_info['observation_space'].get_idx(state),
                   self.mdp_info['action_space'].get_idx(action))
         q_current = self.approximator.predict(sa)
@@ -62,7 +60,7 @@ class QLearning(TD):
             Action with the maximum action_value in 'next_state'.
         """
         a_n = self.draw_action(next_state, self.approximator)
-        sa_n = (next_state, a_n)
+        sa_n = [next_state, a_n]
 
         return self.approximator.predict(sa_n)
 
@@ -89,12 +87,10 @@ class DoubleQLearning(TD):
         """
         assert n_fit_iterations == 1
 
-        state, action, reward, next_state, absorbing, _ =\
-            parse_dataset(dataset[-1],
-                          self.mdp_info['observation_space'].dim,
-                          self.mdp_info['action_space'].dim)
+        state, action, reward, next_state, absorbing, _ = parse_dataset(
+            dataset[-1])
 
-        sa = (state, action)
+        sa = [state, action]
         sa_idx = np.append(self.mdp_info['observation_space'].get_idx(state),
                            self.mdp_info['action_space'].get_idx(action))
 
@@ -116,7 +112,7 @@ class DoubleQLearning(TD):
         a_n_idx = self.draw_action(
             next_state, self.approximator[approximator_idx])
         a_n_value = self.mdp_info['action_space'].get_value(a_n_idx)
-        sa_n = (next_state, a_n_value)
+        sa_n = [next_state, a_n_value]
 
         return self.approximator[1 - approximator_idx].predict(sa_n)
 
@@ -130,7 +126,7 @@ class WeightedQLearning(TD):
     def __init__(self, approximator, policy, **params):
         self.__name__ = 'WeightedQLearning'
 
-        self.exact = params.pop('exact', True)
+        self.exact = params['algorithm_params'].pop('exact', True)
 
         super(WeightedQLearning, self).__init__(approximator, policy, **params)
 

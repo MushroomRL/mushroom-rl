@@ -44,9 +44,7 @@ class FQI(BatchTD):
             x (np.array): input dataset.
             y (np.array): target.
         """
-        state, action, reward, next_states, absorbing, last =\
-            parse_dataset(x, self.mdp_info['observation_space'].dim,
-                          self.mdp_info['action_space'].dim)
+        state, action, reward, next_states, absorbing, last = parse_dataset(x)
         if y is None:
             y = reward
         else:

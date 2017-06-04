@@ -1,10 +1,11 @@
 import gym
 import numpy as np
 
+from PyPi.environments import Environment
 from PyPi.utils import spaces
 
 
-class Pendulum(gym.Env):
+class Pendulum(Environment):
     def __init__(self):
         self.__name__ = 'Pendulum-v0'
 
@@ -21,9 +22,7 @@ class Pendulum(gym.Env):
         self.horizon = 100
         self.gamma = 0.95
 
-        # MDP initialization
-        self.env.seed()
-        self.reset()
+        super(Pendulum, self).__init__()
 
     def reset(self, state=None):
         if state is None:
@@ -38,17 +37,5 @@ class Pendulum(gym.Env):
 
         return self.get_state(), reward, absorbing, info
 
-    def get_state(self):
-        return np.array([self.env.state.ravel()])
-
     def render(self, mode='human', close=False):
         self.env.render(mode=mode, close=close)
-
-    def get_info(self):
-        return {'observation_space': self.observation_space,
-                'action_space': self.action_space,
-                'gamma': self.gamma,
-                'horizon': self.horizon}
-
-    def __str__(self):
-        return self.__name__

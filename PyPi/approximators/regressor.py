@@ -33,6 +33,13 @@ class Regressor(object):
             exclude_actions (bool): whether to consider action as input or not.
             fit_params (dict): other parameters.
         """
+        for i in xrange(len(x)):
+            if x[i].ndim == 1:
+                x[i] = np.expand_dims(x[i], axis=0)
+            elif x[i].ndim > 2:
+                raise ValueError('Training set dimension not suitable for the '
+                                 'regressor.')
+
         if not exclude_actions:
             x = np.concatenate((x[0], x[1]), axis=1)
         else:
@@ -63,6 +70,13 @@ class Regressor(object):
         # Returns
             The prediction of the model.
         """
+        for i in xrange(len(x)):
+            if x[i].ndim == 1:
+                x[i] = np.expand_dims(x[i], axis=0)
+            elif x[i].ndim > 2:
+                raise ValueError('Training set dimension not suitable for the '
+                                 'regressor.')
+
         if not exclude_actions:
             x = np.concatenate((x[0], x[1]), axis=1)
         else:

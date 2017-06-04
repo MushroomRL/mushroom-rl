@@ -32,10 +32,10 @@ class Box(Space):
 class Discrete(Space):
     def __init__(self, n=None, values=None):
         if values is not None:
-            self._values = np.unique(values).reshape(-1, 1)
+            self._values = np.unique(values)
             n = len(self._values)
         else:
-            self._values = np.array([np.arange(n)]).reshape(-1, 1)
+            self._values = np.arange(n)
 
         self.n = n
 
@@ -55,7 +55,7 @@ class Discrete(Space):
         return self._values[idx]
 
     def get_idx(self, value):
-        return np.array([np.argwhere(self._values == value).ravel()[0]])
+        return np.argwhere(self._values == value).ravel()
 
 
 class MultiDiscrete(Space):
@@ -83,8 +83,8 @@ class MultiDiscrete(Space):
 
     def get_idx(self, value):
         idx = list()
-        for s, v in enumerate(value.ravel()):
+        for s, v in enumerate(value):
             idx.append(np.argwhere(
-                self.discrete_spaces[s].values == [[v]]).ravel()[0])
+                self.discrete_spaces[s].values == v).ravel()[0])
 
         return idx

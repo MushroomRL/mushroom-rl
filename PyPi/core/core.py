@@ -121,16 +121,11 @@ class Core(object):
                 self.mdp.render()
 
             last = 0 if n_steps < self.mdp.horizon and not absorbing else 1
-            sample = self.state.squeeze().tolist() + \
-                action_value.ravel().tolist() + [reward] + \
-                next_state.squeeze().tolist() + [absorbing, last]
+            sample = (self.state, action_value, reward, next_state, absorbing,
+                      last)
             n_samples += 1
 
-            self.logger.debug((self.state,
-                               action_value,
-                               reward,
-                               next_state,
-                               absorbing))
+            self.logger.debug(sample[:-1])
 
             if collect:
                 self._dataset.append(sample)

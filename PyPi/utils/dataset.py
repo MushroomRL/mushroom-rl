@@ -1,35 +1,36 @@
 import numpy as np
 
 
-def parse_dataset(dataset, state_dim, action_dim):
+def parse_dataset(dataset):
     """
     Split the dataset in its different components and return them.
 
     # Arguments
-        dataset (np.array): the dataset to parse.
-        state_dim (int > 0): the dimension of the MDP state.
-        action_dim (int > 0): the dimension of the MDP action.
+        dataset (list): the dataset to parse.
 
     # Returns
         The np.array of state, action, reward, next_state, absorbing flag and
         last step flag.
     """
-    if isinstance(dataset, list):
-        dataset = np.array(dataset)
-    if len(dataset.shape) == 1:
-        dataset = np.expand_dims(dataset, 0)
+    assert len(dataset) > 0
 
-    reward_idx = state_dim + action_dim
+    state = list()
+    action = list()
+    reward = list()
+    next_state = list()
+    absorbing = list()
+    last = list()
 
-    state = np.array(dataset[:, :state_dim].tolist())
-    action = np.array(dataset[:, state_dim:reward_idx].tolist())
-    reward = np.array(dataset[:, reward_idx].tolist())
-    next_state = np.array(
-        dataset[:, reward_idx + 1:reward_idx + 1 + state_dim].tolist())
-    absorbing = np.array(dataset[:, -2].tolist())
-    last = np.array(dataset[:, -1].tolist())
+    for i in xrange(len(dataset)):
+        state.append(dataset[i][0].tolist())
+        action.append(dataset[i][1].tolist())
+        reward.append(dataset[i][2])
+        next_state.append(dataset[i][3].tolist())
+        absorbing.append(dataset[i][4])
+        last.append(dataset[i][5])
 
-    return state, action, reward, next_state, absorbing, last
+    return np.array(state), np.array(action), np.array(reward), np.array(
+        next_state), np.array(absorbing), np.array(last)
 
 
 def select_episodes(dataset, state_dim, action_dim, n_episodes, parse=False):
@@ -98,9 +99,12 @@ def max_QA(states, absorbing, approximator, discrete_actions):
         A np.array of maximum action values and a np.array of their
         corresponding actions.
     """
+    if states.ndim == 1:
+        states = np.expand_dims(states, axis=0)
+
     n_states = states.shape[0]
     n_actions = discrete_actions.shape[0]
-    action_dim = discrete_actions.shape[1]
+    action_dim = discrete_actions.ndim
 
     Q = np.zeros((n_states, n_actions))
     for action_idx in xrange(n_actions):

@@ -20,7 +20,7 @@ class ActionRegressor(object):
             **params (dict): parameters dictionary to co each regressor.
         """
         self._discrete_actions = discrete_actions
-        self._action_dim = self._discrete_actions.shape[1]
+        self._action_dim = self._discrete_actions.ndim
         self.models = list()
 
         for i in range(self._discrete_actions.shape[0]):
