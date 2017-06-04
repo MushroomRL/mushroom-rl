@@ -90,7 +90,7 @@ class DoubleQLearning(TD):
         assert n_fit_iterations == 1
 
         state, action, reward, next_state, absorbing, _ =\
-            parse_dataset(np.array(dataset)[-1, :],
+            parse_dataset(dataset[-1],
                           self.mdp_info['observation_space'].dim,
                           self.mdp_info['action_space'].dim)
 

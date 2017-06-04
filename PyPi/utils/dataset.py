@@ -103,7 +103,7 @@ def max_QA(states, absorbing, approximator, discrete_actions):
     action_dim = discrete_actions.shape[1]
 
     Q = np.zeros((n_states, n_actions))
-    for action_idx in range(n_actions):
+    for action_idx in xrange(n_actions):
         actions = np.repeat(discrete_actions[action_idx],
                             n_states,
                             0).reshape(-1, 1)
@@ -122,7 +122,7 @@ def max_QA(states, absorbing, approximator, discrete_actions):
 
     # store Q-value and action for each state
     r_q, r_a = np.zeros(n_states), np.zeros((n_states, action_dim))
-    for idx in range(n_states):
+    for idx in xrange(n_states):
         r_q[idx] = Q[idx, amax[idx]]
         r_a[idx] = discrete_actions[amax[idx]]
 

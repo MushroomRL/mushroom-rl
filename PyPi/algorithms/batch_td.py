@@ -31,8 +31,8 @@ class FQI(BatchTD):
             n_iterations (int > 0): number of iterations
         """
         target = None
-        for i in range(n_iterations):
-            self.logger.info('Iteration: %d' % (i + 1))
+        for i in xrange(n_iterations):
+            self.logger.info('FQI iteration: %d' % (i + 1))
             target = self.partial_fit(dataset, target,
                                       **self.params['fit_params'])
 

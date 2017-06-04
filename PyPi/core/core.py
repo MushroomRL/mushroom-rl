@@ -52,8 +52,13 @@ class Core(object):
                       render=render)
             self.agent.fit(self._dataset, n_fit_steps)
 
-        for self.iteration in range(n_iterations):
+        for self.iteration in xrange(n_iterations):
+            self.logger.info('Iteration %d' % self.iteration)
+
+            self.logger.debug('Moving for %d %s...' % (how_many, iterate_over))
             self.move(how_many, iterate_over, collect=True, render=render)
+
+            self.logger.debug('Fitting for %d steps...' % n_fit_steps)
             self.agent.fit(self._dataset, n_fit_steps)
 
     def evaluate(self, initial_states, render=False):
@@ -71,7 +76,7 @@ class Core(object):
             from the provided initial states.
         """
         Js = list()
-        for i in range(initial_states.shape[0]):
+        for i in xrange(initial_states.shape[0]):
             self.state = self.mdp.reset(initial_states[i, :])
             J = self.move(1, 'episodes', render=render)
             Js.append(J)
@@ -106,7 +111,7 @@ class Core(object):
         while i < how_many:
             J = 0.
             action_idx = self.agent.draw_action(self.state,
-                                            self.agent.approximator)
+                                                self.agent.approximator)
             action_value = self.mdp.action_space.get_value(action_idx)
             next_state, reward, absorbing, _ = self.mdp.step(action_idx)
             J += self.mdp.gamma ** n_steps * reward

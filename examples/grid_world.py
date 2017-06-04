@@ -42,7 +42,7 @@ def experiment():
     core = Core(agent, mdp)
 
     # Train
-    core.learn(n_iterations=1, how_many=500000, n_fit_steps=1,
+    core.learn(n_iterations=10000, how_many=1, n_fit_steps=1,
                iterate_over='samples')
 
     _, _, reward, _, _, _ = parse_dataset(core.get_dataset(),
@@ -51,12 +51,11 @@ def experiment():
     return reward
 
 if __name__ == '__main__':
-    n_experiment = 2
+    n_experiment = 10
 
-    logger.Logger(3)
+    logger.Logger(1)
 
-    reward = Parallel(n_jobs=-1)(delayed(experiment)() for _ in range(n_experiment))
+    reward = Parallel(n_jobs=-1)(
+        delayed(experiment)() for _ in xrange(n_experiment))
 
-    from matplotlib import pyplot as plt
-    plt.plot(np.mean(reward, axis=0))
-    plt.show()
+    np.save('r.npy', np.mean(reward, axis=0))
