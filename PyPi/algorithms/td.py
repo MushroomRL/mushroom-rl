@@ -21,11 +21,13 @@ class TD(Agent):
         assert n_fit_iterations == 1
 
         state, action, reward, next_state, absorbing, _ = parse_dataset(
-            dataset[-1])
+            [dataset[-1]])
 
         sa = [state, action]
-        sa_idx = (self.mdp_info['observation_space'].get_idx(state),
-                  self.mdp_info['action_space'].get_idx(action))
+        sa_idx = np.concatenate((
+            self.mdp_info['observation_space'].get_idx(state),
+            self.mdp_info['action_space'].get_idx(action)),
+            axis=1)
         q_current = self.approximator.predict(sa)
         q_next = self._next_q(next_state) if not absorbing else 0
 
@@ -88,11 +90,13 @@ class DoubleQLearning(TD):
         assert n_fit_iterations == 1
 
         state, action, reward, next_state, absorbing, _ = parse_dataset(
-            dataset[-1])
+            [dataset[-1]])
 
         sa = [state, action]
-        sa_idx = np.append(self.mdp_info['observation_space'].get_idx(state),
-                           self.mdp_info['action_space'].get_idx(action))
+        sa_idx = np.concatenate((
+            self.mdp_info['observation_space'].get_idx(state),
+            self.mdp_info['action_space'].get_idx(action)),
+            axis=1)
 
         approximator_idx = 0
         if np.random.uniform() < 0.5:

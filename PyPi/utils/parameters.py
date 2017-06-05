@@ -11,13 +11,10 @@ class Parameter(object):
         self._n_updates = np.ones(shape)
 
     def __call__(self, idx):
-        if self.value.shape != (1,):
-            idx_list = idx[0].astype('int').ravel().tolist()
-            for i in idx[1:]:
-                idx_list += i.astype('int').ravel().tolist()
-            idx = tuple(idx_list)
-        else:
-            idx = (np.array([0]))
+        assert idx.ndim == 1 or idx.shape[0] == 1
+
+        idx = idx.ravel()
+        idx = tuple(idx) if self.value.shape != (1,) else 0
 
         value = self.value[idx]
         self._update(idx)

@@ -22,10 +22,10 @@ def parse_dataset(dataset):
     last = list()
 
     for i in xrange(len(dataset)):
-        state.append(dataset[i][0].tolist())
-        action.append(dataset[i][1].tolist())
+        state.append(dataset[i][0])
+        action.append(dataset[i][1])
         reward.append(dataset[i][2])
-        next_state.append(dataset[i][3].tolist())
+        next_state.append(dataset[i][3])
         absorbing.append(dataset[i][4])
         last.append(dataset[i][5])
 
@@ -104,7 +104,7 @@ def max_QA(states, absorbing, approximator, discrete_actions):
 
     n_states = states.shape[0]
     n_actions = discrete_actions.shape[0]
-    action_dim = discrete_actions.ndim
+    action_dim = discrete_actions.shape[1]
 
     Q = np.zeros((n_states, n_actions))
     for action_idx in xrange(n_actions):
