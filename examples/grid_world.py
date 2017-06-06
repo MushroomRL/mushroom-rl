@@ -54,18 +54,12 @@ def experiment(algorithm_class, decay_exp):
 if __name__ == '__main__':
     n_experiment = 10000
 
-    logger.Logger(1)
+    logger.Logger(3)
 
-    rewardQ1 = Parallel(n_jobs=-1)(
-        delayed(experiment)(QLearning, 1) for _ in xrange(n_experiment))
-    rewardQ08 = Parallel(n_jobs=-1)(
-        delayed(experiment)(QLearning, .8) for _ in xrange(n_experiment))
-    rewardDQ1 = Parallel(n_jobs=-1)(
-        delayed(experiment)(DoubleQLearning, 1) for _ in xrange(n_experiment))
-    rewardDQ08 = Parallel(n_jobs=-1)(
-        delayed(experiment)(DoubleQLearning, .8) for _ in xrange(n_experiment))
+    names = {1:'1', 0.8:'08', QLearning:'Q', DoubleQLearning:'DQ'}
+    for e in [1, .8]:
+        for a in [QLearning, DoubleQLearning]:
+            r = Parallel(n_jobs=-1)(
+                delayed(experiment)(a, e) for _ in xrange(n_experiment))
+            np.save('r' + names[a] + names[e] + '.npy', np.mean(r, axis=0))
 
-    np.save('rQ1.npy', np.mean(rewardQ1, axis=0))
-    np.save('rQ08.npy', np.mean(rewardQ08, axis=0))
-    np.save('rDQ1.npy', np.mean(rewardDQ1, axis=0))
-    np.save('rDQ08.npy', np.mean(rewardDQ08, axis=0))
