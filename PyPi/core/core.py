@@ -47,11 +47,6 @@ class Core(object):
         """
         assert iterate_over == 'samples' or iterate_over == 'episodes'
 
-        if initial_dataset_size is not None:
-            self.move(initial_dataset_size, iterate_over, collect=True,
-                      render=render)
-            self.agent.fit(self._dataset, n_fit_steps)
-
         for self.iteration in xrange(n_iterations):
             self.logger.info('Iteration %d' % self.iteration)
 
@@ -160,9 +155,9 @@ class Core(object):
     def get_dataset(self):
         """
         # Returns
-            The np.array of the stored dataset.
+            The dataset.
         """
-        return np.array(self._dataset)
+        return self._dataset
 
     def reset_dataset(self):
         """

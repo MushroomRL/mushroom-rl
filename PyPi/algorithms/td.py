@@ -29,7 +29,7 @@ class TD(Agent):
             self.mdp_info['action_space'].get_idx(action)),
             axis=1)
         q_current = self.approximator.predict(sa)
-        q_next = self._next_q(next_state) if not absorbing else 0
+        q_next = self._next_q(next_state) if not absorbing else 0.
 
         q = q_current + self.learning_rate(sa_idx) * (
             reward + self.mdp_info['gamma'] * q_next - q_current)
@@ -104,17 +104,13 @@ class DoubleQLearning(TD):
 
         q_current = self.approximator[approximator_idx].predict(sa)
         q_next = self._next_q(
-            next_state, approximator_idx) if not absorbing else 0
+            next_state, approximator_idx) if not absorbing else 0.
 
         q = q_current + self.learning_rate[approximator_idx](sa_idx) * (
             reward + self.mdp_info['gamma'] * q_next - q_current)
 
         self.approximator[approximator_idx].fit(
             sa, q, **self.params['fit_params'])
-
-        maxQ, _ = max_QA(np.array([[2, 0]]), False, self.approximator,
-                      self.mdp_info['action_space'].values)
-        self.maxQs.append(maxQ[0])
 
     def _next_q(self, next_state, approximator_idx):
         _, a_n_idx = max_QA(next_state, False,
@@ -141,29 +137,3 @@ class WeightedQLearning(TD):
 
     def _next_q(self, next_state):
         pass
-
-
-class SARSA(TD):
-    """
-    SARSA algorithm.
-    """
-    def __init__(self, approximator, policy, **params):
-        self.__name__ = 'SARSA'
-
-        super(SARSA, self).__init__(approximator, policy, **params)
-
-    def _next_q(self, next_state):
-        """
-        Compute the action with the maximum action-value in 'next_state'.
-
-        # Arguments
-            next_state (np.array): the state where next action has to be
-                evaluated.
-
-        # Returns
-            The action returned by the policy in 'next_state'.
-        """
-        a_n = self.draw_action(next_state, self.approximator)
-        sa_n = [next_state, a_n]
-
-        return self.approximator.predict(sa_n)

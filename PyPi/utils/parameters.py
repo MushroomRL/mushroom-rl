@@ -13,8 +13,7 @@ class Parameter(object):
     def __call__(self, idx):
         assert idx.ndim == 1 or idx.shape[0] == 1
 
-        idx = idx.ravel()
-        idx = tuple(idx) if self.value.shape != (1,) else 0
+        idx = tuple(idx.ravel()) if self.value.shape != (1,) else 0
 
         value = self.value[idx]
         self._update(idx)
@@ -24,7 +23,7 @@ class Parameter(object):
     def _update(self, idx):
         if self._decay:
             new_value = 1. / self._n_updates[idx] ** self._decay_exp
-            if new_value >= self._min_value:
+            if self._min_value is None or new_value >= self._min_value:
                 self.value[idx] = new_value
 
             self._n_updates[idx] += 1

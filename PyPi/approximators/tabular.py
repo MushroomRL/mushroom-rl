@@ -45,7 +45,7 @@ class Tabular(object):
         assert x.shape[1] == len(self._Q.shape), 'tabular regressor dimension ' \
                                                  'does not fit with input size.'
 
-        return [self._Q[tuple(i)] for i in x]
+        return np.array([self._Q[tuple(i)] for i in x])
 
     def __str__(self):
         return self.__name__

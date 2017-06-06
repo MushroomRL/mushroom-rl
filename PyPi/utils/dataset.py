@@ -112,7 +112,7 @@ def max_QA(states, absorbing, approximator, discrete_actions):
                             n_states,
                             0).reshape(-1, 1)
 
-        samples = (states, actions)
+        samples = [states, actions]
 
         predictions = approximator.predict(samples)
 

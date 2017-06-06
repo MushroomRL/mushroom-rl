@@ -91,23 +91,23 @@ class GridWorldVanHasselt(Environment):
         return self.get_state()
 
     def step(self, action):
-        if action == 0:
-            if self._state[0] - 1 >= 0:
-                self._state[0] -= 1
-        elif action == 1:
-            if self._state[0] + 1 < self._height:
-                self._state[0] += 1
-        elif action == 2:
-            if self._state[1] - 1 >= 0:
-                self._state[1] -= 1
-        elif action == 3:
-            if self._state[1] + 1 < self._width:
-                self._state[1] += 1
-
         if np.array_equal(self._state, self._goal):
             reward = 5
             absorbing = True
         else:
+            if action == 0:
+                if self._state[0] - 1 >= 0:
+                    self._state[0] -= 1
+            elif action == 1:
+                if self._state[0] + 1 < self._height:
+                    self._state[0] += 1
+            elif action == 2:
+                if self._state[1] - 1 >= 0:
+                    self._state[1] -= 1
+            elif action == 3:
+                if self._state[1] + 1 < self._width:
+                    self._state[1] += 1
+
             reward = -12 if np.random.uniform() < .5 else 10
             absorbing = False
 
