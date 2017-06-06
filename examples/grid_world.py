@@ -49,17 +49,21 @@ def experiment(algorithm_class, decay_exp):
 
     _, _, reward, _, _, _ = parse_dataset(core.get_dataset())
 
-    return reward
+    maxQs = core.agent.maxQs
+
+    return reward, maxQs, j
 
 if __name__ == '__main__':
-    n_experiment = 10000
+    n_experiment = 20
 
     logger.Logger(3)
 
-    names = {1:'1', 0.8:'08', QLearning:'Q', DoubleQLearning:'DQ'}
+    names = {1: '1', 0.8: '08', QLearning: 'Q', DoubleQLearning: 'DQ'}
     for e in [1, .8]:
         for a in [QLearning, DoubleQLearning]:
-            r = Parallel(n_jobs=-1)(
+            out = Parallel(n_jobs=-1)(
                 delayed(experiment)(a, e) for _ in xrange(n_experiment))
+            r = np.array([s[0] for s in out])
+            maxQ = np.array([s[1] for s in out])
             np.save('r' + names[a] + names[e] + '.npy', np.mean(r, axis=0))
-
+            np.save('max' + names[a] + names[e] + '.npy', np.mean(maxQ, axis=0))

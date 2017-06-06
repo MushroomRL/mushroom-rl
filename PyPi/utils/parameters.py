@@ -27,4 +27,4 @@ class Parameter(object):
             if new_value >= self._min_value:
                 self.value[idx] = new_value
 
-        self._n_updates[idx] += 1
+            self._n_updates[idx] += 1

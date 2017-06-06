@@ -28,15 +28,8 @@ class Tabular(object):
         assert x.shape[1] == len(self._Q.shape), 'tabular regressor dimension ' \
                                                  'does not fit with input size.'
 
-        dim = len(self._Q.shape)
-        if dim > 1:
-            idxs = list()
-            for i in range(dim):
-                idxs.append(x[:, i].astype(np.int))
-
-            self._Q[idxs] = y
-        else:
-            self._Q[x] = y
+        for i, idx in enumerate(x):
+            self._Q[tuple(idx)] = y[i]
 
     def predict(self, x):
         """
@@ -52,15 +45,7 @@ class Tabular(object):
         assert x.shape[1] == len(self._Q.shape), 'tabular regressor dimension ' \
                                                  'does not fit with input size.'
 
-        dim = len(self._Q.shape)
-        if dim > 1:
-            idxs = list()
-            for i in range(dim):
-                idxs.append(x[:, i].astype(np.int))
-
-            return self._Q[idxs]
-        else:
-            return self._Q[x]
+        return [self._Q[tuple(i)] for i in x]
 
     def __str__(self):
         return self.__name__

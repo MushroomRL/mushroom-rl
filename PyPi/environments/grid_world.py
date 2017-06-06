@@ -69,7 +69,7 @@ class GridWorldVanHasselt(Environment):
         self.action_space = spaces.Discrete(4)
 
         # MDP parameters
-        self.horizon = 100
+        self.horizon = np.inf
         self.gamma = .95
 
         # MDP properties

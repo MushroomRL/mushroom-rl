@@ -2,7 +2,7 @@ import numpy as np
 from copy import deepcopy
 
 from PyPi.algorithms.agent import Agent
-from PyPi.utils.dataset import parse_dataset
+from PyPi.utils.dataset import max_QA, parse_dataset
 
 
 class TD(Agent):
@@ -61,10 +61,10 @@ class QLearning(TD):
         # Returns
             Action with the maximum action_value in 'next_state'.
         """
-        a_n = self.draw_action(next_state, self.approximator)
-        sa_n = [next_state, a_n]
+        max_q, _ = max_QA(next_state, False, self.approximator,
+                          self.mdp_info['action_space'].values)
 
-        return self.approximator.predict(sa_n)
+        return max_q
 
 
 class DoubleQLearning(TD):
@@ -112,9 +112,14 @@ class DoubleQLearning(TD):
         self.approximator[approximator_idx].fit(
             sa, q, **self.params['fit_params'])
 
+        maxQ, _ = max_QA(np.array([[2, 0]]), False, self.approximator,
+                      self.mdp_info['action_space'].values)
+        self.maxQs.append(maxQ[0])
+
     def _next_q(self, next_state, approximator_idx):
-        a_n_idx = self.draw_action(
-            next_state, self.approximator[approximator_idx])
+        _, a_n_idx = max_QA(next_state, False,
+                            self.approximator[approximator_idx],
+                            self.mdp_info['action_space'].values)
         a_n_value = self.mdp_info['action_space'].get_value(a_n_idx)
         sa_n = [next_state, a_n_value]
 
