@@ -20,8 +20,6 @@ class Agent(object):
         self.logger = logging.getLogger('logger')
         self.params = params
 
-        self.maxQs = list()
-
     def initialize(self, mdp_info):
         for k, v in mdp_info.iteritems():
             self.mdp_info[k] = v
