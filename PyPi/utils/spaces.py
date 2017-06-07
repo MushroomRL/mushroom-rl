@@ -40,8 +40,8 @@ class Discrete(Space):
         self._idxs = dict()
         self._values = dict()
         for i, v in enumerate(values):
-            self._idxs[i] = v
-            self._values[v] = i
+            self._idxs[v] = i
+            self._values[i] = v
 
         self.n = n
 

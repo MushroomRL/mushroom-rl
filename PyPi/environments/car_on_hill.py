@@ -39,9 +39,7 @@ class CarOnHill(Environment):
 
         return self.get_state()
 
-    def step(self, action_idx):
-        action = self.action_space.get_value(action_idx)
-
+    def step(self, action):
         sa = np.append(self._state, action)
         new_state = odeint(self._dpds, sa, [0, self._dt])
 

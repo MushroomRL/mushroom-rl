@@ -108,7 +108,7 @@ class Core(object):
             action_idx = self.agent.draw_action(self.state,
                                                 self.agent.approximator)
             action_value = self.mdp.action_space.get_value(action_idx)
-            next_state, reward, absorbing, _ = self.mdp.step(action_value)
+            next_state, reward, absorbing, _ = self.mdp.step(action_value[0])
             J += self.mdp.gamma ** n_steps * reward
             n_steps += 1
 

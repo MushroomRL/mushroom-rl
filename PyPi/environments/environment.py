@@ -15,7 +15,13 @@ class Environment(gym.Env):
         return [seed]
 
     def get_state(self):
-        return np.array(self._state)
+        state = np.array(self._state)
+        if state.ndim == 0:
+            return np.array([state])
+        elif state.ndim == 1:
+            return state
+        else:
+            raise ValueError('Wrong state dimension.')
 
     def get_info(self):
         return {'observation_space': self.observation_space,
