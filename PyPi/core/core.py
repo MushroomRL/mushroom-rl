@@ -22,11 +22,12 @@ class Core(object):
 
         self.logger = logging.getLogger('logger')
 
-        self.state = self.mdp.reset()
+        self._state = self.mdp.reset()
         self._dataset = list()
+        self._episode_steps = 0
 
     def learn(self, n_iterations, how_many, n_fit_steps, iterate_over,
-              initial_dataset_size=None, render=False):
+              render=False):
         """
         This function is used to learn a policy. An iteration of the loop
         consists in collecting a dataset and fitting the agent's Q-function
@@ -65,18 +66,10 @@ class Core(object):
                 start the evaluation episodes. An evaluation episode is run for
                 each state.
             render (bool): whether to render the environment or not.
-
-        # Returns
-            The np.array of discounted rewards obtained in the episodes started
-            from the provided initial states.
         """
-        Js = list()
         for i in xrange(initial_states.shape[0]):
-            self.state = self.mdp.reset(initial_states[i, :])
-            J = self.move(1, 'episodes', render=render)
-            Js.append(J)
-
-        return np.array(Js).ravel()
+            self._state = self.mdp.reset(initial_states[i, :])
+            self.move(1, iterate_over='episodes', collect=True, render=render)
 
     def move(self,
              how_many,
@@ -95,62 +88,44 @@ class Core(object):
         # Returns
             The list of discounted rewards obtained in each episode.
         """
-        Js = list()
-        i = 0
-        n_steps = 0
-        n_samples = 0
-
         if iterate_over == 'episodes':
-            self.logger.info('Episodes: %d' % (i + 1))
-            self.logger.info(self.state)
-        while i < how_many:
-            J = 0.
-            action_idx = self.agent.draw_action(self.state,
-                                                self.agent.approximator)
-            action_value = self.mdp.action_space.get_value(action_idx)
-            next_state, reward, absorbing, _ = self.mdp.step(action_value[0])
-            J += self.mdp.gamma ** n_steps * reward
-            n_steps += 1
-
-            if render:
-                self.mdp.render()
-
-            last = 0 if n_steps < self.mdp.horizon and not absorbing else 1
-            sample = (self.state, action_value, reward, next_state, absorbing,
-                      last)
-            n_samples += 1
-
-            self.logger.debug(sample[:-1])
-
-            if collect:
-                self._dataset.append(sample)
-
-            self.state = next_state
-
-            if last or absorbing:
-                if iterate_over == 'episodes':
-                    self.logger.info((self.state, reward, absorbing))
-
-                self.state = self.mdp.reset()
+            i = 0
+            self._episode_steps = 0
+            while i < how_many:
+                while not self._step(collect, render):
+                    continue
+                self._state = self.mdp.reset()
+                self._episode_steps = 0
                 i += 1
-                n_steps = 0
-
-                Js.append(J)
-
-                if iterate_over == 'episodes':
-                    if i < how_many:
-                        self.logger.info('Episode: %d' % (i + 1))
-                        self.logger.info(self.state)
-            else:
-                if iterate_over == 'samples':
-                    i += 1
-
-        if iterate_over == 'episodes':
-            self.logger.info('Number of samples gathered: ' + str(n_samples))
         else:
-            self.logger.debug('Number of samples gathered: ' + str(n_samples))
+            i = 0
+            while i < how_many:
+                if self._step(collect, render):
+                    self._state = self.mdp.reset()
+                    self._episode_steps = 0
+                i += 1
 
-        return Js
+    def _step(self, collect, render):
+        action_idx = self.agent.draw_action(self._state)
+        action_value = self.mdp.action_space.get_value(action_idx)
+        next_state, reward, absorbing, _ = self.mdp.step(action_value[0])
+        self._episode_steps += 1
+
+        if render:
+            self.mdp.render()
+
+        last = not(self._episode_steps < self.mdp.horizon and not absorbing)
+        sample = (self._state, action_value, reward, next_state, absorbing,
+                  last)
+
+        self.logger.debug(sample[:-1])
+
+        if collect:
+            self._dataset.append(sample)
+
+        self._state = next_state
+
+        return last
 
     def get_dataset(self):
         """

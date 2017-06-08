@@ -20,9 +20,16 @@ class Agent(object):
         self.logger = logging.getLogger('logger')
         self.params = params
 
+        self._next_action = None
+
     def initialize(self, mdp_info):
         for k, v in mdp_info.iteritems():
             self.mdp_info[k] = v
 
-    def draw_action(self, state, approximator):
-        return self.policy(state, approximator)
+    def draw_action(self, state):
+        if self._next_action is None:
+            return self.policy(state, self.approximator)
+        else:
+            action = self._next_action
+            self._next_action = None
+            return action

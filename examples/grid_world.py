@@ -59,7 +59,6 @@ if __name__ == '__main__':
     names = {1: '1', .8: '08', QLearning: 'Q', DoubleQLearning: 'DQ'}
     for e in [1, .8]:
         for a in [QLearning, DoubleQLearning]:
-            out = Parallel(n_jobs=-1)(
+            r = Parallel(n_jobs=-1)(
                 delayed(experiment)(a, e) for _ in xrange(n_experiment))
-            r = np.array([s[0] for s in out])
             np.save('r' + names[a] + names[e] + '.npy', np.mean(r, axis=0))

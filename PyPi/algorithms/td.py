@@ -3,6 +3,7 @@ from copy import deepcopy
 
 from PyPi.algorithms.agent import Agent
 from PyPi.utils.dataset import max_QA, parse_dataset
+from PyPi.utils import spaces
 
 
 class TD(Agent):
@@ -131,9 +132,38 @@ class WeightedQLearning(TD):
     def __init__(self, approximator, policy, **params):
         self.__name__ = 'WeightedQLearning'
 
-        self.exact = params['algorithm_params'].pop('exact', True)
+        self.sampling = params.pop('sampling', False)
+        self.precision = params.pop('precision', 1000)
 
         super(WeightedQLearning, self).__init__(approximator, policy, **params)
 
     def _next_q(self, next_state):
         pass
+
+
+class SARSA(TD):
+    """
+    SARSA algorithm.
+    """
+    def __init__(self, approximator, policy, **params):
+        self.__name__ = 'SARSA'
+
+        super(SARSA, self).__init__(approximator, policy, **params)
+
+    def _next_q(self, next_state):
+        """
+        Compute the action with the maximum action-value in 'next_state'.
+
+        # Arguments
+            next_state (np.array): the state where next action has to be
+                evaluated.
+
+        # Returns
+            ...
+        """
+        self._next_action = self.draw_action(next_state)
+        action_value = self.mdp_info[
+            'action_space'].get_value(self._next_action)
+        sa_n = [next_state, action_value]
+
+        return self.approximator.predict(sa_n)
