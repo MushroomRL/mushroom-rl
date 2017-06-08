@@ -37,11 +37,10 @@ class EpsGreedy(object):
         # Returns
             The selected action.
         """
-        if not np.random.uniform() < self._epsilon(
-                self.observation_space.get_idx(state)):
+        if not np.random.uniform() < self._epsilon(state):
             _, max_action = max_QA(state, False, approximator,
                                    self.action_space.values)
-            return self.action_space.get_idx(max_action.ravel())
+            return max_action.ravel()
 
         return np.array([np.random.choice(range(self.action_space.n))])
 

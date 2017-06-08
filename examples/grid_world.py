@@ -52,7 +52,7 @@ def experiment(algorithm_class, decay_exp):
     return reward
 
 if __name__ == '__main__':
-    n_experiment = 10000
+    n_experiment = 1
 
     logger.Logger(3)
 

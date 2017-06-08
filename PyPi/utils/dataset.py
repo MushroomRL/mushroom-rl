@@ -82,8 +82,7 @@ def select_samples(dataset, state_dim, action_dim, n_samples, parse=False):
     dataset = np.array(dataset)
     idxs = np.random.randint(dataset.shape[0], size=n_samples)
     sub_dataset = dataset[idxs, ...]
-    return sub_dataset if not parse else parse_dataset(sub_dataset, state_dim,
-                                                       action_dim)
+    return sub_dataset if not parse else parse_dataset(sub_dataset)
 
 
 def max_QA(states, absorbing, approximator, discrete_actions):
@@ -107,8 +106,8 @@ def max_QA(states, absorbing, approximator, discrete_actions):
     action_dim = discrete_actions.shape[1]
 
     Q = np.zeros((n_states, n_actions))
-    for action_idx in xrange(n_actions):
-        actions = np.repeat(discrete_actions[action_idx],
+    for action in xrange(n_actions):
+        actions = np.repeat(discrete_actions[action],
                             n_states,
                             0).reshape(-1, 1)
 
@@ -116,7 +115,7 @@ def max_QA(states, absorbing, approximator, discrete_actions):
 
         predictions = approximator.predict(samples)
 
-        Q[:, action_idx] = predictions * (1 - absorbing)
+        Q[:, action] = predictions * (1 - absorbing)
 
     if Q.shape[0] > 1:
         amax = np.argmax(Q, axis=1)

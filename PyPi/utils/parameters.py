@@ -13,10 +13,17 @@ class Parameter(object):
         self.value = value
 
     def __call__(self, idx):
-        assert idx.ndim == 1 or idx.shape[0] == 1
+        if isinstance(idx, list):
+            assert len(idx) == 2
 
-        idx = tuple(idx.ravel()) if idx.shape != (1,) else 0
+            idx = np.concatenate((idx[0].astype(np.int),
+                                  idx[1].astype(np.int)),
+                                 axis=1).ravel()
+        else:
+            idx = idx.astype(np.int)
+        assert idx.ndim == 1
 
+        idx = tuple(idx) if idx.size == self._n_updates.ndim else 0
         self._update(idx)
 
         return self.value

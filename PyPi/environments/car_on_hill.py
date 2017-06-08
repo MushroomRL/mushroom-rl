@@ -18,7 +18,7 @@ class CarOnHill(Environment):
         self.max_velocity = 3.
         high = np.array([self.max_pos, self.max_velocity])
         self.observation_space = spaces.Box(low=-high, high=high)
-        self.action_space = spaces.Discrete(values=(-4., 4.))
+        self.action_space = spaces.Discrete(2)
 
         # MDP parameters
         self.horizon = 100
@@ -40,6 +40,7 @@ class CarOnHill(Environment):
         return self.get_state()
 
     def step(self, action):
+        action = -4. if action == 0 else 4.
         sa = np.append(self._state, action)
         new_state = odeint(self._dpds, sa, [0, self._dt])
 

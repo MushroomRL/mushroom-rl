@@ -1,5 +1,4 @@
 import logging
-import numpy as np
 
 
 class Core(object):
@@ -106,16 +105,15 @@ class Core(object):
                 i += 1
 
     def _step(self, collect, render):
-        action_idx = self.agent.draw_action(self._state)
-        action_value = self.mdp.action_space.get_value(action_idx)
-        next_state, reward, absorbing, _ = self.mdp.step(action_value[0])
+        action = self.agent.draw_action(self._state)
+        next_state, reward, absorbing, _ = self.mdp.step(action[0])
         self._episode_steps += 1
 
         if render:
             self.mdp.render()
 
         last = not(self._episode_steps < self.mdp.horizon and not absorbing)
-        sample = (self._state, action_value, reward, next_state, absorbing,
+        sample = (self._state, action, reward, next_state, absorbing,
                   last)
 
         self.logger.debug(sample[:-1])

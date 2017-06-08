@@ -3,7 +3,6 @@ from copy import deepcopy
 
 from PyPi.algorithms.agent import Agent
 from PyPi.utils.dataset import max_QA, parse_dataset
-from PyPi.utils import spaces
 
 
 class TD(Agent):
@@ -25,14 +24,10 @@ class TD(Agent):
             [dataset[-1]])
 
         sa = [state, action]
-        sa_idx = np.concatenate((
-            self.mdp_info['observation_space'].get_idx(state),
-            self.mdp_info['action_space'].get_idx(action)),
-            axis=1)
         q_current = self.approximator.predict(sa)
         q_next = self._next_q(next_state) if not absorbing else 0.
 
-        q = q_current + self.learning_rate(sa_idx) * (
+        q = q_current + self.learning_rate(sa) * (
             reward + self.mdp_info['gamma'] * q_next - q_current)
 
         self.approximator.fit(sa, q, **self.params['fit_params'])
@@ -94,10 +89,6 @@ class DoubleQLearning(TD):
             [dataset[-1]])
 
         sa = [state, action]
-        sa_idx = np.concatenate((
-            self.mdp_info['observation_space'].get_idx(state),
-            self.mdp_info['action_space'].get_idx(action)),
-            axis=1)
 
         approximator_idx = 0
         if np.random.uniform() < 0.5:
@@ -107,18 +98,17 @@ class DoubleQLearning(TD):
         q_next = self._next_q(
             next_state, approximator_idx) if not absorbing else 0.
 
-        q = q_current + self.learning_rate[approximator_idx](sa_idx) * (
+        q = q_current + self.learning_rate[approximator_idx](sa) * (
             reward + self.mdp_info['gamma'] * q_next - q_current)
 
         self.approximator[approximator_idx].fit(
             sa, q, **self.params['fit_params'])
 
     def _next_q(self, next_state, approximator_idx):
-        _, a_n_idx = max_QA(next_state, False,
+        _, a_n = max_QA(next_state, False,
                             self.approximator[approximator_idx],
                             self.mdp_info['action_space'].values)
-        a_n_value = self.mdp_info['action_space'].get_value(a_n_idx)
-        sa_n = [next_state, a_n_value]
+        sa_n = [next_state, a_n]
 
         return self.approximator[1 - approximator_idx].predict(sa_n)
 
@@ -162,8 +152,6 @@ class SARSA(TD):
             ...
         """
         self._next_action = self.draw_action(next_state)
-        action_value = self.mdp_info[
-            'action_space'].get_value(self._next_action)
-        sa_n = [next_state, action_value]
+        sa_n = [next_state, self._next_action]
 
         return self.approximator.predict(sa_n)
