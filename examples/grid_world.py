@@ -52,7 +52,7 @@ def experiment(algorithm_class, decay_exp):
     return reward
 
 if __name__ == '__main__':
-    n_experiment = 1
+    n_experiment = 20
 
     logger.Logger(3)
 
@@ -61,4 +61,8 @@ if __name__ == '__main__':
         for a in [QLearning, DoubleQLearning]:
             r = Parallel(n_jobs=-1)(
                 delayed(experiment)(a, e) for _ in xrange(n_experiment))
-            np.save('r' + names[a] + names[e] + '.npy', np.mean(r, axis=0))
+            from matplotlib import pyplot as plt
+            plt.plot(np.convolve(np.mean(r, 0), np.ones(100) / 100., 'valid'))
+            plt.show()
+            #np.save('r' + names[a] + names[e] + '.npy',
+            #        np.convolve(np.mean(r, 0), np.ones(100) / 100., 'valid'))

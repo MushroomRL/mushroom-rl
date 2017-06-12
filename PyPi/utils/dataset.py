@@ -85,6 +85,23 @@ def select_samples(dataset, state_dim, action_dim, n_samples, parse=False):
     return sub_dataset if not parse else parse_dataset(sub_dataset)
 
 
+def compute_J(dataset, gamma=1.):
+    _, _, reward, _, _, last = parse_dataset(dataset)
+    js = list()
+
+    j = 0.
+    episode_steps = 0
+    for i in xrange(reward.size):
+        j += gamma ** episode_steps * reward[i]
+        episode_steps += 1
+        if last[i]:
+            js.append(j)
+            j = 0.
+            episode_steps = 0
+
+    return js
+
+
 def max_QA(states, absorbing, approximator, discrete_actions):
     """
     # Arguments

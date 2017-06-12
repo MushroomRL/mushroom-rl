@@ -1,6 +1,7 @@
 import numpy as np
 
 from gym import Space
+from sklearn.utils.extmath import cartesian
 
 
 class Box(Space):
@@ -24,6 +25,7 @@ class Box(Space):
 class Discrete(Space):
     def __init__(self, n):
         self.n = n
+        self._values = np.arange(self.n).reshape(-1, 1)
 
     @property
     def dim(self):
@@ -34,13 +36,23 @@ class Discrete(Space):
         return self.n
 
     @property
+    def size(self):
+        return self.shape
+
+    @property
     def values(self):
-        return np.arange(self.n).reshape(-1, 1)
+        return self._values
 
 
 class MultiDiscrete(Space):
     def __init__(self, discrete_spaces):
         self.discrete_spaces = discrete_spaces
+
+        v = list()
+        for d in self.discrete_spaces:
+            v.append(d.values.ravel())
+
+        self._values = cartesian(v)
 
     @property
     def dim(self):
@@ -53,3 +65,11 @@ class MultiDiscrete(Space):
             shape.append(d.shape)
 
         return shape
+
+    @property
+    def size(self):
+        return np.prod(self.shape)
+
+    @property
+    def values(self):
+        return self._values

@@ -47,5 +47,9 @@ class Tabular(object):
 
         return np.array([self._Q[tuple(i)] for i in x.astype(np.int)])
 
+    @property
+    def shape(self):
+        return self._Q.shape
+
     def __str__(self):
         return self.__name__

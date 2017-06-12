@@ -24,6 +24,7 @@ class TD(Agent):
             [dataset[-1]])
 
         sa = [state, action]
+
         q_current = self.approximator.predict(sa)
         q_next = self._next_q(next_state) if not absorbing else 0.
 
@@ -123,12 +124,73 @@ class WeightedQLearning(TD):
         self.__name__ = 'WeightedQLearning'
 
         self.sampling = params.pop('sampling', False)
-        self.precision = params.pop('precision', 1000)
+        self.precision = params.pop('precision', 1000.)
+
+        self._n_updates = np.zeros(self.approximator.shape)
+        self._sigma = np.ones(self.approximator.shape) * 1e10
+        self._Q2 = np.zeros(self.approximator.shape)
+        self._weights_var = np.zeros(self.approximator.shape)
 
         super(WeightedQLearning, self).__init__(approximator, policy, **params)
 
+    def fit(self, dataset, n_fit_iterations=1):
+        """
+        Single fit step.
+        """
+        assert n_fit_iterations == 1
+
+        state, action, reward, next_state, absorbing, _ = parse_dataset(
+            [dataset[-1]])
+
+        sa = [state, action]
+
+        q_current = self.approximator.predict(sa)
+        q_next = self._next_q(next_state) if not absorbing else 0.
+
+        target = reward + self.mdp_info['gamma'] * q_next
+
+        q = q_current + self.learning_rate(sa) * (target - q_current)
+        self.approximator.fit(sa, q, **self.params['fit_params'])
+
+        self._n_updates[sa] += 1
+
+        self._Q2[sa] = self._Q2[sa] + self.learning_rate(sa, update=False) *\
+            target ** 2. - self.learning_rate(sa, update=False) * self._Q2[sa]
+
+        if self._n_updates[sa] > 1:
+            self._weights_var[sa] = (1 - self.learning_rate(sa, update=False))\
+                                    ** 2. * self._weights_var[sa] +\
+                                    self.learning_rate(sa, update=False) ** 2.
+            n = 1. / self._weights_var[sa]
+            diff = self._Q2[sa] - q ** 2.
+            diff = np.clip(diff, 0, np.inf)
+            self._sigma[sa] = np.sqrt(diff / n)
+
     def _next_q(self, next_state):
-        pass
+        means = np.zeros((1, self.mdp_info['action_space'].size))
+        sigmas = np.zeros(means.shape)
+        actions = self.mdp_info['action_space'].values
+        for i, a in enumerate(actions):
+            sa_n = [next_state, a]
+            means[0, i] = self.approximator.predict(sa_n)
+            sigmas[0, i] = self._sigma[sa_n, a]
+
+        if self.sampling:
+            samples = np.random.normal(np.repeat(means, self.precision, 0),
+                                       np.repeat(sigmas, self.precision, 0))
+            max_idx = np.argmax(samples, axis=1)
+            _, max_count = np.unique(max_idx, return_counts=True)
+
+            w = max_count / self.precision
+        else:
+            raise NotImplementedError
+
+        self._Q2 = (1 - self.learning_rate())
+
+        sa = [np.repeat(next_state, actions.shape[0], axis=0), actions]
+        W = np.dot(w, self.approximator.predict(sa))
+
+        return W
 
 
 class SARSA(TD):

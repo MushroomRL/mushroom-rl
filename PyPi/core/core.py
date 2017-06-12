@@ -47,14 +47,24 @@ class Core(object):
         """
         assert iterate_over == 'samples' or iterate_over == 'episodes'
 
-        for self.iteration in xrange(n_iterations):
-            self.logger.info('Iteration %d' % self.iteration)
+        if iterate_over == 'samples':
+            for self.iteration in xrange(n_iterations):
+                self.logger.info('Iteration %d' % self.iteration)
 
-            self.logger.debug('Moving for %d %s...' % (how_many, iterate_over))
-            self.move(how_many, iterate_over, collect=True, render=render)
+                self.logger.debug('Moving for %d samples...' % how_many)
+                self._move_samples(how_many, collect=True, render=render)
 
-            self.logger.debug('Fitting for %d steps...' % n_fit_steps)
-            self.agent.fit(self._dataset, n_fit_steps)
+                self.logger.debug('Fitting for %d steps...' % n_fit_steps)
+                self.agent.fit(self._dataset, n_fit_steps)
+        else:
+            for self.iteration in xrange(n_iterations):
+                self.logger.info('Iteration %d' % self.iteration)
+
+                self.logger.debug('Moving for %d episodes...' % how_many)
+                self._move_episodes(how_many, collect=True, render=render)
+
+                self.logger.debug('Fitting for %d steps...' % n_fit_steps)
+                self.agent.fit(self._dataset, n_fit_steps)
 
     def evaluate(self, initial_states, render=False):
         """
@@ -66,15 +76,13 @@ class Core(object):
                 each state.
             render (bool): whether to render the environment or not.
         """
+        self.logger.info('Evaluating policy for %d episodes...' %
+                         initial_states.shape[0])
         for i in xrange(initial_states.shape[0]):
             self._state = self.mdp.reset(initial_states[i, :])
-            self.move(1, iterate_over='episodes', collect=True, render=render)
+            self._move_episodes(1, collect=True, render=render)
 
-    def move(self,
-             how_many,
-             iterate_over,
-             collect=False,
-             render=False):
+    def _move_episodes(self, how_many, collect=False, render=False):
         """
         Move the agent.
 
@@ -87,22 +95,24 @@ class Core(object):
         # Returns
             The list of discounted rewards obtained in each episode.
         """
-        if iterate_over == 'episodes':
-            i = 0
+        i = 0
+        self._episode_steps = 0
+        while i < how_many:
+            self.logger.info('Starting in state: ' + str(self._state))
+            while not self._step(collect, render):
+                continue
+            self.logger.info('Ended in state: ' + str(self._state))
+            self._state = self.mdp.reset()
             self._episode_steps = 0
-            while i < how_many:
-                while not self._step(collect, render):
-                    continue
+            i += 1
+
+    def _move_samples(self, how_many, collect=False, render=False):
+        i = 0
+        while i < how_many:
+            if self._step(collect, render):
                 self._state = self.mdp.reset()
                 self._episode_steps = 0
-                i += 1
-        else:
-            i = 0
-            while i < how_many:
-                if self._step(collect, render):
-                    self._state = self.mdp.reset()
-                    self._episode_steps = 0
-                i += 1
+            i += 1
 
     def _step(self, collect, render):
         action = self.agent.draw_action(self._state)

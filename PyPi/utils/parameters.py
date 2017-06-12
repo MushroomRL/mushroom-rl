@@ -10,9 +10,7 @@ class Parameter(object):
         self._min_value = min_value
         self._n_updates = np.zeros(shape)
 
-        self.value = value
-
-    def __call__(self, idx):
+    def __call__(self, idx, update=True):
         if isinstance(idx, list):
             assert len(idx) == 2
 
@@ -24,14 +22,19 @@ class Parameter(object):
         assert idx.ndim == 1
 
         idx = tuple(idx) if idx.size == self._n_updates.ndim else 0
-        self._update(idx)
 
-        return self.value
+        if update:
+            self._n_updates[idx] += 1
 
-    def _update(self, idx):
-        self._n_updates[idx] += 1
+        return self._compute(idx)
+
+    def _compute(self, idx):
         if self._decay:
             new_value =\
                 self._initial_value / self._n_updates[idx] ** self._decay_exp
             if self._min_value is None or new_value >= self._min_value:
-                self.value = new_value
+                return new_value
+            else:
+                return self._min_value
+        else:
+            return self._initial_value
