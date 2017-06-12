@@ -33,7 +33,7 @@ class Discrete(Space):
 
     @property
     def shape(self):
-        return self.n
+        return tuple([self.n,])
 
     @property
     def size(self):
@@ -62,9 +62,9 @@ class MultiDiscrete(Space):
     def shape(self):
         shape = list()
         for d in self.discrete_spaces:
-            shape.append(d.shape)
+            shape += d.shape
 
-        return shape
+        return tuple(shape)
 
     @property
     def size(self):

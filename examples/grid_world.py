@@ -24,7 +24,7 @@ def experiment(algorithm_class, decay_exp):
                    action_space=mdp.action_space)
 
     # Approximator
-    shape = mdp.observation_space.shape + [mdp.action_space.shape]
+    shape = mdp.observation_space.shape + mdp.action_space.shape
     approximator_params = dict(shape=shape)
     if algorithm_class is QLearning:
         approximator = Regressor(Tabular, **approximator_params)
