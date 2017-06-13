@@ -120,7 +120,7 @@ def max_QA(states, absorbing, target_approximator, discrete_actions):
         amax = [np.random.choice(np.argwhere(q == np.max(q)).ravel())]
 
     # store Q-value and action for each state
-    r_q, r_a = np.zeros(n_states), np.zeros((n_states, action_dim))
+    r_q, r_a = np.zeros(n_states), np.zeros((n_states, action_dim), dtype=int)
     for idx in range(n_states):
         r_q[idx] = Q[idx, amax[idx]]
         r_a[idx] = discrete_actions[amax[idx]]

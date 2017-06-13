@@ -37,8 +37,8 @@ class EpsGreedy(object):
             _, max_action = max_QA(states, False, approximator,
                                    self.discrete_actions)
             return max_action
-        return np.array([self.discrete_actions[
-            np.random.choice(range(self.discrete_actions.shape[0])), :]])
+
+        return np.array([np.random.choice(self.action_space.n)])
 
     def set_epsilon(self, epsilon):
         """
