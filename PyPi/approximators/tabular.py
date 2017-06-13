@@ -5,7 +5,7 @@ class Tabular(object):
     """
     Tabular regressor. Used for discrete state and action spaces.
     """
-    def __init__(self, **approximator_params):
+    def __init__(self, **params):
         """
         Constructor.
 
@@ -14,7 +14,7 @@ class Tabular(object):
         """
         self.__name__ = 'Tabular'
 
-        self._Q = np.zeros(approximator_params['shape'])
+        self._Q = np.zeros(params['shape'])
 
     def fit(self, x, y, **fit_params):
         """
@@ -28,15 +28,8 @@ class Tabular(object):
         assert x.shape[1] == len(self._Q.shape), 'tabular regressor dimension ' \
                                                  'does not fit with input size.'
 
-        dim = len(self._Q.shape)
-        if dim > 1:
-            idxs = list()
-            for i in range(dim):
-                idxs.append(x[:, i].astype(np.int))
-
-            self._Q[idxs] = y
-        else:
-            self._Q[x] = y
+        for i, idx in enumerate(x.astype(np.int)):
+            self._Q[tuple(idx)] = y[i]
 
     def predict(self, x):
         """
@@ -52,15 +45,11 @@ class Tabular(object):
         assert x.shape[1] == len(self._Q.shape), 'tabular regressor dimension ' \
                                                  'does not fit with input size.'
 
-        dim = len(self._Q.shape)
-        if dim > 1:
-            idxs = list()
-            for i in range(dim):
-                idxs.append(x[:, i].astype(np.int))
+        return np.array([self._Q[tuple(i)] for i in x.astype(np.int)])
 
-            return self._Q[idxs]
-        else:
-            return self._Q[x]
+    @property
+    def shape(self):
+        return self._Q.shape
 
     def __str__(self):
         return self.__name__

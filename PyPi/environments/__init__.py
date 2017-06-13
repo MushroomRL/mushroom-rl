@@ -1,7 +1,9 @@
-from .atari import Atari
+from .environment import Environment
 from .car_on_hill import CarOnHill
-from .grid_world import GridWorld
-from .lunar_lander import LunarLander
+from generators.simple_chain import generate_simple_chain
+from .grid_world import GridWorld, GridWorldVanHasselt
+from .finite_mdp import FiniteMDP
 from .pendulum import Pendulum
 
-__all__ = ['Atari', 'CarOnHill', 'GridWorld', 'LunarLander', 'Pendulum']
+__all__ = ['CarOnHill', 'Environment', 'FiniteMDP', 'GridWorld',
+           'generate_simple_chain', 'GridWorldVanHasselt', 'Pendulum']

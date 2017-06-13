@@ -8,6 +8,7 @@ from PyPi.core.core import Core
 from PyPi.environments import *
 from PyPi.policy import EpsGreedy
 from PyPi.utils import logger
+from PyPi.utils.dataset import compute_J
 from PyPi.utils.parameters import Parameter
 
 
@@ -19,13 +20,13 @@ def experiment():
 
     # Policy
     epsilon = Parameter(value=1)
-    discrete_actions = mdp.action_space.values
-    pi = EpsGreedy(epsilon=epsilon, discrete_actions=discrete_actions)
+    pi = EpsGreedy(epsilon=epsilon, observation_space=mdp.observation_space,
+                   action_space=mdp.action_space)
 
     # Approximator
     approximator_params = dict()
     approximator = ActionRegressor(ExtraTreesRegressor,
-                                   discrete_actions=discrete_actions,
+                                   discrete_actions=mdp.action_space.values,
                                    **approximator_params)
 
     # Agent
@@ -41,9 +42,11 @@ def experiment():
     # Train
     core.learn(n_iterations=1, how_many=1000, n_fit_steps=20,
                iterate_over='episodes')
+    core.reset_dataset()
 
     # Test
-    agent.policy.set_epsilon(Parameter(0))
+    test_epsilon = Parameter(0)
+    agent.policy.set_epsilon(test_epsilon)
 
     initial_states = np.zeros((289, 2))
     cont = 0
@@ -52,13 +55,15 @@ def experiment():
             initial_states[cont, :] = [0.125 * i, 0.375 * j]
             cont += 1
 
-    return np.mean(core.evaluate(initial_states, render=False))
+    core.evaluate(initial_states)
+
+    return np.mean(compute_J(core.get_dataset(), mdp.gamma))
 
 
 if __name__ == '__main__':
     n_experiment = 1
 
-    logger.Logger(1)
+    logger.Logger(3)
 
     Js = Parallel(n_jobs=-1)(delayed(experiment)() for _ in range(n_experiment))
     print(Js)

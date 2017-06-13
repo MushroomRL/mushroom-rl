@@ -1,17 +1,16 @@
-import gym
-from gym.utils import seeding
 import numpy as np
 
+from PyPi.environments import Environment
 from PyPi.utils import spaces
 
 
-class GridWorld(gym.Env):
-    def __init__(self, height, width, goal):
+class GridWorld(Environment):
+    def __init__(self, height, width, goal, start=(0, 0)):
         self.__name__ = 'GridWorld'
 
         # MDP spaces
-        self.observation_space = spaces.MultiDiscrete([[0, height - 1],
-                                                       [0, width - 1]])
+        self.observation_space = spaces.MultiDiscrete(
+            (spaces.Discrete(height), spaces.Discrete(width)))
         self.action_space = spaces.Discrete(4)
 
         # MDP parameters
@@ -22,21 +21,18 @@ class GridWorld(gym.Env):
         self._height = height
         self._width = width
         self._goal = goal
+        self._start = start
+
+        assert not np.array_equal(self._start, self._goal)
 
         assert self._goal[0] < self._height and self._goal[1] < self._width,\
             'Goal position not suitable for the grid world dimension.'
 
-        # MDP initialization
-        self._seed()
-        self.reset()
-
-    def _seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
+        super(GridWorld, self).__init__()
 
     def reset(self, state=None):
         if state is None:
-            self._state = np.array([0, 0])
+            self._state = np.array(self._start)
         else:
             self._state = state
 
@@ -44,13 +40,13 @@ class GridWorld(gym.Env):
 
     def step(self, action):
         if action == 0:
-            if self._state[0] - 1 >= 0:
+            if self._state[0] > 0:
                 self._state[0] -= 1
         elif action == 1:
             if self._state[0] + 1 < self._height:
                 self._state[0] += 1
         elif action == 2:
-            if self._state[1] - 1 >= 0:
+            if self._state[1] > 0:
                 self._state[1] -= 1
         elif action == 3:
             if self._state[1] + 1 < self._width:
@@ -65,14 +61,60 @@ class GridWorld(gym.Env):
 
         return self.get_state(), reward, absorbing, {}
 
-    def get_state(self):
-        return np.array([self._state])
 
-    def get_info(self):
-        return {'observation_space': self.observation_space,
-                'action_space': self.action_space,
-                'gamma': self.gamma,
-                'horizon': self.horizon}
+class GridWorldVanHasselt(Environment):
+    def __init__(self, height=3, width=3, goal=(0, 2), start=(2, 0)):
+        self.__name__ = 'GridWorldVanHasselt'
 
-    def __str__(self):
-        return self.__name__
+        # MDP spaces
+        self.observation_space = spaces.MultiDiscrete(
+            (spaces.Discrete(height), spaces.Discrete(width)))
+        self.action_space = spaces.Discrete(4)
+
+        # MDP parameters
+        self.horizon = np.inf
+        self.gamma = .95
+
+        # MDP properties
+        self._height = height
+        self._width = width
+        self._goal = goal
+        self._start = start
+
+        assert not np.array_equal(self._start, self._goal)
+
+        assert self._goal[0] < self._height and self._goal[1] < self._width,\
+            'Goal position not suitable for the grid world dimension.'
+
+        super(GridWorldVanHasselt, self).__init__()
+
+    def reset(self, state=None):
+        if state is None:
+            self._state = np.array(self._start)
+        else:
+            self._state = state
+
+        return self.get_state()
+
+    def step(self, action):
+        if np.array_equal(self._state, self._goal):
+            reward = 5
+            absorbing = True
+        else:
+            if action == 0:
+                if self._state[0] > 0:
+                    self._state[0] -= 1
+            elif action == 1:
+                if self._state[0] + 1 < self._height:
+                    self._state[0] += 1
+            elif action == 2:
+                if self._state[1] > 0:
+                    self._state[1] -= 1
+            elif action == 3:
+                if self._state[1] + 1 < self._width:
+                    self._state[1] += 1
+
+            reward = np.random.choice([-12, 10])
+            absorbing = False
+
+        return self.get_state(), reward, absorbing, {}

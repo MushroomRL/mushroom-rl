@@ -1,5 +1,4 @@
 import logging
-import numpy as np
 
 
 class Core(object):
@@ -22,14 +21,13 @@ class Core(object):
 
         self.logger = logging.getLogger('logger')
 
-        self.state = self.mdp.reset()
+        self._state = self.mdp.reset()
         self._dataset = list()
+        self._episode_steps = 0
 
     def learn(self, n_iterations, how_many, n_fit_steps, iterate_over,
-              initial_dataset_size=None, render=False):
+              render=False):
         """
-        TODO: da migliorare
-
         This function is used to learn a policy. An iteration of the loop
         consists in collecting a dataset and fitting the agent's Q-function
         approximator on that. Multiple iterations can be done in order to append
@@ -47,24 +45,26 @@ class Core(object):
                 single iteration of the loop.
             render (bool): whether to render the environment or not.
         """
-        self.logger.info('*** LEARN ***')
-        self.logger.info('Algorithm: ' + str(self))
-        self.logger.info('Approximator: ' + str(self.agent.approximator))
-        self.logger.info('Environment: ' + str(self.mdp))
-        self.logger.info('Policy: ' + str(self.agent.policy))
-
         assert iterate_over == 'samples' or iterate_over == 'episodes'
 
-        if initial_dataset_size is not None:
-            self.move(initial_dataset_size, iterate_over, collect=True,
-                      render=render)
-            self.agent.fit(self._dataset, n_fit_steps)
+        if iterate_over == 'samples':
+            for self.iteration in xrange(n_iterations):
+                self.logger.info('Iteration %d' % self.iteration)
 
-        for self.iteration in range(n_iterations):
-            self.apply_updates()
+                self.logger.debug('Moving for %d samples...' % how_many)
+                self._move_samples(how_many, collect=True, render=render)
 
-            self.move(how_many, iterate_over, collect=True, render=render)
-            self.agent.fit(self._dataset, n_fit_steps)
+                self.logger.debug('Fitting for %d steps...' % n_fit_steps)
+                self.agent.fit(self._dataset, n_fit_steps)
+        else:
+            for self.iteration in xrange(n_iterations):
+                self.logger.info('Iteration %d' % self.iteration)
+
+                self.logger.debug('Moving for %d episodes...' % how_many)
+                self._move_episodes(how_many, collect=True, render=render)
+
+                self.logger.debug('Fitting for %d steps...' % n_fit_steps)
+                self.agent.fit(self._dataset, n_fit_steps)
 
     def evaluate(self, initial_states, render=False):
         """
@@ -75,32 +75,14 @@ class Core(object):
                 start the evaluation episodes. An evaluation episode is run for
                 each state.
             render (bool): whether to render the environment or not.
-
-        # Returns
-            The np.array of discounted rewards obtained in the episodes started
-            from the provided initial states.
         """
-        self.logger.info('*** EVALUATION ***')
-        self.logger.info('Algorithm: ' + str(self))
-        self.logger.info('Approximator: ' + str(self.agent.approximator))
-        self.logger.info('Environment: ' + str(self.mdp))
-        self.logger.info('Policy: ' + str(self.agent.policy))
-        self.logger.info('Number of evaluation episodes: ' +
-                         str(initial_states.shape[0]))
+        self.logger.info('Evaluating policy for %d episodes...' %
+                         initial_states.shape[0])
+        for i in xrange(initial_states.shape[0]):
+            self._state = self.mdp.reset(initial_states[i, :])
+            self._move_episodes(1, collect=True, render=render)
 
-        Js = list()
-        for i in range(initial_states.shape[0]):
-            self.state = self.mdp.reset(initial_states[i, :])
-            J = self.move(1, 'episodes', render=render)
-            Js.append(J)
-
-        return np.array(Js).ravel()
-
-    def move(self,
-             how_many,
-             iterate_over,
-             collect=False,
-             render=False):
+    def _move_episodes(self, how_many, collect=False, render=False):
         """
         Move the agent.
 
@@ -113,79 +95,52 @@ class Core(object):
         # Returns
             The list of discounted rewards obtained in each episode.
         """
-        Js = list()
         i = 0
-        n_steps = 0
-        n_samples = 0
-
-        if iterate_over == 'episodes':
-            self.logger.info('Episodes: %d' % (i + 1))
-            self.logger.info(self.state)
+        self._episode_steps = 0
         while i < how_many:
-            J = 0.
-            action = self.agent.draw_action(self.state,
-                                            self.agent.approximator)
-            next_state, reward, absorbing, _ = self.mdp.step(action)
-            J += self.mdp.gamma ** n_steps * reward
-            n_steps += 1
+            self.logger.info('Starting in state: ' + str(self._state))
+            while not self._step(collect, render):
+                continue
+            self.logger.info('Ended in state: ' + str(self._state))
+            self._state = self.mdp.reset()
+            self._episode_steps = 0
+            i += 1
 
-            if render:
-                self.mdp.render()
+    def _move_samples(self, how_many, collect=False, render=False):
+        i = 0
+        while i < how_many:
+            if self._step(collect, render):
+                self._state = self.mdp.reset()
+                self._episode_steps = 0
+            i += 1
 
-            last = 0 if n_steps < self.mdp.horizon and not absorbing else 1
-            sample = self.state.squeeze().tolist() + \
-                action.ravel().tolist() + [reward] + \
-                next_state.squeeze().tolist() + [absorbing, last]
-            n_samples += 1
+    def _step(self, collect, render):
+        action = self.agent.draw_action(self._state)
+        next_state, reward, absorbing, _ = self.mdp.step(action[0])
+        self._episode_steps += 1
 
-            self.logger.debug((self.state,
-                               action,
-                               reward,
-                               next_state,
-                               absorbing))
+        if render:
+            self.mdp.render()
 
-            if collect:
-                self._dataset.append(sample)
+        last = not(self._episode_steps < self.mdp.horizon and not absorbing)
+        sample = (self._state, action, reward, next_state, absorbing,
+                  last)
 
-            self.state = next_state
+        self.logger.debug(sample[:-1])
 
-            if last or absorbing:
-                if iterate_over == 'episodes':
-                    self.logger.info((self.state, reward, absorbing))
+        if collect:
+            self._dataset.append(sample)
 
-                self.state = self.mdp.reset()
-                i += 1
-                n_steps = 0
+        self._state = next_state
 
-                Js.append(J)
-
-                if iterate_over == 'episodes':
-                    if i < how_many:
-                        self.logger.info('Episode: %d' % (i + 1))
-                        self.logger.info(self.state)
-            else:
-                if iterate_over == 'samples':
-                    i += 1
-
-        if iterate_over == 'episodes':
-            self.logger.info('Number of samples gathered: ' + str(n_samples))
-        else:
-            self.logger.debug('Number of samples gathered: ' + str(n_samples))
-
-        return Js
-
-    def apply_updates(self):
-        self.agent.policy.update()
-        self.agent.updates()
+        return last
 
     def get_dataset(self):
         """
-        Return the stored dataset.
-
         # Returns
-            The np.array of the stored dataset.
+            The dataset.
         """
-        return np.array(self._dataset)
+        return self._dataset
 
     def reset_dataset(self):
         """

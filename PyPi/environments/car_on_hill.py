@@ -1,12 +1,11 @@
 import numpy as np
-import gym
-from gym.utils import seeding
 from scipy.integrate import odeint
 
+from PyPi.environments import Environment
 from PyPi.utils import spaces
 
 
-class CarOnHill(gym.Env):
+class CarOnHill(Environment):
     """
     The Car On Hill environment as presented in:
     "Tree-Based Batch Mode Reinforcement Learning, D. Ernst et. al."
@@ -19,7 +18,7 @@ class CarOnHill(gym.Env):
         self.max_velocity = 3.
         high = np.array([self.max_pos, self.max_velocity])
         self.observation_space = spaces.Box(low=-high, high=high)
-        self.action_space = spaces.DiscreteValued([-4., 4.])
+        self.action_space = spaces.Discrete(2)
 
         # MDP parameters
         self.horizon = 100
@@ -30,13 +29,7 @@ class CarOnHill(gym.Env):
         self._m = 1
         self._dt = .1
 
-        # MDP initialization
-        self._seed()
-        self.reset()
-
-    def _seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
+        super(CarOnHill, self).__init__()
 
     def reset(self, state=None):
         if state is None:
@@ -47,6 +40,7 @@ class CarOnHill(gym.Env):
         return self.get_state()
 
     def step(self, action):
+        action = -4. if action == 0 else 4.
         sa = np.append(self._state, action)
         new_state = odeint(self._dpds, sa, [0, self._dt])
 
@@ -66,9 +60,6 @@ class CarOnHill(gym.Env):
 
         return self.get_state(), reward, absorbing, {}
 
-    def get_state(self):
-        return np.array([self._state])
-
     def _dpds(self, state_action, t):
         position = state_action[0]
         velocity = state_action[1]
@@ -86,12 +77,3 @@ class CarOnHill(gym.Env):
               diff_hill * diff_2_hill) / (self._m * (1 + diff_hill ** 2))
 
         return dp, ds, 0.
-
-    def get_info(self):
-        return {'observation_space': self.observation_space,
-                'action_space': self.action_space,
-                'gamma': self.gamma,
-                'horizon': self.horizon}
-
-    def __str__(self):
-        return self.__name__

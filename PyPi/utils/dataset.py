@@ -1,35 +1,36 @@
 import numpy as np
 
 
-def parse_dataset(dataset, state_dim, action_dim):
+def parse_dataset(dataset):
     """
     Split the dataset in its different components and return them.
 
     # Arguments
-        dataset (np.array): the dataset to parse.
-        state_dim (int > 0): the dimension of the MDP state.
-        action_dim (int > 0): the dimension of the MDP action.
+        dataset (list): the dataset to parse.
 
     # Returns
         The np.array of state, action, reward, next_state, absorbing flag and
         last step flag.
     """
-    if isinstance(dataset, list):
-        dataset = np.array(dataset)
-    if len(dataset.shape) == 1:
-        dataset = np.expand_dims(dataset, 0)
+    assert len(dataset) > 0
 
-    reward_idx = state_dim + action_dim
+    state = list()
+    action = list()
+    reward = list()
+    next_state = list()
+    absorbing = list()
+    last = list()
 
-    state = np.array(dataset[:, :state_dim].tolist())
-    action = np.array(dataset[:, state_dim:reward_idx].tolist())
-    reward = np.array(dataset[:, reward_idx].tolist())
-    next_state = np.array(
-        dataset[:, reward_idx + 1:reward_idx + 1 + state_dim].tolist())
-    absorbing = np.array(dataset[:, -2].tolist())
-    last = np.array(dataset[:, -1].tolist())
+    for i in xrange(len(dataset)):
+        state.append(dataset[i][0])
+        action.append(dataset[i][1])
+        reward.append(dataset[i][2])
+        next_state.append(dataset[i][3])
+        absorbing.append(dataset[i][4])
+        last.append(dataset[i][5])
 
-    return state, action, reward, next_state, absorbing, last
+    return np.array(state), np.array(action), np.array(reward), np.array(
+        next_state), np.array(absorbing), np.array(last)
 
 
 def select_episodes(dataset, state_dim, action_dim, n_episodes, parse=False):
@@ -81,37 +82,57 @@ def select_samples(dataset, state_dim, action_dim, n_samples, parse=False):
     dataset = np.array(dataset)
     idxs = np.random.randint(dataset.shape[0], size=n_samples)
     sub_dataset = dataset[idxs, ...]
-    return sub_dataset if not parse else parse_dataset(sub_dataset, state_dim,
-                                                       action_dim)
+    return sub_dataset if not parse else parse_dataset(sub_dataset)
 
 
-def max_QA(states, absorbing, target_approximator, discrete_actions):
+def compute_J(dataset, gamma=1.):
+    _, _, reward, _, _, last = parse_dataset(dataset)
+    js = list()
+
+    j = 0.
+    episode_steps = 0
+    for i in xrange(reward.size):
+        j += gamma ** episode_steps * reward[i]
+        episode_steps += 1
+        if last[i]:
+            js.append(j)
+            j = 0.
+            episode_steps = 0
+
+    return js
+
+
+def max_QA(states, absorbing, approximator, discrete_actions):
     """
     # Arguments
         state (np.array): the state where the agent is.
         absorbing (np.array): whether the state is absorbing or not.
-        target_approximator (object, None): the model to use to predict
-            the maximum Q-values.
+        approximator (object): the approximator to use to compute the
+            action values.
+        discrete_actions (np.array): the values of the discrete actions.
 
     # Returns
-        A np.array of maximum Q-values and a np.array of their corresponding
-        action values.
+        A np.array of maximum action values and a np.array of their
+        corresponding actions.
     """
+    if states.ndim == 1:
+        states = np.expand_dims(states, axis=0)
+
     n_states = states.shape[0]
     n_actions = discrete_actions.shape[0]
     action_dim = discrete_actions.shape[1]
 
     Q = np.zeros((n_states, n_actions))
-    for action_idx in range(n_actions):
-        actions = np.repeat(discrete_actions[action_idx],
+    for action in xrange(n_actions):
+        actions = np.repeat(discrete_actions[action],
                             n_states,
                             0).reshape(-1, 1)
 
-        samples = (states, actions)
+        samples = [states, actions]
 
-        predictions = target_approximator.predict(samples)
+        predictions = approximator.predict(samples)
 
-        Q[:, action_idx] = predictions * (1 - absorbing)
+        Q[:, action] = predictions * (1 - absorbing)
 
     if Q.shape[0] > 1:
         amax = np.argmax(Q, axis=1)
@@ -121,7 +142,7 @@ def max_QA(states, absorbing, target_approximator, discrete_actions):
 
     # store Q-value and action for each state
     r_q, r_a = np.zeros(n_states), np.zeros((n_states, action_dim), dtype=int)
-    for idx in range(n_states):
+    for idx in xrange(n_states):
         r_q[idx] = Q[idx, amax[idx]]
         r_a[idx] = discrete_actions[amax[idx]]
 
