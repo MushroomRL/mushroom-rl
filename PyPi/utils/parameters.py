@@ -10,7 +10,7 @@ class Parameter(object):
         self._min_value = min_value
         self._n_updates = np.zeros(shape)
 
-    def __call__(self, idx, update=True):
+    def __call__(self, idx, **kwargs):
         if isinstance(idx, list):
             assert len(idx) == 2
 
@@ -23,8 +23,7 @@ class Parameter(object):
 
         idx = tuple(idx) if idx.size == self._n_updates.ndim else 0
 
-        if update:
-            self._n_updates[idx] += 1
+        self._n_updates[idx] += 1
 
         return self._compute(idx)
 

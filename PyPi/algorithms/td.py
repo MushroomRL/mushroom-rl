@@ -149,18 +149,17 @@ class WeightedQLearning(TD):
 
         target = reward + self.mdp_info['gamma'] * q_next
 
-        q = q_current + self.learning_rate(sa) * (target - q_current)
+        alpha = self.learning_rate(sa)
+
+        q = q_current + alpha * (target - q_current)
         self.approximator.fit(sa, q, **self.params['fit_params'])
 
         self._n_updates[sa] += 1
 
-        self._Q2[sa] = self._Q2[sa] + self.learning_rate(sa, update=False) *\
-            target ** 2. - self.learning_rate(sa, update=False) * self._Q2[sa]
+        self._Q2[sa] = self._Q2[sa] + alpha * target ** 2. - alpha * self._Q2[sa]
 
         if self._n_updates[sa] > 1:
-            self._weights_var[sa] = (1 - self.learning_rate(sa, update=False))\
-                                    ** 2. * self._weights_var[sa] +\
-                                    self.learning_rate(sa, update=False) ** 2.
+            self._weights_var[sa] = (1 - alpha) ** 2. * self._weights_var[sa] + alpha ** 2.
             n = 1. / self._weights_var[sa]
             diff = self._Q2[sa] - q ** 2.
             diff = np.clip(diff, 0, np.inf)
