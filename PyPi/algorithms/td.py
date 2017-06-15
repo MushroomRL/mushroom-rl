@@ -91,9 +91,7 @@ class DoubleQLearning(TD):
 
         sa = [state, action]
 
-        approximator_idx = 0
-        if np.random.uniform() < 0.5:
-            approximator_idx = 1
+        approximator_idx = 0 if np.random.uniform() < 0.5 else 1
 
         q_current = self.approximator[approximator_idx].predict(sa)
         q_next = self._next_q(
@@ -107,8 +105,8 @@ class DoubleQLearning(TD):
 
     def _next_q(self, next_state, approximator_idx):
         _, a_n = max_QA(next_state, False,
-                            self.approximator[approximator_idx],
-                            self.mdp_info['action_space'].values)
+                        self.approximator[approximator_idx],
+                        self.mdp_info['action_space'].values)
         sa_n = [next_state, a_n]
 
         return self.approximator[1 - approximator_idx].predict(sa_n)
@@ -123,7 +121,7 @@ class WeightedQLearning(TD):
     def __init__(self, approximator, policy, **params):
         self.__name__ = 'WeightedQLearning'
 
-        self.sampling = params.pop('sampling', False)
+        self.sampling = params.pop('sampling', True)
         self.precision = params.pop('precision', 1000.)
 
         self._n_updates = np.zeros(self.approximator.shape)
@@ -156,10 +154,12 @@ class WeightedQLearning(TD):
 
         self._n_updates[sa] += 1
 
-        self._Q2[sa] = self._Q2[sa] + alpha * target ** 2. - alpha * self._Q2[sa]
+        self._Q2[sa] = self._Q2[sa] + alpha * target ** 2. - alpha *\
+                       self._Q2[sa]
 
         if self._n_updates[sa] > 1:
-            self._weights_var[sa] = (1 - alpha) ** 2. * self._weights_var[sa] + alpha ** 2.
+            self._weights_var[sa] = (1 - alpha) ** 2. * self._weights_var[sa] +\
+                                    alpha ** 2.
             n = 1. / self._weights_var[sa]
             diff = self._Q2[sa] - q ** 2.
             diff = np.clip(diff, 0, np.inf)
@@ -183,8 +183,6 @@ class WeightedQLearning(TD):
             w = max_count / self.precision
         else:
             raise NotImplementedError
-
-        self._Q2 = (1 - self.learning_rate())
 
         sa = [np.repeat(next_state, actions.shape[0], axis=0), actions]
         W = np.dot(w, self.approximator.predict(sa))

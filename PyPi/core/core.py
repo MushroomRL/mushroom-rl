@@ -5,7 +5,7 @@ class Core(object):
     """
     Implements the functions to run a generic algorithm.
     """
-    def __init__(self, agent, mdp):
+    def __init__(self, agent, mdp, callbacks=None):
         """
         Constructor.
 
@@ -16,6 +16,7 @@ class Core(object):
         """
         self.agent = agent
         self.mdp = mdp
+        self.callbacks = callbacks
 
         self.agent.initialize(self.mdp.get_info())
 
@@ -56,6 +57,9 @@ class Core(object):
 
                 self.logger.debug('Fitting for %d steps...' % n_fit_steps)
                 self.agent.fit(self._dataset, n_fit_steps)
+
+                for c in self.callbacks:
+                    c()
         else:
             for self.iteration in xrange(n_iterations):
                 self.logger.info('Iteration %d' % self.iteration)
@@ -65,6 +69,9 @@ class Core(object):
 
                 self.logger.debug('Fitting for %d steps...' % n_fit_steps)
                 self.agent.fit(self._dataset, n_fit_steps)
+
+                for c in self.callbacks:
+                    c()
 
     def evaluate(self, initial_states, render=False):
         """
