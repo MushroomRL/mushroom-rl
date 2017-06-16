@@ -1,5 +1,5 @@
 from PyPi.algorithms.agent import Agent
-from PyPi.utils.dataset import max_QA, parse_dataset
+from PyPi.utils.dataset import max_QA, parse_dataset, state_action
 
 
 class BatchTD(Agent):
@@ -52,7 +52,7 @@ class FQI(BatchTD):
                              self.mdp_info['action_space'].values)
             y = reward + self.mdp_info['gamma'] * maxq
 
-        sa = (state, action)
+        sa = state_action(state, action)
         self.approximator.fit(sa, y, **fit_params)
 
         return y

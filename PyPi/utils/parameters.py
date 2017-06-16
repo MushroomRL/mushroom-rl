@@ -11,17 +11,10 @@ class Parameter(object):
         self._n_updates = np.zeros(shape)
 
     def __call__(self, idx, **kwargs):
-        if isinstance(idx, list):
-            assert len(idx) == 2
+        if not isinstance(idx, tuple):
+            idx = tuple(idx.ravel())
 
-            idx = np.concatenate((idx[0].astype(np.int),
-                                  idx[1].astype(np.int)),
-                                 axis=1).ravel()
-        else:
-            idx = idx.astype(np.int)
-        assert idx.ndim == 1
-
-        idx = tuple(idx) if idx.size == self._n_updates.ndim else 0
+        idx = idx if self._n_updates.size > 1 else 0
 
         self._n_updates[idx] += 1
 

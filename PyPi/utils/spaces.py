@@ -25,7 +25,7 @@ class Box(Space):
 class Discrete(Space):
     def __init__(self, n):
         self.n = n
-        self._values = np.arange(self.n).reshape(-1, 1)
+        self._values = np.arange(self.n, dtype=int).reshape(-1, 1)
 
     @property
     def dim(self):
@@ -37,7 +37,7 @@ class Discrete(Space):
 
     @property
     def size(self):
-        return self.shape
+        return self.n
 
     @property
     def values(self):

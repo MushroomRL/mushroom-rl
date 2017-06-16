@@ -27,7 +27,7 @@ def experiment(algorithm_class, decay_exp):
     # Approximator
     shape = mdp.observation_space.shape + mdp.action_space.shape
     approximator_params = dict(shape=shape)
-    if algorithm_class is QLearning:
+    if algorithm_class in [QLearning, WeightedQLearning]:
         approximator = Regressor(Tabular, **approximator_params)
     elif algorithm_class is DoubleQLearning:
         approximator = Ensemble(Tabular, 2, **approximator_params)
@@ -57,19 +57,23 @@ def experiment(algorithm_class, decay_exp):
     return reward, max_Qs
 
 if __name__ == '__main__':
-    n_experiment = 10000
+    n_experiment = 20
 
     logger.Logger(3)
 
     names = {1: '1', .8: '08', QLearning: 'Q', DoubleQLearning: 'DQ',
              WeightedQLearning: 'WQ'}
-    for e in [1, .8]:
-        for a in [QLearning, DoubleQLearning]:
+    for e in [.8, .8]:
+        for a in [WeightedQLearning, DoubleQLearning, WeightedQLearning]:
             out = Parallel(n_jobs=-1)(
                 delayed(experiment)(a, e) for _ in xrange(n_experiment))
             r = np.array([o[0] for o in out])
             max_Qs = np.array([o[1] for o in out])
 
-            np.save('r' + names[a] + names[e] + '.npy',
-                    np.convolve(np.mean(r, 0), np.ones(100) / 100., 'valid'))
-            np.save('max_Q' + names[a] + names[e] + '.npy', np.mean(max_Qs, 0))
+            from matplotlib import pyplot as plt
+            plt.plot(np.convolve(
+                np.mean(r, axis=0), np.ones(100) / 100., 'valid'))
+            plt.figure()
+            plt.plot(np.mean(max_Qs, axis=0))
+            plt.show()
+            exit()

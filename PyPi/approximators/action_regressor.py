@@ -20,7 +20,7 @@ class ActionRegressor(object):
             **params (dict): parameters dictionary to co each regressor.
         """
         self._discrete_actions = discrete_actions
-        self._action_dim = self._discrete_actions.ndim
+        self._action_dim = self._discrete_actions.shape[1]
         self.models = list()
 
         for i in range(self._discrete_actions.shape[0]):
@@ -35,16 +35,14 @@ class ActionRegressor(object):
             y (np.array): target.
             fit_params (dict): other parameters.
         """
+        action_idx = x.shape[1] - self._action_dim
         for i in range(len(self.models)):
             action = self._discrete_actions[i]
             idxs = np.argwhere(
-                (x[1] == action)[:, 0]).ravel()
+                (x[:, action_idx:] == action)[:, 0]).ravel()
 
             if idxs.size:
-                self.models[i].fit([x[0][idxs, :], x[1][idxs, :]],
-                                   y[idxs],
-                                   True,
-                                   **fit_params)
+                self.models[i].fit(x[idxs, :action_idx], y[idxs], **fit_params)
 
     def predict(self, x):
         """
@@ -56,16 +54,15 @@ class ActionRegressor(object):
         # Returns
             The predictions of the model.
         """
-        predictions = np.zeros((x[0].shape[0]))
+        predictions = np.zeros((x.shape[0]))
+        action_idx = x.shape[1] - self._action_dim
         for i in range(len(self.models)):
-
             action = self._discrete_actions[i]
             idxs = np.argwhere(
-                (x[1] == action)[:, 0]).ravel()
+                (x[:, action_idx:] == action)[:, 0]).ravel()
 
             if idxs.size:
-                predictions[idxs] = self.models[i].predict(
-                    [x[0][idxs, :], x[1][idxs, :]], True)
+                predictions[idxs] = self.models[i].predict(x[idxs, :action_idx])
 
         return predictions
 

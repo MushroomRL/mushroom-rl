@@ -128,7 +128,7 @@ def max_QA(states, absorbing, approximator, discrete_actions):
                             n_states,
                             0).reshape(-1, 1)
 
-        samples = [states, actions]
+        samples = state_action(states, actions)
 
         predictions = approximator.predict(samples)
 
@@ -147,3 +147,17 @@ def max_QA(states, absorbing, approximator, discrete_actions):
         r_a[idx] = discrete_actions[amax[idx]]
 
     return r_q, r_a
+
+
+def state_action(state, action):
+    if state.ndim == 2 and action.ndim == 2:
+        return np.concatenate((state, action), axis=1)
+    else:
+        raise ValueError('Wrong dimensionality.')
+
+
+def state_action_idx(state, action):
+    if state.ndim == 2 and action.ndim == 2:
+        return tuple(np.concatenate((state, action), axis=1).ravel())
+    else:
+        raise ValueError('Wrong dimensionality.')

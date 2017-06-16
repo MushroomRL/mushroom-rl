@@ -16,7 +16,7 @@ class Core(object):
         """
         self.agent = agent
         self.mdp = mdp
-        self.callbacks = callbacks
+        self.callbacks = callbacks if callbacks is not None else list()
 
         self.agent.initialize(self.mdp.get_info())
 

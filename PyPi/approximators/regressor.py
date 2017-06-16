@@ -21,7 +21,7 @@ class Regressor(object):
 
         self.model = approximator_class(**params)
 
-    def fit(self, x, y, exclude_actions=False, **fit_params):
+    def fit(self, x, y, **fit_params):
         """
         Preprocess the input and output if requested and fit the model using
         its fit function.
@@ -33,17 +33,11 @@ class Regressor(object):
             exclude_actions (bool): whether to consider action as input or not.
             fit_params (dict): other parameters.
         """
-        for i in xrange(len(x)):
-            if x[i].ndim == 1:
-                x[i] = np.expand_dims(x[i], axis=0)
-            elif x[i].ndim > 2:
-                raise ValueError('Training set dimension not suitable for the '
-                                 'regressor.')
-
-        if not exclude_actions:
-            x = np.concatenate((x[0], x[1]), axis=1)
-        else:
-            x = x[0]
+        if x.ndim == 1:
+            x = np.expand_dims(x, axis=0)
+        elif x.ndim > 2:
+            raise ValueError('Training set dimension not suitable for the '
+                             'regressor.')
 
         if self.features:
             x = self.features.fit_transform(x)
@@ -58,7 +52,7 @@ class Regressor(object):
 
         self.model.fit(x, y, **fit_params)
 
-    def predict(self, x, exclude_actions=False):
+    def predict(self, x):
         """
         Preprocess the input and output if requested and make the prediction.
 
@@ -70,17 +64,11 @@ class Regressor(object):
         # Returns
             The prediction of the model.
         """
-        for i in xrange(len(x)):
-            if x[i].ndim == 1:
-                x[i] = np.expand_dims(x[i], axis=0)
-            elif x[i].ndim > 2:
-                raise ValueError('Training set dimension not suitable for the '
-                                 'regressor.')
-
-        if not exclude_actions:
-            x = np.concatenate((x[0], x[1]), axis=1)
-        else:
-            x = x[0]
+        if x.ndim == 1:
+            x = np.expand_dims(x, axis=0)
+        elif x.ndim > 2:
+            raise ValueError('Training set dimension not suitable for the '
+                             'regressor.')
 
         if self.features:
             x = self.features.transform(x)
@@ -91,6 +79,10 @@ class Regressor(object):
         y = self.model.predict(x)
 
         return self.pre_y.inverse_transform(y) if self.output_scaled else y
+
+    @property
+    def shape(self):
+        return self.model.shape
 
     def __str__(self):
         return str(self.model)
