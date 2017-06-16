@@ -57,23 +57,19 @@ def experiment(algorithm_class, decay_exp):
     return reward, max_Qs
 
 if __name__ == '__main__':
-    n_experiment = 20
+    n_experiment = 10000
 
     logger.Logger(3)
 
     names = {1: '1', .8: '08', QLearning: 'Q', DoubleQLearning: 'DQ',
              WeightedQLearning: 'WQ'}
-    for e in [.8, .8]:
-        for a in [WeightedQLearning, DoubleQLearning, WeightedQLearning]:
+    for e in [1, .8]:
+        for a in [QLearning, DoubleQLearning, WeightedQLearning]:
             out = Parallel(n_jobs=-1)(
                 delayed(experiment)(a, e) for _ in xrange(n_experiment))
             r = np.array([o[0] for o in out])
             max_Qs = np.array([o[1] for o in out])
 
-            from matplotlib import pyplot as plt
-            plt.plot(np.convolve(
-                np.mean(r, axis=0), np.ones(100) / 100., 'valid'))
-            plt.figure()
-            plt.plot(np.mean(max_Qs, axis=0))
-            plt.show()
-            exit()
+            np.save('r' + names[a] + names[e] + '.npy',
+                    np.convolve(np.mean(r, 0), np.ones(100) / 100., 'valid'))
+            np.save('max_Q' + names[a] + names[e] + '.npy', np.mean(max_Qs, 0))
