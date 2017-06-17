@@ -167,6 +167,7 @@ class WeightedQLearning(TD):
             diff = self._Q2[sa_idx] - q ** 2.
             diff = np.clip(diff, 0, np.inf)
             self._sigma[sa_idx] = np.sqrt(diff / n)
+            self._sigma[self._sigma < 1e-10] = 1e-10
 
     def _next_q(self, next_state):
         means = np.zeros((1, self.mdp_info['action_space'].size))
@@ -174,8 +175,9 @@ class WeightedQLearning(TD):
         actions = self.mdp_info['action_space'].values
         for i, a in enumerate(actions):
             sa_n = state_action(next_state, np.array([a]))
+            sa_n_idx = state_action_idx(next_state, np.array([a]))
             means[0, i] = self.approximator.predict(sa_n)
-            sigmas[0, i] = self._sigma[tuple(sa_n.ravel())]
+            sigmas[0, i] = self._sigma[sa_n_idx]
 
         if self.sampling:
             samples = np.random.normal(np.repeat(means, self.precision, 0),
