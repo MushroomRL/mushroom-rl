@@ -26,8 +26,8 @@ class NN(object):
 
         # Arguments
             x (np.array): input dataset containing states (and action, if
-                action regression is not used).
-            y (np.array): target.
+                action regression is not used);
+            y (np.array): target;
             fit_params (dict): other parameters.
         """
         if not hasattr(self, 'model'):

@@ -22,7 +22,7 @@ class Tabular(object):
 
         # Arguments
             x (np.array): input dataset containing states (and action, if
-                action regression is not used).
+                action regression is not used);
             y (np.array): target.
         """
         assert x.shape[1] == len(self._Q.shape), 'tabular regressor dimension ' \

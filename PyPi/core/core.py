@@ -10,9 +10,10 @@ class Core(object):
         Constructor.
 
         # Arguments
-            agent (object): the agent moving according to a policy.
-            mdp (object): the environment in which the agent moves.
-            params (dict): other params.
+            agent (object): the agent moving according to a policy;
+            mdp (object): the environment in which the agent moves;
+            callbacks (list): list of callbacks to execute at the end of
+                each iteration.
         """
         self.agent = agent
         self.mdp = mdp
@@ -37,13 +38,13 @@ class Core(object):
         algorithms.
 
         # Arguments
-            n_iterations (int > 0): number of iterations.
+            n_iterations (int > 0): number of iterations;
             how_many (int > 0): number of samples or episodes to collect in a
-                single iteration of the loop.
+                single iteration of the loop;
             n_fit_steps (int > 0): number of fitting steps of the learning
-                algorithm.
+                algorithm;
             iterate_over (string): whether to collect samples or episodes in a
-                single iteration of the loop.
+                single iteration of the loop;
             render (bool): whether to render the environment or not.
         """
         assert iterate_over == 'samples' or iterate_over == 'episodes'
@@ -80,7 +81,7 @@ class Core(object):
         # Arguments
             initial_states (np.array): the array of initial states from where to
                 start the evaluation episodes. An evaluation episode is run for
-                each state.
+                each state;
             render (bool): whether to render the environment or not.
         """
         self.logger.info('Evaluating policy for %d episodes...' %
@@ -94,9 +95,8 @@ class Core(object):
         Move the agent.
 
         # Arguments
-            how_many (int > 0): number of samples or episodes to collect.
-            iterate_over (string): whether to collect samples or episodes.
-            collect (bool): whether to store the collected data or not.
+            how_many (int > 0): number of samples or episodes to collect;
+            collect (bool): whether to store the collected data or not;
             render (bool): whether to render the environment or not.
 
         # Returns
@@ -122,6 +122,13 @@ class Core(object):
             i += 1
 
     def _step(self, collect, render):
+        """
+        Single step.
+
+        # Arguments
+            collect (bool): whether to collect the sample or not.
+            render (bool): whether to render or not.
+        """
         action = self.agent.draw_action(self._state)
         next_state, reward, absorbing, _ = self.mdp.step(action[0])
         self._episode_steps += 1

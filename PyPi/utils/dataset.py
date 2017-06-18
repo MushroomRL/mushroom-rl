@@ -38,10 +38,10 @@ def select_episodes(dataset, state_dim, action_dim, n_episodes, parse=False):
     Return the desired number of episodes in the provided dataset.
 
     # Arguments
-        dataset (np.array): the dataset to parse.
-        state_dim (int > 0): the dimension of the MDP state.
-        action_dim (int > 0): the dimension of the MDP action.
-        n_episodes (int >= 0): the number of episodes to pick from the dataset.
+        dataset (np.array): the dataset to parse;
+        state_dim (int > 0): the dimension of the MDP state;
+        action_dim (int > 0): the dimension of the MDP action;
+        n_episodes (int >= 0): the number of episodes to pick from the dataset;
         parse (bool): whether to parse the dataset to return.
 
     # Returns
@@ -60,15 +60,13 @@ def select_episodes(dataset, state_dim, action_dim, n_episodes, parse=False):
                                                        action_dim)
 
 
-def select_samples(dataset, state_dim, action_dim, n_samples, parse=False):
+def select_samples(dataset, n_samples, parse=False):
     """
     Return the desired number of samples in the provided dataset.
 
     # Arguments
-        dataset (np.array): the dataset to parse.
-        state_dim (int > 0): the dimension of the MDP state.
-        action_dim (int > 0): the dimension of the MDP action.
-        n_episodes (int >= 0): the number of samples to pick from the dataset.
+        dataset (np.array): the dataset to parse;
+        n_episodes (int >= 0): the number of samples to pick from the dataset;
         parse (bool): whether to parse the dataset to return.
 
     # Returns
@@ -86,6 +84,16 @@ def select_samples(dataset, state_dim, action_dim, n_samples, parse=False):
 
 
 def compute_J(dataset, gamma=1.):
+    """
+    Compute the J.
+
+    Arguments
+        dataset (list): the dataset to consider to compute J;
+        gamma (float): discount factor.
+
+    Returns
+        the average cumulative discounted reward.
+    """
     _, _, reward, _, _, last = parse_dataset(dataset)
     js = list()
 
@@ -105,10 +113,10 @@ def compute_J(dataset, gamma=1.):
 def max_QA(states, absorbing, approximator, discrete_actions):
     """
     # Arguments
-        state (np.array): the state where the agent is.
-        absorbing (np.array): whether the state is absorbing or not.
+        state (np.array): the state where the agent is;
+        absorbing (np.array): whether the state is absorbing or not;
         approximator (object): the approximator to use to compute the
-            action values.
+            action values;
         discrete_actions (np.array): the values of the discrete actions.
 
     # Returns
@@ -124,14 +132,9 @@ def max_QA(states, absorbing, approximator, discrete_actions):
 
     Q = np.zeros((n_states, n_actions))
     for action in xrange(n_actions):
-        actions = np.repeat(discrete_actions[action],
-                            n_states,
-                            0).reshape(-1, 1)
-
+        actions = np.repeat([discrete_actions[action]], n_states, 0)
         samples = state_action(states, actions)
-
         predictions = approximator.predict(samples)
-
         Q[:, action] = predictions * (1 - absorbing)
 
     if Q.shape[0] > 1:
@@ -150,6 +153,19 @@ def max_QA(states, absorbing, approximator, discrete_actions):
 
 
 def state_action(state, action):
+    """
+    Concatenate state and action samples in a single sample. This can be used,
+    for instance, when creating the input of an approximator. 'state' and
+    'action' must have the same shape.
+
+    Arguments
+        state (np.array): the array of states with shape (n, state_dim);
+        action (np.array): the array of actions with shape (n, action_dim).
+
+    Returns
+        the concatenation of the 'state' and 'action' array with shape
+        (n, state_dim + action_dim).
+    """
     if state.ndim == 2 and action.ndim == 2:
         return np.concatenate((state, action), axis=1)
     else:
@@ -157,6 +173,19 @@ def state_action(state, action):
 
 
 def state_action_idx(state, action):
+    """
+    Concatenate state and action samples in a single tuple. This can be used,
+    for instance, when using the state-action tuple as an index. 'state' and
+    'action' must have the same shape.
+
+    Arguments
+        state (np.array): the array of states with shape (n, state_dim);
+        action (np.array): the array of actions with shape (n, action_dim).
+
+    Returns
+        the tuple of the concatenation of the 'state' and 'action' array with
+        shape (n, state_dim + action_dim).
+    """
     if state.ndim == 2 and action.ndim == 2:
         return tuple(np.concatenate((state, action), axis=1).ravel())
     else:

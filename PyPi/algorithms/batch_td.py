@@ -28,7 +28,8 @@ class FQI(BatchTD):
         Fit loop.
 
         # Arguments
-            n_iterations (int > 0): number of iterations
+            dataset (list): the dataset;
+            n_iterations (int > 0): number of iterations.
         """
         target = None
         for i in xrange(n_iterations):
@@ -41,8 +42,9 @@ class FQI(BatchTD):
         Single fit iteration.
 
         # Arguments
-            x (np.array): input dataset.
-            y (np.array): target.
+            x (np.array): input dataset;
+            y (np.array): target;
+            fit_params (dict): other params.
         """
         state, action, reward, next_states, absorbing, last = parse_dataset(x)
         if y is None:

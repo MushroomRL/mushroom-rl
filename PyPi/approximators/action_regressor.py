@@ -15,8 +15,8 @@ class ActionRegressor(object):
 
         # Arguments
             approximator_class (object): the model class to approximate the
-            Q-function of each action.
-            discrete_actions (np.array): the values of the discrete actions.
+            Q-function of each action;
+            discrete_actions (np.array): the values of the discrete actions;
             **params (dict): parameters dictionary to co each regressor.
         """
         self._discrete_actions = discrete_actions
@@ -31,8 +31,8 @@ class ActionRegressor(object):
         Fit the model.
 
         # Arguments
-            x (np.array): input dataset containing states and actions.
-            y (np.array): target.
+            x (np.array): input dataset containing states and actions;
+            y (np.array): target;
             fit_params (dict): other parameters.
         """
         action_idx = x.shape[1] - self._action_dim

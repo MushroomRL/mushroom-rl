@@ -15,8 +15,9 @@ class Ensemble(object):
 
         # Arguments
             approximator_class (object): the model class to approximate the
-            Q-function of each action.
-            discrete_actions (np.array): the values of the discrete actions.
+            Q-function of each action;
+            n_models (int): number of models in the ensemble;
+            discrete_actions (np.array): the values of the discrete actions;
             **params (dict): parameters dictionary to construct each regressor.
         """
         self.n_models = n_models

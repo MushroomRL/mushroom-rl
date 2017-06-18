@@ -12,7 +12,7 @@ class Regressor(object):
         Constructor.
 
         # Arguments
-            approximator_class (object): the approximator class to use.
+            approximator_class (object): the approximator class to use;
             params (dict): other parameters.
         """
         self.features = params.pop('features', None)
@@ -28,9 +28,8 @@ class Regressor(object):
 
         # Arguments
             x (np.array): input dataset containing states (and action, if
-                action regression is not used).
-            y (np.array): target.
-            exclude_actions (bool): whether to consider action as input or not.
+                action regression is not used);
+            y (np.array): target;
             fit_params (dict): other parameters.
         """
         if x.ndim == 1:
@@ -59,7 +58,6 @@ class Regressor(object):
         # Arguments
             x (np.array): input dataset containing states (and action, if
                 action regression is not used).
-            exclude_actions (bool): whether to consider action as input or not.
 
         # Returns
             The prediction of the model.

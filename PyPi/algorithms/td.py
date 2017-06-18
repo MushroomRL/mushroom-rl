@@ -18,6 +18,9 @@ class TD(Agent):
     def fit(self, dataset, n_fit_iterations=1):
         """
         Single fit step.
+
+        # Arguments
+            dataset (list): the dataset to use.
         """
         assert n_fit_iterations == 1
 
@@ -50,14 +53,12 @@ class QLearning(TD):
 
     def _next_q(self, next_state):
         """
-        Compute the action with the maximum action-value in 'next_state'.
-
-        # Arguments
+        Arguments
             next_state (np.array): the state where next action has to be
                 evaluated.
 
         # Returns
-            Action with the maximum action_value in 'next_state'.
+            Maximum action-value in 'next_state'.
         """
         max_q, _ = max_QA(next_state, False, self.approximator,
                           self.mdp_info['action_space'].values)
@@ -84,6 +85,9 @@ class DoubleQLearning(TD):
     def fit(self, dataset, n_fit_iterations=1):
         """
         Single fit step.
+
+        # Arguments
+            dataset (list): the dataset to use.
         """
         assert n_fit_iterations == 1
 
@@ -105,6 +109,17 @@ class DoubleQLearning(TD):
             sa, q, **self.params['fit_params'])
 
     def _next_q(self, next_state, approximator_idx):
+        """
+        # Arguments
+            next_state (np.array): the state where next action has to be
+                evaluated;
+            approximator_idx (int): the index of the approximator to use
+                to make the prediction.
+
+        # Returns
+            Action-value of the action whose value in 'next_state' is the
+            maximum according to 'approximator[approximator]'.
+        """
         _, a_n = max_QA(next_state, False,
                         self.approximator[approximator_idx],
                         self.mdp_info['action_space'].values)
@@ -135,6 +150,9 @@ class WeightedQLearning(TD):
     def fit(self, dataset, n_fit_iterations=1):
         """
         Single fit step.
+
+        # Arguments
+            dataset (list): the dataset to use.
         """
         assert n_fit_iterations == 1
 
@@ -170,6 +188,14 @@ class WeightedQLearning(TD):
             self._sigma[self._sigma < 1e-10] = 1e-10
 
     def _next_q(self, next_state):
+        """
+        # Arguments
+            next_state (np.array): the state where next action has to be
+                evaluated.
+
+        # Returns
+            the weighted estimator.
+        """
         means = np.zeros((1, self.mdp_info['action_space'].size))
         sigmas = np.zeros(means.shape)
         actions = self.mdp_info['action_space'].values
@@ -216,7 +242,8 @@ class SARSA(TD):
                 evaluated.
 
         # Returns
-            ...
+            the action_value of the action returned by the policy in
+            'next_state'
         """
         self._next_action = self.draw_action(next_state)
         sa_n = state_action(next_state, self._next_action)

@@ -14,8 +14,9 @@ class EpsGreedy(object):
 
         # Arguments
         epsilon (Parameter): the exploration coefficient. It indicates
-            the probability of performing a random actions in the current step.
-        discrete_actions (np.array): the values of the discrete actions.
+            the probability of performing a random actions in the current step;
+        observation_space (object): the state space;
+        action_space (object): the action_space.
         """
         self.__name__ = 'EpsGreedy'
 
@@ -30,7 +31,7 @@ class EpsGreedy(object):
         Compute an action according to the policy.
 
         # Arguments
-            state (np.array): the state where the agent is.
+            state (np.array): the state where the agent is;
             approximator (object): the approximator to use to compute the
                 action values.
 
