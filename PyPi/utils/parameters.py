@@ -2,11 +2,8 @@ import numpy as np
 
 
 class Parameter(object):
-    def __init__(self, value, decay=False, decay_exp=1., min_value=None,
-                 shape=(1,)):
+    def __init__(self, value, min_value=None, shape=(1,)):
         self._initial_value = value
-        self._decay = decay
-        self._decay_exp = decay_exp
         self._min_value = min_value
         self._n_updates = np.zeros(shape)
 
@@ -18,15 +15,34 @@ class Parameter(object):
 
         self._n_updates[idx] += 1
 
-        return self._compute(idx)
+        self._update(idx, **kwargs)
 
-    def _compute(self, idx):
-        if self._decay:
-            new_value =\
-                self._initial_value / self._n_updates[idx] ** self._decay_exp
-            if self._min_value is None or new_value >= self._min_value:
-                return new_value
-            else:
-                return self._min_value
+        return self.get_value(idx, **kwargs)
+
+    def get_value(self, idx, **kwargs):
+        new_value = self._compute(idx, **kwargs)
+
+        if self._min_value is None or new_value >= self._min_value:
+            return new_value
         else:
-            return self._initial_value
+            return self._min_value
+
+    def _compute(self, idx, **kwargs):
+        return self._initial_value
+
+    def _update(self, idx, **kwargs):
+        pass
+
+
+class DecayParameter(Parameter):
+    def __init__(self, value, decay_exp=1., min_value=None,
+                 shape=(1,)):
+        self._decay_exp = decay_exp
+
+        super(DecayParameter, self).__init__(value, min_value, shape)
+
+    def _compute(self, idx, **kwargs):
+        return self._initial_value / self._n_updates[idx] ** self._decay_exp
+
+    def _update(self, idx, **kwargs):
+        pass

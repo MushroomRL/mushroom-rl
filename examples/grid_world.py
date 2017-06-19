@@ -9,7 +9,7 @@ from PyPi.policy import EpsGreedy
 from PyPi.utils.callbacks import CollectMaxQ
 from PyPi.utils import logger
 from PyPi.utils.dataset import parse_dataset
-from PyPi.utils.parameters import Parameter
+from PyPi.utils.parameters import DecayParameter
 
 
 def experiment(algorithm_class, decay_exp):
@@ -19,8 +19,8 @@ def experiment(algorithm_class, decay_exp):
     mdp = GridWorldVanHasselt()
 
     # Policy
-    epsilon = Parameter(value=1, decay=True, decay_exp=.5,
-                        shape=mdp.observation_space.shape)
+    epsilon = DecayParameter(value=1, decay=True, decay_exp=.5,
+                             shape=mdp.observation_space.shape)
     pi = EpsGreedy(epsilon=epsilon, observation_space=mdp.observation_space,
                    action_space=mdp.action_space)
 
@@ -33,8 +33,8 @@ def experiment(algorithm_class, decay_exp):
         approximator = Ensemble(Tabular, 2, **approximator_params)
 
     # Agent
-    learning_rate = Parameter(value=1, decay=True, decay_exp=decay_exp,
-                              shape=shape)
+    learning_rate = DecayParameter(value=1, decay=True, decay_exp=decay_exp,
+                                   shape=shape)
     algorithm_params = dict(learning_rate=learning_rate)
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
@@ -57,7 +57,7 @@ def experiment(algorithm_class, decay_exp):
     return reward, max_Qs
 
 if __name__ == '__main__':
-    n_experiment = 10000
+    n_experiment = 8
 
     logger.Logger(3)
 
@@ -70,6 +70,8 @@ if __name__ == '__main__':
             r = np.array([o[0] for o in out])
             max_Qs = np.array([o[1] for o in out])
 
-            np.save('r' + names[a] + names[e] + '.npy',
-                    np.convolve(np.mean(r, 0), np.ones(100) / 100., 'valid'))
-            np.save('max_Q' + names[a] + names[e] + '.npy', np.mean(max_Qs, 0))
+            from matplotlib import pyplot as plt
+            plt.plot(np.convolve(np.mean(r, 0), np.ones(100) / 100., 'valid'))
+            plt.figure()
+            plt.plot(np.mean(max_Qs, 0))
+            plt.show()
