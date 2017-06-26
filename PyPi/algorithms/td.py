@@ -144,6 +144,7 @@ class WeightedQLearning(TD):
 
         self._n_updates = np.zeros(self.approximator.shape)
         self._sigma = np.ones(self.approximator.shape) * 1e10
+        self._Q = np.zeros(self.approximator.shape)
         self._Q2 = np.zeros(self.approximator.shape)
         self._weights_var = np.zeros(self.approximator.shape)
 
@@ -175,16 +176,17 @@ class WeightedQLearning(TD):
 
         self._n_updates[sa_idx] += 1
 
-        self._Q2[sa_idx] = self._Q2[sa_idx] + alpha * target ** 2. - alpha *\
-                           self._Q2[sa_idx]
+        self._Q[sa_idx] += (target - self._Q[sa_idx]) / self._n_updates[sa_idx]
+        self._Q2[sa_idx] += (
+            target ** 2. - self._Q2[sa_idx]) / self._n_updates[sa_idx]
+        self._weights_var[sa_idx] = (1 - alpha) ** 2. * \
+                                    self._weights_var[sa_idx] + alpha ** 2.
 
         if self._n_updates[sa_idx] > 1:
-            self._weights_var[sa_idx] = (1 - alpha) ** 2. *\
-                                        self._weights_var[sa_idx] + alpha ** 2.
-            n = 1. / self._weights_var[sa_idx]
-            diff = self._Q2[sa_idx] - q ** 2.
-            diff = np.clip(diff, 0, np.inf)
-            self._sigma[sa_idx] = np.sqrt(diff / n)
+            var = self._n_updates[sa_idx] * (self._Q2[sa_idx] - self._Q[
+                    sa_idx] ** 2.) / (self._n_updates[sa_idx] - 1.)
+            var_estimator = var * self._weights_var[sa_idx]
+            self._sigma[sa_idx] = np.sqrt(var_estimator)
             self._sigma[self._sigma < 1e-10] = 1e-10
 
     def _next_q(self, next_state):

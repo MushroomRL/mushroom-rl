@@ -19,7 +19,7 @@ def experiment(algorithm_class, decay_exp):
     mdp = GridWorldVanHasselt()
 
     # Policy
-    epsilon = DecayParameter(value=1, decay=True, decay_exp=.5,
+    epsilon = DecayParameter(value=1, decay_exp=.5,
                              shape=mdp.observation_space.shape)
     pi = EpsGreedy(epsilon=epsilon, observation_space=mdp.observation_space,
                    action_space=mdp.action_space)
@@ -33,8 +33,7 @@ def experiment(algorithm_class, decay_exp):
         approximator = Ensemble(Tabular, 2, **approximator_params)
 
     # Agent
-    learning_rate = DecayParameter(value=1, decay=True, decay_exp=decay_exp,
-                                   shape=shape)
+    learning_rate = DecayParameter(value=1, decay_exp=decay_exp, shape=shape)
     algorithm_params = dict(learning_rate=learning_rate)
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
@@ -57,7 +56,7 @@ def experiment(algorithm_class, decay_exp):
     return reward, max_Qs
 
 if __name__ == '__main__':
-    n_experiment = 8
+    n_experiment = 10000
 
     logger.Logger(3)
 
