@@ -69,8 +69,11 @@ if __name__ == '__main__':
             r = np.array([o[0] for o in out])
             max_Qs = np.array([o[1] for o in out])
 
+            r = np.convolve(np.mean(r, 0), np.ones(100) / 100., 'valid')
+            max_Qs = np.mean(max_Qs, 0)
+
             from matplotlib import pyplot as plt
-            plt.plot(np.convolve(np.mean(r, 0), np.ones(100) / 100., 'valid'))
+            plt.plot(r)
             plt.figure()
-            plt.plot(np.mean(max_Qs, 0))
+            plt.plot(max_Qs)
             plt.show()

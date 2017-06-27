@@ -132,7 +132,7 @@ def max_QA(states, absorbing, approximator, discrete_actions):
 
     Q = np.zeros((n_states, n_actions))
     for action in xrange(n_actions):
-        actions = np.repeat([discrete_actions[action]], n_states, 0)
+        actions = np.ones((n_states, action_dim)) * discrete_actions[action]
         samples = state_action(states, actions)
         predictions = approximator.predict(samples)
         Q[:, action] = predictions * (1 - absorbing)
