@@ -1,7 +1,7 @@
 import numpy as np
 from joblib import Parallel, delayed
 
-from PyPi.algorithms.td import QLearning, DoubleQLearning, WeightedQLearning
+from PyPi.algorithms.td import QLearning, DoubleQLearning, WeightedQLearning, SpeedyQLearning
 from PyPi.approximators import Ensemble, Regressor, Tabular
 from PyPi.core.core import Core
 from PyPi.environments import *
@@ -27,7 +27,7 @@ def experiment(algorithm_class, decay_exp):
     # Approximator
     shape = mdp.observation_space.shape + mdp.action_space.shape
     approximator_params = dict(shape=shape)
-    if algorithm_class in [QLearning, WeightedQLearning]:
+    if algorithm_class in [QLearning, WeightedQLearning, SpeedyQLearning]:
         approximator = Regressor(Tabular, **approximator_params)
     elif algorithm_class is DoubleQLearning:
         approximator = Ensemble(Tabular, 2, **approximator_params)
@@ -61,9 +61,10 @@ if __name__ == '__main__':
     logger.Logger(3)
 
     names = {1: '1', .8: '08', QLearning: 'Q', DoubleQLearning: 'DQ',
-             WeightedQLearning: 'WQ'}
+             WeightedQLearning: 'WQ', SpeedyQLearning: 'SPQ'}
+
     for e in [1, .8]:
-        for a in [QLearning, DoubleQLearning, WeightedQLearning]:
+        for a in [QLearning, DoubleQLearning, WeightedQLearning, SpeedyQLearning]:
             out = Parallel(n_jobs=-1)(
                 delayed(experiment)(a, e) for _ in xrange(n_experiment))
             r = np.array([o[0] for o in out])
@@ -73,7 +74,10 @@ if __name__ == '__main__':
             max_Qs = np.mean(max_Qs, 0)
 
             from matplotlib import pyplot as plt
-            plt.plot(r)
             plt.figure()
+            plt.suptitle(names[a] + ' ' + names[e])
+            plt.subplot(2, 1, 1)
+            plt.plot(r)
+            plt.subplot(2, 1, 2)
             plt.plot(max_Qs)
-            plt.show()
+    plt.show()

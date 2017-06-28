@@ -226,6 +226,51 @@ class WeightedQLearning(TD):
         return W
 
 
+class SpeedyQLearning(TD):
+    """
+    Speedy Q-Learning algorithm.
+    """
+    def __init__(self, approximator, policy, **params):
+        self.__name__ = 'SpeedyQLearning'
+        self.old_q = deepcopy(approximator)
+        super(SpeedyQLearning, self).__init__(approximator, policy, **params)
+
+    def fit(self, dataset, n_fit_iterations=1):
+        """
+        Single fit step.
+
+        # Arguments
+            dataset (list): the dataset to use.
+        """
+        assert n_fit_iterations == 1
+
+        state, action, reward, next_state, absorbing, _ = parse_dataset(
+            [dataset[-1]])
+
+        sa = state_action(state, action)
+
+        # Save current q
+        old_q = deepcopy(self.approximator)
+
+        # Compute targets
+        max_q_cur, _ = max_QA(next_state, False, self.approximator,
+                          self.mdp_info['action_space'].values)
+        max_q_old, _ = max_QA(next_state, False, self.old_q,
+                              self.mdp_info['action_space'].values)
+
+        target_cur = reward + self.mdp_info['gamma'] * max_q_cur
+        target_old = reward + self.mdp_info['gamma'] * max_q_old
+
+        # Update q
+        alpha = self.learning_rate(sa)
+        q_cur = self.approximator.predict(sa)
+        q = q_cur + alpha * (target_old-q_cur) + (1.0 - alpha)*(target_cur-target_old)
+
+        self.approximator.fit(sa, q, **self.params['fit_params'])
+
+        # Update old q
+        self.old_q = old_q
+
 class SARSA(TD):
     """
     SARSA algorithm.
