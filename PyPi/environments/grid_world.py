@@ -201,6 +201,9 @@ class GridWorldGenerator(Environment):
                     raise ValueError('Unknown marker.')
 
         self._height = len(self._grid)
-        self._width = len(self._grid[0])
+        self._width = 0
+        for w in self._grid:
+            if len(w) > self._width:
+                self._width = len(w)
 
         assert not np.array_equal(self._start, self._goal)
