@@ -120,30 +120,22 @@ class GridWorldVanHasselt(Environment):
         return self.get_state(), reward, absorbing, {}
 
 
-class GridWorldVerticalWall(Environment):
-    def __init__(self, height, width, wall, door, goal, start=(0, 0)):
-        self.__name__ = 'GridWorld'
+class GridWorldGenerator(Environment):
+    def __init__(self, grid_map):
+        self.__name__ = 'GridWorldGenerator'
+
+        self._generate(grid_map)
 
         # MDP spaces
         self.observation_space = spaces.MultiDiscrete(
-            (spaces.Discrete(height), spaces.Discrete(width)))
+            (spaces.Discrete(self._height), spaces.Discrete(self._width)))
         self.action_space = spaces.Discrete(4)
 
         # MDP parameters
         self.horizon = 100
         self.gamma = .9
 
-        # MDP properties
-        self._height = height
-        self._width = width
-        self._goal = goal
-        self._start = start
-        self._wall = wall
-        self._door = door
-
-        assert not np.array_equal(self._start, self._goal)
-
-        super(GridWorldVerticalWall, self).__init__()
+        super(GridWorldGenerator, self).__init__()
 
     def reset(self, state=None):
         if state is None:
@@ -154,50 +146,61 @@ class GridWorldVerticalWall(Environment):
         return self.get_state()
 
     def step(self, action):
-        reward = 0
-        absorbing = False
+        new_state = self._state.copy()
         if action == 0:
-            if self._state[0] > 0:
-                if self._check_door_step():
-                    self._state[0] -= 1
-                else:
-                    reward = -10
-                    absorbing = True
+            new_state[0] -= 1
         elif action == 1:
-            if self._state[0] + 1 < self._height:
-                if self._check_door_step():
-                    self._state[0] += 1
-                else:
-                    reward = -10
-                    absorbing = True
+            new_state[0] += 1
         elif action == 2:
-            if self._state[1] > 0:
-                if self._check_left_step():
-                    self._state[1] -= 1
-                else:
-                    reward = -10
-                    absorbing = True
+            new_state[1] -= 1
         elif action == 3:
-            if self._state[1] + 1 < self._width:
-                if self._check_right_step():
-                    self._state[1] += 1
-                else:
-                    reward = -10
-                    absorbing = True
+            new_state[1] += 1
 
-        if np.array_equal(self._state, self._goal):
+        c = self._grid[new_state[0]][new_state[1]]
+        if c == '*':
+            reward = -10
+            absorbing = True
+        elif c in ['.', 'S']:
+            reward = 0
+            absorbing = False
+            self._state = new_state
+        elif c == 'G':
             reward = 10
             absorbing = True
+            self._state = new_state
+        elif c == '#':
+            reward = 0
+            absorbing = False
 
         return self.get_state(), reward, absorbing, {}
 
-    def _check_left_step(self):
-        if self._state[1] - 1 == self._wall:
-            return self._state[0] == self._door
+    def _generate(self, grid_map):
+        self._grid = list()
+        with open(grid_map, 'r') as f:
+            m = f.read()
 
-    def _check_right_step(self):
-        if self._state[1] + 1 == self._wall:
-            return self._state[0] == self._door
+            assert 'S' in m and 'G' in m
 
-    def _check_door_step(self):
-        return self._state[1] != self._wall
+            row = list()
+            row_idx = 0
+            col_idx = 0
+            for c in m:
+                if c in ['#', '.', 'S', 'G', '*']:
+                    row.append(c)
+                    if c == 'S':
+                        self._start = (row_idx, col_idx)
+                    elif c == 'G':
+                        self._goal = (row_idx, col_idx)
+                    col_idx += 1
+                elif c == '\n':
+                    self._grid.append(row)
+                    row = list()
+                    row_idx += 1
+                    col_idx = 0
+                else:
+                    raise ValueError('Unknown marker.')
+
+        self._height = len(self._grid)
+        self._width = len(self._grid[0])
+
+        assert not np.array_equal(self._start, self._goal)
