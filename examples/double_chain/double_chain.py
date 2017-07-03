@@ -16,7 +16,9 @@ def experiment(algorithm_class, decay_exp):
     np.random.seed()
 
     # MDP
-    mdp = GridWorldVanHasselt()
+    p = np.load('p.npy')
+    rew = np.load('rew.npy')
+    mdp = FiniteMDP(p, rew, gamma=.9)
 
     # Policy
     epsilon = DecayParameter(value=1, decay_exp=.5,
@@ -41,7 +43,7 @@ def experiment(algorithm_class, decay_exp):
     agent = algorithm_class(approximator, pi, **agent_params)
 
     # Algorithm
-    collect_max_Q = CollectMaxQ(approximator, np.array([mdp._start]),
+    collect_max_Q = CollectMaxQ(approximator, np.array([0]),
                                 mdp.action_space.values)
     callbacks = [collect_max_Q]
     core = Core(agent, mdp, callbacks)
@@ -56,7 +58,7 @@ def experiment(algorithm_class, decay_exp):
     return reward, max_Qs
 
 if __name__ == '__main__':
-    n_experiment = 10000
+    n_experiment = 100
 
     logger.Logger(3)
 
@@ -71,7 +73,7 @@ if __name__ == '__main__':
             r = np.array([o[0] for o in out])
             max_Qs = np.array([o[1] for o in out])
 
-            r = np.convolve(np.mean(r, 0), np.ones(100) / 100., 'valid')
+            r = np.mean(r, 0)
             max_Qs = np.mean(max_Qs, 0)
 
             from matplotlib import pyplot as plt

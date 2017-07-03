@@ -232,7 +232,9 @@ class SpeedyQLearning(TD):
     """
     def __init__(self, approximator, policy, **params):
         self.__name__ = 'SpeedyQLearning'
+
         self.old_q = deepcopy(approximator)
+
         super(SpeedyQLearning, self).__init__(approximator, policy, **params)
 
     def fit(self, dataset, n_fit_iterations=1):
@@ -254,7 +256,7 @@ class SpeedyQLearning(TD):
 
         # Compute targets
         max_q_cur, _ = max_QA(next_state, False, self.approximator,
-                          self.mdp_info['action_space'].values)
+                              self.mdp_info['action_space'].values)
         max_q_old, _ = max_QA(next_state, False, self.old_q,
                               self.mdp_info['action_space'].values)
 
@@ -264,12 +266,14 @@ class SpeedyQLearning(TD):
         # Update q
         alpha = self.learning_rate(sa)
         q_cur = self.approximator.predict(sa)
-        q = q_cur + alpha * (target_old-q_cur) + (1.0 - alpha)*(target_cur-target_old)
+        q = q_cur + alpha * (target_old-q_cur) + (
+            1.0 - alpha) * (target_cur - target_old)
 
         self.approximator.fit(sa, q, **self.params['fit_params'])
 
         # Update old q
         self.old_q = old_q
+
 
 class SARSA(TD):
     """

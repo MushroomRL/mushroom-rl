@@ -5,7 +5,7 @@ from PyPi.utils import spaces
 
 
 class FiniteMDP(Environment):
-    def __init__(self, p, rew, mu, gamma=.9):
+    def __init__(self, p, rew, mu=None, gamma=.9):
         self.__name__ = 'FiniteMDP'
 
         assert p.shape == rew.shape

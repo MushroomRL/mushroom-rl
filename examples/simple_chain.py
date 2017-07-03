@@ -21,7 +21,7 @@ def experiment():
                    action_space=mdp.action_space)
 
     # Approximator
-    shape = [mdp.observation_space.shape, mdp.action_space.shape]
+    shape = mdp.observation_space.shape + mdp.action_space.shape
     approximator_params = dict(shape=shape)
     approximator = Regressor(Tabular, **approximator_params)
 
@@ -39,8 +39,6 @@ def experiment():
     # Train
     core.learn(n_iterations=10000, how_many=1, n_fit_steps=1,
                iterate_over='samples')
-
-    print(core.agent.approximator.model._Q)
 
 if __name__ == '__main__':
     out = experiment()
