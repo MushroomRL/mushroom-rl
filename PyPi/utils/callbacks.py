@@ -1,5 +1,8 @@
 from copy import deepcopy
 
+import numpy as np
+
+from PyPi.approximators.ensemble import Ensemble
 from PyPi.utils.dataset import max_QA
 
 
@@ -20,7 +23,13 @@ class CollectQ(object):
         self._Qs = list()
 
     def __call__(self):
-        self._Qs.append(deepcopy(self._approximator.model._Q))
+        if isinstance(self._approximator, Ensemble):
+            qs = list()
+            for m in self._approximator.models:
+                qs.append(m.model._Q)
+            self._Qs.append(deepcopy(np.mean(qs, 0)))
+        else:
+            self._Qs.append(deepcopy(self._approximator.model._Q))
 
     def get_values(self):
         return self._Qs
