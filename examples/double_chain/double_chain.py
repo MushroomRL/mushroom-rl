@@ -9,20 +9,19 @@ from PyPi.policy import EpsGreedy
 from PyPi.utils.callbacks import CollectMaxQ
 from PyPi.utils import logger
 from PyPi.utils.dataset import parse_dataset
-from PyPi.utils.parameters import DecayParameter
+from PyPi.utils.parameters import Parameter, DecayParameter
 
 
 def experiment(algorithm_class, decay_exp):
     np.random.seed()
 
     # MDP
-    p = np.load('p.npy')
-    rew = np.load('rew.npy')
+    p = np.load('chain_structure/p.npy')
+    rew = np.load('chain_structure/rew.npy')
     mdp = FiniteMDP(p, rew, gamma=.9)
 
     # Policy
-    epsilon = DecayParameter(value=1, decay_exp=.5,
-                             shape=mdp.observation_space.shape)
+    epsilon = Parameter(value=1)
     pi = EpsGreedy(epsilon=epsilon, observation_space=mdp.observation_space,
                    action_space=mdp.action_space)
 
@@ -49,7 +48,7 @@ def experiment(algorithm_class, decay_exp):
     core = Core(agent, mdp, callbacks)
 
     # Train
-    core.learn(n_iterations=10000, how_many=1, n_fit_steps=1,
+    core.learn(n_iterations=5000, how_many=1, n_fit_steps=1,
                iterate_over='samples')
 
     _, _, reward, _, _, _ = parse_dataset(core.get_dataset())
@@ -62,10 +61,10 @@ if __name__ == '__main__':
 
     logger.Logger(3)
 
-    names = {1: '1', .8: '08', QLearning: 'Q', DoubleQLearning: 'DQ',
+    names = {1: '1', .51: '51', QLearning: 'Q', DoubleQLearning: 'DQ',
              WeightedQLearning: 'WQ', SpeedyQLearning: 'SPQ'}
 
-    for e in [1, .8]:
+    for e in [1, .51]:
         for a in [QLearning, DoubleQLearning, WeightedQLearning,
                   SpeedyQLearning]:
             out = Parallel(n_jobs=-1)(
@@ -76,11 +75,5 @@ if __name__ == '__main__':
             r = np.mean(r, 0)
             max_Qs = np.mean(max_Qs, 0)
 
-            from matplotlib import pyplot as plt
-            plt.figure()
-            plt.suptitle(names[a] + ' ' + names[e])
-            plt.subplot(2, 1, 1)
-            plt.plot(r)
-            plt.subplot(2, 1, 2)
-            plt.plot(max_Qs)
-    plt.show()
+            np.save('r' + names[a] + names[e] + '.npy', r)
+            np.save('max' + names[a] + names[e] + '.npy', max_Qs)

@@ -15,10 +15,13 @@ class Environment(gym.Env):
         return [seed]
 
     def get_state(self):
-        state = np.array(self._state)
+        if hasattr(self, 'env'):
+            state = np.array(self.env.state)
+        else:
+            state = np.array(self._state)
         if state.ndim == 0:
             return np.array([state])
-        elif state.ndim == 1:
+        elif state.ndim > 0:
             return state
         else:
             raise ValueError('Wrong state dimension.')
