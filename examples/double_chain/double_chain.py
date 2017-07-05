@@ -6,7 +6,7 @@ from PyPi.approximators import Ensemble, Regressor, Tabular
 from PyPi.core.core import Core
 from PyPi.environments import *
 from PyPi.policy import EpsGreedy
-from PyPi.utils.callbacks import CollectMaxQ
+from PyPi.utils.callbacks import CollectMaxQ, CollectQ
 from PyPi.utils import logger
 from PyPi.utils.dataset import parse_dataset
 from PyPi.utils.parameters import Parameter, DecayParameter
@@ -42,19 +42,17 @@ def experiment(algorithm_class, decay_exp):
     agent = algorithm_class(approximator, pi, **agent_params)
 
     # Algorithm
-    collect_max_Q = CollectMaxQ(approximator, np.array([0]),
-                                mdp.action_space.values)
-    callbacks = [collect_max_Q]
+    collect_Q = CollectQ(approximator)
+    callbacks = [collect_Q]
     core = Core(agent, mdp, callbacks)
 
     # Train
     core.learn(n_iterations=5000, how_many=1, n_fit_steps=1,
                iterate_over='samples')
 
-    _, _, reward, _, _, _ = parse_dataset(core.get_dataset())
-    max_Qs = collect_max_Q.get_values()
+    Qs = collect_Q.get_values()
 
-    return reward, max_Qs
+    return Qs
 
 if __name__ == '__main__':
     n_experiment = 100
@@ -69,11 +67,8 @@ if __name__ == '__main__':
                   SpeedyQLearning]:
             out = Parallel(n_jobs=-1)(
                 delayed(experiment)(a, e) for _ in xrange(n_experiment))
-            r = np.array([o[0] for o in out])
-            max_Qs = np.array([o[1] for o in out])
+            Qs = np.array([o[1] for o in out])
 
-            r = np.mean(r, 0)
-            max_Qs = np.mean(max_Qs, 0)
+            Qs = np.mean(Qs, 0)
 
-            np.save('r' + names[a] + names[e] + '.npy', r)
-            np.save('max' + names[a] + names[e] + '.npy', max_Qs)
+            np.save(names[a] + names[e] + '.npy', Qs)

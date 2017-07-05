@@ -1,4 +1,29 @@
+from copy import deepcopy
+
 from PyPi.utils.dataset import max_QA
+
+
+class CollectQ(object):
+    """
+    This callback can be used to collect the values of the maximum action
+    value in a given state at each call.
+    """
+    def __init__(self, approximator):
+        """
+        Constructor.
+
+        Arguments
+            approximator (object): the approximator to use;
+        """
+        self._approximator = approximator
+
+        self._Qs = list()
+
+    def __call__(self):
+        self._Qs.append(deepcopy(self._approximator.model._Q))
+
+    def get_values(self):
+        return self._Qs
 
 
 class CollectMaxQ(object):
