@@ -297,6 +297,6 @@ class SARSA(TD):
             'next_state'
         """
         self._next_action = self.draw_action(next_state)
-        sa_n = state_action(next_state, self._next_action)
+        sa_n = state_action(next_state, np.expand_dims(self._next_action, axis=0))
 
         return self.approximator.predict(sa_n)
