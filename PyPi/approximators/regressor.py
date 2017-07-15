@@ -7,7 +7,7 @@ class Regressor(object):
     Regressor class used to preprocess input and output before passing them
     to the desired approximator.
     """
-    def __init__(self, approximator_class, **params):
+    def __init__(self, approximator, **params):
         """
         Constructor.
 
@@ -19,7 +19,7 @@ class Regressor(object):
         self.input_scaled = params.pop('input_scaled', False)
         self.output_scaled = params.pop('output_scaled', False)
 
-        self.model = approximator_class(**params)
+        self.model = approximator
 
     def fit(self, x, y, **fit_params):
         """

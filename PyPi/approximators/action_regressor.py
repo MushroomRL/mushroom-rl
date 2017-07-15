@@ -1,3 +1,4 @@
+from copy import deepcopy
 import numpy as np
 
 from PyPi.approximators.regressor import Regressor
@@ -9,7 +10,7 @@ class ActionRegressor(object):
     approximator of the provided class for each action. It is often used in MDPs
     with discrete actions and cannot be used in MDPs with continuous actions.
     """
-    def __init__(self, approximator_class, discrete_actions, **params):
+    def __init__(self, approximator, discrete_actions, **params):
         """
         Constructor.
 
@@ -24,7 +25,7 @@ class ActionRegressor(object):
         self.models = list()
 
         for i in range(self._discrete_actions.shape[0]):
-            self.models.append(Regressor(approximator_class, **params))
+            self.models.append(Regressor(deepcopy(approximator), **params))
 
     def fit(self, x, y, **fit_params):
         """

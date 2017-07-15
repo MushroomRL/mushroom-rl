@@ -1,5 +1,7 @@
 import logging
 
+import numpy as np
+
 
 class Core(object):
     """
@@ -25,6 +27,11 @@ class Core(object):
 
         self._state = self.mdp.reset()
         self._dataset = list()
+
+        if hasattr(agent, 'max_dataset_size'):
+            self._dataset_max_size = agent.max_dataset_size
+        else:
+            self._dataset_max_size = np.inf
         self._episode_steps = 0
 
     def learn(self, n_iterations, how_many, n_fit_steps, iterate_over,
@@ -143,6 +150,8 @@ class Core(object):
         self.logger.debug(sample[:-1])
 
         if collect:
+            if len(self._dataset) == self._dataset_max_size:
+                self._dataset = self._dataset[1:]
             self._dataset.append(sample)
 
         self._state = next_state

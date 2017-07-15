@@ -1,3 +1,4 @@
+from copy import deepcopy
 import numpy as np
 
 from PyPi.approximators.action_regressor import ActionRegressor
@@ -8,7 +9,7 @@ class Ensemble(object):
     """
     This class implements functions to manage regressor ensembles.
     """
-    def __init__(self, approximator_class, n_models, discrete_actions=None,
+    def __init__(self, approximator, n_models, discrete_actions=None,
                  **params):
         """
         Constructor.
@@ -31,7 +32,8 @@ class Ensemble(object):
             regressor_class = Regressor
 
         for _ in range(self.n_models):
-            self.models.append(regressor_class(approximator_class, **params))
+            self.models.append(regressor_class(
+                deepcopy(approximator), **params))
 
     def predict(self, x):
         """

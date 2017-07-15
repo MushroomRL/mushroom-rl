@@ -25,12 +25,12 @@ def experiment(algorithm_class, decay_exp):
                    action_space=mdp.action_space)
 
     # Approximator
+    approximator_params = dict()
     shape = mdp.observation_space.shape + mdp.action_space.shape
-    approximator_params = dict(shape=shape)
     if algorithm_class in [QLearning, WeightedQLearning, SpeedyQLearning]:
-        approximator = Regressor(Tabular, **approximator_params)
+        approximator = Regressor(Tabular(shape), **approximator_params)
     elif algorithm_class is DoubleQLearning:
-        approximator = Ensemble(Tabular, 2, **approximator_params)
+        approximator = Ensemble(Tabular(shape), 2, **approximator_params)
 
     # Agent
     learning_rate = DecayParameter(value=1, decay_exp=decay_exp, shape=shape)

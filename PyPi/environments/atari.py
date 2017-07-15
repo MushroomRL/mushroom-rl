@@ -3,7 +3,6 @@ import numpy as np
 from PIL import Image
 
 from PyPi.environments import Environment
-from PyPi.utils import spaces
 
 
 class Atari(Environment):

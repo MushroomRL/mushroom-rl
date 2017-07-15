@@ -5,7 +5,7 @@ class Tabular(object):
     """
     Tabular regressor. Used for discrete state and action spaces.
     """
-    def __init__(self, **params):
+    def __init__(self, shape):
         """
         Constructor.
 
@@ -14,7 +14,7 @@ class Tabular(object):
         """
         self.__name__ = 'Tabular'
 
-        self._Q = np.zeros(params['shape'])
+        self._Q = np.zeros(shape)
 
     def fit(self, x, y, **fit_params):
         """
