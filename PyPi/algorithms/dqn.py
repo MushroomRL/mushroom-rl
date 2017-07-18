@@ -1,9 +1,5 @@
-from copy import deepcopy
-import numpy as np
-
 from PyPi.algorithms.agent import Agent
-from PyPi.utils.dataset import max_QA, parse_dataset,\
-    state_action, state_action_idx
+from PyPi.utils.dataset import max_QA, parse_dataset, state_action
 
 
 class DQN(Agent):
@@ -13,9 +9,11 @@ class DQN(Agent):
     def __init__(self, approximator, policy, **params):
         self.__name__ = 'DQN'
 
-        self._target_approximator = deepcopy(approximator)
-        self._initial_dataset_size = params.pop('initial_dataset_size')
-        self._target_update_frequency = params.pop('target_update_frequency')
+        alg_params = params['algorithm_params']
+        self._target_approximator = alg_params.pop('target_approximator')
+        self._initial_dataset_size = alg_params.pop('initial_dataset_size')
+        self._target_update_frequency = alg_params.pop(
+            'target_update_frequency')
         self._n_updates = 0
 
         super(DQN, self).__init__(approximator, policy, **params)
@@ -42,7 +40,8 @@ class DQN(Agent):
 
         self._n_updates += 1
         if not self._n_updates % self._target_update_frequency:
-            self._target_approximator = deepcopy(self.approximator)
+            self._target_approximator.set_weights(
+                self.approximator.get_weights())
 
     def _next_q(self, next_state):
         """
