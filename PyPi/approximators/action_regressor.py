@@ -1,4 +1,3 @@
-from copy import deepcopy
 import numpy as np
 
 from PyPi.approximators.regressor import Regressor
@@ -25,7 +24,7 @@ class ActionRegressor(object):
         self.models = list()
 
         for i in range(self._discrete_actions.shape[0]):
-            self.models.append(Regressor(deepcopy(approximator), **params))
+            self.models.append(Regressor(approximator, **params))
 
     def fit(self, x, y, **fit_params):
         """

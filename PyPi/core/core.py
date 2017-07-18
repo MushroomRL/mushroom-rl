@@ -7,7 +7,7 @@ class Core(object):
     """
     Implements the functions to run a generic algorithm.
     """
-    def __init__(self, agent, mdp, callbacks=None):
+    def __init__(self, agent, mdp, callbacks=None, dataset_max_size=np.inf):
         """
         Constructor.
 
@@ -27,11 +27,7 @@ class Core(object):
 
         self._state = self.mdp.reset()
         self._dataset = list()
-
-        if hasattr(agent, 'max_dataset_size'):
-            self._dataset_max_size = agent.max_dataset_size
-        else:
-            self._dataset_max_size = np.inf
+        self._dataset_max_size = dataset_max_size
         self._episode_steps = 0
 
     def learn(self, n_iterations, how_many, n_fit_steps, iterate_over,
@@ -150,7 +146,8 @@ class Core(object):
         self.logger.debug(sample[:-1])
 
         if collect:
-            if len(self._dataset) == self._dataset_max_size:
+            if len(self._dataset) >= self._dataset_max_size:
+                assert len(self._dataset) == self._dataset_max_size
                 self._dataset = self._dataset[1:]
             self._dataset.append(sample)
 

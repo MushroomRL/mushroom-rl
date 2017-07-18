@@ -19,7 +19,7 @@ class Regressor(object):
         self.input_scaled = params.pop('input_scaled', False)
         self.output_scaled = params.pop('output_scaled', False)
 
-        self.model = approximator
+        self.model = approximator(**params)
 
     def fit(self, x, y, **fit_params):
         """

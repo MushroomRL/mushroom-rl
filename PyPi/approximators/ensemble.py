@@ -1,4 +1,3 @@
-from copy import deepcopy
 import numpy as np
 
 from PyPi.approximators.action_regressor import ActionRegressor
@@ -32,8 +31,7 @@ class Ensemble(object):
             regressor_class = Regressor
 
         for _ in range(self.n_models):
-            self.models.append(regressor_class(
-                deepcopy(approximator), **params))
+            self.models.append(regressor_class(approximator, **params))
 
     def predict(self, x):
         """
