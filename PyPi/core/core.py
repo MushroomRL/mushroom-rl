@@ -77,7 +77,7 @@ class Core(object):
                 for c in self.callbacks:
                     c()
 
-    def evaluate(self, initial_states, render=False):
+    def evaluate(self, n_episodes=1, initial_states=None, render=False):
         """
         This function is used to evaluate the learned policy.
 
@@ -87,11 +87,18 @@ class Core(object):
                 each state;
             render (bool): whether to render the environment or not.
         """
-        self.logger.info('Evaluating policy for %d episodes...' %
-                         initial_states.shape[0])
-        for i in xrange(initial_states.shape[0]):
-            self._state = self.mdp.reset(initial_states[i, :])
-            self._move_episodes(1, collect=True, render=render)
+        if initial_states is not None:
+            self.logger.info('Evaluating policy for %d episodes...' %
+                             initial_states.shape[0])
+            for i in xrange(initial_states.shape[0]):
+                self._state = self.mdp.reset(initial_states[i, :])
+                self._move_episodes(1, collect=True, render=render)
+        else:
+            self.logger.info('Evaluating policy for %d episodes...' %
+                             n_episodes)
+            for i in xrange(n_episodes):
+                self._state = self.mdp.reset()
+                self._move_episodes(1, collect=True, render=render)
 
     def _move_episodes(self, how_many, collect=False, render=False):
         """

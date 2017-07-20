@@ -1,5 +1,7 @@
 import numpy as np
 
+from PyPi.approximators.q_regressor import QRegressor
+
 
 def parse_dataset(dataset):
     """
@@ -137,19 +139,13 @@ def max_QA(states, absorbing, approximator, discrete_actions):
         predictions = approximator.predict(samples)
         Q[:, action] = predictions * (1 - absorbing)
 
+    max_q = np.max(Q, axis=1)
     if Q.shape[0] > 1:
-        amax = np.argmax(Q, axis=1)
+        max_a = np.argmax(Q, axis=1)
     else:
-        q = Q[0]
-        amax = [np.random.choice(np.argwhere(q == np.max(q)).ravel())]
+        max_a = [np.random.choice(np.argwhere(Q[0] == max_q).ravel())]
 
-    # store Q-value and action for each state
-    r_q, r_a = np.zeros(n_states), np.zeros((n_states, action_dim), dtype=int)
-    for idx in xrange(n_states):
-        r_q[idx] = Q[idx, amax[idx]]
-        r_a[idx] = discrete_actions[amax[idx]]
-
-    return r_q, r_a
+    return max_q, discrete_actions[max_a]
 
 
 def state_action(state, action):
