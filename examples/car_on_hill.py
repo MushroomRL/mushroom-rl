@@ -26,7 +26,7 @@ def experiment():
     # Approximator
     approximator_params = dict()
     approximator = ActionRegressor(ExtraTreesRegressor,
-                                   discrete_actions=mdp.action_space.values,
+                                   action_space=mdp.action_space,
                                    **approximator_params)
 
     # Agent

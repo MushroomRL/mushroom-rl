@@ -20,12 +20,12 @@ def experiment(algorithm_class, decay_exp):
 
     # Policy
     epsilon = DecayParameter(value=1, decay_exp=.5,
-                             shape=mdp.observation_space.shape)
+                             shape=mdp.observation_space.size)
     pi = EpsGreedy(epsilon=epsilon, observation_space=mdp.observation_space,
                    action_space=mdp.action_space)
 
     # Approximator
-    shape = mdp.observation_space.shape + mdp.action_space.shape
+    shape = mdp.observation_space.size + mdp.action_space.size
     approximator_params = dict(shape=shape)
     if algorithm_class in [QLearning, WeightedQLearning, SpeedyQLearning]:
         approximator = Regressor(Tabular, **approximator_params)
