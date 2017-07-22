@@ -43,7 +43,7 @@ class EpsGreedy(object):
                                    self.action_space.values)
             return max_action.ravel()
 
-        return np.array([np.random.choice(self.action_space.n)])
+        return self.action_space.sample()
 
     def set_epsilon(self, epsilon):
         """

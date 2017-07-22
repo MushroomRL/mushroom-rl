@@ -8,7 +8,7 @@ class Ensemble(object):
     """
     This class implements functions to manage regressor ensembles.
     """
-    def __init__(self, approximator, n_models, discrete_actions=None,
+    def __init__(self, approximator, n_models, action_space=None,
                  **params):
         """
         Constructor.
@@ -21,12 +21,12 @@ class Ensemble(object):
             **params (dict): parameters dictionary to construct each regressor.
         """
         self.n_models = n_models
-        self.fit_actions = True if discrete_actions is None else True
+        self.fit_actions = True if action_space is None else True
         self.models = list()
 
         if not self.fit_actions:
             regressor_class = ActionRegressor
-            params['discrete_actions'] = discrete_actions
+            params['action_space'] = action_space
         else:
             regressor_class = Regressor
 

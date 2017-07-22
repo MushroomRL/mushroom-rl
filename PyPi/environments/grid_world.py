@@ -9,8 +9,7 @@ class GridWorld(Environment):
         self.__name__ = 'GridWorld'
 
         # MDP spaces
-        self.observation_space = spaces.MultiDiscrete(
-            (spaces.Discrete(height), spaces.Discrete(width)))
+        self.observation_space = spaces.Discrete([height, width])
         self.action_space = spaces.Discrete(4)
 
         # MDP parameters
@@ -67,8 +66,7 @@ class GridWorldVanHasselt(Environment):
         self.__name__ = 'GridWorldVanHasselt'
 
         # MDP spaces
-        self.observation_space = spaces.MultiDiscrete(
-            (spaces.Discrete(height), spaces.Discrete(width)))
+        self.observation_space = spaces.Discrete([height, width])
         self.action_space = spaces.Discrete(4)
 
         # MDP parameters
@@ -127,8 +125,7 @@ class GridWorldGenerator(Environment):
         self._generate(grid_map)
 
         # MDP spaces
-        self.observation_space = spaces.MultiDiscrete(
-            (spaces.Discrete(self._height), spaces.Discrete(self._width)))
+        self.observation_space = spaces.Discrete([self._height, self._width])
         self.action_space = spaces.Discrete(4)
 
         # MDP parameters

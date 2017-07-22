@@ -9,7 +9,7 @@ class ActionRegressor(object):
     approximator of the provided class for each action. It is often used in MDPs
     with discrete actions and cannot be used in MDPs with continuous actions.
     """
-    def __init__(self, approximator, discrete_actions, **params):
+    def __init__(self, approximator, action_space, **params):
         """
         Constructor.
 
@@ -19,11 +19,10 @@ class ActionRegressor(object):
             discrete_actions (np.array): the values of the discrete actions;
             **params (dict): parameters dictionary to co each regressor.
         """
-        self._discrete_actions = discrete_actions
-        self._action_dim = self._discrete_actions.shape[1]
+        self._action_space = action_space
         self.models = list()
 
-        for i in range(self._discrete_actions.shape[0]):
+        for i in range(self._action_space.n):
             self.models.append(Regressor(approximator, **params))
 
     def fit(self, x, y, **fit_params):
@@ -35,11 +34,10 @@ class ActionRegressor(object):
             y (np.array): target;
             fit_params (dict): other parameters.
         """
-        action_idx = x.shape[1] - self._action_dim
+        action_idx = x.shape[1] - self._action_space.dim
         for i in range(len(self.models)):
-            action = self._discrete_actions[i]
-            idxs = np.argwhere(
-                (x[:, action_idx:] == action)[:, 0]).ravel()
+            action = self._action_space.values[i]
+            idxs = np.argwhere((x[:, action_idx:] == action)[:, 0]).ravel()
 
             if idxs.size:
                 self.models[i].fit(x[idxs, :action_idx], y[idxs], **fit_params)
@@ -55,11 +53,10 @@ class ActionRegressor(object):
             The predictions of the model.
         """
         predictions = np.zeros((x.shape[0]))
-        action_idx = x.shape[1] - self._action_dim
+        action_idx = x.shape[1] - self._action_space.dim
         for i in range(len(self.models)):
-            action = self._discrete_actions[i]
-            idxs = np.argwhere(
-                (x[:, action_idx:] == action)[:, 0]).ravel()
+            action = self._action_space.values[i]
+            idxs = np.argwhere((x[:, action_idx:] == action)[:, 0]).ravel()
 
             if idxs.size:
                 predictions[idxs] = self.models[i].predict(x[idxs, :action_idx])
