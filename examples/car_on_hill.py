@@ -66,4 +66,4 @@ if __name__ == '__main__':
     logger.Logger(3)
 
     Js = Parallel(n_jobs=-1)(delayed(experiment)() for _ in range(n_experiment))
-    print(Js)
+    print(np.mean(Js))

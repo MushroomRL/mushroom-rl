@@ -2,8 +2,7 @@ import numpy as np
 from copy import deepcopy
 
 from PyPi.algorithms.agent import Agent
-from PyPi.utils.dataset import max_QA, parse_dataset,\
-    state_action, state_action_idx
+from PyPi.utils.dataset import max_QA, parse_dataset
 
 
 class TD(Agent):
@@ -27,7 +26,7 @@ class TD(Agent):
         state, action, reward, next_state, absorbing, _ = parse_dataset(
             [dataset[-1]])
 
-        sa = state_action(state, action)
+        sa = [state, action]
 
         q_current = self.approximator.predict(sa)
         q_next = self._next_q(next_state) if not absorbing else 0.
@@ -94,7 +93,7 @@ class DoubleQLearning(TD):
         state, action, reward, next_state, absorbing, _ = parse_dataset(
             [dataset[-1]])
 
-        sa = state_action(state, action)
+        sa = [state, action]
 
         approximator_idx = 0 if np.random.uniform() < 0.5 else 1
 
@@ -123,7 +122,7 @@ class DoubleQLearning(TD):
         _, a_n = max_QA(next_state, False,
                         self.approximator[approximator_idx],
                         self.mdp_info['action_space'].values)
-        sa_n = state_action(next_state, a_n)
+        sa_n = [next_state, a_n]
 
         return self.approximator[1 - approximator_idx].predict(sa_n)
 
@@ -160,15 +159,15 @@ class WeightedQLearning(TD):
         state, action, reward, next_state, absorbing, _ = parse_dataset(
             [dataset[-1]])
 
-        sa = state_action(state, action)
-        sa_idx = state_action_idx(state, action)
+        sa = [state, action]
+        sa_idx = tuple(np.concatenate((state, action), axis=1).ravel())
 
         q_current = self.approximator.predict(sa)
         q_next = self._next_q(next_state) if not absorbing else 0.
 
         target = reward + self.mdp_info['gamma'] * q_next
 
-        alpha = self.learning_rate(sa_idx)
+        alpha = self.learning_rate(sa)
 
         q = q_current + alpha * (target - q_current)
 
@@ -202,8 +201,9 @@ class WeightedQLearning(TD):
         sigmas = np.zeros(means.shape)
         actions = self.mdp_info['action_space'].values
         for i, a in enumerate(actions):
-            sa_n = state_action(next_state, np.array([a]))
-            sa_n_idx = state_action_idx(next_state, np.array([a]))
+            sa_n = [next_state, np.array([a])]
+            sa_n_idx = tuple(np.concatenate((next_state, np.array([a])),
+                                            axis=1).ravel())
             means[0, i] = self.approximator.predict(sa_n)
             sigmas[0, i] = self._sigma[sa_n_idx]
 
@@ -219,8 +219,7 @@ class WeightedQLearning(TD):
         else:
             raise NotImplementedError
 
-        sa = state_action(np.repeat(next_state, actions.shape[0], axis=0),
-                          actions)
+        sa = [np.repeat(next_state, actions.shape[0], axis=0), actions]
         W = np.dot(w, self.approximator.predict(sa))
 
         return W
@@ -249,7 +248,7 @@ class SpeedyQLearning(TD):
         state, action, reward, next_state, absorbing, _ = parse_dataset(
             [dataset[-1]])
 
-        sa = state_action(state, action)
+        sa = [state, action]
 
         # Save current q
         old_q = deepcopy(self.approximator)
@@ -297,6 +296,6 @@ class SARSA(TD):
             'next_state'
         """
         self._next_action = self.draw_action(next_state)
-        sa_n = state_action(next_state, np.expand_dims(self._next_action, axis=0))
+        sa_n = [next_state, np.expand_dims(self._next_action, axis=0)]
 
         return self.approximator.predict(sa_n)

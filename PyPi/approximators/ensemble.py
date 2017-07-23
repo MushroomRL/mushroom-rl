@@ -43,7 +43,7 @@ class Ensemble(object):
         # Returns
             The predictions of the model.
         """
-        predictions = np.zeros((x.shape[0]))
+        predictions = np.zeros((x[0].shape[0]))
         for i in xrange(self.n_models):
             predictions += self.models[i].predict(x)
 

@@ -1,7 +1,5 @@
 import numpy as np
 
-from PyPi.approximators.q_regressor import QRegressor
-
 
 def parse_dataset(dataset):
     """
@@ -135,7 +133,7 @@ def max_QA(states, absorbing, approximator, discrete_actions):
     Q = np.zeros((n_states, n_actions))
     for action in xrange(n_actions):
         actions = np.ones((n_states, action_dim)) * discrete_actions[action]
-        samples = state_action(states, actions)
+        samples = [states, actions]
         predictions = approximator.predict(samples)
         Q[:, action] = predictions * (1 - absorbing)
 
@@ -146,26 +144,6 @@ def max_QA(states, absorbing, approximator, discrete_actions):
         max_a = [np.random.choice(np.argwhere(Q[0] == max_q).ravel())]
 
     return max_q, discrete_actions[max_a]
-
-
-def state_action(state, action):
-    """
-    Concatenate state and action samples in a single sample. This can be used,
-    for instance, when creating the input of an approximator. 'state' and
-    'action' must have the same shape.
-
-    Arguments
-        state (np.array): the array of states with shape (n, state_dim);
-        action (np.array): the array of actions with shape (n, action_dim).
-
-    Returns
-        the concatenation of the 'state' and 'action' array with shape
-        (n, state_dim + action_dim).
-    """
-    if state.ndim == 2 and action.ndim == 2:
-        return np.concatenate((state, action), axis=1)
-    else:
-        raise ValueError('Wrong dimensionality.')
 
 
 def state_action_idx(state, action):

@@ -23,7 +23,8 @@ class ActionRegressor(object):
         self.models = list()
 
         for i in range(self._action_space.n):
-            self.models.append(Regressor(approximator, **params))
+            self.models.append(Regressor(approximator, fit_action=False,
+                                         **params))
 
     def fit(self, x, y, **fit_params):
         """
@@ -34,13 +35,12 @@ class ActionRegressor(object):
             y (np.array): target;
             fit_params (dict): other parameters.
         """
-        action_idx = x.shape[1] - self._action_space.dim
         for i in range(len(self.models)):
             action = self._action_space.values[i]
-            idxs = np.argwhere((x[:, action_idx:] == action)[:, 0]).ravel()
+            idxs = np.argwhere((x[1] == action)[:, 0]).ravel()
 
             if idxs.size:
-                self.models[i].fit(x[idxs, :action_idx], y[idxs], **fit_params)
+                self.models[i].fit(x[0][idxs, :], y[idxs], **fit_params)
 
     def predict(self, x):
         """
@@ -52,14 +52,13 @@ class ActionRegressor(object):
         # Returns
             The predictions of the model.
         """
-        predictions = np.zeros((x.shape[0]))
-        action_idx = x.shape[1] - self._action_space.dim
+        predictions = np.zeros((x[0].shape[0]))
         for i in range(len(self.models)):
             action = self._action_space.values[i]
-            idxs = np.argwhere((x[:, action_idx:] == action)[:, 0]).ravel()
+            idxs = np.argwhere((x[1] == action)[:, 0]).ravel()
 
             if idxs.size:
-                predictions[idxs] = self.models[i].predict(x[idxs, :action_idx])
+                predictions[idxs] = self.models[i].predict(x[0][idxs, :])
 
         return predictions
 
