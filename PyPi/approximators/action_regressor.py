@@ -52,15 +52,25 @@ class ActionRegressor(object):
         # Returns
             The predictions of the model.
         """
-        predictions = np.zeros((x[0].shape[0]))
+        y = np.zeros((x[0].shape[0]))
         for i in range(len(self.models)):
             action = self._action_space.values[i]
             idxs = np.argwhere((x[1] == action)[:, 0]).ravel()
 
             if idxs.size:
-                predictions[idxs] = self.models[i].predict(x[0][idxs, :])
+                y[idxs] = self.models[i].predict(x[0][idxs, :])
 
-        return predictions
+        return y
+
+    def predict_all(self, x, actions):
+        n_states = x.shape[0]
+        n_actions = actions.shape[0]
+        y = np.zeros((n_states, n_actions))
+
+        for action in xrange(n_actions):
+            y[:, action] = self.models[action].predict(x)
+
+        return y
 
     def __str__(self):
         return str(self.models[0]) + ' with action regression.'

@@ -110,14 +110,14 @@ def compute_J(dataset, gamma=1.):
     return js
 
 
-def max_QA(states, absorbing, approximator, discrete_actions):
+def max_QA(states, absorbing, approximator, actions):
     """
     # Arguments
         state (np.array): the state where the agent is;
         absorbing (np.array): whether the state is absorbing or not;
         approximator (object): the approximator to use to compute the
             action values;
-        discrete_actions (np.array): the values of the discrete actions.
+        actions (np.array): the values of the discrete actions.
 
     # Returns
         A np.array of maximum action values and a np.array of their
@@ -126,24 +126,17 @@ def max_QA(states, absorbing, approximator, discrete_actions):
     if states.ndim == 1:
         states = np.expand_dims(states, axis=0)
 
-    n_states = states.shape[0]
-    n_actions = discrete_actions.shape[0]
-    action_dim = discrete_actions.shape[1]
+    q = approximator.predict_all(states, actions)
+    if np.any(absorbing):
+        q *= 1 - absorbing.reshape(-1, 1)
 
-    Q = np.zeros((n_states, n_actions))
-    for action in xrange(n_actions):
-        actions = np.ones((n_states, action_dim)) * discrete_actions[action]
-        samples = [states, actions]
-        predictions = approximator.predict(samples)
-        Q[:, action] = predictions * (1 - absorbing)
-
-    max_q = np.max(Q, axis=1)
-    if Q.shape[0] > 1:
-        max_a = np.argmax(Q, axis=1)
+    max_q = np.max(q, axis=1)
+    if q.shape[0] > 1:
+        max_a = np.argmax(q, axis=1)
     else:
-        max_a = [np.random.choice(np.argwhere(Q[0] == max_q).ravel())]
+        max_a = [np.random.choice(np.argwhere(q[0] == max_q).ravel())]
 
-    return max_q, discrete_actions[max_a]
+    return max_q, actions[max_a]
 
 
 def state_action_idx(state, action):
