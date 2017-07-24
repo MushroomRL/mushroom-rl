@@ -14,10 +14,10 @@ class Ensemble(object):
         Constructor.
 
         # Arguments
-            approximator_class (object): the model class to approximate the
-            Q-function of each action;
+            approximator (object): the model class to approximate the
+                Q-function of each action;
             n_models (int): number of models in the ensemble;
-            discrete_actions (np.array): the values of the discrete actions;
+            action_space (object): action_space of the MDP;
             **params (dict): parameters dictionary to construct each regressor.
         """
         self.n_models = n_models
@@ -30,7 +30,7 @@ class Ensemble(object):
         else:
             regressor_class = Regressor
 
-        for _ in range(self.n_models):
+        for _ in xrange(self.n_models):
             self.models.append(regressor_class(approximator, **params))
 
     def predict(self, x):
@@ -52,6 +52,16 @@ class Ensemble(object):
         return y
 
     def predict_all(self, x, actions):
+        """
+        Predict Q-value for each action given a state.
+
+        # Arguments
+            x (np.array): input dataset containing states;
+            actions (np.array): list of actions of the MDP.
+
+        # Returns
+            The predictions of the model.
+        """
         y = np.zeros((x.shape[0], actions.shape[0]))
         for i in xrange(self.n_models):
             y += self.models[i].predict_all(x, actions)

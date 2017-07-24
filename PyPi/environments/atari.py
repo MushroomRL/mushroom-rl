@@ -1,8 +1,8 @@
 import gym
-import numpy as np
 from PIL import Image
 
 from PyPi.environments import Environment
+from PyPi.utils.spaces import *
 
 
 class Atari(Environment):
@@ -14,8 +14,10 @@ class Atari(Environment):
 
         # MDP spaces
         self.img_size = (84, 110)
-        self.action_space = self.env.action_space
-        self.observation_space = self.env.observation_space
+        self.action_space = Discrete(self.env.action_space.n)
+        self.observation_space = Box(low=0, high=255, shape=(self.img_size[1],
+                                                             self.img_size[0],
+                                                             3))
 
         # MDP parameters
         self.horizon = 100

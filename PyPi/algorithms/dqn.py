@@ -1,5 +1,7 @@
+import numpy as np
+
 from PyPi.algorithms.agent import Agent
-from PyPi.utils.dataset import max_QA, parse_dataset, state_action
+from PyPi.utils.dataset import max_QA, parse_dataset
 
 
 class DQN(Agent):
@@ -10,9 +12,9 @@ class DQN(Agent):
         self.__name__ = 'DQN'
 
         alg_params = params['algorithm_params']
-        self._target_approximator = alg_params.pop('target_approximator')
-        self._initial_dataset_size = alg_params.pop('initial_dataset_size')
-        self._target_update_frequency = alg_params.pop(
+        self._target_approximator = alg_params.get('target_approximator')
+        self._initial_dataset_size = alg_params.get('initial_dataset_size')
+        self._target_update_frequency = alg_params.get(
             'target_update_frequency')
         self._n_updates = 0
 
@@ -31,9 +33,9 @@ class DQN(Agent):
             state, action, reward, next_state, absorbing, _ = parse_dataset(
                 dataset)
 
-            sa = state_action(state, action)
+            sa = [state, action]
 
-            q_next = self._next_q(next_state) if not absorbing else 0.
+            q_next = self._next_q(next_state, absorbing)
             q = reward + self.mdp_info['gamma'] * q_next
 
             self.approximator.train_on_batch(sa, q, **self.params['fit_params'])
@@ -43,7 +45,36 @@ class DQN(Agent):
             self._target_approximator.set_weights(
                 self.approximator.get_weights())
 
-    def _next_q(self, next_state):
+    def _next_q(self, next_state, absorbing):
+        """
+        Arguments
+            next_state (np.array): the state where next action has to be
+                evaluated.
+            absorbing (np.array): the absorbing flag for the states in
+                'next_state'.
+
+        # Returns
+            Maximum action-value in 'next_state'.
+        """
+        max_q, _ = max_QA(next_state, absorbing, self.approximator,
+                          self.mdp_info['action_space'].values)
+
+        return max_q
+
+    def __str__(self):
+        return self.__name__
+
+
+class DoubleDQN(DQN):
+    """
+    Implements functions to run the Double DQN algorithm.
+    """
+    def __init__(self, approximator, policy, **params):
+        self.__name__ = 'DoubleDQN'
+
+        super(DoubleDQN, self).__init__(approximator, policy, **params)
+
+    def _next_q(self, next_state, absorbing):
         """
         Arguments
             next_state (np.array): the state where next action has to be
@@ -52,8 +83,8 @@ class DQN(Agent):
         # Returns
             Maximum action-value in 'next_state'.
         """
-        max_q, _ = max_QA(next_state, False, self._target_approximator,
-                          self.mdp_info['action_space'].values)
+        q = self._approximator.predict(next_state)
+        max_a = np.argmax(q, axis=1).reshape(-1, 1)
+        sa_n = [next_state, max_a]
 
-    def __str__(self):
-        return self.__name__
+        return self._target_approximator.predict(sa_n)

@@ -12,7 +12,9 @@ class Regressor(object):
         Constructor.
 
         # Arguments
-            approximator_class (object): the approximator class to use;
+            approximator (object): the approximator class to use;
+            fit_action (bool): whether the model consider the action in the
+                input sample or not;
             params (dict): other parameters.
         """
         self.features = params.pop('features', None)
@@ -33,6 +35,77 @@ class Regressor(object):
             y (np.array): target;
             fit_params (dict): other parameters.
         """
+        x, y = self._preprocess_fit(x, y)
+
+        self.model.fit(x, y, **fit_params)
+
+    def train_on_batch(self, x, y, **fit_params):
+        """
+        Preprocess the input and output if requested and fit the model on a
+        single batch using its fit function.
+
+        # Arguments
+            x (np.array): input dataset containing states (and action, if
+                action regression is not used);
+            y (np.array): target;
+            fit_params (dict): other parameters.
+        """
+        x, y = self._preprocess_fit(x, y)
+
+        self.model.train_on_batch(x, y, **fit_params)
+
+    def predict(self, x):
+        """
+        Preprocess the input and output if requested and make the prediction.
+
+        # Arguments
+            x (np.array): input dataset containing states (and action, if
+                action regression is not used).
+
+        # Returns
+            The prediction of the model.
+        """
+        x = self._preprocess_predict(x)
+        y = self.model.predict(x)
+
+        return self.pre_y.inverse_transform(y) if self.output_scaled else y
+
+    def predict_all(self, x, actions):
+        """
+        Predict Q-value for each action given a state.
+
+        # Arguments
+            x (np.array): input dataset containing states;
+            actions (np.array): list of actions of the MDP.
+
+        # Returns
+            The predictions of the model.
+        """
+        x = self._preprocess_predict(x)
+
+        n_states = x.shape[0]
+        n_actions = actions.shape[0]
+        action_dim = actions.shape[1]
+        y = np.zeros((n_states, n_actions))
+        for action in xrange(n_actions):
+            a = np.ones((n_states, action_dim)) * actions[action]
+            if self.fit_action:
+                assert x.ndim == 2
+
+                samples = np.concatenate((x, a), axis=1)
+            else:
+                samples = [x, a]
+
+            predictions = self.model.predict(samples)
+            if predictions.ndim > 1:
+                assert action == 0
+                y = predictions
+                break
+            y[:, action] = self.model.predict(samples)
+
+        return self.pre_y.inverse_transform(y) if self.output_scaled else y
+
+    def _preprocess_fit(self, x, y):
         if self.fit_action:
             assert isinstance(x, list) and len(x) == 2
             assert x[0].ndim == 2 and x[1].ndim == 2
@@ -59,19 +132,9 @@ class Regressor(object):
             self.pre_y = preprocessing.StandardScaler()
             y = self.pre_y.fit_transform(y.reshape(-1, 1))
 
-        self.model.fit(x, y, **fit_params)
+        return x, y
 
-    def predict(self, x):
-        """
-        Preprocess the input and output if requested and make the prediction.
-
-        # Arguments
-            x (np.array): input dataset containing states (and action, if
-                action regression is not used).
-
-        # Returns
-            The prediction of the model.
-        """
+    def _preprocess_predict(self, x):
         if self.fit_action:
             assert isinstance(x, list) and len(x) == 2
             assert x[0].ndim == 2 and x[1].ndim == 2
@@ -94,39 +157,7 @@ class Regressor(object):
                 self.pre_x = preprocessing.StandardScaler()
                 x = self.pre_x.transform(x)
 
-        y = self.model.predict(x)
-
-        return self.pre_y.inverse_transform(y) if self.output_scaled else y
-
-    def predict_all(self, x, actions):
-        if self.features:
-            x = self.features.transform(x)
-
-        if self.input_scaled:
-            self.pre_x = preprocessing.StandardScaler()
-            x = self.pre_x.transform(x)
-
-        n_states = x.shape[0]
-        n_actions = actions.shape[0]
-        action_dim = actions.shape[1]
-        y = np.zeros((n_states, n_actions))
-        for action in xrange(n_actions):
-            a = np.ones((n_states, action_dim)) * actions[action]
-            if self.fit_action:
-                assert x.ndim == 2
-
-                samples = np.concatenate((x, a), axis=1)
-            else:
-                samples = [x, a]
-
-            predictions = self.model.predict(samples)
-            if predictions.ndim > 1:
-                assert action == 0
-                y = predictions
-                break
-            y[:, action] = self.model.predict(samples)
-
-        return self.pre_y.inverse_transform(y) if self.output_scaled else y
+        return x
 
     def __str__(self):
         return str(self.model)

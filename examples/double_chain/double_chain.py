@@ -1,14 +1,14 @@
 import numpy as np
 from joblib import Parallel, delayed
 
-from PyPi.algorithms.td import QLearning, DoubleQLearning, WeightedQLearning, SpeedyQLearning
+from PyPi.algorithms.td import QLearning, DoubleQLearning, WeightedQLearning,\
+    SpeedyQLearning
 from PyPi.approximators import Ensemble, Regressor, Tabular
 from PyPi.core.core import Core
 from PyPi.environments import *
 from PyPi.policy import EpsGreedy
-from PyPi.utils.callbacks import CollectMaxQ, CollectQ
+from PyPi.utils.callbacks import CollectQ
 from PyPi.utils import logger
-from PyPi.utils.dataset import parse_dataset
 from PyPi.utils.parameters import Parameter, DecayParameter
 
 

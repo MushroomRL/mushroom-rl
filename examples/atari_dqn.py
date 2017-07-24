@@ -1,5 +1,8 @@
 import numpy as np
+import tensorflow as tf
 
+from keras import backend as K
+from keras.engine.topology import Layer
 from keras.models import Model
 from keras.layers import Input, Convolution2D, Flatten, Dense
 from keras.optimizers import Adam
@@ -11,6 +14,167 @@ from PyPi.environments import *
 from PyPi.policy import EpsGreedy
 from PyPi.utils import logger
 from PyPi.utils.parameters import DecayParameter, Parameter
+
+
+class GatherLayer(Layer):
+    def __init__(self, output_dim, nb_actions, **kwargs):
+        """
+        This layer can be used to split the output of the previous layer into
+        nb_actions groups of size output_dim, and selectively choose which
+        group to provide as output.
+        It requires two tensors to be passed as input, namely the output of
+        the previous layer and a column tensor with int32 or int64 values.
+        Both inputs must obviously have the same batch_size.
+
+        The input to this layer must be of shape (None, prev_output_dim),
+        where prev_output_dim = output_dim * nb_actions.
+        No checks are done at runtime to ensure that the input to the layer is
+        correct, so you'd better double check.
+
+        An example usage of this layer may be:
+            input = Input(shape=(3,))
+            control = Input(shape=(1,), dtype='int32')
+            hidden = Dense(2 * 3)(i)  # output_dim == 2, nb_actions == 3
+            output = GatherLayer(2, 3)([hidden, control])
+            model = Model(input=[i, u], output=output)
+            ...
+            # Output is the first two neurons of hidden
+            model.predict([randn(3), array([0])])
+            # Output is the middle two neurons of hidden
+            model.predict([randn(3), array([1])])
+            # Output is the last two neurons of hidden
+            model.predict([randn(3), array([2])])
+
+
+        """
+        self.output_dim = output_dim
+        self.nb_actions = nb_actions
+        super(GatherLayer, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        super(GatherLayer, self).build(input_shape)
+
+    def call(self, args, mask=None):
+        return self.gather_layer(args, self.output_dim, self.nb_actions)
+
+    def get_output_shape_for(self, input_shape):
+        return input_shape[0], self.output_dim
+
+    def compute_output_shape(self, input_shape):
+        assert input_shape and len(input_shape) >= 2
+        assert input_shape[-1]
+        output_shape = list(input_shape)
+        output_shape[-1] = self.output_dim
+        return tuple(output_shape)
+
+    @staticmethod
+    def gather_layer(args, output_size, nb_actions):
+        full_output, indices = args
+        '''
+        Returns a tensor of shape (None, output_size) where each sample is
+        the result of masking the corresponding sample in full_output with
+        a binary mask that preserves only output_size elements, based on
+         the corresponding index sample in indices.
+
+        For example, given:
+            full output: [[1, 2, 3, 4, 5, 6], [21, 22, 23, 24, 25, 26]]
+            nb_actions: 3
+            output_size: 2
+            indices: [[2], [0]]
+            desired output: [[5, 6], [21, 22]]
+        we want the couple of elements [5, 6] representing the output
+        for the third action (2) of the first sample, and [21, 22] representing
+        the output for the first action (0) of the second sample;
+        so we need the absolute indices [[4, 5], [0, 1]].
+
+        To build these, we compute the first absolute indices (4 and 0) by
+        multiplying the action indices for the output size:
+            [[2], [0]] * 2 = [[4], [0]]
+
+        '''
+        base_absolute_indices = tf.multiply(indices, output_size)
+
+        '''
+        We then build an array containing the first absolute indices repeated
+        output_size times:
+            [[4, 4], [0, 0]]
+        '''
+        bai_repeated = tf.tile(base_absolute_indices, [1, output_size])
+
+        '''
+        Finally, we add range(output_size) to these tensors to get the full
+        absolute indices tensors:
+            [4, 4] + [0, 1] = [4, 5]
+            [0, 0] + [0, 1] = [0, 1]
+        so we get:
+            [[4, 5], [0, 1]]
+        '''
+        absolute_indices = tf.add(bai_repeated, tf.range(output_size))
+
+        '''
+        We now need to flatten this tensor in order to later compute the
+        one hot encoding for each absolute index:
+            [4, 5, 0, 1]
+        '''
+        ai_flat = tf.reshape(absolute_indices, [-1])
+
+        '''
+        Compute the one-hot encoding for the absolute indices.
+        Continuing the last example, from [4, 5, 0, 1] we now get:
+            [[0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1],
+             [1, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0]]
+        '''
+        ai_onehot = tf.one_hot(ai_flat, output_size * nb_actions)
+
+        '''
+        Build the mask for full_output from the onehot-encoded absolute indices.
+        We need to group the one-hot absolute indices tensor into
+        output_size-dimensional sub-tensors, in order to reduce_sum along
+        axis 1 and get the correct masks.
+        Therefore we get:
+            [
+              [[0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1]],
+              [[1, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0]]
+            ]
+        '''
+        group_shape = [-1, output_size, output_size * nb_actions]
+        group = tf.reshape(ai_onehot, group_shape)
+
+        '''
+        And with the reduce_sum along axis 1 we get:
+            [[0, 0, 0, 0, 1, 1], [1, 1, 0, 0, 0, 0]]
+        '''
+        masks = tf.reduce_sum(group, axis=1)
+
+        '''
+        Convert the mask to boolean. We get:
+            [[False, False, False, False, True, True],
+             [True, True, False, False, False, False]]
+        '''
+        zero = tf.constant(0, dtype=tf.float32)
+        bool_masks = tf.not_equal(masks, zero)
+
+        '''
+        Convert the boolean mask to absolute indices for the full_output
+        tensor (each element can be interpreted as [sample index, value index]).
+        We get:
+            [[0, 4], [0, 5], [1, 0], [1, 1]]
+        '''
+        ai_mask = tf.where(bool_masks)
+
+        '''
+        Apply the mask to the full output.
+        We get a mono-dimensional tensor:
+            [5, 6, 21, 22]
+        '''
+        reduced_output = tf.gather_nd(full_output, ai_mask)
+
+        '''
+        Reshape the reduction to match the output shape.
+        We get:
+            [[5, 6], [21, 22]]
+        '''
+        return tf.reshape(reduced_output, [-1, output_size])
 
 
 class ConvNet:
@@ -34,7 +198,7 @@ class ConvNet:
         self.hidden = Flatten()(self.hidden)
         self.features = Dense(512, activation='relu')(self.hidden)
         self.output = Dense(n_actions, activation='linear')(self.features)
-        #self.output = GatherLayer(n_actions)([self.output, self.u])
+        self.output = GatherLayer(1, n_actions)([self.output, self.u])
 
         # Models
         self.model = Model(outputs=[self.output], inputs=[self.input, self.u])
@@ -42,20 +206,33 @@ class ConvNet:
         # Optimization algorithm
         self.optimizer = Adam()
 
+        def mean_squared_error_clipped(y_true, y_pred):
+            return K.clip(K.mean(K.square(y_pred - y_true), axis=-1), -1, 1)
+
         # Compile
-        self.model.compile(optimizer=self.optimizer, loss='mse',
-                           metrics=['mse'])
+        self.model.compile(optimizer=self.optimizer,
+                           loss=mean_squared_error_clipped)
+
+    def fit(self, x, y, **fit_params):
+        self.model.fit(x, y, **fit_params)
+
+    def predict(self, x, **fit_params):
+        return self.model.predict(x, **fit_params)
+
+    def train_on_batch(self, x, y, **fit_params):
+        self.model.train_on_batch(x, y, **fit_params)
 
 
 def experiment():
     np.random.seed()
 
     # DQN Parameters
-    initial_dataset_size = int(5e5)
-    target_update_frequency = int(1e5)
+    initial_dataset_size = int(5e2)
+    target_update_frequency = int(1e4)
     max_dataset_size = int(1e6)
     evaluation_update_frequency = int(5e4)
     max_steps = int(50e6)
+    n_test_episodes = 30
 
     mdp_name = 'BreakoutDeterministic-v3'
     # MDP train
@@ -67,38 +244,49 @@ def experiment():
     epsilon = Parameter(value=1)
     pi = EpsGreedy(epsilon=epsilon, observation_space=mdp.observation_space,
                    action_space=mdp.action_space)
+    epsilon_test = Parameter(value=.05)
+    pi_test = EpsGreedy(epsilon=epsilon_test,
+                        observation_space=mdp.observation_space,
+                        action_space=mdp.action_space)
 
     # Approximator
     approximator_params = dict(n_actions=mdp.action_space.n)
-    approximator = Regressor(ConvNet, **approximator_params)
+    approximator = Regressor(ConvNet, fit_action=False, **approximator_params)
+    approximator_test = Regressor(ConvNet, fit_action=False,
+                                  **approximator_params)
 
     # Agent
-    algorithm_params = dict(target_approximator=Regressor(
-                                ConvNet, **approximator_params),
-                            initial_dataset_size=initial_dataset_size,
-                            target_update_frequency=target_update_frequency)
+    algorithm_params = dict(
+        target_approximator=Regressor(ConvNet,
+                                      fit_action=False,
+                                      **approximator_params),
+        initial_dataset_size=initial_dataset_size,
+        target_update_frequency=target_update_frequency)
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
     agent = DQN(approximator, pi, **agent_params)
+    agent_test = DQN(approximator_test, pi_test, **agent_params)
 
     # Algorithm
     core = Core(agent, mdp, max_dataset_size=max_dataset_size)
-    core_test = Core(agent, mdp_test)
+    core_test = Core(agent_test, mdp_test)
 
     # DQN
     core.learn(n_iterations=evaluation_update_frequency, how_many=1,
                n_fit_steps=1, iterate_over='samples')
-    core_test.evaluate()
+    agent_test.approximator.set_weights(agent.approximator.get_weights())
+    core_test.evaluate(n_episodes=n_test_episodes)
     n_steps = evaluation_update_frequency
     agent.policy.set_epsilon(DecayParameter(value=1, decay_exp=0.1))
     for i in xrange(max_steps - evaluation_update_frequency):
         core.learn(n_iterations=evaluation_update_frequency, how_many=1,
                    n_fit_steps=1, iterate_over='samples')
-        core_test.evaluate()
+        agent_test.approximator.set_weights(agent.approximator.get_weights())
+        core_test.evaluate(n_episodes=n_test_episodes)
 
         n_steps += evaluation_update_frequency
 
 if __name__ == '__main__':
-    logger.Logger(3)
+    logger.Logger(1)
     experiment()
