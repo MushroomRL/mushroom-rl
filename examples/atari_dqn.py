@@ -280,6 +280,7 @@ def experiment():
     core.learn(n_iterations=evaluation_update_frequency, how_many=1,
                n_fit_steps=1, iterate_over='samples')
     core_test.evaluate(n_episodes=n_test_episodes)
+    print('min_reward: %f, max_reward: %f, mean_reward: %f' % ())
     n_steps = evaluation_update_frequency
     agent.policy.set_epsilon(LinearDecayParameter(value=1,
                                                   min_value=0.1,
@@ -287,7 +288,9 @@ def experiment():
     for i in xrange(max_steps - evaluation_update_frequency):
         core.learn(n_iterations=evaluation_update_frequency, how_many=1,
                    n_fit_steps=1, iterate_over='samples')
+        core_test.reset_dataset()
         core_test.evaluate(n_episodes=n_test_episodes)
+        print('min_reward: %f, max_reward: %f, mean_reward: %f' % ())
 
         n_steps += evaluation_update_frequency
 

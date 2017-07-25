@@ -110,6 +110,23 @@ def compute_J(dataset, gamma=1.):
     return js
 
 
+def compute_scores(dataset):
+    _, _, reward, _, _, last = parse_dataset(dataset)
+    scores = list()
+
+    score = 0.
+    episode_steps = 0
+    for i in xrange(reward.size):
+        score += reward[i]
+        episode_steps += 1
+        if last[i]:
+            scores.append(score)
+            score = 0.
+            episode_steps = 0
+
+    return np.min(scores), np.max(scores), np.mean(scores)
+
+
 def max_QA(states, absorbing, approximator, actions):
     """
     # Arguments
@@ -137,23 +154,3 @@ def max_QA(states, absorbing, approximator, actions):
         max_a = [np.random.choice(np.argwhere(q[0] == max_q).ravel())]
 
     return max_q, actions[max_a]
-
-
-def state_action_idx(state, action):
-    """
-    Concatenate state and action samples in a single tuple. This can be used,
-    for instance, when using the state-action tuple as an index. 'state' and
-    'action' must have the same shape.
-
-    Arguments
-        state (np.array): the array of states with shape (n, state_dim);
-        action (np.array): the array of actions with shape (n, action_dim).
-
-    Returns
-        the tuple of the concatenation of the 'state' and 'action' array with
-        shape (n, state_dim + action_dim).
-    """
-    if state.ndim == 2 and action.ndim == 2:
-        return tuple(np.concatenate((state, action), axis=1).ravel())
-    else:
-        raise ValueError('Wrong dimensionality.')
