@@ -31,15 +31,15 @@ class Atari(Environment):
 
     def reset(self, state=None):
         state = self._preprocess_observation(self.env.reset())
-        self.env.state = np.array([state, state, state, state])
+        self._state = np.array([state, state, state, state])
 
         if self._lives == 0:
             self._lives = self.env.env.ale.lives()
 
-        return self.get_state()
+        return self._state
 
     def step(self, action):
-        _, reward, absorbing, info = self.env.step(action)
+        obs, reward, absorbing, info = self.env.step(action)
 
         if self._train:
             reward = np.clip(reward, -1, 1)
@@ -49,10 +49,16 @@ class Atari(Environment):
                     absorbing = True
                 self._lives = info['ale.lives']
 
-        return self.get_state(), reward, absorbing, info
+        obs = self._preprocess_observation(self.get_state())
+        self._state = self._get_next_state(self._state, obs)
+
+        return self._state, reward, absorbing, info
 
     def render(self, mode='human', close=False):
         self.env.render(mode=mode, close=close)
+
+    def _get_next_state(self, current, obs):
+        return np.append(current[1:], [obs], axis=0)
 
     def _preprocess_observation(self, obs):
         image = Image.fromarray(obs, 'RGB').convert('L').resize(self.img_size)

@@ -39,9 +39,21 @@ class Parameter(object):
         pass
 
 
+class LinearDecayParameter(Parameter):
+    def __init__(self, value,  min_value, num, shape=(1,)):
+        self._coeff = (min_value - value) / num
+
+        super(LinearDecayParameter, self).__init__(value, min_value, shape)
+
+    def _compute(self, idx, **kwargs):
+        return self._coeff * self._n_updates[idx] + self._initial_value
+
+    def _update(self, idx, **kwargs):
+        pass
+
+
 class DecayParameter(Parameter):
-    def __init__(self, value, decay_exp=1., min_value=None,
-                 shape=(1,)):
+    def __init__(self, value, decay_exp=1., min_value=None, shape=(1,)):
         self._decay_exp = decay_exp
 
         super(DecayParameter, self).__init__(value, min_value, shape)

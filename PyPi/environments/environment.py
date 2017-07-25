@@ -15,10 +15,7 @@ class Environment(gym.Env):
         return [seed]
 
     def get_state(self):
-        if hasattr(self, 'env'):
-            state = np.array(self.env.state)
-        else:
-            state = np.array(self._state)
+        state = np.array(self._state)
         if state.ndim == 0:
             return np.array([state])
         elif state.ndim > 0:

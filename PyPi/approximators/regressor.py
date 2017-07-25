@@ -83,25 +83,23 @@ class Regressor(object):
         """
         x = self._preprocess_predict(x)
 
-        n_states = x.shape[0]
-        n_actions = actions.shape[0]
-        action_dim = actions.shape[1]
-        y = np.zeros((n_states, n_actions))
-        for action in xrange(n_actions):
-            a = np.ones((n_states, action_dim)) * actions[action]
-            if self.fit_action:
-                assert x.ndim == 2
+        if self.fit_action:
+            n_states = x.shape[0]
+            n_actions = actions.shape[0]
+            action_dim = actions.shape[1]
+            y = np.zeros((n_states, n_actions))
+            for action in xrange(n_actions):
+                a = np.ones((n_states, action_dim)) * actions[action]
+                if self.fit_action:
+                    assert x.ndim == 2
 
-                samples = np.concatenate((x, a), axis=1)
-            else:
-                samples = [x, a]
+                    samples = np.concatenate((x, a), axis=1)
+                else:
+                    samples = [x, a]
 
-            predictions = self.model.predict(samples)
-            if predictions.ndim > 1:
-                assert action == 0
-                y = predictions
-                break
-            y[:, action] = self.model.predict(samples)
+                y[:, action] = self.model.predict(samples).ravel()
+        else:
+            y = self.model.predict(x)
 
         return self.pre_y.inverse_transform(y) if self.output_scaled else y
 

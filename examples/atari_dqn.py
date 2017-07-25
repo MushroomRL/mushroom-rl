@@ -13,7 +13,7 @@ from PyPi.core.core import Core
 from PyPi.environments import *
 from PyPi.policy import EpsGreedy
 from PyPi.utils import logger
-from PyPi.utils.parameters import DecayParameter, Parameter
+from PyPi.utils.parameters import LinearDecayParameter, Parameter
 
 
 class GatherLayer(Layer):
@@ -198,10 +198,11 @@ class ConvNet:
         self.hidden = Flatten()(self.hidden)
         self.features = Dense(512, activation='relu')(self.hidden)
         self.output = Dense(n_actions, activation='linear')(self.features)
-        self.output = GatherLayer(1, n_actions)([self.output, self.u])
+        self.gather = GatherLayer(1, n_actions)([self.output, self.u])
 
         # Models
-        self.model = Model(outputs=[self.output], inputs=[self.input, self.u])
+        self.all_q = Model(outputs=[self.output], inputs=[self.input])
+        self.q = Model(outputs=[self.gather], inputs=[self.input, self.u])
 
         # Optimization algorithm
         self.optimizer = Adam()
@@ -210,17 +211,22 @@ class ConvNet:
             return K.clip(K.mean(K.square(y_pred - y_true), axis=-1), -1, 1)
 
         # Compile
-        self.model.compile(optimizer=self.optimizer,
-                           loss=mean_squared_error_clipped)
+        self.q.compile(optimizer=self.optimizer,
+                       loss=mean_squared_error_clipped)
 
     def fit(self, x, y, **fit_params):
-        self.model.fit(x, y, **fit_params)
+        self.q.fit(x, y, **fit_params)
 
     def predict(self, x, **fit_params):
-        return self.model.predict(x, **fit_params)
+        if isinstance(x, list):
+            assert len(x) == 2
+
+            return self.q.predict(x, **fit_params)
+        else:
+            return self.all_q.predict(x, **fit_params)
 
     def train_on_batch(self, x, y, **fit_params):
-        self.model.train_on_batch(x, y, **fit_params)
+        self.q.train_on_batch(x, y, **fit_params)
 
 
 def experiment():
@@ -229,9 +235,9 @@ def experiment():
     # DQN Parameters
     initial_dataset_size = int(5e2)
     target_update_frequency = int(1e4)
-    max_dataset_size = int(1e6)
-    evaluation_update_frequency = int(5e4)
-    max_steps = int(50e6)
+    max_dataset_size = int(1e5)
+    evaluation_update_frequency = int(5e3)
+    max_steps = int(50e5)
     n_test_episodes = 30
 
     mdp_name = 'BreakoutDeterministic-v3'
@@ -252,8 +258,6 @@ def experiment():
     # Approximator
     approximator_params = dict(n_actions=mdp.action_space.n)
     approximator = Regressor(ConvNet, fit_action=False, **approximator_params)
-    approximator_test = Regressor(ConvNet, fit_action=False,
-                                  **approximator_params)
 
     # Agent
     algorithm_params = dict(
@@ -266,7 +270,7 @@ def experiment():
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
     agent = DQN(approximator, pi, **agent_params)
-    agent_test = DQN(approximator_test, pi_test, **agent_params)
+    agent_test = DQN(approximator, pi_test, **agent_params)
 
     # Algorithm
     core = Core(agent, mdp, max_dataset_size=max_dataset_size)
@@ -275,14 +279,14 @@ def experiment():
     # DQN
     core.learn(n_iterations=evaluation_update_frequency, how_many=1,
                n_fit_steps=1, iterate_over='samples')
-    agent_test.approximator.set_weights(agent.approximator.get_weights())
     core_test.evaluate(n_episodes=n_test_episodes)
     n_steps = evaluation_update_frequency
-    agent.policy.set_epsilon(DecayParameter(value=1, decay_exp=0.1))
+    agent.policy.set_epsilon(LinearDecayParameter(value=1,
+                                                  min_value=0.1,
+                                                  num=10e6))
     for i in xrange(max_steps - evaluation_update_frequency):
         core.learn(n_iterations=evaluation_update_frequency, how_many=1,
                    n_fit_steps=1, iterate_over='samples')
-        agent_test.approximator.set_weights(agent.approximator.get_weights())
         core_test.evaluate(n_episodes=n_test_episodes)
 
         n_steps += evaluation_update_frequency

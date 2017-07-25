@@ -35,7 +35,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.5.0',
+    version='0.75.0',
 
     description='A Python framework to perform Reinforcement Learning experiments.',
 
@@ -69,7 +69,7 @@ setup(
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
     # for example:
-    # $ pip install -e .[dev,test,all]
+    # $ pip install -e .[dev,tests,all]
     extras_require=extras,
 
     # If there are data files included in your packages that need to be
