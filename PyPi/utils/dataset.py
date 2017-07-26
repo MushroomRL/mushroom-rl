@@ -33,7 +33,7 @@ def parse_dataset(dataset):
         next_state), np.array(absorbing), np.array(last)
 
 
-def select_episodes(dataset, state_dim, action_dim, n_episodes, parse=False):
+def select_episodes(dataset, n_episodes, parse=False):
     """
     Return the desired number of episodes in the provided dataset.
 
@@ -56,8 +56,7 @@ def select_episodes(dataset, state_dim, action_dim, n_episodes, parse=False):
     last_idxs = np.argwhere(dataset[:, -1] == 1).ravel()
     sub_dataset = dataset[:last_idxs[n_episodes - 1] + 1, :]
 
-    return sub_dataset if not parse else parse_dataset(sub_dataset, state_dim,
-                                                       action_dim)
+    return sub_dataset if not parse else parse_dataset(sub_dataset)
 
 
 def select_samples(dataset, n_samples, parse=False):
@@ -80,6 +79,7 @@ def select_samples(dataset, n_samples, parse=False):
     dataset = np.array(dataset)
     idxs = np.random.randint(dataset.shape[0], size=n_samples)
     sub_dataset = dataset[idxs, ...]
+
     return sub_dataset if not parse else parse_dataset(sub_dataset)
 
 
@@ -140,9 +140,6 @@ def max_QA(states, absorbing, approximator, actions):
         A np.array of maximum action values and a np.array of their
         corresponding actions.
     """
-    if states.ndim == 1:
-        states = np.expand_dims(states, axis=0)
-
     q = approximator.predict_all(states, actions)
     if np.any(absorbing):
         q *= 1 - absorbing.reshape(-1, 1)

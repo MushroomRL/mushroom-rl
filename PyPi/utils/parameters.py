@@ -14,7 +14,7 @@ class Parameter(object):
 
             idx = tuple(np.concatenate((idx[0], idx[1]), axis=1).ravel())
         else:
-            idx = tuple(idx)
+            idx = tuple(idx.ravel())
 
         idx = idx if self._n_updates.size > 1 else 0
 
@@ -37,6 +37,10 @@ class Parameter(object):
 
     def _update(self, idx, **kwargs):
         pass
+
+    @property
+    def shape(self):
+        return self._n_updates.shape
 
 
 class LinearDecayParameter(Parameter):

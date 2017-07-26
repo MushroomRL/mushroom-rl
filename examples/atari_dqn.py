@@ -236,7 +236,7 @@ def experiment():
     initial_dataset_size = int(5e2)
     target_update_frequency = int(1e4)
     max_dataset_size = int(1e5)
-    evaluation_update_frequency = int(5e3)
+    evaluation_update_frequency = int(5e2)
     max_steps = int(50e5)
     n_test_episodes = 30
 

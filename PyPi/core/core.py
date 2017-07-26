@@ -140,7 +140,8 @@ class Core(object):
             render (bool): whether to render or not.
         """
         action = self.agent.draw_action(self._state)
-        next_state, reward, absorbing, _ = self.mdp.step(action[0])
+        next_state, reward, absorbing, _ = self.mdp.step(action)
+
         self._episode_steps += 1
 
         if render:
@@ -158,7 +159,7 @@ class Core(object):
                 self._dataset = self._dataset[1:]
             self._dataset.append(sample)
 
-        self._state = next_state
+        self._state = np.array(next_state)
 
         return last
 

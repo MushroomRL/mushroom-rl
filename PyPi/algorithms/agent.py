@@ -1,5 +1,6 @@
 import logging
 
+import numpy as np
 
 class Agent(object):
     """
@@ -38,7 +39,7 @@ class Agent(object):
             the action to be executed.
         """
         if self._next_action is None:
-            return self.policy(state, self.approximator)
+            return self.policy(np.expand_dims(state, axis=0), self.approximator)
         else:
             action = self._next_action
             self._next_action = None

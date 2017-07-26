@@ -35,7 +35,7 @@ class FiniteMDP(Environment):
         else:
             self._state = state
 
-        return self.get_state()
+        return self._state
 
     def step(self, action):
         p = self.p[self._state, action, :]
@@ -45,4 +45,4 @@ class FiniteMDP(Environment):
 
         self._state = next_state
 
-        return self.get_state(), reward, absorbing, {}
+        return self._state, reward, absorbing, {}

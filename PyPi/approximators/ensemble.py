@@ -43,11 +43,10 @@ class Ensemble(object):
         # Returns
             The predictions of the model.
         """
-        y = np.zeros((x[0].shape[0]))
-        for i in xrange(self.n_models):
-            y += self.models[i].predict(x)
-
-        y /= self.n_models
+        y = list()
+        for m in self.models:
+            y.append(m.predict(x))
+        y = np.mean(y, axis=0)
 
         return y
 
@@ -62,11 +61,10 @@ class Ensemble(object):
         # Returns
             The predictions of the model.
         """
-        y = np.zeros((x.shape[0], actions.shape[0]))
-        for i in xrange(self.n_models):
-            y += self.models[i].predict_all(x, actions)
-
-        y /= self.n_models
+        y = list()
+        for m in self.models:
+            y.append(m.predict_all(x, actions))
+        y = np.mean(y, axis=0)
 
         return y
 

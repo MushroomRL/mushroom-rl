@@ -81,21 +81,16 @@ class Regressor(object):
         # Returns
             The predictions of the model.
         """
-        x = self._preprocess_predict(x)
-
         if self.fit_action:
+            assert x.ndim == 2
+
             n_states = x.shape[0]
             n_actions = actions.shape[0]
             action_dim = actions.shape[1]
             y = np.zeros((n_states, n_actions))
             for action in xrange(n_actions):
                 a = np.ones((n_states, action_dim)) * actions[action]
-                if self.fit_action:
-                    assert x.ndim == 2
-
-                    samples = np.concatenate((x, a), axis=1)
-                else:
-                    samples = [x, a]
+                samples = np.concatenate((x, a), axis=1)
 
                 y[:, action] = self.model.predict(samples).ravel()
         else:
@@ -156,6 +151,10 @@ class Regressor(object):
                 x = self.pre_x.transform(x)
 
         return x
+
+    @property
+    def shape(self):
+        return self.model.shape
 
     def __str__(self):
         return str(self.model)

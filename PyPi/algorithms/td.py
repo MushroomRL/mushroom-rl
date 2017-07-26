@@ -197,7 +197,7 @@ class WeightedQLearning(TD):
         # Returns
             the weighted estimator.
         """
-        means = np.zeros((1, self.mdp_info['action_space'].size))
+        means = np.zeros((1, self.mdp_info['action_space'].n))
         sigmas = np.zeros(means.shape)
         actions = self.mdp_info['action_space'].values
         for i, a in enumerate(actions):

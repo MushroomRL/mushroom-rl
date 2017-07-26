@@ -35,7 +35,7 @@ class GridWorld(Environment):
         else:
             self._state = state
 
-        return self.get_state()
+        return self._state
 
     def step(self, action):
         if action == 0:
@@ -58,7 +58,7 @@ class GridWorld(Environment):
             reward = 0
             absorbing = False
 
-        return self.get_state(), reward, absorbing, {}
+        return self._state, reward, absorbing, {}
 
 
 class GridWorldVanHasselt(Environment):
@@ -92,7 +92,7 @@ class GridWorldVanHasselt(Environment):
         else:
             self._state = state
 
-        return self.get_state()
+        return self._state
 
     def step(self, action):
         if np.array_equal(self._state, self._goal):
@@ -115,7 +115,7 @@ class GridWorldVanHasselt(Environment):
             reward = np.random.choice([-12, 10])
             absorbing = False
 
-        return self.get_state(), reward, absorbing, {}
+        return self._state, reward, absorbing, {}
 
 
 class GridWorldGenerator(Environment):
@@ -140,7 +140,7 @@ class GridWorldGenerator(Environment):
         else:
             self._state = state
 
-        return self.get_state()
+        return self._state
 
     def step(self, action):
         new_state = self._state.copy()
@@ -169,7 +169,7 @@ class GridWorldGenerator(Environment):
             reward = 0
             absorbing = False
 
-        return self.get_state(), reward, absorbing, {}
+        return self._state, reward, absorbing, {}
 
     def _generate(self, grid_map):
         self._grid = list()

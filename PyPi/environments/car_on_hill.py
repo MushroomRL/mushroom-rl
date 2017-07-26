@@ -37,7 +37,7 @@ class CarOnHill(Environment):
         else:
             self._state = state
 
-        return self.get_state()
+        return self._state
 
     def step(self, action):
         action = -4. if action == 0 else 4.
@@ -58,7 +58,7 @@ class CarOnHill(Environment):
             reward = 0
             absorbing = False
 
-        return self.get_state(), reward, absorbing, {}
+        return self._state, reward, absorbing, {}
 
     def _dpds(self, state_action, t):
         position = state_action[0]
