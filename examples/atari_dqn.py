@@ -228,6 +228,12 @@ class ConvNet:
     def train_on_batch(self, x, y, **fit_params):
         self.q.train_on_batch(x, y, **fit_params)
 
+    def set_weights(self, w):
+        self.q.set_weights(w)
+
+    def get_weights(self):
+        return self.q.get_weights()
+
 
 def experiment():
     np.random.seed()

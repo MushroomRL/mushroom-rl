@@ -31,6 +31,8 @@ class DQN(Agent):
         """
         assert n_iterations == 1
 
+        self._n_updates += 1
+
         if len(dataset) >= self._initial_dataset_size:
             state, action, reward, next_state, absorbing, _ = parse_dataset(
                 dataset)
@@ -42,10 +44,9 @@ class DQN(Agent):
 
             self.approximator.train_on_batch(sa, q, **self.params['fit_params'])
 
-        self._n_updates += 1
-        if not self._n_updates % self._target_update_frequency:
-            self._target_approximator.set_weights(
-                self.approximator.get_weights())
+            if not self._n_updates % self._target_update_frequency:
+                self._target_approximator.model.set_weights(
+                    self.approximator.model.get_weights())
 
     def _next_q(self, next_state, absorbing):
         """
