@@ -37,7 +37,6 @@ class DQN(Agent):
         if len(dataset) >= self._initial_dataset_size:
             state, action, reward, next_state, absorbing, _ = select_samples(
                 dataset=dataset, n_samples=self._batch_size, parse=True)
-            print(state.shape)
 
             sa = [state, action]
 
