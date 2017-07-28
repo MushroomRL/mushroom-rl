@@ -4,7 +4,7 @@ from PyPi.utils.dataset import max_QA, parse_dataset
 
 class BatchTD(Agent):
     """
-    Implements functions to run Batch algorithms.
+    Implements functions to run batch algorithms.
     """
     def __init__(self, approximator, policy, **params):
         super(BatchTD, self).__init__(approximator, policy, **params)
@@ -44,7 +44,7 @@ class FQI(BatchTD):
         # Arguments
             x (np.array): input dataset;
             y (np.array): target;
-            fit_params (dict): other params.
+            fit_params (dict): parameters to fit the model.
         """
         state, action, reward, next_states, absorbing, last = parse_dataset(x)
         if y is None:

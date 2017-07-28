@@ -2,6 +2,7 @@ import logging
 
 import numpy as np
 
+
 class Agent(object):
     """
     This class implements the functions to evaluate the Q-function
@@ -24,6 +25,12 @@ class Agent(object):
         self._next_action = None
 
     def initialize(self, mdp_info):
+        """
+        Fill the dictionary with information about the MDP.
+
+        # Arguments
+            mdp_info (dict): MDP information.
+        """
         for k, v in mdp_info.iteritems():
             self.mdp_info[k] = v
 
@@ -33,10 +40,10 @@ class Agent(object):
         or the pre-set action.
 
         # Arguments
-            state (np.array): the state where the agent is.
+            state (np.array, shape=(state_dim,)): the state where the agent is.
 
         # Returns
-            the action to be executed.
+            The action to be executed.
         """
         if self._next_action is None:
             return self.policy(np.expand_dims(state, axis=0), self.approximator)

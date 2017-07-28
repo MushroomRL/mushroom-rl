@@ -233,10 +233,10 @@ def experiment():
     np.random.seed()
 
     # DQN Parameters
-    initial_dataset_size = int(5e2)
-    target_update_frequency = int(1e4)
+    initial_dataset_size = int(5e3)
+    target_update_frequency = int(1e3)
     max_dataset_size = int(1e5)
-    evaluation_update_frequency = int(5e2)
+    evaluation_update_frequency = int(5e3)
     max_steps = int(50e5)
     n_test_episodes = 30
 

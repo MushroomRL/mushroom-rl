@@ -6,7 +6,9 @@ from PyPi.utils.dataset import max_QA, parse_dataset
 
 class DQN(Agent):
     """
-    Implements functions to run the DQN algorithm.
+    Deep Q-Network algorithm.
+    "Human-Level Control Through Deep Reinforcement Learning".
+    Mnih V. et. al.. 2015.
     """
     def __init__(self, approximator, policy, **params):
         self.__name__ = 'DQN'
@@ -79,6 +81,8 @@ class DoubleDQN(DQN):
         Arguments
             next_state (np.array): the state where next action has to be
                 evaluated.
+            absorbing (np.array): the absorbing flag for the states in
+                'next_state'.
 
         # Returns
             Maximum action-value in 'next_state'.
