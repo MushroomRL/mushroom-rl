@@ -238,7 +238,7 @@ class ConvNet:
 
 def experiment():
     np.random.seed()
-    scale_coeff = 0.1
+    scale_coeff = 10.
 
     # DQN Parameters
     initial_dataset_size = int(5e4 / scale_coeff)
