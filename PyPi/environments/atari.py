@@ -20,7 +20,7 @@ class Atari(Environment):
                                                              3))
 
         # MDP parameters
-        self.horizon = 100
+        self.horizon = np.inf
         self.gamma = 0.99
 
         # MDP properties
