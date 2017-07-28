@@ -1,9 +1,8 @@
 import numpy as np
-from joblib import Parallel, delayed
 from sklearn.ensemble import ExtraTreesRegressor
 
 from PyPi.algorithms.batch_td import FQI
-from PyPi.approximators import ActionRegressor
+from PyPi.approximators import Regressor, ActionRegressor
 from PyPi.core.core import Core
 from PyPi.environments import *
 from PyPi.policy import EpsGreedy
@@ -12,8 +11,8 @@ from PyPi.utils.dataset import compute_J
 from PyPi.utils.parameters import Parameter
 
 
-def experiment():
-    np.random.seed()
+def experiment(fit_action):
+    np.random.seed(20)
 
     # MDP
     mdp = CarOnHill()
@@ -25,9 +24,12 @@ def experiment():
 
     # Approximator
     approximator_params = dict()
-    approximator = ActionRegressor(ExtraTreesRegressor,
-                                   action_space=mdp.action_space,
-                                   **approximator_params)
+    if fit_action:
+        approximator = Regressor(ExtraTreesRegressor, **approximator_params)
+    else:
+        approximator = ActionRegressor(ExtraTreesRegressor,
+                                       action_space=mdp.action_space,
+                                       **approximator_params)
 
     # Agent
     algorithm_params = dict()
@@ -61,9 +63,13 @@ def experiment():
 
 
 if __name__ == '__main__':
+    print('Executing car_on_hill test...')
+
     n_experiment = 1
 
     logger.Logger(3)
 
-    Js = Parallel(n_jobs=-1)(delayed(experiment)() for _ in range(n_experiment))
-    print(np.mean(Js))
+    res = experiment(fit_action=True)
+    assert np.round(res, 4) == .1601
+    res = experiment(fit_action=False)
+    assert np.round(res, 4) == .2346

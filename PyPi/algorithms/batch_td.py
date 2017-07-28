@@ -42,7 +42,7 @@ class FQI(BatchTD):
         Single fit iteration.
 
         # Arguments
-            x (np.array): input dataset;
+            x (list): input dataset;
             y (np.array): target;
             fit_params (dict): parameters to fit the model.
         """

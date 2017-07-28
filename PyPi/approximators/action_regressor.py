@@ -17,7 +17,7 @@ class ActionRegressor(object):
             approximator (object): the model class to approximate the
                 Q-function of each action;
             action_space (object): action_space of the MDP;
-            **params (dict): parameters dictionary to co each regressor.
+            **params (dict): parameters dictionary to create each regressor.
         """
         self._action_space = action_space
         self.models = list()
