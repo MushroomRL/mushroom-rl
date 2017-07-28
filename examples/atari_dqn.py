@@ -238,14 +238,15 @@ class ConvNet:
 
 def experiment():
     np.random.seed()
+    scale_coeff = 0.1
 
     # DQN Parameters
-    initial_dataset_size = int(5e3)
-    target_update_frequency = int(1e3)
-    max_dataset_size = int(1e5)
-    evaluation_update_frequency = int(5e3)
-    max_steps = int(5e5)
-    final_exploration_frame = int(1e5)
+    initial_dataset_size = int(5e4 / scale_coeff)
+    target_update_frequency = int(1e4)
+    max_dataset_size = int(1e6 / scale_coeff)
+    evaluation_update_frequency = int(5e4)
+    max_steps = int(5e6)
+    final_exploration_frame = int(1e6)
     n_test_episodes = 30
 
     mdp_name = 'BreakoutDeterministic-v3'
