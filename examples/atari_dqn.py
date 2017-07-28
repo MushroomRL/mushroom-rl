@@ -216,9 +216,11 @@ class ConvNet:
                        loss=mean_squared_error_clipped)
 
     def fit(self, x, y, **fit_params):
+        x[0] = x[0] / 255.
         self.q.fit(x, y, **fit_params)
 
     def predict(self, x, **fit_params):
+        x[0] = x[0] / 255.
         if isinstance(x, list):
             assert len(x) == 2
 
@@ -227,6 +229,7 @@ class ConvNet:
             return self.all_q.predict(x, **fit_params)
 
     def train_on_batch(self, x, y, **fit_params):
+        x[0] = x[0] / 255.
         self.q.train_on_batch(x, y, **fit_params)
 
     def set_weights(self, w):
