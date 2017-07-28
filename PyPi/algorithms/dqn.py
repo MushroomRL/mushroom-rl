@@ -1,7 +1,7 @@
 import numpy as np
 
 from PyPi.algorithms.agent import Agent
-from PyPi.utils.dataset import max_QA, parse_dataset
+from PyPi.utils.dataset import max_QA, select_samples
 
 
 class DQN(Agent):
@@ -14,6 +14,7 @@ class DQN(Agent):
         self.__name__ = 'DQN'
 
         alg_params = params['algorithm_params']
+        self._batch_size = alg_params.get('batch_size')
         self._target_approximator = alg_params.get('target_approximator')
         self._initial_dataset_size = alg_params.get('initial_dataset_size')
         self._target_update_frequency = alg_params.get(
@@ -34,8 +35,9 @@ class DQN(Agent):
         self._n_updates += 1
 
         if len(dataset) >= self._initial_dataset_size:
-            state, action, reward, next_state, absorbing, _ = parse_dataset(
-                dataset)
+            state, action, reward, next_state, absorbing, _ = select_samples(
+                dataset=dataset, n_samples=self._batch_size, parse=True)
+            print(state.shape)
 
             sa = [state, action]
 

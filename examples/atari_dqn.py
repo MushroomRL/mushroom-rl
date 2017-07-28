@@ -244,7 +244,8 @@ def experiment():
     target_update_frequency = int(1e3)
     max_dataset_size = int(1e5)
     evaluation_update_frequency = int(5e3)
-    max_steps = int(50e5)
+    max_steps = int(5e5)
+    final_exploration_frame = int(1e5)
     n_test_episodes = 30
 
     mdp_name = 'BreakoutDeterministic-v3'
@@ -268,6 +269,7 @@ def experiment():
 
     # Agent
     algorithm_params = dict(
+        batch_size=32,
         target_approximator=Regressor(ConvNet,
                                       fit_action=False,
                                       **approximator_params),
@@ -292,7 +294,7 @@ def experiment():
     n_steps = evaluation_update_frequency
     agent.policy.set_epsilon(LinearDecayParameter(value=1,
                                                   min_value=0.1,
-                                                  num=10e6))
+                                                  num=final_exploration_frame))
     for i in xrange(max_steps - evaluation_update_frequency):
         core.learn(n_iterations=evaluation_update_frequency, how_many=1,
                    n_fit_steps=1, iterate_over='samples')
