@@ -28,6 +28,8 @@ class Core(object):
         self._state = self.mdp.reset()
         self._dataset = list()
         self._max_dataset_size = max_dataset_size
+
+        self._total_steps = 0
         self._episode_steps = 0
 
     def learn(self, n_iterations, how_many, n_fit_steps, iterate_over,
@@ -54,7 +56,7 @@ class Core(object):
 
         if iterate_over == 'samples':
             for self.iteration in xrange(n_iterations):
-                self.logger.info('Iteration %d' % self.iteration)
+                self.logger.info('Iteration %d' % self._total_steps)
 
                 self.logger.debug('Moving for %d samples...' % how_many)
                 self._move_samples(how_many, collect=True, render=render)
@@ -64,6 +66,8 @@ class Core(object):
 
                 for c in self.callbacks:
                     c()
+
+                self._total_steps += 1
         else:
             for self.iteration in xrange(n_iterations):
                 self.logger.info('Iteration %d' % self.iteration)
@@ -170,8 +174,11 @@ class Core(object):
         """
         return self._dataset
 
-    def reset_dataset(self):
+    def reset(self):
         """
         Reset the stored dataset list.
         """
+        self._state = self.mdp.reset()
         self._dataset = list()
+        self._total_steps = 0
+        self._episode_steps = 0

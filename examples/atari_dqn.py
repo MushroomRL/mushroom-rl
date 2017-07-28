@@ -13,6 +13,7 @@ from PyPi.core.core import Core
 from PyPi.environments import *
 from PyPi.policy import EpsGreedy
 from PyPi.utils import logger
+from PyPi.utils.dataset import compute_scores
 from PyPi.utils.parameters import LinearDecayParameter, Parameter
 
 
@@ -242,7 +243,7 @@ def experiment():
     initial_dataset_size = int(5e3)
     target_update_frequency = int(1e3)
     max_dataset_size = int(1e5)
-    evaluation_update_frequency = int(5e3)
+    evaluation_update_frequency = int(1e2)
     max_steps = int(50e5)
     n_test_episodes = 30
 
@@ -286,7 +287,8 @@ def experiment():
     core.learn(n_iterations=evaluation_update_frequency, how_many=1,
                n_fit_steps=1, iterate_over='samples')
     core_test.evaluate(n_episodes=n_test_episodes)
-    print('min_reward: %f, max_reward: %f, mean_reward: %f' % ())
+    score = compute_scores(core_test.get_dataset())
+    print('min_reward: %f, max_reward: %f, mean_reward: %f' % score)
     n_steps = evaluation_update_frequency
     agent.policy.set_epsilon(LinearDecayParameter(value=1,
                                                   min_value=0.1,
@@ -294,9 +296,10 @@ def experiment():
     for i in xrange(max_steps - evaluation_update_frequency):
         core.learn(n_iterations=evaluation_update_frequency, how_many=1,
                    n_fit_steps=1, iterate_over='samples')
-        core_test.reset_dataset()
+        core_test.reset()
         core_test.evaluate(n_episodes=n_test_episodes)
-        print('min_reward: %f, max_reward: %f, mean_reward: %f' % ())
+        score = compute_scores(core_test.get_dataset())
+        print('min_reward: %f, max_reward: %f, mean_reward: %f' % score)
 
         n_steps += evaluation_update_frequency
 
