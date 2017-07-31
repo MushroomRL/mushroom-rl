@@ -295,7 +295,6 @@ def experiment():
     core_test.evaluate(n_episodes=n_test_episodes)
     score = compute_scores(core_test.get_dataset())
     print('min_reward: %f, max_reward: %f, mean_reward: %f' % score)
-    n_steps = evaluation_update_frequency
     agent.policy.set_epsilon(LinearDecayParameter(value=1,
                                                   min_value=0.1,
                                                   num=final_exploration_frame))
@@ -306,8 +305,6 @@ def experiment():
         core_test.evaluate(n_episodes=n_test_episodes)
         score = compute_scores(core_test.get_dataset())
         print('min_reward: %f, max_reward: %f, mean_reward: %f' % score)
-
-        n_steps += evaluation_update_frequency
 
 if __name__ == '__main__':
     logger.Logger(1)

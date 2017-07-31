@@ -49,7 +49,7 @@ class Atari(Environment):
                     absorbing = True
                 self._lives = info['ale.lives']
 
-        obs = self._preprocess_observation(self._state)
+        obs = self._preprocess_observation(obs)
         self._state = self._get_next_state(self._state, obs)
 
         return self._state, reward, absorbing, info
