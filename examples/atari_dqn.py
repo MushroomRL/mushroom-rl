@@ -15,6 +15,7 @@ from PyPi.policy import EpsGreedy
 from PyPi.utils import logger
 from PyPi.utils.dataset import compute_scores
 from PyPi.utils.parameters import LinearDecayParameter, Parameter
+from PyPi.utils.preprocessor import Scaler
 
 
 class GatherLayer(Layer):
@@ -216,11 +217,9 @@ class ConvNet:
                        loss=mean_squared_error_clipped)
 
     def fit(self, x, y, **fit_params):
-        x[0] = x[0] / 255.
         self.q.fit(x, y, **fit_params)
 
     def predict(self, x, **fit_params):
-        x[0] = x[0] / 255.
         if isinstance(x, list):
             assert len(x) == 2
 
@@ -229,7 +228,6 @@ class ConvNet:
             return self.all_q.predict(x, **fit_params)
 
     def train_on_batch(self, x, y, **fit_params):
-        x[0] = x[0] / 255.
         self.q.train_on_batch(x, y, **fit_params)
 
     def set_weights(self, w):
@@ -244,7 +242,7 @@ def experiment():
     scale_coeff = 10.
 
     # DQN Parameters
-    initial_dataset_size = int(5e4 / scale_coeff)
+    initial_dataset_size = int(5e2 / scale_coeff)
     target_update_frequency = int(1e4)
     max_dataset_size = int(1e6 / scale_coeff)
     evaluation_update_frequency = int(5e4)
@@ -258,6 +256,8 @@ def experiment():
     # MDP test
     mdp_test = Atari(mdp_name)
 
+    print(mdp.observation_space.high)
+
     # Policy
     epsilon = Parameter(value=1)
     pi = EpsGreedy(epsilon=epsilon, observation_space=mdp.observation_space,
@@ -269,14 +269,19 @@ def experiment():
 
     # Approximator
     approximator_params = dict(n_actions=mdp.action_space.n)
-    approximator = Regressor(ConvNet, fit_action=False, **approximator_params)
+    approximator = Regressor(ConvNet,
+                             fit_action=False,
+                             preprocessor=[Scaler(mdp.observation_space.high)],
+                             **approximator_params)
 
     # Agent
     algorithm_params = dict(
         batch_size=32,
-        target_approximator=Regressor(ConvNet,
-                                      fit_action=False,
-                                      **approximator_params),
+        target_approximator=Regressor(
+            ConvNet,
+            fit_action=False,
+            preprocessor=[Scaler(mdp.observation_space.high)],
+            **approximator_params),
         initial_dataset_size=initial_dataset_size,
         target_update_frequency=target_update_frequency)
     fit_params = dict()

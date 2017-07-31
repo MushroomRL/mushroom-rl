@@ -7,18 +7,22 @@ class Regressor(object):
     Regressor class used to preprocess input and output before passing them
     to the desired approximator.
     """
-    def __init__(self, approximator, fit_action=True, **params):
+    def __init__(self, approximator, fit_action=True, preprocessor=None,
+                 **params):
         """
         Constructor.
 
         # Arguments
             approximator (object): the approximator class to use;
-            fit_action (bool): whether the model consider the action in the
-                input sample or not;
+            fit_action (bool, True): whether the model consider the action in
+                the input sample or not;
+            preprocessor (list, None): list of preprocessing step to apply to
+                the input data
             params (dict): other parameters.
         """
         self.model = approximator(**params)
         self.fit_action = fit_action
+        self._preprocessor = preprocessor if preprocessor is not None else []
 
     def fit(self, x, y, **fit_params):
         """
@@ -102,6 +106,9 @@ class Regressor(object):
 
             x = np.concatenate((x[0], x[1]), axis=1)
 
+        for p in self._preprocessor:
+            x = p(x)
+
         return x, y
 
     def _preprocess_predict(self, x):
@@ -111,6 +118,9 @@ class Regressor(object):
             assert x[0].shape[0] == x[1].shape[0]
 
             x = np.concatenate((x[0], x[1]), axis=1)
+
+        for p in self._preprocessor:
+            x = p(x)
 
         return x
 

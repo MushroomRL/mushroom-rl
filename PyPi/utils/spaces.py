@@ -8,17 +8,27 @@ class Box(Space):
     def __init__(self, low, high, shape=None):
         if shape is None:
             assert low.shape == high.shape
-            self.low = low
-            self.high = high
-            self.shape = low.shape
+            self._low = low
+            self._high = high
+            self._shape = low.shape
         else:
             assert np.isscalar(low) and np.isscalar(high)
-            self.low = low + np.zeros(shape)
-            self.high = high + np.zeros(shape)
-            self.shape = shape
+            self._low = low + np.zeros(shape)
+            self._high = high + np.zeros(shape)
+            self._shape = shape
 
     def sample(self):
-        return np.random.uniform(low=self.low, high=self.high, size=self.shape)
+        return np.random.uniform(low=self._low,
+                                 high=self._high,
+                                 size=self._shape)
+
+    @property
+    def low(self):
+        return np.unique(self._low)[0]
+
+    @property
+    def high(self):
+        return np.unique(self._high)[0]
 
 
 class Discrete(Space):

@@ -15,7 +15,7 @@ class Atari(Environment):
         # MDP spaces
         self.img_size = (84, 110)
         self.action_space = Discrete(self.env.action_space.n)
-        self.observation_space = Box(low=0, high=255, shape=(self.img_size[1],
+        self.observation_space = Box(low=0., high=255., shape=(self.img_size[1],
                                                              self.img_size[0],
                                                              3))
 
