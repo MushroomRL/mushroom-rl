@@ -37,7 +37,7 @@ setup(
     # https://packaging.python.org/en/latest/single_source_version.html
     version='0.75.0',
 
-    description='A Python framework to perform Reinforcement Learning experiments.',
+    description='A Python toolkit for Reinforcement Learning experiments.',
 
     # The project's main homepage.
     url='https://github.com/carloderamo/' + name,
@@ -70,14 +70,5 @@ setup(
     # dependencies). You can install these using the following syntax,
     # for example:
     # $ pip install -e .[dev,tests,all]
-    extras_require=extras,
-
-    # If there are data files included in your packages that need to be
-    # installed, specify them here.  If using Python 2.6 or less, then these
-    # have to be included in MANIFEST.in as well.
-    # package_data={
-    #     'sample': ['package_data.dat'],
-    # },
-
-    tests_require=['nose2'],
+    extras_require=extras
 )

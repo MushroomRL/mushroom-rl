@@ -9,20 +9,18 @@ PyPi
 What is PyPi
 ============
 PyPi is a toolkit for solving Reinforcement Learning problems. It is written in Python
-and makes a large use of Scikit-Learn (http://scikit-learn.org/stable/), Keras (https://keras.io/)
-and OpenAI Gym (https://gym.openai.com/) libraries. These libraries are well-known in the Machine Learning
-community and helps PyPi solving Reinforcement Learning problems significantly
-decreasing the implementation complexity.
+and use well-known Machine Learning libraries as Keras (https://keras.io/), Tensorflow (https://www.tensorflow.org/),
+Scikit-Learn (http://scikit-learn.org/stable/) and OpenAI Gym (https://gym.openai.com/) libraries.
 
-PyPi is still under development, but it features the main algorithms used in the
-value-based approach in RL (e.g. Q-Learning, SARSA, DQN and many others).
+PyPi is still under development, but it already features the main algorithms used in the
+value-based approach in RL (e.g. Q-Learning, SARSA, DQN and others).
 By choice, it is currently focused on value-based algorithms, but policy gradient
 and actor-critic algorithms will be added in future versions.
 
 Installation
 ============
 
-You can perform a minimal install of ``PyPi`` with:
+You can do a minimal installation of ``PyPi`` with:
 
 .. code:: shell
 
