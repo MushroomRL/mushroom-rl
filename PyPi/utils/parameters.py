@@ -44,8 +44,8 @@ class Parameter(object):
 
 
 class LinearDecayParameter(Parameter):
-    def __init__(self, value,  min_value, num, shape=(1,)):
-        self._coeff = (min_value - value) / num
+    def __init__(self, value,  min_value, n, shape=(1,)):
+        self._coeff = (min_value - value) / n
 
         super(LinearDecayParameter, self).__init__(value, min_value, shape)
 

@@ -256,8 +256,6 @@ def experiment():
     # MDP test
     mdp_test = Atari(mdp_name)
 
-    print(mdp.observation_space.high)
-
     # Policy
     epsilon = Parameter(value=1)
     pi = EpsGreedy(epsilon=epsilon, observation_space=mdp.observation_space,
@@ -302,7 +300,7 @@ def experiment():
     print('min_reward: %f, max_reward: %f, mean_reward: %f' % score)
     agent.policy.set_epsilon(LinearDecayParameter(value=1,
                                                   min_value=0.1,
-                                                  num=final_exploration_frame))
+                                                  n=final_exploration_frame))
     for i in xrange(max_steps - evaluation_update_frequency):
         core.learn(n_iterations=evaluation_update_frequency, how_many=1,
                    n_fit_steps=1, iterate_over='samples')

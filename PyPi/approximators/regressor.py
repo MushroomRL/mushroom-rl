@@ -87,6 +87,10 @@ class Regressor(object):
             n_states = x.shape[0]
             n_actions = actions.shape[0]
             action_dim = actions.shape[1]
+
+            for p in self._preprocessor:
+                x = p(x)
+
             y = np.zeros((n_states, n_actions))
             for action in xrange(n_actions):
                 a = np.ones((n_states, action_dim)) * actions[action]
@@ -94,6 +98,9 @@ class Regressor(object):
 
                 y[:, action] = self.model.predict(samples).ravel()
         else:
+            for p in self._preprocessor:
+                x = p(x)
+
             y = self.model.predict(x)
 
         return y
