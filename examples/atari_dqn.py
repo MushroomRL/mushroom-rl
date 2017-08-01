@@ -242,7 +242,7 @@ def experiment():
     scale_coeff = 10.
 
     # DQN Parameters
-    initial_dataset_size = int(5e2 / scale_coeff)
+    initial_dataset_size = int(5e4 / scale_coeff)
     target_update_frequency = int(1e4)
     max_dataset_size = int(1e6 / scale_coeff)
     evaluation_update_frequency = int(5e4)
