@@ -25,16 +25,17 @@ class Atari(Environment):
 
         # MDP properties
         self._train = train
-        self._lives = self.env.env.ale.lives()
+        self._max_lives = self.env.env.ale.lives()
+        self._state = None
+        self._lives = None
 
         super(Atari, self).__init__()
 
     def reset(self, state=None):
-        state = self._preprocess_observation(self.env.reset())
-        self._state = np.array([state, state, state, state])
-
-        if self._lives == 0:
-            self._lives = self.env.env.ale.lives()
+        if self._state is None or self._lives == 0:
+            state = self._preprocess_observation(self.env.reset())
+            self._state = np.array([state, state, state, state])
+            self._lives = self._max_lives
 
         return self._state
 
@@ -44,9 +45,8 @@ class Atari(Environment):
         if self._train:
             reward = np.clip(reward, -1, 1)
 
-            if hasattr(info, 'ale.lives'):
-                if info['ale.lives'] != self._lives:
-                    absorbing = True
+            if info['ale.lives'] != self._lives:
+                absorbing = True
                 self._lives = info['ale.lives']
 
         obs = self._preprocess_observation(obs)
