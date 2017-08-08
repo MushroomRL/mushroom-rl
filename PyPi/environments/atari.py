@@ -26,16 +26,19 @@ class Atari(Environment):
         # MDP properties
         self._train = train
         self._max_lives = self.env.env.ale.lives()
-        self._state = None
-        self._lives = None
+        self._lives = 0
 
         super(Atari, self).__init__()
 
     def reset(self, state=None):
-        if self._state is None or self._lives == 0:
+        if self._train:
+            if self._lives == 0:
+                state = self._preprocess_observation(self.env.reset())
+                self._state = np.array([state, state, state, state])
+                self._lives = self._max_lives
+        else:
             state = self._preprocess_observation(self.env.reset())
             self._state = np.array([state, state, state, state])
-            self._lives = self._max_lives
 
         return self._state
 
