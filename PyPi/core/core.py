@@ -1,4 +1,5 @@
 import logging
+from tqdm import tqdm
 
 import numpy as np
 
@@ -33,7 +34,7 @@ class Core(object):
         self._episode_steps = 0
 
     def learn(self, n_iterations, how_many, n_fit_steps, iterate_over,
-              render=False):
+              render=False, quiet=False):
         """
         This function is used to learn a policy. An iteration of the loop
         consists in collecting a dataset and fitting the agent's Q-function
@@ -55,8 +56,7 @@ class Core(object):
         assert iterate_over == 'samples' or iterate_over == 'episodes'
 
         if iterate_over == 'samples':
-            for self.iteration in xrange(n_iterations):
-                self.logger.info('Iteration %d' % self._total_steps)
+            for self.iteration in tqdm(xrange(n_iterations), disable=quiet):
 
                 self.logger.debug('Moving for %d samples...' % how_many)
                 self._move_samples(how_many, collect=True, render=render)
@@ -69,8 +69,7 @@ class Core(object):
 
                 self._total_steps += 1
         else:
-            for self.iteration in xrange(n_iterations):
-                self.logger.info('Iteration %d' % self.iteration)
+            for self.iteration in tqdm(xrange(n_iterations), disable=quiet):
 
                 self.logger.debug('Moving for %d episodes...' % how_many)
                 self._move_episodes(how_many, collect=True, render=render)
@@ -81,7 +80,7 @@ class Core(object):
                 for c in self.callbacks:
                     c()
 
-    def evaluate(self, n_episodes=1, initial_states=None, render=False):
+    def evaluate(self, n_episodes=1, initial_states=None, render=False, quiet=False):
         """
         This function is used to evaluate the learned policy.
 
@@ -94,13 +93,13 @@ class Core(object):
         if initial_states is not None:
             self.logger.info('Evaluating policy for %d episodes...' %
                              initial_states.shape[0])
-            for i in xrange(initial_states.shape[0]):
+            for i in tqdm(xrange(initial_states.shape[0]), disable=quiet):
                 self._state = self.mdp.reset(initial_states[i, :])
                 self._move_episodes(1, collect=True, render=render)
         else:
             self.logger.info('Evaluating policy for %d episodes...' %
                              n_episodes)
-            for i in xrange(n_episodes):
+            for i in tqdm(xrange(n_episodes), disable=quiet):
                 self._state = self.mdp.reset()
                 self._move_episodes(1, collect=True, render=render)
 
@@ -119,10 +118,10 @@ class Core(object):
         i = 0
         self._episode_steps = 0
         while i < how_many:
-            self.logger.info('Starting in state: ' + str(self._state))
+            #self.logger.info('Starting in state: ' + str(self._state))
             while not self._step(collect, render):
                 continue
-            self.logger.info('Ended in state: ' + str(self._state))
+            #self.logger.info('Ended in state: ' + str(self._state))
             self._state = self.mdp.reset()
             self._episode_steps = 0
             i += 1
