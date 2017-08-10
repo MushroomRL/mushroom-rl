@@ -20,7 +20,6 @@ from PyPi.utils.preprocessor import Scaler
 
 class GatherLayer(Layer):
     def __init__(self, n_actions, **kwargs):
-        self.output_dim = 1
         self.n_actions = n_actions
         super(GatherLayer, self).__init__(**kwargs)
 
@@ -30,15 +29,8 @@ class GatherLayer(Layer):
     def call(self, args, mask=None):
         return self.gather_layer(args, self.n_actions)
 
-    def get_output_shape_for(self, input_shape):
-        return input_shape[0]
-
     def compute_output_shape(self, input_shape):
-        assert input_shape and len(input_shape) >= 2
-        assert input_shape[-1]
-        output_shape = list(input_shape)
-        output_shape[-1] = 1
-        return tuple(output_shape)
+        return input_shape[0][0], 1
 
     @staticmethod
     def gather_layer(args, n_actions):
@@ -123,7 +115,7 @@ def experiment():
     final_exploration_frame = int(1e6)
     n_test_episodes = 30
 
-    mdp_name = 'BreakoutDeterministic-v3'
+    mdp_name = 'BreakoutDeterministic-v4'
     # MDP train
     mdp = Atari(mdp_name, train=True)
     # MDP test
