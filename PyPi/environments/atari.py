@@ -6,7 +6,7 @@ from PyPi.utils.spaces import *
 
 
 class Atari(Environment):
-    def __init__(self, name, train=False):
+    def __init__(self, name, ends_at_life=False):
         self.__name__ = name
 
         # MPD creation
@@ -23,14 +23,18 @@ class Atari(Environment):
         self.gamma = 0.99
 
         # MDP properties
-        self._train = train
+        self._episode_ends_at_life = ends_at_life
         self._max_lives = self.env.env.ale.lives()
         self._lives = 0
 
         super(Atari, self).__init__()
 
+    def set_episode_end(self, ends_at_life):
+        self._episode_ends_at_life = ends_at_life
+
+
     def reset(self, state=None):
-        if self._train:
+        if self._episode_ends_at_life:
             if self._lives == 0:
                 state = self._preprocess_observation(self.env.reset())
                 self._state = np.array([state, state, state, state])
@@ -44,7 +48,7 @@ class Atari(Environment):
     def step(self, action):
         obs, reward, absorbing, info = self.env.step(action)
 
-        if self._train:
+        if self._episode_ends_at_life:
             if info['ale.lives'] != self._lives:
                 absorbing = True
                 self._lives = info['ale.lives']

@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import tensorflow as tf
 
@@ -17,6 +18,8 @@ from PyPi.utils.dataset import compute_scores
 from PyPi.utils.parameters import LinearDecayParameter, Parameter
 from PyPi.utils.preprocessor import Scaler
 
+# Disable tf cpp warnings
+os.environ["TF_CPP_MIN_LOG_LEVEL"]="2"
 
 class GatherLayer(Layer):
     def __init__(self, n_actions, **kwargs):
@@ -105,30 +108,29 @@ class ConvNet:
 def experiment():
     np.random.seed()
     scale_coeff = 10.
+    render = False
 
     # DQN Parameters
     initial_dataset_size = int(5e4 / scale_coeff)
     target_update_frequency = int(1e4)
     max_dataset_size = int(1e6 / scale_coeff)
-    evaluation_update_frequency = int(5e4)
+    evaluation_update_frequency = 5000#int(5e4)
     max_steps = int(5e6)
     final_exploration_frame = int(1e6)
     n_test_episodes = 30
 
     mdp_name = 'BreakoutDeterministic-v4'
     # MDP train
-    mdp = Atari(mdp_name, train=True)
-    # MDP test
-    mdp_test = Atari(mdp_name)
+    mdp = Atari(mdp_name, ends_at_life=True)
 
     # Policy
-    epsilon = Parameter(value=1)
-    pi = EpsGreedy(epsilon=epsilon, observation_space=mdp.observation_space,
-                   action_space=mdp.action_space)
+    epsilon = LinearDecayParameter(value=1, min_value=0.1, n=final_exploration_frame)
     epsilon_test = Parameter(value=.05)
-    pi_test = EpsGreedy(epsilon=epsilon_test,
-                        observation_space=mdp.observation_space,
-                        action_space=mdp.action_space)
+
+
+    epsilon_random = Parameter(value=1)
+    pi = EpsGreedy(epsilon=epsilon_random, observation_space=mdp.observation_space,
+                   action_space=mdp.action_space)
 
     # Approximator
     approximator_params = dict(n_actions=mdp.action_space.n)
@@ -137,40 +139,51 @@ def experiment():
                              preprocessor=[Scaler(mdp.observation_space.high)],
                              **approximator_params)
 
+    # target approximatior
+    target_approximator = Regressor(ConvNet, fit_action=False, preprocessor=[Scaler(mdp.observation_space.high)],
+                          **approximator_params)
+    target_approximator.model.set_weights(approximator.model.get_weights())
+
     # Agent
     algorithm_params = dict(
         batch_size=32,
-        target_approximator=Regressor(
-            ConvNet,
-            fit_action=False,
-            preprocessor=[Scaler(mdp.observation_space.high)],
-            **approximator_params),
+        target_approximator=target_approximator,
         initial_dataset_size=initial_dataset_size,
         target_update_frequency=target_update_frequency)
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
     agent = DQN(approximator, pi, **agent_params)
-    agent_test = DQN(approximator, pi_test, **agent_params)
 
     # Algorithm
     core = Core(agent, mdp, max_dataset_size=max_dataset_size)
-    core_test = Core(agent_test, mdp_test)
+    core_test = Core(agent, mdp)
 
     # DQN
+
+    # fill replay memory with random dataset
     core.learn(n_iterations=evaluation_update_frequency, how_many=1,
                n_fit_steps=1, iterate_over='samples')
-    core_test.evaluate(n_episodes=n_test_episodes)
+
+    # evaluate initial policy
+    pi.set_epsilon(epsilon_test)
+    mdp.set_episode_end(ends_at_life=False)
+    core_test.evaluate(n_episodes=n_test_episodes, render=render)
     score = compute_scores(core_test.get_dataset())
+
     print('min_reward: %f, max_reward: %f, mean_reward: %f' % score)
-    agent.policy.set_epsilon(LinearDecayParameter(value=1,
-                                                  min_value=0.1,
-                                                  n=final_exploration_frame))
     for i in xrange(max_steps - evaluation_update_frequency):
+        # learning step
+        pi.set_epsilon(epsilon)
+        mdp.set_episode_end(ends_at_life=True)
         core.learn(n_iterations=evaluation_update_frequency, how_many=1,
                    n_fit_steps=1, iterate_over='samples')
+
+        # evaluation step
+        pi.set_epsilon(epsilon_test)
+        mdp.set_episode_end(ends_at_life=False)
         core_test.reset()
-        core_test.evaluate(n_episodes=n_test_episodes)
+        core_test.evaluate(n_episodes=n_test_episodes, render=render)
         score = compute_scores(core_test.get_dataset())
         print('min_reward: %f, max_reward: %f, mean_reward: %f' % score)
 
