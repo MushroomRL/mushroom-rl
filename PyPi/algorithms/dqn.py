@@ -15,6 +15,7 @@ class DQN(Agent):
 
         alg_params = params['algorithm_params']
         self._batch_size = alg_params.get('batch_size')
+        self._clip_reward = alg_params.get('clip_reward', True)
         self._target_approximator = alg_params.get('target_approximator')
         self._initial_dataset_size = alg_params.get('initial_dataset_size')
         self._target_update_frequency = alg_params.get(
@@ -37,6 +38,9 @@ class DQN(Agent):
         if len(dataset) >= self._initial_dataset_size:
             state, action, reward, next_state, absorbing, _ = select_samples(
                 dataset=dataset, n_samples=self._batch_size, parse=True)
+
+            if self._clip_reward:
+                reward = np.clip(reward, -1, 1)
 
             sa = [state, action]
 

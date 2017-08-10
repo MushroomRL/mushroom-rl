@@ -13,11 +13,10 @@ class Atari(Environment):
         self.env = gym.make(self.__name__)
 
         # MDP spaces
-        self.img_size = (84, 110)
+        self.img_size = (84, 84)
         self.action_space = Discrete(self.env.action_space.n)
-        self.observation_space = Box(low=0., high=255., shape=(self.img_size[1],
-                                                             self.img_size[0],
-                                                             3))
+        self.observation_space = Box(
+            low=0., high=255., shape=(self.img_size[1], self.img_size[0], 3))
 
         # MDP parameters
         self.horizon = np.inf
@@ -46,8 +45,6 @@ class Atari(Environment):
         obs, reward, absorbing, info = self.env.step(action)
 
         if self._train:
-            reward = np.clip(reward, -1, 1)
-
             if info['ale.lives'] != self._lives:
                 absorbing = True
                 self._lives = info['ale.lives']
