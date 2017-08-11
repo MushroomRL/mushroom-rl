@@ -119,7 +119,6 @@ class RMSpropGraves(Optimizer):
 
 class ConvNet:
     def __init__(self, n_actions):
-        self.writer = tf.summary.FileWriter('./logs')
         # Build network
         self.input = Input(shape=(4, 84, 84))
         self.u = Input(shape=(1,), dtype='int32')
@@ -150,12 +149,14 @@ class ConvNet:
         self.optimizer = Adam()
 
         def mean_squared_error_clipped(y_true, y_pred):
-            #return K.clip(K.mean(K.square(y_pred - y_true), axis=-1), -1, 1)
-            return K.mean(K.square(y_pred - y_true), axis=-1)
+            return K.mean(K.square(K.clip(y_pred - y_true, -1, 1)), axis=-1)
 
         # Compile
         self.q.compile(optimizer=self.optimizer,
                        loss=mean_squared_error_clipped)
+
+        #Tensorboard
+        self.writer = tf.summary.FileWriter('./logs')
 
     def fit(self, x, y, **fit_params):
         self.q.fit(x, y, **fit_params)
