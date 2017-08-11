@@ -56,7 +56,7 @@ class Core(object):
         assert iterate_over == 'samples' or iterate_over == 'episodes'
 
         if iterate_over == 'samples':
-            for self.iteration in tqdm(xrange(n_iterations), disable=quiet):
+            for self.iteration in tqdm(xrange(n_iterations), dynamic_ncols=True, disable=quiet):
 
                 self.logger.debug('Moving for %d samples...' % how_many)
                 self._move_samples(how_many, collect=True, render=render)
@@ -69,7 +69,7 @@ class Core(object):
 
                 self._total_steps += 1
         else:
-            for self.iteration in tqdm(xrange(n_iterations), disable=quiet):
+            for self.iteration in tqdm(xrange(n_iterations), dynamic_ncols=True, disable=quiet):
 
                 self.logger.debug('Moving for %d episodes...' % how_many)
                 self._move_episodes(how_many, collect=True, render=render)
@@ -93,13 +93,13 @@ class Core(object):
         if initial_states is not None:
             self.logger.info('Evaluating policy for %d episodes...' %
                              initial_states.shape[0])
-            for i in tqdm(xrange(initial_states.shape[0]), disable=quiet):
+            for i in tqdm(xrange(initial_states.shape[0]), dynamic_ncols=True, disable=quiet):
                 self._state = self.mdp.reset(initial_states[i, :])
                 self._move_episodes(1, collect=True, render=render)
         else:
             self.logger.info('Evaluating policy for %d episodes...' %
                              n_episodes)
-            for i in tqdm(xrange(n_episodes), disable=quiet):
+            for i in tqdm(xrange(n_episodes), dynamic_ncols=True, disable=quiet):
                 self._state = self.mdp.reset()
                 self._move_episodes(1, collect=True, render=render)
 
