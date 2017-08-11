@@ -10,3 +10,4 @@ pygame
 joblib
 keras
 pillow
+tqdm

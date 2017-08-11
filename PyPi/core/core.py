@@ -118,10 +118,10 @@ class Core(object):
         i = 0
         self._episode_steps = 0
         while i < how_many:
-            #self.logger.info('Starting in state: ' + str(self._state))
+            self.logger.debug('Starting in state: ' + str(self._state))
             while not self._step(collect, render):
                 continue
-            #self.logger.info('Ended in state: ' + str(self._state))
+            self.logger.debug('Ended in state: ' + str(self._state))
             self._state = self.mdp.reset()
             self._episode_steps = 0
             i += 1
