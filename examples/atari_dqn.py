@@ -6,7 +6,7 @@ from keras import backend as K
 from keras.engine.topology import Layer
 from keras.models import Model
 from keras.layers import Input, Convolution2D, Flatten, Dense
-from keras.optimizers import Optimizer
+from keras.optimizers import Optimizer, Adam
 
 from PyPi.algorithms.dqn import DQN
 from PyPi.approximators import Regressor
@@ -119,6 +119,7 @@ class RMSpropGraves(Optimizer):
 
 class ConvNet:
     def __init__(self, n_actions):
+        self.writer = tf.summary.FileWriter('./logs')
         # Build network
         self.input = Input(shape=(4, 84, 84))
         self.u = Input(shape=(1,), dtype='int32')
@@ -145,10 +146,12 @@ class ConvNet:
         self.q = Model(outputs=[self.gather], inputs=[self.input, self.u])
 
         # Optimization algorithm
-        self.optimizer = RMSpropGraves()
+        #self.optimizer = RMSpropGraves()
+        self.optimizer = Adam()
 
         def mean_squared_error_clipped(y_true, y_pred):
-            return K.clip(K.mean(K.square(y_pred - y_true), axis=-1), -1, 1)
+            #return K.clip(K.mean(K.square(y_pred - y_true), axis=-1), -1, 1)
+            return K.mean(K.square(y_pred - y_true), axis=-1)
 
         # Compile
         self.q.compile(optimizer=self.optimizer,
@@ -166,7 +169,10 @@ class ConvNet:
             return self.all_q.predict(x, **fit_params)
 
     def train_on_batch(self, x, y, **fit_params):
-        self.q.train_on_batch(x, y, **fit_params)
+        loss = self.q.train_on_batch(x, y, **fit_params)
+        summary = tf.Summary(value=[tf.Summary.Value(tag="loss",
+                                                     simple_value=loss), ])
+        self.writer.add_summary(summary)
 
     def set_weights(self, w):
         self.q.set_weights(w)
@@ -179,6 +185,7 @@ def experiment():
     np.random.seed()
     scale_coeff = 10.
     render = False
+    quiet = False
 
     # DQN Parameters
     initial_dataset_size = int(5e4 / scale_coeff)
@@ -189,7 +196,7 @@ def experiment():
     final_exploration_frame = int(1e6)
     n_test_episodes = 30
 
-    mdp_name = 'BreakoutDeterministic-v3'
+    mdp_name = 'BreakoutDeterministic-v4'
     # MDP train
     mdp = Atari(mdp_name, ends_at_life=True)
 
@@ -237,12 +244,12 @@ def experiment():
 
     # fill replay memory with random dataset
     core.learn(n_iterations=evaluation_update_frequency, how_many=1,
-               n_fit_steps=1, iterate_over='samples')
+               n_fit_steps=1, iterate_over='samples', quiet=quiet)
 
     # evaluate initial policy
     pi.set_epsilon(epsilon_test)
     mdp.set_episode_end(ends_at_life=False)
-    core_test.evaluate(n_episodes=n_test_episodes, render=render)
+    core_test.evaluate(n_episodes=n_test_episodes, render=render, quiet=quiet)
     score = compute_scores(core_test.get_dataset())
 
     print('min_reward: %f, max_reward: %f, mean_reward: %f' % score)
@@ -251,13 +258,13 @@ def experiment():
         pi.set_epsilon(epsilon)
         mdp.set_episode_end(ends_at_life=True)
         core.learn(n_iterations=evaluation_update_frequency, how_many=1,
-                   n_fit_steps=1, iterate_over='samples')
+                   n_fit_steps=1, iterate_over='samples', quiet=quiet)
 
         # evaluation step
         pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(ends_at_life=False)
         core_test.reset()
-        core_test.evaluate(n_episodes=n_test_episodes, render=render)
+        core_test.evaluate(n_episodes=n_test_episodes, render=render, quiet=quiet)
         score = compute_scores(core_test.get_dataset())
         print('min_reward: %f, max_reward: %f, mean_reward: %f' % score)
 
