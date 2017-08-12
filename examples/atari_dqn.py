@@ -7,6 +7,7 @@ from keras.engine.topology import Layer
 from keras.models import Model
 from keras.layers import Input, Convolution2D, Flatten, Dense
 from keras.optimizers import Optimizer, Adam
+from keras.losses import mean_squared_error, mean_absolute_error
 
 from PyPi.algorithms.dqn import DQN
 from PyPi.approximators import Regressor
@@ -149,7 +150,7 @@ class ConvNet:
         self.optimizer = Adam()
 
         def mean_squared_error_clipped(y_true, y_pred):
-            return K.mean(K.square(K.clip(y_pred - y_true, -1, 1)), axis=-1)
+            return K.minimum(mean_squared_error(y_true, y_pred), mean_absolute_error(y_true, y_pred))
 
         # Compile
         self.q.compile(optimizer=self.optimizer,
