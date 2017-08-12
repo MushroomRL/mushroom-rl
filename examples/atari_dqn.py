@@ -183,6 +183,12 @@ class ConvNet:
         return self.q.get_weights()
 
 
+def print_epoch(epoch):
+    print '################################################################'
+    print 'epoch: ', epoch
+    print '----------------------------------------------------------------'
+
+
 def experiment():
     np.random.seed()
     scale_coeff = 10.
@@ -245,6 +251,7 @@ def experiment():
     # DQN
 
     # fill replay memory with random dataset
+    print_epoch(0)
     core.learn(n_iterations=evaluation_update_frequency, how_many=1,
                n_fit_steps=1, iterate_over='samples', quiet=quiet)
 
@@ -256,12 +263,14 @@ def experiment():
 
     print('min_reward: %f, max_reward: %f, mean_reward: %f' % score)
     for i in xrange(max_steps - evaluation_update_frequency):
+        print_epoch(i+1)
+        print '- Learning:'
         # learning step
         pi.set_epsilon(epsilon)
         mdp.set_episode_end(ends_at_life=True)
         core.learn(n_iterations=evaluation_update_frequency, how_many=1,
                    n_fit_steps=1, iterate_over='samples', quiet=quiet)
-
+        print '- Evaluation:'
         # evaluation step
         pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(ends_at_life=False)
