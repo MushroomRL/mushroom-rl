@@ -99,7 +99,7 @@ class RMSpropGraves(Optimizer):
             new_b = self.rho * b + (1. - self.rho) * g
             self.updates.append(K.update(a, new_a))
             self.updates.append(K.update(b, new_b))
-            new_p = p + lr * g / K.sqrt(new_a - K.square(new_b) + self.epsilon)
+            new_p = p - lr * g / K.sqrt(new_a - K.square(new_b) + self.epsilon)
 
             # apply constraints
             if p in constraints:
