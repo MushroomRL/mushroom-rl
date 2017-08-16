@@ -20,7 +20,7 @@ from PyPi.utils.parameters import LinearDecayParameter, Parameter
 from PyPi.utils.preprocessor import Scaler
 
 # Disable tf cpp warnings
-os.environ["TF_CPP_MIN_LOG_LEVEL"]="2"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 
 class GatherLayer(Layer):
@@ -99,7 +99,7 @@ class RMSpropGraves(Optimizer):
             new_b = self.rho * b + (1. - self.rho) * g
             self.updates.append(K.update(a, new_a))
             self.updates.append(K.update(b, new_b))
-            new_p = p - lr * g / (new_a - K.sqrt(new_b) + self.epsilon)
+            new_p = p + lr * g / K.sqrt(new_a - K.square(new_b) + self.epsilon)
 
             # apply constraints
             if p in constraints:
@@ -146,11 +146,13 @@ class ConvNet:
         self.q = Model(outputs=[self.gather], inputs=[self.input, self.u])
 
         # Optimization algorithm
-        #self.optimizer = RMSpropGraves()
-        self.optimizer = Adam()
+        self.optimizer = RMSpropGraves()
+        # self.optimizer = Adam()
 
         def mean_squared_error_clipped(y_true, y_pred):
-            return K.minimum(mean_squared_error(y_true, y_pred), mean_absolute_error(y_true, y_pred))
+            return tf.cond(tf.abs(y_true - y_pred) < 1.,
+                           lambda: mean_squared_error(y_true, y_pred) / 2.,
+                           lambda: mean_absolute_error(y_true, y_pred))
 
         # Compile
         self.q.compile(optimizer=self.optimizer,
@@ -196,7 +198,7 @@ def experiment():
     quiet = False
 
     # DQN Parameters
-    initial_dataset_size = int(5e4 / scale_coeff)
+    initial_dataset_size = int(5e2 / scale_coeff)
     target_update_frequency = int(1e4)
     max_dataset_size = int(1e6 / scale_coeff)
     evaluation_update_frequency = int(5e4)
