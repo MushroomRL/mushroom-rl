@@ -150,9 +150,9 @@ class ConvNet:
         # self.optimizer = Adam()
 
         def mean_squared_error_clipped(y_true, y_pred):
-            return tf.cond(tf.abs(y_true - y_pred) < 1.,
-                           lambda: mean_squared_error(y_true, y_pred) / 2.,
-                           lambda: mean_absolute_error(y_true, y_pred))
+            return tf.where(tf.abs(y_true - y_pred) < 1.,
+                            tf.square(y_true - y_pred) / 2.,
+                            tf.abs(y_true - y_pred))
 
         # Compile
         self.q.compile(optimizer=self.optimizer,
