@@ -111,6 +111,20 @@ def compute_J(dataset, gamma=1.):
 
 
 def compute_scores(dataset):
+    """
+    Compute the scores per episode.
+
+    Arguments
+        dataset (list): the dataset to consider to compute the scores.
+
+    Returns
+        the minimum score reached in an episode,
+        the maximum score reached in an episode,
+        the mean score reached,
+        the number of episodes completed.
+
+        If no episode has been completed, it returns 0 for all values.
+    """
     _, _, reward, _, _, last = parse_dataset(dataset)
     scores = list()
 
@@ -126,7 +140,10 @@ def compute_scores(dataset):
             episode_steps = 0
             n_episodes += 1
 
-    return np.min(scores), np.max(scores), np.mean(scores), n_episodes
+    if len(scores) > 0:
+        return np.min(scores), np.max(scores), np.mean(scores), n_episodes
+    else:
+        return 0, 0, 0, 0
 
 
 def max_QA(states, absorbing, approximator, actions):

@@ -12,11 +12,11 @@ class Preprocessor(object):
         Returns
             The preprocessed input data array.
         """
-        assert isinstance(x[0], np.ndarray)
-
         if isinstance(x, list):
+            assert isinstance(x[0], np.ndarray)
             x[0] = self._compute(x[0])
         else:
+            assert isinstance(x, np.ndarray)
             x = self._compute(x)
 
         return x

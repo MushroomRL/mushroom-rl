@@ -201,10 +201,10 @@ def experiment():
     initial_dataset_size = int(5e4 / scale_coeff)
     target_update_frequency = int(1e4)
     max_dataset_size = int(1e6 / scale_coeff)
-    evaluation_update_frequency = int(5e4)
+    evaluation_frequency = int(5e4)
     max_steps = int(5e6)
     final_exploration_frame = int(1e6)
-    n_test_samples = 125e3
+    n_test_samples = int(125e3)
 
     mdp_name = 'BreakoutDeterministic-v4'
     # MDP train
@@ -254,7 +254,7 @@ def experiment():
 
     # fill replay memory with random dataset
     print_epoch(0)
-    core.learn(n_iterations=evaluation_update_frequency, how_many=1,
+    core.learn(n_iterations=evaluation_frequency, how_many=1,
                n_fit_steps=1, iterate_over='samples', quiet=quiet)
 
     # evaluate initial policy
@@ -264,14 +264,14 @@ def experiment():
                        render=render, quiet=quiet)
     score = compute_scores(core_test.get_dataset())
     print('min_reward: %f, max_reward: %f, mean_reward: %f,'
-          'games_completed: %d' % score)
-    for i in xrange(max_steps - evaluation_update_frequency):
+          ' games_completed: %d' % score)
+    for i in xrange(max_steps - evaluation_frequency):
         print_epoch(i+1)
         print '- Learning:'
         # learning step
         pi.set_epsilon(epsilon)
         mdp.set_episode_end(ends_at_life=True)
-        core.learn(n_iterations=evaluation_update_frequency, how_many=1,
+        core.learn(n_iterations=evaluation_frequency, how_many=1,
                    n_fit_steps=1, iterate_over='samples', quiet=quiet)
         print '- Evaluation:'
         # evaluation step
@@ -281,7 +281,8 @@ def experiment():
         core_test.evaluate(how_many=n_test_samples, iterate_over='samples',
                            render=render, quiet=quiet)
         score = compute_scores(core_test.get_dataset())
-        print('min_reward: %f, max_reward: %f, mean_reward: %f' % score)
+        print('min_reward: %f, max_reward: %f, mean_reward: %f,'
+              ' games_completed: %d' % score)
 
 if __name__ == '__main__':
     logger.Logger(1)
