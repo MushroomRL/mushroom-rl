@@ -29,10 +29,6 @@ class Atari(Environment):
 
         super(Atari, self).__init__()
 
-    def set_episode_end(self, ends_at_life):
-        self._episode_ends_at_life = ends_at_life
-
-
     def reset(self, state=None):
         if self._episode_ends_at_life:
             if self._lives == 0:
@@ -60,6 +56,9 @@ class Atari(Environment):
 
     def render(self, mode='human', close=False):
         self.env.render(mode=mode, close=close)
+
+    def set_episode_end(self, ends_at_life):
+        self._episode_ends_at_life = ends_at_life
 
     def _get_next_state(self, current, obs):
         return np.append(current[1:], [obs], axis=0)
