@@ -124,16 +124,16 @@ class ConvNet:
         self.input = Input(shape=(4, 84, 84))
         self.u = Input(shape=(1,), dtype='int32')
 
-        self.hidden = Convolution2D(32, (8, 8), padding='valid',
-                                    activation='relu', strides=(4, 4),
+        self.hidden = Convolution2D(32, 8, padding='valid',
+                                    activation='relu', strides=4,
                                     data_format='channels_first')(self.input)
 
-        self.hidden = Convolution2D(64, (4, 4), padding='valid',
-                                    activation='relu', strides=(2, 2),
+        self.hidden = Convolution2D(64, 4, padding='valid',
+                                    activation='relu', strides=2,
                                     data_format='channels_first')(self.hidden)
 
-        self.hidden = Convolution2D(64, (3, 3), padding='valid',
-                                    activation='relu', strides=(1, 1),
+        self.hidden = Convolution2D(64, 3, padding='valid',
+                                    activation='relu', strides=1,
                                     data_format='channels_first')(self.hidden)
 
         self.hidden = Flatten()(self.hidden)
@@ -198,13 +198,13 @@ def experiment():
     quiet = False
 
     # DQN Parameters
-    initial_dataset_size = int(5e4 / scale_coeff)
+    initial_dataset_size = int(5e2 / scale_coeff)
     target_update_frequency = int(1e4)
     max_dataset_size = int(1e6 / scale_coeff)
     evaluation_update_frequency = int(5e4)
     max_steps = int(5e6)
     final_exploration_frame = int(1e6)
-    n_test_episodes = 30
+    n_test_samples = 125e3
 
     mdp_name = 'BreakoutDeterministic-v4'
     # MDP train
@@ -260,10 +260,11 @@ def experiment():
     # evaluate initial policy
     pi.set_epsilon(epsilon_test)
     mdp.set_episode_end(ends_at_life=False)
-    core_test.evaluate(n_episodes=n_test_episodes, render=render, quiet=quiet)
+    core_test.evaluate(how_many=n_test_samples, iterate_over='samples',
+                       render=render, quiet=quiet)
     score = compute_scores(core_test.get_dataset())
-
-    print('min_reward: %f, max_reward: %f, mean_reward: %f' % score)
+    print('min_reward: %f, max_reward: %f, mean_reward: %f,'
+          'games_completed: %d' % score)
     for i in xrange(max_steps - evaluation_update_frequency):
         print_epoch(i+1)
         print '- Learning:'
@@ -277,7 +278,8 @@ def experiment():
         pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(ends_at_life=False)
         core_test.reset()
-        core_test.evaluate(n_episodes=n_test_episodes, render=render, quiet=quiet)
+        core_test.evaluate(how_many=n_test_samples, iterate_over='samples',
+                           render=render, quiet=quiet)
         score = compute_scores(core_test.get_dataset())
         print('min_reward: %f, max_reward: %f, mean_reward: %f' % score)
 

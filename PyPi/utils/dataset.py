@@ -116,6 +116,7 @@ def compute_scores(dataset):
 
     score = 0.
     episode_steps = 0
+    n_episodes = 0
     for i in xrange(reward.size):
         score += reward[i]
         episode_steps += 1
@@ -123,8 +124,9 @@ def compute_scores(dataset):
             scores.append(score)
             score = 0.
             episode_steps = 0
+            n_episodes += 1
 
-    return np.min(scores), np.max(scores), np.mean(scores)
+    return np.min(scores), np.max(scores), np.mean(scores), n_episodes
 
 
 def max_QA(states, absorbing, approximator, actions):

@@ -80,7 +80,8 @@ class Core(object):
                 for c in self.callbacks:
                     c()
 
-    def evaluate(self, n_episodes=1, initial_states=None, render=False, quiet=False):
+    def evaluate(self, how_many=1, iterate_over='episodes', initial_states=None,
+                 render=False, quiet=False):
         """
         This function is used to evaluate the learned policy.
 
@@ -91,17 +92,27 @@ class Core(object):
             render (bool): whether to render the environment or not.
         """
         if initial_states is not None:
+            assert iterate_over == 'episodes'
+
             self.logger.info('Evaluating policy for %d episodes...' %
                              initial_states.shape[0])
-            for i in tqdm(xrange(initial_states.shape[0]), dynamic_ncols=True, disable=quiet, leave=False):
+            for i in tqdm(xrange(initial_states.shape[0]), dynamic_ncols=True,
+                          disable=quiet, leave=False):
                 self._state = self.mdp.reset(initial_states[i, :])
                 self._move_episodes(1, collect=True, render=render)
         else:
-            self.logger.info('Evaluating policy for %d episodes...' %
-                             n_episodes)
-            for i in tqdm(xrange(n_episodes), dynamic_ncols=True, disable=quiet, leave=False):
+            self.logger.info('Evaluating policy for %d %s...' %
+                             (how_many, iterate_over))
+            if iterate_over == 'episodes':
+                for _ in tqdm(xrange(how_many), dynamic_ncols=True,
+                              disable=quiet, leave=False):
+                    self._state = self.mdp.reset()
+                    self._move_episodes(1, collect=True, render=render)
+            else:
                 self._state = self.mdp.reset()
-                self._move_episodes(1, collect=True, render=render)
+                for _ in tqdm(xrange(how_many), dynamic_ncols=True,
+                              disable=quiet, leave=False):
+                    self._move_samples(1, collect=True, render=render)
 
     def _move_episodes(self, how_many, collect=False, render=False):
         """

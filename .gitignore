@@ -4,3 +4,4 @@ PyPi.egg-info/
 .idea/
 *.pyc
 *.xml
+logs/
