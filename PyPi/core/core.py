@@ -56,7 +56,8 @@ class Core(object):
         assert iterate_over == 'samples' or iterate_over == 'episodes'
 
         if iterate_over == 'samples':
-            for self.iteration in tqdm(xrange(n_iterations), dynamic_ncols=True, disable=quiet, leave=False):
+            for self.iteration in tqdm(xrange(n_iterations), dynamic_ncols=True,
+                                       disable=quiet, leave=False):
 
                 self.logger.debug('Moving for %d samples...' % how_many)
                 self._move_samples(how_many, collect=True, render=render)
@@ -69,7 +70,8 @@ class Core(object):
 
                 self._total_steps += 1
         else:
-            for self.iteration in tqdm(xrange(n_iterations), dynamic_ncols=True, disable=quiet, leave=False):
+            for self.iteration in tqdm(xrange(n_iterations), dynamic_ncols=True,
+                                       disable=quiet, leave=False):
 
                 self.logger.debug('Moving for %d episodes...' % how_many)
                 self._move_episodes(how_many, collect=True, render=render)

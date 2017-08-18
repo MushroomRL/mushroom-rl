@@ -121,29 +121,29 @@ class RMSpropGraves(Optimizer):
 class ConvNet:
     def __init__(self, n_actions):
         # Build network
-        self.input = Input(shape=(4, 84, 84))
-        self.u = Input(shape=(1,), dtype='int32')
+        input_layer = Input(shape=(4, 84, 84))
+        u = Input(shape=(1,), dtype='int32')
 
-        self.hidden = Convolution2D(32, 8, padding='valid',
-                                    activation='relu', strides=4,
-                                    data_format='channels_first')(self.input)
+        hidden = Convolution2D(32, 8, padding='valid',
+                               activation='relu', strides=4,
+                               data_format='channels_first')(input_layer)
 
-        self.hidden = Convolution2D(64, 4, padding='valid',
-                                    activation='relu', strides=2,
-                                    data_format='channels_first')(self.hidden)
+        hidden = Convolution2D(64, 4, padding='valid',
+                               activation='relu', strides=2,
+                               data_format='channels_first')(hidden)
 
-        self.hidden = Convolution2D(64, 3, padding='valid',
-                                    activation='relu', strides=1,
-                                    data_format='channels_first')(self.hidden)
+        hidden = Convolution2D(64, 3, padding='valid',
+                               activation='relu', strides=1,
+                               data_format='channels_first')(hidden)
 
-        self.hidden = Flatten()(self.hidden)
-        self.features = Dense(512, activation='relu')(self.hidden)
+        hidden = Flatten()(hidden)
+        self.features = Dense(512, activation='relu')(hidden)
         self.output = Dense(n_actions, activation='linear')(self.features)
-        self.gather = GatherLayer(n_actions)([self.output, self.u])
+        self.gather = GatherLayer(n_actions)([self.output, u])
 
         # Models
-        self.all_q = Model(outputs=[self.output], inputs=[self.input])
-        self.q = Model(outputs=[self.gather], inputs=[self.input, self.u])
+        self.all_q = Model(outputs=[self.output], inputs=[input_layer])
+        self.q = Model(outputs=[self.gather], inputs=[input_layer, u])
 
         # Optimization algorithm
         self.optimizer = RMSpropGraves()
@@ -254,7 +254,7 @@ def experiment():
 
     # fill replay memory with random dataset
     print_epoch(0)
-    core.learn(n_iterations=evaluation_frequency, how_many=1,
+    core.learn(n_iterations=initial_dataset_size, how_many=1,
                n_fit_steps=1, iterate_over='samples', quiet=quiet)
 
     # evaluate initial policy

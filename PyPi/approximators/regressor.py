@@ -36,7 +36,6 @@ class Regressor(object):
             fit_params (dict): other parameters.
         """
         x, y = self._preprocess_fit(x, y)
-
         self.model.fit(x, y, **fit_params)
 
     def train_on_batch(self, x, y, **fit_params):
@@ -51,7 +50,6 @@ class Regressor(object):
             fit_params (dict): other parameters.
         """
         x, y = self._preprocess_fit(x, y)
-
         self.model.train_on_batch(x, y, **fit_params)
 
     def predict(self, x):

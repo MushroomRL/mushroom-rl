@@ -65,7 +65,7 @@ class DQN(Agent):
         # Returns
             Maximum action-value in 'next_state'.
         """
-        max_q, _ = max_QA(next_state, absorbing, self.approximator,
+        max_q, _ = max_QA(next_state, absorbing, self._target_approximator,
                           self.mdp_info['action_space'].values)
 
         return max_q
