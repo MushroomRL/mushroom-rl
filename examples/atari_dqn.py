@@ -193,7 +193,6 @@ def print_epoch(epoch):
 
 def experiment():
     np.random.seed()
-    scale_coeff = 10.
     render = False
     quiet = False
 
@@ -202,7 +201,8 @@ def experiment():
     target_update_frequency = int(1e4)  # DQN: 1e4
     max_dataset_size = int(25e4)  # DQN: 1e6
     evaluation_frequency = int(25e4)  # DQN: 5e4
-    max_steps = int(50e6)  # DQN 50e6
+    train_frequency = 4  # DQN: 4
+    max_steps = int(50e6)  # DQN: 50e6
     final_exploration_frame = int(1e6)  # DQN: 1e6
     n_test_samples = int(125e3)  # DQN: 125e3
 
@@ -240,6 +240,7 @@ def experiment():
         batch_size=32,
         target_approximator=target_approximator,
         initial_dataset_size=initial_dataset_size,
+        train_frequency=train_frequency,
         target_update_frequency=target_update_frequency)
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,

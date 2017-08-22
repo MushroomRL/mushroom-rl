@@ -18,6 +18,7 @@ class DQN(Agent):
         self._clip_reward = alg_params.get('clip_reward', True)
         self._target_approximator = alg_params.get('target_approximator')
         self._initial_dataset_size = alg_params.get('initial_dataset_size')
+        self._train_frequency = alg_params.get('train_frequency')
         self._target_update_frequency = alg_params.get(
             'target_update_frequency')
         self._n_updates = 0
@@ -45,7 +46,9 @@ class DQN(Agent):
             q_next = self._next_q(next_state, absorbing)
             q = reward + self.mdp_info['gamma'] * q_next
 
-            self.approximator.train_on_batch(sa, q, **self.params['fit_params'])
+            if self._n_updates % self._train_frequency == 0:
+                self.approximator.train_on_batch(
+                    sa, q, **self.params['fit_params'])
 
             self._n_updates += 1
 
