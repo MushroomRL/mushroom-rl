@@ -198,13 +198,13 @@ def experiment():
     quiet = False
 
     # DQN Parameters
-    initial_dataset_size = int(5e4 / scale_coeff)
-    target_update_frequency = int(1e4)
-    max_dataset_size = int(1e6 / scale_coeff)
-    evaluation_frequency = int(5e4)
-    max_steps = int(5e6)
-    final_exploration_frame = int(1e6)
-    n_test_samples = int(125e3)
+    initial_dataset_size = int(25e3)  # DQN: 5e4
+    target_update_frequency = int(1e4)  # DQN: 1e4
+    max_dataset_size = int(25e4)  # DQN: 1e6
+    evaluation_frequency = int(25e4)  # DQN: 5e4
+    max_steps = int(50e6)  # DQN 50e6
+    final_exploration_frame = int(1e6)  # DQN: 1e6
+    n_test_samples = int(125e3)  # DQN: 125e3
 
     mdp_name = 'BreakoutDeterministic-v4'
     # MDP train

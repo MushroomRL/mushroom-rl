@@ -47,12 +47,11 @@ class DQN(Agent):
 
             self.approximator.train_on_batch(sa, q, **self.params['fit_params'])
 
-            if self._n_updates > 0 and self._n_updates %\
-                    self._target_update_frequency == 0:
+            self._n_updates += 1
+
+            if self._n_updates % self._target_update_frequency == 0:
                 self._target_approximator.model.set_weights(
                     self.approximator.model.get_weights())
-
-            self._n_updates += 1
 
     def _next_q(self, next_state, absorbing):
         """
