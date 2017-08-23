@@ -6,6 +6,17 @@ from PyPi.approximators.ensemble import Ensemble
 from PyPi.utils.dataset import max_QA
 
 
+class CollectDataset(object):
+    def __init__(self):
+        self._dataset = list()
+
+    def __call__(self, *args):
+        self._dataset += args[0]
+
+    def get(self):
+        return self._dataset
+
+
 class CollectQ(object):
     """
     This callback can be used to collect the values of the maximum action
@@ -22,7 +33,7 @@ class CollectQ(object):
 
         self._Qs = list()
 
-    def __call__(self):
+    def __call__(self, *args):
         if isinstance(self._approximator, Ensemble):
             qs = list()
             for m in self._approximator.models:
@@ -55,7 +66,7 @@ class CollectMaxQ(object):
 
         self._max_Qs = list()
 
-    def __call__(self):
+    def __call__(self, *args):
         max_Q, _ = max_QA(self._state, False, self._approximator,
                           self._action_values)
 

@@ -43,7 +43,7 @@ def experiment(fit_action):
 
     # Train
     core.learn(n_iterations=1, how_many=1000, n_fit_steps=20,
-               iterate_over='episodes')
+               iterate_over='episodes', quiet=True)
     core.reset()
 
     # Test
@@ -57,9 +57,9 @@ def experiment(fit_action):
             initial_states[cont, :] = [0.125 * i, 0.375 * j]
             cont += 1
 
-    core.evaluate(initial_states=initial_states)
+    dataset = core.evaluate(initial_states=initial_states, quiet=True)
 
-    return np.mean(compute_J(core.get_dataset(), mdp.gamma))
+    return np.mean(compute_J(dataset, mdp.gamma))
 
 
 if __name__ == '__main__':

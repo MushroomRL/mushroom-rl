@@ -55,9 +55,9 @@ def experiment():
             initial_states[cont, :] = [0.125 * i, 0.375 * j]
             cont += 1
 
-    core.evaluate(initial_states=initial_states)
+    dataset = core.evaluate(initial_states=initial_states)
 
-    return np.mean(compute_J(core.get_dataset(), mdp.gamma))
+    return np.mean(compute_J(dataset, mdp.gamma))
 
 
 if __name__ == '__main__':

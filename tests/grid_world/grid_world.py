@@ -6,7 +6,7 @@ from PyPi.approximators import Ensemble, Regressor, Tabular
 from PyPi.core.core import Core
 from PyPi.environments import *
 from PyPi.policy import EpsGreedy
-from PyPi.utils.callbacks import CollectMaxQ
+from PyPi.utils.callbacks import CollectDataset, CollectMaxQ
 from PyPi.utils import logger
 from PyPi.utils.dataset import parse_dataset
 from PyPi.utils.parameters import DecayParameter
@@ -41,16 +41,17 @@ def experiment(algorithm_class):
     agent = algorithm_class(approximator, pi, **agent_params)
 
     # Algorithm
+    collect_dataset = CollectDataset()
     collect_max_Q = CollectMaxQ(approximator, np.array([mdp._start]),
                                 mdp.action_space.values)
-    callbacks = [collect_max_Q]
+    callbacks = [collect_dataset, collect_max_Q]
     core = Core(agent, mdp, callbacks)
 
     # Train
     core.learn(n_iterations=10000, how_many=1, n_fit_steps=1,
-               iterate_over='samples')
+               iterate_over='samples', quiet=True)
 
-    _, _, reward, _, _, _ = parse_dataset(core.get_dataset())
+    _, _, reward, _, _, _ = parse_dataset(collect_dataset.get())
     max_Qs = collect_max_Q.get_values()
 
     return reward, max_Qs

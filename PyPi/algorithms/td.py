@@ -21,10 +21,9 @@ class TD(Agent):
         # Arguments
             dataset (list): the dataset to use.
         """
-        assert n_iterations == 1
+        assert n_iterations == 1 and len(dataset) == 1
 
-        state, action, reward, next_state, absorbing, _ = parse_dataset(
-            [dataset[-1]])
+        state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
 
         sa = [state, action]
 
@@ -88,10 +87,9 @@ class DoubleQLearning(TD):
         # Arguments
             dataset (list): the dataset to use.
         """
-        assert n_iterations == 1
+        assert n_iterations == 1 and len(dataset) == 1
 
-        state, action, reward, next_state, absorbing, _ = parse_dataset(
-            [dataset[-1]])
+        state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
 
         sa = [state, action]
 
@@ -154,10 +152,9 @@ class WeightedQLearning(TD):
         # Arguments
             dataset (list): the dataset to use.
         """
-        assert n_iterations == 1
+        assert n_iterations == 1 and len(dataset) == 1
 
-        state, action, reward, next_state, absorbing, _ = parse_dataset(
-            [dataset[-1]])
+        state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
 
         sa = [state, action]
         sa_idx = tuple(np.concatenate((state, action), axis=1).ravel())
@@ -243,10 +240,9 @@ class SpeedyQLearning(TD):
         # Arguments
             dataset (list): the dataset to use.
         """
-        assert n_iterations == 1
+        assert n_iterations == 1 and len(dataset) == 1
 
-        state, action, reward, next_state, absorbing, _ = parse_dataset(
-            [dataset[-1]])
+        state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
 
         sa = [state, action]
 

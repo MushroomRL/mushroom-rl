@@ -27,8 +27,6 @@ class Core(object):
         self.logger = logging.getLogger('logger')
 
         self._state = self.mdp.reset()
-        self._dataset = list()
-        self._max_dataset_size = max_dataset_size
 
         self._total_steps = 0
         self._episode_steps = 0
@@ -60,13 +58,13 @@ class Core(object):
                                        disable=quiet, leave=False):
 
                 self.logger.debug('Moving for %d samples...' % how_many)
-                self._move_samples(how_many, collect=True, render=render)
+                dataset = self._move_samples(how_many, render=render)
 
                 self.logger.debug('Fitting for %d steps...' % n_fit_steps)
-                self.agent.fit(self._dataset, n_fit_steps)
+                self.agent.fit(dataset, n_fit_steps)
 
                 for c in self.callbacks:
-                    c()
+                    c(dataset)
 
                 self._total_steps += 1
         else:
@@ -74,13 +72,13 @@ class Core(object):
                                        disable=quiet, leave=False):
 
                 self.logger.debug('Moving for %d episodes...' % how_many)
-                self._move_episodes(how_many, collect=True, render=render)
+                dataset = self._move_episodes(how_many, render=render)
 
                 self.logger.debug('Fitting for %d steps...' % n_fit_steps)
-                self.agent.fit(self._dataset, n_fit_steps)
+                self.agent.fit(dataset, n_fit_steps)
 
                 for c in self.callbacks:
-                    c()
+                    c(dataset)
 
     def evaluate(self, how_many=1, iterate_over='episodes', initial_states=None,
                  render=False, quiet=False):
@@ -93,6 +91,7 @@ class Core(object):
                 each state;
             render (bool): whether to render the environment or not.
         """
+        dataset = list()
         if initial_states is not None:
             assert iterate_over == 'episodes'
 
@@ -101,7 +100,7 @@ class Core(object):
             for i in tqdm(xrange(initial_states.shape[0]), dynamic_ncols=True,
                           disable=quiet, leave=False):
                 self._state = self.mdp.reset(initial_states[i, :])
-                self._move_episodes(1, collect=True, render=render)
+                dataset += self._move_episodes(1, render=render)
         else:
             self.logger.info('Evaluating policy for %d %s...' %
                              (how_many, iterate_over))
@@ -109,14 +108,16 @@ class Core(object):
                 for _ in tqdm(xrange(how_many), dynamic_ncols=True,
                               disable=quiet, leave=False):
                     self._state = self.mdp.reset()
-                    self._move_episodes(1, collect=True, render=render)
+                    dataset += self._move_episodes(1, render=render)
             else:
                 self._state = self.mdp.reset()
                 for _ in tqdm(xrange(how_many), dynamic_ncols=True,
                               disable=quiet, leave=False):
-                    self._move_samples(1, collect=True, render=render)
+                    dataset += self._move_samples(1, render=render)
 
-    def _move_episodes(self, how_many, collect=False, render=False):
+        return dataset
+
+    def _move_episodes(self, how_many, render=False):
         """
         Move the agent.
 
@@ -129,25 +130,31 @@ class Core(object):
             The list of discounted rewards obtained in each episode.
         """
         i = 0
+        dataset = list()
         self._episode_steps = 0
         while i < how_many:
             self.logger.debug('Starting in state: ' + str(self._state))
-            while not self._step(collect, render):
+            while not self._step(dataset, render):
                 continue
             self.logger.debug('Ended in state: ' + str(self._state))
             self._state = self.mdp.reset()
             self._episode_steps = 0
             i += 1
 
-    def _move_samples(self, how_many, collect=False, render=False):
+        return dataset
+
+    def _move_samples(self, how_many, render=False):
         i = 0
+        dataset = list()
         while i < how_many:
-            if self._step(collect, render):
+            if self._step(dataset, render):
                 self._state = self.mdp.reset()
                 self._episode_steps = 0
             i += 1
 
-    def _step(self, collect, render):
+        return dataset
+
+    def _step(self, dataset, render):
         """
         Single step.
 
@@ -169,28 +176,16 @@ class Core(object):
 
         self.logger.debug(sample[:-1])
 
-        if collect:
-            if len(self._dataset) >= self._max_dataset_size:
-                assert len(self._dataset) == self._max_dataset_size
-                self._dataset = self._dataset[1:]
-            self._dataset.append(sample)
+        dataset.append(sample)
 
         self._state = np.array(next_state)
 
         return last
-
-    def get_dataset(self):
-        """
-        # Returns
-            The dataset.
-        """
-        return self._dataset
 
     def reset(self):
         """
         Reset the stored dataset list.
         """
         self._state = self.mdp.reset()
-        self._dataset = list()
         self._total_steps = 0
         self._episode_steps = 0

@@ -2,6 +2,7 @@ import numpy as np
 
 from PyPi.algorithms.agent import Agent
 from PyPi.utils.dataset import max_QA, select_samples
+from PyPi.utils.replay_memory import ReplayMemory
 
 
 class DQN(Agent):
@@ -17,10 +18,14 @@ class DQN(Agent):
         self._batch_size = alg_params.get('batch_size')
         self._clip_reward = alg_params.get('clip_reward', True)
         self._target_approximator = alg_params.get('target_approximator')
-        self._initial_dataset_size = alg_params.get('initial_dataset_size')
         self._train_frequency = alg_params.get('train_frequency')
         self._target_update_frequency = alg_params.get(
             'target_update_frequency')
+
+        self._replay_memory = ReplayMemory(
+            alg_params.get('initial_replay_size'),
+            alg_params.get('max_replay_size')
+        )
         self._n_updates = 0
 
         super(DQN, self).__init__(approximator, policy, **params)
@@ -34,12 +39,12 @@ class DQN(Agent):
         """
         assert n_iterations == 1
 
-        if len(dataset) >= self._initial_dataset_size:
+        self._replay_memory.add(dataset)
+
+        if self._replay_memory.is_ready():
             if self._n_updates % self._train_frequency == 0:
                 state, action, reward, next_state, absorbing, _ =\
-                    select_samples(dataset=dataset,
-                                   n_samples=self._batch_size,
-                                   parse=True)
+                    self._replay_memory.get(self._batch_size)
 
                 if self._clip_reward:
                     reward = np.clip(reward, -1, 1)
@@ -73,6 +78,11 @@ class DQN(Agent):
                           self.mdp_info['action_space'].values)
 
         return max_q
+
+    def initialize(self, mdp_info):
+        super(DQN, self).initialize(mdp_info)
+
+        self._replay_memory.initialize(self.mdp_info)
 
     def __str__(self):
         return self.__name__
