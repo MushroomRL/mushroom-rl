@@ -35,7 +35,7 @@ class ReplayMemory(object):
         self._rewards[self._idx:self._idx + len(dataset), ...] = rewards
         self._next_states[self._idx:self._idx + len(dataset), ...] = next_states
         self._absorbing[self._idx:self._idx + len(dataset), ...] = absorbing
-        self._last[self._idxself._idx + len(dataset), ...] = last
+        self._last[self._idx:self._idx + len(dataset), ...] = last
 
         self._idx += len(dataset)
         if self._idx == self._max_size:
