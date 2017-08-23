@@ -50,7 +50,7 @@ class Atari(Environment):
                 self._lives = info['ale.lives']
 
         obs = self._preprocess_observation(obs)
-        self._state = self._get_next_state(self._state, obs)
+        self._state = self._get_next_state(obs)
 
         return self._state, reward, absorbing, info
 
@@ -60,8 +60,8 @@ class Atari(Environment):
     def set_episode_end(self, ends_at_life):
         self._episode_ends_at_life = ends_at_life
 
-    def _get_next_state(self, current, obs):
-        return np.append(current[1:], [obs], axis=0)
+    def _get_next_state(self, obs):
+        return np.append(self._state[1:], [obs], axis=0)
 
     def _preprocess_observation(self, obs):
         image = Image.fromarray(obs, 'RGB').convert('L').resize(self.img_size)

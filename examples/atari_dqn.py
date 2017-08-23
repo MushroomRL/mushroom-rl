@@ -197,9 +197,9 @@ def experiment():
     quiet = False
 
     # DQN Parameters
-    initial_dataset_size = int(25e3)  # DQN: 5e4
+    initial_dataset_size = int(5e3)  # DQN: 5e4
     target_update_frequency = int(1e4)  # DQN: 1e4
-    max_dataset_size = int(25e4)  # DQN: 1e6
+    max_dataset_size = int(5e4)  # DQN: 1e6
     evaluation_frequency = int(25e4)  # DQN: 5e4
     train_frequency = 4  # DQN: 4
     max_steps = int(50e6)  # DQN: 50e6
