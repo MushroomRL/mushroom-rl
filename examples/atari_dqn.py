@@ -275,8 +275,11 @@ def experiment():
         # learning step
         pi.set_epsilon(epsilon)
         mdp.set_episode_end(ends_at_life=True)
-        core.learn(n_iterations=evaluation_frequency, how_many=train_frequency,
-                   n_fit_steps=1, iterate_over='samples', quiet=quiet)
+        core.learn(n_iterations=evaluation_frequency / train_frequency,
+                   how_many=train_frequency,
+                   n_fit_steps=1,
+                   iterate_over='samples',
+                   quiet=quiet)
         print '- Evaluation:'
         # evaluation step
         pi.set_epsilon(epsilon_test)
