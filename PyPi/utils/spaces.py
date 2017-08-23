@@ -30,6 +30,10 @@ class Box(Space):
     def high(self):
         return np.unique(self._high)[0]
 
+    @property
+    def shape(self):
+        return self._shape
+
 
 class Discrete(Space):
     def __init__(self, n):
@@ -45,5 +49,5 @@ class Discrete(Space):
         return tuple([x for x in self.n_list])
 
     @property
-    def dim(self):
+    def shape(self):
         return len(self.n_list)

@@ -74,5 +74,7 @@ if __name__ == '__main__':
         r = np.convolve(np.mean(r, 0), np.ones(100) / 100., 'valid')
         max_Qs = np.mean(max_Qs, 0)
 
-        assert np.array_equal(np.load('grid_world/r' + names[i] + '.npy'), r)
-        assert np.array_equal(np.load('grid_world/max' + names[i] + '.npy'), max_Qs)
+        assert np.array_equal(
+            np.load('tests/grid_world/r' + names[i] + '.npy'), r)
+        assert np.array_equal(
+            np.load('tests/grid_world/max' + names[i] + '.npy'), max_Qs)

@@ -197,9 +197,9 @@ def experiment():
     quiet = False
 
     # DQN Parameters
-    initial_dataset_size = int(5e3)  # DQN: 5e4
+    initial_replay_size = int(5e3)  # DQN: 5e4
     target_update_frequency = int(1e4)  # DQN: 1e4
-    max_dataset_size = int(5e4)  # DQN: 1e6
+    max_replay_size = int(5e4)  # DQN: 1e6
     evaluation_frequency = int(25e4)  # DQN: 5e4
     train_frequency = 4  # DQN: 4
     max_steps = int(50e6)  # DQN: 50e6
@@ -239,7 +239,8 @@ def experiment():
     algorithm_params = dict(
         batch_size=32,
         target_approximator=target_approximator,
-        initial_dataset_size=initial_dataset_size,
+        initial_replay_size=initial_replay_size,
+        max_replay_size=max_replay_size,
         train_frequency=train_frequency,
         target_update_frequency=target_update_frequency)
     fit_params = dict()
@@ -248,22 +249,24 @@ def experiment():
     agent = DQN(approximator, pi, **agent_params)
 
     # Algorithm
-    core = Core(agent, mdp, max_dataset_size=max_dataset_size)
+    core = Core(agent, mdp)
     core_test = Core(agent, mdp)
 
     # DQN
 
     # fill replay memory with random dataset
     print_epoch(0)
-    core.learn(n_iterations=initial_dataset_size, how_many=1,
+    core.learn(n_iterations=initial_replay_size, how_many=1,
                n_fit_steps=1, iterate_over='samples', quiet=quiet)
 
     # evaluate initial policy
     pi.set_epsilon(epsilon_test)
     mdp.set_episode_end(ends_at_life=False)
-    core_test.evaluate(how_many=n_test_samples, iterate_over='samples',
-                       render=render, quiet=quiet)
-    score = compute_scores(core_test.get_dataset())
+    dataset = core_test.evaluate(how_many=n_test_samples,
+                                 iterate_over='samples',
+                                 render=render,
+                                 quiet=quiet)
+    score = compute_scores(dataset)
     print('min_reward: %f, max_reward: %f, mean_reward: %f,'
           ' games_completed: %d' % score)
     for i in xrange(max_steps - evaluation_frequency):
@@ -279,9 +282,11 @@ def experiment():
         pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(ends_at_life=False)
         core_test.reset()
-        core_test.evaluate(how_many=n_test_samples, iterate_over='samples',
-                           render=render, quiet=quiet)
-        score = compute_scores(core_test.get_dataset())
+        dataset = core_test.evaluate(how_many=n_test_samples,
+                                     iterate_over='samples',
+                                     render=render,
+                                     quiet=quiet)
+        score = compute_scores(dataset)
         print('min_reward: %f, max_reward: %f, mean_reward: %f,'
               ' games_completed: %d' % score)
 

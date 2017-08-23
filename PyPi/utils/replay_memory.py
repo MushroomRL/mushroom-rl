@@ -11,13 +11,16 @@ class ReplayMemory(object):
         self._full = False
 
     def initialize(self, mdp_info):
-        observation_space = self._mdp_info['observation_space']
-        action_space = self._mdp_info['action_space']
+        observation_space = mdp_info['observation_space']
+        action_space = mdp_info['action_space']
 
-        self._states = np.empty((self._max_size, ), dtype=np.float32)
-        self._actions = np.empty((self._max_size, ), dtype=np.float32)
+        observation_shape = tuple([self._max_size]) + observation_space.shape
+        action_shape = (self._max_size, action_space.shape)
+
+        self._states = np.empty(observation_shape, dtype=np.float32)
+        self._actions = np.empty(action_shape, dtype=np.float32)
         self._rewards = np.empty(self._max_size, dtype=np.float32)
-        self._next_states = np.empty((self._max_size, ), dtype=np.float32)
+        self._next_states = np.empty(observation_shape, dtype=np.float32)
         self._absorbing = np.empty(self._max_size, dtype=np.bool)
         self._last = np.empty(self._max_size, dtype=np.bool)
 
@@ -47,10 +50,9 @@ class ReplayMemory(object):
             self._rewards[idxs, ...], self._next_states[idxs, ...],\
             self._absorbing[idxs, ...], self._last[idxs, ...]
 
+    def is_ready(self):
+        return self._idx >= self._initial_size or self._full
+
     @property
     def size(self):
         return self._idx if not self._full else self._max_size
-
-    @property
-    def is_ready(self):
-        return self._idx >= self._initial_size or self._full
