@@ -30,12 +30,12 @@ class ReplayMemory(object):
             dataset
         )
 
-        self._states[self._idx:, ...] = states
-        self._actions[self._idx:, ...] = actions
-        self._rewards[self._idx:, ...] = rewards
-        self._next_states[self._idx:, ...] = next_states
-        self._absorbing[self._idx:, ...] = absorbing
-        self._last[self._idx, ...] = last
+        self._states[self._idx:self._idx + len(dataset), ...] = states
+        self._actions[self._idx:self._idx + len(dataset), ...] = actions
+        self._rewards[self._idx:self._idx + len(dataset), ...] = rewards
+        self._next_states[self._idx:self._idx + len(dataset), ...] = next_states
+        self._absorbing[self._idx:self._idx + len(dataset), ...] = absorbing
+        self._last[self._idxself._idx + len(dataset), ...] = last
 
         self._idx += len(dataset)
         if self._idx == self._max_size:
