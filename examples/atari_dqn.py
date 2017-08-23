@@ -270,7 +270,7 @@ def experiment():
     print('min_reward: %f, max_reward: %f, mean_reward: %f,'
           ' games_completed: %d' % score)
     for i in xrange(max_steps - evaluation_frequency):
-        print_epoch(i+1)
+        print_epoch(i + 1)
         print '- Learning:'
         # learning step
         pi.set_epsilon(epsilon)

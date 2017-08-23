@@ -24,20 +24,21 @@ class ReplayMemory(object):
         self._last = np.empty(self._max_size, dtype=np.bool)
 
     def add(self, dataset):
-        assert self._idx + len(dataset) <= self._max_size
+        next_idx = self._idx + len(dataset)
+        assert next_idx <= self._max_size
 
         states, actions, rewards, next_states, absorbing, last = parse_dataset(
             dataset
         )
 
-        self._states[self._idx:self._idx + len(dataset), ...] = states
-        self._actions[self._idx:self._idx + len(dataset), ...] = actions
-        self._rewards[self._idx:self._idx + len(dataset), ...] = rewards
-        self._next_states[self._idx:self._idx + len(dataset), ...] = next_states
-        self._absorbing[self._idx:self._idx + len(dataset), ...] = absorbing
-        self._last[self._idx:self._idx + len(dataset), ...] = last
+        self._states[self._idx:next_idx, ...] = states
+        self._actions[self._idx:next_idx, ...] = actions
+        self._rewards[self._idx:next_idx, ...] = rewards
+        self._next_states[self._idx:next_idx, ...] = next_states
+        self._absorbing[self._idx:next_idx, ...] = absorbing
+        self._last[self._idx:next_idx, ...] = last
 
-        self._idx += len(dataset)
+        self._idx = next_idx
         if self._idx == self._max_size:
             self._full = True
             self._idx = 0
