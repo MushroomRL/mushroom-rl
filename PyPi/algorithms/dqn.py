@@ -35,18 +35,20 @@ class DQN(Agent):
         assert n_iterations == 1
 
         if len(dataset) >= self._initial_dataset_size:
-            state, action, reward, next_state, absorbing, _ = select_samples(
-                dataset=dataset, n_samples=self._batch_size, parse=True)
-
-            if self._clip_reward:
-                reward = np.clip(reward, -1, 1)
-
-            sa = [state, action]
-
-            q_next = self._next_q(next_state, absorbing)
-            q = reward + self.mdp_info['gamma'] * q_next
-
             if self._n_updates % self._train_frequency == 0:
+                state, action, reward, next_state, absorbing, _ =\
+                    select_samples(dataset=dataset,
+                                   n_samples=self._batch_size,
+                                   parse=True)
+
+                if self._clip_reward:
+                    reward = np.clip(reward, -1, 1)
+
+                sa = [state, action]
+
+                q_next = self._next_q(next_state, absorbing)
+                q = reward + self.mdp_info['gamma'] * q_next
+
                 self.approximator.train_on_batch(
                     sa, q, **self.params['fit_params'])
 

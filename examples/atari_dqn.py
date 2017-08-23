@@ -227,7 +227,7 @@ def experiment():
                              preprocessor=[Scaler(mdp.observation_space.high)],
                              **approximator_params)
 
-    # target approximatior
+    # target approximator
     target_approximator = Regressor(
         ConvNet,
         fit_action=False,
