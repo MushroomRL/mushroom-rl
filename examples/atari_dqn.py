@@ -256,8 +256,8 @@ def experiment():
 
     # fill replay memory with random dataset
     print_epoch(0)
-    core.learn(n_iterations=initial_replay_size, how_many=1,
-               n_fit_steps=1, iterate_over='samples', quiet=quiet)
+    core.learn(n_iterations=1, how_many=initial_replay_size,
+               n_fit_steps=0, iterate_over='samples', quiet=quiet)
 
     # evaluate initial policy
     pi.set_epsilon(epsilon_test)
@@ -275,7 +275,7 @@ def experiment():
         # learning step
         pi.set_epsilon(epsilon)
         mdp.set_episode_end(ends_at_life=True)
-        core.learn(n_iterations=evaluation_frequency, how_many=1,
+        core.learn(n_iterations=evaluation_frequency, how_many=train_frequency,
                    n_fit_steps=1, iterate_over='samples', quiet=quiet)
         print '- Evaluation:'
         # evaluation step

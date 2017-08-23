@@ -22,10 +22,7 @@ class DQN(Agent):
         self._target_update_frequency = alg_params.get(
             'target_update_frequency')
 
-        self._replay_memory = ReplayMemory(
-            alg_params.get('initial_replay_size'),
-            alg_params.get('max_replay_size')
-        )
+        self._replay_memory = ReplayMemory(alg_params.get('max_replay_size'))
         self._n_updates = 0
 
         super(DQN, self).__init__(approximator, policy, **params)
@@ -37,25 +34,25 @@ class DQN(Agent):
         # Arguments
             dataset (list): the dataset to use.
         """
-        assert n_iterations == 1
-
         self._replay_memory.add(dataset)
+        if n_iterations == 0:
+            pass
+        else:
+            assert n_iterations == 1
 
-        if self._replay_memory.is_ready():
-            if self._n_updates % self._train_frequency == 0:
-                state, action, reward, next_state, absorbing, _ =\
-                    self._replay_memory.get(self._batch_size)
+            state, action, reward, next_state, absorbing, _ =\
+                self._replay_memory.get(self._batch_size)
 
-                if self._clip_reward:
-                    reward = np.clip(reward, -1, 1)
+            if self._clip_reward:
+                reward = np.clip(reward, -1, 1)
 
-                sa = [state, action]
+            sa = [state, action]
 
-                q_next = self._next_q(next_state, absorbing)
-                q = reward + self.mdp_info['gamma'] * q_next
+            q_next = self._next_q(next_state, absorbing)
+            q = reward + self.mdp_info['gamma'] * q_next
 
-                self.approximator.train_on_batch(
-                    sa, q, **self.params['fit_params'])
+            self.approximator.train_on_batch(
+                sa, q, **self.params['fit_params'])
 
             self._n_updates += 1
 

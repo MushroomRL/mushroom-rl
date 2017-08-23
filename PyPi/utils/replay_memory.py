@@ -4,8 +4,7 @@ from PyPi.utils.dataset import parse_dataset
 
 
 class ReplayMemory(object):
-    def __init__(self, initial_size, max_size):
-        self._initial_size = initial_size
+    def __init__(self, max_size):
         self._max_size = max_size
         self._idx = 0
         self._full = False
@@ -49,9 +48,6 @@ class ReplayMemory(object):
         return self._states[idxs, ...], self._actions[idxs, ...],\
             self._rewards[idxs, ...], self._next_states[idxs, ...],\
             self._absorbing[idxs, ...], self._last[idxs, ...]
-
-    def is_ready(self):
-        return self._idx >= self._initial_size or self._full
 
     @property
     def size(self):

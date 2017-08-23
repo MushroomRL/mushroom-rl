@@ -28,7 +28,6 @@ class Core(object):
 
         self._state = self.mdp.reset()
 
-        self._total_steps = 0
         self._episode_steps = 0
 
     def learn(self, n_iterations, how_many, n_fit_steps, iterate_over,
@@ -65,8 +64,6 @@ class Core(object):
 
                 for c in self.callbacks:
                     c(dataset)
-
-                self._total_steps += 1
         else:
             for self.iteration in tqdm(xrange(n_iterations), dynamic_ncols=True,
                                        disable=quiet, leave=False):
@@ -187,5 +184,4 @@ class Core(object):
         Reset the stored dataset list.
         """
         self._state = self.mdp.reset()
-        self._total_steps = 0
         self._episode_steps = 0
