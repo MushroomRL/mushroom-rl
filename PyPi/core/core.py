@@ -174,14 +174,10 @@ class Core(object):
             self.mdp.render()
 
         last = not(self._episode_steps < self.mdp.horizon and not absorbing)
-        sample = (self._state, action, reward, next_state, absorbing,
-                  last)
-
-        self.logger.debug(sample[:-1])
 
         self._state = np.array(next_state)
 
-        return sample
+        return self._state, action, reward, next_state, absorbing, last
 
     def reset(self):
         """
