@@ -27,16 +27,12 @@ class ReplayMemory(object):
         next_idx = self._idx + len(dataset)
         assert next_idx <= self._max_size
 
-        states, actions, rewards, next_states, absorbing, last = parse_dataset(
-            dataset
-        )
-
-        self._states[self._idx:next_idx, ...] = states
-        self._actions[self._idx:next_idx, ...] = actions
-        self._rewards[self._idx:next_idx, ...] = rewards
-        self._next_states[self._idx:next_idx, ...] = next_states
-        self._absorbing[self._idx:next_idx, ...] = absorbing
-        self._last[self._idx:next_idx, ...] = last
+        self._states[self._idx:next_idx, ...],\
+        self._actions[self._idx:next_idx, ...],\
+        self._rewards[self._idx:next_idx, ...],\
+        self._next_states[self._idx:next_idx, ...],\
+        self._absorbing[self._idx:next_idx, ...],\
+        self._last[self._idx:next_idx, ...] = parse_dataset(dataset)
 
         self._idx = next_idx
         if self._idx == self._max_size:
