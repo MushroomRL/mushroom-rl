@@ -14,10 +14,10 @@ def parse_dataset(dataset):
     """
     assert len(dataset) > 0
 
-    state = np.ones((len(dataset), dataset[0][0].shape))
-    action = np.ones((len(dataset), dataset[0][1].shape))
+    state = np.ones((len(dataset),) + dataset[0][0].shape)
+    action = np.ones((len(dataset),) + dataset[0][1].shape)
     reward = np.ones(len(dataset))
-    next_state = np.ones((len(dataset), dataset[0][3].shape))
+    next_state = np.ones((len(dataset),) + dataset[0][3].shape)
     absorbing = np.ones(len(dataset))
     last = np.ones(len(dataset))
 
