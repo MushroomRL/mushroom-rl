@@ -1,4 +1,3 @@
-import logging
 from tqdm import tqdm
 
 import numpy as np
@@ -23,8 +22,6 @@ class Core(object):
         self.callbacks = callbacks if callbacks is not None else list()
 
         self.agent.initialize(self.mdp.get_info())
-
-        self.logger = logging.getLogger('logger')
 
         self._state = None
 
