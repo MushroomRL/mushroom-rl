@@ -1,7 +1,7 @@
 import numpy as np
 
 from PyPi.algorithms.agent import Agent
-from PyPi.utils.dataset import max_QA, select_samples
+from PyPi.utils.dataset import max_QA
 from PyPi.utils.replay_memory import ReplayMemory
 
 
@@ -22,7 +22,8 @@ class DQN(Agent):
         self._target_update_frequency = alg_params.get(
             'target_update_frequency')
 
-        self._replay_memory = ReplayMemory(alg_params.get('max_replay_size'))
+        self._replay_memory = ReplayMemory(alg_params.get('max_replay_size'),
+                                           alg_params.get('history_length', 1))
         self._n_updates = 0
 
         super(DQN, self).__init__(approximator, policy, **params)

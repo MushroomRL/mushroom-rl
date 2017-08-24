@@ -121,20 +121,20 @@ class RMSpropGraves(Optimizer):
 class ConvNet:
     def __init__(self, n_actions):
         # Build network
-        input_layer = Input(shape=(4, 84, 84))
-        u = Input(shape=(1,), dtype='int32')
+        input_layer = Input(shape=(84, 84, 4))
+        u = Input(shape=(1,), dtype='uint8')
 
         hidden = Convolution2D(32, 8, padding='valid',
                                activation='relu', strides=4,
-                               data_format='channels_first')(input_layer)
+                               data_format='channels_last')(input_layer)
 
         hidden = Convolution2D(64, 4, padding='valid',
                                activation='relu', strides=2,
-                               data_format='channels_first')(hidden)
+                               data_format='channels_last')(hidden)
 
         hidden = Convolution2D(64, 3, padding='valid',
                                activation='relu', strides=1,
-                               data_format='channels_first')(hidden)
+                               data_format='channels_last')(hidden)
 
         hidden = Flatten()(hidden)
         self.features = Dense(512, activation='relu')(hidden)
@@ -241,6 +241,7 @@ def experiment():
         target_approximator=target_approximator,
         initial_replay_size=initial_replay_size,
         max_replay_size=max_replay_size,
+        history_length=4,
         train_frequency=train_frequency,
         target_update_frequency=target_update_frequency)
     fit_params = dict()

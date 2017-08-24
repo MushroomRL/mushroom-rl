@@ -16,7 +16,7 @@ class Atari(Environment):
         self.img_size = (84, 84)
         self.action_space = Discrete(self.env.action_space.n)
         self.observation_space = Box(
-            low=0., high=255., shape=(4, self.img_size[1], self.img_size[0]))
+            low=0., high=255., shape=(self.img_size[1], self.img_size[0]))
 
         # MDP parameters
         self.horizon = np.inf
@@ -32,12 +32,10 @@ class Atari(Environment):
     def reset(self, state=None):
         if self._episode_ends_at_life:
             if self._lives == 0:
-                state = self._preprocess_observation(self.env.reset())
-                self._state = np.array([state, state, state, state])
+                self._state = self._preprocess_observation(self.env.reset())
                 self._lives = self._max_lives
         else:
-            state = self._preprocess_observation(self.env.reset())
-            self._state = np.array([state, state, state, state])
+            self._state = self._preprocess_observation(self.env.reset())
 
         return self._state
 
@@ -49,8 +47,7 @@ class Atari(Environment):
                 absorbing = True
                 self._lives = info['ale.lives']
 
-        obs = self._preprocess_observation(obs)
-        self._state = self._get_next_state(obs)
+        self._state = self._preprocess_observation(obs)
 
         return self._state, reward, absorbing, info
 
@@ -59,9 +56,6 @@ class Atari(Environment):
 
     def set_episode_end(self, ends_at_life):
         self._episode_ends_at_life = ends_at_life
-
-    def _get_next_state(self, obs):
-        return np.append(self._state[1:], [obs], axis=0)
 
     def _preprocess_observation(self, obs):
         image = Image.fromarray(obs, 'RGB').convert('L').resize(self.img_size)
