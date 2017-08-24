@@ -94,15 +94,14 @@ def compute_J(dataset, gamma=1.):
     Returns
         the average cumulative discounted reward.
     """
-    _, _, reward, _, _, last = parse_dataset(dataset)
     js = list()
 
     j = 0.
     episode_steps = 0
-    for i in xrange(reward.size):
-        j += gamma ** episode_steps * reward[i]
+    for i in xrange(len(dataset)):
+        j += gamma ** episode_steps * dataset[i][2]
         episode_steps += 1
-        if last[i]:
+        if dataset[i][-1]:
             js.append(j)
             j = 0.
             episode_steps = 0
@@ -125,16 +124,15 @@ def compute_scores(dataset):
 
         If no episode has been completed, it returns 0 for all values.
     """
-    _, _, reward, _, _, last = parse_dataset(dataset)
     scores = list()
 
     score = 0.
     episode_steps = 0
     n_episodes = 0
-    for i in xrange(reward.size):
-        score += reward[i]
+    for i in xrange(len(dataset)):
+        score += dataset[i][2]
         episode_steps += 1
-        if last[i]:
+        if dataset[i][-1]:
             scores.append(score)
             score = 0.
             episode_steps = 0

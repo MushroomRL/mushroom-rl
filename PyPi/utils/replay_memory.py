@@ -24,19 +24,17 @@ class ReplayMemory(object):
         self._last = np.ones(self._max_size, dtype=np.bool)
 
     def add(self, dataset):
-        next_idx = self._idx + len(dataset)
-        assert next_idx <= self._max_size
+        for i in xrange(len(dataset)):
+            self._states[self._idx, ...] = dataset[i][0]
+            self._actions[self._idx, ...] = dataset[i][1]
+            self._rewards[self._idx, ...] = dataset[i][2]
+            self._absorbing[self._idx, ...] = dataset[i][4]
+            self._last[self._idx, ...] = dataset[i][5]
 
-        self._states[self._idx:next_idx, ...],\
-            self._actions[self._idx:next_idx, ...],\
-            self._rewards[self._idx:next_idx, ...], _,\
-            self._absorbing[self._idx:next_idx, ...],\
-            self._last[self._idx:next_idx, ...] = parse_dataset(dataset)
-
-        self._idx = next_idx
-        if self._idx == self._max_size:
-            self._full = True
-            self._idx = 0
+            self._idx += 1
+            if self._idx == self._max_size:
+                self._full = True
+                self._idx = 0
 
     def get(self, n_samples):
         idxs = np.random.randint(self.size, size=n_samples)
