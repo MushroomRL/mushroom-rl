@@ -16,23 +16,23 @@ class ReplayMemory(object):
         observation_shape = tuple([self._max_size]) + observation_space.shape
         action_shape = (self._max_size, action_space.shape)
 
-        self._states = np.empty(observation_shape, dtype=np.float32)
-        self._actions = np.empty(action_shape, dtype=np.float32)
-        self._rewards = np.empty(self._max_size, dtype=np.float32)
-        self._next_states = np.empty(observation_shape, dtype=np.float32)
-        self._absorbing = np.empty(self._max_size, dtype=np.bool)
-        self._last = np.empty(self._max_size, dtype=np.bool)
+        self._states = np.ones(observation_shape, dtype=np.float32)
+        self._actions = np.ones(action_shape, dtype=np.float32)
+        self._rewards = np.ones(self._max_size, dtype=np.float32)
+        self._next_states = np.ones(observation_shape, dtype=np.float32)
+        self._absorbing = np.ones(self._max_size, dtype=np.bool)
+        self._last = np.ones(self._max_size, dtype=np.bool)
 
     def add(self, dataset):
         next_idx = self._idx + len(dataset)
         assert next_idx <= self._max_size
 
         self._states[self._idx:next_idx, ...],\
-        self._actions[self._idx:next_idx, ...],\
-        self._rewards[self._idx:next_idx, ...],\
-        self._next_states[self._idx:next_idx, ...],\
-        self._absorbing[self._idx:next_idx, ...],\
-        self._last[self._idx:next_idx, ...] = parse_dataset(dataset)
+            self._actions[self._idx:next_idx, ...],\
+            self._rewards[self._idx:next_idx, ...],\
+            self._next_states[self._idx:next_idx, ...],\
+            self._absorbing[self._idx:next_idx, ...],\
+            self._last[self._idx:next_idx, ...] = parse_dataset(dataset)
 
         self._idx = next_idx
         if self._idx == self._max_size:

@@ -131,8 +131,12 @@ class Core(object):
         self._episode_steps = 0
         while i < how_many:
             self.logger.debug('Starting in state: ' + str(self._state))
-            while not self._step(dataset, render):
-                continue
+
+            last = False
+            while not last:
+                sample = self._step(render)
+                dataset.append(sample)
+                last = sample[-1]
             self.logger.debug('Ended in state: ' + str(self._state))
             self._state = self.mdp.reset()
             self._episode_steps = 0
@@ -142,16 +146,18 @@ class Core(object):
 
     def _move_samples(self, how_many, render=False):
         i = 0
-        dataset = list()
+        dataset = [None] * how_many
         while i < how_many:
-            if self._step(dataset, render):
+            sample = self._step(render)
+            dataset[i] = sample
+            if sample[-1]:
                 self._state = self.mdp.reset()
                 self._episode_steps = 0
             i += 1
 
         return dataset
 
-    def _step(self, dataset, render):
+    def _step(self, render):
         """
         Single step.
 
@@ -173,11 +179,9 @@ class Core(object):
 
         self.logger.debug(sample[:-1])
 
-        dataset.append(sample)
-
         self._state = np.array(next_state)
 
-        return last
+        return sample
 
     def reset(self):
         """

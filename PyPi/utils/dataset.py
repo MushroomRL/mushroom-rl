@@ -14,20 +14,20 @@ def parse_dataset(dataset):
     """
     assert len(dataset) > 0
 
-    state = list()
-    action = list()
-    reward = list()
-    next_state = list()
-    absorbing = list()
-    last = list()
+    state = np.ones((len(dataset), dataset[0][0].shape))
+    action = np.ones((len(dataset), dataset[0][1].shape))
+    reward = np.ones(len(dataset))
+    next_state = np.ones((len(dataset), dataset[0][3].shape))
+    absorbing = np.ones(len(dataset))
+    last = np.ones(len(dataset))
 
     for i in xrange(len(dataset)):
-        state.append(dataset[i][0])
-        action.append(dataset[i][1])
-        reward.append(dataset[i][2])
-        next_state.append(dataset[i][3])
-        absorbing.append(dataset[i][4])
-        last.append(dataset[i][5])
+        state[i, ...] = dataset[i][0]
+        action[i, ...] = dataset[i][1]
+        reward[i, ...] = dataset[i][2]
+        next_state[i, ...] = dataset[i][3]
+        absorbing[i, ...] = dataset[i][4]
+        last[i, ...] = dataset[i][5]
 
     return np.array(state), np.array(action), np.array(reward), np.array(
         next_state), np.array(absorbing), np.array(last)
