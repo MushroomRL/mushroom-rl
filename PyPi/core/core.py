@@ -8,7 +8,7 @@ class Core(object):
     """
     Implements the functions to run a generic algorithm.
     """
-    def __init__(self, agent, mdp, callbacks=None, max_dataset_size=np.inf):
+    def __init__(self, agent, mdp, callbacks=None):
         """
         Constructor.
 
@@ -26,7 +26,7 @@ class Core(object):
 
         self.logger = logging.getLogger('logger')
 
-        self._state = self.mdp.reset()
+        self._state = None
 
         self._episode_steps = 0
 
@@ -52,14 +52,13 @@ class Core(object):
         """
         assert iterate_over == 'samples' or iterate_over == 'episodes'
 
+        self._state = self.mdp.reset()
+
         if iterate_over == 'samples':
+            self.agent.episode_start()
             for self.iteration in tqdm(xrange(n_iterations), dynamic_ncols=True,
                                        disable=quiet, leave=False):
-
-                self.logger.debug('Moving for %d samples...' % how_many)
                 dataset = self._move_samples(how_many, render=render)
-
-                self.logger.debug('Fitting for %d steps...' % n_fit_steps)
                 self.agent.fit(dataset, n_fit_steps)
 
                 for c in self.callbacks:
@@ -67,11 +66,7 @@ class Core(object):
         else:
             for self.iteration in tqdm(xrange(n_iterations), dynamic_ncols=True,
                                        disable=quiet, leave=False):
-
-                self.logger.debug('Moving for %d episodes...' % how_many)
                 dataset = self._move_episodes(how_many, render=render)
-
-                self.logger.debug('Fitting for %d steps...' % n_fit_steps)
                 self.agent.fit(dataset, n_fit_steps)
 
                 for c in self.callbacks:
@@ -88,19 +83,17 @@ class Core(object):
                 each state;
             render (bool): whether to render the environment or not.
         """
+        self._state = self.mdp.reset()
+
         dataset = list()
         if initial_states is not None:
             assert iterate_over == 'episodes'
 
-            self.logger.info('Evaluating policy for %d episodes...' %
-                             initial_states.shape[0])
             for i in tqdm(xrange(initial_states.shape[0]), dynamic_ncols=True,
                           disable=quiet, leave=False):
                 self._state = self.mdp.reset(initial_states[i, :])
                 dataset += self._move_episodes(1, render=render)
         else:
-            self.logger.info('Evaluating policy for %d %s...' %
-                             (how_many, iterate_over))
             if iterate_over == 'episodes':
                 for _ in tqdm(xrange(how_many), dynamic_ncols=True,
                               disable=quiet, leave=False):
@@ -108,6 +101,7 @@ class Core(object):
                     dataset += self._move_episodes(1, render=render)
             else:
                 self._state = self.mdp.reset()
+                self.agent.episode_start()
                 for _ in tqdm(xrange(how_many), dynamic_ncols=True,
                               disable=quiet, leave=False):
                     dataset += self._move_samples(1, render=render)
@@ -130,14 +124,12 @@ class Core(object):
         dataset = list()
         self._episode_steps = 0
         while i < how_many:
-            self.logger.debug('Starting in state: ' + str(self._state))
-
+            self.agent.episode_start()
             last = False
             while not last:
                 sample = self._step(render)
                 dataset.append(sample)
                 last = sample[-1]
-            self.logger.debug('Ended in state: ' + str(self._state))
             self._state = self.mdp.reset()
             self._episode_steps = 0
             i += 1
@@ -153,6 +145,7 @@ class Core(object):
             if sample[-1]:
                 self._state = self.mdp.reset()
                 self._episode_steps = 0
+                self.agent.episode_start()
             i += 1
 
         return dataset

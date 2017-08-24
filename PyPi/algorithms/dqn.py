@@ -5,6 +5,23 @@ from PyPi.utils.dataset import max_QA
 from PyPi.utils.replay_memory import ReplayMemory
 
 
+class Buffer(object):
+    def __init__(self, size):
+        self._size = size
+
+        self._buf = [None] * self._size
+
+    def add(self, sample):
+        self._buf.append(sample)
+        self._buf = self._buf[1:]
+
+    def get(self):
+        s = np.empty(self._buf[0].shape + (self._size,), dtype=np.float32)
+        for i in xrange(self._size):
+            s[..., i] = self._buf[i]
+
+        return s
+
 class DQN(Agent):
     """
     Deep Q-Network algorithm.
@@ -21,10 +38,16 @@ class DQN(Agent):
         self._train_frequency = alg_params.get('train_frequency')
         self._target_update_frequency = alg_params.get(
             'target_update_frequency')
+        self._max_no_op_actions = alg_params.get('max_no_op_actions', 0)
+        self._no_op_action_value = alg_params.get('no_op_action_value', 0)
 
         self._replay_memory = ReplayMemory(alg_params.get('max_replay_size'),
                                            alg_params.get('history_length', 1))
+        self._buffer = Buffer(size=alg_params.get('history_length', 1))
+
         self._n_updates = 0
+        self._episode_steps = None
+        self._no_op_actions = None
 
         super(DQN, self).__init__(approximator, policy, **params)
 
@@ -81,6 +104,25 @@ class DQN(Agent):
         super(DQN, self).initialize(mdp_info)
 
         self._replay_memory.initialize(self.mdp_info)
+
+    def draw_action(self, state):
+        self._buffer.add(state)
+
+        if self._episode_steps < self._no_op_actions:
+            action = np.array([self._no_op_action_value])
+        else:
+            extended_state = self._buffer.get()
+
+            action = super(DQN, self).draw_action(extended_state)
+
+        self._episode_steps += 1
+
+        return action
+
+    def episode_start(self):
+        self._no_op_actions = np.random.randint(
+            self._replay_memory._history_length, self._max_no_op_actions + 1)
+        self._episode_steps = 0
 
     def __str__(self):
         return self.__name__

@@ -55,13 +55,15 @@ class ReplayMemory(object):
         s = np.empty((idxs.size,) + self._states.shape[1:] + (
             self._history_length,), dtype=np.float32)
         for j, idx in enumerate(idxs):
-            if idxs >= self._history_length - 1:
-                s[j, ...] = self._states[
-                    (idx - (self._history_length - 1)):(idx + 1), ...]
+            if idx >= self._history_length - 1:
+                for k in xrange(self._history_length):
+                    s[j, ..., self._history_length - 1 - k] = self._states[
+                        idx - k, ...]
             else:
                 indexes = [(idx - i) % self.size for i in
                            reversed(range(self._history_length))]
-                s[j, ...] = self._states[indexes, ...]
+                for k, index in enumerate(indexes):
+                    s[j, ..., k] = self._states[index, ...]
 
         return s
 

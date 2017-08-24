@@ -197,14 +197,16 @@ def experiment():
     quiet = False
 
     # DQN Parameters
-    initial_replay_size = int(5e3)  # DQN: 5e4
+    initial_replay_size = int(5e4)  # DQN: 5e4
     target_update_frequency = int(1e4)  # DQN: 1e4
     max_replay_size = int(1e5)  # DQN: 1e6
-    evaluation_frequency = int(25e4)  # DQN: 5e4
+    evaluation_frequency = int(5e4)  # DQN: 5e4
     train_frequency = 4  # DQN: 4
     max_steps = int(50e6)  # DQN: 50e6
     final_exploration_frame = int(1e6)  # DQN: 1e6
     n_test_samples = int(125e3)  # DQN: 125e3
+    max_no_op_actions = 30  # DQN: 30
+    no_op_action_value = 0  # Atari: 0
 
     mdp_name = 'BreakoutDeterministic-v4'
     # MDP train
@@ -243,7 +245,10 @@ def experiment():
         max_replay_size=max_replay_size,
         history_length=4,
         train_frequency=train_frequency,
-        target_update_frequency=target_update_frequency)
+        target_update_frequency=target_update_frequency,
+        max_no_op_actions=max_no_op_actions,
+        no_op_action_value=no_op_action_value
+    )
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}

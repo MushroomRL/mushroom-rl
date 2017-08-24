@@ -51,3 +51,6 @@ class Agent(object):
             action = self._next_action
             self._next_action = None
             return action
+
+    def episode_start(self):
+        pass
