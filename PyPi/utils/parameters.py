@@ -16,6 +16,8 @@ class Parameter(object):
         else:
             idx = tuple(idx.ravel())
 
+        idx = tuple([int(i) for i in idx])
+
         idx = idx if self._n_updates.size > 1 else 0
 
         self._n_updates[idx] += 1

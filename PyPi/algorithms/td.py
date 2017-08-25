@@ -157,7 +157,8 @@ class WeightedQLearning(TD):
         state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
 
         sa = [state, action]
-        sa_idx = tuple(np.concatenate((state, action), axis=1).ravel())
+        sa_idx = tuple(np.concatenate(
+            (state, action), axis=1).astype(np.int).ravel())
 
         q_current = self.approximator.predict(sa)
         q_next = self._next_q(next_state) if not absorbing else 0.
@@ -200,7 +201,7 @@ class WeightedQLearning(TD):
         for i, a in enumerate(actions):
             sa_n = [next_state, np.array([a])]
             sa_n_idx = tuple(np.concatenate((next_state, np.array([a])),
-                                            axis=1).ravel())
+                                            axis=1).astype(np.int).ravel())
             means[0, i] = self.approximator.predict(sa_n)
             sigmas[0, i] = self._sigma[sa_n_idx]
 

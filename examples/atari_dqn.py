@@ -21,32 +21,6 @@ from PyPi.utils.preprocessor import Scaler
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 
-class GatherLayer(Layer):
-    def __init__(self, n_actions, **kwargs):
-        self.n_actions = n_actions
-        super(GatherLayer, self).__init__(**kwargs)
-
-    def build(self, input_shape):
-        super(GatherLayer, self).build(input_shape)
-
-    def call(self, args, mask=None):
-        return self.gather_layer(args, self.n_actions)
-
-    def compute_output_shape(self, input_shape):
-        return input_shape[0][0], 1
-
-    @staticmethod
-    def gather_layer(args, n_actions):
-        full_output, indices = args
-
-        idx_flat = tf.reshape(indices, [-1])
-        idx_onehot = tf.one_hot(idx_flat, n_actions)
-        out = tf.multiply(idx_onehot, full_output)
-        out = tf.reduce_sum(out, 1)
-
-        return out
-
-
 class RMSpropGraves(Optimizer):
     """RMSProp optimizer.
 
@@ -137,11 +111,9 @@ class ConvNet:
         hidden = Flatten()(hidden)
         self.features = Dense(512, activation='relu')(hidden)
         self.output = Dense(n_actions, activation='linear')(self.features)
-        self.gather = GatherLayer(n_actions)([self.output, u])
 
         # Models
-        self.all_q = Model(outputs=[self.output], inputs=[input_layer])
-        self.q = Model(outputs=[self.gather], inputs=[input_layer, u])
+        self.q = Model(outputs=[self.output], inputs=[input_layer])
 
         # Optimization algorithm
         self.optimizer = RMSpropGraves()
@@ -159,19 +131,29 @@ class ConvNet:
         #Tensorboard
         self.writer = tf.summary.FileWriter('./logs')
 
-    def fit(self, x, y, **fit_params):
-        self.q.fit(x, y, **fit_params)
-
     def predict(self, x, **fit_params):
         if isinstance(x, list):
             assert len(x) == 2
 
-            return self.q.predict(x, **fit_params)
+            actions = x[1].astype(np.int)
+
+            out_all = self.q.predict(x[0], **fit_params)
+            out = np.empty(out_all.shape[0])
+            for i in xrange(out.size):
+                out[i] = out_all[i, actions[i]]
+
+            return out
         else:
-            return self.all_q.predict(x, **fit_params)
+            return self.q.predict(x, **fit_params)
 
     def train_on_batch(self, x, y, **fit_params):
-        loss = self.q.train_on_batch(x, y, **fit_params)
+        actions = x[1].astype(np.int)
+
+        t = self.q.predict(x[0])
+        for i in xrange(t.shape[0]):
+            t[i, actions[i]] = y[i]
+
+        loss = self.q.train_on_batch(x[0], t, **fit_params)
         summary = tf.Summary(value=[tf.Summary.Value(tag="loss",
                                                      simple_value=loss), ])
         self.writer.add_summary(summary)
