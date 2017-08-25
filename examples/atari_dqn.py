@@ -7,14 +7,12 @@ from keras.engine.topology import Layer
 from keras.models import Model
 from keras.layers import Input, Convolution2D, Flatten, Dense
 from keras.optimizers import Optimizer, Adam
-from keras.losses import mean_squared_error, mean_absolute_error
 
 from PyPi.algorithms.dqn import DQN
 from PyPi.approximators import Regressor
 from PyPi.core.core import Core
 from PyPi.environments import *
 from PyPi.policy import EpsGreedy
-from PyPi.utils import logger
 from PyPi.utils.dataset import compute_scores
 from PyPi.utils.parameters import LinearDecayParameter, Parameter
 from PyPi.utils.preprocessor import Scaler
@@ -300,5 +298,4 @@ def experiment():
               ' games_completed: %d' % score)
 
 if __name__ == '__main__':
-    logger.Logger(1)
     experiment()

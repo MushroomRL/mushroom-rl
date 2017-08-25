@@ -7,7 +7,6 @@ from PyPi.approximators import ActionRegressor
 from PyPi.core.core import Core
 from PyPi.environments import *
 from PyPi.policy import EpsGreedy
-from PyPi.utils import logger
 from PyPi.utils.dataset import compute_J
 from PyPi.utils.parameters import Parameter
 
@@ -62,8 +61,6 @@ def experiment():
 
 if __name__ == '__main__':
     n_experiment = 1
-
-    logger.Logger(3)
 
     Js = Parallel(n_jobs=-1)(delayed(experiment)() for _ in range(n_experiment))
     print(np.mean(Js))

@@ -6,7 +6,6 @@ from PyPi.approximators import Regressor, ActionRegressor
 from PyPi.core.core import Core
 from PyPi.environments import *
 from PyPi.policy import EpsGreedy
-from PyPi.utils import logger
 from PyPi.utils.dataset import compute_J
 from PyPi.utils.parameters import Parameter
 
@@ -66,8 +65,6 @@ if __name__ == '__main__':
     print('Executing car_on_hill test...')
 
     n_experiment = 1
-
-    logger.Logger(3)
 
     res = experiment(fit_action=True)
     assert np.round(res, 4) == .1601

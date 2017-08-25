@@ -7,7 +7,6 @@ from PyPi.core.core import Core
 from PyPi.environments import *
 from PyPi.policy import EpsGreedy
 from PyPi.utils.callbacks import CollectDataset, CollectMaxQ
-from PyPi.utils import logger
 from PyPi.utils.dataset import parse_dataset
 from PyPi.utils.parameters import DecayParameter
 
@@ -58,8 +57,6 @@ def experiment(algorithm_class, decay_exp):
 
 if __name__ == '__main__':
     n_experiment = 10000
-
-    logger.Logger(3)
 
     names = {1: '1', .8: '08', QLearning: 'Q', DoubleQLearning: 'DQ',
              WeightedQLearning: 'WQ', SpeedyQLearning: 'SPQ'}

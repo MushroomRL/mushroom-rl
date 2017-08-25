@@ -7,7 +7,6 @@ from PyPi.core.core import Core
 from PyPi.environments import *
 from PyPi.policy import EpsGreedy
 from PyPi.utils.callbacks import CollectDataset, CollectMaxQ
-from PyPi.utils import logger
 from PyPi.utils.dataset import parse_dataset
 from PyPi.utils.parameters import DecayParameter
 
@@ -60,8 +59,6 @@ if __name__ == '__main__':
     print('Executing grid_world test...')
 
     n_experiment = 2
-
-    logger.Logger(3)
 
     names = ['Q', 'DQ', 'WQ', 'SQ']
     for i, a in enumerate([QLearning, DoubleQLearning, WeightedQLearning,

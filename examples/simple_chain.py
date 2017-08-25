@@ -41,4 +41,4 @@ def experiment():
                iterate_over='samples')
 
 if __name__ == '__main__':
-    out = experiment()
+    experiment()
