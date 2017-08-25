@@ -8,17 +8,18 @@ class Parameter(object):
         self._n_updates = np.zeros(shape)
 
     def __call__(self, idx, **kwargs):
-        if isinstance(idx, list):
-            assert idx[0].ndim == 2 and idx[1].ndim == 2
-            assert idx[0].shape[0] == idx[1].shape[0]
-
-            idx = tuple(np.concatenate((idx[0], idx[1]), axis=1).ravel())
+        if self._n_updates.size == 1:
+            idx = 0
         else:
-            idx = tuple(idx.ravel())
+            if isinstance(idx, list):
+                assert idx[0].ndim == 2 and idx[1].ndim == 2
+                assert idx[0].shape[0] == idx[1].shape[0]
 
-        idx = tuple([int(i) for i in idx])
+                idx = tuple(np.concatenate((idx[0], idx[1]), axis=1).ravel())
+            else:
+                idx = tuple(idx.ravel())
 
-        idx = idx if self._n_updates.size > 1 else 0
+            idx = tuple([int(i) for i in idx])
 
         self._n_updates[idx] += 1
 
