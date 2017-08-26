@@ -23,15 +23,14 @@ class TD(Agent):
         """
         assert n_iterations == 1 and len(dataset) == 1
 
-        state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
-
-        sa = [state, action]
+        sample = dataset[0]
+        sa = [np.array([sample[0]]), np.array([sample[1]])]
 
         q_current = self.approximator.predict(sa)
-        q_next = self._next_q(next_state) if not absorbing else 0.
+        q_next = self._next_q(np.array([sample[3]])) if not sample[4] else 0.
 
         q = q_current + self.learning_rate(sa) * (
-            reward + self.mdp_info['gamma'] * q_next - q_current)
+            sample[2] + self.mdp_info['gamma'] * q_next - q_current)
 
         self.approximator.fit(sa, q, **self.params['fit_params'])
 
@@ -89,18 +88,17 @@ class DoubleQLearning(TD):
         """
         assert n_iterations == 1 and len(dataset) == 1
 
-        state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
-
-        sa = [state, action]
+        sample = dataset[0]
+        sa = [np.array([sample[0]]), np.array([sample[1]])]
 
         approximator_idx = 0 if np.random.uniform() < 0.5 else 1
 
         q_current = self.approximator[approximator_idx].predict(sa)
         q_next = self._next_q(
-            next_state, approximator_idx) if not absorbing else 0.
+            np.array([sample[3]]), approximator_idx) if not sample[4] else 0.
 
         q = q_current + self.learning_rate[approximator_idx](sa) * (
-            reward + self.mdp_info['gamma'] * q_next - q_current)
+            sample[2] + self.mdp_info['gamma'] * q_next - q_current)
 
         self.approximator[approximator_idx].fit(
             sa, q, **self.params['fit_params'])
@@ -154,16 +152,16 @@ class WeightedQLearning(TD):
         """
         assert n_iterations == 1 and len(dataset) == 1
 
-        state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
-
-        sa = [state, action]
+        sample = dataset[0]
+        sa = [np.array([sample[0]]), np.array([sample[1]])]
         sa_idx = tuple(np.concatenate(
-            (state, action), axis=1).astype(np.int).ravel())
+            (np.array([sample[0]]), np.array([sample[1]])),
+            axis=1).astype(np.int).ravel())
 
         q_current = self.approximator.predict(sa)
-        q_next = self._next_q(next_state) if not absorbing else 0.
+        q_next = self._next_q(np.array([sample[3]])) if not sample[4] else 0.
 
-        target = reward + self.mdp_info['gamma'] * q_next
+        target = sample[2] + self.mdp_info['gamma'] * q_next
 
         alpha = self.learning_rate(sa)
 
@@ -243,21 +241,20 @@ class SpeedyQLearning(TD):
         """
         assert n_iterations == 1 and len(dataset) == 1
 
-        state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
-
-        sa = [state, action]
+        sample = dataset[0]
+        sa = [np.array([sample[0]]), np.array([sample[1]])]
 
         # Save current q
         old_q = deepcopy(self.approximator)
 
         # Compute targets
-        max_q_cur, _ = max_QA(next_state, False, self.approximator,
+        max_q_cur, _ = max_QA(np.array([sample[3]]), False, self.approximator,
                               self.mdp_info['action_space'].values)
-        max_q_old, _ = max_QA(next_state, False, self.old_q,
+        max_q_old, _ = max_QA(np.array([sample[3]]), False, self.old_q,
                               self.mdp_info['action_space'].values)
 
-        target_cur = reward + self.mdp_info['gamma'] * max_q_cur
-        target_old = reward + self.mdp_info['gamma'] * max_q_old
+        target_cur = sample[2] + self.mdp_info['gamma'] * max_q_cur
+        target_old = sample[2] + self.mdp_info['gamma'] * max_q_old
 
         # Update q
         alpha = self.learning_rate(sa)
