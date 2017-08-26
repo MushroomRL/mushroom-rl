@@ -68,6 +68,12 @@ class ConvNet:
                                                      simple_value=loss), ])
         self.writer.add_summary(summary)
 
+    def save_weights(self, path):
+        self.q.save_weights(path)
+
+    def load_weights(self, path):
+        self.q.load_weights(path)
+
     def set_weights(self, w):
         self.q.set_weights(w)
 
