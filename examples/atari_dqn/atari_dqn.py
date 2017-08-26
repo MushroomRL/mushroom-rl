@@ -86,7 +86,8 @@ def experiment():
         max_steps = args.max_steps
 
     # MDP train
-    mdp = Atari(args.name, ends_at_life=True)
+    mdp = Atari(args.name, args.screen_width, args.screen_height,
+                ends_at_life=True)
 
     # Policy
     epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
@@ -100,7 +101,10 @@ def experiment():
 
     # Approximator
     approximator_params = dict(n_actions=mdp.action_space.n,
-                               optimizer=args.optimizer)
+                               optimizer=args.optimizer,
+                               width=args.screen_width,
+                               height=args.screen_height,
+                               history_length=args.history_length)
     approximator = Regressor(ConvNet,
                              fit_action=False,
                              preprocessor=[Scaler(mdp.observation_space.high)],

@@ -6,14 +6,14 @@ from PyPi.utils.spaces import *
 
 
 class Atari(Environment):
-    def __init__(self, name, ends_at_life=False):
+    def __init__(self, name, width=84, height=84, ends_at_life=False):
         self.__name__ = name
 
         # MPD creation
         self.env = gym.make(self.__name__)
 
         # MDP spaces
-        self.img_size = (84, 84)
+        self.img_size = (width, height)
         self.action_space = Discrete(self.env.action_space.n)
         self.observation_space = Box(
             low=0., high=255., shape=(self.img_size[1], self.img_size[0]))

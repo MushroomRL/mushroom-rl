@@ -6,9 +6,10 @@ from keras.layers import Input, Convolution2D, Flatten, Dense
 
 
 class ConvNet:
-    def __init__(self, n_actions, optimizer):
+    def __init__(self, n_actions, optimizer, width=84, height=84,
+                 history_length=4):
         # Build network
-        input_layer = Input(shape=(84, 84, 4))
+        input_layer = Input(shape=(height, width, history_length))
 
         hidden = Convolution2D(32, 8, padding='valid',
                                activation='relu', strides=4,
