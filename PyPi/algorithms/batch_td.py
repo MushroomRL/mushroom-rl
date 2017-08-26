@@ -49,8 +49,7 @@ class FQI(BatchTD):
         if y is None:
             y = reward
         else:
-            maxq, _ = max_QA(next_states, absorbing, self.approximator,
-                             self.mdp_info['action_space'].values)
+            maxq, _ = max_QA(next_states, absorbing, self.approximator)
             y = reward + self.mdp_info['gamma'] * maxq
 
         sa = [state, action]

@@ -7,7 +7,7 @@ class Regressor(object):
     Regressor class used to preprocess input and output before passing them
     to the desired approximator.
     """
-    def __init__(self, approximator, fit_action=True, preprocessor=None,
+    def __init__(self, approximator, discrete_actions=None, preprocessor=None,
                  **params):
         """
         Constructor.
@@ -21,7 +21,20 @@ class Regressor(object):
             params (dict): other parameters.
         """
         self.model = approximator(**params)
-        self.fit_action = fit_action
+
+        if discrete_actions is not None:
+            if isinstance(discrete_actions, int):
+                self._discrete_actions = np.arange(
+                    discrete_actions).reshape(-1, 1)
+                self._actions_with_value = False
+            else:
+                self._discrete_actions = np.array(discrete_actions)
+                if self._discrete_actions.ndim == 1:
+                    self._discrete_actions =\
+                        self._discrete_actions.reshape(-1, 1)
+                assert self._discrete_actions.ndim == 2
+                self._actions_with_value = True
+
         self._preprocessor = preprocessor if preprocessor is not None else []
 
     def fit(self, x, y, **fit_params):
@@ -68,7 +81,7 @@ class Regressor(object):
 
         return y
 
-    def predict_all(self, x, actions):
+    def predict_all(self, x):
         """
         Predict Q-value for each action given a state.
 
@@ -79,19 +92,20 @@ class Regressor(object):
         # Returns
             The predictions of the model.
         """
-        if self.fit_action:
+        if hasattr(self, '_discrete_actions'):
             assert x.ndim == 2
 
             n_states = x.shape[0]
-            n_actions = actions.shape[0]
-            action_dim = actions.shape[1]
+            n_actions = self._discrete_actions.shape[0]
+            action_dim = self._discrete_actions.shape[1]
 
             for p in self._preprocessor:
                 x = p(x)
 
             y = np.zeros((n_states, n_actions))
             for action in xrange(n_actions):
-                a = np.ones((n_states, action_dim)) * actions[action]
+                a = np.ones(
+                    (n_states, action_dim)) * self._discrete_actions[action]
                 samples = np.concatenate((x, a), axis=1)
 
                 y[:, action] = self.model.predict(samples).ravel()
@@ -104,25 +118,22 @@ class Regressor(object):
         return y
 
     def _preprocess_fit(self, x, y):
-        if self.fit_action:
-            assert isinstance(x, list) and len(x) == 2
-            assert x[0].ndim == 2 and x[1].ndim == 2
-            assert x[0].shape[0] == x[1].shape[0]
-
-            x = np.concatenate((x[0], x[1]), axis=1)
-
-        for p in self._preprocessor:
-            x = p(x)
-
-        return x, y
+        return self._preprocess(x), y
 
     def _preprocess_predict(self, x):
-        if self.fit_action:
-            assert isinstance(x, list) and len(x) == 2
+        return self._preprocess(x)
+
+    def _preprocess(self, x):
+        if isinstance(x, list):
+            assert len(x) == 2
             assert x[0].ndim == 2 and x[1].ndim == 2
             assert x[0].shape[0] == x[1].shape[0]
 
-            x = np.concatenate((x[0], x[1]), axis=1)
+            if self._discrete_actions is not None and self._actions_with_value:
+                x = np.concatenate((x[0], self._discrete_actions[x[1].ravel()]),
+                                   axis=1)
+            else:
+                x = np.concatenate((x[0], x[1]), axis=1)
 
         for p in self._preprocessor:
             x = p(x)

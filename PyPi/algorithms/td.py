@@ -2,7 +2,7 @@ import numpy as np
 from copy import deepcopy
 
 from PyPi.algorithms.agent import Agent
-from PyPi.utils.dataset import max_QA, parse_dataset
+from PyPi.utils.dataset import max_QA
 
 
 class TD(Agent):
@@ -57,8 +57,7 @@ class QLearning(TD):
         # Returns
             Maximum action-value in 'next_state'.
         """
-        max_q, _ = max_QA(next_state, False, self.approximator,
-                          self.mdp_info['action_space'].values)
+        max_q, _ = max_QA(next_state, False, self.approximator)
 
         return max_q
 
@@ -115,9 +114,7 @@ class DoubleQLearning(TD):
             Action-value of the action whose value in 'next_state' is the
             maximum according to 'approximator[approximator]'.
         """
-        _, a_n = max_QA(next_state, False,
-                        self.approximator[approximator_idx],
-                        self.mdp_info['action_space'].values)
+        _, a_n = max_QA(next_state, False, self.approximator[approximator_idx])
         sa_n = [next_state, a_n]
 
         return self.approximator[1 - approximator_idx].predict(sa_n)
@@ -248,10 +245,8 @@ class SpeedyQLearning(TD):
         old_q = deepcopy(self.approximator)
 
         # Compute targets
-        max_q_cur, _ = max_QA(np.array([sample[3]]), False, self.approximator,
-                              self.mdp_info['action_space'].values)
-        max_q_old, _ = max_QA(np.array([sample[3]]), False, self.old_q,
-                              self.mdp_info['action_space'].values)
+        max_q_cur, _ = max_QA(np.array([sample[3]]), False, self.approximator)
+        max_q_old, _ = max_QA(np.array([sample[3]]), False, self.old_q)
 
         target_cur = sample[2] + self.mdp_info['gamma'] * max_q_cur
         target_old = sample[2] + self.mdp_info['gamma'] * max_q_old

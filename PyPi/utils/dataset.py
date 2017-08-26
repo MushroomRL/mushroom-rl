@@ -144,20 +144,19 @@ def compute_scores(dataset):
         return 0, 0, 0, 0
 
 
-def max_QA(states, absorbing, approximator, actions):
+def max_QA(states, absorbing, approximator):
     """
     # Arguments
         state (np.array): the state where the agent is;
         absorbing (np.array): whether the state is absorbing or not;
         approximator (object): the approximator to use to compute the
             action values;
-        actions (np.array): the values of the discrete actions.
 
     # Returns
         A np.array of maximum action values and a np.array of their
         corresponding actions.
     """
-    q = approximator.predict_all(states, actions)
+    q = approximator.predict_all(states)
     if np.any(absorbing):
         q *= 1 - absorbing.reshape(-1, 1)
 
@@ -167,4 +166,4 @@ def max_QA(states, absorbing, approximator, actions):
     else:
         max_a = [np.random.choice(np.argwhere(q[0] == max_q).ravel())]
 
-    return max_q, actions[max_a]
+    return max_q, np.array(max_a).reshape(-1, 1)

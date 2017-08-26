@@ -8,8 +8,8 @@ class Ensemble(object):
     """
     This class implements functions to manage regressor ensembles.
     """
-    def __init__(self, approximator, n_models, action_space=None,
-                 **params):
+    def __init__(self, approximator, n_models, use_action_regressor=False,
+                 discrete_actions=None, **params):
         """
         Constructor.
 
@@ -21,17 +21,16 @@ class Ensemble(object):
             **params (dict): parameters dictionary to construct each regressor.
         """
         self.n_models = n_models
-        self.fit_actions = True if action_space is None else True
+        self._use_action_regressor = use_action_regressor
         self.models = list()
 
-        if not self.fit_actions:
-            regressor_class = ActionRegressor
-            params['action_space'] = action_space
-        else:
-            regressor_class = Regressor
+        regressor_class =\
+            ActionRegressor if self._use_action_regressor else Regressor
 
         for _ in xrange(self.n_models):
-            self.models.append(regressor_class(approximator, **params))
+            self.models.append(
+                regressor_class(approximator, discrete_actions=discrete_actions,
+                                **params))
 
     def predict(self, x):
         """
@@ -50,7 +49,7 @@ class Ensemble(object):
 
         return y
 
-    def predict_all(self, x, actions):
+    def predict_all(self, x):
         """
         Predict Q-value for each action given a state.
 
@@ -63,7 +62,7 @@ class Ensemble(object):
         """
         y = list()
         for m in self.models:
-            y.append(m.predict_all(x, actions))
+            y.append(m.predict_all(x))
         y = np.mean(y, axis=0)
 
         return y
@@ -72,5 +71,5 @@ class Ensemble(object):
         return self.models[idx]
 
     def __str__(self):
-        s = '.' if self.fit_actions else ' with action regression.'
+        s = '.' if self._use_action_regressor else ' with action regression.'
         return 'Ensemble of %d ' % self.n_models + str(self.models[0]) + s

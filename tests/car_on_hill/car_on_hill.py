@@ -24,10 +24,12 @@ def experiment(fit_action):
     # Approximator
     approximator_params = dict()
     if fit_action:
-        approximator = Regressor(ExtraTreesRegressor, **approximator_params)
+        approximator = Regressor(ExtraTreesRegressor,
+                                 discrete_actions=mdp.action_space.n,
+                                 **approximator_params)
     else:
         approximator = ActionRegressor(ExtraTreesRegressor,
-                                       action_space=mdp.action_space,
+                                       discrete_actions=mdp.action_space.n,
                                        **approximator_params)
 
     # Agent

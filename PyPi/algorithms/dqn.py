@@ -95,8 +95,7 @@ class DQN(Agent):
         # Returns
             Maximum action-value in 'next_state'.
         """
-        max_q, _ = max_QA(next_state, absorbing, self._target_approximator,
-                          self.mdp_info['action_space'].values)
+        max_q, _ = max_QA(next_state, absorbing, self._target_approximator)
 
         return max_q
 
@@ -148,8 +147,4 @@ class DoubleDQN(DQN):
         # Returns
             Maximum action-value in 'next_state'.
         """
-        q = self._approximator.predict(next_state)
-        max_a = np.argmax(q, axis=1).reshape(-1, 1)
-        sa_n = [next_state, max_a]
-
-        return self._target_approximator.predict(sa_n)
+        pass

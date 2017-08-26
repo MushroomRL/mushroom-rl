@@ -27,9 +27,14 @@ def experiment(algorithm_class, decay_exp):
     shape = mdp.observation_space.size + mdp.action_space.size
     approximator_params = dict(shape=shape)
     if algorithm_class in [QLearning, WeightedQLearning, SpeedyQLearning]:
-        approximator = Regressor(Tabular, **approximator_params)
+        approximator = Regressor(Tabular,
+                                 discrete_actions=mdp.action_space.n,
+                                 **approximator_params)
     elif algorithm_class is DoubleQLearning:
-        approximator = Ensemble(Tabular, 2, **approximator_params)
+        approximator = Ensemble(Tabular,
+                                n_models=2,
+                                discrete_actions=mdp.action_space.n,
+                                **approximator_params)
 
     # Agent
     learning_rate = DecayParameter(value=1, decay_exp=decay_exp, shape=shape)
@@ -40,8 +45,7 @@ def experiment(algorithm_class, decay_exp):
     agent = algorithm_class(approximator, pi, **agent_params)
 
     # Algorithm
-    collect_max_Q = CollectMaxQ(approximator, np.array([mdp._start]),
-                                mdp.action_space.values)
+    collect_max_Q = CollectMaxQ(approximator, np.array([mdp._start]))
     collect_dataset = CollectDataset()
     callbacks = [collect_dataset, collect_max_Q]
     core = Core(agent, mdp, callbacks)

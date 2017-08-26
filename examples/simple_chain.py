@@ -23,7 +23,9 @@ def experiment():
     # Approximator
     shape = mdp.observation_space.shape + mdp.action_space.shape
     approximator_params = dict(shape=shape)
-    approximator = Regressor(Tabular, **approximator_params)
+    approximator = Regressor(Tabular,
+                             discrete_actions=mdp.action_space.n,
+                             **approximator_params)
 
     # Agent
     learning_rate = Parameter(value=.2)
