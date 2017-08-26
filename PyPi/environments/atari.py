@@ -31,7 +31,7 @@ class Atari(Environment):
 
     def reset(self, state=None):
         if self._episode_ends_at_life:
-            if self._lives == 0:
+            if self._lives == 0 or self._lives == self._max_lives:
                 self._state = self._preprocess_observation(self.env.reset())
                 self._lives = self._max_lives
         else:
