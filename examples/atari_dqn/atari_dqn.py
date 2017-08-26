@@ -61,8 +61,8 @@ def experiment():
     arg_alg.add_argument("--no-op-action-value", type=int, default=0)
 
     arg_utils = parser.add_argument_group('Utils')
-    arg_utils.add_argument('--render', type=bool, default=False)
-    arg_utils.add_argument('--quiet', type=bool, default=False)
+    arg_utils.add_argument('--render', action='store_true')
+    arg_utils.add_argument('--quiet', action='store_true')
     arg_utils.add_argument('--debug', action='store_true')
 
     args = parser.parse_args()
