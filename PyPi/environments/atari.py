@@ -25,7 +25,7 @@ class Atari(Environment):
         # MDP properties
         self._episode_ends_at_life = ends_at_life
         self._max_lives = self.env.env.ale.lives()
-        self._lives = 0
+        self._lives = self._max_lives
 
         super(Atari, self).__init__()
 
