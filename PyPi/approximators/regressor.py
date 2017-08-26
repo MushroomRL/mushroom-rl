@@ -124,12 +124,12 @@ class Regressor(object):
         return self._preprocess(x)
 
     def _preprocess(self, x):
-        if isinstance(x, list):
-            assert len(x) == 2
+        if hasattr(self, '_discrete_actions'):
+            assert isinstance(x, list) and len(x) == 2
             assert x[0].ndim == 2 and x[1].ndim == 2
             assert x[0].shape[0] == x[1].shape[0]
 
-            if self._discrete_actions is not None and self._actions_with_value:
+            if self._actions_with_value:
                 x = np.concatenate((x[0], self._discrete_actions[x[1].ravel()]),
                                    axis=1)
             else:

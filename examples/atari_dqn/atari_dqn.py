@@ -106,14 +106,12 @@ def experiment():
                                height=args.screen_height,
                                history_length=args.history_length)
     approximator = Regressor(ConvNet,
-                             discrete_actions=mdp.action_space.n,
                              preprocessor=[Scaler(mdp.observation_space.high)],
                              **approximator_params)
 
     # target approximator
     target_approximator = Regressor(
         ConvNet,
-        discrete_actions=mdp.action_space.n,
         preprocessor=[Scaler(mdp.observation_space.high)],
         **approximator_params)
     target_approximator.model.set_weights(approximator.model.get_weights())
