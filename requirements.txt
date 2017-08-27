@@ -10,3 +10,4 @@ joblib
 keras
 pillow
 tqdm
+h5py
