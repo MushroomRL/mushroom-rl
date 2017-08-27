@@ -28,6 +28,7 @@ class CarOnHill(Environment):
         self._g = 9.81
         self._m = 1
         self._dt = .1
+        self._discrete_actions = [-4., 4.]
 
         super(CarOnHill, self).__init__()
 
@@ -40,7 +41,7 @@ class CarOnHill(Environment):
         return self._state
 
     def step(self, action):
-        action = -4. if action == 0 else 4.
+        action = self._discrete_actions[action[0]]
         sa = np.append(self._state, action)
         new_state = odeint(self._dpds, sa, [0, self._dt])
 

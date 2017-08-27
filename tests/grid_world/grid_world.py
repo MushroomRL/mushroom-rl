@@ -51,7 +51,7 @@ def experiment(algorithm_class):
     core = Core(agent, mdp, callbacks)
 
     # Train
-    core.learn(n_iterations=10000, how_many=1, n_fit_steps=1,
+    core.learn(n_iterations=100, how_many=1, n_fit_steps=1,
                iterate_over='samples', quiet=True)
 
     _, _, reward, _, _, _ = parse_dataset(collect_dataset.get())

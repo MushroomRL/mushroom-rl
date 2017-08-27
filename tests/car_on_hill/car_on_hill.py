@@ -43,7 +43,7 @@ def experiment(fit_action):
     core = Core(agent, mdp)
 
     # Train
-    core.learn(n_iterations=1, how_many=1000, n_fit_steps=20,
+    core.learn(n_iterations=1, how_many=10, n_fit_steps=2,
                iterate_over='episodes', quiet=True)
     core.reset()
 
@@ -51,10 +51,10 @@ def experiment(fit_action):
     test_epsilon = Parameter(0)
     agent.policy.set_epsilon(test_epsilon)
 
-    initial_states = np.zeros((289, 2))
+    initial_states = np.zeros((9, 2))
     cont = 0
-    for i in range(-8, 9):
-        for j in range(-8, 9):
+    for i in range(-8, 9, 8):
+        for j in range(-8, 9, 8):
             initial_states[cont, :] = [0.125 * i, 0.375 * j]
             cont += 1
 
@@ -66,9 +66,9 @@ def experiment(fit_action):
 if __name__ == '__main__':
     print('Executing car_on_hill test...')
 
-    n_experiment = 1
+    n_experiment = 2
 
     res = experiment(fit_action=True)
-    assert np.round(res, 4) == .1601
+    assert np.round(res, 4) == -0.136
     res = experiment(fit_action=False)
-    assert np.round(res, 4) == .2346
+    assert np.round(res, 4) == -0.4147
