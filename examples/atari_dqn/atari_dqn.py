@@ -61,6 +61,8 @@ def experiment():
     arg_alg.add_argument("--no-op-action-value", type=int, default=0)
 
     arg_utils = parser.add_argument_group('Utils')
+    arg_utils.add_argument('--load-path', type=str)
+    arg_utils.add_argument('--save-path', type=str)
     arg_utils.add_argument('--render', action='store_true')
     arg_utils.add_argument('--quiet', action='store_true')
     arg_utils.add_argument('--debug', action='store_true')
@@ -139,37 +141,11 @@ def experiment():
 
     # DQN
 
-    # fill replay memory with random dataset
-    print_epoch(0)
-    core.learn(n_iterations=1, how_many=initial_replay_size,
-               n_fit_steps=0, iterate_over='samples', quiet=args.quiet)
-
-    # evaluate initial policy
-    pi.set_epsilon(epsilon_test)
-    mdp.set_episode_end(ends_at_life=False)
-    dataset = core_test.evaluate(how_many=test_samples,
-                                 iterate_over='samples',
-                                 render=args.render,
-                                 quiet=args.quiet)
-    score = compute_scores(dataset)
-    print('min_reward: %f, max_reward: %f, mean_reward: %f,'
-          ' games_completed: %d' % score)
-    for i in xrange(max_steps - evaluation_frequency):
-        print_epoch(i + 1)
-        print '- Learning:'
-        # learning step
-        pi.set_epsilon(epsilon)
-        mdp.set_episode_end(ends_at_life=True)
-        core.learn(n_iterations=evaluation_frequency / train_frequency,
-                   how_many=train_frequency,
-                   n_fit_steps=args.fit_steps,
-                   iterate_over='samples',
-                   quiet=args.quiet)
-        print '- Evaluation:'
-        # evaluation step
+    if args.load_path:
+        # evaluate initial policy
         pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(ends_at_life=False)
-        core_test.reset()
+        approximator.model.load_weights(args.load_path)
         dataset = core_test.evaluate(how_many=test_samples,
                                      iterate_over='samples',
                                      render=args.render,
@@ -177,6 +153,49 @@ def experiment():
         score = compute_scores(dataset)
         print('min_reward: %f, max_reward: %f, mean_reward: %f,'
               ' games_completed: %d' % score)
+    else:
+        # fill replay memory with random dataset
+        print_epoch(0)
+        core.learn(n_iterations=1, how_many=initial_replay_size,
+                   n_fit_steps=0, iterate_over='samples', quiet=args.quiet)
+
+        # evaluate initial policy
+        pi.set_epsilon(epsilon_test)
+        mdp.set_episode_end(ends_at_life=False)
+        dataset = core_test.evaluate(how_many=test_samples,
+                                     iterate_over='samples',
+                                     render=args.render,
+                                     quiet=args.quiet)
+        score = compute_scores(dataset)
+        print('min_reward: %f, max_reward: %f, mean_reward: %f,'
+              ' games_completed: %d' % score)
+        for i in xrange(max_steps - evaluation_frequency):
+            print_epoch(i + 1)
+            print '- Learning:'
+            # learning step
+            pi.set_epsilon(epsilon)
+            mdp.set_episode_end(ends_at_life=True)
+            core.learn(n_iterations=evaluation_frequency / train_frequency,
+                       how_many=train_frequency,
+                       n_fit_steps=args.fit_steps,
+                       iterate_over='samples',
+                       quiet=args.quiet)
+
+            if args.save_path:
+                approximator.model.save_weights(args.save_path)
+
+            print '- Evaluation:'
+            # evaluation step
+            pi.set_epsilon(epsilon_test)
+            mdp.set_episode_end(ends_at_life=False)
+            core_test.reset()
+            dataset = core_test.evaluate(how_many=test_samples,
+                                         iterate_over='samples',
+                                         render=args.render,
+                                         quiet=args.quiet)
+            score = compute_scores(dataset)
+            print('min_reward: %f, max_reward: %f, mean_reward: %f,'
+                  ' games_completed: %d' % score)
 
 if __name__ == '__main__':
     experiment()
