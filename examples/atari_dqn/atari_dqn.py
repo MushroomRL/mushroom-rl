@@ -121,7 +121,7 @@ def experiment():
             train_frequency = 5
             target_update_frequency = 10
             test_samples = 20
-            evaluation_frequency = 10
+            evaluation_frequency = 50
             max_steps = 1000
         else:
             initial_replay_size = args.initial_replay_size
