@@ -69,84 +69,36 @@ def experiment():
 
     args = parser.parse_args()
 
-    # DQN settings
-    if args.debug:
-        initial_replay_size = 50
-        max_replay_size = 500
-        train_frequency = 5
-        target_update_frequency = 10
-        test_samples = 20
-        evaluation_frequency = 10
-        max_steps = 1000
-    else:
-        initial_replay_size = args.initial_replay_size
-        max_replay_size = args.max_replay_size
-        train_frequency = args.train_frequency
-        target_update_frequency = args.target_update_frequency
-        test_samples = args.test_samples
-        evaluation_frequency = args.evaluation_frequency
-        max_steps = args.max_steps
-
-    # MDP train
-    mdp = Atari(args.name, args.screen_width, args.screen_height,
-                ends_at_life=True)
-
-    # Policy
-    epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
-                                   min_value=args.final_exploration_rate,
-                                   n=args.final_exploration_frame)
-    epsilon_test = Parameter(value=args.test_exploration_rate)
-    epsilon_random = Parameter(value=1)
-    pi = EpsGreedy(epsilon=epsilon_random,
-                   observation_space=mdp.observation_space,
-                   action_space=mdp.action_space)
-
-    # Approximator
-    approximator_params = dict(n_actions=mdp.action_space.n,
-                               optimizer=args.optimizer,
-                               width=args.screen_width,
-                               height=args.screen_height,
-                               history_length=args.history_length)
-    approximator = Regressor(ConvNet,
-                             preprocessor=[Scaler(mdp.observation_space.high)],
-                             **approximator_params)
-
-    # target approximator
-    target_approximator = Regressor(
-        ConvNet,
-        preprocessor=[Scaler(mdp.observation_space.high)],
-        **approximator_params)
-    target_approximator.model.set_weights(approximator.model.get_weights())
-
-    # Agent
-    algorithm_params = dict(
-        batch_size=args.batch_size,
-        target_approximator=target_approximator,
-        initial_replay_size=initial_replay_size,
-        max_replay_size=max_replay_size,
-        history_length=args.history_length,
-        train_frequency=train_frequency,
-        target_update_frequency=target_update_frequency,
-        max_no_op_actions=args.max_no_op_actions,
-        no_op_action_value=args.no_op_action_value
-    )
-    fit_params = dict()
-    agent_params = {'algorithm_params': algorithm_params,
-                    'fit_params': fit_params}
-    agent = DQN(approximator, pi, **agent_params)
-
-    # Algorithm
-    core = Core(agent, mdp)
-    core_test = Core(agent, mdp)
-
-    # DQN
-
     if args.load_path:
-        # evaluate initial policy
+        # MDP train
+        mdp = Atari(args.name, args.screen_width, args.screen_height,
+                    ends_at_life=True)
+        epsilon_test = Parameter(value=args.test_exploration_rate)
+        pi = EpsGreedy(epsilon=epsilon_test,
+                       observation_space=mdp.observation_space,
+                       action_space=mdp.action_space)
+        # Approximator
+        approximator_params = dict(n_actions=mdp.action_space.n,
+                                   optimizer=args.optimizer,
+                                   width=args.screen_width,
+                                   height=args.screen_height,
+                                   history_length=args.history_length)
+        approximator = Regressor(ConvNet,
+                                 preprocessor=[Scaler(
+                                     mdp.observation_space.high)],
+                                 **approximator_params)
+        approximator.model.load_weights(args.load_path)
+
+        # Agent
+        agent = DQN(approximator, pi)
+
+        # Algorithm
+        core_test = Core(agent, mdp)
+
+        # evaluate model
         pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(ends_at_life=False)
-        approximator.model.load_weights(args.load_path)
-        dataset = core_test.evaluate(how_many=test_samples,
+        dataset = core_test.evaluate(how_many=args.test_samples,
                                      iterate_over='samples',
                                      render=args.render,
                                      quiet=args.quiet)
@@ -154,6 +106,79 @@ def experiment():
         print('min_reward: %f, max_reward: %f, mean_reward: %f,'
               ' games_completed: %d' % score)
     else:
+        # DQN settings
+        if args.debug:
+            initial_replay_size = 50
+            max_replay_size = 500
+            train_frequency = 5
+            target_update_frequency = 10
+            test_samples = 20
+            evaluation_frequency = 10
+            max_steps = 1000
+        else:
+            initial_replay_size = args.initial_replay_size
+            max_replay_size = args.max_replay_size
+            train_frequency = args.train_frequency
+            target_update_frequency = args.target_update_frequency
+            test_samples = args.test_samples
+            evaluation_frequency = args.evaluation_frequency
+            max_steps = args.max_steps
+
+        # MDP train
+        mdp = Atari(args.name, args.screen_width, args.screen_height,
+                    ends_at_life=True)
+
+        # Policy
+        epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
+                                       min_value=args.final_exploration_rate,
+                                       n=args.final_exploration_frame)
+        epsilon_test = Parameter(value=args.test_exploration_rate)
+        epsilon_random = Parameter(value=1)
+        pi = EpsGreedy(epsilon=epsilon_random,
+                       observation_space=mdp.observation_space,
+                       action_space=mdp.action_space)
+
+        # Approximator
+        approximator_params = dict(n_actions=mdp.action_space.n,
+                                   optimizer=args.optimizer,
+                                   width=args.screen_width,
+                                   height=args.screen_height,
+                                   history_length=args.history_length)
+        approximator = Regressor(ConvNet,
+                                 preprocessor=[Scaler(
+                                     mdp.observation_space.high)],
+                                 **approximator_params)
+
+        # target approximator
+        target_approximator = Regressor(
+            ConvNet,
+            preprocessor=[Scaler(mdp.observation_space.high)],
+            **approximator_params)
+        target_approximator.model.set_weights(approximator.model.get_weights())
+
+        # Agent
+        algorithm_params = dict(
+            batch_size=args.batch_size,
+            target_approximator=target_approximator,
+            initial_replay_size=initial_replay_size,
+            max_replay_size=max_replay_size,
+            history_length=args.history_length,
+            train_frequency=train_frequency,
+            target_update_frequency=target_update_frequency,
+            max_no_op_actions=args.max_no_op_actions,
+            no_op_action_value=args.no_op_action_value
+        )
+        fit_params = dict()
+        agent_params = {'algorithm_params': algorithm_params,
+                        'fit_params': fit_params}
+        agent = DQN(approximator, pi, **agent_params)
+
+        # Algorithm
+        core = Core(agent, mdp)
+        core_test = Core(agent, mdp)
+
+        # DQN
+
         # fill replay memory with random dataset
         print_epoch(0)
         core.learn(n_iterations=1, how_many=initial_replay_size,
