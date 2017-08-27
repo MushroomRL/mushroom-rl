@@ -21,13 +21,11 @@ class Parameter(object):
 
             idx = tuple([int(i) for i in idx])
 
-        self._n_updates[idx] += 1
-
-        self._update(idx, **kwargs)
+        self.update(idx)
 
         return self.get_value(idx, **kwargs)
 
-    def get_value(self, idx, **kwargs):
+    def get_value(self, idx=0, **kwargs):
         new_value = self._compute(idx, **kwargs)
 
         if self._min_value is None or new_value >= self._min_value:
@@ -38,8 +36,8 @@ class Parameter(object):
     def _compute(self, idx, **kwargs):
         return self._initial_value
 
-    def _update(self, idx, **kwargs):
-        pass
+    def update(self, idx=0):
+        self._n_updates[idx] += 1
 
     @property
     def shape(self):
@@ -55,9 +53,6 @@ class LinearDecayParameter(Parameter):
     def _compute(self, idx, **kwargs):
         return self._coeff * self._n_updates[idx] + self._initial_value
 
-    def _update(self, idx, **kwargs):
-        pass
-
 
 class DecayParameter(Parameter):
     def __init__(self, value, decay_exp=1., min_value=None, shape=(1,)):
@@ -67,6 +62,3 @@ class DecayParameter(Parameter):
 
     def _compute(self, idx, **kwargs):
         return self._initial_value / self._n_updates[idx] ** self._decay_exp
-
-    def _update(self, idx, **kwargs):
-        pass

@@ -56,5 +56,8 @@ class EpsGreedy(object):
 
         self._epsilon = epsilon
 
+    def update(self, idx=0):
+        self._epsilon.update(idx)
+
     def __str__(self):
         return self.__name__

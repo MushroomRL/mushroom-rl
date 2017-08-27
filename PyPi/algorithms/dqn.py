@@ -109,6 +109,7 @@ class DQN(Agent):
 
         if self._episode_steps < self._no_op_actions:
             action = np.array([self._no_op_action_value])
+            self.policy.update()
         else:
             extended_state = self._buffer.get()
 

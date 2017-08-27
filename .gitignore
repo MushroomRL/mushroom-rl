@@ -5,3 +5,4 @@ PyPi.egg-info/
 *.pyc
 *.xml
 logs/
+*.h5
