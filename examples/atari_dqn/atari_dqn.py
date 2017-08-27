@@ -93,7 +93,7 @@ def experiment():
         algorithm_params = dict(
             max_replay_size=0,
             history_length=args.history_length,
-            max_no_op_actions=0
+            max_no_op_actions=30
         )
         fit_params = dict()
         agent_params = {'algorithm_params': algorithm_params,
