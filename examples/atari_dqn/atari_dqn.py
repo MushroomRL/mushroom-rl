@@ -2,7 +2,7 @@ import argparse
 import os
 import numpy as np
 
-from PyPi.algorithms.dqn import Agent, DQN
+from PyPi.algorithms.dqn import DQN
 from PyPi.approximators import Regressor
 from PyPi.core.core import Core
 from PyPi.environments import *
@@ -90,7 +90,15 @@ def experiment():
         approximator.model.load_weights(args.load_path)
 
         # Agent
-        agent = Agent(approximator, pi)
+        algorithm_params = dict(
+            max_replay_size=0,
+            history_length=args.history_length,
+            max_no_op_actions=0
+        )
+        fit_params = dict()
+        agent_params = {'algorithm_params': algorithm_params,
+                        'fit_params': fit_params}
+        agent = DQN(approximator, pi, **agent_params)
 
         # Algorithm
         core_test = Core(agent, mdp)
