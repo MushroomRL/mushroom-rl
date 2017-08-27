@@ -192,6 +192,9 @@ def experiment():
         core.learn(n_iterations=1, how_many=initial_replay_size,
                    n_fit_steps=0, iterate_over='samples', quiet=args.quiet)
 
+        if args.save_path:
+            approximator.model.save_weights(args.save_path)
+
         # evaluate initial policy
         pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(ends_at_life=False)
