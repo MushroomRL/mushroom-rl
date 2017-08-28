@@ -41,8 +41,11 @@ def experiment():
 
     arg_net = parser.add_argument_group('Deep Q-Network')
     arg_net.add_argument("--optimizer",
-                         choices=['adam', 'rmsprop'],
-                         default='rmsprop')
+                         choices=['adam', 'rmsprop', 'rmspropgraves'],
+                         default='rmspropgraves')
+    arg_net.add_argument("--learning-rate", type=float, default=.00025)
+    arg_net.add_argument("--decay", type=float, default=.95)
+    arg_net.add_argument("--epsilon", type=float, default=.01)
 
     arg_alg = parser.add_argument_group('Algorithm')
     arg_alg.add_argument("--batch-size", type=int, default=32)
@@ -79,7 +82,10 @@ def experiment():
                        action_space=mdp.action_space)
         # Approximator
         approximator_params = dict(n_actions=mdp.action_space.n,
-                                   optimizer=args.optimizer,
+                                   optimizer={'name': args.optimizer,
+                                              'lr': args.learning_rate,
+                                              'decay': args.decay,
+                                              'epsilon': args.epsilon},
                                    name='target',
                                    width=args.screen_width,
                                    height=args.screen_height,
@@ -149,7 +155,10 @@ def experiment():
 
         # Approximator
         approximator_params_train = dict(n_actions=mdp.action_space.n,
-                                         optimizer=args.optimizer,
+                                         optimizer={'name': args.optimizer,
+                                                    'lr': args.learning_rate,
+                                                    'decay': args.decay,
+                                                    'epsilon': args.epsilon},
                                          name='train',
                                          width=args.screen_width,
                                          height=args.screen_height,
@@ -161,7 +170,10 @@ def experiment():
 
         # target approximator
         approximator_params_target = dict(n_actions=mdp.action_space.n,
-                                          optimizer=args.optimizer,
+                                          optimizer={'name': args.optimizer,
+                                                     'lr': args.learning_rate,
+                                                     'decay': args.decay,
+                                                     'epsilon': args.epsilon},
                                           name='target',
                                           width=args.screen_width,
                                           height=args.screen_height,
@@ -172,7 +184,6 @@ def experiment():
             **approximator_params_target)
 
         target_approximator.model.set_weights(approximator.model.get_weights())
-
 
         # Agent
         algorithm_params = dict(

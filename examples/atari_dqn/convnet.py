@@ -4,8 +4,8 @@ from tensorflow.python.framework import ops
 
 
 class ConvNet:
-    def __init__(self, n_actions, optimizer, name, learning_rate=.00025,
-                 width=84, height=84, history_length=4):
+    def __init__(self, n_actions, optimizer, name, width=84, height=84,
+                 history_length=4):
         self._name = name
         with tf.variable_scope(self._name):
             self._x = tf.placeholder(tf.float32,
@@ -49,7 +49,7 @@ class ConvNet:
             self._target_q = tf.placeholder('float32', [None], name='target_q')
             self._action = tf.placeholder('uint8', [None], name='action')
 
-            with tf.name_scope('gather') as scope:
+            with tf.name_scope('gather'):
                 action_one_hot = tf.one_hot(self._action, n_actions,
                                             name='action_one_hot')
                 q_acted = tf.reduce_sum(self.q * action_one_hot,
@@ -58,14 +58,19 @@ class ConvNet:
 
             self._loss = tf.losses.huber_loss(self._target_q, q_acted)
 
-            if optimizer == 'rmsprop':
-                opt = tf.train.RMSPropOptimizer(learning_rate=learning_rate,
-                                                decay=.95)
-            elif optimizer == 'adam':
-                opt = tf.train.AdamOptimizer(learning_rate=learning_rate)
+            if optimizer['name'] == 'rmspropgraves':
+                opt = tf.train.RMSPropOptimizer(learning_rate=optimizer['lr'],
+                                                decay=optimizer['decay'],
+                                                epsilon=optimizer['epsilon'],
+                                                centered=True)
+            elif optimizer['name'] == 'rmsprop':
+                opt = tf.train.RMSPropOptimizer(learning_rate=optimizer['lr'],
+                                                decay=optimizer['decay'],
+                                                epsilon=optimizer['epsilon'])
+            elif optimizer['name'] == 'adam':
+                opt = tf.train.AdamOptimizer()
             else:
-                opt = tf.train.GradientDescentOptimizer(
-                    learning_rate=learning_rate)
+                opt = tf.train.GradientDescentOptimizer()
 
             self._train_step = opt.minimize(loss=self._loss)
 
