@@ -69,8 +69,10 @@ class ConvNet:
                                                 epsilon=optimizer['epsilon'])
             elif optimizer['name'] == 'adam':
                 opt = tf.train.AdamOptimizer()
+            elif optimizer['name'] == 'adadelta':
+                opt = tf.train.AdadeltaOptimizer()
             else:
-                opt = tf.train.GradientDescentOptimizer()
+                raise ValueError('Unavailable optimizer selected.')
 
             self._train_step = opt.minimize(loss=self._loss)
 

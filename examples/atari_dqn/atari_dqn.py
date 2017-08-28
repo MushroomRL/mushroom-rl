@@ -41,7 +41,10 @@ def experiment():
 
     arg_net = parser.add_argument_group('Deep Q-Network')
     arg_net.add_argument("--optimizer",
-                         choices=['adam', 'rmsprop', 'rmspropgraves'],
+                         choices=['adadelta',
+                                  'adam',
+                                  'rmsprop',
+                                  'rmspropgraves'],
                          default='rmspropgraves')
     arg_net.add_argument("--learning-rate", type=float, default=.00025)
     arg_net.add_argument("--decay", type=float, default=.95)
