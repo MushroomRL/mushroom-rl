@@ -1,13 +1,117 @@
 import numpy as np
 import tensorflow as tf
-
-from keras.models import Model
-from keras.layers import Input, Convolution2D, Flatten, Dense
+from tensorflow.python.framework import ops
 
 
 class ConvNet:
+    def __init__(self, n_actions, optimizer, name, learning_rate=.00025,
+                 width=84, height=84, history_length=4):
+        self._name = name
+        with tf.variable_scope(self._name):
+            self._x = tf.placeholder(tf.float32,
+                                     shape=[None,
+                                            height,
+                                            width,
+                                            history_length],
+                                     name='input')
+            hidden_1 = tf.layers.conv2d(
+                self._x, 32, 8, 4, activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer(),
+                bias_initializer=tf.glorot_uniform_initializer(),
+                name='hidden_1'
+            )
+            hidden_2 = tf.layers.conv2d(
+                hidden_1, 64, 4, 2, activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer(),
+                bias_initializer=tf.glorot_uniform_initializer(),
+                name='hidden_2'
+            )
+            hidden_3 = tf.layers.conv2d(
+                hidden_2, 64, 3, 1, activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer(),
+                bias_initializer=tf.glorot_uniform_initializer(),
+                name='hidden_3'
+            )
+            flatten = tf.reshape(hidden_3, [-1, 7 * 7 * 64], name='flatten')
+            features = tf.layers.dense(
+                flatten, 512, activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer(),
+                bias_initializer=tf.glorot_uniform_initializer(),
+                name='features'
+            )
+            self.q = tf.layers.dense(
+                features, n_actions,
+                kernel_initializer=tf.glorot_uniform_initializer(),
+                bias_initializer=tf.glorot_uniform_initializer(),
+                name='q'
+            )
+
+            self._target_q = tf.placeholder('float32', [None], name='target_q')
+            self._action = tf.placeholder('uint8', [None], name='action')
+
+            with tf.name_scope('gather') as scope:
+                action_one_hot = tf.one_hot(self._action, n_actions,
+                                            name='action_one_hot')
+                q_acted = tf.reduce_sum(self.q * action_one_hot,
+                                        axis=1,
+                                        name='q_acted')
+
+            self._loss = tf.losses.huber_loss(self._target_q, q_acted)
+
+            if optimizer == 'rmsprop':
+                opt = tf.train.RMSPropOptimizer(learning_rate=learning_rate,
+                                                decay=.95)
+            elif optimizer == 'adam':
+                opt = tf.train.AdamOptimizer(learning_rate=learning_rate)
+            else:
+                opt = tf.train.GradientDescentOptimizer(
+                    learning_rate=learning_rate)
+
+            self._train_step = opt.minimize(loss=self._loss)
+
+        self._session = tf.Session()
+        self._session.run(tf.global_variables_initializer())
+
+        self._train_writer = tf.summary.FileWriter('./logs',
+                                                   graph=tf.get_default_graph())
+
+    def predict(self, x, **fit_params):
+        return self._session.run(self.q, feed_dict={self._x: x})
+
+    def train_on_batch(self, x, y, **fit_params):
+        self._session.run(self._train_step,
+                          feed_dict={self._x: x[0],
+                                     self._action: x[1].ravel().astype(
+                                         np.uint8),
+                                     self._target_q: y})
+
+    def set_weights(self, weights):
+        with tf.variable_scope(self._name):
+            w = tf.get_collection(ops.GraphKeys.TRAINABLE_VARIABLES,
+                                  scope=self._name)
+            assert len(w) == len(weights)
+
+            for i in xrange(len(w)):
+                self._session.run(tf.assign(w[i], weights[i]))
+
+    def get_weights(self):
+        w = tf.get_collection(ops.GraphKeys.TRAINABLE_VARIABLES,
+                              scope=self._name)
+
+        return self._session.run(w)
+
+    def save_weights(self, path):
+        pass
+
+    def load_weights(self, path):
+        pass
+
+
+class ConvNetKeras:
     def __init__(self, n_actions, optimizer, width=84, height=84,
                  history_length=4):
+        from keras.models import Model
+        from keras.layers import Input, Convolution2D, Flatten, Dense
         # Build network
         input_layer = Input(shape=(height, width, history_length))
 
@@ -25,10 +129,10 @@ class ConvNet:
 
         hidden = Flatten()(hidden)
         features = Dense(512, activation='relu')(hidden)
-        self.output = Dense(n_actions, activation='linear')(features)
+        output = Dense(n_actions, activation='linear')(features)
 
         # Models
-        self.q = Model(outputs=[self.output], inputs=[input_layer])
+        self.q = Model(outputs=[output], inputs=[input_layer])
 
         def mean_squared_error_clipped(y_true, y_pred):
             return tf.where(tf.abs(y_true - y_pred) < 1.,
@@ -43,19 +147,7 @@ class ConvNet:
         self.writer = tf.summary.FileWriter('./logs')
 
     def predict(self, x, **fit_params):
-        if isinstance(x, list):
-            assert len(x) == 2
-
-            actions = x[1].astype(np.int)
-
-            out_all = self.q.predict(x[0], **fit_params)
-            out = np.empty(out_all.shape[0])
-            for i in xrange(out.size):
-                out[i] = out_all[i, actions[i]]
-
-            return out
-        else:
-            return self.q.predict(x, **fit_params)
+        return self.q.predict(x, **fit_params)
 
     def train_on_batch(self, x, y, **fit_params):
         actions = x[1].astype(np.int)

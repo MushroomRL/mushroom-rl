@@ -1,5 +1,6 @@
 import argparse
 import os
+
 import numpy as np
 
 from PyPi.algorithms.dqn import DQN
@@ -11,7 +12,6 @@ from PyPi.utils.dataset import compute_scores
 from PyPi.utils.parameters import LinearDecayParameter, Parameter
 from PyPi.utils.preprocessor import Scaler
 from convnet import ConvNet
-from rmspropgraves import RMSpropGraves
 
 # Disable tf cpp warnings
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
@@ -41,8 +41,8 @@ def experiment():
 
     arg_net = parser.add_argument_group('Deep Q-Network')
     arg_net.add_argument("--optimizer",
-                         choices=['adam', 'rmsprop', RMSpropGraves()],
-                         default=RMSpropGraves())
+                         choices=['adam', 'rmsprop'],
+                         default='rmsprop')
 
     arg_alg = parser.add_argument_group('Algorithm')
     arg_alg.add_argument("--batch-size", type=int, default=32)
@@ -80,6 +80,7 @@ def experiment():
         # Approximator
         approximator_params = dict(n_actions=mdp.action_space.n,
                                    optimizer=args.optimizer,
+                                   name='target',
                                    width=args.screen_width,
                                    height=args.screen_height,
                                    history_length=args.history_length)
@@ -147,22 +148,31 @@ def experiment():
                        action_space=mdp.action_space)
 
         # Approximator
-        approximator_params = dict(n_actions=mdp.action_space.n,
-                                   optimizer=args.optimizer,
-                                   width=args.screen_width,
-                                   height=args.screen_height,
-                                   history_length=args.history_length)
+        approximator_params_train = dict(n_actions=mdp.action_space.n,
+                                         optimizer=args.optimizer,
+                                         name='train',
+                                         width=args.screen_width,
+                                         height=args.screen_height,
+                                         history_length=args.history_length)
         approximator = Regressor(ConvNet,
                                  preprocessor=[Scaler(
                                      mdp.observation_space.high)],
-                                 **approximator_params)
+                                 **approximator_params_train)
 
         # target approximator
+        approximator_params_target = dict(n_actions=mdp.action_space.n,
+                                          optimizer=args.optimizer,
+                                          name='target',
+                                          width=args.screen_width,
+                                          height=args.screen_height,
+                                          history_length=args.history_length)
         target_approximator = Regressor(
             ConvNet,
             preprocessor=[Scaler(mdp.observation_space.high)],
-            **approximator_params)
+            **approximator_params_target)
+
         target_approximator.model.set_weights(approximator.model.get_weights())
+
 
         # Agent
         algorithm_params = dict(

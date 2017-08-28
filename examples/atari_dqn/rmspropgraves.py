@@ -2,7 +2,11 @@ from keras import backend as K
 from keras.optimizers import Optimizer
 
 
-class RMSpropGraves(Optimizer):
+class RMSpropGraves:
+    pass
+
+
+class RMSpropGravesKeras(Optimizer):
     """RMSProp optimizer.
 
     It is recommended to leave the parameters of this optimizer
@@ -24,7 +28,7 @@ class RMSpropGraves(Optimizer):
 
     def __init__(self, lr=0.00025, rho=.95, squared_rho=.95, epsilon=.01,
                  decay=0., **kwargs):
-        super(RMSpropGraves, self).__init__(**kwargs)
+        super(RMSpropGravesKeras, self).__init__(**kwargs)
         self.lr = K.variable(lr, name='lr')
         self.squared_rho = K.variable(squared_rho, name='squared_rho')
         self.rho = K.variable(rho, name='rho')
@@ -67,5 +71,5 @@ class RMSpropGraves(Optimizer):
                   'rho': float(K.get_value(self.rho)),
                   'decay': float(K.get_value(self.decay)),
                   'epsilon': self.epsilon}
-        base_config = super(RMSpropGraves, self).get_config()
+        base_config = super(RMSpropGravesKeras, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
