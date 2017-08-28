@@ -52,11 +52,11 @@ class ConvNet:
             with tf.name_scope('gather'):
                 action_one_hot = tf.one_hot(self._action, n_actions,
                                             name='action_one_hot')
-                q_acted = tf.reduce_sum(self.q * action_one_hot,
-                                        axis=1,
-                                        name='q_acted')
+                self._q_acted = tf.reduce_sum(self.q * action_one_hot,
+                                              axis=1,
+                                              name='q_acted')
 
-            self._loss = tf.losses.huber_loss(self._target_q, q_acted)
+            self._loss = tf.losses.huber_loss(self._target_q, self._q_acted)
 
             if optimizer['name'] == 'rmspropgraves':
                 opt = tf.train.RMSPropOptimizer(learning_rate=optimizer['lr'],
@@ -83,6 +83,11 @@ class ConvNet:
                                                    graph=tf.get_default_graph())
 
     def predict(self, x, **fit_params):
+        if isinstance(x, list):
+            return self._session.run(
+                self._q_acted, feed_dict={self._x: x[0],
+                                          self._action: x[1].ravel().astype(
+                                              np.uint8)})
         return self._session.run(self.q, feed_dict={self._x: x})
 
     def train_on_batch(self, x, y, **fit_params):

@@ -148,4 +148,7 @@ class DoubleDQN(DQN):
         # Returns
             Maximum action-value in 'next_state'.
         """
-        pass
+        _, a_n = max_QA(next_state, absorbing, self.approximator)
+        sa_n = [next_state, a_n]
+
+        return self._target_approximator.predict(sa_n)

@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 
-from PyPi.algorithms.dqn import DQN
+from PyPi.algorithms.dqn import DQN, DoubleDQN
 from PyPi.approximators import Regressor
 from PyPi.core.core import Core
 from PyPi.environments import *
@@ -51,6 +51,7 @@ def experiment():
     arg_net.add_argument("--epsilon", type=float, default=.01)
 
     arg_alg = parser.add_argument_group('Algorithm')
+    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn'], default='dqn')
     arg_alg.add_argument("--batch-size", type=int, default=32)
     arg_alg.add_argument("--history-length", type=int, default=4)
     arg_alg.add_argument("--target-update-frequency", type=int, default=10000)
@@ -203,7 +204,11 @@ def experiment():
         fit_params = dict()
         agent_params = {'algorithm_params': algorithm_params,
                         'fit_params': fit_params}
-        agent = DQN(approximator, pi, **agent_params)
+
+        if args.algorithm == 'dqn':
+            agent = DQN(approximator, pi, **agent_params)
+        elif args.algorithm == 'ddqn':
+            agent = DoubleDQN(approximator, pi, **agent_params)
 
         # Algorithm
         core = Core(agent, mdp)
