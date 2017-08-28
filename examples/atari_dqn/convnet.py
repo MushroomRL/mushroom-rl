@@ -57,6 +57,7 @@ class ConvNet:
                                               name='q_acted')
 
             self._loss = tf.losses.huber_loss(self._target_q, self._q_acted)
+            tf.summary.scalar('huber_loss', self._loss)
 
             if optimizer['name'] == 'rmspropgraves':
                 opt = tf.train.RMSPropOptimizer(learning_rate=optimizer['lr'],
@@ -74,11 +75,13 @@ class ConvNet:
             else:
                 raise ValueError('Unavailable optimizer selected.')
 
+            self._train_count = 0
             self._train_step = opt.minimize(loss=self._loss)
 
         self._session = tf.Session()
         self._session.run(tf.global_variables_initializer())
 
+        self._merged = tf.summary.merge_all()
         self._train_writer = tf.summary.FileWriter('./logs',
                                                    graph=tf.get_default_graph())
 
@@ -91,11 +94,14 @@ class ConvNet:
         return self._session.run(self.q, feed_dict={self._x: x})
 
     def train_on_batch(self, x, y, **fit_params):
-        self._session.run(self._train_step,
-                          feed_dict={self._x: x[0],
-                                     self._action: x[1].ravel().astype(
-                                         np.uint8),
-                                     self._target_q: y})
+        summaries, _ = self._session.run([self._merged, self._train_step],
+                                         feed_dict={self._x: x[0],
+                                         self._action: x[1].ravel().astype(
+                                             np.uint8),
+                                         self._target_q: y})
+        self._train_writer.add_summary(summaries, self._train_count)
+
+        self._train_count += 1
 
     def set_weights(self, weights):
         with tf.variable_scope(self._name):
