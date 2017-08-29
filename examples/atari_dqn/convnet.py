@@ -1,6 +1,7 @@
+import os
+
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.framework import ops
 
 
 class ConvNet:
@@ -58,6 +59,7 @@ class ConvNet:
 
             self._loss = tf.losses.huber_loss(self._target_q, self._q_acted)
             tf.summary.scalar('huber_loss', self._loss)
+            tf.summary.scalar('average_q', tf.reduce_mean(self.q))
 
             if optimizer['name'] == 'rmspropgraves':
                 opt = tf.train.RMSPropOptimizer(learning_rate=optimizer['lr'],
@@ -105,7 +107,7 @@ class ConvNet:
 
     def set_weights(self, weights):
         with tf.variable_scope(self._name):
-            w = tf.get_collection(ops.GraphKeys.TRAINABLE_VARIABLES,
+            w = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                                   scope=self._name)
             assert len(w) == len(weights)
 
@@ -113,80 +115,13 @@ class ConvNet:
                 self._session.run(tf.assign(w[i], weights[i]))
 
     def get_weights(self):
-        w = tf.get_collection(ops.GraphKeys.TRAINABLE_VARIABLES,
+        w = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                               scope=self._name)
 
         return self._session.run(w)
 
-    def save_weights(self, path):
+    def save_weights(self):
         pass
 
-    def load_weights(self, path):
+    def load_weights(self):
         pass
-
-
-class ConvNetKeras:
-    def __init__(self, n_actions, optimizer, width=84, height=84,
-                 history_length=4):
-        from keras.models import Model
-        from keras.layers import Input, Convolution2D, Flatten, Dense
-        # Build network
-        input_layer = Input(shape=(height, width, history_length))
-
-        hidden = Convolution2D(32, 8, padding='valid',
-                               activation='relu', strides=4,
-                               data_format='channels_last')(input_layer)
-
-        hidden = Convolution2D(64, 4, padding='valid',
-                               activation='relu', strides=2,
-                               data_format='channels_last')(hidden)
-
-        hidden = Convolution2D(64, 3, padding='valid',
-                               activation='relu', strides=1,
-                               data_format='channels_last')(hidden)
-
-        hidden = Flatten()(hidden)
-        features = Dense(512, activation='relu')(hidden)
-        output = Dense(n_actions, activation='linear')(features)
-
-        # Models
-        self.q = Model(outputs=[output], inputs=[input_layer])
-
-        def mean_squared_error_clipped(y_true, y_pred):
-            return tf.where(tf.abs(y_true - y_pred) < 1.,
-                            tf.square(y_true - y_pred) / 2.,
-                            tf.abs(y_true - y_pred))
-
-        # Compile
-        self.q.compile(optimizer=optimizer,
-                       loss=mean_squared_error_clipped)
-
-        #Tensorboard
-        self.writer = tf.summary.FileWriter('./logs')
-
-    def predict(self, x, **fit_params):
-        return self.q.predict(x, **fit_params)
-
-    def train_on_batch(self, x, y, **fit_params):
-        actions = x[1].astype(np.int)
-
-        t = self.q.predict(x[0])
-        for i in xrange(t.shape[0]):
-            t[i, actions[i]] = y[i]
-
-        loss = self.q.train_on_batch(x[0], t, **fit_params)
-        summary = tf.Summary(value=[tf.Summary.Value(tag="loss",
-                                                     simple_value=loss), ])
-        self.writer.add_summary(summary)
-
-    def save_weights(self, path):
-        self.q.save_weights(path)
-
-    def load_weights(self, path):
-        self.q.load_weights(path)
-
-    def set_weights(self, w):
-        self.q.set_weights(w)
-
-    def get_weights(self):
-        return self.q.get_weights()

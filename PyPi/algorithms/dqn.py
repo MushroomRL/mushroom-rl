@@ -152,3 +152,7 @@ class DoubleDQN(DQN):
         sa_n = [next_state, a_n]
 
         return self._target_approximator.predict(sa_n)
+
+
+class WeightedDQN(DQN):
+    pass

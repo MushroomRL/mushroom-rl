@@ -1,7 +1,9 @@
 import argparse
 import os
+import time
 
 import numpy as np
+import tensorflow as tf
 
 from PyPi.algorithms.dqn import DQN, DoubleDQN
 from PyPi.approximators import Regressor
@@ -19,13 +21,35 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 def print_epoch(epoch):
     print '################################################################'
-    print 'epoch: ', epoch
+    print 'Epoch: ', epoch
     print '----------------------------------------------------------------'
 
 
-def experiment():
-    np.random.seed()
+def get_stats(dataset, n_epoch=0, stat_writer=None):
+    score = compute_scores(dataset)
+    print('min_reward: %f, max_reward: %f, mean_reward: %f,'
+          ' games_completed: %d' % score)
+    if stat_writer is not None:
+        summary = tf.Summary(value=[
+            tf.Summary.Value(
+                tag="min_reward",
+                simple_value=score[0]),
+            tf.Summary.Value(
+                tag="max_reward",
+                simple_value=score[1]),
+            tf.Summary.Value(
+                tag="average_reward",
+                simple_value=score[2]),
+            tf.Summary.Value(
+                tag="games_completed",
+                simple_value=score[3]),
+            tf.Summary.Value()]
+        )
+        stat_writer.add_summary(summary, n_epoch)
 
+
+def experiment(folder_name):
+    # Argument parser
     parser = argparse.ArgumentParser()
 
     arg_game = parser.add_argument_group('Game')
@@ -68,15 +92,19 @@ def experiment():
     arg_alg.add_argument("--no-op-action-value", type=int, default=0)
 
     arg_utils = parser.add_argument_group('Utils')
-    arg_utils.add_argument('--load-path', type=str)
-    arg_utils.add_argument('--save-path', type=str)
+    arg_utils.add_argument('--seed', type=float, default=None)
+    arg_utils.add_argument('--load', type=str)
+    arg_utils.add_argument('--save', action='store_true')
     arg_utils.add_argument('--render', action='store_true')
     arg_utils.add_argument('--quiet', action='store_true')
     arg_utils.add_argument('--debug', action='store_true')
 
     args = parser.parse_args()
 
-    if args.load_path:
+    # Set seed (if None, random seed is set)
+    np.random.seed(args.seed)
+
+    if args.load:
         # MDP train
         mdp = Atari(args.name, args.screen_width, args.screen_height,
                     ends_at_life=True)
@@ -98,7 +126,7 @@ def experiment():
                                  preprocessor=[Scaler(
                                      mdp.observation_space.high)],
                                  **approximator_params)
-        approximator.model.load_weights(args.load_path)
+        approximator.model.load_weights(args.load)
 
         # Agent
         algorithm_params = dict(
@@ -121,10 +149,11 @@ def experiment():
                                      iterate_over='samples',
                                      render=args.render,
                                      quiet=args.quiet)
-        score = compute_scores(dataset)
-        print('min_reward: %f, max_reward: %f, mean_reward: %f,'
-              ' games_completed: %d' % score)
+        get_stats(dataset)
     else:
+        # TF summary
+        stat_writer = tf.summary.FileWriter(folder_name)
+
         # DQN settings
         if args.debug:
             initial_replay_size = 50
@@ -221,8 +250,8 @@ def experiment():
         core.learn(n_iterations=1, how_many=initial_replay_size,
                    n_fit_steps=0, iterate_over='samples', quiet=args.quiet)
 
-        if args.save_path:
-            approximator.model.save_weights(args.save_path)
+        if args.save:
+            approximator.model.save_weights(args.save)
 
         # evaluate initial policy
         pi.set_epsilon(epsilon_test)
@@ -231,11 +260,9 @@ def experiment():
                                      iterate_over='samples',
                                      render=args.render,
                                      quiet=args.quiet)
-        score = compute_scores(dataset)
-        print('min_reward: %f, max_reward: %f, mean_reward: %f,'
-              ' games_completed: %d' % score)
-        for i in xrange(max_steps - evaluation_frequency):
-            print_epoch(i + 1)
+        get_stats(dataset, stat_writer=stat_writer)
+        for n_epoch in xrange(1, max_steps / evaluation_frequency + 1):
+            print_epoch(n_epoch)
             print '- Learning:'
             # learning step
             pi.set_epsilon(epsilon)
@@ -246,8 +273,8 @@ def experiment():
                        iterate_over='samples',
                        quiet=args.quiet)
 
-            if args.save_path:
-                approximator.model.save_weights(args.save_path)
+            if args.save:
+                approximator.model.save_weights()
 
             print '- Evaluation:'
             # evaluation step
@@ -258,9 +285,9 @@ def experiment():
                                          iterate_over='samples',
                                          render=args.render,
                                          quiet=args.quiet)
-            score = compute_scores(dataset)
-            print('min_reward: %f, max_reward: %f, mean_reward: %f,'
-                  ' games_completed: %d' % score)
+            get_stats(dataset, n_epoch=n_epoch, stat_writer=stat_writer)
 
 if __name__ == '__main__':
-    experiment()
+    folder_name = time.strftime('./logs/%Y%m%d-%H%M%S/')
+
+    experiment(folder_name)
