@@ -1,6 +1,5 @@
 import argparse
 import os
-import time
 
 import numpy as np
 import tensorflow as tf
@@ -48,7 +47,7 @@ def get_stats(dataset, n_epoch=0, stat_writer=None):
         stat_writer.add_summary(summary, n_epoch)
 
 
-def experiment(folder_name):
+def experiment():
     # Argument parser
     parser = argparse.ArgumentParser()
 
@@ -152,7 +151,7 @@ def experiment(folder_name):
         get_stats(dataset)
     else:
         # TF summary
-        stat_writer = tf.summary.FileWriter(folder_name)
+        stat_writer = tf.summary.FileWriter('./logs')
 
         # DQN settings
         if args.debug:
@@ -288,6 +287,4 @@ def experiment(folder_name):
             get_stats(dataset, n_epoch=n_epoch, stat_writer=stat_writer)
 
 if __name__ == '__main__':
-    folder_name = time.strftime('./logs/%Y%m%d-%H%M%S/')
-
-    experiment(folder_name)
+    experiment()
