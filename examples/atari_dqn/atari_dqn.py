@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import os
 
 import numpy as np
@@ -100,6 +101,10 @@ def experiment():
 
     args = parser.parse_args()
 
+    # Summary folder
+    folder_name = './logs/' + datetime.datetime.now().strftime(
+        '%Y-%m-%d_%H-%M-%S')
+
     # Set seed (if None, random seed is set)
     np.random.seed(args.seed)
 
@@ -118,6 +123,7 @@ def experiment():
                                               'decay': args.decay,
                                               'epsilon': args.epsilon},
                                    name='target',
+                                   folder_name=folder_name,
                                    width=args.screen_width,
                                    height=args.screen_height,
                                    history_length=args.history_length)
@@ -151,7 +157,7 @@ def experiment():
         get_stats(dataset)
     else:
         # TF summary
-        stat_writer = tf.summary.FileWriter('./logs')
+        stat_writer = tf.summary.FileWriter(folder_name + '/core/')
 
         # DQN settings
         if args.debug:
@@ -192,6 +198,7 @@ def experiment():
                                                     'decay': args.decay,
                                                     'epsilon': args.epsilon},
                                          name='train',
+                                         folder_name=folder_name,
                                          width=args.screen_width,
                                          height=args.screen_height,
                                          history_length=args.history_length)
@@ -207,6 +214,7 @@ def experiment():
                                                      'decay': args.decay,
                                                      'epsilon': args.epsilon},
                                           name='target',
+                                          folder_name=folder_name,
                                           width=args.screen_width,
                                           height=args.screen_height,
                                           history_length=args.history_length)

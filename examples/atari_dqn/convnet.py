@@ -3,8 +3,8 @@ import tensorflow as tf
 
 
 class ConvNet:
-    def __init__(self, n_actions, optimizer, name, width=84, height=84,
-                 history_length=4):
+    def __init__(self, n_actions, optimizer, name, folder_name,
+                 width=84, height=84, history_length=4):
         self._name = name
         with tf.variable_scope(self._name):
             self._x = tf.placeholder(tf.float32,
@@ -82,8 +82,10 @@ class ConvNet:
         self._session.run(tf.global_variables_initializer())
 
         self._merged = tf.summary.merge_all()
-        self._train_writer = tf.summary.FileWriter('./logs',
-                                                   graph=tf.get_default_graph())
+        self._train_writer = tf.summary.FileWriter(
+            folder_name + '/' + self._name,
+            graph=tf.get_default_graph()
+        )
 
     def predict(self, x, **fit_params):
         if isinstance(x, list):
