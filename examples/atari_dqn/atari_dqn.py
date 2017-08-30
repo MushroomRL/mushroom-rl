@@ -42,8 +42,7 @@ def get_stats(dataset, n_epoch=0, stat_writer=None):
                 simple_value=score[2]),
             tf.Summary.Value(
                 tag="games_completed",
-                simple_value=score[3]),
-            tf.Summary.Value()]
+                simple_value=score[3])]
         )
         stat_writer.add_summary(summary, n_epoch)
 
