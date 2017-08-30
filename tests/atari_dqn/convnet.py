@@ -65,7 +65,7 @@ class ConvNet:
         self._session = tf.Session()
         self._session.run(tf.global_variables_initializer())
 
-    def predict(self, x, **fit_params):
+    def predict(self, x):
         if isinstance(x, list):
             return self._session.run(
                 self._q_acted, feed_dict={self._x: x[0],
@@ -73,7 +73,7 @@ class ConvNet:
                                               np.uint8)})
         return self._session.run(self.q, feed_dict={self._x: x})
 
-    def train_on_batch(self, x, y, **fit_params):
+    def train_on_batch(self, x, y):
         self._session.run([self._train_step],
                           feed_dict={self._x: x[0],
                           self._action: x[1].ravel().astype(

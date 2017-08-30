@@ -9,11 +9,11 @@ PyPi
 What is PyPi
 ============
 PyPi is a toolkit for solving Reinforcement Learning problems. It is written in Python
-and use well-known Machine Learning libraries as Keras (https://keras.io/), Tensorflow (https://www.tensorflow.org/),
-Scikit-Learn (http://scikit-learn.org/stable/) and OpenAI Gym (https://gym.openai.com/) libraries.
+and makes a large use of Tensorflow (https://www.tensorflow.org/) and
+OpenAI Gym (https://gym.openai.com/) libraries.
 
 PyPi is still under development, but it already features the main algorithms used in the
-value-based approach in RL (e.g. Q-Learning, SARSA, DQN and others).
+value-based approach in RL (e.g. Q-Learning, SARSA, FQI) and deep RL (e.g. DQN, Double DQN).
 By choice, it is currently focused on value-based algorithms, but policy gradient
 and actor-critic algorithms will be added in future versions.
 
@@ -32,12 +32,6 @@ Installing everything
 ---------------------
 To install the whole set of features, you will need additional packages installed.
 You can install everything by running ``pip install -e '.[all]'``.
-
-What's new
-==========
-- 15-07-2017: New algorithms and environment. DQN and Atari added.
-- 17-03-2017: Environments and algorithms added.
-- 25-02-2017: Initial release.
 
 How to set and run and experiment
 =================================

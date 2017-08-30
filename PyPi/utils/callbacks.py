@@ -1,9 +1,10 @@
 from copy import deepcopy
 
 import numpy as np
+import tensorflow as tf
 
 from PyPi.approximators.ensemble import Ensemble
-from PyPi.utils.dataset import max_QA
+from PyPi.utils.dataset import compute_scores, max_QA
 
 
 class CollectDataset(object):
@@ -72,3 +73,30 @@ class CollectMaxQ(object):
 
     def get_values(self):
         return self._max_Qs
+
+
+class CollectSummary(object):
+    def __init__(self, folder_name):
+        self._summary_writer = tf.summary.FileWriter(folder_name)
+        self._global_step = 0
+
+    def __call__(self, dataset):
+        score = compute_scores(dataset)
+
+        summary = tf.Summary(value=[
+            tf.Summary.Value(
+                tag="min_reward",
+                simple_value=score[0]),
+            tf.Summary.Value(
+                tag="max_reward",
+                simple_value=score[1]),
+            tf.Summary.Value(
+                tag="average_reward",
+                simple_value=score[2]),
+            tf.Summary.Value(
+                tag="games_completed",
+                simple_value=score[3])]
+        )
+        self._summary_writer.add_summary(summary, self._global_step)
+
+        self._global_step += 1

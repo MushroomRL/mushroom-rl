@@ -3,13 +3,13 @@ import datetime
 import os
 
 import numpy as np
-import tensorflow as tf
 
-from PyPi.algorithms.dqn import DQN, DoubleDQN
+from PyPi.algorithms.dqn import DQN, DoubleDQN, WeightedDQN
 from PyPi.approximators import Regressor
 from PyPi.core.core import Core
 from PyPi.environments import *
 from PyPi.policy import EpsGreedy
+from PyPi.utils.callbacks import CollectSummary
 from PyPi.utils.dataset import compute_scores
 from PyPi.utils.parameters import LinearDecayParameter, Parameter
 from PyPi.utils.preprocessor import Scaler
@@ -25,26 +25,10 @@ def print_epoch(epoch):
     print '----------------------------------------------------------------'
 
 
-def get_stats(dataset, n_epoch=0, stat_writer=None):
+def get_stats(dataset):
     score = compute_scores(dataset)
     print('min_reward: %f, max_reward: %f, mean_reward: %f,'
           ' games_completed: %d' % score)
-    if stat_writer is not None:
-        summary = tf.Summary(value=[
-            tf.Summary.Value(
-                tag="min_reward",
-                simple_value=score[0]),
-            tf.Summary.Value(
-                tag="max_reward",
-                simple_value=score[1]),
-            tf.Summary.Value(
-                tag="average_reward",
-                simple_value=score[2]),
-            tf.Summary.Value(
-                tag="games_completed",
-                simple_value=score[3])]
-        )
-        stat_writer.add_summary(summary, n_epoch)
 
 
 def experiment():
@@ -92,7 +76,7 @@ def experiment():
     arg_alg.add_argument("--no-op-action-value", type=int, default=0)
 
     arg_utils = parser.add_argument_group('Utils')
-    arg_utils.add_argument('--load', type=str)
+    arg_utils.add_argument('--load-path', type=str)
     arg_utils.add_argument('--save', action='store_true')
     arg_utils.add_argument('--render', action='store_true')
     arg_utils.add_argument('--quiet', action='store_true')
@@ -100,11 +84,7 @@ def experiment():
 
     args = parser.parse_args()
 
-    # Summary folder
-    folder_name = './logs/' + datetime.datetime.now().strftime(
-        '%Y-%m-%d_%H-%M-%S')
-
-    if args.load:
+    if args.load_path:
         # MDP train
         mdp = Atari(args.name, args.screen_width, args.screen_height,
                     ends_at_life=True)
@@ -113,12 +93,12 @@ def experiment():
                        observation_space=mdp.observation_space,
                        action_space=mdp.action_space)
         # Approximator
-        approximator_params = dict(n_actions=mdp.action_space.n,
+        approximator_params = dict(name='test',
+                                   load_path=args.load_path,
+                                   n_actions=mdp.action_space.n,
                                    optimizer={'name': args.optimizer,
                                               'lr': args.learning_rate,
                                               'decay': args.decay},
-                                   name='target',
-                                   folder_name=folder_name,
                                    width=args.screen_width,
                                    height=args.screen_height,
                                    history_length=args.history_length)
@@ -126,13 +106,13 @@ def experiment():
                                  preprocessor=[Scaler(
                                      mdp.observation_space.high)],
                                  **approximator_params)
-        approximator.model.load_weights(args.load)
 
         # Agent
         algorithm_params = dict(
             max_replay_size=0,
             history_length=args.history_length,
-            max_no_op_actions=30
+            max_no_op_actions=args.max_no_op_actions,
+            no_op_action_value=args.no_op_action_value
         )
         fit_params = dict()
         agent_params = {'algorithm_params': algorithm_params,
@@ -151,8 +131,9 @@ def experiment():
                                      quiet=args.quiet)
         get_stats(dataset)
     else:
-        # TF summary
-        stat_writer = tf.summary.FileWriter(folder_name + '/core/')
+        # Summary folder
+        folder_name = './logs/' + datetime.datetime.now().strftime(
+            '%Y-%m-%d_%H-%M-%S')
 
         # DQN settings
         if args.debug:
@@ -187,12 +168,12 @@ def experiment():
                        action_space=mdp.action_space)
 
         # Approximator
-        approximator_params_train = dict(n_actions=mdp.action_space.n,
+        approximator_params_train = dict(name='train',
+                                         folder_name=folder_name,
+                                         n_actions=mdp.action_space.n,
                                          optimizer={'name': args.optimizer,
                                                     'lr': args.learning_rate,
                                                     'decay': args.decay},
-                                         name='train',
-                                         folder_name=folder_name,
                                          width=args.screen_width,
                                          height=args.screen_height,
                                          history_length=args.history_length)
@@ -202,12 +183,12 @@ def experiment():
                                  **approximator_params_train)
 
         # target approximator
-        approximator_params_target = dict(n_actions=mdp.action_space.n,
+        approximator_params_target = dict(name='target',
+                                          folder_name=folder_name,
+                                          n_actions=mdp.action_space.n,
                                           optimizer={'name': args.optimizer,
                                                      'lr': args.learning_rate,
                                                      'decay': args.decay},
-                                          name='target',
-                                          folder_name=folder_name,
                                           width=args.screen_width,
                                           height=args.screen_height,
                                           history_length=args.history_length)
@@ -238,9 +219,12 @@ def experiment():
             agent = DQN(approximator, pi, **agent_params)
         elif args.algorithm == 'ddqn':
             agent = DoubleDQN(approximator, pi, **agent_params)
+        elif args.algorithm == 'wdqn':
+            agent = WeightedDQN(approximator, pi, **agent_params)
 
         # Algorithm
-        core = Core(agent, mdp)
+        collect_summary = CollectSummary(folder_name)
+        core = Core(agent, mdp, callbacks=[collect_summary])
         core_test = Core(agent, mdp)
 
         # DQN
@@ -251,7 +235,7 @@ def experiment():
                    n_fit_steps=0, iterate_over='samples', quiet=args.quiet)
 
         if args.save:
-            approximator.model.save_weights(args.save)
+            approximator.model.save()
 
         # evaluate initial policy
         pi.set_epsilon(epsilon_test)
@@ -260,7 +244,7 @@ def experiment():
                                      iterate_over='samples',
                                      render=args.render,
                                      quiet=args.quiet)
-        get_stats(dataset, stat_writer=stat_writer)
+        get_stats(dataset)
         for n_epoch in xrange(1, max_steps / evaluation_frequency + 1):
             print_epoch(n_epoch)
             print '- Learning:'
@@ -274,7 +258,7 @@ def experiment():
                        quiet=args.quiet)
 
             if args.save:
-                approximator.model.save_weights()
+                approximator.model.save()
 
             print '- Evaluation:'
             # evaluation step
@@ -285,7 +269,7 @@ def experiment():
                                          iterate_over='samples',
                                          render=args.render,
                                          quiet=args.quiet)
-            get_stats(dataset, n_epoch=n_epoch, stat_writer=stat_writer)
+            get_stats(dataset)
 
 if __name__ == '__main__':
     experiment()
