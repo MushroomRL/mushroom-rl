@@ -48,6 +48,8 @@ def get_stats(dataset, n_epoch=0, stat_writer=None):
 
 
 def experiment():
+    np.random.seed()
+
     # Argument parser
     parser = argparse.ArgumentParser()
 
@@ -71,7 +73,6 @@ def experiment():
                          default='rmspropgraves')
     arg_net.add_argument("--learning-rate", type=float, default=.00025)
     arg_net.add_argument("--decay", type=float, default=.95)
-    arg_net.add_argument("--epsilon", type=float, default=.01)
 
     arg_alg = parser.add_argument_group('Algorithm')
     arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn'], default='dqn')
@@ -91,7 +92,6 @@ def experiment():
     arg_alg.add_argument("--no-op-action-value", type=int, default=0)
 
     arg_utils = parser.add_argument_group('Utils')
-    arg_utils.add_argument('--seed', type=float, default=None)
     arg_utils.add_argument('--load', type=str)
     arg_utils.add_argument('--save', action='store_true')
     arg_utils.add_argument('--render', action='store_true')
@@ -103,9 +103,6 @@ def experiment():
     # Summary folder
     folder_name = './logs/' + datetime.datetime.now().strftime(
         '%Y-%m-%d_%H-%M-%S')
-
-    # Set seed (if None, random seed is set)
-    np.random.seed(args.seed)
 
     if args.load:
         # MDP train
@@ -119,8 +116,7 @@ def experiment():
         approximator_params = dict(n_actions=mdp.action_space.n,
                                    optimizer={'name': args.optimizer,
                                               'lr': args.learning_rate,
-                                              'decay': args.decay,
-                                              'epsilon': args.epsilon},
+                                              'decay': args.decay},
                                    name='target',
                                    folder_name=folder_name,
                                    width=args.screen_width,
@@ -194,8 +190,7 @@ def experiment():
         approximator_params_train = dict(n_actions=mdp.action_space.n,
                                          optimizer={'name': args.optimizer,
                                                     'lr': args.learning_rate,
-                                                    'decay': args.decay,
-                                                    'epsilon': args.epsilon},
+                                                    'decay': args.decay},
                                          name='train',
                                          folder_name=folder_name,
                                          width=args.screen_width,
@@ -210,8 +205,7 @@ def experiment():
         approximator_params_target = dict(n_actions=mdp.action_space.n,
                                           optimizer={'name': args.optimizer,
                                                      'lr': args.learning_rate,
-                                                     'decay': args.decay,
-                                                     'epsilon': args.epsilon},
+                                                     'decay': args.decay},
                                           name='target',
                                           folder_name=folder_name,
                                           width=args.screen_width,
