@@ -123,7 +123,7 @@ class ConvNet:
             self._merged = tf.summary.merge_all()
 
             optimizer = convnet_pars['optimizer']
-            if optimizer['name'] == 'rmspropgraves':
+            if optimizer['name'] == 'rmspropcentered':
                 opt = tf.train.RMSPropOptimizer(learning_rate=optimizer['lr'],
                                                 decay=optimizer['decay'],
                                                 centered=True)
