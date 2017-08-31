@@ -24,15 +24,15 @@ class Regressor(object):
 
         if discrete_actions is not None:
             if isinstance(discrete_actions, int):
-                self._discrete_actions = np.arange(
+                self.discrete_actions = np.arange(
                     discrete_actions).reshape(-1, 1)
                 self._actions_with_value = False
             else:
-                self._discrete_actions = np.array(discrete_actions)
-                if self._discrete_actions.ndim == 1:
-                    self._discrete_actions =\
-                        self._discrete_actions.reshape(-1, 1)
-                assert self._discrete_actions.ndim == 2
+                self.discrete_actions = np.array(discrete_actions)
+                if self.discrete_actions.ndim == 1:
+                    self.discrete_actions =\
+                        self.discrete_actions.reshape(-1, 1)
+                assert self.discrete_actions.ndim == 2
                 self._actions_with_value = True
 
         self._preprocessor = preprocessor if preprocessor is not None else []
@@ -92,12 +92,12 @@ class Regressor(object):
         # Returns
             The predictions of the model.
         """
-        if hasattr(self, '_discrete_actions'):
+        if hasattr(self, 'discrete_actions'):
             assert x.ndim == 2
 
             n_states = x.shape[0]
-            n_actions = self._discrete_actions.shape[0]
-            action_dim = self._discrete_actions.shape[1]
+            n_actions = self.discrete_actions.shape[0]
+            action_dim = self.discrete_actions.shape[1]
 
             for p in self._preprocessor:
                 x = p(x)
@@ -105,7 +105,7 @@ class Regressor(object):
             y = np.zeros((n_states, n_actions))
             for action in xrange(n_actions):
                 a = np.ones(
-                    (n_states, action_dim)) * self._discrete_actions[action]
+                    (n_states, action_dim)) * self.discrete_actions[action]
                 samples = np.concatenate((x, a), axis=1)
 
                 y[:, action] = self.model.predict(samples).ravel()
@@ -124,13 +124,13 @@ class Regressor(object):
         return self._preprocess(x)
 
     def _preprocess(self, x):
-        if hasattr(self, '_discrete_actions'):
+        if hasattr(self, 'discrete_actions'):
             assert isinstance(x, list) and len(x) == 2
             assert x[0].ndim == 2 and x[1].ndim == 2
             assert x[0].shape[0] == x[1].shape[0]
 
             if self._actions_with_value:
-                x = np.concatenate((x[0], self._discrete_actions[x[1].ravel()]),
+                x = np.concatenate((x[0], self.discrete_actions[x[1].ravel()]),
                                    axis=1)
             else:
                 x = np.concatenate((x[0], x[1]), axis=1)
