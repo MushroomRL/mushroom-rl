@@ -1,11 +1,11 @@
 import numpy as np
 
-from PyPi.algorithms.td import QLearning
-from PyPi.approximators import Regressor, Tabular
-from PyPi.core.core import Core
-from PyPi.environments import *
-from PyPi.policy import EpsGreedy
-from PyPi.utils.parameters import Parameter
+from mushroom.algorithms.td import QLearning
+from mushroom.approximators import Regressor, Tabular
+from mushroom.core.core import Core
+from mushroom.environments import *
+from mushroom.policy import EpsGreedy
+from mushroom.utils.parameters import Parameter
 
 
 def experiment():

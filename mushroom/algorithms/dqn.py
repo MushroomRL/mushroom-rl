@@ -1,8 +1,8 @@
 import numpy as np
 
-from PyPi.algorithms.agent import Agent
-from PyPi.utils.dataset import max_QA
-from PyPi.utils.replay_memory import ReplayMemory
+from mushroom.algorithms.agent import Agent
+from mushroom.utils.dataset import max_QA
+from mushroom.utils.replay_memory import ReplayMemory
 
 
 class Buffer(object):

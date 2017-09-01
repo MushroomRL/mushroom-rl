@@ -1,7 +1,7 @@
 import numpy as np
 
 from environment import Environment
-from PyPi.utils import spaces
+from mushroom.utils import spaces
 
 
 class FiniteMDP(Environment):

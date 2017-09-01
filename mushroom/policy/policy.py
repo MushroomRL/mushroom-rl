@@ -1,7 +1,7 @@
 import numpy as np
 
-from PyPi.utils.dataset import max_QA
-from PyPi.utils.parameters import Parameter
+from mushroom.utils.dataset import max_QA
+from mushroom.utils.parameters import Parameter
 
 
 class EpsGreedy(object):

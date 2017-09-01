@@ -1,7 +1,7 @@
 import numpy as np
 
-from PyPi.approximators.action_regressor import ActionRegressor
-from PyPi.approximators.regressor import Regressor
+from mushroom.approximators.action_regressor import ActionRegressor
+from mushroom.approximators.regressor import Regressor
 
 
 class Ensemble(object):

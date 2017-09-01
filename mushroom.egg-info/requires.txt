@@ -9,3 +9,5 @@ joblib
 pillow
 tqdm
 h5py
+
+[all]

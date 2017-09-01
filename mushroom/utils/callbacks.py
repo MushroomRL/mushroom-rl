@@ -3,8 +3,8 @@ from copy import deepcopy
 import numpy as np
 import tensorflow as tf
 
-from PyPi.approximators.ensemble import Ensemble
-from PyPi.utils.dataset import compute_scores, max_QA
+from mushroom.approximators.ensemble import Ensemble
+from mushroom.utils.dataset import compute_scores, max_QA
 
 
 class CollectDataset(object):

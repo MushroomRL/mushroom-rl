@@ -1,6 +1,6 @@
 import numpy as np
 
-from PyPi.utils.dataset import parse_dataset
+from mushroom.utils.dataset import parse_dataset
 
 
 class ReplayMemory(object):

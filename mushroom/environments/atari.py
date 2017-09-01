@@ -1,8 +1,8 @@
 import gym
 from PIL import Image
 
-from PyPi.environments import Environment
-from PyPi.utils.spaces import *
+from mushroom.environments import Environment
+from mushroom.utils.spaces import *
 
 
 class Atari(Environment):

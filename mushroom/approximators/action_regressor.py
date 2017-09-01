@@ -1,6 +1,6 @@
 import numpy as np
 
-from PyPi.approximators.regressor import Regressor
+from mushroom.approximators.regressor import Regressor
 
 
 class ActionRegressor(object):

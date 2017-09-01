@@ -1,8 +1,8 @@
 import numpy as np
 from copy import deepcopy
 
-from PyPi.algorithms.agent import Agent
-from PyPi.utils.dataset import max_QA
+from mushroom.algorithms.agent import Agent
+from mushroom.utils.dataset import max_QA
 
 
 class TD(Agent):

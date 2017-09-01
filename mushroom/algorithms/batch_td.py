@@ -1,5 +1,5 @@
-from PyPi.algorithms.agent import Agent
-from PyPi.utils.dataset import max_QA, parse_dataset
+from mushroom.algorithms.agent import Agent
+from mushroom.utils.dataset import max_QA, parse_dataset
 
 
 class BatchTD(Agent):

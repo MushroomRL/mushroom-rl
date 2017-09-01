@@ -1,7 +1,7 @@
 import numpy as np
 
-from PyPi.environments import Environment
-from PyPi.utils import spaces
+from mushroom.environments import Environment
+from mushroom.utils import spaces
 
 
 class GridWorld(Environment):

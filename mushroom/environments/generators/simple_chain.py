@@ -1,6 +1,6 @@
 import numpy as np
 
-from PyPi.environments.finite_mdp import FiniteMDP
+from mushroom.environments.finite_mdp import FiniteMDP
 
 
 def generate_simple_chain(state_n, goal_states, prob, rew, mu=None, gamma=.9):

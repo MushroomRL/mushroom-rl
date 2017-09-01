@@ -4,15 +4,15 @@ import os
 
 import numpy as np
 
-from PyPi.algorithms.dqn import DQN, DoubleDQN, WeightedDQN
-from PyPi.approximators import Regressor
-from PyPi.core.core import Core
-from PyPi.environments import *
-from PyPi.policy import EpsGreedy
-from PyPi.utils.callbacks import CollectSummary
-from PyPi.utils.dataset import compute_scores
-from PyPi.utils.parameters import LinearDecayParameter, Parameter
-from PyPi.utils.preprocessor import Scaler
+from mushroom.algorithms.dqn import DQN, DoubleDQN, WeightedDQN
+from mushroom.approximators import Regressor
+from mushroom.core.core import Core
+from mushroom.environments import *
+from mushroom.policy import EpsGreedy
+from mushroom.utils.callbacks import CollectSummary
+from mushroom.utils.dataset import compute_scores
+from mushroom.utils.parameters import LinearDecayParameter, Parameter
+from mushroom.utils.preprocessor import Scaler
 from convnet import ConvNet
 
 # Disable tf cpp warnings

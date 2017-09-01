@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: mushroom
+Version: 0.75.0
+Summary: A Python toolkit for Reinforcement Learning experiments.
+Home-page: https://github.com/carloderamo/mushroom
+Author: Carlo D'Eramo
+Author-email: carlo.deramo@polimi.it
+License: UNKNOWN
+Description: UNKNOWN
+Platform: UNKNOWN

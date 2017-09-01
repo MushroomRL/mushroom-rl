@@ -2,13 +2,13 @@ import numpy as np
 from joblib import Parallel, delayed
 from sklearn.ensemble import ExtraTreesRegressor
 
-from PyPi.algorithms.batch_td import FQI
-from PyPi.approximators import ActionRegressor
-from PyPi.core.core import Core
-from PyPi.environments import *
-from PyPi.policy import EpsGreedy
-from PyPi.utils.dataset import compute_J
-from PyPi.utils.parameters import Parameter
+from mushroom.algorithms.batch_td import FQI
+from mushroom.approximators import ActionRegressor
+from mushroom.core.core import Core
+from mushroom.environments import *
+from mushroom.policy import EpsGreedy
+from mushroom.utils.dataset import compute_J
+from mushroom.utils.parameters import Parameter
 
 
 def experiment():

@@ -1,14 +1,14 @@
 import numpy as np
 from joblib import Parallel, delayed
 
-from PyPi.algorithms.td import QLearning, DoubleQLearning, WeightedQLearning,\
+from mushroom.algorithms.td import QLearning, DoubleQLearning, WeightedQLearning,\
     SpeedyQLearning
-from PyPi.approximators import Ensemble, Regressor, Tabular
-from PyPi.core.core import Core
-from PyPi.environments import *
-from PyPi.policy import EpsGreedy
-from PyPi.utils.callbacks import CollectQ
-from PyPi.utils.parameters import Parameter, DecayParameter
+from mushroom.approximators import Ensemble, Regressor, Tabular
+from mushroom.core.core import Core
+from mushroom.environments import *
+from mushroom.policy import EpsGreedy
+from mushroom.utils.callbacks import CollectQ
+from mushroom.utils.parameters import Parameter, DecayParameter
 
 
 def experiment(algorithm_class, decay_exp):
