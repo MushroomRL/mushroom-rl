@@ -15,7 +15,7 @@ and batch TD (e.g. FQI) algorithms, together with the famous DQN algorithm used 
 By choice, it is currently focused on value-based algorithms, but policy gradient
 and actor-critic algorithms will be added in future versions.
 
-Full documentation available at https://readthedocs.org/projects/mushroomrl/.
+Full documentation available at http://mushroomrl.readthedocs.io/en/latest/.
 
 Installation
 ============
