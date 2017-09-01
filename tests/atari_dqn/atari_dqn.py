@@ -87,7 +87,7 @@ def experiment():
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
 
-    agent = DQN(approximator, pi, **agent_params)
+    agent = DQN(approximator, pi, mdp.gamma, **agent_params)
 
     # Algorithm
     core = Core(agent, mdp)

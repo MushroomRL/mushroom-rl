@@ -8,16 +8,20 @@ class ActionRegressor(object):
     This class is used to approximate the Q-function with a different
     approximator of the provided class for each action. It is often used in MDPs
     with discrete actions and cannot be used in MDPs with continuous actions.
+
     """
     def __init__(self, approximator, discrete_actions, **params):
         """
         Constructor.
 
-        # Arguments
+        Args:
             approximator (object): the model class to approximate the
                 Q-function of each action;
-            action_space (object): action_space of the MDP;
+            discrete_actions ([int, list, np.array]): the action values to
+                consider to do regression. If an integer number n is provided,
+                the values of the actions ranges from 0 to n - 1.
             **params (dict): parameters dictionary to create each regressor.
+
         """
         if isinstance(discrete_actions, int):
             self._discrete_actions = np.arange(discrete_actions).reshape(-1, 1)
@@ -35,10 +39,11 @@ class ActionRegressor(object):
         """
         Fit the model.
 
-        # Arguments
-            x (np.array): input dataset containing states and actions;
-            y (np.array): target;
-            fit_params (dict): other parameters.
+        Args:
+            x (list): a two elements list with states and actions;
+            y (np.array): targets;
+            **fit_params (dict): other parameters.
+
         """
         for i in xrange(len(self.models)):
             idxs = np.argwhere((x[1] == i)[:, 0]).ravel()
@@ -50,10 +55,11 @@ class ActionRegressor(object):
         """
         Fit the model on a single batch.
 
-        # Arguments
-            x (np.array): input dataset containing states and actions;
-            y (np.array): target;
-            fit_params (dict): other parameters.
+        Args:
+            x (list): a two elements list with states and actions;
+            y (np.array): targets;
+            **fit_params (dict): other parameters.
+
         """
         for i in xrange(len(self.models)):
             idxs = np.argwhere((x[1] == i)[:, 0]).ravel()
@@ -67,11 +73,12 @@ class ActionRegressor(object):
         """
         Predict.
 
-        # Arguments
-            x (np.array): input dataset containing states and actions.
+        Args:
+            x (list): a two elements list with states and actions;
 
-        # Returns
+        Returns:
             The predictions of the model.
+
         """
         y = np.zeros((x[0].shape[0]))
         for i in xrange(len(self.models)):
@@ -84,14 +91,14 @@ class ActionRegressor(object):
 
     def predict_all(self, x):
         """
-        Predict Q-value for each action given a state.
+        Predict for each action given a state.
 
-        # Arguments
-            x (np.array): input dataset containing states;
-            actions (np.array): list of actions of the MDP.
+        Args:
+            x (np.array): states;
 
-        # Returns
+        Returns:
             The predictions of the model.
+
         """
         n_states = x.shape[0]
         n_actions = self._discrete_actions.shape[0]

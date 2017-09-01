@@ -5,12 +5,13 @@ def parse_dataset(dataset):
     """
     Split the dataset in its different components and return them.
 
-    # Arguments
+    Args:
         dataset (list): the dataset to parse.
 
-    # Returns
+    Returns:
         The np.array of state, action, reward, next_state, absorbing flag and
         last step flag.
+
     """
     assert len(dataset) > 0
 
@@ -37,15 +38,14 @@ def select_episodes(dataset, n_episodes, parse=False):
     """
     Return the desired number of episodes in the provided dataset.
 
-    # Arguments
+    Args:
         dataset (np.array): the dataset to parse;
-        state_dim (int > 0): the dimension of the MDP state;
-        action_dim (int > 0): the dimension of the MDP action;
-        n_episodes (int >= 0): the number of episodes to pick from the dataset;
+        n_episodes (int): the number of episodes to pick from the dataset;
         parse (bool): whether to parse the dataset to return.
 
-    # Returns
+    Returns:
         A subset of the dataset containing the desired number of episodes.
+
     """
     assert n_episodes >= 0, 'Number of episodes must be greater than or equal' \
                             'to zero.'
@@ -63,13 +63,14 @@ def select_samples(dataset, n_samples, parse=False):
     """
     Return the desired number of samples in the provided dataset.
 
-    # Arguments
+    Args:
         dataset (np.array): the dataset to parse;
-        n_episodes (int >= 0): the number of samples to pick from the dataset;
+        n_samples (int): the number of episodes to pick from the dataset;
         parse (bool): whether to parse the dataset to return.
 
-    # Returns
+    Returns:
         A subset of the dataset containing the desired number of samples.
+
     """
     assert n_samples >= 0, 'Number of samples must be greater than or equal' \
                            'to zero.'
@@ -87,12 +88,13 @@ def compute_J(dataset, gamma=1.):
     """
     Compute the J.
 
-    Arguments
+    Args:
         dataset (list): the dataset to consider to compute J;
         gamma (float): discount factor.
 
-    Returns
-        the average cumulative discounted reward.
+    Returns:
+        The average cumulative discounted reward.
+
     """
     js = list()
 
@@ -113,16 +115,17 @@ def compute_scores(dataset):
     """
     Compute the scores per episode.
 
-    Arguments
+    Args:
         dataset (list): the dataset to consider to compute the scores.
 
-    Returns
+    Returns:
         the minimum score reached in an episode,
         the maximum score reached in an episode,
         the mean score reached,
         the number of episodes completed.
 
         If no episode has been completed, it returns 0 for all values.
+
     """
     scores = list()
 
@@ -146,15 +149,16 @@ def compute_scores(dataset):
 
 def max_QA(states, absorbing, approximator):
     """
-    # Arguments
-        state (np.array): the state where the agent is;
-        absorbing (np.array): whether the state is absorbing or not;
+    Args:
+        states (np.array): the states to consider to compute the action values;
+        absorbing (np.array): whether the states are absorbing or not;
         approximator (object): the approximator to use to compute the
-            action values;
+            action values.
 
-    # Returns
-        A np.array of maximum action values and a np.array of their
-        corresponding actions.
+    Returns:
+        The maximum action values for each state and their corresponding
+        actions.
+
     """
     q = approximator.predict_all(states)
     if np.any(absorbing):

@@ -42,7 +42,7 @@ def experiment(algorithm_class):
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
-    agent = algorithm_class(approximator, pi, **agent_params)
+    agent = algorithm_class(approximator, pi, mdp.gamma, **agent_params)
 
     # Algorithm
     collect_dataset = CollectDataset()

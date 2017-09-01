@@ -7,18 +7,24 @@ from mushroom.approximators.regressor import Regressor
 class Ensemble(object):
     """
     This class implements functions to manage regressor ensembles.
+
     """
     def __init__(self, approximator, n_models, use_action_regressor=False,
                  discrete_actions=None, **params):
         """
         Constructor.
 
-        # Arguments
+        Args:
             approximator (object): the model class to approximate the
                 Q-function of each action;
             n_models (int): number of models in the ensemble;
-            action_space (object): action_space of the MDP;
+            use_action_regressor (bool, False): whether each single regressor in
+            the ensemble is an action regressor or not.
+            discrete_actions ([int, list, np.array], None): the action values to
+                consider to do regression. If an integer number n is provided,
+                the values of the actions ranges from 0 to n - 1.
             **params (dict): parameters dictionary to construct each regressor.
+
         """
         self.n_models = n_models
         self._use_action_regressor = use_action_regressor
@@ -36,11 +42,12 @@ class Ensemble(object):
         """
         Predict.
 
-        # Arguments
-            x (np.array): input dataset containing states and actions.
+        Args:
+            x (list): a two elements list with states and actions;
 
-        # Returns
+        Returns:
             The predictions of the model.
+
         """
         y = list()
         for m in self.models:
@@ -51,14 +58,15 @@ class Ensemble(object):
 
     def predict_all(self, x):
         """
-        Predict Q-value for each action given a state.
+        Predict for each action given a state.
 
-        # Arguments
-            x (np.array): input dataset containing states;
+        Args:
+            x (np.array): states;
             actions (np.array): list of actions of the MDP.
 
-        # Returns
+        Returns:
             The predictions of the model.
+
         """
         y = list()
         for m in self.models:

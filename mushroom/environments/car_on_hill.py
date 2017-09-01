@@ -9,6 +9,7 @@ class CarOnHill(Environment):
     """
     The Car On Hill environment as presented in:
     "Tree-Based Batch Mode Reinforcement Learning, D. Ernst et. al."
+
     """
     def __init__(self):
         self.__name__ = 'CarOnHill'

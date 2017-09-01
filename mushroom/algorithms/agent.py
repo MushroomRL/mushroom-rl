@@ -7,20 +7,24 @@ class Agent(object):
     """
     This class implements the functions to evaluate the Q-function
     of the agent and drawing actions.
+
     """
-    def __init__(self, approximator, policy, **params):
+    def __init__(self, approximator, policy, gamma, **params):
         """
         Constructor.
 
-        # Arguments
+        Args:
             approximator (object): the approximator of the Q function;
             policy (object): the policy to use.
+            **params (dict): other parameters of the algorithm.
+
         """
         self.approximator = approximator
         self.policy = policy
-        self.mdp_info = dict()
-        self.logger = logging.getLogger('logger')
+        self._gamma = gamma
         self.params = params
+
+        self.mdp_info = dict()
 
         self._next_action = None
 
@@ -28,8 +32,9 @@ class Agent(object):
         """
         Fill the dictionary with information about the MDP.
 
-        # Arguments
+        Args:
             mdp_info (dict): MDP information.
+
         """
         for k, v in mdp_info.iteritems():
             self.mdp_info[k] = v
@@ -37,13 +42,14 @@ class Agent(object):
     def draw_action(self, state):
         """
         Returns the action to execute. It is the action returned by the policy
-        or the pre-set action.
+        or the action set by the algorithm (e.g. SARSA).
 
-        # Arguments
-            state (np.array, shape=(state_dim,)): the state where the agent is.
+        Args:
+            state (np.array): the state where the agent is.
 
-        # Returns
+        Returns:
             The action to be executed.
+
         """
         if self._next_action is None:
             return self.policy(np.expand_dims(state, axis=0), self.approximator)
@@ -53,4 +59,9 @@ class Agent(object):
             return action
 
     def episode_start(self):
+        """
+        Reset some parameters when a new episode starts. It is used only by
+        some algorithms (e.g. DQN).
+
+        """
         pass

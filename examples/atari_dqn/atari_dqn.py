@@ -125,6 +125,7 @@ def experiment():
 
     args = parser.parse_args()
 
+    # Evaluation of the model provided by the user.
     if args.load_path:
         # MDP
         mdp = Atari(args.name, args.screen_width, args.screen_height,
@@ -160,12 +161,12 @@ def experiment():
         fit_params = dict()
         agent_params = {'algorithm_params': algorithm_params,
                         'fit_params': fit_params}
-        agent = DQN(approximator, pi, **agent_params)
+        agent = DQN(approximator, pi, mdp.gamma, **agent_params)
 
         # Algorithm
         core_test = Core(agent, mdp)
 
-        # evaluate model
+        # Evaluate model
         pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(ends_at_life=False)
         dataset = core_test.evaluate(how_many=args.test_samples,
@@ -174,11 +175,13 @@ def experiment():
                                      quiet=args.quiet)
         get_stats(dataset)
     else:
+        # DQN learning run
+
         # Summary folder
         folder_name = './logs/' + datetime.datetime.now().strftime(
             '%Y-%m-%d_%H-%M-%S')
 
-        # DQN settings
+        # Settings
         if args.debug:
             initial_replay_size = 50
             max_replay_size = 500
@@ -196,7 +199,7 @@ def experiment():
             evaluation_frequency = args.evaluation_frequency
             max_steps = args.max_steps
 
-        # MDP train
+        # MDP
         mdp = Atari(args.name, args.screen_width, args.screen_height,
                     ends_at_life=True)
 
@@ -225,7 +228,7 @@ def experiment():
                                      mdp.observation_space.high)],
                                  **approximator_params_train)
 
-        # target approximator
+        # Target approximator
         approximator_params_target = dict(name='target',
                                           folder_name=folder_name,
                                           n_actions=mdp.action_space.n,
@@ -240,6 +243,8 @@ def experiment():
             preprocessor=[Scaler(mdp.observation_space.high)],
             **approximator_params_target)
 
+        # Initialize target approximator weights with the weights of the
+        # approximator to fit.
         target_approximator.model.set_weights(approximator.model.get_weights())
 
         # Agent
@@ -259,20 +264,20 @@ def experiment():
                         'fit_params': fit_params}
 
         if args.algorithm == 'dqn':
-            agent = DQN(approximator, pi, **agent_params)
+            agent = DQN(approximator, pi, mdp.gamma, **agent_params)
         elif args.algorithm == 'ddqn':
-            agent = DoubleDQN(approximator, pi, **agent_params)
+            agent = DoubleDQN(approximator, pi, mdp.gamma, **agent_params)
         elif args.algorithm == 'wdqn':
-            agent = WeightedDQN(approximator, pi, **agent_params)
+            agent = WeightedDQN(approximator, pi, mdp.gamma, **agent_params)
 
         # Algorithm
         collect_summary = CollectSummary(folder_name)
         core = Core(agent, mdp, callbacks=[collect_summary])
         core_test = Core(agent, mdp)
 
-        # DQN
+        # RUN
 
-        # fill replay memory with random dataset
+        # Fill replay memory with random dataset
         print_epoch(0)
         core.learn(n_iterations=1, how_many=initial_replay_size,
                    n_fit_steps=0, iterate_over='samples', quiet=args.quiet)
@@ -280,7 +285,7 @@ def experiment():
         if args.save:
             approximator.model.save()
 
-        # evaluate initial policy
+        # Evaluate initial policy
         pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(ends_at_life=False)
         dataset = core_test.evaluate(how_many=test_samples,

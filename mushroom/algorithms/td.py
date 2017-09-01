@@ -8,18 +8,21 @@ from mushroom.utils.dataset import max_QA
 class TD(Agent):
     """
     Implements functions to run TD algorithms.
+
     """
-    def __init__(self, approximator, policy, **params):
+    def __init__(self, approximator, policy, gamma, **params):
         self.learning_rate = params['algorithm_params'].pop('learning_rate')
 
-        super(TD, self).__init__(approximator, policy, **params)
+        super(TD, self).__init__(approximator, policy, gamma, **params)
 
     def fit(self, dataset, n_iterations=1):
         """
         Single fit step.
 
-        # Arguments
-            dataset (list): the dataset to use.
+        Args:
+            dataset (list):  a two elements list with the state and the action;
+            n_iterations (int, 1): number of fit steps of the approximator.
+
         """
         assert n_iterations == 1 and len(dataset) == 1
 
@@ -30,7 +33,7 @@ class TD(Agent):
         q_next = self._next_q(np.array([sample[3]])) if not sample[4] else 0.
 
         q = q_current + self.learning_rate(sa) * (
-            sample[2] + self.mdp_info['gamma'] * q_next - q_current)
+            sample[2] + self._gamma * q_next - q_current)
 
         self.approximator.fit(sa, q, **self.params['fit_params'])
 
@@ -42,20 +45,22 @@ class QLearning(TD):
     """
     Q-Learning algorithm.
     "Learning from Delayed Rewards". Watkins C.J.C.H.. 1989.
+
     """
-    def __init__(self, approximator, policy, **params):
+    def __init__(self, approximator, policy, gamma, **params):
         self.__name__ = 'QLearning'
 
-        super(QLearning, self).__init__(approximator, policy, **params)
+        super(QLearning, self).__init__(approximator, policy, gamma, **params)
 
     def _next_q(self, next_state):
         """
-        Arguments
+        Args:
             next_state (np.array): the state where next action has to be
                 evaluated.
 
-        # Returns
+        Returns:
             Maximum action-value in 'next_state'.
+
         """
         max_q, _ = max_QA(next_state, False, self.approximator)
 
@@ -66,11 +71,12 @@ class DoubleQLearning(TD):
     """
     Double Q-Learning algorithm.
     "Double Q-Learning". van Hasselt H.. 2010.
+
     """
-    def __init__(self, approximator, policy, **params):
+    def __init__(self, approximator, policy, gamma, **params):
         self.__name__ = 'DoubleQLearning'
 
-        super(DoubleQLearning, self).__init__(approximator, policy, **params)
+        super(DoubleQLearning, self).__init__(approximator, policy, gamma, **params)
 
         self.learning_rate = [deepcopy(self.learning_rate),
                               deepcopy(self.learning_rate)]
@@ -79,12 +85,6 @@ class DoubleQLearning(TD):
                                                 ' have exactly 2 models.'
 
     def fit(self, dataset, n_iterations=1):
-        """
-        Single fit step.
-
-        # Arguments
-            dataset (list): the dataset to use.
-        """
         assert n_iterations == 1 and len(dataset) == 1
 
         sample = dataset[0]
@@ -97,22 +97,23 @@ class DoubleQLearning(TD):
             np.array([sample[3]]), approximator_idx) if not sample[4] else 0.
 
         q = q_current + self.learning_rate[approximator_idx](sa) * (
-            sample[2] + self.mdp_info['gamma'] * q_next - q_current)
+            sample[2] + self._gamma * q_next - q_current)
 
         self.approximator[approximator_idx].fit(
             sa, q, **self.params['fit_params'])
 
     def _next_q(self, next_state, approximator_idx):
         """
-        # Arguments
+        Args:
             next_state (np.array): the state where next action has to be
                 evaluated;
             approximator_idx (int): the index of the approximator to use
                 to make the prediction.
 
-        # Returns
+        Returns:
             Action-value of the action whose value in 'next_state' is the
             maximum according to 'approximator[approximator]'.
+
         """
         _, a_n = max_QA(next_state, False, self.approximator[approximator_idx])
         sa_n = [next_state, a_n]
@@ -125,14 +126,15 @@ class WeightedQLearning(TD):
     Weighted Q-Learning algorithm.
     "Estimating the Maximum Expected Value through Gaussian Approximation".
     D'Eramo C. et. al.. 2016.
+
     """
-    def __init__(self, approximator, policy, **params):
+    def __init__(self, approximator, policy, gamma, **params):
         self.__name__ = 'WeightedQLearning'
 
         self._sampling = params.pop('sampling', True)
         self._precision = params.pop('precision', 1000.)
 
-        super(WeightedQLearning, self).__init__(approximator, policy, **params)
+        super(WeightedQLearning, self).__init__(approximator, policy, gamma, **params)
 
         self._n_updates = np.zeros(self.approximator.shape)
         self._sigma = np.ones(self.approximator.shape) * 1e10
@@ -141,12 +143,6 @@ class WeightedQLearning(TD):
         self._weights_var = np.zeros(self.approximator.shape)
 
     def fit(self, dataset, n_iterations=1):
-        """
-        Single fit step.
-
-        # Arguments
-            dataset (list): the dataset to use.
-        """
         assert n_iterations == 1 and len(dataset) == 1
 
         sample = dataset[0]
@@ -158,7 +154,7 @@ class WeightedQLearning(TD):
         q_current = self.approximator.predict(sa)
         q_next = self._next_q(np.array([sample[3]])) if not sample[4] else 0.
 
-        target = sample[2] + self.mdp_info['gamma'] * q_next
+        target = sample[2] + self._gamma * q_next
 
         alpha = self.learning_rate(sa)
 
@@ -183,12 +179,13 @@ class WeightedQLearning(TD):
 
     def _next_q(self, next_state):
         """
-        # Arguments
+        Args:
             next_state (np.array): the state where next action has to be
                 evaluated.
 
-        # Returns
-            the weighted estimator.
+        Returns:
+            The weighted estimator value in 'next_state'.
+
         """
         means = self.approximator.predict_all(next_state)
 
@@ -216,37 +213,30 @@ class WeightedQLearning(TD):
 class SpeedyQLearning(TD):
     """
     Speedy Q-Learning algorithm.
+    "Speedy Q-Learning". Ghavamzadeh et. al.. 2011.
+
     """
-    def __init__(self, approximator, policy, **params):
+    def __init__(self, approximator, policy, gamma, **params):
         self.__name__ = 'SpeedyQLearning'
 
         self.old_q = deepcopy(approximator)
 
-        super(SpeedyQLearning, self).__init__(approximator, policy, **params)
+        super(SpeedyQLearning, self).__init__(approximator, policy, gamma, **params)
 
     def fit(self, dataset, n_iterations=1):
-        """
-        Single fit step.
-
-        # Arguments
-            dataset (list): the dataset to use.
-        """
         assert n_iterations == 1 and len(dataset) == 1
 
         sample = dataset[0]
         sa = [np.array([sample[0]]), np.array([sample[1]])]
 
-        # Save current q
         old_q = deepcopy(self.approximator)
 
-        # Compute targets
         max_q_cur, _ = max_QA(np.array([sample[3]]), False, self.approximator)
         max_q_old, _ = max_QA(np.array([sample[3]]), False, self.old_q)
 
-        target_cur = sample[2] + self.mdp_info['gamma'] * max_q_cur
-        target_old = sample[2] + self.mdp_info['gamma'] * max_q_old
+        target_cur = sample[2] + self._gamma * max_q_cur
+        target_old = sample[2] + self._gamma * max_q_old
 
-        # Update q
         alpha = self.learning_rate(sa)
         q_cur = self.approximator.predict(sa)
         q = q_cur + alpha * (target_old-q_cur) + (
@@ -254,30 +244,31 @@ class SpeedyQLearning(TD):
 
         self.approximator.fit(sa, q, **self.params['fit_params'])
 
-        # Update old q
         self.old_q = old_q
 
 
 class SARSA(TD):
     """
     SARSA algorithm.
+
     """
-    def __init__(self, approximator, policy, **params):
+    def __init__(self, approximator, policy, gamma, **params):
         self.__name__ = 'SARSA'
 
-        super(SARSA, self).__init__(approximator, policy, **params)
+        super(SARSA, self).__init__(approximator, policy, gamma, **params)
 
     def _next_q(self, next_state):
         """
         Compute the action with the maximum action-value in 'next_state'.
 
-        # Arguments
+        Args:
             next_state (np.array): the state where next action has to be
                 evaluated.
 
-        # Returns
+        Returns:
             the action_value of the action returned by the policy in
             'next_state'
+
         """
         self._next_action = self.draw_action(next_state)
         sa_n = [next_state, np.expand_dims(self._next_action, axis=0)]

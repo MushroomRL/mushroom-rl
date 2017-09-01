@@ -8,6 +8,11 @@ from mushroom.utils.dataset import compute_scores, max_QA
 
 
 class CollectDataset(object):
+    """
+    This callback can be used to collect the samples during the run of the
+    agent.
+
+    """
     def __init__(self):
         self._dataset = list()
 
@@ -20,15 +25,17 @@ class CollectDataset(object):
 
 class CollectQ(object):
     """
-    This callback can be used to collect the values of the maximum action
-    value in a given state at each call.
+    This callback can be used to collect the action values in a given state at
+    each call.
+
     """
     def __init__(self, approximator):
         """
         Constructor.
 
-        Arguments
+        Args:
             approximator (object): the approximator to use;
+
         """
         self._approximator = approximator
 
@@ -38,10 +45,10 @@ class CollectQ(object):
         if isinstance(self._approximator, Ensemble):
             qs = list()
             for m in self._approximator.models:
-                qs.append(m.model._Q)
+                qs.append(m.model.Q)
             self._Qs.append(deepcopy(np.mean(qs, 0)))
         else:
-            self._Qs.append(deepcopy(self._approximator.model._Q))
+            self._Qs.append(deepcopy(self._approximator.model.Q))
 
     def get_values(self):
         return self._Qs
@@ -49,17 +56,18 @@ class CollectQ(object):
 
 class CollectMaxQ(object):
     """
-    This callback can be used to collect the values of the maximum action
-    value in a given state at each call.
+    This callback can be used to collect the maximum action value in a given
+    state at each call.
+
     """
     def __init__(self, approximator, state):
         """
         Constructor.
 
-        Arguments
+        Args:
             approximator (object): the approximator to use;
-            state (np.array): the state to consider;
-            action_values (np.array): all the possible values of the action.
+            state (np.array): the state to consider.
+
         """
         self._approximator = approximator
         self._state = state
@@ -76,6 +84,11 @@ class CollectMaxQ(object):
 
 
 class CollectSummary(object):
+    """
+    This callback can be used to collect the tensorflow summary to be plotted
+    in tensorboard.
+
+    """
     def __init__(self, folder_name):
         self._summary_writer = tf.summary.FileWriter(folder_name)
         self._global_step = 0

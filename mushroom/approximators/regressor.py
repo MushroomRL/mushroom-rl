@@ -3,21 +3,24 @@ import numpy as np
 
 class Regressor(object):
     """
-    Regressor class used to preprocess input and output before passing them
-    to the desired approximator.
+    Regressor class. It is used to preprocess the input provided and to
+    feed the approximator with them.
+
     """
     def __init__(self, approximator, discrete_actions=None, preprocessor=None,
                  **params):
         """
         Constructor.
 
-        # Arguments
+        Args:
             approximator (object): the approximator class to use;
-            fit_action (bool, True): whether the model consider the action in
-                the input sample or not;
-            preprocessor (list, None): list of preprocessing step to apply to
+            discrete_actions ([int, list, np.array], None): the action values to
+                consider to do regression. If an integer number n is provided,
+                the values of the actions ranges from 0 to n - 1.
+            preprocessor (list, None): list of preprocessing steps to apply to
                 the input data
-            params (dict): other parameters.
+            **params (dict): other parameters.
+
         """
         self.model = approximator(**params)
 
@@ -41,11 +44,11 @@ class Regressor(object):
         Preprocess the input and output if requested and fit the model using
         its fit function.
 
-        # Arguments
-            x (np.array): input dataset containing states (and action, if
-                action regression is not used);
-            y (np.array): target;
-            fit_params (dict): other parameters.
+        Args:
+            x (list): a two elements list with states and actions;
+            y (np.array): targets;
+            **fit_params (dict): other parameters.
+
         """
         x, y = self._preprocess_fit(x, y)
         self.model.fit(x, y, **fit_params)
@@ -55,11 +58,11 @@ class Regressor(object):
         Preprocess the input and output if requested and fit the model on a
         single batch using its fit function.
 
-        # Arguments
-            x (np.array): input dataset containing states (and action, if
-                action regression is not used);
-            y (np.array): target;
-            fit_params (dict): other parameters.
+        Args:
+            x (list): a two elements list with states and actions;
+            y (np.array): targets;
+            **fit_params (dict): other parameters.
+
         """
         x, y = self._preprocess_fit(x, y)
         self.model.train_on_batch(x, y, **fit_params)
@@ -68,12 +71,12 @@ class Regressor(object):
         """
         Preprocess the input and output if requested and make the prediction.
 
-        # Arguments
-            x (np.array): input dataset containing states (and action, if
-                action regression is not used).
+        Args:
+            x (list): a two elements list with states and actions;
 
-        # Returns
+        Returns:
             The prediction of the model.
+
         """
         x = self._preprocess_predict(x)
         y = self.model.predict(x)
@@ -82,14 +85,14 @@ class Regressor(object):
 
     def predict_all(self, x):
         """
-        Predict Q-value for each action given a state.
+        Predict for each action given a state.
 
-        # Arguments
-            x (np.array): input dataset containing states;
-            actions (np.array): list of actions of the MDP.
+        Args:
+            x (np.array): states;
 
-        # Returns
+        Returns:
             The predictions of the model.
+
         """
         if hasattr(self, 'discrete_actions'):
             assert x.ndim == 2
@@ -123,6 +126,19 @@ class Regressor(object):
         return self._preprocess(x)
 
     def _preprocess(self, x):
+        """
+        Preprocess the input to create a np.array with concatenated states and
+        actions in the case the regressor uses both as input. During this
+        phase, it maps the provided action values to the actions id.
+        Eventually, it applies the provided preprocessing steps sequentially.
+
+        Args:
+            x (np.array): states;
+
+        Returns:
+            The preprocessed input.
+
+        """
         if hasattr(self, 'discrete_actions'):
             assert isinstance(x, list) and len(x) == 2
             assert x[0].ndim == 2 and x[1].ndim == 2

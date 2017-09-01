@@ -1,8 +1,6 @@
 import gym
 from gym.utils import seeding
 
-import numpy as np
-
 
 class Environment(gym.Env):
     def __init__(self):

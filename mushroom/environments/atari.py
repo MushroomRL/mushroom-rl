@@ -6,6 +6,12 @@ from mushroom.utils.spaces import *
 
 
 class Atari(Environment):
+    """
+    The Atari environment as presented in:
+    "Human-level control through deep reinforcement learning". Mnih et. al..
+    2015.
+
+    """
     def __init__(self, name, width=84, height=84, ends_at_life=False):
         self.__name__ = name
 

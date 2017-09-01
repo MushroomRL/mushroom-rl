@@ -1,67 +1,85 @@
 import numpy as np
 from copy import deepcopy
 
-def value_iteration(P, R, gamma, eps):
-    stateN = P.shape[0]
-    actionN = P.shape[1]
 
-    V = np.zeros(stateN)
+def value_iteration(p, r, gamma, eps):
+    """
+    Value iteration algorithm to solve a dynamic programming problem.
+
+    Args:
+        p (np.array): transition probability matrix;
+        r (np.array): reward matrix;
+        gamma (float): discount factor;
+        eps (float): accuracy threshold.
+
+    """
+    state_n = p.shape[0]
+    action_n = p.shape[1]
+
+    v = np.zeros(state_n)
 
     while True:
-        Vold = deepcopy(V)
+        v_old = deepcopy(v)
 
-        for s in xrange(stateN):
+        for s in xrange(state_n):
             vmax = -float('inf')
-            for a in xrange(actionN):
-                Psa = P[s, a, :]
-                Rsa = R[s, a, :]
-                va = Psa.T.dot(Rsa + gamma * Vold)
+            for a in xrange(action_n):
+                p_sa = p[s, a, :]
+                r_sa = r[s, a, :]
+                va = p_sa.T.dot(r_sa + gamma * v_old)
                 vmax = max(va, vmax)
 
-            V[s] = vmax
-        if np.linalg.norm(V - Vold) <= eps:
+            v[s] = vmax
+        if np.linalg.norm(v - v_old) <= eps:
             break
 
-    return V
+    return v
 
 
-def policy_iteration(P, R, gamma):
-    stateN = P.shape[0]
-    actionN = P.shape[1]
+def policy_iteration(p, r, gamma):
+    """
+    Policy iteration algorithm to solve a dynamic programming problem.
 
-    pi = np.zeros(stateN,dtype=int)
-    V = np.zeros(stateN)
+    Args:
+        p (np.array): transition probability matrix;
+        r (np.array): reward matrix;
+        gamma (float): discount factor;
+
+    """
+    state_n = p.shape[0]
+    action_n = p.shape[1]
+
+    pi = np.zeros(state_n, dtype=int)
+    v = np.zeros(state_n)
 
     changed = True
-    while(changed):
-        #Compute value function
-        Ppi = np.zeros((stateN, stateN))
-        Rpi = np.zeros(stateN)
-        I= np.eye(stateN)
+    while changed:
+        p_pi = np.zeros((state_n, state_n))
+        r_pi = np.zeros(state_n)
+        i = np.eye(state_n)
 
-        for s in xrange(stateN):
+        for s in xrange(state_n):
             a = pi[s]
-            PpiS = P[s, a, :]
-            RpiS = R[s, a, :]
+            p_pi_s = p[s, a, :]
+            r_pi_s = r[s, a, :]
 
-            Ppi[s, :] = PpiS.T
-            Rpi[s] = PpiS.T.dot(RpiS)
+            p_pi[s, :] = p_pi_s.T
+            r_pi[s] = p_pi_s.T.dot(r_pi_s)
 
-        V = np.linalg.inv(I - gamma * Ppi).dot(Rpi)
+        v = np.linalg.inv(i - gamma * p_pi).dot(r_pi)
 
-        #Compute policy
         changed = False
 
-        for s in xrange(stateN):
-            vmax = V[s]
-            for a in xrange(actionN):
+        for s in xrange(state_n):
+            vmax = v[s]
+            for a in xrange(action_n):
                 if a != pi[s]:
-                    Psa = P[s, a]
-                    Rsa = R[s, a]
-                    va = Psa.T.dot(Rsa + gamma * V)
-                    if (va > vmax):
+                    p_sa = p[s, a]
+                    r_sa = r[s, a]
+                    va = p_sa.T.dot(r_sa + gamma * v)
+                    if va > vmax:
                         pi[s] = a
                         vmax = va
                         changed = True
 
-    return V, pi
+    return v, pi

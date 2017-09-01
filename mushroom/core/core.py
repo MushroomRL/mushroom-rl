@@ -6,16 +6,18 @@ import numpy as np
 class Core(object):
     """
     Implements the functions to run a generic algorithm.
+
     """
     def __init__(self, agent, mdp, callbacks=None):
         """
         Constructor.
 
-        # Arguments
+        Args:
             agent (object): the agent moving according to a policy;
             mdp (object): the environment in which the agent moves;
             callbacks (list): list of callbacks to execute at the end of
-                each iteration.
+                each learn iteration.
+
         """
         self.agent = agent
         self.mdp = mdp
@@ -37,15 +39,17 @@ class Core(object):
         function generalizes the learning procedure of online and batch
         algorithms.
 
-        # Arguments
-            n_iterations (int > 0): number of iterations;
-            how_many (int > 0): number of samples or episodes to collect in a
+        Args:
+            n_iterations (int): number of iterations;
+            how_many (int): number of samples or episodes to collect in a
                 single iteration of the loop;
-            n_fit_steps (int > 0): number of fitting steps of the learning
+            n_fit_steps (int): number of fitting steps of the learning
                 algorithm;
             iterate_over (string): whether to collect samples or episodes in a
                 single iteration of the loop;
-            render (bool): whether to render the environment or not.
+            render (bool): whether to render the environment or not;
+            quiet (bool): whethet to hide the progress bar or not.
+
         """
         assert iterate_over == 'samples' or iterate_over == 'episodes'
 
@@ -74,11 +78,17 @@ class Core(object):
         """
         This function is used to evaluate the learned policy.
 
-        # Arguments
+        Args:
+            how_many (int): number of samples or episodes to collect in a
+                single iteration of the loop;
+            iterate_over (string): whether to collect samples or episodes in a
+                single iteration of the loop;
             initial_states (np.array): the array of initial states from where to
                 start the evaluation episodes. An evaluation episode is run for
                 each state;
-            render (bool): whether to render the environment or not.
+            render (bool): whether to render the environment or not;
+            quiet (bool): whethet to hide the progress bar or not.
+
         """
         self._state = self.mdp.reset()
 
@@ -107,15 +117,15 @@ class Core(object):
 
     def _move_episodes(self, how_many, render=False):
         """
-        Move the agent.
+        Move the agent for a certain number of episodes.
 
-        # Arguments
-            how_many (int > 0): number of samples or episodes to collect;
-            collect (bool): whether to store the collected data or not;
+        Args:
+            how_many (int): number of episodes to collect;
             render (bool): whether to render the environment or not.
 
-        # Returns
-            The list of discounted rewards obtained in each episode.
+        Returns:
+            The list of episode samples collected during the episode.
+
         """
         i = 0
         dataset = list()
@@ -134,6 +144,17 @@ class Core(object):
         return dataset
 
     def _move_samples(self, how_many, render=False):
+        """
+        Move the agent for a certain number of steps.
+
+        # Arguments
+            how_many (int): number of samples to collect;
+            render (bool): whether to render the environment or not.
+
+        # Returns
+            The list of samples collected during the episode.
+
+        """
         i = 0
         dataset = [None] * how_many
         while i < how_many:
@@ -151,9 +172,9 @@ class Core(object):
         """
         Single step.
 
-        # Arguments
-            collect (bool): whether to collect the sample or not.
+        # Args:
             render (bool): whether to render or not.
+
         """
         action = self.agent.draw_action(self._state)
         next_state, reward, absorbing, _ = self.mdp.step(action)
@@ -172,7 +193,8 @@ class Core(object):
 
     def reset(self):
         """
-        Reset the stored dataset list.
+        Reset the state of the agent.
+
         """
         self._state = self.mdp.reset()
         self._episode_steps = 0

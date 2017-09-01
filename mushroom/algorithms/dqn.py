@@ -22,13 +22,15 @@ class Buffer(object):
 
         return s
 
+
 class DQN(Agent):
     """
     Deep Q-Network algorithm.
     "Human-Level Control Through Deep Reinforcement Learning".
     Mnih V. et. al.. 2015.
+
     """
-    def __init__(self, approximator, policy, **params):
+    def __init__(self, approximator, policy, gamma, **params):
         self.__name__ = 'DQN'
 
         alg_params = params['algorithm_params']
@@ -49,14 +51,16 @@ class DQN(Agent):
         self._episode_steps = None
         self._no_op_actions = None
 
-        super(DQN, self).__init__(approximator, policy, **params)
+        super(DQN, self).__init__(approximator, policy, gamma, **params)
 
     def fit(self, dataset, n_iterations=1):
         """
         Single fit step.
 
-        # Arguments
-            dataset (list): the dataset to use.
+        Args:
+            dataset (list): a two elements list with states and actions;
+            n_iterations (int, 1): number of fit steps of the approximator.
+
         """
         self._replay_memory.add(dataset)
         if n_iterations == 0:
@@ -73,7 +77,7 @@ class DQN(Agent):
             sa = [state, action]
 
             q_next = self._next_q(next_state, absorbing)
-            q = reward + self.mdp_info['gamma'] * q_next
+            q = reward + self._gamma * q_next
 
             self.approximator.train_on_batch(
                 sa, q, **self.params['fit_params'])
@@ -84,22 +88,30 @@ class DQN(Agent):
                 self._target_approximator.model.set_weights(
                     self.approximator.model.get_weights())
 
-    def _next_q(self, next_state, absorbing):
+    def _next_q(self, next_states, absorbing):
         """
-        Arguments
-            next_state (np.array): the state where next action has to be
+        Args:
+            next_states (np.array): the states where next action has to be
                 evaluated.
             absorbing (np.array): the absorbing flag for the states in
                 'next_state'.
 
-        # Returns
-            Maximum action-value in 'next_state'.
+        Returns:
+            Maximum action-value for each state in 'next_states'.
+
         """
-        max_q, _ = max_QA(next_state, absorbing, self._target_approximator)
+        max_q, _ = max_QA(next_states, absorbing, self._target_approximator)
 
         return max_q
 
     def initialize(self, mdp_info):
+        """
+        Initialize mdp info attribute.
+
+        Args:
+            mdp_info (dict): information about the mdp (e.g. discount factor).
+
+        """
         super(DQN, self).initialize(mdp_info)
 
         self._replay_memory.initialize(self.mdp_info)
@@ -131,22 +143,24 @@ class DQN(Agent):
 class DoubleDQN(DQN):
     """
     Implements functions to run the Double DQN algorithm.
+
     """
-    def __init__(self, approximator, policy, **params):
+    def __init__(self, approximator, policy, gamma, **params):
         self.__name__ = 'DoubleDQN'
 
-        super(DoubleDQN, self).__init__(approximator, policy, **params)
+        super(DoubleDQN, self).__init__(approximator, policy, gamma, **params)
 
     def _next_q(self, next_state, absorbing):
         """
-        Arguments
+        Args:
             next_state (np.array): the state where next action has to be
                 evaluated.
             absorbing (np.array): the absorbing flag for the states in
                 'next_state'.
 
-        # Returns
+        Returns
             Maximum action-value in 'next_state'.
+
         """
         _, a_n = max_QA(next_state, absorbing, self.approximator)
         sa_n = [next_state, a_n]

@@ -7,16 +7,18 @@ from mushroom.utils.parameters import Parameter
 class EpsGreedy(object):
     """
     Epsilon greedy policy.
+
     """
     def __init__(self, epsilon, observation_space, action_space):
         """
         Constructor.
 
-        # Arguments
+        Args:
         epsilon (Parameter): the exploration coefficient. It indicates
             the probability of performing a random actions in the current step;
         observation_space (object): the state space;
         action_space (object): the action_space.
+
         """
         self.__name__ = 'EpsGreedy'
 
@@ -30,13 +32,14 @@ class EpsGreedy(object):
         """
         Compute an action according to the policy.
 
-        # Arguments
+        Args:
             state (np.array): the state where the agent is;
             approximator (object): the approximator to use to compute the
                 action values.
 
-        # Returns
+        Returns:
             The selected action.
+
         """
         if not np.random.uniform() < self._epsilon(state):
             _, max_action = max_QA(state, False, approximator)
@@ -48,15 +51,25 @@ class EpsGreedy(object):
         """
         Setter.
 
-        # Arguments
-        epsilon (Parameter): the exploration coefficient. It indicates
-            the probability of performing a random actions in the current step.
+        Args:
+            epsilon (Parameter): the exploration coefficient. It indicates the
+            probability of performing a random actions in the current step.
+
         """
         assert isinstance(epsilon, Parameter)
 
         self._epsilon = epsilon
 
     def update(self, idx=0):
+        """
+        Update the value of the epsilon parameter (e.g. in case of different
+        values of epsilon for each visited state according to the number of
+        visits).
+
+        Args:
+            idx (int): value to use to update epsilon.
+
+        """
         self._epsilon.update(idx)
 
     def __str__(self):
