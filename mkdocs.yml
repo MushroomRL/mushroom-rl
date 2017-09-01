@@ -3,4 +3,3 @@ pages:
     - Home: index.md
     - Tutorial: tutorial.md
 theme: readthedocs
-theme_dir: docs_theme
