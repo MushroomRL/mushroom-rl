@@ -1,19 +1,17 @@
 Mushroom
 ******
 
-**Mushroom: a toolkit for Reinforcement Learning experiments.**
+**Mushroom: Reinforcement Learning python library.**
 
 .. contents:: **Contents of this document:**
    :depth: 2
 
 What is Mushroom
 ============
-Mushroom is a toolkit for solving Reinforcement Learning problems. It is written in Python
-and makes a large use of Tensorflow (https://www.tensorflow.org/) and
-OpenAI Gym (https://gym.openai.com/) libraries.
+Mushroom is a python Reinforcement Learning (RL) library using Tensorflow and
+OpenAI Gym libraries. It allows to perform RL in a simple way providing TD (e.g. Q-Learning, SARSA)
+and batch TD (FQI) algorithms, together with the famous DQN algorithm used to solve the Atari environment.
 
-Mushroom is still under development, but it already features the main algorithms used in the
-value-based approach in RL (e.g. Q-Learning, SARSA, FQI) and deep RL (e.g. DQN, Double DQN).
 By choice, it is currently focused on value-based algorithms, but policy gradient
 and actor-critic algorithms will be added in future versions.
 
@@ -24,8 +22,8 @@ You can do a minimal installation of ``Mushroom`` with:
 
 .. code:: shell
 
-	git clone https://github.com/carloderamo/Mushroom.git
-	cd Mushroom
+	git clone https://github.com/carloderamo/mushroom.git
+	cd mushroom
 	pip install -e .
 
 Installing everything
