@@ -2,25 +2,7 @@ import numpy as np
 
 from mushroom.algorithms.agent import Agent
 from mushroom.utils.dataset import max_QA
-from mushroom.utils.replay_memory import ReplayMemory
-
-
-class Buffer(object):
-    def __init__(self, size):
-        self._size = size
-
-        self._buf = [None] * self._size
-
-    def add(self, sample):
-        self._buf.append(sample)
-        self._buf = self._buf[1:]
-
-    def get(self):
-        s = np.empty(self._buf[0].shape + (self._size,), dtype=np.float32)
-        for i in xrange(self._size):
-            s[..., i] = self._buf[i]
-
-        return s
+from mushroom.utils.replay_memory import Buffer, ReplayMemory
 
 
 class DQN(Agent):

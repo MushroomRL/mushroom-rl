@@ -6,7 +6,7 @@ class Tabular(object):
     Tabular regressor. Used for discrete state and action spaces.
 
     """
-    def __init__(self, shape, initial_value=0.):
+    def __init__(self, shape, initial_value=0., **params):
         """
         Constructor.
 

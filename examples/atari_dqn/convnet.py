@@ -3,7 +3,8 @@ import tensorflow as tf
 
 
 class ConvNet:
-    def __init__(self, name, folder_name=None, load_path=None, **convnet_pars):
+    def __init__(self, name=None, folder_name=None, load_path=None,
+                 **convnet_pars):
         self._name = name
 
         self._session = tf.Session()
@@ -67,7 +68,7 @@ class ConvNet:
         self._restore_collection()
 
     def _build(self, convnet_pars):
-        with tf.variable_scope(self._name):
+        with tf.variable_scope(self._name, default_name='dqn'):
             self._x = tf.placeholder(tf.float32,
                                      shape=[None,
                                             convnet_pars['height'],

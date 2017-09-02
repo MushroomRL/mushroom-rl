@@ -1,5 +1,8 @@
+import numpy as np
+
 from mushroom.algorithms.agent import Agent
 from mushroom.utils.dataset import max_QA, parse_dataset
+from mushroom.utils.replay_memory import Buffer, ReplayMemory
 
 
 class BatchTD(Agent):
@@ -92,3 +95,79 @@ class WeightedFQI(FQI):
 
     def partial_fit(self, x, y, **fit_params):
         pass
+
+
+class DeepFQI(FQI):
+    """
+    Deep Fitted Q-Iteration algorithm.
+
+    "Deep Auto-Encoder Neural Networks in Reinforcement Learning". Lange S. and
+    Riedmiller M.. 2010.
+
+    """
+    def __init__(self, approximator, policy, gamma, **params):
+        self.__name__ = 'DeepFQI'
+
+        alg_params = params['algorithm_params']
+        self._extractor = alg_params.get('extractor')
+        self._batch_size = alg_params.get('batch_size')
+        self._clip_reward = alg_params.get('clip_reward', True)
+        self._replay_memory = ReplayMemory(alg_params.get('dataset_size'),
+                                           alg_params.get('history_length', 1))
+        self._buffer = Buffer(size=alg_params.get('history_length', 1))
+        self._max_no_op_actions = alg_params.get('max_no_op_actions', 0)
+        self._no_op_action_value = alg_params.get('no_op_action_value', 0)
+
+        self._episode_steps = None
+        self._no_op_actions = None
+
+        super(DeepFQI, self).__init__(approximator, policy, gamma, **params)
+
+    def fit(self, dataset, n_iterations):
+        self._replay_memory.add(dataset)
+        state, action, reward, next_state, absorbing, last = \
+            self._replay_memory.get(self._replay_memory.size)
+
+        sa = [state, action]
+        self._extractor.fit(sa, next_state, **self.params['fit_params'])
+
+        sa_n = [next_state, action]
+        feature_dataset = [self._extractor.predict(sa), action, reward,
+                           self._extractor.predict(sa_n), absorbing, last]
+
+        super(DeepFQI, self).fit(feature_dataset, n_iterations)
+
+    def initialize(self, mdp_info):
+        """
+        Initialize mdp info attribute.
+
+        Args:
+            mdp_info (dict): information about the mdp (e.g. discount factor).
+
+        """
+        super(DeepFQI, self).initialize(mdp_info)
+
+        self._replay_memory.initialize(self.mdp_info)
+
+    def draw_action(self, state):
+        self._buffer.add(state)
+
+        if self._episode_steps < self._no_op_actions:
+            action = np.array([self._no_op_action_value])
+            self.policy.update()
+        else:
+            extended_state = self._buffer.get()
+
+            action = super(DeepFQI, self).draw_action(extended_state)
+
+        self._episode_steps += 1
+
+        return action
+
+    def episode_start(self):
+        self._no_op_actions = np.random.randint(
+            self._replay_memory._history_length, self._max_no_op_actions + 1)
+        self._episode_steps = 0
+
+    def __str__(self):
+        return self.__name__

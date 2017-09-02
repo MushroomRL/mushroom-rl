@@ -7,7 +7,7 @@ from mushroom.approximators.ensemble import Ensemble
 from mushroom.utils.dataset import compute_scores, max_QA
 
 
-class CollectDataset(object):
+class CollectDataset:
     """
     This callback can be used to collect the samples during the run of the
     agent.
@@ -16,14 +16,14 @@ class CollectDataset(object):
     def __init__(self):
         self._dataset = list()
 
-    def __call__(self, *args):
-        self._dataset += args[0]
+    def __call__(self, **kwargs):
+        self._dataset += kwargs['dataset']
 
     def get(self):
         return self._dataset
 
 
-class CollectQ(object):
+class CollectQ:
     """
     This callback can be used to collect the action values in a given state at
     each call.
@@ -41,7 +41,7 @@ class CollectQ(object):
 
         self._Qs = list()
 
-    def __call__(self, *args):
+    def __call__(self, **kwargs):
         if isinstance(self._approximator, Ensemble):
             qs = list()
             for m in self._approximator.models:
@@ -54,7 +54,7 @@ class CollectQ(object):
         return self._Qs
 
 
-class CollectMaxQ(object):
+class CollectMaxQ:
     """
     This callback can be used to collect the maximum action value in a given
     state at each call.
@@ -74,7 +74,7 @@ class CollectMaxQ(object):
 
         self._max_Qs = list()
 
-    def __call__(self, *args):
+    def __call__(self, **kwargs):
         max_Q, _ = max_QA(self._state, False, self._approximator)
 
         self._max_Qs.append(max_Q[0])
@@ -83,7 +83,7 @@ class CollectMaxQ(object):
         return self._max_Qs
 
 
-class CollectSummary(object):
+class CollectSummary:
     """
     This callback can be used to collect the tensorflow summary to be plotted
     in tensorboard.
@@ -93,8 +93,8 @@ class CollectSummary(object):
         self._summary_writer = tf.summary.FileWriter(folder_name)
         self._global_step = 0
 
-    def __call__(self, dataset):
-        score = compute_scores(dataset)
+    def __call__(self, **kwargs):
+        score = compute_scores(kwargs['dataset'])
 
         summary = tf.Summary(value=[
             tf.Summary.Value(
@@ -113,3 +113,16 @@ class CollectSummary(object):
         self._summary_writer.add_summary(summary, self._global_step)
 
         self._global_step += 1
+
+
+class EvaluatePolicy:
+    def __init__(self, how_many, iterate_over, render, quiet):
+        self._how_many = how_many
+        self._iterate_over = iterate_over
+        self._render = render
+        self._quiet = quiet
+
+    def __call__(self, **kwargs):
+        core = kwargs['core']
+        core.evaluate(how_many=self._how_many, iterate_over=self._iterate_over,
+                      render=self._render, quiet=self._quiet)

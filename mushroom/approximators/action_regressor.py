@@ -10,7 +10,9 @@ class ActionRegressor(object):
     with discrete actions and cannot be used in MDPs with continuous actions.
 
     """
-    def __init__(self, approximator, discrete_actions, **params):
+    def __init__(self, approximator, discrete_actions,
+                 state_preprocessor=None, state_action_preprocessor=None,
+                 **params):
         """
         Constructor.
 
@@ -19,7 +21,12 @@ class ActionRegressor(object):
                 Q-function of each action;
             discrete_actions ([int, list, np.array]): the action values to
                 consider to do regression. If an integer number n is provided,
-                the values of the actions ranges from 0 to n - 1.
+                the values of the actions ranges from 0 to n - 1;
+            state_action_preprocessor (list, None): list of preprocessing steps
+                to apply to the input data of each regressor of the action
+                regressor;
+            state_action_preprocessor (list, None): list of preprocessing steps
+                to apply to the input of the action regressor;
             **params (dict): parameters dictionary to create each regressor.
 
         """
@@ -32,8 +39,15 @@ class ActionRegressor(object):
             assert self._discrete_actions.ndim == 2
         self.models = list()
 
+        if state_action_preprocessor is not None:
+            self._preprocessor = state_action_preprocessor
+        else:
+            self._preprocessor = []
+
         for i in xrange(self._discrete_actions.shape[0]):
-            self.models.append(Regressor(approximator, **params))
+            self.models.append(Regressor(approximator,
+                                         preprocessor=state_preprocessor,
+                                         **params))
 
     def fit(self, x, y, **fit_params):
         """
@@ -45,6 +59,8 @@ class ActionRegressor(object):
             **fit_params (dict): other parameters.
 
         """
+        x = self._preprocess(x)
+
         for i in xrange(len(self.models)):
             idxs = np.argwhere((x[1] == i)[:, 0]).ravel()
 
@@ -61,6 +77,8 @@ class ActionRegressor(object):
             **fit_params (dict): other parameters.
 
         """
+        x = self._preprocess(x)
+
         for i in xrange(len(self.models)):
             idxs = np.argwhere((x[1] == i)[:, 0]).ravel()
 
@@ -80,6 +98,8 @@ class ActionRegressor(object):
             The predictions of the model.
 
         """
+        x = self._preprocess(x)
+
         y = np.zeros((x[0].shape[0]))
         for i in xrange(len(self.models)):
             idxs = np.argwhere((x[1] == i)[:, 0]).ravel()
@@ -105,9 +125,17 @@ class ActionRegressor(object):
         y = np.zeros((n_states, n_actions))
 
         for action in xrange(n_actions):
-            y[:, action] = self.models[action].predict(x)
+            sa = [x, self._discrete_actions[action:action + 1]]
+
+            y[:, action] = self.models[action].predict(self._preprocess(sa)[0])
 
         return y
+
+    def _preprocess(self, x):
+        for p in self._preprocessor:
+            x = p(x)
+
+        return x
 
     def __str__(self):
         return str(self.models[0]) + ' with action regression.'

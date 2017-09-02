@@ -63,7 +63,9 @@ class Core(object):
                 self.agent.fit(dataset, n_fit_steps)
 
                 for c in self.callbacks:
-                    c(dataset)
+                    callback_pars = dict(dataset=dataset,
+                                         core=self)
+                    c(**callback_pars)
         else:
             for self.iteration in tqdm(xrange(n_iterations), dynamic_ncols=True,
                                        disable=quiet, leave=False):
@@ -71,7 +73,9 @@ class Core(object):
                 self.agent.fit(dataset, n_fit_steps)
 
                 for c in self.callbacks:
-                    c(dataset)
+                    callback_pars = dict(dataset=dataset,
+                                         core=self)
+                    c(**callback_pars)
 
     def evaluate(self, how_many=1, iterate_over='episodes', initial_states=None,
                  render=False, quiet=False):
