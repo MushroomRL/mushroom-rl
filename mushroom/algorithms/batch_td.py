@@ -39,10 +39,10 @@ class FQI(BatchTD):
         """
         target = None
         for i in xrange(n_iterations):
-            target = self.partial_fit(dataset, target,
+            target = self._partial_fit(dataset, target,
                                       **self.params['fit_params'])
 
-    def partial_fit(self, x, y, **fit_params):
+    def _partial_fit(self, x, y, **fit_params):
         """
         Single fit iteration.
 
@@ -77,7 +77,7 @@ class DoubleFQI(FQI):
 
         super(DoubleFQI, self).__init__(approximator, policy, gamma, **params)
 
-    def partial_fit(self, x, y, **fit_params):
+    def _partial_fit(self, x, y, **fit_params):
         pass
 
 
@@ -93,7 +93,7 @@ class WeightedFQI(FQI):
 
         super(WeightedFQI, self).__init__(approximator, policy, gamma, **params)
 
-    def partial_fit(self, x, y, **fit_params):
+    def _partial_fit(self, x, y, **fit_params):
         pass
 
 
@@ -110,6 +110,8 @@ class DeepFQI(FQI):
 
         alg_params = params['algorithm_params']
         self._extractor = alg_params.get('extractor')
+        self._n_epochs = alg_params.get('n_epochs')
+        self._predict_next_state = alg_params.get('predict_next_state', False)
         self._batch_size = alg_params.get('batch_size')
         self._clip_reward = alg_params.get('clip_reward', True)
         self._replay_memory = ReplayMemory(alg_params.get('dataset_size'),
@@ -125,17 +127,108 @@ class DeepFQI(FQI):
 
     def fit(self, dataset, n_iterations):
         self._replay_memory.add(dataset)
-        state, action, reward, next_state, absorbing, last = \
-            self._replay_memory.get(self._replay_memory.size)
+        replay_memory_generator = self._replay_memory.generator(
+            self._batch_size
+        )
 
-        sa = [state, action]
-        self._extractor.fit(sa, next_state, **self.params['fit_params'])
+        if self._predict_next_state:
+            assert hasattr(self._extractor, '_discrete_actions')
 
-        sa_n = [next_state, action]
-        feature_dataset = [self._extractor.predict(sa), action, reward,
-                           self._extractor.predict(sa_n), absorbing, last]
+            for e in xrange(self._n_epochs):
+                for batch in replay_memory_generator:
+                    sa = [batch[0], batch[1]]
+                    self._extractor.train_on_batch(sa,
+                                                   batch[3],
+                                                   **self.params['fit_params'])
 
-        super(DeepFQI, self).fit(feature_dataset, n_iterations)
+            state, action, reward, next_state, absorbing, _ = \
+                self._replay_memory.get(len(dataset))
+            sa = [state, action]
+            state_feature = self._extractor.predict(sa)
+            next_state_feature = np.ones(
+                (np.unique(action).size,) + state_feature.shape)
+            for i in xrange(next_state_feature.shape[0]):
+                a = np.ones((state_feature.shape[0], 1)) * i
+                sa_n = [next_state, a]
+                next_state_feature[i, :] = self._extractor.predict(sa_n)
+
+            feature_dataset = [state_feature, action, reward,
+                               next_state_feature,
+                               absorbing]
+
+            target = None
+            for i in xrange(n_iterations):
+                target = self._partial_fit_next_state(
+                    feature_dataset,
+                    target,
+                    **self.params['fit_params']
+                )
+        else:
+            assert not hasattr(self._extractor, '_discrete_actions')
+
+            for e in xrange(self._n_epochs):
+                for batch in replay_memory_generator:
+                    self._extractor.train_on_batch(batch[0],
+                                                   batch[0],
+                                                   **self.params['fit_params'])
+
+            state, action, reward, next_state, absorbing, _ = \
+                self._replay_memory.get(self._replay_memory.size)
+
+            self._extractor.train_on_batch(
+                state, state, **self.params['fit_params'])
+            state_feature = self._extractor.predict(state)
+            next_state_feature = self._extractor.predict(next_state)
+
+            feature_dataset = [state_feature, action, reward,
+                               next_state_feature,
+                               absorbing]
+
+            target = None
+            for i in xrange(n_iterations):
+                target = self._partial_fit_state(feature_dataset, target,
+                                                 **self.params['fit_params'])
+
+    def _partial_fit_next_state(self, x, y, **fit_params):
+        assert not hasattr(self.approximator, '_discrete_actions')
+
+        if y is None:
+            y = x[2]
+        else:
+            q = np.ones((x[0].shape[0], np.unique(x[1]).size))
+            for i in xrange(q.shape[1]):
+                q[:, i] = self.approximator.predict(x[3][i])
+
+            if np.any(x[4]):
+                q *= 1 - x[4].reshape(-1, 1)
+            max_q = np.max(q, axis=1)
+            y = x[2] + self._gamma * max_q
+
+        self.approximator.fit(x[0], y, **fit_params)
+
+        return y
+
+    def _partial_fit_state(self, x, y, **fit_params):
+        assert hasattr(self.approximator, '_discrete_actions')
+
+        if y is None:
+            y = x[2]
+        else:
+            q = np.ones((x[0].shape[0], np.unique(x[1]).size))
+            for i in xrange(q.shape[1]):
+                sa = [x[3], np.ones((x[3].shape[0], 1)) * i]
+                q[:, i] = self.approximator.predict(sa)
+
+            if np.any(x[4]):
+                q *= 1 - x[4].reshape(-1, 1)
+            max_q = np.max(q, axis=1)
+            y = x[2] + self._gamma * max_q
+
+        sa = [x[0], x[1]]
+
+        self.approximator.fit(sa, y, **fit_params)
+
+        return y
 
     def initialize(self, mdp_info):
         """
@@ -156,9 +249,20 @@ class DeepFQI(FQI):
             action = np.array([self._no_op_action_value])
             self.policy.update()
         else:
+            return self.policy(np.expand_dims(state, axis=0), self.approximator)
+
             extended_state = self._buffer.get()
 
-            action = super(DeepFQI, self).draw_action(extended_state)
+            n_actions = self._extractor._discrete_actions.shape[0]
+            if self._predict_next_state:
+                for i in xrange(n_actions):
+                    a = np.ones((extended_state.shape[0], 1)) * i
+                    sa = [np.array([extended_state]), a]
+                    feature = self._extractor.predict(sa)
+            else:
+                feature = self._extractor.predict(np.array([extended_state]))
+
+            action = super(DeepFQI, self).draw_action(feature)
 
         self._episode_steps += 1
 

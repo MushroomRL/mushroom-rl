@@ -43,15 +43,17 @@ class Ensemble(object):
         Predict.
 
         Args:
-            x (list): a two elements list with states and actions;
+            x (list): a two elements list with states and actions.
 
         Returns:
             The predictions of the model.
 
         """
-        y = list()
-        for m in self.models:
-            y.append(m.predict(x))
+        y_0 = self.models[0].predict(x)
+        y = np.zeros((self.n_models,) + y_0.shape)
+        y[0] = y_0
+        for i, m in enumerate(self.models[1:]):
+            y[i + 1] = m.predict(x)
         y = np.mean(y, axis=0)
 
         return y
@@ -61,16 +63,17 @@ class Ensemble(object):
         Predict for each action given a state.
 
         Args:
-            x (np.array): states;
-            actions (np.array): list of actions of the MDP.
+            x (np.array): states.
 
         Returns:
             The predictions of the model.
 
         """
-        y = list()
-        for m in self.models:
-            y.append(m.predict_all(x))
+        y_0 = self.models[0].predict_all(x)
+        y = np.zeros((self.n_models,) + y_0.shape)
+        y[0] = y_0
+        for i, m in enumerate(self.models[1:]):
+            y[i + 1] = m.predict_all(x)
         y = np.mean(y, axis=0)
 
         return y

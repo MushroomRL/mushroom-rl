@@ -55,6 +55,19 @@ class ReplayMemory(object):
     def get(self, n_samples):
         idxs = np.random.randint(self.size, size=n_samples)
 
+        return self._get_idxs(idxs)
+
+    def generator(self, batch_size):
+        num_batches = int(np.ceil(self.size / float(batch_size)))
+        indexes = np.arange(self.size)
+        np.random.shuffle(indexes)
+        batches = [(i * batch_size, min(self.size, (
+            i + 1) * batch_size)) for i in xrange(num_batches)]
+
+        for (batch_start, batch_end) in batches:
+            yield self._get_idxs(indexes[batch_start:batch_end])
+
+    def _get_idxs(self, idxs):
         if not self._full and np.any(idxs < self._history_length):
             idxs[np.argwhere(
                 idxs < self._history_length).ravel()] += self._history_length

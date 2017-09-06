@@ -1,16 +1,16 @@
-from copy import deepcopy
-
 import numpy as np
 
 
 class Preprocessor(object):
     """
     This is the interface class of the preprocessors.
+
     """
     def __call__(self, x):
         """
-        Returns
+        Returns:
             The preprocessed input data array.
+
         """
         if isinstance(x, list):
             assert isinstance(x[0], np.ndarray)
@@ -26,22 +26,25 @@ class Scaler(Preprocessor):
     """
     This class implements the function to scale the input data by a given
     coefficient.
+
     """
     def __init__(self, coeff):
         """
         Constructor.
 
-        # Arguments
+        Args:
             coeff (float): the coefficient to use to scale input data.
+
         """
         self._coeff = coeff
 
     def _compute(self, x):
         """
-        # Arguments
+        Args:
             x (np.array): input data
 
-        # Returns
+        Returns:
             The scaled input data array.
+
         """
         return x / self._coeff

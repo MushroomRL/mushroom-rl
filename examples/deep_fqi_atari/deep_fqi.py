@@ -12,7 +12,14 @@ from mushroom.environments import Atari
 from mushroom.policy import EpsGreedy
 from mushroom.utils.parameters import Parameter
 from mushroom.utils.preprocessor import Scaler
+from mushroom.utils.dataset import compute_scores
 from extractor import Extractor
+
+
+def get_stats(dataset):
+    score = compute_scores(dataset)
+    print('min_reward: %f, max_reward: %f, mean_reward: %f,'
+          ' games_completed: %d' % score)
 
 
 def experiment():
@@ -47,6 +54,8 @@ def experiment():
                               'gradient momentum in rmsprop.')
 
     arg_alg = parser.add_argument_group('Algorithm')
+    arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.)
+    arg_alg.add_argument("--n-epochs", type=int, default=3)
     arg_alg.add_argument("--n-iterations", type=int, default=10)
     arg_alg.add_argument("--fit-steps", type=int, default=125000)
     arg_alg.add_argument("--dataset-size", type=int, default=500000)
@@ -84,7 +93,7 @@ def experiment():
                 ends_at_life=True)
 
     # Policy
-    epsilon = Parameter(value=1)
+    epsilon = Parameter(value=args.initial_exploration_rate)
     pi = EpsGreedy(epsilon=epsilon,
                    observation_space=mdp.observation_space,
                    action_space=mdp.action_space)
@@ -105,14 +114,13 @@ def experiment():
                                 **extractor_params)
 
     approximator_params = dict()
-    approximator = ActionRegressor(ExtraTreesRegressor,
-                                   discrete_actions=mdp.action_space.n,
-                                   state_action_preprocessor=[extractor],
-                                   **approximator_params)
+    approximator = Regressor(ExtraTreesRegressor, **approximator_params)
 
     # Agent
     algorithm_params = dict(
+        n_epochs=args.n_epochs,
         batch_size=args.batch_size,
+        predict_next_state=True,
         dataset_size=args.dataset_size,
         extractor=extractor,
         history_length=args.history_length,
@@ -136,6 +144,17 @@ def experiment():
     core.learn(n_iterations=args.n_iterations, how_many=args.dataset_size,
                n_fit_steps=args.fit_steps, iterate_over='samples',
                quiet=args.quiet)
+
+    print '- Evaluation:'
+    # evaluation step
+    pi.set_epsilon(Parameter(.05))
+    mdp.set_episode_end(ends_at_life=False)
+    core.reset()
+    dataset = core.evaluate(how_many=args.test_samples,
+                            iterate_over='samples',
+                            render=args.render,
+                            quiet=args.quiet)
+    get_stats(dataset)
 
 if __name__ == '__main__':
     experiment()

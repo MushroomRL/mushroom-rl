@@ -25,10 +25,10 @@ def parse_dataset(dataset):
     for i in xrange(len(dataset)):
         state[i, ...] = dataset[i][0]
         action[i, ...] = dataset[i][1]
-        reward[i, ...] = dataset[i][2]
+        reward[i] = dataset[i][2]
         next_state[i, ...] = dataset[i][3]
-        absorbing[i, ...] = dataset[i][4]
-        last[i, ...] = dataset[i][5]
+        absorbing[i] = dataset[i][4]
+        last[i] = dataset[i][5]
 
     return np.array(state), np.array(action), np.array(reward), np.array(
         next_state), np.array(absorbing), np.array(last)

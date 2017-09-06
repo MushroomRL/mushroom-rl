@@ -2,18 +2,22 @@
 ## Reinforcement Learning python library
 
 Mushroom is a Reinforcement Learning (RL) library that aims to be a simple, yet
-powerful way to make RL experiments in a fast way. The idea behind Mushroom consists
-in offering the majority of RL algorithms providing a common interface
-in order to run them without excessive effort. It makes a large use of the environments
-provided by [OpenAI Gym](https://gym.openai.com/) library and of the regression models
-provided by [Scikit-Learn](http://scikit-learn.org/stable/) library giving also the possibility
-to build and run neural networks using [Tensorflow](https://www.tensorflow.org) library.
+powerful way to make RL experiments in a fast way. The idea behind Mushroom
+consists in offering the majority of RL algorithms providing a common interface
+in order to run them without excessive effort. It makes a large use of the
+environments provided by [OpenAI Gym](https://gym.openai.com/) library and of
+the regression models provided by
+[Scikit-Learn](http://scikit-learn.org/stable/) library giving also the
+possibility to build and run neural networks using
+[Tensorflow](https://www.tensorflow.org) library.
 
 With Mushroom you can:
 
 * Solve value-based RL problems simply writing a single small script.
-* Use all RL environments offered by OpenAI Gym and build customized environments as well.
-* Exploit regression models offered by Scikit-Learn or build a customized one with Tensorflow.
+* Use all RL environments offered by OpenAI Gym and build customized
+  environments as well.
+* Exploit regression models offered by Scikit-Learn or build a customized one
+  with Tensorflow.
 * Run experiments with CPU or GPU.
 
 ## Basic run example
@@ -21,13 +25,13 @@ With Mushroom you can:
 Firstly, create a `mdp`:
 
     import mushroom
-    from mushroom.environments.grid_world import GridWorld
+    from mushroom.environments import GridWorld
 
     mdp = GridWorld(width=3, height=3, goal=(2, 2), start=(0, 0))
     
 Then, an `epsilon`-greedy policy `pi` with:
 
-    from mushroom.policy.policy import EpsGreedy
+    from mushroom.policy import EpsGreedy
     from mushroom.utils.parameters import Parameter 
 
     epsilon = Parameter(value=1)
@@ -36,7 +40,7 @@ Then, an `epsilon`-greedy policy `pi` with:
                    
 The Q-function `approximator` is created with:
 
-    from mushroom.approximators import *
+    from mushroom.approximators import Regressor, Tabular
  
     shape = mdp.observation_space.size + mdp.action_space.size
     approximator_params = dict(shape=shape)
@@ -93,5 +97,4 @@ Final Q-table:
     """
 
 ## Installation
-
-
+Mushroom can be installed 

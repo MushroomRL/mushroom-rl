@@ -100,10 +100,15 @@ class ActionRegressor(object):
         """
         x = self._preprocess(x)
 
-        y = np.zeros((x[0].shape[0]))
         for i in xrange(len(self.models)):
             idxs = np.argwhere((x[1] == i)[:, 0]).ravel()
-
+            if idxs.size:
+                y_0 = self.models[i].predict(x[0][idxs, :])
+                break
+        y = np.zeros((x[0].shape[0],) + y_0.shape[1:])
+        y[idxs] = y_0
+        for i in xrange(i + 1, len(self.models)):
+            idxs = np.argwhere((x[1] == i)[:, 0]).ravel()
             if idxs.size:
                 y[idxs] = self.models[i].predict(x[0][idxs, :])
 
@@ -122,11 +127,13 @@ class ActionRegressor(object):
         """
         n_states = x.shape[0]
         n_actions = self._discrete_actions.shape[0]
-        y = np.zeros((n_states, n_actions))
 
-        for action in xrange(n_actions):
+        sa = [x, self._discrete_actions[0:1]]
+        y_0 = self.models[0].predict(self._preprocess(sa)[0])
+        y = np.zeros((n_states, n_actions) + y_0.shape[1:])
+        y[:, 0] = y_0
+        for action in xrange(1, n_actions):
             sa = [x, self._discrete_actions[action:action + 1]]
-
             y[:, action] = self.models[action].predict(self._preprocess(sa)[0])
 
         return y

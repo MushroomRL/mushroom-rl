@@ -1,4 +1,3 @@
-import numpy as np
 import tensorflow as tf
 
 
@@ -15,20 +14,17 @@ class Extractor:
         else:
             self._build(convnet_pars)
 
-        self._train_writer = tf.summary.FileWriter(
-            self._folder_name,
-            graph=tf.get_default_graph()
-        )
-
-        self._train_saver = tf.train.Saver()
-
-    def __call__(self, x):
-        return self._session.run(self._features, feed_dict={self._x: x})
+        self._train_saver = tf.train.Saver(
+            tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
+                              scope=self._scope_name))
 
     def predict(self, x):
+        return self._session.run(self._features, feed_dict={self._x: x})
+
+    def target(self, x):
         return self._session.run(self._prediction, feed_dict={self._x: x})
 
-    def fit(self, x, y):
+    def train_on_batch(self, x, y):
         summaries, _ = self._session.run(
             [self._merged, self._train_step],
             feed_dict={self._x: x, self._target_prediction: y}
@@ -36,20 +32,6 @@ class Extractor:
         self._train_writer.add_summary(summaries, self._train_count)
 
         self._train_count += 1
-
-    def set_weights(self, weights):
-        w = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
-                              scope=self._name)
-        assert len(w) == len(weights)
-
-        for i in xrange(len(w)):
-            self._session.run(tf.assign(w[i], weights[i]))
-
-    def get_weights(self):
-        w = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
-                              scope=self._name)
-
-        return self._session.run(w)
 
     def save(self):
         self._train_saver.save(
@@ -64,6 +46,7 @@ class Extractor:
 
     def _build(self, convnet_pars):
         with tf.variable_scope(self._name, default_name='deep_fqi_extractor'):
+            self._scope_name = tf.get_default_graph().get_name_scope()
             self._x = tf.placeholder(tf.float32,
                                      shape=[None,
                                             convnet_pars['height'],
@@ -134,12 +117,14 @@ class Extractor:
                 shape=[None, convnet_pars['height'], convnet_pars['width'],
                        convnet_pars['history_length']],
                 name='target_prediction')
-            self._action = tf.placeholder('uint8', [None], name='action')
 
             loss = tf.losses.sigmoid_cross_entropy(self._target_prediction,
                                                    self._prediction)
             tf.summary.scalar('loss', loss)
-            self._merged = tf.summary.merge_all()
+            self._merged = tf.summary.merge(
+                tf.get_collection(tf.GraphKeys.SUMMARIES,
+                                  scope=self._scope_name)
+            )
 
             optimizer = convnet_pars['optimizer']
             if optimizer['name'] == 'rmspropcentered':
@@ -156,12 +141,25 @@ class Extractor:
             else:
                 raise ValueError('Unavailable optimizer selected.')
 
-            self._train_count = 0
             self._train_step = opt.minimize(loss=loss)
 
-        self._session.run(tf.global_variables_initializer())
+            initializer = tf.variables_initializer(
+                tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
+                                  scope=self._scope_name))
+
+        self._session.run(initializer)
+
+        self._train_writer = tf.summary.FileWriter(
+            self._folder_name,
+            graph=tf.get_default_graph()
+        )
+
+        self._train_count = 0
 
         self._add_collection()
+
+    def __call__(self, x):
+        return self.predict(x)
 
     def _add_collection(self):
         tf.add_to_collection('x', self._x)
