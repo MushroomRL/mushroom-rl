@@ -55,9 +55,9 @@ def experiment():
 
     arg_alg = parser.add_argument_group('Algorithm')
     arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.)
-    arg_alg.add_argument("--n-epochs", type=int, default=3)
+    arg_alg.add_argument("--n-epochs", type=int, default=25)
     arg_alg.add_argument("--n-iterations", type=int, default=10)
-    arg_alg.add_argument("--fit-steps", type=int, default=125000)
+    arg_alg.add_argument("--fit-steps", type=int, default=1000)
     arg_alg.add_argument("--dataset-size", type=int, default=500000)
     arg_alg.add_argument("--batch-size", type=int, default=32,
                          help='Batch size for each fit of the network.')
