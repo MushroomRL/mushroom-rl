@@ -6,7 +6,6 @@ from sklearn.ensemble import ExtraTreesRegressor
 
 from mushroom.algorithms import DeepFQI
 from mushroom.approximators import *
-from mushroom.utils.callbacks import EvaluatePolicy
 from mushroom.core.core import Core
 from mushroom.environments import Atari
 from mushroom.policy import EpsGreedy
@@ -137,11 +136,7 @@ def experiment():
     agent = DeepFQI(approximator, pi, mdp.gamma, **agent_params)
 
     # Core
-    evaluate_policy = EvaluatePolicy(how_many=args.test_samples,
-                                     iterate_over='samples',
-                                     render=args.render,
-                                     quiet=args.quiet)
-    core = Core(agent, mdp, callbacks=[evaluate_policy])
+    core = Core(agent, mdp)
 
     # Learn
     core.learn(n_iterations=args.n_iterations, how_many=args.dataset_size,

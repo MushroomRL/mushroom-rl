@@ -36,7 +36,7 @@ class Extractor:
     def save(self):
         self._train_saver.save(
             self._session,
-            self._folder_name + '/deep_fqi_extractor'
+            self._folder_name + '/' + self._scope_name
         )
 
     def _load(self, path):
@@ -150,7 +150,7 @@ class Extractor:
         self._session.run(initializer)
 
         self._train_writer = tf.summary.FileWriter(
-            self._folder_name,
+            self._folder_name + '/' + self._scope_name,
             graph=tf.get_default_graph()
         )
 

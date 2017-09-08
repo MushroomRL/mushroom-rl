@@ -113,16 +113,3 @@ class CollectSummary:
         self._summary_writer.add_summary(summary, self._global_step)
 
         self._global_step += 1
-
-
-class EvaluatePolicy:
-    def __init__(self, how_many, iterate_over, render, quiet):
-        self._how_many = how_many
-        self._iterate_over = iterate_over
-        self._render = render
-        self._quiet = quiet
-
-    def __call__(self, **kwargs):
-        core = kwargs['core']
-        core.evaluate(how_many=self._how_many, iterate_over=self._iterate_over,
-                      render=self._render, quiet=self._quiet)
