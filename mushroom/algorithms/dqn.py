@@ -74,7 +74,7 @@ class DQN(Agent):
         """
         Args:
             next_states (np.array): the states where next action has to be
-                evaluated.
+                evaluated;
             absorbing (np.array): the absorbing flag for the states in
                 'next_state'.
 
@@ -136,7 +136,7 @@ class DoubleDQN(DQN):
         """
         Args:
             next_state (np.array): the state where next action has to be
-                evaluated.
+                evaluated;
             absorbing (np.array): the absorbing flag for the states in
                 'next_state'.
 

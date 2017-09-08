@@ -40,7 +40,7 @@ class FQI(BatchTD):
         target = None
         for i in xrange(n_iterations):
             target = self._partial_fit(dataset, target,
-                                      **self.params['fit_params'])
+                                       **self.params['fit_params'])
 
     def _partial_fit(self, x, y, **fit_params):
         """
@@ -132,7 +132,7 @@ class DeepFQI(FQI):
         )
 
         if self._predict_next_state:
-            assert hasattr(self._extractor, '_discrete_actions')
+            assert hasattr(self._extractor, 'discrete_actions')
 
             for e in xrange(self._n_epochs):
                 for batch in replay_memory_generator:
@@ -164,7 +164,7 @@ class DeepFQI(FQI):
                     **self.params['fit_params']
                 )
         else:
-            assert not hasattr(self._extractor, '_discrete_actions')
+            assert not hasattr(self._extractor, 'discrete_actions')
 
             for e in xrange(self._n_epochs):
                 for batch in replay_memory_generator:
@@ -190,7 +190,7 @@ class DeepFQI(FQI):
                                                  **self.params['fit_params'])
 
     def _partial_fit_next_state(self, x, y, **fit_params):
-        assert not hasattr(self.approximator, '_discrete_actions')
+        assert not hasattr(self.approximator, 'discrete_actions')
 
         if y is None:
             y = x[2]
@@ -209,15 +209,12 @@ class DeepFQI(FQI):
         return y
 
     def _partial_fit_state(self, x, y, **fit_params):
-        assert hasattr(self.approximator, '_discrete_actions')
+        assert hasattr(self.approximator, 'discrete_actions')
 
         if y is None:
             y = x[2]
         else:
-            q = np.ones((x[0].shape[0], np.unique(x[1]).size))
-            for i in xrange(q.shape[1]):
-                sa = [x[3], np.ones((x[3].shape[0], 1)) * i]
-                q[:, i] = self.approximator.predict(sa)
+            q = self.approximator.predict_all(x[0])
 
             if np.any(x[4]):
                 q *= 1 - x[4].reshape(-1, 1)

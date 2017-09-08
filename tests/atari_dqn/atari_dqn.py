@@ -51,7 +51,7 @@ def experiment():
                                      height=84,
                                      history_length=4)
     approximator = Regressor(ConvNet,
-                             preprocessor=[Scaler(
+                             input_preprocessor=[Scaler(
                                  mdp.observation_space.high)],
                              **approximator_params_train)
 
@@ -66,7 +66,7 @@ def experiment():
                                       history_length=4)
     target_approximator = Regressor(
         ConvNet,
-        preprocessor=[Scaler(mdp.observation_space.high)],
+        input_preprocessor=[Scaler(mdp.observation_space.high)],
         **approximator_params_target)
 
     target_approximator.model.set_weights(approximator.model.get_weights())

@@ -109,12 +109,15 @@ def experiment():
                             history_length=args.history_length)
     extractor = ActionRegressor(Extractor,
                                 discrete_actions=mdp.action_space.n,
-                                state_preprocessor=[
+                                input_preprocessor=[
+                                    Scaler(mdp.observation_space.high)],
+                                output_preprocessor=[
                                     Scaler(mdp.observation_space.high)],
                                 **extractor_params)
 
     approximator_params = dict()
-    approximator = Regressor(ExtraTreesRegressor, **approximator_params)
+    approximator = Regressor(ExtraTreesRegressor,
+                             **approximator_params)
 
     # Agent
     algorithm_params = dict(

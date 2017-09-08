@@ -7,8 +7,8 @@ class Regressor(object):
     feed the approximator with them.
 
     """
-    def __init__(self, approximator, discrete_actions=None, preprocessor=None,
-                 **params):
+    def __init__(self, approximator, discrete_actions=None,
+                 input_preprocessor=None, output_preprocessor=None, **params):
         """
         Constructor.
 
@@ -37,7 +37,10 @@ class Regressor(object):
                 assert self.discrete_actions.ndim == 2
                 self._actions_with_value = True
 
-        self._preprocessor = preprocessor if preprocessor is not None else []
+        self._input_preprocessor =\
+            input_preprocessor if input_preprocessor is not None else []
+        self._output_preprocessor =\
+            output_preprocessor if output_preprocessor is not None else []
 
     def fit(self, x, y, **fit_params):
         """
@@ -101,7 +104,7 @@ class Regressor(object):
             n_actions = self.discrete_actions.shape[0]
             action_dim = self.discrete_actions.shape[1]
 
-            for p in self._preprocessor:
+            for p in self._input_preprocessor:
                 x = p(x)
 
             a = np.ones(
@@ -116,18 +119,32 @@ class Regressor(object):
                 samples = np.concatenate((x, a), axis=1)
                 y[:, action] = self.model.predict(samples).ravel()
         else:
-            for p in self._preprocessor:
+            for p in self._input_preprocessor:
                 x = p(x)
 
             y = self.model.predict(x)
 
+        for p in self._output_preprocessor:
+            y = p(y)
+
         return y
 
     def _preprocess_fit(self, x, y):
-        return self._preprocess(x), y
+        x = self._preprocess(x)
+
+        for p in self._input_preprocessor:
+            x = p(x)
+        for p in self._output_preprocessor:
+            y = p(y)
+
+        return x, y
 
     def _preprocess_predict(self, x):
-        return self._preprocess(x)
+        x = self._preprocess(x)
+        for p in self._input_preprocessor:
+            x = p(x)
+
+        return x
 
     def _preprocess(self, x):
         """
@@ -137,7 +154,7 @@ class Regressor(object):
         Eventually, it applies the provided preprocessing steps sequentially.
 
         Args:
-            x (np.array): states;
+            x (np.array): states.
 
         Returns:
             The preprocessed input.
@@ -153,9 +170,6 @@ class Regressor(object):
                                    axis=1)
             else:
                 x = np.concatenate((x[0], x[1]), axis=1)
-
-        for p in self._preprocessor:
-            x = p(x)
 
         return x
 

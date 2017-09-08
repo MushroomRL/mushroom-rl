@@ -116,6 +116,7 @@ class DoubleQLearning(TD):
 
         """
         _, a_n = max_QA(next_state, False, self.approximator[approximator_idx])
+        a_n = np.array([[np.random.choice(a_n.ravel())]])
         sa_n = [next_state, a_n]
 
         return self.approximator[1 - approximator_idx].predict(sa_n)

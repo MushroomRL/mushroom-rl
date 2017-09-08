@@ -146,10 +146,11 @@ def experiment():
                                    width=args.screen_width,
                                    height=args.screen_height,
                                    history_length=args.history_length)
-        approximator = Regressor(ConvNet,
-                                 preprocessor=[Scaler(
-                                     mdp.observation_space.high)],
-                                 **approximator_params)
+        approximator = Regressor(
+            ConvNet,
+            input_preprocessor=[Scaler(mdp.observation_space.high)],
+            **approximator_params
+        )
 
         # Agent
         algorithm_params = dict(
@@ -224,7 +225,7 @@ def experiment():
                                          height=args.screen_height,
                                          history_length=args.history_length)
         approximator = Regressor(ConvNet,
-                                 preprocessor=[Scaler(
+                                 input_preprocessor=[Scaler(
                                      mdp.observation_space.high)],
                                  **approximator_params_train)
 
@@ -238,10 +239,10 @@ def experiment():
                                           width=args.screen_width,
                                           height=args.screen_height,
                                           history_length=args.history_length)
-        target_approximator = Regressor(
-            ConvNet,
-            preprocessor=[Scaler(mdp.observation_space.high)],
-            **approximator_params_target)
+        target_approximator = Regressor(ConvNet,
+                                        input_preprocessor=[Scaler(
+                                            mdp.observation_space.high)],
+                                        **approximator_params_target)
 
         # Initialize target approximator weights with the weights of the
         # approximator to fit.

@@ -11,8 +11,8 @@ class ActionRegressor(object):
 
     """
     def __init__(self, approximator, discrete_actions,
-                 state_preprocessor=None, state_action_preprocessor=None,
-                 **params):
+                 input_preprocessor=None, output_preprocessor=None,
+                 state_action_preprocessor=None, **params):
         """
         Constructor.
 
@@ -31,12 +31,12 @@ class ActionRegressor(object):
 
         """
         if isinstance(discrete_actions, int):
-            self._discrete_actions = np.arange(discrete_actions).reshape(-1, 1)
+            self.discrete_actions = np.arange(discrete_actions).reshape(-1, 1)
         else:
-            self._discrete_actions = np.array(discrete_actions)
-            if self._discrete_actions.ndim == 1:
-                self._discrete_actions = self._discrete_actions.reshape(-1, 1)
-            assert self._discrete_actions.ndim == 2
+            self.discrete_actions = np.array(discrete_actions)
+            if self.discrete_actions.ndim == 1:
+                self.discrete_actions = self.discrete_actions.reshape(-1, 1)
+            assert self.discrete_actions.ndim == 2
         self.models = list()
 
         if state_action_preprocessor is not None:
@@ -44,10 +44,13 @@ class ActionRegressor(object):
         else:
             self._preprocessor = []
 
-        for i in xrange(self._discrete_actions.shape[0]):
-            self.models.append(Regressor(approximator,
-                                         preprocessor=state_preprocessor,
-                                         **params))
+        for i in xrange(self.discrete_actions.shape[0]):
+            self.models.append(
+                Regressor(approximator,
+                          input_preprocessor=input_preprocessor,
+                          output_preprocessor=output_preprocessor,
+                          **params)
+            )
 
     def fit(self, x, y, **fit_params):
         """
@@ -126,14 +129,14 @@ class ActionRegressor(object):
 
         """
         n_states = x.shape[0]
-        n_actions = self._discrete_actions.shape[0]
+        n_actions = self.discrete_actions.shape[0]
 
-        sa = [x, self._discrete_actions[0:1]]
+        sa = [x, self.discrete_actions[0:1]]
         y_0 = self.models[0].predict(self._preprocess(sa)[0])
         y = np.zeros((n_states, n_actions) + y_0.shape[1:])
         y[:, 0] = y_0
         for action in xrange(1, n_actions):
-            sa = [x, self._discrete_actions[action:action + 1]]
+            sa = [x, self.discrete_actions[action:action + 1]]
             y[:, action] = self.models[action].predict(self._preprocess(sa)[0])
 
         return y

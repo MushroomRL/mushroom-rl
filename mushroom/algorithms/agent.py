@@ -1,5 +1,3 @@
-import logging
-
 import numpy as np
 
 
@@ -15,7 +13,8 @@ class Agent(object):
 
         Args:
             approximator (object): the approximator of the Q function;
-            policy (object): the policy to use.
+            policy (object): the policy to use;
+            gamma (float): discount factor;
             **params (dict): other parameters of the algorithm.
 
         """
@@ -41,7 +40,7 @@ class Agent(object):
 
     def draw_action(self, state):
         """
-        Returns the action to execute. It is the action returned by the policy
+        Return the action to execute. It is the action returned by the policy
         or the action set by the algorithm (e.g. SARSA).
 
         Args:
