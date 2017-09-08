@@ -120,10 +120,7 @@ class Extractor:
 
             loss = tf.losses.sigmoid_cross_entropy(self._target_prediction,
                                                    self._prediction)
-            accuracy = tf.metrics.accuracy(self._target_prediction,
-                                           self._prediction)
             tf.summary.scalar('loss', loss)
-            tf.summary.scalar('accuracy', accuracy)
             self._merged = tf.summary.merge(
                 tf.get_collection(tf.GraphKeys.SUMMARIES,
                                   scope=self._scope_name)
