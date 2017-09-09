@@ -42,7 +42,9 @@ class EpsGreedy(object):
 
         """
         if not np.random.uniform() < self._epsilon(state):
-            _, max_action = max_QA(state, False, approximator)
+            _, max_action = max_QA(np.expand_dims(state, axis=0),
+                                   False,
+                                   approximator)
             return max_action.ravel()
 
         return self.action_space.sample()

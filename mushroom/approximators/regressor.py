@@ -124,13 +124,11 @@ class Regressor(object):
 
             y = self.model.predict(x)
 
-        for p in self._output_preprocessor:
-            y = p(y)
-
         return y
 
     def _preprocess_fit(self, x, y):
-        x = self._preprocess(x)
+        if hasattr(self, 'discrete_actions'):
+            x = self._preprocess(x)
 
         for p in self._input_preprocessor:
             x = p(x)
@@ -140,7 +138,9 @@ class Regressor(object):
         return x, y
 
     def _preprocess_predict(self, x):
-        x = self._preprocess(x)
+        if hasattr(self, 'discrete_actions'):
+            x = self._preprocess(x)
+
         for p in self._input_preprocessor:
             x = p(x)
 
@@ -160,16 +160,15 @@ class Regressor(object):
             The preprocessed input.
 
         """
-        if hasattr(self, 'discrete_actions'):
-            assert isinstance(x, list) and len(x) == 2
-            assert x[0].ndim == 2 and x[1].ndim == 2
-            assert x[0].shape[0] == x[1].shape[0]
+        assert isinstance(x, list) and len(x) == 2
+        assert x[0].ndim == 2 and x[1].ndim == 2
+        assert x[0].shape[0] == x[1].shape[0]
 
-            if self._actions_with_value:
-                x = np.concatenate((x[0], self.discrete_actions[x[1].ravel()]),
-                                   axis=1)
-            else:
-                x = np.concatenate((x[0], x[1]), axis=1)
+        if self._actions_with_value:
+            x = np.concatenate((x[0], self.discrete_actions[x[1].ravel()]),
+                               axis=1)
+        else:
+            x = np.concatenate((x[0], x[1]), axis=1)
 
         return x
 

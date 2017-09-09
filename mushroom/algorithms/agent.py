@@ -51,7 +51,7 @@ class Agent(object):
 
         """
         if self._next_action is None:
-            return self.policy(np.expand_dims(state, axis=0), self.approximator)
+            return self.policy(state, self.approximator)
         else:
             action = self._next_action
             self._next_action = None
