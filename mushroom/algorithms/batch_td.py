@@ -2,7 +2,7 @@ import numpy as np
 
 from mushroom.algorithms.agent import Agent
 from mushroom.utils.dataset import max_QA, parse_dataset
-from mushroom.utils.replay_memory import Buffer, ReplayMemory
+from mushroom.utils.replay_memory import Buffer
 
 
 class BatchTD(Agent):
@@ -101,6 +101,13 @@ class DeepFQI(FQI):
     def __init__(self, approximator, policy, gamma, **params):
         self.__name__ = 'DeepFQI'
 
+        alg_params = params['algorithm_params']
+        self._buffer = Buffer(size=alg_params.get('history_length', 1))
+        self._max_no_op_actions = alg_params.get('max_no_op_actions')
+        self._no_op_action_value = alg_params.get('no_op_action_value')
+        self._episode_steps = 0
+        self._no_op_actions = None
+
         super(DeepFQI, self).__init__(approximator, policy, gamma, **params)
 
     def _partial_fit(self, x, y, **fit_params):
@@ -128,3 +135,23 @@ class DeepFQI(FQI):
         self.approximator.fit(state, y, **fit_params)
 
         return y
+
+    def draw_action(self, state):
+        self._buffer.add(state)
+
+        if self._episode_steps < self._no_op_actions:
+            action = np.array([self._no_op_action_value])
+            self.policy.update()
+        else:
+            extended_state = self._buffer.get()
+
+            action = super(DeepFQI, self).draw_action(extended_state)
+
+        self._episode_steps += 1
+
+        return action
+
+    def episode_start(self):
+        self._no_op_actions = np.random.randint(
+            self._buffer.size, self._max_no_op_actions + 1)
+        self._episode_steps = 0

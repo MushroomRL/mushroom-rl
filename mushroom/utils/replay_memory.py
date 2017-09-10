@@ -18,6 +18,10 @@ class Buffer(object):
 
         return s
 
+    @property
+    def size(self):
+        return self._size
+
 
 class ReplayMemory(object):
     def __init__(self, max_size, history_length=1):

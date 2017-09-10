@@ -161,6 +161,10 @@ class Extractor:
     def __call__(self, x):
         return self.predict(x)
 
+    @property
+    def n_features(self):
+        return self._features.shape[1]
+
     def _add_collection(self):
         tf.add_to_collection('x', self._x)
         tf.add_to_collection('prediction', self._prediction)

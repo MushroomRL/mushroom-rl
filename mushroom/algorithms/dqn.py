@@ -30,7 +30,7 @@ class DQN(Agent):
         self._buffer = Buffer(size=alg_params.get('history_length', 1))
 
         self._n_updates = 0
-        self._episode_steps = None
+        self._episode_steps = 0
         self._no_op_actions = None
 
         super(DQN, self).__init__(approximator, policy, gamma, **params)

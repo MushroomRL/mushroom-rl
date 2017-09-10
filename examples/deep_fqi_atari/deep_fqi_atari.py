@@ -37,7 +37,7 @@ def experiment():
                           help='Width of the game screen.')
     arg_game.add_argument("--screen-height", type=int, default=84,
                           help='Height of the game screen.')
-    arg_game.add_argument("--binarizer-threshold", type=int, default=.35,
+    arg_game.add_argument("--binarizer-threshold", type=int, default=.1,
                           help='Threshold value to use to binarize images.')
 
     arg_net = parser.add_argument_group('Extractor')
@@ -119,17 +119,14 @@ def experiment():
                                     Binarizer(args.binarizer_threshold)],
                                 **extractor_params)
 
+    n_features = extractor.models[0].model.n_features
+
     approximator_params = dict()
     approximator = Regressor(ExtraTreesRegressor,
                              **approximator_params)
 
     # Agent
     algorithm_params = dict(
-        n_epochs=args.n_epochs,
-        batch_size=args.batch_size,
-        predict_next_state=True,
-        dataset_size=args.dataset_size,
-        extractor=extractor,
         history_length=args.history_length,
         max_no_op_actions=args.max_no_op_actions,
         no_op_action_value=args.no_op_action_value
@@ -144,51 +141,58 @@ def experiment():
     core = Core(agent, mdp)
 
     # Learn
-    dataset = core.evaluate(how_many=args.dataset_size, iterate_over='samples',
-                            quiet=args.quiet)
-    replay_memory = ReplayMemory(args.dataset_size, args.history_length)
-    mdp_info = dict(observation_space=mdp.observation_space,
-                    action_space=mdp.action_space)
-    replay_memory.initialize(mdp_info)
-    replay_memory.add(dataset)
-    for i, m in enumerate(extractor.models):
-        idxs = np.argwhere(replay_memory._actions.ravel() == i).ravel()
-        rm_generator = replay_memory.generator(args.batch_size, idxs)
-        for e in xrange(args.n_epochs):
-            for batch in rm_generator:
-                m.train_on_batch(batch[0], batch[3])
+    for k in xrange(args.n_iterations):
+        print('Iteration %d' % k)
+        dataset = core.evaluate(how_many=args.dataset_size,
+                                iterate_over='samples',
+                                quiet=args.quiet)
+        replay_memory = ReplayMemory(args.dataset_size, args.history_length)
+        mdp_info = dict(observation_space=mdp.observation_space,
+                        action_space=mdp.action_space)
+        replay_memory.initialize(mdp_info)
+        replay_memory.add(dataset)
+        for i, m in enumerate(extractor.models):
+            print('Fitting model %d' % i)
+            idxs = np.argwhere(replay_memory._actions.ravel() == i).ravel()
+            rm_generator = replay_memory.generator(args.batch_size, idxs)
+            for e in xrange(args.n_epochs):
+                for batch in rm_generator:
+                    m.train_on_batch(batch[0], batch[3])
 
-    f = np.ones((replay_memory.size, 400))
-    for i, m in enumerate(extractor.models):
-        idxs = np.argwhere(replay_memory._actions.ravel() == i).ravel()
-        rm_generator = replay_memory.generator(args.batch_size, idxs)
-        for j, batch in enumerate(rm_generator):
-            start = j * batch[0].shape[0]
-            stop = start + batch[0].shape[0]
-            f[start:stop] = m.predict(batch[0])
+        print('Building features...')
+        f = np.ones((replay_memory.size, n_features))
+        for i, m in enumerate(extractor.models):
+            idxs = np.argwhere(replay_memory._actions.ravel() == i).ravel()
+            rm_generator = replay_memory.generator(args.batch_size, idxs)
+            for j, batch in enumerate(rm_generator):
+                start = j * batch[0].shape[0]
+                stop = start + batch[0].shape[0]
+                f[start:stop] = m.predict(batch[0])
 
-    ff = np.ones((mdp.action_space.n, replay_memory.size, 400))
-    for i, m in enumerate(extractor.models):
-        rm_generator = replay_memory.generator(args.batch_size)
-        for j, batch in enumerate(rm_generator):
-            start = j * batch[3].shape[0]
-            stop = start + batch[3].shape[0]
-            ff[i, start:stop] = m.predict(batch[3])
+        ff = np.ones((mdp.action_space.n, replay_memory.size, n_features))
+        for i, m in enumerate(extractor.models):
+            rm_generator = replay_memory.generator(args.batch_size)
+            for j, batch in enumerate(rm_generator):
+                start = j * batch[3].shape[0]
+                stop = start + batch[3].shape[0]
+                ff[i, start:stop] = m.predict(batch[3])
 
-    dataset = [f, replay_memory._actions, replay_memory._rewards, ff,
-               replay_memory._absorbing, replay_memory._last]
-    agent.fit(dataset=dataset, n_iterations=args.fqi_steps)
+        print('Starting FQI...')
+        dataset = [f, replay_memory._actions, replay_memory._rewards, ff,
+                   replay_memory._absorbing, replay_memory._last]
+        agent.fit(dataset=dataset, n_iterations=args.fqi_steps)
 
-    print '- Evaluation:'
-    # evaluation step
-    pi.set_epsilon(Parameter(.05))
-    mdp.set_episode_end(ends_at_life=False)
-    core.reset()
-    dataset = core.evaluate(how_many=args.test_samples,
-                            iterate_over='samples',
-                            render=args.render,
-                            quiet=args.quiet)
-    get_stats(dataset)
+        print '- Evaluation:'
+        # evaluation step
+        pi.set_epsilon(Parameter(.05))
+        mdp.set_episode_end(ends_at_life=False)
+        core.reset()
+        dataset = core.evaluate(how_many=args.test_samples,
+                                iterate_over='samples',
+                                render=args.render,
+                                quiet=args.quiet)
+        get_stats(dataset)
+
 
 if __name__ == '__main__':
     experiment()
