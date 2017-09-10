@@ -48,3 +48,31 @@ class Scaler(Preprocessor):
 
         """
         return x / self._coeff
+
+
+class Binarizer(Preprocessor):
+    """
+    This class implements the function to binarize the values of an array
+    according to a provided threshold value.
+
+    """
+    def __init__(self, threshold):
+        """
+        Constructor.
+
+        Args:
+            threshold (float): the coefficient to use to scale input data.
+
+        """
+        self._threshold = threshold
+
+    def _compute(self, x):
+        """
+        Args:
+            x (np.array): input data
+
+        Returns:
+            The binarized input data array.
+
+        """
+        return (x > self._threshold).astype(np.float)

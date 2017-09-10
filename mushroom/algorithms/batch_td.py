@@ -52,11 +52,11 @@ class FQI(BatchTD):
             **fit_params (dict): other parameters to fit the model.
 
         """
-        state, action, reward, next_states, absorbing, last = parse_dataset(x)
+        state, action, reward, next_state, absorbing, _ = parse_dataset(x)
         if y is None:
             y = reward
         else:
-            maxq, _ = max_QA(next_states, absorbing, self.approximator)
+            maxq, _ = max_QA(next_state, absorbing, self.approximator)
             y = reward + self._gamma * maxq
 
         sa = [state, action]
@@ -95,3 +95,36 @@ class WeightedFQI(FQI):
 
     def _partial_fit(self, x, y, **fit_params):
         pass
+
+
+class DeepFQI(FQI):
+    def __init__(self, approximator, policy, gamma, **params):
+        self.__name__ = 'DeepFQI'
+
+        super(DeepFQI, self).__init__(approximator, policy, gamma, **params)
+
+    def _partial_fit(self, x, y, **fit_params):
+        """
+        Single fit iteration.
+
+        Args:
+            x (list): a two elements list with states and actions;
+            y (np.array): targets;
+            **fit_params (dict): other parameters to fit the model.
+
+        """
+        state, _, reward, next_state, absorbing, _ = x
+        if y is None:
+            y = reward
+        else:
+            q = np.ones((next_state.shape[1], next_state.shape[0]))
+            for i in xrange(q.shape[1]):
+                q[:, i] = self.approximator.predict(next_state[i])
+            if np.any(absorbing):
+                q *= 1 - absorbing.reshape(-1, 1)
+            maxq = np.max(q, axis=1)
+            y = reward + self._gamma * maxq
+
+        self.approximator.fit(state, y, **fit_params)
+
+        return y
