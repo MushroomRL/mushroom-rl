@@ -116,8 +116,9 @@ class Extractor:
                        convnet_pars['history_length']],
                 name='target_prediction')
 
+            prediction = tf.clip_by_value(self._prediction, 1e-8, 1 - 1e-8)
             prediction_logits = tf.log(
-                self._prediction) / (1 - tf.log(self._prediction))
+                prediction) / (1 - tf.log(prediction))
             self._loss = tf.losses.sigmoid_cross_entropy(
                 multi_class_labels=self._target_prediction,
                 logits=prediction_logits
