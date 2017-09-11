@@ -79,10 +79,8 @@ class Extractor:
             )
             self._features = tf.reshape(hidden_4, [-1, 5 * 5 * 16],
                                         name='features')
-            self._conv_features = tf.reshape(self._features, [-1, 5, 5, 16],
-                                             name='conv_features')
             hidden_5 = tf.layers.conv2d_transpose(
-                self._conv_features, 16, 3, 1, activation=tf.nn.relu,
+                hidden_4, 16, 3, 1, activation=tf.nn.relu,
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 bias_initializer=tf.glorot_uniform_initializer(),
                 name='hidden_5'
@@ -118,9 +116,11 @@ class Extractor:
                        convnet_pars['history_length']],
                 name='target_prediction')
 
+            prediction_logits = tf.log(
+                self._prediction) / (1 - tf.log(self._prediction))
             self._loss = tf.losses.sigmoid_cross_entropy(
-                self._target_prediction,
-                self._prediction
+                multi_class_labels=self._target_prediction,
+                logits=prediction_logits
             )
             tf.summary.scalar('loss', self._loss)
             self._merged = tf.summary.merge(
@@ -159,9 +159,6 @@ class Extractor:
         self._train_count = 0
 
         self._add_collection()
-
-    def __call__(self, x):
-        return self.predict(x)
 
     @property
     def n_features(self):
