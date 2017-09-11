@@ -151,10 +151,11 @@ class Extractor:
 
         self._session.run(initializer)
 
-        self._train_writer = tf.summary.FileWriter(
-            self._folder_name + '/' + self._scope_name,
-            graph=tf.get_default_graph()
-        )
+        if self._folder_name is not None:
+            self._train_writer = tf.summary.FileWriter(
+                self._folder_name + '/' + self._scope_name,
+                graph=tf.get_default_graph()
+            )
 
         self._train_count = 0
 
