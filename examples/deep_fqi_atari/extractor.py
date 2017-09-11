@@ -165,15 +165,19 @@ class Extractor:
         return self._features.shape[1]
 
     def _add_collection(self):
-        tf.add_to_collection('x', self._x)
-        tf.add_to_collection('prediction', self._prediction)
-        tf.add_to_collection('target_prediction', self._target_prediction)
-        tf.add_to_collection('merged', self._merged)
-        tf.add_to_collection('train_step', self._train_step)
+        tf.add_to_collection(self._scope_name + '_x', self._x)
+        tf.add_to_collection(self._scope_name + '_prediction', self._prediction)
+        tf.add_to_collection(self._scope_name + '_target_prediction',
+                             self._target_prediction)
+        tf.add_to_collection(self._scope_name + '_merged', self._merged)
+        tf.add_to_collection(self._scope_name + '_train_step', self._train_step)
 
     def _restore_collection(self):
-        self._x = tf.get_collection('x')[0]
-        self._prediction = tf.get_collection('prediction')[0]
-        self._target_prediction = tf.get_collection('target_prediction')[0]
-        self._merged = tf.get_collection('merged')[0]
-        self._train_step = tf.get_collection('train_step')[0]
+        self._x = tf.get_collection(self._scope_name + '_x')[0]
+        self._prediction = tf.get_collection(
+            self._scope_name + '_prediction')[0]
+        self._target_prediction = tf.get_collection(
+            self._scope_name + '_target_prediction')[0]
+        self._merged = tf.get_collection(self._scope_name + '_merged')[0]
+        self._train_step = tf.get_collection(
+            self._scope_name + '_train_step')[0]

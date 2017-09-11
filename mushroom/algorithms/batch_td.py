@@ -142,7 +142,6 @@ class DeepFQI(FQI):
 
         if self._episode_steps < self._no_op_actions:
             action = np.array([self._no_op_action_value])
-            self.policy.update()
         else:
             extended_state = self._buffer.get()
 
@@ -152,11 +151,13 @@ class DeepFQI(FQI):
                     features = self._extractor.models[i].predict(
                         np.expand_dims(extended_state, axis=0))
                     q[i] = self.approximator.predict(features)
-                return np.array(
+                action = np.array(
                     [np.random.choice(np.argwhere(q == np.max(q)).ravel())])
-            return self.mdp_info['action_space'].sample()
+            else:
+                action = self.mdp_info['action_space'].sample()
 
         self._episode_steps += 1
+        self.policy.update()
 
         return action
 
