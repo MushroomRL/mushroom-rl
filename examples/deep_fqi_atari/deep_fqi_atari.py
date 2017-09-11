@@ -3,6 +3,7 @@ import datetime
 
 import numpy as np
 from sklearn.ensemble import ExtraTreesRegressor
+from tqdm import tqdm
 
 from mushroom.algorithms.batch_td import DeepFQI
 from mushroom.approximators import *
@@ -37,7 +38,7 @@ def experiment():
                           help='Width of the game screen.')
     arg_game.add_argument("--screen-height", type=int, default=84,
                           help='Height of the game screen.')
-    arg_game.add_argument("--binarizer-threshold", type=int, default=.1,
+    arg_game.add_argument("--binarizer-threshold", type=float, default=.1,
                           help='Threshold value to use to binarize images.')
 
     arg_net = parser.add_argument_group('Extractor')
@@ -152,12 +153,16 @@ def experiment():
         replay_memory.initialize(mdp_info)
         replay_memory.add(dataset)
         for i, m in enumerate(extractor.models):
-            print('Fitting model %d' % i)
             idxs = np.argwhere(replay_memory._actions.ravel() == i).ravel()
             rm_generator = replay_memory.generator(args.batch_size, idxs)
+            n_batches = int(np.ceil(idxs.size / float(args.batch_size)))
+
+            gen = tqdm(rm_generator, total=n_batches, ncols=100,
+                       desc='Fitting model %d' % i)
             for e in xrange(args.n_epochs):
-                for batch in rm_generator:
+                for batch in gen:
                     m.train_on_batch(batch[0], batch[3])
+                    gen.set_postfix(loss=m.model.loss)
 
         print('Building features...')
         f = np.ones((replay_memory.size, n_features))

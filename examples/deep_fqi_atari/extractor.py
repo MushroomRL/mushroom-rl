@@ -25,8 +25,8 @@ class Extractor:
         return self._session.run(self._prediction, feed_dict={self._x: x})
 
     def train_on_batch(self, x, y):
-        summaries, _ = self._session.run(
-            [self._merged, self._train_step],
+        summaries, _, self.loss = self._session.run(
+            [self._merged, self._train_step, self._loss],
             feed_dict={self._x: x, self._target_prediction: y}
         )
         self._train_writer.add_summary(summaries, self._train_count)
@@ -118,9 +118,9 @@ class Extractor:
                        convnet_pars['history_length']],
                 name='target_prediction')
 
-            loss = tf.losses.sigmoid_cross_entropy(self._target_prediction,
-                                                   self._prediction)
-            tf.summary.scalar('loss', loss)
+            self._loss = tf.losses.sigmoid_cross_entropy(self._target_prediction,
+                                                         self._prediction)
+            tf.summary.scalar('loss', self._loss)
             self._merged = tf.summary.merge(
                 tf.get_collection(tf.GraphKeys.SUMMARIES,
                                   scope=self._scope_name)
@@ -141,7 +141,7 @@ class Extractor:
             else:
                 raise ValueError('Unavailable optimizer selected.')
 
-            self._train_step = opt.minimize(loss=loss)
+            self._train_step = opt.minimize(loss=self._loss)
 
             initializer = tf.variables_initializer(
                 tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,

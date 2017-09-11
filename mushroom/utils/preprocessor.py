@@ -75,4 +75,4 @@ class Binarizer(Preprocessor):
             The binarized input data array.
 
         """
-        return (x > self._threshold).astype(np.float)
+        return (x >= self._threshold).astype(np.float)
