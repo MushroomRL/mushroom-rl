@@ -180,6 +180,7 @@ def experiment():
         print('Starting FQI...')
         dataset = [f, replay_memory._actions, replay_memory._rewards, ff,
                    replay_memory._absorbing, replay_memory._last]
+        del replay_memory
         agent.fit(dataset=dataset, n_iterations=args.fqi_steps)
 
         print '- Evaluation:'
