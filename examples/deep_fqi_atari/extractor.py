@@ -36,7 +36,7 @@ class Extractor:
     def save(self):
         self._train_saver.save(
             self._session,
-            self._folder_name + '/' + self._scope_name
+            self._folder_name + '/' + self._scope_name + '/' + self._scope_name
         )
 
     def _load(self, path):

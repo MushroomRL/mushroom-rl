@@ -76,6 +76,8 @@ def experiment():
                          help='Value of the no-op action.')
 
     arg_utils = parser.add_argument_group('Utils')
+    arg_utils.add_argument('--save', action='store_true',
+                           help='Flag specifying whether to save the model.')
     arg_utils.add_argument('--render', action='store_true',
                            help='Flag specifying whether to render the game.')
     arg_utils.add_argument('--quiet', action='store_true',
@@ -165,6 +167,10 @@ def experiment():
                 for batch in gen:
                     m.train_on_batch(batch[0], batch[3])
                     gen.set_postfix(loss=m.model.loss)
+
+        if args.save:
+            for m in extractor.models:
+                m.model.save()
 
         print('Building features...')
         f = np.ones((replay_memory.size, n_features))
