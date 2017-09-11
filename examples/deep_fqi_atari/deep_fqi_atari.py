@@ -153,13 +153,13 @@ def experiment():
         replay_memory.initialize(mdp_info)
         replay_memory.add(dataset)
         for i, m in enumerate(extractor.models):
-            idxs = np.argwhere(replay_memory._actions.ravel() == i).ravel()
-            rm_generator = replay_memory.generator(args.batch_size, idxs)
-            n_batches = int(np.ceil(idxs.size / float(args.batch_size)))
-
-            gen = tqdm(rm_generator, total=n_batches, dynamic_ncols=100,
-                       desc='Fitting model %d' % i)
             for e in xrange(args.n_epochs):
+                idxs = np.argwhere(replay_memory._actions.ravel() == i).ravel()
+                rm_generator = replay_memory.generator(args.batch_size, idxs)
+                n_batches = int(np.ceil(idxs.size / float(args.batch_size)))
+
+                gen = tqdm(rm_generator, total=n_batches, dynamic_ncols=100,
+                           desc='Fitting model %d' % i)
                 for batch in gen:
                     m.train_on_batch(batch[0], batch[3])
                     gen.set_postfix(loss=m.model.loss)

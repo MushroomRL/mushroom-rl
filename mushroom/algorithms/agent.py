@@ -1,6 +1,3 @@
-import numpy as np
-
-
 class Agent(object):
     """
     This class implements the functions to evaluate the Q-function
