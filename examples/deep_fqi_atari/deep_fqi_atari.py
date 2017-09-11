@@ -128,6 +128,7 @@ def experiment():
 
     # Agent
     algorithm_params = dict(
+        extractor=extractor,
         history_length=args.history_length,
         max_no_op_actions=args.max_no_op_actions,
         no_op_action_value=args.no_op_action_value

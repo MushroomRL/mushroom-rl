@@ -103,6 +103,7 @@ class DeepFQI(FQI):
 
         alg_params = params['algorithm_params']
         self._buffer = Buffer(size=alg_params.get('history_length', 1))
+        self._extractor = alg_params.get('extractor')
         self._max_no_op_actions = alg_params.get('max_no_op_actions')
         self._no_op_action_value = alg_params.get('no_op_action_value')
         self._episode_steps = 0
@@ -145,7 +146,15 @@ class DeepFQI(FQI):
         else:
             extended_state = self._buffer.get()
 
-            action = super(DeepFQI, self).draw_action(extended_state)
+            if not np.random.uniform() < self.policy._epsilon(extended_state):
+                q = np.ones(self.mdp_info['action_space'].n)
+                for i in xrange(q.size):
+                    features = self._extractor.models[i].predict(
+                        np.expand_dims(extended_state, axis=0))
+                    q[i] = self.approximator.predict(features)
+                return np.array(
+                    [np.random.choice(np.argwhere(q == np.max(q)).ravel())])
+            return self.mdp_info['action_space'].sample()
 
         self._episode_steps += 1
 
