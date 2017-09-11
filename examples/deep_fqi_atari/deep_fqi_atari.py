@@ -158,7 +158,7 @@ def experiment():
             n_batches = int(np.ceil(idxs.size / float(args.batch_size)))
 
             gen = tqdm(rm_generator, total=n_batches, dynamic_ncols=100,
-                       leave=False, desc='Fitting model %d' % i)
+                       desc='Fitting model %d' % i)
             for e in xrange(args.n_epochs):
                 for batch in gen:
                     m.train_on_batch(batch[0], batch[3])

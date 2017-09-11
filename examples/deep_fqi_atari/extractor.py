@@ -118,8 +118,10 @@ class Extractor:
                        convnet_pars['history_length']],
                 name='target_prediction')
 
-            self._loss = tf.losses.sigmoid_cross_entropy(self._target_prediction,
-                                                         self._prediction)
+            self._loss = tf.losses.sigmoid_cross_entropy(
+                self._target_prediction,
+                self._prediction
+            )
             tf.summary.scalar('loss', self._loss)
             self._merged = tf.summary.merge(
                 tf.get_collection(tf.GraphKeys.SUMMARIES,
