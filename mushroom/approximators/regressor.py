@@ -70,7 +70,7 @@ class Regressor(object):
         x, y = self._preprocess_fit(x, y)
         self.model.train_on_batch(x, y, **fit_params)
 
-    def predict(self, x):
+    def predict(self, x, **predict_params):
         """
         Preprocess the input and output if requested and make the prediction.
 
@@ -82,11 +82,11 @@ class Regressor(object):
 
         """
         x = self._preprocess_predict(x)
-        y = self.model.predict(x)
+        y = self.model.predict(x, **predict_params)
 
         return y
 
-    def predict_all(self, x):
+    def predict_all(self, x, **predict_params):
         """
         Predict for each action given a state.
 
@@ -110,19 +110,20 @@ class Regressor(object):
             a = np.ones(
                 (n_states, action_dim)) * self.discrete_actions[0]
             samples = np.concatenate((x, a), axis=1)
-            y_0 = self.model.predict(samples).ravel()
+            y_0 = self.model.predict(samples, **predict_params).ravel()
             y = np.zeros((n_states, n_actions) + y_0.shape[1:])
             y[:, 0] = y_0
             for action in xrange(1, n_actions):
                 a = np.ones(
                     (n_states, action_dim)) * self.discrete_actions[action]
                 samples = np.concatenate((x, a), axis=1)
-                y[:, action] = self.model.predict(samples).ravel()
+                y[:, action] = self.model.predict(samples,
+                                                  **predict_params).ravel()
         else:
             for p in self._input_preprocessor:
                 x = p(x)
 
-            y = self.model.predict(x)
+            y = self.model.predict(x, **predict_params)
 
         return y
 

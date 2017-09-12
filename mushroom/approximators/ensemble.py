@@ -38,7 +38,7 @@ class Ensemble(object):
                 regressor_class(approximator, discrete_actions=discrete_actions,
                                 **params))
 
-    def predict(self, x):
+    def predict(self, x, **predict_params):
         """
         Predict.
 
@@ -49,16 +49,16 @@ class Ensemble(object):
             The predictions of the model.
 
         """
-        y_0 = self.models[0].predict(x)
+        y_0 = self.models[0].predict(x, **predict_params)
         y = np.zeros((self.n_models,) + y_0.shape)
         y[0] = y_0
         for i, m in enumerate(self.models[1:]):
-            y[i + 1] = m.predict(x)
+            y[i + 1] = m.predict(x, **predict_params)
         y = np.mean(y, axis=0)
 
         return y
 
-    def predict_all(self, x):
+    def predict_all(self, x, **predict_params):
         """
         Predict for each action given a state.
 
@@ -69,11 +69,11 @@ class Ensemble(object):
             The predictions of the model.
 
         """
-        y_0 = self.models[0].predict_all(x)
+        y_0 = self.models[0].predict_all(x, **predict_params)
         y = np.zeros((self.n_models,) + y_0.shape)
         y[0] = y_0
         for i, m in enumerate(self.models[1:]):
-            y[i + 1] = m.predict_all(x)
+            y[i + 1] = m.predict_all(x, **predict_params)
         y = np.mean(y, axis=0)
 
         return y

@@ -3,6 +3,7 @@ import datetime
 
 import numpy as np
 from sklearn.ensemble import ExtraTreesRegressor
+import tensorflow as tf
 from tqdm import tqdm
 
 from mushroom.algorithms.batch_td import DeepFQI
@@ -78,8 +79,10 @@ def experiment():
     arg_utils = parser.add_argument_group('Utils')
     arg_utils.add_argument('--load-path-dataset', type=str)
     arg_utils.add_argument('--save-dataset', action='store_true')
-    arg_utils.add_argument('--save', action='store_true',
-                           help='Flag specifying whether to save the model.')
+    arg_utils.add_argument('--load-path-extractor', type=str)
+    arg_utils.add_argument('--save-extractor', action='store_true',
+                           help='Flag specifying whether to save the feature'
+                                'extractor.')
     arg_utils.add_argument('--render', action='store_true',
                            help='Flag specifying whether to render the game.')
     arg_utils.add_argument('--quiet', action='store_true',
@@ -157,27 +160,42 @@ def experiment():
                                     quiet=args.quiet)
             if args.save_dataset:
                 np.save(folder_name + 'dataset.npy', dataset)
-        replay_memory = ReplayMemory(args.dataset_size, args.history_length)
-        mdp_info = dict(observation_space=mdp.observation_space,
-                        action_space=mdp.action_space)
-        replay_memory.initialize(mdp_info)
-        replay_memory.add(dataset)
-        for i, m in enumerate(extractor.models):
-            print('Fitting model %d' % i)
-            for e in xrange(args.n_epochs):
-                idxs = np.argwhere(replay_memory._actions.ravel() == i).ravel()
-                rm_generator = replay_memory.generator(args.batch_size, idxs)
-                n_batches = int(np.ceil(idxs.size / float(args.batch_size)))
 
-                gen = tqdm(rm_generator, total=n_batches, dynamic_ncols=100,
-                           desc='Epoch %d' % e)
-                for batch in gen:
-                    m.train_on_batch(batch[0], batch[3])
-                    gen.set_postfix(loss=m.model.loss)
+        if not args.load_path_extractor:
+            replay_memory = ReplayMemory(args.dataset_size, args.history_length)
+            mdp_info = dict(observation_space=mdp.observation_space,
+                            action_space=mdp.action_space)
+            replay_memory.initialize(mdp_info)
+            replay_memory.add(dataset)
 
-        if args.save:
-            for m in extractor.models:
-                m.model.save()
+            for i, m in enumerate(extractor.models):
+                print('Fitting model %d' % i)
+                for e in xrange(args.n_epochs):
+                    idxs = np.argwhere(
+                        replay_memory._actions.ravel() == i).ravel()
+                    rm_generator = replay_memory.generator(args.batch_size,
+                                                           idxs)
+                    n_batches = int(
+                        np.ceil(idxs.size / float(args.batch_size)))
+
+                    gen = tqdm(rm_generator, total=n_batches, dynamic_ncols=100,
+                               desc='Epoch %d' % e)
+                    for batch in gen:
+                        m.train_on_batch(batch[0], batch[3])
+                        gen.set_postfix(loss=m.model.loss)
+
+            if args.save_extractor:
+                for m in extractor.models:
+                    m.model.save()
+        else:
+            for i, e in enumerate(extractor.models):
+                restorer = tf.train.import_meta_graph(
+                    args.load_path_extractor + e.model._scope_name + '/' +
+                    e.model._scope_name + '.meta')
+                restorer.restore(e.model._session, args.load_path_extractor +
+                                 e.model._scope_name + '/' +
+                                 e.model._scope_name)
+                e.model._restore_collection()
 
         print('Building features...')
         f = np.ones((replay_memory.size, n_features))
