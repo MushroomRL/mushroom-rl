@@ -61,25 +61,21 @@ class Extractor:
             hidden_1 = tf.layers.conv2d(
                 self._x, 32, 8, 4, activation=tf.nn.relu,
                 kernel_initializer=tf.glorot_uniform_initializer(),
-                bias_initializer=tf.glorot_uniform_initializer(),
                 name='hidden_1'
             )
             hidden_2 = tf.layers.conv2d(
                 hidden_1, 64, 4, 2, activation=tf.nn.relu,
                 kernel_initializer=tf.glorot_uniform_initializer(),
-                bias_initializer=tf.glorot_uniform_initializer(),
                 name='hidden_2'
             )
             hidden_3 = tf.layers.conv2d(
                 hidden_2, 64, 3, 1, activation=tf.nn.relu,
                 kernel_initializer=tf.glorot_uniform_initializer(),
-                bias_initializer=tf.glorot_uniform_initializer(),
                 name='hidden_3'
             )
             hidden_4 = tf.layers.conv2d(
                 hidden_3, 16, 3, 1, activation=tf.nn.relu,
                 kernel_initializer=tf.glorot_uniform_initializer(),
-                bias_initializer=tf.glorot_uniform_initializer(),
                 name='hidden_4'
             )
             self._features = tf.reshape(hidden_4, [-1, 5 * 5 * 16],
@@ -87,31 +83,26 @@ class Extractor:
             hidden_5 = tf.layers.conv2d_transpose(
                 hidden_4, 16, 3, 1, activation=tf.nn.relu,
                 kernel_initializer=tf.glorot_uniform_initializer(),
-                bias_initializer=tf.glorot_uniform_initializer(),
                 name='hidden_5'
             )
             hidden_6 = tf.layers.conv2d_transpose(
                 hidden_5, 64, 3, 1, activation=tf.nn.relu,
                 kernel_initializer=tf.glorot_uniform_initializer(),
-                bias_initializer=tf.glorot_uniform_initializer(),
                 name='hidden_6'
             )
             hidden_7 = tf.layers.conv2d_transpose(
                 hidden_6, 64, 4, 2, activation=tf.nn.relu,
                 kernel_initializer=tf.glorot_uniform_initializer(),
-                bias_initializer=tf.glorot_uniform_initializer(),
                 name='hidden_7'
             )
             hidden_8 = tf.layers.conv2d_transpose(
                 hidden_7, 32, 8, 4, activation=tf.nn.relu,
                 kernel_initializer=tf.glorot_uniform_initializer(),
-                bias_initializer=tf.glorot_uniform_initializer(),
                 name='hidden_8'
             )
             self._prediction = tf.layers.conv2d_transpose(
                 hidden_8, 4, 1, 1, activation=tf.nn.sigmoid,
                 kernel_initializer=tf.glorot_uniform_initializer(),
-                bias_initializer=tf.glorot_uniform_initializer(),
                 name='prediction'
             )
 
