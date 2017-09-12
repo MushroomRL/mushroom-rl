@@ -83,6 +83,8 @@ def experiment():
     arg_utils.add_argument('--save-extractor', action='store_true',
                            help='Flag specifying whether to save the feature'
                                 'extractor.')
+    arg_utils.add_argument('load-path-features', type=str)
+    arg_utils.add_argument('--save-features', action='store_true')
     arg_utils.add_argument('--render', action='store_true',
                            help='Flag specifying whether to render the game.')
     arg_utils.add_argument('--quiet', action='store_true',
@@ -205,22 +207,30 @@ def experiment():
                 e.model._restore_collection()
 
         print('Building features...')
-        f = np.ones((replay_memory.size, n_features))
-        for i, m in enumerate(extractor.models):
-            idxs = np.argwhere(replay_memory._actions.ravel() == i).ravel()
-            rm_generator = replay_memory.generator(args.batch_size, idxs)
-            for j, batch in enumerate(rm_generator):
-                start = j * batch[0].shape[0]
-                stop = start + batch[0].shape[0]
-                f[start:stop] = m.predict(batch[0])
+        if not args.load_path_features:
+            f = np.ones((replay_memory.size, n_features))
+            for i, m in enumerate(extractor.models):
+                idxs = np.argwhere(replay_memory._actions.ravel() == i).ravel()
+                rm_generator = replay_memory.generator(args.batch_size, idxs)
+                for j, batch in enumerate(rm_generator):
+                    start = j * batch[0].shape[0]
+                    stop = start + batch[0].shape[0]
+                    f[start:stop] = m.predict(batch[0])
 
-        ff = np.ones((mdp.action_space.n, replay_memory.size, n_features))
-        for i, m in enumerate(extractor.models):
-            rm_generator = replay_memory.generator(args.batch_size)
-            for j, batch in enumerate(rm_generator):
-                start = j * batch[3].shape[0]
-                stop = start + batch[3].shape[0]
-                ff[i, start:stop] = m.predict(batch[3])
+            ff = np.ones((mdp.action_space.n, replay_memory.size, n_features))
+            for i, m in enumerate(extractor.models):
+                rm_generator = replay_memory.generator(args.batch_size)
+                for j, batch in enumerate(rm_generator):
+                    start = j * batch[3].shape[0]
+                    stop = start + batch[3].shape[0]
+                    ff[i, start:stop] = m.predict(batch[3])
+
+            if args.save_features:
+                np.save('f.npy', f)
+                np.save('ff.npy', ff)
+        else:
+            f = np.load(args.load_path_features + '/f.npy')
+            ff = np.load(args.load_path_features + '/ff.npy')
 
         print('Starting FQI...')
         dataset = [f, replay_memory._actions, replay_memory._rewards, ff,
