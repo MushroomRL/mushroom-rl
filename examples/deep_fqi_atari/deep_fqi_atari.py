@@ -83,7 +83,7 @@ def experiment():
     arg_utils.add_argument('--save-extractor', action='store_true',
                            help='Flag specifying whether to save the feature'
                                 'extractor.')
-    arg_utils.add_argument('load-path-features', type=str)
+    arg_utils.add_argument('--load-path-features', type=str)
     arg_utils.add_argument('--save-features', action='store_true')
     arg_utils.add_argument('--render', action='store_true',
                            help='Flag specifying whether to render the game.')
