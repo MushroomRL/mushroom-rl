@@ -95,8 +95,15 @@ def experiment():
     args = parser.parse_args()
 
     # Summary folder
-    folder_name = './logs/' + datetime.datetime.now().strftime(
-        '%Y-%m-%d_%H-%M-%S')
+    if args.load_path_extractor and args.load_path_dataset:
+        folder_name = args.load_path_extractor
+    elif args.load_path_dataset:
+        folder_name = args.load_path_dataset
+    elif args.load_path_extractor:
+        folder_name = args.load_path_extractor
+    else:
+        folder_name = './logs/' + datetime.datetime.now().strftime(
+            '%Y-%m-%d_%H-%M-%S')
 
     # MDP
     mdp = Atari(args.name, args.screen_width, args.screen_height,
