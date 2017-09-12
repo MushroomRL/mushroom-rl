@@ -76,6 +76,8 @@ def experiment():
                          help='Value of the no-op action.')
 
     arg_utils = parser.add_argument_group('Utils')
+    arg_utils.add_argument('--load-path-dataset', type=str)
+    arg_utils.add_argument('--save-dataset', action='store_true')
     arg_utils.add_argument('--save', action='store_true',
                            help='Flag specifying whether to save the model.')
     arg_utils.add_argument('--render', action='store_true',
@@ -147,9 +149,14 @@ def experiment():
     # Learn
     for k in xrange(args.n_iterations):
         print('Iteration %d' % k)
-        dataset = core.evaluate(how_many=args.dataset_size,
-                                iterate_over='samples',
-                                quiet=args.quiet)
+        if args.load_path_dataset:
+            dataset = np.load(args.load_path_dataset)
+        else:
+            dataset = core.evaluate(how_many=args.dataset_size,
+                                    iterate_over='samples',
+                                    quiet=args.quiet)
+            if args.save_dataset:
+                np.save(folder_name + 'dataset.npy', dataset)
         replay_memory = ReplayMemory(args.dataset_size, args.history_length)
         mdp_info = dict(observation_space=mdp.observation_space,
                         action_space=mdp.action_space)
