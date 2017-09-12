@@ -161,13 +161,13 @@ def experiment():
             if args.save_dataset:
                 np.save(folder_name + '/dataset.npy', dataset)
 
-        if not args.load_path_extractor:
-            replay_memory = ReplayMemory(args.dataset_size, args.history_length)
-            mdp_info = dict(observation_space=mdp.observation_space,
-                            action_space=mdp.action_space)
-            replay_memory.initialize(mdp_info)
-            replay_memory.add(dataset)
+        replay_memory = ReplayMemory(args.dataset_size, args.history_length)
+        mdp_info = dict(observation_space=mdp.observation_space,
+                        action_space=mdp.action_space)
+        replay_memory.initialize(mdp_info)
+        replay_memory.add(dataset)
 
+        if not args.load_path_extractor:
             for i, m in enumerate(extractor.models):
                 print('Fitting model %d' % i)
                 for e in xrange(args.n_epochs):
@@ -190,10 +190,10 @@ def experiment():
         else:
             for i, e in enumerate(extractor.models):
                 restorer = tf.train.import_meta_graph(
-                    args.load_path_extractor + e.model._scope_name + '/' +
+                    args.load_path_extractor + '/' + e.model._scope_name + '/' +
                     e.model._scope_name + '.meta')
                 restorer.restore(e.model._session, args.load_path_extractor +
-                                 e.model._scope_name + '/' +
+                                 '/' + e.model._scope_name + '/' +
                                  e.model._scope_name)
                 e.model._restore_collection()
 
