@@ -159,7 +159,7 @@ def experiment():
                                     iterate_over='samples',
                                     quiet=args.quiet)
             if args.save_dataset:
-                np.save(folder_name + 'dataset.npy', dataset)
+                np.save(folder_name + '/dataset.npy', dataset)
 
         if not args.load_path_extractor:
             replay_memory = ReplayMemory(args.dataset_size, args.history_length)

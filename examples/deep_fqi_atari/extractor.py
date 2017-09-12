@@ -18,11 +18,16 @@ class Extractor:
             tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
                               scope=self._scope_name))
 
-    def predict(self, x):
-        return self._session.run(self._features, feed_dict={self._x: x})
+    def predict(self, x, reconstruction=False):
+        if not reconstruction:
+            return self._session.run(self._features, feed_dict={self._x: x})
+        else:
+            return self._session.run(self._prediction, feed_dict={self._x: x})
 
-    def target(self, x):
-        return self._session.run(self._prediction, feed_dict={self._x: x})
+    def get_loss(self, y_t, y):
+        return self._session.run(self._loss,
+                                 feed_dict={self._target_prediction: y_t,
+                                            self._prediction: y})
 
     def train_on_batch(self, x, y):
         summaries, _, self.loss = self._session.run(
