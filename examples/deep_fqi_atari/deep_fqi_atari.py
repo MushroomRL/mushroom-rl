@@ -226,8 +226,8 @@ def experiment():
                     ff[i, start:stop] = m.predict(batch[3])
 
             if args.save_features:
-                np.save('f.npy', f)
-                np.save('ff.npy', ff)
+                np.save(folder_name + '/f.npy', f)
+                np.save(folder_name + '/ff.npy', ff)
         else:
             f = np.load(args.load_path_features + '/f.npy')
             ff = np.load(args.load_path_features + '/ff.npy')
