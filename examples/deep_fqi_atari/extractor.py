@@ -6,6 +6,7 @@ class Extractor:
                  **convnet_pars):
         self._name = name
         self._folder_name = folder_name
+        self._reg_coeff = convnet_pars.get('reg_coeff', 0.)
 
         self._session = tf.Session()
 
@@ -17,8 +18,6 @@ class Extractor:
         self._train_saver = tf.train.Saver(
             tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
                               scope=self._scope_name))
-
-        self._reg_coeff = convnet_pars.get('reg_coeff', 0.)
 
     def predict(self, x, reconstruction=False):
         if not reconstruction:
