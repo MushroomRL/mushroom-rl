@@ -69,7 +69,8 @@ def experiment():
                               'gradient momentum in rmsprop.')
 
     arg_alg = parser.add_argument_group('Algorithm')
-    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn'], default='dqn',
+    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'wdqn'],
+                         default='dqn',
                          help='Name of the algorithm. dqn stands for standard'
                               'DQN and ddqn stands for Double DQN.')
     arg_alg.add_argument("--n-approximators", type=int, default=100)
