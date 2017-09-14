@@ -1,5 +1,7 @@
 import argparse
 import datetime
+import glob
+import os
 
 import numpy as np
 from sklearn.ensemble import ExtraTreesRegressor
@@ -101,6 +103,8 @@ def experiment():
         folder_name = args.load_path_extractor
     elif args.load_path_dataset:
         folder_name = args.load_path_dataset
+        f = glob.glob(folder_name + '/deep_fqi_extractor*/*')
+        os.remove(f)
     elif args.load_path_extractor:
         folder_name = args.load_path_extractor
     else:
