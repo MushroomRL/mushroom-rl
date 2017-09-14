@@ -65,7 +65,7 @@ class ConvNet:
         self._restore_collection()
 
     def _build(self, convnet_pars):
-        with tf.variable_scope(self._name, default_name='dqn'):
+        with tf.variable_scope(None, default_name=self._name + '_dqn'):
             self._scope_name = tf.get_default_graph().get_name_scope()
             self._x = tf.placeholder(tf.float32,
                                      shape=[None,
