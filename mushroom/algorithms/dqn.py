@@ -151,4 +151,75 @@ class DoubleDQN(DQN):
 
 
 class WeightedDQN(DQN):
-    pass
+    """
+    Implements functions to run the Weighted DQN algorithm.
+
+    """
+    def __init__(self, approximator, policy, gamma, **params):
+        self.__name__ = 'WeightedDQN'
+
+        self._n_samples = params.get('n_samples', 1000)
+
+        super(WeightedDQN, self).__init__(approximator, policy, gamma, **params)
+
+    def fit(self, dataset, n_iterations=1):
+        """
+        Single fit step.
+
+        Args:
+            dataset (list): a two elements list with states and actions;
+            n_iterations (int, 1): number of fit steps of the approximator.
+
+        """
+        self._replay_memory.add(dataset)
+        if n_iterations == 0:
+            pass
+        else:
+            assert n_iterations == 1
+
+            for m in self.approximator:
+                state, action, reward, next_state, absorbing, _ =\
+                    self._replay_memory.get(self._batch_size)
+
+                if self._clip_reward:
+                    reward = np.clip(reward, -1, 1)
+
+                sa = [state, action]
+
+                q_next = self._next_q(next_state, absorbing)
+                q = reward + self._gamma * q_next
+
+                m.train_on_batch(sa, q, **self.params['fit_params'])
+
+            self._n_updates += 1
+
+            if self._n_updates % self._target_update_frequency == 0:
+                for i in xrange(len(self.approximator)):
+                    self._target_approximator[i].model.set_weights(
+                        self.approximator[i].model.get_weights())
+
+    def _next_q(self, next_state, absorbing):
+        """
+        Args:
+            next_state (np.array): the state where next action has to be
+                evaluated;
+            absorbing (np.array): the absorbing flag for the states in
+                'next_state'.
+
+        Returns
+            Maximum action-value in 'next_state'.
+
+        """
+        means, variance = self._target_approximator.predict_all(next_state)
+        sigmas = np.sqrt(variance / self.approximator.n_models)
+
+        samples = np.random.normal(np.repeat(means, self._n_samples, 0),
+                                   np.repeat(sigmas, self._n_samples, 0))
+        max_idx = np.argmax(samples, axis=1)
+        max_idx, max_count = np.unique(max_idx, return_counts=True)
+        count = np.zeros(means.size)
+        count[max_idx] = max_count
+
+        w = count / self._n_samples
+
+        return np.dot(w, means.T)[0]

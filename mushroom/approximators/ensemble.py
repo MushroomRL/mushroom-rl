@@ -38,7 +38,7 @@ class Ensemble(object):
                 regressor_class(approximator, discrete_actions=discrete_actions,
                                 **params))
 
-    def predict(self, x, **predict_params):
+    def predict(self, x, compute_variance=False, **predict_params):
         """
         Predict.
 
@@ -54,11 +54,13 @@ class Ensemble(object):
         y[0] = y_0
         for i, m in enumerate(self.models[1:]):
             y[i + 1] = m.predict(x, **predict_params)
-        y = np.mean(y, axis=0)
 
-        return y
+        if compute_variance:
+            return np.mean(y, axis=0), np.var(y, ddof=1, axis=0)
+        else:
+            return np.mean(y, axis=0)
 
-    def predict_all(self, x, **predict_params):
+    def predict_all(self, x, compute_variance=False, **predict_params):
         """
         Predict for each action given a state.
 
@@ -74,9 +76,11 @@ class Ensemble(object):
         y[0] = y_0
         for i, m in enumerate(self.models[1:]):
             y[i + 1] = m.predict_all(x, **predict_params)
-        y = np.mean(y, axis=0)
 
-        return y
+        if compute_variance:
+            return np.mean(y, axis=0), np.var(y, ddof=1, axis=0)
+        else:
+            return np.mean(y, axis=0)
 
     def __getitem__(self, idx):
         return self.models[idx]

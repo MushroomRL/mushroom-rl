@@ -5,7 +5,7 @@ import os
 import numpy as np
 
 from mushroom.algorithms.dqn import DQN, DoubleDQN, WeightedDQN
-from mushroom.approximators import Regressor
+from mushroom.approximators import Ensemble, Regressor
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
@@ -224,11 +224,6 @@ def experiment():
                                          width=args.screen_width,
                                          height=args.screen_height,
                                          history_length=args.history_length)
-        approximator = Regressor(ConvNet,
-                                 input_preprocessor=[Scaler(
-                                     mdp.observation_space.high)],
-                                 **approximator_params_train)
-
         # Target approximator
         approximator_params_target = dict(name='target',
                                           folder_name=folder_name,
@@ -239,10 +234,28 @@ def experiment():
                                           width=args.screen_width,
                                           height=args.screen_height,
                                           history_length=args.history_length)
-        target_approximator = Regressor(ConvNet,
-                                        input_preprocessor=[Scaler(
-                                            mdp.observation_space.high)],
-                                        **approximator_params_target)
+
+        if args.algorithm == 'wdqn':
+            approximator_params_train['input_preprocessor'] = [
+                Scaler(mdp.observation_space.high)]
+            approximator_params_target['input_preprocessor'] = [
+                Scaler(mdp.observation_space.high)]
+            approximator = Ensemble(ConvNet,
+                                    n_models=args.n_approximators,
+                                    **approximator_params_train)
+            target_approximator = Ensemble(ConvNet,
+                                           n_models=args.n_approximators,
+                                           **approximator_params_target)
+        else:
+            approximator = Regressor(ConvNet,
+                                     n_models=args.n_approximators,
+                                     input_preprocessor=[Scaler(
+                                         mdp.observation_space.high)],
+                                     **approximator_params_train)
+            target_approximator = Regressor(ConvNet,
+                                            input_preprocessor=[Scaler(
+                                                mdp.observation_space.high)],
+                                            **approximator_params_target)
 
         # Initialize target approximator weights with the weights of the
         # approximator to fit.
