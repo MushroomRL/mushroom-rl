@@ -25,10 +25,11 @@ class Extractor:
         else:
             return self._session.run(self._prediction, feed_dict={self._x: x})
 
-    def get_loss(self, y_t, y):
+    def get_loss(self, y_t, y, x):
         return self._session.run(self._loss,
                                  feed_dict={self._target_prediction: y_t,
-                                            self._prediction: y})
+                                            self._prediction: y,
+                                            self._x: x})
 
     def train_on_batch(self, x, y):
         summaries, _, self.loss = self._session.run(

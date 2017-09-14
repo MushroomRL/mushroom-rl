@@ -35,20 +35,24 @@ class Agent(object):
         for k, v in mdp_info.iteritems():
             self.mdp_info[k] = v
 
-    def draw_action(self, state):
+    def draw_action(self, state, approximator=None):
         """
         Return the action to execute. It is the action returned by the policy
         or the action set by the algorithm (e.g. SARSA).
 
         Args:
-            state (np.array): the state where the agent is.
+            state (np.array): the state where the agent is;
+            approximator (object): the approximator to use to draw the action.
 
         Returns:
             The action to be executed.
 
         """
         if self._next_action is None:
-            return self.policy(state, self.approximator)
+            if approximator is None:
+                return self.policy(state, self.approximator)
+            else:
+                return self.policy(state, approximator)
         else:
             action = self._next_action
             self._next_action = None

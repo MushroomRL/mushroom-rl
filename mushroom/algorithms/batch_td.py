@@ -137,7 +137,7 @@ class DeepFQI(FQI):
 
         return y
 
-    def draw_action(self, state):
+    def draw_action(self, state, approximator=None):
         self._buffer.add(state)
 
         if self._episode_steps < self._no_op_actions:

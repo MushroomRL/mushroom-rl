@@ -1,6 +1,7 @@
 import numpy as np
 
 from mushroom.algorithms.agent import Agent
+from mushroom.approximators import Ensemble
 from mushroom.utils.dataset import max_QA
 from mushroom.utils.replay_memory import Buffer, ReplayMemory
 
@@ -98,7 +99,7 @@ class DQN(Agent):
 
         self._replay_memory.initialize(self.mdp_info)
 
-    def draw_action(self, state):
+    def draw_action(self, state, approximator=None):
         self._buffer.add(state)
 
         if self._episode_steps < self._no_op_actions:
@@ -107,7 +108,10 @@ class DQN(Agent):
         else:
             extended_state = self._buffer.get()
 
-            action = super(DQN, self).draw_action(extended_state)
+            action = super(DQN, self).draw_action(
+                extended_state,
+                approximator=approximator
+            )
 
         self._episode_steps += 1
 
@@ -149,6 +153,12 @@ class DoubleDQN(DQN):
 
         return self._target_approximator.predict(sa_n)
 
+    def draw_action(self, state, approximator=None):
+        return super(DoubleDQN, self).draw_action(
+            state,
+            approximator=self._target_approximator
+        )
+
 
 class WeightedDQN(DQN):
     """
@@ -161,6 +171,9 @@ class WeightedDQN(DQN):
         self._n_samples = params.get('n_samples', 1000)
 
         super(WeightedDQN, self).__init__(approximator, policy, gamma, **params)
+
+        assert isinstance(self.approximator, Ensemble) and isinstance(
+            self._target_approximator, Ensemble)
 
     def fit(self, dataset, n_iterations=1):
         """
@@ -210,16 +223,23 @@ class WeightedDQN(DQN):
             Maximum action-value in 'next_state'.
 
         """
-        means, variance = self._target_approximator.predict_all(next_state)
+        means, variance = self._target_approximator.predict_all(
+            next_state,
+            compute_variance=True
+        )
         sigmas = np.sqrt(variance / self.approximator.n_models)
 
-        samples = np.random.normal(np.repeat(means, self._n_samples, 0),
-                                   np.repeat(sigmas, self._n_samples, 0))
-        max_idx = np.argmax(samples, axis=1)
-        max_idx, max_count = np.unique(max_idx, return_counts=True)
-        count = np.zeros(means.size)
-        count[max_idx] = max_count
+        samples = np.random.normal(np.repeat(np.expand_dims(means, 2),
+                                             self._n_samples, 2),
+                                   np.repeat(np.expand_dims(sigmas, 2),
+                                             self._n_samples, 2))
+        W = np.zeros(next_state.shape[0])
+        for i in xrange(next_state.shape[0]):
+            max_idx = np.argmax(samples[i], axis=0)
+            max_idx, max_count = np.unique(max_idx, return_counts=True)
+            count = np.zeros(means.shape[1])
+            count[max_idx] = max_count
+            w = count / self._n_samples
+            W[i] = np.dot(w, means.T)[0]
 
-        w = count / self._n_samples
-
-        return np.dot(w, means.T)[0]
+        return W

@@ -139,7 +139,6 @@ class ConvNet:
             else:
                 raise ValueError('Unavailable optimizer selected.')
 
-            self._train_count = 0
             self._train_step = opt.minimize(loss=loss)
 
             initializer = tf.variables_initializer(
@@ -153,6 +152,8 @@ class ConvNet:
                 self._folder_name + '/' + self._scope_name,
                 graph=tf.get_default_graph()
             )
+
+        self._train_count = 0
 
         self._add_collection()
 

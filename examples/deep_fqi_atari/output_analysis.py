@@ -35,10 +35,9 @@ extractor = ActionRegressor(Extractor,
                             **extractor_params)
 
 for i, e in enumerate(extractor.models):
-    restorer = tf.train.import_meta_graph(
-        load_path + e.model._scope_name + '/' + e.model._scope_name + '.meta')
-    restorer.restore(e.model._session, load_path +
-                     e.model._scope_name + '/' + e.model._scope_name)
+    path = load_path + e.model._scope_name + '/' + e.model._scope_name
+    restorer = tf.train.import_meta_graph(path + '.meta')
+    restorer.restore(e.model._session, path)
     e.model._restore_collection()
 
 # Predictions
@@ -61,7 +60,8 @@ for i in xrange(mdp.action_space.n):
     action_samples.append(idxs[0])
     print('Model %d loss: %f' % (i, extractor.models[i].model.get_loss(
         (next_state[idxs] / 255. >= binarizer_threshold).astype(np.float),
-        extractor.models[i].predict(state[idxs], reconstruction=True)))
+        extractor.models[i].predict(state[idxs], reconstruction=True),
+        state[idxs]))
     )
 
 for a in action_samples:
