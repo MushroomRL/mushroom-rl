@@ -40,28 +40,32 @@ class ConvNet:
         self._train_count += 1
 
     def set_weights(self, weights):
-        w = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
-                              scope=self._name)
+        w = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
+                              scope=self._scope_name)
         assert len(w) == len(weights)
 
         for i in xrange(len(w)):
             self._session.run(tf.assign(w[i], weights[i]))
 
     def get_weights(self):
-        w = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
-                              scope=self._name)
+        w = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
+                              scope=self._scope_name)
 
         return self._session.run(w)
 
     def save(self):
         self._train_saver.save(
             self._session,
-            self._folder_name + '/' + self._scope_name
+            self._folder_name + '/' + self._scope_name + '/' + self._scope_name
         )
 
     def _load(self, path):
-        restorer = tf.train.import_meta_graph(path + 'dqn.meta')
-        restorer.restore(self._session, path + 'dqn')
+        restorer = tf.train.import_meta_graph(
+            path + '/' + self._scope_name + '/' + self._scope_name + '.meta')
+        restorer.restore(
+            self._session,
+            path + '/' + self._scope_name + '/' + self._scope_name
+        )
         self._restore_collection()
 
     def _build(self, convnet_pars):
@@ -108,13 +112,12 @@ class ConvNet:
             self._target_q = tf.placeholder('float32', [None], name='target_q')
             self._action = tf.placeholder('uint8', [None], name='action')
 
-            with tf.name_scope('gather'):
-                action_one_hot = tf.one_hot(self._action,
-                                            convnet_pars['n_actions'],
-                                            name='action_one_hot')
-                self._q_acted = tf.reduce_sum(self.q * action_one_hot,
-                                              axis=1,
-                                              name='q_acted')
+            action_one_hot = tf.one_hot(self._action,
+                                        convnet_pars['n_actions'],
+                                        name='action_one_hot')
+            self._q_acted = tf.reduce_sum(self.q * action_one_hot,
+                                          axis=1,
+                                          name='q_acted')
 
             loss = tf.losses.huber_loss(self._target_q, self._q_acted)
             tf.summary.scalar('huber_loss', loss)
@@ -145,27 +148,29 @@ class ConvNet:
 
         self._session.run(initializer)
 
-        self._train_writer = tf.summary.FileWriter(
-            self._folder_name,
-            graph=tf.get_default_graph()
-        )
+        if self._folder_name is not None:
+            self._train_writer = tf.summary.FileWriter(
+                self._folder_name + '/' + self._scope_name,
+                graph=tf.get_default_graph()
+            )
 
         self._add_collection()
 
     def _add_collection(self):
-        tf.add_to_collection(self._scope_name + 'x', self._x)
-        tf.add_to_collection(self._scope_name + 'action', self._action)
-        tf.add_to_collection(self._scope_name + 'q', self.q)
-        tf.add_to_collection(self._scope_name + 'target_q', self._target_q)
-        tf.add_to_collection(self._scope_name + 'q_acted', self._q_acted)
-        tf.add_to_collection(self._scope_name + 'merged', self._merged)
-        tf.add_to_collection(self._scope_name + 'train_step', self._train_step)
+        tf.add_to_collection(self._scope_name + '_x', self._x)
+        tf.add_to_collection(self._scope_name + '_action', self._action)
+        tf.add_to_collection(self._scope_name + '_q', self.q)
+        tf.add_to_collection(self._scope_name + '_target_q', self._target_q)
+        tf.add_to_collection(self._scope_name + '_q_acted', self._q_acted)
+        tf.add_to_collection(self._scope_name + '_merged', self._merged)
+        tf.add_to_collection(self._scope_name + '_train_step', self._train_step)
 
     def _restore_collection(self):
-        self._x = tf.get_collection(self._scope_name + 'x')[0]
-        self._action = tf.get_collection(self._scope_name + 'action')[0]
-        self.q = tf.get_collection(self._scope_name + 'q')[0]
-        self._target_q = tf.get_collection(self._scope_name + 'target_q')[0]
-        self._q_acted = tf.get_collection(self._scope_name + 'q_acted')[0]
-        self._merged = tf.get_collection(self._scope_name + 'merged')[0]
-        self._train_step = tf.get_collection(self._scope_name + 'train_step')[0]
+        self._x = tf.get_collection(self._scope_name + '_x')[0]
+        self._action = tf.get_collection(self._scope_name + '_action')[0]
+        self.q = tf.get_collection(self._scope_name + '_q')[0]
+        self._target_q = tf.get_collection(self._scope_name + '_target_q')[0]
+        self._q_acted = tf.get_collection(self._scope_name + '_q_acted')[0]
+        self._merged = tf.get_collection(self._scope_name + '_merged')[0]
+        self._train_step = tf.get_collection(
+            self._scope_name + '_train_step')[0]

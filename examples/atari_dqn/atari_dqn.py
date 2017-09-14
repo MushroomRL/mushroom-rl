@@ -249,6 +249,11 @@ def experiment():
                                            input_preprocessor=[Scaler(
                                                mdp.observation_space.high)],
                                            **approximator_params_target)
+            # Initialize target approximator weights with the weights of the
+            # approximator to fit.
+            for i in xrange(approximator.n_models):
+                target_approximator[i].model.set_weights(
+                    approximator[i].model.get_weights())
         else:
             approximator = Regressor(ConvNet,
                                      input_preprocessor=[Scaler(
@@ -258,10 +263,10 @@ def experiment():
                                             input_preprocessor=[Scaler(
                                                 mdp.observation_space.high)],
                                             **approximator_params_target)
-
-        # Initialize target approximator weights with the weights of the
-        # approximator to fit.
-        target_approximator.model.set_weights(approximator.model.get_weights())
+            # Initialize target approximator weights with the weights of the
+            # approximator to fit.
+            target_approximator.model.set_weights(
+                approximator.model.get_weights())
 
         # Agent
         algorithm_params = dict(
