@@ -6,6 +6,7 @@ class ConvNet:
     def __init__(self, name=None, folder_name=None, load_path=None,
                  **convnet_pars):
         self._name = name
+        self._folder_name = folder_name
 
         self._session = tf.Session()
 
@@ -15,8 +16,6 @@ class ConvNet:
             self._build(convnet_pars)
 
         if self._name == 'train':
-            self._folder_name = folder_name
-
             self._train_saver = tf.train.Saver(
                 tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
                                   scope=self._scope_name))
