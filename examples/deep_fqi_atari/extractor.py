@@ -121,6 +121,8 @@ class Extractor:
             )
             self._reg = tf.reduce_mean(tf.norm(self._features, 1, axis=1))
             self._loss = self._xent + self._reg_coeff * self._reg
+            tf.summary.scalar('xent', self._xent)
+            tf.summary.scalar('reg', self._reg)
             tf.summary.scalar('loss', self._loss)
             self._merged = tf.summary.merge(
                 tf.get_collection(tf.GraphKeys.SUMMARIES,
