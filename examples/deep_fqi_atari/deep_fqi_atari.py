@@ -58,7 +58,7 @@ def experiment():
     arg_net.add_argument("--decay", type=float, default=.95,
                          help='Discount factor for the history coming from the'
                               'gradient momentum in rmsprop.')
-    arg_net.add_argument("--reg-coeff", type=float, default=1e-7)
+    arg_net.add_argument("--reg-coeff", type=float, default=1e-5)
 
     arg_alg = parser.add_argument_group('Algorithm')
     arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.)
@@ -186,6 +186,7 @@ def experiment():
         if not args.load_path_extractor:
             for i, m in enumerate(extractor.models):
                 print('Fitting model %d' % i)
+                best_loss = np.inf
                 for e in xrange(args.n_epochs):
                     idxs = np.argwhere(
                         replay_memory._actions.ravel() == i).ravel()
@@ -200,9 +201,10 @@ def experiment():
                         m.train_on_batch(batch[0], batch[3])
                         gen.set_postfix(loss=m.model.loss)
 
-            if args.save_extractor:
-                for m in extractor.models:
-                    m.model.save()
+                    if args.save_extractor:
+                        if best_loss > m.model.loss:
+                            best_loss = m.model.loss
+                            m.model.save()
         else:
             for i, e in enumerate(extractor.models):
                 restorer = tf.train.import_meta_graph(
