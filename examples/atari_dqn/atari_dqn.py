@@ -72,6 +72,8 @@ def experiment():
     arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn'], default='dqn',
                          help='Name of the algorithm. dqn stands for standard'
                               'DQN and ddqn stands for Double DQN.')
+    arg_alg.add_argument("--n-approximators", type=int, default=100)
+    arg_alg.add_argument("--n-samples", type=int, default=1000)
     arg_alg.add_argument("--batch-size", type=int, default=32,
                          help='Batch size for each fit of the network.')
     arg_alg.add_argument("--history-length", type=int, default=4,
@@ -236,19 +238,18 @@ def experiment():
                                           history_length=args.history_length)
 
         if args.algorithm == 'wdqn':
-            approximator_params_train['input_preprocessor'] = [
-                Scaler(mdp.observation_space.high)]
-            approximator_params_target['input_preprocessor'] = [
-                Scaler(mdp.observation_space.high)]
             approximator = Ensemble(ConvNet,
                                     n_models=args.n_approximators,
+                                    input_preprocessor=[Scaler(
+                                        mdp.observation_space.high)],
                                     **approximator_params_train)
             target_approximator = Ensemble(ConvNet,
                                            n_models=args.n_approximators,
+                                           input_preprocessor=[Scaler(
+                                               mdp.observation_space.high)],
                                            **approximator_params_target)
         else:
             approximator = Regressor(ConvNet,
-                                     n_models=args.n_approximators,
                                      input_preprocessor=[Scaler(
                                          mdp.observation_space.high)],
                                      **approximator_params_train)
@@ -282,6 +283,7 @@ def experiment():
         elif args.algorithm == 'ddqn':
             agent = DoubleDQN(approximator, pi, mdp.gamma, **agent_params)
         elif args.algorithm == 'wdqn':
+            algorithm_params['n_samples'] = args.n_samples
             agent = WeightedDQN(approximator, pi, mdp.gamma, **agent_params)
 
         # Algorithm

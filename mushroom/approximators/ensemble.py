@@ -10,7 +10,9 @@ class Ensemble(object):
 
     """
     def __init__(self, approximator, n_models, use_action_regressor=False,
-                 discrete_actions=None, **params):
+                 discrete_actions=None, input_preprocessor=None,
+                 output_preprocessor=None, state_action_preprocessor=None,
+                 **params):
         """
         Constructor.
 
@@ -30,12 +32,17 @@ class Ensemble(object):
         self._use_action_regressor = use_action_regressor
         self.models = list()
 
-        regressor_class =\
-            ActionRegressor if self._use_action_regressor else Regressor
+        if self._use_action_regressor:
+            params['state_action_preprocessor'] = state_action_preprocessor
+            regressor_class = ActionRegressor
+        else:
+            regressor_class = Regressor
 
         for _ in xrange(self.n_models):
             self.models.append(
                 regressor_class(approximator, discrete_actions=discrete_actions,
+                                input_preprocessor=input_preprocessor,
+                                output_preprocessor=output_preprocessor,
                                 **params))
 
     def predict(self, x, compute_variance=False, **predict_params):
