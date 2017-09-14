@@ -58,6 +58,7 @@ def experiment():
     arg_net.add_argument("--decay", type=float, default=.95,
                          help='Discount factor for the history coming from the'
                               'gradient momentum in rmsprop.')
+    arg_net.add_argument("--reg-coeff", type=float, default=1e-7)
 
     arg_alg = parser.add_argument_group('Algorithm')
     arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.)
@@ -103,8 +104,9 @@ def experiment():
         folder_name = args.load_path_extractor
     elif args.load_path_dataset:
         folder_name = args.load_path_dataset
-        f = glob.glob(folder_name + '/deep_fqi_extractor*/*')
-        os.remove(f)
+        path = glob.glob(folder_name + '/deep_fqi_extractor*/*')
+        for f in path:
+            os.remove(f)
     elif args.load_path_extractor:
         folder_name = args.load_path_extractor
     else:
@@ -129,7 +131,8 @@ def experiment():
                                        'decay': args.decay},
                             width=args.screen_width,
                             height=args.screen_height,
-                            history_length=args.history_length)
+                            history_length=args.history_length,
+                            reg_coeff=args.reg_coeff)
     extractor = ActionRegressor(Extractor,
                                 discrete_actions=mdp.action_space.n,
                                 input_preprocessor=[

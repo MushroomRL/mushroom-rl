@@ -18,6 +18,8 @@ class Extractor:
             tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
                               scope=self._scope_name))
 
+        self._reg_coeff = convnet_pars.get('reg_coeff', 0.)
+
     def predict(self, x, reconstruction=False):
         if not reconstruction:
             return self._session.run(self._features, feed_dict={self._x: x})
@@ -114,10 +116,12 @@ class Extractor:
 
             prediction = tf.clip_by_value(self._prediction, 1e-7, 1 - 1e-7)
             prediction_logits = tf.log(prediction / (1 - prediction))
-            self._loss = tf.losses.sigmoid_cross_entropy(
+            self._xent = tf.losses.sigmoid_cross_entropy(
                 multi_class_labels=self._target_prediction,
                 logits=prediction_logits
             )
+            self._reg = tf.reduce_mean(tf.norm(self._features, 1, axis=1))
+            self._loss = self._xent + self._reg_coeff * self._reg
             tf.summary.scalar('loss', self._loss)
             self._merged = tf.summary.merge(
                 tf.get_collection(tf.GraphKeys.SUMMARIES,
