@@ -162,7 +162,7 @@ def experiment():
     for k in xrange(args.n_iterations):
         print('Iteration %d' % k)
         if args.load_path_dataset:
-            dataset = np.load(args.load_path_dataset)
+            dataset = np.load(args.load_path_dataset + '/dataset.npy')
         else:
             dataset = core.evaluate(how_many=args.dataset_size,
                                     iterate_over='samples',
