@@ -115,9 +115,11 @@ class Extractor:
 
             prediction = tf.clip_by_value(self._prediction, 1e-7, 1 - 1e-7)
             prediction_logits = tf.log(prediction / (1 - prediction))
-            self._xent = tf.losses.sigmoid_cross_entropy(
-                multi_class_labels=self._target_prediction,
-                logits=prediction_logits
+            self._xent = tf.reduce_mean(
+                tf.nn.sigmoid_cross_entropy_with_logits(
+                    labels=self._target_prediction,
+                    logits=prediction_logits
+                )
             )
             self._reg = tf.reduce_mean(tf.norm(self._features, 1, axis=1))
             self._loss = self._xent + self._reg_coeff * self._reg
