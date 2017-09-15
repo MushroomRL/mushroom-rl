@@ -65,6 +65,15 @@ class ConvNet:
         self._session = tf.Session()
         self._session.run(tf.global_variables_initializer())
 
+        w = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
+                              scope=self._name)
+        self._target_w = list()
+        self._w = list()
+        for i in xrange(len(w)):
+            self._target_w.append(tf.placeholder(w[i].dtype,
+                                                 shape=w[i].shape))
+            self._w.append(w[i].assign(self._target_w[i]))
+
     def predict(self, x):
         if isinstance(x, list):
             return self._session.run(
@@ -89,7 +98,8 @@ class ConvNet:
             assert len(w) == len(weights)
 
             for i in xrange(len(w)):
-                self._session.run(tf.assign(w[i], weights[i]))
+                self._session.run(self._w[i],
+                                  feed_dict={self._target_w[i]: weights[i]})
 
     def get_weights(self):
         w = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
