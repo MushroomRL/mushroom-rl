@@ -167,14 +167,10 @@ def experiment():
 
     # Learn
     for k in xrange(args.n_iterations):
-        replay_memory = ReplayMemory(args.dataset_size, args.history_length)
-        mdp_info = dict(observation_space=mdp.observation_space,
-                        action_space=mdp.action_space)
-        replay_memory.initialize(mdp_info)
-
         print('Iteration %d' % k)
         if args.load_path_dataset:
-            dataset = np.load(args.load_path_dataset + '/dataset.npy')
+            dataset = np.load(
+                args.load_path_dataset + '/dataset.npy')[:args.dataset_size]
         else:
             dataset = core.evaluate(how_many=args.dataset_size,
                                     iterate_over='samples',
@@ -182,6 +178,10 @@ def experiment():
             if args.save_dataset:
                 np.save(folder_name + '/dataset.npy', dataset)
 
+        replay_memory = ReplayMemory(args.dataset_size, args.history_length)
+        mdp_info = dict(observation_space=mdp.observation_space,
+                        action_space=mdp.action_space)
+        replay_memory.initialize(mdp_info)
         replay_memory.add(dataset)
 
         if not args.load_path_extractor:
