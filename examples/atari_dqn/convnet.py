@@ -19,6 +19,15 @@ class ConvNet:
             self._train_saver = tf.train.Saver(
                 tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
                                   scope=self._scope_name))
+        elif self._name == 'target':
+            w = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
+                                  scope=self._scope_name)
+            self._target_w = list()
+            self._w = list()
+            for i in xrange(len(w)):
+                self._target_w.append(tf.placeholder(w[i].dtype,
+                                                     shape=w[i].shape))
+                self._w.append(w[i].assign(self._target_w[i]))
 
     def predict(self, x):
         if isinstance(x, list):
@@ -40,15 +49,16 @@ class ConvNet:
         self._train_count += 1
 
     def set_weights(self, weights):
-        w = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
+        w = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                               scope=self._scope_name)
         assert len(w) == len(weights)
 
         for i in xrange(len(w)):
-            w[i] = weights[i]
+            self._session.run(self._w[i],
+                              feed_dict={self._target_w[i]: weights[i]})
 
     def get_weights(self):
-        w = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
+        w = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
                               scope=self._scope_name)
 
         return self._session.run(w)
@@ -60,6 +70,7 @@ class ConvNet:
         )
 
     def _load(self, path):
+        self._scope_name = 'train'
         restorer = tf.train.import_meta_graph(
             path + '/' + self._scope_name + '/' + self._scope_name + '.meta')
         restorer.restore(
@@ -69,7 +80,7 @@ class ConvNet:
         self._restore_collection()
 
     def _build(self, convnet_pars):
-        with tf.variable_scope(None, default_name=self._name + '_dqn'):
+        with tf.variable_scope(None, default_name=self._name):
             self._scope_name = tf.get_default_graph().get_name_scope()
             self._x = tf.placeholder(tf.float32,
                                      shape=[None,
