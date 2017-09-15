@@ -45,7 +45,7 @@ class ConvNet:
         assert len(w) == len(weights)
 
         for i in xrange(len(w)):
-            self._session.run(tf.assign(w[i], weights[i]))
+            w[i] = weights[i]
 
     def get_weights(self):
         w = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,

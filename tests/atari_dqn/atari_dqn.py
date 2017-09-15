@@ -118,6 +118,7 @@ def experiment():
 
     return w
 
+
 if __name__ == '__main__':
     print('Executing atari_dqn test...')
 
