@@ -7,6 +7,7 @@ class Extractor:
         self._name = name
         self._folder_name = folder_name
         self._reg_coeff = convnet_pars.get('reg_coeff', 0.)
+        self._contractive = convnet_pars.get('contractive', False)
 
         self._session = tf.Session()
 
@@ -103,15 +104,15 @@ class Extractor:
                 name='hidden_8'
             )
             self._prediction = tf.layers.conv2d_transpose(
-                hidden_8, 4, 1, 1, activation=tf.nn.sigmoid,
+                hidden_8, 1, 1, 1, activation=tf.nn.sigmoid,
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 name='prediction'
             )
+            self._prediction = tf.reshape(self._prediction, [-1, 84, 84])
 
             self._target_prediction = tf.placeholder(
                 'float32',
-                shape=[None, convnet_pars['height'], convnet_pars['width'],
-                       convnet_pars['history_length']],
+                shape=[None, convnet_pars['height'], convnet_pars['width']],
                 name='target_prediction')
 
             prediction = tf.clip_by_value(self._prediction, 1e-7, 1 - 1e-7)
@@ -122,7 +123,10 @@ class Extractor:
                     logits=prediction_logits
                 )
             )
-            self._reg = tf.reduce_mean(tf.norm(self._features, 1, axis=1))
+            if self._contractive:
+                raise NotImplementedError
+            else:
+                self._reg = tf.reduce_mean(tf.norm(self._features, 1, axis=1))
             self._loss = self._xent + self._reg_coeff * self._reg
             tf.summary.scalar('xent', self._xent)
             tf.summary.scalar('reg', self._reg)

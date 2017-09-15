@@ -59,9 +59,9 @@ for i in xrange(mdp.action_space.n):
     idxs = np.argwhere(action == i).ravel()
     action_samples.append(idxs[0])
     print('Model %d loss: %f' % (i, extractor.models[i].model.get_loss(
-        (next_state[idxs] / 255. >= binarizer_threshold).astype(np.float),
-        extractor.models[i].predict(state[idxs], reconstruction=True),
-        state[idxs]))
+        (next_state[idxs, ..., -1] / 255. >= binarizer_threshold).astype(
+            np.float), extractor.models[i].predict(
+            state[idxs], reconstruction=True), state[idxs]))
     )
 
 for a in action_samples:
@@ -71,9 +71,9 @@ for a in action_samples:
         reconstruction=True
     )
     for i in xrange(4):
-        plt.subplot(2, 4, i + 1)
+        plt.subplot(1, 5, i + 1)
         plt.imshow(state[a, ..., i])
-        plt.subplot(2, 4, i + 5)
-        plt.imshow(prediction[0, ..., i])
+    plt.subplot(1, 5, 5)
+    plt.imshow(prediction[0])
 
 plt.show()

@@ -201,7 +201,7 @@ def experiment():
                     gen = tqdm(rm_generator, total=n_batches, dynamic_ncols=100,
                                desc='Epoch %d' % e)
                     for batch in gen:
-                        m.train_on_batch(batch[0], batch[3])
+                        m.train_on_batch(batch[0], batch[3][..., -1])
                         gen.set_postfix(loss=m.model.loss)
 
                     if args.save_extractor:
