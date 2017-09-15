@@ -184,6 +184,8 @@ def experiment():
         replay_memory.initialize(mdp_info)
         replay_memory.add(dataset)
 
+        del dataset
+
         if not args.load_path_extractor:
             for i, m in enumerate(extractor.models):
                 print('Fitting model %d' % i)
