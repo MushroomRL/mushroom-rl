@@ -104,7 +104,7 @@ def experiment():
         folder_name = args.load_path_extractor
     elif args.load_path_dataset:
         folder_name = args.load_path_dataset
-        path = glob.glob(folder_name + '/deep_fqi_extractor*/*')
+        path = glob.glob(folder_name)
         for f in path:
             os.remove(f)
     elif args.load_path_extractor:
