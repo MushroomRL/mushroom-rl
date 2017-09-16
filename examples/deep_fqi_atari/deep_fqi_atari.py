@@ -1,4 +1,5 @@
 import argparse
+import cPickle
 import datetime
 import glob
 import os
@@ -94,6 +95,8 @@ def experiment():
     arg_utils.add_argument('--save-features', action='store_true')
     arg_utils.add_argument('--render', action='store_true',
                            help='Flag specifying whether to render the game.')
+    arg_utils.add_argument('--load-path-approximator', type=str)
+    arg_utils.add_argument('--save-approximator', action='store_true')
     arg_utils.add_argument('--quiet', action='store_true',
                            help='Flag specifying whether to hide the progress'
                                 'bar.')
@@ -176,7 +179,7 @@ def experiment():
     # Learn
     for k in xrange(args.n_iterations):
         print('Iteration %d' % k)
-        if args.load_path_dataset:
+        if args.load_path_dataset and k == 0:
             dataset = np.load(
                 args.load_path_dataset + '/dataset.npy')[:args.dataset_size]
         else:
@@ -194,7 +197,7 @@ def experiment():
 
         del dataset
 
-        if not args.load_path_extractor:
+        if not args.load_path_extractor or k > 0:
             print('Fitting extractor...')
             best_loss = np.inf
             for e in xrange(args.n_epochs):
@@ -225,7 +228,7 @@ def experiment():
             extractor.model._restore_collection()
 
         print('Building features...')
-        if not args.load_path_features:
+        if not args.load_path_features or k > 0:
             f = np.ones((replay_memory.size, n_features))
             ff = np.ones((mdp.action_space.n, replay_memory.size, n_features))
             rm_generator = replay_memory.generator(args.batch_size)
@@ -248,10 +251,17 @@ def experiment():
             ff = np.load(args.load_path_features + '/ff.npy')
 
         print('Starting FQI...')
-        dataset = [f, replay_memory._actions, replay_memory._rewards, ff,
-                   replay_memory._absorbing, replay_memory._last]
-        del replay_memory
-        agent.fit(dataset=dataset, n_iterations=args.fqi_steps)
+        if not args.load_path_approximator or k > 0:
+            dataset = [f, replay_memory._actions, replay_memory._rewards, ff,
+                       replay_memory._absorbing, replay_memory._last]
+            del replay_memory
+            agent.fit(dataset=dataset, n_iterations=args.fqi_steps)
+
+            if args.save_approximator:
+                cPickle.dump(approximator, folder_name + '/approximator.pkl')
+        else:
+            del replay_memory
+            approximator = cPickle.load(folder_name + '/approximator.pkl')
 
         print '- Evaluation:'
         # evaluation step
