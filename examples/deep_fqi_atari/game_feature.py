@@ -23,9 +23,11 @@ from mushroom.utils.replay_memory import Buffer
 # Argument parser
 parser = argparse.ArgumentParser()
 parser.add_argument("--load-path", type=str)
+parser.add_argument("--game", type=str, default='BreakoutDeterministic-v4')
+parser.add_argument("--binarizer_threshold", type=float, default=.1)
 args = parser.parse_args()
 
-env = gym.make('BreakoutDeterministic-v4')
+env = gym.make(args.game)
 
 # Feature extractor
 folder_name = './' + datetime.datetime.now().strftime(
@@ -42,10 +44,10 @@ extractor = Regressor(Extractor,
                       discrete_actions=env.action_space.n,
                       input_preprocessor=[
                           Scaler(255.),
-                          Binarizer(.1)],
+                          Binarizer(args.binarizer_threshold)],
                       output_preprocessor=[
                           Scaler(255.),
-                          Binarizer(.1)],
+                          Binarizer(args.binarizer_threshold)],
                       **extractor_params)
 
 path =\
@@ -88,7 +90,7 @@ env.unwrapped.viewer.window.on_key_release = key_release
 
 def plot_features(extractor, a, fig):
     sa = [np.expand_dims(buf.get(), axis=0), np.array([[a]])]
-    features = extractor.predict(sa)[0].reshape(int(FEATURES**.5), int(FEATURES**.5))
+    features = extractor.predict(sa)[0].reshape(32, 16)
     plt.imshow(features)
     fig.canvas.draw()
     plt.show(block=False)

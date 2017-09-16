@@ -11,12 +11,12 @@ from mushroom.utils.preprocessor import Binarizer, Scaler
 # Argument parser
 parser = argparse.ArgumentParser()
 parser.add_argument("--load-path", type=str)
+parser.add_argument("--game", type=str, default='BreakoutDeterministic-v4')
+parser.add_argument("--binarizer_threshold", type=float, default=.1)
 args = parser.parse_args()
 
-binarizer_threshold = .35
-
 # MDP
-mdp = Atari('PongDeterministic-v4', 84, 84)
+mdp = Atari(args.game, 84, 84)
 mdp.reset()
 
 extractor_params = dict(folder_name=None,
@@ -31,11 +31,11 @@ extractor = Regressor(Extractor,
                       discrete_actions=mdp.action_space.n,
                       input_preprocessor=[
                           Scaler(255.),
-                          Binarizer(binarizer_threshold)
+                          Binarizer(args.binarizer_threshold)
                       ],
                       output_preprocessor=[
                           Scaler(255.),
-                          Binarizer(binarizer_threshold)
+                          Binarizer(args.binarizer_threshold)
                       ],
                       **extractor_params)
 
@@ -62,7 +62,7 @@ for i in xrange(state.shape[0]):
 sa = [state, action]
 predictions = extractor.predict(sa, reconstruction=True)
 loss = extractor.model.get_loss(
-    (next_state / 255. >= binarizer_threshold).astype(np.float),
+    (next_state / 255. >= args.binarizer_threshold).astype(np.float),
     predictions,
     sa
 )
