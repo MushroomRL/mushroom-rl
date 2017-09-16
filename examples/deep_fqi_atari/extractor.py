@@ -6,6 +6,7 @@ class Extractor:
                  **convnet_pars):
         self._name = name
         self._folder_name = folder_name
+        self._n_features = convnet_pars.get('n_features', 512)
         self._reg_coeff = convnet_pars.get('reg_coeff', 0.)
         self._contractive = convnet_pars.get('contractive', False)
 
@@ -88,20 +89,33 @@ class Extractor:
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 name='hidden_4'
             )
-            features_state = tf.reshape(hidden_4, [-1, 5 * 5 * 16],
-                                        name='features_state')
+            hidden_4_flat = tf.reshape(hidden_4, [-1, 5 * 5 * 16],
+                                       name='hidden_4_flat')
+            features_state = tf.layers.dense(hidden_4_flat,
+                                             self._n_features,
+                                             activation=tf.nn.relu,
+                                             name='features_state')
             self._action = tf.placeholder(tf.uint8,
                                           shape=[None, 1],
                                           name='action')
             one_hot_action = tf.one_hot(tf.reshape(self._action, [-1]),
                                         depth=convnet_pars['n_actions'])
-            features_action = tf.layers.dense(one_hot_action, 400,
+            features_action = tf.layers.dense(one_hot_action,
+                                              self._n_features,
                                               activation=tf.nn.relu,
                                               name='features_action')
-            self._features = tf.multiply(features_state, features_action)
+            state_x_action = tf.multiply(features_state, features_action)
+            self._features = tf.layers.dense(state_x_action,
+                                             self._n_features,
+                                             activation=tf.nn.relu,
+                                             name='features')
+            hidden_5_flat = tf.layers.dense(self._features,
+                                            400,
+                                            activation=tf.nn.relu,
+                                            name='hidden_5_flat')
+            hidden_5_conv = tf.reshape(hidden_5_flat, [-1, 5, 5, 16])
             hidden_5 = tf.layers.conv2d_transpose(
-                tf.reshape(self._features, [-1, 5, 5, 16]), 16, 3, 1,
-                activation=tf.nn.relu,
+                hidden_5_conv, 16, 3, 1, activation=tf.nn.relu,
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 name='hidden_5'
             )
@@ -188,7 +202,7 @@ class Extractor:
 
     @property
     def n_features(self):
-        return self._features.shape[1]
+        return self._n_features
 
     def _add_collection(self):
         tf.add_to_collection(self._scope_name + '_state', self._state)

@@ -13,10 +13,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--load-path", type=str)
 args = parser.parse_args()
 
-binarizer_threshold = .1
+binarizer_threshold = .35
 
 # MDP
-mdp = Atari('BreakoutDeterministic-v4', 84, 84)
+mdp = Atari('PongDeterministic-v4', 84, 84)
 mdp.reset()
 
 extractor_params = dict(folder_name=None,
@@ -53,8 +53,9 @@ next_state = np.ones((n_samples, 84, 84))
 
 for i in xrange(state.shape[0]):
     for j in xrange(4):
-        state[i, ..., j], _, _, _ = mdp.step(np.random.randint(4))
-    a = np.random.randint(4)
+        state[i, ..., j], _, _, _ = mdp.step(
+            np.random.randint(mdp.action_space.n))
+    a = np.random.randint(mdp.action_space.n)
     next_state[i], _, _, _ = mdp.step(a)
     action[i] = a
 
