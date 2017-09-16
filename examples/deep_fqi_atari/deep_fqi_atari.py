@@ -1,5 +1,5 @@
 import argparse
-import cPickle
+import pickle
 import datetime
 import glob
 import os
@@ -267,10 +267,13 @@ def experiment():
             agent.fit(dataset=dataset, n_iterations=args.fqi_steps)
 
             if args.save_approximator:
-                cPickle.dump(approximator, folder_name + '/approximator.pkl')
+                pickle.dump(approximator,
+                            open(folder_name + '/approximator.pkl',
+                                 'wb'))
         else:
             del replay_memory
-            approximator = cPickle.load(folder_name + '/approximator.pkl')
+            approximator = pickle.load(open(folder_name + '/approximator.pkl',
+                                            'rb'))
 
         print '- Evaluation:'
         # evaluation step
