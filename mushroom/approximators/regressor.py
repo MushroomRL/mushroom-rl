@@ -98,8 +98,6 @@ class Regressor(object):
 
         """
         if hasattr(self, 'discrete_actions'):
-            assert x.ndim == 2
-
             n_states = x.shape[0]
             n_actions = self.discrete_actions.shape[0]
             action_dim = self.discrete_actions.shape[1]
@@ -109,14 +107,20 @@ class Regressor(object):
 
             a = np.ones(
                 (n_states, action_dim)) * self.discrete_actions[0]
-            samples = np.concatenate((x, a), axis=1)
+            if x.ndim == 2:
+                samples = np.concatenate((x, a), axis=1)
+            else:
+                samples = [x, a]
             y_0 = self.model.predict(samples, **predict_params).ravel()
             y = np.zeros((n_states, n_actions) + y_0.shape[1:])
             y[:, 0] = y_0
             for action in xrange(1, n_actions):
                 a = np.ones(
                     (n_states, action_dim)) * self.discrete_actions[action]
-                samples = np.concatenate((x, a), axis=1)
+                if x.ndim == 2:
+                    samples = np.concatenate((x, a), axis=1)
+                else:
+                    samples = [x, a]
                 y[:, action] = self.model.predict(samples,
                                                   **predict_params).ravel()
         else:
@@ -162,14 +166,19 @@ class Regressor(object):
 
         """
         assert isinstance(x, list) and len(x) == 2
-        assert x[0].ndim == 2 and x[1].ndim == 2
         assert x[0].shape[0] == x[1].shape[0]
 
         if self._actions_with_value:
-            x = np.concatenate((x[0], self.discrete_actions[x[1].ravel()]),
-                               axis=1)
+            if x[0].ndim == 2:
+                x = np.concatenate((x[0], self.discrete_actions[x[1].ravel()]),
+                                   axis=1)
+            else:
+                x = [x[0], x[1]]
         else:
-            x = np.concatenate((x[0], x[1]), axis=1)
+            if x[0].ndim == 2:
+                x = np.concatenate((x[0], x[1]), axis=1)
+            else:
+                x = [x[0], x[1]]
 
         return x
 
