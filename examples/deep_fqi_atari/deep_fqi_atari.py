@@ -199,7 +199,7 @@ def experiment():
                            desc='Epoch %d' % e)
                 for batch in gen:
                     sa = [batch[0], batch[1]]
-                    extractor.model.train_on_batch(sa, batch[3][..., -1])
+                    extractor.train_on_batch(sa, batch[3][..., -1])
                     gen.set_postfix(loss=extractor.model.loss)
 
                 if args.save_extractor:
@@ -226,12 +226,12 @@ def experiment():
                 start = i * batch[0].shape[0]
                 stop = start + batch[0].shape[0]
                 sa = [batch[0], batch[1]]
-                f[start:stop] = extractor.model.predict(sa)
+                f[start:stop] = extractor.predict(sa)
                 for j in xrange(mdp.action_space.n):
                     start = i * batch[3].shape[0]
                     stop = start + batch[3].shape[0]
                     sa_n = [batch[3], np.ones((batch[3].shape[0], 1)) * j]
-                    ff[j, start:stop] = extractor.model.predict(sa_n)
+                    ff[j, start:stop] = extractor.predict(sa_n)
 
             if args.save_features:
                 np.save(folder_name + '/f.npy', f)
