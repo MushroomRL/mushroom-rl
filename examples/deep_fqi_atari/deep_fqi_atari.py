@@ -91,13 +91,13 @@ def experiment():
     arg_utils.add_argument('--load-path', type=str)
     arg_utils.add_argument('--load-dataset', action='store_true')
     arg_utils.add_argument('--save-dataset', action='store_true')
-    arg_utils.add_argument('--load-extractor', type=str)
+    arg_utils.add_argument('--load-extractor', action='store_true')
     arg_utils.add_argument('--save-extractor', action='store_true',
                            help='Flag specifying whether to save the feature'
                                 'extractor.')
-    arg_utils.add_argument('--load-features', type=str)
+    arg_utils.add_argument('--load-features', action='store_true')
     arg_utils.add_argument('--save-features', action='store_true')
-    arg_utils.add_argument('--load-approximator', type=str)
+    arg_utils.add_argument('--load-approximator', action='store_true')
     arg_utils.add_argument('--save-approximator', action='store_true')
     arg_utils.add_argument('--render', action='store_true',
                            help='Flag specifying whether to render the game.')
