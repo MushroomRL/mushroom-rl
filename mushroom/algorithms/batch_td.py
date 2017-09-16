@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 
 from mushroom.algorithms.agent import Agent
 from mushroom.utils.dataset import max_QA, parse_dataset
@@ -11,6 +12,7 @@ class BatchTD(Agent):
 
     """
     def __init__(self, approximator, policy, gamma, **params):
+        self._quiet = params.get('quiet', False)
         super(BatchTD, self).__init__(approximator, policy, gamma, **params)
 
     def __str__(self):
@@ -38,7 +40,8 @@ class FQI(BatchTD):
 
         """
         target = None
-        for i in xrange(n_iterations):
+        for _ in tqdm(xrange(n_iterations), dynamic_ncols=True,
+                      disable=self._quiet, leave=False):
             target = self._partial_fit(dataset, target,
                                        **self.params['fit_params'])
 
