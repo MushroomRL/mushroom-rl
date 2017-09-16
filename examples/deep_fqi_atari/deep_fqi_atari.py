@@ -88,18 +88,19 @@ def experiment():
                          help='Value of the no-op action.')
 
     arg_utils = parser.add_argument_group('Utils')
-    arg_utils.add_argument('--load-path-dataset', type=str)
+    arg_utils.add_argument('--load-path', type=str)
+    arg_utils.add_argument('--load-dataset', action='store_true')
     arg_utils.add_argument('--save-dataset', action='store_true')
-    arg_utils.add_argument('--load-path-extractor', type=str)
+    arg_utils.add_argument('--load-extractor', type=str)
     arg_utils.add_argument('--save-extractor', action='store_true',
                            help='Flag specifying whether to save the feature'
                                 'extractor.')
-    arg_utils.add_argument('--load-path-features', type=str)
+    arg_utils.add_argument('--load-features', type=str)
     arg_utils.add_argument('--save-features', action='store_true')
+    arg_utils.add_argument('--load-approximator', type=str)
+    arg_utils.add_argument('--save-approximator', action='store_true')
     arg_utils.add_argument('--render', action='store_true',
                            help='Flag specifying whether to render the game.')
-    arg_utils.add_argument('--load-path-approximator', type=str)
-    arg_utils.add_argument('--save-approximator', action='store_true')
     arg_utils.add_argument('--quiet', action='store_true',
                            help='Flag specifying whether to hide the progress'
                                 'bar.')
@@ -110,15 +111,8 @@ def experiment():
     args = parser.parse_args()
 
     # Summary folder
-    if args.load_path_extractor and args.load_path_dataset:
-        folder_name = args.load_path_extractor
-    elif args.load_path_dataset:
-        folder_name = args.load_path_dataset
-        path = glob.glob(folder_name + '/deep_fqi_extractor*/*')
-        for f in path:
-            os.remove(f)
-    elif args.load_path_extractor:
-        folder_name = args.load_path_extractor
+    if args.load_path:
+        folder_name = args.load_path
     else:
         folder_name = './logs/deep_fqi_atari_' +\
                       datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
@@ -188,9 +182,9 @@ def experiment():
     # Learn
     for k in xrange(args.n_iterations):
         print('Iteration %d' % k)
-        if args.load_path_dataset and k == 0:
+        if args.load_dataset and k == 0:
             dataset = np.load(
-                args.load_path_dataset + '/dataset.npy')[:args.dataset_size]
+                folder_name + '/dataset.npy')[:args.dataset_size]
         else:
             dataset = core.evaluate(how_many=args.dataset_size,
                                     iterate_over='samples',
@@ -206,7 +200,7 @@ def experiment():
 
         del dataset
 
-        if not args.load_path_extractor or k > 0:
+        if not args.load_extractor or k > 0:
             print('Fitting extractor...')
             best_loss = np.inf
             for e in xrange(args.n_epochs):
@@ -227,17 +221,16 @@ def experiment():
                         extractor.model.save()
         else:
             restorer = tf.train.import_meta_graph(
-                args.load_path_extractor + '/' +
-                extractor.model._scope_name + '/' +
+                folder_name + '/' + extractor.model._scope_name + '/' +
                 extractor.model._scope_name + '.meta')
             restorer.restore(
-                extractor.model._session, args.load_path_extractor +
+                extractor.model._session, folder_name +
                 '/' + extractor.model._scope_name + '/' +
                 extractor.model._scope_name)
             extractor.model._restore_collection()
 
         print('Building features...')
-        if not args.load_path_features or k > 0:
+        if not args.load_features or k > 0:
             f = np.ones((replay_memory.size, n_features))
             ff = np.ones((mdp.action_space.n, replay_memory.size, n_features))
             rm_generator = replay_memory.generator(args.batch_size)
@@ -256,11 +249,11 @@ def experiment():
                 np.save(folder_name + '/f.npy', f)
                 np.save(folder_name + '/ff.npy', ff)
         else:
-            f = np.load(args.load_path_features + '/f.npy')
-            ff = np.load(args.load_path_features + '/ff.npy')
+            f = np.load(folder_name + '/f.npy')
+            ff = np.load(folder_name + '/ff.npy')
 
         print('Starting FQI...')
-        if not args.load_path_approximator or k > 0:
+        if not args.load_approximator or k > 0:
             dataset = [f, replay_memory._actions, replay_memory._rewards, ff,
                        replay_memory._absorbing, replay_memory._last]
             del replay_memory
