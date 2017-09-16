@@ -5,6 +5,7 @@ import glob
 import os
 
 import numpy as np
+from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import ExtraTreesRegressor
 import tensorflow as tf
 from tqdm import tqdm
@@ -59,13 +60,15 @@ def experiment():
     arg_net.add_argument("--decay", type=float, default=.95,
                          help='Discount factor for the history coming from the'
                               'gradient momentum in rmsprop.')
-    arg_net.add_argument("--reg-coeff", type=float, default=1e-5)
+    arg_net.add_argument("--reg-coeff", type=float, default=1e-6)
 
     arg_alg = parser.add_argument_group('Algorithm')
     arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.)
     arg_alg.add_argument("--n-epochs", type=int, default=25)
     arg_alg.add_argument("--n-iterations", type=int, default=10)
     arg_alg.add_argument("--fqi-steps", type=int, default=1000)
+    arg_alg.add_argument("--approximator", choices=['linear', 'extra'],
+                         default='extra')
     arg_alg.add_argument("--n-estimators", type=int, default=50)
     arg_alg.add_argument("--min-samples-split", type=int, default=5)
     arg_alg.add_argument("--min-samples-leaf", type=int, default=2)
@@ -152,13 +155,19 @@ def experiment():
 
     n_features = extractor.model.n_features
 
-    approximator_params = dict(n_estimators=args.n_estimators,
-                               min_samples_split=args.min_samples_split,
-                               min_samples_leaf=args.min_samples_leaf,
-                               max_depth=args.max_depth)
-    approximator = ActionRegressor(ExtraTreesRegressor,
-                                   discrete_actions=mdp.action_space.n,
-                                   **approximator_params)
+    if args.approximator == 'extra':
+        approximator_params = dict(n_estimators=args.n_estimators,
+                                   min_samples_split=args.min_samples_split,
+                                   min_samples_leaf=args.min_samples_leaf,
+                                   max_depth=args.max_depth)
+        approximator = ActionRegressor(ExtraTreesRegressor,
+                                       discrete_actions=mdp.action_space.n,
+                                       **approximator_params)
+    elif args.approximator == 'linear':
+        approximator_params = dict()
+        approximator = ActionRegressor(LinearRegression,
+                                       discrete_actions=mdp.action_space.n,
+                                       **approximator_params)
 
     # Agent
     algorithm_params = dict(
