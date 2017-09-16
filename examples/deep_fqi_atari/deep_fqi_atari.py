@@ -134,6 +134,7 @@ def experiment():
                             history_length=args.history_length,
                             reg_coeff=args.reg_coeff)
     extractor = Regressor(Extractor,
+                          discrete_actions=mdp.action_space.n,
                           input_preprocessor=[
                               Scaler(mdp.observation_space.high),
                               Binarizer(args.binarizer_threshold)],
