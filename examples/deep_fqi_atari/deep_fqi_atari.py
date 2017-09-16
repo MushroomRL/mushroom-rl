@@ -65,6 +65,10 @@ def experiment():
     arg_alg.add_argument("--n-epochs", type=int, default=25)
     arg_alg.add_argument("--n-iterations", type=int, default=10)
     arg_alg.add_argument("--fqi-steps", type=int, default=1000)
+    arg_alg.add_argument("--n-estimators", type=int, default=50)
+    arg_alg.add_argument("--min-samples-split", type=int, default=5)
+    arg_alg.add_argument("--min-samples-leaf", type=int, default=2)
+    arg_alg.add_argument("--max-depth", type=int, default=None)
     arg_alg.add_argument("--dataset-size", type=int, default=500000)
     arg_alg.add_argument("--batch-size", type=int, default=32,
                          help='Batch size for each fit of the network.')
@@ -145,7 +149,10 @@ def experiment():
 
     n_features = extractor.model.n_features
 
-    approximator_params = dict()
+    approximator_params = dict(n_estimators=args.n_estimators,
+                               min_samples_split=args.min_samples_split,
+                               min_samples_leaf=args.min_samples_leaf,
+                               max_depth=args.max_depth)
     approximator = ActionRegressor(ExtraTreesRegressor,
                                    discrete_actions=mdp.action_space.n,
                                    **approximator_params)

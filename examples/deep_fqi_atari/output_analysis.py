@@ -67,7 +67,9 @@ loss = extractor.model.get_loss(
 )
 print('Loss: %f' % loss)
 
-idxs = [12, 68, 300, 450]
+idxs = list()
+for i in xrange(mdp.action_space.n):
+    idxs.append(np.argwhere(action == i).ravel()[0])
 for idx in idxs:
     plt.figure()
     for i in xrange(4):
