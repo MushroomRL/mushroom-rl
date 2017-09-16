@@ -110,8 +110,8 @@ def experiment():
     elif args.load_path_extractor:
         folder_name = args.load_path_extractor
     else:
-        folder_name = './logs/' + datetime.datetime.now().strftime(
-            '%Y-%m-%d_%H-%M-%S')
+        folder_name = './logs/deep_fqi_atari_' +\
+                      datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
     # MDP
     mdp = Atari(args.name, args.screen_width, args.screen_height,
@@ -133,21 +133,21 @@ def experiment():
                             height=args.screen_height,
                             history_length=args.history_length,
                             reg_coeff=args.reg_coeff)
-    extractor = ActionRegressor(Extractor,
-                                discrete_actions=mdp.action_space.n,
-                                input_preprocessor=[
-                                    Scaler(mdp.observation_space.high),
-                                    Binarizer(args.binarizer_threshold)],
-                                output_preprocessor=[
-                                    Scaler(mdp.observation_space.high),
-                                    Binarizer(args.binarizer_threshold)],
-                                **extractor_params)
+    extractor = Regressor(Extractor,
+                          input_preprocessor=[
+                              Scaler(mdp.observation_space.high),
+                              Binarizer(args.binarizer_threshold)],
+                          output_preprocessor=[
+                              Scaler(mdp.observation_space.high),
+                              Binarizer(args.binarizer_threshold)],
+                          **extractor_params)
 
-    n_features = extractor.models[0].model.n_features
+    n_features = extractor.model.n_features
 
     approximator_params = dict()
-    approximator = Regressor(ExtraTreesRegressor,
-                             **approximator_params)
+    approximator = ActionRegressor(ExtraTreesRegressor,
+                                   discrete_actions=mdp.action_space.n,
+                                   **approximator_params)
 
     # Agent
     algorithm_params = dict(
@@ -187,55 +187,50 @@ def experiment():
         del dataset
 
         if not args.load_path_extractor:
-            for i, m in enumerate(extractor.models):
-                print('Fitting model %d' % i)
-                best_loss = np.inf
-                for e in xrange(args.n_epochs):
-                    idxs = np.argwhere(
-                        replay_memory._actions.ravel() == i).ravel()
-                    rm_generator = replay_memory.generator(args.batch_size,
-                                                           idxs)
-                    n_batches = int(
-                        np.ceil(idxs.size / float(args.batch_size)))
+            print('Fitting extractor...')
+            best_loss = np.inf
+            for e in xrange(args.n_epochs):
+                rm_generator = replay_memory.generator(args.batch_size)
+                n_batches = int(
+                    np.ceil(replay_memory.size / float(args.batch_size)))
 
-                    gen = tqdm(rm_generator, total=n_batches, dynamic_ncols=100,
-                               desc='Epoch %d' % e)
-                    for batch in gen:
-                        m.train_on_batch(batch[0], batch[3][..., -1])
-                        gen.set_postfix(loss=m.model.loss)
+                gen = tqdm(rm_generator, total=n_batches, dynamic_ncols=100,
+                           desc='Epoch %d' % e)
+                for batch in gen:
+                    sa = [batch[0], batch[1]]
+                    extractor.model.train_on_batch(sa, batch[3][..., -1])
+                    gen.set_postfix(loss=extractor.model.loss)
 
-                    if args.save_extractor:
-                        if best_loss > m.model.loss:
-                            best_loss = m.model.loss
-                            m.model.save()
+                if args.save_extractor:
+                    if best_loss > extractor.model.loss:
+                        best_loss = extractor.model.loss
+                        extractor.model.save()
         else:
-            for i, e in enumerate(extractor.models):
-                restorer = tf.train.import_meta_graph(
-                    args.load_path_extractor + '/' + e.model._scope_name + '/' +
-                    e.model._scope_name + '.meta')
-                restorer.restore(e.model._session, args.load_path_extractor +
-                                 '/' + e.model._scope_name + '/' +
-                                 e.model._scope_name)
-                e.model._restore_collection()
+            restorer = tf.train.import_meta_graph(
+                args.load_path_extractor + '/' +
+                extractor.model._scope_name + '/' +
+                extractor.model._scope_name + '.meta')
+            restorer.restore(
+                extractor.model._session, args.load_path_extractor +
+                '/' + extractor.model._scope_name + '/' +
+                extractor.model._scope_name)
+            extractor.model._restore_collection()
 
         print('Building features...')
         if not args.load_path_features:
             f = np.ones((replay_memory.size, n_features))
-            for i, m in enumerate(extractor.models):
-                idxs = np.argwhere(replay_memory._actions.ravel() == i).ravel()
-                rm_generator = replay_memory.generator(args.batch_size, idxs)
-                for j, batch in enumerate(rm_generator):
-                    start = j * batch[0].shape[0]
-                    stop = start + batch[0].shape[0]
-                    f[start:stop] = m.predict(batch[0])
-
             ff = np.ones((mdp.action_space.n, replay_memory.size, n_features))
-            for i, m in enumerate(extractor.models):
-                rm_generator = replay_memory.generator(args.batch_size)
-                for j, batch in enumerate(rm_generator):
-                    start = j * batch[3].shape[0]
+            rm_generator = replay_memory.generator(args.batch_size)
+            for i, batch in enumerate(rm_generator):
+                start = i * batch[0].shape[0]
+                stop = start + batch[0].shape[0]
+                sa = [batch[0], batch[1]]
+                f[start:stop] = extractor.model.predict(sa)
+                for j in xrange(mdp.action_space.n):
+                    start = i * batch[3].shape[0]
                     stop = start + batch[3].shape[0]
-                    ff[i, start:stop] = m.predict(batch[3])
+                    sa_n = [batch[3], np.ones((batch[3].shape[0], 1)) * j]
+                    ff[j, start:stop] = extractor.model.predict(sa_n)
 
             if args.save_features:
                 np.save(folder_name + '/f.npy', f)

@@ -182,7 +182,7 @@ def experiment():
         # DQN learning run
 
         # Summary folder
-        folder_name = './logs/' + datetime.datetime.now().strftime(
+        folder_name = './logs/atari_dqn_' + datetime.datetime.now().strftime(
             '%Y-%m-%d_%H-%M-%S')
 
         # Settings

@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 import tensorflow as tf
 from matplotlib import pyplot as plt
@@ -7,7 +8,11 @@ from mushroom.approximators.action_regressor import ActionRegressor
 from mushroom.environments import Atari
 from mushroom.utils.preprocessor import Binarizer, Scaler
 
-load_path = '/home/shirokuma/Projects/RL/mushroom/logs/'
+# Argument parser
+parser = argparse.ArgumentParser()
+parser.add_argument("--load-path", type=str)
+args = parser.parse_args()
+
 binarizer_threshold = .1
 
 # MDP
@@ -35,7 +40,8 @@ extractor = ActionRegressor(Extractor,
                             **extractor_params)
 
 for i, e in enumerate(extractor.models):
-    path = load_path + e.model._scope_name + '/' + e.model._scope_name
+    path =\
+        args.load_path + '/' + e.model._scope_name + '/' + e.model._scope_name
     restorer = tf.train.import_meta_graph(path + '.meta')
     restorer.restore(e.model._session, path)
     e.model._restore_collection()

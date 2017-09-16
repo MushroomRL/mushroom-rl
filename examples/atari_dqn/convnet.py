@@ -20,7 +20,7 @@ class ConvNet:
                 tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
                                   scope=self._scope_name))
         elif self._name == 'target':
-            w = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
+            w = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
                                   scope=self._scope_name)
             self._target_w = list()
             self._w = list()
@@ -49,7 +49,7 @@ class ConvNet:
         self._train_count += 1
 
     def set_weights(self, weights):
-        w = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
+        w = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
                               scope=self._scope_name)
         assert len(w) == len(weights)
 
@@ -58,7 +58,7 @@ class ConvNet:
                               feed_dict={self._target_w[i]: weights[i]})
 
     def get_weights(self):
-        w = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
+        w = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
                               scope=self._scope_name)
 
         return self._session.run(w)

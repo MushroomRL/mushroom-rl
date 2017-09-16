@@ -22,20 +22,27 @@ class Extractor:
 
     def predict(self, x, reconstruction=False):
         if not reconstruction:
-            return self._session.run(self._features, feed_dict={self._x: x})
+            return self._session.run(self._features,
+                                     feed_dict={self._state: x[0],
+                                                self._action: x[1]})
         else:
-            return self._session.run(self._prediction, feed_dict={self._x: x})
+            return self._session.run(self._prediction,
+                                     feed_dict={self._state: x[0],
+                                                self._action: x[1]})
 
     def get_loss(self, y_t, y, x):
         return self._session.run(self._loss,
                                  feed_dict={self._target_prediction: y_t,
                                             self._prediction: y,
-                                            self._x: x})
+                                            self._state: x[0],
+                                            self._action: x[1]})
 
     def train_on_batch(self, x, y):
         summaries, _, self.loss = self._session.run(
             [self._merged, self._train_step, self._loss],
-            feed_dict={self._x: x, self._target_prediction: y}
+            feed_dict={self._state: x[0],
+                       self._action: x[1],
+                       self._target_prediction: y}
         )
         self._train_writer.add_summary(summaries, self._train_count)
 
@@ -55,14 +62,14 @@ class Extractor:
     def _build(self, convnet_pars):
         with tf.variable_scope(self._name, default_name='deep_fqi_extractor'):
             self._scope_name = tf.get_default_graph().get_name_scope()
-            self._x = tf.placeholder(tf.float32,
-                                     shape=[None,
-                                            convnet_pars['height'],
-                                            convnet_pars['width'],
-                                            convnet_pars['history_length']],
-                                     name='input')
+            self._state = tf.placeholder(tf.float32,
+                                         shape=[None,
+                                                convnet_pars['height'],
+                                                convnet_pars['width'],
+                                                convnet_pars['history_length']],
+                                         name='state')
             hidden_1 = tf.layers.conv2d(
-                self._x, 32, 8, 4, activation=tf.nn.relu,
+                self._state, 32, 8, 4, activation=tf.nn.relu,
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 name='hidden_1'
             )
@@ -81,10 +88,20 @@ class Extractor:
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 name='hidden_4'
             )
-            self._features = tf.reshape(hidden_4, [-1, 5 * 5 * 16],
-                                        name='features')
+            features_state = tf.reshape(hidden_4, [-1, 5 * 5 * 16],
+                                        name='features_state')
+            self._action = tf.placeholder(tf.uint8,
+                                          shape=[None, 1],
+                                          name='action')
+            one_hot_action = tf.one_hot(tf.reshape(self._action, [-1]),
+                                        depth=convnet_pars['n_actions'])
+            features_action = tf.layers.dense(one_hot_action, 400,
+                                              activation=tf.nn.relu,
+                                              name='features_action')
+            self._features = tf.multiply(features_state, features_action)
             hidden_5 = tf.layers.conv2d_transpose(
-                hidden_4, 16, 3, 1, activation=tf.nn.relu,
+                tf.reshape(self._features, [-1, 5, 5, 16]), 16, 3, 1,
+                activation=tf.nn.relu,
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 name='hidden_5'
             )
@@ -174,7 +191,8 @@ class Extractor:
         return self._features.shape[1]
 
     def _add_collection(self):
-        tf.add_to_collection(self._scope_name + '_x', self._x)
+        tf.add_to_collection(self._scope_name + '_state', self._state)
+        tf.add_to_collection(self._scope_name + '_action', self._action)
         tf.add_to_collection(self._scope_name + '_prediction', self._prediction)
         tf.add_to_collection(self._scope_name + '_target_prediction',
                              self._target_prediction)
@@ -182,7 +200,8 @@ class Extractor:
         tf.add_to_collection(self._scope_name + '_train_step', self._train_step)
 
     def _restore_collection(self):
-        self._x = tf.get_collection(self._scope_name + '_x')[0]
+        self._state = tf.get_collection(self._scope_name + '_state')[0]
+        self._action = tf.get_collection(self._scope_name + '_action')[0]
         self._prediction = tf.get_collection(
             self._scope_name + '_prediction')[0]
         self._target_prediction = tf.get_collection(

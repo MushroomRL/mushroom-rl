@@ -121,19 +121,21 @@ class DeepFQI(FQI):
             **fit_params (dict): other parameters to fit the model.
 
         """
-        state, _, reward, next_state, absorbing, _ = x
+        state, action, reward, next_state, absorbing, _ = x
         if y is None:
             y = reward
         else:
             q = np.ones((next_state.shape[1], next_state.shape[0]))
             for i in xrange(q.shape[1]):
-                q[:, i] = self.approximator.predict(next_state[i])
+                sa_n = [next_state[i], np.ones((next_state.shape[0], 1)) * i]
+                q[:, i] = self.approximator.predict(sa_n)
             if np.any(absorbing):
                 q *= 1 - absorbing.reshape(-1, 1)
             maxq = np.max(q, axis=1)
             y = reward + self._gamma * maxq
 
-        self.approximator.fit(state, y, **fit_params)
+        sa = [state, action]
+        self.approximator.fit(sa, y, **fit_params)
 
         return y
 
@@ -148,9 +150,11 @@ class DeepFQI(FQI):
             if not np.random.uniform() < self.policy._epsilon(extended_state):
                 q = np.ones(self.mdp_info['action_space'].n)
                 for i in xrange(q.size):
-                    features = self._extractor.models[i].predict(
-                        np.expand_dims(extended_state, axis=0))
-                    q[i] = self.approximator.predict(features)
+                    sa = [np.expand_dims(extended_state, axis=0),
+                          np.ones((1, 1)) * i]
+                    features = self._extractor.predict(sa)
+                    fa = [features, np.ones((1, 1)) * i]
+                    q[i] = self.approximator.predict(fa)
                 action = np.array(
                     [np.random.choice(np.argwhere(q == np.max(q)).ravel())])
             else:
