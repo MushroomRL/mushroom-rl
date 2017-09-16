@@ -4,7 +4,7 @@ import tensorflow as tf
 from matplotlib import pyplot as plt
 
 from examples.deep_fqi_atari.extractor import Extractor
-from mushroom.approximators.action_regressor import ActionRegressor
+from mushroom.approximators.action_regressor import Regressor
 from mushroom.environments import Atari
 from mushroom.utils.preprocessor import Binarizer, Scaler
 
@@ -27,59 +27,53 @@ extractor_params = dict(folder_name=None,
                         width=84,
                         height=84,
                         history_length=4)
-extractor = ActionRegressor(Extractor,
-                            discrete_actions=mdp.action_space.n,
-                            input_preprocessor=[
-                                Scaler(255.),
-                                Binarizer(binarizer_threshold)
-                            ],
-                            output_preprocessor=[
-                                Scaler(255.),
-                                Binarizer(binarizer_threshold)
-                            ],
-                            **extractor_params)
+extractor = Regressor(Extractor,
+                      discrete_actions=mdp.action_space.n,
+                      input_preprocessor=[
+                          Scaler(255.),
+                          Binarizer(binarizer_threshold)
+                      ],
+                      output_preprocessor=[
+                          Scaler(255.),
+                          Binarizer(binarizer_threshold)
+                      ],
+                      **extractor_params)
 
-for i, e in enumerate(extractor.models):
-    path =\
-        args.load_path + '/' + e.model._scope_name + '/' + e.model._scope_name
-    restorer = tf.train.import_meta_graph(path + '.meta')
-    restorer.restore(e.model._session, path)
-    e.model._restore_collection()
+path =\
+    args.load_path + '/' + extractor.model._scope_name
+restorer = tf.train.import_meta_graph(path + '.meta')
+restorer.restore(extractor.model._session, path)
+extractor.model._restore_collection()
 
 # Predictions
-n_samples = 100
+n_samples = 500
 state = np.ones((n_samples, 84, 84, 4))
-action = np.ones(n_samples)
-next_state = np.ones((n_samples, 84, 84, 4))
+action = np.ones((n_samples, 1))
+next_state = np.ones((n_samples, 84, 84))
 
 for i in xrange(state.shape[0]):
     for j in xrange(4):
         state[i, ..., j], _, _, _ = mdp.step(np.random.randint(4))
-    next_state[i, ..., :3] = state[i, ..., 1:].copy()
     a = np.random.randint(4)
-    next_state[i, ..., 3], _, _, _ = mdp.step(a)
+    next_state[i], _, _, _ = mdp.step(a)
     action[i] = a
 
-action_samples = list()
-for i in xrange(mdp.action_space.n):
-    idxs = np.argwhere(action == i).ravel()
-    action_samples.append(idxs[0])
-    print('Model %d loss: %f' % (i, extractor.models[i].model.get_loss(
-        (next_state[idxs, ..., -1] / 255. >= binarizer_threshold).astype(
-            np.float), extractor.models[i].predict(
-            state[idxs], reconstruction=True), state[idxs]))
-    )
+sa = [state, action]
+predictions = extractor.predict(sa, reconstruction=True)
+loss = extractor.model.get_loss(
+    (next_state / 255. >= binarizer_threshold).astype(np.float),
+    predictions,
+    sa
+)
+print('Loss: %f' % loss)
 
-for a in action_samples:
+idxs = [12, 68, 300, 450]
+for idx in idxs:
     plt.figure()
-    prediction = extractor.models[action[a].astype(np.int)].model.predict(
-        np.expand_dims(state[a], axis=0),
-        reconstruction=True
-    )
     for i in xrange(4):
         plt.subplot(1, 5, i + 1)
-        plt.imshow(state[a, ..., i])
+        plt.imshow(state[idx, ..., i])
     plt.subplot(1, 5, 5)
-    plt.imshow(prediction[0])
+    plt.imshow(predictions[idx])
 
 plt.show()
