@@ -267,13 +267,13 @@ def experiment():
             agent.fit(dataset=dataset, n_iterations=args.fqi_steps)
 
             if args.save_approximator:
-                pickle.dump(approximator,
+                pickle.dump(approximator.model,
                             open(folder_name + '/approximator.pkl',
                                  'wb'))
         else:
             del replay_memory
-            approximator = pickle.load(open(folder_name + '/approximator.pkl',
-                                            'rb'))
+            approximator.model = pickle.load(open(folder_name + '/approximator.pkl',
+                                                  'rb'))
 
         print '- Evaluation:'
         # evaluation step
