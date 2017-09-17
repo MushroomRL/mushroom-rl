@@ -130,7 +130,7 @@ class DeepFQI(FQI):
         else:
             q = np.ones((next_state.shape[1], next_state.shape[0]))
             for i in xrange(q.shape[1]):
-                sa_n = [next_state[i], np.ones((next_state.shape[0], 1)) * i]
+                sa_n = [next_state[i], np.ones((next_state[i].shape[0], 1)) * i]
                 q[:, i] = self.approximator.predict(sa_n)
             if np.any(absorbing):
                 q *= 1 - absorbing.reshape(-1, 1)
