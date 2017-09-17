@@ -128,7 +128,11 @@ def experiment():
                    action_space=mdp.action_space)
 
     # Feature extractor
-    extractor_params = dict(folder_name=folder_name,
+    if args.load_extractor:
+        extractor_folder_name = None
+    else:
+        extractor_folder_name = folder_name
+    extractor_params = dict(folder_name=extractor_folder_name,
                             n_actions=mdp.action_space.n,
                             optimizer={'name': args.optimizer,
                                        'lr': args.learning_rate,
@@ -201,6 +205,7 @@ def experiment():
         del dataset
 
         if not args.load_extractor or k > 0:
+            extractor.model._folder_name = folder_name
             print('Fitting extractor...')
             best_loss = np.inf
             for e in xrange(args.n_epochs):
