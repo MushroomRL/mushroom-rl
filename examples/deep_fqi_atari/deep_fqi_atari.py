@@ -60,7 +60,7 @@ def experiment():
     arg_net.add_argument("--decay", type=float, default=.95,
                          help='Discount factor for the history coming from the'
                               'gradient momentum in rmsprop.')
-    arg_net.add_argument("--reg-coeff", type=float, default=1e-6)
+    arg_net.add_argument("--reg-coeff", type=float, default=1e-5)
 
     arg_alg = parser.add_argument_group('Algorithm')
     arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.)
@@ -154,14 +154,14 @@ def experiment():
                                    min_samples_split=args.min_samples_split,
                                    min_samples_leaf=args.min_samples_leaf,
                                    max_depth=args.max_depth)
-        approximator = ActionRegressor(ExtraTreesRegressor,
-                                       discrete_actions=mdp.action_space.n,
-                                       **approximator_params)
+        approximator = Regressor(ExtraTreesRegressor,
+                                 discrete_actions=mdp.action_space.n,
+                                 **approximator_params)
     elif args.approximator == 'linear':
         approximator_params = dict()
-        approximator = ActionRegressor(LinearRegression,
-                                       discrete_actions=mdp.action_space.n,
-                                       **approximator_params)
+        approximator = Regressor(LinearRegression,
+                                 discrete_actions=mdp.action_space.n,
+                                 **approximator_params)
 
     # Agent
     algorithm_params = dict(
