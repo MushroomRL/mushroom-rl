@@ -219,7 +219,12 @@ def experiment():
                            desc='Epoch %d' % e)
                 for batch in gen:
                     sa = [batch[0], batch[1]]
-                    extractor.train_on_batch(sa, batch[3][..., -1])
+                    extractor.train_on_batch(
+                        sa,
+                        batch[3][..., -1],
+                        target_reward=batch[2].reshape(-1, 1),
+                        target_absorbing=batch[4].reshape(-1, 1)
+                    )
                     gen.set_postfix(loss=extractor.model.loss)
 
                 if args.save_extractor:

@@ -27,23 +27,39 @@ class Extractor:
                                      feed_dict={self._state: x[0],
                                                 self._action: x[1]})
         else:
-            return self._session.run(self._prediction,
+            return self._session.run(self._predicted_frame,
                                      feed_dict={self._state: x[0],
                                                 self._action: x[1]})
 
-    def get_loss(self, y_t, y, x):
+    def get_loss_frame(self, y_t, y, x):
         return self._session.run(self._loss,
-                                 feed_dict={self._target_prediction: y_t,
-                                            self._prediction: y,
+                                 feed_dict={self._target_frame: y_t,
+                                            self._predicted_frame: y,
                                             self._state: x[0],
                                             self._action: x[1]})
 
-    def train_on_batch(self, x, y):
+    def get_loss_reward(self, y_t, y, x):
+        return self._session.run(self._loss,
+                                 feed_dict={self._target_reward: y_t,
+                                            self._predicted_reward: y,
+                                            self._state: x[0],
+                                            self._action: x[1]})
+
+    def get_loss_absorbing(self, y_t, y, x):
+        return self._session.run(self._loss,
+                                 feed_dict={self._target_absorbing: y_t,
+                                            self._predicted_absorbing: y,
+                                            self._state: x[0],
+                                            self._action: x[1]})
+
+    def train_on_batch(self, x, y, **fit_params):
         summaries, _, self.loss = self._session.run(
             [self._merged, self._train_step, self._loss],
             feed_dict={self._state: x[0],
                        self._action: x[1],
-                       self._target_prediction: y}
+                       self._target_frame: y,
+                       self._target_reward: fit_params['target_reward'],
+                       self._target_absorbing: fit_params['target_absorbing']}
         )
         self._train_writer.add_summary(summaries, self._train_count)
 
@@ -69,6 +85,11 @@ class Extractor:
                                                 convnet_pars['width'],
                                                 convnet_pars['history_length']],
                                          name='state')
+            self._action = tf.placeholder(tf.uint8,
+                                          shape=[None, 1],
+                                          name='action')
+            one_hot_action = tf.one_hot(tf.reshape(self._action, [-1]),
+                                        depth=convnet_pars['n_actions'])
             hidden_1 = tf.layers.conv2d(
                 self._state, 32, 8, 4, activation=tf.nn.relu,
                 kernel_initializer=tf.glorot_uniform_initializer(),
@@ -95,11 +116,6 @@ class Extractor:
                                              self._n_features,
                                              activation=tf.nn.relu,
                                              name='features_state')
-            self._action = tf.placeholder(tf.uint8,
-                                          shape=[None, 1],
-                                          name='action')
-            one_hot_action = tf.one_hot(tf.reshape(self._action, [-1]),
-                                        depth=convnet_pars['n_actions'])
             features_action = tf.layers.dense(one_hot_action,
                                               self._n_features,
                                               activation=tf.nn.relu,
@@ -134,33 +150,94 @@ class Extractor:
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 name='hidden_8'
             )
-            self._prediction = tf.layers.conv2d_transpose(
+            self._predicted_frame = tf.layers.conv2d_transpose(
                 hidden_8, 1, 1, 1, activation=tf.nn.sigmoid,
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 name='prediction'
             )
-            self._prediction = tf.reshape(self._prediction, [-1, 84, 84])
+            self._predicted_frame = tf.reshape(self._predicted_frame,
+                                               [-1, 84, 84])
 
-            self._target_prediction = tf.placeholder(
+            self._target_frame = tf.placeholder(
                 'float32',
                 shape=[None, convnet_pars['height'], convnet_pars['width']],
                 name='target_prediction')
 
-            prediction = tf.clip_by_value(self._prediction, 1e-7, 1 - 1e-7)
-            prediction_logits = tf.log(prediction / (1 - prediction))
-            self._xent = tf.reduce_mean(
+            hidden_9 = tf.layers.dense(self._features,
+                                       128,
+                                       tf.nn.relu,
+                                       name='hidden_9')
+            hidden_10 = tf.layers.dense(hidden_9,
+                                        64,
+                                        tf.nn.relu,
+                                        name='hidden_10')
+
+            self._predicted_reward = tf.layers.dense(hidden_10,
+                                                     3,
+                                                     tf.nn.softmax,
+                                                     name='predicted_reward')
+            self._target_reward = tf.placeholder(tf.int32,
+                                                 shape=[None, 1])
+            target_reward = self._target_reward + 1
+            self._target_reward_one_hot = tf.one_hot(
+                tf.reshape(target_reward, [-1]),
+                depth=3,
+                name='target_reward'
+            )
+
+            self._predicted_absorbing = tf.layers.dense(
+                hidden_10, 2, tf.nn.softmax, name='predicted_absorbing')
+            self._target_absorbing = tf.placeholder(tf.uint8,
+                                                    shape=[None, 1])
+            self._target_absorbing_one_hot = tf.one_hot(
+                tf.reshape(self._target_absorbing, [-1]),
+                depth=2,
+                name='target_absorbing'
+            )
+
+            predicted_frame = tf.clip_by_value(self._predicted_frame,
+                                               1e-7,
+                                               1 - 1e-7)
+            predicted_frame_logits = tf.log(
+                predicted_frame / (1 - predicted_frame))
+            predicted_reward = tf.clip_by_value(self._predicted_reward,
+                                                1e-7,
+                                                1 - 1e-7)
+            predicted_reward_logits = tf.log(
+                predicted_reward / (1 - predicted_reward))
+            predicted_absorbing = tf.clip_by_value(self._predicted_absorbing,
+                                                   1e-7,
+                                                   1 - 1e-7)
+            predicted_absorbing_logits = tf.log(
+                predicted_absorbing / (1 - predicted_absorbing))
+
+            self._xent_frame = tf.reduce_mean(
                 tf.nn.sigmoid_cross_entropy_with_logits(
-                    labels=self._target_prediction,
-                    logits=prediction_logits
+                    labels=self._target_frame,
+                    logits=predicted_frame_logits)
+            )
+            self._xent_reward = tf.reduce_mean(
+                tf.nn.softmax_cross_entropy_with_logits(
+                    labels=self._target_reward_one_hot,
+                    logits=predicted_reward_logits
                 )
             )
-            if self._contractive:
-                self._reg = tf.reduce_mean(
-                    tf.norm(tf.gradients(self._features, state_x_action)) ** 2
+            self._xent_absorbing = tf.reduce_mean(
+                tf.nn.softmax_cross_entropy_with_logits(
+                    labels=self._target_absorbing_one_hot,
+                    logits=predicted_absorbing_logits
                 )
+            )
+            self._xent =\
+                self._xent_frame + self._xent_reward + self._xent_absorbing
+            if self._contractive:
+                raise NotImplementedError
             else:
                 self._reg = tf.reduce_mean(tf.norm(self._features, 1, axis=1))
             self._loss = self._xent + self._reg_coeff * self._reg
+            tf.summary.scalar('xent_frame', self._xent_frame)
+            tf.summary.scalar('xent_reward', self._xent_reward)
+            tf.summary.scalar('xent_absorbing', self._xent_absorbing)
             tf.summary.scalar('xent', self._xent)
             tf.summary.scalar('reg', self._reg)
             tf.summary.scalar('loss', self._loss)
@@ -209,19 +286,36 @@ class Extractor:
     def _add_collection(self):
         tf.add_to_collection(self._scope_name + '_state', self._state)
         tf.add_to_collection(self._scope_name + '_action', self._action)
-        tf.add_to_collection(self._scope_name + '_prediction', self._prediction)
-        tf.add_to_collection(self._scope_name + '_target_prediction',
-                             self._target_prediction)
+        tf.add_to_collection(self._scope_name + '_predicted_frame',
+                             self._predicted_frame)
+        tf.add_to_collection(self._scope_name + '_target_frame',
+                             self._target_frame)
+        tf.add_to_collection(self._scope_name + '_predicted_reward',
+                             self._predicted_reward)
+        tf.add_to_collection(self._scope_name + '_target_reward_one_hot',
+                             self._target_reward_one_hot)
+        tf.add_to_collection(self._scope_name + '_predicted_absorbing',
+                             self._predicted_absorbing)
+        tf.add_to_collection(self._scope_name + '_target_absorbing_one_hot',
+                             self._target_absorbing_one_hot)
         tf.add_to_collection(self._scope_name + '_merged', self._merged)
         tf.add_to_collection(self._scope_name + '_train_step', self._train_step)
 
     def _restore_collection(self):
         self._state = tf.get_collection(self._scope_name + '_state')[0]
         self._action = tf.get_collection(self._scope_name + '_action')[0]
-        self._prediction = tf.get_collection(
-            self._scope_name + '_prediction')[0]
-        self._target_prediction = tf.get_collection(
-            self._scope_name + '_target_prediction')[0]
+        self._predicted_frame = tf.get_collection(
+            self._scope_name + '_predicted_frame')[0]
+        self._target_frame = tf.get_collection(
+            self._scope_name + '_target_frame')[0]
+        self._predicted_reward = tf.get_collection(
+            self._scope_name + '_predicted_reward')[0]
+        self._target_reward_one_hot = tf.get_collection(
+            self._scope_name + '_target_reward_one_hot')[0]
+        self._predicted_absorbing = tf.get_collection(
+            self._scope_name + '_predicted_absorbing')[0]
+        self._target_absorbing_one_hot = tf.get_collection(
+            self._scope_name + '_target_absorbing_one_hot')[0]
         self._merged = tf.get_collection(self._scope_name + '_merged')[0]
         self._train_step = tf.get_collection(
             self._scope_name + '_train_step')[0]
