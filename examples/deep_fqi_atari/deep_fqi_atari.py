@@ -61,6 +61,7 @@ def experiment():
                          help='Discount factor for the history coming from the'
                               'gradient momentum in rmsprop.')
     arg_net.add_argument("--reg-coeff", type=float, default=1e-5)
+    arg_net.add_argument("--contractive", action='store_true')
 
     arg_alg = parser.add_argument_group('Algorithm')
     arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.)
@@ -140,7 +141,8 @@ def experiment():
                             width=args.screen_width,
                             height=args.screen_height,
                             history_length=args.history_length,
-                            reg_coeff=args.reg_coeff)
+                            reg_coeff=args.reg_coeff,
+                            contractive=args.contractive)
     extractor = Regressor(Extractor,
                           discrete_actions=mdp.action_space.n,
                           input_preprocessor=[

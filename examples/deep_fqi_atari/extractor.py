@@ -155,7 +155,10 @@ class Extractor:
                 )
             )
             if self._contractive:
-                raise NotImplementedError
+                self._reg = tf.norm(
+                    tf.gradients(self._features, state_x_action),
+                    2
+                ) ** 2
             else:
                 self._reg = tf.reduce_mean(tf.norm(self._features, 1, axis=1))
             self._loss = self._xent + self._reg_coeff * self._reg
