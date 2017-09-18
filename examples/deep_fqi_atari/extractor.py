@@ -270,8 +270,8 @@ class Extractor:
                                 name='loss')
 
             tf.summary.scalar('xent_frame', self._xent_frame)
-            '''
             if self._predict_reward:
+                '''
                 inferenced_reward_class = tf.reshape(
                     tf.argmax(self._predicted_reward, axis=1),
                     [-1, 1]
@@ -280,9 +280,12 @@ class Extractor:
                     labels=self._target_reward,
                     predictions=inferenced_reward_class
                 )
-                tf.summary.scalar('xent_reward', self._xent_reward)
                 tf.summary.scalar('accuracy_reward', self._accuracy_reward)
+                '''
+                tf.summary.scalar('xent_reward', self._xent_reward)
+
             if self._predict_absorbing:
+                '''
                 inferenced_absorbing_class = tf.reshape(
                     tf.argmax(self._predicted_absorbing, axis=1),
                     [-1, 1]
@@ -291,10 +294,10 @@ class Extractor:
                     labels=self._target_absorbing,
                     predictions=inferenced_absorbing_class
                 )
-                tf.summary.scalar('xent_absorbing', self._xent_absorbing)
                 tf.summary.scalar('accuracy_absorbing',
-                                  self._accuracy_absorbing)
-            '''
+                self._accuracy_absorbing)
+                '''
+                tf.summary.scalar('xent_absorbing', self._xent_absorbing)
             tf.summary.scalar('xent', self._xent)
             tf.summary.scalar('reg', self._reg)
             tf.summary.scalar('loss', self._loss)
