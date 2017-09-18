@@ -12,7 +12,9 @@ from mushroom.utils.preprocessor import Binarizer, Scaler
 parser = argparse.ArgumentParser()
 parser.add_argument("--load-path", type=str)
 parser.add_argument("--game", type=str, default='BreakoutDeterministic-v4')
-parser.add_argument("--binarizer_threshold", type=float, default=.1)
+parser.add_argument("--binarizer-threshold", type=float, default=.1)
+parser.add_argument("--predict-reward", action='store_true')
+parser.add_argument("--predict-absorbing", action='store_true')
 args = parser.parse_args()
 
 # MDP
@@ -26,7 +28,9 @@ extractor_params = dict(folder_name=None,
                                    'decay': 1},
                         width=84,
                         height=84,
-                        history_length=4)
+                        history_length=4,
+                        predict_reward=args.predict_reward,
+                        predict_absorbing=args.predict_absorbing)
 extractor = Regressor(Extractor,
                       discrete_actions=mdp.action_space.n,
                       input_preprocessor=[
