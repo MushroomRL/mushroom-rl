@@ -266,7 +266,7 @@ class Extractor:
             tf.summary.scalar('xent_frame', self._xent_frame)
             if self._predict_reward:
                 accuracy_reward = tf.equal(
-                    tf.squeeze(self._target_reward),
+                    tf.squeeze(self._target_reward_class),
                     tf.cast(tf.argmax(self._predicted_reward, 1), tf.int32)
                 )
                 self._accuracy_reward = tf.reduce_mean(
