@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 
 
@@ -23,19 +24,27 @@ class Extractor:
             tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
                               scope=self._scope_name))
 
-    def predict(self, x, reconstruction=False, reward=False):
+    def predict(self, x, features=True, reconstruction=False, reward=False,
+                absorbing=False):
+        ret = list()
         if reconstruction:
-            return self._session.run(self._predicted_frame,
-                                     feed_dict={self._state: x[0],
-                                                self._action: x[1]})
-        elif reward:
-            return self._session.run(self._predicted_reward,
-                                     feed_dict={self._state: x[0],
-                                                self._action: x[1]})
-        else:
-            return self._session.run(self._features,
-                                     feed_dict={self._state: x[0],
-                                                self._action: x[1]})
+            ret.append(self._session.run(self._predicted_frame,
+                                         feed_dict={self._state: x[0],
+                                                    self._action: x[1]}))
+        if reward:
+            ret.append(self._session.run(self._predicted_reward,
+                                         feed_dict={self._state: x[0],
+                                                    self._action: x[1]}))
+        if absorbing:
+            ret.append(self._session.run(self._predicted_absorbing,
+                                         feed_dict={self._state: x[0],
+                                                    self._action: x[1]}))
+        if features:
+            ret.append(self._session.run(self._features,
+                                         feed_dict={self._state: x[0],
+                                                    self._action: x[1]}))
+
+        return ret
 
     def get_stats(self, x, y):
         f = [self._loss, self._xent, self._reg, self._xent_frame]
@@ -53,12 +62,17 @@ class Extractor:
                           reg=stats[2],
                           xent_frame=stats[3]
                           )
-        if self._predict_reward:
+        if self._predict_reward and self._predict_absorbing:
             stats_dict['xent_reward'] = stats[4]
             stats_dict['accuracy_reward'] = stats[5]
-        if self._predict_absorbing:
             stats_dict['xent_absorbing'] = stats[6]
             stats_dict['accuracy_absorbing'] = stats[7]
+        elif self._predict_reward:
+            stats_dict['xent_reward'] = stats[4]
+            stats_dict['accuracy_reward'] = stats[5]
+        elif self._predict_absorbing:
+            stats_dict['xent_absorbing'] = stats[4]
+            stats_dict['accuracy_absorbing'] = stats[5]
 
         return stats_dict
 
@@ -67,7 +81,8 @@ class Extractor:
         if self._predict_reward:
             fd[self._target_reward] = fit_params['target_reward']
         if self._predict_absorbing:
-            fd[self._target_absorbing] = fit_params['target_absorbing']
+            fd[self._target_absorbing] = fit_params[
+                'target_absorbing'].astype(np.int)
 
         summaries, _, self.loss = self._session.run(
             [self._merged, self._train_step, self._loss], feed_dict=fd)
