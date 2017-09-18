@@ -228,7 +228,7 @@ class Extractor:
                     )
                     self._xent_reward = tf.reduce_mean(
                         tf.nn.sparse_softmax_cross_entropy_with_logits(
-                            labels=tf.reshape(self._target_reward_class, [-1]),
+                            labels=tf.squeeze(self._target_reward_class),
                             logits=predicted_reward_logits,
                             name='sparse_softmax_cross_entropy_reward'
                         ),
@@ -236,9 +236,9 @@ class Extractor:
                     )
                 if self._predict_absorbing:
                     self._target_absorbing = tf.placeholder(
-                        tf.int32, shape=[None, 1], name='target_absorbing')
+                        tf.float32, shape=[None, 1], name='target_absorbing')
                     self._predicted_absorbing = tf.layers.dense(
-                        hidden_10, 2, tf.nn.sigmoid, name='predicted_absorbing')
+                        hidden_10, 1, tf.nn.sigmoid, name='predicted_absorbing')
                     predicted_absorbing = tf.clip_by_value(
                         self._predicted_absorbing,
                         1e-7,
@@ -249,11 +249,10 @@ class Extractor:
                         predicted_absorbing / (1 - predicted_absorbing),
                         name='predicted_absorbing_logits')
                     self._xent_absorbing = tf.reduce_mean(
-                        tf.nn.sparse_softmax_cross_entropy_with_logits(
-                            labels=tf.reshape(self._target_absorbing,
-                                              [-1]),
+                        tf.nn.sigmoid_cross_entropy_with_logits(
+                            labels=tf.squeeze(self._target_absorbing),
                             logits=predicted_absorbing_logits,
-                            name='sparse_softmax_cross_entropy_absorbing'
+                            name='sigmoid_cross_entropy_absorbing'
                         ),
                         name='xent_absorbing'
                     )
@@ -300,7 +299,7 @@ class Extractor:
                 tf.summary.scalar('xent_reward', self._xent_reward)
             if self._predict_absorbing:
                 accuracy_absorbing = tf.equal(
-                    tf.squeeze(self._target_absorbing),
+                    tf.squeeze(tf.cast(self._target_absorbing, tf.int32)),
                     tf.cast(tf.argmax(self._predicted_absorbing, 1), tf.int32)
                 )
                 self._accuracy_absorbing = tf.reduce_mean(
