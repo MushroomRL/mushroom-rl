@@ -202,15 +202,15 @@ class Extractor:
                     )
                     self._xent_reward = tf.reduce_mean(
                         tf.nn.sparse_softmax_cross_entropy_with_logits(
-                            labels=self._target_reward_class,
+                            labels=tf.reshape(self._target_reward_class, [-1]),
                             logits=predicted_reward_logits,
                             name='sparse_softmax_cross_entropy_reward'
                         ),
                         name='xent_reward'
                     )
                 if self._predict_absorbing:
-                    self._target_absorbing_class = tf.placeholder(
-                        tf.uint8, shape=[None, 1], name='target_absorbing')
+                    self._target_absorbing = tf.placeholder(
+                        tf.int32, shape=[None, 1], name='target_absorbing')
                     self._predicted_absorbing = tf.layers.dense(
                         hidden_10, 2, tf.nn.sigmoid, name='predicted_absorbing')
                     predicted_absorbing = tf.clip_by_value(
@@ -224,7 +224,8 @@ class Extractor:
                         name='predicted_absorbing_logits')
                     self._xent_absorbing = tf.reduce_mean(
                         tf.nn.sparse_softmax_cross_entropy_with_logits(
-                            labels=self._target_absorbing_class,
+                            labels=tf.reshape(self._target_absorbing,
+                                              [-1]),
                             logits=predicted_absorbing_logits,
                             name='sparse_softmax_cross_entropy_absorbing'
                         ),
@@ -354,8 +355,6 @@ class Extractor:
                                  self._predicted_absorbing)
             tf.add_to_collection(self._scope_name + '_target_absorbing',
                                  self._target_absorbing)
-            tf.add_to_collection(self._scope_name + '_target_absorbing_class',
-                                 self._target_absorbing_class)
         tf.add_to_collection(self._scope_name + '_merged', self._merged)
         tf.add_to_collection(self._scope_name + '_train_step', self._train_step)
 
@@ -378,8 +377,6 @@ class Extractor:
                 self._scope_name + '_predicted_absorbing')[0]
             self._target_absorbing = tf.get_collection(
                 self._scope_name + '_target_absorbing')[0]
-            self._target_absorbing_class = tf.get_collection(
-                self._scope_name + '_target_absorbing_class')[0]
         self._merged = tf.get_collection(self._scope_name + '_merged')[0]
         self._train_step = tf.get_collection(
             self._scope_name + '_train_step')[0]
