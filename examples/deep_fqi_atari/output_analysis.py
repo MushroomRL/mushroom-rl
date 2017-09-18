@@ -64,6 +64,7 @@ for i in xrange(state.shape[0]):
     absorbing[i] = ab
 
 sa = [state, action]
+reward = np.clip(reward, -1, 1)
 y = [(next_state / 255. >= args.binarizer_threshold).astype(np.float),
      reward,
      absorbing

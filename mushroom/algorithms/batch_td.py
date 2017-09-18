@@ -107,6 +107,7 @@ class DeepFQI(FQI):
         alg_params = params['algorithm_params']
         self._buffer = Buffer(size=alg_params.get('history_length', 1))
         self._extractor = alg_params.get('extractor')
+        self._clip_reward = alg_params.get('clip_reward', True)
         self._max_no_op_actions = alg_params.get('max_no_op_actions')
         self._no_op_action_value = alg_params.get('no_op_action_value')
         self._episode_steps = 0
@@ -125,6 +126,8 @@ class DeepFQI(FQI):
 
         """
         state, action, reward, next_state, absorbing, _ = x
+        if self._clip_reward:
+            reward = np.clip(reward, -1, 1)
         if y is None:
             y = reward
         else:

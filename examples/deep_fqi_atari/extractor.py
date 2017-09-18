@@ -187,7 +187,10 @@ class Extractor:
                     self._target_reward = tf.placeholder(tf.int32,
                                                          shape=[None, 1],
                                                          name='target_reward')
-                    target_reward = self._target_reward + 1
+                    target_reward = tf.clip_by_value(
+                        self._target_reward, -1, 1,
+                        name='target_reward_clipping')
+                    target_reward += 1
                     self._target_reward_one_hot = tf.one_hot(
                         tf.reshape(target_reward, [-1]),
                         depth=3,
@@ -295,7 +298,7 @@ class Extractor:
                     predictions=inferenced_absorbing_class
                 )
                 tf.summary.scalar('accuracy_absorbing',
-                self._accuracy_absorbing)
+                                  self._accuracy_absorbing)
                 '''
                 tf.summary.scalar('xent_absorbing', self._xent_absorbing)
             tf.summary.scalar('xent', self._xent)
