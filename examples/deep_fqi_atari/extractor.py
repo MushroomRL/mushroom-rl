@@ -183,7 +183,7 @@ class Extractor:
                                             name='hidden_10')
                 if self._predict_reward:
                     self._predicted_reward = tf.layers.dense(
-                        hidden_10, 3, tf.nn.softmax, name='predicted_reward')
+                        hidden_10, 3, name='predicted_reward')
                     self._target_reward = tf.placeholder(tf.int32,
                                                          shape=[None, 1],
                                                          name='target_reward')
@@ -216,7 +216,7 @@ class Extractor:
                     )
                 if self._predict_absorbing:
                     self._predicted_absorbing = tf.layers.dense(
-                        hidden_10, 2, tf.nn.softmax, name='predicted_absorbing')
+                        hidden_10, 2, name='predicted_absorbing')
                     self._target_absorbing = tf.placeholder(
                         tf.uint8, shape=[None, 1], name='target_absorbing')
                     self._target_absorbing_one_hot = tf.one_hot(
