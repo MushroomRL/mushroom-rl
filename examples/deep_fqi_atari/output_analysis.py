@@ -49,6 +49,8 @@ extractor.model._restore_collection()
 n_samples = 500
 state = np.ones((n_samples, 84, 84, 4))
 action = np.ones((n_samples, 1))
+reward = np.ones((n_samples, 1))
+absorbing = np.ones((n_samples, 1))
 next_state = np.ones((n_samples, 84, 84))
 
 for i in xrange(state.shape[0]):
@@ -56,17 +58,28 @@ for i in xrange(state.shape[0]):
         state[i, ..., j], _, _, _ = mdp.step(
             np.random.randint(mdp.action_space.n))
     a = np.random.randint(mdp.action_space.n)
-    next_state[i], _, _, _ = mdp.step(a)
+    next_state[i], r, ab, _ = mdp.step(a)
     action[i] = a
+    reward[i] = r
+    absorbing[i] = ab
 
 sa = [state, action]
+y = [(next_state / 255. >= args.binarizer_threshold).astype(np.float),
+     reward,
+     absorbing
+     ]
 predictions = extractor.predict(sa, reconstruction=True)
-loss = extractor.model.get_loss(
-    (next_state / 255. >= args.binarizer_threshold).astype(np.float),
-    predictions,
-    sa
-)
-print('Loss: %f' % loss)
+stats = extractor.model.get_stats(sa, y)
+for s in stats:
+
+print('loss: %f' % stats[0])
+print('xent: %f' % stats[1])
+print('reg: %f' % stats[2])
+print('xent_frame: %f' % stats[3])
+print('xent_reward: %f' % stats[4])
+print('xent_absorbing: %f' % stats[5])
+print('accuracy_reward: %f' % stats[6])
+print('accuracy_absorbing: %f' % stats[7])
 
 idxs = list()
 for i in xrange(mdp.action_space.n):
