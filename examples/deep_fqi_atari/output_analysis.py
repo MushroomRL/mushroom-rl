@@ -73,7 +73,7 @@ y = [(next_state / 255. >= args.binarizer_threshold).astype(np.float),
      reward,
      absorbing
      ]
-reconstructions = extractor.predict(sa, reconstruction=True)
+reconstructions = extractor.predict(sa, reconstruction=True)[0]
 stats = extractor.model.get_stats(sa, y)
 for key, value in stats.iteritems():
     print('%s: %f' % (key, value))
