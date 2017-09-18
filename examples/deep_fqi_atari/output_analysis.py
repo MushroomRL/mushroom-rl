@@ -50,7 +50,7 @@ restorer.restore(extractor.model._session, path)
 extractor.model._restore_collection()
 
 # Predictions
-n_samples = 500
+n_samples = 1000
 state = np.ones((n_samples, 84, 84, 4))
 action = np.ones((n_samples, 1))
 reward = np.ones((n_samples, 1))
@@ -73,7 +73,7 @@ y = [(next_state / 255. >= args.binarizer_threshold).astype(np.float),
      reward,
      absorbing
      ]
-predictions = extractor.predict(sa, reconstruction=True)
+reconstructions = extractor.predict(sa, reconstruction=True)
 stats = extractor.model.get_stats(sa, y)
 for key, value in stats.iteritems():
     print('%s: %f' % (key, value))
@@ -87,6 +87,6 @@ for idx in idxs:
         plt.subplot(1, 5, i + 1)
         plt.imshow(state[idx, ..., i])
     plt.subplot(1, 5, 5)
-    plt.imshow(predictions[idx])
+    plt.imshow(reconstructions[idx])
 
 plt.show()

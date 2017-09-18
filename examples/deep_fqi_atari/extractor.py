@@ -23,13 +23,17 @@ class Extractor:
             tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
                               scope=self._scope_name))
 
-    def predict(self, x, reconstruction=False):
-        if not reconstruction:
-            return self._session.run(self._features,
+    def predict(self, x, reconstruction=False, reward=False):
+        if reconstruction:
+            return self._session.run(self._predicted_frame,
+                                     feed_dict={self._state: x[0],
+                                                self._action: x[1]})
+        elif reward:
+            return self._session.run(self._predicted_reward,
                                      feed_dict={self._state: x[0],
                                                 self._action: x[1]})
         else:
-            return self._session.run(self._predicted_frame,
+            return self._session.run(self._features,
                                      feed_dict={self._state: x[0],
                                                 self._action: x[1]})
 
