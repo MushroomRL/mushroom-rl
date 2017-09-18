@@ -70,16 +70,8 @@ y = [(next_state / 255. >= args.binarizer_threshold).astype(np.float),
      ]
 predictions = extractor.predict(sa, reconstruction=True)
 stats = extractor.model.get_stats(sa, y)
-for s in stats:
-
-print('loss: %f' % stats[0])
-print('xent: %f' % stats[1])
-print('reg: %f' % stats[2])
-print('xent_frame: %f' % stats[3])
-print('xent_reward: %f' % stats[4])
-print('xent_absorbing: %f' % stats[5])
-print('accuracy_reward: %f' % stats[6])
-print('accuracy_absorbing: %f' % stats[7])
+for key, value in stats.iteritems():
+    print('%s: %f' % (key, value))
 
 idxs = list()
 for i in xrange(mdp.action_space.n):

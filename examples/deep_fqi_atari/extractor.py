@@ -56,6 +56,8 @@ class Extractor:
             stats_dict['xent_absorbing'] = stats[6]
             stats_dict['accuracy_absorbing'] = stats[7]
 
+        return stats_dict
+
     def train_on_batch(self, x, y, **fit_params):
         fd = {self._state: x[0], self._action: x[1], self._target_frame: y}
         if self._predict_reward:
