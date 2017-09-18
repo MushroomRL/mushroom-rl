@@ -64,6 +64,7 @@ class Extractor:
             fd[self._target_reward] = fit_params['target_reward']
         if self._predict_absorbing:
             fd[self._target_absorbing] = fit_params['target_absorbing']
+
         summaries, _, self.loss = self._session.run(
             [self._merged, self._train_step, self._loss], feed_dict=fd)
         self._train_writer.add_summary(summaries, self._train_count)
@@ -264,32 +265,23 @@ class Extractor:
 
             tf.summary.scalar('xent_frame', self._xent_frame)
             if self._predict_reward:
-                '''
-                inferenced_reward_class = tf.reshape(
-                    tf.argmax(self._predicted_reward, axis=1),
-                    [-1, 1]
+                accuracy_reward = tf.equal(
+                    tf.squeeze(self._target_reward),
+                    tf.cast(tf.argmax(self._predicted_reward, 1), tf.int32)
                 )
-                self._accuracy_reward = tf.metrics.accuracy(
-                    labels=self._target_reward,
-                    predictions=inferenced_reward_class
-                )
+                self._accuracy_reward = tf.reduce_mean(
+                    tf.cast(accuracy_reward, tf.float32))
                 tf.summary.scalar('accuracy_reward', self._accuracy_reward)
-                '''
                 tf.summary.scalar('xent_reward', self._xent_reward)
-
             if self._predict_absorbing:
-                '''
-                inferenced_absorbing_class = tf.reshape(
-                    tf.argmax(self._predicted_absorbing, axis=1),
-                    [-1, 1]
+                accuracy_absorbing = tf.equal(
+                    tf.squeeze(self._target_absorbing),
+                    tf.cast(tf.argmax(self._predicted_absorbing, 1), tf.int32)
                 )
-                self._accuracy_absorbing = tf.metrics.accuracy(
-                    labels=self._target_absorbing,
-                    predictions=inferenced_absorbing_class
-                )
+                self._accuracy_absorbing = tf.reduce_mean(
+                    tf.cast(accuracy_absorbing, tf.float32))
                 tf.summary.scalar('accuracy_absorbing',
                                   self._accuracy_absorbing)
-                '''
                 tf.summary.scalar('xent_absorbing', self._xent_absorbing)
             tf.summary.scalar('xent', self._xent)
             tf.summary.scalar('reg', self._reg)
@@ -318,7 +310,10 @@ class Extractor:
 
             initializer = tf.variables_initializer(
                 tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
-                                  scope=self._scope_name))
+                                  scope=self._scope_name) +
+                tf.get_collection(tf.GraphKeys.LOCAL_VARIABLES,
+                                  scope=self._scope_name)
+            )
 
         self._session.run(initializer)
 
