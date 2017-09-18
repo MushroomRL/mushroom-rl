@@ -173,57 +173,71 @@ class Extractor:
                 shape=[None, convnet_pars['height'], convnet_pars['width']],
                 name='target_frame')
 
-            if self._predict_reward:
-                self._target_reward = tf.placeholder(tf.int32,
-                                                     shape=[None, 1],
-                                                     name='target_reward')
-                self._target_reward_class = tf.clip_by_value(
-                    self._target_reward, -1, 1,
-                    name='target_reward_clipping') + 1
-                self._predicted_reward = tf.layers.dense(
-                    self._features, 3, tf.nn.sigmoid, name='predicted_reward')
-                predicted_reward = tf.clip_by_value(
-                    self._predicted_reward,
-                    1e-7,
-                    1 - 1e-7,
-                    name='predicted_reward_clipping'
+            if self._predict_reward or self._predict_absorbing:
+                hidden_9 = tf.layers.dense(
+                    self._features,
+                    128,
+                    tf.nn.relu,
+                    kernel_initializer=tf.glorot_uniform_initializer(),
+                    name='hidden_9'
                 )
-                predicted_reward_logits = tf.log(
-                    predicted_reward / (1 - predicted_reward),
-                    name='predicted_reward_logits'
+                hidden_10 = tf.layers.dense(
+                    hidden_9,
+                    64,
+                    tf.nn.relu,
+                    kernel_initializer=tf.glorot_uniform_initializer(),
+                    name='hidden_10'
                 )
-                self._xent_reward = tf.reduce_mean(
-                    tf.nn.sparse_softmax_cross_entropy_with_logits(
-                        labels=tf.reshape(self._target_reward_class, [-1]),
-                        logits=predicted_reward_logits,
-                        name='sparse_softmax_cross_entropy_reward'
-                    ),
-                    name='xent_reward'
-                )
-            if self._predict_absorbing:
-                self._target_absorbing = tf.placeholder(
-                    tf.int32, shape=[None, 1], name='target_absorbing')
-                self._predicted_absorbing = tf.layers.dense(
-                    self._features, 2, tf.nn.sigmoid,
-                    name='predicted_absorbing')
-                predicted_absorbing = tf.clip_by_value(
-                    self._predicted_absorbing,
-                    1e-7,
-                    1 - 1e-7,
-                    name='predicted_absorbing_clipping'
-                )
-                predicted_absorbing_logits = tf.log(
-                    predicted_absorbing / (1 - predicted_absorbing),
-                    name='predicted_absorbing_logits')
-                self._xent_absorbing = tf.reduce_mean(
-                    tf.nn.sparse_softmax_cross_entropy_with_logits(
-                        labels=tf.reshape(self._target_absorbing,
-                                          [-1]),
-                        logits=predicted_absorbing_logits,
-                        name='sparse_softmax_cross_entropy_absorbing'
-                    ),
-                    name='xent_absorbing'
-                )
+                if self._predict_reward:
+                    self._target_reward = tf.placeholder(tf.int32,
+                                                         shape=[None, 1],
+                                                         name='target_reward')
+                    self._target_reward_class = tf.clip_by_value(
+                        self._target_reward, -1, 1,
+                        name='target_reward_clipping') + 1
+                    self._predicted_reward = tf.layers.dense(
+                        hidden_10, 3, tf.nn.sigmoid, name='predicted_reward')
+                    predicted_reward = tf.clip_by_value(
+                        self._predicted_reward,
+                        1e-7,
+                        1 - 1e-7,
+                        name='predicted_reward_clipping'
+                    )
+                    predicted_reward_logits = tf.log(
+                        predicted_reward / (1 - predicted_reward),
+                        name='predicted_reward_logits'
+                    )
+                    self._xent_reward = tf.reduce_mean(
+                        tf.nn.sparse_softmax_cross_entropy_with_logits(
+                            labels=tf.reshape(self._target_reward_class, [-1]),
+                            logits=predicted_reward_logits,
+                            name='sparse_softmax_cross_entropy_reward'
+                        ),
+                        name='xent_reward'
+                    )
+                if self._predict_absorbing:
+                    self._target_absorbing = tf.placeholder(
+                        tf.int32, shape=[None, 1], name='target_absorbing')
+                    self._predicted_absorbing = tf.layers.dense(
+                        hidden_10, 2, tf.nn.sigmoid, name='predicted_absorbing')
+                    predicted_absorbing = tf.clip_by_value(
+                        self._predicted_absorbing,
+                        1e-7,
+                        1 - 1e-7,
+                        name='predicted_absorbing_clipping'
+                    )
+                    predicted_absorbing_logits = tf.log(
+                        predicted_absorbing / (1 - predicted_absorbing),
+                        name='predicted_absorbing_logits')
+                    self._xent_absorbing = tf.reduce_mean(
+                        tf.nn.sparse_softmax_cross_entropy_with_logits(
+                            labels=tf.reshape(self._target_absorbing,
+                                              [-1]),
+                            logits=predicted_absorbing_logits,
+                            name='sparse_softmax_cross_entropy_absorbing'
+                        ),
+                        name='xent_absorbing'
+                    )
 
             predicted_frame = tf.clip_by_value(self._predicted_frame,
                                                1e-7,
