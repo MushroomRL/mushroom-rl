@@ -182,20 +182,14 @@ class Extractor:
                                             tf.nn.relu,
                                             name='hidden_10')
                 if self._predict_reward:
-                    self._predicted_reward = tf.layers.dense(
-                        hidden_10, 3, name='predicted_reward')
                     self._target_reward = tf.placeholder(tf.int32,
                                                          shape=[None, 1],
                                                          name='target_reward')
-                    target_reward = tf.clip_by_value(
+                    self._target_reward_class = tf.clip_by_value(
                         self._target_reward, -1, 1,
-                        name='target_reward_clipping')
-                    target_reward += 1
-                    self._target_reward_one_hot = tf.one_hot(
-                        tf.reshape(target_reward, [-1]),
-                        depth=3,
-                        name='target_reward_one_hot'
-                    )
+                        name='target_reward_clipping') + 1
+                    self._predicted_reward = tf.layers.dense(
+                        hidden_10, 3, tf.nn.sigmoid, name='predicted_reward')
                     predicted_reward = tf.clip_by_value(
                         self._predicted_reward,
                         1e-7,
@@ -207,23 +201,18 @@ class Extractor:
                         name='predicted_reward_logits'
                     )
                     self._xent_reward = tf.reduce_mean(
-                        tf.nn.softmax_cross_entropy_with_logits(
-                            labels=self._target_reward_one_hot,
+                        tf.nn.sparse_softmax_cross_entropy_with_logits(
+                            labels=self._target_reward_class,
                             logits=predicted_reward_logits,
-                            name='softmax_cross_entropy_reward'
+                            name='sparse_softmax_cross_entropy_reward'
                         ),
                         name='xent_reward'
                     )
                 if self._predict_absorbing:
-                    self._predicted_absorbing = tf.layers.dense(
-                        hidden_10, 2, name='predicted_absorbing')
-                    self._target_absorbing = tf.placeholder(
+                    self._target_absorbing_class = tf.placeholder(
                         tf.uint8, shape=[None, 1], name='target_absorbing')
-                    self._target_absorbing_one_hot = tf.one_hot(
-                        tf.reshape(self._target_absorbing, [-1]),
-                        depth=2,
-                        name='target_absorbing_one_hot'
-                    )
+                    self._predicted_absorbing = tf.layers.dense(
+                        hidden_10, 2, tf.nn.sigmoid, name='predicted_absorbing')
                     predicted_absorbing = tf.clip_by_value(
                         self._predicted_absorbing,
                         1e-7,
@@ -234,10 +223,10 @@ class Extractor:
                         predicted_absorbing / (1 - predicted_absorbing),
                         name='predicted_absorbing_logits')
                     self._xent_absorbing = tf.reduce_mean(
-                        tf.nn.softmax_cross_entropy_with_logits(
-                            labels=self._target_absorbing_one_hot,
+                        tf.nn.sparse_softmax_cross_entropy_with_logits(
+                            labels=self._target_absorbing_class,
                             logits=predicted_absorbing_logits,
-                            name='softmax_cross_entropy_absorbing'
+                            name='sparse_softmax_cross_entropy_absorbing'
                         ),
                         name='xent_absorbing'
                     )
@@ -358,15 +347,15 @@ class Extractor:
                                  self._predicted_reward)
             tf.add_to_collection(self._scope_name + '_target_reward',
                                  self._target_reward)
-            tf.add_to_collection(self._scope_name + '_target_reward_one_hot',
-                                 self._target_reward_one_hot)
+            tf.add_to_collection(self._scope_name + '_target_reward_class',
+                                 self._target_reward_class)
         if self._predict_absorbing:
             tf.add_to_collection(self._scope_name + '_predicted_absorbing',
                                  self._predicted_absorbing)
             tf.add_to_collection(self._scope_name + '_target_absorbing',
                                  self._target_absorbing)
-            tf.add_to_collection(self._scope_name + '_target_absorbing_one_hot',
-                                 self._target_absorbing_one_hot)
+            tf.add_to_collection(self._scope_name + '_target_absorbing_class',
+                                 self._target_absorbing_class)
         tf.add_to_collection(self._scope_name + '_merged', self._merged)
         tf.add_to_collection(self._scope_name + '_train_step', self._train_step)
 
@@ -382,15 +371,15 @@ class Extractor:
                 self._scope_name + '_predicted_reward')[0]
             tf.add_to_collection(self._scope_name + '_target_reward',
                                  self._target_reward)
-            self._target_reward_one_hot = tf.get_collection(
-                self._scope_name + '_target_reward_one_hot')[0]
+            self._target_reward_class = tf.get_collection(
+                self._scope_name + '_target_reward_class')[0]
         if self._predict_absorbing:
             self._predicted_absorbing = tf.get_collection(
                 self._scope_name + '_predicted_absorbing')[0]
             self._target_absorbing = tf.get_collection(
                 self._scope_name + '_target_absorbing')[0]
-            self._target_absorbing_one_hot = tf.get_collection(
-                self._scope_name + '_target_absorbing_one_hot')[0]
+            self._target_absorbing_class = tf.get_collection(
+                self._scope_name + '_target_absorbing_class')[0]
         self._merged = tf.get_collection(self._scope_name + '_merged')[0]
         self._train_step = tf.get_collection(
             self._scope_name + '_train_step')[0]

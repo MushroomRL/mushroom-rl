@@ -196,6 +196,8 @@ def experiment():
             dataset = np.load(
                 folder_name + '/dataset.npy')[:args.dataset_size]
         else:
+            pi.set_epsilon(Parameter(1))
+            mdp.set_episode_end(ends_at_life=True)
             dataset = core.evaluate(how_many=args.dataset_size,
                                     iterate_over='samples',
                                     quiet=args.quiet)
