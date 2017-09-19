@@ -47,7 +47,8 @@ class ConvNet:
                        self._action: x[1].ravel().astype(np.uint8),
                        self._target_q: y}
         )
-        self._train_writer.add_summary(summaries, self._train_count)
+        if hasattr(self, '_train_writer'):
+            self._train_writer.add_summary(summaries, self._train_count)
 
         self._train_count += 1
 
@@ -60,9 +61,13 @@ class ConvNet:
             self._session.run(self._w[i],
                               feed_dict={self._target_w[i]: weights[i]})
 
-    def get_weights(self):
-        w = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
-                              scope=self._scope_name)
+    def get_weights(self, only_trainable=False):
+        if not only_trainable:
+            w = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
+                                  scope=self._scope_name)
+        else:
+            w = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
+                                  scope=self._scope_name)
 
         return self._session.run(w)
 

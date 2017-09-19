@@ -3,7 +3,7 @@ import os
 import numpy as np
 import tensorflow as tf
 
-from convnet import ConvNet
+from examples.atari_dqn.convnet import ConvNet
 from mushroom.algorithms.dqn import DQN
 from mushroom.approximators import Regressor
 from mushroom.core.core import Core
@@ -60,7 +60,7 @@ def experiment():
                                       optimizer={'name': 'rmsprop',
                                                  'lr': .00025,
                                                  'decay': .95},
-                                      name='test',
+                                      name='target',
                                       width=84,
                                       height=84,
                                       history_length=4)
@@ -114,7 +114,7 @@ def experiment():
         # evaluation step
         pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(ends_at_life=False)
-    w = approximator.model.get_weights()
+    w = approximator.model.get_weights(only_trainable=True)
 
     return w
 

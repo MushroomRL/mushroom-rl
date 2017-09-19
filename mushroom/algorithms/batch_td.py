@@ -8,7 +8,7 @@ from mushroom.utils.replay_memory import Buffer
 
 class BatchTD(Agent):
     """
-    Implements functions to run batch algorithms.
+    Implement functions to run batch algorithms.
 
     """
     def __init__(self, approximator, policy, gamma, **params):

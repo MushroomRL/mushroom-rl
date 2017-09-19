@@ -94,7 +94,7 @@ env.unwrapped.viewer.window.on_key_release = key_release
 
 def plot_features(extractor, a, fig):
     sa = [np.expand_dims(buf.get(), axis=0), np.array([[a]])]
-    features = extractor.predict(sa)[0].reshape(32, 16)
+    features = extractor.predict(sa, features=True)[0].reshape(32, 16)
     plt.imshow(features)
     fig.canvas.draw()
     plt.show(block=False)

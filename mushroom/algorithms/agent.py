@@ -1,7 +1,7 @@
 class Agent(object):
     """
-    This class implements the functions to evaluate the Q-function
-    of the agent and drawing actions.
+    This class implements the functions to initialize and move the agent drawing
+    actions.
 
     """
     def __init__(self, approximator, policy, gamma, **params):
@@ -9,8 +9,9 @@ class Agent(object):
         Constructor.
 
         Args:
-            approximator (object): the approximator of the Q function;
-            policy (object): the policy to use;
+            approximator (object): the approximator of the Q function used by
+                the agent;
+            policy (object): the policy to use for the agent;
             gamma (float): discount factor;
             **params (dict): other parameters of the algorithm.
 
