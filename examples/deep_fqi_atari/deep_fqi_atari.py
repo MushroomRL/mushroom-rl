@@ -258,12 +258,12 @@ def experiment():
                 start = i * batch[0].shape[0]
                 stop = start + batch[0].shape[0]
                 sa = [batch[0], batch[1]]
-                f[start:stop] = extractor.predict(sa)
+                f[start:stop] = extractor.predict(sa)[0]
                 for j in xrange(mdp.action_space.n):
                     start = i * batch[3].shape[0]
                     stop = start + batch[3].shape[0]
                     sa_n = [batch[3], np.ones((batch[3].shape[0], 1)) * j]
-                    ff[j, start:stop] = extractor.predict(sa_n)
+                    ff[j, start:stop] = extractor.predict(sa_n)[0]
 
             if args.save_features:
                 np.save(folder_name + '/f.npy', f)
