@@ -29,13 +29,16 @@ class ConvNet:
                                                      shape=w[i].shape))
                 self._w.append(w[i].assign(self._target_w[i]))
 
-    def predict(self, x):
-        if isinstance(x, list):
-            return self._session.run(
-                self._q_acted, feed_dict={self._x: x[0],
-                                          self._action: x[1].ravel().astype(
-                                              np.uint8)})
-        return self._session.run(self.q, feed_dict={self._x: x})
+    def predict(self, x, features=False):
+        if not features:
+            if isinstance(x, list):
+                return self._session.run(
+                    self._q_acted, feed_dict={self._x: x[0],
+                                              self._action: x[1].ravel().astype(
+                                                  np.uint8)})
+            return self._session.run(self.q, feed_dict={self._x: x})
+        else:
+            return self._session.run(self._features, feed_dict={self._x: x})
 
     def train_on_batch(self, x, y):
         summaries, _ = self._session.run(
@@ -107,14 +110,14 @@ class ConvNet:
                 name='hidden_3'
             )
             flatten = tf.reshape(hidden_3, [-1, 7 * 7 * 64], name='flatten')
-            features = tf.layers.dense(
+            self._features = tf.layers.dense(
                 flatten, 512, activation=tf.nn.relu,
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 bias_initializer=tf.glorot_uniform_initializer(),
                 name='features'
             )
             self.q = tf.layers.dense(
-                features, convnet_pars['n_actions'],
+                self._features, convnet_pars['n_actions'],
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 bias_initializer=tf.glorot_uniform_initializer(),
                 name='q'
@@ -171,6 +174,7 @@ class ConvNet:
     def _add_collection(self):
         tf.add_to_collection(self._scope_name + '_x', self._x)
         tf.add_to_collection(self._scope_name + '_action', self._action)
+        tf.add_to_collection(self._scope_name + '_features', self._features)
         tf.add_to_collection(self._scope_name + '_q', self.q)
         tf.add_to_collection(self._scope_name + '_target_q', self._target_q)
         tf.add_to_collection(self._scope_name + '_q_acted', self._q_acted)
@@ -180,6 +184,7 @@ class ConvNet:
     def _restore_collection(self):
         self._x = tf.get_collection(self._scope_name + '_x')[0]
         self._action = tf.get_collection(self._scope_name + '_action')[0]
+        self._features = tf.get_collection(self._scope_name + '_features')[0]
         self.q = tf.get_collection(self._scope_name + '_q')[0]
         self._target_q = tf.get_collection(self._scope_name + '_target_q')[0]
         self._q_acted = tf.get_collection(self._scope_name + '_q_acted')[0]
