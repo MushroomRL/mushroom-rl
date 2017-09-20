@@ -294,10 +294,10 @@ def experiment():
                                             quiet=args.quiet)
                     get_stats(results)
 
-            if args.save_approximator:
-                pickle.dump(approximator.model,
-                            open(folder_name + '/approximator.pkl',
-                                 'wb'))
+                if args.save_approximator:
+                    pickle.dump(approximator.model,
+                                open(folder_name + '/approximator.pkl',
+                                     'wb'))
         else:
             approximator.model = pickle.load(open(folder_name + '/approximator.pkl',
                                                   'rb'))
