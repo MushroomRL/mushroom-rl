@@ -281,8 +281,8 @@ def experiment():
 
             pi.set_epsilon(Parameter(.05))
             mdp.set_episode_end(ends_at_life=False)
-            for i in xrange(args.fqi_steps):
-                print('Iteration %i' % i)
+            for i in tqdm(xrange(args.fqi_steps), dynamic_ncols=True,
+                          disable=args.quiet, leave=False):
                 agent._partial_fit(dataset, None)
                 if i % args.evaluation_frequency == 0 and i > 0:
                     print('- Evaluation')
