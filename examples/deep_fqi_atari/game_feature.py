@@ -11,6 +11,7 @@ from matplotlib import pyplot as plt
 import tensorflow as tf
 from PIL import Image
 
+from examples.atari_dqn.convnet import ConvNet
 from examples.deep_fqi_atari.extractor import Extractor
 from mushroom.approximators.action_regressor import Regressor
 from mushroom.utils.preprocessor import Scaler, Binarizer
@@ -25,6 +26,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--load-path", type=str)
 parser.add_argument("--game", type=str, default='BreakoutDeterministic-v4')
 parser.add_argument("--binarizer_threshold", type=float, default=.1)
+parser.add_argument("--dqn", action='store_true')
 parser.add_argument("--predict-reward", action='store_true')
 parser.add_argument("--predict-absorbing", action='store_true')
 args = parser.parse_args()
@@ -34,31 +36,50 @@ env = gym.make(args.game)
 # Feature extractor
 folder_name = './' + datetime.datetime.now().strftime(
     '%Y-%m-%d_%H-%M-%S')
-extractor_params = dict(folder_name=None,
-                        n_actions=env.action_space.n,
-                        optimizer={'name': 'adam',
-                                   'lr': 1,
-                                   'decay': 1},
-                        width=84,
-                        height=84,
-                        history_length=4,
-                        predict_reward=args.predict_reward,
-                        predict_absorbing=args.predict_absorbing)
-extractor = Regressor(Extractor,
-                      discrete_actions=env.action_space.n,
-                      input_preprocessor=[
-                          Scaler(255.),
-                          Binarizer(args.binarizer_threshold)],
-                      output_preprocessor=[
-                          Scaler(255.),
-                          Binarizer(args.binarizer_threshold)],
-                      **extractor_params)
 
-path =\
-    args.load_path + '/' + extractor.model._scope_name
-restorer = tf.train.import_meta_graph(path + '.meta')
-restorer.restore(extractor.model._session, path)
-extractor.model._restore_collection()
+if not args.dqn:
+    extractor_params = dict(folder_name=None,
+                            n_actions=env.action_space.n,
+                            optimizer={'name': 'adam',
+                                       'lr': 1,
+                                       'decay': 1},
+                            width=84,
+                            height=84,
+                            history_length=4,
+                            predict_reward=args.predict_reward,
+                            predict_absorbing=args.predict_absorbing)
+    extractor = Regressor(Extractor,
+                          discrete_actions=env.action_space.n,
+                          input_preprocessor=[
+                              Scaler(255.),
+                              Binarizer(args.binarizer_threshold)],
+                          output_preprocessor=[
+                              Scaler(255.),
+                              Binarizer(args.binarizer_threshold)],
+                          **extractor_params)
+
+    path =\
+        args.load_path + '/' + extractor.model._scope_name
+    restorer = tf.train.import_meta_graph(path + '.meta')
+    restorer.restore(extractor.model._session, path)
+    extractor.model._restore_collection()
+else:
+    # Approximator
+    extractor_params = dict(name='test',
+                            load_path=args.load_path,
+                            n_actions=env.action_space.n,
+                            optimizer={'name': 'adam',
+                                       'lr': 1,
+                                       'decay': 1},
+                            width=84,
+                            height=84,
+                            history_length=4)
+    extractor = Regressor(
+        ConvNet,
+        input_preprocessor=[Scaler(255.)],
+        **extractor_params
+    )
+
 buf = Buffer(4)
 
 if not hasattr(env.action_space, 'n'):
@@ -93,8 +114,12 @@ env.unwrapped.viewer.window.on_key_press = key_press
 env.unwrapped.viewer.window.on_key_release = key_release
 
 def plot_features(extractor, a, fig):
-    sa = [np.expand_dims(buf.get(), axis=0), np.array([[a]])]
-    features = extractor.predict(sa, features=True)[0].reshape(32, 16)
+    if args.dqn:
+        features = extractor.predict(np.expand_dims(buf.get(), axis=0),
+                                     features=True).reshape(32, 16)
+    else:
+        sa = [np.expand_dims(buf.get(), axis=0), np.array([[a]])]
+        features = extractor.predict(sa, features=True)[0].reshape(32, 16)
     plt.imshow(features)
     fig.canvas.draw()
     plt.show(block=False)

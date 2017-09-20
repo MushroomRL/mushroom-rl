@@ -176,6 +176,10 @@ class ConvNet:
 
         self._add_collection()
 
+    @property
+    def n_features(self):
+        return self._features.shape[-1]
+
     def _add_collection(self):
         tf.add_to_collection(self._scope_name + '_x', self._x)
         tf.add_to_collection(self._scope_name + '_action', self._action)
