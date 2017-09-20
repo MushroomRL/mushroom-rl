@@ -288,11 +288,11 @@ def experiment():
                     print('- Evaluation')
                     # evaluation step
                     core.reset()
-                    dataset = core.evaluate(how_many=args.test_samples,
+                    results = core.evaluate(how_many=args.test_samples,
                                             iterate_over='samples',
                                             render=args.render,
                                             quiet=args.quiet)
-                    get_stats(dataset)
+                    get_stats(results)
 
             if args.save_approximator:
                 pickle.dump(approximator.model,
