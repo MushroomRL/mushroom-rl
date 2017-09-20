@@ -82,6 +82,7 @@ def experiment():
                          help='Number of frames composing a state.')
     arg_alg.add_argument("--test-samples", type=int, default=125000,
                          help='Number of steps for each evaluation.')
+    arg_alg.add_argument("--evaluation-frequency", type=int, default=50)
     arg_alg.add_argument("--max-no-op-actions", type=int, default=30,
                          help='Maximum number of no-op action performed at the'
                               'beginning of the episodes. The minimum number is'
@@ -277,7 +278,21 @@ def experiment():
             dataset = [f, replay_memory._actions, replay_memory._rewards, ff,
                        replay_memory._absorbing, replay_memory._last]
             del replay_memory
-            agent.fit(dataset=dataset, n_iterations=args.fqi_steps)
+
+            pi.set_epsilon(Parameter(.05))
+            mdp.set_episode_end(ends_at_life=False)
+            for i in args.fqi_steps:
+                print('Iteration %i' % i)
+                agent._partial_fit(dataset, None)
+                if i % args.evaluation_frequency:
+                    print('- Evaluation')
+                    # evaluation step
+                    core.reset()
+                    dataset = core.evaluate(how_many=args.test_samples,
+                                            iterate_over='samples',
+                                            render=args.render,
+                                            quiet=args.quiet)
+                    get_stats(dataset)
 
             if args.save_approximator:
                 pickle.dump(approximator.model,
@@ -287,16 +302,16 @@ def experiment():
             approximator.model = pickle.load(open(folder_name + '/approximator.pkl',
                                                   'rb'))
 
-        print '- Evaluation:'
-        # evaluation step
-        pi.set_epsilon(Parameter(.05))
-        mdp.set_episode_end(ends_at_life=False)
-        core.reset()
-        dataset = core.evaluate(how_many=args.test_samples,
-                                iterate_over='samples',
-                                render=args.render,
-                                quiet=args.quiet)
-        get_stats(dataset)
+            print '- Evaluation:'
+            # evaluation step
+            pi.set_epsilon(Parameter(.05))
+            mdp.set_episode_end(ends_at_life=False)
+            core.reset()
+            dataset = core.evaluate(how_many=args.test_samples,
+                                    iterate_over='samples',
+                                    render=args.render,
+                                    quiet=args.quiet)
+            get_stats(dataset)
 
 
 if __name__ == '__main__':
