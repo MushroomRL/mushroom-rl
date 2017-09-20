@@ -86,7 +86,8 @@ class Extractor:
 
         summaries, _, self.loss = self._session.run(
             [self._merged, self._train_step, self._loss], feed_dict=fd)
-        self._train_writer.add_summary(summaries, self._train_count)
+        if hasattr(self, '_train_writer'):
+            self._train_writer.add_summary(summaries, self._train_count)
 
         self._train_count += 1
 

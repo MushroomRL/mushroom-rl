@@ -192,25 +192,26 @@ def experiment():
     # Learn
     for k in xrange(args.n_iterations):
         print('Iteration %d' % k)
-        if args.load_dataset and k == 0:
-            dataset = np.load(
-                folder_name + '/dataset.npy')[:args.dataset_size]
-        else:
-            pi.set_epsilon(Parameter(1))
-            mdp.set_episode_end(ends_at_life=True)
-            dataset = core.evaluate(how_many=args.dataset_size,
-                                    iterate_over='samples',
-                                    quiet=args.quiet)
-            if args.save_dataset:
-                np.save(folder_name + '/dataset.npy', dataset)
+        if not args.load_approximator or k > 0:
+            if not args.load_dataset or k > 0:
+                pi.set_epsilon(Parameter(1))
+                mdp.set_episode_end(ends_at_life=True)
+                dataset = core.evaluate(how_many=args.dataset_size,
+                                        iterate_over='samples',
+                                        quiet=args.quiet)
+                if args.save_dataset:
+                    np.save(folder_name + '/dataset.npy', dataset)
+            else:
+                dataset = np.load(
+                    folder_name + '/dataset.npy')[:args.dataset_size]
 
-        replay_memory = ReplayMemory(args.dataset_size, args.history_length)
-        mdp_info = dict(observation_space=mdp.observation_space,
-                        action_space=mdp.action_space)
-        replay_memory.initialize(mdp_info)
-        replay_memory.add(dataset)
+            replay_memory = ReplayMemory(args.dataset_size, args.history_length)
+            mdp_info = dict(observation_space=mdp.observation_space,
+                            action_space=mdp.action_space)
+            replay_memory.initialize(mdp_info)
+            replay_memory.add(dataset)
 
-        del dataset
+            del dataset
 
         if not args.load_extractor or k > 0:
             extractor.model._folder_name = folder_name
@@ -248,27 +249,28 @@ def experiment():
             extractor.model._restore_collection()
 
         print('Building features...')
-        if not args.load_features or k > 0:
-            f = np.ones((replay_memory.size, n_features))
-            ff = np.ones((mdp.action_space.n, replay_memory.size, n_features))
-            rm_generator = replay_memory.generator(args.batch_size)
-            for i, batch in enumerate(rm_generator):
-                start = i * batch[0].shape[0]
-                stop = start + batch[0].shape[0]
-                sa = [batch[0], batch[1]]
-                f[start:stop] = extractor.predict(sa)[0]
-                for j in xrange(mdp.action_space.n):
-                    start = i * batch[3].shape[0]
-                    stop = start + batch[3].shape[0]
-                    sa_n = [batch[3], np.ones((batch[3].shape[0], 1)) * j]
-                    ff[j, start:stop] = extractor.predict(sa_n)[0]
+        if not args.load_approximator or k > 0:
+            if not args.load_features or k > 0:
+                f = np.ones((replay_memory.size, n_features))
+                ff = np.ones((mdp.action_space.n, replay_memory.size, n_features))
+                rm_generator = replay_memory.generator(args.batch_size)
+                for i, batch in enumerate(rm_generator):
+                    start = i * batch[0].shape[0]
+                    stop = start + batch[0].shape[0]
+                    sa = [batch[0], batch[1]]
+                    f[start:stop] = extractor.predict(sa)[0]
+                    for j in xrange(mdp.action_space.n):
+                        start = i * batch[3].shape[0]
+                        stop = start + batch[3].shape[0]
+                        sa_n = [batch[3], np.ones((batch[3].shape[0], 1)) * j]
+                        ff[j, start:stop] = extractor.predict(sa_n)[0]
 
-            if args.save_features:
-                np.save(folder_name + '/f.npy', f)
-                np.save(folder_name + '/ff.npy', ff)
-        else:
-            f = np.load(folder_name + '/f.npy')
-            ff = np.load(folder_name + '/ff.npy')
+                if args.save_features:
+                    np.save(folder_name + '/f.npy', f)
+                    np.save(folder_name + '/ff.npy', ff)
+            else:
+                f = np.load(folder_name + '/f.npy')
+                ff = np.load(folder_name + '/ff.npy')
 
         print('Starting FQI...')
         if not args.load_approximator or k > 0:
@@ -282,7 +284,6 @@ def experiment():
                             open(folder_name + '/approximator.pkl',
                                  'wb'))
         else:
-            del replay_memory
             approximator.model = pickle.load(open(folder_name + '/approximator.pkl',
                                                   'rb'))
 
