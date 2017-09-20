@@ -158,7 +158,7 @@ class DeepFQI(FQI):
                 for i in xrange(q.size):
                     sa = [np.expand_dims(extended_state, axis=0),
                           np.ones((1, 1)) * i]
-                    features = self._extractor.predict(sa)
+                    features = self._extractor.predict(sa)[0]
                     fa = [features, np.ones((1, 1)) * i]
                     q[i] = self.approximator.predict(fa)
                 action = np.array(
