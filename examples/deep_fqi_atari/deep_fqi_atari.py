@@ -58,7 +58,7 @@ def experiment():
     arg_net.add_argument("--decay", type=float, default=.95,
                          help='Discount factor for the history coming from the'
                               'gradient momentum in rmsprop.')
-    arg_net.add_argument("--n-features", type=int, default=512)
+    arg_net.add_argument("--n-features", type=int, default=25)
     arg_net.add_argument("--reg-coeff", type=float, default=1e-5)
     arg_net.add_argument("--contractive", action='store_true')
     arg_net.add_argument("--predict-reward", action='store_true')

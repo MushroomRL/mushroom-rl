@@ -7,7 +7,7 @@ class Extractor:
                  **convnet_pars):
         self._name = name
         self._folder_name = folder_name
-        self._n_features = convnet_pars.get('n_features', 512)
+        self._n_features = convnet_pars.get('n_features', 25)
         self._reg_coeff = convnet_pars.get('reg_coeff', 0.)
         self._contractive = convnet_pars.get('contractive', False)
         self._predict_reward = convnet_pars.get('predict_reward', False)

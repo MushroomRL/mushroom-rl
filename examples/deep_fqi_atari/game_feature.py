@@ -119,7 +119,7 @@ def plot_features(extractor, a, fig):
                                      features=True).reshape(32, 16)
     else:
         sa = [np.expand_dims(buf.get(), axis=0), np.array([[a]])]
-        features = extractor.predict(sa, features=True)[0].reshape(32, 16)
+        features = extractor.predict(sa, features=True)[0].reshape(5, 5)
     plt.imshow(features)
     fig.canvas.draw()
     plt.show(block=False)
