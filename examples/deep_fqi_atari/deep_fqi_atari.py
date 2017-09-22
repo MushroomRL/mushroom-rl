@@ -247,13 +247,13 @@ def experiment():
                 for batch in gen:
                     if args.predict_next_frame:
                         extr_input = [batch[0], batch[1]]
-                        next_state = batch[3][..., -1]
+                        target = batch[3][..., -1]
                     else:
                         extr_input = [batch[0]]
-                        next_state = batch[3]
+                        target = batch[0]
                     extractor.train_on_batch(
                         extr_input,
-                        next_state,
+                        target,
                         target_reward=batch[2].reshape(-1, 1),
                         target_absorbing=batch[4].reshape(-1, 1)
                     )
