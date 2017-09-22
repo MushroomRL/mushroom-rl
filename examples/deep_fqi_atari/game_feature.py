@@ -27,6 +27,7 @@ parser.add_argument("--load-path", type=str)
 parser.add_argument("--game", type=str, default='BreakoutDeterministic-v4')
 parser.add_argument("--binarizer_threshold", type=float, default=.1)
 parser.add_argument("--dqn", action='store_true')
+parser.add_argument("--predict-next-frame", action='store_true')
 parser.add_argument("--predict-reward", action='store_true')
 parser.add_argument("--predict-absorbing", action='store_true')
 args = parser.parse_args()
@@ -48,15 +49,29 @@ if not args.dqn:
                             history_length=4,
                             predict_reward=args.predict_reward,
                             predict_absorbing=args.predict_absorbing)
-    extractor = Regressor(Extractor,
-                          discrete_actions=env.action_space.n,
-                          input_preprocessor=[
-                              Scaler(255.),
-                              Binarizer(args.binarizer_threshold)],
-                          output_preprocessor=[
-                              Scaler(255.),
-                              Binarizer(args.binarizer_threshold)],
-                          **extractor_params)
+    if args.predict_next_frame:
+        extractor = Regressor(Extractor,
+                              discrete_actions=env.action_space.n,
+                              input_preprocessor=[
+                                  Scaler(255.),
+                                  Binarizer(args.binarizer_threshold)
+                              ],
+                              output_preprocessor=[
+                                  Scaler(255.),
+                                  Binarizer(args.binarizer_threshold)
+                              ],
+                              **extractor_params)
+    else:
+        extractor = Regressor(Extractor,
+                              input_preprocessor=[
+                                  Scaler(255.),
+                                  Binarizer(args.binarizer_threshold)
+                              ],
+                              output_preprocessor=[
+                                  Scaler(255.),
+                                  Binarizer(args.binarizer_threshold)
+                              ],
+                              **extractor_params)
 
     path =\
         args.load_path + '/' + extractor.model._scope_name
@@ -118,8 +133,12 @@ def plot_features(extractor, a, fig):
         features = extractor.predict(np.expand_dims(buf.get(), axis=0),
                                      features=True).reshape(32, 16)
     else:
-        sa = [np.expand_dims(buf.get(), axis=0), np.array([[a]])]
-        features = extractor.predict(sa, features=True)[0].reshape(5, 5)
+        if args.predict_next_frame:
+            extr_input = [np.expand_dims(buf.get(), axis=0), np.array([[a]])]
+        else:
+            extr_input = [np.expand_dims(buf.get(), axis=0)]
+        features = extractor.predict(extr_input, features=True)[0].reshape(5,
+                                                                           5)
     plt.imshow(features)
     fig.canvas.draw()
     plt.show(block=False)

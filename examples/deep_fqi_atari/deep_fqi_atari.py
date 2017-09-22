@@ -245,13 +245,14 @@ def experiment():
                 gen = tqdm(rm_generator, total=n_batches, dynamic_ncols=100,
                            desc='Epoch %d' % e)
                 for batch in gen:
-                    sa = [batch[0], batch[1]]
                     if args.predict_next_frame:
+                        extr_input = [batch[0], batch[1]]
                         next_state = batch[3][..., -1]
                     else:
+                        extr_input = [batch[0]]
                         next_state = batch[3]
                     extractor.train_on_batch(
-                        sa,
+                        extr_input,
                         next_state,
                         target_reward=batch[2].reshape(-1, 1),
                         target_absorbing=batch[4].reshape(-1, 1)
