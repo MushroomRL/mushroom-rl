@@ -10,6 +10,7 @@ class Extractor:
         self._n_features = convnet_pars.get('n_features', 25)
         self._reg_coeff = convnet_pars.get('reg_coeff', 0.)
         self._contractive = convnet_pars.get('contractive', False)
+        self._predict_next_frame = convnet_pars.get('predict_next_frame', False)
         self._predict_reward = convnet_pars.get('predict_reward', False)
         self._predict_absorbing = convnet_pars.get('predict_absorbing', False)
 
@@ -27,29 +28,31 @@ class Extractor:
     def predict(self, x, features=True, reconstruction=False, reward=False,
                 absorbing=False):
         ret = list()
+        if self._predict_next_frame:
+            fd = {self._state: x[0], self._action: x[1]}
+        else:
+            fd = {self._state: x[0]}
         if reconstruction:
             ret.append(self._session.run(self._predicted_frame,
-                                         feed_dict={self._state: x[0],
-                                                    self._action: x[1]}))
+                                         feed_dict=fd))
         if reward:
             ret.append(self._session.run(self._predicted_reward,
-                                         feed_dict={self._state: x[0],
-                                                    self._action: x[1]}))
+                                         feed_dict=fd))
         if absorbing:
             ret.append(self._session.run(self._predicted_absorbing,
-                                         feed_dict={self._state: x[0],
-                                                    self._action: x[1]}))
+                                         feed_dict=fd))
         if features:
             ret.append(self._session.run(self._features,
-                                         feed_dict={self._state: x[0],
-                                                    self._action: x[1]}))
+                                         feed_dict=fd))
 
         return ret
 
     def get_stats(self, x, y):
         f = [self._loss, self._xent, self._reg, self._xent_frame]
-        fd = {self._state: x[0], self._action: x[1], self._target_frame: y[0]}
+        fd = {self._state: x[0], self._target_frame: y[0]}
 
+        if self._predict_next_frame:
+            fd[self._action] = x[1]
         if self._predict_reward:
             f += [self._xent_reward, self._accuracy_reward]
             fd[self._target_reward] = y[1]
@@ -77,7 +80,10 @@ class Extractor:
         return stats_dict
 
     def train_on_batch(self, x, y, **fit_params):
-        fd = {self._state: x[0], self._action: x[1], self._target_frame: y}
+        fd = {self._state: x[0], self._target_frame: y}
+
+        if self._predict_next_frame:
+            fd[self._action] = x[1]
         if self._predict_reward:
             fd[self._target_reward] = fit_params['target_reward']
         if self._predict_absorbing:
@@ -111,12 +117,13 @@ class Extractor:
                                                 convnet_pars['width'],
                                                 convnet_pars['history_length']],
                                          name='state')
-            self._action = tf.placeholder(tf.uint8,
-                                          shape=[None, 1],
-                                          name='action')
-            one_hot_action = tf.one_hot(tf.reshape(self._action, [-1]),
-                                        depth=convnet_pars['n_actions'],
-                                        name='one_hot_action')
+            if self._predict_next_frame:
+                self._action = tf.placeholder(tf.uint8,
+                                              shape=[None, 1],
+                                              name='action')
+                one_hot_action = tf.one_hot(tf.reshape(self._action, [-1]),
+                                            depth=convnet_pars['n_actions'],
+                                            name='one_hot_action')
             hidden_1 = tf.layers.conv2d(
                 self._state, 32, 8, 4, activation=tf.nn.relu,
                 kernel_initializer=tf.glorot_uniform_initializer(),
@@ -143,16 +150,19 @@ class Extractor:
                                              self._n_features,
                                              activation=tf.nn.relu,
                                              name='features_state')
-            features_action = tf.layers.dense(one_hot_action,
-                                              self._n_features,
-                                              activation=tf.nn.relu,
-                                              name='features_action')
-            state_x_action = tf.multiply(features_state, features_action,
-                                         name='state_x_action')
-            self._features = tf.layers.dense(state_x_action,
-                                             self._n_features,
-                                             activation=tf.nn.relu,
-                                             name='features')
+            if self._predict_next_frame:
+                features_action = tf.layers.dense(one_hot_action,
+                                                  self._n_features,
+                                                  activation=tf.nn.relu,
+                                                  name='features_action')
+                state_x_action = tf.multiply(features_state, features_action,
+                                             name='state_x_action')
+                self._features = tf.layers.dense(state_x_action,
+                                                 self._n_features,
+                                                 activation=tf.nn.relu,
+                                                 name='features')
+            else:
+                self._features = features_state
             hidden_5_flat = tf.layers.dense(self._features,
                                             400,
                                             activation=tf.nn.relu,
@@ -179,19 +189,37 @@ class Extractor:
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 name='hidden_8'
             )
-            predicted_frame = tf.layers.conv2d_transpose(
-                hidden_8, 1, 1, 1, activation=tf.nn.sigmoid,
+            if self._predict_next_frame:
+                output_kernels = 1
+            else:
+                output_kernels = 4
+            self._predicted_frame = tf.layers.conv2d_transpose(
+                hidden_8, output_kernels, 1, 1, activation=tf.nn.sigmoid,
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 name='predicted_frame_conv'
             )
-            self._predicted_frame = tf.reshape(predicted_frame,
-                                               [-1, 84, 84],
-                                               name='predicted_frame_output')
+            if self._predict_next_frame:
+                self._predicted_frame = tf.reshape(
+                    self._predicted_frame,
+                    [-1, 84, 84],
+                    name='predicted_frame_output'
+                )
 
-            self._target_frame = tf.placeholder(
-                'float32',
-                shape=[None, convnet_pars['height'], convnet_pars['width']],
-                name='target_frame')
+            if self._predict_next_frame:
+                self._target_frame = tf.placeholder(
+                    'float32',
+                    shape=[None,
+                           convnet_pars['height'],
+                           convnet_pars['width']],
+                    name='target_frame')
+            else:
+                self._target_frame = tf.placeholder(
+                    'float32',
+                    shape=[None,
+                           convnet_pars['height'],
+                           convnet_pars['width'],
+                           convnet_pars['history_length']],
+                    name='target_frame')
 
             if self._predict_reward or self._predict_absorbing:
                 hidden_9 = tf.layers.dense(
@@ -358,7 +386,8 @@ class Extractor:
 
     def _add_collection(self):
         tf.add_to_collection(self._scope_name + '_state', self._state)
-        tf.add_to_collection(self._scope_name + '_action', self._action)
+        if self._predict_next_frame:
+            tf.add_to_collection(self._scope_name + '_action', self._action)
         tf.add_to_collection(self._scope_name + '_predicted_frame',
                              self._predicted_frame)
         tf.add_to_collection(self._scope_name + '_target_frame',
@@ -380,7 +409,8 @@ class Extractor:
 
     def _restore_collection(self):
         self._state = tf.get_collection(self._scope_name + '_state')[0]
-        self._action = tf.get_collection(self._scope_name + '_action')[0]
+        if self._predict_next_frame:
+            self._action = tf.get_collection(self._scope_name + '_action')[0]
         self._predicted_frame = tf.get_collection(
             self._scope_name + '_predicted_frame')[0]
         self._target_frame = tf.get_collection(

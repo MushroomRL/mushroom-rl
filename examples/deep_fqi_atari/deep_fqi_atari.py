@@ -61,6 +61,7 @@ def experiment():
     arg_net.add_argument("--n-features", type=int, default=25)
     arg_net.add_argument("--reg-coeff", type=float, default=1e-5)
     arg_net.add_argument("--contractive", action='store_true')
+    arg_net.add_argument("--predict-next-frame", action='store_true')
     arg_net.add_argument("--predict-reward", action='store_true')
     arg_net.add_argument("--predict-absorbing", action='store_true')
 
@@ -146,33 +147,51 @@ def experiment():
                             n_features=args.n_features,
                             reg_coeff=args.reg_coeff,
                             contractive=args.contractive,
+                            predict_next_frame=args.predict_next_frame,
                             predict_reward=args.predict_reward,
                             predict_absorbing=args.predict_absorbing)
-    extractor = Regressor(Extractor,
-                          discrete_actions=mdp.action_space.n,
-                          input_preprocessor=[
-                              Scaler(mdp.observation_space.high),
-                              Binarizer(args.binarizer_threshold)],
-                          output_preprocessor=[
-                              Scaler(mdp.observation_space.high),
-                              Binarizer(args.binarizer_threshold)],
-                          **extractor_params)
+    if args.predict_next_frame:
+        extractor = Regressor(Extractor,
+                              discrete_actions=mdp.action_space.n,
+                              input_preprocessor=[
+                                  Scaler(mdp.observation_space.high),
+                                  Binarizer(args.binarizer_threshold)],
+                              output_preprocessor=[
+                                  Scaler(mdp.observation_space.high),
+                                  Binarizer(args.binarizer_threshold)],
+                              **extractor_params)
+    else:
+        extractor = Regressor(Extractor,
+                              input_preprocessor=[
+                                  Scaler(mdp.observation_space.high),
+                                  Binarizer(args.binarizer_threshold)],
+                              output_preprocessor=[
+                                  Scaler(mdp.observation_space.high),
+                                  Binarizer(args.binarizer_threshold)],
+                              **extractor_params)
 
     n_features = extractor.model.n_features
+
+    if args.predict_next_frame:
+        approximator_class = Regressor
+    else:
+        approximator_class = ActionRegressor
 
     if args.approximator == 'extra':
         approximator_params = dict(n_estimators=args.n_estimators,
                                    min_samples_split=args.min_samples_split,
                                    min_samples_leaf=args.min_samples_leaf,
                                    max_depth=args.max_depth)
-        approximator = Regressor(ExtraTreesRegressor,
-                                 discrete_actions=mdp.action_space.n,
-                                 **approximator_params)
+        approximator = approximator_class(ExtraTreesRegressor,
+                                          discrete_actions=mdp.action_space.n,
+                                          **approximator_params)
     elif args.approximator == 'linear':
         approximator_params = dict()
-        approximator = Regressor(LinearRegression,
-                                 discrete_actions=mdp.action_space.n,
-                                 **approximator_params)
+        approximator = approximator_class(LinearRegression,
+                                          discrete_actions=mdp.action_space.n,
+                                          **approximator_params)
+    else:
+        raise ValueError
 
     # Agent
     algorithm_params = dict(
@@ -227,9 +246,13 @@ def experiment():
                            desc='Epoch %d' % e)
                 for batch in gen:
                     sa = [batch[0], batch[1]]
+                    if args.predict_next_frame:
+                        next_state = batch[3][..., -1]
+                    else:
+                        next_state = batch[3]
                     extractor.train_on_batch(
                         sa,
-                        batch[3][..., -1],
+                        next_state,
                         target_reward=batch[2].reshape(-1, 1),
                         target_absorbing=batch[4].reshape(-1, 1)
                     )
@@ -253,18 +276,27 @@ def experiment():
         if not args.load_approximator or k > 0:
             if not args.load_features or k > 0:
                 f = np.ones((replay_memory.size, n_features))
-                ff = np.ones((mdp.action_space.n, replay_memory.size, n_features))
+                if args.predict_next_frame:
+                    ff = np.ones((mdp.action_space.n, replay_memory.size,
+                                  n_features))
+                else:
+                    ff = np.ones((replay_memory.size, n_features))
                 rm_generator = replay_memory.generator(args.batch_size)
                 for i, batch in enumerate(rm_generator):
                     start = i * batch[0].shape[0]
                     stop = start + batch[0].shape[0]
                     sa = [batch[0], batch[1]]
                     f[start:stop] = extractor.predict(sa)[0]
-                    for j in xrange(mdp.action_space.n):
-                        start = i * batch[3].shape[0]
-                        stop = start + batch[3].shape[0]
-                        sa_n = [batch[3], np.ones((batch[3].shape[0], 1)) * j]
-                        ff[j, start:stop] = extractor.predict(sa_n)[0]
+                    if args.predict_next_frame:
+                        for j in xrange(mdp.action_space.n):
+                            start = i * batch[3].shape[0]
+                            stop = start + batch[3].shape[0]
+                            sa_n = [batch[3], np.ones(
+                                (batch[3].shape[0], 1)) * j]
+                            ff[j, start:stop] = extractor.predict(sa_n)[0]
+                    else:
+                        ss = [batch[3]]
+                        ff[start:stop] = extractor.predict(ss)[0]
 
                 if args.save_features:
                     np.save(folder_name + '/f.npy', f)
@@ -299,8 +331,8 @@ def experiment():
                                 open(folder_name + '/approximator.pkl',
                                      'wb'))
         else:
-            approximator.model = pickle.load(open(folder_name + '/approximator.pkl',
-                                                  'rb'))
+            approximator.model = pickle.load(
+                open(folder_name + '/approximator.pkl', 'rb'))
 
             print '- Evaluation:'
             # evaluation step
