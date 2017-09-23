@@ -328,11 +328,11 @@ def experiment():
                     get_stats(results)
 
                 if args.save_approximator:
-                    pickle.dump(approximator.model,
+                    pickle.dump(approximator,
                                 open(folder_name + '/approximator.pkl',
                                      'wb'))
         else:
-            approximator.model = pickle.load(
+            approximator = pickle.load(
                 open(folder_name + '/approximator.pkl', 'rb'))
 
             print '- Evaluation:'
