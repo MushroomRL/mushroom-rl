@@ -290,7 +290,7 @@ def experiment():
                     f[start:stop] = extractor.predict(sa)[0]
                     if args.predict_next_frame:
                         for j in xrange(mdp.action_space.n):
-                            start = i * batch[3].shape[0]
+                            start = i * args.batch_size
                             stop = start + batch[3].shape[0]
                             sa_n = [batch[3], np.ones(
                                 (batch[3].shape[0], 1)) * j]
