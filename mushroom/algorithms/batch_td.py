@@ -112,6 +112,7 @@ class DeepFQI(FQI):
         self._no_op_action_value = alg_params.get('no_op_action_value')
         self._episode_steps = 0
         self._no_op_actions = None
+        self._predict_next_frame = self._extractor.model._predict_next_frame
 
         super(DeepFQI, self).__init__(approximator, policy, gamma, **params)
 
@@ -133,15 +134,22 @@ class DeepFQI(FQI):
         else:
             q = np.ones((next_state.shape[1], next_state.shape[0]))
             for i in xrange(q.shape[1]):
-                sa_n = [next_state[i], np.ones((next_state[i].shape[0], 1)) * i]
-                q[:, i] = self.approximator.predict(sa_n)
+                if self._predict_next_frame:
+                    apprx_input = [next_state[i]]
+                else:
+                    apprx_input = [next_state,
+                                   np.ones((next_state.shape[0], 1)) * i]
+                q[:, i] = self.approximator.predict(apprx_input)
             if np.any(absorbing):
                 q *= 1 - absorbing.reshape(-1, 1)
             maxq = np.max(q, axis=1)
             y = reward + self._gamma * maxq
 
-        sa = [state, action]
-        self.approximator.fit(sa, y, **fit_params)
+        if self._predict_next_frame:
+            apprx_input = [state]
+        else:
+            apprx_input = [state, action]
+        self.approximator.fit(apprx_input, y, **fit_params)
 
         return y
 
@@ -159,8 +167,11 @@ class DeepFQI(FQI):
                     sa = [np.expand_dims(extended_state, axis=0),
                           np.ones((1, 1)) * i]
                     features = self._extractor.predict(sa)[0]
-                    fa = [features, np.ones((1, 1)) * i]
-                    q[i] = self.approximator.predict(fa)
+                    if self._predict_next_frame:
+                        apprx_input = [features]
+                    else:
+                        apprx_input = [features, np.ones((1, 1)) * i]
+                    q[i] = self.approximator.predict(apprx_input)
                 action = np.array(
                     [np.random.choice(np.argwhere(q == np.max(q)).ravel())])
             else:
