@@ -284,7 +284,7 @@ def experiment():
                     ff = np.ones((replay_memory.size, n_features))
                 rm_generator = replay_memory.generator(args.batch_size)
                 for i, batch in enumerate(rm_generator):
-                    start = i * batch[0].shape[0]
+                    start = i * args.batch_size
                     stop = start + batch[0].shape[0]
                     sa = [batch[0], batch[1]]
                     f[start:stop] = extractor.predict(sa)[0]
