@@ -132,7 +132,7 @@ class DeepFQI(FQI):
         if y is None:
             y = reward
         else:
-            q = np.ones((self.mdp_info['action_space'].n, next_state.shape[0]))
+            q = np.ones((state.shape[0], self.mdp_info['action_space'].n))
             for i in xrange(q.shape[1]):
                 if self._predict_next_frame:
                     apprx_input = [next_state[i]]
