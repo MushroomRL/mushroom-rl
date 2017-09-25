@@ -170,7 +170,7 @@ class Extractor:
             hidden_5_conv = tf.reshape(hidden_5_flat, [-1, 5, 5, 16],
                                        name='hidden_5_conv')
             hidden_5 = tf.layers.conv2d_transpose(
-                hidden_5_conv, 16, 3, 1, activation=tf.nn.relu,
+                hidden_5_conv, 64, 3, 1, activation=tf.nn.relu,
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 name='hidden_5'
             )
@@ -180,21 +180,16 @@ class Extractor:
                 name='hidden_6'
             )
             hidden_7 = tf.layers.conv2d_transpose(
-                hidden_6, 64, 4, 2, activation=tf.nn.relu,
+                hidden_6, 32, 4, 2, activation=tf.nn.relu,
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 name='hidden_7'
-            )
-            hidden_8 = tf.layers.conv2d_transpose(
-                hidden_7, 32, 8, 4, activation=tf.nn.relu,
-                kernel_initializer=tf.glorot_uniform_initializer(),
-                name='hidden_8'
             )
             if self._predict_next_frame:
                 output_kernels = 1
             else:
                 output_kernels = 4
             self._predicted_frame = tf.layers.conv2d_transpose(
-                hidden_8, output_kernels, 1, 1, activation=tf.nn.sigmoid,
+                hidden_7, output_kernels, 8, 4, activation=tf.nn.sigmoid,
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 name='predicted_frame_conv'
             )
