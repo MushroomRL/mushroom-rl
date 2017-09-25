@@ -191,14 +191,8 @@ class Extractor:
             self._predicted_frame = tf.layers.conv2d_transpose(
                 hidden_7, output_kernels, 8, 4, activation=tf.nn.sigmoid,
                 kernel_initializer=tf.glorot_uniform_initializer(),
-                name='predicted_frame_conv'
+                name='predicted_frame'
             )
-            if self._predict_next_frame:
-                self._predicted_frame = tf.reshape(
-                    self._predicted_frame,
-                    [-1, 84, 84],
-                    name='predicted_frame_output'
-                )
 
             if self._predict_next_frame:
                 self._target_frame = tf.placeholder(
