@@ -1,7 +1,7 @@
 import argparse
-import pickle
 import datetime
 
+import joblib
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import ExtraTreesRegressor
@@ -328,26 +328,22 @@ def experiment():
                                             quiet=args.quiet)
                     get_stats(results)
 
-                if args.save_approximator:
-                    if approximator_class == Regressor:
-                        pickle.dump(approximator,
-                                    open(folder_name + '/approximator.pkl',
-                                         'wb'))
-                    else:
-                        for m_i, m in enumerate(approximator.models):
-                            pickle.dump(
-                                m,
-                                open(folder_name + '/approximator_%d.pkl' % m_i,
-                                     'wb')
-                            )
+                    if args.save_approximator:
+                        if approximator_class == Regressor:
+                            joblib.dump(approximator,
+                                        folder_name + '/approximator.pkl')
+                        else:
+                            for m_i, m in enumerate(approximator.models):
+                                joblib.dump(
+                                    m,
+                                    folder_name + '/approximator_%d.pkl')
         else:
             if approximator_class == Regressor:
-                approximator = pickle.load(
-                    open(folder_name + '/approximator.pkl', 'rb'))
+                approximator = joblib.load(folder_name + '/approximator.pkl')
             else:
                 for m_i in xrange(len(approximator.models)):
-                    approximator.models[m_i] = pickle.load(
-                        open(folder_name + '/approximator_%d.pkl' % m_i, 'rb'))
+                    approximator.models[m_i] = joblib.load(
+                        folder_name + '/approximator_%d.pkl' % m_i)
 
             print '- Evaluation:'
             # evaluation step
