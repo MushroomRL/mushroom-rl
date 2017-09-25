@@ -329,12 +329,25 @@ def experiment():
                     get_stats(results)
 
                 if args.save_approximator:
-                    pickle.dump(approximator,
-                                open(folder_name + '/approximator.pkl',
-                                     'wb'))
+                    if approximator_class == Regressor:
+                        pickle.dump(approximator,
+                                    open(folder_name + '/approximator.pkl',
+                                         'wb'))
+                    else:
+                        for m_i, m in enumerate(approximator.models):
+                            pickle.dump(
+                                m,
+                                open(folder_name + '/approximator_%d.pkl' % m_i,
+                                     'wb')
+                            )
         else:
-            approximator = pickle.load(
-                open(folder_name + '/approximator.pkl', 'rb'))
+            if approximator_class == Regressor:
+                approximator = pickle.load(
+                    open(folder_name + '/approximator.pkl', 'rb'))
+            else:
+                for m_i in xrange(len(approximator.models)):
+                    approximator.models[m_i] = pickle.load(
+                        open(folder_name + '/approximator_%d.pkl' % m_i, 'rb'))
 
             print '- Evaluation:'
             # evaluation step
