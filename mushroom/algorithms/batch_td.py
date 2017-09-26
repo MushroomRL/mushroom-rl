@@ -132,17 +132,16 @@ class DeepFQI(FQI):
         if y is None:
             y = reward
         else:
-            q = np.ones((state.shape[0], self.mdp_info['action_space'].n))
-            for i in xrange(q.shape[1]):
-                if self._predict_next_frame:
+            if self._predict_next_frame:
+                q = np.ones((state.shape[0], self.mdp_info['action_space'].n))
+                for i in xrange(q.shape[1]):
                     apprx_input = next_state[i]
-                else:
-                    apprx_input = [next_state,
-                                   np.ones((next_state.shape[0], 1)) * i]
-                q[:, i] = self.approximator.predict(apprx_input)
-            if np.any(absorbing):
-                q *= 1 - absorbing.reshape(-1, 1)
-            maxq = np.max(q, axis=1)
+                    q[:, i] = self.approximator.predict(apprx_input)
+                if np.any(absorbing):
+                    q *= 1 - absorbing.reshape(-1, 1)
+                maxq = np.max(q, axis=1)
+            else:
+                maxq, _ = max_QA(next_state, absorbing, self.approximator)
             y = reward + self._gamma * maxq
 
         if self._predict_next_frame:
