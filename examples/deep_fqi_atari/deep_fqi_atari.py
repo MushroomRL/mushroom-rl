@@ -332,7 +332,7 @@ def experiment():
 
                     if args.save_approximator:
                         if approximator_class == Regressor:
-                            joblib.dump(approximator,
+                            joblib.dump(approximator.model,
                                         folder_name + '/approximator.pkl')
                         else:
                             for m_i, m in enumerate(approximator.models):
@@ -341,7 +341,8 @@ def experiment():
                                     folder_name + '/approximator_%d.pkl' % m_i)
         else:
             if approximator_class == Regressor:
-                approximator = joblib.load(folder_name + '/approximator.pkl')
+                approximator.model = joblib.load(
+                    folder_name + '/approximator.pkl')
             else:
                 for m_i in xrange(len(approximator.models)):
                     approximator.models[m_i] = joblib.load(
