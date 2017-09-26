@@ -279,6 +279,10 @@ def experiment():
         if not args.load_approximator or k > 0:
             if not args.load_features or k > 0:
                 f = np.ones((replay_memory.size, n_features))
+                actions = np.ones((replay_memory.size, 1))
+                rewards = np.ones(replay_memory.size)
+                absorbing = np.ones(replay_memory.size)
+                last = np.ones(replay_memory.size)
                 if args.predict_next_frame:
                     ff = np.ones((mdp.action_space.n, replay_memory.size,
                                   n_features))
@@ -290,6 +294,10 @@ def experiment():
                     stop = start + batch[0].shape[0]
                     sa = [batch[0], batch[1]]
                     f[start:stop] = extractor.predict(sa)[0]
+                    actions[start:stop] = batch[1]
+                    rewards[start:stop] = batch[2]
+                    absorbing[start:stop] = batch[4]
+                    last[start:stop] = batch[5]
                     if args.predict_next_frame:
                         for j in xrange(mdp.action_space.n):
                             start = i * args.batch_size
@@ -310,8 +318,8 @@ def experiment():
 
         print('Starting FQI...')
         if not args.load_approximator or k > 0:
-            dataset = [f, replay_memory._actions, replay_memory._rewards, ff,
-                       replay_memory._absorbing, replay_memory._last]
+            dataset = [f, actions, rewards, ff,
+                       absorbing, last]
             del replay_memory
 
             pi.set_epsilon(Parameter(.05))
@@ -339,6 +347,7 @@ def experiment():
                                 joblib.dump(
                                     m,
                                     folder_name + '/approximator_%d.pkl' % m_i)
+            exit()
         else:
             if approximator_class == Regressor:
                 approximator.model = joblib.load(
