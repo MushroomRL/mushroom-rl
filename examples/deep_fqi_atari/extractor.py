@@ -148,7 +148,6 @@ class Extractor:
                                        name='hidden_4_flat')
             features_state = tf.layers.dense(hidden_4_flat,
                                              self._n_features,
-                                             activation=tf.nn.relu,
                                              name='features_state')
             if self._predict_next_frame:
                 features_action = tf.layers.dense(one_hot_action,
@@ -161,7 +160,6 @@ class Extractor:
                 self._features = features_state
             hidden_5_flat = tf.layers.dense(self._features,
                                             1600,
-                                            activation=tf.nn.relu,
                                             name='hidden_5_flat')
             hidden_5_conv = tf.reshape(hidden_5_flat, [-1, 5, 5, 64],
                                        name='hidden_5_conv')
