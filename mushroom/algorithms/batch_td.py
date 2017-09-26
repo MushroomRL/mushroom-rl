@@ -168,7 +168,7 @@ class DeepFQI(FQI):
                           np.ones((1, 1)) * i]
                     features = self._extractor.predict(sa)[0]
                     if self._predict_next_frame:
-                        apprx_input = [features]
+                        apprx_input = features
                     else:
                         apprx_input = [features, np.ones((1, 1)) * i]
                     q[i] = self.approximator.predict(apprx_input)
