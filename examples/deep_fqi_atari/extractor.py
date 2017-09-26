@@ -194,11 +194,11 @@ class Extractor:
                 name='predicted_frame_conv'
             )
             if self._predict_next_frame:
-                self._predicted_frame = tf.reshape(self._predicted_frame,
-                                                   [None,
-                                                    convnet_pars['height'],
-                                                    convnet_pars['width']],
-                                                   name='predicted_frame')
+                self._predicted_frame = tf.reshape(
+                    self._predicted_frame,
+                    shape=[-1, convnet_pars['height'], convnet_pars['width']],
+                    name='predicted_frame'
+                )
 
             if self._predict_next_frame:
                 self._target_frame = tf.placeholder(
