@@ -174,8 +174,10 @@ def experiment():
 
     if args.predict_next_frame:
         approximator_class = Regressor
+        discrete_actions = None
     else:
         approximator_class = ActionRegressor
+        discrete_actions = mdp.action_space.n
 
     if args.approximator == 'extra':
         approximator_params = dict(n_estimators=args.n_estimators,
@@ -183,12 +185,12 @@ def experiment():
                                    min_samples_leaf=args.min_samples_leaf,
                                    max_depth=args.max_depth)
         approximator = approximator_class(ExtraTreesRegressor,
-                                          discrete_actions=mdp.action_space.n,
+                                          discrete_actions=discrete_actions,
                                           **approximator_params)
     elif args.approximator == 'linear':
         approximator_params = dict()
         approximator = approximator_class(LinearRegression,
-                                          discrete_actions=mdp.action_space.n,
+                                          discrete_actions=discrete_actions,
                                           **approximator_params)
     else:
         raise ValueError

@@ -146,7 +146,7 @@ class DeepFQI(FQI):
             y = reward + self._gamma * maxq
 
         if self._predict_next_frame:
-            apprx_input = [state]
+            apprx_input = state
         else:
             apprx_input = [state, action]
         self.approximator.fit(apprx_input, y, **fit_params)

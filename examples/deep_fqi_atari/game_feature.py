@@ -47,6 +47,7 @@ if not args.dqn:
                             width=84,
                             height=84,
                             history_length=4,
+                            predict_next_frame=args.predict_next_frame,
                             predict_reward=args.predict_reward,
                             predict_absorbing=args.predict_absorbing)
     if args.predict_next_frame:
