@@ -278,6 +278,7 @@ def experiment():
         print('Building features...')
         if not args.load_approximator or k > 0:
             if not args.load_features or k > 0:
+                batch = replay_memory.get(replay_memory.size)
                 sa = [batch[0], batch[1]]
                 f = extractor.predict(sa)[0]
                 if args.predict_next_frame:
