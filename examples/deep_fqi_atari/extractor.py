@@ -155,12 +155,8 @@ class Extractor:
                                                   self._n_features,
                                                   activation=tf.nn.relu,
                                                   name='features_action')
-                state_x_action = tf.multiply(features_state, features_action,
+                self._features = tf.multiply(features_state, features_action,
                                              name='state_x_action')
-                self._features = tf.layers.dense(state_x_action,
-                                                 self._n_features,
-                                                 activation=tf.nn.relu,
-                                                 name='features')
             else:
                 self._features = features_state
             hidden_5_flat = tf.layers.dense(self._features,
