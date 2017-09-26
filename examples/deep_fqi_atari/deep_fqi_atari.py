@@ -278,28 +278,18 @@ def experiment():
         print('Building features...')
         if not args.load_approximator or k > 0:
             if not args.load_features or k > 0:
-                f = np.ones((replay_memory.size, n_features))
+                sa = [batch[0], batch[1]]
+                f = extractor.predict(sa)[0]
                 if args.predict_next_frame:
                     ff = np.ones((mdp.action_space.n, replay_memory.size,
                                   n_features))
+                    for j in xrange(mdp.action_space.n):
+                        sa_n = [batch[3], np.ones(
+                            (batch[3].shape[0], 1)) * j]
+                        ff[j] = extractor.predict(sa_n)[0]
                 else:
-                    ff = np.ones((replay_memory.size, n_features))
-                rm_generator = replay_memory.generator(args.batch_size)
-                for i, batch in enumerate(rm_generator):
-                    start = i * args.batch_size
-                    stop = start + batch[0].shape[0]
-                    sa = [batch[0], batch[1]]
-                    f[start:stop] = extractor.predict(sa)[0]
-                    if args.predict_next_frame:
-                        for j in xrange(mdp.action_space.n):
-                            start = i * args.batch_size
-                            stop = start + batch[3].shape[0]
-                            sa_n = [batch[3], np.ones(
-                                (batch[3].shape[0], 1)) * j]
-                            ff[j, start:stop] = extractor.predict(sa_n)[0]
-                    else:
-                        ss = [batch[3]]
-                        ff[start:stop] = extractor.predict(ss)[0]
+                    ss = [batch[3]]
+                    ff = extractor.predict(ss)[0]
 
                 if args.save_features:
                     np.save(folder_name + '/f.npy', f)
