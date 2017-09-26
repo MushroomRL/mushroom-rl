@@ -7,7 +7,7 @@ class Extractor:
                  **convnet_pars):
         self._name = name
         self._folder_name = folder_name
-        self._n_features = convnet_pars.get('n_features', 1024)
+        self._n_features = convnet_pars.get('n_features', 25)
         self._reg_coeff = convnet_pars.get('reg_coeff', 0.)
         self._contractive = convnet_pars.get('contractive', False)
         self._predict_next_frame = convnet_pars.get('predict_next_frame', False)
@@ -146,11 +146,7 @@ class Extractor:
             )
             hidden_4_flat = tf.reshape(hidden_4, [-1, 5 * 5 * 64],
                                        name='hidden_4_flat')
-            hidden_5 = tf.layers.dense(hidden_4_flat,
-                                       512,
-                                       activation=tf.nn.relu,
-                                       name='hidden_5')
-            features_state = tf.layers.dense(hidden_5,
+            features_state = tf.layers.dense(hidden_4_flat,
                                              self._n_features,
                                              activation=tf.nn.relu,
                                              name='features_state')
@@ -163,37 +159,33 @@ class Extractor:
                                              name='state_x_action')
             else:
                 self._features = features_state
-            decoded_features = tf.layers.dense(self._features,
-                                               512,
-                                               activation=tf.nn.relu,
-                                               name='decoded_features')
-            hidden_6_flat = tf.layers.dense(decoded_features,
+            hidden_5_flat = tf.layers.dense(self._features,
                                             1600,
                                             activation=tf.nn.relu,
-                                            name='hidden_6_flat')
-            hidden_6_conv = tf.reshape(hidden_6_flat, [-1, 5, 5, 64],
-                                       name='hidden_6_conv')
+                                            name='hidden_5_flat')
+            hidden_5_conv = tf.reshape(hidden_5_flat, [-1, 5, 5, 64],
+                                       name='hidden_5_conv')
+            hidden_5 = tf.layers.conv2d_transpose(
+                hidden_5_conv, 64, 3, 1, activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer(),
+                name='hidden_5'
+            )
+            hidden_6 = tf.layers.conv2d_transpose(
+                hidden_5, 64, 3, 1, activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer(),
+                name='hidden_6'
+            )
             hidden_7 = tf.layers.conv2d_transpose(
-                hidden_6_conv, 64, 3, 1, activation=tf.nn.relu,
+                hidden_6, 32, 4, 2, activation=tf.nn.relu,
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 name='hidden_7'
-            )
-            hidden_8 = tf.layers.conv2d_transpose(
-                hidden_7, 64, 3, 1, activation=tf.nn.relu,
-                kernel_initializer=tf.glorot_uniform_initializer(),
-                name='hidden_8'
-            )
-            hidden_9 = tf.layers.conv2d_transpose(
-                hidden_8, 32, 4, 2, activation=tf.nn.relu,
-                kernel_initializer=tf.glorot_uniform_initializer(),
-                name='hidden_9'
             )
             if self._predict_next_frame:
                 output_kernels = 1
             else:
                 output_kernels = 4
             self._predicted_frame = tf.layers.conv2d_transpose(
-                hidden_9, output_kernels, 8, 4, activation=tf.nn.sigmoid,
+                hidden_7, output_kernels, 8, 4, activation=tf.nn.sigmoid,
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 name='predicted_frame_conv'
             )
