@@ -90,7 +90,10 @@ class CollectSummary:
 
     """
     def __init__(self, folder_name):
-        self._summary_writer = tf.summary.FileWriter(folder_name)
+        self._summary_writer = tf.summary.FileWriter(
+            folder_name,
+            graph=tf.get_default_graph()
+        )
         self._global_step = 0
 
     def __call__(self, **kwargs):

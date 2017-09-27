@@ -117,15 +117,6 @@ class DeepFQI(FQI):
         super(DeepFQI, self).__init__(approximator, policy, gamma, **params)
 
     def _partial_fit(self, x, y, **fit_params):
-        """
-        Single fit iteration.
-
-        Args:
-            x (list): a two elements list with states and actions;
-            y (np.array): targets;
-            **fit_params (dict): other parameters to fit the model.
-
-        """
         state, action, reward, next_state, absorbing, _ = x
         if self._clip_reward:
             reward = np.clip(reward, -1, 1)

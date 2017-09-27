@@ -151,7 +151,7 @@ class DoubleDQN(DQN):
 
 class WeightedDQN(DQN):
     """
-    Implements functions to run the Weighted DQN algorithm.
+    ...
 
     """
     def __init__(self, approximator, policy, gamma, **params):
@@ -236,20 +236,18 @@ class RDQN(DQN):
                                      size=self._batch_size)
             state, action, reward, _, absorbing, _ =\
                 self._replay_memory.get_idxs(idxs)
-            idx_new = [i for i in idxs if not absorbing[i]]
-            idx_next = [(i + 1) % self._replay_memory.size for i in idxs
-                        if not absorbing[i]]
-            next_state, next_action, next_reward, _, next_absorbing, _ =\
-                self._replay_memory.get_idxs(idx_next)
 
+            no_abs_idxs = idxs[np.argwhere(absorbing != 0).ravel()]
             state, action, reward, _, absorbing, _ =\
-                self._replay_memory.get_idxs(idx_new)
+                self._replay_memory.get_idxs(no_abs_idxs)
+            next_state, next_action, next_reward, _, next_absorbing, _ =\
+                self._replay_memory.get_idxs(
+                    (no_abs_idxs + 1) % self._replay_memory.size)
             sa = [state, action]
             q_tilde_next = self._target_approximator.predict_all(
-                next_state) * (1. - next_absorbing)
+                next_state) * (1. - next_absorbing.reshape(-1, 1))
             r_tilde_next = np.zeros(q_tilde_next.shape)
-            for i in xrange(r_tilde_next.shape[0]):
-                r_tilde_next[i, next_action] = next_reward[i]
+            r_tilde_next[:, next_action.ravel().astype(np.int)] = next_reward
             q_next = r_tilde_next + self._gamma * q_tilde_next
             max_q_next = np.max(q_next, axis=1)
 
