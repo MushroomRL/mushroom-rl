@@ -237,7 +237,7 @@ class RDQN(DQN):
             state, action, _, _, absorbing, _ =\
                 self._replay_memory.get_idxs(idxs)
 
-            no_abs_idxs = idxs[np.argwhere(absorbing != 0).ravel()]
+            no_abs_idxs = idxs[np.argwhere(absorbing == 0).ravel()]
             state, action, _, _, absorbing, _ =\
                 self._replay_memory.get_idxs(no_abs_idxs)
             next_state, next_action, next_reward, _, next_absorbing, _ =\
