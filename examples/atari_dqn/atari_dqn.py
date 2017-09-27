@@ -4,7 +4,7 @@ import os
 
 import numpy as np
 
-from mushroom.algorithms.dqn import DQN, DoubleDQN, WeightedDQN
+from mushroom.algorithms.dqn import DQN, DoubleDQN, RDQN, WeightedDQN
 from mushroom.approximators import Ensemble, Regressor
 from mushroom.core.core import Core
 from mushroom.environments import *
@@ -69,7 +69,7 @@ def experiment():
                               'gradient momentum in rmsprop.')
 
     arg_alg = parser.add_argument_group('Algorithm')
-    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'wdqn'],
+    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'rdqn', 'wdqn'],
                          default='dqn',
                          help='Name of the algorithm. dqn stands for standard'
                               'DQN and ddqn stands for Double DQN.')
@@ -288,6 +288,8 @@ def experiment():
             agent = DQN(approximator, pi, mdp.gamma, **agent_params)
         elif args.algorithm == 'ddqn':
             agent = DoubleDQN(approximator, pi, mdp.gamma, **agent_params)
+        elif args.algorithm == 'rdqn':
+            agent = RDQN(approximator, pi, mdp.gamma, **agent_params)
         elif args.algorithm == 'wdqn':
             algorithm_params['n_samples'] = args.n_samples
             agent = WeightedDQN(approximator, pi, mdp.gamma, **agent_params)
@@ -340,6 +342,7 @@ def experiment():
                                          render=args.render,
                                          quiet=args.quiet)
             get_stats(dataset)
+
 
 if __name__ == '__main__':
     experiment()

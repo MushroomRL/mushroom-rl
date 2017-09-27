@@ -309,6 +309,8 @@ def experiment():
                         ss = [batch[3]]
                         ff[start:stop] = extractor.predict(ss)[0]
 
+                del replay_memory
+
                 if args.save_features:
                     np.save(folder_name + '/f.npy', f)
                     np.save(folder_name + '/ff.npy', ff)
@@ -318,9 +320,7 @@ def experiment():
 
         print('Starting FQI...')
         if not args.load_approximator or k > 0:
-            dataset = [f, actions, rewards, ff,
-                       absorbing, last]
-            del replay_memory
+            dataset = [f, actions, rewards, ff, absorbing, last]
 
             pi.set_epsilon(Parameter(.05))
             mdp.set_episode_end(ends_at_life=False)

@@ -59,6 +59,7 @@ def experiment(algorithm_class, decay_exp):
 
     return reward, max_Qs
 
+
 if __name__ == '__main__':
     n_experiment = 10000
 

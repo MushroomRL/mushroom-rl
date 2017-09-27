@@ -137,17 +137,6 @@ class DoubleDQN(DQN):
         super(DoubleDQN, self).__init__(approximator, policy, gamma, **params)
 
     def _next_q(self, next_state, absorbing):
-        """
-        Args:
-            next_state (np.array): the state where next action has to be
-                evaluated;
-            absorbing (np.array): the absorbing flag for the states in
-                'next_state'.
-
-        Returns
-            Maximum action-value in 'next_state'.
-
-        """
         _, a_n = max_QA(next_state, absorbing, self.approximator)
         sa_n = [next_state, a_n]
 
@@ -176,14 +165,6 @@ class WeightedDQN(DQN):
             self._target_approximator, Ensemble)
 
     def fit(self, dataset, n_iterations=1):
-        """
-        Single fit step.
-
-        Args:
-            dataset (list): a two elements list with states and actions;
-            n_iterations (int, 1): number of fit steps of the approximator.
-
-        """
         self._replay_memory.add(dataset)
         if n_iterations == 0:
             pass
@@ -212,17 +193,6 @@ class WeightedDQN(DQN):
                         self.approximator[i].model.get_weights())
 
     def _next_q(self, next_state, absorbing):
-        """
-        Args:
-            next_state (np.array): the state where next action has to be
-                evaluated;
-            absorbing (np.array): the absorbing flag for the states in
-                'next_state'.
-
-        Returns
-            Maximum action-value in 'next_state'.
-
-        """
         means, variance = self._target_approximator.predict_all(
             next_state,
             compute_variance=True
@@ -243,3 +213,54 @@ class WeightedDQN(DQN):
             W[i] = np.dot(w, means.T)[0]
 
         return W
+
+
+class RDQN(DQN):
+    """
+    ...
+
+    """
+    def __init__(self, approximator, policy, gamma, **params):
+        self.__name__ = 'RDQN'
+
+        super(RDQN, self).__init__(approximator, policy, gamma, **params)
+
+    def fit(self, dataset, n_iterations=1):
+        self._replay_memory.add(dataset)
+        if n_iterations == 0:
+            pass
+        else:
+            assert n_iterations == 1
+
+            idxs = np.random.randint(self._replay_memory.size,
+                                     size=self._batch_size)
+            state, action, reward, _, absorbing, _ =\
+                self._replay_memory.get_idxs(idxs)
+            idx_new = [i for i in idxs if not absorbing[i]]
+            idx_next = [(i + 1) % self._replay_memory.size for i in idxs
+                        if not absorbing[i]]
+            next_state, next_action, next_reward, _, next_absorbing, _ =\
+                self._replay_memory.get_idxs(idx_next)
+
+            state, action, reward, _, absorbing, _ =\
+                self._replay_memory.get_idxs(idx_new)
+            sa = [state, action]
+            q_tilde_next = self._target_approximator.predict_all(
+                next_state) * (1. - next_absorbing)
+            r_tilde_next = np.zeros(q_tilde_next.shape)
+            for i in xrange(r_tilde_next.shape[0]):
+                r_tilde_next[i, next_action] = next_reward[i]
+            q_next = r_tilde_next + self._gamma * q_tilde_next
+            max_q_next = np.max(q_next, axis=1)
+
+            self.approximator.train_on_batch(
+                sa, max_q_next, **self.params['fit_params'])
+
+            self._n_updates += 1
+
+            if self._n_updates % self._target_update_frequency == 0:
+                self._target_approximator.model.set_weights(
+                    self.approximator.model.get_weights())
+
+    def __str__(self):
+        return self.__name__
