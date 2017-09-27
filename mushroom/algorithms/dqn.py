@@ -234,15 +234,19 @@ class RDQN(DQN):
 
             idxs = np.random.randint(self._replay_memory.size,
                                      size=self._batch_size)
-            state, action, reward, _, absorbing, _ =\
+            state, action, _, _, absorbing, _ =\
                 self._replay_memory.get_idxs(idxs)
 
             no_abs_idxs = idxs[np.argwhere(absorbing != 0).ravel()]
-            state, action, reward, _, absorbing, _ =\
+            state, action, _, _, absorbing, _ =\
                 self._replay_memory.get_idxs(no_abs_idxs)
             next_state, next_action, next_reward, _, next_absorbing, _ =\
                 self._replay_memory.get_idxs(
                     (no_abs_idxs + 1) % self._replay_memory.size)
+
+            if self._clip_reward:
+                next_reward = np.clip(next_reward, -1, 1)
+
             sa = [state, action]
             q_tilde_next = self._target_approximator.predict_all(
                 next_state) * (1. - next_absorbing.reshape(-1, 1))
