@@ -28,7 +28,7 @@ def get_stats(dataset):
 
 
 class Sobel(Preprocessor):
-    def __call__(self, imgs):
+    def _compute(self, imgs):
         filtered_imgs = np.ones(imgs.shape)
         for i in xrange(imgs.shape[0]):
             filter_x = sobel(imgs[i], axis=0)
