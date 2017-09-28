@@ -183,7 +183,7 @@ class Extractor:
             if self._predict_next_frame:
                 output_kernels = 1
             else:
-                output_kernels = 4
+                output_kernels = convnet_pars['history_length']
             self._predicted_frame = tf.layers.conv2d_transpose(
                 hidden_7, output_kernels, 8, 4, activation=tf.nn.sigmoid,
                 kernel_initializer=tf.glorot_uniform_initializer(),
