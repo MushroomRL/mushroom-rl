@@ -2,12 +2,12 @@ import argparse
 import numpy as np
 import tensorflow as tf
 from matplotlib import pyplot as plt
+from scipy.ndimage import sobel
 
 from examples.deep_fqi_atari.extractor import Extractor
 from mushroom.approximators.action_regressor import Regressor
 from mushroom.environments import Atari
-from mushroom.utils.dataset import parse_dataset
-from mushroom.utils.preprocessor import Binarizer, Scaler
+from mushroom.utils.preprocessor import Binarizer, Preprocessor, Scaler
 from mushroom.utils.replay_memory import ReplayMemory
 
 # Argument parser
@@ -17,6 +17,7 @@ parser.add_argument("--load-dataset", action='store_true')
 parser.add_argument("--game", type=str, default='BreakoutDeterministic-v4')
 parser.add_argument("--binarizer-threshold", type=float, default=.1)
 parser.add_argument("--history-length", type=int, default=4)
+parser.add_argument("--sobel", action='store_true')
 parser.add_argument("--predict-next-frame", action='store_true')
 parser.add_argument("--predict-reward", action='store_true')
 parser.add_argument("--predict-absorbing", action='store_true')
@@ -25,6 +26,23 @@ args = parser.parse_args()
 # MDP
 mdp = Atari(args.game, 84, 84)
 mdp.reset()
+
+
+class Sobel(Preprocessor):
+    def __init__(self, mode='reflect'):
+        self._mode = mode
+
+    def _compute(self, imgs):
+        filter_imgs = np.ones(imgs.shape)
+        for s in xrange(imgs.shape[0]):
+            for h in xrange(args.history_length):
+                filter_x = sobel(imgs[s, ..., h], axis=0, mode=self._mode)
+                filter_y = sobel(imgs[s, ..., h], axis=1, mode=self._mode)
+                filter_imgs[s, ..., h] = np.sqrt(
+                    filter_x ** 2 + filter_y ** 2)
+
+        return filter_imgs
+
 
 extractor_params = dict(folder_name=None,
                         n_actions=mdp.action_space.n,
@@ -37,28 +55,21 @@ extractor_params = dict(folder_name=None,
                         predict_next_frame=args.predict_next_frame,
                         predict_reward=args.predict_reward,
                         predict_absorbing=args.predict_absorbing)
+
+preprocessors = [Scaler(mdp.observation_space.high),
+                 Binarizer(args.binarizer_threshold)]
+if args.sobel:
+    preprocessors += [Sobel(), Binarizer(0, False)]
 if args.predict_next_frame:
     extractor = Regressor(Extractor,
                           discrete_actions=mdp.action_space.n,
-                          input_preprocessor=[
-                              Scaler(255.),
-                              Binarizer(args.binarizer_threshold)
-                          ],
-                          output_preprocessor=[
-                              Scaler(255.),
-                              Binarizer(args.binarizer_threshold)
-                          ],
+                          input_preprocessor=preprocessors,
+                          output_preprocessor=preprocessors,
                           **extractor_params)
 else:
     extractor = Regressor(Extractor,
-                          input_preprocessor=[
-                              Scaler(255.),
-                              Binarizer(args.binarizer_threshold)
-                          ],
-                          output_preprocessor=[
-                              Scaler(255.),
-                              Binarizer(args.binarizer_threshold)
-                          ],
+                          input_preprocessor=preprocessors,
+                          output_preprocessor=preprocessors,
                           **extractor_params)
 
 path =\
@@ -116,10 +127,10 @@ if args.predict_next_frame:
 else:
     extr_input = [state]
 reward = np.clip(reward, -1, 1)
-y = [(next_state / 255. >= args.binarizer_threshold).astype(np.float),
-     reward,
-     absorbing
-     ]
+for p in preprocessors:
+    state = p(state)
+    next_state = p(next_state)
+y = [next_state, reward, absorbing]
 reconstructions = extractor.predict(extr_input, reconstruction=True)[0]
 stats = extractor.model.get_stats(extr_input, y)
 for key, value in stats.iteritems():

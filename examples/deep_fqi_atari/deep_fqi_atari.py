@@ -3,7 +3,7 @@ import datetime
 
 import joblib
 import numpy as np
-from scipy.ndimage.filters import sobel
+from scipy.ndimage import sobel
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import ExtraTreesRegressor
 import tensorflow as tf
