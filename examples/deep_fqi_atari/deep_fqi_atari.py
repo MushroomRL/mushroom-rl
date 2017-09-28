@@ -28,6 +28,9 @@ def get_stats(dataset):
 
 
 class Sobel(Preprocessor):
+    def __init__(self):
+        pass
+
     def _compute(self, imgs):
         filtered_imgs = np.ones(imgs.shape)
         for i in xrange(imgs.shape[0]):
@@ -168,12 +171,12 @@ def experiment():
                               input_preprocessor=[
                                   Scaler(mdp.observation_space.high),
                                   Binarizer(args.binarizer_threshold),
-                                  Sobel,
+                                  Sobel(),
                                   Binarizer(0, False)],
                               output_preprocessor=[
                                   Scaler(mdp.observation_space.high),
                                   Binarizer(args.binarizer_threshold),
-                                  Sobel,
+                                  Sobel(),
                                   Binarizer(0, False)],
                               **extractor_params)
     else:
@@ -181,12 +184,12 @@ def experiment():
                               input_preprocessor=[
                                   Scaler(mdp.observation_space.high),
                                   Binarizer(args.binarizer_threshold),
-                                  Sobel,
+                                  Sobel(),
                                   Binarizer(0, False)],
                               output_preprocessor=[
                                   Scaler(mdp.observation_space.high),
                                   Binarizer(args.binarizer_threshold),
-                                  Sobel,
+                                  Sobel(),
                                   Binarizer(0, False)],
                               **extractor_params)
 
