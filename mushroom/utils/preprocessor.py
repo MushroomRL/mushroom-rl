@@ -56,7 +56,7 @@ class Binarizer(Preprocessor):
     according to a provided threshold value.
 
     """
-    def __init__(self, threshold):
+    def __init__(self, threshold, geq=True):
         """
         Constructor.
 
@@ -65,6 +65,7 @@ class Binarizer(Preprocessor):
 
         """
         self._threshold = threshold
+        self._geq = geq
 
     def _compute(self, x):
         """
@@ -75,4 +76,7 @@ class Binarizer(Preprocessor):
             The binarized input data array.
 
         """
-        return (x >= self._threshold).astype(np.float)
+        if self._geq:
+            return (x >= self._threshold).astype(np.float)
+        else:
+            return (x > self._threshold).astype(np.float)

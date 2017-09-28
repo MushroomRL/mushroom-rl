@@ -3,6 +3,7 @@ import datetime
 
 import joblib
 import numpy as np
+from scipy.ndimage.filters import sobel
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import ExtraTreesRegressor
 import tensorflow as tf
@@ -15,7 +16,7 @@ from mushroom.environments import Atari
 from mushroom.policy import EpsGreedy
 from mushroom.utils.dataset import compute_scores
 from mushroom.utils.parameters import Parameter
-from mushroom.utils.preprocessor import Binarizer, Scaler
+from mushroom.utils.preprocessor import Binarizer, Scaler, Preprocessor
 from mushroom.utils.replay_memory import ReplayMemory
 from extractor import Extractor
 
@@ -24,6 +25,17 @@ def get_stats(dataset):
     score = compute_scores(dataset)
     print('min_reward: %f, max_reward: %f, mean_reward: %f,'
           ' games_completed: %d' % score)
+
+
+class Sobel(Preprocessor):
+    def __call__(self, imgs):
+        filtered_imgs = np.ones(imgs.shape)
+        for i in xrange(imgs.shape[0]):
+            filter_x = sobel(imgs[i], axis=0)
+            filter_y = sobel(imgs[i], axis=1)
+            filtered_imgs[i] = np.sqrt(filter_x ** 2. + filter_y ** 2.)
+
+        return filtered_imgs
 
 
 def experiment():
@@ -155,19 +167,27 @@ def experiment():
                               discrete_actions=mdp.action_space.n,
                               input_preprocessor=[
                                   Scaler(mdp.observation_space.high),
-                                  Binarizer(args.binarizer_threshold)],
+                                  Binarizer(args.binarizer_threshold),
+                                  Sobel,
+                                  Binarizer(0, False)],
                               output_preprocessor=[
                                   Scaler(mdp.observation_space.high),
-                                  Binarizer(args.binarizer_threshold)],
+                                  Binarizer(args.binarizer_threshold),
+                                  Sobel,
+                                  Binarizer(0, False)],
                               **extractor_params)
     else:
         extractor = Regressor(Extractor,
                               input_preprocessor=[
                                   Scaler(mdp.observation_space.high),
-                                  Binarizer(args.binarizer_threshold)],
+                                  Binarizer(args.binarizer_threshold),
+                                  Sobel,
+                                  Binarizer(0, False)],
                               output_preprocessor=[
                                   Scaler(mdp.observation_space.high),
-                                  Binarizer(args.binarizer_threshold)],
+                                  Binarizer(args.binarizer_threshold),
+                                  Sobel,
+                                  Binarizer(0, False)],
                               **extractor_params)
 
     n_features = extractor.model.n_features

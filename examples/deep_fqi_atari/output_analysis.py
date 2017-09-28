@@ -6,13 +6,17 @@ from matplotlib import pyplot as plt
 from examples.deep_fqi_atari.extractor import Extractor
 from mushroom.approximators.action_regressor import Regressor
 from mushroom.environments import Atari
+from mushroom.utils.dataset import parse_dataset
 from mushroom.utils.preprocessor import Binarizer, Scaler
+from mushroom.utils.replay_memory import ReplayMemory
 
 # Argument parser
 parser = argparse.ArgumentParser()
 parser.add_argument("--load-path", type=str)
+parser.add_argument("--load-dataset", action='store_true')
 parser.add_argument("--game", type=str, default='BreakoutDeterministic-v4')
 parser.add_argument("--binarizer-threshold", type=float, default=.1)
+parser.add_argument("--history-length", type=int, default=4)
 parser.add_argument("--predict-next-frame", action='store_true')
 parser.add_argument("--predict-reward", action='store_true')
 parser.add_argument("--predict-absorbing", action='store_true')
@@ -29,7 +33,7 @@ extractor_params = dict(folder_name=None,
                                    'decay': 1},
                         width=84,
                         height=84,
-                        history_length=4,
+                        history_length=args.history_length,
                         predict_next_frame=args.predict_next_frame,
                         predict_reward=args.predict_reward,
                         predict_absorbing=args.predict_absorbing)
@@ -64,40 +68,48 @@ restorer.restore(extractor.model._session, path)
 extractor.model._restore_collection()
 
 # Predictions
-n_samples = 1000
-state = np.ones((n_samples, 84, 84, 4))
-action = np.ones((n_samples, 1))
-reward = np.ones((n_samples, 1))
-absorbing = np.ones((n_samples, 1))
-if args.predict_next_frame:
-    next_state = np.ones((n_samples, 84, 84))
+n_samples = 50
+if not args.load_dataset:
+    state = np.ones((n_samples, 84, 84, args.history_length))
+    action = np.ones((n_samples, 1))
+    reward = np.ones((n_samples, 1))
+    absorbing = np.ones((n_samples, 1))
+    if args.predict_next_frame:
+        next_state = np.ones((n_samples, 84, 84))
+    else:
+        next_state = np.ones((n_samples, 84, 84, args.history_length))
+    if args.predict_next_frame:
+        for i in xrange(state.shape[0]):
+            for j in xrange(4):
+                state[i, ..., j], _, _, _ = mdp.step(
+                    np.random.randint(mdp.action_space.n))
+            a = np.random.randint(mdp.action_space.n)
+            next_state[i], r, ab, _ = mdp.step(a)
+            action[i] = a
+            reward[i] = r
+            absorbing[i] = ab
+    else:
+        for i in xrange(state.shape[0]):
+            for j in xrange(args.history_length - 1):
+                state[i, ..., j], _, _, _ = mdp.step(
+                    np.random.randint(mdp.action_space.n))
+                next_state[i, ..., j], _, _, _ = mdp.step(
+                    np.random.randint(mdp.action_space.n))
+            state[i, ..., -1], _, _, _ = mdp.step(
+                np.random.randint(mdp.action_space.n))
+            a = np.random.randint(mdp.action_space.n)
+            next_state[i, ..., -1], r, ab, _ = mdp.step(a)
+            action[i] = a
+            reward[i] = r
+            absorbing[i] = ab
 else:
-    next_state = np.ones((n_samples, 84, 84, 4))
-
-if args.predict_next_frame:
-    for i in xrange(state.shape[0]):
-        for j in xrange(4):
-            state[i, ..., j], _, _, _ = mdp.step(
-                np.random.randint(mdp.action_space.n))
-        a = np.random.randint(mdp.action_space.n)
-        next_state[i], r, ab, _ = mdp.step(a)
-        action[i] = a
-        reward[i] = r
-        absorbing[i] = ab
-else:
-    for i in xrange(state.shape[0]):
-        for j in xrange(3):
-            state[i, ..., j], _, _, _ = mdp.step(
-                np.random.randint(mdp.action_space.n))
-            next_state[i, ..., j], _, _, _ = mdp.step(
-                np.random.randint(mdp.action_space.n))
-        state[i, ..., -1], _, _, _ = mdp.step(
-            np.random.randint(mdp.action_space.n))
-        a = np.random.randint(mdp.action_space.n)
-        next_state[i, ..., -1], r, ab, _ = mdp.step(a)
-        action[i] = a
-        reward[i] = r
-        absorbing[i] = ab
+    dataset = np.load(args.load_path + '/dataset.npy')
+    replay_memory = ReplayMemory(n_samples, args.history_length)
+    mdp_info = dict(observation_space=mdp.observation_space,
+                    action_space=mdp.action_space)
+    replay_memory.initialize(mdp_info)
+    replay_memory.add(dataset)
+    state, action, reward, next_state, absorbing, _ = replay_memory.get(n_samples)
 
 if args.predict_next_frame:
     extr_input = [state, action]
@@ -125,7 +137,7 @@ for idx in idxs:
         plt.subplot(1, 5, 5)
         plt.imshow(reconstructions[idx])
     else:
-        for i in xrange(4):
+        for i in xrange(args.history_length):
             plt.subplot(2, 4, i + 1)
             plt.imshow(state[idx, ..., i])
             plt.subplot(2, 4, i + 5)
