@@ -16,7 +16,7 @@ from mushroom.environments import Atari
 from mushroom.policy import EpsGreedy
 from mushroom.utils.dataset import compute_scores
 from mushroom.utils.parameters import Parameter
-from mushroom.utils.preprocessor import Binarizer, Scaler, Preprocessor
+from mushroom.utils.preprocessor import Binarizer, Scaler
 from mushroom.utils.replay_memory import ReplayMemory
 from extractor import Extractor
 
@@ -25,20 +25,6 @@ def get_stats(dataset):
     score = compute_scores(dataset)
     print('min_reward: %f, max_reward: %f, mean_reward: %f,'
           ' games_completed: %d' % score)
-
-
-class Sobel(Preprocessor):
-    def __init__(self):
-        pass
-
-    def _compute(self, imgs):
-        filtered_imgs = np.ones(imgs.shape)
-        for i in xrange(imgs.shape[0]):
-            filter_x = sobel(imgs[i], axis=0)
-            filter_y = sobel(imgs[i], axis=1)
-            filtered_imgs[i] = np.sqrt(filter_x ** 2. + filter_y ** 2.)
-
-        return filtered_imgs
 
 
 def experiment():
@@ -76,6 +62,7 @@ def experiment():
     arg_net.add_argument("--n-features", type=int, default=25)
     arg_net.add_argument("--reg-coeff", type=float, default=1e-5)
     arg_net.add_argument("--contractive", action='store_true')
+    arg_net.add_argument("--raw", action='store_true')
     arg_net.add_argument("--predict-next-frame", action='store_true')
     arg_net.add_argument("--predict-reward", action='store_true')
     arg_net.add_argument("--predict-absorbing", action='store_true')
@@ -170,27 +157,19 @@ def experiment():
                               discrete_actions=mdp.action_space.n,
                               input_preprocessor=[
                                   Scaler(mdp.observation_space.high),
-                                  Binarizer(args.binarizer_threshold),
-                                  Sobel(),
-                                  Binarizer(0, False)],
+                                  Binarizer(args.binarizer_threshold)],
                               output_preprocessor=[
                                   Scaler(mdp.observation_space.high),
-                                  Binarizer(args.binarizer_threshold),
-                                  Sobel(),
-                                  Binarizer(0, False)],
+                                  Binarizer(args.binarizer_threshold)],
                               **extractor_params)
     else:
         extractor = Regressor(Extractor,
                               input_preprocessor=[
                                   Scaler(mdp.observation_space.high),
-                                  Binarizer(args.binarizer_threshold),
-                                  Sobel(),
-                                  Binarizer(0, False)],
+                                  Binarizer(args.binarizer_threshold)],
                               output_preprocessor=[
                                   Scaler(mdp.observation_space.high),
-                                  Binarizer(args.binarizer_threshold),
-                                  Sobel(),
-                                  Binarizer(0, False)],
+                                  Binarizer(args.binarizer_threshold)],
                               **extractor_params)
 
     n_features = extractor.model.n_features
@@ -249,6 +228,16 @@ def experiment():
             else:
                 dataset = np.load(
                     folder_name + '/dataset.npy')[:args.dataset_size]
+
+            if not args.raw:
+                dataset = np.array(dataset)
+                for s in [0, 3]:
+                    for i in xrange(args.dataset_size):
+                        filter_x = sobel(dataset[i][s], axis=0)
+                        filter_y = sobel(dataset[i][s], axis=1)
+                        dataset[i][s] = np.sqrt(filter_x ** 2. + filter_y ** 2.)
+                        dataset[i][s] = (dataset[i][s] / 255. >=
+                            args.binarizer_threshold).astype(np.float)
 
             replay_memory = ReplayMemory(args.dataset_size, args.history_length)
             mdp_info = dict(observation_space=mdp.observation_space,
