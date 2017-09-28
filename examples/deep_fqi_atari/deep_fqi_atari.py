@@ -16,7 +16,7 @@ from mushroom.environments import Atari
 from mushroom.policy import EpsGreedy
 from mushroom.utils.dataset import compute_scores
 from mushroom.utils.parameters import Parameter
-from mushroom.utils.preprocessor import Binarizer, Scaler
+from mushroom.utils.preprocessor import Binarizer, Preprocessor, Scaler
 from mushroom.utils.replay_memory import ReplayMemory
 from extractor import Extractor
 
@@ -62,7 +62,7 @@ def experiment():
     arg_net.add_argument("--n-features", type=int, default=25)
     arg_net.add_argument("--reg-coeff", type=float, default=1e-5)
     arg_net.add_argument("--contractive", action='store_true')
-    arg_net.add_argument("--raw", action='store_true')
+    arg_net.add_argument("--sobel", action='store_true')
     arg_net.add_argument("--predict-next-frame", action='store_true')
     arg_net.add_argument("--predict-reward", action='store_true')
     arg_net.add_argument("--predict-absorbing", action='store_true')
@@ -152,26 +152,37 @@ def experiment():
                             predict_next_frame=args.predict_next_frame,
                             predict_reward=args.predict_reward,
                             predict_absorbing=args.predict_absorbing)
+
+    class Sobel(Preprocessor):
+        def __init__(self, mode='reflect'):
+            self._mode = mode
+
+        def _compute(self, imgs):
+            filter_imgs = np.ones(imgs.shape)
+            for s in xrange(imgs.shape[0]):
+                for h in xrange(args.history_length):
+                    filter_x = sobel(imgs[s, ..., h], axis=0, mode=self._mode)
+                    filter_y = sobel(imgs[s, ..., h], axis=1, mode=self._mode)
+                    filter_imgs[s, ..., h] = np.sqrt(
+                        filter_x ** 2 + filter_y ** 2)
+
+            return filter_imgs
+
+    preprocessors = [Scaler(mdp.observation_space.high),
+                     Binarizer(args.binarizer_threshold)]
+    if args.sobel:
+        preprocessors += [Sobel(), Binarizer(0, False)]
     if args.predict_next_frame:
         extractor = Regressor(Extractor,
                               discrete_actions=mdp.action_space.n,
-                              input_preprocessor=[
-                                  Scaler(mdp.observation_space.high),
-                                  Binarizer(args.binarizer_threshold)],
-                              output_preprocessor=[
-                                  Scaler(mdp.observation_space.high),
-                                  Binarizer(args.binarizer_threshold)],
+                              input_preprocessor=preprocessors,
+                              output_preprocessor=preprocessors,
                               **extractor_params)
     else:
         extractor = Regressor(Extractor,
-                              input_preprocessor=[
-                                  Scaler(mdp.observation_space.high),
-                                  Binarizer(args.binarizer_threshold)],
-                              output_preprocessor=[
-                                  Scaler(mdp.observation_space.high),
-                                  Binarizer(args.binarizer_threshold)],
+                              input_preprocessor=preprocessors,
+                              output_preprocessor=preprocessors,
                               **extractor_params)
-
     n_features = extractor.model.n_features
 
     if args.predict_next_frame:
@@ -228,16 +239,6 @@ def experiment():
             else:
                 dataset = np.load(
                     folder_name + '/dataset.npy')[:args.dataset_size]
-
-            if not args.raw:
-                dataset = np.array(dataset)
-                for s in [0, 3]:
-                    for i in xrange(args.dataset_size):
-                        filter_x = sobel(dataset[i][s], axis=0)
-                        filter_y = sobel(dataset[i][s], axis=1)
-                        dataset[i][s] = np.sqrt(filter_x ** 2. + filter_y ** 2.)
-                        dataset[i][s] = (dataset[i][s] / 255. >=
-                            args.binarizer_threshold).astype(np.float)
 
             replay_memory = ReplayMemory(args.dataset_size, args.history_length)
             mdp_info = dict(observation_space=mdp.observation_space,
