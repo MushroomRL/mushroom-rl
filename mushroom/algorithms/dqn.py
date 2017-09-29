@@ -208,7 +208,7 @@ class WeightedDQN(DQN):
             max_idx, max_count = np.unique(max_idx, return_counts=True)
             count = np.zeros(self.mdp_info['action_space'].n)
             count[max_idx] = max_count
-            w = count / len(self._target_approximator)
+            w = count / float(len(self._target_approximator))
             W[i] = np.dot(w, means)
 
         return W
