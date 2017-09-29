@@ -158,8 +158,7 @@ class WeightedDQN(DQN):
         self.__name__ = 'WeightedDQN'
 
         self._n_samples = params.get('n_samples', 1000)
-        self._gaussian_approximation = params.get('gaussian_approximation',
-                                                  False)
+        self._gaussian = params.get('gaussian', False)
 
         super(WeightedDQN, self).__init__(approximator, policy, gamma, **params)
 
@@ -194,7 +193,7 @@ class WeightedDQN(DQN):
                         self.approximator[i].model.get_weights())
 
     def _next_q(self, next_state, absorbing):
-        if not self._gaussian_approximation:
+        if not self._gaussian:
             samples = np.ones((next_state.shape[0],
                                len(self._target_approximator),
                                self.mdp_info['action_space'].n))
@@ -216,7 +215,7 @@ class WeightedDQN(DQN):
         for i in xrange(next_state.shape[0]):
             max_idx = np.argmax(samples[i], axis=0)
             max_idx, max_count = np.unique(max_idx, return_counts=True)
-            count = np.zeros(self.mdp_info['action_space'].n)
+            count = np.zeros(means.shape[1])
             count[max_idx] = max_count
             w = count / self._n_samples
             W[i] = np.dot(w, means.T)[0]
