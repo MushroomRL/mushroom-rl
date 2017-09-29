@@ -362,7 +362,6 @@ def experiment():
                                 joblib.dump(
                                     m,
                                     folder_name + '/approximator_%d.pkl' % m_i)
-            exit()
         else:
             if approximator_class == Regressor:
                 approximator.model = joblib.load(
