@@ -2,12 +2,12 @@ import argparse
 import numpy as np
 import tensorflow as tf
 from matplotlib import pyplot as plt
-from scipy.ndimage import sobel
 
+from examples.deep_fqi_atari.deep_fqi_atari import Sobel
 from examples.deep_fqi_atari.extractor import Extractor
 from mushroom.approximators.action_regressor import Regressor
 from mushroom.environments import Atari
-from mushroom.utils.preprocessor import Binarizer, Preprocessor, Scaler
+from mushroom.utils.preprocessor import Binarizer, Scaler
 from mushroom.utils.replay_memory import ReplayMemory
 
 # Argument parser
@@ -27,23 +27,6 @@ args = parser.parse_args()
 mdp = Atari(args.game, 84, 84)
 mdp.reset()
 
-
-class Sobel(Preprocessor):
-    def __init__(self, mode='reflect'):
-        self._mode = mode
-
-    def _compute(self, imgs):
-        filter_imgs = np.ones(imgs.shape)
-        for s in xrange(imgs.shape[0]):
-            for h in xrange(args.history_length):
-                filter_x = sobel(imgs[s, ..., h], axis=0, mode=self._mode)
-                filter_y = sobel(imgs[s, ..., h], axis=1, mode=self._mode)
-                filter_imgs[s, ..., h] = np.sqrt(
-                    filter_x ** 2 + filter_y ** 2)
-
-        return filter_imgs
-
-
 extractor_params = dict(folder_name=None,
                         n_actions=mdp.action_space.n,
                         optimizer={'name': 'adam',
@@ -59,7 +42,7 @@ extractor_params = dict(folder_name=None,
 preprocessors = [Scaler(mdp.observation_space.high),
                  Binarizer(args.binarizer_threshold)]
 if args.sobel:
-    preprocessors += [Sobel(), Binarizer(0, False)]
+    preprocessors += [Sobel(args.history_length), Binarizer(0, False)]
 if args.predict_next_frame:
     extractor = Regressor(Extractor,
                           discrete_actions=mdp.action_space.n,

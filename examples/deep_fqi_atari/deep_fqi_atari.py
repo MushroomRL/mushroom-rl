@@ -27,6 +27,23 @@ def get_stats(dataset):
           ' games_completed: %d' % score)
 
 
+class Sobel(Preprocessor):
+    def __init__(self, history_length, mode='reflect'):
+        self._history_length = history_length
+        self._mode = mode
+
+    def _compute(self, imgs):
+        filter_imgs = np.ones(imgs.shape)
+        for s in xrange(imgs.shape[0]):
+            for h in xrange(self._history_length):
+                filter_x = sobel(imgs[s, ..., h], axis=0, mode=self._mode)
+                filter_y = sobel(imgs[s, ..., h], axis=1, mode=self._mode)
+                filter_imgs[s, ..., h] = np.sqrt(
+                    filter_x ** 2 + filter_y ** 2)
+
+        return filter_imgs
+
+
 def experiment():
     np.random.seed()
 
@@ -153,25 +170,10 @@ def experiment():
                             predict_reward=args.predict_reward,
                             predict_absorbing=args.predict_absorbing)
 
-    class Sobel(Preprocessor):
-        def __init__(self, mode='reflect'):
-            self._mode = mode
-
-        def _compute(self, imgs):
-            filter_imgs = np.ones(imgs.shape)
-            for s in xrange(imgs.shape[0]):
-                for h in xrange(args.history_length):
-                    filter_x = sobel(imgs[s, ..., h], axis=0, mode=self._mode)
-                    filter_y = sobel(imgs[s, ..., h], axis=1, mode=self._mode)
-                    filter_imgs[s, ..., h] = np.sqrt(
-                        filter_x ** 2 + filter_y ** 2)
-
-            return filter_imgs
-
     preprocessors = [Scaler(mdp.observation_space.high),
                      Binarizer(args.binarizer_threshold)]
     if args.sobel:
-        preprocessors += [Sobel(), Binarizer(0, False)]
+        preprocessors += [Sobel(args.history_length), Binarizer(0, False)]
     if args.predict_next_frame:
         extractor = Regressor(Extractor,
                               discrete_actions=mdp.action_space.n,
