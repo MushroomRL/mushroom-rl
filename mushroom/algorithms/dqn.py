@@ -157,9 +157,6 @@ class WeightedDQN(DQN):
     def __init__(self, approximator, policy, gamma, **params):
         self.__name__ = 'WeightedDQN'
 
-        self._n_samples = params.get('n_samples', 1000)
-        self._gaussian = params.get('gaussian', False)
-
         super(WeightedDQN, self).__init__(approximator, policy, gamma, **params)
 
         assert isinstance(self.approximator, Ensemble) and isinstance(
@@ -172,19 +169,25 @@ class WeightedDQN(DQN):
         else:
             assert n_iterations == 1
 
-            for m in self.approximator:
-                state, action, reward, next_state, absorbing, _ =\
-                    self._replay_memory.get(self._batch_size)
+            idxs = np.random.randint(0, self._replay_memory.size,
+                                     size=(len(self.approximator),
+                                           self._batch_size))
+            q = np.zeros((len(self.approximator), self._batch_size))
+            for i in xrange(len(self._target_approximator)):
+                _, _, reward, next_state, absorbing, _ =\
+                    self._replay_memory.get_idxs(idxs[i])
 
                 if self._clip_reward:
                     reward = np.clip(reward, -1, 1)
 
-                sa = [state, action]
-
                 q_next = self._next_q(next_state, absorbing)
-                q = reward + self._gamma * q_next
+                q[i] = reward + self._gamma * q_next
 
-                m.train_on_batch(sa, q, **self.params['fit_params'])
+            for i, m in enumerate(self.approximator):
+                state, action, _, _, _, _ =\
+                    self._replay_memory.get_idxs(idxs[i])
+                sa = [state, action]
+                m.train_on_batch(sa, q[i], **self.params['fit_params'])
             self._n_updates += 1
 
             if self._n_updates % self._target_update_frequency == 0:
@@ -193,32 +196,20 @@ class WeightedDQN(DQN):
                         self.approximator[i].model.get_weights())
 
     def _next_q(self, next_state, absorbing):
-        if not self._gaussian:
-            samples = np.ones((next_state.shape[0],
-                               len(self._target_approximator),
-                               self.mdp_info['action_space'].n))
-            for i, m in enumerate(self._target_approximator.models):
-                samples[:, i, :] = m.predict_all(next_state)
-            means = np.mean(samples, axis=1)
-        else:
-            means, variance = self._target_approximator.predict_all(
-                next_state,
-                compute_variance=True
-            )
-            sigmas = np.sqrt(variance / len(self.approximator))
-
-            samples = np.random.normal(np.repeat(np.expand_dims(means, 2),
-                                                 self._n_samples, 2),
-                                       np.repeat(np.expand_dims(sigmas, 2),
-                                                 self._n_samples, 2))
+        samples = np.ones((next_state.shape[0],
+                           len(self._target_approximator),
+                           self.mdp_info['action_space'].n))
+        for i, m in enumerate(self._target_approximator.models):
+            samples[:, i, :] = m.predict_all(next_state)
         W = np.zeros(next_state.shape[0])
         for i in xrange(next_state.shape[0]):
+            means = np.mean(samples[i], axis=0)
             max_idx = np.argmax(samples[i], axis=0)
             max_idx, max_count = np.unique(max_idx, return_counts=True)
-            count = np.zeros(means.shape[1])
+            count = np.zeros(self.mdp_info['action_space'].n)
             count[max_idx] = max_count
-            w = count / self._n_samples
-            W[i] = np.dot(w, means.T)[0]
+            w = count / len(self._target_approximator)
+            W[i] = np.dot(w, means)
 
         return W
 

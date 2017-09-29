@@ -74,8 +74,6 @@ def experiment():
                          help='Name of the algorithm. dqn stands for standard'
                               'DQN and ddqn stands for Double DQN.')
     arg_alg.add_argument("--n-approximators", type=int, default=100)
-    arg_alg.add_argument("--gaussian", action='store_true')
-    arg_alg.add_argument("--n-samples", type=int, default=1000)
     arg_alg.add_argument("--batch-size", type=int, default=32,
                          help='Batch size for each fit of the network.')
     arg_alg.add_argument("--history-length", type=int, default=4,
@@ -294,9 +292,6 @@ def experiment():
         elif args.algorithm == 'rdqn':
             agent = RDQN(approximator, pi, mdp.gamma, **agent_params)
         elif args.algorithm == 'wdqn':
-            algorithm_params['n_samples'] = args.n_samples
-            algorithm_params[
-                'gaussian'] = args.gaussian
             agent = WeightedDQN(approximator, pi, mdp.gamma, **agent_params)
 
         # Algorithm
