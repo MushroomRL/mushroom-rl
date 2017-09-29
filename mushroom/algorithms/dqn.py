@@ -158,6 +158,8 @@ class WeightedDQN(DQN):
         self.__name__ = 'WeightedDQN'
 
         self._n_samples = params.get('n_samples', 1000)
+        self._gaussian_approximation = params.get('gaussian_approximation',
+                                                  False)
 
         super(WeightedDQN, self).__init__(approximator, policy, gamma, **params)
 
@@ -184,7 +186,6 @@ class WeightedDQN(DQN):
                 q = reward + self._gamma * q_next
 
                 m.train_on_batch(sa, q, **self.params['fit_params'])
-
             self._n_updates += 1
 
             if self._n_updates % self._target_update_frequency == 0:
@@ -193,21 +194,29 @@ class WeightedDQN(DQN):
                         self.approximator[i].model.get_weights())
 
     def _next_q(self, next_state, absorbing):
-        means, variance = self._target_approximator.predict_all(
-            next_state,
-            compute_variance=True
-        )
-        sigmas = np.sqrt(variance / self.approximator.n_models)
+        if not self._gaussian_approximation:
+            samples = np.ones((next_state.shape[0],
+                               len(self._target_approximator),
+                               self.mdp_info['action_space'].n))
+            for i, m in enumerate(self._target_approximator.models):
+                samples[:, i, :] = m.predict_all(next_state)
+            means = np.mean(samples, axis=1)
+        else:
+            means, variance = self._target_approximator.predict_all(
+                next_state,
+                compute_variance=True
+            )
+            sigmas = np.sqrt(variance / len(self.approximator))
 
-        samples = np.random.normal(np.repeat(np.expand_dims(means, 2),
-                                             self._n_samples, 2),
-                                   np.repeat(np.expand_dims(sigmas, 2),
-                                             self._n_samples, 2))
+            samples = np.random.normal(np.repeat(np.expand_dims(means, 2),
+                                                 self._n_samples, 2),
+                                       np.repeat(np.expand_dims(sigmas, 2),
+                                                 self._n_samples, 2))
         W = np.zeros(next_state.shape[0])
         for i in xrange(next_state.shape[0]):
             max_idx = np.argmax(samples[i], axis=0)
             max_idx, max_count = np.unique(max_idx, return_counts=True)
-            count = np.zeros(means.shape[1])
+            count = np.zeros(self.mdp_info['action_space'].n)
             count[max_idx] = max_count
             w = count / self._n_samples
             W[i] = np.dot(w, means.T)[0]

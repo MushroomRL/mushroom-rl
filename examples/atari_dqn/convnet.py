@@ -76,22 +76,24 @@ class ConvNet:
     def save(self):
         self._train_saver.save(
             self._session,
-            self._folder_name + '/' + self._scope_name + '/' + self._scope_name
+            self._folder_name + '/' + self._scope_name[
+                :-1] + '/' + self._scope_name[:-1]
         )
 
     def _load(self, path):
         self._scope_name = 'train'
         restorer = tf.train.import_meta_graph(
-            path + '/' + self._scope_name + '/' + self._scope_name + '.meta')
+            path + '/' + self._scope_name[
+                :-1] + '/' + self._scope_name[:-1] + '.meta')
         restorer.restore(
             self._session,
-            path + '/' + self._scope_name + '/' + self._scope_name
+            path + '/' + self._scope_name[:-1] + '/' + self._scope_name[:-1]
         )
         self._restore_collection()
 
     def _build(self, convnet_pars):
         with tf.variable_scope(None, default_name=self._name):
-            self._scope_name = tf.get_default_graph().get_name_scope()
+            self._scope_name = tf.get_default_graph().get_name_scope() + '/'
             self._x = tf.placeholder(tf.float32,
                                      shape=[None,
                                             convnet_pars['height'],
@@ -143,7 +145,10 @@ class ConvNet:
             loss = tf.losses.huber_loss(self._target_q, self._q_acted)
             tf.summary.scalar('huber_loss', loss)
             tf.summary.scalar('average_q', tf.reduce_mean(self.q))
-            self._merged = tf.summary.merge_all()
+            self._merged = tf.summary.merge(
+                tf.get_collection(tf.GraphKeys.SUMMARIES,
+                                  scope=self._scope_name)
+            )
 
             optimizer = convnet_pars['optimizer']
             if optimizer['name'] == 'rmspropcentered':
@@ -170,7 +175,7 @@ class ConvNet:
 
         if self._folder_name is not None:
             self._train_writer = tf.summary.FileWriter(
-                self._folder_name + '/' + self._scope_name,
+                self._folder_name + '/' + self._scope_name[:-1],
                 graph=tf.get_default_graph()
             )
 

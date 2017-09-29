@@ -28,7 +28,7 @@ class Ensemble(object):
             **params (dict): parameters dictionary to construct each regressor.
 
         """
-        self.n_models = n_models
+        self._n_models = n_models
         self._use_action_regressor = use_action_regressor
         self.models = list()
 
@@ -38,7 +38,7 @@ class Ensemble(object):
         else:
             regressor_class = Regressor
 
-        for _ in xrange(self.n_models):
+        for _ in xrange(self._n_models):
             self.models.append(
                 regressor_class(approximator, discrete_actions=discrete_actions,
                                 input_preprocessor=input_preprocessor,
@@ -57,7 +57,7 @@ class Ensemble(object):
 
         """
         y_0 = self.models[0].predict(x, **predict_params)
-        y = np.zeros((self.n_models,) + y_0.shape)
+        y = np.zeros((self._n_models,) + y_0.shape)
         y[0] = y_0
         for i, m in enumerate(self.models[1:]):
             y[i + 1] = m.predict(x, **predict_params)
@@ -79,7 +79,7 @@ class Ensemble(object):
 
         """
         y_0 = self.models[0].predict_all(x, **predict_params)
-        y = np.zeros((self.n_models,) + y_0.shape)
+        y = np.zeros((self._n_models,) + y_0.shape)
         y[0] = y_0
         for i, m in enumerate(self.models[1:]):
             y[i + 1] = m.predict_all(x, **predict_params)
@@ -88,6 +88,9 @@ class Ensemble(object):
             return np.mean(y, axis=0), np.var(y, ddof=1, axis=0)
         else:
             return np.mean(y, axis=0)
+
+    def __len__(self):
+        return self._n_models
 
     def __getitem__(self, idx):
         return self.models[idx]

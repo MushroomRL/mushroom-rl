@@ -253,7 +253,7 @@ def experiment():
                                            **approximator_params_target)
             # Initialize target approximator weights with the weights of the
             # approximator to fit.
-            for i in xrange(approximator.n_models):
+            for i in xrange(len(approximator)):
                 target_approximator[i].model.set_weights(
                     approximator[i].model.get_weights())
         else:
