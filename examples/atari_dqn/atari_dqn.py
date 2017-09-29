@@ -187,6 +187,7 @@ def experiment():
 
         # Settings
         if args.debug:
+            n_approximators = 2
             initial_replay_size = 50
             max_replay_size = 500
             train_frequency = 5
@@ -195,6 +196,7 @@ def experiment():
             evaluation_frequency = 50
             max_steps = 1000
         else:
+            n_approximators = args.n_approximators
             initial_replay_size = args.initial_replay_size
             max_replay_size = args.max_replay_size
             train_frequency = args.train_frequency
@@ -240,12 +242,12 @@ def experiment():
 
         if args.algorithm == 'wdqn':
             approximator = Ensemble(ConvNet,
-                                    n_models=args.n_approximators,
+                                    n_models=n_approximators,
                                     input_preprocessor=[Scaler(
                                         mdp.observation_space.high)],
                                     **approximator_params_train)
             target_approximator = Ensemble(ConvNet,
-                                           n_models=args.n_approximators,
+                                           n_models=n_approximators,
                                            input_preprocessor=[Scaler(
                                                mdp.observation_space.high)],
                                            **approximator_params_target)

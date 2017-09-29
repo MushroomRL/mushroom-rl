@@ -7,7 +7,7 @@ class Extractor:
                  **convnet_pars):
         self._name = name
         self._folder_name = folder_name
-        self._n_features = convnet_pars.get('n_features', 25)
+        self._n_features = convnet_pars.get('n_features', 64)
         self._reg_coeff = convnet_pars.get('reg_coeff', 0.)
         self._contractive = convnet_pars.get('contractive', False)
         self._predict_next_frame = convnet_pars.get('predict_next_frame', False)
@@ -31,7 +31,10 @@ class Extractor:
         if self._predict_next_frame:
             fd = {self._state: x[0], self._action: x[1]}
         else:
-            fd = {self._state: x[0]}
+            if isinstance(x, list):
+                fd = {self._state: x[0]}
+            else:
+                fd = {self._state: x}
         if reconstruction:
             ret.append(self._session.run(self._predicted_frame,
                                          feed_dict=fd))

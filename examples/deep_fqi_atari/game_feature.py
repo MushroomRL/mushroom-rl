@@ -3,8 +3,7 @@ from __future__ import print_function
 
 import argparse
 import datetime
-import sys, gym
-import thread
+import gym
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -12,6 +11,7 @@ import tensorflow as tf
 from PIL import Image
 
 from examples.atari_dqn.convnet import ConvNet
+from examples.deep_fqi_atari.deep_fqi_atari import Sobel
 from examples.deep_fqi_atari.extractor import Extractor
 from mushroom.approximators.action_regressor import Regressor
 from mushroom.utils.preprocessor import Scaler, Binarizer
@@ -20,13 +20,14 @@ from mushroom.utils.replay_memory import Buffer
 #
 # Test yourself as a learning agent! Pass environment name as a command-line argument.
 #
-
 # Argument parser
 parser = argparse.ArgumentParser()
 parser.add_argument("--load-path", type=str)
 parser.add_argument("--game", type=str, default='BreakoutDeterministic-v4')
 parser.add_argument("--binarizer_threshold", type=float, default=.1)
+parser.add_argument("--history-length", type=int, default=4)
 parser.add_argument("--dqn", action='store_true')
+parser.add_argument("--sobel", action='store_true')
 parser.add_argument("--predict-next-frame", action='store_true')
 parser.add_argument("--predict-reward", action='store_true')
 parser.add_argument("--predict-absorbing", action='store_true')
@@ -46,32 +47,25 @@ if not args.dqn:
                                        'decay': 1},
                             width=84,
                             height=84,
-                            history_length=4,
+                            history_length=args.history_length,
                             predict_next_frame=args.predict_next_frame,
                             predict_reward=args.predict_reward,
                             predict_absorbing=args.predict_absorbing)
+
+    preprocessors = [Scaler(255.),
+                     Binarizer(args.binarizer_threshold)]
+    if args.sobel:
+        preprocessors += [Sobel(args.history_length), Binarizer(0, False)]
     if args.predict_next_frame:
         extractor = Regressor(Extractor,
                               discrete_actions=env.action_space.n,
-                              input_preprocessor=[
-                                  Scaler(255.),
-                                  Binarizer(args.binarizer_threshold)
-                              ],
-                              output_preprocessor=[
-                                  Scaler(255.),
-                                  Binarizer(args.binarizer_threshold)
-                              ],
+                              input_preprocessor=preprocessors,
+                              output_preprocessor=preprocessors,
                               **extractor_params)
     else:
         extractor = Regressor(Extractor,
-                              input_preprocessor=[
-                                  Scaler(255.),
-                                  Binarizer(args.binarizer_threshold)
-                              ],
-                              output_preprocessor=[
-                                  Scaler(255.),
-                                  Binarizer(args.binarizer_threshold)
-                              ],
+                              input_preprocessor=preprocessors,
+                              output_preprocessor=preprocessors,
                               **extractor_params)
 
     path =\
@@ -96,7 +90,7 @@ else:
         **extractor_params
     )
 
-buf = Buffer(4)
+buf = Buffer(args.history_length)
 
 if not hasattr(env.action_space, 'n'):
     raise Exception('Keyboard agent only supports discrete action spaces')
@@ -129,6 +123,7 @@ env.render()
 env.unwrapped.viewer.window.on_key_press = key_press
 env.unwrapped.viewer.window.on_key_release = key_release
 
+
 def plot_features(extractor, a, fig):
     if args.dqn:
         features = extractor.predict(np.expand_dims(buf.get(), axis=0),
@@ -137,12 +132,13 @@ def plot_features(extractor, a, fig):
         if args.predict_next_frame:
             extr_input = [np.expand_dims(buf.get(), axis=0), np.array([[a]])]
         else:
-            extr_input = [np.expand_dims(buf.get(), axis=0)]
-        features = extractor.predict(extr_input, features=True)[0].reshape(5,
-                                                                           5)
+            extr_input = np.expand_dims(buf.get(), axis=0)
+        features = extractor.predict(extr_input, features=True)[0].reshape(8,
+                                                                           8)
     plt.imshow(features)
     fig.canvas.draw()
     plt.show(block=False)
+
 
 def rollout(env, fig):
     global human_agent_action, human_wants_restart, human_sets_pause
@@ -150,14 +146,14 @@ def rollout(env, fig):
     human_wants_restart = False
     obser = env.reset()
     frame = Image.fromarray(obser, 'RGB').convert('L').resize((84, 84))
-    frame = np.asarray(frame.getdata(), dtype=np.uint8).reshape(frame.size[1], frame.size[0])
-    for i in xrange(4):
+    frame = np.asarray(frame.getdata(), dtype=np.uint8).reshape(frame.size[1],
+                                                                frame.size[0])
+    for i in xrange(args.history_length):
         buf.add(frame)
     skip = 0
     for t in range(ROLLOUT_TIME):
         buf.add(frame)
         if not skip:
-            #print("taking action {}".format(human_agent_action))
             a = human_agent_action
             skip = SKIP_CONTROL
         else:
@@ -168,7 +164,8 @@ def rollout(env, fig):
         plot_features(extractor, a, fig)
 
         frame = Image.fromarray(obser, 'RGB').convert('L').resize((84, 84))
-        frame = np.asarray(frame.getdata(), dtype=np.uint8).reshape(frame.size[1], frame.size[0])
+        frame = np.asarray(frame.getdata(), dtype=np.uint8).reshape(
+            frame.size[1], frame.size[0])
         env.render()
         if done: break
         if human_wants_restart: break
@@ -176,6 +173,7 @@ def rollout(env, fig):
             env.render()
             import time
             time.sleep(.1)
+
 
 print("ACTIONS={}".format(ACTIONS))
 print("Press keys 1 2 3 ... to take actions 1 2 3 ...")
