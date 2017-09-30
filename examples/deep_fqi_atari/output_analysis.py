@@ -16,6 +16,7 @@ parser.add_argument("--load-path", type=str)
 parser.add_argument("--load-dataset", action='store_true')
 parser.add_argument("--game", type=str, default='BreakoutDeterministic-v4')
 parser.add_argument("--binarizer-threshold", type=float, default=.1)
+parser.add_argument("--n-features", type=int, default=25)
 parser.add_argument("--history-length", type=int, default=4)
 parser.add_argument("--sobel", action='store_true')
 parser.add_argument("--predict-next-frame", action='store_true')
@@ -34,6 +35,7 @@ extractor_params = dict(folder_name=None,
                                    'decay': 1},
                         width=84,
                         height=84,
+                        n_features=args.n_features,
                         history_length=args.history_length,
                         predict_next_frame=args.predict_next_frame,
                         predict_reward=args.predict_reward,
@@ -55,8 +57,8 @@ else:
                           output_preprocessor=preprocessors,
                           **extractor_params)
 
-path =\
-    args.load_path + '/' + extractor.model._scope_name
+path = args.load_path + '/' + extractor.model._scope_name + '/' +\
+       extractor.model._scope_name
 restorer = tf.train.import_meta_graph(path + '.meta')
 restorer.restore(extractor.model._session, path)
 extractor.model._restore_collection()
@@ -103,7 +105,8 @@ else:
                     action_space=mdp.action_space)
     replay_memory.initialize(mdp_info)
     replay_memory.add(dataset)
-    state, action, reward, next_state, absorbing, _ = replay_memory.get(n_samples)
+    state, action, reward, next_state, absorbing, _ = replay_memory.get(
+        n_samples)
 
 if args.predict_next_frame:
     extr_input = [state, action]
