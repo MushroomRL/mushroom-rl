@@ -300,15 +300,22 @@ def experiment():
                     )
                     gen.set_postfix(loss=extractor.model.loss)
 
-                valid_batch = valid_replay_memory.get(valid_replay_memory.size)
-                if args.predict_next_frame:
-                    extr_input = [valid_batch[0], valid_batch[1]]
-                    target = valid_batch[3][..., -1]
-                else:
-                    extr_input = [valid_batch[0]]
-                    target = valid_batch[0]
-                valid_loss = extractor.model.get_stats(extr_input,
-                                                       target)['loss']
+                valid_rm_generator = valid_replay_memory.generator(
+                    args.batch_size)
+                valid_loss = 0.
+                for valid_batch in valid_rm_generator:
+                    if args.predict_next_frame:
+                        extr_input = [valid_batch[0], valid_batch[1]]
+                        target = valid_batch[3][..., -1]
+                    else:
+                        extr_input = [valid_batch[0]]
+                        target = valid_batch[0]
+                    for p in preprocessors:
+                        extr_input = p(extr_input)
+                        target = p(target)
+                    valid_loss += extractor.model.get_stats(
+                        extr_input, target)['loss'] * valid_batch[0].shape[0]
+                valid_loss /= float(valid_replay_memory.size)
                 print('valid_loss=%f' % valid_loss)
                 if args.save_extractor:
                     if best_loss > valid_loss:
