@@ -100,7 +100,7 @@ def experiment():
     arg_alg.add_argument("--min-samples-leaf", type=int, default=2)
     arg_alg.add_argument("--max-depth", type=int, default=None)
     arg_alg.add_argument("--dataset-size", type=int, default=500000)
-    arg_alg.add_argument("--validation-split", type=float, default=.1)
+    arg_alg.add_argument("--validation-split", type=float, default=.2)
     arg_alg.add_argument("--batch-size", type=int, default=32,
                          help='Batch size for each fit of the network.')
     arg_alg.add_argument("--history-length", type=int, default=4,
