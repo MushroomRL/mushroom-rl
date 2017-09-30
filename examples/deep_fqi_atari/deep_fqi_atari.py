@@ -375,7 +375,7 @@ def experiment():
             else:
                 support_rfs = np.load(folder_name + '/support.npy')
 
-        approximator._input_preprocessor = [Filter(support_rfs)]
+            approximator._input_preprocessor = [Filter(support_rfs)]
 
         print('Starting FQI...')
         if not args.load_approximator or k > 0:
