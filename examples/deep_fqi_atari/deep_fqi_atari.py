@@ -253,10 +253,12 @@ def experiment():
                                         quiet=args.quiet)
                 if args.save_dataset:
                     np.save(folder_name + '/dataset.npy', dataset)
+
+                shuffle(dataset)
             else:
                 dataset = np.load(
                     folder_name + '/dataset.npy')[:args.dataset_size]
-            shuffle(dataset)
+                np.random.shuffle(dataset)
 
             valid_start = int(
                 args.dataset_size - args.dataset_size * args.validation_split)
