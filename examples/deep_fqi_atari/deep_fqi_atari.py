@@ -100,6 +100,7 @@ def experiment():
     arg_alg.add_argument("--min-samples-leaf", type=int, default=2)
     arg_alg.add_argument("--max-depth", type=int, default=None)
     arg_alg.add_argument("--dataset-size", type=int, default=500000)
+    arg_alg.add_argument("--validation-split", type=float, default=.1)
     arg_alg.add_argument("--batch-size", type=int, default=32,
                          help='Batch size for each fit of the network.')
     arg_alg.add_argument("--history-length", type=int, default=4,
@@ -255,22 +256,32 @@ def experiment():
                 dataset = np.load(
                     folder_name + '/dataset.npy')[:args.dataset_size]
 
-            replay_memory = ReplayMemory(args.dataset_size, args.history_length)
+            valid_start = int(
+                args.dataset_size - args.dataset_size * args.validation_split)
+            train_set = dataset[:valid_start]
+            valid_set = dataset[valid_start:]
+
+            train_replay_memory = ReplayMemory(len(train_set),
+                                               args.history_length)
+            valid_replay_memory = ReplayMemory(len(valid_set),
+                                               args.history_length)
             mdp_info = dict(observation_space=mdp.observation_space,
                             action_space=mdp.action_space)
-            replay_memory.initialize(mdp_info)
-            replay_memory.add(dataset)
+            train_replay_memory.initialize(mdp_info)
+            train_replay_memory.add(train_set)
+            valid_replay_memory.initialize(mdp_info)
+            valid_replay_memory.add(valid_set)
 
-            del dataset
+            del dataset, train_set, valid_set
 
         if not args.load_extractor or k > 0:
             extractor.model._folder_name = folder_name
             print('Fitting extractor...')
             best_loss = np.inf
             for e in xrange(args.n_epochs):
-                rm_generator = replay_memory.generator(args.batch_size)
+                rm_generator = train_replay_memory.generator(args.batch_size)
                 n_batches = int(
-                    np.ceil(replay_memory.size / float(args.batch_size)))
+                    np.ceil(train_replay_memory.size / float(args.batch_size)))
 
                 gen = tqdm(rm_generator, total=n_batches, dynamic_ncols=100,
                            desc='Epoch %d' % e)
@@ -289,10 +300,22 @@ def experiment():
                     )
                     gen.set_postfix(loss=extractor.model.loss)
 
+                valid_batch = valid_replay_memory.get(valid_replay_memory.size)
+                if args.predict_next_frame:
+                    extr_input = [valid_batch[0], valid_batch[1]]
+                    target = valid_batch[3][..., -1]
+                else:
+                    extr_input = [valid_batch[0]]
+                    target = valid_batch[0]
+                valid_loss = extractor.model.get_stats(extr_input,
+                                                       target)['loss']
+                print('valid_loss=%f' % valid_loss)
                 if args.save_extractor:
-                    if best_loss > extractor.model.loss:
-                        best_loss = extractor.model.loss
+                    if best_loss > valid_loss:
+                        best_loss = valid_loss
                         extractor.model.save()
+
+            del valid_replay_memory
         else:
             restorer = tf.train.import_meta_graph(
                 folder_name + '/' + extractor.model._scope_name + '/' +
@@ -306,17 +329,17 @@ def experiment():
         print('Building features...')
         if not args.load_approximator or k > 0:
             if not args.load_features or k > 0:
-                f = np.ones((replay_memory.size, n_features))
-                actions = np.ones((replay_memory.size, 1))
-                rewards = np.ones(replay_memory.size)
-                absorbing = np.ones(replay_memory.size)
-                last = np.ones(replay_memory.size)
+                f = np.ones((train_replay_memory.size, n_features))
+                actions = np.ones((train_replay_memory.size, 1))
+                rewards = np.ones(train_replay_memory.size)
+                absorbing = np.ones(train_replay_memory.size)
+                last = np.ones(train_replay_memory.size)
                 if args.predict_next_frame:
-                    ff = np.ones((mdp.action_space.n, replay_memory.size,
+                    ff = np.ones((mdp.action_space.n, train_replay_memory.size,
                                   n_features))
                 else:
-                    ff = np.ones((replay_memory.size, n_features))
-                rm_generator = replay_memory.generator(args.batch_size)
+                    ff = np.ones((train_replay_memory.size, n_features))
+                rm_generator = train_replay_memory.generator(args.batch_size)
                 for i, batch in enumerate(rm_generator):
                     start = i * args.batch_size
                     stop = start + batch[0].shape[0]
@@ -337,7 +360,7 @@ def experiment():
                         ss = [batch[3]]
                         ff[start:stop] = extractor.predict(ss)[0]
 
-                del replay_memory
+                del train_replay_memory
 
                 if args.save_features:
                     np.savez(folder_name + '/feature_dataset.npz',

@@ -52,7 +52,12 @@ class Extractor:
 
     def get_stats(self, x, y):
         f = [self._loss, self._xent, self._reg, self._xent_frame]
-        fd = {self._state: x[0], self._target_frame: y[0]}
+        fd = {self._state: x[0]}
+
+        if isinstance(y, list):
+            fd[self._target_frame] = y[0]
+        else:
+            fd[self._target_frame] = y
 
         if self._predict_next_frame:
             fd[self._action] = x[1]

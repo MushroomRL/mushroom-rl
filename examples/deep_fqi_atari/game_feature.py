@@ -25,6 +25,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--load-path", type=str)
 parser.add_argument("--game", type=str, default='BreakoutDeterministic-v4')
 parser.add_argument("--binarizer_threshold", type=float, default=.1)
+parser.add_argument("--n-features", type=int, default=25)
 parser.add_argument("--history-length", type=int, default=4)
 parser.add_argument("--dqn", action='store_true')
 parser.add_argument("--sobel", action='store_true')
@@ -47,6 +48,7 @@ if not args.dqn:
                                        'decay': 1},
                             width=84,
                             height=84,
+                            n_features=args.n_features,
                             history_length=args.history_length,
                             predict_next_frame=args.predict_next_frame,
                             predict_reward=args.predict_reward,
