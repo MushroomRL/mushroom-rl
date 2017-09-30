@@ -340,11 +340,17 @@ def experiment():
                 del replay_memory
 
                 if args.save_features:
-                    np.save(folder_name + '/feature_dataset.npy',
-                            [f, actions, rewards, ff, absorbing, last])
+                    np.savez(folder_name + '/feature_dataset.npz',
+                             f=f, actions=actions, rewards=rewards, ff=ff,
+                             absorbing=absorbing, last=last)
             else:
-                f, actions, rewards, ff, absorbing, last = np.load(
-                    folder_name + '/feature_dataset.npy')
+                files = np.load(folder_name + '/feature_dataset.npz')
+                f = files['f']
+                actions = files['actions']
+                rewards = files['rewards']
+                ff = files['ff']
+                absorbing = files['absorbing']
+                last = files['last']
 
         if args.rfs:
             if not args.load_support or k > 0:
@@ -362,11 +368,10 @@ def experiment():
                 rfs = RFS(**rfs_params)
                 rfs.fit(f, actions, ff, rewards)
 
-                support_rfs = rfs.get_support()
+                support_rfs = np.array(rfs.get_support())
                 got_action = support_rfs[-1]  # Action is the last feature
-                support_rfs = np.array(support_rfs[:-1])  # Remove action
-                nb_new_features = support_rfs.sum()
-                print('Features: %s' % support_rfs.nonzero())
+                support_rfs = support_rfs[:-1]  # Remove action
+                nb_new_features = np.sum(support_rfs)
                 print('Using %s features' % nb_new_features)
                 print('Action was%s selected' % ('' if got_action else ' NOT'))
 
