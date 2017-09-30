@@ -1,5 +1,6 @@
 import argparse
 import datetime
+from random import shuffle
 
 import joblib
 import numpy as np
@@ -255,6 +256,7 @@ def experiment():
             else:
                 dataset = np.load(
                     folder_name + '/dataset.npy')[:args.dataset_size]
+            shuffle(dataset)
 
             valid_start = int(
                 args.dataset_size - args.dataset_size * args.validation_split)
