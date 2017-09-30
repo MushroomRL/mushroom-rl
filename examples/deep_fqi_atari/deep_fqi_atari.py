@@ -268,8 +268,8 @@ def experiment():
             extractor.model._folder_name = folder_name
             print('Fitting extractor...')
             best_loss = np.inf
-            idxs = np.random.randint(0, replay_memory.size,
-                                     size=replay_memory.size)
+            idxs = np.arange(replay_memory.size)
+            np.random.shuffle(idxs)
             valid_start = int(
                 replay_memory.size - replay_memory.size * args.validation_split)
             train_idxs = idxs[:valid_start]
