@@ -80,3 +80,31 @@ class Binarizer(Preprocessor):
             return (x >= self._threshold).astype(np.float)
         else:
             return (x > self._threshold).astype(np.float)
+
+
+class Filter(Preprocessor):
+    """
+    This class implements the function to filter the values of an array
+    according to a provided array of indexes.
+
+    """
+    def __init__(self, idxs):
+        """
+        Constructor.
+
+        Args:
+            idxs (float): the array of idxs to use to filter input data.
+
+        """
+        self._idxs = idxs
+
+    def _compute(self, x):
+        """
+        Args:
+            x (np.array): input data
+
+        Returns:
+            The filter input data array.
+
+        """
+        return x[self._idxs]

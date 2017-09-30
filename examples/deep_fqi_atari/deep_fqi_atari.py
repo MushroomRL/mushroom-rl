@@ -15,9 +15,11 @@ from mushroom.core.core import Core
 from mushroom.environments import Atari
 from mushroom.policy import EpsGreedy
 from mushroom.utils.dataset import compute_scores
+from mushroom.utils.ifs import IFS
 from mushroom.utils.parameters import Parameter
-from mushroom.utils.preprocessor import Binarizer, Preprocessor, Scaler
+from mushroom.utils.preprocessor import Binarizer, Filter, Preprocessor, Scaler
 from mushroom.utils.replay_memory import ReplayMemory
+from mushroom.utils.rfs import RFS
 from extractor import Extractor
 
 
@@ -25,6 +27,8 @@ def get_stats(dataset):
     score = compute_scores(dataset)
     print('min_reward: %f, max_reward: %f, mean_reward: %f,'
           ' games_completed: %d' % score)
+
+    return score
 
 
 class Sobel(Preprocessor):
@@ -109,6 +113,15 @@ def experiment():
                               'history_length.')
     arg_alg.add_argument("--no-op-action-value", type=int, default=0,
                          help='Value of the no-op action.')
+
+    arg_rfs = parser.add_argument_group('RFS')
+    arg_rfs.add_argument("--rfs", action='store_true')
+    arg_rfs.add_argument("--rfs-n-estimators", type=int, default=50)
+    arg_rfs.add_argument("--rfs-min-samples-split", type=int, default=5)
+    arg_rfs.add_argument("--rfs-min-samples-leaf", type=int, default=2)
+    arg_rfs.add_argument("--rfs-max-depth", type=int, default=None)
+    arg_rfs.add_argument('--load-support', action='store_true')
+    arg_rfs.add_argument('--save-support', action='store_true')
 
     arg_utils = parser.add_argument_group('Utils')
     arg_utils.add_argument('--load-path', type=str)
@@ -327,11 +340,42 @@ def experiment():
                 del replay_memory
 
                 if args.save_features:
-                    np.save(folder_name + '/f.npy', f)
-                    np.save(folder_name + '/ff.npy', ff)
+                    np.save(folder_name + '/feature_dataset.npy',
+                            [f, actions, rewards, ff, absorbing, last])
             else:
-                f = np.load(folder_name + '/f.npy')
-                ff = np.load(folder_name + '/ff.npy')
+                f, actions, rewards, ff, absorbing, last = np.load(
+                    folder_name + '/feature_dataset.npy')
+
+        if args.rfs:
+            if not args.load_support or k > 0:
+                print('Starting RFS...')
+                ifs_estimator_params = {'n_estimators': args.rfs_n_estimators,
+                                        'n_jobs': -1}
+                ifs_params = {'estimator': ExtraTreesRegressor(
+                    **ifs_estimator_params)}
+                ifs = IFS(**ifs_params)
+                features_names = np.array(map(str,
+                                              np.arange(f.shape[1])) + ['A'])
+                rfs_params = {'feature_selector': ifs,
+                              'features_names': features_names,
+                              'verbose': 1}
+                rfs = RFS(**rfs_params)
+                rfs.fit(f, actions, ff, rewards)
+
+                support_rfs = rfs.get_support()
+                got_action = support_rfs[-1]  # Action is the last feature
+                support_rfs = np.array(support_rfs[:-1])  # Remove action
+                nb_new_features = support_rfs.sum()
+                print('Features: %s' % support_rfs.nonzero())
+                print('Using %s features' % nb_new_features)
+                print('Action was%s selected' % ('' if got_action else ' NOT'))
+
+                if args.save_support:
+                    np.save(folder_name + '/support.npy', support_rfs)
+            else:
+                support_rfs = np.load(folder_name + '/support.npy')
+
+        approximator._input_preprocessor = [Filter(support_rfs)]
 
         print('Starting FQI...')
         if not args.load_approximator or k > 0:
@@ -340,6 +384,7 @@ def experiment():
             pi.set_epsilon(Parameter(.05))
             mdp.set_episode_end(ends_at_life=False)
             y = None
+            max_mean_score = 0
             for i in tqdm(xrange(args.fqi_steps), dynamic_ncols=True,
                           disable=args.quiet, leave=False):
                 y = agent._partial_fit(dataset, y)
@@ -351,17 +396,19 @@ def experiment():
                                             iterate_over='samples',
                                             render=args.render,
                                             quiet=args.quiet)
-                    get_stats(results)
+                    _, _, mean_score, _ = get_stats(results)
 
                     if args.save_approximator:
-                        if approximator_class == Regressor:
-                            joblib.dump(approximator.model,
-                                        folder_name + '/approximator.pkl')
-                        else:
-                            for m_i, m in enumerate(approximator.models):
-                                joblib.dump(
-                                    m,
-                                    folder_name + '/approximator_%d.pkl' % m_i)
+                        if mean_score > max_mean_score:
+                            if approximator_class == Regressor:
+                                joblib.dump(approximator.model,
+                                            folder_name + '/approximator.pkl')
+                            else:
+                                for m_i, m in enumerate(approximator.models):
+                                    joblib.dump(
+                                        m,
+                                        folder_name +
+                                        '/approximator_%d.pkl' % m_i)
         else:
             if approximator_class == Regressor:
                 approximator.model = joblib.load(
