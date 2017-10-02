@@ -315,8 +315,9 @@ def experiment():
                     for p in preprocessors:
                         extr_input[0] = p(extr_input[0])
                         target = p(target)
-                    target = [target] + [batch[2].reshape(
-                        -1, 1)] + [batch[4].reshape(-1, 1)]
+                    target = [target] + [valid_batch[2].reshape(
+                        -1, 1)] + [valid_batch[4].reshape(-1, 1)]
+
                     valid_loss += extractor.model.get_stats(
                         extr_input, target)['loss'] * valid_batch[0].shape[0]
                 valid_loss /= float(valid_idxs.size)
