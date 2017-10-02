@@ -336,11 +336,12 @@ def experiment():
                 extractor.model._scope_name)
             extractor.model._restore_collection()
 
-            idxs = np.arange(replay_memory.size)
-            np.random.shuffle(idxs)
-            valid_start = int(
-                replay_memory.size - replay_memory.size * args.validation_split)
-            train_idxs = idxs[:valid_start]
+            if not args.load_approximator:
+                idxs = np.arange(replay_memory.size)
+                np.random.shuffle(idxs)
+                valid_start = int(replay_memory.size -
+                                  replay_memory.size * args.validation_split)
+                train_idxs = idxs[:valid_start]
 
         print('Building features...')
         if not args.load_approximator or k > 0:

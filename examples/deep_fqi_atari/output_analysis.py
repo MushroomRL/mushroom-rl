@@ -19,6 +19,7 @@ parser.add_argument("--binarizer-threshold", type=float, default=.1)
 parser.add_argument("--n-features", type=int, default=25)
 parser.add_argument("--history-length", type=int, default=4)
 parser.add_argument("--sobel", action='store_true')
+parser.add_argument("--reg-coeff", type=float, default=1e-5)
 parser.add_argument("--predict-next-frame", action='store_true')
 parser.add_argument("--predict-reward", action='store_true')
 parser.add_argument("--predict-absorbing", action='store_true')
@@ -35,6 +36,7 @@ extractor_params = dict(folder_name=None,
                                    'decay': 1},
                         width=84,
                         height=84,
+                        reg_coeff=args.reg_coeff,
                         n_features=args.n_features,
                         history_length=args.history_length,
                         predict_next_frame=args.predict_next_frame,
@@ -76,7 +78,7 @@ if not args.load_dataset:
         next_state = np.ones((n_samples, 84, 84, args.history_length))
     if args.predict_next_frame:
         for i in xrange(state.shape[0]):
-            for j in xrange(4):
+            for j in xrange(args.history_length):
                 state[i, ..., j], _, _, _ = mdp.step(
                     np.random.randint(mdp.action_space.n))
             a = np.random.randint(mdp.action_space.n)
@@ -107,17 +109,25 @@ else:
     replay_memory.add(dataset)
     state, action, reward, next_state, absorbing, _ = replay_memory.get(
         n_samples)
+    next_state = next_state[..., -1]
 
 if args.predict_next_frame:
     extr_input = [state, action]
 else:
     extr_input = [state]
-reward = np.clip(reward, -1, 1)
+reconstructions = extractor.predict(extr_input, reconstruction=True)[0]
+
 for p in preprocessors:
     state = p(state)
     next_state = p(next_state)
-y = [next_state, reward, absorbing]
-reconstructions = extractor.predict(extr_input, reconstruction=True)[0]
+
+if args.predict_next_frame:
+    extr_input = [state, action]
+    y = [next_state]
+else:
+    extr_input = [state]
+    y = [state]
+y += [reward.reshape(-1, 1), absorbing.reshape(-1, 1)]
 stats = extractor.model.get_stats(extr_input, y)
 for key, value in stats.iteritems():
     print('%s: %f' % (key, value))
