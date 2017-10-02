@@ -135,8 +135,10 @@ def plot_features(extractor, a, fig):
             extr_input = [np.expand_dims(buf.get(), axis=0), np.array([[a]])]
         else:
             extr_input = np.expand_dims(buf.get(), axis=0)
-        features = extractor.predict(extr_input, features=True)[0].reshape(8,
-                                                                           8)
+        features = extractor.predict(extr_input, features=True)[0].reshape(
+            int(args.n_features ** .5),
+            int(args.n_features ** .5)
+        )
     plt.imshow(features)
     fig.canvas.draw()
     plt.show(block=False)

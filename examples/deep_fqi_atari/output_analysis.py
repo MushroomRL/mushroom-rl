@@ -64,7 +64,7 @@ restorer.restore(extractor.model._session, path)
 extractor.model._restore_collection()
 
 # Predictions
-n_samples = 50
+n_samples = 100
 if not args.load_dataset:
     state = np.ones((n_samples, 84, 84, args.history_length))
     action = np.ones((n_samples, 1))
@@ -100,7 +100,7 @@ if not args.load_dataset:
             absorbing[i] = ab
 else:
     dataset = np.load(args.load_path + '/dataset.npy')
-    replay_memory = ReplayMemory(n_samples, args.history_length)
+    replay_memory = ReplayMemory(len(dataset) + 1, args.history_length)
     mdp_info = dict(observation_space=mdp.observation_space,
                     action_space=mdp.action_space)
     replay_memory.initialize(mdp_info)
@@ -128,16 +128,16 @@ for i in xrange(mdp.action_space.n):
 for idx in idxs:
     plt.figure()
     if args.predict_next_frame:
-        for i in xrange(4):
-            plt.subplot(1, 5, i + 1)
+        for i in xrange(args.history_length):
+            plt.subplot(1, args.history_length + 1, i + 1)
             plt.imshow(state[idx, ..., i])
-        plt.subplot(1, 5, 5)
+        plt.subplot(1, args.history_length + 1, args.history_length + 1)
         plt.imshow(reconstructions[idx])
     else:
         for i in xrange(args.history_length):
-            plt.subplot(2, 4, i + 1)
+            plt.subplot(2, args.history_length, i + 1)
             plt.imshow(state[idx, ..., i])
-            plt.subplot(2, 4, i + 5)
+            plt.subplot(2, args.history_length, i + args.history_length + 1)
             plt.imshow(reconstructions[idx, ..., i])
 
 plt.show()

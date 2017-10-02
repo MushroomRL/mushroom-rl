@@ -39,11 +39,16 @@ class Sobel(Preprocessor):
     def _compute(self, imgs):
         filter_imgs = np.ones(imgs.shape)
         for s in xrange(imgs.shape[0]):
-            for h in xrange(self._history_length):
-                filter_x = sobel(imgs[s, ..., h], axis=0, mode=self._mode)
-                filter_y = sobel(imgs[s, ..., h], axis=1, mode=self._mode)
-                filter_imgs[s, ..., h] = np.sqrt(
-                    filter_x ** 2 + filter_y ** 2)
+            if imgs.ndim == 4:
+                for h in xrange(self._history_length):
+                    filter_x = sobel(imgs[s, ..., h], axis=0, mode=self._mode)
+                    filter_y = sobel(imgs[s, ..., h], axis=1, mode=self._mode)
+                    filter_imgs[s, ..., h] = np.sqrt(
+                        filter_x ** 2 + filter_y ** 2)
+            else:
+                filter_x = sobel(imgs[s], axis=0, mode=self._mode)
+                filter_y = sobel(imgs[s], axis=1, mode=self._mode)
+                filter_imgs[s] = np.sqrt(filter_x ** 2 + filter_y ** 2)
 
         return filter_imgs
 
