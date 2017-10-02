@@ -342,24 +342,23 @@ def experiment():
                 f = np.ones((train_idxs.size, n_features))
                 actions = np.ones((train_idxs.size, 1))
                 rewards = np.ones(train_idxs.size)
+                ff = np.ones((train_idxs.size, n_features))
                 absorbing = np.ones(train_idxs.size)
                 last = np.ones(train_idxs.size)
-                if args.predict_next_frame:
-                    ff = np.ones((mdp.action_space.n, train_idxs.size,
-                                  n_features))
-                else:
-                    ff = np.ones((train_idxs.size, n_features))
                 rm_generator = replay_memory.generator(args.batch_size,
                                                        train_idxs)
                 for i, batch in enumerate(rm_generator):
                     start = i * args.batch_size
                     stop = start + batch[0].shape[0]
-                    f[start:stop] = extractor.predict([batch[0]])[0]
+                    # TODO: batch[1] is used to make the predict work
+                    f[start:stop] = extractor.predict([batch[0],
+                                                       batch[1]])[0]
                     actions[start:stop] = batch[1]
                     rewards[start:stop] = batch[2]
+                    ff[start:stop] = extractor.predict([batch[3],
+                                                        batch[1]])[0]
                     absorbing[start:stop] = batch[4]
                     last[start:stop] = batch[5]
-                    ff[start:stop] = extractor.predict(batch[3])[0]
 
                 del replay_memory
 
@@ -429,23 +428,15 @@ def experiment():
 
                     if args.save_approximator:
                         if mean_score > max_mean_score:
-                            if approximator_class == Regressor:
-                                joblib.dump(approximator.model,
-                                            folder_name + '/approximator.pkl')
-                            else:
-                                for m_i, m in enumerate(approximator.models):
-                                    joblib.dump(
-                                        m,
-                                        folder_name +
-                                        '/approximator_%d.pkl' % m_i)
+                            for m_i, m in enumerate(approximator.models):
+                                joblib.dump(
+                                    m,
+                                    folder_name +
+                                    '/approximator_%d.pkl' % m_i)
         else:
-            if approximator_class == Regressor:
-                approximator.model = joblib.load(
-                    folder_name + '/approximator.pkl')
-            else:
-                for m_i in xrange(len(approximator.models)):
-                    approximator.models[m_i] = joblib.load(
-                        folder_name + '/approximator_%d.pkl' % m_i)
+            for m_i in xrange(len(approximator.models)):
+                approximator.models[m_i] = joblib.load(
+                    folder_name + '/approximator_%d.pkl' % m_i)
 
             print '- Evaluation:'
             # evaluation step
