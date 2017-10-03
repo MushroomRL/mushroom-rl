@@ -29,7 +29,8 @@ class TD(Agent):
         s, a, r, ss, ab = self._parse(dataset)
         self._update(s, a, r, ss, ab)
 
-    def _parse(self, dataset):
+    @staticmethod
+    def _parse(dataset):
         sample = dataset[0]
         s = np.array([sample[0]])
         a = np.array([sample[1]])
@@ -38,7 +39,6 @@ class TD(Agent):
         ab = sample[4]
         
         return s, a, r, ss, ab
-
 
     def _update(self, s, a, r, ss, ab):
         pass
@@ -112,6 +112,7 @@ class DoubleQLearning(TD):
         self.approximator[approximator_idx].fit(
             sa, q, **self.params['fit_params'])
 
+
 class WeightedQLearning(TD):
     """
     Weighted Q-Learning algorithm.
@@ -153,8 +154,8 @@ class WeightedQLearning(TD):
         self._Q[sa_idx] += (target - self._Q[sa_idx]) / self._n_updates[sa_idx]
         self._Q2[sa_idx] += (
             target ** 2. - self._Q2[sa_idx]) / self._n_updates[sa_idx]
-        self._weights_var[sa_idx] = (1 - alpha) ** 2. * \
-                                    self._weights_var[sa_idx] + alpha ** 2.
+        self._weights_var[sa_idx] = (1 - alpha) ** 2. * self._weights_var[
+            sa_idx] + alpha ** 2.
 
         if self._n_updates[sa_idx] > 1:
             var = self._n_updates[sa_idx] * (self._Q2[sa_idx] - self._Q[
