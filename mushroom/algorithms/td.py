@@ -176,7 +176,7 @@ class WeightedQLearning(TD):
         """
         means = self.approximator.predict_all(next_state)
 
-        sigmas = np.zeros((1, self.approximator.discrete_actions.shape[0]))
+        sigmas = np.zeros((1, self.approximator.Q.shape[-1]))
         for a in xrange(sigmas.size):
             sa_n_idx = tuple(np.concatenate((next_state, np.array([[a]])),
                                             axis=1).astype(np.int).ravel())

@@ -3,7 +3,7 @@ from joblib import Parallel, delayed
 
 from mushroom.algorithms.td import QLearning, DoubleQLearning, WeightedQLearning,\
     SpeedyQLearning
-from mushroom.approximators import Ensemble, Regressor, Tabular
+from mushroom.approximators import Ensemble, Regressor, Tabular, Table
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
@@ -28,9 +28,7 @@ def experiment(algorithm_class, decay_exp):
     shape = mdp.observation_space.size + mdp.action_space.size
     approximator_params = dict(shape=shape)
     if algorithm_class in [QLearning, WeightedQLearning, SpeedyQLearning]:
-        approximator = Regressor(Tabular,
-                                 discrete_actions=mdp.action_space.n,
-                                 **approximator_params)
+        approximator = Table(shape)
     elif algorithm_class is DoubleQLearning:
         approximator = Ensemble(Tabular,
                                 n_models=2,
