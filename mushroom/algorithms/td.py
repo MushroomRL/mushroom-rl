@@ -81,8 +81,8 @@ class DoubleQLearning(TD):
         self.learning_rate = [deepcopy(self.learning_rate),
                               deepcopy(self.learning_rate)]
 
-        assert self.approximator.n_models == 2, 'The regressor ensemble must' \
-                                                ' have exactly 2 models.'
+        assert len(self.approximator) == 2, 'The regressor ensemble must' \
+                                            ' have exactly 2 models.'
 
     def fit(self, dataset, n_iterations=1):
         assert n_iterations == 1 and len(dataset) == 1

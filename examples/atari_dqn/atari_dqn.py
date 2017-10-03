@@ -69,7 +69,7 @@ def experiment():
                               'gradient momentum in rmsprop.')
 
     arg_alg = parser.add_argument_group('Algorithm')
-    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'rdqn', 'wdqn'],
+    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'wdqn'],
                          default='dqn',
                          help='Name of the algorithm. dqn stands for standard'
                               'DQN and ddqn stands for Double DQN.')
@@ -289,8 +289,6 @@ def experiment():
             agent = DQN(approximator, pi, mdp.gamma, **agent_params)
         elif args.algorithm == 'ddqn':
             agent = DoubleDQN(approximator, pi, mdp.gamma, **agent_params)
-        elif args.algorithm == 'rdqn':
-            agent = RDQN(approximator, pi, mdp.gamma, **agent_params)
         elif args.algorithm == 'wdqn':
             agent = WeightedDQN(approximator, pi, mdp.gamma, **agent_params)
 
