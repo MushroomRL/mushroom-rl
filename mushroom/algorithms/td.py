@@ -26,16 +26,22 @@ class TD(Agent):
         """
         assert n_iterations == 1 and len(dataset) == 1
 
+        s, a, r, ss, ab = self._parse(dataset)
+        self._update(s, a, r, ss, ab)
+
+    def _parse(self, dataset):
         sample = dataset[0]
-        sa = [np.array([sample[0]]), np.array([sample[1]])]
+        s = np.array([sample[0]])
+        a = np.array([sample[1]])
+        r = sample[2]
+        ss = np.array([sample[3]])
+        ab = sample[4]
+        
+        return s, a, r, ss, ab
 
-        q_current = self.approximator.predict(sa)
-        q_next = self._next_q(np.array([sample[3]])) if not sample[4] else 0.
 
-        q = q_current + self.learning_rate(sa) * (
-            sample[2] + self._gamma * q_next - q_current)
-
-        self.approximator.fit(sa, q, **self.params['fit_params'])
+    def _update(self, s, a, r, ss, ab):
+        pass
 
     def __str__(self):
         return self.__name__
@@ -52,19 +58,19 @@ class QLearning(TD):
 
         super(QLearning, self).__init__(approximator, policy, gamma, **params)
 
-    def _next_q(self, next_state):
-        """
-        Args:
-            next_state (np.array): the state where next action has to be
-                evaluated.
+    def _update(self, s, a, r, ss, ab):
+        sa = [s, a]
+        q_current = self.approximator.predict(sa)
 
-        Returns:
-            Maximum action-value in 'next_state'.
+        if not ab:
+            q_next, _ = max_QA(ss, False, self.approximator)
+        else:
+            q_next = 0
 
-        """
-        max_q, _ = max_QA(next_state, False, self.approximator)
+        q = q_current + self.learning_rate(sa) * (
+             r + self._gamma * q_next - q_current)
 
-        return max_q
+        self.approximator.fit(sa, q, **self.params['fit_params'])
 
 
 class DoubleQLearning(TD):
@@ -84,43 +90,27 @@ class DoubleQLearning(TD):
         assert len(self.approximator) == 2, 'The regressor ensemble must' \
                                             ' have exactly 2 models.'
 
-    def fit(self, dataset, n_iterations=1):
-        assert n_iterations == 1 and len(dataset) == 1
-
-        sample = dataset[0]
-        sa = [np.array([sample[0]]), np.array([sample[1]])]
+    def _update(self, s, a, r, ss, ab):
+        sa = [s, a]
 
         approximator_idx = 0 if np.random.uniform() < 0.5 else 1
 
         q_current = self.approximator[approximator_idx].predict(sa)
-        q_next = self._next_q(
-            np.array([sample[3]]), approximator_idx) if not sample[4] else 0.
+
+        if not ab:
+            _, a_n = max_QA(ss, False, self.approximator[approximator_idx])
+            a_n = np.array([[np.random.choice(a_n.ravel())]])
+            sa_n = [ss, a_n]
+
+            q_next = self.approximator[1 - approximator_idx].predict(sa_n)
+        else:
+            q_next = 0.
 
         q = q_current + self.learning_rate[approximator_idx](sa) * (
-            sample[2] + self._gamma * q_next - q_current)
+            r + self._gamma * q_next - q_current)
 
         self.approximator[approximator_idx].fit(
             sa, q, **self.params['fit_params'])
-
-    def _next_q(self, next_state, approximator_idx):
-        """
-        Args:
-            next_state (np.array): the state where next action has to be
-                evaluated;
-            approximator_idx (int): the index of the approximator to use
-                to make the prediction.
-
-        Returns:
-            Action-value of the action whose value in 'next_state' is the
-            maximum according to 'approximator[approximator]'.
-
-        """
-        _, a_n = max_QA(next_state, False, self.approximator[approximator_idx])
-        a_n = np.array([[np.random.choice(a_n.ravel())]])
-        sa_n = [next_state, a_n]
-
-        return self.approximator[1 - approximator_idx].predict(sa_n)
-
 
 class WeightedQLearning(TD):
     """
@@ -143,19 +133,14 @@ class WeightedQLearning(TD):
         self._Q2 = np.zeros(self.approximator.shape)
         self._weights_var = np.zeros(self.approximator.shape)
 
-    def fit(self, dataset, n_iterations=1):
-        assert n_iterations == 1 and len(dataset) == 1
-
-        sample = dataset[0]
-        sa = [np.array([sample[0]]), np.array([sample[1]])]
-        sa_idx = tuple(np.concatenate(
-            (np.array([sample[0]]), np.array([sample[1]])),
-            axis=1).astype(np.int).ravel())
+    def _update(self, s, a, r, ss, ab):
+        sa = [s, a]
+        sa_idx = tuple(np.concatenate((s, a), axis=1).astype(np.int).ravel())
 
         q_current = self.approximator.predict(sa)
-        q_next = self._next_q(np.array([sample[3]])) if not sample[4] else 0.
+        q_next = self._next_q(ss) if not ab else 0.
 
-        target = sample[2] + self._gamma * q_next
+        target = r + self._gamma * q_next
 
         alpha = self.learning_rate(sa)
 
@@ -224,19 +209,16 @@ class SpeedyQLearning(TD):
 
         super(SpeedyQLearning, self).__init__(approximator, policy, gamma, **params)
 
-    def fit(self, dataset, n_iterations=1):
-        assert n_iterations == 1 and len(dataset) == 1
-
-        sample = dataset[0]
-        sa = [np.array([sample[0]]), np.array([sample[1]])]
+    def _update(self, s, a, r, ss, ab):
+        sa = [s, a]
 
         old_q = deepcopy(self.approximator)
 
-        max_q_cur, _ = max_QA(np.array([sample[3]]), False, self.approximator)
-        max_q_old, _ = max_QA(np.array([sample[3]]), False, self.old_q)
+        max_q_cur, _ = max_QA(ss, False, self.approximator)
+        max_q_old, _ = max_QA(ss, False, self.old_q)
 
-        target_cur = sample[2] + self._gamma * max_q_cur
-        target_old = sample[2] + self._gamma * max_q_old
+        target_cur = r + self._gamma * max_q_cur
+        target_old = r + self._gamma * max_q_old
 
         alpha = self.learning_rate(sa)
         q_cur = self.approximator.predict(sa)
@@ -258,20 +240,16 @@ class SARSA(TD):
 
         super(SARSA, self).__init__(approximator, policy, gamma, **params)
 
-    def _next_q(self, next_state):
-        """
-        Compute the action with the maximum action-value in 'next_state'.
+    def _update(self, s, a, r, ss, ab):
+        sa = [s, a]
+        q_current = self.approximator.predict(sa)
 
-        Args:
-            next_state (np.array): the state where next action has to be
-                evaluated.
+        self._next_action = self.draw_action(ss)
+        sa_n = [ss, np.expand_dims(self._next_action, axis=0)]
 
-        Returns:
-            the action_value of the action returned by the policy in
-            'next_state'
+        q_next = self.approximator.predict(sa_n) if not ab else 0
 
-        """
-        self._next_action = self.draw_action(next_state)
-        sa_n = [next_state, np.expand_dims(self._next_action, axis=0)]
+        q = q_current + self.learning_rate(sa) * (
+             r + self._gamma * q_next - q_current)
 
-        return self.approximator.predict(sa_n)
+        self.approximator.fit(sa, q, **self.params['fit_params'])
