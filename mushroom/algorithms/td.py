@@ -2,7 +2,8 @@ import numpy as np
 from copy import deepcopy
 
 from mushroom.algorithms.agent import Agent
-from mushroom.utils.dataset import max_QA
+from mushroom.approximators import EnsembleTable
+from mushroom.utils.table import Table
 
 
 class TD(Agent):
@@ -32,10 +33,10 @@ class TD(Agent):
     @staticmethod
     def _parse(dataset):
         sample = dataset[0]
-        s = np.array([sample[0]])
-        a = np.array([sample[1]])
+        s = sample[0]
+        a = sample[1]
         r = sample[2]
-        ss = np.array([sample[3]])
+        ss = sample[3]
         ab = sample[4]
         
         return s, a, r, ss, ab
@@ -53,24 +54,20 @@ class QLearning(TD):
     "Learning from Delayed Rewards". Watkins C.J.C.H.. 1989.
 
     """
-    def __init__(self, approximator, policy, gamma, **params):
+    def __init__(self, shape, policy, gamma, **params):
         self.__name__ = 'QLearning'
 
-        super(QLearning, self).__init__(approximator, policy, gamma, **params)
+        self.Q = Table(shape)
+
+        super(QLearning, self).__init__(self.Q, policy, gamma, **params)
 
     def _update(self, s, a, r, ss, ab):
-        sa = [s, a]
-        q_current = self.approximator.predict(sa)
+        q_current = self.Q[s, a]
 
-        if not ab:
-            q_next, _ = max_QA(ss, False, self.approximator)
-        else:
-            q_next = 0
+        q_next = np.max(self.Q[s, :]) if not ab else 0.0
 
-        q = q_current + self.learning_rate(sa) * (
+        self.Q[s, a] = q_current + self.learning_rate(s, a) * (
              r + self._gamma * q_next - q_current)
-
-        self.approximator.fit(sa, q, **self.params['fit_params'])
 
 
 class DoubleQLearning(TD):
@@ -79,39 +76,36 @@ class DoubleQLearning(TD):
     "Double Q-Learning". van Hasselt H.. 2010.
 
     """
-    def __init__(self, approximator, policy, gamma, **params):
+    def __init__(self, shape, policy, gamma, **params):
         self.__name__ = 'DoubleQLearning'
 
-        super(DoubleQLearning, self).__init__(approximator, policy, gamma, **params)
+        self.Q = EnsembleTable(2, shape)
+
+        super(DoubleQLearning, self).__init__(self.Q, policy, gamma, **params)
 
         self.learning_rate = [deepcopy(self.learning_rate),
                               deepcopy(self.learning_rate)]
 
-        assert len(self.approximator) == 2, 'The regressor ensemble must' \
+        assert len(self.Q) == 2, 'The regressor ensemble must' \
                                             ' have exactly 2 models.'
 
     def _update(self, s, a, r, ss, ab):
-        sa = [s, a]
-
         approximator_idx = 0 if np.random.uniform() < 0.5 else 1
 
-        q_current = self.approximator[approximator_idx].predict(sa)
+        q_current = self.Q[approximator_idx][s, a]
 
         if not ab:
-            _, a_n = max_QA(ss, False, self.approximator[approximator_idx])
-            a_n = np.array([[np.random.choice(a_n.ravel())]])
-            sa_n = [ss, a_n]
-
-            q_next = self.approximator[1 - approximator_idx].predict(sa_n)
+            q_ss = self.Q[approximator_idx][ss, :]
+            max_q = np.max(q_ss)
+            a_n = np.array([np.random.choice(np.argwhere(q_ss == max_q).ravel())])
+            q_next = self.Q[1 - approximator_idx][ss, a_n]
         else:
             q_next = 0.
 
-        q = q_current + self.learning_rate[approximator_idx](sa) * (
+        q = q_current + self.learning_rate[approximator_idx](s, a) * (
             r + self._gamma * q_next - q_current)
 
-        self.approximator[approximator_idx].fit(
-            sa, q, **self.params['fit_params'])
-
+        self.Q[approximator_idx][s, a] = q
 
 class WeightedQLearning(TD):
     """
@@ -120,49 +114,45 @@ class WeightedQLearning(TD):
     D'Eramo C. et. al.. 2016.
 
     """
-    def __init__(self, approximator, policy, gamma, **params):
+    def __init__(self, shape, policy, gamma, **params):
         self.__name__ = 'WeightedQLearning'
 
+        self.Q = Table(shape)
         self._sampling = params.pop('sampling', True)
         self._precision = params.pop('precision', 1000.)
 
-        super(WeightedQLearning, self).__init__(approximator, policy, gamma, **params)
+        super(WeightedQLearning, self).__init__(self.Q, policy, gamma, **params)
 
-        self._n_updates = np.zeros(self.approximator.shape)
-        self._sigma = np.ones(self.approximator.shape) * 1e10
-        self._Q = np.zeros(self.approximator.shape)
-        self._Q2 = np.zeros(self.approximator.shape)
-        self._weights_var = np.zeros(self.approximator.shape)
+        self._n_updates = Table(shape)
+        self._sigma = Table(shape, initial_value=1e10)
+        self._Q = Table(shape)
+        self._Q2 = Table(shape)
+        self._weights_var = Table(shape)
 
     def _update(self, s, a, r, ss, ab):
-        sa = [s, a]
-        sa_idx = tuple(np.concatenate((s, a), axis=1).astype(np.int).ravel())
-
-        q_current = self.approximator.predict(sa)
+        q_current = self.Q[s, a]
         q_next = self._next_q(ss) if not ab else 0.
 
         target = r + self._gamma * q_next
 
-        alpha = self.learning_rate(sa)
+        alpha = self.learning_rate(s, a)
 
-        q = q_current + alpha * (target - q_current)
+        self.Q[s, a] = q_current + alpha * (target - q_current)
 
-        self.approximator.fit(sa, q, **self.params['fit_params'])
+        self._n_updates[s, a] += 1
 
-        self._n_updates[sa_idx] += 1
+        self._Q[s, a] += (target - self._Q[s, a]) / self._n_updates[s, a]
+        self._Q2[s, a] += (
+            target ** 2. - self._Q2[s, a]) / self._n_updates[s, a]
+        self._weights_var[s, a] = (1 - alpha) ** 2. * self._weights_var[
+            s, a] + alpha ** 2.
 
-        self._Q[sa_idx] += (target - self._Q[sa_idx]) / self._n_updates[sa_idx]
-        self._Q2[sa_idx] += (
-            target ** 2. - self._Q2[sa_idx]) / self._n_updates[sa_idx]
-        self._weights_var[sa_idx] = (1 - alpha) ** 2. * self._weights_var[
-            sa_idx] + alpha ** 2.
-
-        if self._n_updates[sa_idx] > 1:
-            var = self._n_updates[sa_idx] * (self._Q2[sa_idx] - self._Q[
-                    sa_idx] ** 2.) / (self._n_updates[sa_idx] - 1.)
-            var_estimator = var * self._weights_var[sa_idx]
-            self._sigma[sa_idx] = np.sqrt(var_estimator)
-            self._sigma[self._sigma < 1e-10] = 1e-10
+        if self._n_updates[s, a] > 1:
+            var = self._n_updates[s, a] * (self._Q2[s, a] - self._Q[
+                    s, a] ** 2.) / (self._n_updates[s, a] - 1.)
+            var_estimator = var * self._weights_var[s, a]
+            self._sigma[s, a] = np.sqrt(var_estimator)
+            self._sigma.table[self._sigma < 1e-10] = 1e-10
 
     def _next_q(self, next_state):
         """
@@ -174,17 +164,15 @@ class WeightedQLearning(TD):
             The weighted estimator value in 'next_state'.
 
         """
-        means = self.approximator.predict_all(next_state)
+        means = self.Q[next_state, :]
+        sigmas = np.zeros(self.Q.shape[-1])
 
-        sigmas = np.zeros((1, self.approximator.Q.shape[-1]))
         for a in xrange(sigmas.size):
-            sa_n_idx = tuple(np.concatenate((next_state, np.array([[a]])),
-                                            axis=1).astype(np.int).ravel())
-            sigmas[0, a] = self._sigma[sa_n_idx]
+            sigmas[a] = self._sigma[next_state, np.array([a])]
 
         if self._sampling:
-            samples = np.random.normal(np.repeat(means, self._precision, 0),
-                                       np.repeat(sigmas, self._precision, 0))
+            samples = np.random.normal(np.repeat([means], self._precision, 0),
+                                       np.repeat([sigmas], self._precision, 0))
             max_idx = np.argmax(samples, axis=1)
             max_idx, max_count = np.unique(max_idx, return_counts=True)
             count = np.zeros(means.size)
@@ -194,7 +182,7 @@ class WeightedQLearning(TD):
         else:
             raise NotImplementedError
 
-        return np.dot(w, means.T)[0]
+        return np.dot(w, means)
 
 
 class SpeedyQLearning(TD):
@@ -203,30 +191,27 @@ class SpeedyQLearning(TD):
     "Speedy Q-Learning". Ghavamzadeh et. al.. 2011.
 
     """
-    def __init__(self, approximator, policy, gamma, **params):
+    def __init__(self, shape, policy, gamma, **params):
         self.__name__ = 'SpeedyQLearning'
 
-        self.old_q = deepcopy(approximator)
+        self.Q = Table(shape)
+        self.old_q = deepcopy(self.Q)
 
-        super(SpeedyQLearning, self).__init__(approximator, policy, gamma, **params)
+        super(SpeedyQLearning, self).__init__(self.Q, policy, gamma, **params)
 
     def _update(self, s, a, r, ss, ab):
-        sa = [s, a]
+        old_q = deepcopy(self.Q)
 
-        old_q = deepcopy(self.approximator)
-
-        max_q_cur, _ = max_QA(ss, False, self.approximator)
-        max_q_old, _ = max_QA(ss, False, self.old_q)
+        max_q_cur = np.max(self.Q[ss, :]) if not ab else 0.0
+        max_q_old = np.max(self.old_q[ss, :]) if not ab else 0.0
 
         target_cur = r + self._gamma * max_q_cur
         target_old = r + self._gamma * max_q_old
 
-        alpha = self.learning_rate(sa)
-        q_cur = self.approximator.predict(sa)
-        q = q_cur + alpha * (target_old-q_cur) + (
+        alpha = self.learning_rate(s, a)
+        q_cur = self.Q[s, a]
+        self.Q[s, a] = q_cur + alpha * (target_old-q_cur) + (
             1.0 - alpha) * (target_cur - target_old)
-
-        self.approximator.fit(sa, q, **self.params['fit_params'])
 
         self.old_q = old_q
 
@@ -236,21 +221,16 @@ class SARSA(TD):
     SARSA algorithm.
 
     """
-    def __init__(self, approximator, policy, gamma, **params):
+    def __init__(self, shape, policy, gamma, **params):
         self.__name__ = 'SARSA'
-
-        super(SARSA, self).__init__(approximator, policy, gamma, **params)
+        self.Q = Table(shape)
+        super(SARSA, self).__init__(self.Q, policy, gamma, **params)
 
     def _update(self, s, a, r, ss, ab):
-        sa = [s, a]
-        q_current = self.approximator.predict(sa)
+        q_current = self.Q[s, a]
 
         self._next_action = self.draw_action(ss)
-        sa_n = [ss, np.expand_dims(self._next_action, axis=0)]
+        q_next = self.Q[ss, np.array([self._next_action])] if not ab else 0
 
-        q_next = self.approximator.predict(sa_n) if not ab else 0
-
-        q = q_current + self.learning_rate(sa) * (
+        self.Q[s, a] = q_current + self.learning_rate(s, a) * (
              r + self._gamma * q_next - q_current)
-
-        self.approximator.fit(sa, q, **self.params['fit_params'])
