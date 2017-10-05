@@ -148,15 +148,14 @@ def rollout(env, fig):
     global human_agent_action, human_wants_restart, human_sets_pause
 
     human_wants_restart = False
-    obser = env.reset()
-    frame = Image.fromarray(obser, 'RGB').convert('L').resize((84, 84))
-    frame = np.asarray(frame.getdata(), dtype=np.uint8).reshape(frame.size[1],
-                                                                frame.size[0])
     for i in xrange(args.history_length):
+        obser = env.reset()
+        frame = Image.fromarray(obser, 'RGB').convert('L').resize((84, 84))
+        frame = np.asarray(frame.getdata(), dtype=np.uint8).reshape(
+            frame.size[1], frame.size[0])
         buf.add(frame)
     skip = 0
     for t in range(ROLLOUT_TIME):
-        buf.add(frame)
         if not skip:
             a = human_agent_action
             skip = SKIP_CONTROL
@@ -164,15 +163,17 @@ def rollout(env, fig):
             skip -= 1
 
         obser, r, done, info = env.step(a)
-
-        plot_features(extractor, a, fig)
-
         frame = Image.fromarray(obser, 'RGB').convert('L').resize((84, 84))
         frame = np.asarray(frame.getdata(), dtype=np.uint8).reshape(
             frame.size[1], frame.size[0])
+        buf.add(frame)
+        plot_features(extractor, a, fig)
+
         env.render()
-        if done: break
-        if human_wants_restart: break
+        if done:
+            break
+        if human_wants_restart:
+            break
         while human_sets_pause:
             env.render()
             import time
