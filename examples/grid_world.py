@@ -1,3 +1,7 @@
+import matplotlib
+matplotlib.use("Agg")
+from matplotlib import pyplot as plt
+
 import numpy as np
 from joblib import Parallel, delayed
 
@@ -8,6 +12,7 @@ from mushroom.policy import EpsGreedy
 from mushroom.utils.callbacks import CollectDataset, CollectMaxQ
 from mushroom.utils.dataset import parse_dataset
 from mushroom.utils.parameters import DecayParameter
+
 
 
 def experiment(algorithm_class, decay_exp):
@@ -39,7 +44,7 @@ def experiment(algorithm_class, decay_exp):
 
     # Train
     core.learn(n_iterations=10000, how_many=1, n_fit_steps=1,
-               iterate_over='samples')
+               iterate_over='samples', quiet=True)
 
     _, _, reward, _, _, _ = parse_dataset(collect_dataset.get())
     max_Qs = collect_max_Q.get_values()
@@ -54,7 +59,11 @@ if __name__ == '__main__':
              WeightedQLearning: 'WQ', SpeedyQLearning: 'SPQ'}
 
     for e in [1, .8]:
+        fig = plt.figure()
+        plt.suptitle(names[e])
+        legend_labels = []
         for a in [QLearning, DoubleQLearning, WeightedQLearning, SpeedyQLearning]:
+            print names[a]
             out = Parallel(n_jobs=-1)(
                 delayed(experiment)(a, e) for _ in xrange(n_experiment))
             r = np.array([o[0] for o in out])
@@ -63,11 +72,10 @@ if __name__ == '__main__':
             r = np.convolve(np.mean(r, 0), np.ones(100) / 100., 'valid')
             max_Qs = np.mean(max_Qs, 0)
 
-            from matplotlib import pyplot as plt
-            plt.figure()
-            plt.suptitle(names[a] + ' ' + names[e])
             plt.subplot(2, 1, 1)
             plt.plot(r)
             plt.subplot(2, 1, 2)
             plt.plot(max_Qs)
-    plt.show()
+            legend_labels.append(names[a])
+        plt.legend(legend_labels)
+        fig.savefig('test_' + names[e] + '.png')
