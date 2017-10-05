@@ -45,7 +45,7 @@ class Extractor:
             ret.append(self._session.run(self._predicted_absorbing,
                                          feed_dict=fd))
         if features:
-            ret.append(self._session.run(self._features_state,
+            ret.append(self._session.run(self._features,
                                          feed_dict=fd))
 
         return ret
@@ -154,20 +154,20 @@ class Extractor:
             )
             hidden_4_flat = tf.reshape(hidden_4, [-1, 5 * 5 * 64],
                                        name='hidden_4_flat')
-            self._features_state = tf.layers.dense(hidden_4_flat,
-                                                   self._n_features,
-                                                   activation=tf.nn.relu,
-                                                   name='features_state')
+            features_state = tf.layers.dense(hidden_4_flat,
+                                             self._n_features,
+                                             activation=tf.nn.relu,
+                                             name='features_state')
             if self._predict_next_frame:
                 features_action = tf.layers.dense(one_hot_action,
                                                   self._n_features,
                                                   activation=tf.nn.relu,
                                                   name='features_action')
-                self._features = tf.multiply(self._features_state,
+                self._features = tf.multiply(features_state,
                                              features_action,
                                              name='state_x_action')
             else:
-                self._features = self._features_state
+                self._features = features_state
             hidden_5_flat = tf.layers.dense(self._features,
                                             1600,
                                             activation=tf.nn.relu,
@@ -311,7 +311,7 @@ class Extractor:
             if self._contractive:
                 raise NotImplementedError
             else:
-                self._reg = tf.reduce_mean(tf.norm(self._features_state, 1,
+                self._reg = tf.reduce_mean(tf.norm(features_state, 1,
                                                    axis=1),
                                            name='reg')
             self._loss = tf.add(self._xent, self._reg_coeff * self._reg,

@@ -112,6 +112,7 @@ class DeepFQI(FQI):
         self._no_op_action_value = alg_params.get('no_op_action_value')
         self._episode_steps = 0
         self._no_op_actions = None
+        self._predict_next_frame = self._extractor.model._predict_next_frame
 
         super(DeepFQI, self).__init__(approximator, policy, gamma, **params)
 
@@ -122,10 +123,22 @@ class DeepFQI(FQI):
         if y is None:
             y = reward
         else:
-            maxq, _ = max_QA(next_state, absorbing, self.approximator)
-            y = reward + self._gamma * maxq
+            if self._predict_next_frame:
+                q = np.ones((state.shape[0], self.mdp_info['action_space'].n))
+                for i in xrange(q.shape[1]):
+                    apprx_input = next_state[i]
+                    q[:, i] = self.approximator.predict(apprx_input)
+                if np.any(absorbing):
+                    q *= 1 - absorbing.reshape(-1, 1)
+                max_q = np.max(q, axis=1)
+            else:
+                max_q, _ = max_QA(next_state, absorbing, self.approximator)
+            y = reward + self._gamma * max_q
 
-        apprx_input = [state, action]
+        if self._predict_next_frame:
+            apprx_input = state
+        else:
+            apprx_input = [state, action]
         self.approximator.fit(apprx_input, y, **fit_params)
 
         return y
@@ -139,9 +152,16 @@ class DeepFQI(FQI):
             extended_state = self._buffer.get()
 
             if not np.random.uniform() < self.policy._epsilon(extended_state):
-                s = [np.expand_dims(extended_state, axis=0)]
-                features = self._extractor.predict(s)[0]
-                q = self.approximator.predict_all(features)
+                q = np.ones(self.mdp_info['action_space'].n)
+                for i in xrange(q.size):
+                    sa = [np.expand_dims(extended_state, axis=0),
+                          np.ones((1, 1)) * i]
+                    features = self._extractor.predict(sa)[0]
+                    if self._predict_next_frame:
+                        apprx_input = features
+                    else:
+                        apprx_input = [features, np.ones((1, 1)) * i]
+                    q[i] = self.approximator.predict(apprx_input)
                 action = np.array(
                     [np.random.choice(np.argwhere(q == np.max(q)).ravel())])
             else:
