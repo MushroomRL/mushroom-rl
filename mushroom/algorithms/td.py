@@ -152,7 +152,7 @@ class WeightedQLearning(TD):
                     s, a] ** 2.) / (self._n_updates[s, a] - 1.)
             var_estimator = var * self._weights_var[s, a]
             self._sigma[s, a] = np.sqrt(var_estimator)
-            self._sigma.table[self._sigma < 1e-10] = 1e-10
+            self._sigma.table[self._sigma.table < 1e-10] = 1e-10
 
     def _next_q(self, next_state):
         """
