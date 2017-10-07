@@ -1,7 +1,6 @@
 import numpy as np
 
 from mushroom.algorithms.td import QLearning
-from mushroom.approximators import Regressor, Tabular
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
@@ -20,20 +19,14 @@ def experiment():
     pi = EpsGreedy(epsilon=epsilon, observation_space=mdp.observation_space,
                    action_space=mdp.action_space)
 
-    # Approximator
-    shape = mdp.observation_space.shape + mdp.action_space.shape
-    approximator_params = dict(shape=shape)
-    approximator = Regressor(Tabular,
-                             discrete_actions=mdp.action_space.n,
-                             **approximator_params)
-
     # Agent
+    shape = mdp.observation_space.shape + mdp.action_space.shape
     learning_rate = Parameter(value=.2)
     algorithm_params = dict(learning_rate=learning_rate)
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
-    agent = QLearning(approximator, pi, mdp.gamma, **agent_params)
+    agent = QLearning(shape, pi, mdp.gamma, **agent_params)
 
     # Algorithm
     core = Core(agent, mdp)

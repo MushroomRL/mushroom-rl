@@ -3,7 +3,7 @@ from copy import deepcopy
 import numpy as np
 import tensorflow as tf
 
-from mushroom.approximators.ensemble import Ensemble
+from mushroom.approximators.ensemble import EnsembleTable
 from mushroom.utils.dataset import compute_scores, max_QA
 
 
@@ -42,13 +42,13 @@ class CollectQ:
         self._Qs = list()
 
     def __call__(self, **kwargs):
-        if isinstance(self._approximator, Ensemble):
+        if isinstance(self._approximator, EnsembleTable):
             qs = list()
-            for m in self._approximator.models:
-                qs.append(m.model.Q)
+            for m in self._approximator.tables:
+                qs.append(m.table)
             self._Qs.append(deepcopy(np.mean(qs, 0)))
         else:
-            self._Qs.append(deepcopy(self._approximator.model.Q))
+            self._Qs.append(deepcopy(self._approximator.table))
 
     def get_values(self):
         return self._Qs

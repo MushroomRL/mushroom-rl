@@ -1,13 +1,16 @@
+import matplotlib
+matplotlib.use("Agg")
+from matplotlib import pyplot as plt
+
 import numpy as np
 from joblib import Parallel, delayed
 
-from mushroom.algorithms.td import QLearning, DoubleQLearning, WeightedQLearning, SpeedyQLearning
-from mushroom.approximators import Ensemble, Regressor, Tabular
+from mushroom.algorithms.td import QLearning, DoubleQLearning, WeightedQLearning, SpeedyQLearning, SARSA
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
 from mushroom.utils.callbacks import CollectDataset, CollectMaxQ
-from mushroom.utils.dataset import parse_dataset
+from mushroom.utils.dataset import parse_dataset, max_QA
 from mushroom.utils.parameters import DecayParameter
 
 
@@ -23,36 +26,24 @@ def experiment(algorithm_class, decay_exp):
     pi = EpsGreedy(epsilon=epsilon, observation_space=mdp.observation_space,
                    action_space=mdp.action_space)
 
-    # Approximator
-    shape = mdp.observation_space.size + mdp.action_space.size
-    approximator_params = dict(shape=shape)
-    if algorithm_class in [QLearning, WeightedQLearning, SpeedyQLearning]:
-        approximator = Regressor(Tabular,
-                                 discrete_actions=mdp.action_space.n,
-                                 **approximator_params)
-    elif algorithm_class is DoubleQLearning:
-        approximator = Ensemble(Tabular,
-                                n_models=2,
-                                discrete_actions=mdp.action_space.n,
-                                **approximator_params)
-
     # Agent
+    shape = mdp.observation_space.size + mdp.action_space.size
     learning_rate = DecayParameter(value=1, decay_exp=decay_exp, shape=shape)
     algorithm_params = dict(learning_rate=learning_rate)
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
-    agent = algorithm_class(approximator, pi, mdp.gamma, **agent_params)
+    agent = algorithm_class(shape, pi, mdp.gamma, **agent_params)
 
     # Algorithm
-    collect_max_Q = CollectMaxQ(approximator, np.array([mdp._start]))
+    collect_max_Q = CollectMaxQ(agent.approximator, np.array([mdp._start]))
     collect_dataset = CollectDataset()
     callbacks = [collect_dataset, collect_max_Q]
     core = Core(agent, mdp, callbacks)
 
     # Train
     core.learn(n_iterations=10000, how_many=1, n_fit_steps=1,
-               iterate_over='samples')
+               iterate_over='samples', quiet=True)
 
     _, _, reward, _, _, _ = parse_dataset(collect_dataset.get())
     max_Qs = collect_max_Q.get_values()
@@ -64,11 +55,15 @@ if __name__ == '__main__':
     n_experiment = 10000
 
     names = {1: '1', .8: '08', QLearning: 'Q', DoubleQLearning: 'DQ',
-             WeightedQLearning: 'WQ', SpeedyQLearning: 'SPQ'}
+             WeightedQLearning: 'WQ', SpeedyQLearning: 'SPQ', SARSA: 'SARSA'}
 
     for e in [1, .8]:
-        for a in [QLearning, DoubleQLearning, WeightedQLearning,
-                  SpeedyQLearning]:
+        print 'exponent: ', e
+        fig = plt.figure()
+        plt.suptitle(names[e])
+        legend_labels = []
+        for a in [QLearning, DoubleQLearning, WeightedQLearning, SpeedyQLearning, SARSA]:
+            print 'alg: ', names[a]
             out = Parallel(n_jobs=-1)(
                 delayed(experiment)(a, e) for _ in xrange(n_experiment))
             r = np.array([o[0] for o in out])
@@ -77,11 +72,13 @@ if __name__ == '__main__':
             r = np.convolve(np.mean(r, 0), np.ones(100) / 100., 'valid')
             max_Qs = np.mean(max_Qs, 0)
 
-            from matplotlib import pyplot as plt
-            plt.figure()
-            plt.suptitle(names[a] + ' ' + names[e])
+            np.save(names[a] + '_' + names[e] + 'r', r)
+            np.save(names[a] + '_' + names[e] + 'maxQ', max_Qs)
+
             plt.subplot(2, 1, 1)
             plt.plot(r)
             plt.subplot(2, 1, 2)
             plt.plot(max_Qs)
-    plt.show()
+            legend_labels.append(names[a])
+        plt.legend(legend_labels)
+        fig.savefig('test_' + names[e] + '.png')

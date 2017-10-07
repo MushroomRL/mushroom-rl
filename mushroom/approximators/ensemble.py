@@ -1,8 +1,8 @@
 import numpy as np
 
-from mushroom.approximators.action_regressor import ActionRegressor
 from mushroom.approximators.regressor import Regressor
-
+from mushroom.approximators.action_regressor import ActionRegressor
+from mushroom.utils.table import Table
 
 class Ensemble(object):
     """
@@ -98,3 +98,75 @@ class Ensemble(object):
     def __str__(self):
         s = '.' if self._use_action_regressor else ' with action regression.'
         return 'Ensemble of %d ' % self.n_models + str(self.models[0]) + s
+
+
+class EnsembleTable(object):
+    """
+        This class implements functions to manage table ensembles.
+
+        """
+
+    def __init__(self, n_tables, shape):
+        """
+        Constructor.
+
+        Args:
+            tables (Table): tables in the ensemble;
+        """
+
+        self.tables = []
+        for i in xrange(n_tables):
+            self.tables.append(Table(shape))
+
+    def predict(self, x, compute_variance=False):
+        """
+        Predict.
+
+        Args:
+            x (list): a two elements list with states and actions.
+
+        Returns:
+            The predictions of the model.
+
+        """
+        y_0 = self.tables[0].predict(x)
+        y = np.zeros((len(self.tables),) + y_0.shape)
+        y[0] = y_0
+        for i, m in enumerate(self.tables[1:]):
+            y[i + 1] = m.predict(x)
+
+        if compute_variance:
+            return np.mean(y, axis=0), np.var(y, ddof=1, axis=0)
+        else:
+            return np.mean(y, axis=0)
+
+    def predict_all(self, x, compute_variance=False):
+        """
+        Predict for each action given a state.
+
+        Args:
+            x (np.array): states.
+
+        Returns:
+            The predictions of the model.
+
+        """
+        y_0 = self.tables[0].predict_all(x)
+        y = np.zeros((len(self.tables),) + y_0.shape)
+        y[0] = y_0
+        for i, m in enumerate(self.tables[1:]):
+            y[i + 1] = m.predict_all(x)
+
+        if compute_variance:
+            return np.mean(y, axis=0), np.var(y, ddof=1, axis=0)
+        else:
+            return np.mean(y, axis=0)
+
+    def __len__(self):
+        return len(self.tables)
+
+    def __getitem__(self, idx):
+        return self.tables[idx]
+
+    def __str__(self):
+        return 'Ensemble of %d ' % len(self.tables) + 'Tables'
