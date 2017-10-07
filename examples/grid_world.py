@@ -5,14 +5,13 @@ from matplotlib import pyplot as plt
 import numpy as np
 from joblib import Parallel, delayed
 
-from mushroom.algorithms.td import QLearning, DoubleQLearning, WeightedQLearning, SpeedyQLearning
+from mushroom.algorithms.td import QLearning, DoubleQLearning, WeightedQLearning, SpeedyQLearning, SARSA
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
 from mushroom.utils.callbacks import CollectDataset, CollectMaxQ
-from mushroom.utils.dataset import parse_dataset
+from mushroom.utils.dataset import parse_dataset, max_QA
 from mushroom.utils.parameters import DecayParameter
-
 
 
 def experiment(algorithm_class, decay_exp):
@@ -56,14 +55,15 @@ if __name__ == '__main__':
     n_experiment = 10000
 
     names = {1: '1', .8: '08', QLearning: 'Q', DoubleQLearning: 'DQ',
-             WeightedQLearning: 'WQ', SpeedyQLearning: 'SPQ'}
+             WeightedQLearning: 'WQ', SpeedyQLearning: 'SPQ', SARSA: 'SARSA'}
 
     for e in [1, .8]:
+        print 'exponent: ', e
         fig = plt.figure()
         plt.suptitle(names[e])
         legend_labels = []
-        for a in [QLearning, DoubleQLearning, WeightedQLearning, SpeedyQLearning]:
-            print names[a]
+        for a in [QLearning, DoubleQLearning, WeightedQLearning, SpeedyQLearning, SARSA]:
+            print 'alg: ', names[a]
             out = Parallel(n_jobs=-1)(
                 delayed(experiment)(a, e) for _ in xrange(n_experiment))
             r = np.array([o[0] for o in out])
@@ -71,6 +71,9 @@ if __name__ == '__main__':
 
             r = np.convolve(np.mean(r, 0), np.ones(100) / 100., 'valid')
             max_Qs = np.mean(max_Qs, 0)
+
+            np.save(names[a] + '_' + names[e] + 'r', r)
+            np.save(names[a] + '_' + names[e] + 'maxQ', max_Qs)
 
             plt.subplot(2, 1, 1)
             plt.plot(r)

@@ -1,5 +1,5 @@
-import numpy as np
 from mushroom.utils.table import Table
+
 
 class Parameter(object):
     def __init__(self, value, min_value=None, shape=(1,)):
@@ -9,24 +9,24 @@ class Parameter(object):
 
     def __call__(self, *idx, **kwargs):
         if self._n_updates.table.size == 1:
-            idx = 0
+            idx = []
 
-        self.update(idx)
+        self.update(*idx)
 
-        return self.get_value(idx, **kwargs)
+        return self.get_value(*idx, **kwargs)
 
-    def get_value(self, idx, **kwargs):
-        new_value = self._compute(idx, **kwargs)
+    def get_value(self, *idx, **kwargs):
+        new_value = self._compute(*idx, **kwargs)
 
         if self._min_value is None or new_value >= self._min_value:
             return new_value
         else:
             return self._min_value
 
-    def _compute(self, idx, **kwargs):
+    def _compute(self, *idx, **kwargs):
         return self._initial_value
 
-    def update(self, idx):
+    def update(self, *idx, **kwargs):
         self._n_updates[idx] += 1
 
     @property
@@ -40,7 +40,7 @@ class LinearDecayParameter(Parameter):
 
         super(LinearDecayParameter, self).__init__(value, min_value, shape)
 
-    def _compute(self, idx, **kwargs):
+    def _compute(self, *idx, **kwargs):
         return self._coeff * self._n_updates[idx] + self._initial_value
 
 
@@ -50,5 +50,5 @@ class DecayParameter(Parameter):
 
         super(DecayParameter, self).__init__(value, min_value, shape)
 
-    def _compute(self, idx, **kwargs):
+    def _compute(self, *idx, **kwargs):
         return self._initial_value / self._n_updates[idx] ** self._decay_exp

@@ -29,8 +29,8 @@ class Table(object):
 
     def _get_index(self, args):
 
-        if isinstance(args, int):
-            idxs = (args,)
+        if len(args) == 0:
+            idxs = (0,)
         elif len(args) == 1:
             idxs = tuple(args[0].ravel())
         elif type(args[0]) is slice:
@@ -39,46 +39,7 @@ class Table(object):
             idxs = tuple(args[0].astype(int))+(args[1],)
         else:
             idxs = tuple(np.concatenate((args[0].astype(int), args[1].astype(int))))
-
         return idxs
-
-
-    def fit(self, x, y, **fit_params):
-        """
-        Fit the model.
-
-        Args:
-            x (list): a two elements list with states and actions;
-            y (np.array): targets;
-            **fit_params (dict): other parameters.
-
-        """
-        idxs = tuple(np.concatenate((x[0].astype(int).flatten(), x[1].astype(int).flatten())))
-        self.table[idxs] = y[0]
-
-    def predict(self, x):
-        """
-        Predict.
-
-        Args:
-            x (list): a two elements list with states and actions;
-
-        Returns:
-            The predictions of the model.
-
-        """
-        #assert len(x[0].shape) == len(self.table.shape), 'tabular regressor dimension ' \
-        #                                         'does not fit with input size.'
-
-        if x[0].ndim == 2:
-            x = np.concatenate((x[0], x[1]), axis=1)
-        else:
-            x = [x[0], x[1]]
-
-        idxs = [x[:, i].astype(int) for i in xrange(x.shape[1])]
-        table = self.table[idxs]
-
-        return table
 
     def predict_all(self, x, **predict_params):
         table = []

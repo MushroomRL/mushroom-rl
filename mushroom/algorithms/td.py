@@ -64,7 +64,7 @@ class QLearning(TD):
     def _update(self, s, a, r, ss, ab):
         q_current = self.Q[s, a]
 
-        q_next = np.max(self.Q[s, :]) if not ab else 0.0
+        q_next = np.max(self.Q[ss, :]) if not ab else 0.0
 
         self.Q[s, a] = q_current + self.learning_rate(s, a) * (
              r + self._gamma * q_next - q_current)
@@ -230,7 +230,7 @@ class SARSA(TD):
         q_current = self.Q[s, a]
 
         self._next_action = self.draw_action(ss)
-        q_next = self.Q[ss, np.array([self._next_action])] if not ab else 0
+        q_next = self.Q[ss, self._next_action] if not ab else 0
 
         self.Q[s, a] = q_current + self.learning_rate(s, a) * (
              r + self._gamma * q_next - q_current)

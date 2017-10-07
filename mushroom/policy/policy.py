@@ -41,6 +41,7 @@ class EpsGreedy(object):
             The selected action.
 
         """
+
         if not np.random.uniform() < self._epsilon(state):
             _, max_action = max_QA(np.expand_dims(state, axis=0),
                                    False,
@@ -62,7 +63,7 @@ class EpsGreedy(object):
 
         self._epsilon = epsilon
 
-    def update(self, idx=0):
+    def update(self, *idx):
         """
         Update the value of the epsilon parameter (e.g. in case of different
         values of epsilon for each visited state according to the number of
@@ -72,7 +73,7 @@ class EpsGreedy(object):
             idx (int): value to use to update epsilon.
 
         """
-        self._epsilon.update(idx)
+        self._epsilon.update(*idx)
 
     def __str__(self):
         return self.__name__
