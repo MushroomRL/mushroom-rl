@@ -1,8 +1,8 @@
 import numpy as np
 from joblib import Parallel, delayed
 
-from mushroom.algorithms.td import QLearning, DoubleQLearning, WeightedQLearning,\
-    SpeedyQLearning
+from mushroom.algorithms.td import QLearning, DoubleQLearning,\
+    WeightedQLearning, SpeedyQLearning
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
@@ -44,6 +44,7 @@ def experiment(algorithm_class, decay_exp):
     Qs = collect_Q.get_values()
 
     return Qs
+
 
 if __name__ == '__main__':
     n_experiment = 500

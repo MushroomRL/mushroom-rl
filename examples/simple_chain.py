@@ -35,5 +35,6 @@ def experiment():
     core.learn(n_iterations=10000, how_many=1, n_fit_steps=1,
                iterate_over='samples')
 
+
 if __name__ == '__main__':
     experiment()

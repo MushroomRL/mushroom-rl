@@ -4,7 +4,7 @@ import os
 
 import numpy as np
 
-from mushroom.algorithms.dqn import DQN, DoubleDQN, RDQN, WeightedDQN
+from mushroom.algorithms.dqn import DQN, DoubleDQN, WeightedDQN
 from mushroom.approximators import Ensemble, Regressor
 from mushroom.core.core import Core
 from mushroom.environments import *
@@ -14,6 +14,12 @@ from mushroom.utils.dataset import compute_scores
 from mushroom.utils.parameters import LinearDecayParameter, Parameter
 from mushroom.utils.preprocessor import Scaler
 from convnet import ConvNet
+
+
+"""
+This script can be used to run Atari experiments with DQN. 
+
+"""
 
 # Disable tf cpp warnings
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"

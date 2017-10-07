@@ -64,7 +64,7 @@ class QLearning(TD):
     def _update(self, s, a, r, ss, ab):
         q_current = self.Q[s, a]
 
-        q_next = np.max(self.Q[ss, :]) if not ab else 0.0
+        q_next = np.max(self.Q[ss, :]) if not ab else 0.
 
         self.Q[s, a] = q_current + self.learning_rate(s, a) * (
              r + self._gamma * q_next - q_current)
@@ -87,17 +87,18 @@ class DoubleQLearning(TD):
                               deepcopy(self.learning_rate)]
 
         assert len(self.Q) == 2, 'The regressor ensemble must' \
-                                            ' have exactly 2 models.'
+                                 ' have exactly 2 models.'
 
     def _update(self, s, a, r, ss, ab):
-        approximator_idx = 0 if np.random.uniform() < 0.5 else 1
+        approximator_idx = 0 if np.random.uniform() < .5 else 1
 
         q_current = self.Q[approximator_idx][s, a]
 
         if not ab:
             q_ss = self.Q[approximator_idx][ss, :]
             max_q = np.max(q_ss)
-            a_n = np.array([np.random.choice(np.argwhere(q_ss == max_q).ravel())])
+            a_n = np.array(
+                [np.random.choice(np.argwhere(q_ss == max_q).ravel())])
             q_next = self.Q[1 - approximator_idx][ss, a_n]
         else:
             q_next = 0.
@@ -106,6 +107,7 @@ class DoubleQLearning(TD):
             r + self._gamma * q_next - q_current)
 
         self.Q[approximator_idx][s, a] = q
+
 
 class WeightedQLearning(TD):
     """
@@ -119,7 +121,7 @@ class WeightedQLearning(TD):
 
         self.Q = Table(shape)
         self._sampling = params.pop('sampling', True)
-        self._precision = params.pop('precision', 1000.)
+        self._precision = params.pop('precision', 1000)
 
         super(WeightedQLearning, self).__init__(self.Q, policy, gamma, **params)
 
@@ -151,8 +153,8 @@ class WeightedQLearning(TD):
             var = self._n_updates[s, a] * (self._Q2[s, a] - self._Q[
                     s, a] ** 2.) / (self._n_updates[s, a] - 1.)
             var_estimator = var * self._weights_var[s, a]
+            var_estimator = var_estimator if var_estimator >= 1e-10 else 1e-10
             self._sigma[s, a] = np.sqrt(var_estimator)
-            self._sigma.table[self._sigma.table < 1e-10] = 1e-10
 
     def _next_q(self, next_state):
         """
@@ -202,8 +204,8 @@ class SpeedyQLearning(TD):
     def _update(self, s, a, r, ss, ab):
         old_q = deepcopy(self.Q)
 
-        max_q_cur = np.max(self.Q[ss, :]) if not ab else 0.0
-        max_q_old = np.max(self.old_q[ss, :]) if not ab else 0.0
+        max_q_cur = np.max(self.Q[ss, :]) if not ab else 0.
+        max_q_old = np.max(self.old_q[ss, :]) if not ab else 0.
 
         target_cur = r + self._gamma * max_q_cur
         target_old = r + self._gamma * max_q_old
@@ -211,7 +213,7 @@ class SpeedyQLearning(TD):
         alpha = self.learning_rate(s, a)
         q_cur = self.Q[s, a]
         self.Q[s, a] = q_cur + alpha * (target_old-q_cur) + (
-            1.0 - alpha) * (target_cur - target_old)
+            1. - alpha) * (target_cur - target_old)
 
         self.old_q = old_q
 
@@ -223,6 +225,7 @@ class SARSA(TD):
     """
     def __init__(self, shape, policy, gamma, **params):
         self.__name__ = 'SARSA'
+
         self.Q = Table(shape)
         super(SARSA, self).__init__(self.Q, policy, gamma, **params)
 
@@ -230,7 +233,7 @@ class SARSA(TD):
         q_current = self.Q[s, a]
 
         self._next_action = self.draw_action(ss)
-        q_next = self.Q[ss, self._next_action] if not ab else 0
+        q_next = self.Q[ss, self._next_action] if not ab else 0.
 
         self.Q[s, a] = q_current + self.learning_rate(s, a) * (
              r + self._gamma * q_next - q_current)
