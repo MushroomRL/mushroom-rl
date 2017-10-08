@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class Table(object):
+class Table:
     """
     Table regressor. Used for discrete state and action spaces.
 
@@ -21,6 +21,7 @@ class Table(object):
 
     def __getitem__(self, args):
         idxs = self._get_index(args)
+
         return self.table[idxs]
 
     def __setitem__(self, args, value):
@@ -28,17 +29,19 @@ class Table(object):
         self.table[idxs] = value
 
     def _get_index(self, args):
-
         if len(args) == 0:
             idxs = (0,)
         elif len(args) == 1:
             idxs = tuple(args[0].ravel())
         elif type(args[0]) is slice:
-            idxs = (args[0],)*(len(self.table.shape)-1) + tuple(args[1].astype(int))
+            idxs = (args[0],) * (
+                len(self.table.shape)-1) + tuple(args[1].astype(int))
         elif type(args[1]) is slice:
-            idxs = tuple(args[0].astype(int))+(args[1],)
+            idxs = tuple(args[0].astype(int)) + (args[1],)
         else:
-            idxs = tuple(np.concatenate((args[0].astype(int), args[1].astype(int))))
+            idxs = tuple(np.concatenate((args[0].astype(int),
+                                         args[1].astype(int))))
+
         return idxs
 
     def predict_all(self, x, **predict_params):
@@ -50,7 +53,6 @@ class Table(object):
             table.append(val)
 
         return np.array(table)
-
 
     @property
     def shape(self):

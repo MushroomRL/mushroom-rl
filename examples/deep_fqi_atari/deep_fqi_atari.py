@@ -15,11 +15,9 @@ from mushroom.core.core import Core
 from mushroom.environments import Atari
 from mushroom.policy import EpsGreedy
 from mushroom.utils.dataset import compute_scores
-from mushroom.utils.ifs import IFS
 from mushroom.utils.parameters import Parameter
 from mushroom.utils.preprocessor import Binarizer, Filter, Preprocessor, Scaler
 from mushroom.utils.replay_memory import ReplayMemory
-from mushroom.utils.rfs import RFS
 from extractor import Extractor
 
 
@@ -85,49 +83,59 @@ def experiment():
     arg_net.add_argument("--decay", type=float, default=.95,
                          help='Discount factor for the history coming from the'
                               'gradient momentum in rmsprop.')
-    arg_net.add_argument("--n-features", type=int, default=25)
-    arg_net.add_argument("--reg-coeff", type=float, default=1e-5)
-    arg_net.add_argument("--contractive", action='store_true')
-    arg_net.add_argument("--sobel", action='store_true')
-    arg_net.add_argument("--predict-next-frame", action='store_true')
-    arg_net.add_argument("--predict-reward", action='store_true')
-    arg_net.add_argument("--predict-absorbing", action='store_true')
+    arg_net.add_argument("--n-features", type=int, default=256,
+                         help='Number of dense features of the deep'
+                              'autoencoder.')
+    arg_net.add_argument("--reg-coeff", type=float, default=1e-5,
+                         help='L1 regularization coefficient.')
+    arg_net.add_argument("--contractive", action='store_true',
+                         help='Use a contractive deep autoencoder.')
+    arg_net.add_argument("--sobel", action='store_true',
+                         help='Use sobel filter to preprocess frames.')
 
     arg_alg = parser.add_argument_group('Algorithm')
-    arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.)
-    arg_alg.add_argument("--n-epochs", type=int, default=25)
-    arg_alg.add_argument("--n-iterations", type=int, default=10)
-    arg_alg.add_argument("--fqi-steps", type=int, default=1000)
+    arg_alg.add_argument("--boosted", action='store_true',
+                         help='Use Boosted FQI.')
+    arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.,
+                         help='Initial value of the exploration rate.')
+    arg_alg.add_argument("--n-epochs", type=int, default=25,
+                         help='Number of training epochs of the deep'
+                              'autoencoder.')
+    arg_alg.add_argument("--n-iterations", type=int, default=10,
+                         help='Number of algorithm iterations.')
+    arg_alg.add_argument("--fqi-steps", type=int, default=1000,
+                         help='Number of FQI iterations.')
     arg_alg.add_argument("--approximator", choices=['linear', 'extra'],
-                         default='extra')
-    arg_alg.add_argument("--n-estimators", type=int, default=50)
-    arg_alg.add_argument("--min-samples-split", type=int, default=5)
-    arg_alg.add_argument("--min-samples-leaf", type=int, default=2)
-    arg_alg.add_argument("--max-depth", type=int, default=None)
-    arg_alg.add_argument("--dataset-size", type=int, default=500000)
-    arg_alg.add_argument("--validation-split", type=float, default=.2)
+                         default='extra', help='Type of approximator to use'
+                                               'for FQI')
+    arg_alg.add_argument("--n-estimators", type=int, default=50,
+                         help='Number of extra trees to use to approximate'
+                              'the action value.')
+    arg_alg.add_argument("--min-samples-split", type=int, default=5,
+                         help='min_samples_split parameter of the extra trees.')
+    arg_alg.add_argument("--min-samples-leaf", type=int, default=2,
+                         help='min_samples_leaf parameter of the extra trees.')
+    arg_alg.add_argument("--max-depth", type=int, default=None,
+                         help='max_depth parameter of the extra trees.')
+    arg_alg.add_argument("--dataset-size", type=int, default=500000,
+                         help='Number of samples in the dataset.')
+    arg_alg.add_argument("--validation-split", type=float, default=.2,
+                         help='Fraction of the dataset to build the validation'
+                              'set.')
     arg_alg.add_argument("--batch-size", type=int, default=32,
                          help='Batch size for each fit of the network.')
     arg_alg.add_argument("--history-length", type=int, default=4,
                          help='Number of frames composing a state.')
     arg_alg.add_argument("--test-samples", type=int, default=125000,
                          help='Number of steps for each evaluation.')
-    arg_alg.add_argument("--evaluation-frequency", type=int, default=50)
+    arg_alg.add_argument("--evaluation-frequency", type=int, default=50,
+                         help='Number of FQI steps between each evaluation.')
     arg_alg.add_argument("--max-no-op-actions", type=int, default=30,
                          help='Maximum number of no-op action performed at the'
                               'beginning of the episodes. The minimum number is'
                               'history_length.')
     arg_alg.add_argument("--no-op-action-value", type=int, default=0,
                          help='Value of the no-op action.')
-
-    arg_rfs = parser.add_argument_group('RFS')
-    arg_rfs.add_argument("--rfs", action='store_true')
-    arg_rfs.add_argument("--rfs-n-estimators", type=int, default=50)
-    arg_rfs.add_argument("--rfs-min-samples-split", type=int, default=5)
-    arg_rfs.add_argument("--rfs-min-samples-leaf", type=int, default=2)
-    arg_rfs.add_argument("--rfs-max-depth", type=int, default=None)
-    arg_rfs.add_argument('--load-support', action='store_true')
-    arg_rfs.add_argument('--save-support', action='store_true')
 
     arg_utils = parser.add_argument_group('Utils')
     arg_utils.add_argument('--load-path', type=str)
@@ -184,48 +192,32 @@ def experiment():
                             history_length=args.history_length,
                             n_features=args.n_features,
                             reg_coeff=args.reg_coeff,
-                            contractive=args.contractive,
-                            predict_next_frame=args.predict_next_frame,
-                            predict_reward=args.predict_reward,
-                            predict_absorbing=args.predict_absorbing)
+                            contractive=args.contractive)
 
-    preprocessors = [Scaler(mdp.observation_space.high),
-                     Binarizer(args.binarizer_threshold)]
+    extr_preprocessors = [Scaler(mdp.observation_space.high),
+                          Binarizer(args.binarizer_threshold)]
     if args.sobel:
-        preprocessors += [Sobel(args.history_length), Binarizer(0, False)]
-    if args.predict_next_frame:
-        extractor = Regressor(Extractor,
-                              discrete_actions=mdp.action_space.n,
-                              input_preprocessor=preprocessors,
-                              output_preprocessor=preprocessors,
-                              **extractor_params)
-    else:
-        extractor = Regressor(Extractor,
-                              input_preprocessor=preprocessors,
-                              output_preprocessor=preprocessors,
-                              **extractor_params)
-    n_features = extractor.model.n_features
+        extr_preprocessors += [Sobel(args.history_length), Binarizer(0, False)]
 
-    if args.predict_next_frame:
-        approximator_class = Regressor
-        discrete_actions = None
-    else:
-        approximator_class = ActionRegressor
-        discrete_actions = mdp.action_space.n
+    extractor = Regressor(Extractor,
+                          input_preprocessor=extr_preprocessors,
+                          output_preprocessor=extr_preprocessors,
+                          **extractor_params)
+    n_features = extractor.model.n_features
 
     if args.approximator == 'extra':
         approximator_params = dict(n_estimators=args.n_estimators,
                                    min_samples_split=args.min_samples_split,
                                    min_samples_leaf=args.min_samples_leaf,
                                    max_depth=args.max_depth)
-        approximator = approximator_class(ExtraTreesRegressor,
-                                          discrete_actions=discrete_actions,
-                                          **approximator_params)
+        approximator = ActionRegressor(ExtraTreesRegressor,
+                                       discrete_actions=mdp.action_space.n,
+                                       **approximator_params)
     elif args.approximator == 'linear':
         approximator_params = dict()
-        approximator = approximator_class(LinearRegression,
-                                          discrete_actions=discrete_actions,
-                                          **approximator_params)
+        approximator = ActionRegressor(LinearRegression,
+                                       discrete_actions=mdp.action_space.n,
+                                       **approximator_params)
     else:
         raise ValueError
 
@@ -288,35 +280,20 @@ def experiment():
                 gen = tqdm(rm_generator, total=n_batches, dynamic_ncols=100,
                            desc='Epoch %d' % e)
                 for batch in gen:
-                    if args.predict_next_frame:
-                        extr_input = [batch[0], batch[1]]
-                        target = batch[3][..., -1]
-                    else:
-                        extr_input = [batch[0]]
-                        target = batch[0]
-                    extractor.train_on_batch(
-                        extr_input,
-                        target,
-                        target_reward=batch[2].reshape(-1, 1),
-                        target_absorbing=batch[4].reshape(-1, 1)
-                    )
+                    extr_input = [batch[0]]
+                    target = batch[0]
+                    extractor.train_on_batch(extr_input, target)
                     gen.set_postfix(loss=extractor.model.loss)
 
                 valid_rm_generator = replay_memory.generator(args.batch_size,
                                                              valid_idxs)
                 valid_loss = 0.
                 for valid_batch in valid_rm_generator:
-                    if args.predict_next_frame:
-                        extr_input = [valid_batch[0], valid_batch[1]]
-                        target = valid_batch[3][..., -1]
-                    else:
-                        extr_input = [valid_batch[0]]
-                        target = valid_batch[0]
-                    for p in preprocessors:
+                    extr_input = [valid_batch[0]]
+                    target = valid_batch[0]
+                    for p in extr_preprocessors:
                         extr_input[0] = p(extr_input[0])
                         target = p(target)
-                    target = [target] + [valid_batch[2].reshape(
-                        -1, 1)] + [valid_batch[4].reshape(-1, 1)]
 
                     valid_loss += extractor.model.get_stats(
                         extr_input, target)['loss'] * valid_batch[0].shape[0]
@@ -351,11 +328,7 @@ def experiment():
                 rewards = np.ones(train_idxs.size)
                 absorbing = np.ones(train_idxs.size)
                 last = np.ones(train_idxs.size)
-                if args.predict_next_frame:
-                    ff = np.ones((mdp.action_space.n, train_idxs.size,
-                                  n_features))
-                else:
-                    ff = np.ones((train_idxs.size, n_features))
+                ff = np.ones((train_idxs.size, n_features))
                 rm_generator = replay_memory.generator(args.batch_size,
                                                        train_idxs)
                 for i, batch in enumerate(rm_generator):
@@ -367,16 +340,8 @@ def experiment():
                     rewards[start:stop] = batch[2]
                     absorbing[start:stop] = batch[4]
                     last[start:stop] = batch[5]
-                    if args.predict_next_frame:
-                        for j in xrange(mdp.action_space.n):
-                            start = i * args.batch_size
-                            stop = start + batch[3].shape[0]
-                            sa_n = [batch[3], np.ones(
-                                (batch[3].shape[0], 1)) * j]
-                            ff[j, start:stop] = extractor.predict(sa_n)[0]
-                    else:
-                        ss = [batch[3]]
-                        ff[start:stop] = extractor.predict(ss)[0]
+                    ss = [batch[3]]
+                    ff[start:stop] = extractor.predict(ss)[0]
 
                 del replay_memory
 
@@ -393,76 +358,40 @@ def experiment():
                 absorbing = files['absorbing']
                 last = files['last']
 
-        if args.rfs:
-            if not args.load_support or k > 0:
-                print('Starting RFS...')
-                ifs_estimator_params = {'n_estimators': args.rfs_n_estimators,
-                                        'n_jobs': -1}
-                ifs_params = {'estimator': ExtraTreesRegressor(
-                    **ifs_estimator_params)}
-                ifs = IFS(**ifs_params)
-                features_names = np.array(map(str,
-                                              np.arange(f.shape[1])) + ['A'])
-                rfs_params = {'feature_selector': ifs,
-                              'features_names': features_names,
-                              'verbose': 1}
-                rfs = RFS(**rfs_params)
-                rfs.fit(f, actions, ff, rewards)
-
-                support_rfs = np.array(rfs.get_support())
-                got_action = support_rfs[-1]  # Action is the last feature
-                support_rfs = support_rfs[:-1]  # Remove action
-                nb_new_features = np.sum(support_rfs)
-                print('Using %s features' % nb_new_features)
-                print('Action was%s selected' % ('' if got_action else ' NOT'))
-
-                if args.save_support:
-                    np.save(folder_name + '/support.npy', support_rfs)
-            else:
-                support_rfs = np.load(folder_name + '/support.npy')
-
-            approximator._input_preprocessor = [Filter(support_rfs)]
-
         print('Starting FQI...')
         if not args.load_approximator or k > 0:
-            dataset = [f, actions, rewards, ff, absorbing, last]
+            rewards = np.clip(rewards, -1, 1)
+            dataset = list()
+            for i in xrange(f.shape[0]):
+                dataset.append([f[i], actions[i], rewards[i], ff[i],
+                                absorbing[i], last[i]])
 
             pi.set_epsilon(Parameter(.05))
             mdp.set_episode_end(ends_at_life=False)
             y = None
             max_mean_score = 0
-            for i in tqdm(xrange(args.fqi_steps), dynamic_ncols=True,
-                          disable=args.quiet, leave=False):
-                y = agent._partial_fit(dataset, y)
-                if i % args.evaluation_frequency == 0 and i > 0:
-                    print('- Evaluation')
-                    # evaluation step
-                    core.reset()
-                    results = core.evaluate(how_many=args.test_samples,
-                                            iterate_over='samples',
-                                            render=args.render,
-                                            quiet=args.quiet)
-                    _, _, mean_score, _ = get_stats(results)
+            for _ in tqdm(xrange(args.fqi_steps / args.evaluation_frequency),
+                          dynamic_ncols=True, disable=args.quiet, leave=False):
+                y = agent.fit(dataset, args.evaluation_frequency, target=y)
+                print('- Evaluation')
+                # evaluation step
+                core.reset()
+                results = core.evaluate(how_many=args.test_samples,
+                                        iterate_over='samples',
+                                        render=args.render,
+                                        quiet=args.quiet)
+                _, _, mean_score, _ = get_stats(results)
 
-                    if args.save_approximator:
-                        if mean_score > max_mean_score:
-                            if approximator_class == Regressor:
-                                joblib.dump(approximator.model,
-                                            folder_name + '/approximator.pkl')
-                            else:
-                                for m_i, m in enumerate(approximator.models):
-                                    joblib.dump(
-                                        m,
-                                        folder_name +
-                                        '/approximator_%d.pkl' % m_i)
+                if args.save_approximator:
+                    if mean_score > max_mean_score:
+                        for m_i, m in enumerate(approximator.models):
+                            joblib.dump(
+                                m,
+                                folder_name + '/approximator_%d.pkl' % m_i)
         else:
-            if approximator_class == Regressor:
-                approximator.model = joblib.load(
-                    folder_name + '/approximator.pkl')
-            else:
-                for m_i in xrange(len(approximator.models)):
-                    approximator.models[m_i] = joblib.load(
-                        folder_name + '/approximator_%d.pkl' % m_i)
+            for m_i in xrange(len(approximator.models)):
+                approximator.models[m_i] = joblib.load(
+                    folder_name + '/approximator_%d.pkl' % m_i)
 
             print '- Evaluation:'
             # evaluation step

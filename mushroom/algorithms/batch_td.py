@@ -13,6 +13,7 @@ class BatchTD(Agent):
     """
     def __init__(self, approximator, policy, gamma, **params):
         self._quiet = params.get('quiet', False)
+
         super(BatchTD, self).__init__(approximator, policy, gamma, **params)
 
     def __str__(self):
@@ -30,20 +31,26 @@ class FQI(BatchTD):
 
         super(FQI, self).__init__(approximator, policy, gamma, **params)
 
-    def fit(self, dataset, n_iterations):
+    def fit(self, dataset, n_iterations, target=None):
         """
         Fit loop.
 
         Args:
             dataset (list): the dataset;
             n_iterations (int): number of FQI iterations.
+            target (np.array): initial target of FQI.
+
+        Returns:
+            Last target computed.
 
         """
-        target = None
+        target = target
         for _ in tqdm(xrange(n_iterations), dynamic_ncols=True,
                       disable=self._quiet, leave=False):
             target = self._partial_fit(dataset, target,
                                        **self.params['fit_params'])
+
+        return target
 
     def _partial_fit(self, x, y, **fit_params):
         """
@@ -53,6 +60,9 @@ class FQI(BatchTD):
             x (list): a two elements list with states and actions;
             y (np.array): targets;
             **fit_params (dict): other parameters to fit the model.
+
+        Returns:
+            Last target computed.
 
         """
         state, action, reward, next_state, absorbing, _ = parse_dataset(x)
@@ -101,74 +111,44 @@ class WeightedFQI(FQI):
 
 
 class DeepFQI(FQI):
+    """
+    Deep Fitted Q-Iteration algorithm. This algorithm is used to apply FQI in
+    dimensionally large problems. To fit the approximator, for memory reasons,
+    this implementation expects the feature of the states extracted from an
+    autoencoder, not the raw states.
+
+    "Autonomous reinforcement learning on raw visual input data in a real world
+    application". Lange S. et. al.. 2012.
+    """
     def __init__(self, approximator, policy, gamma, **params):
         self.__name__ = 'DeepFQI'
 
         alg_params = params['algorithm_params']
         self._buffer = Buffer(size=alg_params.get('history_length', 1))
         self._extractor = alg_params.get('extractor')
-        self._clip_reward = alg_params.get('clip_reward', True)
         self._max_no_op_actions = alg_params.get('max_no_op_actions')
         self._no_op_action_value = alg_params.get('no_op_action_value')
         self._episode_steps = 0
         self._no_op_actions = None
-        self._predict_next_frame = self._extractor.model._predict_next_frame
 
         super(DeepFQI, self).__init__(approximator, policy, gamma, **params)
-
-    def _partial_fit(self, x, y, **fit_params):
-        state, action, reward, next_state, absorbing, _ = x
-        if self._clip_reward:
-            reward = np.clip(reward, -1, 1)
-        if y is None:
-            y = reward
-        else:
-            if self._predict_next_frame:
-                q = np.ones((state.shape[0], self.mdp_info['action_space'].n))
-                for i in xrange(q.shape[1]):
-                    apprx_input = next_state[i]
-                    q[:, i] = self.approximator.predict(apprx_input)
-                if np.any(absorbing):
-                    q *= 1 - absorbing.reshape(-1, 1)
-                max_q = np.max(q, axis=1)
-            else:
-                max_q, _ = max_QA(next_state, absorbing, self.approximator)
-            y = reward + self._gamma * max_q
-
-        if self._predict_next_frame:
-            apprx_input = state
-        else:
-            apprx_input = [state, action]
-        self.approximator.fit(apprx_input, y, **fit_params)
-
-        return y
 
     def draw_action(self, state, approximator=None):
         self._buffer.add(state)
 
         if self._episode_steps < self._no_op_actions:
             action = np.array([self._no_op_action_value])
+            self.policy.update()
         else:
             extended_state = self._buffer.get()
 
-            if not np.random.uniform() < self.policy._epsilon(extended_state):
-                q = np.ones(self.mdp_info['action_space'].n)
-                for i in xrange(q.size):
-                    sa = [np.expand_dims(extended_state, axis=0),
-                          np.ones((1, 1)) * i]
-                    features = self._extractor.predict(sa)[0]
-                    if self._predict_next_frame:
-                        apprx_input = features
-                    else:
-                        apprx_input = [features, np.ones((1, 1)) * i]
-                    q[i] = self.approximator.predict(apprx_input)
-                action = np.array(
-                    [np.random.choice(np.argwhere(q == np.max(q)).ravel())])
-            else:
-                action = self.mdp_info['action_space'].sample()
+            feature_state = self._extractor.predict(
+                np.expand_dims(extended_state, axis=0))[0]
+
+            action = super(DeepFQI, self).draw_action(feature_state,
+                                                      approximator=approximator)
 
         self._episode_steps += 1
-        self.policy.update()
 
         return action
 

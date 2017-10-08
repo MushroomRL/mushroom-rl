@@ -4,7 +4,8 @@ import os
 
 import numpy as np
 
-from mushroom.algorithms.dqn import DQN, DoubleDQN, WeightedDQN
+from convnet import ConvNet
+from mushroom.algorithms.dqn import DQN, DoubleDQN
 from mushroom.approximators import Ensemble, Regressor
 from mushroom.core.core import Core
 from mushroom.environments import *
@@ -13,7 +14,6 @@ from mushroom.utils.callbacks import CollectSummary
 from mushroom.utils.dataset import compute_scores
 from mushroom.utils.parameters import LinearDecayParameter, Parameter
 from mushroom.utils.preprocessor import Scaler
-from convnet import ConvNet
 
 
 """
@@ -75,11 +75,10 @@ def experiment():
                               'gradient momentum in rmsprop.')
 
     arg_alg = parser.add_argument_group('Algorithm')
-    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'wdqn'],
+    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn'],
                          default='dqn',
                          help='Name of the algorithm. dqn stands for standard'
                               'DQN and ddqn stands for Double DQN.')
-    arg_alg.add_argument("--n-approximators", type=int, default=100)
     arg_alg.add_argument("--batch-size", type=int, default=32,
                          help='Batch size for each fit of the network.')
     arg_alg.add_argument("--history-length", type=int, default=4,
@@ -245,35 +244,18 @@ def experiment():
                                           height=args.screen_height,
                                           history_length=args.history_length)
 
-        if args.algorithm == 'wdqn':
-            approximator = Ensemble(ConvNet,
-                                    n_models=n_approximators,
-                                    input_preprocessor=[Scaler(
-                                        mdp.observation_space.high)],
-                                    **approximator_params_train)
-            target_approximator = Ensemble(ConvNet,
-                                           n_models=n_approximators,
-                                           input_preprocessor=[Scaler(
-                                               mdp.observation_space.high)],
-                                           **approximator_params_target)
-            # Initialize target approximator weights with the weights of the
-            # approximator to fit.
-            for i in xrange(len(approximator)):
-                target_approximator[i].model.set_weights(
-                    approximator[i].model.get_weights())
-        else:
-            approximator = Regressor(ConvNet,
-                                     input_preprocessor=[Scaler(
-                                         mdp.observation_space.high)],
-                                     **approximator_params_train)
-            target_approximator = Regressor(ConvNet,
-                                            input_preprocessor=[Scaler(
-                                                mdp.observation_space.high)],
-                                            **approximator_params_target)
-            # Initialize target approximator weights with the weights of the
-            # approximator to fit.
-            target_approximator.model.set_weights(
-                approximator.model.get_weights())
+        approximator = Regressor(ConvNet,
+                                 input_preprocessor=[Scaler(
+                                     mdp.observation_space.high)],
+                                 **approximator_params_train)
+        target_approximator = Regressor(ConvNet,
+                                        input_preprocessor=[Scaler(
+                                            mdp.observation_space.high)],
+                                        **approximator_params_target)
+        # Initialize target approximator weights with the weights of the
+        # approximator to fit.
+        target_approximator.model.set_weights(
+            approximator.model.get_weights())
 
         # Agent
         algorithm_params = dict(
@@ -295,8 +277,6 @@ def experiment():
             agent = DQN(approximator, pi, mdp.gamma, **agent_params)
         elif args.algorithm == 'ddqn':
             agent = DoubleDQN(approximator, pi, mdp.gamma, **agent_params)
-        elif args.algorithm == 'wdqn':
-            agent = WeightedDQN(approximator, pi, mdp.gamma, **agent_params)
 
         # Algorithm
         collect_summary = CollectSummary(folder_name)

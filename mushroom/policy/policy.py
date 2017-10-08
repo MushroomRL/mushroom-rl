@@ -41,7 +41,6 @@ class EpsGreedy(object):
             The selected action.
 
         """
-
         if not np.random.uniform() < self._epsilon(state):
             _, max_action = max_QA(np.expand_dims(state, axis=0),
                                    False,

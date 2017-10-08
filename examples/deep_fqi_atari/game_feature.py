@@ -29,9 +29,6 @@ parser.add_argument("--n-features", type=int, default=25)
 parser.add_argument("--history-length", type=int, default=4)
 parser.add_argument("--dqn", action='store_true')
 parser.add_argument("--sobel", action='store_true')
-parser.add_argument("--predict-next-frame", action='store_true')
-parser.add_argument("--predict-reward", action='store_true')
-parser.add_argument("--predict-absorbing", action='store_true')
 args = parser.parse_args()
 
 env = gym.make(args.game)
@@ -49,10 +46,7 @@ if not args.dqn:
                             width=84,
                             height=84,
                             n_features=args.n_features,
-                            history_length=args.history_length,
-                            predict_next_frame=args.predict_next_frame,
-                            predict_reward=args.predict_reward,
-                            predict_absorbing=args.predict_absorbing)
+                            history_length=args.history_length)
 
     preprocessors = [Scaler(255.),
                      Binarizer(args.binarizer_threshold)]
