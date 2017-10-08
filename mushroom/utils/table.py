@@ -44,8 +44,14 @@ class Table:
 
         return idxs
 
-    def predict_all(self, x, **predict_params):
-        table = []
+    def fit(self, x, y):
+        self[x] = y
+
+    def predict(self, x):
+        return self[x]
+
+    def predict_all(self, x):
+        table = list()
 
         for i in xrange(len(x)):
             s = x[i]

@@ -31,6 +31,12 @@ class FQI(BatchTD):
 
         super(FQI, self).__init__(approximator, policy, gamma, **params)
 
+        # "Boosted Fitted Q-Iteration". Tosatto S. et. al.. 2017.
+        self._boosted = params['algorithm_params'].get('boosted', False)
+        if self._boosted:
+            self._old_prediction = 0.
+            self._idx = 0
+
     def fit(self, dataset, n_iterations, target=None):
         """
         Fit loop.
@@ -38,13 +44,12 @@ class FQI(BatchTD):
         Args:
             dataset (list): the dataset;
             n_iterations (int): number of FQI iterations.
-            target (np.array): initial target of FQI.
+            target (np.array, None): initial target of FQI.
 
         Returns:
             Last target computed.
 
         """
-        target = target
         for _ in tqdm(xrange(n_iterations), dynamic_ncols=True,
                       disable=self._quiet, leave=False):
             target = self._partial_fit(dataset, target,
@@ -67,15 +72,24 @@ class FQI(BatchTD):
         """
         state, action, reward, next_state, absorbing, _ = parse_dataset(x)
         if y is None:
-            y = reward
+            if self._boosted:
+                assert self._old_prediction == 0.
+            target = reward
         else:
             maxq, _ = max_QA(next_state, absorbing, self.approximator)
-            y = reward + self._gamma * maxq
+            target = reward + self._gamma * maxq
 
         sa = [state, action]
-        self.approximator.fit(sa, y, **fit_params)
+        if self._boosted:
+            target = target - self._old_prediction
+            self.approximator[self._idx].fit(sa, target, **fit_params)
+            self._old_prediction += self.approximator[self._idx].predict(sa)
 
-        return y
+            self._idx += 1
+        else:
+            self.approximator.fit(sa, target, **fit_params)
+
+        return target
 
 
 class DoubleFQI(FQI):

@@ -103,7 +103,7 @@ def experiment():
                               'autoencoder.')
     arg_alg.add_argument("--n-iterations", type=int, default=10,
                          help='Number of algorithm iterations.')
-    arg_alg.add_argument("--fqi-steps", type=int, default=1000,
+    arg_alg.add_argument("--fqi-steps", type=int, default=200,
                          help='Number of FQI iterations.')
     arg_alg.add_argument("--approximator", choices=['linear', 'extra'],
                          default='extra', help='Type of approximator to use'
@@ -205,19 +205,25 @@ def experiment():
                           **extractor_params)
     n_features = extractor.model.n_features
 
+    if args.boosted:
+        approximator_class = Ensemble
+        approximator_params = dict(n_models=args.fqi_steps,
+                                   prediction='sum',
+                                   use_action_regressor=True,
+                                   discrete_actions=mdp.action_space.n)
+    else:
+        approximator_class = ActionRegressor
+        approximator_params = dict(discrete_actions=mdp.action_space.n)
     if args.approximator == 'extra':
-        approximator_params = dict(n_estimators=args.n_estimators,
-                                   min_samples_split=args.min_samples_split,
-                                   min_samples_leaf=args.min_samples_leaf,
-                                   max_depth=args.max_depth)
-        approximator = ActionRegressor(ExtraTreesRegressor,
-                                       discrete_actions=mdp.action_space.n,
-                                       **approximator_params)
+        approximator_params['n_estimators'] = args.n_estimators
+        approximator_params['min_samples_split'] = args.min_samples_split
+        approximator_params['min_samples_leaf'] = args.min_samples_leaf
+        approximator_params['max_depth'] = args.max_depth
+        approximator = approximator_class(ExtraTreesRegressor,
+                                          **approximator_params)
     elif args.approximator == 'linear':
-        approximator_params = dict()
-        approximator = ActionRegressor(LinearRegression,
-                                       discrete_actions=mdp.action_space.n,
-                                       **approximator_params)
+        approximator = approximator_class(LinearRegression,
+                                          **approximator_params)
     else:
         raise ValueError
 
@@ -226,7 +232,8 @@ def experiment():
         extractor=extractor,
         history_length=args.history_length,
         max_no_op_actions=args.max_no_op_actions,
-        no_op_action_value=args.no_op_action_value
+        no_op_action_value=args.no_op_action_value,
+        boosted=args.boosted
     )
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
@@ -369,7 +376,7 @@ def experiment():
             pi.set_epsilon(Parameter(.05))
             mdp.set_episode_end(ends_at_life=False)
             y = None
-            max_mean_score = 0
+            max_mean_score = 0.
             for _ in tqdm(xrange(args.fqi_steps / args.evaluation_frequency),
                           dynamic_ncols=True, disable=args.quiet, leave=False):
                 y = agent.fit(dataset, args.evaluation_frequency, target=y)
@@ -388,6 +395,7 @@ def experiment():
                             joblib.dump(
                                 m,
                                 folder_name + '/approximator_%d.pkl' % m_i)
+                        max_mean_score = mean_score
         else:
             for m_i in xrange(len(approximator.models)):
                 approximator.models[m_i] = joblib.load(

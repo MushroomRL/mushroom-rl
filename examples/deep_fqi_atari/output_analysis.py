@@ -41,17 +41,10 @@ preprocessors = [Scaler(mdp.observation_space.high),
                  Binarizer(args.binarizer_threshold)]
 if args.sobel:
     preprocessors += [Sobel(args.history_length), Binarizer(0, False)]
-if args.predict_next_frame:
-    extractor = Regressor(Extractor,
-                          discrete_actions=mdp.action_space.n,
-                          input_preprocessor=preprocessors,
-                          output_preprocessor=preprocessors,
-                          **extractor_params)
-else:
-    extractor = Regressor(Extractor,
-                          input_preprocessor=preprocessors,
-                          output_preprocessor=preprocessors,
-                          **extractor_params)
+extractor = Regressor(Extractor,
+                      input_preprocessor=preprocessors,
+                      output_preprocessor=preprocessors,
+                      **extractor_params)
 
 path = args.load_path + '/' + extractor.model._scope_name + '/' +\
        extractor.model._scope_name
