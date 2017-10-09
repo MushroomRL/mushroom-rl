@@ -23,7 +23,9 @@ def experiment():
                    action_space=mdp.action_space)
 
     # Approximator
-    approximator_params = dict()
+    approximator_params = dict(n_estimators=50,
+                               min_samples_split=5,
+                               min_samples_leaf=2)
     approximator = ActionRegressor(ExtraTreesRegressor,
                                    discrete_actions=mdp.action_space.n,
                                    **approximator_params)

@@ -34,7 +34,7 @@ class FQI(BatchTD):
         # "Boosted Fitted Q-Iteration". Tosatto S. et. al.. 2017.
         self._boosted = params['algorithm_params'].get('boosted', False)
         if self._boosted:
-            self._old_prediction = 0.
+            self._prediction = 0.
             self._idx = 0
 
     def fit(self, dataset, n_iterations, target=None):
@@ -50,10 +50,19 @@ class FQI(BatchTD):
             Last target computed.
 
         """
-        for _ in tqdm(xrange(n_iterations), dynamic_ncols=True,
-                      disable=self._quiet, leave=False):
-            target = self._partial_fit(dataset, target,
-                                       **self.params['fit_params'])
+        if self._boosted:
+            if target is None:
+                self._prediction = 0.
+                self._idx = 0
+            for _ in tqdm(xrange(n_iterations), dynamic_ncols=True,
+                          disable=self._quiet, leave=False):
+                target = self._partial_fit_boosted(dataset, target,
+                                                   **self.params['fit_params'])
+        else:
+            for _ in tqdm(xrange(n_iterations), dynamic_ncols=True,
+                          disable=self._quiet, leave=False):
+                target = self._partial_fit(dataset, target,
+                                           **self.params['fit_params'])
 
         return target
 
@@ -72,22 +81,43 @@ class FQI(BatchTD):
         """
         state, action, reward, next_state, absorbing, _ = parse_dataset(x)
         if y is None:
-            if self._boosted:
-                assert self._old_prediction == 0.
             target = reward
         else:
-            maxq, _ = max_QA(next_state, absorbing, self.approximator)
-            target = reward + self._gamma * maxq
+            max_q, _ = max_QA(next_state, absorbing, self.approximator)
+            target = reward + self._gamma * max_q
 
         sa = [state, action]
-        if self._boosted:
-            target = target - self._old_prediction
-            self.approximator[self._idx].fit(sa, target, **fit_params)
-            self._old_prediction += self.approximator[self._idx].predict(sa)
+        self.approximator.fit(sa, target, **fit_params)
 
-            self._idx += 1
+        return target
+
+    def _partial_fit_boosted(self, x, y, **fit_params):
+        """
+        Single fit iteration for boosted FQI.
+
+        Args:
+            x (list): a two elements list with states and actions;
+            y (np.array): targets;
+            **fit_params (dict): other parameters to fit the model.
+
+        Returns:
+            Last target computed.
+
+        """
+        state, action, reward, next_state, absorbing, _ = parse_dataset(x)
+        if y is None:
+            target = reward
         else:
-            self.approximator.fit(sa, target, **fit_params)
+            max_q, _ = max_QA(next_state, absorbing, self.approximator)
+            target = reward + self._gamma * max_q
+
+        target = target - self._prediction
+        self._prediction += target
+
+        sa = [state, action]
+        self.approximator[self._idx].fit(sa, target, **fit_params)
+
+        self._idx += 1
 
         return target
 
