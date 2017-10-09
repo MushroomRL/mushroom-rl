@@ -391,15 +391,11 @@ def experiment():
 
                 if args.save_approximator:
                     if mean_score > max_mean_score:
-                        for m_i, m in enumerate(approximator.models):
-                            joblib.dump(
-                                m,
-                                folder_name + '/approximator_%d.pkl' % m_i)
+                        joblib.dump(approximator,
+                                    folder_name + '/approximator.pkl')
                         max_mean_score = mean_score
         else:
-            for m_i in xrange(len(approximator.models)):
-                approximator.models[m_i] = joblib.load(
-                    folder_name + '/approximator_%d.pkl' % m_i)
+            approximator = joblib.load(folder_name + '/approximator.pkl')
 
             print '- Evaluation:'
             # evaluation step

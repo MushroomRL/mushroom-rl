@@ -147,7 +147,6 @@ class EnsembleTable(Ensemble):
         """
         self._prediction = prediction
         self._models = list()
-        self._fitted_model_idxs = list()
 
         for _ in xrange(n_models):
             self._models.append(Table(shape))
