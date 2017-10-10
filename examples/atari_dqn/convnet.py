@@ -91,7 +91,7 @@ class ConvNet:
 
     def _build(self, convnet_pars):
         with tf.variable_scope(None, default_name=self._name):
-            self._scope_name = tf.get_default_graph().get_name_scope() + '/'
+            self._scope_name = tf.get_default_graph().get_name_scope()
             self._x = tf.placeholder(tf.float32,
                                      shape=[None,
                                             convnet_pars['height'],
