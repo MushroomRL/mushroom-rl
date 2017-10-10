@@ -76,18 +76,16 @@ class ConvNet:
     def save(self):
         self._train_saver.save(
             self._session,
-            self._folder_name + '/' + self._scope_name[
-                :-1] + '/' + self._scope_name[:-1]
+            self._folder_name + '/' + self._scope_name + '/' + self._scope_name
         )
 
     def _load(self, path):
         self._scope_name = 'train'
         restorer = tf.train.import_meta_graph(
-            path + '/' + self._scope_name[
-                :-1] + '/' + self._scope_name[:-1] + '.meta')
+            path + '/' + self._scope_name + '/' + self._scope_name + '.meta')
         restorer.restore(
             self._session,
-            path + '/' + self._scope_name[:-1] + '/' + self._scope_name[:-1]
+            path + '/' + self._scope_name + '/' + self._scope_name
         )
         self._restore_collection()
 
@@ -175,7 +173,7 @@ class ConvNet:
 
         if self._folder_name is not None:
             self._train_writer = tf.summary.FileWriter(
-                self._folder_name + '/' + self._scope_name[:-1],
+                self._folder_name + '/' + self._scope_name,
                 graph=tf.get_default_graph()
             )
 
