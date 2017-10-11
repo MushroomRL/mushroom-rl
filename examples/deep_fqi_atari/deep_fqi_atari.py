@@ -342,13 +342,13 @@ def experiment():
                     start = i * args.batch_size
                     stop = start + batch[0].shape[0]
                     sa = [batch[0], batch[1]]
-                    f[start:stop] = extractor.predict(sa)[0]
+                    f[start:stop] = extractor.predict(sa)
                     actions[start:stop] = batch[1]
                     rewards[start:stop] = batch[2]
                     absorbing[start:stop] = batch[4]
                     last[start:stop] = batch[5]
                     ss = [batch[3]]
-                    ff[start:stop] = extractor.predict(ss)[0]
+                    ff[start:stop] = extractor.predict(ss)
 
                 del replay_memory
 
