@@ -3,7 +3,7 @@ import numpy as np
 from mushroom.utils.parameters import Parameter
 
 
-class EpsGreedy(object):
+class EpsGreedy:
     """
     Epsilon greedy policy.
 

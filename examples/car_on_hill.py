@@ -3,7 +3,7 @@ from joblib import Parallel, delayed
 from sklearn.ensemble import ExtraTreesRegressor
 
 from mushroom.algorithms.batch_td import FQI
-from mushroom.approximators import ActionRegressor, Ensemble
+from mushroom.approximators import ActionRegressor
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
@@ -29,15 +29,9 @@ def experiment():
     approximator = ActionRegressor(ExtraTreesRegressor,
                                    discrete_actions=mdp.action_space.n,
                                    **approximator_params)
-    approximator = Ensemble(ExtraTreesRegressor,
-                            n_models=20,
-                            prediction='sum',
-                            use_action_regressor=True,
-                            discrete_actions=mdp.action_space.n,
-                            **approximator_params)
 
     # Agent
-    algorithm_params = dict(boosted=True)
+    algorithm_params = dict()
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
