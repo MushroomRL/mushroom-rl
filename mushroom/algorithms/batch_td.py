@@ -32,7 +32,7 @@ class FQI(BatchTD):
         super(FQI, self).__init__(approximator, policy, gamma, params)
 
         # "Boosted Fitted Q-Iteration". Tosatto S. et. al.. 2017.
-        self._boosted = self.params['algorithm_params'].get('boosted', False)
+        self._boosted = params['algorithm_params'].get('boosted', False)
         if self._boosted:
             self._prediction = 0.
             self._next_q = 0.
@@ -176,7 +176,7 @@ class DeepFQI(FQI):
     def __init__(self, approximator, policy, gamma, params):
         self.__name__ = 'DeepFQI'
 
-        alg_params = self.params['algorithm_params']
+        alg_params = params['algorithm_params']
         self._buffer = Buffer(size=alg_params.get('history_length', 1))
         self._extractor = alg_params.get('extractor')
         self._max_no_op_actions = alg_params.get('max_no_op_actions')
