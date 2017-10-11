@@ -341,8 +341,8 @@ def experiment():
                 for i, batch in enumerate(rm_generator):
                     start = i * args.batch_size
                     stop = start + batch[0].shape[0]
-                    sa = [batch[0], batch[1]]
-                    f[start:stop] = extractor.predict(sa)
+                    s = [batch[0]]
+                    f[start:stop] = extractor.predict(s)
                     actions[start:stop] = batch[1]
                     rewards[start:stop] = batch[2]
                     absorbing[start:stop] = batch[4]
