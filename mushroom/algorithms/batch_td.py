@@ -35,6 +35,7 @@ class FQI(BatchTD):
         self._boosted = self.params['algorithm_params'].get('boosted', False)
         if self._boosted:
             self._prediction = 0.
+            self._next_q = 0.
             self._idx = 0
 
     def fit(self, dataset, n_iterations, target=None):
@@ -53,6 +54,7 @@ class FQI(BatchTD):
         if self._boosted:
             if target is None:
                 self._prediction = 0.
+                self._next_q = 0.
                 self._idx = 0
             for _ in tqdm(xrange(n_iterations), dynamic_ncols=True,
                           disable=self._quiet, leave=False):
@@ -108,11 +110,12 @@ class FQI(BatchTD):
         if y is None:
             target = reward
         else:
-            q = self.approximator.predict_all(next_state)
+            self._next_q += self.approximator[self._idx - 1].predict_all(
+                next_state)
             if np.any(absorbing):
-                q *= 1 - absorbing.reshape(-1, 1)
+                self._next_q *= 1 - absorbing.reshape(-1, 1)
 
-            max_q = np.max(q, axis=1)
+            max_q = np.max(self._next_q, axis=1)
             target = reward + self._gamma * max_q
 
         target = target - self._prediction

@@ -1,5 +1,7 @@
-import numpy as np
 import matplotlib
+matplotlib.use('Agg')
+
+import numpy as np
 from matplotlib import pyplot as plt
 from joblib import Parallel, delayed
 
@@ -11,8 +13,6 @@ from mushroom.policy import EpsGreedy
 from mushroom.utils.callbacks import CollectDataset, CollectMaxQ
 from mushroom.utils.dataset import parse_dataset
 from mushroom.utils.parameters import DecayParameter
-
-matplotlib.use('Agg')
 
 
 def experiment(algorithm_class, decay_exp):
