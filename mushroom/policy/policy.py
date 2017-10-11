@@ -1,6 +1,5 @@
 import numpy as np
 
-from mushroom.utils.dataset import max_QA
 from mushroom.utils.parameters import Parameter
 
 
@@ -42,10 +41,10 @@ class EpsGreedy(object):
 
         """
         if not np.random.uniform() < self._epsilon(state):
-            _, max_action = max_QA(np.expand_dims(state, axis=0),
-                                   False,
-                                   approximator)
-            return max_action.ravel()
+            q = approximator.predict_all(np.expand_dims(state, axis=0))
+            max_a = np.argmax(q, axis=1)
+
+            return max_a
 
         return self.action_space.sample()
 

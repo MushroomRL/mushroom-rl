@@ -6,7 +6,7 @@ import numpy as np
 
 from convnet import ConvNet
 from mushroom.algorithms.dqn import DQN, DoubleDQN
-from mushroom.approximators import Ensemble, Regressor
+from mushroom.approximators import Regressor
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
@@ -17,7 +17,7 @@ from mushroom.utils.preprocessor import Scaler
 
 
 """
-This script can be used to run Atari experiments with DQN. 
+This script can be used to run Atari experiments with DQN.
 
 """
 
@@ -143,6 +143,7 @@ def experiment():
         pi = EpsGreedy(epsilon=epsilon_test,
                        observation_space=mdp.observation_space,
                        action_space=mdp.action_space)
+
         # Approximator
         approximator_params = dict(name='test',
                                    load_path=args.load_path,
@@ -169,7 +170,7 @@ def experiment():
         fit_params = dict()
         agent_params = {'algorithm_params': algorithm_params,
                         'fit_params': fit_params}
-        agent = DQN(approximator, pi, mdp.gamma, **agent_params)
+        agent = DQN(approximator, pi, mdp.gamma, agent_params)
 
         # Algorithm
         core_test = Core(agent, mdp)
@@ -250,6 +251,7 @@ def experiment():
                                         input_preprocessor=[Scaler(
                                             mdp.observation_space.high)],
                                         **approximator_params_target)
+
         # Initialize target approximator weights with the weights of the
         # approximator to fit.
         target_approximator.model.set_weights(
@@ -272,9 +274,9 @@ def experiment():
                         'fit_params': fit_params}
 
         if args.algorithm == 'dqn':
-            agent = DQN(approximator, pi, mdp.gamma, **agent_params)
+            agent = DQN(approximator, pi, mdp.gamma, agent_params)
         elif args.algorithm == 'ddqn':
-            agent = DoubleDQN(approximator, pi, mdp.gamma, **agent_params)
+            agent = DoubleDQN(approximator, pi, mdp.gamma, agent_params)
 
         # Algorithm
         collect_summary = CollectSummary(folder_name)

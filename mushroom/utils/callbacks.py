@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 
 from mushroom.approximators.ensemble import EnsembleTable
-from mushroom.utils.dataset import compute_scores, max_QA
+from mushroom.utils.dataset import compute_scores
 
 
 class CollectDataset:
@@ -39,19 +39,19 @@ class CollectQ:
         """
         self._approximator = approximator
 
-        self._Qs = list()
+        self._qs = list()
 
     def __call__(self, **kwargs):
         if isinstance(self._approximator, EnsembleTable):
             qs = list()
             for m in self._approximator.tables:
                 qs.append(m.table)
-            self._Qs.append(deepcopy(np.mean(qs, 0)))
+            self._qs.append(deepcopy(np.mean(qs, 0)))
         else:
-            self._Qs.append(deepcopy(self._approximator.table))
+            self._qs.append(deepcopy(self._approximator.table))
 
     def get_values(self):
-        return self._Qs
+        return self._qs
 
 
 class CollectMaxQ:
@@ -72,15 +72,16 @@ class CollectMaxQ:
         self._approximator = approximator
         self._state = state
 
-        self._max_Qs = list()
+        self._max_qs = list()
 
     def __call__(self, **kwargs):
-        max_Q, _ = max_QA(self._state, False, self._approximator)
+        q = self._approximator.predict_all(self._state)
+        max_q = np.max(q, axis=1)
 
-        self._max_Qs.append(max_Q[0])
+        self._max_qs.append(max_q[0])
 
     def get_values(self):
-        return self._max_Qs
+        return self._max_qs
 
 
 class CollectSummary:

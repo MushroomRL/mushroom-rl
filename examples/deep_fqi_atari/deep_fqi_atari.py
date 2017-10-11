@@ -239,7 +239,7 @@ def experiment():
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
 
-    agent = DeepFQI(approximator, pi, mdp.gamma, **agent_params)
+    agent = DeepFQI(approximator, pi, mdp.gamma, agent_params)
 
     # Core
     core = Core(agent, mdp)

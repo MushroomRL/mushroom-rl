@@ -145,29 +145,3 @@ def compute_scores(dataset):
         return np.min(scores), np.max(scores), np.mean(scores), n_episodes
     else:
         return 0, 0, 0, 0
-
-
-def max_QA(states, absorbing, approximator):
-    """
-    Args:
-        states (np.array): the states to consider to compute the action values;
-        absorbing (np.array): whether the states are absorbing or not;
-        approximator (object): the approximator to use to compute the
-            action values.
-
-    Returns:
-        The maximum action values for each state and their corresponding
-        actions.
-
-    """
-    q = approximator.predict_all(states)
-    if np.any(absorbing):
-        q *= 1 - absorbing.reshape(-1, 1)
-
-    max_q = np.max(q, axis=1)
-    if q.shape[0] > 1:
-        max_a = np.argmax(q, axis=1)
-    else:
-        max_a = [np.random.choice(np.argwhere(q[0] == max_q).ravel())]
-
-    return max_q, np.array(max_a).reshape(-1, 1)

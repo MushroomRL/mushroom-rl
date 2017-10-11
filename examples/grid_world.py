@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 from joblib import Parallel, delayed
 
@@ -12,6 +11,8 @@ from mushroom.policy import EpsGreedy
 from mushroom.utils.callbacks import CollectDataset, CollectMaxQ
 from mushroom.utils.dataset import parse_dataset
 from mushroom.utils.parameters import DecayParameter
+
+matplotlib.use('Agg')
 
 
 def experiment(algorithm_class, decay_exp):
@@ -33,7 +34,7 @@ def experiment(algorithm_class, decay_exp):
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
-    agent = algorithm_class(shape, pi, mdp.gamma, **agent_params)
+    agent = algorithm_class(shape, pi, mdp.gamma, agent_params)
 
     # Algorithm
     collect_max_Q = CollectMaxQ(agent.approximator, np.array([mdp._start]))

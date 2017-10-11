@@ -30,7 +30,7 @@ def experiment(algorithm_class, decay_exp):
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
-    agent = algorithm_class(shape, pi, mdp.gamma, **agent_params)
+    agent = algorithm_class(shape, pi, mdp.gamma, agent_params)
 
     # Algorithm
     collect_Q = CollectQ(agent.approximator)

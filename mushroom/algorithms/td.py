@@ -11,10 +11,10 @@ class TD(Agent):
     Implements functions to run TD algorithms.
 
     """
-    def __init__(self, approximator, policy, gamma, **params):
+    def __init__(self, approximator, policy, gamma, params):
         self.learning_rate = params['algorithm_params'].pop('learning_rate')
 
-        super(TD, self).__init__(approximator, policy, gamma, **params)
+        super(TD, self).__init__(approximator, policy, gamma, params)
 
     def fit(self, dataset, n_iterations=1):
         """
@@ -54,12 +54,12 @@ class QLearning(TD):
     "Learning from Delayed Rewards". Watkins C.J.C.H.. 1989.
 
     """
-    def __init__(self, shape, policy, gamma, **params):
+    def __init__(self, shape, policy, gamma, params):
         self.__name__ = 'QLearning'
 
         self.Q = Table(shape)
 
-        super(QLearning, self).__init__(self.Q, policy, gamma, **params)
+        super(QLearning, self).__init__(self.Q, policy, gamma, params)
 
     def _update(self, s, a, r, ss, ab):
         q_current = self.Q[s, a]
@@ -76,12 +76,12 @@ class DoubleQLearning(TD):
     "Double Q-Learning". van Hasselt H.. 2010.
 
     """
-    def __init__(self, shape, policy, gamma, **params):
+    def __init__(self, shape, policy, gamma, params):
         self.__name__ = 'DoubleQLearning'
 
         self.Q = EnsembleTable(2, shape)
 
-        super(DoubleQLearning, self).__init__(self.Q, policy, gamma, **params)
+        super(DoubleQLearning, self).__init__(self.Q, policy, gamma, params)
 
         self.learning_rate = [deepcopy(self.learning_rate),
                               deepcopy(self.learning_rate)]
@@ -116,14 +116,14 @@ class WeightedQLearning(TD):
     D'Eramo C. et. al.. 2016.
 
     """
-    def __init__(self, shape, policy, gamma, **params):
+    def __init__(self, shape, policy, gamma, params):
         self.__name__ = 'WeightedQLearning'
 
         self.Q = Table(shape)
         self._sampling = params.pop('sampling', True)
         self._precision = params.pop('precision', 1000)
 
-        super(WeightedQLearning, self).__init__(self.Q, policy, gamma, **params)
+        super(WeightedQLearning, self).__init__(self.Q, policy, gamma, params)
 
         self._n_updates = Table(shape)
         self._sigma = Table(shape, initial_value=1e10)
@@ -193,13 +193,13 @@ class SpeedyQLearning(TD):
     "Speedy Q-Learning". Ghavamzadeh et. al.. 2011.
 
     """
-    def __init__(self, shape, policy, gamma, **params):
+    def __init__(self, shape, policy, gamma, params):
         self.__name__ = 'SpeedyQLearning'
 
         self.Q = Table(shape)
         self.old_q = deepcopy(self.Q)
 
-        super(SpeedyQLearning, self).__init__(self.Q, policy, gamma, **params)
+        super(SpeedyQLearning, self).__init__(self.Q, policy, gamma, params)
 
     def _update(self, s, a, r, ss, ab):
         old_q = deepcopy(self.Q)
@@ -223,11 +223,11 @@ class SARSA(TD):
     SARSA algorithm.
 
     """
-    def __init__(self, shape, policy, gamma, **params):
+    def __init__(self, shape, policy, gamma, params):
         self.__name__ = 'SARSA'
 
         self.Q = Table(shape)
-        super(SARSA, self).__init__(self.Q, policy, gamma, **params)
+        super(SARSA, self).__init__(self.Q, policy, gamma, params)
 
     def _update(self, s, a, r, ss, ab):
         q_current = self.Q[s, a]

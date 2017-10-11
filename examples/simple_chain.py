@@ -26,7 +26,7 @@ def experiment():
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
-    agent = QLearning(shape, pi, mdp.gamma, **agent_params)
+    agent = QLearning(shape, pi, mdp.gamma, agent_params)
 
     # Algorithm
     core = Core(agent, mdp)

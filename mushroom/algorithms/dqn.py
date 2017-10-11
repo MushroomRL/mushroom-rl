@@ -1,7 +1,6 @@
 import numpy as np
 
 from mushroom.algorithms.agent import Agent
-from mushroom.utils.dataset import max_QA
 from mushroom.utils.replay_memory import Buffer, ReplayMemory
 
 
@@ -12,7 +11,7 @@ class DQN(Agent):
     Mnih V. et. al.. 2015.
 
     """
-    def __init__(self, approximator, policy, gamma, **params):
+    def __init__(self, approximator, policy, gamma, params):
         self.__name__ = 'DQN'
 
         alg_params = params['algorithm_params']
@@ -33,7 +32,7 @@ class DQN(Agent):
         self._episode_steps = 0
         self._no_op_actions = None
 
-        super(DQN, self).__init__(approximator, policy, gamma, **params)
+        super(DQN, self).__init__(approximator, policy, gamma, params)
 
     def fit(self, dataset, n_iterations=1):
         """
@@ -70,10 +69,10 @@ class DQN(Agent):
                 self._target_approximator.model.set_weights(
                     self.approximator.model.get_weights())
 
-    def _next_q(self, next_states, absorbing):
+    def _next_q(self, next_state, absorbing):
         """
         Args:
-            next_states (np.array): the states where next action has to be
+            next_state (np.array): the states where next action has to be
                 evaluated;
             absorbing (np.array): the absorbing flag for the states in
                 'next_state'.
@@ -82,9 +81,11 @@ class DQN(Agent):
             Maximum action-value for each state in 'next_states'.
 
         """
-        max_q, _ = max_QA(next_states, absorbing, self._target_approximator)
+        q = self._target_approximator.predict_all(next_state)
+        if np.any(absorbing):
+            q *= 1 - absorbing.reshape(-1, 1)
 
-        return max_q
+        return np.max(q, axis=1)
 
     def initialize(self, mdp_info):
         """
@@ -130,14 +131,17 @@ class DoubleDQN(DQN):
     Implements functions to run the Double DQN algorithm.
 
     """
-    def __init__(self, approximator, policy, gamma, **params):
+    def __init__(self, approximator, policy, gamma, params):
         self.__name__ = 'DoubleDQN'
 
-        super(DoubleDQN, self).__init__(approximator, policy, gamma, **params)
+        super(DoubleDQN, self).__init__(approximator, policy, gamma, params)
 
     def _next_q(self, next_state, absorbing):
-        _, a_n = max_QA(next_state, absorbing, self.approximator)
-        sa_n = [next_state, a_n]
+        q = self.approximator.predict_all(next_state)
+        if np.any(absorbing):
+            q *= 1 - absorbing.reshape(-1, 1)
+        max_a = np.argmax(q, axis=1)
+        sa_n = [next_state, max_a]
 
         return self._target_approximator.predict(sa_n)
 
