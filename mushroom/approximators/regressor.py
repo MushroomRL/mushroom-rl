@@ -1,190 +1,92 @@
-import numpy as np
+from .implementations.action_regressor import ActionRegressor
+from .implementations.ensemble import Ensemble
+from .implementations.q_regressor import QRegressor
+from .implementations.simple_regressor import SimpleRegressor
 
 
-class Regressor(object):
+class Regressor:
     """
-    Regressor class. It is used to preprocess the input provided and to
-    feed the approximator with them.
+    This class implements the function to manage a function approximator. This
+    class selects the appropriate kind of regressor to implement according to
+    the parameters provided by the user; this makes this class the only one to
+    use for each kind of task that has to be performed.
+    The inference of the implementation to choose is done checking the provided
+    values of parameters `n_actions`.
+    If `n_actions` is provided, if its value is equal to
+    the `output_shape` then a `QRegressor` is created, else (`output_shape`
+    should be (1,)) an `ActionRegressor` is created.
+    Else a `SimpleRegressor` is created.
+    An `Ensemble` model can be used for all the previous implementations
+    listed before simply providing a `n_models` parameter greater than 1.
 
     """
-    def __init__(self, approximator, discrete_actions=None,
-                 input_preprocessor=None, output_preprocessor=None, **params):
-        """
-        Constructor.
+    def __init__(self, approximator, input_shape, output_shape=(1,),
+                 n_actions=None, n_models=1, **params):
+        approximator_params = params.get('params', dict())
 
-        Args:
-            approximator (object): the approximator class to use;
-            discrete_actions ([int, list, np.array], None): the action values to
-                consider to do regression. If an integer number n is provided,
-                the values of the actions ranges from 0 to n - 1.
-            preprocessor (list, None): list of preprocessing steps to apply to
-                the input data
-            **params (dict): other parameters.
+        self._input_shape = input_shape
+        self._output_shape = output_shape
 
-        """
-        self.model = approximator(**params)
+        assert n_models >= 1
+        self._n_models = n_models
 
-        if discrete_actions is not None:
-            if isinstance(discrete_actions, int):
-                self.discrete_actions = np.arange(
-                    discrete_actions).reshape(-1, 1)
-                self._actions_with_value = False
+        if n_actions is not None:
+            assert len(self._output_shape) == 1 and n_actions >= 2
+            if n_actions == self._output_shape[0]:
+                self._impl = QRegressor(approximator, n_actions,
+                                        approximator_params, **params)
             else:
-                self.discrete_actions = np.array(discrete_actions)
-                if self.discrete_actions.ndim == 1:
-                    self.discrete_actions =\
-                        self.discrete_actions.reshape(-1, 1)
-                assert self.discrete_actions.ndim == 2
-                self._actions_with_value = True
-
-        self._input_preprocessor =\
-            input_preprocessor if input_preprocessor is not None else []
-        self._output_preprocessor =\
-            output_preprocessor if output_preprocessor is not None else []
-
-    def fit(self, x, y, **fit_params):
-        """
-        Preprocess the input and output if requested and fit the model using
-        its fit function.
-
-        Args:
-            x (list): a two elements list with states and actions;
-            y (np.array): targets;
-            **fit_params (dict): other parameters.
-
-        """
-        x, y = self._preprocess_fit(x, y)
-        self.model.fit(x, y, **fit_params)
-
-    def train_on_batch(self, x, y, **fit_params):
-        """
-        Preprocess the input and output if requested and fit the model on a
-        single batch using its fit function.
-
-        Args:
-            x (list): a two elements list with states and actions;
-            y (np.array): targets;
-            **fit_params (dict): other parameters.
-
-        """
-        x, y = self._preprocess_fit(x, y)
-        self.model.train_on_batch(x, y, **fit_params)
-
-    def predict(self, x, **predict_params):
-        """
-        Preprocess the input and output if requested and make the prediction.
-
-        Args:
-            x (list): a two elements list with states and actions;
-
-        Returns:
-            The prediction of the model.
-
-        """
-        x = self._preprocess_predict(x)
-        y = self.model.predict(x, **predict_params)
-
-        return y
-
-    def predict_all(self, x, **predict_params):
-        """
-        Predict for each action given a state.
-
-        Args:
-            x (np.array): states;
-
-        Returns:
-            The predictions of the model.
-
-        """
-        if hasattr(self, 'discrete_actions'):
-            n_states = x.shape[0]
-            n_actions = self.discrete_actions.shape[0]
-            action_dim = self.discrete_actions.shape[1]
-
-            for p in self._input_preprocessor:
-                x = p(x)
-
-            a = np.ones(
-                (n_states, action_dim)) * self.discrete_actions[0]
-            if x.ndim == 2:
-                samples = np.concatenate((x, a), axis=1)
-            else:
-                samples = [x, a]
-            y_0 = self.model.predict(samples, **predict_params).ravel()
-            y = np.zeros((n_states, n_actions) + y_0.shape[1:])
-            y[:, 0] = y_0
-            for action in xrange(1, n_actions):
-                a = np.ones(
-                    (n_states, action_dim)) * self.discrete_actions[action]
-                if x.ndim == 2:
-                    samples = np.concatenate((x, a), axis=1)
-                else:
-                    samples = [x, a]
-                y[:, action] = self.model.predict(samples,
-                                                  **predict_params).ravel()
+                self._impl = ActionRegressor(approximator, n_actions,
+                                             approximator_params, **params)
         else:
-            for p in self._input_preprocessor:
-                x = p(x)
+            self._impl = SimpleRegressor(approximator, approximator_params,
+                                         **params)
 
-            y = self.model.predict(x, **predict_params)
+        if self._n_models > 1:
+            prediction = params.get('prediction', 'mean')
+            self._impl = Ensemble(self._impl, self._n_models, prediction)
 
-        return y
+    def fit(self, *z, **fit_params):
+        self._impl.fit(*z, **fit_params)
 
-    def _preprocess_fit(self, x, y):
-        if hasattr(self, 'discrete_actions'):
-            x = self._preprocess(x)
-
-        for p in self._input_preprocessor:
-            x = p(x)
-        for p in self._output_preprocessor:
-            y = p(y)
-
-        return x, y
-
-    def _preprocess_predict(self, x):
-        if hasattr(self, 'discrete_actions'):
-            x = self._preprocess(x)
-
-        for p in self._input_preprocessor:
-            x = p(x)
-
-        return x
-
-    def _preprocess(self, x):
-        """
-        Preprocess the input to create a np.array with concatenated states and
-        actions in the case the regressor uses both as input. During this
-        phase, it maps the provided action values to the actions id.
-        Eventually, it applies the provided preprocessing steps sequentially.
-
-        Args:
-            x (np.array): states.
-
-        Returns:
-            The preprocessed input.
-
-        """
-        assert isinstance(x, list) and len(x) == 2
-        assert x[0].shape[0] == x[1].shape[0]
-
-        if self._actions_with_value:
-            if x[0].ndim == 2:
-                x = np.concatenate((x[0], self.discrete_actions[x[1].ravel()]),
-                                   axis=1)
-            else:
-                x = [x[0], x[1]]
-        else:
-            if x[0].ndim == 2:
-                x = np.concatenate((x[0], x[1]), axis=1)
-            else:
-                x = [x[0], x[1]]
-
-        return x
+    def predict(self, *z, **predict_params):
+        return self._impl.predict(*z, **predict_params)
 
     @property
-    def shape(self):
-        return self.model.shape
+    def model(self):
+        return self._impl.model
+
+    @property
+    def input_shape(self):
+        return self._input_shape
+
+    @property
+    def output_shape(self):
+        return self._output_shape
+
+    def get_weights(self):
+        try:
+            return self._impl.get_weights()
+        except AttributeError:
+            raise NotImplementedError('Attempt to get weights of a'
+                                      'non-parametric regressor.')
+
+    def set_weights(self, w):
+        try:
+            self._impl.set_weights(w)
+        except AttributeError:
+            raise NotImplementedError('Attempt to set weights of a'
+                                      'non-parametric regressor.')
+
+    def diff(self, *z):
+        try:
+            return self._impl.diff(*z)
+        except AttributeError:
+            raise NotImplementedError('Attempt to compute derivative of a'
+                                      'non-differentiable regressor.')
+
+    def __getitem__(self, idx):
+        return self._impl[idx]
 
     def __str__(self):
-        return str(self.model)
+        return str(self._impl)

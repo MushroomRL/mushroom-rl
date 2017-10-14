@@ -55,13 +55,10 @@ class DQN(Agent):
             if self._clip_reward:
                 reward = np.clip(reward, -1, 1)
 
-            sa = [state, action]
-
             q_next = self._next_q(next_state, absorbing)
             q = reward + self._gamma * q_next
 
-            self.approximator.train_on_batch(
-                sa, q, **self.params['fit_params'])
+            self.approximator.fit(state, action, q, **self.params['fit_params'])
 
             self._n_updates += 1
 
@@ -81,7 +78,7 @@ class DQN(Agent):
             Maximum action-value for each state in 'next_states'.
 
         """
-        q = self._target_approximator.predict_all(next_state)
+        q = self._target_approximator.predict(next_state)
         if np.any(absorbing):
             q *= 1 - absorbing.reshape(-1, 1)
 
@@ -137,13 +134,12 @@ class DoubleDQN(DQN):
         super(DoubleDQN, self).__init__(approximator, policy, gamma, params)
 
     def _next_q(self, next_state, absorbing):
-        q = self.approximator.predict_all(next_state)
+        q = self.approximator.predict(next_state)
         if np.any(absorbing):
             q *= 1 - absorbing.reshape(-1, 1)
         max_a = np.argmax(q, axis=1)
-        sa_n = [next_state, max_a]
 
-        return self._target_approximator.predict(sa_n)
+        return self._target_approximator.predict(next_state, max_a)
 
     def draw_action(self, state, approximator=None):
         return super(DoubleDQN, self).draw_action(

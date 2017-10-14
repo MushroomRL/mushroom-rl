@@ -145,9 +145,10 @@ def experiment():
                        action_space=mdp.action_space)
 
         # Approximator
+        input_shape = (args.screen_height, args.screen_width,
+                       args.history_length)
         approximator_params = dict(name='test',
                                    load_path=args.load_path,
-                                   n_actions=mdp.action_space.n,
                                    optimizer={'name': args.optimizer,
                                               'lr': args.learning_rate,
                                               'decay': args.decay},
@@ -156,8 +157,11 @@ def experiment():
                                    history_length=args.history_length)
         approximator = Regressor(
             ConvNet,
+            input_shape=input_shape,
+            output_shape=(mdp.action_space.n,),
+            n_actions=mdp.action_space.n,
             input_preprocessor=[Scaler(mdp.observation_space.high)],
-            **approximator_params
+            params=approximator_params
         )
 
         # Agent
@@ -225,7 +229,6 @@ def experiment():
         # Approximator
         approximator_params_train = dict(name='train',
                                          folder_name=folder_name,
-                                         n_actions=mdp.action_space.n,
                                          optimizer={'name': args.optimizer,
                                                     'lr': args.learning_rate,
                                                     'decay': args.decay},
@@ -235,7 +238,6 @@ def experiment():
         # Target approximator
         approximator_params_target = dict(name='target',
                                           folder_name=folder_name,
-                                          n_actions=mdp.action_space.n,
                                           optimizer={'name': args.optimizer,
                                                      'lr': args.learning_rate,
                                                      'decay': args.decay},
@@ -243,14 +245,22 @@ def experiment():
                                           height=args.screen_height,
                                           history_length=args.history_length)
 
+        input_shape = (args.screen_height, args.screen_width,
+                       args.history_length)
         approximator = Regressor(ConvNet,
+                                 input_shape=input_shape,
+                                 output_shape=(mdp.action_space.n,),
+                                 n_actions=mdp.action_space.n,
                                  input_preprocessor=[Scaler(
                                      mdp.observation_space.high)],
-                                 **approximator_params_train)
+                                 params=approximator_params_train)
         target_approximator = Regressor(ConvNet,
+                                        input_shape=input_shape,
+                                        output_shape=(mdp.action_space.n,),
+                                        n_actions=mdp.action_space.n,
                                         input_preprocessor=[Scaler(
                                             mdp.observation_space.high)],
-                                        **approximator_params_target)
+                                        params=approximator_params_target)
 
         # Initialize target approximator weights with the weights of the
         # approximator to fit.

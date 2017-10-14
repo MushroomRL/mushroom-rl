@@ -12,7 +12,7 @@ def experiment():
 
     # MDP
     mdp = generate_simple_chain(state_n=5, goal_states=[2], prob=.8, rew=1,
-                                gamma=0.9)
+                                gamma=.9)
 
     # Policy
     epsilon = Parameter(value=.15)
@@ -20,7 +20,7 @@ def experiment():
                    action_space=mdp.action_space)
 
     # Agent
-    shape = mdp.observation_space.shape + mdp.action_space.shape
+    shape = mdp.observation_space.size + mdp.action_space.size
     learning_rate = Parameter(value=.2)
     algorithm_params = dict(learning_rate=learning_rate)
     fit_params = dict()

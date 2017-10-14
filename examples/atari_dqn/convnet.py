@@ -31,23 +31,18 @@ class ConvNet:
                                                          shape=w[i].shape))
                     self._w.append(w[i].assign(self._target_w[i]))
 
-    def predict(self, x, features=False):
+    def predict(self, s, features=False):
         if not features:
-            if isinstance(x, list):
-                return self._session.run(
-                    self._q_acted, feed_dict={self._x: x[0],
-                                              self._action: x[1].ravel().astype(
-                                                  np.uint8)})
-            return self._session.run(self.q, feed_dict={self._x: x})
+            return self._session.run(self.q, feed_dict={self._x: s})
         else:
-            return self._session.run(self._features, feed_dict={self._x: x})
+            return self._session.run(self._features, feed_dict={self._x: s})
 
-    def train_on_batch(self, x, y):
+    def fit(self, s, a, q):
         summaries, _ = self._session.run(
             [self._merged, self._train_step],
-            feed_dict={self._x: x[0],
-                       self._action: x[1].ravel().astype(np.uint8),
-                       self._target_q: y}
+            feed_dict={self._x: s,
+                       self._action: a.ravel().astype(np.uint8),
+                       self._target_q: q}
         )
         if hasattr(self, '_train_writer'):
             self._train_writer.add_summary(summaries, self._train_count)

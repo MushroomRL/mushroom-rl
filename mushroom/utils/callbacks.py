@@ -3,7 +3,7 @@ from copy import deepcopy
 import numpy as np
 import tensorflow as tf
 
-from mushroom.approximators.ensemble import EnsembleTable
+from mushroom.approximators.implementations.ensemble import EnsembleTable
 from mushroom.utils.dataset import compute_scores
 
 
@@ -75,7 +75,7 @@ class CollectMaxQ:
         self._max_qs = list()
 
     def __call__(self, **kwargs):
-        q = self._approximator.predict_all(self._state)
+        q = self._approximator.predict(self._state)
         max_q = np.max(q, axis=1)
 
         self._max_qs.append(max_q[0])

@@ -16,7 +16,7 @@ from mushroom.environments import Atari
 from mushroom.policy import EpsGreedy
 from mushroom.utils.dataset import compute_scores
 from mushroom.utils.parameters import Parameter
-from mushroom.utils.preprocessor import Binarizer, Filter, Preprocessor, Scaler
+from mushroom.utils.preprocessor import Binarizer, Preprocessor, Scaler
 from mushroom.utils.replay_memory import ReplayMemory
 from extractor import Extractor
 
@@ -199,33 +199,39 @@ def experiment():
     if args.sobel:
         extr_preprocessors += [Sobel(args.history_length), Binarizer(0, False)]
 
+    input_shape = (args.screen_height, args.screen_width,
+                   args.history_length)
     extractor = Regressor(Extractor,
+                          input_shape=input_shape,
                           input_preprocessor=extr_preprocessors,
                           output_preprocessor=extr_preprocessors,
-                          **extractor_params)
+                          params=extractor_params)
     n_features = extractor.model.n_features
 
     if args.boosted:
-        approximator_class = Ensemble
-        approximator_params = dict(n_models=args.fqi_steps,
-                                   prediction='sum',
-                                   use_action_regressor=True,
-                                   discrete_actions=mdp.action_space.n)
+        n_models = args.fqi_steps
+        prediction = 'sum'
     else:
-        approximator_class = ActionRegressor
-        approximator_params = dict(discrete_actions=mdp.action_space.n)
+        n_models = 1
+        prediction = 'mean'
     if args.approximator == 'extra':
-        approximator_params['n_estimators'] = args.n_estimators
-        approximator_params['min_samples_split'] = args.min_samples_split
-        approximator_params['min_samples_leaf'] = args.min_samples_leaf
-        approximator_params['max_depth'] = args.max_depth
-        approximator = approximator_class(ExtraTreesRegressor,
-                                          **approximator_params)
+        approximator_class = ExtraTreesRegressor
+        approximator_params = dict(n_estimators=args.n_estimators,
+                                   min_samples_split=args.min_samples_split,
+                                   min_samples_leaf=args.min_samples_leaf,
+                                   max_depth=args.max_depth)
     elif args.approximator == 'linear':
-        approximator = approximator_class(LinearRegression,
-                                          **approximator_params)
+        approximator_class = LinearRegression
+        approximator_params = dict()
     else:
         raise ValueError
+
+    approximator = Regressor(approximator_class,
+                             input_shape=(n_features,),
+                             n_actions=mdp.action_space.n,
+                             n_models=n_models,
+                             prediction=prediction,
+                             params=approximator_params)
 
     # Agent
     algorithm_params = dict(
@@ -289,7 +295,7 @@ def experiment():
                 for batch in gen:
                     extr_input = [batch[0]]
                     target = batch[0]
-                    extractor.train_on_batch(extr_input, target)
+                    extractor.fit(extr_input, target)
                     gen.set_postfix(loss=extractor.model.loss)
 
                 valid_rm_generator = replay_memory.generator(args.batch_size,

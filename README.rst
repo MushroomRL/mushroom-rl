@@ -13,7 +13,7 @@ OpenAI Gym libraries. It allows to perform RL experiments in a simple way provid
 and batch TD (e.g. FQI) algorithms together with others such as DQN algorithm used to solve the Atari environment.
 
 By choice, it is currently focused on value-based algorithms, but policy gradient
-and actor-critic algorithms will be added in future versions.
+and actor-critic algorithms will be added soon.
 
 Full documentation available at http://mushroomrl.readthedocs.io/en/latest/.
 

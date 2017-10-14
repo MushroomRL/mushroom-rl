@@ -3,17 +3,17 @@ from __future__ import print_function
 
 import argparse
 import datetime
-import gym
 
+import gym
 import numpy as np
-from matplotlib import pyplot as plt
 import tensorflow as tf
 from PIL import Image
+from matplotlib import pyplot as plt
 
 from examples.atari_dqn.convnet import ConvNet
 from examples.deep_fqi_atari.deep_fqi_atari import Sobel
 from examples.deep_fqi_atari.extractor import Extractor
-from mushroom.approximators.action_regressor import Regressor
+from mushroom.approximators.implementations.action_regressor import Regressor
 from mushroom.utils.preprocessor import Scaler, Binarizer
 from mushroom.utils.replay_memory import Buffer
 

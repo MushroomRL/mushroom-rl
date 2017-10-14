@@ -13,17 +13,17 @@ def value_iteration(p, r, gamma, eps):
         eps (float): accuracy threshold.
 
     """
-    state_n = p.shape[0]
-    action_n = p.shape[1]
+    n_states = p.shape[0]
+    n_actions = p.shape[1]
 
-    v = np.zeros(state_n)
+    v = np.zeros(n_states)
 
     while True:
         v_old = deepcopy(v)
 
-        for s in xrange(state_n):
-            vmax = -float('inf')
-            for a in xrange(action_n):
+        for s in xrange(n_states):
+            vmax = -np.inf
+            for a in xrange(n_actions):
                 p_sa = p[s, a, :]
                 r_sa = r[s, a, :]
                 va = p_sa.T.dot(r_sa + gamma * v_old)
@@ -46,19 +46,19 @@ def policy_iteration(p, r, gamma):
         gamma (float): discount factor;
 
     """
-    state_n = p.shape[0]
-    action_n = p.shape[1]
+    n_states = p.shape[0]
+    n_actions = p.shape[1]
 
-    pi = np.zeros(state_n, dtype=int)
-    v = np.zeros(state_n)
+    pi = np.zeros(n_states, dtype=int)
+    v = np.zeros(n_states)
 
     changed = True
     while changed:
-        p_pi = np.zeros((state_n, state_n))
-        r_pi = np.zeros(state_n)
-        i = np.eye(state_n)
+        p_pi = np.zeros((n_states, n_states))
+        r_pi = np.zeros(n_states)
+        i = np.eye(n_states)
 
-        for s in xrange(state_n):
+        for s in xrange(n_states):
             a = pi[s]
             p_pi_s = p[s, a, :]
             r_pi_s = r[s, a, :]
@@ -70,9 +70,9 @@ def policy_iteration(p, r, gamma):
 
         changed = False
 
-        for s in xrange(state_n):
+        for s in xrange(n_states):
             vmax = v[s]
-            for a in xrange(action_n):
+            for a in xrange(n_actions):
                 if a != pi[s]:
                     p_sa = p[s, a]
                     r_sa = r[s, a]

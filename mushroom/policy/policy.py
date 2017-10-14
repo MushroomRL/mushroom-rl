@@ -41,7 +41,7 @@ class EpsGreedy:
 
         """
         if not np.random.uniform() < self._epsilon(state):
-            q = approximator.predict_all(np.expand_dims(state, axis=0))
+            q = approximator.predict(np.expand_dims(state, axis=0))
             max_a = np.argmax(q, axis=1)
 
             return max_a

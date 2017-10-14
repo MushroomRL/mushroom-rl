@@ -47,16 +47,18 @@ class Table:
     def fit(self, x, y):
         self[x] = y
 
-    def predict(self, x):
-        return self[x]
-
-    def predict_all(self, x):
+    def predict(self, *z):
+        s = z[0]
         table = list()
-
-        for i in xrange(len(x)):
-            s = x[i]
-            val = self[s, :]
-            table.append(val)
+        if len(z) == 2:
+            a = z[1]
+            for i in xrange(len(s)):
+                val = self[s[i], a[i]]
+                table.append(val)
+        else:
+            for i in xrange(len(s)):
+                val = self[s[i], :]
+                table.append(val)
 
         return np.array(table)
 

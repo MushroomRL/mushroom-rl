@@ -49,7 +49,7 @@ class Extractor:
 
         return stats_dict
 
-    def train_on_batch(self, x, y, **fit_params):
+    def fit(self, x, y, **fit_params):
         fd = {self._state: x[0], self._target_frame: y}
 
         summaries, _, self.loss = self._session.run(
