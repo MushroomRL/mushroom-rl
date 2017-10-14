@@ -6,7 +6,7 @@ from sklearn.exceptions import NotFittedError
 from mushroom.utils.table import Table
 
 
-class Ensemble:
+class Ensemble(object):
     """
     This class is used to create an ensemble of regressors.
 
@@ -84,8 +84,4 @@ class EnsembleTable(Ensemble):
             prediction (str, 'mean'): type of prediction to return.
 
         """
-        self._prediction = prediction
-        self._model = list()
-
-        for _ in xrange(n_models):
-            self._model.append(Table(shape))
+        super(EnsembleTable, self).__init__(Table(shape), n_models, prediction)
