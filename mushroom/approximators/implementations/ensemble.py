@@ -11,7 +11,7 @@ class Ensemble:
     This class is used to create an ensemble of regressors.
 
     """
-    def __init__(self, approximator, n_models, prediction):
+    def __init__(self, approximator, n_models, prediction='mean'):
         """
         Constructor.
 
@@ -74,7 +74,7 @@ class EnsembleTable(Ensemble):
     This class implements functions to manage table ensembles.
 
     """
-    def __init__(self, n_models, shape, prediction):
+    def __init__(self, n_models, shape, prediction='mean'):
         """
         Constructor.
 

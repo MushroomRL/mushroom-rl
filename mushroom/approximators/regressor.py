@@ -43,8 +43,11 @@ class Regressor:
                                          **params)
 
         if self._n_models > 1:
-            prediction = params.get('prediction', 'mean')
-            self._impl = Ensemble(self._impl, self._n_models, prediction)
+            if 'prediction' in params:
+                self._impl = Ensemble(self._impl, self._n_models,
+                                      params['prediction'])
+            else:
+                self._impl = Ensemble(self._impl, self._n_models)
 
     def fit(self, *z, **fit_params):
         self._impl.fit(*z, **fit_params)
