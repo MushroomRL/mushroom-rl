@@ -40,7 +40,7 @@ def experiment(boosted):
                                  params=approximator_params)
 
     # Agent
-    algorithm_params = dict(boosted=boosted)
+    algorithm_params = dict(boosted=boosted, quiet=True)
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}

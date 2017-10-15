@@ -59,6 +59,7 @@ class QRegressor:
         """
         s = self._preprocess(z[0])
         q = self.model.predict(s, **predict_params)
+
         if len(z) == 2:
             a = z[1]
             if q.ndim == 1:

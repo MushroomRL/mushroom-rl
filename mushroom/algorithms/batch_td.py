@@ -12,7 +12,7 @@ class BatchTD(Agent):
 
     """
     def __init__(self, approximator, policy, gamma, params):
-        self._quiet = params.get('quiet', False)
+        self._quiet = params['algorithm_params'].get('quiet', False)
 
         super(BatchTD, self).__init__(approximator, policy, gamma, params)
 
@@ -110,7 +110,9 @@ class FQI(BatchTD):
         if y is None:
             target = reward
         else:
-            self._next_q += self.approximator[self._idx - 1].predict(next_state)
+            predict_params = dict(idx=self._idx - 1)
+            self._next_q += self.approximator.predict(next_state,
+                                                      **predict_params)
             if np.any(absorbing):
                 self._next_q *= 1 - absorbing.reshape(-1, 1)
 
@@ -120,8 +122,9 @@ class FQI(BatchTD):
         target = target - self._prediction
         self._prediction += target
 
-        self.approximator[self._idx].fit(state, action, target,
-                                         **self.params['fit_params'])
+        self.params['fit_params']['idx'] = self._idx
+        self.approximator.fit(state, action, target,
+                              **self.params['fit_params'])
 
         self._idx += 1
 

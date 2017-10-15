@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 import numpy as np
 from sklearn.exceptions import NotFittedError
 
@@ -11,7 +9,8 @@ class Ensemble(object):
     This class is used to create an ensemble of regressors.
 
     """
-    def __init__(self, approximator, n_models, prediction='mean'):
+    def __init__(self, approximator, n_models, prediction,
+                 **approximator_params):
         """
         Constructor.
 
@@ -26,7 +25,24 @@ class Ensemble(object):
         self._model = list()
 
         for _ in xrange(n_models):
-            self._model.append(deepcopy(approximator))
+            self._model.append(approximator(**approximator_params))
+
+    def fit(self, *z, **fit_params):
+        """
+        Fit the `idx`-th model of the ensemble if `idx` is provided, a random
+        model otherwise.
+
+        Args:
+            *z (list): a list containing the inputs to use to predict with each
+                regressor of the ensemble;
+            **fit_params (dict): other params.
+
+        """
+        idx = fit_params.pop('idx', None)
+        if idx is None:
+            self[np.random.choice(len(self))].fit(*z, **fit_params)
+        else:
+            self[idx].fit(*z, **fit_params)
 
     def predict(self, *z, **predict_params):
         """
@@ -41,24 +57,31 @@ class Ensemble(object):
             The predictions of the model.
 
         """
-        predictions = list()
-        for i in xrange(len(self._model)):
-            try:
-                predictions.append(self._model[i].predict(*z, **predict_params))
-            except NotFittedError:
-                pass
+        idx = predict_params.pop('idx', None)
+        if idx is None:
+            predictions = list()
+            for i in xrange(len(self._model)):
+                try:
+                    predictions.append(self[i].predict(*z, **predict_params))
+                except NotFittedError:
+                    pass
 
-        if len(predictions) == 0:
-            raise NotFittedError
+            if len(predictions) == 0:
+                raise NotFittedError
 
-        if self._prediction == 'mean':
-            results = np.mean(predictions, axis=0)
-        elif self._prediction == 'sum':
-            results = np.sum(predictions, axis=0)
+            if self._prediction == 'mean':
+                results = np.mean(predictions, axis=0)
+            elif self._prediction == 'sum':
+                results = np.sum(predictions, axis=0)
+            else:
+                raise ValueError
+            if predict_params.get('compute_variance', False):
+                results = [results] + np.var(predictions, ddof=1, axis=0)
         else:
-            raise ValueError
-        if predict_params.get('compute_variance', False):
-            results = [results] + np.var(predictions, ddof=1, axis=0)
+            try:
+                results = self[idx].predict(*z, **predict_params)
+            except NotFittedError:
+                raise NotFittedError
 
         return results
 
@@ -84,7 +107,9 @@ class EnsembleTable(Ensemble):
             prediction (str, 'mean'): type of prediction to return.
 
         """
-        super(EnsembleTable, self).__init__(Table(shape), n_models, prediction)
+        approximator_params = dict(shape=shape)
+        super(EnsembleTable, self).__init__(Table, n_models, prediction,
+                                            **approximator_params)
 
     @property
     def model(self):

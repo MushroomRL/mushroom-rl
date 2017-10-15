@@ -30,6 +30,12 @@ class Regressor:
         assert n_models >= 1
         self._n_models = n_models
 
+        if self._n_models > 1:
+            approximator_params['approximator'] = approximator
+            approximator_params['n_models'] = n_models
+            approximator_params['prediction'] = params.get('prediction', 'mean')
+            approximator = Ensemble
+
         if n_actions is not None:
             assert len(self._output_shape) == 1 and n_actions >= 2
             if n_actions == self._output_shape[0]:
@@ -41,13 +47,6 @@ class Regressor:
         else:
             self._impl = SimpleRegressor(approximator, approximator_params,
                                          **params)
-
-        if self._n_models > 1:
-            if 'prediction' in params:
-                self._impl = Ensemble(self._impl, self._n_models,
-                                      params['prediction'])
-            else:
-                self._impl = Ensemble(self._impl, self._n_models)
 
     def fit(self, *z, **fit_params):
         self._impl.fit(*z, **fit_params)
@@ -87,9 +86,6 @@ class Regressor:
         except AttributeError:
             raise NotImplementedError('Attempt to compute derivative of a'
                                       'non-differentiable regressor.')
-
-    def __getitem__(self, idx):
-        return self._impl[idx]
 
     def __str__(self):
         return str(self._impl)
