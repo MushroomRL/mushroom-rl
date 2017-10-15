@@ -18,7 +18,7 @@ def experiment():
     mdp = CarOnHill()
 
     # Policy
-    epsilon = Parameter(value=1)
+    epsilon = Parameter(value=1.)
     pi = EpsGreedy(epsilon=epsilon, observation_space=mdp.observation_space,
                    action_space=mdp.action_space)
 
@@ -47,7 +47,7 @@ def experiment():
     core.reset()
 
     # Test
-    test_epsilon = Parameter(0)
+    test_epsilon = Parameter(0.)
     agent.policy.set_epsilon(test_epsilon)
 
     initial_states = np.zeros((289, 2))

@@ -44,7 +44,7 @@ class CollectQ:
     def __call__(self, **kwargs):
         if isinstance(self._approximator, EnsembleTable):
             qs = list()
-            for m in self._approximator.tables:
+            for m in self._approximator.model:
                 qs.append(m.table)
             self._qs.append(deepcopy(np.mean(qs, 0)))
         else:

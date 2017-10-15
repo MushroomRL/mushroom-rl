@@ -1,8 +1,9 @@
 import numpy as np
+from joblib import Parallel, delayed
 from sklearn.ensemble import ExtraTreesRegressor
 
 from mushroom.algorithms.batch_td import FQI
-from mushroom.approximators import Regressor, ActionRegressor
+from mushroom.approximators import Regressor
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
@@ -10,7 +11,7 @@ from mushroom.utils.dataset import compute_J
 from mushroom.utils.parameters import Parameter
 
 
-def experiment(fit_action):
+def experiment(boosted):
     np.random.seed(20)
 
     # MDP
@@ -22,28 +23,34 @@ def experiment(fit_action):
                    action_space=mdp.action_space)
 
     # Approximator
-    approximator_params = dict()
-    if fit_action:
+    approximator_params = dict(n_estimators=50,
+                               min_samples_split=5,
+                               min_samples_leaf=2)
+    if not boosted:
         approximator = Regressor(ExtraTreesRegressor,
-                                 discrete_actions=mdp.action_space.n,
-                                 **approximator_params)
+                                 input_shape=mdp.observation_space.shape,
+                                 n_actions=mdp.action_space.n,
+                                 params=approximator_params)
     else:
-        approximator = ActionRegressor(ExtraTreesRegressor,
-                                       discrete_actions=mdp.action_space.n,
-                                       **approximator_params)
+        approximator = Regressor(ExtraTreesRegressor,
+                                 input_shape=mdp.observation_space.shape,
+                                 n_actions=mdp.action_space.n,
+                                 n_models=3,
+                                 prediction='sum',
+                                 params=approximator_params)
 
     # Agent
-    algorithm_params = dict()
+    algorithm_params = dict(boosted=boosted)
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
-    agent = FQI(approximator, pi, mdp.gamma, **agent_params)
+    agent = FQI(approximator, pi, mdp.gamma, agent_params)
 
     # Algorithm
     core = Core(agent, mdp)
 
     # Train
-    core.learn(n_iterations=1, how_many=10, n_fit_steps=2,
+    core.learn(n_iterations=1, how_many=50, n_fit_steps=3,
                iterate_over='episodes', quiet=True)
     core.reset()
 
@@ -68,7 +75,9 @@ if __name__ == '__main__':
 
     n_experiment = 2
 
-    res = experiment(fit_action=True)
-    assert np.round(res, 4) == -0.136
-    res = experiment(fit_action=False)
-    assert np.round(res, 4) == -0.4147
+    Js = Parallel(n_jobs=-1)(
+        delayed(experiment)(False) for _ in range(n_experiment))
+    assert np.round(np.mean(Js), 5) == -0.41931
+    Js = Parallel(n_jobs=-1)(
+        delayed(experiment)(True) for _ in range(n_experiment))
+    assert np.round(np.mean(Js), 5) == -0.43776

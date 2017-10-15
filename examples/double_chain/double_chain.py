@@ -19,13 +19,13 @@ def experiment(algorithm_class, decay_exp):
     mdp = FiniteMDP(p, rew, gamma=.9)
 
     # Policy
-    epsilon = Parameter(value=1)
+    epsilon = Parameter(value=1.)
     pi = EpsGreedy(epsilon=epsilon, observation_space=mdp.observation_space,
                    action_space=mdp.action_space)
 
     # Agent
     shape = mdp.observation_space.size + mdp.action_space.size
-    learning_rate = DecayParameter(value=1, decay_exp=decay_exp, shape=shape)
+    learning_rate = DecayParameter(value=1., decay_exp=decay_exp, shape=shape)
     algorithm_params = dict(learning_rate=learning_rate)
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,

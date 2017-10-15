@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 
 from examples.atari_dqn.convnet import ConvNet
-from mushroom.algorithms.dqn import DQN
+from mushroom.algorithms.dqn import DQN, DoubleDQN
 from mushroom.approximators import Regressor
 from mushroom.core.core import Core
 from mushroom.environments import *
@@ -16,17 +16,17 @@ from mushroom.utils.preprocessor import Scaler
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 
-def experiment():
+def experiment(double):
     np.random.seed(88)
     tf.set_random_seed(88)
 
     # DQN settings
-    initial_replay_size = 50
-    max_replay_size = 200
-    train_frequency = 5
-    target_update_frequency = 10
-    evaluation_frequency = 50
-    max_steps = 200
+    initial_replay_size = 500
+    max_replay_size = 1000
+    train_frequency = 50
+    target_update_frequency = 100
+    evaluation_frequency = 200
+    max_steps = 2000
 
     # MDP train
     mdp = Atari('BreakoutDeterministic-v4', 84, 84, ends_at_life=True)
@@ -42,8 +42,8 @@ def experiment():
                    action_space=mdp.action_space)
 
     # Approximator
-    approximator_params_train = dict(n_actions=mdp.action_space.n,
-                                     optimizer={'name': 'rmsprop',
+    input_shape = (84, 84, 4)
+    approximator_params_train = dict(optimizer={'name': 'rmsprop',
                                                 'lr': .00025,
                                                 'decay': .95},
                                      name='train',
@@ -51,23 +51,28 @@ def experiment():
                                      height=84,
                                      history_length=4)
     approximator = Regressor(ConvNet,
+                             input_shape=input_shape,
+                             output_shape=(mdp.action_space.n,),
+                             n_actions=mdp.action_space.n,
                              input_preprocessor=[Scaler(
                                  mdp.observation_space.high)],
-                             **approximator_params_train)
+                             params=approximator_params_train)
 
     # target approximator
-    approximator_params_target = dict(n_actions=mdp.action_space.n,
-                                      optimizer={'name': 'rmsprop',
+    approximator_params_target = dict(optimizer={'name': 'rmsprop',
                                                  'lr': .00025,
                                                  'decay': .95},
                                       name='target',
                                       width=84,
                                       height=84,
                                       history_length=4)
-    target_approximator = Regressor(
-        ConvNet,
-        input_preprocessor=[Scaler(mdp.observation_space.high)],
-        **approximator_params_target)
+    target_approximator = Regressor(ConvNet,
+                                    input_shape=input_shape,
+                                    output_shape=(mdp.action_space.n,),
+                                    n_actions=mdp.action_space.n,
+                                    input_preprocessor=[Scaler(
+                                        mdp.observation_space.high)],
+                                    params=approximator_params_target)
 
     target_approximator.model.set_weights(approximator.model.get_weights())
 
@@ -87,7 +92,10 @@ def experiment():
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
 
-    agent = DQN(approximator, pi, mdp.gamma, **agent_params)
+    if not double:
+        agent = DQN(approximator, pi, mdp.gamma, agent_params)
+    else:
+        agent = DoubleDQN(approximator, pi, mdp.gamma, agent_params)
 
     # Algorithm
     core = Core(agent, mdp)
@@ -122,8 +130,12 @@ def experiment():
 if __name__ == '__main__':
     print('Executing atari_dqn test...')
 
-    res = experiment()
+    res = experiment(False)
     test_res = np.load('tests/atari_dqn/w.npy')
+    tf.reset_default_graph()
+    d_res = experiment(True)
+    d_test_res = np.load('tests/atari_dqn/dw.npy')
 
     for i in xrange(len(res)):
         assert np.array_equal(res[i], test_res[i])
+        assert np.array_equal(d_res[i], d_test_res[i])

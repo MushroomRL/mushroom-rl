@@ -19,18 +19,18 @@ def experiment(algorithm_class, decay_exp):
     mdp = FiniteMDP(p, rew, gamma=.9)
 
     # Policy
-    epsilon = Parameter(value=1)
+    epsilon = Parameter(value=1.)
     pi = EpsGreedy(epsilon=epsilon, observation_space=mdp.observation_space,
                    action_space=mdp.action_space)
 
     # Agent
     shape = mdp.observation_space.size + mdp.action_space.size
-    learning_rate = DecayParameter(value=1, decay_exp=decay_exp, shape=shape)
+    learning_rate = DecayParameter(value=1., decay_exp=decay_exp, shape=shape)
     algorithm_params = dict(learning_rate=learning_rate)
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
-    agent = algorithm_class(shape, pi, mdp.gamma, **agent_params)
+    agent = algorithm_class(shape, pi, mdp.gamma, agent_params)
 
     # Algorithm
     collect_Q = CollectQ(agent.approximator)
@@ -38,12 +38,13 @@ def experiment(algorithm_class, decay_exp):
     core = Core(agent, mdp, callbacks)
 
     # Train
-    core.learn(n_iterations=100, how_many=1, n_fit_steps=1,
+    core.learn(n_iterations=2000, how_many=1, n_fit_steps=1,
                iterate_over='samples', quiet=True)
 
     Qs = collect_Q.get_values()
 
     return Qs
+
 
 if __name__ == '__main__':
     print('Executing double_chain test...')
@@ -62,5 +63,5 @@ if __name__ == '__main__':
 
             Qs = np.mean(Qs, 0)
 
-            '''assert np.array_equal(Qs[:, 0, 0], np.load(
-                'tests/double_chain/' + names[a] + names[e] + '.npy'))'''
+            assert np.array_equal(Qs[:, 0, 0], np.load(
+                'tests/double_chain/' + names[a] + names[e] + '.npy'))

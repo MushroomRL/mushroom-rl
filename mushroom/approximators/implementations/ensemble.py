@@ -85,3 +85,7 @@ class EnsembleTable(Ensemble):
 
         """
         super(EnsembleTable, self).__init__(Table(shape), n_models, prediction)
+
+    @property
+    def model(self):
+        return self._model
