@@ -68,11 +68,13 @@ def experiment():
                          default='rmspropcentered',
                          help='Name of the optimizer to use to learn.')
     arg_net.add_argument("--learning-rate", type=float, default=.00025,
-                         help='Learning rate value of the optimizer. Only works'
-                              'for rmsprop and rmspropcentered')
+                         help='Learning rate value of the optimizer. Only used'
+                              'in rmspropcentered')
     arg_net.add_argument("--decay", type=float, default=.95,
                          help='Discount factor for the history coming from the'
-                              'gradient momentum in rmsprop.')
+                              'gradient momentum in rmspropcentered')
+    arg_net.add_argument("--epsilon", type=float, default=.01,
+                         help='Epsilon term used in rmspropcentered')
 
     arg_alg = parser.add_argument_group('Algorithm')
     arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn'],
@@ -151,7 +153,8 @@ def experiment():
                                    load_path=args.load_path,
                                    optimizer={'name': args.optimizer,
                                               'lr': args.learning_rate,
-                                              'decay': args.decay},
+                                              'decay': args.decay,
+                                              'epsilon': args.epsilon},
                                    width=args.screen_width,
                                    height=args.screen_height,
                                    history_length=args.history_length)
@@ -231,7 +234,8 @@ def experiment():
                                          folder_name=folder_name,
                                          optimizer={'name': args.optimizer,
                                                     'lr': args.learning_rate,
-                                                    'decay': args.decay},
+                                                    'decay': args.decay,
+                                                    'epsilon': args.epsilon},
                                          width=args.screen_width,
                                          height=args.screen_height,
                                          history_length=args.history_length)
@@ -240,7 +244,8 @@ def experiment():
                                           folder_name=folder_name,
                                           optimizer={'name': args.optimizer,
                                                      'lr': args.learning_rate,
-                                                     'decay': args.decay},
+                                                     'decay': args.decay,
+                                                     'epsilon': args.epsilon},
                                           width=args.screen_width,
                                           height=args.screen_height,
                                           history_length=args.history_length)
