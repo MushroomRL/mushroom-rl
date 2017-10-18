@@ -155,9 +155,9 @@ class ConvNet:
                                                 decay=optimizer['decay'],
                                                 epsilon=optimizer['epsilon'])
             elif optimizer['name'] == 'adam':
-                opt = tf.train.AdamOptimizer()
+                opt = tf.train.AdamOptimizer(learning_rate=optimizer['lr'])
             elif optimizer['name'] == 'adadelta':
-                opt = tf.train.AdadeltaOptimizer()
+                opt = tf.train.AdadeltaOptimizer(learning_rate=optimizer['lr'])
             else:
                 raise ValueError('Unavailable optimizer selected.')
 
