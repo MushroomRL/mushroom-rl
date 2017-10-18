@@ -1,7 +1,7 @@
-from .implementations.action_regressor import ActionRegressor
-from .implementations.ensemble import Ensemble
-from .implementations.q_regressor import QRegressor
-from .implementations.simple_regressor import SimpleRegressor
+from .implementations.regressors.simple_regressor import SimpleRegressor
+from .implementations.regressors.action_regressor import ActionRegressor
+from .implementations.regressors.ensemble import Ensemble
+from .implementations.regressors.q_regressor import QRegressor
 
 
 class Regressor:

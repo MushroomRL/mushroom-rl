@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 
 from examples.deep_fqi_atari.deep_fqi_atari import Sobel
 from examples.deep_fqi_atari.extractor import Extractor
-from mushroom.approximators.implementations.action_regressor import Regressor
+from mushroom.approximators.regressor import Regressor
 from mushroom.environments import Atari
 from mushroom.utils.preprocessor import Binarizer, Scaler
 from mushroom.utils.replay_memory import ReplayMemory

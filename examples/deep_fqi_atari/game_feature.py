@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 from examples.atari_dqn.convnet import ConvNet
 from examples.deep_fqi_atari.deep_fqi_atari import Sobel
 from examples.deep_fqi_atari.extractor import Extractor
-from mushroom.approximators.implementations.action_regressor import Regressor
+from mushroom.approximators.regressor import Regressor
 from mushroom.utils.preprocessor import Scaler, Binarizer
 from mushroom.utils.replay_memory import Buffer
 

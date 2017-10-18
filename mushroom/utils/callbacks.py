@@ -3,7 +3,7 @@ from copy import deepcopy
 import numpy as np
 import tensorflow as tf
 
-from mushroom.approximators.implementations.ensemble import EnsembleTable
+from mushroom.approximators.implementations.regressors.ensemble import EnsembleTable
 from mushroom.utils.dataset import compute_scores
 
 
