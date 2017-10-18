@@ -23,13 +23,14 @@ class ConvNet:
             w = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
                                   scope=self._scope_name)
 
-            with tf.variable_scope(self._scope_name):
+            with tf.variable_scope(self._scope_name + '/'):
                 self._target_w = list()
                 self._w = list()
-                for i in xrange(len(w)):
-                    self._target_w.append(tf.placeholder(w[i].dtype,
-                                                         shape=w[i].shape))
-                    self._w.append(w[i].assign(self._target_w[i]))
+                with tf.variable_scope('weights_placeholder'):
+                    for i in xrange(len(w)):
+                        self._target_w.append(tf.placeholder(w[i].dtype,
+                                                             shape=w[i].shape))
+                        self._w.append(w[i].assign(self._target_w[i]))
 
     def predict(self, s, features=False):
         if not features:
