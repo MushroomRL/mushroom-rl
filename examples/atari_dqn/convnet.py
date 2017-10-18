@@ -150,7 +150,9 @@ class ConvNet:
                                                 epsilon=optimizer['epsilon'],
                                                 centered=True)
             elif optimizer['name'] == 'rmsprop':
-                opt = tf.train.RMSPropOptimizer()
+                opt = tf.train.RMSPropOptimizer(learning_rate=optimizer['lr'],
+                                                decay=optimizer['decay'],
+                                                epsilon=optimizer['epsilon'])
             elif optimizer['name'] == 'adam':
                 opt = tf.train.AdamOptimizer()
             elif optimizer['name'] == 'adadelta':
