@@ -4,7 +4,7 @@ class Agent(object):
     actions from its policy.
 
     """
-    def __init__(self, approximator, policy, gamma, params):
+    def __init__(self, approximator, policy, gamma, params, features=None):
         """
         Constructor.
 
@@ -22,6 +22,8 @@ class Agent(object):
         self.params = params
 
         self.mdp_info = dict()
+
+        self.phi = features
 
         self._next_action = None
 
@@ -50,6 +52,9 @@ class Agent(object):
             The action to be executed.
 
         """
+        if self.phi is not None:
+            state = self.phi(state)
+
         if self._next_action is None:
             if approximator is None:
                 return self.policy(state, self.approximator)
