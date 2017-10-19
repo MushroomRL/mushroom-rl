@@ -1,6 +1,4 @@
-from .batch_td import BatchTD, FQI, DoubleFQI, WeightedFQI, DeepFQI
-from .dqn import DQN, DoubleDQN
-from .td import TD, QLearning, DoubleQLearning, WeightedQLearning, SARSA
+from mushroom.algorithms.value.dqn import DQN, DoubleDQN
 
 __all__ = ['Algorithm', 'BatchTD', 'FQI', 'DeepFQI', 'DQN', 'DoubleDQN',
            'DoubleFQI', 'WeightedFQI', 'TD', 'QLearning', 'DoubleQLearning',

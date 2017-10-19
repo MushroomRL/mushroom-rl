@@ -5,7 +5,7 @@ import os
 import numpy as np
 
 from convnet import ConvNet
-from mushroom.algorithms.dqn import DQN, DoubleDQN
+from mushroom.algorithms.value.dqn import DQN, DoubleDQN
 from mushroom.approximators import Regressor
 from mushroom.core.core import Core
 from mushroom.environments import *
@@ -14,7 +14,6 @@ from mushroom.utils.callbacks import CollectSummary
 from mushroom.utils.dataset import compute_scores
 from mushroom.utils.parameters import LinearDecayParameter, Parameter
 from mushroom.utils.preprocessor import Scaler
-
 
 """
 This script can be used to run Atari experiments with DQN.
@@ -65,7 +64,7 @@ def experiment():
                                   'adam',
                                   'rmsprop',
                                   'rmspropcentered'],
-                         default='rmspropcentered',
+                         default='adam',
                          help='Name of the optimizer to use to learn.')
     arg_net.add_argument("--learning-rate", type=float, default=.00025,
                          help='Learning rate value of the optimizer. Only used'

@@ -1,6 +1,6 @@
 import numpy as np
 
-from mushroom.algorithms.td import QLearning
+from mushroom.algorithms.value.td import QLearning
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
