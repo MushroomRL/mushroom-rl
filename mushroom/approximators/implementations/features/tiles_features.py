@@ -11,11 +11,16 @@ class TilesFeatures:
             self._size += tiling.size
 
     def __call__(self, *args):
+        if len(args) > 1:
+            x = np.concatenate(args, axis=0)
+        else:
+            x = args[0]
+
         out = np.empty(self._size)
 
         offset = 0
         for tiling in self._tiles:
-            index = tiling(input) + offset
+            index = tiling(x) + offset
 
             if index is not None:
                 out[index] = 1.0
