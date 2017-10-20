@@ -160,6 +160,9 @@ class WeightedDQN(DQN):
         super(WeightedDQN, self).__init__(approximator, policy, gamma, params)
 
         self._n_models = len(self._target_approximator.model)
+        self._single_target_update_frequency =\
+            self._target_update_frequency / self._n_models
+        self._w = [None] * self._n_models
 
         assert isinstance(self._target_approximator.model, Ensemble)
 
@@ -189,14 +192,21 @@ class WeightedDQN(DQN):
 
             self.approximator.fit(state, action, q, **self.params['fit_params'])
 
-            idx = self._n_updates % self._n_models
             self._n_updates += 1
 
+            if self._n_updates % self._single_target_update_frequency == 0:
+                idx = self._n_updates % self._target_update_frequency /\
+                    self._single_target_update_frequency
+                self._w[idx] = self.approximator.model.get_weights()
+
             if self._n_updates % self._target_update_frequency == 0:
-                self._target_approximator.model[idx].set_weights(
-                    self.approximator.model.get_weights())
+                for i in xrange(self._n_models):
+                    self._target_approximator.model[i].set_weights(self._w[i])
 
     def _next_q(self, next_state, absorbing):
+        if self._n_updates < self._target_update_frequency:
+            return super(WeightedDQN, self)._next_q(next_state, absorbing)
+
         samples = np.ones((next_state.shape[0],
                            self._n_models,
                            self.mdp_info['action_space'].n))
@@ -211,5 +221,8 @@ class WeightedDQN(DQN):
             count[max_idx] = max_count
             w = count / float(self._n_models)
             W[i] = np.dot(w, means)
+
+        if np.any(absorbing):
+            W *= 1 - absorbing.reshape(-1, 1)
 
         return W
