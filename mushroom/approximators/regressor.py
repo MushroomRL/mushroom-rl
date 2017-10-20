@@ -48,6 +48,9 @@ class Regressor:
             self._impl = SimpleRegressor(approximator, approximator_params,
                                          **params)
 
+    def __call__(self, *z, **predict_params):
+        return self.predict(*z, **predict_params)
+
     def fit(self, *z, **fit_params):
         self._impl.fit(*z, **fit_params)
 

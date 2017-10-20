@@ -1,6 +1,7 @@
 import numpy as np
 
 from mushroom.algorithms.agent import Agent
+from mushroom.approximators.regressor import Ensemble
 from mushroom.utils.replay_memory import Buffer, ReplayMemory
 
 
@@ -146,3 +147,66 @@ class DoubleDQN(DQN):
             state,
             approximator=self._target_approximator
         )
+
+
+class WeightedDQN(DQN):
+    """
+    ...
+
+    """
+    def __init__(self, approximator, policy, gamma, params):
+        self.__name__ = 'WeightedDQN'
+
+        super(WeightedDQN, self).__init__(approximator, policy, gamma, params)
+
+        assert isinstance(self._target_approximator.model, Ensemble)
+
+    def fit(self, dataset, n_iterations=1):
+        """
+        Single fit step.
+
+        Args:
+            dataset (list): a two elements list with states and actions;
+            n_iterations (int, 1): number of fit steps of the approximator.
+
+        """
+        self._replay_memory.add(dataset)
+        if n_iterations == 0:
+            pass
+        else:
+            assert n_iterations == 1
+
+            state, action, reward, next_state, absorbing, _ =\
+                self._replay_memory.get(self._batch_size)
+
+            if self._clip_reward:
+                reward = np.clip(reward, -1, 1)
+
+            q_next = self._next_q(next_state, absorbing)
+            q = reward + self._gamma * q_next
+
+            self.approximator.fit(state, action, q, **self.params['fit_params'])
+
+            self._n_updates += 1
+
+            if self._n_updates % self._target_update_frequency == 0:
+                self._target_approximator.model.set_weights(
+                    self.approximator.model.get_weights())
+
+    def _next_q(self, next_state, absorbing):
+        samples = np.ones((next_state.shape[0],
+                           len(self._target_approximator),
+                           self.mdp_info['action_space'].n))
+        for i, m in enumerate(self._target_approximator.models):
+            samples[:, i, :] = m.predict(next_state)
+        W = np.zeros(next_state.shape[0])
+        for i in xrange(next_state.shape[0]):
+            means = np.mean(samples[i], axis=0)
+            max_idx = np.argmax(samples[i], axis=0)
+            max_idx, max_count = np.unique(max_idx, return_counts=True)
+            count = np.zeros(self.mdp_info['action_space'].n)
+            count[max_idx] = max_count
+            w = count / float(len(self._target_approximator))
+            W[i] = np.dot(w, means)
+
+        return W

@@ -5,7 +5,7 @@ import os
 import numpy as np
 
 from convnet import ConvNet
-from mushroom.algorithms.value.dqn import DQN, DoubleDQN
+from mushroom.algorithms.value.dqn import DQN, DoubleDQN, WeightedDQN
 from mushroom.approximators import Regressor
 from mushroom.core.core import Core
 from mushroom.environments import *
@@ -76,10 +76,12 @@ def experiment():
                          help='Epsilon term used in rmspropcentered')
 
     arg_alg = parser.add_argument_group('Algorithm')
-    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn'],
+    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'wdqn'],
                          default='dqn',
                          help='Name of the algorithm. dqn stands for standard'
-                              'DQN and ddqn stands for Double DQN.')
+                              'DQN, ddqn stands for Double DQN and wdqn'
+                              'stands for Weighted DQN.')
+    arg_alg.add_argument("--n-approximators", type=int, default=1)
     arg_alg.add_argument("--batch-size", type=int, default=32,
                          help='Batch size for each fit of the network.')
     arg_alg.add_argument("--history-length", type=int, default=4,
@@ -262,19 +264,28 @@ def experiment():
                                         input_shape=input_shape,
                                         output_shape=(mdp.action_space.n,),
                                         n_actions=mdp.action_space.n,
+                                        n_models=args.n_approximators,
                                         input_preprocessor=[Scaler(
                                             mdp.observation_space.high)],
                                         params=approximator_params_target)
 
         # Initialize target approximator weights with the weights of the
         # approximator to fit.
-        target_approximator.model.set_weights(
-            approximator.model.get_weights())
+        if args.algorithm in ['dqn', 'ddqn']:
+            target_approximator.model.set_weights(
+                approximator.model.get_weights())
+        elif args.algorithm == 'wdqn':
+            for i in xrange(args.n_approximators):
+                target_approximator.model[i].set_weights(
+                    approximator.model.get_weights())
+        else:
+            raise ValueError
 
         # Agent
         algorithm_params = dict(
             batch_size=args.batch_size,
             target_approximator=target_approximator,
+            n_approximators=args.n_approximators,
             initial_replay_size=initial_replay_size,
             max_replay_size=max_replay_size,
             history_length=args.history_length,
@@ -291,6 +302,8 @@ def experiment():
             agent = DQN(approximator, pi, mdp.gamma, agent_params)
         elif args.algorithm == 'ddqn':
             agent = DoubleDQN(approximator, pi, mdp.gamma, agent_params)
+        elif args.algorithm == 'wdqn':
+            agent = WeightedDQN(approximator, pi, mdp.gamma, agent_params)
 
         # Algorithm
         collect_summary = CollectSummary(folder_name)
