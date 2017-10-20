@@ -1,5 +1,4 @@
 import numpy as np
-from math import sqrt, exp
 
 from mushroom.utils.parameters import Parameter
 
@@ -20,9 +19,15 @@ class NormalPolicy:
 
         raise ValueError('args must be state, or state and action')
 
-    def diff_log(self, state, action, approximator):
-        return 0
+    def diff(self, state, action, approximator):
+        return self(approximator, state, action) * self.diff_log(state, action)
 
+    def diff_log(self, state, action, approximator):
+        sigma = self._sigma.get_value(state)
+        mu = approximator.predict(np.expand_dims(state, axis=0))
+        delta = action - mu
+        gMu = approximator.diff(state)
+        return 0.5 * gMu.dot(delta)/sigma**2
 
     def set_sigma(self, sigma):
         assert isinstance(sigma, Parameter)
@@ -41,7 +46,7 @@ class NormalPolicy:
         return np.random.normal(mu, sigma)
 
     def _compute_prob(self, approximator, state, action):
-        sigma = self._sigma(state)
+        sigma = self._sigma.get_value(state)
         mu = approximator.predict(np.expand_dims(state, axis=0))
-        return exp(-0.5 * (action - mu)**2/sigma**2)/sqrt(2*np.pi)/sigma
+        return np.exp(-0.5 * (action - mu)**2/sigma**2)/np.sqrt(2*np.pi)/sigma
 
