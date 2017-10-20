@@ -6,10 +6,15 @@ class BasisFeatures:
         self._basis = basis
 
     def __call__(self, *x):
+        if len(x) > 1:
+            x = np.concatenate(x, axis=0)
+        else:
+            x = x[0]
+
         out = np.empty(self.size)
 
         for i, bf in enumerate(self._basis):
-            out[i] = bf(*x)
+            out[i] = bf(x)
 
         return out
 
