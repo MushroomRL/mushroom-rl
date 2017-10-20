@@ -218,7 +218,7 @@ class WeightedDQN(DQN):
         W = np.zeros(next_state.shape[0])
         for i in xrange(next_state.shape[0]):
             means = np.mean(samples[i], axis=0)
-            max_idx = np.argmax(samples[i], axis=0)
+            max_idx = np.argmax(samples[i], axis=1)
             max_idx, max_count = np.unique(max_idx, return_counts=True)
             count = np.zeros(self.mdp_info['action_space'].n)
             count[max_idx] = max_count
@@ -226,6 +226,6 @@ class WeightedDQN(DQN):
             W[i] = np.dot(w, means)
 
         if np.any(absorbing):
-            W *= 1 - absorbing.reshape(-1, 1)
+            W *= 1 - absorbing
 
         return W
