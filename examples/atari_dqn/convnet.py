@@ -23,7 +23,7 @@ class ConvNet:
             w = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
                                   scope=self._scope_name)
 
-            with tf.variable_scope(self._scope_name + '/'):
+            with tf.variable_scope(self._scope_name):
                 self._target_w = list()
                 self._w = list()
                 with tf.variable_scope('weights_placeholder'):
@@ -72,22 +72,24 @@ class ConvNet:
     def save(self):
         self._train_saver.save(
             self._session,
-            self._folder_name + '/' + self._scope_name + '/' + self._scope_name
+            self._folder_name + '/' + self._scope_name[:-1] + '/' +
+            self._scope_name[:-1]
         )
 
     def _load(self, path):
         self._scope_name = 'train'
         restorer = tf.train.import_meta_graph(
-            path + '/' + self._scope_name + '/' + self._scope_name + '.meta')
+            path + '/' + self._scope_name[:-1] + '/' + self._scope_name[:-1] +
+            '.meta')
         restorer.restore(
             self._session,
-            path + '/' + self._scope_name + '/' + self._scope_name
+            path + '/' + self._scope_name[:-1] + '/' + self._scope_name[:-1]
         )
         self._restore_collection()
 
     def _build(self, convnet_pars):
         with tf.variable_scope(None, default_name=self._name):
-            self._scope_name = tf.get_default_graph().get_name_scope()
+            self._scope_name = tf.get_default_graph().get_name_scope() + '/'
             self._x = tf.placeholder(tf.float32,
                                      shape=[None,
                                             convnet_pars['height'],
@@ -171,7 +173,7 @@ class ConvNet:
 
         if self._folder_name is not None:
             self._train_writer = tf.summary.FileWriter(
-                self._folder_name + '/' + self._scope_name,
+                self._folder_name + '/' + self._scope_name[:-1],
                 graph=tf.get_default_graph()
             )
 
