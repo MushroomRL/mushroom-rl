@@ -164,6 +164,9 @@ class WeightedDQN(DQN):
             self._target_update_frequency / self._n_models
         self._w = [None] * self._n_models
 
+        assert self._target_update_frequency %\
+               self._single_target_update_frequency == 0
+
         assert isinstance(self._target_approximator.model, Ensemble)
 
     def fit(self, dataset, n_iterations=1):
