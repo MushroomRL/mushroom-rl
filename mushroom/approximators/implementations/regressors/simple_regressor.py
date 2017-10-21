@@ -67,5 +67,8 @@ class SimpleRegressor:
             return x, y
         return x
 
+    def __len__(self):
+        return len(self.model)
+
     def __str__(self):
         return 'SimpleRegressor of ' + str(self.model) + '.'

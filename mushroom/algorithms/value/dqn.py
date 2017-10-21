@@ -159,7 +159,7 @@ class WeightedDQN(DQN):
 
         super(WeightedDQN, self).__init__(approximator, policy, gamma, params)
 
-        self._n_models = len(self._target_approximator.model)
+        self._n_models = len(self._target_approximator)
         self._single_target_update_frequency =\
             self._target_update_frequency / self._n_models
         self._w = [None] * self._n_models
@@ -210,15 +210,16 @@ class WeightedDQN(DQN):
         if self._n_updates < self._target_update_frequency:
             return super(WeightedDQN, self)._next_q(next_state, absorbing)
 
-        samples = np.ones((next_state.shape[0],
-                           self._n_models,
+        samples = np.ones((self._n_models,
+                           next_state.shape[0],
                            self.mdp_info['action_space'].n))
-        for i, m in enumerate(self._target_approximator.model):
-            samples[:, i, :] = m.predict(next_state)
+        for i in xrange(len(self._target_approximator)):
+            samples[i] = self._target_approximator.predict(next_state,
+                                                           idx=i)
         W = np.zeros(next_state.shape[0])
         for i in xrange(next_state.shape[0]):
-            means = np.mean(samples[i], axis=0)
-            max_idx = np.argmax(samples[i], axis=1)
+            means = np.mean(samples[:, i, :], axis=0)
+            max_idx = np.argmax(samples[:, i, :], axis=1)
             max_idx, max_count = np.unique(max_idx, return_counts=True)
             count = np.zeros(self.mdp_info['action_space'].n)
             count[max_idx] = max_count

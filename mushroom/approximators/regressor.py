@@ -90,5 +90,8 @@ class Regressor:
             raise NotImplementedError('Attempt to compute derivative of a'
                                       'non-differentiable regressor.')
 
+    def __len__(self):
+        return len(self._impl)
+
     def __str__(self):
         return str(self._impl)
