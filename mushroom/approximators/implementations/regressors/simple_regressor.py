@@ -52,6 +52,10 @@ class SimpleRegressor:
     def set_weights(self, w):
         self.model.set_weights(w)
 
+    def diff(self, x):
+        x = self._preprocess(x)
+        return self.model.diff(x)
+
     def _preprocess(self, x, y=None):
         for p in self._input_preprocessor:
             x = p(x)
