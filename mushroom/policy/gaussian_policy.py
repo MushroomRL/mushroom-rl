@@ -3,9 +3,9 @@ import numpy as np
 from mushroom.utils.parameters import Parameter
 
 
-class NormalPolicy:
+class GaussianPolicy:
     def __init__(self, sigma):
-        self.__name__ = 'NormalPolicy'
+        self.__name__ = 'GaussianPolicy'
 
         assert isinstance(sigma, Parameter)
 
