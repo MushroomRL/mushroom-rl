@@ -207,9 +207,6 @@ class WeightedDQN(DQN):
                     self._target_approximator.model[i].set_weights(self._w[i])
 
     def _next_q(self, next_state, absorbing):
-        if self._n_updates < self._target_update_frequency:
-            return super(WeightedDQN, self)._next_q(next_state, absorbing)
-
         samples = np.ones((self._n_models,
                            next_state.shape[0],
                            self.mdp_info['action_space'].n))
