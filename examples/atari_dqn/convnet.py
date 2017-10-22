@@ -77,7 +77,7 @@ class ConvNet:
         )
 
     def _load(self, path):
-        with tf.variable_scope(None, default_name=self._name):
+        with tf.variable_scope(None, default_name='train'):
             self._scope_name = tf.get_default_graph().get_name_scope() + '/'
             restorer = tf.train.import_meta_graph(
                 path + '/' + self._scope_name[:-1] + '/' + self._scope_name[:-1]
