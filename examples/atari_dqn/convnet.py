@@ -79,11 +79,11 @@ class ConvNet:
     def _load(self, path):
         self._scope_name = 'train'
         restorer = tf.train.import_meta_graph(
-            path + '/' + self._scope_name[:-1] + '/' + self._scope_name[:-1] +
+            path + '/' + self._scope_name + '/' + self._scope_name +
             '.meta')
         restorer.restore(
             self._session,
-            path + '/' + self._scope_name[:-1] + '/' + self._scope_name[:-1]
+            path + '/' + self._scope_name + '/' + self._scope_name
         )
         self._restore_collection()
 
