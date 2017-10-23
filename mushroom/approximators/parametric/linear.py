@@ -14,7 +14,7 @@ class LinearApproximator:
         self._w = np.solve(x,y)
 
     def predict(self, x, **predict_params):
-        return self._w.dot(x)
+        return np.dot(x, self._w)
 
     def get_weights(self):
         return self._w
