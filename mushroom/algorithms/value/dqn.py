@@ -9,7 +9,7 @@ class DQN(Agent):
     """
     Deep Q-Network algorithm.
     "Human-Level Control Through Deep Reinforcement Learning".
-    Mnih V. et. al.. 2015.
+    Mnih V. et al.. 2015.
 
     """
     def __init__(self, approximator, policy, gamma, params):
@@ -63,9 +63,12 @@ class DQN(Agent):
 
             self._n_updates += 1
 
-            if self._n_updates % self._target_update_frequency == 0:
-                self._target_approximator.model.set_weights(
-                    self.approximator.model.get_weights())
+            self._update_target()
+
+    def _update_target(self):
+        if self._n_updates % self._target_update_frequency == 0:
+            self._target_approximator.model.set_weights(
+                self.approximator.model.get_weights())
 
     def _next_q(self, next_state, absorbing):
         """
@@ -126,7 +129,9 @@ class DQN(Agent):
 
 class DoubleDQN(DQN):
     """
-    Implements functions to run the Double DQN algorithm.
+    Double DQN algorithm.
+    "Deep Reinforcement Learning with Double Q-Learning".
+    Hasselt H. V. et al.. 2016.
 
     """
     def __init__(self, approximator, policy, gamma, params):
@@ -149,6 +154,26 @@ class DoubleDQN(DQN):
         )
 
 
+class AveragedDQN(DQN):
+    """
+    Averaged-DQN algorithm.
+    "Averaged-DQN: Variance Reduction and Stabilization for Deep Reinforcement
+    Learning". Anschel O. et al.. 2017.
+
+    """
+    def __init__(self, approximator, policy, gamma, params):
+        self.__name__ = 'AveragedDQN'
+
+        super(AveragedDQN, self).__init__(approximator, policy, gamma, params)
+
+        self._n_models = len(self._target_approximator)
+
+        assert isinstance(self._target_approximator.model, Ensemble)
+
+    def _update_target(self):
+        pass
+
+
 class WeightedDQN(DQN):
     """
     ...
@@ -169,42 +194,15 @@ class WeightedDQN(DQN):
 
         assert isinstance(self._target_approximator.model, Ensemble)
 
-    def fit(self, dataset, n_iterations=1):
-        """
-        Single fit step.
+    def _update_target(self):
+        if self._n_updates % self._single_target_update_frequency == 0:
+            idx = self._n_updates % self._target_update_frequency /\
+                self._single_target_update_frequency
+            self._w[idx] = self.approximator.model.get_weights()
 
-        Args:
-            dataset (list): a two elements list with states and actions;
-            n_iterations (int, 1): number of fit steps of the approximator.
-
-        """
-        self._replay_memory.add(dataset)
-        if n_iterations == 0:
-            pass
-        else:
-            assert n_iterations == 1
-
-            state, action, reward, next_state, absorbing, _ =\
-                self._replay_memory.get(self._batch_size)
-
-            if self._clip_reward:
-                reward = np.clip(reward, -1, 1)
-
-            q_next = self._next_q(next_state, absorbing)
-            q = reward + self._gamma * q_next
-
-            self.approximator.fit(state, action, q, **self.params['fit_params'])
-
-            self._n_updates += 1
-
-            if self._n_updates % self._single_target_update_frequency == 0:
-                idx = self._n_updates % self._target_update_frequency /\
-                    self._single_target_update_frequency
-                self._w[idx] = self.approximator.model.get_weights()
-
-            if self._n_updates % self._target_update_frequency == 0:
-                for i in xrange(self._n_models):
-                    self._target_approximator.model[i].set_weights(self._w[i])
+        if self._n_updates % self._target_update_frequency == 0:
+            for i in xrange(self._n_models):
+                self._target_approximator.model[i].set_weights(self._w[i])
 
     def _next_q(self, next_state, absorbing):
         samples = np.ones((self._n_models,
