@@ -76,12 +76,15 @@ def experiment():
                          help='Epsilon term used in rmspropcentered')
 
     arg_alg = parser.add_argument_group('Algorithm')
-    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'wdqn'],
+    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'wdqn', 'adqn'],
                          default='dqn',
                          help='Name of the algorithm. dqn stands for standard'
-                              'DQN, ddqn stands for Double DQN and wdqn'
-                              'stands for Weighted DQN.')
-    arg_alg.add_argument("--n-approximators", type=int, default=1)
+                              'DQN, ddqn stands for Double DQN, wdqn'
+                              'stands for Weighted DQN and adqn stands for'
+                              'Averaged DQN.')
+    arg_alg.add_argument("--n-approximators", type=int, default=1,
+                         help="Number of approximators used in the ensemble"
+                              "for Weighted DQN and Averaged DQN.")
     arg_alg.add_argument("--batch-size", type=int, default=32,
                          help='Batch size for each fit of the network.')
     arg_alg.add_argument("--history-length", type=int, default=4,
@@ -274,7 +277,7 @@ def experiment():
         if args.algorithm in ['dqn', 'ddqn']:
             target_approximator.model.set_weights(
                 approximator.model.get_weights())
-        elif args.algorithm == 'wdqn':
+        elif args.algorithm in ['wdqn', 'adqn']:
             for i in xrange(args.n_approximators):
                 target_approximator.model[i].set_weights(
                     approximator.model.get_weights())
@@ -304,6 +307,8 @@ def experiment():
             agent = DoubleDQN(approximator, pi, mdp.gamma, agent_params)
         elif args.algorithm == 'wdqn':
             agent = WeightedDQN(approximator, pi, mdp.gamma, agent_params)
+        elif args.algorithm == 'adqn':
+            agent = AveragedDQN(approximator, pi, mdp.gamma, agent_params)
 
         # Algorithm
         collect_summary = CollectSummary(folder_name)
