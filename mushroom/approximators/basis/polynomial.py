@@ -2,8 +2,8 @@ import numpy as np
 
 
 class PolynomialBasis:
-    def __init__(self, dimensios=None, degrees=None):
-        self._dim = dimensios
+    def __init__(self, dimensions=None, degrees=None):
+        self._dim = dimensions
         self._deg = degrees
 
         assert(
