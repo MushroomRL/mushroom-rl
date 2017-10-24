@@ -5,7 +5,8 @@ import os
 import numpy as np
 
 from convnet import ConvNet
-from mushroom.algorithms.value.dqn import DQN, DoubleDQN, WeightedDQN
+from mushroom.algorithms.value.dqn import AveragedDQN, DQN, DoubleDQN,\
+    WeightedDQN
 from mushroom.approximators import Regressor
 from mushroom.core.core import Core
 from mushroom.environments import *
