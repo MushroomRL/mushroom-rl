@@ -171,7 +171,11 @@ class AveragedDQN(DQN):
         assert isinstance(self._target_approximator.model, Ensemble)
 
     def _update_target(self):
-        pass
+        if self._n_updates % self._target_update_frequency == 0:
+            idx = self._n_updates / self._target_update_frequency\
+                  % self._n_models
+            self._target_approximator.model[idx].set_weights(
+                self.approximator.model.get_weights())
 
 
 class WeightedDQN(DQN):
@@ -185,24 +189,15 @@ class WeightedDQN(DQN):
         super(WeightedDQN, self).__init__(approximator, policy, gamma, params)
 
         self._n_models = len(self._target_approximator)
-        self._single_target_update_frequency =\
-            self._target_update_frequency / self._n_models
-        self._w = [None] * self._n_models
-
-        assert self._target_update_frequency %\
-               self._single_target_update_frequency == 0
 
         assert isinstance(self._target_approximator.model, Ensemble)
 
     def _update_target(self):
-        if self._n_updates % self._single_target_update_frequency == 0:
-            idx = self._n_updates % self._target_update_frequency /\
-                self._single_target_update_frequency
-            self._w[idx] = self.approximator.model.get_weights()
-
         if self._n_updates % self._target_update_frequency == 0:
-            for i in xrange(self._n_models):
-                self._target_approximator.model[i].set_weights(self._w[i])
+            idx = self._n_updates / self._target_update_frequency\
+                  % self._n_models
+            self._target_approximator.model[idx].set_weights(
+                self.approximator.model.get_weights())
 
     def _next_q(self, next_state, absorbing):
         samples = np.ones((self._n_models,
