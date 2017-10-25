@@ -24,18 +24,30 @@ class GaussianRBF:
         return name
 
     @staticmethod
-    def uniform_grid(grid, n_rows, n_cols, discrete_values):
-        i1 = 0
-        dim = len(discrete_values)
+    def uniform_grid(totpoints, n_features, c):
 
-        for i in xrange(dim):
-            for r in xrange(n_rows):
-                idxr = r + i * n_rows
-                for c in xrange(n_cols):
-                    grid[idxr, c] = grid(r, c)
-                grid[idxr, n_cols] = discrete_values[i1]
+        n_rows = 1
+        n_cols = 0
 
-            i1 += 1
+        grid = np.zeros((totpoints, n_features))
+
+        for discrete_values in c:
+            i1 = 0
+            dim = len(discrete_values)
+
+            for i in xrange(dim):
+                for r in xrange(n_rows):
+                    idxr = r + i * n_rows
+                    for c in xrange(n_cols):
+                        grid[idxr, c] = grid[r, c]
+                    grid[idxr, n_cols] = discrete_values[i1]
+
+                i1 += 1
+
+            n_cols += 1
+            n_rows *= len(discrete_values)
+
+        return grid
 
     @staticmethod
     def generate(n_centers, ranges, dimensions=None):
@@ -64,42 +76,11 @@ class GaussianRBF:
                 c.append(c_i)
             totpoints *= n
 
-
-        grid_nrows = 1
-        grid_ncols = 0
-
-        grid = np.zeros((totpoints, n_features))
-
-        for c_i in c:
-            GaussianRBF.uniform_grid(grid, grid_nrows, grid_ncols, c_i)
-            grid_nrows += 1
-            grid_ncols *= len(c_i)
+        grid = GaussianRBF.uniform_grid(totpoints, n_features, c)
 
         for i in xrange(totpoints):
             v = grid[i, :]
             bf = GaussianRBF(v, b)
             basis.append(bf)
 
-
         return basis
-
-
-
-from mushroom.approximators.features import Features
-basis_list = GaussianRBF.generate([3, 3], [ [0.0, 1.0], [0.0, 1.0]])
-
-phi=Features(basis_list=basis_list)
-
-input1 = np.array([0.1, 0.1])
-input2 = np.array([0.5, 0.5])
-input3 = np.array([0.1, 0.9])
-input4 = np.array([0.9, 0.1])
-
-print 'phi(1)'
-print phi(input1)
-print 'phi(2)'
-print phi(input2)
-print 'phi(3)'
-print phi(input3)
-print 'phi(4)'
-print phi(input4)
