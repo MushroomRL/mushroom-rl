@@ -111,6 +111,9 @@ class ActionRegressor:
             return s, q
         return s
 
+    def __len__(self):
+        return len(self.model[0])
+
     def __str__(self):
         return 'ActionRegressor of ' + str(self.model[0]) + ' with ' +\
             self._n_actions + ' actions.'

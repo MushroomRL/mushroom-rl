@@ -1,7 +1,7 @@
 import numpy as np
 from joblib import Parallel, delayed
 
-from mushroom.algorithms.td import QLearning, DoubleQLearning, WeightedQLearning,\
+from mushroom.algorithms.value.td import QLearning, DoubleQLearning, WeightedQLearning,\
     SpeedyQLearning
 from mushroom.core.core import Core
 from mushroom.environments import *

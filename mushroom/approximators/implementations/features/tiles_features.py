@@ -4,21 +4,30 @@ import numpy as np
 class TilesFeatures:
 
     def __init__(self, tiles):
-        self._tiles = tiles
+
+        if isinstance(tiles, list):
+            self._tiles = tiles
+        else:
+            self._tiles = [tiles]
         self._size = 0
 
-        for tiling in tiles:
+        for tiling in self._tiles:
             self._size += tiling.size
 
     def __call__(self, *args):
-        out = np.empty(self._size)
+        if len(args) > 1:
+            x = np.concatenate(args, axis=0)
+        else:
+            x = args[0]
+
+        out = np.zeros(self._size)
 
         offset = 0
         for tiling in self._tiles:
-            index = tiling(input) + offset
+            index = tiling(x)
 
             if index is not None:
-                out[index] = 1.0
+                out[index + offset] = 1.0
 
             offset += tiling.size
 

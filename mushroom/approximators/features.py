@@ -8,4 +8,4 @@ def Features(basis_list=None, tilings=None):
     elif tilings is not None:
         return TilesFeatures(tilings)
     else:
-        raise NotImplementedError()
+        raise ValueError('You must specify a set of basis or a set of tilings')

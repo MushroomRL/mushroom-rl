@@ -1,6 +1,7 @@
 import numpy as np
 
 from mushroom.algorithms.agent import Agent
+from mushroom.approximators.regressor import Ensemble
 from mushroom.utils.replay_memory import Buffer, ReplayMemory
 
 
@@ -8,7 +9,7 @@ class DQN(Agent):
     """
     Deep Q-Network algorithm.
     "Human-Level Control Through Deep Reinforcement Learning".
-    Mnih V. et. al.. 2015.
+    Mnih V. et al.. 2015.
 
     """
     def __init__(self, approximator, policy, gamma, params):
@@ -62,9 +63,12 @@ class DQN(Agent):
 
             self._n_updates += 1
 
-            if self._n_updates % self._target_update_frequency == 0:
-                self._target_approximator.model.set_weights(
-                    self.approximator.model.get_weights())
+            self._update_target()
+
+    def _update_target(self):
+        if self._n_updates % self._target_update_frequency == 0:
+            self._target_approximator.model.set_weights(
+                self.approximator.model.get_weights())
 
     def _next_q(self, next_state, absorbing):
         """
@@ -125,7 +129,9 @@ class DQN(Agent):
 
 class DoubleDQN(DQN):
     """
-    Implements functions to run the Double DQN algorithm.
+    Double DQN algorithm.
+    "Deep Reinforcement Learning with Double Q-Learning".
+    Hasselt H. V. et al.. 2016.
 
     """
     def __init__(self, approximator, policy, gamma, params):
@@ -146,3 +152,71 @@ class DoubleDQN(DQN):
             state,
             approximator=self._target_approximator
         )
+
+
+class AveragedDQN(DQN):
+    """
+    Averaged-DQN algorithm.
+    "Averaged-DQN: Variance Reduction and Stabilization for Deep Reinforcement
+    Learning". Anschel O. et al.. 2017.
+
+    """
+    def __init__(self, approximator, policy, gamma, params):
+        self.__name__ = 'AveragedDQN'
+
+        super(AveragedDQN, self).__init__(approximator, policy, gamma, params)
+
+        self._n_models = len(self._target_approximator)
+
+        assert isinstance(self._target_approximator.model, Ensemble)
+
+    def _update_target(self):
+        if self._n_updates % self._target_update_frequency == 0:
+            idx = self._n_updates / self._target_update_frequency\
+                  % self._n_models
+            self._target_approximator.model[idx].set_weights(
+                self.approximator.model.get_weights())
+
+
+class WeightedDQN(DQN):
+    """
+    ...
+
+    """
+    def __init__(self, approximator, policy, gamma, params):
+        self.__name__ = 'WeightedDQN'
+
+        super(WeightedDQN, self).__init__(approximator, policy, gamma, params)
+
+        self._n_models = len(self._target_approximator)
+
+        assert isinstance(self._target_approximator.model, Ensemble)
+
+    def _update_target(self):
+        if self._n_updates % self._target_update_frequency == 0:
+            idx = self._n_updates / self._target_update_frequency\
+                  % self._n_models
+            self._target_approximator.model[idx].set_weights(
+                self.approximator.model.get_weights())
+
+    def _next_q(self, next_state, absorbing):
+        samples = np.ones((self._n_models,
+                           next_state.shape[0],
+                           self.mdp_info['action_space'].n))
+        for i in xrange(len(self._target_approximator)):
+            samples[i] = self._target_approximator.predict(next_state,
+                                                           idx=i)
+        W = np.zeros(next_state.shape[0])
+        for i in xrange(next_state.shape[0]):
+            means = np.mean(samples[:, i, :], axis=0)
+            max_idx = np.argmax(samples[:, i, :], axis=1)
+            max_idx, max_count = np.unique(max_idx, return_counts=True)
+            count = np.zeros(self.mdp_info['action_space'].n)
+            count[max_idx] = max_count
+            w = count / float(self._n_models)
+            W[i] = np.dot(w, means)
+
+        if np.any(absorbing):
+            W *= 1 - absorbing
+
+        return W

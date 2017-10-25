@@ -5,7 +5,8 @@ import os
 import numpy as np
 
 from convnet import ConvNet
-from mushroom.algorithms.dqn import DQN, DoubleDQN
+from mushroom.algorithms.value.dqn import AveragedDQN, DQN, DoubleDQN,\
+    WeightedDQN
 from mushroom.approximators import Regressor
 from mushroom.core.core import Core
 from mushroom.environments import *
@@ -14,7 +15,6 @@ from mushroom.utils.callbacks import CollectSummary
 from mushroom.utils.dataset import compute_scores
 from mushroom.utils.parameters import LinearDecayParameter, Parameter
 from mushroom.utils.preprocessor import Scaler
-
 
 """
 This script can be used to run Atari experiments with DQN.
@@ -65,7 +65,7 @@ def experiment():
                                   'adam',
                                   'rmsprop',
                                   'rmspropcentered'],
-                         default='rmspropcentered',
+                         default='adam',
                          help='Name of the optimizer to use to learn.')
     arg_net.add_argument("--learning-rate", type=float, default=.00025,
                          help='Learning rate value of the optimizer. Only used'
@@ -77,10 +77,15 @@ def experiment():
                          help='Epsilon term used in rmspropcentered')
 
     arg_alg = parser.add_argument_group('Algorithm')
-    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn'],
+    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'wdqn', 'adqn'],
                          default='dqn',
                          help='Name of the algorithm. dqn stands for standard'
-                              'DQN and ddqn stands for Double DQN.')
+                              'DQN, ddqn stands for Double DQN, wdqn'
+                              'stands for Weighted DQN and adqn stands for'
+                              'Averaged DQN.')
+    arg_alg.add_argument("--n-approximators", type=int, default=1,
+                         help="Number of approximators used in the ensemble"
+                              "for Weighted DQN and Averaged DQN.")
     arg_alg.add_argument("--batch-size", type=int, default=32,
                          help='Batch size for each fit of the network.')
     arg_alg.add_argument("--history-length", type=int, default=4,
@@ -263,19 +268,28 @@ def experiment():
                                         input_shape=input_shape,
                                         output_shape=(mdp.action_space.n,),
                                         n_actions=mdp.action_space.n,
+                                        n_models=args.n_approximators,
                                         input_preprocessor=[Scaler(
                                             mdp.observation_space.high)],
                                         params=approximator_params_target)
 
         # Initialize target approximator weights with the weights of the
         # approximator to fit.
-        target_approximator.model.set_weights(
-            approximator.model.get_weights())
+        if args.algorithm in ['dqn', 'ddqn']:
+            target_approximator.model.set_weights(
+                approximator.model.get_weights())
+        elif args.algorithm in ['wdqn', 'adqn']:
+            for i in xrange(args.n_approximators):
+                target_approximator.model[i].set_weights(
+                    approximator.model.get_weights())
+        else:
+            raise ValueError
 
         # Agent
         algorithm_params = dict(
             batch_size=args.batch_size,
             target_approximator=target_approximator,
+            n_approximators=args.n_approximators,
             initial_replay_size=initial_replay_size,
             max_replay_size=max_replay_size,
             history_length=args.history_length,
@@ -292,6 +306,10 @@ def experiment():
             agent = DQN(approximator, pi, mdp.gamma, agent_params)
         elif args.algorithm == 'ddqn':
             agent = DoubleDQN(approximator, pi, mdp.gamma, agent_params)
+        elif args.algorithm == 'wdqn':
+            agent = WeightedDQN(approximator, pi, mdp.gamma, agent_params)
+        elif args.algorithm == 'adqn':
+            agent = AveragedDQN(approximator, pi, mdp.gamma, agent_params)
 
         # Algorithm
         collect_summary = CollectSummary(folder_name)

@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 
 from examples.atari_dqn.convnet import ConvNet
-from mushroom.algorithms.dqn import DQN, DoubleDQN
+from mushroom.algorithms.value.dqn import DQN, DoubleDQN
 from mushroom.approximators import Regressor
 from mushroom.core.core import Core
 from mushroom.environments import *
@@ -45,7 +45,8 @@ def experiment(double):
     input_shape = (84, 84, 4)
     approximator_params_train = dict(optimizer={'name': 'rmsprop',
                                                 'lr': .00025,
-                                                'decay': .95},
+                                                'decay': .95,
+                                                'epsilon': 1e-10},
                                      name='train',
                                      width=84,
                                      height=84,
@@ -61,7 +62,8 @@ def experiment(double):
     # target approximator
     approximator_params_target = dict(optimizer={'name': 'rmsprop',
                                                  'lr': .00025,
-                                                 'decay': .95},
+                                                 'decay': .95,
+                                                 'epsilon': 1e-10},
                                       name='target',
                                       width=84,
                                       height=84,
