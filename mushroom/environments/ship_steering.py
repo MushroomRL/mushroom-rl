@@ -27,7 +27,7 @@ class ShipSteering(Environment):
         self._dt = .2
 
         self.gateS = np.empty(2)
-        self.gateE = np.array(2)
+        self.gateE = np.empty(2)
         self.gateS[0] = 100 if small else 900
         self.gateS[1] = 120 if small else 920
         self.gateE[0] = 120 if small else 920
@@ -54,11 +54,13 @@ class ShipSteering(Environment):
         new_state[3] = self._state[3]+(r-self._state[3])*self._dt/self._T
 
         if new_state[0] > self.fieldSize or new_state[1] > self.fieldSize or new_state[0] < 0 or new_state[1] < 0:
-            reward = -10000
+            reward = -100
             absorbing = True
+
         elif self._throughGate(self._state[:2], new_state[:2]):
             reward = 0
             absorbing = True
+
         else:
             reward = -1
             absorbing = False
@@ -68,17 +70,18 @@ class ShipSteering(Environment):
         return self._state, reward, absorbing, {}
 
     def _throughGate(self, start, end):
-        r=np.array(self.gateE-self.gateS)
-        s=np.array(start-end)
+        r=self.gateE-self.gateS
+        s=end-start
         den= self._cross2D(vecr=r, vecs=s)
+
 
         if den==0:
             return False
 
-        t = self._cross2D((start-gateS),s)/den
-        u = self._cross2D((start-gateS),r)/den
+        t = self._cross2D((start-self.gateS),s)/den
+        u = self._cross2D((start-self.gateS),r)/den
 
-        return u>=0 && u<=1 && t>=0 && t<=1
+        return u>=0 and u<=1 and t>=0 and t<=1
 
     def _cross2D(self,vecr,vecs):
         return vecr[0]*vecs[1]-vecr[1]*vecs[0]
