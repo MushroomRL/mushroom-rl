@@ -167,6 +167,7 @@ class AveragedDQN(DQN):
         super(AveragedDQN, self).__init__(approximator, policy, gamma, params)
 
         self._n_models = len(self._target_approximator)
+        self._n_fitted_trained_models = 1
 
         assert isinstance(self._target_approximator.model, Ensemble)
 
@@ -177,8 +178,21 @@ class AveragedDQN(DQN):
             self._target_approximator.model[idx].set_weights(
                 self.approximator.model.get_weights())
 
+            if self._n_fitted_trained_models < self._n_models:
+                self._n_fitted_trained_models += 1
 
-class WeightedDQN(DQN):
+    def _next_q(self, next_state, absorbing):
+        q = list()
+        for idx in xrange(self._n_fitted_trained_models):
+            q.append(self._target_approximator.predict(next_state, idx=idx))
+        q = np.mean(q, axis=0)
+        if np.any(absorbing):
+            q *= 1 - absorbing.reshape(-1, 1)
+
+        return np.max(q, axis=1)
+
+
+class WeightedDQN(AveragedDQN):
     """
     ...
 
@@ -192,18 +206,11 @@ class WeightedDQN(DQN):
 
         assert isinstance(self._target_approximator.model, Ensemble)
 
-    def _update_target(self):
-        if self._n_updates % self._target_update_frequency == 0:
-            idx = self._n_updates / self._target_update_frequency\
-                  % self._n_models
-            self._target_approximator.model[idx].set_weights(
-                self.approximator.model.get_weights())
-
     def _next_q(self, next_state, absorbing):
         samples = np.ones((self._n_models,
                            next_state.shape[0],
                            self.mdp_info['action_space'].n))
-        for i in xrange(len(self._target_approximator)):
+        for i in xrange(self._n_fitted_trained_models):
             samples[i] = self._target_approximator.predict(next_state,
                                                            idx=i)
         W = np.zeros(next_state.shape[0])

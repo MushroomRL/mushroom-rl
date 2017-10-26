@@ -36,6 +36,8 @@ def get_stats(dataset):
     print('min_reward: %f, max_reward: %f, mean_reward: %f,'
           ' games_completed: %d' % score)
 
+    return score
+
 
 def experiment():
     np.random.seed()
@@ -139,6 +141,8 @@ def experiment():
 
     args = parser.parse_args()
 
+    scores = list()
+
     # Evaluation of the model provided by the user.
     if args.load_path:
         # MDP
@@ -199,8 +203,8 @@ def experiment():
         # DQN learning run
 
         # Summary folder
-        folder_name = './logs/atari_dqn_' + datetime.datetime.now().strftime(
-            '%Y-%m-%d_%H-%M-%S')
+        folder_name = './logs/atari_' + args.algorithm + '_' + args.name +\
+            '_' + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
         # Settings
         if args.debug:
@@ -279,6 +283,8 @@ def experiment():
             target_approximator.model.set_weights(
                 approximator.model.get_weights())
         elif args.algorithm in ['wdqn', 'adqn']:
+            assert args.n_approximators > 1
+
             for i in xrange(args.n_approximators):
                 target_approximator.model[i].set_weights(
                     approximator.model.get_weights())
@@ -333,7 +339,7 @@ def experiment():
                                      iterate_over='samples',
                                      render=args.render,
                                      quiet=args.quiet)
-        get_stats(dataset)
+        scores.append(get_stats(dataset))
         for n_epoch in xrange(1, max_steps / evaluation_frequency + 1):
             print_epoch(n_epoch)
             print '- Learning:'
@@ -358,7 +364,11 @@ def experiment():
                                          iterate_over='samples',
                                          render=args.render,
                                          quiet=args.quiet)
-            get_stats(dataset)
+            scores.append(get_stats(dataset))
+
+            np.save('scores.npy', scores)
+
+    return scores
 
 
 if __name__ == '__main__':
