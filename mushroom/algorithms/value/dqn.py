@@ -167,7 +167,7 @@ class AveragedDQN(DQN):
         super(AveragedDQN, self).__init__(approximator, policy, gamma, params)
 
         self._n_models = len(self._target_approximator)
-        self._n_fitted_trained_models = 1
+        self._n_fitted_target_models = 1
 
         assert isinstance(self._target_approximator.model, Ensemble)
 
@@ -178,12 +178,12 @@ class AveragedDQN(DQN):
             self._target_approximator.model[idx].set_weights(
                 self.approximator.model.get_weights())
 
-            if self._n_fitted_trained_models < self._n_models:
-                self._n_fitted_trained_models += 1
+            if self._n_fitted_target_models < self._n_models:
+                self._n_fitted_target_models += 1
 
     def _next_q(self, next_state, absorbing):
         q = list()
-        for idx in xrange(self._n_fitted_trained_models):
+        for idx in xrange(self._n_fitted_target_models):
             q.append(self._target_approximator.predict(next_state, idx=idx))
         q = np.mean(q, axis=0)
         if np.any(absorbing):
@@ -207,10 +207,10 @@ class WeightedDQN(AveragedDQN):
         assert isinstance(self._target_approximator.model, Ensemble)
 
     def _next_q(self, next_state, absorbing):
-        samples = np.ones((self._n_models,
+        samples = np.ones((self._n_fitted_target_models,
                            next_state.shape[0],
                            self.mdp_info['action_space'].n))
-        for i in xrange(self._n_fitted_trained_models):
+        for i in xrange(self._n_fitted_target_models):
             samples[i] = self._target_approximator.predict(next_state,
                                                            idx=i)
         W = np.zeros(next_state.shape[0])
@@ -220,7 +220,7 @@ class WeightedDQN(AveragedDQN):
             max_idx, max_count = np.unique(max_idx, return_counts=True)
             count = np.zeros(self.mdp_info['action_space'].n)
             count[max_idx] = max_count
-            w = count / float(self._n_models)
+            w = count / float(self._n_fitted_target_models)
             W[i] = np.dot(w, means)
 
         if np.any(absorbing):
