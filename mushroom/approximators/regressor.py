@@ -69,6 +69,14 @@ class Regressor:
     def output_shape(self):
         return self._output_shape
 
+    @property
+    def weights_shape(self):
+        try:
+            return self._impl.weights_shape
+        except AttributeError:
+            raise NotImplementedError('Attempt to get shape of weights of a'
+                                      'non-parametric regressor.')
+
     def get_weights(self):
         try:
             return self._impl.get_weights()

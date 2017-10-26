@@ -22,6 +22,10 @@ class LinearApproximator:
     def set_weights(self, w):
         self._w = w
 
+    @property
+    def weights_shape(self):
+        return self._w.shape
+
     def diff(self, x):
         if len(self._w.shape) == 1 or self._w.shape[1] == 1:
             return x
