@@ -28,9 +28,9 @@ class PolynomialBasis:
 
         name = ''
         for i, d in zip(self._dim, self._deg):
-            name += 'x['+str(i)+']'
+            name += 'x[' + str(i) + ']'
             if d > 1:
-                name += '^'+str(d)
+                name += '^' + str(d)
         return name
 
     @staticmethod
@@ -64,8 +64,8 @@ class PolynomialBasis:
         basis_list = [PolynomialBasis()]
 
         for e in PolynomialBasis._compute_exponents(max_degree, input_size):
-            dims = np.reshape(np.argwhere(e!=0), -1)
-            degs = e[e!=0]
+            dims = np.reshape(np.argwhere(e != 0), -1)
+            degs = e[e != 0]
 
             basis_list.append(PolynomialBasis(dims, degs))
 

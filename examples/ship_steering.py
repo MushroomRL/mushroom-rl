@@ -20,10 +20,10 @@ def experiment(n_iterations, n_runs, ep_per_run):
 
     # Policy
     basis = GaussianRBF.generate([3, 3, 6, 2],
-                                 [[0.0, 150.0],
-                                  [0.0, 150.0],
+                                 [[0., 150.],
+                                  [0., 150.],
                                   [-np.pi, np.pi],
-                                  [-np.pi/12, np.pi/12]])
+                                  [-np.pi / 12, np.pi / 12]])
     phi = Features(basis_list=basis)
 
     input_shape = (phi.size,)
@@ -33,7 +33,7 @@ def experiment(n_iterations, n_runs, ep_per_run):
     approximator = Regressor(LinearApproximator, input_shape=input_shape,
                              output_shape=mdp.action_space.shape,
                              params=approximator_params)
-    sigma = Parameter(value=0.05)
+    sigma = Parameter(value=.05)
     policy = GaussianPolicy(mu=approximator, sigma=sigma)
 
     # Agent

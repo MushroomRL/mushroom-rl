@@ -8,10 +8,11 @@ class LinearApproximator:
         elif params_shape is not None:
             self._w = np.zeros(params_shape)
         else:
-            raise ValueError('You should specify the initial parameter vector or the parameter shape')
+            raise ValueError('You should specify the initial parameter vector'
+                             'or the parameter shape')
 
     def fit(self, x, y, **fit_params):
-        self._w = np.solve(x,y)
+        self._w = np.solve(x, y)
 
     def predict(self, x, **predict_params):
         return np.dot(x, self._w)

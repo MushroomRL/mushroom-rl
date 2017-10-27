@@ -30,19 +30,19 @@ class Tiles:
             x = x[self._state_components]
 
         multiplier = 1
-        tileIndex = 0
+        tile_index = 0
 
         for i, (r, N) in enumerate(zip(self._range, self._n_tiles)):
             if r[0] <= x[i] < r[1]:
                 width = r[1] - r[0]
-                componentIndex = int(np.floor(N * (x[i] - r[0]) / width))
-                tileIndex += componentIndex * multiplier
+                component_index = int(np.floor(N * (x[i] - r[0]) / width))
+                tile_index += component_index * multiplier
                 multiplier *= N
             else:
-                tileIndex = None
+                tile_index = None
                 break
 
-        return tileIndex
+        return tile_index
 
     @property
     def size(self):

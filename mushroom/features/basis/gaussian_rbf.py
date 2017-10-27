@@ -12,24 +12,24 @@ class GaussianRBF:
         if self._dim is not None:
             x = x[self._dim]
 
-        v = 0.0
+        v = 0.
         for x_i, m_i, s_i in zip(x, self._mean, self._scale):
             v += (x_i - m_i)**2 / s_i
         return np.exp(-v)
 
     def __str__(self):
-        name = 'GaussianRBF '+ str(self._mean) + ' ' + str(self._scale)
+        name = 'GaussianRBF ' + str(self._mean) + ' ' + str(self._scale)
         if self._dim is not None:
             name += ' ' + str(self._dim)
         return name
 
     @staticmethod
-    def uniform_grid(totpoints, n_features, c):
+    def uniform_grid(tot_points, n_features, c):
 
         n_rows = 1
         n_cols = 0
 
-        grid = np.zeros((totpoints, n_features))
+        grid = np.zeros((tot_points, n_features))
 
         for discrete_values in c:
             i1 = 0
@@ -51,12 +51,10 @@ class GaussianRBF:
 
     @staticmethod
     def generate(n_centers, ranges, dimensions=None):
-
         n_features = len(ranges)
         assert len(n_centers) == n_features
         assert len(ranges[0]) == 2
         assert dimensions is None or n_features == len(dimensions)
-
 
         basis = list()
         b = np.zeros(n_features)
@@ -69,10 +67,10 @@ class GaussianRBF:
             b[i] = (end - start)**2 / n**3
             m = abs(start - end) / n
             if n == 1:
-                c_i = (start + end)/2.0
+                c_i = (start + end) / 2.
                 c.append(np.array([c_i]))
             else:
-                c_i = np.linspace(start - m * 0.1, end + m * 0.1, n)
+                c_i = np.linspace(start - m * .1, end + m * .1, n)
                 c.append(c_i)
             totpoints *= n
 
