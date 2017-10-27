@@ -1,11 +1,12 @@
 import numpy as np
+
 from mushroom.algorithms.policy_search import REINFORCE
-from mushroom.approximators.features import Features
-from mushroom.approximators.basis import GaussianRBF
 from mushroom.approximators.parametric import LinearApproximator
 from mushroom.approximators.regressor import Regressor
 from mushroom.core.core import Core
 from mushroom.environments import ShipSteering
+from mushroom.features.basis import GaussianRBF
+from mushroom.features.features import Features
 from mushroom.policy import GaussianPolicy
 from mushroom.utils.dataset import compute_J
 from mushroom.utils.parameters import Parameter
@@ -18,10 +19,6 @@ def experiment(n_iterations, n_runs, ep_per_run):
     mdp = ShipSteering()
 
     # Policy
-    sigma = Parameter(value=0.05)
-    policy = GaussianPolicy(sigma=sigma)
-
-    # Agent
     basis = GaussianRBF.generate([3, 3, 6, 2],
                                  [[0.0, 150.0],
                                   [0.0, 150.0],
@@ -36,13 +33,16 @@ def experiment(n_iterations, n_runs, ep_per_run):
     approximator = Regressor(LinearApproximator, input_shape=input_shape,
                              output_shape=mdp.action_space.shape,
                              params=approximator_params)
+    sigma = Parameter(value=0.05)
+    policy = GaussianPolicy(mu=approximator, sigma=sigma)
 
+    # Agent
     learning_rate = Parameter(value=.001)
     algorithm_params = dict(learning_rate=learning_rate)
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
-    agent = REINFORCE(approximator, policy, mdp.gamma, agent_params, phi)
+    agent = REINFORCE(policy, mdp.gamma, agent_params, phi)
 
     # Train
     core = Core(agent, mdp)

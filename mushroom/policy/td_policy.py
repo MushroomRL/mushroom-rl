@@ -26,22 +26,21 @@ class EpsGreedy:
         self._epsilon = epsilon
         self.observation_space = observation_space
         self.action_space = action_space
+        self._approximator = None
 
-    def __call__(self, state, approximator):
+    def __call__(self, state):
         """
         Compute an action according to the policy.
 
         Args:
-            state (np.array): the state where the agent is;
-            approximator (object): the approximator to use to compute the
-                action values.
+            state (np.array): the state where the agent is.
 
         Returns:
             The selected action.
 
         """
         if not np.random.uniform() < self._epsilon(state):
-            q = approximator.predict(np.expand_dims(state, axis=0))
+            q = self._approximator.predict(np.expand_dims(state, axis=0))
             max_a = np.argmax(q, axis=1)
 
             return max_a
@@ -72,6 +71,12 @@ class EpsGreedy:
 
         """
         self._epsilon.update(*idx)
+
+    def set_q(self, approximator):
+        self._approximator = approximator
+
+    def get_q(self):
+        return self._approximator
 
     def __str__(self):
         return self.__name__

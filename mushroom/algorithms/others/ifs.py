@@ -110,19 +110,19 @@ def my_cross_val_predict(estimator, X, y=None, groups=None, cv=None, n_jobs=1,
 class IFS(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
     """Feature ranking with recursive feature elimination.
 
-    Given an external estimator that assigns weights to features (e.g., the
+    Given an external estimator that assigns weights to _implementations (e.g., the
     coefficients of a linear model), the goal of iterative feature selection
-    (IFS) is to select features by recursively consider bigger sets of features.
-    Given the targets to be explained and the set of candidate features, the
-    IFS algorithm first globally ranks the features according to a statistical
+    (IFS) is to select _implementations by recursively consider bigger sets of _implementations.
+    Given the targets to be explained and the set of candidate _implementations, the
+    IFS algorithm first globally ranks the _implementations according to a statistical
     measure of significance (default R2 score). To account for feature redundancy,
-    only the most significant features are then added to the set of selected features,
+    only the most significant _implementations are then added to the set of selected _implementations,
     which is used to fit a model to explain the targets.
     The algorithm proceeds by repeating the ranking process using as new output
     feature the residuals of the model built at the previous iteration.
-    The algorithm iterates these operations until the best features returned by the
+    The algorithm iterates these operations until the best _implementations returned by the
     ranking algorithm are already in the select set or the accuracy of the model
-    built upon the selected features does not significantly improve.
+    built upon the selected _implementations does not significantly improve.
 
     Read more in the :ref:`User Guide <rfe>`.
 
@@ -130,7 +130,7 @@ class IFS(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
     ----------
     estimator : object
         A supervised learning estimator with a `fit` method that updates a
-        `coef_` attribute that holds the fitted parameters. Important features
+        `coef_` attribute that holds the fitted parameters. Important _implementations
         must correspond to high absolute values in the `coef_` array.
 
         For instance, this is the case for most supervised learning
@@ -139,9 +139,9 @@ class IFS(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
 
     n_features_step : int or float, optional (default=1)
         If greater than or equal to 1, then `step` corresponds to the (integer)
-        number of features to remove at each iteration.
+        number of _implementations to remove at each iteration.
         If within (0.0, 1.0), then `step` corresponds to the percentage
-        (rounded down) of features to remove at each iteration.
+        (rounded down) of _implementations to remove at each iteration.
 
     cv : int, cross-validation generator or an iterable, optional
         Determines the cross-validation splitting strategy.
@@ -172,10 +172,10 @@ class IFS(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
     Attributes
     ----------
     n_features_ : int
-        The number of selected features.
+        The number of selected _implementations.
 
     support_ : array of shape [n_features]
-        The mask of selected features.
+        The mask of selected _implementations.
 
     estimator_ : object
         The external estimator fit on the reduced dataset.
@@ -183,7 +183,7 @@ class IFS(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
     Examples
     --------
     The following example shows how to retrieve the most informative
-    features in the Friedman #1 dataset.
+    _implementations in the Friedman #1 dataset.
 
     >>> from sklearn.datasets import make_friedman1
     >>> from sklearn.feature_selection import IFS
@@ -211,7 +211,7 @@ class IFS(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
                  verbose=0, significance=0.1):
         self.estimator = estimator
         assert n_features_step == 1, \
-            'currently only one features per iteration is supported'
+            'currently only one _implementations per iteration is supported'
         self.n_features_step = n_features_step
         self.cv = cv
         self.scale = scale
@@ -225,7 +225,7 @@ class IFS(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
 
     def fit(self, X, y, preload_features=None):
         """Fit the IFS model and then the underlying estimator on the selected
-           features.
+           _implementations.
 
         Parameters
         ----------
@@ -236,7 +236,7 @@ class IFS(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
             The target values.
 
         preload_features: {array-like}, shape = from 0 to n_features
-            The features to be preselected. It should be a list or array of
+            The _implementations to be preselected. It should be a list or array of
             integers
         """
         return self._fit(X, y, features_names=self.features_names,
@@ -319,7 +319,7 @@ class IFS(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
                 print("target shape: {}".format(target.shape))
                 print()
 
-            # Rank the remaining features
+            # Rank the remaining _implementations
             start_t = time.time()
             rank_estimator = clone(self.estimator)
             rank_estimator.fit(X, target)
@@ -374,12 +374,12 @@ class IFS(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
             #         warnings.warn('scores are too small to be used, please standardize inputs')
             #     break
 
-            # get the best features (ie, the latest one)
-            # if the most ranked features is selected go on a select
-            # other features accordingly to the ranking
+            # get the best _implementations (ie, the latest one)
+            # if the most ranked _implementations is selected go on a select
+            # other _implementations accordingly to the ranking
 
             # threshold = step
-            # step_features = features[ranks][-threshold:]
+            # step_features = _implementations[ranks][-threshold:]
 
             ii = len(features_names) - 1
             step_features = features[ranks][ii]
@@ -389,20 +389,20 @@ class IFS(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
 
             if np.all(current_support_[step_features]):
                 if self.verbose > 0:
-                    print("Selected features: {} {}".format(
+                    print("Selected _implementations: {} {}".format(
                         features_names[step_features], step_features))
                     # if features_names is not None:
-                    #     print("Selected features: {} {}".format(features_names[ranks][-threshold:], step_features))
+                    #     print("Selected _implementations: {} {}".format(features_names[ranks][-threshold:], step_features))
                     # else:
-                    #     print("Selected features: {}".format(step_features))
-                    print('Ended because selected features already selected')
+                    #     print("Selected _implementations: {}".format(step_features))
+                    print('Ended because selected _implementations already selected')
                 step_features = None
                 break
 
-            # update selected features
+            # update selected _implementations
             tentative_support_[step_features] = True
 
-            # get the selected features
+            # get the selected _implementations
             X_selected = X[:, features[tentative_support_]]
 
             start_t = time.time()
@@ -430,14 +430,14 @@ class IFS(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
 
             if self.verbose > 0:
                 # if features_names is not None:
-                print("Selected features: {} {}".format(
+                print("Selected _implementations: {} {}".format(
                     features_names[step_features], step_features))
-                print("Total features: {} {}".format(
+                print("Total _implementations: {} {}".format(
                     features_names[tentative_support_],
                     features[tentative_support_]))
                 # else:
-                #     print("Selected features: {}".format(step_features))
-                #     print("Total features: {}".format(features[tentative_support_]))
+                #     print("Selected _implementations: {}".format(step_features))
+                #     print("Total _implementations: {}".format(_implementations[tentative_support_]))
                 print("R2= {} +- {}".format(score, confidence_interval_or))
                 print("\nCrossvalidation done in {} s".format(end_t))
 
@@ -455,16 +455,16 @@ class IFS(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
 
             if proceed or np.sum(current_support_) == 0:
                 # last feature set proved to be informative
-                # we need to take into account of the new features (update current support)
+                # we need to take into account of the new _implementations (update current support)
                 current_support_[step_features] = True
                 self.features_per_it_.append(features_names[step_features])
                 self.scores_.append(score)
                 self.scores_confidences_.append(confidence_interval)
 
-                # all the features are selected, stop
+                # all the _implementations are selected, stop
                 if np.sum(current_support_) == n_features:
                     if self.verbose > 0:
-                        print("All the features has been selected.")
+                        print("All the _implementations has been selected.")
                     proceed = False
             else:
                 # last feature set proved to be not informative
@@ -487,7 +487,7 @@ class IFS(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
 
     @if_delegate_has_method(delegate='estimator')
     def predict(self, X):
-        """Reduce X to the selected features and then predict using the
+        """Reduce X to the selected _implementations and then predict using the
            underlying estimator.
 
         Parameters
@@ -504,7 +504,7 @@ class IFS(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
 
     @if_delegate_has_method(delegate='estimator')
     def score(self, X, y):
-        """Reduce X to the selected features and then return the score of the
+        """Reduce X to the selected _implementations and then return the score of the
            underlying estimator.
 
         Parameters

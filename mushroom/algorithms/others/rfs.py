@@ -86,13 +86,13 @@ class RFS(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
 
     def _recursive_step(self, X, next_state, Y, curr_support, parent_node_id, Y_idx=None):
         """
-        Recursively selects the features that explains the provided target
+        Recursively selects the _implementations that explains the provided target
         (initially Y must be the reward)
         Args:
-            X (numpy.array): features. shape = [n_samples, (state_dim + action_dim)]
-            next_state (numpy.array): features of the next state [n_samples,  state_dim]
+            X (numpy.array): _implementations. shape = [n_samples, (state_dim + action_dim)]
+            next_state (numpy.array): _implementations of the next state [n_samples,  state_dim]
             Y (numpy.array): target to fit (intially reward, than the state)
-            curr_support (numpy.array): selected features of X (ie. selected state and action).
+            curr_support (numpy.array): selected _implementations of X (ie. selected state and action).
                 Boolean array of shape [state_dim + action_dim, 1]
             Y_idx (int): index of the target variable
 
@@ -126,7 +126,7 @@ class RFS(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
         if self.verbose > 0:
             print('IFS done in {}s'.format(end_t))
 
-        # sa_support = fs.get_support()  # get selected features of X
+        # sa_support = fs.get_support()  # get selected _implementations of X
 
         # update the tree of dependences
         sa_indexes = fs.get_support(indices=True)
@@ -140,20 +140,20 @@ class RFS(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
             self.nodes.append(node)
             new_node_id += 1
 
-        # new_state_support = sa_support[:n_states]  # get only state features
-        new_state_indexes = sa_indexes[sa_indexes < n_states]  # get only state features
-        # new_state_support[curr_support[:n_states]] = False  # remove state features already selected
+        # new_state_support = sa_support[:n_states]  # get only state _implementations
+        new_state_indexes = sa_indexes[sa_indexes < n_states]  # get only state _implementations
+        # new_state_support[curr_support[:n_states]] = False  # remove state _implementations already selected
         # idxs = np.where(new_state_support)[0]  # get numerical index
-        idxs = np.setdiff1d(new_state_indexes, curr_support)  # remove already selected features
+        idxs = np.setdiff1d(new_state_indexes, curr_support)  # remove already selected _implementations
 
-        # update support with features already selected
+        # update support with _implementations already selected
         # new_support + old_support
         # sa_support[curr_support] = True
         sa_indexes = np.union1d(sa_indexes, curr_support).astype(int)
 
         if self.verbose > 0:
-            # print('Selected features {}'.format(self.features_names[sa_support]))
-            print('Selected features {}'.format(self.features_names[sa_indexes]))
+            # print('Selected _implementations {}'.format(self.features_names[sa_support]))
+            print('Selected _implementations {}'.format(self.features_names[sa_indexes]))
             print('Feature to explain {}'.format(self.features_names[idxs]))
 
         for feat_id in idxs:
@@ -170,9 +170,9 @@ class RFS(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
 
     def _get_support_mask(self):
         """
-        The selected features of state and action
+        The selected _implementations of state and action
         Returns:
-            support (numpy.array): the selected features of
+            support (numpy.array): the selected _implementations of
                 state and action
         """
         # return self.support_

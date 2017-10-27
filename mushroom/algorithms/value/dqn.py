@@ -33,7 +33,10 @@ class DQN(Agent):
         self._episode_steps = 0
         self._no_op_actions = None
 
-        super(DQN, self).__init__(approximator, policy, gamma, params)
+        policy.set_q(approximator)
+        self.approximator = approximator
+
+        super(DQN, self).__init__(policy, gamma, params)
 
     def fit(self, dataset, n_iterations=1):
         """
@@ -100,7 +103,7 @@ class DQN(Agent):
 
         self._replay_memory.initialize(self.mdp_info)
 
-    def draw_action(self, state, approximator=None):
+    def draw_action(self, state):
         self._buffer.add(state)
 
         if self._episode_steps < self._no_op_actions:
@@ -109,10 +112,7 @@ class DQN(Agent):
         else:
             extended_state = self._buffer.get()
 
-            action = super(DQN, self).draw_action(
-                extended_state,
-                approximator=approximator
-            )
+            action = super(DQN, self).draw_action(extended_state)
 
         self._episode_steps += 1
 
@@ -146,12 +146,6 @@ class DoubleDQN(DQN):
         max_a = np.argmax(q, axis=1)
 
         return self._target_approximator.predict(next_state, max_a)
-
-    def draw_action(self, state, approximator=None):
-        return super(DoubleDQN, self).draw_action(
-            state,
-            approximator=self._target_approximator
-        )
 
 
 class AveragedDQN(DQN):

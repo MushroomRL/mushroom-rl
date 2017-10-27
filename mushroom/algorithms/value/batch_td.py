@@ -14,7 +14,10 @@ class BatchTD(Agent):
     def __init__(self, approximator, policy, gamma, params):
         self._quiet = params['algorithm_params'].get('quiet', False)
 
-        super(BatchTD, self).__init__(approximator, policy, gamma, params)
+        policy.set_q(approximator)
+        self.approximator = approximator
+
+        super(BatchTD, self).__init__(policy, gamma, params)
 
     def __str__(self):
         return self.__name__
@@ -23,7 +26,7 @@ class BatchTD(Agent):
 class FQI(BatchTD):
     """
     Fitted Q-Iteration algorithm.
-    "Tree-Based Batch Mode Reinforcement Learning", Ernst D. et.al.. 2005.
+    "Tree-Based Batch Mode Reinforcement Learning", Ernst D. et al.. 2005.
 
     """
     def __init__(self, approximator, policy, gamma, params):
@@ -135,7 +138,7 @@ class DoubleFQI(FQI):
     """
     Double Fitted Q-Iteration algorithm.
     "Estimating the Maximum Expected Value in Continuous Reinforcement Learning
-    Problems". D'Eramo C. et. al.. 2017.
+    Problems". D'Eramo C. et al.. 2017.
 
     """
     def __init__(self, approximator, policy, gamma, params):
@@ -151,7 +154,7 @@ class WeightedFQI(FQI):
     """
     Weighted Fitted Q-Iteration algorithm.
     "Estimating the Maximum Expected Value in Continuous Reinforcement Learning
-    Problems". D'Eramo C. et. al.. 2017.
+    Problems". D'Eramo C. et al.. 2017.
 
     """
     def __init__(self, approximator, policy, gamma, params):

@@ -14,7 +14,10 @@ class TD(Agent):
     def __init__(self, approximator, policy, gamma, params):
         self.learning_rate = params['algorithm_params'].pop('learning_rate')
 
-        super(TD, self).__init__(approximator, policy, gamma, params)
+        policy.set_q(approximator)
+        self.approximator = approximator
+
+        super(TD, self).__init__(policy, gamma, params)
 
     def fit(self, dataset, n_iterations=1):
         """

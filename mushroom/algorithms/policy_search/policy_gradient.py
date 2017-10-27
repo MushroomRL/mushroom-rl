@@ -3,12 +3,12 @@ from mushroom.algorithms.agent import Agent
 
 class PolicyGradient(Agent):
 
-    def __init__(self, approximator, policy, gamma, params, features):
+    def __init__(self, policy, gamma, params, features):
         self.learning_rate = params['algorithm_params'].pop('learning_rate')
         self.Jep = None
         self.df = None
 
-        super(PolicyGradient, self).__init__(approximator, policy, gamma, params, features)
+        super(PolicyGradient, self).__init__(policy, gamma, params, features)
 
     def fit(self, dataset, n_iterations):
         assert n_iterations == 1
@@ -30,14 +30,14 @@ class PolicyGradient(Agent):
                 self._init_update()
 
         grad_J = self._compute_gradient(J)
-        theta = self.approximator.get_weights()
+        theta = self.policy.get_weights()
         theta_new = theta+self.learning_rate()*grad_J
-        self.approximator.set_weights(theta_new)
+        self.policy.set_weights(theta_new)
 
     def _init_update(self):
         raise NotImplementedError('Policy gradient is an abstract class')
 
-    def _compute_gradient(self,J):
+    def _compute_gradient(self, J):
         raise NotImplementedError('Policy gradient is an abstract class')
 
     def _step_update(self,x,u):
@@ -47,7 +47,6 @@ class PolicyGradient(Agent):
         raise NotImplementedError('Policy gradient is an abstract class')
 
     def _parse(self, sample):
-
         x = sample[0]
         u = sample[1]
         r = sample[2]

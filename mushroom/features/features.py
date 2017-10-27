@@ -1,5 +1,5 @@
-from .implementations.features.tiles_features import TilesFeatures
-from .implementations.features.basis_features import BasisFeatures
+from ._implementations.basis_features import BasisFeatures
+from ._implementations.tiles_features import TilesFeatures
 
 
 def Features(basis_list=None, tilings=None):

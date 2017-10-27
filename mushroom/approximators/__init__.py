@@ -1,5 +1,4 @@
-from .implementations.regressors.action_regressor import ActionRegressor
-from .implementations.regressors.ensemble import Ensemble, EnsembleTable
+from ._implementations.ensemble import EnsembleTable
 from .regressor import Regressor
 
-__all__ = ['ActionRegressor', 'Ensemble', 'EnsembleTable',  'Regressor']
+__all__ = ['EnsembleTable', 'Regressor']

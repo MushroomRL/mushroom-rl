@@ -1,7 +1,7 @@
-from .implementations.regressors.simple_regressor import SimpleRegressor
-from .implementations.regressors.action_regressor import ActionRegressor
-from .implementations.regressors.ensemble import Ensemble
-from .implementations.regressors.q_regressor import QRegressor
+from ._implementations.q_regressor import QRegressor
+from ._implementations.action_regressor import ActionRegressor
+from ._implementations.ensemble import Ensemble
+from ._implementations.simple_regressor import SimpleRegressor
 
 
 class Regressor:
@@ -16,7 +16,7 @@ class Regressor:
     the `output_shape` then a `QRegressor` is created, else (`output_shape`
     should be (1,)) an `ActionRegressor` is created.
     Else a `SimpleRegressor` is created.
-    An `Ensemble` model can be used for all the previous implementations
+    An `Ensemble` model can be used for all the previous _implementations
     listed before simply providing a `n_models` parameter greater than 1.
 
     """

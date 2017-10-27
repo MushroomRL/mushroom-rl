@@ -4,19 +4,16 @@ class Agent(object):
     actions from its policy.
 
     """
-    def __init__(self, approximator, policy, gamma, params, features=None):
+    def __init__(self, policy, gamma, params, features=None):
         """
         Constructor.
 
         Args:
-            approximator (object): the approximator of the Q-function used by
-                the agent;
             policy (object): the policy to use for the agent;
             gamma (float): discount factor;
             params (dict): other parameters of the algorithm.
 
         """
-        self.approximator = approximator
         self.policy = policy
         self._gamma = gamma
         self.params = params
@@ -38,15 +35,13 @@ class Agent(object):
         for k, v in mdp_info.iteritems():
             self.mdp_info[k] = v
 
-    def draw_action(self, state, approximator=None):
+    def draw_action(self, state):
         """
         Return the action to execute. It is the action returned by the policy
         or the action set by the algorithm (e.g. SARSA).
 
         Args:
-            state (np.array): the state where the agent is;
-            approximator (object, None): the approximator to use to draw the
-                action.
+            state (np.array): the state where the agent is.
 
         Returns:
             The action to be executed.
@@ -56,10 +51,7 @@ class Agent(object):
             state = self.phi(state)
 
         if self._next_action is None:
-            if approximator is None:
-                return self.policy(state, self.approximator)
-            else:
-                return self.policy(state, approximator)
+            return self.policy(state)
         else:
             action = self._next_action
             self._next_action = None
