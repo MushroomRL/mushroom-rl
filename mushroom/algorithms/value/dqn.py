@@ -196,10 +196,6 @@ class WeightedDQN(AveragedDQN):
 
         super(WeightedDQN, self).__init__(approximator, policy, gamma, params)
 
-        self._n_models = len(self._target_approximator)
-
-        assert isinstance(self._target_approximator.model, Ensemble)
-
     def _next_q(self, next_state, absorbing):
         samples = np.ones((self._n_fitted_target_models,
                            next_state.shape[0],
