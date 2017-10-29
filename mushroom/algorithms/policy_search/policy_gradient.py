@@ -13,20 +13,20 @@ class PolicyGradient(Agent):
     def fit(self, dataset, n_iterations):
         assert n_iterations == 1
         J = []
-        df = 1
-        Jep = 0
+        df = 1.0
+        Jep = 0.0
         self._init_update()
         for sample in dataset:
             x, u, r, xn, _, last = self._parse(sample)
             Jep += df*r
             df *= self._gamma
-            self._step_update(x,u)
+            self._step_update(x, u)
 
             if last:
                 self._episode_end_update(Jep)
                 J.append(Jep)
-                Jep = 0
-                df = 1
+                Jep = 0.0
+                df = 1.0
                 self._init_update()
 
         self._update_parameters(J)
@@ -34,7 +34,7 @@ class PolicyGradient(Agent):
     def _update_parameters(self, J):
         grad_J = self._compute_gradient(J)
         theta = self.policy.get_weights()
-        theta_new = theta+self.learning_rate(grad_J)*grad_J
+        theta_new = theta + self.learning_rate(grad_J)*grad_J
         self.policy.set_weights(theta_new)
 
     def _init_update(self):
@@ -43,7 +43,7 @@ class PolicyGradient(Agent):
     def _compute_gradient(self, J):
         raise NotImplementedError('Policy gradient is an abstract class')
 
-    def _step_update(self,x,u):
+    def _step_update(self, x, u):
         raise NotImplementedError('Policy gradient is an abstract class')
 
     def _episode_end_update(self, Jep):

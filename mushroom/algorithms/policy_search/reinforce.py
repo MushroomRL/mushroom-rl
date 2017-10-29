@@ -13,7 +13,9 @@ class REINFORCE(PolicyGradient):
         super(REINFORCE, self).__init__(policy, gamma, params, features)
 
     def _compute_gradient(self, J):
-        baseline = np.mean(self.baseline_num)/np.mean(self.baseline_den)
+        baseline = np.mean(self.baseline_num, axis=0)/np.mean(self.baseline_den, axis=0)
+        baseline[np.logical_not(np.isfinite(baseline))] = 0.0
+
         grad_Jep = []
         for i,Jep in enumerate(J):
             sumdlogpi = self.list_sumdlogpi[i]
@@ -23,6 +25,7 @@ class REINFORCE(PolicyGradient):
         self.baseline_den = []
         self.baseline_num = []
         self.list_sumdlogpi = []
+
         return grad_J
 
     def _step_update(self, x, u):
