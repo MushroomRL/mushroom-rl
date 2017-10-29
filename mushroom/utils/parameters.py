@@ -71,7 +71,7 @@ class AdaptiveParameter(object):
             lambda_v = max(lambda_v, 1e-8)
             step_length = 1.0 / (2.0 * lambda_v)
 
-            return step_length * nat_gradient
+            return step_length
         elif len(args) == 1:
             return self.get_value(args[0], args[0], **kwargs)
         else:
