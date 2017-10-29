@@ -120,9 +120,8 @@ class FQI(BatchTD):
         if y is None:
             target = reward
         else:
-            predict_params = dict(idx=self._idx - 1)
             self._next_q += self.approximator.predict(next_state,
-                                                      **predict_params)
+                                                      idx=self._idx - 1)
             if np.any(absorbing):
                 self._next_q *= 1 - absorbing.reshape(-1, 1)
 
@@ -132,9 +131,7 @@ class FQI(BatchTD):
         target = target - self._prediction
         self._prediction += target
 
-        self.params['fit_params']['idx'] = self._idx
-        self.approximator.fit(state, action, target,
-                              **self.params['fit_params'])
+        self.approximator.fit(state, action, target, idx=self._idx)
 
         self._idx += 1
 
