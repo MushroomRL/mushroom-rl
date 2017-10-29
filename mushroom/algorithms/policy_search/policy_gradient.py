@@ -29,9 +29,12 @@ class PolicyGradient(Agent):
                 df = 1
                 self._init_update()
 
+        self._update_parameters(J)
+
+    def _update_parameters(self, J):
         grad_J = self._compute_gradient(J)
         theta = self.policy.get_weights()
-        theta_new = theta+self.learning_rate()*grad_J
+        theta_new = theta+self.learning_rate(grad_J)*grad_J
         self.policy.set_weights(theta_new)
 
     def _init_update(self):

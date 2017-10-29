@@ -9,7 +9,7 @@ from mushroom.features.basis import GaussianRBF
 from mushroom.features.features import Features
 from mushroom.policy import GaussianPolicy
 from mushroom.utils.dataset import compute_J
-from mushroom.utils.parameters import Parameter
+from mushroom.utils.parameters import Parameter, AdaptiveParameter
 
 
 def experiment(n_iterations, n_runs, ep_per_run):
@@ -37,7 +37,8 @@ def experiment(n_iterations, n_runs, ep_per_run):
     policy = GaussianPolicy(mu=approximator, sigma=sigma)
 
     # Agent
-    learning_rate = Parameter(value=.001)
+    #learning_rate = Parameter(value=.01)
+    learning_rate = AdaptiveParameter(value=.01)
     algorithm_params = dict(learning_rate=learning_rate)
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
