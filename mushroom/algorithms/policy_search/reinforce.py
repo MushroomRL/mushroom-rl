@@ -3,37 +3,45 @@ from mushroom.algorithms.policy_search import PolicyGradient
 
 
 class REINFORCE(PolicyGradient):
+    """
+    REINFORCE algorithm.
+    "Simple Statistical Gradient-Following Algorithms for Connectionist
+    Reinforcement Learning", Williams R. J.. 1992.
+
+    """
     def __init__(self, policy, gamma, params, features):
         self.__name__ = 'REINFORCE'
-        self.sumdlogpi = None
-        self.list_sumdlogpi = []
-        self.baseline_num = []
-        self.baseline_den = []
 
         super(REINFORCE, self).__init__(policy, gamma, params, features)
 
-    def _compute_gradient(self, J):
-        baseline = np.mean(self.baseline_num)/np.mean(self.baseline_den)
-        grad_Jep = []
-        for i,Jep in enumerate(J):
-            sumdlogpi = self.list_sumdlogpi[i]
-            grad_Jep.append(sumdlogpi*(Jep-baseline))
+        self.sum_d_log_pi = None
+        self.list_sum_d_log_pi = list()
+        self.baseline_num = list()
+        self.baseline_den = list()
 
-        grad_J = np.mean(grad_Jep)
-        self.baseline_den = []
-        self.baseline_num = []
-        self.list_sumdlogpi = []
+    def _compute_gradient(self, J):
+        baseline = np.mean(self.baseline_num) / np.mean(self.baseline_den)
+        grad_J_episode = []
+        for i, J_episode in enumerate(J):
+            sum_d_log_pi = self.list_sum_d_log_pi[i]
+            grad_J_episode.append(sum_d_log_pi * (J_episode-baseline))
+
+        grad_J = np.mean(grad_J_episode)
+        self.list_sum_d_log_pi = list()
+        self.baseline_den = list()
+        self.baseline_num = list()
+
         return grad_J
 
     def _step_update(self, x, u):
-        dlogpi = self.policy.diff_log(x, u)
-        self.sumdlogpi += dlogpi
+        d_log_pi = self.policy.diff_log(x, u)
+        self.sum_d_log_pi += d_log_pi
 
     def _episode_end_update(self, Jep):
-        self.list_sumdlogpi.append(self.sumdlogpi)
-        squared_sumdlogpi = np.square(self.sumdlogpi)
-        self.baseline_num.append(squared_sumdlogpi*Jep)
-        self.baseline_den.append(squared_sumdlogpi)
+        self.list_sum_d_log_pi.append(self.sum_d_log_pi)
+        squared_sum_d_log_pi = np.square(self.sum_d_log_pi)
+        self.baseline_num.append(squared_sum_d_log_pi * Jep)
+        self.baseline_den.append(squared_sum_d_log_pi)
 
     def _init_update(self):
-        self.sumdlogpi = np.zeros(self.policy.weights_shape)
+        self.sum_d_log_pi = np.zeros(self.policy.weights_shape)

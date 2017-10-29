@@ -68,7 +68,7 @@ class GaussianPolicy:
     def _compute_prob(self, state, action):
         mu, sigma = self._compute_gaussian(state, False)
 
-        return np.exp(-0.5 * (action - mu)**2 / sigma**2) / np.sqrt(
+        return np.exp(-.5 * (action - mu)**2 / sigma**2) / np.sqrt(
             2 * np.pi) / sigma
 
     def __str__(self):

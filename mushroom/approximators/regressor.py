@@ -22,6 +22,20 @@ class Regressor:
     """
     def __init__(self, approximator, input_shape, output_shape=(1,),
                  n_actions=None, n_models=1, **params):
+        """
+        Constructor.
+
+        Args:
+            approximator (object): the approximator class to use to create
+                the model;
+            input_shape (tuple): the shape of the input of the model;
+            output_shape (tuple, (1,)): the shape of the output of the model;
+            n_actions (int, None): number of actions considered to create a
+                `QRegressor` or an `ActionRegressor`;
+            n_models (int, 1): number of models to create;
+            **params (dict): other parameters to create each model.
+
+        """
         approximator_params = params.get('params', dict())
 
         self._input_shape = input_shape
@@ -52,25 +66,61 @@ class Regressor:
         return self.predict(*z, **predict_params)
 
     def fit(self, *z, **fit_params):
+        """
+        Fit the model.
+
+        Args:
+            *z (list): list of input of the model;
+            **fit_params (dict): parameters to use to fit the model.
+
+        """
         self._impl.fit(*z, **fit_params)
 
     def predict(self, *z, **predict_params):
+        """
+        Predict the output of the model given an input.
+
+        Args:
+            *z (list): list of input of the model;
+            **predict_params(dict): parameters to use to predict with the model.
+
+        """
         return self._impl.predict(*z, **predict_params)
 
     @property
     def model(self):
+        """
+        Returns:
+             the model object.
+
+        """
         return self._impl.model
 
     @property
     def input_shape(self):
+        """
+        Returns:
+             the shape of the input of the model.
+
+        """
         return self._input_shape
 
     @property
     def output_shape(self):
+        """
+        Returns:
+             the shape of the output of the model.
+
+        """
         return self._output_shape
 
     @property
     def weights_shape(self):
+        """
+        Returns:
+             the shape of the weights of the model.
+
+        """
         try:
             return self._impl.weights_shape
         except AttributeError:
@@ -78,6 +128,11 @@ class Regressor:
                                       'non-parametric regressor.')
 
     def get_weights(self):
+        """
+        Returns:
+             the weights of the model.
+
+        """
         try:
             return self._impl.get_weights()
         except AttributeError:
@@ -85,6 +140,11 @@ class Regressor:
                                       'non-parametric regressor.')
 
     def set_weights(self, w):
+        """
+        Args:
+            w (list): list of weights to be set in the model.
+
+        """
         try:
             self._impl.set_weights(w)
         except AttributeError:
@@ -92,6 +152,14 @@ class Regressor:
                                       'non-parametric regressor.')
 
     def diff(self, *z):
+        """
+        Args:
+            *z (list): the input of the model.
+
+        Returns:
+             the derivative of the model.
+
+        """
         try:
             return self._impl.diff(*z)
         except AttributeError:

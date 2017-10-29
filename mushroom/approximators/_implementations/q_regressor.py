@@ -27,20 +27,20 @@ class QRegressor:
         self._input_preprocessor = params.get('input_preprocessor', list())
         self._output_preprocessor = params.get('output_preprocessor', list())
 
-    def fit(self, s, a, q, **fit_params):
+    def fit(self, state, action, q, **fit_params):
         """
         Fit the model.
 
         Args:
-            s (np.array): states;
-            a (np.array): actions;
+            state (np.array): states;
+            action (np.array): actions;
             q (np.array): target q-values;
             **fit_params (dict): other parameters used by the fit method of the
                 regressor.
 
         """
-        s, q = self._preprocess(s, q)
-        self.model.fit(s, a, q, **fit_params)
+        state, q = self._preprocess(state, q)
+        self.model.fit(state, action, q, **fit_params)
 
     def predict(self, *z, **predict_params):
         """
@@ -57,15 +57,15 @@ class QRegressor:
             The predictions of the model.
 
         """
-        s = self._preprocess(z[0])
-        q = self.model.predict(s, **predict_params)
+        state = self._preprocess(z[0])
+        q = self.model.predict(state, **predict_params)
 
         if len(z) == 2:
-            a = z[1]
+            action = z[1]
             if q.ndim == 1:
-                return q[a]
+                return q[action]
             else:
-                return q[np.arange(q.shape[0]), a]
+                return q[np.arange(q.shape[0]), action]
         else:
             assert len(z) == 1
 
@@ -77,16 +77,16 @@ class QRegressor:
     def set_weights(self, w):
         self.model.set_weights(w)
 
-    def _preprocess(self, s, q=None):
+    def _preprocess(self, state, q=None):
         for p in self._input_preprocessor:
-            s = p(s)
+            state = p(state)
 
         if q is not None:
             for p in self._output_preprocessor:
                 q = p(q)
 
-            return s, q
-        return s
+            return state, q
+        return state
 
     def __len__(self):
         return len(self.model)

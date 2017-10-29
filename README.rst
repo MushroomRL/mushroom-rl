@@ -9,11 +9,9 @@ Mushroom
 What is Mushroom
 ============
 Mushroom is a python Reinforcement Learning (RL) library using Tensorflow and
-OpenAI Gym libraries. It allows to perform RL experiments in a simple way providing TD (e.g. Q-Learning, SARSA)
-and batch TD (e.g. FQI) algorithms together with others such as DQN algorithm used to solve the Atari environment.
-
-By choice, it is currently focused on value-based algorithms, but policy gradient
-and actor-critic algorithms will be added soon.
+OpenAI Gym libraries. It allows to perform RL experiments in a simple way providing TD (e.g. Q-Learning, SARSA),
+batch TD (e.g. FQI) algorithms, other new algorithms such as DQN and a small set of policy-based
+algorithms that will be enlarged soon.
 
 Full documentation available at http://mushroomrl.readthedocs.io/en/latest/.
 

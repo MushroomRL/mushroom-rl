@@ -1,13 +1,13 @@
 import numpy as np
 from joblib import Parallel, delayed
 
-from mushroom.algorithms.value.td import QLearning, DoubleQLearning, WeightedQLearning,\
-    SpeedyQLearning
+from mushroom.algorithms.value.td import QLearning, DoubleQLearning,\
+    WeightedQLearning, SpeedyQLearning
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
 from mushroom.utils.callbacks import CollectQ
-from mushroom.utils.parameters import Parameter, DecayParameter
+from mushroom.utils.parameters import Parameter, ExponentialDecayParameter
 
 
 def experiment(algorithm_class, decay_exp):
@@ -25,7 +25,8 @@ def experiment(algorithm_class, decay_exp):
 
     # Agent
     shape = mdp.observation_space.size + mdp.action_space.size
-    learning_rate = DecayParameter(value=1., decay_exp=decay_exp, shape=shape)
+    learning_rate = ExponentialDecayParameter(value=1., decay_exp=decay_exp,
+                                              shape=shape)
     algorithm_params = dict(learning_rate=learning_rate)
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,

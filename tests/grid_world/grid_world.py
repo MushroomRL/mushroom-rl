@@ -2,13 +2,13 @@ import numpy as np
 from joblib import Parallel, delayed
 
 from mushroom.algorithms.value.td import QLearning, DoubleQLearning,\
-    WeightedQLearning, SpeedyQLearning
+    WeightedQLearning, SpeedyQLearning, SARSA
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
 from mushroom.utils.callbacks import CollectDataset, CollectMaxQ
 from mushroom.utils.dataset import parse_dataset
-from mushroom.utils.parameters import DecayParameter
+from mushroom.utils.parameters import ExponentialDecayParameter
 
 
 def experiment(algorithm_class):
@@ -18,14 +18,15 @@ def experiment(algorithm_class):
     mdp = GridWorldVanHasselt()
 
     # Policy
-    epsilon = DecayParameter(value=1, decay_exp=.5,
-                             shape=mdp.observation_space.size)
+    epsilon = ExponentialDecayParameter(value=1, decay_exp=.5,
+                                        shape=mdp.observation_space.size)
     pi = EpsGreedy(epsilon=epsilon, observation_space=mdp.observation_space,
                    action_space=mdp.action_space)
 
     # Agent
     shape = mdp.observation_space.size + mdp.action_space.size
-    learning_rate = DecayParameter(value=1., decay_exp=1., shape=shape)
+    learning_rate = ExponentialDecayParameter(value=1., decay_exp=1.,
+                                              shape=shape)
     algorithm_params = dict(learning_rate=learning_rate)
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
@@ -53,9 +54,9 @@ if __name__ == '__main__':
 
     n_experiment = 2
 
-    names = ['Q', 'DQ', 'WQ', 'SQ']
+    names = ['Q', 'DQ', 'WQ', 'SQ', 'SARSA']
     for i, a in enumerate([QLearning, DoubleQLearning, WeightedQLearning,
-                           SpeedyQLearning]):
+                           SpeedyQLearning, SARSA]):
         out = Parallel(n_jobs=-1)(
             delayed(experiment)(a) for _ in xrange(n_experiment))
         r = np.array([o[0] for o in out])

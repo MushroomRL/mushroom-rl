@@ -26,6 +26,7 @@ class EpsGreedy:
         self._epsilon = epsilon
         self.observation_space = observation_space
         self.action_space = action_space
+
         self._approximator = None
 
     def __call__(self, state):
@@ -73,9 +74,19 @@ class EpsGreedy:
         self._epsilon.update(*idx)
 
     def set_q(self, approximator):
+        """
+        Args:
+            approximator (object): the approximator to use.
+
+        """
         self._approximator = approximator
 
     def get_q(self):
+        """
+        Returns:
+             the approximator used by the policy.
+
+        """
         return self._approximator
 
     def __str__(self):

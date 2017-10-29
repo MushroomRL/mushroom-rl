@@ -43,7 +43,7 @@ class DQN(Agent):
         Single fit step.
 
         Args:
-            dataset (list): a two elements list with states and actions;
+            dataset (list): the dataset;
             n_iterations (int, 1): number of fit steps of the approximator.
 
         """
@@ -69,6 +69,11 @@ class DQN(Agent):
             self._update_target()
 
     def _update_target(self):
+        """
+        Update the target network if the conditions on the number of updates
+        are met.
+
+        """
         if self._n_updates % self._target_update_frequency == 0:
             self._target_approximator.model.set_weights(
                 self.approximator.model.get_weights())
@@ -79,10 +84,10 @@ class DQN(Agent):
             next_state (np.array): the states where next action has to be
                 evaluated;
             absorbing (np.array): the absorbing flag for the states in
-                'next_state'.
+                `next_state`.
 
         Returns:
-            Maximum action-value for each state in 'next_states'.
+            Maximum action-value for each state in `next_states`.
 
         """
         q = self._target_approximator.predict(next_state)
@@ -93,7 +98,7 @@ class DQN(Agent):
 
     def initialize(self, mdp_info):
         """
-        Initialize mdp info attribute.
+        Initialize `mdp_info` attribute.
 
         Args:
             mdp_info (dict): information about the mdp (e.g. discount factor).
