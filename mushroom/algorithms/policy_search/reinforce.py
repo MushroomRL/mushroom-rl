@@ -19,7 +19,7 @@ class REINFORCE(PolicyGradient):
             sumdlogpi = self.list_sumdlogpi[i]
             grad_Jep.append(sumdlogpi*(Jep-baseline))
 
-        grad_J = np.mean(grad_Jep)
+        grad_J = np.mean(grad_Jep, axis=0)
         self.baseline_den = []
         self.baseline_num = []
         self.list_sumdlogpi = []
