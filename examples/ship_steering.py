@@ -7,24 +7,35 @@ from mushroom.core.core import Core
 from mushroom.environments import ShipSteering
 from mushroom.features.basis import GaussianRBF
 from mushroom.features.features import Features
+from mushroom.features.tensors import gaussian_tensor
 from mushroom.policy import GaussianPolicy
 from mushroom.utils.dataset import compute_J
 from mushroom.utils.parameters import Parameter, AdaptiveParameter
 
 
-def experiment(n_iterations, n_runs, ep_per_run):
+def experiment(n_iterations, n_runs, ep_per_run, use_tensorflow):
     np.random.seed()
 
     # MDP
     mdp = ShipSteering()
 
     # Policy
-    basis = GaussianRBF.generate([3, 3, 6, 2],
+    if use_tensorflow:
+        tensor_list = gaussian_tensor.generate([3, 3, 6, 2],
+                                               [[0., 150.],
+                                                [0., 150.],
+                                                [-np.pi, np.pi],
+                                                [-np.pi / 12, np.pi / 12]])
+
+        phi = Features(tensor_list=tensor_list, name='phi', input_dim=mdp.observation_space.shape[0])
+    else:
+        basis = GaussianRBF.generate([3, 3, 6, 2],
                                  [[0., 150.],
                                   [0., 150.],
                                   [-np.pi, np.pi],
                                   [-np.pi / 12, np.pi / 12]])
-    phi = Features(basis_list=basis)
+
+        phi = Features(basis_list=basis)
 
     input_shape = (phi.size,)
     shape = input_shape + mdp.action_space.shape
@@ -59,4 +70,4 @@ def experiment(n_iterations, n_runs, ep_per_run):
 
 
 if __name__ == '__main__':
-    experiment(n_iterations=40, n_runs=10, ep_per_run=100)
+    experiment(n_iterations=40, n_runs=10, ep_per_run=100, use_tensorflow=True)
