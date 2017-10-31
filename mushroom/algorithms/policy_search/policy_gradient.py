@@ -23,7 +23,7 @@ class PolicyGradient(Agent):
 
         """
         assert n_iterations == 1
-
+      
         J = list()
         df = 1.
         J_episode = 0.
@@ -37,14 +37,16 @@ class PolicyGradient(Agent):
             if last:
                 self._episode_end_update(J_episode)
                 J.append(J_episode)
-                J_episode = 0
-                df = 1
+                J_episode = 0.
+                df = 1.
                 self._init_update()
 
+        self._update_parameters(J)
+
+    def _update_parameters(self, J):
         grad_J = self._compute_gradient(J)
         theta = self.policy.get_weights()
-        theta_new = theta + self.learning_rate() * grad_J
-
+        theta_new = theta + self.learning_rate(grad_J) * grad_J
         self.policy.set_weights(theta_new)
 
     def _init_update(self):

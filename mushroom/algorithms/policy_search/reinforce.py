@@ -20,13 +20,14 @@ class REINFORCE(PolicyGradient):
         self.baseline_den = list()
 
     def _compute_gradient(self, J):
-        baseline = np.mean(self.baseline_num) / np.mean(self.baseline_den)
-        grad_J_episode = []
+        baseline = np.mean(self.baseline_num, axis=0) / np.mean(self.baseline_den, axis=0)
+        baseline[np.logical_not(np.isfinite(baseline))] = 0.
+        grad_J_episode = list()
         for i, J_episode in enumerate(J):
             sum_d_log_pi = self.list_sum_d_log_pi[i]
-            grad_J_episode.append(sum_d_log_pi * (J_episode-baseline))
+            grad_J_episode.append(sum_d_log_pi * (J_episode - baseline))
 
-        grad_J = np.mean(grad_J_episode)
+        grad_J = np.mean(grad_J_episode, axis=0)
         self.list_sum_d_log_pi = list()
         self.baseline_den = list()
         self.baseline_num = list()

@@ -1,5 +1,5 @@
 from mushroom.utils.table import Table
-
+import numpy as np
 
 class Parameter(object):
     def __init__(self, value, min_value=None, shape=(1,)):
@@ -52,3 +52,33 @@ class ExponentialDecayParameter(Parameter):
 
     def _compute(self, *idx, **kwargs):
         return self._initial_value / self._n_updates[idx] ** self._decay_exp
+
+
+class AdaptiveParameter(object):
+    def __init__(self, value):
+        self._eps = value
+
+    def __call__(self, *args, **kwargs):
+        return self.get_value(*args, **kwargs)
+
+    def get_value(self, *args, **kwargs):
+        if len(args) == 2:
+            gradient = args[0]
+            nat_gradient = args[1]
+            tmp = np.asscalar(np.dot(gradient.T, nat_gradient))
+            lambda_v = np.sqrt(tmp / (4 * self._eps))
+            # For numerical stability
+            lambda_v = max(lambda_v, 1e-8)
+            step_length = 1.0 / (2.0 * lambda_v)
+
+            return step_length
+        elif len(args) == 1:
+            return self.get_value(args[0], args[0], **kwargs)
+        else:
+            raise ValueError('Adaptive parameters needs gradient or gradient and natural gradient')
+
+
+    @property
+    def shape(self):
+        return None
+
