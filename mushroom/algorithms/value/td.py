@@ -24,27 +24,38 @@ class TD(Agent):
         Single fit step.
 
         Args:
-            dataset (list):  a two elements list with the state and the action;
+            dataset (list): the dataset;
             n_iterations (int, 1): number of fit steps of the approximator.
 
         """
         assert n_iterations == 1 and len(dataset) == 1
 
-        s, a, r, ss, ab = self._parse(dataset)
-        self._update(s, a, r, ss, ab)
+        state, action, reward, next_state, absorbing = self._parse(dataset)
+        self._update(state, action, reward, next_state, absorbing)
 
     @staticmethod
     def _parse(dataset):
         sample = dataset[0]
-        s = sample[0]
-        a = sample[1]
-        r = sample[2]
-        ss = sample[3]
-        ab = sample[4]
+        state = sample[0]
+        action = sample[1]
+        reward = sample[2]
+        next_state = sample[3]
+        absorbing = sample[4]
         
-        return s, a, r, ss, ab
+        return state, action, reward, next_state, absorbing
 
-    def _update(self, s, a, r, ss, ab):
+    def _update(self, state, action, reward, next_state, absorbing):
+        """
+        Update the Q-table.
+
+        Args:
+            state (np.array): state;
+            action (np.array): action;
+            reward (np.array): reward;
+            next_state (np.array): next state;
+            absorbing (np.array): absorbing flag.
+
+        """
         pass
 
     def __str__(self):
@@ -64,13 +75,13 @@ class QLearning(TD):
 
         super(QLearning, self).__init__(self.Q, policy, gamma, params)
 
-    def _update(self, s, a, r, ss, ab):
-        q_current = self.Q[s, a]
+    def _update(self, state, action, reward, next_state, absorbing):
+        q_current = self.Q[state, action]
 
-        q_next = np.max(self.Q[ss, :]) if not ab else 0.
+        q_next = np.max(self.Q[next_state, :]) if not absorbing else 0.
 
-        self.Q[s, a] = q_current + self.learning_rate(s, a) * (
-             r + self._gamma * q_next - q_current)
+        self.Q[state, action] = q_current + self.learning_rate(
+            state, action) * (reward + self._gamma * q_next - q_current)
 
 
 class DoubleQLearning(TD):
@@ -92,24 +103,24 @@ class DoubleQLearning(TD):
         assert len(self.Q) == 2, 'The regressor ensemble must' \
                                  ' have exactly 2 models.'
 
-    def _update(self, s, a, r, ss, ab):
+    def _update(self, state, action, reward, next_state, absorbing):
         approximator_idx = 0 if np.random.uniform() < .5 else 1
 
-        q_current = self.Q[approximator_idx][s, a]
+        q_current = self.Q[approximator_idx][state, action]
 
-        if not ab:
-            q_ss = self.Q[approximator_idx][ss, :]
+        if not absorbing:
+            q_ss = self.Q[approximator_idx][next_state, :]
             max_q = np.max(q_ss)
             a_n = np.array(
                 [np.random.choice(np.argwhere(q_ss == max_q).ravel())])
-            q_next = self.Q[1 - approximator_idx][ss, a_n]
+            q_next = self.Q[1 - approximator_idx][next_state, a_n]
         else:
             q_next = 0.
 
-        q = q_current + self.learning_rate[approximator_idx](s, a) * (
-            r + self._gamma * q_next - q_current)
+        q = q_current + self.learning_rate[approximator_idx](state, action) * (
+            reward + self._gamma * q_next - q_current)
 
-        self.Q[approximator_idx][s, a] = q
+        self.Q[approximator_idx][state, action] = q
 
 
 class WeightedQLearning(TD):
@@ -134,30 +145,32 @@ class WeightedQLearning(TD):
         self._Q2 = Table(shape)
         self._weights_var = Table(shape)
 
-    def _update(self, s, a, r, ss, ab):
-        q_current = self.Q[s, a]
-        q_next = self._next_q(ss) if not ab else 0.
+    def _update(self, state, action, reward, next_state, absorbing):
+        q_current = self.Q[state, action]
+        q_next = self._next_q(next_state) if not absorbing else 0.
 
-        target = r + self._gamma * q_next
+        target = reward + self._gamma * q_next
 
-        alpha = self.learning_rate(s, a)
+        alpha = self.learning_rate(state, action)
 
-        self.Q[s, a] = q_current + alpha * (target - q_current)
+        self.Q[state, action] = q_current + alpha * (target - q_current)
 
-        self._n_updates[s, a] += 1
+        self._n_updates[state, action] += 1
 
-        self._Q[s, a] += (target - self._Q[s, a]) / self._n_updates[s, a]
-        self._Q2[s, a] += (
-            target ** 2. - self._Q2[s, a]) / self._n_updates[s, a]
-        self._weights_var[s, a] = (1 - alpha) ** 2. * self._weights_var[
-            s, a] + alpha ** 2.
+        self._Q[state, action] += (
+            target - self._Q[state, action]) / self._n_updates[state, action]
+        self._Q2[state, action] += (target ** 2. - self._Q2[
+            state, action]) / self._n_updates[state, action]
+        self._weights_var[state, action] = (
+            1 - alpha) ** 2. * self._weights_var[state, action] + alpha ** 2.
 
-        if self._n_updates[s, a] > 1:
-            var = self._n_updates[s, a] * (self._Q2[s, a] - self._Q[
-                    s, a] ** 2.) / (self._n_updates[s, a] - 1.)
-            var_estimator = var * self._weights_var[s, a]
+        if self._n_updates[state, action] > 1:
+            var = self._n_updates[state, action] * (
+                self._Q2[state, action] - self._Q[state, action] ** 2.) / (
+                self._n_updates[state, action] - 1.)
+            var_estimator = var * self._weights_var[state, action]
             var_estimator = var_estimator if var_estimator >= 1e-10 else 1e-10
-            self._sigma[s, a] = np.sqrt(var_estimator)
+            self._sigma[state, action] = np.sqrt(var_estimator)
 
     def _next_q(self, next_state):
         """
@@ -204,18 +217,18 @@ class SpeedyQLearning(TD):
 
         super(SpeedyQLearning, self).__init__(self.Q, policy, gamma, params)
 
-    def _update(self, s, a, r, ss, ab):
+    def _update(self, state, action, reward, next_state, absorbing):
         old_q = deepcopy(self.Q)
 
-        max_q_cur = np.max(self.Q[ss, :]) if not ab else 0.
-        max_q_old = np.max(self.old_q[ss, :]) if not ab else 0.
+        max_q_cur = np.max(self.Q[next_state, :]) if not absorbing else 0.
+        max_q_old = np.max(self.old_q[next_state, :]) if not absorbing else 0.
 
-        target_cur = r + self._gamma * max_q_cur
-        target_old = r + self._gamma * max_q_old
+        target_cur = reward + self._gamma * max_q_cur
+        target_old = reward + self._gamma * max_q_old
 
-        alpha = self.learning_rate(s, a)
-        q_cur = self.Q[s, a]
-        self.Q[s, a] = q_cur + alpha * (target_old-q_cur) + (
+        alpha = self.learning_rate(state, action)
+        q_cur = self.Q[state, action]
+        self.Q[state, action] = q_cur + alpha * (target_old-q_cur) + (
             1. - alpha) * (target_cur - target_old)
 
         self.old_q = old_q
@@ -232,11 +245,11 @@ class SARSA(TD):
         self.Q = Table(shape)
         super(SARSA, self).__init__(self.Q, policy, gamma, params)
 
-    def _update(self, s, a, r, ss, ab):
-        q_current = self.Q[s, a]
+    def _update(self, state, action, reward, next_state, absorbing):
+        q_current = self.Q[state, action]
 
-        self._next_action = self.draw_action(ss)
-        q_next = self.Q[ss, self._next_action] if not ab else 0.
+        self._next_action = self.draw_action(next_state)
+        q_next = self.Q[next_state, self._next_action] if not absorbing else 0.
 
-        self.Q[s, a] = q_current + self.learning_rate(s, a) * (
-             r + self._gamma * q_next - q_current)
+        self.Q[state, action] = q_current + self.learning_rate(
+            state, action) * (reward + self._gamma * q_next - q_current)

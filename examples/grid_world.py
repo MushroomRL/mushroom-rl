@@ -12,7 +12,7 @@ from mushroom.environments import *
 from mushroom.policy import EpsGreedy
 from mushroom.utils.callbacks import CollectDataset, CollectMaxQ
 from mushroom.utils.dataset import parse_dataset
-from mushroom.utils.parameters import DecayParameter
+from mushroom.utils.parameters import ExponentialDecayParameter
 
 
 def experiment(algorithm_class, decay_exp):
@@ -22,14 +22,15 @@ def experiment(algorithm_class, decay_exp):
     mdp = GridWorldVanHasselt()
 
     # Policy
-    epsilon = DecayParameter(value=1, decay_exp=.5,
-                             shape=mdp.observation_space.size)
+    epsilon = ExponentialDecayParameter(value=1, decay_exp=.5,
+                                        shape=mdp.observation_space.size)
     pi = EpsGreedy(epsilon=epsilon, observation_space=mdp.observation_space,
                    action_space=mdp.action_space)
 
     # Agent
     shape = mdp.observation_space.size + mdp.action_space.size
-    learning_rate = DecayParameter(value=1, decay_exp=decay_exp, shape=shape)
+    learning_rate = ExponentialDecayParameter(value=1, decay_exp=decay_exp,
+                                              shape=shape)
     algorithm_params = dict(learning_rate=learning_rate)
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,

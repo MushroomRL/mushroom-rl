@@ -3,7 +3,6 @@ from tqdm import tqdm
 
 from mushroom.algorithms.agent import Agent
 from mushroom.utils.dataset import parse_dataset
-from mushroom.utils.replay_memory import Buffer
 
 
 class BatchTD(Agent):
@@ -12,6 +11,14 @@ class BatchTD(Agent):
 
     """
     def __init__(self, approximator, policy, gamma, params):
+        """
+        Constructor.
+
+        Args:
+            approximator (object): approximator used by the algorithm and the
+                policy.
+
+        """
         self._quiet = params['algorithm_params'].get('quiet', False)
 
         policy.set_q(approximator)
@@ -34,7 +41,7 @@ class FQI(BatchTD):
 
         super(FQI, self).__init__(approximator, policy, gamma, params)
 
-        # "Boosted Fitted Q-Iteration". Tosatto S. et. al.. 2017.
+        # "Boosted Fitted Q-Iteration". Tosatto S. et al.. 2017.
         self._boosted = params['algorithm_params'].get('boosted', False)
         if self._boosted:
             self._prediction = 0.
@@ -74,7 +81,7 @@ class FQI(BatchTD):
         Single fit iteration.
 
         Args:
-            x (list): a two elements list with states and actions;
+            x (list): the dataset;
             y (np.array): targets.
 
         Returns:
@@ -102,7 +109,7 @@ class FQI(BatchTD):
         Single fit iteration for boosted FQI.
 
         Args:
-            x (list): a two elements list with states and actions;
+            x (list): the dataset;
             y (np.array): targets.
 
         Returns:
@@ -113,9 +120,8 @@ class FQI(BatchTD):
         if y is None:
             target = reward
         else:
-            predict_params = dict(idx=self._idx - 1)
             self._next_q += self.approximator.predict(next_state,
-                                                      **predict_params)
+                                                      idx=self._idx - 1)
             if np.any(absorbing):
                 self._next_q *= 1 - absorbing.reshape(-1, 1)
 
@@ -125,9 +131,7 @@ class FQI(BatchTD):
         target = target - self._prediction
         self._prediction += target
 
-        self.params['fit_params']['idx'] = self._idx
-        self.approximator.fit(state, action, target,
-                              **self.params['fit_params'])
+        self.approximator.fit(state, action, target, idx=self._idx)
 
         self._idx += 1
 

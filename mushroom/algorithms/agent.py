@@ -11,7 +11,9 @@ class Agent(object):
         Args:
             policy (object): the policy to use for the agent;
             gamma (float): discount factor;
-            params (dict): other parameters of the algorithm.
+            params (dict): other parameters of the algorithm;
+            features (object, None): features to use for the input of the
+                approximator.
 
         """
         self.policy = policy

@@ -22,8 +22,8 @@ class ShipSteering(Environment):
         self.gamma = 0.99
 
         # MDP properties
-        self._v = 3.0
-        self._T = 5.0
+        self._v = 3.
+        self._T = 5.
         self._dt = .2
 
         self.gate_s = np.empty(2)
@@ -37,7 +37,7 @@ class ShipSteering(Environment):
 
     def reset(self, state=None):
         if state is None:
-            self._state = np.array([0., 0., 0., 0.])
+            self._state = np.zeros(4)
         else:
             self._state = state
 
@@ -82,5 +82,6 @@ class ShipSteering(Environment):
 
         return 1 >= u >= 0 and 1 >= t >= 0
 
-    def _cross_2d(self, vecr, vecs):
+    @staticmethod
+    def _cross_2d(vecr, vecs):
         return vecr[0] * vecs[1] - vecr[1] * vecs[0]

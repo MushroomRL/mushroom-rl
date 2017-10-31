@@ -48,16 +48,16 @@ class Table:
         self[x] = y
 
     def predict(self, *z):
-        s = z[0]
+        state = z[0]
         table = list()
         if len(z) == 2:
-            a = z[1]
-            for i in xrange(len(s)):
-                val = self[s[i], a[i]]
+            action = z[1]
+            for i in xrange(len(state)):
+                val = self[state[i], action[i]]
                 table.append(val)
         else:
-            for i in xrange(len(s)):
-                val = self[s[i], :]
+            for i in xrange(len(state)):
+                val = self[state[i], :]
                 table.append(val)
 
         return np.array(table)

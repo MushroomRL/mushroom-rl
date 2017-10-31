@@ -34,25 +34,25 @@ class ActionRegressor:
         self._input_preprocessor = params.get('input_preprocessor', list())
         self._output_preprocessor = params.get('output_preprocessor', list())
 
-    def fit(self, s, a, q, **fit_params):
+    def fit(self, state, action, q, **fit_params):
         """
         Fit the model.
 
         Args:
-            s (np.array): states;
-            a (np.array): actions;
+            state (np.array): states;
+            action (np.array): actions;
             q (np.array): target q-values;
             **fit_params (dict): other parameters used by the fit method
                 of each regressor.
 
         """
-        s, q = self._preprocess(s, q)
+        state, q = self._preprocess(state, q)
 
         for i in xrange(len(self.model)):
-            idxs = np.argwhere((a == i)[:, 0]).ravel()
+            idxs = np.argwhere((action == i)[:, 0]).ravel()
 
             if idxs.size:
-                self.model[i].fit(s[idxs, :], q[idxs], **fit_params)
+                self.model[i].fit(state[idxs, :], q[idxs], **fit_params)
 
     def predict(self, *z, **predict_params):
         """
@@ -69,23 +69,23 @@ class ActionRegressor:
             The predictions of the model.
 
         """
-        s = z[0]
-        s = self._preprocess(s)
+        state = z[0]
+        state = self._preprocess(state)
 
         if len(z) == 2:
-            a = z[1]
-            q = np.zeros((s.shape[0], 1))
+            action = z[1]
+            q = np.zeros((state.shape[0], 1))
             for i in xrange(self._n_actions):
-                idxs = np.argwhere((a == i)[:, 0]).ravel()
+                idxs = np.argwhere((action == i)[:, 0]).ravel()
                 if idxs.size:
-                    q[idxs] = self.model[i].predict(s[idxs, :],
+                    q[idxs] = self.model[i].predict(state[idxs, :],
                                                     **predict_params)
         else:
             assert len(z) == 1
 
-            q = np.zeros((s.shape[0], self._n_actions))
+            q = np.zeros((state.shape[0], self._n_actions))
             for i in xrange(self._n_actions):
-                q[:, i] = self.model[i].predict(s, **predict_params)
+                q[:, i] = self.model[i].predict(state, **predict_params)
 
         return q
 
@@ -100,16 +100,16 @@ class ActionRegressor:
         for m in self.model:
             m.set_weights(w)
 
-    def _preprocess(self, s, q=None):
+    def _preprocess(self, state, q=None):
         for p in self._input_preprocessor:
-            s = p(s)
+            state = p(state)
 
         if q is not None:
             for p in self._output_preprocessor:
                 q = p(q)
 
-            return s, q
-        return s
+            return state, q
+        return state
 
     def __len__(self):
         return len(self.model[0])

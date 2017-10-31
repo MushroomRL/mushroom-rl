@@ -2,55 +2,62 @@ import numpy as np
 from copy import deepcopy
 
 
-def value_iteration(p, r, gamma, eps):
+def value_iteration(prob, reward, gamma, eps):
     """
     Value iteration algorithm to solve a dynamic programming problem.
 
     Args:
-        p (np.array): transition probability matrix;
-        r (np.array): reward matrix;
+        prob (np.array): transition probability matrix;
+        reward (np.array): reward matrix;
         gamma (float): discount factor;
         eps (float): accuracy threshold.
 
-    """
-    n_states = p.shape[0]
-    n_actions = p.shape[1]
+    Returns:
+        the optimal value of each state.
 
-    v = np.zeros(n_states)
+    """
+    n_states = prob.shape[0]
+    n_actions = prob.shape[1]
+
+    value = np.zeros(n_states)
 
     while True:
-        v_old = deepcopy(v)
+        value_old = deepcopy(value)
 
-        for s in xrange(n_states):
+        for state in xrange(n_states):
             vmax = -np.inf
-            for a in xrange(n_actions):
-                p_sa = p[s, a, :]
-                r_sa = r[s, a, :]
-                va = p_sa.T.dot(r_sa + gamma * v_old)
+            for action in xrange(n_actions):
+                prob_state_action = prob[state, action, :]
+                reward_state_action = reward[state, action, :]
+                va = prob_state_action.T.dot(
+                    reward_state_action + gamma * value_old)
                 vmax = max(va, vmax)
 
-            v[s] = vmax
-        if np.linalg.norm(v - v_old) <= eps:
+            value[state] = vmax
+        if np.linalg.norm(value - value_old) <= eps:
             break
 
-    return v
+    return value
 
 
-def policy_iteration(p, r, gamma):
+def policy_iteration(prob, reward, gamma):
     """
     Policy iteration algorithm to solve a dynamic programming problem.
 
     Args:
-        p (np.array): transition probability matrix;
-        r (np.array): reward matrix;
-        gamma (float): discount factor;
+        prob (np.array): transition probability matrix;
+        reward (np.array): reward matrix;
+        gamma (float): discount factor.
+
+    Returns:
+        the optimal value of each state and the optimal policy.
 
     """
-    n_states = p.shape[0]
-    n_actions = p.shape[1]
+    n_states = prob.shape[0]
+    n_actions = prob.shape[1]
 
-    pi = np.zeros(n_states, dtype=int)
-    v = np.zeros(n_states)
+    policy = np.zeros(n_states, dtype=int)
+    value = np.zeros(n_states)
 
     changed = True
     while changed:
@@ -58,28 +65,28 @@ def policy_iteration(p, r, gamma):
         r_pi = np.zeros(n_states)
         i = np.eye(n_states)
 
-        for s in xrange(n_states):
-            a = pi[s]
-            p_pi_s = p[s, a, :]
-            r_pi_s = r[s, a, :]
+        for state in xrange(n_states):
+            action = policy[state]
+            p_pi_s = prob[state, action, :]
+            r_pi_s = reward[state, action, :]
 
-            p_pi[s, :] = p_pi_s.T
-            r_pi[s] = p_pi_s.T.dot(r_pi_s)
+            p_pi[state, :] = p_pi_s.T
+            r_pi[state] = p_pi_s.T.dot(r_pi_s)
 
-        v = np.linalg.inv(i - gamma * p_pi).dot(r_pi)
+        value = np.linalg.inv(i - gamma * p_pi).dot(r_pi)
 
         changed = False
 
-        for s in xrange(n_states):
-            vmax = v[s]
-            for a in xrange(n_actions):
-                if a != pi[s]:
-                    p_sa = p[s, a]
-                    r_sa = r[s, a]
-                    va = p_sa.T.dot(r_sa + gamma * v)
+        for state in xrange(n_states):
+            vmax = value[state]
+            for action in xrange(n_actions):
+                if action != policy[state]:
+                    p_sa = prob[state, action]
+                    r_sa = reward[state, action]
+                    va = p_sa.T.dot(r_sa + gamma * value)
                     if va > vmax:
-                        pi[s] = a
+                        policy[state] = action
                         vmax = va
                         changed = True
 
-    return v, pi
+    return value, policy

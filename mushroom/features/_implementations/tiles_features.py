@@ -27,7 +27,7 @@ class TilesFeatures:
             index = tiling(x)
 
             if index is not None:
-                out[index + offset] = 1.0
+                out[index + offset] = 1.
 
             offset += tiling.size
 
