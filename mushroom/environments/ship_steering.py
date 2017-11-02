@@ -5,7 +5,6 @@ from mushroom.utils import spaces
 
 
 class ShipSteering(Environment):
-
     def __init__(self, small=True):
         self.__name__ = 'ShipSteering'
 

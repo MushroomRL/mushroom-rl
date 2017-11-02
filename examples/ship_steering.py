@@ -49,7 +49,6 @@ def experiment(n_iterations, n_runs, ep_per_run, use_tensorflow):
     policy = GaussianPolicy(mu=approximator, sigma=sigma)
 
     # Agent
-    #learning_rate = Parameter(value=.01)
     learning_rate = AdaptiveParameter(value=.01)
     algorithm_params = dict(learning_rate=learning_rate)
     fit_params = dict()

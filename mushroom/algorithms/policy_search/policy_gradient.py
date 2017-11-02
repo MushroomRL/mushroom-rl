@@ -2,7 +2,6 @@ from mushroom.algorithms.agent import Agent
 
 
 class PolicyGradient(Agent):
-
     def __init__(self, policy, gamma, params, features):
         self.learning_rate = params['algorithm_params'].pop('learning_rate')
         self.J_episode = None
