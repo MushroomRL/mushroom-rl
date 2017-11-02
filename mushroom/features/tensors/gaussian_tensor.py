@@ -1,6 +1,6 @@
 import tensorflow as tf
+from mushroom.features import tensors
 from mushroom.utils.features import uniform_grid
-import mushroom.features.tensors as msh
 
 
 def generate(n_centers, ranges):
@@ -10,10 +10,10 @@ def generate(n_centers, ranges):
 
     grid, b = uniform_grid(n_centers, ranges)
 
-    tensor_list=[]
+    tensor_list = list()
     for i in xrange(len(grid)):
         v = grid[i, :]
-        bf = {'type': msh.gaussian_tensor, 'params': [v, b]}
+        bf = {'type': tensors.gaussian_tensor, 'params': [v, b]}
         tensor_list.append(bf)
 
     return tensor_list

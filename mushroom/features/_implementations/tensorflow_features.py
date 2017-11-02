@@ -7,7 +7,8 @@ class TensorflowFeatures:
         self._sess = tf.Session()
 
         with tf.variable_scope(name):
-            self._x = tf.placeholder(dtype=tf.float32, shape=[None, input_dim], name='x')
+            self._x = tf.placeholder(dtype=tf.float32, shape=[None, input_dim],
+                                     name='x')
             self._phi = TensorflowFeatures.build_features(self._x, tensor_list)
 
     def __call__(self, x):
