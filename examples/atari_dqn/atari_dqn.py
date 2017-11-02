@@ -11,7 +11,6 @@ from mushroom.approximators import Regressor
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
-from mushroom.utils.callbacks import CollectSummary
 from mushroom.utils.dataset import compute_scores
 from mushroom.utils.parameters import LinearDecayParameter, Parameter
 from mushroom.utils.preprocessor import Scaler
@@ -318,8 +317,7 @@ def experiment():
             agent = AveragedDQN(approximator, pi, mdp.gamma, agent_params)
 
         # Algorithm
-        collect_summary = CollectSummary(folder_name)
-        core = Core(agent, mdp, callbacks=[collect_summary])
+        core = Core(agent, mdp)
         core_test = Core(agent, mdp)
 
         # RUN
