@@ -33,11 +33,7 @@ class GaussianRBF:
         if self._dim is not None:
             x = x[self._dim]
 
-        v = 0.
-        for x_i, m_i, s_i in zip(x, self._mean, self._scale):
-            v += (x_i - m_i)**2 / s_i
-
-        return np.exp(-v)
+        return np.exp(-np.sum((x - self._mean)**2 / self._scale))
 
     def __str__(self):
         name = 'GaussianRBF ' + str(self._mean) + ' ' + str(self._scale)
