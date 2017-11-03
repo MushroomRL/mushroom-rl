@@ -3,7 +3,42 @@ import numpy as np
 from mushroom.utils.parameters import Parameter
 
 
-class EpsGreedy:
+class TDPolicy(object):
+    def __init__(self, observation_space, action_space):
+        """
+        Constructor.
+
+        Args:
+            observation_space (object): the state space;
+            action_space (object): the action_space.
+
+        """
+        self.observation_space = observation_space
+        self.action_space = action_space
+
+        self._approximator = None
+
+    def set_q(self, approximator):
+        """
+        Args:
+            approximator (object): the approximator to use.
+
+        """
+        self._approximator = approximator
+
+    def get_q(self):
+        """
+        Returns:
+             the approximator used by the policy.
+
+        """
+        return self._approximator
+
+    def __str__(self):
+        return self.__name__
+
+
+class EpsGreedy(TDPolicy):
     """
     Epsilon greedy policy.
 
@@ -13,21 +48,19 @@ class EpsGreedy:
         Constructor.
 
         Args:
-        epsilon (Parameter): the exploration coefficient. It indicates
-            the probability of performing a random actions in the current step;
-        observation_space (object): the state space;
-        action_space (object): the action_space.
+            observation_space (object): the state space;
+            action_space (object): the action_space;
+            epsilon (Parameter): the exploration coefficient. It indicates
+                the probability of performing a random actions in the current
+                step.
 
         """
         self.__name__ = 'EpsGreedy'
 
+        super(EpsGreedy, self).__init__(observation_space, action_space)
+
         assert isinstance(epsilon, Parameter)
-
         self._epsilon = epsilon
-        self.observation_space = observation_space
-        self.action_space = action_space
-
-        self._approximator = None
 
     def __call__(self, state):
         """
@@ -72,22 +105,3 @@ class EpsGreedy:
 
         """
         self._epsilon.update(*idx)
-
-    def set_q(self, approximator):
-        """
-        Args:
-            approximator (object): the approximator to use.
-
-        """
-        self._approximator = approximator
-
-    def get_q(self):
-        """
-        Returns:
-             the approximator used by the policy.
-
-        """
-        return self._approximator
-
-    def __str__(self):
-        return self.__name__

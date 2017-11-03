@@ -22,7 +22,7 @@ def generate(n_centers, ranges):
 def _generate(x, args):
     mu, scale = args
 
-    v_list = []
+    v_list = list()
     for i, (m_i, s_i) in enumerate(zip(mu, scale)):
         v = (x[:, i] - m_i) ** 2 / s_i
         v_list.append(v)

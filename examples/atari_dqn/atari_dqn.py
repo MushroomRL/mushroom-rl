@@ -87,6 +87,9 @@ def experiment():
     arg_alg.add_argument("--n-approximators", type=int, default=1,
                          help="Number of approximators used in the ensemble"
                               "for Weighted DQN and Averaged DQN.")
+    arg_alg.add_argument("--weighted-policy", action='store_true',
+                         help="Whether to use the weighted policy in WDQN or"
+                              "not.")
     arg_alg.add_argument("--batch-size", type=int, default=32,
                          help='Batch size for each fit of the network.')
     arg_alg.add_argument("--history-length", type=int, default=4,
@@ -295,6 +298,7 @@ def experiment():
             batch_size=args.batch_size,
             target_approximator=target_approximator,
             n_approximators=args.n_approximators,
+            weighted_policy=args.weighted_policy,
             initial_replay_size=initial_replay_size,
             max_replay_size=max_replay_size,
             history_length=args.history_length,

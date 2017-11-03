@@ -199,6 +199,12 @@ class WeightedDQN(AveragedDQN):
     def __init__(self, approximator, policy, gamma, params):
         self.__name__ = 'WeightedDQN'
 
+        # Weighted policy.
+        # "Estimating the Maximum Expected Value through Gaussian
+        # Approximation". D'Eramo C. et. al.. 2016.
+        self._weighted_policy = params['algorithm_params'].get(
+            'weighted_policy', False)
+
         super(WeightedDQN, self).__init__(approximator, policy, gamma, params)
 
     def _next_q(self, next_state, absorbing):
@@ -222,3 +228,12 @@ class WeightedDQN(AveragedDQN):
             W *= 1 - absorbing
 
         return W
+
+    def draw_action(self, state):
+        if not self._weighted_policy:
+            return super(WeightedDQN, self).draw_action(state)
+        else:
+            idx = np.random.choice(self._n_fitted_target_models)
+            self.policy.set_q(self._target_approximator.model[idx])
+
+            return super(WeightedDQN, self).draw_action(state)

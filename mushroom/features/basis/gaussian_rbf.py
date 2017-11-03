@@ -9,7 +9,6 @@ class GaussianRBF:
         self._dim = dimensions
 
     def __call__(self, x):
-
         if self._dim is not None:
             x = x[self._dim]
 

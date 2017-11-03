@@ -22,7 +22,7 @@ class TensorflowFeatures:
 
     @staticmethod
     def build_features(x, tensor_list):
-        basis_functions = []
+        basis_functions = list()
 
         for tensor in tensor_list:
             tensor_type = tensor['type']

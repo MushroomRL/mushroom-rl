@@ -25,12 +25,12 @@ class ShipSteering(Environment):
         self._T = 5.
         self._dt = .2
 
-        self.gate_s = np.empty(2)
-        self.gate_e = np.empty(2)
-        self.gate_s[0] = 100 if small else 900
-        self.gate_s[1] = 120 if small else 920
-        self.gate_e[0] = 120 if small else 920
-        self.gate_e[1] = 100 if small else 900
+        self._gate_s = np.empty(2)
+        self._gate_e = np.empty(2)
+        self._gate_s[0] = 100 if small else 900
+        self._gate_s[1] = 120 if small else 920
+        self._gate_e[0] = 120 if small else 920
+        self._gate_e[1] = 100 if small else 900
 
         super(ShipSteering, self).__init__()
 
@@ -69,15 +69,15 @@ class ShipSteering(Environment):
         return self._state, reward, absorbing, {}
 
     def _through_gate(self, start, end):
-        r = self.gate_e - self.gate_s
+        r = self._gate_e - self._gate_s
         s = end - start
         den = self._cross_2d(vecr=r, vecs=s)
 
         if den == 0:
             return False
 
-        t = self._cross_2d((start - self.gate_s), s) / den
-        u = self._cross_2d((start - self.gate_s), r) / den
+        t = self._cross_2d((start - self._gate_s), s) / den
+        u = self._cross_2d((start - self._gate_s), r) / den
 
         return 1 >= u >= 0 and 1 >= t >= 0
 
