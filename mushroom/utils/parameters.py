@@ -1,6 +1,7 @@
 from mushroom.utils.table import Table
 import numpy as np
 
+
 class Parameter(object):
     def __init__(self, value, min_value=None, shape=(1,)):
         self._initial_value = value
@@ -66,19 +67,18 @@ class AdaptiveParameter(object):
             gradient = args[0]
             nat_gradient = args[1]
             tmp = np.asscalar(np.dot(gradient.T, nat_gradient))
-            lambda_v = np.sqrt(tmp / (4 * self._eps))
+            lambda_v = np.sqrt(tmp / (4. * self._eps))
             # For numerical stability
             lambda_v = max(lambda_v, 1e-8)
-            step_length = 1.0 / (2.0 * lambda_v)
+            step_length = 1. / (2. * lambda_v)
 
             return step_length
         elif len(args) == 1:
             return self.get_value(args[0], args[0], **kwargs)
         else:
-            raise ValueError('Adaptive parameters needs gradient or gradient and natural gradient')
-
+            raise ValueError('Adaptive parameters needs gradient or gradient'
+                             'and natural gradient')
 
     @property
     def shape(self):
         return None
-

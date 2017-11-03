@@ -27,13 +27,14 @@ def experiment(n_iterations, n_runs, ep_per_run, use_tensorflow):
                                                 [-np.pi, np.pi],
                                                 [-np.pi / 12, np.pi / 12]])
 
-        phi = Features(tensor_list=tensor_list, name='phi', input_dim=mdp.observation_space.shape[0])
+        phi = Features(tensor_list=tensor_list, name='phi',
+                       input_dim=mdp.observation_space.shape[0])
     else:
         basis = GaussianRBF.generate([3, 3, 6, 2],
-                                 [[0., 150.],
-                                  [0., 150.],
-                                  [-np.pi, np.pi],
-                                  [-np.pi / 12, np.pi / 12]])
+                                     [[0., 150.],
+                                      [0., 150.],
+                                      [-np.pi, np.pi],
+                                      [-np.pi / 12, np.pi / 12]])
 
         phi = Features(basis_list=basis)
 
@@ -48,7 +49,6 @@ def experiment(n_iterations, n_runs, ep_per_run, use_tensorflow):
     policy = GaussianPolicy(mu=approximator, sigma=sigma)
 
     # Agent
-    #learning_rate = Parameter(value=.01)
     learning_rate = AdaptiveParameter(value=.01)
     algorithm_params = dict(learning_rate=learning_rate)
     fit_params = dict()

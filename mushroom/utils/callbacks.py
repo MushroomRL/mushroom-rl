@@ -82,38 +82,3 @@ class CollectMaxQ:
 
     def get_values(self):
         return self._max_qs
-
-
-class CollectSummary:
-    """
-    This callback can be used to collect the tensorflow summary to be plotted
-    in tensorboard.
-
-    """
-    def __init__(self, folder_name):
-        self._summary_writer = tf.summary.FileWriter(
-            folder_name,
-            graph=tf.get_default_graph()
-        )
-        self._global_step = 0
-
-    def __call__(self, **kwargs):
-        score = compute_scores(kwargs['dataset'])
-
-        summary = tf.Summary(value=[
-            tf.Summary.Value(
-                tag="min_reward",
-                simple_value=score[0]),
-            tf.Summary.Value(
-                tag="max_reward",
-                simple_value=score[1]),
-            tf.Summary.Value(
-                tag="average_reward",
-                simple_value=score[2]),
-            tf.Summary.Value(
-                tag="games_completed",
-                simple_value=score[3])]
-        )
-        self._summary_writer.add_summary(summary, self._global_step)
-
-        self._global_step += 1

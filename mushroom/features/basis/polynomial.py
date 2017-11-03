@@ -2,14 +2,32 @@ import numpy as np
 
 
 class PolynomialBasis:
+    """
+    Class implementing polynomial basis functions. The value of the feature
+    is computed using the formula:
+
+    \prod X_i^{d_i}
+
+    where X is the input and d is the vector of the exponents of the polynomial.
+
+    """
     def __init__(self, dimensions=None, degrees=None):
+        """
+        Constructor. If both parameters are None, the constant feature is built.
+
+        Args:
+            dimensions (list, None): list of the dimensions of the input to be
+                considered by the feature;
+            degrees (list, None): list of the degrees of each dimension to be
+                considered by the feature. It must match the number of elements
+                of `dimensions`.
+
+        """
         self._dim = dimensions
         self._deg = degrees
 
-        assert(
-            (self._dim is None and self._deg is None) or
-            (len(self._dim) == len(self._deg))
-               )
+        assert (self._dim is None and self._deg is None) or (
+            len(self._dim) == len(self._deg))
 
     def __call__(self, x):
 
@@ -37,7 +55,15 @@ class PolynomialBasis:
     def _compute_exponents(order, n_variables):
         """
         Find the exponents of a multivariate polynomial expression of order
-        `order` and `n_variable` number of variables.
+        `order` and `n_variables` number of variables.
+
+        Args:
+            order (int): the maximum order of the polynomial;
+            n_variables (int): the number of elements of the input vector.
+
+        Yields:
+            The current exponent of the polynomial.
+
         """
         pattern = np.zeros(n_variables, dtype=np.int32)
         for current_sum in range(1, order + 1):
@@ -58,6 +84,18 @@ class PolynomialBasis:
 
     @staticmethod
     def generate(max_degree, input_size):
+        """
+        Factory method to build a polynomial of order `max_degree` based on the
+        first `input_size` dimensions of the input.
+
+        Args:
+            max_degree (int): maximum degree of the polynomial;
+            input_size (int): size of the input.
+
+        Returns:
+            The list of the generated polynomial basis functions.
+
+        """
         assert (max_degree >= 0)
         assert (input_size > 0)
 

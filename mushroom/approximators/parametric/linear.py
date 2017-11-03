@@ -31,4 +31,4 @@ class LinearApproximator:
         if len(self._w.shape) == 1 or self._w.shape[1] == 1:
             return x
         else:
-            return np.array([x]*self._w.shape[1])
+            return np.array([x] * self._w.shape[1])

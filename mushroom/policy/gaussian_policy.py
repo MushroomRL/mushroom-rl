@@ -1,6 +1,7 @@
 import numpy as np
 
 from mushroom.utils.parameters import Parameter
+from scipy.stats import norm
 
 
 class GaussianPolicy:
@@ -68,8 +69,7 @@ class GaussianPolicy:
     def _compute_prob(self, state, action):
         mu, sigma = self._compute_gaussian(state, False)
 
-        return np.exp(-.5 * (action - mu)**2 / sigma**2) / np.sqrt(
-            2 * np.pi) / sigma
+        return norm.pdf(action, mu, sigma)
 
     def __str__(self):
         return self.__name__

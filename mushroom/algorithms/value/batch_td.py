@@ -7,7 +7,7 @@ from mushroom.utils.dataset import parse_dataset
 
 class BatchTD(Agent):
     """
-    Implement functions to run batch algorithms.
+    Abstract class to implement a generic Batch TD algorithm.
 
     """
     def __init__(self, approximator, policy, gamma, params):
