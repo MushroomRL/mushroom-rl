@@ -20,14 +20,6 @@ class TD(Agent):
         super(TD, self).__init__(policy, gamma, params)
 
     def fit(self, dataset, n_iterations=1):
-        """
-        Single fit step.
-
-        Args:
-            dataset (list): the dataset;
-            n_iterations (int, 1): number of fit steps of the approximator.
-
-        """
         assert n_iterations == 1 and len(dataset) == 1
 
         state, action, reward, next_state, absorbing = self._parse(dataset)

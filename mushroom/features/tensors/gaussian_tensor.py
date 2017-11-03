@@ -4,6 +4,21 @@ from mushroom.utils.features import uniform_grid
 
 
 def generate(n_centers, ranges):
+    """
+    Factory method that generates the list of dictionaries to build the tensors
+    representing a set of uniformly spaced Gaussian radial basis functions with
+    a 25\% overlap.
+
+    Args:
+        n_centers (list): list of the number of radial basis functions to be
+            used for each dimension.
+        ranges (list): list of two-elements lists specifying the range of
+            each state variable.
+
+    Returns:
+        The list of dictionaries as described above.
+
+    """
     n_features = len(ranges)
     assert len(n_centers) == n_features
     assert len(ranges[0]) == 2
@@ -20,6 +35,17 @@ def generate(n_centers, ranges):
 
 
 def _generate(x, args):
+    """
+    Build the single tensor using the provided parameters.
+
+    Args:
+        x (tf.placeholder): the input placeholder;
+        args (list): the parameters to build the single tensor.
+
+    Returns:
+        The tensor evaluating the features.
+
+    """
     mu, scale = args
 
     v_list = list()

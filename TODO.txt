@@ -1,0 +1,31 @@
+Algorithms:
+    a) Value-based:
+        * Continuous:
+            - Linear SARSA
+            - SARSA(lambda)
+            - Double FQI
+            - Weighted FQI
+            - LSPI
+        * Discrete:
+            - Expected SARSA
+            - RQ-Learning
+            - R-Learning
+            - SARSA(lambda)
+            - Q(lambda)
+
+    b) Policy-based:
+        * Policy gradient:
+            - GPOMDP
+            - ENAC
+            - Natural gradient
+
+Policy:
+    a) Continuous:
+        * multivariate gaussian
+    b) Discrete:
+        * Boltzmann
+        * Gibbs
+        * Weighted policy
+
+Environment:
+    * LQR

@@ -37,6 +37,17 @@ class Agent(object):
         for k, v in mdp_info.iteritems():
             self.mdp_info[k] = v
 
+    def fit(self, dataset, n_iterations):
+        """
+        Fit step.
+
+        Args:
+            dataset (list): the dataset;
+            n_iterations (int): number of fit steps of the approximator.
+
+        """
+        raise NotImplementedError('Agent is an abstract class')
+
     def draw_action(self, state):
         """
         Return the action to execute. It is the action returned by the policy

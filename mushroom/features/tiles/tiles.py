@@ -2,8 +2,25 @@ import numpy as np
 
 
 class Tiles:
-    def __init__(self, x_range, n_tiles, state_components=None):
+    """
+    Class implementing rectangular tiling. For each point in the state space,
+    this class can be used to compute the index of the corresponding tile.
 
+    """
+    def __init__(self, x_range, n_tiles, state_components=None):
+        """
+        Constructor.
+
+        Args:
+            x_range (list): list of two-elements lists specifying the range of
+                each state variable;
+            n_tiles (list): list of the number of tiles to be used for each
+                dimension.
+            state_components (list, None): list of the dimensions of the input
+                to be considered by the tiling. The number of elements must
+                match the number of elements in `x_range` and `n_tiles`.
+
+        """
         if isinstance(x_range[0], list):
             self._range = x_range
         else:
