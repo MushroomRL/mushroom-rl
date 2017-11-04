@@ -8,7 +8,7 @@ from mushroom.environments import ShipSteering
 from mushroom.features.basis import GaussianRBF
 from mushroom.features.features import Features
 from mushroom.features.tensors import gaussian_tensor
-from mushroom.policy import GaussianPolicy
+from mushroom.policy import GaussianPolicy, MultivariateGaussianPolicy
 from mushroom.utils.dataset import compute_J
 from mushroom.utils.parameters import Parameter, AdaptiveParameter
 
@@ -45,8 +45,11 @@ def experiment(n_iterations, n_runs, ep_per_run, use_tensorflow):
     approximator = Regressor(LinearApproximator, input_shape=input_shape,
                              output_shape=mdp.action_space.shape,
                              params=approximator_params)
-    sigma = Parameter(value=.05)
-    policy = GaussianPolicy(mu=approximator, sigma=sigma)
+    #sigma = Parameter(value=.05)
+    #policy = GaussianPolicy(mu=approximator, sigma=sigma)
+
+    sigma = np.array([[.05]])
+    policy = MultivariateGaussianPolicy(mu=approximator, sigma=sigma)
 
     # Agent
     learning_rate = AdaptiveParameter(value=.01)
