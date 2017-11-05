@@ -7,7 +7,6 @@ import numpy as np
 from convnet import ConvNet
 from mushroom.algorithms.value.dqn import AveragedDQN, DQN, DoubleDQN,\
     WeightedDQN
-from mushroom.approximators import Regressor
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy

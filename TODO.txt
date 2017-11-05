@@ -3,7 +3,6 @@ Algorithms:
         * Continuous:
             - Linear SARSA
             - SARSA(lambda)
-            - Double FQI
             - Weighted FQI
             - LSPI
         * Discrete:

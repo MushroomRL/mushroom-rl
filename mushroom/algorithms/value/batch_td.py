@@ -43,6 +43,8 @@ class FQI(BatchTD):
 
         super(FQI, self).__init__(approximator, policy, gamma, params)
 
+        self._target = None
+
         # "Boosted Fitted Q-Iteration". Tosatto S. et al.. 2017.
         self._boosted = params['algorithm_params'].get('boosted', False)
         if self._boosted:
@@ -64,63 +66,51 @@ class FQI(BatchTD):
 
         """
         if self._boosted:
-            if target is None:
+            if self._target is None:
                 self._prediction = 0.
                 self._next_q = 0.
                 self._idx = 0
-            for _ in tqdm(xrange(n_iterations), dynamic_ncols=True,
-                          disable=self._quiet, leave=False):
-                target = self._partial_fit_boosted(dataset, target)
+            fit = self._fit_boosted
         else:
-            for _ in tqdm(xrange(n_iterations), dynamic_ncols=True,
-                          disable=self._quiet, leave=False):
-                target = self._partial_fit(dataset, target)
+            fit = self._fit
 
-        return target
+        for _ in tqdm(xrange(n_iterations), dynamic_ncols=True,
+                      disable=self._quiet, leave=False):
+            fit(dataset)
 
-    def _partial_fit(self, x, y):
+    def _fit(self, x):
         """
         Single fit iteration.
 
         Args:
-            x (list): the dataset;
-            y (np.array): targets.
-
-        Returns:
-            Last target computed.
+            x (list): the dataset.
 
         """
         state, action, reward, next_state, absorbing, _ = parse_dataset(x)
-        if y is None:
-            target = reward
+        if self._target is None:
+            self._target = reward
         else:
             q = self.approximator.predict(next_state)
             if np.any(absorbing):
                 q *= 1 - absorbing.reshape(-1, 1)
 
             max_q = np.max(q, axis=1)
-            target = reward + self._gamma * max_q
+            self._target = reward + self._gamma * max_q
 
-        self.approximator.fit(state, action, target,
+        self.approximator.fit(state, action, self._target,
                               **self.params['fit_params'])
 
-        return target
-
-    def _partial_fit_boosted(self, x, y):
+    def _fit_boosted(self, x):
         """
         Single fit iteration for boosted FQI.
 
         Args:
-            x (list): the dataset;
-            y (np.array): targets.
-
-        Returns:
-            Last target computed.
+            x (list): the dataset.
 
         """
         state, action, reward, next_state, absorbing, _ = parse_dataset(x)
-        if y is None:
-            target = reward
+        if self._target is None:
+            self._target = reward
         else:
             self._next_q += self.approximator.predict(next_state,
                                                       idx=self._idx - 1)
@@ -128,16 +118,15 @@ class FQI(BatchTD):
                 self._next_q *= 1 - absorbing.reshape(-1, 1)
 
             max_q = np.max(self._next_q, axis=1)
-            target = reward + self._gamma * max_q
+            self._target = reward + self._gamma * max_q
 
-        target = target - self._prediction
-        self._prediction += target
+        self._target -= self._prediction
+        self._prediction += self._target
 
-        self.approximator.fit(state, action, target, idx=self._idx)
+        self.approximator.fit(state, action, self._target, idx=self._idx,
+                              **self.params['fit_params'])
 
         self._idx += 1
-
-        return target
 
 
 class DoubleFQI(FQI):
@@ -150,10 +139,41 @@ class DoubleFQI(FQI):
     def __init__(self, approximator, policy, gamma, params):
         self.__name__ = 'DoubleFQI'
 
+        params['approximator_params']['n_models'] = 2
         super(DoubleFQI, self).__init__(approximator, policy, gamma, params)
 
-    def _partial_fit(self, x, y, **fit_params):
-        pass
+    def _fit(self, x):
+        state = list()
+        action = list()
+        reward = list()
+        next_state = list()
+        absorbing = list()
+
+        half = len(x) / 2
+        for i in xrange(2):
+            s, a, r, ss, ab, _ = parse_dataset(x[i * half:(i + 1) * half])
+            state.append(s)
+            action.append(a)
+            reward.append(r)
+            next_state.append(ss)
+            absorbing.append(ab)
+
+        if self._target is None:
+            self._target = reward
+        else:
+            for i in xrange(2):
+                q_i = self.approximator.predict(next_state[i], idx=i)
+                if np.any(absorbing[i]):
+                    q_i *= 1 - absorbing[i].reshape(-1, 1)
+
+                amax_q = np.expand_dims(np.argmax(q_i, axis=1), axis=1)
+                max_q = self.approximator.predict(next_state[i], amax_q,
+                                                  idx=1 - i)
+                self._target[i] = reward[i] + self._gamma * max_q
+
+        for i in xrange(2):
+            self.approximator.fit(state[i], action[i], self._target[i], idx=i,
+                                  **self.params['fit_params'])
 
 
 class WeightedFQI(FQI):
@@ -168,5 +188,5 @@ class WeightedFQI(FQI):
 
         super(WeightedFQI, self).__init__(approximator, policy, gamma, params)
 
-    def _partial_fit(self, x, y, **fit_params):
+    def _fit(self, x):
         pass
