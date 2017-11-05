@@ -245,3 +245,44 @@ class SARSA(TD):
 
         self.Q[state, action] = q_current + self.learning_rate(
             state, action) * (reward + self._gamma * q_next - q_current)
+
+
+class RLearning(TD):
+    """
+    R-Learning algorithm.
+    "A Reinforcement Learning Method for Maximizing Undiscounted Rewards".
+    Schwartz A.. 1993.
+
+    """
+    def __init__(self, shape, policy, gamma, params):
+        self.__name__ = 'RLearning'
+
+        self.R = Table(shape)
+        self._rho = 0.
+        super(RLearning, self).__init__(self.R, policy, gamma, params)
+
+    def _update(self, state, action, reward, next_state, absorbing):
+        r_next = np.max(self.R[next_state, :]) if not absorbing else 0.
+        self.R[state, action] = self.learning_rate(state, action) * (
+            reward - self._rho + r_next)
+
+        r_max = np.max(self.R[state, action])
+        if self.R[state, action] == r_max:
+            self._rho = self._alpha * (reward + r_next - r_max)
+
+
+class RQLearning(TD):
+    """
+    RQ-Learning algorithm.
+    "Exploiting Structure and Uncertainty of Bellman Updates in Markov Decision
+    Processes". Tateo D. et al.. 2017.
+
+    """
+    def __init__(self, shape, policy, gamma, params):
+        self.__name__ = 'RQLearning'
+
+        self.Q = Table(shape)
+        super(RQLearning, self).__init__(self.Q, policy, gamma, params)
+
+    def _update(self, state, action, reward, next_state, absorbing):
+        pass

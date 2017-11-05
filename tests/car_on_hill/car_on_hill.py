@@ -23,26 +23,28 @@ def experiment(boosted):
                    action_space=mdp.action_space)
 
     # Approximator
-    approximator_params = dict(n_estimators=50,
-                               min_samples_split=5,
-                               min_samples_leaf=2)
     if not boosted:
-        approximator = Regressor(ExtraTreesRegressor,
-                                 input_shape=mdp.observation_space.shape,
-                                 n_actions=mdp.action_space.n,
-                                 params=approximator_params)
+        approximator_params = dict(input_shape=mdp.observation_space.shape,
+                                   n_actions=mdp.action_space.n,
+                                   params={'n_estimators': 50,
+                                           'min_samples_split': 5,
+                                           'min_samples_leaf': 2})
     else:
-        approximator = Regressor(ExtraTreesRegressor,
-                                 input_shape=mdp.observation_space.shape,
-                                 n_actions=mdp.action_space.n,
-                                 n_models=3,
-                                 prediction='sum',
-                                 params=approximator_params)
+        approximator_params = dict(input_shape=mdp.observation_space.shape,
+                                   n_actions=mdp.action_space.n,
+                                   n_models=3,
+                                   prediction='sum',
+                                   params={'n_estimators': 50,
+                                           'min_samples_split': 5,
+                                           'min_samples_leaf': 2})
+
+    approximator = ExtraTreesRegressor
 
     # Agent
     algorithm_params = dict(boosted=boosted, quiet=True)
     fit_params = dict()
-    agent_params = {'algorithm_params': algorithm_params,
+    agent_params = {'approximator_params': approximator_params,
+                    'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
     agent = FQI(approximator, pi, mdp.gamma, agent_params)
 

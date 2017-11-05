@@ -43,45 +43,24 @@ def experiment(double):
 
     # Approximator
     input_shape = (84, 84, 4)
-    approximator_params_train = dict(optimizer={'name': 'rmsprop',
-                                                'lr': .00025,
-                                                'decay': .95,
-                                                'epsilon': 1e-10},
-                                     name='train',
-                                     width=84,
-                                     height=84,
-                                     history_length=4)
-    approximator = Regressor(ConvNet,
-                             input_shape=input_shape,
-                             output_shape=(mdp.action_space.n,),
-                             n_actions=mdp.action_space.n,
-                             input_preprocessor=[Scaler(
-                                 mdp.observation_space.high)],
-                             params=approximator_params_train)
+    approximator_params = dict(input_shape=input_shape,
+                               output_shape=(mdp.action_space.n,),
+                               n_actions=mdp.action_space.n,
+                               input_preprocessor=[Scaler(
+                                   mdp.observation_space.high)],
+                               params={'optimizer': {'name': 'rmsprop',
+                                                     'lr': .00025,
+                                                     'decay': .95,
+                                                     'epsilon': 1e-10},
+                                       'width': 84,
+                                       'height': 84,
+                                       'history_length': 4})
 
-    # target approximator
-    approximator_params_target = dict(optimizer={'name': 'rmsprop',
-                                                 'lr': .00025,
-                                                 'decay': .95,
-                                                 'epsilon': 1e-10},
-                                      name='target',
-                                      width=84,
-                                      height=84,
-                                      history_length=4)
-    target_approximator = Regressor(ConvNet,
-                                    input_shape=input_shape,
-                                    output_shape=(mdp.action_space.n,),
-                                    n_actions=mdp.action_space.n,
-                                    input_preprocessor=[Scaler(
-                                        mdp.observation_space.high)],
-                                    params=approximator_params_target)
-
-    target_approximator.model.set_weights(approximator.model.get_weights())
+    approximator = ConvNet
 
     # Agent
     algorithm_params = dict(
         batch_size=32,
-        target_approximator=target_approximator,
         initial_replay_size=initial_replay_size,
         max_replay_size=max_replay_size,
         history_length=4,
@@ -91,7 +70,8 @@ def experiment(double):
         no_op_action_value=0
     )
     fit_params = dict()
-    agent_params = {'algorithm_params': algorithm_params,
+    agent_params = {'approximator_params': approximator_params,
+                    'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
 
     if not double:
@@ -124,7 +104,7 @@ def experiment(double):
         # evaluation step
         pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(ends_at_life=False)
-    w = approximator.model.get_weights(only_trainable=True)
+    w = agent.approximator.model.get_weights(only_trainable=True)
 
     return w
 

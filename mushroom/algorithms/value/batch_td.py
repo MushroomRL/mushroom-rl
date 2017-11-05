@@ -2,6 +2,7 @@ import numpy as np
 from tqdm import tqdm
 
 from mushroom.algorithms.agent import Agent
+from mushroom.approximators import Regressor
 from mushroom.utils.dataset import parse_dataset
 
 
@@ -21,8 +22,9 @@ class BatchTD(Agent):
         """
         self._quiet = params['algorithm_params'].get('quiet', False)
 
-        policy.set_q(approximator)
-        self.approximator = approximator
+        self.approximator = Regressor(approximator,
+                                      **params['approximator_params'])
+        policy.set_q(self.approximator)
 
         super(BatchTD, self).__init__(policy, gamma, params)
 

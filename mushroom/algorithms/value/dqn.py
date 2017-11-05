@@ -1,7 +1,7 @@
 import numpy as np
 
 from mushroom.algorithms.agent import Agent
-from mushroom.approximators.regressor import Ensemble
+from mushroom.approximators.regressor import Ensemble, Regressor
 from mushroom.utils.replay_memory import Buffer, ReplayMemory
 
 
@@ -17,8 +17,8 @@ class DQN(Agent):
 
         alg_params = params['algorithm_params']
         self._batch_size = alg_params.get('batch_size')
+        self._n_approximators = alg_params.get('n_approximators', 1)
         self._clip_reward = alg_params.get('clip_reward', True)
-        self._target_approximator = alg_params.get('target_approximator')
         self._train_frequency = alg_params.get('train_frequency')
         self._target_update_frequency = alg_params.get(
             'target_update_frequency')
@@ -33,8 +33,23 @@ class DQN(Agent):
         self._episode_steps = 0
         self._no_op_actions = None
 
-        policy.set_q(approximator)
-        self.approximator = approximator
+        apprx_params_train = params['approximator_params']
+        apprx_params_train['params']['name'] = 'train'
+        apprx_params_target = params['approximator_params']
+        apprx_params_target['params']['name'] = 'target'
+        self.approximator = Regressor(approximator, **apprx_params_train)
+        self.target_approximator = Regressor(approximator,
+                                             n_models=self._n_approximators,
+                                             **apprx_params_target)
+        policy.set_q(self.approximator)
+
+        if self._n_approximators == 1:
+            self.target_approximator.model.set_weights(
+                self.approximator.model.get_weights())
+        else:
+            for i in xrange(self._n_approximators):
+                self.target_approximator.model[i].set_weights(
+                    self.approximator.model.get_weights())
 
         super(DQN, self).__init__(policy, gamma, params)
 
@@ -75,7 +90,7 @@ class DQN(Agent):
 
         """
         if self._n_updates % self._target_update_frequency == 0:
-            self._target_approximator.model.set_weights(
+            self.target_approximator.model.set_weights(
                 self.approximator.model.get_weights())
 
     def _next_q(self, next_state, absorbing):
@@ -90,7 +105,7 @@ class DQN(Agent):
             Maximum action-value for each state in `next_states`.
 
         """
-        q = self._target_approximator.predict(next_state)
+        q = self.target_approximator.predict(next_state)
         if np.any(absorbing):
             q *= 1 - absorbing.reshape(-1, 1)
 
@@ -150,7 +165,7 @@ class DoubleDQN(DQN):
             q *= 1 - absorbing.reshape(-1, 1)
         max_a = np.argmax(q, axis=1)
 
-        return self._target_approximator.predict(next_state, max_a)
+        return self.target_approximator.predict(next_state, max_a)
 
 
 class AveragedDQN(DQN):
@@ -165,25 +180,24 @@ class AveragedDQN(DQN):
 
         super(AveragedDQN, self).__init__(approximator, policy, gamma, params)
 
-        self._n_models = len(self._target_approximator)
         self._n_fitted_target_models = 1
 
-        assert isinstance(self._target_approximator.model, Ensemble)
+        assert isinstance(self.target_approximator.model, Ensemble)
 
     def _update_target(self):
         if self._n_updates % self._target_update_frequency == 0:
             idx = self._n_updates / self._target_update_frequency\
-                  % self._n_models
-            self._target_approximator.model[idx].set_weights(
+                  % self._n_approximators
+            self.target_approximator.model[idx].set_weights(
                 self.approximator.model.get_weights())
 
-            if self._n_fitted_target_models < self._n_models:
+            if self._n_fitted_target_models < self._n_approximators:
                 self._n_fitted_target_models += 1
 
     def _next_q(self, next_state, absorbing):
         q = list()
         for idx in xrange(self._n_fitted_target_models):
-            q.append(self._target_approximator.predict(next_state, idx=idx))
+            q.append(self.target_approximator.predict(next_state, idx=idx))
         q = np.mean(q, axis=0)
         if np.any(absorbing):
             q *= 1 - absorbing.reshape(-1, 1)
@@ -199,12 +213,6 @@ class WeightedDQN(AveragedDQN):
     def __init__(self, approximator, policy, gamma, params):
         self.__name__ = 'WeightedDQN'
 
-        # Weighted policy.
-        # "Estimating the Maximum Expected Value through Gaussian
-        # Approximation". D'Eramo C. et. al.. 2016.
-        self._weighted_policy = params['algorithm_params'].get(
-            'weighted_policy', False)
-
         super(WeightedDQN, self).__init__(approximator, policy, gamma, params)
 
     def _next_q(self, next_state, absorbing):
@@ -212,8 +220,8 @@ class WeightedDQN(AveragedDQN):
                            next_state.shape[0],
                            self.mdp_info['action_space'].n))
         for i in xrange(self._n_fitted_target_models):
-            samples[i] = self._target_approximator.predict(next_state,
-                                                           idx=i)
+            samples[i] = self.target_approximator.predict(next_state,
+                                                          idx=i)
         W = np.zeros(next_state.shape[0])
         for i in xrange(next_state.shape[0]):
             means = np.mean(samples[:, i, :], axis=0)
@@ -228,12 +236,3 @@ class WeightedDQN(AveragedDQN):
             W *= 1 - absorbing
 
         return W
-
-    def draw_action(self, state):
-        if not self._weighted_policy:
-            return super(WeightedDQN, self).draw_action(state)
-        else:
-            idx = np.random.choice(self._n_fitted_target_models)
-            self.policy.set_q(self._target_approximator.model[idx])
-
-            return super(WeightedDQN, self).draw_action(state)
