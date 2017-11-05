@@ -24,7 +24,6 @@ Policy:
     b) Discrete:
         * Boltzmann
         * Gibbs
-        * Weighted policy
 
 Environment:
     * LQR
