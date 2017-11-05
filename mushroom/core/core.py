@@ -136,8 +136,7 @@ class Core(object):
                 sample = self._step(render)
                 dataset.append(sample)
                 last = sample[-1]
-            self._state = self.mdp.reset()
-            self._episode_steps = 0
+            self.reset()
             i += 1
 
         return dataset
@@ -146,11 +145,11 @@ class Core(object):
         """
         Move the agent for a certain number of steps.
 
-        # Arguments
+        Args:
             how_many (int): number of samples to collect;
             render (bool): whether to render the environment or not.
 
-        # Returns
+        Returns:
             The list of samples collected during the episode.
 
         """
@@ -160,8 +159,7 @@ class Core(object):
             sample = self._step(render)
             dataset[i] = sample
             if sample[-1]:
-                self._state = self.mdp.reset()
-                self._episode_steps = 0
+                self.reset()
                 self.agent.episode_start()
             i += 1
 
@@ -171,8 +169,13 @@ class Core(object):
         """
         Single step.
 
-        # Args:
+        Args:
             render (bool): whether to render or not.
+
+        Returns:
+            A tuple containing the previous state, the action sampled by the
+            agent, the reward obtained, the reached state, the absorbing flag
+            of the reached state and the last step flag.
 
         """
         action = self.agent.draw_action(self._state)
