@@ -290,7 +290,7 @@ class RQLearning(TD):
 
         alg_params = params['algorithm_params']
 
-        self.offpolicy = alg_params['offpolicy']
+        self.off_policy = alg_params['off_policy']
         if 'delta' in alg_params and 'beta' not in alg_params:
             self.delta = alg_params['delta']
             self.beta = None
@@ -322,12 +322,11 @@ class RQLearning(TD):
             self.Q_tilde[state, action] += beta * (q_next - self.Q_tilde[
                 state, action])
 
-        q = self.R_tilde[state, action] + self.mdp_info['gamma'] * self.Q_tilde[
-            state, action]
-        self.Q[state, action] = q
+        self.Q[state, action] = self.R_tilde[state, action] + self.mdp_info[
+            'gamma'] * self.Q_tilde[state, action]
 
     def _next_q(self, next_state):
-        if self.offpolicy:
+        if self.off_policy:
             return np.max(self.Q[next_state, :])
         else:
             self._next_action = self.draw_action(next_state)

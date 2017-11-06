@@ -35,7 +35,7 @@ class ReplayMemory(object):
         action_space = mdp_info['action_space']
 
         observation_shape = tuple([self._max_size]) + observation_space.shape
-        action_shape = (self._max_size, action_space.shape)
+        action_shape = (self._max_size, action_space.shape[0])
 
         self._states = np.ones(observation_shape, dtype=np.float32)
         self._actions = np.ones(action_shape, dtype=np.float32)

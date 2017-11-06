@@ -7,8 +7,6 @@ Algorithms:
             - LSPI
         * Discrete:
             - Expected SARSA
-            - RQ-Learning
-            - R-Learning
             - SARSA(lambda)
             - Q(lambda)
 

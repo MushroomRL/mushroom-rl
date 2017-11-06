@@ -6,7 +6,7 @@ class Table:
     Table regressor. Used for discrete state and action spaces.
 
     """
-    def __init__(self, shape, initial_value=0.):
+    def __init__(self, shape, initial_value=0., dtype=None):
         """
         Constructor.
 
@@ -17,7 +17,7 @@ class Table:
 
         """
         self.__name__ = 'Table'
-        self.table = np.ones(shape) * initial_value
+        self.table = np.ones(shape, dtype=dtype) * initial_value
 
     def __getitem__(self, args):
         idxs = self._get_index(args)

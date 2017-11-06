@@ -50,4 +50,4 @@ class Discrete(Space):
 
     @property
     def shape(self):
-        return len(self.n_list)
+        return (len(self.n_list),)
