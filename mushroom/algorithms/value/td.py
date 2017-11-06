@@ -12,7 +12,7 @@ class TD(Agent):
 
     """
     def __init__(self, approximator, policy, gamma, params):
-        self.learning_rate = params['algorithm_params'].pop('learning_rate')
+        self.alpha = params['algorithm_params']['learning_rate']
 
         policy.set_q(approximator)
         self.approximator = approximator
@@ -72,7 +72,7 @@ class QLearning(TD):
 
         q_next = np.max(self.Q[next_state, :]) if not absorbing else 0.
 
-        self.Q[state, action] = q_current + self.learning_rate(
+        self.Q[state, action] = q_current + self.alpha(
             state, action) * (reward + self._gamma * q_next - q_current)
 
 
@@ -89,8 +89,7 @@ class DoubleQLearning(TD):
 
         super(DoubleQLearning, self).__init__(self.Q, policy, gamma, params)
 
-        self.learning_rate = [deepcopy(self.learning_rate),
-                              deepcopy(self.learning_rate)]
+        self.alpha = [deepcopy(self.alpha), deepcopy(self.alpha)]
 
         assert len(self.Q) == 2, 'The regressor ensemble must' \
                                  ' have exactly 2 models.'
@@ -109,7 +108,7 @@ class DoubleQLearning(TD):
         else:
             q_next = 0.
 
-        q = q_current + self.learning_rate[approximator_idx](state, action) * (
+        q = q_current + self.alpha[approximator_idx](state, action) * (
             reward + self._gamma * q_next - q_current)
 
         self.Q[approximator_idx][state, action] = q
@@ -143,7 +142,7 @@ class WeightedQLearning(TD):
 
         target = reward + self._gamma * q_next
 
-        alpha = self.learning_rate(state, action)
+        alpha = self.alpha(state, action)
 
         self.Q[state, action] = q_current + alpha * (target - q_current)
 
@@ -218,7 +217,7 @@ class SpeedyQLearning(TD):
         target_cur = reward + self._gamma * max_q_cur
         target_old = reward + self._gamma * max_q_old
 
-        alpha = self.learning_rate(state, action)
+        alpha = self.alpha(state, action)
         q_cur = self.Q[state, action]
         self.Q[state, action] = q_cur + alpha * (target_old-q_cur) + (
             1. - alpha) * (target_cur - target_old)
@@ -243,7 +242,7 @@ class SARSA(TD):
         self._next_action = self.draw_action(next_state)
         q_next = self.Q[next_state, self._next_action] if not absorbing else 0.
 
-        self.Q[state, action] = q_current + self.learning_rate(
+        self.Q[state, action] = q_current + self.alpha(
             state, action) * (reward + self._gamma * q_next - q_current)
 
 
@@ -257,18 +256,26 @@ class RLearning(TD):
     def __init__(self, shape, policy, gamma, params):
         self.__name__ = 'RLearning'
 
-        self.R = Table(shape)
+        assert 'beta' in params['algorithm_params']
+
+        self.Q = Table(shape)
         self._rho = 0.
-        super(RLearning, self).__init__(self.R, policy, gamma, params)
+        self.beta = params['algorithm_params']['beta']
+
+        super(RLearning, self).__init__(self.Q, policy, gamma, params)
 
     def _update(self, state, action, reward, next_state, absorbing):
-        r_next = np.max(self.R[next_state, :]) if not absorbing else 0.
-        self.R[state, action] = self.learning_rate(state, action) * (
-            reward - self._rho + r_next)
+        q_current = self.Q[state, action]
+        q_next = np.max(self.Q[next_state, :]) if not absorbing else 0.
+        delta = reward - self._rho + q_next - q_current
+        q_new = q_current + self.alpha(state, action) * delta
 
-        r_max = np.max(self.R[state, action])
-        if self.R[state, action] == r_max:
-            self._rho = self._alpha * (reward + r_next - r_max)
+        self.Q[state, action] = q_new
+
+        q_max = np.max(self.Q[state, :])
+        if q_new == q_max:
+            delta = reward + q_next - q_max - self._rho
+            self._rho += self.beta(state, action) * delta
 
 
 class RQLearning(TD):
@@ -281,8 +288,48 @@ class RQLearning(TD):
     def __init__(self, shape, policy, gamma, params):
         self.__name__ = 'RQLearning'
 
+        alg_params = params['algorithm_params']
+
+        self.offpolicy = alg_params['offpolicy']
+        if 'delta' in alg_params and 'beta' not in alg_params:
+            self.delta = alg_params['delta']
+            self.beta = None
+        elif 'delta' not in alg_params and 'beta' in alg_params:
+            self.delta = None
+            self.beta = alg_params['beta']
+        else:
+            raise ValueError('delta or beta parameters needed.')
+
         self.Q = Table(shape)
+        self.Q_tilde = Table(shape)
+        self.R_tilde = Table(shape)
         super(RQLearning, self).__init__(self.Q, policy, gamma, params)
 
     def _update(self, state, action, reward, next_state, absorbing):
-        pass
+        alpha = self.alpha(state, action, target=reward)
+        self.R_tilde[state, action] += alpha * (reward - self.R_tilde[
+            state, action])
+
+        if not absorbing:
+            q_next = self._next_q(next_state)
+
+            if self.delta is not None:
+                beta = alpha * self.delta(state, action, target=q_next,
+                                          factor=alpha)
+            else:
+                beta = self.beta(state, action, target=q_next)
+
+            self.Q_tilde[state, action] += beta * (q_next - self.Q_tilde[
+                state, action])
+
+        q = self.R_tilde[state, action] + self.mdp_info['gamma'] * self.Q_tilde[
+            state, action]
+        self.Q[state, action] = q
+
+    def _next_q(self, next_state):
+        if self.offpolicy:
+            return np.max(self.Q[next_state, :])
+        else:
+            self._next_action = self.draw_action(next_state)
+
+            return self.Q[next_state, self._next_action]

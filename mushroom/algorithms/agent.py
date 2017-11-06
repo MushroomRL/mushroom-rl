@@ -64,7 +64,7 @@ class Agent(object):
             state = self.phi(state)
 
         if self._next_action is None:
-            return self.policy(state)
+            return self.policy.draw_action(state)
         else:
             action = self._next_action
             self._next_action = None

@@ -29,7 +29,7 @@ class TDPolicy(object):
     def get_q(self):
         """
         Returns:
-             the approximator used by the policy.
+             The approximator used by the policy.
 
         """
         return self._approximator
@@ -62,20 +62,45 @@ class EpsGreedy(TDPolicy):
         assert isinstance(epsilon, Parameter)
         self._epsilon = epsilon
 
-    def __call__(self, state):
+    def __call__(self, state, action):
         """
-        Compute an action according to the policy.
+        Compute the probability of taking `action` in `state` according to the
+        policy.
+
+        Args:
+            state (np.array): the state where the agent is;
+            action (np.array): the action whose probability has to be returned.
+
+        Returns:
+            The probability of taking `action`.
+
+        """
+        q = self._approximator.predict(np.expand_dims(state, axis=0))
+        max_a = np.argwhere((q == np.max(q, axis=1)).ravel()).ravel()
+
+        p = self._epsilon.get_value(state) / self.action_space.n
+        if action in max_a:
+            return p + (1. - self._epsilon.get_value(state)) / len(max_a)
+        else:
+            return p
+
+    def draw_action(self, state):
+        """
+        Sample an action in `state` using the policy.
 
         Args:
             state (np.array): the state where the agent is.
 
         Returns:
-            The selected action.
+            The action sampled from the policy.
 
         """
         if not np.random.uniform() < self._epsilon(state):
             q = self._approximator.predict(np.expand_dims(state, axis=0))
-            max_a = np.argmax(q, axis=1)
+            max_a = np.argwhere((q == np.max(q, axis=1)).ravel()).ravel()
+
+            if len(max_a) > 1:
+                max_a = np.array([np.random.choice(max_a)])
 
             return max_a
 

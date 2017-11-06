@@ -189,7 +189,7 @@ class Core(object):
         last = not(self._episode_steps < self.mdp.horizon and not absorbing)
 
         state = self._state
-        self._state = np.array(next_state)
+        self._state = next_state
 
         return state, action, reward, next_state, absorbing, last
 
