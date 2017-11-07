@@ -13,8 +13,6 @@ class DQN(Agent):
 
     """
     def __init__(self, approximator, policy, gamma, params):
-        self.__name__ = 'DQN'
-
         alg_params = params['algorithm_params']
         self._batch_size = alg_params.get('batch_size')
         self._n_approximators = alg_params.get('n_approximators', 1)
@@ -143,9 +141,6 @@ class DQN(Agent):
             self._buffer.size, self._max_no_op_actions + 1)
         self._episode_steps = 0
 
-    def __str__(self):
-        return self.__name__
-
 
 class DoubleDQN(DQN):
     """
@@ -154,11 +149,6 @@ class DoubleDQN(DQN):
     Hasselt H. V. et al.. 2016.
 
     """
-    def __init__(self, approximator, policy, gamma, params):
-        self.__name__ = 'DoubleDQN'
-
-        super(DoubleDQN, self).__init__(approximator, policy, gamma, params)
-
     def _next_q(self, next_state, absorbing):
         q = self.approximator.predict(next_state)
         if np.any(absorbing):
@@ -176,8 +166,6 @@ class AveragedDQN(DQN):
 
     """
     def __init__(self, approximator, policy, gamma, params):
-        self.__name__ = 'AveragedDQN'
-
         super(AveragedDQN, self).__init__(approximator, policy, gamma, params)
 
         self._n_fitted_target_models = 1
@@ -210,11 +198,6 @@ class WeightedDQN(AveragedDQN):
     ...
 
     """
-    def __init__(self, approximator, policy, gamma, params):
-        self.__name__ = 'WeightedDQN'
-
-        super(WeightedDQN, self).__init__(approximator, policy, gamma, params)
-
     def _next_q(self, next_state, absorbing):
         samples = np.ones((self._n_fitted_target_models,
                            next_state.shape[0],

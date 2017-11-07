@@ -28,9 +28,6 @@ class BatchTD(Agent):
 
         super(BatchTD, self).__init__(policy, gamma, params)
 
-    def __str__(self):
-        return self.__name__
-
 
 class FQI(BatchTD):
     """
@@ -39,8 +36,6 @@ class FQI(BatchTD):
 
     """
     def __init__(self, approximator, policy, gamma, params):
-        self.__name__ = 'FQI'
-
         super(FQI, self).__init__(approximator, policy, gamma, params)
 
         self._target = None
@@ -137,8 +132,6 @@ class DoubleFQI(FQI):
 
     """
     def __init__(self, approximator, policy, gamma, params):
-        self.__name__ = 'DoubleFQI'
-
         params['approximator_params']['n_models'] = 2
         super(DoubleFQI, self).__init__(approximator, policy, gamma, params)
 
@@ -183,10 +176,15 @@ class WeightedFQI(FQI):
     Problems". D'Eramo C. et al.. 2017.
 
     """
-    def __init__(self, approximator, policy, gamma, params):
-        self.__name__ = 'WeightedFQI'
-
-        super(WeightedFQI, self).__init__(approximator, policy, gamma, params)
-
     def _fit(self, x):
+        pass
+
+
+class LSPI(BatchTD):
+    """
+    Least-Squares Policy Iteration algorithm.
+    "Least-Squares Policy Iteration".
+
+    """
+    def __init__(self, approximator, policy, gamma, params):
         pass

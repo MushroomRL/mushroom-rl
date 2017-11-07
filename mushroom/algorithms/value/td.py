@@ -50,9 +50,6 @@ class TD(Agent):
         """
         pass
 
-    def __str__(self):
-        return self.__name__
-
 
 class QLearning(TD):
     """
@@ -61,8 +58,6 @@ class QLearning(TD):
 
     """
     def __init__(self, shape, policy, gamma, params):
-        self.__name__ = 'QLearning'
-
         self.Q = Table(shape)
 
         super(QLearning, self).__init__(self.Q, policy, gamma, params)
@@ -83,8 +78,6 @@ class DoubleQLearning(TD):
 
     """
     def __init__(self, shape, policy, gamma, params):
-        self.__name__ = 'DoubleQLearning'
-
         self.Q = EnsembleTable(2, shape)
 
         super(DoubleQLearning, self).__init__(self.Q, policy, gamma, params)
@@ -122,8 +115,6 @@ class WeightedQLearning(TD):
 
     """
     def __init__(self, shape, policy, gamma, params):
-        self.__name__ = 'WeightedQLearning'
-
         self.Q = Table(shape)
         self._sampling = params.pop('sampling', True)
         self._precision = params.pop('precision', 1000)
@@ -201,8 +192,6 @@ class SpeedyQLearning(TD):
 
     """
     def __init__(self, shape, policy, gamma, params):
-        self.__name__ = 'SpeedyQLearning'
-
         self.Q = Table(shape)
         self.old_q = deepcopy(self.Q)
 
@@ -231,8 +220,6 @@ class SARSA(TD):
 
     """
     def __init__(self, shape, policy, gamma, params):
-        self.__name__ = 'SARSA'
-
         self.Q = Table(shape)
         super(SARSA, self).__init__(self.Q, policy, gamma, params)
 
@@ -246,6 +233,26 @@ class SARSA(TD):
             state, action) * (reward + self._gamma * q_next - q_current)
 
 
+class ExpectedSARSA(TD):
+    """
+    Expected SARSA algorithm.
+    "A theoretical and empirical analysis of Expected Sarsa". Seijen H. V..
+    2009.
+
+    """
+    def _update(self, state, action, reward, next_state, absorbing):
+        pass
+
+
+class LinearSARSA(TD):
+    """
+    LinearSARSA algorithm.
+
+    """
+    def __init__(self):
+        pass
+
+
 class RLearning(TD):
     """
     R-Learning algorithm.
@@ -254,8 +261,6 @@ class RLearning(TD):
 
     """
     def __init__(self, shape, policy, gamma, params):
-        self.__name__ = 'RLearning'
-
         assert 'beta' in params['algorithm_params']
 
         self.Q = Table(shape)
@@ -286,8 +291,6 @@ class RQLearning(TD):
 
     """
     def __init__(self, shape, policy, gamma, params):
-        self.__name__ = 'RQLearning'
-
         alg_params = params['algorithm_params']
 
         self.off_policy = alg_params['off_policy']
