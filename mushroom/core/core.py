@@ -47,8 +47,8 @@ class Core(object):
                 algorithm;
             iterate_over (string): whether to collect samples or episodes in a
                 single iteration of the loop;
-            render (bool): whether to render the environment or not;
-            quiet (bool): whethet to hide the progress bar or not.
+            render (bool, False): whether to render the environment or not;
+            quiet (bool, False): whether to hide the progress bar or show it.
 
         """
         assert iterate_over == 'samples' or iterate_over == 'episodes'
@@ -57,25 +57,19 @@ class Core(object):
 
         if iterate_over == 'samples':
             self.agent.episode_start()
-            for self.iteration in tqdm(xrange(n_iterations), dynamic_ncols=True,
-                                       disable=quiet, leave=False):
-                dataset = self._move_samples(how_many, render=render)
-                self.agent.fit(dataset, n_fit_steps)
-
-                for c in self.callbacks:
-                    callback_pars = dict(dataset=dataset,
-                                         core=self)
-                    c(**callback_pars)
+            move = self._move_samples
         else:
-            for self.iteration in tqdm(xrange(n_iterations), dynamic_ncols=True,
-                                       disable=quiet, leave=False):
-                dataset = self._move_episodes(how_many, render=render)
-                self.agent.fit(dataset, n_fit_steps)
+            move = self._move_episodes
 
-                for c in self.callbacks:
-                    callback_pars = dict(dataset=dataset,
-                                         core=self)
-                    c(**callback_pars)
+        for self.iteration in tqdm(xrange(n_iterations), dynamic_ncols=True,
+                                   disable=quiet, leave=False):
+            dataset = move(how_many, render=render)
+            self.agent.fit(dataset, n_fit_steps)
+
+            for c in self.callbacks:
+                callback_pars = dict(dataset=dataset,
+                                     core=self)
+                c(**callback_pars)
 
     def evaluate(self, how_many=1, iterate_over='episodes', initial_states=None,
                  render=False, quiet=False):
@@ -83,19 +77,20 @@ class Core(object):
         This function is used to evaluate the learned policy.
 
         Args:
-            how_many (int): number of samples or episodes to collect in a
+            how_many (int, 1): number of samples or episodes to collect in a
                 single iteration of the loop;
-            iterate_over (string): whether to collect samples or episodes in a
-                single iteration of the loop;
-            initial_states (np.array): the array of initial states from where to
-                start the evaluation episodes. An evaluation episode is run for
-                each state;
-            render (bool): whether to render the environment or not;
-            quiet (bool): whethet to hide the progress bar or not.
+            iterate_over (string, 'episodes'): whether to collect samples or
+                episodes in a single iteration of the loop;
+            initial_states (np.array, None): the array of initial states from
+                where to start the evaluation episodes. An evaluation episode is
+                run for each state;
+            render (bool, False): whether to render the environment or not;
+            quiet (bool, False): whether to hide the progress bar or show it.
+
+        Returns:
+            The dataset of transitions collected during the evaluation.
 
         """
-        self._state = self.mdp.reset()
-
         dataset = list()
         if initial_states is not None:
             assert iterate_over == 'episodes'
@@ -141,8 +136,7 @@ class Core(object):
                 sample = self._step(render)
                 dataset.append(sample)
                 last = sample[-1]
-            self._state = self.mdp.reset()
-            self._episode_steps = 0
+            self.reset()
             i += 1
 
         return dataset
@@ -151,11 +145,11 @@ class Core(object):
         """
         Move the agent for a certain number of steps.
 
-        # Arguments
+        Args:
             how_many (int): number of samples to collect;
             render (bool): whether to render the environment or not.
 
-        # Returns
+        Returns:
             The list of samples collected during the episode.
 
         """
@@ -165,8 +159,7 @@ class Core(object):
             sample = self._step(render)
             dataset[i] = sample
             if sample[-1]:
-                self._state = self.mdp.reset()
-                self._episode_steps = 0
+                self.reset()
                 self.agent.episode_start()
             i += 1
 
@@ -176,8 +169,13 @@ class Core(object):
         """
         Single step.
 
-        # Args:
+        Args:
             render (bool): whether to render or not.
+
+        Returns:
+            A tuple containing the previous state, the action sampled by the
+            agent, the reward obtained, the reached state, the absorbing flag
+            of the reached state and the last step flag.
 
         """
         action = self.agent.draw_action(self._state)
@@ -191,7 +189,7 @@ class Core(object):
         last = not(self._episode_steps < self.mdp.horizon and not absorbing)
 
         state = self._state
-        self._state = np.array(next_state)
+        self._state = next_state
 
         return state, action, reward, next_state, absorbing, last
 

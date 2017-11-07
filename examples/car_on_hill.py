@@ -3,7 +3,6 @@ from joblib import Parallel, delayed
 from sklearn.ensemble import ExtraTreesRegressor
 
 from mushroom.algorithms.value.batch_td import FQI
-from mushroom.approximators import Regressor
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
@@ -23,18 +22,18 @@ def experiment():
                    action_space=mdp.action_space)
 
     # Approximator
-    approximator_params = dict(n_estimators=50,
-                               min_samples_split=5,
-                               min_samples_leaf=2)
-    approximator = Regressor(ExtraTreesRegressor,
-                             input_shape=mdp.observation_space.shape,
-                             n_actions=mdp.action_space.n,
-                             params=approximator_params)
+    approximator_params = dict(input_shape=mdp.observation_space.shape,
+                               n_actions=mdp.action_space.n,
+                               params={'n_estimators': 50,
+                                       'min_samples_split': 5,
+                                       'min_samples_leaf': 2})
+    approximator = ExtraTreesRegressor
 
     # Agent
     algorithm_params = dict()
     fit_params = dict()
-    agent_params = {'algorithm_params': algorithm_params,
+    agent_params = {'approximator_params': approximator_params,
+                    'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
     agent = FQI(approximator, pi, mdp.gamma, agent_params)
 

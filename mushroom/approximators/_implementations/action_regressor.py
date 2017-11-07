@@ -74,7 +74,7 @@ class ActionRegressor:
 
         if len(z) == 2:
             action = z[1]
-            q = np.zeros((state.shape[0], 1))
+            q = np.zeros(state.shape[0])
             for i in xrange(self._n_actions):
                 idxs = np.argwhere((action == i)[:, 0]).ravel()
                 if idxs.size:

@@ -10,7 +10,7 @@ class Parameter(object):
 
     def __call__(self, *idx, **kwargs):
         if self._n_updates.table.size == 1:
-            idx = []
+            idx = list()
 
         self.update(*idx)
 

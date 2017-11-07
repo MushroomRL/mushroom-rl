@@ -3,13 +3,10 @@ Algorithms:
         * Continuous:
             - Linear SARSA
             - SARSA(lambda)
-            - Double FQI
             - Weighted FQI
             - LSPI
         * Discrete:
             - Expected SARSA
-            - RQ-Learning
-            - R-Learning
             - SARSA(lambda)
             - Q(lambda)
 
@@ -25,7 +22,6 @@ Policy:
     b) Discrete:
         * Boltzmann
         * Gibbs
-        * Weighted policy
 
 Environment:
     * LQR
