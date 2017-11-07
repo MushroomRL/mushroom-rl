@@ -46,4 +46,4 @@ class REINFORCE(PolicyGradient):
         self.baseline_den.append(squared_sum_d_log_pi)
 
     def _init_update(self):
-        self.sum_d_log_pi = np.zeros(self.policy.weights_shape)
+        self.sum_d_log_pi = np.zeros(self.policy.weights_size)
