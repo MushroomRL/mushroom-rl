@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.integrate import odeint
 
-from mushroom.environments import Environment
+from mushroom.environments import Environment, MDPInfo
 from mushroom.utils import spaces
 
 
@@ -14,24 +14,23 @@ class CarOnHill(Environment):
     def __init__(self):
         self.__name__ = 'CarOnHill'
 
-        # MDP spaces
+        # MDP parameters
         self.max_pos = 1.
         self.max_velocity = 3.
         high = np.array([self.max_pos, self.max_velocity])
-        self.observation_space = spaces.Box(low=-high, high=high)
-        self.action_space = spaces.Discrete(2)
-
-        # MDP parameters
-        self.horizon = 100
-        self.gamma = 0.95
-
-        # MDP properties
         self._g = 9.81
         self._m = 1
         self._dt = .1
         self._discrete_actions = [-4., 4.]
 
-        super(CarOnHill, self).__init__()
+        # MDP properties
+        observation_space = spaces.Box(low=-high, high=high)
+        action_space = spaces.Discrete(2)
+        horizon = 100
+        gamma = .95
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+
+        super(CarOnHill, self).__init__(mdp_info)
 
     def reset(self, state=None):
         if state is None:

@@ -16,17 +16,15 @@ def experiment():
 
     # Policy
     epsilon = Parameter(value=.15)
-    pi = EpsGreedy(epsilon=epsilon, observation_space=mdp.observation_space,
-                   action_space=mdp.action_space)
+    pi = EpsGreedy(epsilon=epsilon,)
 
     # Agent
-    shape = mdp.observation_space.size + mdp.action_space.size
     learning_rate = Parameter(value=.2)
     algorithm_params = dict(learning_rate=learning_rate)
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
-    agent = QLearning(shape, pi, mdp.gamma, agent_params)
+    agent = QLearning(pi, mdp.info, agent_params)
 
     # Algorithm
     core = Core(agent, mdp)

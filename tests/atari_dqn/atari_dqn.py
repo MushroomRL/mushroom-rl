@@ -32,22 +32,18 @@ def experiment(double):
     mdp = Atari('BreakoutDeterministic-v4', 84, 84, ends_at_life=True)
 
     # Policy
-    epsilon = LinearDecayParameter(value=1,
-                                   min_value=.1,
-                                   n=10)
+    epsilon = LinearDecayParameter(value=1, min_value=.1, n=10)
     epsilon_test = Parameter(value=.05)
     epsilon_random = Parameter(value=1)
-    pi = EpsGreedy(epsilon=epsilon_random,
-                   observation_space=mdp.observation_space,
-                   action_space=mdp.action_space)
+    pi = EpsGreedy(epsilon=epsilon_random)
 
     # Approximator
     input_shape = (84, 84, 4)
     approximator_params = dict(input_shape=input_shape,
-                               output_shape=(mdp.action_space.n,),
-                               n_actions=mdp.action_space.n,
+                               output_shape=(mdp.info.action_space.n,),
+                               n_actions=mdp.info.action_space.n,
                                input_preprocessor=[Scaler(
-                                   mdp.observation_space.high)],
+                                   mdp.info.observation_space.high)],
                                params={'optimizer': {'name': 'rmsprop',
                                                      'lr': .00025,
                                                      'decay': .95,
@@ -75,9 +71,9 @@ def experiment(double):
                     'fit_params': fit_params}
 
     if not double:
-        agent = DQN(approximator, pi, mdp.gamma, agent_params)
+        agent = DQN(approximator, pi, mdp.info, agent_params)
     else:
-        agent = DoubleDQN(approximator, pi, mdp.gamma, agent_params)
+        agent = DoubleDQN(approximator, pi, mdp.info, agent_params)
 
     # Algorithm
     core = Core(agent, mdp)

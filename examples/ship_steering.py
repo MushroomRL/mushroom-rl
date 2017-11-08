@@ -28,7 +28,7 @@ def experiment(n_iterations, n_runs, ep_per_run, use_tensorflow):
                                                 [-np.pi / 12, np.pi / 12]])
 
         phi = Features(tensor_list=tensor_list, name='phi',
-                       input_dim=mdp.observation_space.shape[0])
+                       input_dim=mdp.info.observation_space.shape[0])
     else:
         basis = GaussianRBF.generate([3, 3, 6, 2],
                                      [[0., 150.],
@@ -39,11 +39,11 @@ def experiment(n_iterations, n_runs, ep_per_run, use_tensorflow):
         phi = Features(basis_list=basis)
 
     input_shape = (phi.size,)
-    shape = input_shape + mdp.action_space.shape
+    shape = input_shape + mdp.info.action_space.shape
 
     approximator_params = dict(params_shape=shape)
     approximator = Regressor(LinearApproximator, input_shape=input_shape,
-                             output_shape=mdp.action_space.shape,
+                             output_shape=mdp.info.action_space.shape,
                              params=approximator_params)
     sigma = Parameter(value=.05)
     policy = GaussianPolicy(mu=approximator, sigma=sigma)
@@ -54,7 +54,7 @@ def experiment(n_iterations, n_runs, ep_per_run, use_tensorflow):
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
-    agent = REINFORCE(policy, mdp.gamma, agent_params, phi)
+    agent = REINFORCE(policy, mdp.info.gamma, agent_params, phi)
 
     # Train
     core = Core(agent, mdp)
@@ -63,7 +63,7 @@ def experiment(n_iterations, n_runs, ep_per_run, use_tensorflow):
                    n_fit_steps=1, iterate_over='episodes')
         dataset_eval = core.evaluate(how_many=ep_per_run,
                                      iterate_over='episodes')
-        J = compute_J(dataset_eval, gamma=mdp.gamma)
+        J = compute_J(dataset_eval, gamma=mdp.info.gamma)
         print('J at iteration ' + str(i) + ': ' + str(np.mean(J)))
 
     np.save('ship_steering.npy', dataset_eval)

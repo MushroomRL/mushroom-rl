@@ -3,10 +3,10 @@ import numpy as np
 
 
 class Parameter(object):
-    def __init__(self, value, min_value=None, shape=(1,)):
+    def __init__(self, value, min_value=None, size=(1,)):
         self._initial_value = value
         self._min_value = min_value
-        self._n_updates = Table(shape)
+        self._n_updates = Table(size)
 
     def __call__(self, *idx, **kwargs):
         if self._n_updates.table.size == 1:
@@ -36,20 +36,20 @@ class Parameter(object):
 
 
 class LinearDecayParameter(Parameter):
-    def __init__(self, value,  min_value, n, shape=(1,)):
+    def __init__(self, value,  min_value, n, size=(1,)):
         self._coeff = (min_value - value) / n
 
-        super(LinearDecayParameter, self).__init__(value, min_value, shape)
+        super(LinearDecayParameter, self).__init__(value, min_value, size)
 
     def _compute(self, *idx, **kwargs):
         return self._coeff * self._n_updates[idx] + self._initial_value
 
 
 class ExponentialDecayParameter(Parameter):
-    def __init__(self, value, decay_exp=1., min_value=None, shape=(1,)):
+    def __init__(self, value, decay_exp=1., min_value=None, size=(1,)):
         self._decay_exp = decay_exp
 
-        super(ExponentialDecayParameter, self).__init__(value, min_value, shape)
+        super(ExponentialDecayParameter, self).__init__(value, min_value, size)
 
     def _compute(self, *idx, **kwargs):
         return self._initial_value / self._n_updates[idx] ** self._decay_exp

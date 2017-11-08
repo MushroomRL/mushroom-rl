@@ -12,7 +12,7 @@ class DQN(Agent):
     Mnih V. et al.. 2015.
 
     """
-    def __init__(self, approximator, policy, gamma, params):
+    def __init__(self, approximator, policy, mdp_info, params):
         alg_params = params['algorithm_params']
         self._batch_size = alg_params.get('batch_size')
         self._n_approximators = alg_params.get('n_approximators', 1)
@@ -23,7 +23,8 @@ class DQN(Agent):
         self._max_no_op_actions = alg_params.get('max_no_op_actions', 0)
         self._no_op_action_value = alg_params.get('no_op_action_value', 0)
 
-        self._replay_memory = ReplayMemory(alg_params.get('max_replay_size'),
+        self._replay_memory = ReplayMemory(mdp_info,
+                                           alg_params.get('max_replay_size'),
                                            alg_params.get('history_length', 1))
         self._buffer = Buffer(size=alg_params.get('history_length', 1))
 
@@ -49,7 +50,7 @@ class DQN(Agent):
                 self.target_approximator.model[i].set_weights(
                     self.approximator.model.get_weights())
 
-        super(DQN, self).__init__(policy, gamma, params)
+        super(DQN, self).__init__(policy, mdp_info, params)
 
     def fit(self, dataset, n_iterations=1):
         """
@@ -73,7 +74,7 @@ class DQN(Agent):
                 reward = np.clip(reward, -1, 1)
 
             q_next = self._next_q(next_state, absorbing)
-            q = reward + self._gamma * q_next
+            q = reward + self.mdp_info.gamma * q_next
 
             self.approximator.fit(state, action, q, **self.params['fit_params'])
 
@@ -108,18 +109,6 @@ class DQN(Agent):
             q *= 1 - absorbing.reshape(-1, 1)
 
         return np.max(q, axis=1)
-
-    def initialize(self, mdp_info):
-        """
-        Initialize `mdp_info` attribute.
-
-        Args:
-            mdp_info (dict): information about the mdp (e.g. discount factor).
-
-        """
-        super(DQN, self).initialize(mdp_info)
-
-        self._replay_memory.initialize(self.mdp_info)
 
     def draw_action(self, state):
         self._buffer.add(state)
@@ -165,8 +154,9 @@ class AveragedDQN(DQN):
     Learning". Anschel O. et al.. 2017.
 
     """
-    def __init__(self, approximator, policy, gamma, params):
-        super(AveragedDQN, self).__init__(approximator, policy, gamma, params)
+    def __init__(self, approximator, policy, mdp_info, params):
+        super(AveragedDQN, self).__init__(approximator, policy, mdp_info,
+                                          params)
 
         self._n_fitted_target_models = 1
 
@@ -201,7 +191,7 @@ class WeightedDQN(AveragedDQN):
     def _next_q(self, next_state, absorbing):
         samples = np.ones((self._n_fitted_target_models,
                            next_state.shape[0],
-                           self.mdp_info['action_space'].n))
+                           self.mdp_info.action_space.n))
         for i in xrange(self._n_fitted_target_models):
             samples[i] = self.target_approximator.predict(next_state,
                                                           idx=i)
@@ -210,7 +200,7 @@ class WeightedDQN(AveragedDQN):
             means = np.mean(samples[:, i, :], axis=0)
             max_idx = np.argmax(samples[:, i, :], axis=1)
             max_idx, max_count = np.unique(max_idx, return_counts=True)
-            count = np.zeros(self.mdp_info['action_space'].n)
+            count = np.zeros(self.mdp_info.action_space.n)
             count[max_idx] = max_count
             w = count / float(self._n_fitted_target_models)
             W[i] = np.dot(w, means)

@@ -4,18 +4,11 @@ from mushroom.utils.parameters import Parameter
 
 
 class TDPolicy(object):
-    def __init__(self, observation_space, action_space):
+    def __init__(self):
         """
         Constructor.
 
-        Args:
-            observation_space (object): the state space;
-            action_space (object): the action_space.
-
         """
-        self.observation_space = observation_space
-        self.action_space = action_space
-
         self._approximator = None
 
     def set_q(self, approximator):
@@ -43,13 +36,11 @@ class EpsGreedy(TDPolicy):
     Epsilon greedy policy.
 
     """
-    def __init__(self, epsilon, observation_space, action_space):
+    def __init__(self, epsilon):
         """
         Constructor.
 
         Args:
-            observation_space (object): the state space;
-            action_space (object): the action_space;
             epsilon (Parameter): the exploration coefficient. It indicates
                 the probability of performing a random actions in the current
                 step.
@@ -57,7 +48,7 @@ class EpsGreedy(TDPolicy):
         """
         self.__name__ = 'EpsGreedy'
 
-        super(EpsGreedy, self).__init__(observation_space, action_space)
+        super(EpsGreedy, self).__init__()
 
         assert isinstance(epsilon, Parameter)
         self._epsilon = epsilon
@@ -78,7 +69,7 @@ class EpsGreedy(TDPolicy):
         q = self._approximator.predict(np.expand_dims(state, axis=0))
         max_a = np.argwhere((q == np.max(q, axis=1)).ravel()).ravel()
 
-        p = self._epsilon.get_value(state) / self.action_space.n
+        p = self._epsilon.get_value(state) / self._approximator.n_actions
         if action in max_a:
             return p + (1. - self._epsilon.get_value(state)) / len(max_a)
         else:
@@ -104,7 +95,7 @@ class EpsGreedy(TDPolicy):
 
             return max_a
 
-        return self.action_space.sample()
+        return np.array([np.random.choice(self._approximator.n_actions)])
 
     def set_epsilon(self, epsilon):
         """

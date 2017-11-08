@@ -23,8 +23,6 @@ class Core(object):
         self.mdp = mdp
         self.callbacks = callbacks if callbacks is not None else list()
 
-        self.agent.initialize(self.mdp.get_info())
-
         self._state = None
 
         self._episode_steps = 0
@@ -186,7 +184,8 @@ class Core(object):
         if render:
             self.mdp.render()
 
-        last = not(self._episode_steps < self.mdp.horizon and not absorbing)
+        last = not(
+            self._episode_steps < self.mdp.info.horizon and not absorbing)
 
         state = self._state
         self._state = next_state

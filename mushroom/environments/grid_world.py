@@ -1,6 +1,6 @@
 import numpy as np
 
-from mushroom.environments import Environment
+from mushroom.environments import Environment, MDPInfo
 from mushroom.utils import spaces
 
 
@@ -8,26 +8,25 @@ class GridWorld(Environment):
     def __init__(self, height, width, goal, start=(0, 0)):
         self.__name__ = 'GridWorld'
 
-        # MDP spaces
-        self.observation_space = spaces.Discrete([height, width])
-        self.action_space = spaces.Discrete(4)
-
         # MDP parameters
-        self.horizon = 100
-        self.gamma = .9
-
-        # MDP properties
         self._height = height
         self._width = width
         self._goal = goal
         self._start = start
+
+        # MDP properties
+        observation_space = spaces.Discrete([height, width])
+        action_space = spaces.Discrete(4)
+        horizon = 100
+        gamma = .9
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
         assert not np.array_equal(self._start, self._goal)
 
         assert self._goal[0] < self._height and self._goal[1] < self._width,\
             'Goal position not suitable for the grid world dimension.'
 
-        super(GridWorld, self).__init__()
+        super(GridWorld, self).__init__(mdp_info)
 
     def reset(self, state=None):
         if state is None:
@@ -65,26 +64,25 @@ class GridWorldVanHasselt(Environment):
     def __init__(self, height=3, width=3, goal=(0, 2), start=(2, 0)):
         self.__name__ = 'GridWorldVanHasselt'
 
-        # MDP spaces
-        self.observation_space = spaces.Discrete([height, width])
-        self.action_space = spaces.Discrete(4)
-
         # MDP parameters
-        self.horizon = np.inf
-        self.gamma = .95
-
-        # MDP properties
         self._height = height
         self._width = width
         self._goal = goal
         self._start = start
+
+        # MDP properties
+        observation_space = spaces.Discrete([height, width])
+        action_space = spaces.Discrete(4)
+        horizon = np.inf
+        gamma = .95
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
         assert not np.array_equal(self._start, self._goal)
 
         assert self._goal[0] < self._height and self._goal[1] < self._width,\
             'Goal position not suitable for the grid world dimension.'
 
-        super(GridWorldVanHasselt, self).__init__()
+        super(GridWorldVanHasselt, self).__init__(mdp_info)
 
     def reset(self, state=None):
         if state is None:
@@ -124,15 +122,14 @@ class GridWorldGenerator(Environment):
 
         self._generate(grid_map)
 
-        # MDP spaces
-        self.observation_space = spaces.Discrete([self._height, self._width])
-        self.action_space = spaces.Discrete(4)
+        # MDP properties
+        observation_space = spaces.Discrete([self._height, self._width])
+        action_space = spaces.Discrete(4)
+        horizon = 100
+        gamma = .9
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
-        # MDP parameters
-        self.horizon = 100
-        self.gamma = .9
-
-        super(GridWorldGenerator, self).__init__()
+        super(GridWorldGenerator, self).__init__(mdp_info)
 
     def reset(self, state=None):
         if state is None:

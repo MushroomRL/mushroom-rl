@@ -11,13 +11,13 @@ class TD(Agent):
     Implements functions to run TD algorithms.
 
     """
-    def __init__(self, approximator, policy, gamma, params):
+    def __init__(self, approximator, policy, mdp_info, params):
         self.alpha = params['algorithm_params']['learning_rate']
 
         policy.set_q(approximator)
         self.approximator = approximator
 
-        super(TD, self).__init__(policy, gamma, params)
+        super(TD, self).__init__(policy, mdp_info, params)
 
     def fit(self, dataset, n_iterations=1):
         assert n_iterations == 1 and len(dataset) == 1
@@ -57,18 +57,18 @@ class QLearning(TD):
     "Learning from Delayed Rewards". Watkins C.J.C.H.. 1989.
 
     """
-    def __init__(self, shape, policy, gamma, params):
-        self.Q = Table(shape)
+    def __init__(self, policy, mdp_info, params):
+        self.Q = Table(mdp_info.size)
 
-        super(QLearning, self).__init__(self.Q, policy, gamma, params)
+        super(QLearning, self).__init__(self.Q, policy, mdp_info, params)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
 
         q_next = np.max(self.Q[next_state, :]) if not absorbing else 0.
 
-        self.Q[state, action] = q_current + self.alpha(
-            state, action) * (reward + self._gamma * q_next - q_current)
+        self.Q[state, action] = q_current + self.alpha(state, action) * (
+            reward + self.mdp_info.gamma * q_next - q_current)
 
 
 class DoubleQLearning(TD):
@@ -77,10 +77,10 @@ class DoubleQLearning(TD):
     "Double Q-Learning". van Hasselt H.. 2010.
 
     """
-    def __init__(self, shape, policy, gamma, params):
-        self.Q = EnsembleTable(2, shape)
+    def __init__(self, policy, mdp_info, params):
+        self.Q = EnsembleTable(2, mdp_info.size)
 
-        super(DoubleQLearning, self).__init__(self.Q, policy, gamma, params)
+        super(DoubleQLearning, self).__init__(self.Q, policy, mdp_info, params)
 
         self.alpha = [deepcopy(self.alpha), deepcopy(self.alpha)]
 
@@ -102,7 +102,7 @@ class DoubleQLearning(TD):
             q_next = 0.
 
         q = q_current + self.alpha[approximator_idx](state, action) * (
-            reward + self._gamma * q_next - q_current)
+            reward + self.mdp_info.gamma * q_next - q_current)
 
         self.Q[approximator_idx][state, action] = q
 
@@ -114,24 +114,24 @@ class WeightedQLearning(TD):
     D'Eramo C. et. al.. 2016.
 
     """
-    def __init__(self, shape, policy, gamma, params):
-        self.Q = Table(shape)
+    def __init__(self, policy, mdp_info, params):
+        self.Q = Table(mdp_info.size)
         self._sampling = params.pop('sampling', True)
         self._precision = params.pop('precision', 1000)
 
-        super(WeightedQLearning, self).__init__(self.Q, policy, gamma, params)
+        super(WeightedQLearning, self).__init__(self.Q, policy, mdp_info, params)
 
-        self._n_updates = Table(shape)
-        self._sigma = Table(shape, initial_value=1e10)
-        self._Q = Table(shape)
-        self._Q2 = Table(shape)
-        self._weights_var = Table(shape)
+        self._n_updates = Table(mdp_info.size)
+        self._sigma = Table(mdp_info.size, initial_value=1e10)
+        self._Q = Table(mdp_info.size)
+        self._Q2 = Table(mdp_info.size)
+        self._weights_var = Table(mdp_info.size)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
         q_next = self._next_q(next_state) if not absorbing else 0.
 
-        target = reward + self._gamma * q_next
+        target = reward + self.mdp_info.gamma * q_next
 
         alpha = self.alpha(state, action)
 
@@ -191,11 +191,11 @@ class SpeedyQLearning(TD):
     "Speedy Q-Learning". Ghavamzadeh et. al.. 2011.
 
     """
-    def __init__(self, shape, policy, gamma, params):
-        self.Q = Table(shape)
+    def __init__(self, policy, mdp_info, params):
+        self.Q = Table(mdp_info.size)
         self.old_q = deepcopy(self.Q)
 
-        super(SpeedyQLearning, self).__init__(self.Q, policy, gamma, params)
+        super(SpeedyQLearning, self).__init__(self.Q, policy, mdp_info, params)
 
     def _update(self, state, action, reward, next_state, absorbing):
         old_q = deepcopy(self.Q)
@@ -203,8 +203,8 @@ class SpeedyQLearning(TD):
         max_q_cur = np.max(self.Q[next_state, :]) if not absorbing else 0.
         max_q_old = np.max(self.old_q[next_state, :]) if not absorbing else 0.
 
-        target_cur = reward + self._gamma * max_q_cur
-        target_old = reward + self._gamma * max_q_old
+        target_cur = reward + self.mdp_info.gamma * max_q_cur
+        target_old = reward + self.mdp_info.gamma * max_q_old
 
         alpha = self.alpha(state, action)
         q_cur = self.Q[state, action]
@@ -219,9 +219,9 @@ class SARSA(TD):
     SARSA algorithm.
 
     """
-    def __init__(self, shape, policy, gamma, params):
-        self.Q = Table(shape)
-        super(SARSA, self).__init__(self.Q, policy, gamma, params)
+    def __init__(self, policy, mdp_info, params):
+        self.Q = Table(mdp_info.size)
+        super(SARSA, self).__init__(self.Q, policy, mdp_info, params)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
@@ -229,8 +229,8 @@ class SARSA(TD):
         self._next_action = self.draw_action(next_state)
         q_next = self.Q[next_state, self._next_action] if not absorbing else 0.
 
-        self.Q[state, action] = q_current + self.alpha(
-            state, action) * (reward + self._gamma * q_next - q_current)
+        self.Q[state, action] = q_current + self.alpha(state, action) * (
+            reward + self.mdp_info.gamma * q_next - q_current)
 
 
 class ExpectedSARSA(TD):
@@ -260,14 +260,14 @@ class RLearning(TD):
     Schwartz A.. 1993.
 
     """
-    def __init__(self, shape, policy, gamma, params):
+    def __init__(self, policy, mdp_info, params):
         assert 'beta' in params['algorithm_params']
 
-        self.Q = Table(shape)
+        self.Q = Table(mdp_info.size)
         self._rho = 0.
         self.beta = params['algorithm_params']['beta']
 
-        super(RLearning, self).__init__(self.Q, policy, gamma, params)
+        super(RLearning, self).__init__(self.Q, policy, mdp_info, params)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
@@ -290,7 +290,7 @@ class RQLearning(TD):
     Processes". Tateo D. et al.. 2017.
 
     """
-    def __init__(self, shape, policy, gamma, params):
+    def __init__(self, policy, mdp_info, params):
         alg_params = params['algorithm_params']
 
         self.off_policy = alg_params['off_policy']
@@ -303,10 +303,10 @@ class RQLearning(TD):
         else:
             raise ValueError('delta or beta parameters needed.')
 
-        self.Q = Table(shape)
-        self.Q_tilde = Table(shape)
-        self.R_tilde = Table(shape)
-        super(RQLearning, self).__init__(self.Q, policy, gamma, params)
+        self.Q = Table(mdp_info.size)
+        self.Q_tilde = Table(mdp_info.size)
+        self.R_tilde = Table(mdp_info.size)
+        super(RQLearning, self).__init__(self.Q, policy, mdp_info, params)
 
     def _update(self, state, action, reward, next_state, absorbing):
         alpha = self.alpha(state, action, target=reward)

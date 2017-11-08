@@ -1,7 +1,7 @@
 import gym
 from PIL import Image
 
-from mushroom.environments import Environment
+from mushroom.environments import Environment, MDPInfo
 from mushroom.utils.spaces import *
 
 
@@ -18,22 +18,21 @@ class Atari(Environment):
         # MPD creation
         self.env = gym.make(self.__name__)
 
-        # MDP spaces
-        self.img_size = (width, height)
-        self.action_space = Discrete(self.env.action_space.n)
-        self.observation_space = Box(
-            low=0., high=255., shape=(self.img_size[1], self.img_size[0]))
-
         # MDP parameters
-        self.horizon = np.inf
-        self.gamma = 0.99
-
-        # MDP properties
+        self.img_size = (width, height)
         self._episode_ends_at_life = ends_at_life
         self._max_lives = self.env.env.ale.lives()
         self._lives = self._max_lives
 
-        super(Atari, self).__init__()
+        # MDP properties
+        action_space = Discrete(self.env.action_space.n)
+        observation_space = Box(
+            low=0., high=255., shape=(self.img_size[1], self.img_size[0]))
+        horizon = np.inf
+        gamma = .99
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+
+        super(Atari, self).__init__(mdp_info)
 
     def reset(self, state=None):
         if self._episode_ends_at_life:

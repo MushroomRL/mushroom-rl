@@ -19,19 +19,18 @@ def experiment(boosted):
 
     # Policy
     epsilon = Parameter(value=1)
-    pi = EpsGreedy(epsilon=epsilon, observation_space=mdp.observation_space,
-                   action_space=mdp.action_space)
+    pi = EpsGreedy(epsilon=epsilon)
 
     # Approximator
     if not boosted:
-        approximator_params = dict(input_shape=mdp.observation_space.shape,
-                                   n_actions=mdp.action_space.n,
+        approximator_params = dict(input_shape=mdp.info.observation_space.shape,
+                                   n_actions=mdp.info.action_space.n,
                                    params={'n_estimators': 50,
                                            'min_samples_split': 5,
                                            'min_samples_leaf': 2})
     else:
-        approximator_params = dict(input_shape=mdp.observation_space.shape,
-                                   n_actions=mdp.action_space.n,
+        approximator_params = dict(input_shape=mdp.info.observation_space.shape,
+                                   n_actions=mdp.info.action_space.n,
                                    n_models=3,
                                    prediction='sum',
                                    params={'n_estimators': 50,
@@ -46,7 +45,7 @@ def experiment(boosted):
     agent_params = {'approximator_params': approximator_params,
                     'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
-    agent = FQI(approximator, pi, mdp.gamma, agent_params)
+    agent = FQI(approximator, pi, mdp.info, agent_params)
 
     # Algorithm
     core = Core(agent, mdp)
@@ -69,7 +68,7 @@ def experiment(boosted):
 
     dataset = core.evaluate(initial_states=initial_states, quiet=True)
 
-    return np.mean(compute_J(dataset, mdp.gamma))
+    return np.mean(compute_J(dataset, mdp.info.gamma))
 
 
 if __name__ == '__main__':

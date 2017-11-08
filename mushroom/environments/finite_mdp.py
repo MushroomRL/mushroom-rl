@@ -1,6 +1,6 @@
 import numpy as np
 
-from environment import Environment
+from environment import Environment, MDPInfo
 from mushroom.utils import spaces
 
 
@@ -11,20 +11,19 @@ class FiniteMDP(Environment):
         assert p.shape == rew.shape
         assert mu is None or p.shape[0] == mu.size
 
-        # MDP spaces
-        self.observation_space = spaces.Discrete(p.shape[0])
-        self.action_space = spaces.Discrete(p.shape[1])
-
         # MDP parameters
-        self.horizon = np.inf
-        self.gamma = gamma
-
-        # MDP properties
         self.p = p
         self.r = rew
         self.mu = mu
 
-        super(FiniteMDP, self).__init__()
+        # MDP properties
+        observation_space = spaces.Discrete(p.shape[0])
+        action_space = spaces.Discrete(p.shape[1])
+        horizon = np.inf
+        gamma = gamma
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+
+        super(FiniteMDP, self).__init__(mdp_info)
 
     def reset(self, state=None):
         if state is None:
