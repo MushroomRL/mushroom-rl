@@ -33,9 +33,9 @@ class DQN(Agent):
         self._no_op_actions = None
 
         apprx_params_train = params['approximator_params']
-        apprx_params_train['params']['name'] = 'train'
+        apprx_params_train['name'] = 'train'
         apprx_params_target = params['approximator_params']
-        apprx_params_target['params']['name'] = 'target'
+        apprx_params_target['name'] = 'target'
         self.approximator = Regressor(approximator, **apprx_params_train)
         self.target_approximator = Regressor(approximator,
                                              n_models=self._n_approximators,

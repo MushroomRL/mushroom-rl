@@ -91,10 +91,8 @@ class ConvNet:
         with tf.variable_scope(None, default_name=self._name):
             self._scope_name = tf.get_default_graph().get_name_scope() + '/'
             self._x = tf.placeholder(tf.float32,
-                                     shape=[None,
-                                            convnet_pars['height'],
-                                            convnet_pars['width'],
-                                            convnet_pars['history_length']],
+                                     shape=[None] + list(
+                                         convnet_pars['input_shape']),
                                      name='input')
             hidden_1 = tf.layers.conv2d(
                 self._x, 32, 8, 4, activation=tf.nn.relu,
@@ -122,7 +120,7 @@ class ConvNet:
                 name='_implementations'
             )
             self.q = tf.layers.dense(
-                self._features, convnet_pars['n_actions'],
+                self._features, convnet_pars['output_shape'][0],
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 bias_initializer=tf.glorot_uniform_initializer(),
                 name='q'
@@ -132,7 +130,7 @@ class ConvNet:
             self._action = tf.placeholder('uint8', [None], name='action')
 
             action_one_hot = tf.one_hot(self._action,
-                                        convnet_pars['n_actions'],
+                                        convnet_pars['output_shape'][0],
                                         name='action_one_hot')
             self._q_acted = tf.reduce_sum(self.q * action_one_hot,
                                           axis=1,

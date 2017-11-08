@@ -1,19 +1,17 @@
 class SimpleRegressor:
-    def __init__(self, approximator, approximator_params, **params):
+    def __init__(self, approximator, **params):
         """
         Constructor.
 
         Args:
             approximator (object): the model class to approximate the
                 a generic function;
-            approximator_params (dict): parameters dictionary to the regressor;
-            **params (dict): parameters dictionary used by the
-                `SimpleRegressor`.
+            **params (dict): parameters dictionary to the regressor;
 
         """
-        self.model = approximator(**approximator_params)
-        self._input_preprocessor = params.get('input_preprocessor', list())
-        self._output_preprocessor = params.get('output_preprocessor', list())
+        self._input_preprocessor = params.pop('input_preprocessor', list())
+        self._output_preprocessor = params.pop('output_preprocessor', list())
+        self.model = approximator(**params)
 
     def fit(self, x, y, **fit_params):
         """

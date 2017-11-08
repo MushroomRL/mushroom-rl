@@ -25,17 +25,17 @@ def experiment(boosted):
     if not boosted:
         approximator_params = dict(input_shape=mdp.info.observation_space.shape,
                                    n_actions=mdp.info.action_space.n,
-                                   params={'n_estimators': 50,
-                                           'min_samples_split': 5,
-                                           'min_samples_leaf': 2})
+                                   n_estimators=50,
+                                   min_samples_split=5,
+                                   min_samples_leaf=2)
     else:
         approximator_params = dict(input_shape=mdp.info.observation_space.shape,
                                    n_actions=mdp.info.action_space.n,
                                    n_models=3,
                                    prediction='sum',
-                                   params={'n_estimators': 50,
-                                           'min_samples_split': 5,
-                                           'min_samples_leaf': 2})
+                                   n_estimators=50,
+                                   min_samples_split=5,
+                                   min_samples_leaf=2)
 
     approximator = ExtraTreesRegressor
 

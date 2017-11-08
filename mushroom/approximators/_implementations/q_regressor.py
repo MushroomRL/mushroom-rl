@@ -9,23 +9,19 @@ class QRegressor:
     in examples/atari_dqn.
 
     """
-    def __init__(self, approximator, n_actions, approximator_params, **params):
+    def __init__(self, approximator, **params):
         """
         Constructor.
 
         Args:
             approximator (object): the model class to approximate the
                 Q-function;
-            n_actions (int): number of different actions of the problem. It
-                determines the output shape of the model;
-            approximator_params (dict): parameters dictionary to the regressor;
-            **params (dict): parameters dictionary used by the `QRegressor`.
+            params (dict): parameters dictionary to the regressor.
 
         """
-        approximator_params['n_actions'] = n_actions
-        self.model = approximator(**approximator_params)
-        self._input_preprocessor = params.get('input_preprocessor', list())
-        self._output_preprocessor = params.get('output_preprocessor', list())
+        self._input_preprocessor = params.pop('input_preprocessor', list())
+        self._output_preprocessor = params.pop('output_preprocessor', list())
+        self.model = approximator(**params)
 
     def fit(self, state, action, q, **fit_params):
         """

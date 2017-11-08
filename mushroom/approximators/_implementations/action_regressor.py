@@ -9,7 +9,7 @@ class ActionRegressor:
     actions.
 
     """
-    def __init__(self, approximator, n_actions, approximator_params, **params):
+    def __init__(self, approximator, n_actions, **params):
         """
         Constructor.
 
@@ -19,20 +19,17 @@ class ActionRegressor:
             n_actions (int): number of different actions of the problem. It
                 determines the number of different regressors in the action
                 regressor;
-            approximator_params (dict): parameters dictionary to create each
-                regressor;
-            **params (dict): parameters dictionary used by the action
-                regressor.
+            **params (dict): parameters dictionary to create each regressor.
 
         """
         self.model = list()
         self._n_actions = n_actions
 
-        for i in xrange(self._n_actions):
-            self.model.append(approximator(**approximator_params))
+        self._input_preprocessor = params.pop('input_preprocessor', list())
+        self._output_preprocessor = params.pop('output_preprocessor', list())
 
-        self._input_preprocessor = params.get('input_preprocessor', list())
-        self._output_preprocessor = params.get('output_preprocessor', list())
+        for i in xrange(self._n_actions):
+            self.model.append(approximator(**params))
 
     def fit(self, state, action, q, **fit_params):
         """

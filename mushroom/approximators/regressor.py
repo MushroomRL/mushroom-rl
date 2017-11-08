@@ -36,7 +36,9 @@ class Regressor:
             **params (dict): other parameters to create each model.
 
         """
-        approximator_params = params.get('params', dict())
+        if not approximator.__module__.startswith('sklearn'):
+            params['input_shape'] = input_shape
+            params['output_shape'] = output_shape
 
         self._input_shape = input_shape
         self._output_shape = output_shape
@@ -47,22 +49,18 @@ class Regressor:
         self._n_models = n_models
 
         if self._n_models > 1:
-            approximator_params['approximator'] = approximator
-            approximator_params['n_models'] = n_models
-            approximator_params['prediction'] = params.get('prediction', 'mean')
+            params['model'] = approximator
+            params['n_models'] = n_models
             approximator = Ensemble
 
         if n_actions is not None:
             assert len(self._output_shape) == 1 and n_actions >= 2
             if n_actions == self._output_shape[0]:
-                self._impl = QRegressor(approximator, n_actions,
-                                        approximator_params, **params)
+                self._impl = QRegressor(approximator, **params)
             else:
-                self._impl = ActionRegressor(approximator, n_actions,
-                                             approximator_params, **params)
+                self._impl = ActionRegressor(approximator, n_actions, **params)
         else:
-            self._impl = SimpleRegressor(approximator, approximator_params,
-                                         **params)
+            self._impl = SimpleRegressor(approximator, **params)
 
     def __call__(self, *z, **predict_params):
         return self.predict(*z, **predict_params)

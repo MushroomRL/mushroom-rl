@@ -159,15 +159,12 @@ def experiment():
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
             input_preprocessor=[Scaler(mdp.info.observation_space.high)],
-            params={'name': 'test',
-                    'load_path': args.load_path,
-                    'optimizer': {'name': args.optimizer,
-                                  'lr': args.learning_rate,
-                                  'decay': args.decay,
-                                  'epsilon': args.epsilon},
-                    'width': args.screen_width,
-                    'height': args.screen_height,
-                    'history_length': args.history_length}
+            name='test',
+            load_path=args.load_path,
+            optimizer={'name': args.optimizer,
+                       'lr': args.learning_rate,
+                       'decay': args.decay,
+                       'epsilon': args.epsilon}
         )
 
         approximator = ConvNet
@@ -242,14 +239,11 @@ def experiment():
             n_actions=mdp.info.action_space.n,
             input_preprocessor=[Scaler(
                 mdp.info.observation_space.high)],
-            params={'folder_name': folder_name,
-                    'optimizer': {'name': args.optimizer,
-                                  'lr': args.learning_rate,
-                                  'decay': args.decay,
-                                  'epsilon': args.epsilon},
-                    'width': args.screen_width,
-                    'height': args.screen_height,
-                    'history_length': args.history_length}
+            folder_name=folder_name,
+            optimizer={'name': args.optimizer,
+                       'lr': args.learning_rate,
+                       'decay': args.decay,
+                       'epsilon': args.epsilon}
         )
 
         approximator = ConvNet

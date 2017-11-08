@@ -44,13 +44,11 @@ def experiment(double):
                                n_actions=mdp.info.action_space.n,
                                input_preprocessor=[Scaler(
                                    mdp.info.observation_space.high)],
-                               params={'optimizer': {'name': 'rmsprop',
-                                                     'lr': .00025,
-                                                     'decay': .95,
-                                                     'epsilon': 1e-10},
-                                       'width': 84,
-                                       'height': 84,
-                                       'history_length': 4})
+                               optimizer={'name': 'rmsprop',
+                                          'lr': .00025,
+                                          'decay': .95,
+                                          'epsilon': 1e-10}
+                               )
 
     approximator = ConvNet
 

@@ -9,8 +9,7 @@ class Ensemble(object):
     This class is used to create an ensemble of regressors.
 
     """
-    def __init__(self, approximator, n_models, prediction,
-                 **approximator_params):
+    def __init__(self, model, n_models, prediction, **params):
         """
         Constructor.
 
@@ -25,7 +24,7 @@ class Ensemble(object):
         self._model = list()
 
         for _ in xrange(n_models):
-            self._model.append(approximator(**approximator_params))
+            self._model.append(model(**params))
 
     def fit(self, *z, **fit_params):
         """
