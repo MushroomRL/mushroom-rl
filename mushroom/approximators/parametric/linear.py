@@ -2,14 +2,14 @@ import numpy as np
 
 
 class LinearApproximator:
-    def __init__(self, params=None, input_dim=None, output_dim=1):
+    def __init__(self, params=None, input_dim=None, output_dim=1, **kwargs):
         if params is not None:
             self._w = params.reshape((output_dim, -1))
         elif input_dim is not None:
             self._w = np.zeros((output_dim, input_dim))
         else:
             raise ValueError('You should specify the initial parameter vector'
-                             'or the input dimension')
+                             ' or the input dimension')
 
     def fit(self, x, y, **fit_params):
         self._w = np.solve(x, y).T

@@ -12,13 +12,13 @@ class TD(Agent):
     Implements functions to run TD algorithms.
 
     """
-    def __init__(self, approximator, policy, mdp_info, params):
+    def __init__(self, approximator, policy, mdp_info, params, features=None):
         self.alpha = params['algorithm_params']['learning_rate']
 
         policy.set_q(approximator)
         self.approximator = approximator
 
-        super(TD, self).__init__(policy, mdp_info, params)
+        super(TD, self).__init__(policy, mdp_info, params, features)
 
     def fit(self, dataset, n_iterations=1):
         assert n_iterations == 1 and len(dataset) == 1
@@ -257,25 +257,57 @@ class ExpectedSARSA(TD):
             reward + self.mdp_info.gamma * q_next - q_current)
 
 
-class LinearSARSA(TD):
+class TrueOnlineSARSALambda(TD):
     """
-    SARSA with linear function approximation algorithm.
+    True Online SARSA(lambda) with linear function approximation.
+    "True Online TD(lambda)". Seijen H. et al.. 2014.
 
     """
-    def __init__(self, policy, mdp_info, params):
+    def __init__(self, policy, mdp_info, params, features):
         self.Q = Regressor(LinearApproximator, **params['approximator_params'])
+        self.e = Regressor(LinearApproximator, **params['approximator_params'])
+        self.e.set_weights(np.zeros(self.Q.weights_size))
+        self._lambda = params['algorithm_params']['lambda']
+        self._q_old = None
 
-        super(LinearSARSA, self).__init__(self.Q, policy, mdp_info, params)
+        super(TrueOnlineSARSALambda, self).__init__(self.Q, policy, mdp_info,
+                                                    params, features)
 
     def _update(self, state, action, reward, next_state, absorbing):
-        q_current = self.Q.predict(state, action)
+        phi_state = self.phi(state)
+        q_current = self.Q.predict(phi_state, action)
+
+        if self._q_old is None:
+            self._q_old = q_current
+
         self._next_action = self.draw_action(next_state)
 
-        q_next = self.Q.predict(next_state,
+        phi_next_state = self.phi(next_state)
+        q_next = self.Q.predict(phi_next_state,
                                 self._next_action) if not absorbing else 0.
 
-        delta = reward + self.mdp_info.gamma * q_next - q_current
+        delta = reward + self.mdp_info.gamma * q_next - self._q_old
 
+        extended_phi_state = np.zeros(self.Q.weights_size)
+        extended_phi_state[phi_state.size * action[0]:phi_state.size * (
+            action[0] + 1)] = phi_state
+
+        e_w = self.mdp_info.gamma * self._lambda * self.e.get_weights() +\
+            self.alpha(state, action) * (
+                1. - self.mdp_info.gamma * self._lambda * self.e.predict(
+                    phi_state, action)) * extended_phi_state
+
+        self.e.set_weights(e_w)
+
+        theta = self.Q.get_weights()
+        theta += delta * e_w + self.alpha.get_value(state, action) * (
+            self._q_old - q_current) * extended_phi_state
+
+        self._q_old = q_next
+
+    def episode_start(self):
+        self._q_old = None
+        self.e.set_weights(np.zeros(self.Q.weights_size))
 
 
 class RLearning(TD):

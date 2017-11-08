@@ -71,6 +71,10 @@ class QRegressor:
         else:
             return q
 
+    @property
+    def weights_size(self):
+        return self.model.weights_size
+
     def get_weights(self):
         return self.model.get_weights()
 

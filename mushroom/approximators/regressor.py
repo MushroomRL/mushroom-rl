@@ -127,7 +127,7 @@ class Regressor:
             return self._impl.weights_size
         except AttributeError:
             raise NotImplementedError('Attempt to get shape of weights of a'
-                                      'non-parametric regressor.')
+                                      ' non-parametric regressor.')
 
     def get_weights(self):
         """
@@ -139,19 +139,19 @@ class Regressor:
             return self._impl.get_weights()
         except AttributeError:
             raise NotImplementedError('Attempt to get weights of a'
-                                      'non-parametric regressor.')
+                                      ' non-parametric regressor.')
 
     def set_weights(self, w):
         """
         Args:
-            w (list): list of weights to be set in the model.
+            w ([list, np.array]): list of weights to be set in the model.
 
         """
         try:
             self._impl.set_weights(w)
         except AttributeError:
             raise NotImplementedError('Attempt to set weights of a'
-                                      'non-parametric regressor.')
+                                      ' non-parametric regressor.')
 
     def diff(self, *z):
         """
@@ -166,7 +166,7 @@ class Regressor:
             return self._impl.diff(*z)
         except AttributeError:
             raise NotImplementedError('Attempt to compute derivative of a'
-                                      'non-differentiable regressor.')
+                                      ' non-differentiable regressor.')
 
     def __len__(self):
         return len(self._impl)

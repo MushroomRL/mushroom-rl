@@ -1,7 +1,6 @@
 Algorithms:
     a) Value-based:
         * Continuous:
-            - Linear SARSA
             - SARSA(lambda)
             - Weighted FQI
             - LSPI

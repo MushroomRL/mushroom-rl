@@ -1,6 +1,3 @@
-from mushroom.algorithms.value.dqn import AveragedDQN, DQN, DoubleDQN,\
-    WeightedDQN
+from .agent import Agent
 
-__all__ = ['Algorithm', 'BatchTD', 'FQI', 'AveragedDQN', 'DQN', 'DoubleDQN',
-           'WeightedDQN', 'DoubleFQI', 'WeightedFQI', 'TD', 'QLearning',
-           'DoubleQLearning', 'WeightedQLearning', 'SARSA']
+__all__ = ['Agent']
