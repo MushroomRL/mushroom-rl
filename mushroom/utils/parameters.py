@@ -52,7 +52,8 @@ class ExponentialDecayParameter(Parameter):
         super(ExponentialDecayParameter, self).__init__(value, min_value, size)
 
     def _compute(self, *idx, **kwargs):
-        return self._initial_value / self._n_updates[idx] ** self._decay_exp
+        n = np.maximum(self._n_updates[idx], 1)
+        return self._initial_value / n ** self._decay_exp
 
 
 class AdaptiveParameter(object):
