@@ -183,7 +183,7 @@ class WeightedFQI(FQI):
 class LSPI(BatchTD):
     """
     Least-Squares Policy Iteration algorithm.
-    "Least-Squares Policy Iteration".
+    "Least-Squares Policy Iteration". Lagoudakis M. G.. 2003.
 
     """
     def __init__(self, approximator, policy, gamma, params):

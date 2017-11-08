@@ -57,6 +57,8 @@ class QRegressor:
             The predictions of the model.
 
         """
+        assert len(z) == 1 or len(z) == 2
+
         state = self._preprocess(z[0])
         q = self.model.predict(state, **predict_params)
 
@@ -67,8 +69,6 @@ class QRegressor:
             else:
                 return q[np.arange(q.shape[0]), action]
         else:
-            assert len(z) == 1
-
             return q
 
     def get_weights(self):

@@ -10,7 +10,7 @@ class Agent(object):
 
         Args:
             policy (object): the policy to use for the agent;
-            gamma (float): discount factor;
+            mdp_info (object): information about the MDP;
             params (dict): other parameters of the algorithm;
             features (object, None): features to use for the input of the
                 approximator.

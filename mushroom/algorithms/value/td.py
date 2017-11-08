@@ -2,7 +2,8 @@ import numpy as np
 from copy import deepcopy
 
 from mushroom.algorithms.agent import Agent
-from mushroom.approximators import EnsembleTable
+from mushroom.approximators import EnsembleTable, Regressor
+from mushroom.approximators.parametric import LinearApproximator
 from mushroom.utils.table import Table
 
 
@@ -240,17 +241,41 @@ class ExpectedSARSA(TD):
     2009.
 
     """
+    def __init__(self, policy, mdp_info, params):
+        self.Q = Table(mdp_info.size)
+        super(ExpectedSARSA, self).__init__(self.Q, policy, mdp_info, params)
+
     def _update(self, state, action, reward, next_state, absorbing):
-        pass
+        q_current = self.Q[state, action]
+
+        if not absorbing:
+            q_next = self.Q[next_state, :].dot(self.policy(next_state))
+        else:
+            q_next = 0.
+
+        self.Q[state, action] = q_current + self.alpha(state, action) * (
+            reward + self.mdp_info.gamma * q_next - q_current)
 
 
 class LinearSARSA(TD):
     """
-    LinearSARSA algorithm.
+    SARSA with linear function approximation algorithm.
 
     """
-    def __init__(self):
-        pass
+    def __init__(self, policy, mdp_info, params):
+        self.Q = Regressor(LinearApproximator, **params['approximator_params'])
+
+        super(LinearSARSA, self).__init__(self.Q, policy, mdp_info, params)
+
+    def _update(self, state, action, reward, next_state, absorbing):
+        q_current = self.Q.predict(state, action)
+        self._next_action = self.draw_action(next_state)
+
+        q_next = self.Q.predict(next_state,
+                                self._next_action) if not absorbing else 0.
+
+        delta = reward + self.mdp_info.gamma * q_next - q_current
+
 
 
 class RLearning(TD):
