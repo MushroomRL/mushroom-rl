@@ -8,7 +8,7 @@ from mushroom.environments import ShipSteering
 from mushroom.features.basis import GaussianRBF
 from mushroom.features.features import Features
 from mushroom.features.tensors import gaussian_tensor
-from mushroom.policy import GaussianPolicy
+from mushroom.policy import GaussianPolicy, MultivariateGaussianPolicy
 from mushroom.utils.dataset import compute_J
 from mushroom.utils.parameters import Parameter, AdaptiveParameter
 
@@ -40,12 +40,15 @@ def experiment(n_iterations, n_runs, ep_per_run, use_tensorflow):
 
     input_shape = (phi.size,)
 
-    approximator_params = dict(params_shape=shape)
+    approximator_params = dict(input_dim=phi.size)
     approximator = Regressor(LinearApproximator, input_shape=input_shape,
                              output_shape=mdp.info.action_space.shape,
                              params=approximator_params)
-    sigma = Parameter(value=.05)
-    policy = GaussianPolicy(mu=approximator, sigma=sigma)
+    #sigma = Parameter(value=.05)
+    #policy = GaussianPolicy(mu=approximator, sigma=sigma)
+
+    sigma = np.array([[.05]])
+    policy = MultivariateGaussianPolicy(mu=approximator, sigma=sigma)
 
     # Agent
     learning_rate = AdaptiveParameter(value=.01)
@@ -53,7 +56,7 @@ def experiment(n_iterations, n_runs, ep_per_run, use_tensorflow):
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
-    agent = REINFORCE(policy, mdp.info.gamma, agent_params, phi)
+    agent = REINFORCE(policy, mdp.info, agent_params, phi)
 
     # Train
     core = Core(agent, mdp)

@@ -9,7 +9,7 @@ class PolicyGradient(Agent):
     al.. 2011.
 
     """
-    def __init__(self, policy, gamma, params, features):
+    def __init__(self, policy, mdp_info, params, features):
         """
         Constructor.
 
@@ -25,7 +25,7 @@ class PolicyGradient(Agent):
         self.J_episode = None
         self.df = None
 
-        super(PolicyGradient, self).__init__(policy, gamma, params, features)
+        super(PolicyGradient, self).__init__(policy, mdp_info, params, features)
 
     def fit(self, dataset, n_iterations):
         assert n_iterations == 1
@@ -37,7 +37,7 @@ class PolicyGradient(Agent):
         for sample in dataset:
             state, action, reward, next_state, _, last = self._parse(sample)
             J_episode += df * reward
-            df *= self._gamma
+            df *= self.mdp_info.gamma
             self._step_update(state, action)
 
             if last:

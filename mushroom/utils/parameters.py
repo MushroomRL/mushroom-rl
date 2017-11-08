@@ -67,7 +67,7 @@ class AdaptiveParameter(object):
         if len(args) == 2:
             gradient = args[0]
             nat_gradient = args[1]
-            tmp = np.asscalar(np.dot(gradient.T, nat_gradient))
+            tmp = np.asscalar(gradient.dot(nat_gradient))
             lambda_v = np.sqrt(tmp / (4. * self._eps))
             # For numerical stability
             lambda_v = max(lambda_v, 1e-8)

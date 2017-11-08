@@ -47,8 +47,8 @@ class SimpleRegressor:
         return self.model.predict(x, **predict_params)
 
     @property
-    def weights_shape(self):
-        return self.model.weights_shape
+    def weights_size(self):
+        return self.model.weights_size
 
     def get_weights(self):
         return self.model.get_weights()
