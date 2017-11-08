@@ -56,7 +56,7 @@ def experiment(n_iterations, n_runs, ep_per_run, use_tensorflow):
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
-    agent = REINFORCE(policy, mdp.info.gamma, agent_params, phi)
+    agent = REINFORCE(policy, mdp.info, agent_params, phi)
 
     # Train
     core = Core(agent, mdp)
