@@ -39,7 +39,6 @@ def experiment(n_iterations, n_runs, ep_per_run, use_tensorflow):
         phi = Features(basis_list=basis)
 
     input_shape = (phi.size,)
-    shape = input_shape + mdp.info.action_space.shape
 
     approximator_params = dict(params_shape=shape)
     approximator = Regressor(LinearApproximator, input_shape=input_shape,
