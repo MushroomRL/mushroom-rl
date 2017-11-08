@@ -4,38 +4,25 @@ class Agent(object):
     actions from its policy.
 
     """
-    def __init__(self, policy, gamma, params, features=None):
+    def __init__(self, policy, mdp_info, params, features=None):
         """
         Constructor.
 
         Args:
             policy (object): the policy to use for the agent;
-            gamma (float): discount factor;
+            mdp_info (object): information about the MDP;
             params (dict): other parameters of the algorithm;
             features (object, None): features to use for the input of the
                 approximator.
 
         """
         self.policy = policy
-        self._gamma = gamma
+        self.mdp_info = mdp_info
         self.params = params
-
-        self.mdp_info = dict()
 
         self.phi = features
 
         self._next_action = None
-
-    def initialize(self, mdp_info):
-        """
-        Fill the dictionary with information about the MDP.
-
-        Args:
-            mdp_info (dict): MDP information.
-
-        """
-        for k, v in mdp_info.iteritems():
-            self.mdp_info[k] = v
 
     def fit(self, dataset, n_iterations):
         """

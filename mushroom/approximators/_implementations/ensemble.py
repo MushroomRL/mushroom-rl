@@ -112,5 +112,9 @@ class EnsembleTable(Ensemble):
                                             **approximator_params)
 
     @property
+    def n_actions(self):
+        return self._model[0].shape[-1]
+
+    @property
     def model(self):
         return self._model

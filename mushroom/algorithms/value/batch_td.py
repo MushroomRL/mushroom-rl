@@ -11,7 +11,7 @@ class BatchTD(Agent):
     Abstract class to implement a generic Batch TD algorithm.
 
     """
-    def __init__(self, approximator, policy, gamma, params):
+    def __init__(self, approximator, policy, mdp_info, params):
         """
         Constructor.
 
@@ -26,10 +26,7 @@ class BatchTD(Agent):
                                       **params['approximator_params'])
         policy.set_q(self.approximator)
 
-        super(BatchTD, self).__init__(policy, gamma, params)
-
-    def __str__(self):
-        return self.__name__
+        super(BatchTD, self).__init__(policy, mdp_info, params)
 
 
 class FQI(BatchTD):
@@ -38,10 +35,8 @@ class FQI(BatchTD):
     "Tree-Based Batch Mode Reinforcement Learning", Ernst D. et al.. 2005.
 
     """
-    def __init__(self, approximator, policy, gamma, params):
-        self.__name__ = 'FQI'
-
-        super(FQI, self).__init__(approximator, policy, gamma, params)
+    def __init__(self, approximator, policy, mdp_info, params):
+        super(FQI, self).__init__(approximator, policy, mdp_info, params)
 
         self._target = None
 
@@ -95,7 +90,7 @@ class FQI(BatchTD):
                 q *= 1 - absorbing.reshape(-1, 1)
 
             max_q = np.max(q, axis=1)
-            self._target = reward + self._gamma * max_q
+            self._target = reward + self.mdp_info.gamma * max_q
 
         self.approximator.fit(state, action, self._target,
                               **self.params['fit_params'])
@@ -118,7 +113,7 @@ class FQI(BatchTD):
                 self._next_q *= 1 - absorbing.reshape(-1, 1)
 
             max_q = np.max(self._next_q, axis=1)
-            self._target = reward + self._gamma * max_q
+            self._target = reward + self.mdp_info.gamma * max_q
 
         self._target -= self._prediction
         self._prediction += self._target
@@ -136,11 +131,9 @@ class DoubleFQI(FQI):
     Problems". D'Eramo C. et al.. 2017.
 
     """
-    def __init__(self, approximator, policy, gamma, params):
-        self.__name__ = 'DoubleFQI'
-
+    def __init__(self, approximator, policy, mdp_info, params):
         params['approximator_params']['n_models'] = 2
-        super(DoubleFQI, self).__init__(approximator, policy, gamma, params)
+        super(DoubleFQI, self).__init__(approximator, policy, mdp_info, params)
 
     def _fit(self, x):
         state = list()
@@ -169,7 +162,7 @@ class DoubleFQI(FQI):
                 amax_q = np.expand_dims(np.argmax(q_i, axis=1), axis=1)
                 max_q = self.approximator.predict(next_state[i], amax_q,
                                                   idx=1 - i)
-                self._target[i] = reward[i] + self._gamma * max_q
+                self._target[i] = reward[i] + self.mdp_info.gamma * max_q
 
         for i in xrange(2):
             self.approximator.fit(state[i], action[i], self._target[i], idx=i,
@@ -183,10 +176,15 @@ class WeightedFQI(FQI):
     Problems". D'Eramo C. et al.. 2017.
 
     """
-    def __init__(self, approximator, policy, gamma, params):
-        self.__name__ = 'WeightedFQI'
-
-        super(WeightedFQI, self).__init__(approximator, policy, gamma, params)
-
     def _fit(self, x):
+        pass
+
+
+class LSPI(BatchTD):
+    """
+    Least-Squares Policy Iteration algorithm.
+    "Least-Squares Policy Iteration". Lagoudakis M. G.. 2003.
+
+    """
+    def __init__(self, approximator, policy, gamma, params):
         pass

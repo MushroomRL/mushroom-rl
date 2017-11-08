@@ -20,18 +20,16 @@ def experiment(algorithm_class, decay_exp):
 
     # Policy
     epsilon = Parameter(value=1.)
-    pi = EpsGreedy(epsilon=epsilon, observation_space=mdp.observation_space,
-                   action_space=mdp.action_space)
+    pi = EpsGreedy(epsilon=epsilon)
 
     # Agent
-    shape = mdp.observation_space.size + mdp.action_space.size
     learning_rate = ExponentialDecayParameter(value=1., decay_exp=decay_exp,
-                                              shape=shape)
+                                              size=mdp.info.size)
     algorithm_params = dict(learning_rate=learning_rate)
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
-    agent = algorithm_class(shape, pi, mdp.gamma, agent_params)
+    agent = algorithm_class(pi, mdp.info, agent_params)
 
     # Algorithm
     collect_Q = CollectQ(agent.approximator)

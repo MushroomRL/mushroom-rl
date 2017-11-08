@@ -6,7 +6,6 @@ Algorithms:
             - Weighted FQI
             - LSPI
         * Discrete:
-            - Expected SARSA
             - SARSA(lambda)
             - Q(lambda)
 

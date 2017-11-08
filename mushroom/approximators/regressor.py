@@ -41,6 +41,8 @@ class Regressor:
         self._input_shape = input_shape
         self._output_shape = output_shape
 
+        self.n_actions = n_actions
+
         assert n_models >= 1
         self._n_models = n_models
 

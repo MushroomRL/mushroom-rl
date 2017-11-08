@@ -69,6 +69,8 @@ class ActionRegressor:
             The predictions of the model.
 
         """
+        assert len(z) == 1 or len(z) == 2
+
         state = z[0]
         state = self._preprocess(state)
 
@@ -81,8 +83,6 @@ class ActionRegressor:
                     q[idxs] = self.model[i].predict(state[idxs, :],
                                                     **predict_params)
         else:
-            assert len(z) == 1
-
             q = np.zeros((state.shape[0], self._n_actions))
             for i in xrange(self._n_actions):
                 q[:, i] = self.model[i].predict(state, **predict_params)

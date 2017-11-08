@@ -1,6 +1,6 @@
 import numpy as np
 
-from mushroom.environments import Environment
+from mushroom.environments import Environment, MDPInfo
 from mushroom.utils import spaces
 
 
@@ -8,23 +8,14 @@ class ShipSteering(Environment):
     def __init__(self, small=True):
         self.__name__ = 'ShipSteering'
 
-        # MDP spaces
+        # MDP parameters
         self.field_size = 150 if small else 1000
         low = np.array([0, 0, -np.pi, -np.pi / 12.])
         high = np.array([self.field_size, self.field_size, np.pi, np.pi / 12.])
         self.omega_max = np.array([np.pi / 12.])
-        self.observation_space = spaces.Box(low=low, high=high)
-        self.action_space = spaces.Box(low=-self.omega_max, high=self.omega_max)
-
-        # MDP parameters
-        self.horizon = 5000
-        self.gamma = 0.99
-
-        # MDP properties
         self._v = 3.
         self._T = 5.
         self._dt = .2
-
         self._gate_s = np.empty(2)
         self._gate_e = np.empty(2)
         self._gate_s[0] = 100 if small else 900
@@ -32,7 +23,14 @@ class ShipSteering(Environment):
         self._gate_e[0] = 120 if small else 920
         self._gate_e[1] = 100 if small else 900
 
-        super(ShipSteering, self).__init__()
+        # MDP properties
+        observation_space = spaces.Box(low=low, high=high)
+        action_space = spaces.Box(low=-self.omega_max, high=self.omega_max)
+        horizon = 5000
+        gamma = .99
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+
+        super(ShipSteering, self).__init__(mdp_info)
 
     def reset(self, state=None):
         if state is None:

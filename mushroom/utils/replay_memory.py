@@ -24,18 +24,15 @@ class Buffer(object):
 
 
 class ReplayMemory(object):
-    def __init__(self, max_size, history_length=1):
+    def __init__(self, mdp_info, max_size, history_length=1):
         self._max_size = max_size
         self._history_length = history_length
         self._idx = 0
         self._full = False
 
-    def initialize(self, mdp_info):
-        observation_space = mdp_info['observation_space']
-        action_space = mdp_info['action_space']
-
-        observation_shape = tuple([self._max_size]) + observation_space.shape
-        action_shape = (self._max_size, action_space.shape[0])
+        observation_shape = tuple(
+            [self._max_size]) + mdp_info.observation_space.shape
+        action_shape = (self._max_size, mdp_info.action_space.shape[0])
 
         self._states = np.ones(observation_shape, dtype=np.float32)
         self._actions = np.ones(action_shape, dtype=np.float32)

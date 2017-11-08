@@ -63,6 +63,10 @@ class Table:
         return np.array(table)
 
     @property
+    def n_actions(self):
+        return self.table.shape[-1]
+
+    @property
     def shape(self):
         return self.table.shape
 

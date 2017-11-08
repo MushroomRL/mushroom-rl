@@ -149,18 +149,16 @@ def experiment():
 
         # Policy
         epsilon_test = Parameter(value=args.test_exploration_rate)
-        pi = EpsGreedy(epsilon=epsilon_test,
-                       observation_space=mdp.observation_space,
-                       action_space=mdp.action_space)
+        pi = EpsGreedy(epsilon=epsilon_test)
 
         # Approximator
         input_shape = (args.screen_height, args.screen_width,
                        args.history_length)
         approximator_params = dict(
             input_shape=input_shape,
-            output_shape=(mdp.action_space.n,),
-            n_actions=mdp.action_space.n,
-            input_preprocessor=[Scaler(mdp.observation_space.high)],
+            output_shape=(mdp.info.action_space.n,),
+            n_actions=mdp.info.action_space.n,
+            input_preprocessor=[Scaler(mdp.info.observation_space.high)],
             params={'name': 'test',
                     'load_path': args.load_path,
                     'optimizer': {'name': args.optimizer,
@@ -185,7 +183,7 @@ def experiment():
         agent_params = {'approximator_params': approximator_params,
                         'algorithm_params': algorithm_params,
                         'fit_params': fit_params}
-        agent = DQN(approximator, pi, mdp.gamma, agent_params)
+        agent = DQN(approximator, pi, mdp.info, agent_params)
 
         # Algorithm
         core_test = Core(agent, mdp)
@@ -233,19 +231,17 @@ def experiment():
                                        n=args.final_exploration_frame)
         epsilon_test = Parameter(value=args.test_exploration_rate)
         epsilon_random = Parameter(value=1)
-        pi = EpsGreedy(epsilon=epsilon_random,
-                       observation_space=mdp.observation_space,
-                       action_space=mdp.action_space)
+        pi = EpsGreedy(epsilon=epsilon_random)
 
         # Approximator
         input_shape = (args.screen_height, args.screen_width,
                        args.history_length)
         approximator_params = dict(
             input_shape=input_shape,
-            output_shape=(mdp.action_space.n,),
-            n_actions=mdp.action_space.n,
+            output_shape=(mdp.info.action_space.n,),
+            n_actions=mdp.info.action_space.n,
             input_preprocessor=[Scaler(
-                mdp.observation_space.high)],
+                mdp.info.observation_space.high)],
             params={'folder_name': folder_name,
                     'optimizer': {'name': args.optimizer,
                                   'lr': args.learning_rate,
@@ -276,13 +272,13 @@ def experiment():
                         'fit_params': fit_params}
 
         if args.algorithm == 'dqn':
-            agent = DQN(approximator, pi, mdp.gamma, agent_params)
+            agent = DQN(approximator, pi, mdp.info, agent_params)
         elif args.algorithm == 'ddqn':
-            agent = DoubleDQN(approximator, pi, mdp.gamma, agent_params)
+            agent = DoubleDQN(approximator, pi, mdp.info, agent_params)
         elif args.algorithm == 'wdqn':
-            agent = WeightedDQN(approximator, pi, mdp.gamma, agent_params)
+            agent = WeightedDQN(approximator, pi, mdp.info, agent_params)
         elif args.algorithm == 'adqn':
-            agent = AveragedDQN(approximator, pi, mdp.gamma, agent_params)
+            agent = AveragedDQN(approximator, pi, mdp.info, agent_params)
 
         # Algorithm
         core = Core(agent, mdp)
