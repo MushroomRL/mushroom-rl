@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy as np
 
 from mushroom.algorithms.agent import Agent
@@ -32,9 +34,9 @@ class DQN(Agent):
         self._episode_steps = 0
         self._no_op_actions = None
 
-        apprx_params_train = params['approximator_params']
+        apprx_params_train = deepcopy(params['approximator_params'])
         apprx_params_train['name'] = 'train'
-        apprx_params_target = params['approximator_params']
+        apprx_params_target = deepcopy(params['approximator_params'])
         apprx_params_target['name'] = 'target'
         self.approximator = Regressor(approximator, **apprx_params_train)
         self.target_approximator = Regressor(approximator,
