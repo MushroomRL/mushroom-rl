@@ -1,7 +1,3 @@
-import gym
-from gym.utils import seeding
-
-
 class MDPInfo:
     def __init__(self, observation_space, action_space, gamma, horizon):
         self.observation_space = observation_space
@@ -18,17 +14,18 @@ class MDPInfo:
         return self.observation_space.shape + self.action_space.shape
 
 
-class Environment(gym.Env):
+class Environment(object):
     def __init__(self, mdp_info):
         # MDP initialization
-        self._seed()
         self.reset()
 
         self._mdp_info = mdp_info
 
-    def _seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
+    def seed(self, seed):
+        if hasattr(self, 'env'):
+            self.env.seed(seed)
+        else:
+            raise NotImplementedError
 
     @property
     def info(self):

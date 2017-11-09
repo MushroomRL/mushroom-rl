@@ -18,10 +18,11 @@ H. V. et al. (2014).
 
 
 def experiment(alpha):
-    np.random.seed()
+    np.random.seed(386)
 
     # MDP
     mdp = Gym(name='MountainCar-v0', horizon=10000, gamma=1.)
+    mdp.seed(3)
 
     # Policy
     epsilon = Parameter(value=0.)
@@ -55,7 +56,7 @@ def experiment(alpha):
     core = Core(agent, mdp)
 
     # Train
-    core.learn(n_iterations=200000, how_many=1, n_fit_steps=1,
+    core.learn(n_iterations=2000, how_many=1, n_fit_steps=1,
                iterate_over='samples')
     core.reset()
 
@@ -63,16 +64,17 @@ def experiment(alpha):
     test_epsilon = Parameter(0.)
     agent.policy.set_epsilon(test_epsilon)
 
-    dataset = core.evaluate(how_many=20, iterate_over='episodes')
+    initial_states = np.array([[0., 0.], [.1, .1]])
+    dataset = core.evaluate(initial_states=initial_states)
 
     return np.mean(compute_J(dataset, 1.))
 
 
 if __name__ == '__main__':
-    n_experiment = 1
+    n_experiment = 2
 
     alpha = .1
     Js = Parallel(
         n_jobs=-1)(delayed(experiment)(alpha) for _ in range(n_experiment))
 
-    print(np.mean(Js))
+    assert np.mean(Js) == -399.5

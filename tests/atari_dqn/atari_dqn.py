@@ -5,7 +5,6 @@ import tensorflow as tf
 
 from examples.atari_dqn.convnet import ConvNet
 from mushroom.algorithms.value.dqn import DQN, DoubleDQN
-from mushroom.approximators import Regressor
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy

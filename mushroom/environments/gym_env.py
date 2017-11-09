@@ -1,7 +1,6 @@
 import gym
 
 from gym import spaces as gym_spaces
-from gym.envs import register
 from mushroom.environments import Environment, MDPInfo
 from mushroom.utils.spaces import *
 
@@ -24,8 +23,6 @@ class Gym(Environment):
 
         action_space = self._convert_gym_space(self.env.action_space)
         observation_space = self._convert_gym_space(self.env.observation_space)
-        horizon = horizon
-        gamma = gamma
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
         if isinstance(action_space, Discrete):
