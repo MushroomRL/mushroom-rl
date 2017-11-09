@@ -237,8 +237,8 @@ class SARSA(TD):
 class ExpectedSARSA(TD):
     """
     Expected SARSA algorithm.
-    "A theoretical and empirical analysis of Expected Sarsa". Seijen H. V..
-    2009.
+    "A theoretical and empirical analysis of Expected Sarsa". Seijen H. V. et
+    al.. 2009.
 
     """
     def __init__(self, policy, mdp_info, params):
@@ -260,7 +260,7 @@ class ExpectedSARSA(TD):
 class TrueOnlineSARSALambda(TD):
     """
     True Online SARSA(lambda) with linear function approximation.
-    "True Online TD(lambda)". Seijen H. et al.. 2014.
+    "True Online TD(lambda)". Seijen H. V. et al.. 2014.
 
     """
     def __init__(self, policy, mdp_info, params, features):

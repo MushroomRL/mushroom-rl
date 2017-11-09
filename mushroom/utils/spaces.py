@@ -1,21 +1,23 @@
 import numpy as np
 
-from gym import Space
 from sklearn.utils.extmath import cartesian
 
 
-class Box(Space):
+class Box:
     def __init__(self, low, high, shape=None):
         if shape is None:
-            assert low.shape == high.shape
             self._low = low
             self._high = high
             self._shape = low.shape
         else:
-            assert np.isscalar(low) and np.isscalar(high)
-            self._low = low + np.zeros(shape)
-            self._high = high + np.zeros(shape)
+            self._low = low
+            self._high = high
             self._shape = shape
+            if np.isscalar(low) and np.isscalar(high):
+                self._low += np.zeros(shape)
+                self._high += np.zeros(shape)
+
+        assert self._low.shape == self._high.shape
 
     def sample(self):
         return np.random.uniform(low=self._low,
@@ -24,18 +26,18 @@ class Box(Space):
 
     @property
     def low(self):
-        return np.unique(self._low)[0]
+        return self._low
 
     @property
     def high(self):
-        return np.unique(self._high)[0]
+        return self._high
 
     @property
     def shape(self):
         return self._shape
 
 
-class Discrete(Space):
+class Discrete:
     def __init__(self, n):
         self.n_list = np.array([n]) if isinstance(n, int) else np.array(n)
         self.values = cartesian([np.arange(x, dtype=int) for x in self.n_list])

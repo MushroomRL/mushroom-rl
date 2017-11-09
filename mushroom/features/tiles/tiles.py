@@ -28,9 +28,10 @@ class Tiles:
 
         if isinstance(n_tiles, list):
             assert(len(n_tiles) == len(self._range))
+
             self._n_tiles = n_tiles
         else:
-            self._n_tiles = [n_tiles]*len(self._range)
+            self._n_tiles = [n_tiles] * len(self._range)
 
         self._state_components = state_components
 

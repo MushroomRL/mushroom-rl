@@ -2,7 +2,12 @@ import numpy as np
 
 
 class LinearApproximator:
-    def __init__(self, params=None, input_dim=None, output_dim=1, **kwargs):
+    def __init__(self, params=None, input_shape=None, output_shape=1, **kwargs):
+        assert len(input_shape) == 1 and len(output_shape) == 1
+
+        input_dim = input_shape[0]
+        output_dim = output_shape[0]
+
         if params is not None:
             self._w = params.reshape((output_dim, -1))
         elif input_dim is not None:

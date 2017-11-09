@@ -43,7 +43,7 @@ def experiment(double):
                                output_shape=(mdp.info.action_space.n,),
                                n_actions=mdp.info.action_space.n,
                                input_preprocessor=[Scaler(
-                                   mdp.info.observation_space.high)],
+                                   mdp.info.observation_space.high[0, 0])],
                                optimizer={'name': 'rmsprop',
                                           'lr': .00025,
                                           'decay': .95,
