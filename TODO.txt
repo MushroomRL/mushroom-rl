@@ -1,11 +1,8 @@
 Algorithms:
     a) Value-based:
         * Continuous:
-            - SARSA(lambda)
             - Weighted FQI
             - LSPI
-        * Discrete:
-            - SARSA(lambda)
 
     b) Policy-based:
         * Policy gradient:
