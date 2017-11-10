@@ -29,15 +29,9 @@ def experiment(alpha):
 
     # Agent
     learning_rate = Parameter(alpha)
-    tilings = list()
-    n_tilings = 10
-    tiles_dim = 10
-    offset = 1. / (n_tilings * tiles_dim)
-    for i in xrange(10):
-        x_min = mdp.info.observation_space.low - (n_tilings - 1 - i) * offset
-        x_max = mdp.info.observation_space.high + i * offset
-        x_range = [[x, y] for x, y in zip(x_min, x_max)]
-        tilings.append(Tiles(x_range, [n_tilings, n_tilings]))
+    tilings = Tiles.generate(10, [10, 10],
+                             mdp.info.observation_space.low,
+                             mdp.info.observation_space.high)
     features = Features(tilings=tilings)
 
     approximator_params = dict(input_shape=(features.size,),
@@ -63,7 +57,7 @@ def experiment(alpha):
     test_epsilon = Parameter(0.)
     agent.policy.set_epsilon(test_epsilon)
 
-    dataset = core.evaluate(how_many=20, iterate_over='episodes')
+    dataset = core.evaluate(how_many=20, iterate_over='episodes', render=1)
 
     return np.mean(compute_J(dataset, 1.))
 
