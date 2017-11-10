@@ -9,7 +9,7 @@ class Ensemble(object):
     This class is used to create an ensemble of regressors.
 
     """
-    def __init__(self, model, n_models, prediction, **params):
+    def __init__(self, model, n_models, prediction='mean', **params):
         """
         Constructor.
 
