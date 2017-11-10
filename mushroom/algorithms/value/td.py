@@ -258,7 +258,7 @@ class SARSALambdaDiscrete(TD):
         for s in self.mdp_info.observation_space.values:
             for a in self.mdp_info.action_space.values:
                 self.Q[s, a] += self.alpha(s, a) * delta * self.e[s, a]
-                self.e[s, a] = self.mdp_info.gamma * self._lambda
+                self.e[s, a] *= self.mdp_info.gamma * self._lambda
 
 
 class SARSALambdaContinuous(TD):
