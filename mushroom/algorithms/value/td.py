@@ -4,6 +4,7 @@ from copy import deepcopy
 from mushroom.algorithms.agent import Agent
 from mushroom.approximators import EnsembleTable, Regressor
 from mushroom.approximators.parametric import LinearApproximator
+from mushroom.utils.eligibility_trace import EligibilityTrace
 from mushroom.utils.table import Table
 
 
@@ -241,9 +242,10 @@ class SARSALambdaDiscrete(TD):
     """
     def __init__(self, policy, mdp_info, params):
         self.Q = Table(mdp_info.size)
-        self.e = Table(self.Q.shape)
         self._lambda = params['algorithm_params']['lambda']
-        self._trace = params.get('algorithm_params', 'replacing')
+
+        trace = params.get('algorithm_params', 'replacing')
+        self.e = EligibilityTrace(self.Q.shape, trace)
         super(SARSALambdaDiscrete, self).__init__(self.Q, policy, mdp_info,
                                                   params)
 
@@ -254,18 +256,13 @@ class SARSALambdaDiscrete(TD):
         q_next = self.Q[next_state, self._next_action] if not absorbing else 0.
 
         delta = reward + self.mdp_info.gamma * q_next - q_current
-        if self._trace == 'accumulating':
-            self.e[state, action] += 1.
-        elif self._trace == 'replacing':
-            self.e[state, action] = 1.
-        else:
-            raise ValueError('Unknown type of trace.')
+        self.e.update(state, action)
 
         self.Q.table += self.alpha(state, action) * delta * self.e.table
         self.e.table *= self.mdp_info.gamma * self._lambda
 
     def episode_start(self):
-        self.e.table[:] = 0.
+        self.e.reset()
 
 
 class SARSALambdaContinuous(TD):
