@@ -11,6 +11,35 @@ class TDPolicy(object):
         """
         self._approximator = None
 
+    def __call__(self, *args):
+        """
+        Compute the probability of taking action in a certain state following
+        the policy.
+
+        Args:
+            *args (list): list containing a state or a state and an action.
+
+        Returns:
+            The probability of all actions following the policy in the given
+            state if the list contains only the state, else the probability
+            of the given action in the given state following the policy.
+
+        """
+        raise NotImplementedError
+
+    def draw_action(self, state):
+        """
+        Sample an action in `state` using the policy.
+
+        Args:
+            state (np.array): the state where the agent is.
+
+        Returns:
+            The action sampled from the policy.
+
+        """
+        raise NotImplementedError
+
     def set_q(self, approximator):
         """
         Args:
@@ -54,21 +83,6 @@ class EpsGreedy(TDPolicy):
         self._epsilon = epsilon
 
     def __call__(self, *args):
-        """
-        Compute the probability of taking action in a certain state following
-        the policy.
-
-        Args:
-            *args (list): list containing a state or a state and an action.
-
-        Returns:
-            The probability of all actions following the policy in the given
-            state if the list contains only the state, else the probability
-            of the given action in the given state following the policy.
-
-        """
-        assert len(args) == 1 or len(args) == 2
-
         state = args[0]
         q = self._approximator.predict(np.expand_dims(state, axis=0)).ravel()
         max_a = np.argwhere(q == np.max(q)).ravel()
@@ -88,16 +102,6 @@ class EpsGreedy(TDPolicy):
             return probs
 
     def draw_action(self, state):
-        """
-        Sample an action in `state` using the policy.
-
-        Args:
-            state (np.array): the state where the agent is.
-
-        Returns:
-            The action sampled from the policy.
-
-        """
         if not np.random.uniform() < self._epsilon(state):
             q = self._approximator.predict(np.expand_dims(state, axis=0))
             max_a = np.argwhere((q == np.max(q, axis=1)).ravel()).ravel()
@@ -133,3 +137,45 @@ class EpsGreedy(TDPolicy):
 
         """
         self._epsilon.update(*idx)
+
+
+class Softmax(TDPolicy):
+    """
+    Softmax policy using a Boltzmann distribution.
+
+    """
+    def __init__(self, tau):
+        """
+        Constructor.
+
+        Args:
+            tau (float): the temperature of the distribution. As the temperature
+            approaches infinity, the policy becomes more and more random. As the
+            temperature approaches 0.0, the policy becomes more and more greedy.
+
+        """
+        self.__name__ = 'Softmax'
+
+        super(Softmax, self).__init__()
+        self._tau = tau
+
+    def __call__(self, *args):
+        state = args[0]
+        qs = np.ones(self._approximator.n_actions)
+        for a in xrange(self._approximator.n_actions):
+            qs[a] = (np.e**(self._approximator.predict(state, a) / self._tau))
+
+        if len(args) == 2:
+            action = args[1]
+
+            return qs[action] / qs
+        else:
+            p = np.ones(qs.size)
+            for i in xrange(p.size):
+                p[i] = qs[i] / qs
+
+            return p
+
+    def draw_action(self, state):
+        return np.array([np.random.choice(self._approximator.n_actions,
+                                          p=self(state))])
