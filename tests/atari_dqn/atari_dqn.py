@@ -1,10 +1,11 @@
 import os
 
+import gym
 import numpy as np
 import tensorflow as tf
 
 from examples.atari_dqn.convnet import ConvNet
-from mushroom.algorithms.value.dqn import DQN, DoubleDQN
+from mushroom.algorithms.value.dqn import AveragedDQN, DQN, DoubleDQN
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
@@ -15,7 +16,8 @@ from mushroom.utils.preprocessor import Scaler
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 
-def experiment(double):
+def experiment(alg):
+    gym.logger.setLevel(0)
     np.random.seed(88)
     tf.set_random_seed(88)
 
@@ -55,6 +57,7 @@ def experiment(double):
     algorithm_params = dict(
         batch_size=32,
         initial_replay_size=initial_replay_size,
+        n_approximators=2 if alg == 'adqn' else 1,
         max_replay_size=max_replay_size,
         history_length=4,
         train_frequency=train_frequency,
@@ -67,10 +70,12 @@ def experiment(double):
                     'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
 
-    if not double:
+    if alg == 'dqn':
         agent = DQN(approximator, pi, mdp.info, agent_params)
-    else:
+    elif alg == 'ddqn':
         agent = DoubleDQN(approximator, pi, mdp.info, agent_params)
+    elif alg == 'adqn':
+        agent = AveragedDQN(approximator, pi, mdp.info, agent_params)
 
     # Algorithm
     core = Core(agent, mdp)
@@ -105,12 +110,15 @@ def experiment(double):
 if __name__ == '__main__':
     print('Executing atari_dqn test...')
 
-    res = experiment(False)
+    res = experiment('dqn')
     test_res = np.load('tests/atari_dqn/w.npy')
     tf.reset_default_graph()
-    d_res = experiment(True)
+    d_res = experiment('ddqn')
     d_test_res = np.load('tests/atari_dqn/dw.npy')
+    a_res = experiment('adqn')
+    a_test_res = np.load('tests/atari_dqn/aw.npy')
 
     for i in xrange(len(res)):
         assert np.array_equal(res[i], test_res[i])
         assert np.array_equal(d_res[i], d_test_res[i])
+        assert np.array_equal(a_res[i], a_test_res[i])

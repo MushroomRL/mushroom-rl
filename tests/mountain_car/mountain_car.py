@@ -1,3 +1,4 @@
+import gym
 import numpy as np
 from joblib import Parallel, delayed
 
@@ -18,6 +19,7 @@ H. V. et al. (2014).
 
 
 def experiment(alpha):
+    gym.logger.setLevel(0)
     np.random.seed(386)
 
     # MDP
@@ -51,7 +53,7 @@ def experiment(alpha):
 
     # Train
     core.learn(n_iterations=2000, how_many=1, n_fit_steps=1,
-               iterate_over='samples')
+               iterate_over='samples', quiet=True)
     core.reset()
 
     # Test
@@ -59,12 +61,14 @@ def experiment(alpha):
     agent.policy.set_epsilon(test_epsilon)
 
     initial_states = np.array([[0., 0.], [.1, .1]])
-    dataset = core.evaluate(initial_states=initial_states)
+    dataset = core.evaluate(initial_states=initial_states, quiet=True)
 
     return np.mean(compute_J(dataset, 1.))
 
 
 if __name__ == '__main__':
+    print('Executing mountain_car test...')
+
     n_experiment = 2
 
     alpha = .1
