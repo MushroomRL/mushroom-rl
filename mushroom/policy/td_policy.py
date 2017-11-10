@@ -168,11 +168,11 @@ class Softmax(TDPolicy):
         if len(args) == 2:
             action = args[1]
 
-            return qs[action] / qs
+            return qs[action] / np.sum(qs)
         else:
             p = np.ones(qs.size)
             for i in xrange(p.size):
-                p[i] = qs[i] / qs
+                p[i] = qs[i] / np.sum(qs)
 
             return p
 
