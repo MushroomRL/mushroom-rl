@@ -13,9 +13,6 @@ Algorithms:
 Policy:
     a) Continuous:
         * multivariate gaussian
-    b) Discrete:
-        * Boltzmann
-        * Gibbs
 
 Environment:
     * LQR
