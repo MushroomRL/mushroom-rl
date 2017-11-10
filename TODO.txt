@@ -6,7 +6,6 @@ Algorithms:
             - LSPI
         * Discrete:
             - SARSA(lambda)
-            - Q(lambda)
 
     b) Policy-based:
         * Policy gradient:
