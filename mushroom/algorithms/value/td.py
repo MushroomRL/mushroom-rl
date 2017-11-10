@@ -243,6 +243,7 @@ class SARSALambdaDiscrete(TD):
         self.Q = Table(mdp_info.size)
         self.e = Table(self.Q.shape)
         self._lambda = params['algorithm_params']['lambda']
+        self._trace = params.get('algorithm_params', 'replacing')
         super(SARSALambdaDiscrete, self).__init__(self.Q, policy, mdp_info,
                                                   params)
 
@@ -253,15 +254,18 @@ class SARSALambdaDiscrete(TD):
         q_next = self.Q[next_state, self._next_action] if not absorbing else 0.
 
         delta = reward + self.mdp_info.gamma * q_next - q_current
-        self.e[state, action] += 1.
+        if self._trace == 'accumulating':
+            self.e[state, action] += 1.
+        elif self._trace == 'replacing':
+            self.e[state, action] = 1.
+        else:
+            raise ValueError('Unknown type of trace.')
 
-        for s in self.mdp_info.observation_space.values:
-            for a in self.mdp_info.action_space.values:
-                self.Q[s, a] += self.alpha(s, a) * delta * self.e[s, a]
-                self.e[s, a] *= self.mdp_info.gamma * self._lambda
+        self.Q.table += self.alpha(state, action) * delta * self.e.table
+        self.e.table *= self.mdp_info.gamma * self._lambda
 
     def episode_start(self):
-        self.e = Table(self.Q.shape)
+        self.e.table[:] = 0.
 
 
 class SARSALambdaContinuous(TD):
@@ -295,7 +299,7 @@ class SARSALambdaContinuous(TD):
         delta = reward + self.mdp_info.gamma * q_next - q_current
 
         theta = self.Q.get_weights()
-        theta += self.alpha(state, action) * delta * self.e
+        theta += self.alpha.get_value(state, action) * delta * self.e
         self.Q.set_weights(theta)
 
     def episode_start(self):
