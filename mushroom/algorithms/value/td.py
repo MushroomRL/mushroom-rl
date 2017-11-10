@@ -234,16 +234,17 @@ class SARSA(TD):
             reward + self.mdp_info.gamma * q_next - q_current)
 
 
-class SARSALambda(TD):
+class SARSALambdaDiscrete(TD):
     """
-    SARSA(Lambda) algorithm.
+    Discrete version of SARSA(lambda) algorithm.
 
     """
     def __init__(self, policy, mdp_info, params):
         self.Q = Table(mdp_info.size)
         self.e = Table(mdp_info.size)
         self._lambda = params['algorithm_params']['lambda']
-        super(SARSALambda, self).__init__(self.Q, policy, mdp_info, params)
+        super(SARSALambdaDiscrete, self).__init__(self.Q, policy, mdp_info,
+                                                  params)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
@@ -258,6 +259,41 @@ class SARSALambda(TD):
             for a in self.mdp_info.action_space.values:
                 self.Q[s, a] += self.alpha(s, a) * delta * self.e[s, a]
                 self.e[s, a] = self.mdp_info.gamma * self._lambda
+
+
+class SARSALambdaContinuous(TD):
+    """
+    Continuous version of SARSA(lambda) algorithm.
+
+    """
+    def __init__(self, approximator, policy, mdp_info, params, features):
+        self.Q = Regressor(approximator, **params['approximator_params'])
+        self.e = np.zeros(self.Q.weights_size)
+        self._lambda = params['algorithm_params']['lambda']
+
+        super(SARSALambdaContinuous, self).__init__(self.Q, policy, mdp_info,
+                                                    params, features)
+
+    def _update(self, state, action, reward, next_state, absorbing):
+        phi_state = self.phi(state)
+        q_current = self.Q.predict(phi_state, action)
+
+        self.e *= self.mdp_info.gamma * self._lambda
+        q_diff = self.Q.diff(phi_state, action)
+        start = phi_state.size * action[0]
+        stop = phi_state.size * (action[0] + 1)
+        self.e[start:stop] += q_diff
+
+        self._next_action = self.draw_action(next_state)
+        phi_next_state = self.phi(next_state)
+        q_next = self.Q.predict(phi_next_state,
+                                self._next_action) if not absorbing else 0.
+
+        delta = reward + self.mdp_info.gamma * q_next - q_current
+
+        theta = self.Q.get_weights()
+        theta += self.alpha(state, action) * delta * self.e
+        self.Q.set_weights(theta)
 
 
 class ExpectedSARSA(TD):
@@ -306,14 +342,6 @@ class TrueOnlineSARSALambda(TD):
         if self._q_old is None:
             self._q_old = q_current
 
-        self._next_action = self.draw_action(next_state)
-
-        phi_next_state = self.phi(next_state)
-        q_next = self.Q.predict(phi_next_state,
-                                self._next_action) if not absorbing else 0.
-
-        delta = reward + self.mdp_info.gamma * q_next - self._q_old
-
         extended_phi_state = np.zeros(self.Q.weights_size)
         start = phi_state.size * action[0]
         stop = phi_state.size * (action[0] + 1)
@@ -326,6 +354,13 @@ class TrueOnlineSARSALambda(TD):
             1. - self.mdp_info.gamma * self._lambda * self.e.predict(
                 phi_state, action)) * extended_phi_state
         self.e.set_weights(e)
+
+        self._next_action = self.draw_action(next_state)
+        phi_next_state = self.phi(next_state)
+        q_next = self.Q.predict(phi_next_state,
+                                self._next_action) if not absorbing else 0.
+
+        delta = reward + self.mdp_info.gamma * q_next - self._q_old
 
         theta = self.Q.get_weights()
         theta += delta * e + alpha * (
