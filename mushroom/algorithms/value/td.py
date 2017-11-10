@@ -241,7 +241,7 @@ class SARSALambdaDiscrete(TD):
     """
     def __init__(self, policy, mdp_info, params):
         self.Q = Table(mdp_info.size)
-        self.e = Table(mdp_info.size)
+        self.e = Table(self.Q.shape)
         self._lambda = params['algorithm_params']['lambda']
         super(SARSALambdaDiscrete, self).__init__(self.Q, policy, mdp_info,
                                                   params)
@@ -259,6 +259,9 @@ class SARSALambdaDiscrete(TD):
             for a in self.mdp_info.action_space.values:
                 self.Q[s, a] += self.alpha(s, a) * delta * self.e[s, a]
                 self.e[s, a] *= self.mdp_info.gamma * self._lambda
+
+    def episode_start(self):
+        self.e = Table(self.Q.shape)
 
 
 class SARSALambdaContinuous(TD):
@@ -294,6 +297,9 @@ class SARSALambdaContinuous(TD):
         theta = self.Q.get_weights()
         theta += self.alpha(state, action) * delta * self.e
         self.Q.set_weights(theta)
+
+    def episode_start(self):
+        self.e = np.zeros(self.Q.weights_size)
 
 
 class ExpectedSARSA(TD):
