@@ -8,7 +8,7 @@ from mushroom.utils import spaces
 class CarOnHill(Environment):
     """
     The Car On Hill environment as presented in:
-    "Tree-Based Batch Mode Reinforcement Learning, D. Ernst et. al."
+    "Tree-Based Batch Mode Reinforcement Learning". Ernst D. et al.. 2005.
 
     """
     def __init__(self):
