@@ -64,14 +64,18 @@ class Tiles:
 
     @staticmethod
     def generate(n_tilings, n_tiles, low, high):
+        assert len(n_tiles) == len(low) == len(high)
+
+        low = np.array(low, dtype=np.float)
+        high = np.array(high, dtype=np.float)
+
         tilings = list()
-        n_tiles = np.array(n_tiles)
-        offset = 1. / (n_tilings * n_tiles)
+        offset = (high - low) / (n_tilings * np.array(n_tiles))
         for i in xrange(n_tilings):
             x_min = low - (n_tilings - 1 - i) * offset
             x_max = high + i * offset
             x_range = [[x, y] for x, y in zip(x_min, x_max)]
-            tilings.append(Tiles(x_range, [n_tilings, n_tilings]))
+            tilings.append(Tiles(x_range, n_tiles))
 
         return tilings
 
