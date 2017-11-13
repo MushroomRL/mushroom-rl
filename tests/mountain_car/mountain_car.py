@@ -24,7 +24,7 @@ def experiment(alpha):
 
     # MDP
     mdp = Gym(name='MountainCar-v0', horizon=10000, gamma=1.)
-    mdp.seed(102)
+    mdp.seed(201)
 
     # Policy
     epsilon = Parameter(value=0.)
@@ -75,4 +75,4 @@ if __name__ == '__main__':
     Js = Parallel(
         n_jobs=-1)(delayed(experiment)(alpha) for _ in range(n_experiment))
 
-    assert np.mean(Js) == -394
+    assert np.mean(Js) == -443

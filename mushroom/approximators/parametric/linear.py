@@ -22,29 +22,35 @@ class LinearApproximator:
     def predict(self, x, **predict_params):
         return np.dot(x, self._w.T)
 
-    def get_weights(self):
-        return self._w.flatten()
-
-    def set_weights(self, w):
-        self._w = w.reshape(self._w.shape)
-
     @property
     def weights_size(self):
         return self._w.size
 
-    def diff(self, x):
-        if len(self._w.shape) == 1 or self._w.shape[0] == 1:
-            return x
+    def get_weights(self, action=None):
+        if action is not None:
+            return self._w[action[0]]
+        else:
+            return self._w.flatten()
+
+    def set_weights(self, w, action=None):
+        if action is not None:
+            self._w[action[0]] = w
+        else:
+            self._w = w.reshape(self._w.shape)
+
+    def diff(self, state, action=None):
+        if len(self._w.shape) == 1 or self._w.shape[0] == 1\
+                or action is not None:
+
+            return state
         else:
             n_phi = self._w.shape[1]
             n_outs = self._w.shape[0]
-
-            shape = (n_phi*n_outs, n_outs)
+            shape = (n_phi * n_outs, n_outs)
             df = np.zeros(shape)
-
             start = 0
             for i in xrange(n_outs):
                 end = start + n_phi
-                df[start:end, i] = x
+                df[start:end, i] = state
                 start = end
             return df

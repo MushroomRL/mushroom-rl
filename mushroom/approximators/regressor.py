@@ -127,26 +127,26 @@ class Regressor:
             raise NotImplementedError('Attempt to get shape of weights of a'
                                       ' non-parametric regressor.')
 
-    def get_weights(self):
+    def get_weights(self, *args):
         """
         Returns:
              the weights of the model.
 
         """
         try:
-            return self._impl.get_weights()
+            return self._impl.get_weights(*args)
         except AttributeError:
             raise NotImplementedError('Attempt to get weights of a'
                                       ' non-parametric regressor.')
 
-    def set_weights(self, w):
+    def set_weights(self, w, *args):
         """
         Args:
             w ([list, np.array]): list of weights to be set in the model.
 
         """
         try:
-            self._impl.set_weights(w)
+            self._impl.set_weights(w, *args)
         except AttributeError:
             raise NotImplementedError('Attempt to set weights of a'
                                       ' non-parametric regressor.')

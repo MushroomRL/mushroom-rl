@@ -349,18 +349,17 @@ class TrueOnlineSARSALambda(TD):
         if self._q_old is None:
             self._q_old = q_current
 
-        extended_phi_state = np.zeros(self.Q.weights_size)
-        start = phi_state.size * action[0]
-        stop = phi_state.size * (action[0] + 1)
-        extended_phi_state[start:stop] = phi_state
-
         alpha = self.alpha(state, action)
 
         e = self.e.get_weights()
-        e = self.mdp_info.gamma * self._lambda * e + alpha * (
-            1. - self.mdp_info.gamma * self._lambda * self.e.predict(
-                phi_state, action)) * extended_phi_state
+        e_phi = self.e.predict(phi_state, action)
+        e *= self.mdp_info.gamma * self._lambda
         self.e.set_weights(e)
+
+        e_action = self.e.get_weights(action)
+        e_action += alpha * (
+            1. - self.mdp_info.gamma * self._lambda * e_phi) * phi_state
+        self.e.set_weights(e_action, action)
 
         self._next_action = self.draw_action(next_state)
         phi_next_state = self.phi(next_state)
@@ -370,9 +369,12 @@ class TrueOnlineSARSALambda(TD):
         delta = reward + self.mdp_info.gamma * q_next - self._q_old
 
         theta = self.Q.get_weights()
-        theta += delta * e + alpha * (
-            self._q_old - q_current) * extended_phi_state
+        theta += delta * e
         self.Q.set_weights(theta)
+
+        theta_action = self.Q.get_weights(action)
+        theta_action += alpha * (self._q_old - q_current) * phi_state
+        self.Q.set_weights(theta_action, action)
 
         self._q_old = q_next
 

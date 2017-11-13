@@ -86,16 +86,32 @@ class ActionRegressor:
 
         return q
 
-    def get_weights(self):
-        w = list()
-        for m in self.model:
-            w.append(m.get_weights())
+    def get_weights(self, action=None):
+        if action is not None:
+            w = list()
+            for m in self.model:
+                w.append(m.get_weights())
 
-        return w
+            return w
+        else:
+            return self.model[action[0]].get_weights()
 
-    def set_weights(self, w):
-        for m in self.model:
-            m.set_weights(w)
+    def set_weights(self, w, action=None):
+        if action is not None:
+            for m in self.model:
+                m.set_weights(w)
+        else:
+            self.model[action[0]].set_weights(w)
+
+    def diff(self, state, action=None):
+        if action is not None:
+            diff = list()
+            for m in self.model:
+                diff.append(m.diff(state))
+
+            return diff
+        else:
+            return self.model[action[0]].diff(state)
 
     def _preprocess(self, state, q=None):
         for p in self._input_preprocessor:
