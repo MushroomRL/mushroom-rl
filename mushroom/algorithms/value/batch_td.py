@@ -3,6 +3,8 @@ from tqdm import tqdm
 
 from mushroom.algorithms.agent import Agent
 from mushroom.approximators import Regressor
+from mushroom.approximators.parametric import LinearApproximator
+from mushroom.features import get_action_features
 from mushroom.utils.dataset import parse_dataset
 
 
@@ -11,7 +13,7 @@ class BatchTD(Agent):
     Abstract class to implement a generic Batch TD algorithm.
 
     """
-    def __init__(self, approximator, policy, mdp_info, params):
+    def __init__(self, approximator, policy, mdp_info, params, features=None):
         """
         Constructor.
 
@@ -26,7 +28,7 @@ class BatchTD(Agent):
                                       **params['approximator_params'])
         policy.set_q(self.approximator)
 
-        super(BatchTD, self).__init__(policy, mdp_info, params)
+        super(BatchTD, self).__init__(policy, mdp_info, params, features)
 
 
 class FQI(BatchTD):
@@ -183,8 +185,40 @@ class WeightedFQI(FQI):
 class LSPI(BatchTD):
     """
     Least-Squares Policy Iteration algorithm.
-    "Least-Squares Policy Iteration". Lagoudakis M. G.. 2003.
+    "Least-Squares Policy Iteration". Lagoudakis M. G. and Parr R.. 2003.
 
     """
-    def __init__(self, approximator, policy, gamma, params):
-        pass
+    def __init__(self, policy, mdp_info, params, features):
+        k = features.size * mdp_info.action_space.n
+        self._A = np.zeros((k, k))
+        self._b = np.zeros((k, 1))
+
+        super(LSPI, self).__init__(LinearApproximator, policy, mdp_info, params,
+                                   features)
+
+    def fit(self, dataset, n_iterations):
+        phi_state, action, reward, phi_next_state, absorbing, _ = parse_dataset(
+            dataset, self.phi)
+        phi_state_action = get_action_features(phi_state, action,
+                                               self.mdp_info.action_space.n)
+        q = self.approximator.predict(phi_next_state)
+        if np.any(absorbing):
+            q *= 1 - absorbing.reshape(-1, 1)
+
+        next_action = np.argmax(q, axis=1).reshape(-1, 1)
+        phi_next_state_next_action = get_action_features(
+            phi_next_state,
+            next_action,
+            self.mdp_info.action_space.n
+        )
+
+        tmp = phi_state_action - self.mdp_info.gamma *\
+            phi_next_state_next_action
+        self._A += phi_state_action.T.dot(tmp)
+        self._b += (phi_state_action.T.dot(reward)).reshape(-1, 1)
+
+        if np.linalg.matrix_rank(self._A) == self._A.shape[1]:
+            w = np.linalg.solve(self._A, self._b)
+        else:
+            w = np.linalg.pinv(self._A).dot(self._b)
+        self.approximator.set_weights(w)

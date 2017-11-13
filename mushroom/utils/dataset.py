@@ -1,12 +1,13 @@
 import numpy as np
 
 
-def parse_dataset(dataset):
+def parse_dataset(dataset, features=None):
     """
     Split the dataset in its different components and return them.
 
     Args:
-        dataset (list): the dataset to parse.
+        dataset (list): the dataset to parse;
+        features (object): features to apply to the states.
 
     Returns:
         The np.array of state, action, reward, next_state, absorbing flag and
@@ -15,20 +16,31 @@ def parse_dataset(dataset):
     """
     assert len(dataset) > 0
 
-    state = np.ones((len(dataset),) + dataset[0][0].shape)
+    shape = dataset[0][0].shape if features is None else (features.size,)
+
+    state = np.ones((len(dataset),) + shape)
     action = np.ones((len(dataset),) + dataset[0][1].shape)
     reward = np.ones(len(dataset))
-    next_state = np.ones((len(dataset),) + dataset[0][3].shape)
+    next_state = np.ones((len(dataset),) + shape)
     absorbing = np.ones(len(dataset))
     last = np.ones(len(dataset))
 
-    for i in xrange(len(dataset)):
-        state[i, ...] = dataset[i][0]
-        action[i, ...] = dataset[i][1]
-        reward[i] = dataset[i][2]
-        next_state[i, ...] = dataset[i][3]
-        absorbing[i] = dataset[i][4]
-        last[i] = dataset[i][5]
+    if features is not None:
+        for i in xrange(len(dataset)):
+            state[i, ...] = features(dataset[i][0])
+            action[i, ...] = dataset[i][1]
+            reward[i] = dataset[i][2]
+            next_state[i, ...] = features(dataset[i][3])
+            absorbing[i] = dataset[i][4]
+            last[i] = dataset[i][5]
+    else:
+        for i in xrange(len(dataset)):
+            state[i, ...] = dataset[i][0]
+            action[i, ...] = dataset[i][1]
+            reward[i] = dataset[i][2]
+            next_state[i, ...] = dataset[i][3]
+            absorbing[i] = dataset[i][4]
+            last[i] = dataset[i][5]
 
     return np.array(state), np.array(action), np.array(reward), np.array(
         next_state), np.array(absorbing), np.array(last)

@@ -1,3 +1,5 @@
+import numpy as np
+
 from ._implementations.basis_features import BasisFeatures
 from ._implementations.tiles_features import TilesFeatures
 from ._implementations.tensorflow_features import TensorflowFeatures
@@ -40,3 +42,29 @@ def Features(basis_list=None, tilings=None, tensor_list=None, name=None,
     else:
         raise ValueError('You must specify a list of basis or a list of tilings'
                          'or a list of tensors.')
+
+
+def get_action_features(phi_state, action, n_actions):
+    if len(phi_state.shape) > 1:
+        assert phi_state.shape[0] == action.shape[0]
+
+        phi = np.ones((phi_state.shape[0], n_actions * phi_state[0].size))
+        i = 0
+        for s, a in zip(phi_state, action):
+            start = s.size * int(a[0])
+            stop = start + s.size
+
+            phi_sa = np.zeros(n_actions * s.size)
+            phi_sa[start:stop] = s
+
+            phi[i] = phi_sa
+
+            i += 1
+    else:
+        start = phi_state.size * action[0]
+        stop = start + phi_state.size
+
+        phi = np.zeros(n_actions * phi_state.size)
+        phi[start:stop] = phi_state
+
+    return phi

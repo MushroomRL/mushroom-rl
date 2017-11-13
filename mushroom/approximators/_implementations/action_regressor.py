@@ -82,29 +82,27 @@ class ActionRegressor:
         else:
             q = np.zeros((state.shape[0], self._n_actions))
             for i in xrange(self._n_actions):
-                q[:, i] = self.model[i].predict(state, **predict_params)
+                q[:, i] = self.model[i].predict(state,
+                                                **predict_params).flatten()
 
         return q
 
-    def get_weights(self, action=None):
-        if action is not None:
-            w = list()
-            for m in self.model:
-                w.append(m.get_weights())
+    def get_weights(self):
+        w = list()
+        for m in self.model:
+            w.append(m.get_weights())
 
-            return w
-        else:
-            return self.model[action[0]].get_weights()
+        return np.concatenate(w, axis=0)
 
-    def set_weights(self, w, action=None):
-        if action is not None:
-            for m in self.model:
-                m.set_weights(w)
-        else:
-            self.model[action[0]].set_weights(w)
+    def set_weights(self, w):
+        size = self.model[0].weights_size
+        for i, m in enumerate(self.model):
+            start = i * size
+            stop = start + size
+            m.set_weights(w[start:stop])
 
-    def diff(self, state, action=None):
-        if action is not None:
+    def diff(self, state, action):
+        if action is None:
             diff = list()
             for m in self.model:
                 diff.append(m.diff(state))

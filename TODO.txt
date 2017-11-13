@@ -3,7 +3,6 @@ Algorithms:
         * Continuous:
             - Weighted FQI
             - LSPI
-            - SARSA(lambda)
 
     b) Policy-based:
         * Policy gradient:

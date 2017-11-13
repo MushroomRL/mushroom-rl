@@ -26,31 +26,32 @@ class LinearApproximator:
     def weights_size(self):
         return self._w.size
 
-    def get_weights(self, action=None):
-        if action is not None:
-            return self._w[action[0]]
-        else:
-            return self._w.flatten()
+    def get_weights(self):
+        return self._w.flatten()
 
-    def set_weights(self, w, action=None):
-        if action is not None:
-            self._w[action[0]] = w
-        else:
-            self._w = w.reshape(self._w.shape)
+    def set_weights(self, w):
+        self._w = w.reshape(self._w.shape)
 
     def diff(self, state, action=None):
-        if len(self._w.shape) == 1 or self._w.shape[0] == 1\
-                or action is not None:
-
+        if len(self._w.shape) == 1 or self._w.shape[0] == 1:
             return state
         else:
             n_phi = self._w.shape[1]
             n_outs = self._w.shape[0]
-            shape = (n_phi * n_outs, n_outs)
-            df = np.zeros(shape)
-            start = 0
-            for i in xrange(n_outs):
-                end = start + n_phi
-                df[start:end, i] = state
-                start = end
+
+            if action is None:
+                shape = (n_phi * n_outs, n_outs)
+                df = np.zeros(shape)
+                start = 0
+                for i in xrange(n_outs):
+                    stop = start + n_phi
+                    df[start:stop, i] = state
+                    start = stop
+            else:
+                shape = (n_phi * n_outs)
+                df = np.zeros(shape)
+                start = action[0] * n_phi
+                stop = start + n_phi
+                df[start:stop] = state
+
             return df

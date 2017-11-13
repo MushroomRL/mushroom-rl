@@ -71,11 +71,11 @@ class QRegressor:
     def weights_size(self):
         return self.model.weights_size
 
-    def get_weights(self, action=None):
-        return self.model.get_weights(action)
+    def get_weights(self):
+        return self.model.get_weights()
 
-    def set_weights(self, w, action=None):
-        self.model.set_weights(w, action)
+    def set_weights(self, w):
+        self.model.set_weights(w)
 
     def diff(self, state, action=None):
         return self.model.diff(state, action)
