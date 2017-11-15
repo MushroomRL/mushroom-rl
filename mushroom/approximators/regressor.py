@@ -170,12 +170,7 @@ class Regressor:
 
         """
         try:
-            if z[0].ndim == len(self.input_shape):
-                z = [np.expand_dims(z_i, axis=0) for z_i in z]
-
-                return self._impl.diff(*z).flatten()
-            else:
-                return self._impl.diff(*z)
+            return self._impl.diff(*z)
         except AttributeError:
             raise NotImplementedError('Attempt to compute derivative of a'
                                       ' non-differentiable regressor.')

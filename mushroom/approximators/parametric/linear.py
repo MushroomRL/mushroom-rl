@@ -21,7 +21,11 @@ class LinearApproximator:
         self._w = np.linalg.solve(x, y).T
 
     def predict(self, x, **predict_params):
-        return np.dot(x, self._w.T)
+        prediction = np.ones((x.shape[0], self._w.shape[0]))
+        for i, x_i in enumerate(x):
+            prediction[i] = x_i.dot(self._w.T)
+
+        return prediction
 
     @property
     def weights_size(self):
