@@ -20,47 +20,45 @@ class Table:
         self.table = np.ones(shape, dtype=dtype) * initial_value
 
     def __getitem__(self, args):
-        idxs = self._get_index(args)
+        if self.table.size == 1:
+            return self.table[0]
+        else:
+            idx = tuple([
+                a[0] if isinstance(a, np.ndarray) else a for a in args])
 
-        return self.table[idxs]
+            return self.table[idx]
 
     def __setitem__(self, args, value):
-        idxs = self._get_index(args)
-        self.table[idxs] = value
-
-    def _get_index(self, args):
-        if len(args) == 0:
-            idxs = (0,)
-        elif len(args) == 1:
-            idxs = tuple(args[0].ravel())
-        elif type(args[0]) is slice:
-            idxs = (args[0],) * (
-                len(self.table.shape)-1) + tuple(args[1].astype(int))
-        elif type(args[1]) is slice:
-            idxs = tuple(args[0].astype(int)) + (args[1],)
+        if self.table.size == 1:
+            self.table[0] = value
         else:
-            idxs = tuple(np.concatenate((args[0].astype(int),
-                                         args[1].astype(int))))
-
-        return idxs
+            idx = tuple([
+                a[0] if isinstance(a, np.ndarray) else a for a in args])
+            self.table[idx] = value
 
     def fit(self, x, y):
         self[x] = y
 
     def predict(self, *z):
+        if z[0].ndim == 1:
+            z = [np.expand_dims(z_i, axis=0) for z_i in z]
         state = z[0]
-        table = list()
+
+        values = list()
         if len(z) == 2:
             action = z[1]
             for i in xrange(len(state)):
                 val = self[state[i], action[i]]
-                table.append(val)
+                values.append(val)
         else:
             for i in xrange(len(state)):
                 val = self[state[i], :]
-                table.append(val)
+                values.append(val)
 
-        return np.array(table)
+        if len(values) == 1:
+            return values[0]
+        else:
+            return np.array(values)
 
     @property
     def n_actions(self):

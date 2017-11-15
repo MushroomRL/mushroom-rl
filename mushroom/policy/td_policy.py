@@ -103,8 +103,8 @@ class EpsGreedy(TDPolicy):
 
     def draw_action(self, state):
         if not np.random.uniform() < self._epsilon(state):
-            q = self._approximator.predict(np.expand_dims(state, axis=0))
-            max_a = np.argwhere((q == np.max(q, axis=1)).ravel()).ravel()
+            q = self._approximator.predict(state)
+            max_a = np.argwhere(q == np.max(q)).ravel()
 
             if len(max_a) > 1:
                 max_a = np.array([np.random.choice(max_a)])

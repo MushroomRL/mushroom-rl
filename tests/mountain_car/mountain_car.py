@@ -69,7 +69,7 @@ def experiment(alpha):
 if __name__ == '__main__':
     print('Executing mountain_car test...')
 
-    n_experiment = 2
+    n_experiment = 1
 
     alpha = .1
     Js = Parallel(

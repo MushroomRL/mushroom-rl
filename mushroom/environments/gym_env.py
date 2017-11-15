@@ -19,6 +19,8 @@ class Gym(Environment):
         self.env._max_episode_steps = np.inf  # Hack to ignore gym time limit.
 
         # MDP properties
+        assert not isinstance(self.env.observation_space,
+                              gym_spaces.MultiDiscrete)
         assert not isinstance(self.env.action_space, gym_spaces.MultiDiscrete)
 
         action_space = self._convert_gym_space(self.env.action_space)
@@ -61,8 +63,6 @@ class Gym(Environment):
     def _convert_gym_space(space):
         if isinstance(space, gym_spaces.Discrete):
             return Discrete(space.n)
-        elif isinstance(space, gym_spaces.MultiDiscrete):
-            return Discrete(space.high - space.low)
         elif isinstance(space, gym_spaces.Box):
             return Box(low=space.low, high=space.high, shape=space.shape)
         else:

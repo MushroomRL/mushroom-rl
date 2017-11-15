@@ -1,3 +1,5 @@
+import numpy as np
+
 from ._implementations.q_regressor import QRegressor
 from ._implementations.action_regressor import ActionRegressor
 from ._implementations.ensemble import Ensemble
@@ -74,6 +76,8 @@ class Regressor:
             **fit_params (dict): parameters to use to fit the model.
 
         """
+        if z[0].ndim == len(self.input_shape):
+            z = [np.expand_dims(z_i, axis=0) for z_i in z]
         self._impl.fit(*z, **fit_params)
 
     def predict(self, *z, **predict_params):
@@ -85,7 +89,12 @@ class Regressor:
             **predict_params(dict): parameters to use to predict with the model.
 
         """
-        return self._impl.predict(*z, **predict_params)
+        if z[0].ndim == len(self.input_shape):
+            z = [np.expand_dims(z_i, axis=0) for z_i in z]
+
+            return self._impl.predict(*z, **predict_params).flatten()
+        else:
+            return self._impl.predict(*z, **predict_params)
 
     @property
     def model(self):
@@ -161,7 +170,12 @@ class Regressor:
 
         """
         try:
-            return self._impl.diff(*z)
+            if z[0].ndim == len(self.input_shape):
+                z = [np.expand_dims(z_i, axis=0) for z_i in z]
+
+                return self._impl.diff(*z).flatten()
+            else:
+                return self._impl.diff(*z)
         except AttributeError:
             raise NotImplementedError('Attempt to compute derivative of a'
                                       ' non-differentiable regressor.')

@@ -74,7 +74,7 @@ def experiment(boosted):
 if __name__ == '__main__':
     print('Executing car_on_hill test...')
 
-    n_experiment = 2
+    n_experiment = 1
 
     Js = Parallel(n_jobs=-1)(
         delayed(experiment)(False) for _ in range(n_experiment))

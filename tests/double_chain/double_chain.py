@@ -48,7 +48,7 @@ def experiment(algorithm_class, decay_exp):
 if __name__ == '__main__':
     print('Executing double_chain test...')
 
-    n_experiment = 2
+    n_experiment = 1
 
     names = {1: '1', .51: '51', QLearning: 'Q', DoubleQLearning: 'DQ',
              WeightedQLearning: 'WQ', SpeedyQLearning: 'SPQ'}

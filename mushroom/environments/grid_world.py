@@ -4,51 +4,75 @@ from mushroom.environments import Environment, MDPInfo
 from mushroom.utils import spaces
 
 
-class GridWorld(Environment):
+class AbstractGridWorld(Environment):
+    def __init__(self, mdp_info, height, width, start, goal):
+        assert not np.array_equal(start, goal)
+
+        assert goal[0] < height and goal[1] < width,\
+            'Goal position not suitable for the grid world dimension.'
+
+        self._state = None
+        self._height = height
+        self._width = width
+        self._start = start
+        self._goal = goal
+
+        super(AbstractGridWorld, self).__init__(mdp_info)
+
+    def reset(self, state=None):
+        if state is None:
+            state = self.convert_to_int(self._start, self._width)
+
+        self._state = state
+
+        return self._state
+
+    def step(self, action):
+        state = self.convert_to_grid(self._state, self._width)
+
+        new_state, reward, absorbing, info = self._step(state, action)
+        self._state = self.convert_to_int(new_state, self._width)
+
+        return self._state, reward, absorbing, info
+
+    def _step(self, state, action):
+        raise NotImplementedError('AbstractGridWorld is an abstract class.')
+
+    @staticmethod
+    def convert_to_grid(state, width):
+        return np.array([state[0] / width, state[0] % width])
+
+    @staticmethod
+    def convert_to_int(state, width):
+        return np.array([state[0] * width + state[1]])
+
+
+class GridWorld(AbstractGridWorld):
     def __init__(self, height, width, goal, start=(0, 0)):
         self.__name__ = 'GridWorld'
 
-        # MDP parameters
-        self._height = height
-        self._width = width
-        self._goal = goal
-        self._start = start
-
         # MDP properties
-        observation_space = spaces.Discrete([height, width])
+        observation_space = spaces.Discrete(height * width)
         action_space = spaces.Discrete(4)
         horizon = 100
         gamma = .9
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
-        assert not np.array_equal(self._start, self._goal)
+        super(GridWorld, self).__init__(mdp_info, height, width, start, goal)
 
-        assert self._goal[0] < self._height and self._goal[1] < self._width,\
-            'Goal position not suitable for the grid world dimension.'
-
-        super(GridWorld, self).__init__(mdp_info)
-
-    def reset(self, state=None):
-        if state is None:
-            self._state = np.array(self._start)
-        else:
-            self._state = state
-
-        return self._state
-
-    def step(self, action):
+    def _step(self, state, action):
         if action == 0:
-            if self._state[0] > 0:
-                self._state[0] -= 1
+            if state[0] > 0:
+                state[0] -= 1
         elif action == 1:
-            if self._state[0] + 1 < self._height:
-                self._state[0] += 1
+            if state[0] + 1 < self._height:
+                state[0] += 1
         elif action == 2:
-            if self._state[1] > 0:
-                self._state[1] -= 1
+            if state[1] > 0:
+                state[1] -= 1
         elif action == 3:
-            if self._state[1] + 1 < self._width:
-                self._state[1] += 1
+            if state[1] + 1 < self._width:
+                state[1] += 1
 
         if np.array_equal(self._state, self._goal):
             reward = 10
@@ -57,90 +81,65 @@ class GridWorld(Environment):
             reward = 0
             absorbing = False
 
-        return self._state, reward, absorbing, {}
+        return state, reward, absorbing, {}
 
 
-class GridWorldVanHasselt(Environment):
+class GridWorldVanHasselt(AbstractGridWorld):
     def __init__(self, height=3, width=3, goal=(0, 2), start=(2, 0)):
         self.__name__ = 'GridWorldVanHasselt'
 
-        # MDP parameters
-        self._height = height
-        self._width = width
-        self._goal = goal
-        self._start = start
-
         # MDP properties
-        observation_space = spaces.Discrete([height, width])
+        observation_space = spaces.Discrete(height * width)
         action_space = spaces.Discrete(4)
         horizon = np.inf
         gamma = .95
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
-        assert not np.array_equal(self._start, self._goal)
+        super(GridWorldVanHasselt, self).__init__(mdp_info, height, width,
+                                                  start, goal)
 
-        assert self._goal[0] < self._height and self._goal[1] < self._width,\
-            'Goal position not suitable for the grid world dimension.'
-
-        super(GridWorldVanHasselt, self).__init__(mdp_info)
-
-    def reset(self, state=None):
-        if state is None:
-            self._state = np.array(self._start)
-        else:
-            self._state = state
-
-        return self._state
-
-    def step(self, action):
-        if np.array_equal(self._state, self._goal):
+    def _step(self, state, action):
+        if np.array_equal(state, self._goal):
             reward = 5
             absorbing = True
         else:
             if action == 0:
-                if self._state[0] > 0:
-                    self._state[0] -= 1
+                if state[0] > 0:
+                    state[0] -= 1
             elif action == 1:
-                if self._state[0] + 1 < self._height:
-                    self._state[0] += 1
+                if state[0] + 1 < self._height:
+                    state[0] += 1
             elif action == 2:
-                if self._state[1] > 0:
-                    self._state[1] -= 1
+                if state[1] > 0:
+                    state[1] -= 1
             elif action == 3:
-                if self._state[1] + 1 < self._width:
-                    self._state[1] += 1
+                if state[1] + 1 < self._width:
+                    state[1] += 1
 
             reward = np.random.choice([-12, 10])
             absorbing = False
 
-        return self._state, reward, absorbing, {}
+        return state, reward, absorbing, {}
 
 
-class GridWorldGenerator(Environment):
+class GridWorldGenerator(AbstractGridWorld):
     def __init__(self, grid_map):
         self.__name__ = 'GridWorldGenerator'
 
-        self._generate(grid_map)
+        self._grid, height, width, start, goal = self._generate(grid_map)
 
         # MDP properties
-        observation_space = spaces.Discrete([self._height, self._width])
+        observation_space = spaces.Discrete(height * width)
         action_space = spaces.Discrete(4)
         horizon = 100
         gamma = .9
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
-        super(GridWorldGenerator, self).__init__(mdp_info)
+        super(GridWorldGenerator, self).__init__(mdp_info, height, width,
+                                                 start, goal)
 
-    def reset(self, state=None):
-        if state is None:
-            self._state = np.array(self._start)
-        else:
-            self._state = state
-
-        return self._state
-
-    def step(self, action):
-        new_state = self._state.copy()
+    def _step(self, state, action):
+        new_state = state.copy()
         if action == 0:
             new_state[0] -= 1
         elif action == 1:
@@ -157,19 +156,18 @@ class GridWorldGenerator(Environment):
         elif c in ['.', 'S']:
             reward = 0
             absorbing = False
-            self._state = new_state
         elif c == 'G':
             reward = 10
             absorbing = True
-            self._state = new_state
         elif c == '#':
             reward = 0
             absorbing = False
 
-        return self._state, reward, absorbing, {}
+        return new_state, reward, absorbing, {}
 
-    def _generate(self, grid_map):
-        self._grid = list()
+    @staticmethod
+    def _generate(grid_map):
+        grid = list()
         with open(grid_map, 'r') as f:
             m = f.read()
 
@@ -182,22 +180,24 @@ class GridWorldGenerator(Environment):
                 if c in ['#', '.', 'S', 'G', '*']:
                     row.append(c)
                     if c == 'S':
-                        self._start = (row_idx, col_idx)
+                        start = (row_idx, col_idx)
                     elif c == 'G':
-                        self._goal = (row_idx, col_idx)
+                        goal = (row_idx, col_idx)
                     col_idx += 1
                 elif c == '\n':
-                    self._grid.append(row)
+                    grid.append(row)
                     row = list()
                     row_idx += 1
                     col_idx = 0
                 else:
                     raise ValueError('Unknown marker.')
 
-        self._height = len(self._grid)
-        self._width = 0
-        for w in self._grid:
-            if len(w) > self._width:
-                self._width = len(w)
+        height = len(grid)
+        width = 0
+        for w in grid:
+            if len(w) > width:
+                width = len(w)
 
-        assert not np.array_equal(self._start, self._goal)
+        assert not np.array_equal(start, goal)
+
+        return grid, height, width, start, goal

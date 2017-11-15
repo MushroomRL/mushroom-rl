@@ -11,15 +11,15 @@ class VarianceParameter(Parameter):
 
     """
     def __init__(self, value, exponential=False, min_value=None, tol=1.,
-                 shape=(1,)):
+                 size=(1,)):
         self._exponential = exponential
         self._tol = tol
-        self._weights_var = Table(shape)
-        self._x = Table(shape)
-        self._x2 = Table(shape)
-        self._parameter_value = Table(shape)
+        self._weights_var = Table(size)
+        self._x = Table(size)
+        self._x2 = Table(size)
+        self._parameter_value = Table(size)
 
-        super(VarianceParameter, self).__init__(value, min_value, shape)
+        super(VarianceParameter, self).__init__(value, min_value, size)
 
     def _compute(self, *idx, **kwargs):
         return self._parameter_value[idx]
@@ -70,16 +70,16 @@ class VarianceDecreasingParameter(VarianceParameter):
 
 class WindowedVarianceParameter(Parameter):
     def __init__(self, value, exponential=False, min_value=None, tol=1.,
-                 window=100, shape=(1,)):
+                 window=100, size=(1,)):
         self._exponential = exponential
         self._tol = tol
-        self._weights_var = Table(shape)
-        self._samples = Table(shape + (window,))
-        self._index = Table(shape, dtype=int)
+        self._weights_var = Table(size)
+        self._samples = Table(size + (window,))
+        self._index = Table(size, dtype=int)
         self._window = window
-        self._parameter_value = Table(shape)
+        self._parameter_value = Table(size)
 
-        super(WindowedVarianceParameter, self).__init__(value, min_value, shape)
+        super(WindowedVarianceParameter, self).__init__(value, min_value, size)
 
     def _compute(self, *idx, **kwargs):
         return self._parameter_value[idx]

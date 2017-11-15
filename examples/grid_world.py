@@ -36,7 +36,8 @@ def experiment(algorithm_class, decay_exp):
     agent = algorithm_class(pi, mdp.info, agent_params)
 
     # Algorithm
-    collect_max_Q = CollectMaxQ(agent.approximator, np.array([mdp._start]))
+    start = mdp.convert_to_int(mdp._start, mdp._width)
+    collect_max_Q = CollectMaxQ(agent.approximator, start)
     collect_dataset = CollectDataset()
     callbacks = [collect_dataset, collect_max_Q]
     core = Core(agent, mdp, callbacks)

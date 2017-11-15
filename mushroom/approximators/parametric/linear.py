@@ -18,7 +18,7 @@ class LinearApproximator:
                              ' or the input dimension')
 
     def fit(self, x, y, **fit_params):
-        self._w = np.solve(x, y).T
+        self._w = np.linalg.solve(x, y).T
 
     def predict(self, x, **predict_params):
         return np.dot(x, self._w.T)
