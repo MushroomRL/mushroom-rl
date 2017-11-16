@@ -24,13 +24,12 @@ class Agent(object):
 
         self._next_action = None
 
-    def fit(self, dataset, n_iterations):
+    def fit(self, dataset):
         """
         Fit step.
 
         Args:
-            dataset (list): the dataset;
-            n_iterations (int): number of fit steps of the approximator.
+            dataset (list): the dataset.
 
         """
         raise NotImplementedError('Agent is an abstract class')

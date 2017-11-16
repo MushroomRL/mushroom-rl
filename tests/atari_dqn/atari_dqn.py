@@ -83,8 +83,8 @@ def experiment(alg):
     # DQN
 
     # fill replay memory with random dataset
-    core.learn(n_iterations=1, how_many=initial_replay_size,
-               n_fit_steps=0, iterate_over='samples', quiet=True)
+    core.learn(n_steps=initial_replay_size,
+               n_steps_per_fit=initial_replay_size, quiet=True)
 
     # evaluate initial policy
     pi.set_epsilon(epsilon_test)
@@ -93,11 +93,8 @@ def experiment(alg):
         # learning step
         pi.set_epsilon(epsilon)
         mdp.set_episode_end(ends_at_life=True)
-        core.learn(n_iterations=evaluation_frequency / train_frequency,
-                   how_many=train_frequency,
-                   n_fit_steps=1,
-                   iterate_over='samples',
-                   quiet=True)
+        core.learn(n_steps=evaluation_frequency,
+                   n_steps_per_fit=train_frequency, quiet=True)
 
         # evaluation step
         pi.set_epsilon(epsilon_test)

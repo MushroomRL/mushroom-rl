@@ -24,7 +24,8 @@ class Buffer(object):
 
 
 class ReplayMemory(object):
-    def __init__(self, mdp_info, max_size, history_length=1):
+    def __init__(self, mdp_info, initial_size, max_size, history_length=1):
+        self._initial_size = initial_size
         self._max_size = max_size
         self._history_length = history_length
         self._idx = 0
@@ -93,6 +94,10 @@ class ReplayMemory(object):
                     s[j, ..., k] = self._states[index, ...]
 
         return s
+
+    @property
+    def initialized(self):
+        return self.size > self._initial_size
 
     @property
     def size(self):

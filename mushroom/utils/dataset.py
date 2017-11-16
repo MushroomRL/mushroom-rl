@@ -114,7 +114,7 @@ def compute_J(dataset, gamma=1.):
 
     Args:
         dataset (list): the dataset to consider to compute J;
-        gamma (float): discount factor.
+        gamma (float, 1.): discount factor.
 
     Returns:
         The average cumulative discounted reward.

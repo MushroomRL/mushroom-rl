@@ -7,6 +7,7 @@ from mushroom.environments import *
 from mushroom.features import Features
 from mushroom.features.tiles import Tiles
 from mushroom.policy import EpsGreedy
+from mushroom.utils.callbacks import CollectDataset
 from mushroom.utils.dataset import compute_J
 from mushroom.utils.parameters import Parameter
 
@@ -21,7 +22,7 @@ def experiment(alpha):
     np.random.seed()
 
     # MDP
-    mdp = Gym(name='MountainCar-v0', horizon=10000, gamma=1.)
+    mdp = Gym(name='MountainCar-v0', horizon=np.inf, gamma=1.)
 
     # Policy
     epsilon = Parameter(value=0.)
@@ -46,19 +47,14 @@ def experiment(alpha):
     agent = TrueOnlineSARSALambda(pi, mdp.info, agent_params, features)
 
     # Algorithm
-    core = Core(agent, mdp)
+    collect_dataset = CollectDataset()
+    callbacks = [collect_dataset]
+    core = Core(agent, mdp, callbacks=callbacks)
 
     # Train
-    core.learn(n_iterations=200000, how_many=1, n_fit_steps=1,
-               iterate_over='samples')
-    core.reset()
+    core.learn(n_episodes=20, n_steps_per_fit=1, render=0)
 
-    # Test
-    test_epsilon = Parameter(0.)
-    agent.policy.set_epsilon(test_epsilon)
-
-    dataset = core.evaluate(how_many=20, iterate_over='episodes', render=1)
-
+    dataset = collect_dataset.get()
     return np.mean(compute_J(dataset, 1.))
 
 

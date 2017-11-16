@@ -61,10 +61,9 @@ def experiment(n_iterations, n_runs, ep_per_run, use_tensorflow):
     # Train
     core = Core(agent, mdp)
     for i in xrange(n_runs):
-        core.learn(n_iterations=n_iterations, how_many=ep_per_run,
-                   n_fit_steps=1, iterate_over='episodes')
-        dataset_eval = core.evaluate(how_many=ep_per_run,
-                                     iterate_over='episodes')
+        core.learn(n_episodes=n_iterations * ep_per_run,
+                   n_steps_per_fit=ep_per_run)
+        dataset_eval = core.evaluate(n_episodes=ep_per_run)
         J = compute_J(dataset_eval, gamma=mdp.info.gamma)
         print('J at iteration ' + str(i) + ': ' + str(np.mean(J)))
 

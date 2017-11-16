@@ -52,9 +52,7 @@ def experiment(alpha):
     core = Core(agent, mdp)
 
     # Train
-    core.learn(n_iterations=2000, how_many=1, n_fit_steps=1,
-               iterate_over='samples', quiet=True)
-    core.reset()
+    core.learn(n_steps=2000, n_steps_per_fit=1, quiet=True)
 
     # Test
     test_epsilon = Parameter(0.)
@@ -75,4 +73,4 @@ if __name__ == '__main__':
     Js = Parallel(
         n_jobs=-1)(delayed(experiment)(alpha) for _ in range(n_experiment))
 
-    assert np.mean(Js) == -443
+    assert np.mean(Js) == -184.5

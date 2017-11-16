@@ -1,5 +1,5 @@
 import numpy as np
-from tqdm import tqdm
+from tqdm import trange
 
 from mushroom.algorithms.agent import Agent
 from mushroom.approximators import Regressor
@@ -22,6 +22,7 @@ class BatchTD(Agent):
                 policy.
 
         """
+        self._n_iterations = params['algorithm_params']['n_iterations']
         self._quiet = params['algorithm_params'].get('quiet', False)
 
         self.approximator = Regressor(approximator,
@@ -49,13 +50,12 @@ class FQI(BatchTD):
             self._next_q = 0.
             self._idx = 0
 
-    def fit(self, dataset, n_iterations, target=None):
+    def fit(self, dataset, target=None):
         """
         Fit loop.
 
         Args:
             dataset (list): the dataset;
-            n_iterations (int): number of FQI iterations;
             target (np.array, None): initial target of FQI.
 
         Returns:
@@ -71,8 +71,8 @@ class FQI(BatchTD):
         else:
             fit = self._fit
 
-        for _ in tqdm(xrange(n_iterations), dynamic_ncols=True,
-                      disable=self._quiet, leave=False):
+        for _ in trange(self._n_iterations, dynamic_ncols=True,
+                        disable=self._quiet, leave=False):
             fit(dataset)
 
     def _fit(self, x):
@@ -196,7 +196,7 @@ class LSPI(BatchTD):
         super(LSPI, self).__init__(LinearApproximator, policy, mdp_info, params,
                                    features)
 
-    def fit(self, dataset, n_iterations):
+    def fit(self, dataset):
         phi_state, action, reward, phi_next_state, absorbing, _ = parse_dataset(
             dataset, self.phi)
         phi_state_action = get_action_features(phi_state, action,

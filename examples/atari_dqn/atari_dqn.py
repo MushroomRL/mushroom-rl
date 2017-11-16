@@ -99,9 +99,6 @@ def experiment():
     arg_alg.add_argument("--train-frequency", type=int, default=4,
                          help='Number of learning steps before each fit of the'
                               'neural network.')
-    arg_alg.add_argument("--fit-steps", type=int, default=1,
-                         help='Number of gradient descent steps of each fit of'
-                              'the neural network.')
     arg_alg.add_argument("--max-steps", type=int, default=50000000,
                          help='Total number of learning steps.')
     arg_alg.add_argument("--final-exploration-frame", type=int, default=1000000,
@@ -188,8 +185,7 @@ def experiment():
         # Evaluate model
         pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(ends_at_life=False)
-        dataset = core_test.evaluate(how_many=args.test_samples,
-                                     iterate_over='samples',
+        dataset = core_test.evaluate(n_steps=args.test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
         get_stats(dataset)
@@ -282,8 +278,8 @@ def experiment():
 
         # Fill replay memory with random dataset
         print_epoch(0)
-        core.learn(n_iterations=1, how_many=initial_replay_size,
-                   n_fit_steps=0, iterate_over='samples', quiet=args.quiet)
+        core.learn(n_steps=initial_replay_size,
+                   n_steps_per_fit=initial_replay_size, quiet=args.quiet)
 
         if args.save:
             agent.approximator.model.save()
@@ -293,8 +289,7 @@ def experiment():
         mdp.set_episode_end(ends_at_life=False)
         if args.algorithm == 'ddqn':
             agent.policy.set_q(agent.target_approximator)
-        dataset = core_test.evaluate(how_many=test_samples,
-                                     iterate_over='samples',
+        dataset = core_test.evaluate(n_steps=test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
         scores.append(get_stats(dataset))
@@ -308,10 +303,8 @@ def experiment():
             # learning step
             pi.set_epsilon(epsilon)
             mdp.set_episode_end(ends_at_life=True)
-            core.learn(n_iterations=evaluation_frequency / train_frequency,
-                       how_many=train_frequency,
-                       n_fit_steps=args.fit_steps,
-                       iterate_over='samples',
+            core.learn(n_steps=evaluation_frequency,
+                       n_steps_per_fit=train_frequency,
                        quiet=args.quiet)
 
             if args.save:
@@ -324,8 +317,7 @@ def experiment():
             core_test.reset()
             if args.algorithm == 'ddqn':
                 agent.policy.set_q(agent.target_approximator)
-            dataset = core_test.evaluate(how_many=test_samples,
-                                         iterate_over='samples',
+            dataset = core_test.evaluate(n_steps=test_samples,
                                          render=args.render,
                                          quiet=args.quiet)
             scores.append(get_stats(dataset))

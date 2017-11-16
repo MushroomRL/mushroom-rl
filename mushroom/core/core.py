@@ -25,141 +25,104 @@ class Core(object):
 
         self._state = None
 
-        self._episode_steps = 0
+        self._total_episodes_counter = 0
+        self._total_steps_counter = 0
+        self._current_episodes_counter = 0
+        self._current_steps_counter = 0
+        self._episode_steps = None
+        self._n_steps = None
+        self._n_episodes = None
+        self._n_steps_per_fit = None
+        self._n_episodes_per_fit = None
 
-    def learn(self, n_iterations, how_many, n_fit_steps, iterate_over,
-              render=False, quiet=False):
-        """
-        This function is used to learn a policy. An iteration of the loop
-        consists in collecting a dataset and fitting the agent's Q-function
-        approximator on that. Multiple iterations can be done in order to append
-        new samples to the dataset using the newly learned policies. This
-        function generalizes the learning procedure of online and batch
-        algorithms.
+    def learn(self, n_steps=None, n_episodes=None, n_steps_per_fit=None,
+              n_episodes_per_fit=None, render=False, quiet=False):
+        assert (n_episodes_per_fit is not None and n_steps_per_fit is None)\
+               or (n_episodes_per_fit is None and n_steps_per_fit is not None)
 
-        Args:
-            n_iterations (int): number of iterations;
-            how_many (int): number of samples or episodes to collect in a
-                single iteration of the loop;
-            n_fit_steps (int): number of fitting steps of the learning
-                algorithm;
-            iterate_over (string): whether to collect samples or episodes in a
-                single iteration of the loop;
-            render (bool, False): whether to render the environment or not;
-            quiet (bool, False): whether to hide the progress bar or show it.
+        self._n_steps_per_fit = n_steps_per_fit
+        self._n_episodes_per_fit = n_episodes_per_fit
 
-        """
-        assert iterate_over == 'samples' or iterate_over == 'episodes'
-
-        self._state = self.mdp.reset()
-
-        if iterate_over == 'samples':
-            self.agent.episode_start()
-            move = self._move_samples
+        if n_steps_per_fit is not None:
+            fit_condition =\
+                lambda: self._current_steps_counter >= self._n_steps_per_fit
         else:
-            move = self._move_episodes
+            fit_condition = lambda: self._current_episodes_counter\
+                                     >= self._n_episodes_per_fit
 
-        for self.iteration in tqdm(xrange(n_iterations), dynamic_ncols=True,
-                                   disable=quiet, leave=False):
-            dataset = move(how_many, render=render)
-            self.agent.fit(dataset, n_fit_steps)
+        self._run(n_steps, n_episodes, fit_condition, render, quiet)
 
-            for c in self.callbacks:
-                callback_pars = dict(dataset=dataset,
-                                     core=self)
-                c(**callback_pars)
-
-    def evaluate(self, how_many=1, iterate_over='episodes', initial_states=None,
+    def evaluate(self, initial_states=None, n_steps=None, n_episodes=None,
                  render=False, quiet=False):
-        """
-        This function is used to evaluate the learned policy.
+        fit_condition = lambda: False
 
-        Args:
-            how_many (int, 1): number of samples or episodes to collect in a
-                single iteration of the loop;
-            iterate_over (string, 'episodes'): whether to collect samples or
-                episodes in a single iteration of the loop;
-            initial_states (np.array, None): the array of initial states from
-                where to start the evaluation episodes. An evaluation episode is
-                run for each state;
-            render (bool, False): whether to render the environment or not;
-            quiet (bool, False): whether to hide the progress bar or show it.
+        return self._run(n_steps, n_episodes, fit_condition, render, quiet,
+                         initial_states)
 
-        Returns:
-            The dataset of transitions collected during the evaluation.
+    def _run(self, n_steps, n_episodes, fit_condition, render, quiet,
+             initial_states=None):
+        assert n_episodes is not None and n_steps is None and initial_states is None\
+            or n_episodes is None and n_steps is not None and initial_states is None\
+            or n_episodes is None and n_steps is None and initial_states is not None
 
-        """
-        dataset = list()
-        if initial_states is not None:
-            assert iterate_over == 'episodes'
+        self._n_steps = n_steps
+        self._n_episodes = len(
+            initial_states) if initial_states is not None else n_episodes
 
-            for i in tqdm(xrange(initial_states.shape[0]), dynamic_ncols=True,
-                          disable=quiet, leave=False):
-                self._state = self.mdp.reset(initial_states[i, :])
-                dataset += self._move_episodes(1, render=render)
+        if n_steps is not None:
+            move_condition =\
+                lambda: self._total_steps_counter < self._n_steps
+
+            steps_progress_bar = tqdm(total=self._n_steps,
+                                      dynamic_ncols=True, disable=quiet,
+                                      leave=False)
+            episodes_progress_bar = tqdm(disable=True)
         else:
-            if iterate_over == 'episodes':
-                for _ in tqdm(xrange(how_many), dynamic_ncols=True,
-                              disable=quiet, leave=False):
-                    self._state = self.mdp.reset()
-                    dataset += self._move_episodes(1, render=render)
-            else:
-                self._state = self.mdp.reset()
-                self.agent.episode_start()
-                for _ in tqdm(xrange(how_many), dynamic_ncols=True,
-                              disable=quiet, leave=False):
-                    dataset += self._move_samples(1, render=render)
+            move_condition =\
+                lambda: self._total_episodes_counter < self._n_episodes
 
-        return dataset
+            steps_progress_bar = tqdm(disable=True)
+            episodes_progress_bar = tqdm(total=self._n_episodes,
+                                         dynamic_ncols=True, disable=quiet,
+                                         leave=False)
 
-    def _move_episodes(self, how_many, render=False):
-        """
-        Move the agent for a certain number of episodes.
+        return self._run_impl(move_condition, fit_condition, steps_progress_bar,
+                              episodes_progress_bar, render, initial_states)
 
-        Args:
-            how_many (int): number of episodes to collect;
-            render (bool): whether to render the environment or not.
+    def _run_impl(self, move_condition, fit_condition, steps_progress_bar,
+                  episodes_progress_bar, render, initial_states):
+        self._total_episodes_counter = 0
+        self._total_steps_counter = 0
+        self._current_episodes_counter = 0
+        self._current_steps_counter = 0
 
-        Returns:
-            The list of episode samples collected during the episode.
+        self.reset(initial_states)
 
-        """
-        i = 0
         dataset = list()
-        self._episode_steps = 0
-        while i < how_many:
-            self.agent.episode_start()
-            last = False
-            while not last:
-                sample = self._step(render)
-                dataset.append(sample)
-                last = sample[-1]
-            self.reset()
-            i += 1
-
-        return dataset
-
-    def _move_samples(self, how_many, render=False):
-        """
-        Move the agent for a certain number of steps.
-
-        Args:
-            how_many (int): number of samples to collect;
-            render (bool): whether to render the environment or not.
-
-        Returns:
-            The list of samples collected during the episode.
-
-        """
-        i = 0
-        dataset = [None] * how_many
-        while i < how_many:
+        while move_condition():
             sample = self._step(render)
-            dataset[i] = sample
+            dataset.append(sample)
+            self._total_steps_counter += 1
+            self._current_steps_counter += 1
+            steps_progress_bar.update(1)
+
             if sample[-1]:
-                self.reset()
-                self.agent.episode_start()
-            i += 1
+                self._total_episodes_counter += 1
+                self._current_episodes_counter += 1
+                episodes_progress_bar.update(1)
+
+                self.reset(initial_states)
+
+            if fit_condition():
+                self.agent.fit(dataset)
+                self._current_episodes_counter = 0
+                self._current_steps_counter = 0
+
+                for c in self.callbacks:
+                    callback_pars = dict(dataset=dataset)
+                    c(**callback_pars)
+
+                dataset = list()
 
         return dataset
 
@@ -192,10 +155,17 @@ class Core(object):
 
         return state, action, reward, next_state, absorbing, last
 
-    def reset(self):
+    def reset(self, initial_states=None):
         """
         Reset the state of the agent.
 
         """
-        self._state = self.mdp.reset()
+        if initial_states is None\
+            or self._total_episodes_counter == self._n_episodes:
+            initial_state = None
+        else:
+            initial_state = initial_states[self._total_episodes_counter]
+
+        self._state = self.mdp.reset(initial_state)
+        self.agent.episode_start()
         self._episode_steps = 0

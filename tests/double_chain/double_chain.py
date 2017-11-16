@@ -37,8 +37,7 @@ def experiment(algorithm_class, decay_exp):
     core = Core(agent, mdp, callbacks)
 
     # Train
-    core.learn(n_iterations=2000, how_many=1, n_fit_steps=1,
-               iterate_over='samples', quiet=True)
+    core.learn(n_steps=2000, n_steps_per_fit=1, quiet=True)
 
     Qs = collect_Q.get_values()
 

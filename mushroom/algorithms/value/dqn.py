@@ -25,9 +25,12 @@ class DQN(Agent):
         self._max_no_op_actions = alg_params.get('max_no_op_actions', 0)
         self._no_op_action_value = alg_params.get('no_op_action_value', 0)
 
-        self._replay_memory = ReplayMemory(mdp_info,
-                                           alg_params.get('max_replay_size'),
-                                           alg_params.get('history_length', 1))
+        self._replay_memory = ReplayMemory(
+            mdp_info,
+            alg_params.get('initial_replay_size'),
+            alg_params.get('max_replay_size'),
+            alg_params.get('history_length', 1)
+        )
         self._buffer = Buffer(size=alg_params.get('history_length', 1))
 
         self._n_updates = 0
@@ -54,21 +57,16 @@ class DQN(Agent):
 
         super(DQN, self).__init__(policy, mdp_info, params)
 
-    def fit(self, dataset, n_iterations=1):
+    def fit(self, dataset):
         """
         Single fit step.
 
         Args:
-            dataset (list): the dataset;
-            n_iterations (int, 1): number of fit steps of the approximator.
+            dataset (list): the dataset.
 
         """
         self._replay_memory.add(dataset)
-        if n_iterations == 0:
-            pass
-        else:
-            assert n_iterations == 1
-
+        if self._replay_memory.initialized:
             state, action, reward, next_state, absorbing, _ =\
                 self._replay_memory.get(self._batch_size)
 

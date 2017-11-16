@@ -29,7 +29,7 @@ def experiment():
     approximator = ExtraTreesRegressor
 
     # Agent
-    algorithm_params = dict()
+    algorithm_params = dict(n_iterations=20)
     fit_params = dict()
     agent_params = {'approximator_params': approximator_params,
                     'algorithm_params': algorithm_params,
@@ -40,9 +40,7 @@ def experiment():
     core = Core(agent, mdp)
 
     # Train
-    core.learn(n_iterations=1, how_many=1000, n_fit_steps=20,
-               iterate_over='episodes')
-    core.reset()
+    core.learn(n_episodes=1000, n_episodes_per_fit=1000)
 
     # Test
     test_epsilon = Parameter(0.)

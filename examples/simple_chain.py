@@ -30,8 +30,7 @@ def experiment():
     core = Core(agent, mdp)
 
     # Train
-    core.learn(n_iterations=10000, how_many=1, n_fit_steps=1,
-               iterate_over='samples')
+    core.learn(n_steps=10000, n_steps_per_fit=1)
 
 
 if __name__ == '__main__':
