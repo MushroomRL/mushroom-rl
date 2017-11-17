@@ -7,7 +7,7 @@ from mushroom.approximators import EnsembleTable
 
 class CollectDataset:
     """
-    This callback can be used to collect the samples during the run of the
+    This callback can be used to collect the samples during the learning of the
     agent.
 
     """
@@ -83,6 +83,11 @@ class CollectMaxQ:
 
 
 class CollectParameters:
+    """
+    This callback can be used to collect the values of a parameter
+    (e.g. learning rate) during a run of the agent.
+
+    """
     def __init__(self, parameter, *idx):
         self._parameter = parameter
         self._idx = idx

@@ -112,6 +112,7 @@ if __name__ == '__main__':
     tf.reset_default_graph()
     d_res = experiment('ddqn')
     d_test_res = np.load('tests/atari_dqn/dw.npy')
+    tf.reset_default_graph()
     a_res = experiment('adqn')
     a_test_res = np.load('tests/atari_dqn/aw.npy')
 

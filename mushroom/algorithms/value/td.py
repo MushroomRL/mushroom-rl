@@ -77,7 +77,7 @@ class QLearning(TD):
 class DoubleQLearning(TD):
     """
     Double Q-Learning algorithm.
-    "Double Q-Learning". van Hasselt H.. 2010.
+    "Double Q-Learning". Hasselt H. V.. 2010.
 
     """
     def __init__(self, policy, mdp_info, params):
@@ -449,7 +449,8 @@ class RQLearning(TD):
             self.Q_tilde[state, action] += beta * (q_next - self.Q_tilde[
                 state, action])
 
-        self.Q[state, action] = self.R_tilde[state, action] + self.mdp_info.gamma * self.Q_tilde[state, action]
+        self.Q[state, action] = self.R_tilde[
+            state, action] + self.mdp_info.gamma * self.Q_tilde[state, action]
 
     def _next_q(self, next_state):
         if self.off_policy:

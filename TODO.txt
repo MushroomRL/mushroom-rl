@@ -16,6 +16,3 @@ Policy:
 
 Environment:
     * LQR
-
-Other:
-    * collect episodes for learn in online TD
