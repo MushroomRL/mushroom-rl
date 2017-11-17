@@ -12,8 +12,7 @@ class Agent(object):
             policy (object): the policy to use for the agent;
             mdp_info (object): information about the MDP;
             params (dict): other parameters of the algorithm;
-            features (object, None): features to use for the input of the
-                approximator.
+            features (object, None): features to extract from the state.
 
         """
         self.policy = policy
@@ -36,8 +35,9 @@ class Agent(object):
 
     def draw_action(self, state):
         """
-        Return the action to execute. It is the action returned by the policy
-        or the action set by the algorithm (e.g. SARSA).
+        Return the action to execute in the given state. It is the action
+        returned by the policy or the action set by the algorithm (e.g. in the
+        case of SARSA).
 
         Args:
             state (np.array): the state where the agent is.

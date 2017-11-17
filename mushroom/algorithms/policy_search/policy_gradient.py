@@ -10,26 +10,13 @@ class PolicyGradient(Agent):
 
     """
     def __init__(self, policy, mdp_info, params, features):
-        """
-        Constructor.
-
-        Args:
-             policy (object): a differentiable policy;
-             gamma (float): the discount factor;
-             params (dict): other parameters;
-             features (object): the features to use to preprocess the
-                state.
-
-        """
         self.learning_rate = params['algorithm_params'].pop('learning_rate')
         self.J_episode = None
         self.df = None
 
         super(PolicyGradient, self).__init__(policy, mdp_info, params, features)
 
-    def fit(self, dataset, n_iterations):
-        assert n_iterations == 1
-      
+    def fit(self, dataset):
         J = list()
         df = 1.
         J_episode = 0.
