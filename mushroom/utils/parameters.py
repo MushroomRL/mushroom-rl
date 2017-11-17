@@ -12,7 +12,7 @@ class Parameter(object):
         if self._n_updates.table.size == 1:
             idx = list()
 
-        self.update(*idx)
+        self.update(*idx, **kwargs)
 
         return self.get_value(*idx, **kwargs)
 

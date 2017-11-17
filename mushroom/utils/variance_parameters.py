@@ -24,12 +24,13 @@ class VarianceParameter(Parameter):
     def _compute(self, *idx, **kwargs):
         return self._parameter_value[idx]
 
-    def _update(self, *idx, **kwargs):
+    def update(self, *idx, **kwargs):
         x = kwargs['target']
         factor = kwargs.get('factor', 1.)
 
         # compute parameter value
-        n = self._n_updates[idx] - 1
+        n = self._n_updates[idx]
+        self._n_updates[idx] += 1
 
         if n < 2:
             parameter_value = self._initial_value
@@ -84,12 +85,13 @@ class WindowedVarianceParameter(Parameter):
     def _compute(self, *idx, **kwargs):
         return self._parameter_value[idx]
 
-    def _update(self, *idx, **kwargs):
+    def update(self, *idx, **kwargs):
         x = kwargs['target']
         factor = kwargs.get('factor', 1.)
 
         # compute parameter value
-        n = self._n_updates[idx] - 1
+        n = self._n_updates[idx]
+        self._n_updates[idx] += 1
 
         if n < 2:
             parameter_value = self._initial_value
@@ -106,7 +108,8 @@ class WindowedVarianceParameter(Parameter):
                                                       index=idx)
 
         # update state
-        self._samples[idx][self._index[idx]] = x
+        index = np.array([self._index[idx]], dtype=int)
+        self._samples[idx + (index,)] = x
         self._index[idx] += 1
         if self._index[idx] >= self._window:
             self._index[idx] = 0
