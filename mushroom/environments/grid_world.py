@@ -139,7 +139,7 @@ class GridWorldGenerator(AbstractGridWorld):
                                                  start, goal)
 
     def _step(self, state, action):
-        new_state = state.copy()
+        new_state = np.array(state)
         if action == 0:
             new_state[0] -= 1
         elif action == 1:
@@ -162,6 +162,8 @@ class GridWorldGenerator(AbstractGridWorld):
         elif c == '#':
             reward = 0
             absorbing = False
+            new_state = np.array(state)
+
 
         return new_state, reward, absorbing, {}
 
