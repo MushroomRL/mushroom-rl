@@ -94,7 +94,10 @@ class CollectParameters:
         self._p = list()
 
     def __call__(self, **kwargs):
-        self._p.append(self._parameter.get_value(*self._idx))
+        value = self._parameter.get_value(*self._idx)
+        if isinstance(value, np.ndarray):
+            value = np.array(value)
+        self._p.append(value)
 
     def get_values(self):
         return self._p
