@@ -16,3 +16,6 @@ Policy:
 
 Environment:
     * LQR
+
+Varie:
+    * Fix get_value() in Parameters nel caso vettoriale
