@@ -31,12 +31,12 @@ class ReplayMemory(object):
         self._idx = 0
         self._full = False
 
-        observation_shape = tuple(
+        self._observation_shape = tuple(
             [self._max_size]) + mdp_info.observation_space.shape
-        action_shape = (self._max_size, mdp_info.action_space.shape[0])
+        self._action_shape = (self._max_size, mdp_info.action_space.shape[0])
 
-        self._states = np.ones(observation_shape, dtype=np.float32)
-        self._actions = np.ones(action_shape, dtype=np.float32)
+        self._states = np.ones(self._observation_shape, dtype=np.float32)
+        self._actions = np.ones(self._action_shape, dtype=np.float32)
         self._rewards = np.ones(self._max_size, dtype=np.float32)
         self._absorbing = np.ones(self._max_size, dtype=np.bool)
         self._last = np.ones(self._max_size, dtype=np.bool)
@@ -94,6 +94,15 @@ class ReplayMemory(object):
                     s[j, ..., k] = self._states[index, ...]
 
         return s
+
+    def reset(self):
+        self._idx = 0
+        self._full = False
+        self._states = np.ones(self._observation_shape, dtype=np.float32)
+        self._actions = np.ones(self._action_shape, dtype=np.float32)
+        self._rewards = np.ones(self._max_size, dtype=np.float32)
+        self._absorbing = np.ones(self._max_size, dtype=np.bool)
+        self._last = np.ones(self._max_size, dtype=np.bool)
 
     @property
     def initialized(self):
