@@ -2,11 +2,10 @@ import numpy as np
 from joblib import Parallel, delayed
 
 from mushroom.algorithms.value.batch_td import LSPI
-from mushroom.approximators.parametric import LinearApproximator
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.features import Features
-from mushroom.features.tiles import Tiles
+from mushroom.features.basis.gaussian_rbf import GaussianRBF
 from mushroom.policy import EpsGreedy
 from mushroom.utils.dataset import compute_J
 from mushroom.utils.parameters import Parameter
@@ -29,15 +28,15 @@ def experiment():
     pi = EpsGreedy(epsilon=epsilon)
 
     # Agent
-    tilings = Tiles.generate(10, [10, 10],
-                             mdp.info.observation_space.low,
-                             mdp.info.observation_space.high)
-    features = Features(tilings=tilings)
+    rbfs = GaussianRBF.generate(10, [10, 10],
+                                mdp.info.observation_space.low,
+                                mdp.info.observation_space.high)
+    features = Features(basis_list=rbfs)
 
     approximator_params = dict(input_shape=(features.size,),
                                output_shape=(mdp.info.action_space.n,),
                                n_actions=mdp.info.action_space.n)
-    algorithm_params = dict()
+    algorithm_params = dict(n_iterations)
     fit_params = dict()
     agent_params = {'approximator_params': approximator_params,
                     'algorithm_params': algorithm_params,
@@ -48,7 +47,7 @@ def experiment():
     core = Core(agent, mdp)
 
     # Train
-    core.learn(n_episodes=20, n_episodes_per_fit=20)
+    core.learn(n_episodes=1000, n_episodes_per_fit=20)
 
     # Test
     test_epsilon = Parameter(0.)

@@ -7,11 +7,12 @@ def parse_dataset(dataset, features=None):
 
     Args:
         dataset (list): the dataset to parse;
-        features (object): features to apply to the states.
+        features (object, None): features to apply to the states.
 
     Returns:
         The np.array of state, action, reward, next_state, absorbing flag and
-        last step flag.
+        last step flag. Features are applied to `state` and `next_state`, when
+        provided.
 
     """
     assert len(dataset) > 0
@@ -47,6 +48,15 @@ def parse_dataset(dataset, features=None):
 
 
 def mean_episode_length(dataset):
+    """
+    Compute the mean length of an episode in the dataset.
+
+    Args:
+        dataset (list): the dataset to consider.
+
+    Returns:
+        The mean length of an episode in the dataset.
+    """
     lengths = list()
     l = 0
     for sample in dataset:
@@ -60,15 +70,15 @@ def mean_episode_length(dataset):
 
 def select_episodes(dataset, n_episodes, parse=False):
     """
-    Return the desired number of episodes in the provided dataset.
+    Return the first `n_episodes` episodes in the provided dataset.
 
     Args:
-        dataset (np.array): the dataset to parse;
+        dataset (list): the dataset to consider;
         n_episodes (int): the number of episodes to pick from the dataset;
         parse (bool): whether to parse the dataset to return.
 
     Returns:
-        A subset of the dataset containing the desired number of episodes.
+        A subset of the dataset containing the first `n_episodes` episodes.
 
     """
     assert n_episodes >= 0, 'Number of episodes must be greater than or equal' \
@@ -85,15 +95,16 @@ def select_episodes(dataset, n_episodes, parse=False):
 
 def select_samples(dataset, n_samples, parse=False):
     """
-    Return the desired number of samples in the provided dataset.
+    Return the randomly picked desired number of samples in the provided
+    dataset.
 
     Args:
-        dataset (np.array): the dataset to parse;
-        n_samples (int): the number of episodes to pick from the dataset;
+        dataset (list): the dataset to consider;
+        n_samples (int): the number of samples to pick from the dataset;
         parse (bool): whether to parse the dataset to return.
 
     Returns:
-        A subset of the dataset containing the desired number of samples.
+        A subset of the dataset containing randomly picked `n_samples` samples.
 
     """
     assert n_samples >= 0, 'Number of samples must be greater than or equal' \
@@ -110,14 +121,14 @@ def select_samples(dataset, n_samples, parse=False):
 
 def compute_J(dataset, gamma=1.):
     """
-    Compute the J.
+    Compute the cumulative discounted reward of each episode in the dataset.
 
     Args:
-        dataset (list): the dataset to consider to compute J;
+        dataset (list): the dataset to consider;
         gamma (float, 1.): discount factor.
 
     Returns:
-        The average cumulative discounted reward.
+        The cumulative discounted reward of each episode in the dataset.
 
     """
     js = list()
@@ -137,18 +148,19 @@ def compute_J(dataset, gamma=1.):
 
 def compute_scores(dataset):
     """
-    Compute the scores per episode.
+    Compute the scores of each episode in the dataset. This is meant to be used
+    for the Atari environments.
 
     Args:
-        dataset (list): the dataset to consider to compute the scores.
+        dataset (list): the dataset to consider.
 
     Returns:
-        the minimum score reached in an episode,
+        The minimum score reached in an episode,
         the maximum score reached in an episode,
         the mean score reached,
-        the number of episodes completed.
+        the number of completed games.
 
-        If no episode has been completed, it returns 0 for all values.
+        If no game has been completed, it returns 0 for all values.
 
     """
     scores = list()
