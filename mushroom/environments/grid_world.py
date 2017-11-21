@@ -74,7 +74,7 @@ class GridWorld(AbstractGridWorld):
             if state[1] + 1 < self._width:
                 state[1] += 1
 
-        if np.array_equal(self._state, self._goal):
+        if np.array_equal(state, self._goal):
             reward = 10
             absorbing = True
         else:
