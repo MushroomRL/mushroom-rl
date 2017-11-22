@@ -28,9 +28,9 @@ class QRegressor:
         Fit the model.
 
         Args:
-            state (np.array): states;
-            action (np.array): actions;
-            q (np.array): target q-values;
+            state (np.ndarray): states;
+            action (np.ndarray): actions;
+            q (np.ndarray): target q-values;
             **fit_params (dict): other parameters used by the fit method of the
                 regressor.
 

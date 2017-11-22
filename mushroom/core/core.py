@@ -13,8 +13,8 @@ class Core(object):
         Constructor.
 
         Args:
-            agent (object): the agent moving according to a policy;
-            mdp (object): the environment in which the agent moves;
+            agent (Agent): the agent moving according to a policy;
+            mdp (Environment): the environment in which the agent moves;
             callbacks (list): list of callbacks to execute at the end of
                 each learn iteration.
 
@@ -37,8 +37,26 @@ class Core(object):
 
     def learn(self, n_steps=None, n_episodes=None, n_steps_per_fit=None,
               n_episodes_per_fit=None, render=False, quiet=False):
+        """
+        This function moves the agent in the environment and fits the policy
+        using the collected samples. The agent can be moved for a given number
+        of steps or a given number of episodes and, independently from this
+        choice, the policy can be fitted after a given number of steps or a
+        given number of episodes.
+
+        Args:
+            n_steps (int, None): number of steps to move the agent;
+            n_episodes (int, None): number of episodes to move the agent;
+            n_steps_per_fit (int, None): number of steps between each fit of the
+                policy;
+            n_episodes_per_fit (int, None): number of episodes between each fit
+                of the policy;
+            render (bool, False): whether to render the environment or not;
+            quiet (bool, False): whether to show the progress bar or not.
+
+        """
         assert (n_episodes_per_fit is not None and n_steps_per_fit is None)\
-               or (n_episodes_per_fit is None and n_steps_per_fit is not None)
+            or (n_episodes_per_fit is None and n_steps_per_fit is not None)
 
         self._n_steps_per_fit = n_steps_per_fit
         self._n_episodes_per_fit = n_episodes_per_fit
@@ -54,6 +72,20 @@ class Core(object):
 
     def evaluate(self, initial_states=None, n_steps=None, n_episodes=None,
                  render=False, quiet=False):
+        """
+        This function moves the agent in the environment using its policy.
+        The agent is moved for a provided number of steps, episodes, or from
+        a set of initial states for the whole episode.
+
+        Args:
+            initial_states (np.ndarray, None): the starting states of each
+                episode;
+            n_steps (int, None): number of steps to move the agent;
+            n_episodes (int, None): number of episodes to move the agent;
+            render (bool, False): whether to render the environment or not;
+            quiet (bool, False): whether to show the progress bar or not.
+
+        """
         fit_condition = lambda: False
 
         return self._run(n_steps, n_episodes, fit_condition, render, quiet,

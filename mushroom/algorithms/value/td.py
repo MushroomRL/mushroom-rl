@@ -30,6 +30,17 @@ class TD(Agent):
 
     @staticmethod
     def _parse(dataset):
+        """
+        Utility to parse the dataset that is supposed to contain only a sample.
+
+        Args:
+             dataset (list): the current episode step.
+
+        Returns:
+            A tuple containing state, action, reward, next state, absorbing and
+            last flag.
+
+        """
         sample = dataset[0]
         state = sample[0]
         action = sample[1]
@@ -44,11 +55,11 @@ class TD(Agent):
         Update the Q-table.
 
         Args:
-            state (np.array): state;
-            action (np.array): action;
-            reward (np.array): reward;
-            next_state (np.array): next state;
-            absorbing (np.array): absorbing flag.
+            state (np.ndarray): state;
+            action (np.ndarray): action;
+            reward (np.ndarray): reward;
+            next_state (np.ndarray): next state;
+            absorbing (np.ndarray): absorbing flag.
 
         """
         pass
@@ -160,7 +171,7 @@ class WeightedQLearning(TD):
     def _next_q(self, next_state):
         """
         Args:
-            next_state (np.array): the state where next action has to be
+            next_state (np.ndarray): the state where next action has to be
                 evaluated.
 
         Returns:
@@ -453,6 +464,15 @@ class RQLearning(TD):
             state, action] + self.mdp_info.gamma * self.Q_tilde[state, action]
 
     def _next_q(self, next_state):
+        """
+        Args:
+            next_state (np.ndarray): the state where next action has to be
+                evaluated.
+
+        Returns:
+            The weighted estimator value in 'next_state'.
+
+        """
         if self.off_policy:
             return np.max(self.Q[next_state, :])
         else:

@@ -22,10 +22,47 @@ class Environment(object):
         self._mdp_info = mdp_info
 
     def seed(self, seed):
+        """
+        Set the seed of the environment.
+
+        Args:
+            seed (float): the value of the seed.
+
+        """
         if hasattr(self, 'env'):
             self.env.seed(seed)
         else:
             raise NotImplementedError
+
+    def reset(self, state=None):
+        """
+        Reset the current state.
+
+        Args:
+            state (np.ndarray, None): the state to set to the current state.
+
+        Returns:
+            The current state.
+
+        """
+        raise NotImplementedError
+
+    def step(self, action):
+        """
+        Move the agent from its current state according to the action.
+
+        Args:
+            action (np.ndarray): the action to execute.
+
+        Returns:
+            The state reached by the agent executing `action` in its current
+            state.
+
+        """
+        raise NotImplementedError
+
+    def render(self, mode='human', close=False):
+        raise NotImplementedError
 
     @property
     def info(self):

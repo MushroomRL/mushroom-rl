@@ -18,6 +18,7 @@ class Ensemble(object):
                 Q-function.
             n_models (int): number of regressors in the ensemble;
             prediction (str, 'mean'): the type of prediction to make.
+            **params (dict): parameters dictionary to create each regressor.
 
         """
         self._prediction = prediction
@@ -102,7 +103,7 @@ class EnsembleTable(Ensemble):
 
         Args:
             n_models (int): number of models in the ensemble;
-            shape (np.array): shape of each table in the ensemble;
+            shape (np.ndarray): shape of each table in the ensemble;
             prediction (str, 'mean'): type of prediction to return.
 
         """

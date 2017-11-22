@@ -18,8 +18,8 @@ class GaussianRBF:
         Constructor.
 
         Args:
-            mean (np.array): the mean vector of the feature;
-            scale (np.array): the scale vector of the feature;
+            mean (np.ndarray): the mean vector of the feature;
+            scale (np.ndarray): the scale vector of the feature;
             dimensions (list, None): list of the dimensions of the input to be
                 considered by the feature. The number of dimensions must match
                 the dimensionality of `mean` and `scale`.

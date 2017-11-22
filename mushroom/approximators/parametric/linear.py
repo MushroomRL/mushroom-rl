@@ -2,8 +2,23 @@ import numpy as np
 
 
 class LinearApproximator:
+    """
+    This class implements a linear approximator.
+
+    """
     def __init__(self, weights=None, input_shape=None, output_shape=1,
                  **kwargs):
+        """
+        Constructor.
+
+        Args:
+             weights (np.ndarray): array of weights to initialize the weights
+                of the approximator;
+             input_shape (np.ndarray): the shape of the input of the model;
+             output_shape (np.ndarray): the shape of the output of the model;
+             **kwargs (dict): other params of the approximator.
+
+        """
         assert len(input_shape) == 1 and len(output_shape) == 1
 
         input_dim = input_shape[0]
@@ -18,9 +33,31 @@ class LinearApproximator:
                              ' or the input dimension')
 
     def fit(self, x, y, **fit_params):
+        """
+        Fit the model.
+
+        Args:
+            x (np.ndarray): input;
+            y (np.ndarray): target;
+            **fit_params (dict): other parameters used by the fit method of the
+                regressor.
+
+        """
         self._w = np.linalg.solve(x, y).T
 
     def predict(self, x, **predict_params):
+        """
+        Predict.
+
+        Args:
+            x (np.ndarray): input;
+            **predict_params (dict): other parameters used by the predict method
+                the regressor.
+
+        Returns:
+            The predictions of the model.
+
+        """
         prediction = np.ones((x.shape[0], self._w.shape[0]))
         for i, x_i in enumerate(x):
             prediction[i] = x_i.dot(self._w.T)

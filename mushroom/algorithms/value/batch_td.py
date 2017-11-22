@@ -56,7 +56,7 @@ class FQI(BatchTD):
 
         Args:
             dataset (list): the dataset;
-            target (np.array, None): initial target of FQI.
+            target (np.ndarray, None): initial target of FQI.
 
         Returns:
             Last target computed.

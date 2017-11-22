@@ -8,6 +8,12 @@ class Preprocessor(object):
     """
     def __call__(self, x):
         """
+        Compute the preprocessing of the given input according to the type of
+        preprocessor.
+
+        Args:
+            x (np.ndarray): the array to preprocess.
+
         Returns:
             The preprocessed input data array.
 
@@ -20,6 +26,17 @@ class Preprocessor(object):
             x = self._compute(x)
 
         return x
+
+    def _compute(self, x):
+        """
+        Args:
+            x (np.ndarray): input data
+
+        Returns:
+            The preprocessed input data array.
+
+        """
+        raise NotImplementedError
 
 
 class Scaler(Preprocessor):
@@ -39,14 +56,6 @@ class Scaler(Preprocessor):
         self._coeff = coeff
 
     def _compute(self, x):
-        """
-        Args:
-            x (np.array): input data
-
-        Returns:
-            The scaled input data array.
-
-        """
         return x / self._coeff
 
 
@@ -62,20 +71,14 @@ class Binarizer(Preprocessor):
 
         Args:
             threshold (float): the coefficient to use to scale input data.
+            geq (bool, True): whether the threshold include equal elements
+                or not.
 
         """
         self._threshold = threshold
         self._geq = geq
 
     def _compute(self, x):
-        """
-        Args:
-            x (np.array): input data
-
-        Returns:
-            The binarized input data array.
-
-        """
         if self._geq:
             return (x >= self._threshold).astype(np.float)
         else:
@@ -99,12 +102,4 @@ class Filter(Preprocessor):
         self._idxs = idxs
 
     def _compute(self, x):
-        """
-        Args:
-            x (np.array): input data
-
-        Returns:
-            The filter input data array.
-
-        """
         return x[self._idxs]

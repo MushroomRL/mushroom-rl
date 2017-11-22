@@ -70,7 +70,7 @@ class Tiles:
         high = np.array(high, dtype=np.float)
 
         tilings = list()
-        offset =  (high - low) /(np.array(n_tiles) * n_tilings - n_tilings + 1.0)
+        offset = (high - low) / (np.array(n_tiles) * n_tilings - n_tilings + 1.)
         for i in xrange(n_tilings):
             x_min = low - (n_tilings - 1 - i) * offset
             x_max = high + i * offset

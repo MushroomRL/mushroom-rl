@@ -151,7 +151,7 @@ class Regressor:
     def set_weights(self, w):
         """
         Args:
-            w ([list, np.array]): list of weights to be set in the model.
+            w (list): list of weights to be set in the model.
 
         """
         try:

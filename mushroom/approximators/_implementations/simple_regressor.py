@@ -1,4 +1,9 @@
 class SimpleRegressor:
+    """
+    This class is used to create a regressor that approximates a generic
+    function, not only an action-value function.
+
+    """
     def __init__(self, approximator, **params):
         """
         Constructor.
@@ -18,8 +23,8 @@ class SimpleRegressor:
         Fit the model.
 
         Args:
-            x (np.array): input;
-            y (np.array): target;
+            x (np.ndarray): input;
+            y (np.ndarray): target;
             **fit_params (dict): other parameters used by the fit method of the
                 regressor.
 
@@ -32,7 +37,7 @@ class SimpleRegressor:
         Predict.
 
         Args:
-            x (np.array): input;
+            x (np.ndarray): input;
             **predict_params (dict): other parameters used by the predict method
                 the regressor.
 

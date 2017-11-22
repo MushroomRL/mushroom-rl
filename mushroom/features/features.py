@@ -45,6 +45,21 @@ def Features(basis_list=None, tilings=None, tensor_list=None, name=None,
 
 
 def get_action_features(phi_state, action, n_actions):
+    """
+    Compute an array of size `len(phi_state)` * `n_actions` filled with
+    zeros, except for elements from `len(phi_state)` * `action` to
+    `len(phi_state)` * (`action` + 1) that are filled with `phi_state`. This
+    is used to compute state-action features.
+
+    Args:
+        phi_state (np.ndarray): the feature of the state;
+        action (np.ndarray): the action whose features have to be computed;
+        n_actions (int): the number of actions.
+
+    Returns:
+        The state-action features.
+
+    """
     if len(phi_state.shape) > 1:
         assert phi_state.shape[0] == action.shape[0]
 

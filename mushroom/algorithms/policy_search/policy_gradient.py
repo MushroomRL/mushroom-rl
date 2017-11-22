@@ -54,7 +54,7 @@ class PolicyGradient(Agent):
         """
         This function is called, when parsing the dataset, at the beginning
         of each episode. The implementation is dependent on the algorithm (e.g.
-        REINFORCE reset some data structure).
+        REINFORCE resets some data structure).
 
         """
         raise NotImplementedError('PolicyGradient is an abstract class')
@@ -64,8 +64,8 @@ class PolicyGradient(Agent):
         This function is called, when parsing the dataset, at each episode step.
 
         Args:
-            state (np.array): the state at the current step;
-            action (np.array): the action at the current step.
+            state (np.ndarray): the state at the current step;
+            action (np.ndarray): the action at the current step.
 
         """
         raise NotImplementedError('PolicyGradient is an abstract class')

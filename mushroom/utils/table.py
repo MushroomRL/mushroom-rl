@@ -12,8 +12,9 @@ class Table:
 
         Args:
             shape (tuple): the shape of the tabular regressor.
-            initial_value (float): the initial value for each entry of the
+            initial_value (float, 0.): the initial value for each entry of the
                 tabular regressor.
+            dtype ([int, float], None): the dtype of the table array.
 
         """
         self.__name__ = 'Table'

@@ -32,7 +32,7 @@ class TDPolicy(object):
         Sample an action in `state` using the policy.
 
         Args:
-            state (np.array): the state where the agent is.
+            state (np.ndarray): the state where the agent is.
 
         Returns:
             The action sampled from the policy.

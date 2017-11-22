@@ -1,7 +1,7 @@
 class Agent(object):
     """
-    This class implements the functions to initialize and move the agent drawing
-    actions from its policy.
+    This class implements the functions to manage the agent (e.g. move the agent
+    following its policy).
 
     """
     def __init__(self, policy, mdp_info, params, features=None):
@@ -9,8 +9,8 @@ class Agent(object):
         Constructor.
 
         Args:
-            policy (object): the policy to use for the agent;
-            mdp_info (object): information about the MDP;
+            policy (Policy): the policy followed by the agent;
+            mdp_info (MDPInfo): information about the MDP;
             params (dict): other parameters of the algorithm;
             features (object, None): features to extract from the state.
 
@@ -40,7 +40,7 @@ class Agent(object):
         case of SARSA).
 
         Args:
-            state (np.array): the state where the agent is.
+            state (np.ndarray): the state where the agent is.
 
         Returns:
             The action to be executed.

@@ -2,6 +2,10 @@ import numpy as np
 
 
 class Buffer(object):
+    """
+    Utility class to manage Atari games states.
+
+    """
     def __init__(self, size):
         self._size = size
 
@@ -24,6 +28,11 @@ class Buffer(object):
 
 
 class ReplayMemory(object):
+    """
+    This class implements function to manage a replay memory as the one used in
+    "Human-Level Control Through Deep Reinforcement Learning" by Mnih V. et al..
+
+    """
     def __init__(self, mdp_info, initial_size, max_size, history_length=1):
         self._initial_size = initial_size
         self._max_size = max_size

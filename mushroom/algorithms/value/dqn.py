@@ -58,13 +58,6 @@ class DQN(Agent):
         super(DQN, self).__init__(policy, mdp_info, params)
 
     def fit(self, dataset):
-        """
-        Single fit step.
-
-        Args:
-            dataset (list): the dataset.
-
-        """
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
             state, action, reward, next_state, absorbing, _ =\
@@ -95,13 +88,13 @@ class DQN(Agent):
     def _next_q(self, next_state, absorbing):
         """
         Args:
-            next_state (np.array): the states where next action has to be
+            next_state (np.ndarray): the states where next action has to be
                 evaluated;
-            absorbing (np.array): the absorbing flag for the states in
+            absorbing (np.ndarray): the absorbing flag for the states in
                 `next_state`.
 
         Returns:
-            Maximum action-value for each state in `next_states`.
+            Maximum action-value for each state in `next_state`.
 
         """
         q = self.target_approximator.predict(next_state)

@@ -57,6 +57,25 @@ class ExponentialDecayParameter(Parameter):
 
 
 class AdaptiveParameter(object):
+    """
+    This class implements a basic adaptive gradient step. Instead of moving of
+    a step proportional to the gradient, takes a step limited by a given metric.
+    To specify the metric, the natural gradient has to be provided. If natural
+    gradient is not provided, the identity matrix is used.
+
+    The step rule is:
+    \f[
+    \Delta\theta=\underset{\Delta\vartheta}{argmax}\Delta\vartheta^{t}\nabla_{\theta}J
+    \f]
+
+    \f[
+    s.t.:\Delta\vartheta^{T}M\Delta\vartheta\leq\varepsilon
+    \f]
+
+    Lecture notes, Neumann G..
+    http://www.ias.informatik.tu-darmstadt.de/uploads/Geri/lecture-notes-constraint.pdf
+
+    """
     def __init__(self, value):
         self._eps = value
 

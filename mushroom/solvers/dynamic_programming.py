@@ -7,8 +7,8 @@ def value_iteration(prob, reward, gamma, eps):
     Value iteration algorithm to solve a dynamic programming problem.
 
     Args:
-        prob (np.array): transition probability matrix;
-        reward (np.array): reward matrix;
+        prob (np.ndarray): transition probability matrix;
+        reward (np.ndarray): reward matrix;
         gamma (float): discount factor;
         eps (float): accuracy threshold.
 
@@ -45,8 +45,8 @@ def policy_iteration(prob, reward, gamma):
     Policy iteration algorithm to solve a dynamic programming problem.
 
     Args:
-        prob (np.array): transition probability matrix;
-        reward (np.array): reward matrix;
+        prob (np.ndarray): transition probability matrix;
+        reward (np.ndarray): reward matrix;
         gamma (float): discount factor.
 
     Returns:
