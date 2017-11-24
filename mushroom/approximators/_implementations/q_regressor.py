@@ -59,7 +59,7 @@ class QRegressor:
         q = self.model.predict(state, **predict_params)
 
         if len(z) == 2:
-            action = z[1]
+            action = z[1].ravel()
             if q.ndim == 1:
                 return q[action]
             else:
