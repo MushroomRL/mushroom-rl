@@ -9,3 +9,4 @@ joblib
 pillow
 tqdm
 h5py
+pygame
