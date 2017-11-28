@@ -164,7 +164,6 @@ class GridWorldGenerator(AbstractGridWorld):
             absorbing = False
             new_state = np.array(state)
 
-
         return new_state, reward, absorbing, {}
 
     @staticmethod
