@@ -210,9 +210,8 @@ class GridWorldGenerator(AbstractGridWorld):
 class AbstractGridWorldPixel(AbstractGridWorld):
     def reset(self, state=None):
         if state is None:
-            state = self._initial_grid
-
-            self._state = self.convert_to_pixel(state, self.window_size[1],
+            self._state = self.convert_to_pixel(self._initial_grid,
+                                                self.window_size[1],
                                                 self.window_size[0])
         else:
             self._state = deepcopy(state)

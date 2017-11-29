@@ -117,7 +117,7 @@ class ConvNet:
                 flatten, 512, activation=tf.nn.relu,
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 bias_initializer=tf.glorot_uniform_initializer(),
-                name='_implementations'
+                name='_features'
             )
             self.q = tf.layers.dense(
                 self._features, convnet_pars['output_shape'][0],
