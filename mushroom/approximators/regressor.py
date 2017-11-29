@@ -3,7 +3,7 @@ import numpy as np
 from ._implementations.q_regressor import QRegressor
 from ._implementations.action_regressor import ActionRegressor
 from ._implementations.ensemble import Ensemble
-from ._implementations.simple_regressor import SimpleRegressor
+from ._implementations.generic_regressor import GenericRegressor
 
 
 class Regressor:
@@ -17,7 +17,7 @@ class Regressor:
     If `n_actions` is provided, if its value is equal to
     the `output_shape` then a `QRegressor` is created, else (`output_shape`
     should be (1,)) an `ActionRegressor` is created.
-    Else a `SimpleRegressor` is created.
+    Else a `GenericRegressor` is created.
     An `Ensemble` model can be used for all the previous _implementations
     listed before simply providing a `n_models` parameter greater than 1.
 
@@ -62,7 +62,7 @@ class Regressor:
             else:
                 self._impl = ActionRegressor(approximator, n_actions, **params)
         else:
-            self._impl = SimpleRegressor(approximator, **params)
+            self._impl = GenericRegressor(approximator, **params)
 
     def __call__(self, *z, **predict_params):
         return self.predict(*z, **predict_params)
