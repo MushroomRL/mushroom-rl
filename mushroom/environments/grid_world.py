@@ -263,6 +263,7 @@ class GridWorldPixelGenerator(AbstractGridWorldPixel):
                          'G': 255}
 
         self._grid, start, goal = self._generate(grid_map_file)
+        self._grid = self._grid.astype(np.uint8)
         self._initial_grid = deepcopy(self._grid)
         height = self._grid.shape[0]
         width = self._grid.shape[1]
