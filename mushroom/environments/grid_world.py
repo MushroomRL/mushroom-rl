@@ -259,8 +259,8 @@ class GridWorldPixelGenerator(AbstractGridWorldPixel):
 
         self.window_size = (width_window, height_window)
 
-        self._symbols = {'.': 0., 'S': 63.75, '*': 127.5, '#': 191.25,
-                         'G': 255.}
+        self._symbols = {'.': 0, 'S': 63, '*': 127, '#': 191,
+                         'G': 255}
 
         self._grid, start, goal = self._generate(grid_map_file)
         self._initial_grid = deepcopy(self._grid)
