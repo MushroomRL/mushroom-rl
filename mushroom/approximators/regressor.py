@@ -62,7 +62,9 @@ class Regressor:
             else:
                 self._impl = ActionRegressor(approximator, n_actions, **params)
         else:
-            self._impl = GenericRegressor(approximator, **params)
+            self._impl = GenericRegressor(approximator,
+                                          len(self.input_shape),
+                                          **params)
 
     def __call__(self, *z, **predict_params):
         return self.predict(*z, **predict_params)
