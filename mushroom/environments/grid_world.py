@@ -259,7 +259,7 @@ class GridWorldPixelGenerator(AbstractGridWorldPixel):
 
         self.window_size = (width_window, height_window)
 
-        self._symbols = {'.': 0, 'S': 63, '*': 127, '#': 191,
+        self._symbols = {'.': 0, 'S': 100, '*': 127, '#': 25,
                          'G': 255}
 
         self._grid, start, goal = self._generate(grid_map_file)
@@ -348,8 +348,9 @@ class GridWorldPixelGenerator(AbstractGridWorldPixel):
         return grid, start, goal
 
     def render(self, mode='human', close=False):
-        pygame.init()
-        self.display = pygame.display.set_mode(self.window_size)
+        if not hasattr(self, 'display'):
+            pygame.init()
+            self.display = pygame.display.set_mode(self.window_size)
 
         surf = pygame.surfarray.make_surface(self._state.T)
 
