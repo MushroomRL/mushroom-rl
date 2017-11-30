@@ -78,7 +78,12 @@ class Regressor:
             **fit_params (dict): parameters to use to fit the model.
 
         """
-        if z[0].ndim == len(self.input_shape):
+        if isinstance(self.input_shape[0], tuple):
+            ndim = len(self._input_shape[0])
+        else:
+            ndim = len(self._input_shape)
+
+        if z[0].ndim == ndim:
             z = [np.expand_dims(z_i, axis=0) for z_i in z]
         self._impl.fit(*z, **fit_params)
 
@@ -91,7 +96,12 @@ class Regressor:
             **predict_params(dict): parameters to use to predict with the model.
 
         """
-        if z[0].ndim == len(self.input_shape):
+        if isinstance(self._input_shape[0], tuple):
+            ndim = len(self._input_shape[0])
+        else:
+            ndim = len(self._input_shape)
+
+        if z[0].ndim == ndim:
             z = [np.expand_dims(z_i, axis=0) for z_i in z]
 
             return self._impl.predict(*z, **predict_params).flatten()
