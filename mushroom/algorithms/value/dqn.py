@@ -73,17 +73,16 @@ class DQN(Agent):
 
             self._n_updates += 1
 
-            self._update_target()
+            if self._n_updates % self._target_update_frequency == 0:
+                self._update_target()
 
     def _update_target(self):
         """
-        Update the target network if the conditions on the number of updates
-        are met.
+        Update the target network.
 
         """
-        if self._n_updates % self._target_update_frequency == 0:
-            self.target_approximator.model.set_weights(
-                self.approximator.model.get_weights())
+        self.target_approximator.model.set_weights(
+            self.approximator.model.get_weights())
 
     def _next_q(self, next_state, absorbing):
         """
@@ -156,14 +155,13 @@ class AveragedDQN(DQN):
         assert isinstance(self.target_approximator.model, Ensemble)
 
     def _update_target(self):
-        if self._n_updates % self._target_update_frequency == 0:
-            idx = self._n_updates / self._target_update_frequency\
-                  % self._n_approximators
-            self.target_approximator.model[idx].set_weights(
-                self.approximator.model.get_weights())
+        idx = self._n_updates / self._target_update_frequency\
+              % self._n_approximators
+        self.target_approximator.model[idx].set_weights(
+            self.approximator.model.get_weights())
 
-            if self._n_fitted_target_models < self._n_approximators:
-                self._n_fitted_target_models += 1
+        if self._n_fitted_target_models < self._n_approximators:
+            self._n_fitted_target_models += 1
 
     def _next_q(self, next_state, absorbing):
         q = list()
