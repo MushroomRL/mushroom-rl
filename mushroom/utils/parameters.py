@@ -64,13 +64,13 @@ class AdaptiveParameter(object):
     gradient is not provided, the identity matrix is used.
 
     The step rule is:
-    \f[
-    \Delta\theta=\underset{\Delta\vartheta}{argmax}\Delta\vartheta^{t}\nabla_{\theta}J
-    \f]
+    \\f[
+    \\Delta\\theta=\\underset{\\Delta\\vartheta}{argmax}\\Delta\\vartheta^{t}\\nabla_{\\theta}J
+    \\f]
 
-    \f[
-    s.t.:\Delta\vartheta^{T}M\Delta\vartheta\leq\varepsilon
-    \f]
+    \\f[
+    s.t.:\\Delta\\vartheta^{T}M\\Delta\\vartheta\\leq\\varepsilon
+    \\f]
 
     Lecture notes, Neumann G..
     http://www.ias.informatik.tu-darmstadt.de/uploads/Geri/lecture-notes-constraint.pdf
