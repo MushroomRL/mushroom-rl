@@ -143,6 +143,8 @@ def compute_J(dataset, gamma=1.):
             j = 0.
             episode_steps = 0
 
+    if len(js) == 0:
+        return [0.]
     return js
 
 
