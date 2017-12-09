@@ -2,11 +2,11 @@ import numpy as np
 from copy import deepcopy
 
 from mushroom.algorithms.agent import Agent
-from mushroom.approximators import EnsembleTable, Regressor
+from mushroom.approximators import Regressor
 from mushroom.approximators.parametric import LinearApproximator
 from mushroom.features import get_action_features
 from mushroom.utils.eligibility_trace import EligibilityTrace
-from mushroom.utils.table import Table
+from mushroom.utils.table import EnsembleTable, Table
 
 
 class TD(Agent):

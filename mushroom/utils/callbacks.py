@@ -2,7 +2,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from mushroom.approximators import EnsembleTable
+from mushroom.utils.table import EnsembleTable
 
 
 class CollectDataset:

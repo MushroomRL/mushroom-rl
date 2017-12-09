@@ -1,5 +1,7 @@
 import numpy as np
 
+from mushroom.approximators import Ensemble
+
 
 class Table:
     """
@@ -71,3 +73,31 @@ class Table:
 
     def __str__(self):
         return self.__name__
+
+
+class EnsembleTable(Ensemble):
+    """
+    This class implements functions to manage table ensembles.
+
+    """
+    def __init__(self, n_models, shape, prediction='mean'):
+        """
+        Constructor.
+
+        Args:
+            n_models (int): number of models in the ensemble;
+            shape (np.ndarray): shape of each table in the ensemble;
+            prediction (str, 'mean'): type of prediction to return.
+
+        """
+        approximator_params = dict(shape=shape)
+        super(EnsembleTable, self).__init__(Table, n_models, prediction,
+                                            **approximator_params)
+
+    @property
+    def n_actions(self):
+        return self._model[0].shape[-1]
+
+    @property
+    def model(self):
+        return self._model

@@ -2,7 +2,7 @@ import numpy as np
 from joblib import Parallel, delayed
 from sklearn.ensemble import ExtraTreesRegressor
 
-from mushroom.algorithms.value.batch_td import FQI
+from mushroom.algorithms.value import FQI
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy

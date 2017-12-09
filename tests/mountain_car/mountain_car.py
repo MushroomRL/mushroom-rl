@@ -2,7 +2,7 @@ import gym
 import numpy as np
 from joblib import Parallel, delayed
 
-from mushroom.algorithms.value.td import TrueOnlineSARSALambda
+from mushroom.algorithms.value import TrueOnlineSARSALambda
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.features import Features
