@@ -1,85 +1,77 @@
-mushroom.environments package
-=============================
+environments
+============
 
-Subpackages
------------
-
-.. toctree::
-
-    mushroom.environments.generators
-
-Submodules
-----------
-
-mushroom.environments.atari module
-----------------------------------
-
-.. automodule:: mushroom.environments.atari
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-mushroom.environments.car_on_hill module
-----------------------------------------
-
-.. automodule:: mushroom.environments.car_on_hill
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-mushroom.environments.environment module
-----------------------------------------
+Environments
+------------
 
 .. automodule:: mushroom.environments.environment
     :members:
     :undoc-members:
     :show-inheritance:
 
-mushroom.environments.finite_mdp module
----------------------------------------
+atari
+~~~~~
+
+.. automodule:: mushroom.environments.atari
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+car_on_hill
+~~~~~~~~~~~
+
+.. automodule:: mushroom.environments.car_on_hill
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+finite_mdp
+~~~~~~~~~~
 
 .. automodule:: mushroom.environments.finite_mdp
     :members:
     :undoc-members:
     :show-inheritance:
 
-mushroom.environments.grid_world module
----------------------------------------
+grid_world
+~~~~~~~~~~
 
 .. automodule:: mushroom.environments.grid_world
     :members:
     :undoc-members:
     :show-inheritance:
 
-mushroom.environments.gym_env module
-------------------------------------
+gym_env
+~~~~~~~
 
 .. automodule:: mushroom.environments.gym_env
     :members:
     :undoc-members:
     :show-inheritance:
 
-mushroom.environments.inverted_pendulum module
-----------------------------------------------
+inverted_pendulum
+~~~~~~~~~~~~~~~~~
 
 .. automodule:: mushroom.environments.inverted_pendulum
     :members:
     :undoc-members:
     :show-inheritance:
 
-mushroom.environments.ship_steering module
-------------------------------------------
+ship_steering
+~~~~~~~~~~~~~
 
 .. automodule:: mushroom.environments.ship_steering
     :members:
     :undoc-members:
     :show-inheritance:
+    
+generators
+----------
 
+simple_chain 
+~~~~~~~~~~~~
 
-Module contents
----------------
-
-.. automodule:: mushroom.environments
+.. automodule:: mushroom.environments.generators.simple_chain
     :members:
     :undoc-members:
     :show-inheritance:

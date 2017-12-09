@@ -1,7 +1,7 @@
-mushroom package
-================
+mushroom
+========
 
-Subpackages
+Modules
 -----------
 
 .. toctree::
@@ -13,11 +13,3 @@ Subpackages
     mushroom.policy
     mushroom.solvers
     mushroom.utils
-
-Module contents
----------------
-
-.. automodule:: mushroom
-    :members:
-    :undoc-members:
-    :show-inheritance:

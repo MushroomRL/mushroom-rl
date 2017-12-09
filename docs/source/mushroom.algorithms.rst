@@ -1,20 +1,8 @@
-mushroom.algorithms package
-===========================
+algorithms
+==========
 
-Subpackages
------------
-
-.. toctree::
-
-    mushroom.algorithms.others
-    mushroom.algorithms.policy_search
-    mushroom.algorithms.value
-
-Submodules
-----------
-
-mushroom.algorithms.agent module
---------------------------------
+agent
+-----
 
 .. automodule:: mushroom.algorithms.agent
     :members:
@@ -22,10 +10,12 @@ mushroom.algorithms.agent module
     :show-inheritance:
 
 
-Module contents
----------------
+Subpackages
+-----------
 
-.. automodule:: mushroom.algorithms
-    :members:
-    :undoc-members:
-    :show-inheritance:
+.. toctree::
+
+    mushroom.algorithms.value
+    mushroom.algorithms.policy_search
+    mushroom.algorithms.others
+    
