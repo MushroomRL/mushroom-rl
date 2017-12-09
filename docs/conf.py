@@ -53,7 +53,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Mushroom'
-copyright = u'2017, Carlo D\'Eramo'
+copyright = u'2017, Carlo D\'Eramo, Davide Tateo'
 author = u'Carlo D\'Eramo'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -147,7 +147,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'Mushroom.tex', u'Mushroom Documentation',
-     u'Carlo D\'Eramo', 'manual'),
+     u'Carlo D\'Eramo, Davide Tateo', 'manual'),
 ]
 
 
