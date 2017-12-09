@@ -5,7 +5,21 @@ from mushroom.utils import spaces
 
 
 class FiniteMDP(Environment):
+    """
+    Finite Markov Decision Process.
+
+    """
     def __init__(self, p, rew, mu=None, gamma=.9):
+        """
+        Constructor.
+
+        Args:
+            p (np.ndarray): transition probability matrix;
+            rew (np.ndarray): reward matrix;
+            mu (np.ndarray): initial state probability distribution;
+            gamma (float): discount factor).
+
+        """
         self.__name__ = 'FiniteMDP'
 
         assert p.shape == rew.shape

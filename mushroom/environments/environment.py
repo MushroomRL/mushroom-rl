@@ -1,5 +1,19 @@
 class MDPInfo:
+    """
+    This class is used to store the information of the environment.
+
+    """
     def __init__(self, observation_space, action_space, gamma, horizon):
+        """
+        Constructor.
+
+        Args:
+             observation_space ([Box, Discrete]): the state space;
+             action_space ([Box, Discrete]): the action space;
+             gamma (float): the discount factor;
+             horizon (int): the horizon.
+
+        """
         self.observation_space = observation_space
         self.action_space = action_space
         self.gamma = gamma
@@ -16,6 +30,14 @@ class MDPInfo:
 
 class Environment(object):
     def __init__(self, mdp_info):
+        """
+        Constructor.
+
+        Args:
+             mdp_info (MDPInfo): an object containing the info of the
+                environment.
+
+        """
         # MDP initialization
         self.reset()
 

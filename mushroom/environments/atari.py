@@ -13,6 +13,17 @@ class Atari(Environment):
 
     """
     def __init__(self, name, width=84, height=84, ends_at_life=False):
+        """
+        Constructor.
+
+        Args:
+             name (str): id name of the Atari game in Gym;
+             width (int): width of the screen;
+             heigth (int): height of the screen;
+             ends_at_life (bool): whether the episode ends when a life is lost
+                or not.
+
+        """
         self.__name__ = name
 
         # MPD creation

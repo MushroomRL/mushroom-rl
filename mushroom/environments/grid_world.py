@@ -8,6 +8,10 @@ from mushroom.utils import spaces
 
 
 class AbstractGridWorld(Environment):
+    """
+    Abstract class to build a grid world.
+
+    """
     def __init__(self, mdp_info, height, width, start, goal):
         assert not np.array_equal(start, goal)
 
@@ -51,7 +55,21 @@ class AbstractGridWorld(Environment):
 
 
 class GridWorld(AbstractGridWorld):
+    """
+    Standard grid world.
+
+    """
     def __init__(self, height, width, goal, start=(0, 0)):
+        """
+        Constructor.
+
+        Args:
+            height (int): height of the grid;
+            width (int): width of the grid;
+            goal (tuple): x-y coordinates of the goal;
+            start (tuple, (0, 0)): x-y coordinates of the goal.
+
+        """
         self.__name__ = 'GridWorld'
 
         # MDP properties
@@ -88,7 +106,22 @@ class GridWorld(AbstractGridWorld):
 
 
 class GridWorldVanHasselt(AbstractGridWorld):
+    """
+    A variant of the grid world as presented in:
+    "Double Q-Learning". Hasselt H. V.. 2010.
+
+    """
     def __init__(self, height=3, width=3, goal=(0, 2), start=(2, 0)):
+        """
+        Constructor.
+
+        Args:
+            height (int, 3): height of the grid;
+            width (int, 3): width of the grid;
+            goal (tuple, (0, 2)): x-y coordinates of the goal;
+            start (tuple, (2, 0)): x-y coordinates of the goal.
+
+        """
         self.__name__ = 'GridWorldVanHasselt'
 
         # MDP properties
@@ -126,6 +159,10 @@ class GridWorldVanHasselt(AbstractGridWorld):
 
 
 class GridWorldGenerator(AbstractGridWorld):
+    """
+    Class to build a custom grid world.
+
+    """
     def __init__(self, grid_map):
         self.__name__ = 'GridWorldGenerator'
 

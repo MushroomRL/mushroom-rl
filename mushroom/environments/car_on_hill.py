@@ -12,6 +12,10 @@ class CarOnHill(Environment):
 
     """
     def __init__(self):
+        """
+        Constructor.
+
+        """
         self.__name__ = 'CarOnHill'
 
         # MDP parameters

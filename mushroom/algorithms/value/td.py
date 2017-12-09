@@ -133,7 +133,8 @@ class WeightedQLearning(TD):
         self._sampling = params.pop('sampling', True)
         self._precision = params.pop('precision', 1000)
 
-        super(WeightedQLearning, self).__init__(self.Q, policy, mdp_info, params)
+        super(WeightedQLearning, self).__init__(self.Q, policy, mdp_info,
+                                                params)
 
         self._n_updates = Table(mdp_info.size)
         self._sigma = Table(mdp_info.size, initial_value=1e10)
