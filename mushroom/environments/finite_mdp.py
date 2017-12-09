@@ -17,7 +17,7 @@ class FiniteMDP(Environment):
             p (np.ndarray): transition probability matrix;
             rew (np.ndarray): reward matrix;
             mu (np.ndarray): initial state probability distribution;
-            gamma (float): discount factor).
+            gamma (float): discount factor.
 
         """
         self.__name__ = 'FiniteMDP'

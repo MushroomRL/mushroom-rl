@@ -162,8 +162,26 @@ class GridWorldGenerator(AbstractGridWorld):
     """
     Class to build a custom grid world.
 
+    A .txt file has to be used to specify the shape of the grid world and the
+    cells. There are five types of cells:
+        - S: the position where the agent is;
+        - G: the goal state;
+        - .: a normal cell;
+        - *: a hole; when the agent steps on a hole, it receives a negative
+            reward and the episode ends;
+        - #: a wall; when the agent is supposed to step on a wall, it actually
+            remains in its current state.
+
     """
     def __init__(self, grid_map):
+        """
+        Constructor.
+
+        Args:
+            grid_map (str): the path of the .txt file containing the grid
+                structure.
+
+        """
         self.__name__ = 'GridWorldGenerator'
 
         self._grid, height, width, start, goal = self._generate(grid_map)
@@ -245,6 +263,10 @@ class GridWorldGenerator(AbstractGridWorld):
 
 
 class AbstractGridWorldPixel(AbstractGridWorld):
+    """
+    Abstract class to build a grid world whose state is composed of an image.
+
+    """
     def reset(self, state=None):
         if state is None:
             self._state = self.convert_to_pixel(self._initial_grid,
@@ -291,7 +313,31 @@ class AbstractGridWorldPixel(AbstractGridWorld):
 
 
 class GridWorldPixelGenerator(AbstractGridWorldPixel):
-    def __init__(self, grid_map_file, height_window=84, width_window=84):
+    """
+    Class to build a custom grid world whose state is an image.
+
+    A .txt file has to be used to specify the shape of the grid world and the
+    cells. There are five types of cells:
+        - S: the position where the agent is;
+        - G: the goal state;
+        - .: a normal cell;
+        - *: a hole; when the agent steps on a hole, it receives a negative
+            reward and the episode ends;
+        - #: a wall; when the agent is supposed to step on a wall, it actually
+            remains in its current state.
+
+    """
+    def __init__(self, grid_map, height_window=84, width_window=84):
+        """
+        Constructor.
+
+        Args:
+            grid_map (str): the path of the .txt file containing the grid
+                structure;
+            height_window (int, 84): height of the screen;
+            width_window (int, 84): width of the screen.
+
+        """
         self.__name__ = 'GridWorldPixelGenerator'
 
         self.window_size = (width_window, height_window)
@@ -299,7 +345,7 @@ class GridWorldPixelGenerator(AbstractGridWorldPixel):
         self._symbols = {'.': 0, 'S': 100, '*': 127, '#': 25,
                          'G': 255}
 
-        self._grid, start, goal = self._generate(grid_map_file)
+        self._grid, start, goal = self._generate(grid_map)
         self._grid = self._grid.astype(np.uint8)
         self._initial_grid = deepcopy(self._grid)
         height = self._grid.shape[0]

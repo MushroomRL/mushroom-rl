@@ -12,6 +12,10 @@ class InvertedPendulum(Environment):
 
     """
     def __init__(self):
+        """
+        Constructor.
+
+        """
         self.__name__ = 'InvertedPendulum'
 
         # MDP parameters

@@ -7,10 +7,22 @@ from mushroom.utils.spaces import *
 
 class Gym(Environment):
     """
-    Interface for OpenAI Gym environments.
+    Interface for OpenAI Gym environments. It makes it possible to use every
+    Gym environment just providing the id, except for the Atari games that
+    are managed in a separate class.
 
     """
     def __init__(self, name, horizon, gamma):
+        """
+        Constructor.
+
+        Args:
+             name (str): gym id of the environment;
+             horizon (int): horizon of the MDP;
+             horizon (int): the horizon;
+             gamma (float): the discount factor.
+
+        """
         self.__name__ = name
 
         # MPD creation

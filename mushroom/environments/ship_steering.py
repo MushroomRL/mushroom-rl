@@ -5,7 +5,20 @@ from mushroom.utils import spaces
 
 
 class ShipSteering(Environment):
+    """
+    The Ship Steering environment as presented in:
+    "Hierarchical Policy Gradient Algorithms". Ghavamzadeh M. and Mahadevan S..
+    2013.
+
+    """
     def __init__(self, small=True):
+        """
+        Constructor.
+
+        Args:
+             small (bool): whether to use a small state space or not.
+
+        """
         self.__name__ = 'ShipSteering'
 
         # MDP parameters
