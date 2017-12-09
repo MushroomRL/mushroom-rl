@@ -3,12 +3,39 @@ import numpy as np
 
 
 class Parameter(object):
+    """
+    This class implements function to manage parameters, such as learning rate.
+    It also allows to have a single parameter for each state of state-action
+    tuple.
+
+    """
     def __init__(self, value, min_value=None, size=(1,)):
+        """
+        Constructor.
+
+        Args:
+            value (float): initial value of the parameter;
+            min_value (float): minimum value that it can reach when decreasing;
+            size (tuple): shape of the matrix of parameters; this shape can be
+                used to have a single parameter for each state or state-action
+                tuple.
+
+        """
         self._initial_value = value
         self._min_value = min_value
         self._n_updates = Table(size)
 
     def __call__(self, *idx, **kwargs):
+        """
+        Update and return the parameter in the provided index.
+
+        Args:
+             *idx (list): index of the parameter to return.
+
+        Returns:
+            the updated parameter in the provided index.
+
+        """
         if self._n_updates.table.size == 1:
             idx = list()
 
@@ -17,6 +44,16 @@ class Parameter(object):
         return self.get_value(*idx, **kwargs)
 
     def get_value(self, *idx, **kwargs):
+        """
+        Return the current value of the parameter in the provided index.
+
+        Args:
+            *idx (list): index of the parameter to return.
+
+        Returns:
+            the current value of the parameter in the provided index.
+
+        """
         new_value = self._compute(*idx, **kwargs)
 
         if self._min_value is None or new_value >= self._min_value:
@@ -25,17 +62,40 @@ class Parameter(object):
             return self._min_value
 
     def _compute(self, *idx, **kwargs):
+        """
+        Returns:
+            the value of the parameter in the provided index.
+
+        """
         return self._initial_value
 
     def update(self, *idx, **kwargs):
+        """
+        Updates the number of visit of the parameter in the provided index.
+
+        Args:
+            *idx (list): index of the parameter whose number of visits has to be
+                updated.
+
+        """
         self._n_updates[idx] += 1
 
     @property
     def shape(self):
+        """
+        Returns:
+            the shape of the table of parameters.
+
+        """
         return self._n_updates.table.shape
 
 
 class LinearDecayParameter(Parameter):
+    """
+    This class implements a linearly decaying parameter according to the number
+    of times it has been used.
+
+    """
     def __init__(self, value,  min_value, n, size=(1,)):
         self._coeff = (min_value - value) / n
 
@@ -46,6 +106,11 @@ class LinearDecayParameter(Parameter):
 
 
 class ExponentialDecayParameter(Parameter):
+    """
+    This class implements a exponentially decaying parameter according to the
+    number of times it has been used.
+
+    """
     def __init__(self, value, decay_exp=1., min_value=None, size=(1,)):
         self._decay_exp = decay_exp
 
