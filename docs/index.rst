@@ -13,7 +13,7 @@ Reinforcement Learning python library
 .. highlight:: python
 
 Mushroom is a Reinforcement Learning (RL) library that aims to be a simple, yet
-powerful way to make **RL** and **deep RL** experiments in a fast way. The idea behind Mushroom
+powerful way to make **RL** and **deep RL** experiments. The idea behind Mushroom
 consists in offering the majority of RL algorithms providing a common interface
 in order to run them without excessive effort. Moreover, it is designed in such
 a way that new algorithms and other stuff can generally be added transparently
@@ -134,10 +134,3 @@ to install all its dependencies.
    :caption: Contents:
 
    source/mushroom
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
