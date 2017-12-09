@@ -1,91 +1,56 @@
-mushroom.utils package
-======================
+utils
+=====
 
-Submodules
-----------
+spaces
+------
 
-mushroom.utils.callbacks module
--------------------------------
-
-.. automodule:: mushroom.utils.callbacks
+.. automodule:: mushroom.utils.spaces
     :members:
     :undoc-members:
     :show-inheritance:
-
-mushroom.utils.dataset module
------------------------------
+    
+dataset
+-------
 
 .. automodule:: mushroom.utils.dataset
     :members:
     :undoc-members:
     :show-inheritance:
-
-mushroom.utils.eligibility_trace module
----------------------------------------
-
-.. automodule:: mushroom.utils.eligibility_trace
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-mushroom.utils.features module
-------------------------------
-
-.. automodule:: mushroom.utils.features
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-mushroom.utils.folder module
-----------------------------
-
-.. automodule:: mushroom.utils.folder
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-mushroom.utils.parameters module
---------------------------------
-
-.. automodule:: mushroom.utils.parameters
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-mushroom.utils.preprocessor module
-----------------------------------
+    
+preprocessor
+------------
 
 .. automodule:: mushroom.utils.preprocessor
     :members:
     :undoc-members:
     :show-inheritance:
 
-mushroom.utils.replay_memory module
------------------------------------
+callbacks
+---------
 
-.. automodule:: mushroom.utils.replay_memory
+.. automodule:: mushroom.utils.callbacks
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    
+features
+--------
+
+.. automodule:: mushroom.utils.features
     :members:
     :undoc-members:
     :show-inheritance:
 
-mushroom.utils.spaces module
-----------------------------
+parameters
+----------
 
-.. automodule:: mushroom.utils.spaces
+.. automodule:: mushroom.utils.parameters
     :members:
     :undoc-members:
     :show-inheritance:
-
-mushroom.utils.table module
----------------------------
-
-.. automodule:: mushroom.utils.table
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-mushroom.utils.variance_parameters module
------------------------------------------
+    
+variance_parameters
+-------------------
 
 .. automodule:: mushroom.utils.variance_parameters
     :members:
@@ -93,10 +58,38 @@ mushroom.utils.variance_parameters module
     :show-inheritance:
 
 
-Module contents
----------------
+replay_memory
+-------------
 
-.. automodule:: mushroom.utils
+.. automodule:: mushroom.utils.replay_memory
     :members:
     :undoc-members:
     :show-inheritance:
+
+table
+-----
+
+.. automodule:: mushroom.utils.table
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    
+    
+eligibility_trace
+-----------------
+
+.. automodule:: mushroom.utils.eligibility_trace
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+    
+folder
+------
+
+.. automodule:: mushroom.utils.folder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+

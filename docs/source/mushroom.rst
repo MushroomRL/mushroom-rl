@@ -1,9 +1,6 @@
 mushroom
 ========
 
-Modules
------------
-
 .. toctree::
     mushroom.core
     mushroom.environments

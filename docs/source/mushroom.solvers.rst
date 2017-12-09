@@ -1,22 +1,10 @@
-mushroom.solvers package
-========================
+solvers
+=======
 
-Submodules
-----------
-
-mushroom.solvers.dynamic_programming module
--------------------------------------------
+dynamic_programming
+-------------------
 
 .. automodule:: mushroom.solvers.dynamic_programming
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: mushroom.solvers
     :members:
     :undoc-members:
     :show-inheritance:

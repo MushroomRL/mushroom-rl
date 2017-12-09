@@ -1,22 +1,10 @@
-mushroom.features.tensors package
-=================================
+tensors
+=======
 
-Submodules
-----------
-
-mushroom.features.tensors.gaussian_tensor module
-------------------------------------------------
-
-.. automodule:: mushroom.features.tensors.gaussian_tensor
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Module contents
+gaussian_tensor
 ---------------
 
-.. automodule:: mushroom.features.tensors
+.. automodule:: mushroom.features.tensors.gaussian_tensor
     :members:
     :undoc-members:
     :show-inheritance:

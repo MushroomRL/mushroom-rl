@@ -1,29 +1,22 @@
-mushroom.approximators package
-==============================
+approximators
+=============
 
-Subpackages
------------
-
-.. toctree::
-
-    mushroom.approximators.parametric
-
-Submodules
-----------
-
-mushroom.approximators.regressor module
----------------------------------------
+regressor
+---------
 
 .. automodule:: mushroom.approximators.regressor
     :members:
     :undoc-members:
     :show-inheritance:
+    
+    
+approximators
+-------------
 
+linear
+~~~~~~
 
-Module contents
----------------
-
-.. automodule:: mushroom.approximators
+.. automodule:: mushroom.approximators.parametric.linear
     :members:
     :undoc-members:
     :show-inheritance:
