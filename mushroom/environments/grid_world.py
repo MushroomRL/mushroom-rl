@@ -163,14 +163,11 @@ class GridWorldGenerator(AbstractGridWorld):
     Class to build a custom grid world.
 
     A .txt file has to be used to specify the shape of the grid world and the
-    cells. There are five types of cells:
-        - S: the position where the agent is;
-        - G: the goal state;
-        - .: a normal cell;
-        - *: a hole; when the agent steps on a hole, it receives a negative
-            reward and the episode ends;
-        - #: a wall; when the agent is supposed to step on a wall, it actually
-            remains in its current state.
+    cells. There are five types of cells: 'S' is the position where the agent
+    is; 'G' is the goal state; '.' is a normal cell; '*' is a hole, when the
+    agent steps on a hole, it receives a negative reward and the episode ends;
+    '#' is a wall, when the agent is supposed to step on a wall, it actually
+    remains in its current state.
 
     """
     def __init__(self, grid_map):
@@ -317,14 +314,11 @@ class GridWorldPixelGenerator(AbstractGridWorldPixel):
     Class to build a custom grid world whose state is an image.
 
     A .txt file has to be used to specify the shape of the grid world and the
-    cells. There are five types of cells:
-        - S: the position where the agent is;
-        - G: the goal state;
-        - .: a normal cell;
-        - *: a hole; when the agent steps on a hole, it receives a negative
-            reward and the episode ends;
-        - #: a wall; when the agent is supposed to step on a wall, it actually
-            remains in its current state.
+    cells. There are five types of cells: 'S' is the position where the agent
+    is; 'G' is the goal state; '.' is a normal cell; '*' is a hole, when the
+    agent steps on a hole, it receives a negative reward and the episode ends;
+    '#' is a wall, when the agent is supposed to step on a wall, it actually
+    remains in its current state.
 
     """
     def __init__(self, grid_map, height_window=84, width_window=84):
