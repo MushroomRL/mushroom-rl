@@ -84,6 +84,15 @@ class Ensemble(object):
 
         return results
 
+    @property
+    def model(self):
+        """
+        Returns:
+            The list of the models in the ensemble.
+
+        """
+        return self._model
+
     def __len__(self):
         return len(self._model)
 

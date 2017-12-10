@@ -1,6 +1,0 @@
-site_name: Mushroom
-pages:
-    - Home: index.md
-    - Tutorial: tutorial.md
-theme: readthedocs
-repo_url: https://github.com/carloderamo/mushroom

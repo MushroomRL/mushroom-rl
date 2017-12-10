@@ -40,9 +40,28 @@ class Table:
             self.table[idx] = value
 
     def fit(self, x, y):
+        """
+        Args:
+            x (int): index of the table to be filled;
+            y (float): value to fill in the table.
+
+        """
         self[x] = y
 
     def predict(self, *z):
+        """
+        Predict the output of the table given an input.
+
+        Args:
+            *z (list): list of input of the model. If the table is a Q-table,
+            this list may contain states or states and actions depending
+                on whether the call requires to predict all q-values or only
+                one q-value corresponding to the provided action;
+
+        Returns:
+            The table prediction.
+
+        """
         if z[0].ndim == 1:
             z = [np.expand_dims(z_i, axis=0) for z_i in z]
         state = z[0]
@@ -65,10 +84,20 @@ class Table:
 
     @property
     def n_actions(self):
+        """
+        Returns:
+            The number of actions considered by the table.
+
+        """
         return self.table.shape[-1]
 
     @property
     def shape(self):
+        """
+        Returns:
+            The shape of the table.
+
+        """
         return self.table.shape
 
     def __str__(self):
@@ -97,7 +126,3 @@ class EnsembleTable(Ensemble):
     @property
     def n_actions(self):
         return self._model[0].shape[-1]
-
-    @property
-    def model(self):
-        return self._model

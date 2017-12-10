@@ -4,7 +4,7 @@ import numpy as np
 class Box:
     """
     This class implements functions to manage continuous states and action
-    spaces. It is similar to the Box class in gym.spaces.box.
+    spaces. It is similar to the `Box` class in `gym.spaces.box`.
 
     """
     def __init__(self, low, high, shape=None):
@@ -12,11 +12,11 @@ class Box:
         Constructor.
 
         Args:
-            low ([float, np.ndarray]): the minimum value of dimensions of the
-                space. If a scalar value is provided, this value is considered
-                as the minimum one for each dimension. If a np.ndarray is
-                provided, each i-th element is considered the minimum value
-                of the i-th dimension;
+            low ([float, np.ndarray]): the minimum value of each dimension of
+                the space. If a scalar value is provided, this value is
+                considered as the minimum one for each dimension. If a
+                np.ndarray is provided, each i-th element is considered the
+                minimum value of the i-th dimension;
             high ([float, np.ndarray]): the maximum value of dimensions of the
                 space. If a scalar value is provided, this value is considered
                 as the maximum one for each dimension. If a np.ndarray is
@@ -42,21 +42,36 @@ class Box:
 
     @property
     def low(self):
+        """
+        Returns:
+             The minimum value of each dimension of the space.
+
+        """
         return self._low
 
     @property
     def high(self):
+        """
+        Returns:
+             The maximum value of each dimension of the space.
+
+        """
         return self._high
 
     @property
     def shape(self):
+        """
+        Returns:
+            The dimensions of the space.
+
+        """
         return self._shape
 
 
 class Discrete:
     """
     This class implements functions to manage discrete states and action
-    spaces. It is similar to the Discrete class in gym.spaces.discrete.
+    spaces. It is similar to the `Discrete` class in `gym.spaces.discrete`.
 
     """
     def __init__(self, n):
@@ -64,7 +79,7 @@ class Discrete:
         Constructor.
 
         Args:
-            n (int): the number of discrete values of the space.
+            n (int): the number of values of the space.
 
         """
         self.values = np.arange(n)
