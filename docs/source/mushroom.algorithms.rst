@@ -6,6 +6,8 @@ agent
 
 .. automodule:: mushroom.algorithms.agent
     :members:
+    :private-members:
+    :inherited-members:
     :undoc-members:
     :show-inheritance:
 
