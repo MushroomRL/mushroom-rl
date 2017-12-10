@@ -13,6 +13,16 @@ class AbstractGridWorld(Environment):
 
     """
     def __init__(self, mdp_info, height, width, start, goal):
+        """
+        Constructor.
+
+        Args:
+            height (int): height of the grid;
+            width (int): width of the grid;
+            start (tuple): x-y coordinates of the goal;
+            goal (tuple): x-y coordinates of the goal.
+
+        """
         assert not np.array_equal(start, goal)
 
         assert goal[0] < height and goal[1] < width,\
@@ -60,16 +70,6 @@ class GridWorld(AbstractGridWorld):
 
     """
     def __init__(self, height, width, goal, start=(0, 0)):
-        """
-        Constructor.
-
-        Args:
-            height (int): height of the grid;
-            width (int): width of the grid;
-            goal (tuple): x-y coordinates of the goal;
-            start (tuple, (0, 0)): x-y coordinates of the goal.
-
-        """
         self.__name__ = 'GridWorld'
 
         # MDP properties
@@ -112,16 +112,6 @@ class GridWorldVanHasselt(AbstractGridWorld):
 
     """
     def __init__(self, height=3, width=3, goal=(0, 2), start=(2, 0)):
-        """
-        Constructor.
-
-        Args:
-            height (int, 3): height of the grid;
-            width (int, 3): width of the grid;
-            goal (tuple, (0, 2)): x-y coordinates of the goal;
-            start (tuple, (2, 0)): x-y coordinates of the goal.
-
-        """
         self.__name__ = 'GridWorldVanHasselt'
 
         # MDP properties

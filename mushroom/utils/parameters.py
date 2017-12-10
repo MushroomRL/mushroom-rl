@@ -16,9 +16,9 @@ class Parameter(object):
         Args:
             value (float): initial value of the parameter;
             min_value (float): minimum value that it can reach when decreasing;
-            size (tuple): shape of the matrix of parameters; this shape can be
-                used to have a single parameter for each state or state-action
-                tuple.
+            size (tuple, (1,)): shape of the matrix of parameters; this shape
+                can be used to have a single parameter for each state or
+                state-action tuple.
 
         """
         self._initial_value = value
@@ -33,7 +33,7 @@ class Parameter(object):
              *idx (list): index of the parameter to return.
 
         Returns:
-            the updated parameter in the provided index.
+            The updated parameter in the provided index.
 
         """
         if self._n_updates.table.size == 1:
@@ -51,7 +51,7 @@ class Parameter(object):
             *idx (list): index of the parameter to return.
 
         Returns:
-            the current value of the parameter in the provided index.
+            The current value of the parameter in the provided index.
 
         """
         new_value = self._compute(*idx, **kwargs)
@@ -64,7 +64,7 @@ class Parameter(object):
     def _compute(self, *idx, **kwargs):
         """
         Returns:
-            the value of the parameter in the provided index.
+            The value of the parameter in the provided index.
 
         """
         return self._initial_value
@@ -84,7 +84,7 @@ class Parameter(object):
     def shape(self):
         """
         Returns:
-            the shape of the table of parameters.
+            The shape of the table of parameters.
 
         """
         return self._n_updates.table.shape
