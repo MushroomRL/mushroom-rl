@@ -5,8 +5,7 @@ import os
 import numpy as np
 
 from convnet import ConvNet
-from mushroom.algorithms.value import AveragedDQN, DQN, DoubleDQN,\
-    WeightedDQN
+from mushroom.algorithms.value import AveragedDQN, DQN, DoubleDQN,
 from mushroom.core.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
@@ -79,15 +78,14 @@ def experiment():
                          help='Epsilon term used in rmspropcentered')
 
     arg_alg = parser.add_argument_group('Algorithm')
-    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'wdqn', 'adqn'],
+    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'adqn'],
                          default='dqn',
-                         help='Name of the algorithm. dqn stands for standard'
-                              'DQN, ddqn stands for Double DQN, wdqn'
-                              'stands for Weighted DQN and adqn stands for'
+                         help='Name of the algorithm. dqn is for standard'
+                              'DQN, ddqn is for Double DQN and adqn is for'
                               'Averaged DQN.')
     arg_alg.add_argument("--n-approximators", type=int, default=1,
-                         help="Number of approximators used in the ensemble"
-                              "for Weighted DQN and Averaged DQN.")
+                         help="Number of approximators used in the ensemble for"
+                              "Averaged DQN.")
     arg_alg.add_argument("--batch-size", type=int, default=32,
                          help='Batch size for each fit of the network.')
     arg_alg.add_argument("--history-length", type=int, default=4,
@@ -267,8 +265,6 @@ def experiment():
             agent = DQN(approximator, pi, mdp.info, agent_params)
         elif args.algorithm == 'ddqn':
             agent = DoubleDQN(approximator, pi, mdp.info, agent_params)
-        elif args.algorithm == 'wdqn':
-            agent = WeightedDQN(approximator, pi, mdp.info, agent_params)
         elif args.algorithm == 'adqn':
             agent = AveragedDQN(approximator, pi, mdp.info, agent_params)
 
