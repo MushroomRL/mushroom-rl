@@ -21,10 +21,22 @@ class MDPInfo:
 
     @property
     def size(self):
+        """
+        Returns:
+            The sum of the number of discrete states and discrete actions. Only
+            works for discrete spaces.
+
+        """
         return self.observation_space.size + self.action_space.size
 
     @property
     def shape(self):
+        """
+        Returns:
+            The concatenation of the shape tuple of the state and action
+            spaces.
+
+        """
         return self.observation_space.shape + self.action_space.shape
 
 
@@ -88,6 +100,11 @@ class Environment(object):
 
     @property
     def info(self):
+        """
+        Returns:
+             An object containing the info of the environment.
+
+        """
         return self._mdp_info
 
     def __str__(self):
