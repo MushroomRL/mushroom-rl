@@ -128,12 +128,12 @@ class EpsGreedy(TDPolicy):
 
     def update(self, *idx):
         """
-        Update the value of the epsilon parameter (e.g. in case of different
-        values of epsilon for each visited state according to the number of
-        visits).
+        Update the value of the epsilon parameter at the provided index (e.g. in
+        case of different values of epsilon for each visited state according to
+        the number of visits).
 
         Args:
-            idx (int): value to use to update epsilon.
+            *idx (list): index of the parameter to be updated.
 
         """
         self._epsilon.update(*idx)

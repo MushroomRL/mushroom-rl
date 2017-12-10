@@ -55,7 +55,8 @@ class GaussianPolicy:
             sigma = self._sigma(state)
         else:
             sigma = self._sigma.get_value(state)
-        mu = np.reshape(self._approximator.predict(np.expand_dims(state, axis=0)), -1)
+        mu = np.reshape(self._approximator.predict(np.expand_dims(state,
+                                                                  axis=0)), -1)
 
         return mu, sigma
 
@@ -95,7 +96,7 @@ class MultivariateGaussianPolicy:
         if len(g_mu.shape) == 1:
             g_mu = np.expand_dims(g_mu, axis=1)
 
-        g = 0.5 * g_mu.dot(inv_sigma + inv_sigma.T).dot(delta.T)
+        g = .5 * g_mu.dot(inv_sigma + inv_sigma.T).dot(delta.T)
 
         return g
 
@@ -114,7 +115,8 @@ class MultivariateGaussianPolicy:
         return self._approximator.weights_size
 
     def _compute_multivariate_gaussian(self, state):
-        mu = np.reshape(self._approximator.predict(np.expand_dims(state, axis=0)), -1)
+        mu = np.reshape(self._approximator.predict(np.expand_dims(state,
+                                                                  axis=0)), -1)
 
         return mu, self._sigma, self._inv_sigma
 
@@ -153,9 +155,9 @@ class MultivariateDiagonalGaussianPolicy:
         if len(g_mu.shape) == 1:
             g_mu = np.expand_dims(g_mu, axis=1)
 
-        g = 0.5 * g_mu.dot(inv_sigma + inv_sigma.T).dot(delta.T)
+        g = .5 * g_mu.dot(inv_sigma + inv_sigma.T).dot(delta.T)
 
-        g_sigma = -1.0/self._sigma + delta**2/self._sigma**3
+        g_sigma = -1. / self._sigma + delta**2 / self._sigma**3
 
         return np.concatenate(g, g_sigma)
 
@@ -163,7 +165,8 @@ class MultivariateDiagonalGaussianPolicy:
         self._sigma = sigma
 
     def set_weights(self, weights):
-        self._approximator.set_weights(weights[0:self._approximator.weights_size])
+        self._approximator.set_weights(
+            weights[0:self._approximator.weights_size])
         self._sigma = weights[self._approximator.weights_size:]
 
     def get_weights(self):
@@ -174,10 +177,12 @@ class MultivariateDiagonalGaussianPolicy:
         return self._approximator.weights_size + self._sigma.size
 
     def _compute_multivariate_gaussian(self, state):
-        mu = np.reshape(self._approximator.predict(np.expand_dims(state, axis=0)), -1)
+        mu = np.reshape(self._approximator.predict(np.expand_dims(state,
+                                                                  axis=0)), -1)
 
         sigma2 = self._sigma**2
-        return mu, np.diag(sigma2), np.diag(1.0/sigma2)
+
+        return mu, np.diag(sigma2), np.diag(1. / sigma2)
 
     def __str__(self):
         return self.__name__
