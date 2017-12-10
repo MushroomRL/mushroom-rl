@@ -55,7 +55,6 @@ class FQI(BatchTD):
         Fit loop.
 
         Args:
-            dataset (list): the dataset;
             target (np.ndarray, None): initial target of FQI.
 
         Returns:

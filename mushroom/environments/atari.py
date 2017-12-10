@@ -18,10 +18,10 @@ class Atari(Environment):
 
         Args:
              name (str): id name of the Atari game in Gym;
-             width (int): width of the screen;
-             heigth (int): height of the screen;
-             ends_at_life (bool): whether the episode ends when a life is lost
-                or not.
+             width (int, 84): width of the screen;
+             height (int, 84): height of the screen;
+             ends_at_life (bool, False): whether the episode ends when a life is
+                lost or not.
 
         """
         self.__name__ = name
@@ -71,6 +71,14 @@ class Atari(Environment):
         self.env.render(mode=mode, close=close)
 
     def set_episode_end(self, ends_at_life):
+        """
+        Setter.
+
+        Args:
+            ends_at_life (bool): whether the episode ends when a life is
+                lost or not.
+
+        """
         self._episode_ends_at_life = ends_at_life
 
     def _preprocess_observation(self, obs):

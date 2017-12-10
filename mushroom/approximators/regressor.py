@@ -14,11 +14,12 @@ class Regressor:
     use for each kind of task that has to be performed.
     The inference of the implementation to choose is done checking the provided
     values of parameters `n_actions`.
-    If `n_actions` is provided, if its value is equal to
+    If `n_actions` is provided, it means that the user wants to implement an
+    approximator of the Q-function: if the value of `n_actions` is equal to
     the `output_shape` then a `QRegressor` is created, else (`output_shape`
     should be (1,)) an `ActionRegressor` is created.
     Else a `GenericRegressor` is created.
-    An `Ensemble` model can be used for all the previous _implementations
+    An `Ensemble` model can be used for all the previous implementations
     listed before simply providing a `n_models` parameter greater than 1.
 
     """
@@ -95,6 +96,9 @@ class Regressor:
             *z (list): list of input of the model;
             **predict_params(dict): parameters to use to predict with the model.
 
+        Returns:
+            The model prediction.
+
         """
         if isinstance(self._input_shape[0], tuple):
             ndim = len(self._input_shape[0])
@@ -112,7 +116,7 @@ class Regressor:
     def model(self):
         """
         Returns:
-             the model object.
+             The model object.
 
         """
         return self._impl.model
@@ -121,7 +125,7 @@ class Regressor:
     def input_shape(self):
         """
         Returns:
-             the shape of the input of the model.
+             The shape of the input of the model.
 
         """
         return self._input_shape
@@ -130,7 +134,7 @@ class Regressor:
     def output_shape(self):
         """
         Returns:
-             the shape of the output of the model.
+             The shape of the output of the model.
 
         """
         return self._output_shape
@@ -139,7 +143,7 @@ class Regressor:
     def weights_size(self):
         """
         Returns:
-             the shape of the weights of the model.
+             The shape of the weights of the model.
 
         """
         try:
@@ -151,7 +155,7 @@ class Regressor:
     def get_weights(self):
         """
         Returns:
-             the weights of the model.
+             The weights of the model.
 
         """
         try:
@@ -178,7 +182,7 @@ class Regressor:
             *z (list): the input of the model.
 
         Returns:
-             the derivative of the model.
+             The derivative of the model.
 
         """
         try:

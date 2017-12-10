@@ -10,6 +10,14 @@ from mushroom.utils.callbacks import CollectQ
 from mushroom.utils.parameters import Parameter, ExponentialDecayParameter
 
 
+"""
+Simple script to solve a double chain with Q-Learning. The considered double
+chain is the one presented in:
+"Relative Entropy Policy Search". Peters J. et al.. 2010.
+
+"""
+
+
 def experiment(algorithm_class, decay_exp):
     np.random.seed()
 

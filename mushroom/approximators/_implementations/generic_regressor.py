@@ -1,7 +1,7 @@
 class GenericRegressor:
     """
     This class is used to create a regressor that approximates a generic
-    function.
+    function. An arbitrary number of inputs and outputs is supported.
 
     """
     def __init__(self, approximator, n_inputs, **params):

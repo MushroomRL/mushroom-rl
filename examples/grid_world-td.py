@@ -15,6 +15,16 @@ from mushroom.utils.dataset import parse_dataset
 from mushroom.utils.parameters import ExponentialDecayParameter
 
 
+"""
+This script aims to replicate the experiments on the Grid World MDP as
+presented in:
+"Double Q-Learning", Hasselt H. V.. 2010.
+
+SARSA and many variants of Q-Learning are used. 
+
+"""
+
+
 def experiment(algorithm_class, decay_exp):
     np.random.seed()
 

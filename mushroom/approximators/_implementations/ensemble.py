@@ -15,7 +15,8 @@ class Ensemble(object):
             approximator (object): the model class to approximate the
                 Q-function.
             n_models (int): number of regressors in the ensemble;
-            prediction (str, 'mean'): the type of prediction to make.
+            prediction (str, 'mean'): the type of prediction to make. It can
+                be a 'mean' of the ensembles, or a 'sum'.
             **params (dict): parameters dictionary to create each regressor.
 
         """
