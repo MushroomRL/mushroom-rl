@@ -5,8 +5,9 @@ class PolynomialBasis:
     """
     Class implementing polynomial basis functions. The value of the feature
     is computed using the formula:
-
-    \prod X_i^{d_i}
+    
+    .. math::
+        \prod X_i^{d_i}
 
     where X is the input and d is the vector of the exponents of the polynomial.
 
