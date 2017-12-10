@@ -30,8 +30,6 @@ class CollectDataset:
 
     def get(self):
         """
-        Getter.
-
         Returns:
              The current samples list.
 
@@ -76,8 +74,6 @@ class CollectQ:
 
     def get_values(self):
         """
-        Getter.
-
         Returns:
              The current action-values list.
 
@@ -120,8 +116,6 @@ class CollectMaxQ:
 
     def get_values(self):
         """
-        Getter.
-
         Returns:
              The current maximum action-values list.
 
@@ -165,8 +159,6 @@ class CollectParameters:
 
     def get_values(self):
         """
-        Getter.
-
         Returns:
              The current parameter values list.
 

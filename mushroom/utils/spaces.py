@@ -72,8 +72,18 @@ class Discrete:
 
     @property
     def size(self):
+        """
+        Returns:
+            The number of elements of the space.
+
+        """
         return self.n,
 
     @property
     def shape(self):
+        """
+        Returns:
+            The shape of the space that is always (1,).
+
+        """
         return 1,

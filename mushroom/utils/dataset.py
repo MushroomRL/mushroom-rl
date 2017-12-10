@@ -10,7 +10,7 @@ def parse_dataset(dataset, features=None):
         features (object, None): features to apply to the states.
 
     Returns:
-        The np.array of state, action, reward, next_state, absorbing flag and
+        The np.ndarray of state, action, reward, next_state, absorbing flag and
         last step flag. Features are applied to `state` and `next_state`, when
         provided.
 
@@ -56,6 +56,7 @@ def mean_episode_length(dataset):
 
     Returns:
         The mean length of an episode in the dataset.
+
     """
     lengths = list()
     l = 0
@@ -75,7 +76,7 @@ def select_episodes(dataset, n_episodes, parse=False):
     Args:
         dataset (list): the dataset to consider;
         n_episodes (int): the number of episodes to pick from the dataset;
-        parse (bool): whether to parse the dataset to return.
+        parse (bool, False): whether to parse the dataset to return.
 
     Returns:
         A subset of the dataset containing the first `n_episodes` episodes.
@@ -101,7 +102,7 @@ def select_samples(dataset, n_samples, parse=False):
     Args:
         dataset (list): the dataset to consider;
         n_samples (int): the number of samples to pick from the dataset;
-        parse (bool): whether to parse the dataset to return.
+        parse (bool, False): whether to parse the dataset to return.
 
     Returns:
         A subset of the dataset containing randomly picked `n_samples` samples.
