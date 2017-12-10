@@ -285,7 +285,8 @@ class AbstractGridWorldPixel(AbstractGridWorld):
         raise NotImplementedError(
             'AbstractGridWorldPixel is an abstract class.')
 
-    def convert_to_grid(self, state, height, width):
+    @staticmethod
+    def convert_to_grid(state, height, width):
         h = state.shape[0] / height
         w = state.shape[1] / width
 
