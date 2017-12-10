@@ -7,6 +7,12 @@ from mushroom.policy import EpsGreedy
 from mushroom.utils.parameters import Parameter
 
 
+"""
+Simple script to solve a simple chain with Q-Learning.
+
+"""
+
+
 def experiment():
     np.random.seed()
 

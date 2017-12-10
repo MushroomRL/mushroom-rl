@@ -13,6 +13,13 @@ from mushroom.utils.dataset import compute_J
 from mushroom.utils.parameters import Parameter, AdaptiveParameter
 
 
+"""
+This script aims to replicate the experiments on the Ship Steering MDP using the
+REINFORCE algorithm.
+
+"""
+
+
 def experiment(n_iterations, n_runs, ep_per_run, use_tensorflow):
     np.random.seed()
 

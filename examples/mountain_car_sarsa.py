@@ -12,8 +12,9 @@ from mushroom.utils.dataset import compute_J
 from mushroom.utils.parameters import Parameter
 
 """
-This script uses True Online Sarsa(lambda) to replicate experiments in Seijen
-H. V. et al. (2014).
+This script aims to replicate the experiments on the Mountain Car MDP as
+presented in:
+"True Online TD(lambda)". Seijen H. V. et al.. 2014.
 
 """
 

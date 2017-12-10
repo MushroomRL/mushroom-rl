@@ -15,7 +15,9 @@ from mushroom.utils.parameters import LinearDecayParameter, Parameter
 from mushroom.utils.preprocessor import Scaler
 
 """
-This script can be used to run Atari experiments with DQN.
+This script can be used to run Atari experiments with DQN emulating the one
+presented in:
+"Human-Level Control Through Deep Reinforcement Learning". Mnih V. et al.. 2015.
 
 """
 
