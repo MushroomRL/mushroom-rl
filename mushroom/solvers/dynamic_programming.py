@@ -13,7 +13,7 @@ def value_iteration(prob, reward, gamma, eps):
         eps (float): accuracy threshold.
 
     Returns:
-        the optimal value of each state.
+        The optimal value of each state.
 
     """
     n_states = prob.shape[0]
@@ -50,7 +50,7 @@ def policy_iteration(prob, reward, gamma):
         gamma (float): discount factor.
 
     Returns:
-        the optimal value of each state and the optimal policy.
+        The optimal value of each state and the optimal policy.
 
     """
     n_states = prob.shape[0]
