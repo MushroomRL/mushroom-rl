@@ -116,8 +116,6 @@ html_sidebars = {
 
 html_show_sourcelink=False
 
-html_context = { 'source_url_prefix': "https://github.com/carloderamo/mushroom", }
-
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
