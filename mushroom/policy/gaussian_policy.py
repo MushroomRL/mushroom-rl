@@ -159,7 +159,7 @@ class MultivariateDiagonalGaussianPolicy:
 
         g_sigma = -1. / self._sigma + delta**2 / self._sigma**3
 
-        return np.concatenate(g, g_sigma)
+        return np.concatenate((g, g_sigma), axis=0)
 
     def set_sigma(self, sigma):
         self._sigma = sigma
@@ -170,7 +170,7 @@ class MultivariateDiagonalGaussianPolicy:
         self._sigma = weights[self._approximator.weights_size:]
 
     def get_weights(self):
-        return np.concatenate(self._approximator.get_weights(), self._sigma)
+        return np.concatenate((self._approximator.get_weights(), self._sigma), axis=0)
 
     @property
     def weights_size(self):
