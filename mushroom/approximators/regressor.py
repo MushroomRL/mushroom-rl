@@ -108,7 +108,7 @@ class Regressor:
         if z[0].ndim == ndim:
             z = [np.expand_dims(z_i, axis=0) for z_i in z]
 
-            return self._impl.predict(*z, **predict_params).flatten()
+            return self._impl.predict(*z, **predict_params)[0]
         else:
             return self._impl.predict(*z, **predict_params)
 
