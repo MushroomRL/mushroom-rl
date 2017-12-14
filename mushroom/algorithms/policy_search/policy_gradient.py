@@ -11,27 +11,27 @@ class PolicyGradient(Agent):
     """
     def __init__(self, policy, mdp_info, params, features):
         self.learning_rate = params['algorithm_params'].pop('learning_rate')
-        self.J_episode = None
-        self.df = None
+        self.df = 1
+        self.J_episode = 0
 
         super(PolicyGradient, self).__init__(policy, mdp_info, params, features)
 
     def fit(self, dataset):
         J = list()
-        df = 1.
-        J_episode = 0.
+        self.df = 1.
+        self.J_episode = 0.
         self._init_update()
         for sample in dataset:
-            state, action, reward, next_state, _, last = self._parse(sample)
-            J_episode += df * reward
-            df *= self.mdp_info.gamma
-            self._step_update(state, action)
+            x, u, r, xn, _, last = self._parse(sample)
+            self._step_update(x, u, r)
+            self.J_episode += self.df * r
+            self.df *= self.mdp_info.gamma
 
             if last:
-                self._episode_end_update(J_episode)
-                J.append(J_episode)
-                J_episode = 0.
-                df = 1.
+                self._episode_end_update()
+                J.append(self.J_episode)
+                self.J_episode = 0.
+                self.df = 1.
                 self._init_update()
 
         self._update_parameters(J)
@@ -59,7 +59,7 @@ class PolicyGradient(Agent):
         """
         raise NotImplementedError('PolicyGradient is an abstract class')
 
-    def _step_update(self, state, action):
+    def _step_update(self, x, u, r):
         """
         This function is called, when parsing the dataset, at each episode step.
 

@@ -1,6 +1,6 @@
 import numpy as np
 
-from mushroom.algorithms.policy_search import REINFORCE
+from mushroom.algorithms.policy_search import GPOMDP
 from mushroom.approximators.parametric import LinearApproximator
 from mushroom.approximators.regressor import Regressor
 from mushroom.core.core import Core
@@ -15,7 +15,7 @@ from mushroom.utils.parameters import Parameter, AdaptiveParameter
 
 """
 This script aims to replicate the experiments on the Ship Steering MDP using the
-REINFORCE algorithm.
+GPOMDP algorithm.
 
 """
 
@@ -66,7 +66,7 @@ def experiment(n_iterations, n_runs, ep_per_run, use_tensorflow):
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
-    agent = REINFORCE(policy, mdp.info, agent_params, phi)
+    agent = GPOMDP(policy, mdp.info, agent_params, phi)
 
     # Train
     core = Core(agent, mdp)
