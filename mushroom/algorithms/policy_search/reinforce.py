@@ -19,6 +19,9 @@ class REINFORCE(PolicyGradient):
         self.baseline_num = list()
         self.baseline_den = list()
 
+        # Ignore divide by zero
+        np.seterr(divide='ignore', invalid='ignore')
+
     def _compute_gradient(self, J):
         baseline = np.mean(self.baseline_num, axis=0) / np.mean(
             self.baseline_den, axis=0)
@@ -35,14 +38,14 @@ class REINFORCE(PolicyGradient):
 
         return grad_J
 
-    def _step_update(self, x, u):
+    def _step_update(self, x, u, r):
         d_log_pi = self.policy.diff_log(x, u)
         self.sum_d_log_pi += d_log_pi
 
-    def _episode_end_update(self, J_episode):
+    def _episode_end_update(self):
         self.list_sum_d_log_pi.append(self.sum_d_log_pi)
         squared_sum_d_log_pi = np.square(self.sum_d_log_pi)
-        self.baseline_num.append(squared_sum_d_log_pi * J_episode)
+        self.baseline_num.append(squared_sum_d_log_pi * self.J_episode)
         self.baseline_den.append(squared_sum_d_log_pi)
 
     def _init_update(self):
