@@ -127,4 +127,4 @@ class ActionRegressor:
 
     def __str__(self):
         return 'ActionRegressor of ' + str(self.model[0]) + ' with ' +\
-            self._n_actions + ' actions.'
+            str(self._n_actions) + ' actions.'
