@@ -244,8 +244,6 @@ class GridWorldGenerator(AbstractGridWorld):
             if len(w) > width:
                 width = len(w)
 
-        assert not np.array_equal(start, goal)
-
         return grid, height, width, start, goal
 
 
