@@ -45,9 +45,18 @@ class PolicyGradient(Agent):
                 episode in the dataset.
 
         """
-        grad_J = self._compute_gradient(J)
+        res = self._compute_gradient(J)
+
         theta = self.policy.get_weights()
-        theta_new = theta + self.learning_rate(grad_J) * grad_J
+
+        if len(res) == 1:
+            grad = res[0]
+            delta = self.learning_rate(grad) * grad
+        else:
+            grad, nat_grad = res
+            delta = self.learning_rate(grad, nat_grad) * nat_grad
+
+        theta_new = theta + delta
         self.policy.set_weights(theta_new)
 
     def _init_update(self):

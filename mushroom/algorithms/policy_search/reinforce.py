@@ -36,7 +36,7 @@ class REINFORCE(PolicyGradient):
         self.baseline_den = list()
         self.baseline_num = list()
 
-        return grad_J
+        return grad_J,
 
     def _step_update(self, x, u, r):
         d_log_pi = self.policy.diff_log(x, u)

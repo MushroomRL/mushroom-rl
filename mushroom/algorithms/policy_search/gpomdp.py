@@ -56,7 +56,7 @@ class GPOMDP(PolicyGradient):
         self.baseline_num = list()
         self.baseline_den = list()
 
-        return gradient
+        return gradient,
 
     def _step_update(self, x, u, r):
         discounted_reward = self.df*r
