@@ -1,11 +1,13 @@
 import numpy as np
+
 from mushroom.algorithms.policy_search import PolicyGradient
 
 
 class GPOMDP(PolicyGradient):
     """
     GPOMDP algorithm.
-    "Infinite-Horizon Policy-Gradient Estimation", Baxter J., Bartlett P. L.  2001.
+    "Infinite-Horizon Policy-Gradient Estimation". Baxter J. and Bartlett P. L..
+    2001.
 
     """
     def __init__(self, policy, mdp_info, params, features):
@@ -42,9 +44,9 @@ class GPOMDP(PolicyGradient):
             for t in xrange(n_steps):
                 step_grad = list_sum_d_log_pi[t]
                 step_reward = list_reward[t]
-                baseline = self.baseline_num[t]/ self.baseline_den[t]
+                baseline = self.baseline_num[t] / self.baseline_den[t]
                 baseline[np.logical_not(np.isfinite(baseline))] = 0.
-                gradient += (step_reward - baseline)*step_grad
+                gradient += (step_reward - baseline) * step_grad
 
         gradient /= n_episodes
 
@@ -68,7 +70,8 @@ class GPOMDP(PolicyGradient):
         squared_sum_d_log_pi = np.square(self.sum_d_log_pi)
 
         if self.step_count < len(self.baseline_num):
-            self.baseline_num[self.step_count] += discounted_reward * squared_sum_d_log_pi
+            self.baseline_num[
+                self.step_count] += discounted_reward * squared_sum_d_log_pi
             self.baseline_den[self.step_count] += squared_sum_d_log_pi
         else:
             self.baseline_num.append(discounted_reward * squared_sum_d_log_pi)

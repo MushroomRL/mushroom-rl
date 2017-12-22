@@ -132,11 +132,13 @@ class DoubleDQN(DQN):
     """
     def _next_q(self, next_state, absorbing):
         q = self.approximator.predict(next_state)
-        if np.any(absorbing):
-            q *= 1 - absorbing.reshape(-1, 1)
         max_a = np.argmax(q, axis=1)
 
-        return self.target_approximator.predict(next_state, max_a)
+        double_q = self.target_approximator.predict(next_state, max_a)
+        if np.any(absorbing):
+            double_q *= 1 - absorbing
+
+        return double_q
 
 
 class AveragedDQN(DQN):

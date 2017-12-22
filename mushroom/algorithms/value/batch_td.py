@@ -157,12 +157,12 @@ class DoubleFQI(FQI):
         else:
             for i in xrange(2):
                 q_i = self.approximator.predict(next_state[i], idx=i)
-                if np.any(absorbing[i]):
-                    q_i *= 1 - absorbing[i].reshape(-1, 1)
 
                 amax_q = np.expand_dims(np.argmax(q_i, axis=1), axis=1)
                 max_q = self.approximator.predict(next_state[i], amax_q,
                                                   idx=1 - i)
+                if np.any(absorbing[i]):
+                    max_q *= 1 - absorbing[i]
                 self._target[i] = reward[i] + self.mdp_info.gamma * max_q
 
         for i in xrange(2):
