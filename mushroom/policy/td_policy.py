@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.optimize import brentq
 
 from mushroom.utils.parameters import Parameter
 
@@ -139,31 +140,33 @@ class EpsGreedy(TDPolicy):
         self._epsilon.update(*idx)
 
 
-class Softmax(TDPolicy):
+class Boltzmann(TDPolicy):
     """
-    Softmax policy using a Boltzmann distribution.
+    Boltzmann softmax policy.
 
     """
-    def __init__(self, tau):
+    def __init__(self, beta):
         """
         Constructor.
 
         Args:
-            tau (float): the temperature of the distribution. As the temperature
-            approaches infinity, the policy becomes more and more random. As the
-            temperature approaches 0.0, the policy becomes more and more greedy.
+            beta (Parameter): the inverse of the temperature distribution. As
+            the temperature approaches infinity, the policy becomes more and
+            more random. As the temperature approaches 0.0, the policy becomes
+            more and more greedy.
 
         """
-        self.__name__ = 'Softmax'
+        self.__name__ = 'Boltzmann'
 
-        super(Softmax, self).__init__()
-        self._tau = tau
+        super(Boltzmann, self).__init__()
+        self._beta = beta
 
     def __call__(self, *args):
         state = args[0]
         qs = np.ones(self._approximator.n_actions)
         for a in xrange(self._approximator.n_actions):
-            qs[a] = (np.e**(self._approximator.predict(state, a) / self._tau))
+            qs[a] = np.e**(self._approximator.predict(state,
+                                                      a) * self._beta(state))
 
         if len(args) == 2:
             action = args[1]
@@ -179,3 +182,53 @@ class Softmax(TDPolicy):
     def draw_action(self, state):
         return np.array([np.random.choice(self._approximator.n_actions,
                                           p=self(state))])
+
+
+class Mellowmax(Boltzmann):
+    """
+    Mellowmax policy.
+    "An Alternative Softmax Operator for Reinforcement Learning". Asadi K. and
+    Littman M.L.. 2017.
+
+    """
+    def __init__(self, omega, beta_min=-10., beta_max=10.):
+        """
+        Constructor.
+
+        Args:
+            omega (Parameter): the omega parameter of the policy from which beta
+                of the Boltzmann policy is computed;
+            beta_min (float, -10.): one end of the bracketing interval for
+                minimization with Brent's method;
+            beta_max (float, 10.): the other end of the bracketing interval for
+                minimization with Brent's method.
+
+        """
+        self.__name__ = 'Mellowmax'
+
+        class MellowmaxParameter:
+            def __init__(self, outer, beta_min, beta_max):
+                self._omega = omega
+                self._outer = outer
+                self._beta_min = beta_min
+                self._beta_max = beta_max
+
+            def __call__(self, state):
+                mm = Mellowmax.mellow_max(self._outer._approximator, state,
+                                          self._omega(state))
+
+                def f(beta):
+                    v = self._outer._approximator.predict(state) - mm
+
+                    return np.sum(np.e**(beta * v) * v)
+
+                return brentq(f, a=self._beta_min, b=self._beta_max)
+
+        beta_mellow = MellowmaxParameter(self, beta_min, beta_max)
+
+        super(Mellowmax, self).__init__(beta_mellow)
+
+    @staticmethod
+    def mellow_max(approximator, state, omega):
+        return np.log(np.mean(np.e**(
+            omega * approximator.predict(state)))) / omega
