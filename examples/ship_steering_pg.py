@@ -1,6 +1,6 @@
 import numpy as np
 
-from mushroom.algorithms.policy_search import eNAC
+from mushroom.algorithms.policy_search import REINFORCE, GPOMDP, eNAC
 from mushroom.approximators.parametric import LinearApproximator
 from mushroom.approximators.regressor import Regressor
 from mushroom.core.core import Core
@@ -14,13 +14,13 @@ from mushroom.utils.parameters import Parameter, AdaptiveParameter
 
 
 """
-This script aims to replicate the experiments on the Ship Steering MDP using the
-eNAC algorithm.
+This script aims to replicate the experiments on the Ship Steering MDP 
+using policy gradient algorithms.
 
 """
 
 
-def experiment(n_iterations, n_runs, ep_per_run, use_tensorflow):
+def experiment(alg, n_iterations, n_runs, ep_per_run, use_tensorflow):
     np.random.seed()
 
     # MDP
@@ -51,14 +51,9 @@ def experiment(n_iterations, n_runs, ep_per_run, use_tensorflow):
     approximator = Regressor(LinearApproximator, input_shape=input_shape,
                              output_shape=mdp.info.action_space.shape,
                              params=approximator_params)
-    #sigma = Parameter(value=.05)
-    #policy = GaussianPolicy(mu=approximator, sigma=sigma)
 
     sigma = np.array([[.05]])
     policy = MultivariateGaussianPolicy(mu=approximator, sigma=sigma)
-
-    #sigma = np.array([.05])
-    #policy = MultivariateDiagonalGaussianPolicy(mu=approximator, sigma=sigma)
 
     # Agent
     learning_rate = AdaptiveParameter(value=.01)
@@ -66,7 +61,7 @@ def experiment(n_iterations, n_runs, ep_per_run, use_tensorflow):
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
-    agent = eNAC(policy, mdp.info, agent_params, phi)
+    agent = alg(policy, mdp.info, agent_params, phi)
 
     # Train
     core = Core(agent, mdp)
@@ -81,4 +76,9 @@ def experiment(n_iterations, n_runs, ep_per_run, use_tensorflow):
 
 
 if __name__ == '__main__':
-    experiment(n_iterations=40, n_runs=10, ep_per_run=100, use_tensorflow=True)
+
+    #algs = [REINFORCE, GPOMDP, eNAC]
+    algs = [eNAC]
+
+    for alg in algs:
+        experiment(alg, n_iterations=40, n_runs=10, ep_per_run=100, use_tensorflow=True)

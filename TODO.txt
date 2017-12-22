@@ -18,5 +18,3 @@ Paper:
 
 Doc:
    * Tutorial
-   * Aggiungere classi mancanti (EnsembleTable)
-
