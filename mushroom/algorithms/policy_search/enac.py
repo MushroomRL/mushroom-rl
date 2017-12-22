@@ -24,18 +24,20 @@ class eNAC(PolicyGradient):
         fisher = np.mean(self.fisher_list, axis=0)
         g = np.mean(self.grad_list, axis=0)
         eligibility = np.mean(self.eligibility_list, axis=0)
-        Jpol = np.mean(J)
+        J_pol = np.mean(J)
 
         if fisher.shape[0] == np.linalg.matrix_rank(fisher):
-            tmp = np.linalg.solve(n_ep*fisher-np.outer(eligibility, eligibility), eligibility)
+            tmp = np.linalg.solve(
+                n_ep * fisher - np.outer(eligibility, eligibility), eligibility)
             Q = (1 + eligibility.dot(tmp)) / n_ep
-            b = Q.dot(Jpol - eligibility.dot(np.linalg.solve(fisher, g)))
+            b = Q.dot(J_pol - eligibility.dot(np.linalg.solve(fisher, g)))
             gradient = g - eligibility.dot(b)
             nat_grad = np.linalg.solve(fisher, gradient)
         else:
             H = np.linalg.pinv(fisher)
-            b = (1 + eligibility.dot(np.linalg.pinv(n_ep*fisher - np.outer(eligibility, eligibility)).dot(eligibility)))\
-                    *(Jpol - eligibility.dot(H).dot(g)) / n_ep
+            b = (1 + eligibility.dot(np.linalg.pinv(n_ep * fisher - np.outer(
+                eligibility, eligibility)).dot(eligibility))) * (
+                    J_pol - eligibility.dot(H).dot(g)) / n_ep
             gradient = g - eligibility.dot(b)
             nat_grad = H.dot(gradient)
 
@@ -52,7 +54,7 @@ class eNAC(PolicyGradient):
         f_m = np.outer(self.psi, self.psi)
         self.fisher_list.append(f_m)
 
-        gradient = self.J_episode*self.psi
+        gradient = self.J_episode * self.psi
         self.grad_list.append(gradient)
 
         self.eligibility_list.append(self.psi)
