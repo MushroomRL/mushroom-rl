@@ -170,17 +170,6 @@ class DoubleFQI(FQI):
                                   **self.params['fit_params'])
 
 
-class WeightedFQI(FQI):
-    """
-    Weighted Fitted Q-Iteration algorithm.
-    "Estimating the Maximum Expected Value in Continuous Reinforcement Learning
-    Problems". D'Eramo C. et al.. 2017.
-
-    """
-    def _fit(self, x):
-        pass
-
-
 class LSPI(BatchTD):
     """
     Least-Squares Policy Iteration algorithm.

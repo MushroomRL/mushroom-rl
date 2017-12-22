@@ -1,13 +1,10 @@
 Algorithms:
     a) Value-based:
         * Continuous:
-            - Weighted FQI
             - LSPI
 
     b) Policy-based:
         * Policy gradient:
-            - GPOMDP
-            - ENAC
             - Natural gradient
 
 Environment:
@@ -15,6 +12,9 @@ Environment:
 
 Varie:
     * Fix get_value() in Parameters nel caso vettoriale
+
+Paper:
+   * togliere pybrain e mettere chainerrl
 
 Doc:
    * Tutorial
