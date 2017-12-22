@@ -9,7 +9,7 @@ class REINFORCE(PolicyGradient):
     Reinforcement Learning", Williams R. J.. 1992.
 
     """
-    def __init__(self, policy, mdp_info, params, features):
+    def __init__(self, policy, mdp_info, params, features=None):
         self.__name__ = 'REINFORCE'
 
         super(REINFORCE, self).__init__(policy, mdp_info, params, features)

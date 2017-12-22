@@ -8,7 +8,7 @@ class eNAC(PolicyGradient):
     "Policy Gradient Methods for Robotics", Peters J., Schaal S.  2006.
 
     """
-    def __init__(self, policy, mdp_info, params, features):
+    def __init__(self, policy, mdp_info, params, features=None):
         self.__name__ = 'eNAC'
 
         super(eNAC, self).__init__(policy, mdp_info, params, features)
@@ -29,7 +29,12 @@ class eNAC(PolicyGradient):
         if fisher.shape[0] == np.linalg.matrix_rank(fisher):
             tmp = np.linalg.solve(
                 n_ep * fisher - np.outer(eligibility, eligibility), eligibility)
+
+            print eligibility
+            print tmp
             Q = (1 + eligibility.dot(tmp)) / n_ep
+            if type(Q) is not np.ndarray:
+                Q = np.array([Q])
             b = Q.dot(J_pol - eligibility.dot(np.linalg.solve(fisher, g)))
             gradient = g - eligibility.dot(b)
             nat_grad = np.linalg.solve(fisher, gradient)
