@@ -1,14 +1,14 @@
 Algorithms:
-    a) Value-based:
-        * Continuous:
-            - LSPI
-
     b) Policy-based:
         * Policy gradient:
             - Natural gradient
 
 Environment:
     * LQR
+
+Testare:
+    * LSPI
+    * ENAC
 
 Varie:
     * Fix get_value() in Parameters nel caso vettoriale
