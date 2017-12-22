@@ -59,4 +59,5 @@ if __name__ == '__main__':
     algs = [REINFORCE, GPOMDP, eNAC]
 
     for alg in algs:
+        print alg.__name__
         experiment(alg, n_iterations=10, n_runs=10, ep_per_run=10)
