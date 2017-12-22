@@ -163,10 +163,7 @@ class Boltzmann(TDPolicy):
 
     def __call__(self, *args):
         state = args[0]
-        qs = np.ones(self._approximator.n_actions)
-        for a in xrange(self._approximator.n_actions):
-            qs[a] = np.e**(self._approximator.predict(state,
-                                                      a) * self._beta(state))
+        qs = np.e**(self._approximator.predict(state) * self._beta(state))
 
         if len(args) == 2:
             action = args[1]
