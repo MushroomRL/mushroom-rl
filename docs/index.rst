@@ -134,4 +134,4 @@ to install all its dependencies.
    :caption: Contents:
 
    source/mushroom
-   source/tutorials
+   source/tutorials/tutorials
