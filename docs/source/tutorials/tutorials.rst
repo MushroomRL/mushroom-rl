@@ -2,6 +2,7 @@ Tutorials
 =========
 
 .. toctree::
-    tutorials.td
-    tutorials.batch
+    tutorials.experiments
+    tutorials.approximator
+    tutorials.advanced
 

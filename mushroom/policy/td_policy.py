@@ -170,11 +170,7 @@ class Boltzmann(TDPolicy):
 
             return qs[action] / np.sum(qs)
         else:
-            p = np.ones(qs.size)
-            for i in xrange(p.size):
-                p[i] = qs[i] / np.sum(qs)
-
-            return p
+            return qs / np.sum(qs)
 
     def draw_action(self, state):
         return np.array([np.random.choice(self._approximator.n_actions,

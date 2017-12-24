@@ -1,6 +1,8 @@
 mushroom
 ========
 
+List of the Mushroom modules:
+
 .. toctree::
     mushroom.core
     mushroom.environments
