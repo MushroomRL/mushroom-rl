@@ -10,7 +10,7 @@ class GPOMDP(PolicyGradient):
     2001.
 
     """
-    def __init__(self, policy, mdp_info, params, features):
+    def __init__(self, policy, mdp_info, params, features=None):
         self.__name__ = 'GPOMDP'
 
         super(GPOMDP, self).__init__(policy, mdp_info, params, features)

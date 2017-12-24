@@ -8,7 +8,7 @@ class eNAC(PolicyGradient):
     "Policy Gradient Methods for Robotics", Peters J., Schaal S.  2006.
 
     """
-    def __init__(self, policy, mdp_info, params, features):
+    def __init__(self, policy, mdp_info, params, features=None):
         self.__name__ = 'eNAC'
 
         super(eNAC, self).__init__(policy, mdp_info, params, features)
@@ -30,7 +30,7 @@ class eNAC(PolicyGradient):
             tmp = np.linalg.solve(
                 n_ep * fisher - np.outer(eligibility, eligibility), eligibility)
             Q = (1 + eligibility.dot(tmp)) / n_ep
-            b = Q.dot(J_pol - eligibility.dot(np.linalg.solve(fisher, g)))
+            b = Q*(J_pol - eligibility.dot(np.linalg.solve(fisher, g)))
             gradient = g - eligibility.dot(b)
             nat_grad = np.linalg.solve(fisher, gradient)
         else:
