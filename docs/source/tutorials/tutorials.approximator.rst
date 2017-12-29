@@ -11,7 +11,7 @@ or not to the constructor.
 Q-function regressor
 --------------------
 
-When the number of actions is provided, it is reasonable that a Q-regressor should be created:
+When the number of actions is provided, it is reasonable that a Q-regressor should be created.
 There are two types of Q-regressors:
 
 * a Q-regressor with a different regressor for each action (``ActionRegressor``);
@@ -30,7 +30,8 @@ not:
                                min_samples_split=5,
                                min_samples_leaf=2)
 
-The number of actions is equal to the shape of the output, a ``QRegressor`` is created.
+In this example, the number of actions is equal to the shape of the output,
+therefore a ``QRegressor`` is created.
 
 ::
 
@@ -40,8 +41,11 @@ The number of actions is equal to the shape of the output, a ``QRegressor`` is c
                                min_samples_split=5,
                                min_samples_leaf=2)
 
-The ``output_shape`` is not provided, so the default (1,) is used. This way, an
-``ActionRegressor`` is created.
+The ``output_shape`` is not provided, so the default :code:`output_shape=(1,)`
+is used. This way, an ``ActionRegressor`` is created.
 
 Generic regressor
 -----------------
+Whenever the number of actions is not provided, the Regressor interface creates
+a ``GenericRegressor``. This regressor can be used for general purposes and it is
+more flexible to be used.

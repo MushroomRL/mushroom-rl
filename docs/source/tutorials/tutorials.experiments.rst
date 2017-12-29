@@ -1,10 +1,10 @@
-How to make an experiment
-=========================
+How to make a simple experiment
+===============================
 
 The main purpose of Mushroom is to simplify the scripting of RL experiments. A
 standard example of a script to run an experiment in Mushroom, consists of:
 
-* an **initial part** where the setting of the experiment are set;
+* an **initial part** where the setting of the experiment are specified;
 * a **middle part** where the experiment is run;
 * a **final part** where operations like evaluation, plot and save can be done.
 
@@ -12,7 +12,7 @@ A RL experiment consists of:
 
 * a **MDP**;
 * an **agent**;
-* the **core**.
+* a **core**.
 
 A **MDP** is the problem to be solved by the agent. It contains the function to move
 the agent in the environment according to the provided action.
