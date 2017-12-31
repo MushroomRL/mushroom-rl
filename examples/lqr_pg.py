@@ -27,7 +27,8 @@ def experiment(alg, n_runs, n_iterations, ep_per_run):
     mdp = LQR.generate(dimensions=1)
 
     approximator_params = dict(input_dim=mdp.info.observation_space.shape)
-    approximator = Regressor(LinearApproximator, input_shape=mdp.info.observation_space.shape,
+    approximator = Regressor(LinearApproximator,
+                             input_shape=mdp.info.observation_space.shape,
                              output_shape=mdp.info.action_space.shape,
                              params=approximator_params)
 
