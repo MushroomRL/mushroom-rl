@@ -79,8 +79,8 @@ class LQR(Environment):
         Q = eps*np.eye(dimensions)
         R = (1.-eps)*np.eye(dimensions)
 
-        Q[index, index] = eps
-        R[index, index] = 1.-eps
+        Q[index, index] = 1.-eps
+        R[index, index] = eps
 
         return LQR(A, B, Q, R, random_init, gamma, horizon)
 

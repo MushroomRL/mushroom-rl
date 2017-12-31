@@ -20,7 +20,7 @@ using policy gradient algorithms.
 """
 
 
-def experiment(alg, n_iterations, n_runs, ep_per_run, use_tensorflow):
+def experiment(alg, n_runs, n_iterations, ep_per_run, use_tensorflow):
     np.random.seed()
 
     # MDP
@@ -65,6 +65,10 @@ def experiment(alg, n_iterations, n_runs, ep_per_run, use_tensorflow):
 
     # Train
     core = Core(agent, mdp)
+    dataset_eval = core.evaluate(n_episodes=ep_per_run)
+    J = compute_J(dataset_eval, gamma=mdp.info.gamma)
+    print('J at start : ' + str(np.mean(J)))
+
     for i in xrange(n_runs):
         core.learn(n_episodes=n_iterations * ep_per_run,
                    n_episodes_per_fit=ep_per_run)
@@ -81,4 +85,4 @@ if __name__ == '__main__':
     algs = [eNAC]
 
     for alg in algs:
-        experiment(alg, n_iterations=40, n_runs=10, ep_per_run=100, use_tensorflow=True)
+        experiment(alg, n_runs=10, n_iterations=40, ep_per_run=100, use_tensorflow=True)
