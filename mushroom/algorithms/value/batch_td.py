@@ -50,15 +50,9 @@ class FQI(BatchTD):
             self._next_q = 0.
             self._idx = 0
 
-    def fit(self, dataset, target=None):
+    def fit(self, dataset):
         """
         Fit loop.
-
-        Args:
-            target (np.ndarray, None): initial target of FQI.
-
-        Returns:
-            Last target computed.
 
         """
         if self._boosted:
