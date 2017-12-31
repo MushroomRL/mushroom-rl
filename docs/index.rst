@@ -65,7 +65,7 @@ Eventually, the **agent** is:
     fit_params = dict()
     agent_params = {'algorithm_params': algorithm_params,
                     'fit_params': fit_params}
-    agent = QLearning(pi, mdp.info, agent_params)
+    agent = QLearning(policy, mdp.info, agent_params)
 
 Learn: 
 

@@ -171,17 +171,17 @@ class GridWorldGenerator(AbstractGridWorld):
         """
         self.__name__ = 'GridWorldGenerator'
 
-        self._grid, height, width, start, goal, n = self._generate(grid_map)
+        self._grid, height, width, start, goal = self._generate(grid_map)
 
         # MDP properties
-        observation_space = spaces.Discrete(n)
+        observation_space = spaces.Discrete(height * width)
         action_space = spaces.Discrete(4)
         horizon = 100
         gamma = .9
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
-        super(GridWorldGenerator, self).__init__(mdp_info, height, width,
-                                                 start, goal)
+        super(GridWorldGenerator, self).__init__(mdp_info, height, width, start,
+                                                 goal)
 
     def _step(self, state, action):
         new_state = np.array(state)
@@ -194,26 +194,31 @@ class GridWorldGenerator(AbstractGridWorld):
         elif action == 3:
             new_state[1] += 1
 
-        c = self._grid[new_state[0]][new_state[1]]
-        if c == '*':
-            reward = -10
-            absorbing = True
-        elif c in ['.', 'S']:
-            reward = 0
-            absorbing = False
-        elif c == 'G':
-            reward = 10
-            absorbing = True
-        elif c == '#':
+        if not 0 <= new_state[
+                    0] < self._height or not 0 <= new_state[1] < self._width:
             reward = 0
             absorbing = False
             new_state = np.array(state)
+        else:
+            c = self._grid[new_state[0]][new_state[1]]
+            if c == '*':
+                reward = -10
+                absorbing = True
+            elif c in ['.', 'S']:
+                reward = 0
+                absorbing = False
+            elif c == 'G':
+                reward = 10
+                absorbing = True
+            elif c == '#':
+                reward = 0
+                absorbing = False
+                new_state = np.array(state)
 
         return new_state, reward, absorbing, {}
 
     @staticmethod
     def _generate(grid_map):
-        n_states = 0
         grid = list()
         with open(grid_map, 'r') as f:
             m = f.read()
@@ -226,8 +231,6 @@ class GridWorldGenerator(AbstractGridWorld):
             for c in m:
                 if c in ['#', '.', 'S', 'G', '*']:
                     row.append(c)
-                    if c in ['.', 'S', 'G', '*']:
-                        n_states += 1
                     if c == 'S':
                         start = (row_idx, col_idx)
                     elif c == 'G':
@@ -247,7 +250,7 @@ class GridWorldGenerator(AbstractGridWorld):
             if len(w) > width:
                 width = len(w)
 
-        return grid, height, width, start, goal, n_states
+        return grid, height, width, start, goal
 
 
 class AbstractGridWorldPixel(AbstractGridWorld):

@@ -28,7 +28,7 @@ class Taxi(Environment):
         """
         self.__name__ = 'Taxi'
 
-        self._grid, height, width, start, destination, passengers, n_states =\
+        self._grid, height, width, start, destination, passengers =\
             self._generate(grid_map)
 
         # MDP parameters
@@ -47,7 +47,7 @@ class Taxi(Environment):
             'Goal position not suitable for the taxi grid dimension.'
 
         # MDP properties
-        observation_space = spaces.Discrete(n_states)
+        observation_space = spaces.Discrete(height * width)
         action_space = spaces.Discrete(4)
         horizon = np.inf
         gamma = .99
@@ -101,29 +101,35 @@ class Taxi(Environment):
             else:
                 new_state[1] += 1
 
-        c = self._grid[new_state[0]][new_state[1]]
-        if c == 'F':
-            if new_state.tolist() not in self._collected_passengers:
-                self._collected_passengers.append(new_state.tolist())
-            reward = 0
-            absorbing = False
-        elif c in ['.', 'S']:
-            reward = 0
-            absorbing = False
-        elif c == 'D':
-            if len(self._collected_passengers) == 0:
-                reward = 0
-            elif len(self._collected_passengers) == 1:
-                reward = 1
-            elif len(self._collected_passengers) == 2:
-                reward = 3
-            else:
-                reward = 15
-            absorbing = True
-        elif c == '#':
+        if not 0 <= new_state[
+                    0] < self._height or not 0 <= new_state[1] < self._width:
             reward = 0
             absorbing = False
             new_state = np.array(state)
+        else:
+            c = self._grid[new_state[0]][new_state[1]]
+            if c == 'F':
+                if new_state.tolist() not in self._collected_passengers:
+                    self._collected_passengers.append(new_state.tolist())
+                reward = 0
+                absorbing = False
+            elif c in ['.', 'S']:
+                reward = 0
+                absorbing = False
+            elif c == 'D':
+                if len(self._collected_passengers) == 0:
+                    reward = 0
+                elif len(self._collected_passengers) == 1:
+                    reward = 1
+                elif len(self._collected_passengers) == 2:
+                    reward = 3
+                else:
+                    reward = 15
+                absorbing = True
+            elif c == '#':
+                reward = 0
+                absorbing = False
+                new_state = np.array(state)
 
         self._state = self.convert_to_int(new_state, self._width)
 
@@ -139,7 +145,6 @@ class Taxi(Environment):
 
     @staticmethod
     def _generate(grid_map):
-        n_states = 0
         grid = list()
         passengers = list()
         with open(grid_map, 'r') as f:
@@ -153,8 +158,6 @@ class Taxi(Environment):
             for c in m:
                 if c in ['#', '.', 'S', 'D', 'F']:
                     row.append(c)
-                    if c in ['.', 'S', 'D', 'F']:
-                        n_states += 1
                     if c == 'S':
                         start = (row_idx, col_idx)
                     elif c == 'D':
@@ -176,4 +179,4 @@ class Taxi(Environment):
             if len(w) > width:
                 width = len(w)
 
-        return grid, height, width, start, destination, passengers, n_states
+        return grid, height, width, start, destination, passengers
