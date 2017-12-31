@@ -171,10 +171,10 @@ class GridWorldGenerator(AbstractGridWorld):
         """
         self.__name__ = 'GridWorldGenerator'
 
-        self._grid, height, width, start, goal = self._generate(grid_map)
+        self._grid, height, width, start, goal, n = self._generate(grid_map)
 
         # MDP properties
-        observation_space = spaces.Discrete(height * width)
+        observation_space = spaces.Discrete(n)
         action_space = spaces.Discrete(4)
         horizon = 100
         gamma = .9
@@ -213,6 +213,7 @@ class GridWorldGenerator(AbstractGridWorld):
 
     @staticmethod
     def _generate(grid_map):
+        n_states = 0
         grid = list()
         with open(grid_map, 'r') as f:
             m = f.read()
@@ -225,6 +226,8 @@ class GridWorldGenerator(AbstractGridWorld):
             for c in m:
                 if c in ['#', '.', 'S', 'G', '*']:
                     row.append(c)
+                    if c in ['.', 'S', 'G', '*']:
+                        n_states += 1
                     if c == 'S':
                         start = (row_idx, col_idx)
                     elif c == 'G':
@@ -244,7 +247,7 @@ class GridWorldGenerator(AbstractGridWorld):
             if len(w) > width:
                 width = len(w)
 
-        return grid, height, width, start, goal
+        return grid, height, width, start, goal, n_states
 
 
 class AbstractGridWorldPixel(AbstractGridWorld):
