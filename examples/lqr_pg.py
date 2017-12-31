@@ -20,6 +20,7 @@ using policy gradient algorithms.
 
 tqdm.monitor_interval = 0
 
+
 def experiment(alg, n_iterations, n_runs, ep_per_run):
     np.random.seed()
 
@@ -27,11 +28,12 @@ def experiment(alg, n_iterations, n_runs, ep_per_run):
     mdp = LQR.generate(dimensions=2)
 
     approximator_params = dict(input_dim=mdp.info.observation_space.shape)
-    approximator = Regressor(LinearApproximator, input_shape=mdp.info.observation_space.shape,
+    approximator = Regressor(LinearApproximator,
+                             input_shape=mdp.info.observation_space.shape,
                              output_shape=mdp.info.action_space.shape,
                              params=approximator_params)
 
-    sigma = 0.1*np.eye(2)
+    sigma = .1 * np.eye(2)
     policy = MultivariateGaussianPolicy(mu=approximator, sigma=sigma)
 
     # Agent
