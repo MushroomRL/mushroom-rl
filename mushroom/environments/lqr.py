@@ -19,7 +19,7 @@ class LQR(Environment):
     The reward function is given by:
 
     .. math::
-        r_t = -\left(x_t^TQx_t+u_t^TRu_t\right)
+        r_t = -\\left( x_t^TQx_t + u_t^TRu_t \\right)
 
     "Policy gradient approaches for multi-objective sequential decision making".
     Parisi S., Pirotta M., Smacchia N., Bascetta L., Restelli M.. 2014
@@ -81,8 +81,8 @@ class LQR(Environment):
         Q = eps*np.eye(dimensions)
         R = (1. - eps) * np.eye(dimensions)
 
-        Q[index, index] = eps
-        R[index, index] = 1. - eps
+        Q[index, index] = 1.- eps
+        R[index, index] = eps
 
         return LQR(A, B, Q, R, random_init, gamma, horizon)
 

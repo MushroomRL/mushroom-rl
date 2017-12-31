@@ -71,6 +71,16 @@ inverted_pendulum
     :undoc-members:
     :show-inheritance:
 
+lqr
+~~~~
+
+.. automodule:: mushroom.environments.lqr
+    :members:
+    :private-members:
+    :inherited-members:
+    :undoc-members:
+    :show-inheritance:
+
 ship_steering
 ~~~~~~~~~~~~~
 

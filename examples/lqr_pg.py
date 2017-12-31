@@ -20,20 +20,18 @@ using policy gradient algorithms.
 
 tqdm.monitor_interval = 0
 
-
-def experiment(alg, n_iterations, n_runs, ep_per_run):
+def experiment(alg, n_runs, n_iterations, ep_per_run):
     np.random.seed()
 
     # MDP
-    mdp = LQR.generate(dimensions=2)
+    mdp = LQR.generate(dimensions=1)
 
     approximator_params = dict(input_dim=mdp.info.observation_space.shape)
-    approximator = Regressor(LinearApproximator,
-                             input_shape=mdp.info.observation_space.shape,
+    approximator = Regressor(LinearApproximator, input_shape=mdp.info.observation_space.shape,
                              output_shape=mdp.info.action_space.shape,
                              params=approximator_params)
 
-    sigma = .1 * np.eye(2)
+    sigma = .1 * np.eye(1)
     policy = MultivariateGaussianPolicy(mu=approximator, sigma=sigma)
 
     # Agent
@@ -46,10 +44,16 @@ def experiment(alg, n_iterations, n_runs, ep_per_run):
 
     # Train
     core = Core(agent, mdp)
+    dataset_eval = core.evaluate(n_episodes=ep_per_run)
+    print 'policy parameters: ', policy.get_weights()
+    J = compute_J(dataset_eval, gamma=mdp.info.gamma)
+    print('J at start : ' + str(np.mean(J)))
+
     for i in xrange(n_runs):
         core.learn(n_episodes=n_iterations * ep_per_run,
                    n_episodes_per_fit=ep_per_run)
         dataset_eval = core.evaluate(n_episodes=ep_per_run)
+        print 'policy parameters: ', policy.get_weights()
         J = compute_J(dataset_eval, gamma=mdp.info.gamma)
         print('J at iteration ' + str(i) + ': ' + str(np.mean(J)))
 
@@ -62,4 +66,4 @@ if __name__ == '__main__':
 
     for alg in algs:
         print alg.__name__
-        experiment(alg, n_iterations=10, n_runs=10, ep_per_run=10)
+        experiment(alg, n_runs=10, n_iterations=40, ep_per_run=100)
