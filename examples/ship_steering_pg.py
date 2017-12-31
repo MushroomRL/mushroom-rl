@@ -81,8 +81,7 @@ def experiment(alg, n_runs, n_iterations, ep_per_run, use_tensorflow):
 
 if __name__ == '__main__':
 
-    #algs = [REINFORCE, GPOMDP, eNAC]
-    algs = [eNAC]
+    algs = [REINFORCE, GPOMDP, eNAC]
 
     for alg in algs:
         experiment(alg, n_runs=10, n_iterations=40, ep_per_run=100, use_tensorflow=True)
