@@ -28,7 +28,7 @@ class Taxi(Environment):
         """
         self.__name__ = 'Taxi'
 
-        self._grid, height, width, start, destination, passengers =\
+        self._grid, height, width, start, destination, passengers, n_states =\
             self._generate(grid_map)
 
         # MDP parameters
@@ -47,7 +47,7 @@ class Taxi(Environment):
             'Goal position not suitable for the taxi grid dimension.'
 
         # MDP properties
-        observation_space = spaces.Discrete(height * width)
+        observation_space = spaces.Discrete(n_states)
         action_space = spaces.Discrete(4)
         horizon = np.inf
         gamma = .99
@@ -139,6 +139,7 @@ class Taxi(Environment):
 
     @staticmethod
     def _generate(grid_map):
+        n_states = 0
         grid = list()
         passengers = list()
         with open(grid_map, 'r') as f:
@@ -152,6 +153,8 @@ class Taxi(Environment):
             for c in m:
                 if c in ['#', '.', 'S', 'D', 'F']:
                     row.append(c)
+                    if c in ['.', 'S', 'D', 'F']:
+                        n_states += 1
                     if c == 'S':
                         start = (row_idx, col_idx)
                     elif c == 'D':
@@ -173,4 +176,4 @@ class Taxi(Environment):
             if len(w) > width:
                 width = len(w)
 
-        return grid, height, width, start, destination, passengers
+        return grid, height, width, start, destination, passengers, n_states
