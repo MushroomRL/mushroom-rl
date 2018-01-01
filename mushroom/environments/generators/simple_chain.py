@@ -16,11 +16,13 @@ def generate_simple_chain(state_n, goal_states, prob, rew, mu=None, gamma=.9):
         gamma (float): discount factor.
 
     Returns:
-        a FiniteMDP object built with the provided parameters.
+        A FiniteMDP object built with the provided parameters.
 
     """
     p = compute_probabilities(state_n, prob)
     r = compute_reward(state_n, goal_states, rew)
+
+    assert mu is None or len(mu) == state_n
 
     return FiniteMDP(p, r, mu, gamma)
 
@@ -34,22 +36,22 @@ def compute_probabilities(state_n, prob):
         prob (float): probability of success of an action.
 
     Returns:
-        the transition probability matrix;
+        The transition probability matrix;
 
     """
     p = np.zeros((state_n, 2, state_n))
 
     for i in xrange(state_n):
         if i == 0:
-            p[i, 1, i] = 1.0
+            p[i, 1, i] = 1.
         else:
-            p[i, 1, i] = 1.0 - prob
+            p[i, 1, i] = 1. - prob
             p[i, 1, i - 1] = prob
 
         if i == state_n - 1:
-            p[i, 0, i] = 1.0
+            p[i, 0, i] = 1.
         else:
-            p[i, 0, i] = 1.0 - prob
+            p[i, 0, i] = 1. - prob
             p[i, 0, i + 1] = prob
 
     return p
@@ -65,7 +67,7 @@ def compute_reward(state_n, goal_states, rew):
         rew (float): reward obtained in goal states.
 
     Returns:
-        the reward matrix.
+        The reward matrix.
 
     """
     r = np.zeros((state_n, 2, state_n))
