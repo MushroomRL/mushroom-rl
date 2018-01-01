@@ -4,7 +4,7 @@ from sklearn.utils.extmath import cartesian
 from mushroom.environments.finite_mdp import FiniteMDP
 
 
-def generate_taxi(grid, prob=.9, rew=(0, 1, 3, 15), gamma=.99, horizon=100):
+def generate_taxi(grid, prob=.9, rew=(0, 1, 3, 15), gamma=.99, horizon=np.inf):
     """
     This Taxi generator requires a .txt file to specify the shape of the grid
     world and the cells. There are five types of cells: 'S' is the starting
