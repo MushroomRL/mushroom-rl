@@ -7,11 +7,12 @@ def generate_grid_world(grid, prob, pos_rew, neg_rew, gamma=.9):
     """
     This Grid World generator requires a .txt file to specify the
     shape of the grid world and the cells. There are five types of cells: 'S' is
-    the position where the agent is; 'G' is the goal state; '.' is a normal
-    cell; '*' is a hole, when the agent steps on a hole, it receives a negative
-    reward and the episode ends; '#' is a wall, when the agent is supposed to
-    step on a wall, it actually remains in its current state. The initial
-    distribution is state is uniform among all the initial states provided.
+    the starting position where the agent is; 'G' is the goal state; '.' is a
+    normal cell; '*' is a hole, when the agent steps on a hole, it receives a
+    negative reward and the episode ends; '#' is a wall, when the agent is
+    supposed to step on a wall, it actually remains in its current state. The
+    initial states distribution is uniform among all the initial states
+    provided.
 
     The grid is expected to be rectangular.
 
@@ -20,7 +21,7 @@ def generate_grid_world(grid, prob, pos_rew, neg_rew, gamma=.9):
         prob (float): probability of success of an action;
         pos_rew (float): reward obtained in goal states;
         neg_rew (float): reward obtained in "hole" states;
-        gamma (float): discount factor.
+        gamma (float, .9): discount factor.
 
     Returns:
         A FiniteMDP object built with the provided parameters.
@@ -30,8 +31,6 @@ def generate_grid_world(grid, prob, pos_rew, neg_rew, gamma=.9):
     p = compute_probabilities(grid_map, cell_list, prob)
     r = compute_reward(grid_map, cell_list, pos_rew, neg_rew)
     mu = compute_mu(grid_map, cell_list)
-
-    assert mu is None or len(mu) == len(cell_list)
 
     return FiniteMDP(p, r, mu, gamma)
 
