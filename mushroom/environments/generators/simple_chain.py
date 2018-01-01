@@ -3,7 +3,8 @@ import numpy as np
 from mushroom.environments.finite_mdp import FiniteMDP
 
 
-def generate_simple_chain(state_n, goal_states, prob, rew, mu=None, gamma=.9):
+def generate_simple_chain(state_n, goal_states, prob, rew, mu=None, gamma=.9,
+                          horizon=100):
     """
     Simple chain generator.
 
@@ -13,7 +14,8 @@ def generate_simple_chain(state_n, goal_states, prob, rew, mu=None, gamma=.9):
         prob (float): probability of success of an action;
         rew (float): reward obtained in goal states;
         mu (np.ndarray): initial state probability distribution;
-        gamma (float): discount factor.
+        gamma (float, .9): discount factor;
+        horizon (int, 100): the horizon.
 
     Returns:
         A FiniteMDP object built with the provided parameters.
@@ -24,7 +26,7 @@ def generate_simple_chain(state_n, goal_states, prob, rew, mu=None, gamma=.9):
 
     assert mu is None or len(mu) == state_n
 
-    return FiniteMDP(p, r, mu, gamma)
+    return FiniteMDP(p, r, mu, gamma, horizon)
 
 
 def compute_probabilities(state_n, prob):

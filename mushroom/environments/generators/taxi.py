@@ -4,7 +4,7 @@ from sklearn.utils.extmath import cartesian
 from mushroom.environments.finite_mdp import FiniteMDP
 
 
-def generate_taxi(grid, prob=.9, rew=(0, 1, 3, 15), gamma=.99):
+def generate_taxi(grid, prob=.9, rew=(0, 1, 3, 15), gamma=.99, horizon=100):
     """
     This Taxi generator requires a .txt file to specify the shape of the grid
     world and the cells. There are five types of cells: 'S' is the starting
@@ -27,7 +27,8 @@ def generate_taxi(grid, prob=.9, rew=(0, 1, 3, 15), gamma=.99):
         grid (str): the path of the file containing the grid structure;
         prob (float, .9): probability of success of an action;
         rew (tuple, (0, 1, 3, 15)): rewards obtained in goal states;
-        gamma (float, .99): discount factor.
+        gamma (float, .99): discount factor;
+        horizon (int, 100): the horizon.
 
     Returns:
         A FiniteMDP object built with the provided parameters.
@@ -41,7 +42,7 @@ def generate_taxi(grid, prob=.9, rew=(0, 1, 3, 15), gamma=.99):
     r = compute_reward(grid_map, cell_list, passenger_list, rew)
     mu = compute_mu(grid_map, cell_list, passenger_list)
 
-    return FiniteMDP(p, r, mu, gamma)
+    return FiniteMDP(p, r, mu, gamma, horizon)
 
 
 def parse_grid(grid):

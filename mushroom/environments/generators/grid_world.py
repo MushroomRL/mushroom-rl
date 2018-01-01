@@ -3,7 +3,7 @@ import numpy as np
 from mushroom.environments.finite_mdp import FiniteMDP
 
 
-def generate_grid_world(grid, prob, pos_rew, neg_rew, gamma=.9):
+def generate_grid_world(grid, prob, pos_rew, neg_rew, gamma=.9, horizon=100):
     """
     This Grid World generator requires a .txt file to specify the
     shape of the grid world and the cells. There are five types of cells: 'S' is
@@ -21,7 +21,8 @@ def generate_grid_world(grid, prob, pos_rew, neg_rew, gamma=.9):
         prob (float): probability of success of an action;
         pos_rew (float): reward obtained in goal states;
         neg_rew (float): reward obtained in "hole" states;
-        gamma (float, .9): discount factor.
+        gamma (float, .9): discount factor;
+        horizon (int, 100): the horizon.
 
     Returns:
         A FiniteMDP object built with the provided parameters.
@@ -32,7 +33,7 @@ def generate_grid_world(grid, prob, pos_rew, neg_rew, gamma=.9):
     r = compute_reward(grid_map, cell_list, pos_rew, neg_rew)
     mu = compute_mu(grid_map, cell_list)
 
-    return FiniteMDP(p, r, mu, gamma)
+    return FiniteMDP(p, r, mu, gamma, horizon)
 
 
 def parse_grid(grid):
