@@ -9,7 +9,7 @@ class FiniteMDP(Environment):
     Finite Markov Decision Process.
 
     """
-    def __init__(self, p, rew, mu=None, gamma=.9):
+    def __init__(self, p, rew, mu=None, horizon=100, gamma=.9):
         """
         Constructor.
 
@@ -17,6 +17,7 @@ class FiniteMDP(Environment):
             p (np.ndarray): transition probability matrix;
             rew (np.ndarray): reward matrix;
             mu (np.ndarray): initial state probability distribution;
+            horizon (int): the horizon;
             gamma (float): discount factor.
 
         """
@@ -33,7 +34,7 @@ class FiniteMDP(Environment):
         # MDP properties
         observation_space = spaces.Discrete(p.shape[0])
         action_space = spaces.Discrete(p.shape[1])
-        horizon = np.inf
+        horizon = horizon
         gamma = gamma
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
