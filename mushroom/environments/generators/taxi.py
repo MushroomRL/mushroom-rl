@@ -41,10 +41,6 @@ def generate_taxi(grid, prob=.9, rew=(0, 1, 3, 15), gamma=.99):
     r = compute_reward(grid_map, cell_list, passenger_list, rew)
     mu = compute_mu(grid_map, cell_list, passenger_list)
 
-    for l in p:
-        print(l)
-    exit()
-
     return FiniteMDP(p, r, mu, gamma)
 
 
@@ -200,15 +196,16 @@ def compute_reward(grid_map, cell_list, passenger_list, rew):
     passenger_states = cartesian([[0, 1]] * len(passenger_list))
 
     for goal in np.argwhere(g == 'G'):
-        j = np.where((c == goal).all(axis=1))[0]
-
         for a in xrange(len(directions)):
             prev_state = goal - directions[a]
             if prev_state in c:
                 for i in xrange(len(passenger_states)):
-                    idx = np.where((c == prev_state).all(axis=1))[0] + len(
+                    i_idx = np.where((c == prev_state).all(axis=1))[0] + len(
                         cell_list) * i
-                    r[idx, a, j] = rew[np.sum(passenger_states[i])]
+                    j_idx = j = np.where((c == goal).all(axis=1))[0] + len(
+                        cell_list) * i
+
+                    r[i_idx, a, j_idx] = rew[np.sum(passenger_states[i])]
 
     return r
 
