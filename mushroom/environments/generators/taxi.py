@@ -28,7 +28,7 @@ def generate_taxi(grid, prob=.9, rew=(0, 1, 3, 15), gamma=.99, horizon=np.inf):
         prob (float, .9): probability of success of an action;
         rew (tuple, (0, 1, 3, 15)): rewards obtained in goal states;
         gamma (float, .99): discount factor;
-        horizon (int, 100): the horizon.
+        horizon (int, np.inf): the horizon.
 
     Returns:
         A FiniteMDP object built with the provided parameters.
