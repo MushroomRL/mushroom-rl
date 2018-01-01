@@ -41,6 +41,10 @@ def generate_taxi(grid, prob=.9, rew=(0, 1, 3, 15), gamma=.99):
     r = compute_reward(grid_map, cell_list, passenger_list, rew)
     mu = compute_mu(grid_map, cell_list, passenger_list)
 
+    for l in p:
+        print(l)
+    exit()
+
     return FiniteMDP(p, r, mu, gamma)
 
 
@@ -137,7 +141,7 @@ def compute_probabilities(grid_map, cell_list, passenger_list, prob):
 
                         j += len(cell_list) * idx
                     else:
-                        j = i % len(cell_list)
+                        j = i
 
                 p[i, a, j] = prob
 
@@ -167,7 +171,7 @@ def compute_probabilities(grid_map, cell_list, passenger_list, prob):
 
                             k += len(cell_list) * idx
                         else:
-                            k = i % len(cell_list)
+                            k = i
 
                     p[i, a, k] += (1. - prob) * .5
 
