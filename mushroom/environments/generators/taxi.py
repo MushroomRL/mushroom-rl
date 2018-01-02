@@ -118,40 +118,14 @@ def compute_probabilities(grid_map, cell_list, passenger_list, prob):
                 new_state = state + directions[a]
 
                 j = np.where((c == new_state).all(axis=1))[0]
-                if g[tuple(state)] == 'F' and state not in collected_passengers:
-                    current_passenger_state = np.zeros(len(passenger_list))
-                    current_passenger_idx = np.where(
-                        (state == passenger_list).all(axis=1))[0]
-                    current_passenger_state[current_passenger_idx] = 1
-                    new_passenger_state = passenger_states[
-                        idx] + current_passenger_state
-                    new_idx = np.where((
-                        passenger_states == new_passenger_state).all(
-                        axis=1))[0]
+                if j.size > 0:
+                    assert j.size == 1
 
-                    if j.size == 0:
-                        j = i % len(cell_list)
-                    j += len(cell_list) * new_idx
-                else:
-                    if j.size > 0:
-                        assert j.size == 1
-
-                        j += len(cell_list) * idx
-                    else:
-                        j = i
-
-                p[i, a, j] = prob
-
-                for d in [1 - np.abs(directions[a]),
-                          np.abs(directions[a]) - 1]:
-                    slip_state = state + d
-                    k = np.where((c == slip_state).all(axis=1))[0]
-                    if g[tuple(state)] == 'F' and state not in\
-                            collected_passengers:
-                        current_passenger_state = np.zeros(
-                            len(passenger_list))
+                    if g[tuple(new_state)] == 'F' and new_state.tolist()\
+                            not in collected_passengers.tolist():
+                        current_passenger_state = np.zeros(len(passenger_list))
                         current_passenger_idx = np.where(
-                            (state == passenger_list).all(axis=1))[0]
+                            (new_state == passenger_list).all(axis=1))[0]
                         current_passenger_state[current_passenger_idx] = 1
                         new_passenger_state = passenger_states[
                             idx] + current_passenger_state
@@ -159,16 +133,39 @@ def compute_probabilities(grid_map, cell_list, passenger_list, prob):
                             passenger_states == new_passenger_state).all(
                             axis=1))[0]
 
-                        if k.size == 0:
-                            k = i % len(cell_list)
-                        k += len(cell_list) * new_idx
+                        j += len(cell_list) * new_idx
                     else:
-                        if k.size > 0:
-                            assert k.size == 1
+                        j += len(cell_list) * idx
+                else:
+                    j = i
 
-                            k += len(cell_list) * idx
+                p[i, a, j] = prob
+
+                for d in [1 - np.abs(directions[a]),
+                          np.abs(directions[a]) - 1]:
+                    slip_state = state + d
+                    k = np.where((c == slip_state).all(axis=1))[0]
+                    if k.size > 0:
+                        assert k.size == 1
+
+                        if g[tuple(slip_state)] == 'F' and slip_state.tolist()\
+                                not in collected_passengers.tolist():
+                            current_passenger_state = np.zeros(
+                                len(passenger_list))
+                            current_passenger_idx = np.where(
+                                (slip_state == passenger_list).all(axis=1))[0]
+                            current_passenger_state[current_passenger_idx] = 1
+                            new_passenger_state = passenger_states[
+                                idx] + current_passenger_state
+                            new_idx = np.where((
+                                passenger_states == new_passenger_state).all(
+                                axis=1))[0]
+
+                            k += len(cell_list) * new_idx
                         else:
-                            k = i
+                            k += len(cell_list) * idx
+                    else:
+                        k = i
 
                     p[i, a, k] += (1. - prob) * .5
 
