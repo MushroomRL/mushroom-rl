@@ -12,7 +12,7 @@ def experiment(policy, value):
     np.random.seed(45)
 
     # MDP
-    mdp = generate_taxi('grid.txt', rew=(0, 1, 5))
+    mdp = generate_taxi('tests/taxi/grid.txt', rew=(0, 1, 5))
 
     # Policy
     pi = policy(Parameter(value=value))
@@ -38,6 +38,8 @@ def experiment(policy, value):
 
 
 if __name__ == '__main__':
+    print('Executing taxi test...')
+
     n_experiment = 1
 
     algs = {EpsGreedy: 'epsilon', Boltzmann: 'boltzmann', Mellowmax: 'mellow'}
