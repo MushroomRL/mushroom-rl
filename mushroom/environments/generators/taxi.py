@@ -114,6 +114,9 @@ def compute_probabilities(grid_map, cell_list, passenger_list, prob):
         state = c[i % len(cell_list)]
 
         if g[tuple(state)] in ['.', 'S', 'F']:
+            if g[tuple(state)] in ['F']\
+                    and state.tolist() not in collected_passengers.tolist():
+                continue
             for a in xrange(len(directions)):
                 new_state = state + directions[a]
 
