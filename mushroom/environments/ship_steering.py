@@ -2,6 +2,7 @@ import numpy as np
 
 from mushroom.environments import Environment, MDPInfo
 from mushroom.utils import spaces
+from mushroom.utils.angles_utils import normalize_angle
 
 
 class ShipSteering(Environment):
@@ -60,7 +61,7 @@ class ShipSteering(Environment):
             self._dt
         new_state[1] = self._state[1] + self._v * np.cos(self._state[2]) *\
             self._dt
-        new_state[2] = self._state[2] + self._state[3] * self._dt
+        new_state[2] = normalize_angle(self._state[2] + self._state[3] * self._dt)
         new_state[3] = self._state[3] + (r - self._state[3]) * self._dt /\
             self._T
 
