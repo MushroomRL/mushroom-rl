@@ -5,59 +5,43 @@ from mushroom.algorithms.policy_search import PolicyGradient
 class eNAC(PolicyGradient):
     """
     ENAC algorithm.
-    "Policy Gradient Methods for Robotics", Peters J., Schaal S.  2006.
+    "A Survey on Policy Search for Robotics", Deisenroth M. P., Neumann G., Peters J. 2013.
 
     """
-    def __init__(self, policy, mdp_info, params, features=None):
+    def __init__(self, policy, mdp_info, params, features=None, critic_features=None):
         self.__name__ = 'eNAC'
 
         super(eNAC, self).__init__(policy, mdp_info, params, features)
+        self.phi_c = critic_features
 
-        self.psi = None
-        self.fisher_list = list()
-        self.grad_list = list()
-        self.eligibility_list = list()
+        self.sum_grad_log = None
+        self.psi_ext = None
+        self.sum_grad_log_list = list()
 
     def _compute_gradient(self, J):
-        n_ep = len(self.fisher_list)
+        R = np.array(J)
+        PSI = np.array(self.sum_grad_log_list)
 
-        fisher = np.mean(self.fisher_list, axis=0)
-        g = np.mean(self.grad_list, axis=0)
-        eligibility = np.mean(self.eligibility_list, axis=0)
-        J_pol = np.mean(J)
+        w_and_v = np.linalg.pinv(PSI).dot(R)
+        nat_grad = w_and_v[:self.policy.weights_size]
 
-        if fisher.shape[0] == np.linalg.matrix_rank(fisher):
-            tmp = np.linalg.solve(
-                n_ep * fisher - np.outer(eligibility, eligibility), eligibility)
-            Q = (1 + eligibility.dot(tmp)) / n_ep
-            b = Q*(J_pol - eligibility.dot(np.linalg.solve(fisher, g)))
-            gradient = g - eligibility.dot(b)
-            nat_grad = np.linalg.solve(fisher, gradient)
-        else:
-            H = np.linalg.pinv(fisher)
-            b = (1 + eligibility.dot(np.linalg.pinv(n_ep * fisher - np.outer(
-                eligibility, eligibility)).dot(eligibility))) * (
-                    J_pol - eligibility.dot(H).dot(g)) / n_ep
-            gradient = g - eligibility.dot(b)
-            nat_grad = H.dot(gradient)
+        self.sum_grad_log_list = list()
 
-        self.fisher_list = list()
-        self.grad_list = list()
-        self.eligibility_list = list()
-
-        return gradient, nat_grad
+        return nat_grad,
 
     def _step_update(self, x, u, r):
-        self.psi += self.policy.diff_log(x, u)
+        self.sum_grad_log += self.policy.diff_log(x, u)
+
+        if self.psi_ext is None:
+            if self.phi_c is None:
+                self.psi_ext = np.ones(1)
+            else:
+                self.psi_ext = self.phi_c(x)
 
     def _episode_end_update(self):
-        f_m = np.outer(self.psi, self.psi)
-        self.fisher_list.append(f_m)
-
-        gradient = self.J_episode * self.psi
-        self.grad_list.append(gradient)
-
-        self.eligibility_list.append(self.psi)
+        psi = np.concatenate((self.sum_grad_log, self.psi_ext))
+        self.sum_grad_log_list.append(psi)
 
     def _init_update(self):
-        self.psi = np.zeros(self.policy.weights_size)
+        self.psi_ext = None
+        self.sum_grad_log = np.zeros(self.policy.weights_size)

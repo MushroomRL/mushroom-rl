@@ -11,6 +11,7 @@ from mushroom.features.tensors import gaussian_tensor
 from mushroom.policy import GaussianPolicy, MultivariateGaussianPolicy, MultivariateDiagonalGaussianPolicy
 from mushroom.utils.dataset import compute_J
 from mushroom.utils.parameters import Parameter, AdaptiveParameter
+from tqdm import tqdm
 
 
 """
@@ -19,6 +20,7 @@ using policy gradient algorithms.
 
 """
 
+tqdm.monitor_interval = 0
 
 def experiment(alg, n_runs, n_iterations, ep_per_run, use_tensorflow):
     np.random.seed()
