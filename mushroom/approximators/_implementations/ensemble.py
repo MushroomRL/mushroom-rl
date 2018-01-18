@@ -84,6 +84,18 @@ class Ensemble(object):
 
         return results
 
+    def reset(self):
+        """
+        Reset the model parameters.
+
+        """
+        try:
+            for m in self.model:
+                m.reset()
+        except AttributeError:
+            raise NotImplementedError('Attempt to reset weights of a'
+                                      ' non-parametric regressor.')
+
     @property
     def model(self):
         """

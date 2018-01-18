@@ -87,6 +87,18 @@ class ActionRegressor:
 
         return q
 
+    def reset(self):
+        """
+        Reset the model parameters.
+
+        """
+        try:
+            for m in self.model:
+                m.reset()
+        except AttributeError:
+            raise NotImplementedError('Attempt to reset weights of a'
+                                      ' non-parametric regressor.')
+
     def get_weights(self):
         w = list()
         for m in self.model:

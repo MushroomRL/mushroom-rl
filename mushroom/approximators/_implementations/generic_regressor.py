@@ -50,6 +50,17 @@ class GenericRegressor:
 
         return self.model.predict(*x, **predict_params)
 
+    def reset(self):
+        """
+        Reset the model parameters.
+
+        """
+        try:
+            self.model.reset()
+        except AttributeError:
+            raise NotImplementedError('Attempt to reset weights of a'
+                                      ' non-parametric regressor.')
+
     @property
     def weights_size(self):
         return self.model.weights_size

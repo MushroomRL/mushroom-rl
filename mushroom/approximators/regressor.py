@@ -121,6 +121,17 @@ class Regressor:
         """
         return self._impl.model
 
+    def reset(self):
+        """
+        Reset the model parameters.
+
+        """
+        try:
+            self._impl.reset()
+        except AttributeError:
+            raise NotImplementedError('Attempt to reset weights of a'
+                                      'non-parametric regressor.')
+
     @property
     def input_shape(self):
         """
