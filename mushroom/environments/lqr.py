@@ -78,10 +78,10 @@ class LQR(Environment):
 
         A = np.eye(dimensions)
         B = np.eye(dimensions)
-        Q = eps*np.eye(dimensions)
+        Q = eps * np.eye(dimensions)
         R = (1. - eps) * np.eye(dimensions)
 
-        Q[index, index] = 1.- eps
+        Q[index, index] = 1. - eps
         R[index, index] = eps
 
         return LQR(A, B, Q, R, random_init, gamma, horizon)
@@ -89,7 +89,7 @@ class LQR(Environment):
     def reset(self, state=None):
         if state is None:
             if self.random_init:
-                self._state = np.random.uniform(-3, 3, size=3)
+                self._state = np.random.uniform(-3, 3, size=self.A.shape[0])
             else:
                 self._state = 10. * np.ones(self.A.shape[0])
         else:
