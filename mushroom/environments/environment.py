@@ -50,9 +50,6 @@ class Environment(object):
                 environment.
 
         """
-        # MDP initialization
-        self.reset()
-
         self._mdp_info = mdp_info
 
     def seed(self, seed):
