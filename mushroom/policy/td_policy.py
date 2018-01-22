@@ -204,7 +204,10 @@ class Mellowmax(Boltzmann):
                 return np.sum(np.exp(beta * v) * v)
 
             try:
-                return brentq(f, a=self._beta_min, b=self._beta_max)
+                beta = brentq(f, a=self._beta_min, b=self._beta_max)
+                assert not (np.isnan(beta) or np.isinf(beta))
+
+                return beta
             except ValueError:
                 return 0.
 
