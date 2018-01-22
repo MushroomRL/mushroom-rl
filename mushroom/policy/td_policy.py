@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.optimize import brentq
+from scipy.special import logsumexp
 
 from mushroom.utils.parameters import Parameter
 
@@ -184,6 +185,29 @@ class Mellowmax(Boltzmann):
     Littman M.L.. 2017.
 
     """
+
+    class MellowmaxParameter:
+        def __init__(self, outer, omega, beta_min, beta_max):
+            self._omega = omega
+            self._outer = outer
+            self._beta_min = beta_min
+            self._beta_max = beta_max
+
+        def __call__(self, state):
+            q = self._outer._approximator.predict(state)
+            mm = (logsumexp(q * self._omega(state)) - np.log(
+                q.size)) / self._omega(state)
+
+            def f(beta):
+                v = q - mm
+
+                return np.sum(np.exp(beta * v) * v)
+
+            try:
+                return brentq(f, a=self._beta_min, b=self._beta_max)
+            except ValueError:
+                return 0.
+
     def __init__(self, omega, beta_min=-10., beta_max=10.):
         """
         Constructor.
@@ -199,31 +223,6 @@ class Mellowmax(Boltzmann):
         """
         self.__name__ = 'Mellowmax'
 
-        class MellowmaxParameter:
-            def __init__(self, outer, beta_min, beta_max):
-                self._omega = omega
-                self._outer = outer
-                self._beta_min = beta_min
-                self._beta_max = beta_max
-
-            def __call__(self, state):
-                mm = Mellowmax.mellow_max(self._outer._approximator, state,
-                                          self._omega(state))
-
-                def f(beta):
-                    v = self._outer._approximator.predict(state) - mm
-
-                    return np.sum(np.exp(beta * v) * v)
-                try:
-                    return brentq(f, a=self._beta_min, b=self._beta_max)
-                except ValueError:
-                    return 0.
-
-        beta_mellow = MellowmaxParameter(self, beta_min, beta_max)
+        beta_mellow = self.MellowmaxParameter(self, omega, beta_min, beta_max)
 
         super(Mellowmax, self).__init__(beta_mellow)
-
-    @staticmethod
-    def mellow_max(approximator, state, omega):
-        return np.log(np.mean(np.exp(
-            omega * approximator.predict(state)))) / omega
