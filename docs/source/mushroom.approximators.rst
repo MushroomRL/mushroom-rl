@@ -1,6 +1,9 @@
 Approximators
 =============
 
+Mushroom expose the high-level class ``Regressor`` that can manage any type of
+function regressor.
+
 regressor
 ---------
 

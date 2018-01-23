@@ -86,7 +86,7 @@ class Environment(object):
             action (np.ndarray): the action to execute.
 
         Returns:
-            The state reached by the agent executing `action` in its current
+            The state reached by the agent executing ``action`` in its current
             state.
 
         """

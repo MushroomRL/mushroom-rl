@@ -6,7 +6,7 @@ from mushroom.utils.table import Table
 
 class VarianceParameter(Parameter):
     """
-    Abstract class to implement variance-dependent parameters. A `target`
+    Abstract class to implement variance-dependent parameters. A ``target``
     parameter is expected.
 
     """

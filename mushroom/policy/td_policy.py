@@ -31,7 +31,7 @@ class TDPolicy(object):
 
     def draw_action(self, state):
         """
-        Sample an action in `state` using the policy.
+        Sample an action in ``state`` using the policy.
 
         Args:
             state (np.ndarray): the state where the agent is.

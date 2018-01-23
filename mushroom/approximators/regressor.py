@@ -13,14 +13,14 @@ class Regressor:
     the parameters provided by the user; this makes this class the only one to
     use for each kind of task that has to be performed.
     The inference of the implementation to choose is done checking the provided
-    values of parameters `n_actions`.
-    If `n_actions` is provided, it means that the user wants to implement an
-    approximator of the Q-function: if the value of `n_actions` is equal to
-    the `output_shape` then a `QRegressor` is created, else (`output_shape`
-    should be (1,)) an `ActionRegressor` is created.
-    Else a `GenericRegressor` is created.
-    An `Ensemble` model can be used for all the previous implementations
-    listed before simply providing a `n_models` parameter greater than 1.
+    values of parameters ``n_actions``.
+    If ``n_actions`` is provided, it means that the user wants to implement an
+    approximator of the Q-function: if the value of ``n_actions`` is equal to
+    the ``output_shape`` then a ``QRegressor`` is created, else
+    (``output_shape`` should be (1,)) an ``ActionRegressor`` is created.
+    Else a ``GenericRegressor`` is created.
+    An ``Ensemble`` model can be used for all the previous implementations
+    listed before simply providing a ``n_models`` parameter greater than 1.
 
     """
     def __init__(self, approximator, input_shape, output_shape=(1,),
@@ -34,7 +34,7 @@ class Regressor:
             input_shape (tuple): the shape of the input of the model;
             output_shape (tuple, (1,)): the shape of the output of the model;
             n_actions (int, None): number of actions considered to create a
-                `QRegressor` or an `ActionRegressor`;
+                ``QRegressor`` or an ``ActionRegressor``;
             n_models (int, 1): number of models to create;
             **params (dict): other parameters to create each model.
 

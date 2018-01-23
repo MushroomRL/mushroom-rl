@@ -112,7 +112,7 @@ class PolicyGradient(Agent):
 
         Returns:
             A tuple containing state, action, reward, next state, absorbing and
-            last flag. If provided, `state` is preprocessed with the features.
+            last flag. If provided, ``state`` is preprocessed with the features.
 
         """
         state = sample[0]

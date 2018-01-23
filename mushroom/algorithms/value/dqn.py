@@ -90,10 +90,10 @@ class DQN(Agent):
             next_state (np.ndarray): the states where next action has to be
                 evaluated;
             absorbing (np.ndarray): the absorbing flag for the states in
-                `next_state`.
+                ``next_state``.
 
         Returns:
-            Maximum action-value for each state in `next_state`.
+            Maximum action-value for each state in ``next_state``.
 
         """
         q = self.target_approximator.predict(next_state)

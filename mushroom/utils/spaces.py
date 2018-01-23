@@ -4,7 +4,7 @@ import numpy as np
 class Box:
     """
     This class implements functions to manage continuous states and action
-    spaces. It is similar to the `Box` class in `gym.spaces.box`.
+    spaces. It is similar to the ``Box`` class in ``gym.spaces.box``.
 
     """
     def __init__(self, low, high, shape=None):
@@ -23,7 +23,7 @@ class Box:
                 provided, each i-th element is considered the maximum value
                 of the i-th dimension;
             shape (np.ndarray, None): the dimension of the space. Must match
-                the shape of `low` and `high`, if they are np.ndarray.
+                the shape of ``low`` and ``high``, if they are np.ndarray.
 
         """
         if shape is None:
@@ -71,7 +71,7 @@ class Box:
 class Discrete:
     """
     This class implements functions to manage discrete states and action
-    spaces. It is similar to the `Discrete` class in `gym.spaces.discrete`.
+    spaces. It is similar to the ``Discrete`` class in ``gym.spaces.discrete``.
 
     """
     def __init__(self, n):

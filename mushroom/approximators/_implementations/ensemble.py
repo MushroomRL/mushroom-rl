@@ -28,8 +28,8 @@ class Ensemble(object):
 
     def fit(self, *z, **fit_params):
         """
-        Fit the `idx`-th model of the ensemble if `idx` is provided, a random
-        model otherwise.
+        Fit the ``idx``-th model of the ensemble if ``idx`` is provided, a
+        random model otherwise.
 
         Args:
             *z (list): a list containing the inputs to use to predict with each

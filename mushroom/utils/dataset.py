@@ -11,8 +11,8 @@ def parse_dataset(dataset, features=None):
 
     Returns:
         The np.ndarray of state, action, reward, next_state, absorbing flag and
-        last step flag. Features are applied to `state` and `next_state`, when
-        provided.
+        last step flag. Features are applied to ``state`` and ``next_state``,
+        when provided.
 
     """
     assert len(dataset) > 0
@@ -71,7 +71,7 @@ def mean_episode_length(dataset):
 
 def select_episodes(dataset, n_episodes, parse=False):
     """
-    Return the first `n_episodes` episodes in the provided dataset.
+    Return the first ``n_episodes`` episodes in the provided dataset.
 
     Args:
         dataset (list): the dataset to consider;
@@ -79,7 +79,7 @@ def select_episodes(dataset, n_episodes, parse=False):
         parse (bool, False): whether to parse the dataset to return.
 
     Returns:
-        A subset of the dataset containing the first `n_episodes` episodes.
+        A subset of the dataset containing the first ``n_episodes`` episodes.
 
     """
     assert n_episodes >= 0, 'Number of episodes must be greater than or equal' \
@@ -105,7 +105,8 @@ def select_samples(dataset, n_samples, parse=False):
         parse (bool, False): whether to parse the dataset to return.
 
     Returns:
-        A subset of the dataset containing randomly picked `n_samples` samples.
+        A subset of the dataset containing randomly picked ``n_samples``
+        samples.
 
     """
     assert n_samples >= 0, 'Number of samples must be greater than or equal' \

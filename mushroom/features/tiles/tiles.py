@@ -18,7 +18,7 @@ class Tiles:
                 dimension.
             state_components (list, None): list of the dimensions of the input
                 to be considered by the tiling. The number of elements must
-                match the number of elements in `x_range` and `n_tiles`.
+                match the number of elements in ``x_range`` and ``n_tiles``.
 
         """
         if isinstance(x_range[0], list):

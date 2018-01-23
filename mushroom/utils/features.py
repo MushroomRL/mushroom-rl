@@ -5,8 +5,8 @@ def uniform_grid(n_centers, ranges):
     """
     This function is used to create the parameters of uniformly spaced radial
     basis functions with 25% of overlap. It creates a uniformly spaced grid of
-    `n_centers[i]` points in each `ranges[i]`. Also returns a vector containing
-    the appropriate scales of the radial basis functions.
+    ``n_centers[i]`` points in each ``ranges[i]``. Also returns a vector
+    containing the appropriate scales of the radial basis functions.
 
     Args:
          n_centers (list): number of centers of each dimension;

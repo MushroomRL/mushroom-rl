@@ -21,7 +21,7 @@ class PolynomialBasis:
                 considered by the feature;
             degrees (list, None): list of the degrees of each dimension to be
                 considered by the feature. It must match the number of elements
-                of `dimensions`.
+                of ``dimensions``.
 
         """
         self._dim = dimensions
@@ -56,7 +56,7 @@ class PolynomialBasis:
     def _compute_exponents(order, n_variables):
         """
         Find the exponents of a multivariate polynomial expression of order
-        `order` and `n_variables` number of variables.
+        ``order`` and ``n_variables`` number of variables.
 
         Args:
             order (int): the maximum order of the polynomial;
@@ -86,8 +86,8 @@ class PolynomialBasis:
     @staticmethod
     def generate(max_degree, input_size):
         """
-        Factory method to build a polynomial of order `max_degree` based on the
-        first `input_size` dimensions of the input.
+        Factory method to build a polynomial of order ``max_degree`` based on
+        the first ``input_size`` dimensions of the input.
 
         Args:
             max_degree (int): maximum degree of the polynomial;

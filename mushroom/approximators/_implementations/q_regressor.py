@@ -5,7 +5,7 @@ class QRegressor:
     """
     This class is used to create a regressor that approximates the Q-function
     using a multi-dimensional output where each output corresponds to the
-    Q-value of each action. This is used, for instance, by the `ConvNet` used
+    Q-value of each action. This is used, for instance, by the ``ConvNet`` used
     in examples/atari_dqn.
 
     """

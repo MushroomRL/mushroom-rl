@@ -136,7 +136,7 @@ class CollectParameters:
         Args:
             parameter (Parameter): the parameter whose values have to be
                 collected;
-            *idx (list): index of the parameter when the `parameter` is
+            *idx (list): index of the parameter when the ``parameter`` is
                 tabular.
 
         """

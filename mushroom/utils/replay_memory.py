@@ -174,7 +174,7 @@ class ReplayMemory(object):
         """
         Build a state from the elements in the replay memory. A state is
         composed of the elements at the provided index and the following
-        `history_length` elements.
+        ``history_length`` elements.
 
         Args:
             idxs (list): the indexes of the states to return.

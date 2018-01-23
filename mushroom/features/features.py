@@ -11,10 +11,10 @@ def Features(basis_list=None, tilings=None, tensor_list=None, name=None,
     Factory method to build the requested type of features. The types are
     mutually exclusive.
 
-    The difference between `basis_list` and `tensor_list` is that the former
+    The difference between ``basis_list`` and ``tensor_list`` is that the former
     is a list of python classes each one evaluating a single element of the
     feature vector, while the latter consists in a dictionary that can be used
-    to build a Tensorflow graph. The use of `tensor_list` is a faster way to
+    to build a Tensorflow graph. The use of ``tensor_list`` is a faster way to
     compute features than `basis_list` and is suggested when the computation
     of the requested features is slow (see the Gaussian radial basis function
     implementation as an example).
@@ -46,9 +46,9 @@ def Features(basis_list=None, tilings=None, tensor_list=None, name=None,
 
 def get_action_features(phi_state, action, n_actions):
     """
-    Compute an array of size `len(phi_state)` * `n_actions` filled with
-    zeros, except for elements from `len(phi_state)` * `action` to
-    `len(phi_state)` * (`action` + 1) that are filled with `phi_state`. This
+    Compute an array of size ``len(phi_state)`` * ``n_actions`` filled with
+    zeros, except for elements from ``len(phi_state)`` * ``action`` to
+    ``len(phi_state)`` * (``action`` + 1) that are filled with `phi_state`. This
     is used to compute state-action features.
 
     Args:
