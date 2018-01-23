@@ -1,4 +1,4 @@
-approximators
+Approximators
 =============
 
 regressor

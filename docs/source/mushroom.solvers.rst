@@ -1,4 +1,4 @@
-solvers
+Solvers
 =======
 
 dynamic_programming

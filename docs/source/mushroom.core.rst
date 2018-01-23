@@ -1,4 +1,4 @@
-core
+Core
 ====
 
 .. automodule:: mushroom.core.core

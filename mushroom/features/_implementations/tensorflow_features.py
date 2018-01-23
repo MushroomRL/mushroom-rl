@@ -1,7 +1,9 @@
 import tensorflow as tf
 
+from mushroom.features import FeaturesImplementation
 
-class TensorflowFeatures:
+
+class TensorflowFeatures(FeaturesImplementation):
     def __init__(self, name, input_dim, tensor_list):
         self._size = len(tensor_list)
         self._sess = tf.Session()

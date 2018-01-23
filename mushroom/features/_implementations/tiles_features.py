@@ -1,8 +1,9 @@
 import numpy as np
 
+from mushroom.features import FeaturesImplementation
 
-class TilesFeatures:
 
+class TilesFeatures(FeaturesImplementation):
     def __init__(self, tiles):
 
         if isinstance(tiles, list):

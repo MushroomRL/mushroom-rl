@@ -5,10 +5,12 @@ from mushroom.algorithms.policy_search import PolicyGradient
 class eNAC(PolicyGradient):
     """
     ENAC algorithm.
-    "A Survey on Policy Search for Robotics", Deisenroth M. P., Neumann G., Peters J. 2013.
+    "A Survey on Policy Search for Robotics", Deisenroth M. P., Neumann G.,
+    Peters J. 2013.
 
     """
-    def __init__(self, policy, mdp_info, params, features=None, critic_features=None):
+    def __init__(self, policy, mdp_info, params, features=None,
+                 critic_features=None):
         self.__name__ = 'eNAC'
 
         super(eNAC, self).__init__(policy, mdp_info, params, features)

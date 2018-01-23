@@ -1,4 +1,4 @@
-policy
+Policy
 ======
 
 gaussian_policy

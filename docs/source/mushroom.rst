@@ -1,4 +1,4 @@
-mushroom
+Mushroom
 ========
 
 List of the Mushroom modules:

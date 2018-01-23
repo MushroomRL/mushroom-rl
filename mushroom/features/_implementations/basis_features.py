@@ -1,7 +1,9 @@
 import numpy as np
 
+from mushroom.features import FeaturesImplementation
 
-class BasisFeatures:
+
+class BasisFeatures(FeaturesImplementation):
     def __init__(self, basis):
         self._basis = basis
 
@@ -21,4 +23,3 @@ class BasisFeatures:
     @property
     def size(self):
         return len(self._basis)
-

@@ -1,4 +1,4 @@
-tensors
+Tensors
 =======
 
 gaussian_tensor

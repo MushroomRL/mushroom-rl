@@ -1,4 +1,4 @@
-tiles
+Tiles
 =====
 
 .. automodule:: mushroom.features.tiles.tiles

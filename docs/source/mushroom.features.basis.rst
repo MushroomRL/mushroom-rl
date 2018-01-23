@@ -1,4 +1,4 @@
-basis
+Basis
 =====
 
 gaussian_rbf
