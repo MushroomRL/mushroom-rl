@@ -2,7 +2,7 @@ import numpy as np
 from joblib import Parallel, delayed
 
 from mushroom.algorithms.value import SARSA
-from mushroom.core.core import Core
+from mushroom.core import Core
 from mushroom.environments.generators.taxi import generate_taxi
 from mushroom.policy import Boltzmann, EpsGreedy, Mellowmax
 from mushroom.utils.callbacks import CollectDataset

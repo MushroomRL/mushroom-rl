@@ -6,7 +6,7 @@ import numpy as np
 
 from convnet import ConvNet
 from mushroom.algorithms.value import AveragedDQN, DQN, DoubleDQN
-from mushroom.core.core import Core
+from mushroom.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
 from mushroom.utils.dataset import compute_scores

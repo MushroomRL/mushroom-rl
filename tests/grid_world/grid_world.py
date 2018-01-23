@@ -3,7 +3,7 @@ from joblib import Parallel, delayed
 
 from mushroom.algorithms.value import QLearning, DoubleQLearning,\
     WeightedQLearning, SpeedyQLearning, SARSA
-from mushroom.core.core import Core
+from mushroom.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
 from mushroom.utils.callbacks import CollectDataset, CollectMaxQ

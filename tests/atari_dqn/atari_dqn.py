@@ -6,7 +6,7 @@ import tensorflow as tf
 
 from examples.atari_dqn.convnet import ConvNet
 from mushroom.algorithms.value import AveragedDQN, DQN, DoubleDQN
-from mushroom.core.core import Core
+from mushroom.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
 from mushroom.utils.parameters import LinearDecayParameter, Parameter

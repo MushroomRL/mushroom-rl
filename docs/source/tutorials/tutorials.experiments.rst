@@ -79,7 +79,7 @@ typically the training is done with:
 
 ::
 
-    core.learn(n_samples=1000, n_samples_per_fit=1)
+    core.learn(n_samples=1000, n_steps_per_fit=1)
 
 This way, 1000 samples are collected, but the policy is fitted after each sample.
 
@@ -87,7 +87,7 @@ More unusual operations like:
 
 ::
 
-    core.learn(n_samples=1000, n_episodes_per_fit=1)
+    core.learn(n_steps=1000, n_episodes_per_fit=1)
 
 are allowed.
 
@@ -96,8 +96,18 @@ this is to run:
 
 ::
 
-    dataset = core.evaluate(n_samples=1000)
+    dataset = core.evaluate(n_steps=1000)
 
 This function returns the dataset collected running the learned policy after 1000
 samples. This way the user can, for instance, compute the performance of the agent
-through the collected rewards.
+through the collected rewards. Fixing :math:`\epsilon = 0`, the greedy policy
+is applied starting from the provided initial states, then the average cumulative
+discounted reward is returned.
+
+::
+
+    pi.set_epsilon(Parameter(0.))
+    initial_state = np.array([[-.5, 0.]])
+    dataset = core.evaluate(initial_states=initial_state)
+
+    print(compute_J(dataset, gamma=mdp.info.gamma))

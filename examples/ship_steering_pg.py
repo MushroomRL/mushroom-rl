@@ -3,7 +3,7 @@ import numpy as np
 from mushroom.algorithms.policy_search import REINFORCE, GPOMDP, eNAC
 from mushroom.approximators.parametric import LinearApproximator
 from mushroom.approximators.regressor import Regressor
-from mushroom.core.core import Core
+from mushroom.core import Core
 from mushroom.environments import ShipSteering
 from mushroom.features.basis import GaussianRBF
 from mushroom.features.features import Features
