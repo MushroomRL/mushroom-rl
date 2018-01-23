@@ -295,8 +295,6 @@ class SARSALambdaContinuous(TD):
         phi_state = self.phi(state)
         q_current = self.Q.predict(phi_state, action)
 
-        print(q_current)
-
         alpha = self.alpha(state, action)
 
         self.e = self.mdp_info.gamma * self._lambda * self.e + self.Q.diff(

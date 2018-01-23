@@ -18,39 +18,19 @@ A **MDP** is the problem to be solved by the agent. It contains the function to 
 the agent in the environment according to the provided action.
 The MDP can be simply created with:
 
-::
-
-    mdp = CarOnHill()
+.. literalinclude:: code/simple_experiment.py
+   :lines: 1-11
 
 A Mushroom **agent** is the algorithm that is run to learn in the MDP. It consists
 of a policy approximator and of the methods to improve the policy during the
 learning. It also contains the features to extract in the case of MDP with continuous
 state and action spaces. An agent can be defined this way:
 
-::
-
-    # Policy
-    epsilon = Parameter(value=1.)
-    pi = EpsGreedy(epsilon=epsilon)
-
-    # Approximator
-    approximator_params = dict(input_shape=mdp.info.observation_space.shape,
-                               n_actions=mdp.info.action_space.n,
-                               n_estimators=50,
-                               min_samples_split=5,
-                               min_samples_leaf=2)
-    approximator = ExtraTreesRegressor
-
-    # Agent
-    algorithm_params = dict(n_iterations=20)
-    fit_params = dict()
-    agent_params = {'approximator_params': approximator_params,
-                    'algorithm_params': algorithm_params,
-                    'fit_params': fit_params}
-    agent = FQI(approximator, pi, mdp.info, agent_params)
+.. literalinclude:: code/simple_experiment.py
+   :lines: 13-31
 
 This piece of code creates the policy followed by the agent (e.g. :math:`\epsilon`-greedy)
-with :math:`\epsilon = 1`. Then, the policy approximator is created specifying the
+with :math:`\varepsilon = 1`. Then, the policy approximator is created specifying the
 parameters to create it and the class (in this case, the ``ExtraTreesRegressor`` class
 of scikit-learn is used). Eventually, the agent is created calling the algorithm
 class and providing the approximator and the policy, together with parameters used
@@ -60,54 +40,25 @@ To run the experiment, the **core** module has to be used. This module requires
 the agent and the MDP object and contains the function to learn in the MDP and
 evaluate the learned policy. It can be created with:
 
-::
-
-    core = Core(agent, mdp)
+.. literalinclude:: code/simple_experiment.py
+   :lines: 33
 
 Once the core has been created, the agent can be trained collecting a dataset and
 fitting the policy:
 
-::
-
-    core.learn(n_episodes=1000, n_episodes_per_fit=1000)
+.. literalinclude:: code/simple_experiment.py
+   :lines: 35
 
 In this case, the agent's policy is fitted only once, after that 1000 episodes
 have been collected. This is a common practice in batch RL algorithms such as
 ``FQI`` where, initially, samples are randomly collected and then the policy is fitted
-using the whole dataset of collected samples. In the case of Temporal-Difference (TD) algorithms,
-typically the training is done with:
+using the whole dataset of collected samples.
 
-::
+Eventually, some operations to evaluate the learned policy can be done.
+This way the user can, for instance, compute the performance of the agent
+through the collected rewards during an evaluation run.
+Fixing :math:`\varepsilon = 0`, the greedy policy is applied starting from the
+provided initial states, then the average cumulative discounted reward is returned.
 
-    core.learn(n_samples=1000, n_steps_per_fit=1)
-
-This way, 1000 samples are collected, but the policy is fitted after each sample.
-
-More unusual operations like:
-
-::
-
-    core.learn(n_steps=1000, n_episodes_per_fit=1)
-
-are allowed.
-
-Eventually, some operations to evaluate the learned policy can be done. The way to do
-this is to run:
-
-::
-
-    dataset = core.evaluate(n_steps=1000)
-
-This function returns the dataset collected running the learned policy after 1000
-samples. This way the user can, for instance, compute the performance of the agent
-through the collected rewards. Fixing :math:`\epsilon = 0`, the greedy policy
-is applied starting from the provided initial states, then the average cumulative
-discounted reward is returned.
-
-::
-
-    pi.set_epsilon(Parameter(0.))
-    initial_state = np.array([[-.5, 0.]])
-    dataset = core.evaluate(initial_states=initial_state)
-
-    print(compute_J(dataset, gamma=mdp.info.gamma))
+.. literalinclude:: code/simple_experiment.py
+   :lines: 37-

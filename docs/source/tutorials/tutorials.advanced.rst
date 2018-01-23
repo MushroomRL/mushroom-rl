@@ -14,39 +14,41 @@ important.
 This tutorial shows how to solve a continuous MDP in Mushroom using an
 algorithm that requires the use of a linear approximator.
 
-Initially, the MDP is created:
+Initially, the MDP and the policy are created:
 
-::
-
-    # MDP
-    mdp = Gym(name='MountainCar-v0', horizon=np.inf, gamma=1.)
+.. literalinclude:: code/advanced_experiment.py
+   :lines: 1-19
 
 This is an environment created with the Mushroom interface to the OpenAI Gym
 library. Each environment offered by OpenAI Gym can be created this way simply
 providing the corresponding id in the ``name`` parameter, except for the Atari
 that are managed by a separate class.
-After the creation of the MDP, the features are created:
+After the creation of the MDP, the tiles features are created:
 
-::
-
-    # Agent
-    tilings = Tiles.generate(10, [10, 10],
-                             mdp.info.observation_space.low,
-                             mdp.info.observation_space.high)
-    features = Features(tilings=tilings)
-
-    ...
-
-    agent = TrueOnlineSARSALambda(pi, mdp.info, agent_params, features)
+.. literalinclude:: code/advanced_experiment.py
+   :lines: 21-30
 
 In this example, we use sparse coding by means of **tiles** features. The
-``generate`` method generates the grid of tilings with the required dimension
+``generate`` method generates ``n_tilings`` grids of 10x10 tilings evenly spaced
 (the way the tilings are created is explained in *"Reinforcement Learning: An Introduction",
 Sutton & Barto, 1998*). Eventually, the grid is passed to the ``Features``
-factory method that returns the features that are fed to the algorithm.
-Doing this, at each call of the Q-regressor, the algorithm will preprocess its
-input extracting the features that are supposed to be fed into it.
+factory method that returns the features class.
 
 Mushroom offers other type of features such a **radial basis functions** and
 **polynomial** features. The former have also a faster implementation written in
 Tensorflow that can be used transparently.
+
+Then, the agent is created as usual, but this time passing the feature to it.
+It is important to notice that the learning rate is divided by the number of
+tilings for the correctness of the update (see *"Reinforcement Learning: An Introduction",
+Sutton & Barto, 1998* for details). After that, the learning is run as usual:
+
+.. literalinclude:: code/advanced_experiment.py
+   :lines: 32-49
+
+To visualize the learned policy the rendering method of OpenAI Gym is used. To
+activate the rendering in the environments that supports it, it is necessary to
+set ``render=True``.
+
+.. literalinclude:: code/advanced_experiment.py
+   :lines: 51-52
