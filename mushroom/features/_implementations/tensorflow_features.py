@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from mushroom.features import FeaturesImplementation
+from features_implementation import FeaturesImplementation
 
 
 class TensorflowFeatures(FeaturesImplementation):

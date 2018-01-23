@@ -1,6 +1,6 @@
 import numpy as np
 
-from mushroom.features import FeaturesImplementation
+from features_implementation import FeaturesImplementation
 
 
 class TilesFeatures(FeaturesImplementation):

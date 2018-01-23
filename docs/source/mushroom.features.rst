@@ -24,6 +24,16 @@ that builds the one requested by the user.
     :undoc-members:
     :show-inheritance:
 
+The factory method returns a class that extends the abstract class
+``FeatureImplementation``.
+
+.. automodule:: mushroom.features._implementation.features_implementation
+    :members:
+    :private-members:
+    :inherited-members:
+    :undoc-members:
+    :show-inheritance:
+
 Components
 ----------
 
