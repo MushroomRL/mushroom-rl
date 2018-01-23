@@ -129,6 +129,20 @@ and
     
 to install all its dependencies.
 
+To compile the documentation:
+
+::
+
+    cd mushroom/docs
+    make html
+
+or to compile the pdf version:
+
+::
+
+    cd mushroom/docs
+    make latexpdf
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
