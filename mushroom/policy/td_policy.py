@@ -164,7 +164,9 @@ class Boltzmann(TDPolicy):
 
     def __call__(self, *args):
         state = args[0]
-        qs = np.exp(self._approximator.predict(state) * self._beta(state))
+        q_beta = self._approximator.predict(state) * self._beta(state)
+        q_beta -= q_beta.max()
+        qs = np.exp(q_beta)
 
         if len(args) == 2:
             action = args[1]
@@ -200,8 +202,10 @@ class Mellowmax(Boltzmann):
 
             def f(beta):
                 v = q - mm
+                beta_v = beta * v
+                beta_v -= beta_v.max()
 
-                return np.sum(np.exp(beta * v) * v)
+                return np.sum(np.exp(beta_v) * v)
 
             try:
                 beta = brentq(f, a=self._beta_min, b=self._beta_max)
