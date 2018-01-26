@@ -11,8 +11,8 @@ to the constructor or not.
 Usage of the ``Regressor`` interface
 ------------------------------------
 
-When the action space of RL problems is finite, the reasonable choice is to
-have a different Q-function for each action. In Mushroom, this is possible using:
+When the action space of RL problems is finite and the adopted approach is value-based,
+ we want to compute the Q-function of each action. In Mushroom, this is possible using:
 
 * a Q-function regressor with a different approximator for each action (``ActionRegressor``);
 * a single Q-function regressor with a different output for each action (``QRegressor``).
@@ -58,3 +58,28 @@ Generic regressor
 Whenever the ``n_actions`` parameter is not provided, the ``Regressor`` interface creates
 a ``GenericRegressor``. This regressor can be used for general purposes and it is
 more flexible to be used. It is commonly used in policy search algorithms.
+
+Example
+~~~~~~~
+
+Create a dataset of points distributed on a line with random gaussian noise.
+
+.. literalinclude:: code/generic_regressor.py
+   :lines: 1-12
+
+To fit the intercept, polynomial features of degree 1 are created by hand:
+
+.. literalinclude:: code/generic_regressor.py
+   :lines: 14
+
+The regressor is then created and fit (note that ``n_actions`` is not provided):
+
+.. literalinclude:: code/generic_regressor.py
+   :lines: 16-20
+
+Eventually, the approximated function of the regressor is plotted together with
+the target points. Moreover, the weights and the gradient in point 5 of the linear approximator
+are printed.
+
+.. literalinclude:: code/generic_regressor.py
+   :lines: 22-27
