@@ -43,7 +43,7 @@ class LinearApproximator:
                 regressor.
 
         """
-        self._w = np.linalg.solve(x, y).T
+        self._w = np.linalg.pinv(x).dot(y).T
 
     def predict(self, x, **predict_params):
         """
