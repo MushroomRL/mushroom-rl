@@ -99,6 +99,10 @@ class ActionRegressor:
             raise NotImplementedError('Attempt to reset weights of a'
                                       ' non-parametric regressor.')
 
+    @property
+    def weights_size(self):
+        return self.model[0].weights_size * len(self.model)
+
     def get_weights(self):
         w = list()
         for m in self.model:
@@ -121,7 +125,12 @@ class ActionRegressor:
 
             return diff
         else:
-            return self.model[action[0]].diff(state)
+            diff = np.zeros(len(state) * len(self.model))
+            a = action[0]
+            s = len(state)
+            diff[s * a:s * (a + 1)] = self.model[a].diff(state)
+
+            return diff
 
     def _preprocess(self, state, q=None):
         for p in self._input_preprocessor:
