@@ -51,7 +51,7 @@ Then, the rest of the code fits the approximator and runs the evaluation renderi
 the behaviour of the agent:
 
 .. literalinclude:: code/approximator.py
-   :lines: 37-52
+   :lines: 36-51
 
 Generic regressor
 -----------------
