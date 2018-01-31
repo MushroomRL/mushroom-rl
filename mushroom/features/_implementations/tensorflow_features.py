@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 
 from features_implementation import FeaturesImplementation
@@ -13,10 +14,22 @@ class TensorflowFeatures(FeaturesImplementation):
                                      name='x')
             self._phi = TensorflowFeatures.build_features(self._x, tensor_list)
 
-    def __call__(self, x):
-        if len(x.shape) == 1:
-            x = [x]
-        return self._sess.run(self._phi, feed_dict={self._x: x})
+    def __call__(self, *args):
+        if len(args) > 1:
+            x = np.concatenate(args, axis=-1)
+        else:
+            x = args[0]
+
+        x = np.atleast_2d(x)
+
+        y = self._sess.run(self._phi, feed_dict={self._x: x})
+
+        if len(y) == 1:
+            y = y[0]
+        else:
+            y = np.array(y)
+
+        return y
 
     @property
     def size(self):
@@ -32,4 +45,4 @@ class TensorflowFeatures(FeaturesImplementation):
             bf = tensor_type._generate(x, parameters)
             basis_functions.append(bf)
 
-        return tf.concat(basis_functions, axis=0)
+        return tf.stack(basis_functions, axis=-1)

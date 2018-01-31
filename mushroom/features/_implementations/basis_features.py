@@ -7,18 +7,29 @@ class BasisFeatures(FeaturesImplementation):
     def __init__(self, basis):
         self._basis = basis
 
-    def __call__(self, *x):
-        if len(x) > 1:
-            x = np.concatenate(x, axis=0)
+    def __call__(self, *args):
+        if len(args) > 1:
+            x = np.concatenate(args, axis=-1)
         else:
-            x = x[0]
+            x = args[0]
 
-        out = np.empty(self.size)
+        y = list()
 
-        for i, bf in enumerate(self._basis):
-            out[i] = bf(x)
+        x = np.atleast_2d(x)
+        for s in x:
+            out = np.empty(self.size)
 
-        return out
+            for i, bf in enumerate(self._basis):
+                out[i] = bf(s)
+
+            y.append(out)
+
+        if len(y) == 1:
+            y = y[0]
+        else:
+            y = np.array(y)
+
+        return y
 
     @property
     def size(self):
