@@ -41,4 +41,4 @@ For instance, to run a quick experiment with one of the provided example scripts
 
 .. code:: shell
 
-   python examples/car_on_hill.py
+    python examples/car_on_hill_fqi.py 
