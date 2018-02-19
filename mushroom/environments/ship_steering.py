@@ -12,12 +12,15 @@ class ShipSteering(Environment):
     2013.
 
     """
-    def __init__(self, small=True):
+    def __init__(self, small=True, hard=False):
         """
         Constructor.
 
         Args:
-             small (bool): whether to use a small state space or not.
+             small (bool, True): whether to use a small state space or not.
+             hard (bool, False): whether to use -100 as reward for going
+                                 outside or -10000. With -100 reward the
+                                 environment is considerably harder.
 
         """
         self.__name__ = 'ShipSteering'
@@ -36,6 +39,7 @@ class ShipSteering(Environment):
         self._gate_s[1] = 120 if small else 920
         self._gate_e[0] = 120 if small else 920
         self._gate_e[1] = 100 if small else 900
+        self._out_reward = -100 if hard else -10000
 
         # MDP properties
         observation_space = spaces.Box(low=low, high=high)
@@ -67,7 +71,7 @@ class ShipSteering(Environment):
 
         if new_state[0] > self.field_size or new_state[1] > self.field_size\
            or new_state[0] < 0 or new_state[1] < 0:
-            reward = -100
+            reward = self._out_reward
             absorbing = True
         elif self._through_gate(self._state[:2], new_state[:2]):
             reward = 0
