@@ -5,7 +5,6 @@ from mushroom.algorithms.agent import Agent
 from mushroom.approximators import Regressor
 from mushroom.approximators.parametric import LinearApproximator
 from mushroom.features import get_action_features
-from mushroom.policy import Weighted
 from mushroom.utils.eligibility_trace import EligibilityTrace
 from mushroom.utils.table import EnsembleTable, Table
 
@@ -48,7 +47,7 @@ class TD(Agent):
         reward = sample[2]
         next_state = sample[3]
         absorbing = sample[4]
-        
+
         return state, action, reward, next_state, absorbing
 
     def _update(self, state, action, reward, next_state, absorbing):
@@ -137,11 +136,9 @@ class WeightedQLearning(TD):
         super(WeightedQLearning, self).__init__(self.Q, policy, mdp_info,
                                                 params)
 
-        self._w = np.ones(mdp_info.action_space.n) / float(
-            mdp_info.action_space.n)
-
-        if isinstance(policy, Weighted):
-            policy.set_weights(self._w)
+        # "Estimating the Maximum Expected Value through Gaussian
+        # Approximation". D'Eramo C. et. al.. 2016.
+        self._weighted_policy = params.pop('weighted_policy', False)
 
         self._n_updates = Table(mdp_info.size)
         self._sigma = Table(mdp_info.size, initial_value=1e10)
@@ -200,9 +197,13 @@ class WeightedQLearning(TD):
             count = np.zeros(means.size)
             count[max_idx] = max_count
 
-            self._w[:] = count / self._precision
+            self._w = count / self._precision
         else:
             raise NotImplementedError
+
+        if self._weighted_policy:
+            self._next_action = np.array(
+                [np.random.choice(self.mdp_info.action_space.n, p=self._w)])
 
         return np.dot(self._w, means)
 
