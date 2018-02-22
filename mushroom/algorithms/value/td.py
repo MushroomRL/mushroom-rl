@@ -5,6 +5,7 @@ from mushroom.algorithms.agent import Agent
 from mushroom.approximators import Regressor
 from mushroom.approximators.parametric import LinearApproximator
 from mushroom.features import get_action_features
+from mushroom.policy import Weighted
 from mushroom.utils.eligibility_trace import EligibilityTrace
 from mushroom.utils.table import EnsembleTable, Table
 
@@ -85,6 +86,55 @@ class QLearning(TD):
             reward + self.mdp_info.gamma * q_next - q_current)
 
 
+class QLearningVariance(TD):
+    """
+    Q-Learning algorithm with computation of the variances of the estimate.
+    "Learning from Delayed Rewards". Watkins C.J.C.H.. 1989.
+
+    """
+    def __init__(self, policy, mdp_info, params):
+        self.Q = Table(mdp_info.size)
+
+        self._n_updates = Table(mdp_info.size)
+        self._sigma = Table(mdp_info.size, initial_value=1e10)
+        self._Q = Table(mdp_info.size)
+        self._Q2 = Table(mdp_info.size)
+        self._weights_var = Table(mdp_info.size)
+
+        if isinstance(policy, Weighted):
+            policy.set_sigma(self._sigma)
+
+        super(QLearningVariance, self).__init__(self.Q, policy, mdp_info,
+                                                params)
+
+    def _update(self, state, action, reward, next_state, absorbing):
+        q_current = self.Q[state, action]
+
+        q_next = np.max(self.Q[next_state, :]) if not absorbing else 0.
+        target = reward + self.mdp_info.gamma * q_next
+
+        alpha = self.alpha(state, action)
+
+        self.Q[state, action] = q_current + alpha * (target - q_current)
+
+        self._n_updates[state, action] += 1
+
+        self._Q[state, action] += (
+            target - self._Q[state, action]) / self._n_updates[state, action]
+        self._Q2[state, action] += (target ** 2. - self._Q2[
+            state, action]) / self._n_updates[state, action]
+        self._weights_var[state, action] = (
+            1 - alpha) ** 2. * self._weights_var[state, action] + alpha ** 2.
+
+        if self._n_updates[state, action] > 1:
+            var = self._n_updates[state, action] * (
+                self._Q2[state, action] - self._Q[state, action] ** 2.) / (
+                self._n_updates[state, action] - 1.)
+            var_estimator = var * self._weights_var[state, action]
+            var_estimator = np.maximum(var_estimator, 1e-10)
+            self._sigma[state, action] = np.sqrt(var_estimator)
+
+
 class DoubleQLearning(TD):
     """
     Double Q-Learning algorithm.
@@ -136,15 +186,14 @@ class WeightedQLearning(TD):
         super(WeightedQLearning, self).__init__(self.Q, policy, mdp_info,
                                                 params)
 
-        # "Estimating the Maximum Expected Value through Gaussian
-        # Approximation". D'Eramo C. et. al.. 2016.
-        self._weighted_policy = params.pop('weighted_policy', False)
-
         self._n_updates = Table(mdp_info.size)
         self._sigma = Table(mdp_info.size, initial_value=1e10)
         self._Q = Table(mdp_info.size)
         self._Q2 = Table(mdp_info.size)
         self._weights_var = Table(mdp_info.size)
+
+        if isinstance(policy, Weighted):
+            policy.set_sigma(self._sigma)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
@@ -170,7 +219,7 @@ class WeightedQLearning(TD):
                 self._Q2[state, action] - self._Q[state, action] ** 2.) / (
                 self._n_updates[state, action] - 1.)
             var_estimator = var * self._weights_var[state, action]
-            var_estimator = var_estimator if var_estimator >= 1e-10 else 1e-10
+            var_estimator = np.maximum(var_estimator, 1e-10)
             self._sigma[state, action] = np.sqrt(var_estimator)
 
     def _next_q(self, next_state):
@@ -180,7 +229,7 @@ class WeightedQLearning(TD):
                 evaluated.
 
         Returns:
-            The weighted estimator value in 'next_state'.
+            The weighted estimator value in `next_state`.
 
         """
         means = self.Q[next_state, :]
@@ -201,7 +250,7 @@ class WeightedQLearning(TD):
         else:
             raise NotImplementedError
 
-        if self._weighted_policy:
+        if isinstance(self.policy, Weighted):
             self._next_action = np.array(
                 [np.random.choice(self.mdp_info.action_space.n, p=self._w)])
 
