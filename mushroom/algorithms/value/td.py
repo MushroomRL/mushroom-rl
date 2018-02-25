@@ -329,7 +329,7 @@ class SARSAVariance(TD):
 
         q_current = self.Q[state, action]
 
-        q_next = np.max(self.Q[next_state, :]) if not absorbing else 0.
+        q_next = self.Q[next_state, self._next_action] if not absorbing else 0.
         target = reward + self.mdp_info.gamma * q_next
 
         alpha = self.alpha(state, action)
