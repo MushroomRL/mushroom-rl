@@ -5,7 +5,6 @@ from mushroom.algorithms.agent import Agent
 from mushroom.approximators import Regressor
 from mushroom.approximators.parametric import LinearApproximator
 from mushroom.features import get_action_features
-from mushroom.policy import Weighted
 from mushroom.utils.eligibility_trace import EligibilityTrace
 from mushroom.utils.table import EnsembleTable, Table
 
@@ -143,7 +142,7 @@ class WeightedQLearning(TD):
         self._Q2 = Table(mdp_info.size)
         self._weights_var = Table(mdp_info.size)
 
-        self._use_weighted_policy = params.get(['weighted_policy'], False)
+        self._use_weighted_policy = params.get('weighted_policy', False)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
