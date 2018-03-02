@@ -143,7 +143,7 @@ class WeightedQLearning(TD):
         self._Q2 = Table(mdp_info.size)
         self._weights_var = Table(mdp_info.size)
 
-        self._use_weighted_policy = params['weighted_policy']
+        self._use_weighted_policy = params.get(['weighted_policy'], False)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
