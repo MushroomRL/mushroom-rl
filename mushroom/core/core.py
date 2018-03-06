@@ -128,10 +128,13 @@ class Core(object):
         self._current_episodes_counter = 0
         self._current_steps_counter = 0
 
-        self.reset(initial_states)
-
         dataset = list()
+        last = True
         while move_condition():
+
+            if last:
+                self.reset(initial_states)
+
             sample = self._step(render)
             dataset.append(sample)
             self._total_steps_counter += 1
@@ -143,8 +146,6 @@ class Core(object):
                 self._current_episodes_counter += 1
                 episodes_progress_bar.update(1)
 
-                self.reset(initial_states)
-
             if fit_condition():
                 self.agent.fit(dataset)
                 self._current_episodes_counter = 0
@@ -155,6 +156,8 @@ class Core(object):
                     c(**callback_pars)
 
                 dataset = list()
+
+            last = sample[-1]
 
         return dataset
 

@@ -70,4 +70,4 @@ if __name__ == '__main__':
     alpha = .1
     J = experiment(alpha)
 
-    assert J == -160.5
+    assert J == -135.5

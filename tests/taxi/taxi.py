@@ -48,6 +48,6 @@ if __name__ == '__main__':
     for p in [EpsGreedy, Boltzmann, Mellowmax]:
         Js.append(np.mean(experiment(p, 1.)))
 
-    assert np.round(Js[0], 4) == .016
+    assert np.round(Js[0], 4) == .0155
     assert np.round(Js[1], 4) == .0285
     assert np.round(Js[2], 4) == .0205
