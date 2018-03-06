@@ -31,7 +31,7 @@ def experiment(alpha):
 
     # Agent
     learning_rate = Parameter(alpha)
-    tilings = Tiles.generate(10, [10, 10],
+    tilings = Tiles.generate(5, [5, 5],
                              mdp.info.observation_space.low,
                              mdp.info.observation_space.high)
     features = Features(tilings=tilings)

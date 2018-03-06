@@ -56,6 +56,8 @@ class Gym(Environment):
         if state is None:
             self._state = self.env.reset()
         else:
+            self.env.reset()
+            self.env.state = state
             self._state = state
 
         return self._state

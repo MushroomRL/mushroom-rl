@@ -32,7 +32,7 @@ def experiment(alpha):
 
     # Agent
     learning_rate = Parameter(alpha)
-    tilings = Tiles.generate(10, [10, 10],
+    tilings = Tiles.generate(5, [5, 5],
                              mdp.info.observation_space.low,
                              mdp.info.observation_space.high)
     features = Features(tilings=tilings)
@@ -52,7 +52,7 @@ def experiment(alpha):
     core = Core(agent, mdp)
 
     # Train
-    core.learn(n_steps=2000, n_steps_per_fit=1, quiet=True)
+    core.learn(n_episodes=20, n_steps_per_fit=1, quiet=True)
 
     # Test
     test_epsilon = Parameter(0.)
@@ -67,10 +67,7 @@ def experiment(alpha):
 if __name__ == '__main__':
     print('Executing mountain_car test...')
 
-    n_experiment = 1
-
     alpha = .1
-    Js = Parallel(
-        n_jobs=-1)(delayed(experiment)(alpha) for _ in range(n_experiment))
+    J = experiment(alpha)
 
-    assert np.mean(Js) == -184.5
+    assert J == -160.5
