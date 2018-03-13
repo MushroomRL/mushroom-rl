@@ -18,7 +18,7 @@ class DQN(Agent):
                  train_frequency, target_update_frequency, initial_replay_size,
                  max_replay_size, fit_params=None, approximator_params=None,
                  n_approximators=1, history_length=1, clip_reward=True,
-                 max_no_op_actions=0, no_op_action_value=0,):
+                 max_no_op_actions=0, no_op_action_value=0):
         """
         Constructor.
 
