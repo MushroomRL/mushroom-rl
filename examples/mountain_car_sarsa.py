@@ -41,11 +41,10 @@ def experiment(alpha):
                                n_actions=mdp.info.action_space.n)
     algorithm_params = {'learning_rate': learning_rate,
                         'lambda': .9}
-    fit_params = dict()
-    agent_params = {'approximator_params': approximator_params,
-                    'algorithm_params': algorithm_params,
-                    'fit_params': fit_params}
-    agent = TrueOnlineSARSALambda(pi, mdp.info, agent_params, features)
+
+    agent = TrueOnlineSARSALambda(pi, mdp.info,
+                                  approximator_params=approximator_params,
+                                  features=features, **algorithm_params)
 
     # Algorithm
     collect_dataset = CollectDataset()

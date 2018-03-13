@@ -10,10 +10,10 @@ class GPOMDP(PolicyGradient):
     2001.
 
     """
-    def __init__(self, policy, mdp_info, params, features=None):
+    def __init__(self, policy, mdp_info, learning_rate, features=None):
         self.__name__ = 'GPOMDP'
 
-        super(GPOMDP, self).__init__(policy, mdp_info, params, features)
+        super(GPOMDP, self).__init__(policy, mdp_info, learning_rate, features)
 
         self.sum_d_log_pi = None
         self.list_sum_d_log_pi = list()

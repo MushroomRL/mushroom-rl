@@ -65,17 +65,18 @@ def experiment(alg):
         max_no_op_actions=10,
         no_op_action_value=0
     )
-    fit_params = dict()
-    agent_params = {'approximator_params': approximator_params,
-                    'algorithm_params': algorithm_params,
-                    'fit_params': fit_params}
 
     if alg == 'dqn':
-        agent = DQN(approximator, pi, mdp.info, agent_params)
+        agent = DQN(approximator, pi, mdp.info,
+                    approximator_params=approximator_params, **algorithm_params)
     elif alg == 'ddqn':
-        agent = DoubleDQN(approximator, pi, mdp.info, agent_params)
+        agent = DoubleDQN(approximator, pi, mdp.info,
+                          approximator_params=approximator_params,
+                          **algorithm_params)
     elif alg == 'adqn':
-        agent = AveragedDQN(approximator, pi, mdp.info, agent_params)
+        agent = AveragedDQN(approximator, pi, mdp.info,
+                            approximator_params=approximator_params,
+                            **algorithm_params)
 
     # Algorithm
     core = Core(agent, mdp)

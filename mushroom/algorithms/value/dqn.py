@@ -14,32 +14,58 @@ class DQN(Agent):
     Mnih V. et al.. 2015.
 
     """
-    def __init__(self, approximator, policy, mdp_info, params):
-        alg_params = params['algorithm_params']
-        self._batch_size = alg_params.get('batch_size')
-        self._n_approximators = alg_params.get('n_approximators', 1)
-        self._clip_reward = alg_params.get('clip_reward', True)
-        self._train_frequency = alg_params.get('train_frequency')
-        self._target_update_frequency = alg_params.get(
-            'target_update_frequency')
-        self._max_no_op_actions = alg_params.get('max_no_op_actions', 0)
-        self._no_op_action_value = alg_params.get('no_op_action_value', 0)
+    def __init__(self, approximator, policy, mdp_info, batch_size,
+                 train_frequency, target_update_frequency, initial_replay_size,
+                 max_replay_size, fit_params=None, approximator_params=None,
+                 n_approximators=1, history_length=1, clip_reward=True,
+                 max_no_op_actions=0, no_op_action_value=0,):
+        """
+        Constructor.
 
-        self._replay_memory = ReplayMemory(
-            mdp_info,
-            alg_params.get('initial_replay_size'),
-            alg_params.get('max_replay_size'),
-            alg_params.get('history_length', 1)
-        )
-        self._buffer = Buffer(size=alg_params.get('history_length', 1))
+        Args:
+            batch_size (int): the number of samples in a batch;
+            train_frequency (int): the number of samples collected between each
+                gradient descent step of the online network;
+            target_update_frequency (int): the number of samples collected
+                between each update of the target network;
+            initial_replay_size (int): the number of samples to collect before
+                starting the learning;
+            max_replay_size (int): the maximum number of samples in the replay
+                memory;
+            fit_params (dict, None): parameters of the fitting algorithm of the
+                approximator;
+            approximator_params (dict, None): parameters of the approximator to
+                build;
+            n_approximators (int, 1): the number of approximator to use in
+                ``AverageDQN``;
+            history_length (int, 1): the number of samples composing a state;
+            clip_reward (bool, True): whether to clip the reward or not;
+            max_no_op_actions (int, 0): maximum number of no-op actions that
+                can be sampled;
+            no_op_action_value (int, 0): value of the no-op action.
+
+        """
+        self._fit_params = dict() if fit_params is None else fit_params
+
+        self._batch_size = batch_size
+        self._n_approximators = n_approximators
+        self._clip_reward = clip_reward
+        self._train_frequency = train_frequency
+        self._target_update_frequency = target_update_frequency
+        self._max_no_op_actions = max_no_op_actions
+        self._no_op_action_value = no_op_action_value
+
+        self._replay_memory = ReplayMemory(mdp_info, initial_replay_size,
+                                           max_replay_size, history_length)
+        self._buffer = Buffer(size=history_length)
 
         self._n_updates = 0
         self._episode_steps = 0
         self._no_op_actions = None
 
-        apprx_params_train = deepcopy(params['approximator_params'])
+        apprx_params_train = deepcopy(approximator_params)
         apprx_params_train['name'] = 'train'
-        apprx_params_target = deepcopy(params['approximator_params'])
+        apprx_params_target = deepcopy(approximator_params)
         apprx_params_target['name'] = 'target'
         self.approximator = Regressor(approximator, **apprx_params_train)
         self.target_approximator = Regressor(approximator,
@@ -55,7 +81,7 @@ class DQN(Agent):
                 self.target_approximator.model[i].set_weights(
                     self.approximator.model.get_weights())
 
-        super(DQN, self).__init__(policy, mdp_info, params)
+        super(DQN, self).__init__(policy, mdp_info)
 
     def fit(self, dataset):
         self._replay_memory.add(dataset)
@@ -69,7 +95,7 @@ class DQN(Agent):
             q_next = self._next_q(next_state, absorbing)
             q = reward + self.mdp_info.gamma * q_next
 
-            self.approximator.fit(state, action, q, **self.params['fit_params'])
+            self.approximator.fit(state, action, q, **self._fit_params)
 
             self._n_updates += 1
 
@@ -151,9 +177,9 @@ class AveragedDQN(DQN):
     Learning". Anschel O. et al.. 2017.
 
     """
-    def __init__(self, approximator, policy, mdp_info, params):
+    def __init__(self, approximator, policy, mdp_info, **params):
         super(AveragedDQN, self).__init__(approximator, policy, mdp_info,
-                                          params)
+                                          **params)
 
         self._n_fitted_target_models = 1
 

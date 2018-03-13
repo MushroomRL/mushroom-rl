@@ -20,6 +20,7 @@ using policy gradient algorithms.
 
 tqdm.monitor_interval = 0
 
+
 def experiment(alg, n_runs, n_iterations, ep_per_run):
     np.random.seed()
 
@@ -38,10 +39,7 @@ def experiment(alg, n_runs, n_iterations, ep_per_run):
     # Agent
     learning_rate = AdaptiveParameter(value=.01)
     algorithm_params = dict(learning_rate=learning_rate)
-    fit_params = dict()
-    agent_params = {'algorithm_params': algorithm_params,
-                    'fit_params': fit_params}
-    agent = alg(policy, mdp.info, agent_params)
+    agent = alg(policy, mdp.info, **algorithm_params)
 
     # Train
     core = Core(agent, mdp)

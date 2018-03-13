@@ -27,10 +27,7 @@ def experiment():
     # Agent
     learning_rate = Parameter(value=.2)
     algorithm_params = dict(learning_rate=learning_rate)
-    fit_params = dict()
-    agent_params = {'algorithm_params': algorithm_params,
-                    'fit_params': fit_params}
-    agent = QLearning(pi, mdp.info, agent_params)
+    agent = QLearning(pi, mdp.info, **algorithm_params)
 
     # Algorithm
     core = Core(agent, mdp)

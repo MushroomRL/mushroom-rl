@@ -38,11 +38,8 @@ def experiment():
 
     # Agent
     algorithm_params = dict(n_iterations=20)
-    fit_params = dict()
-    agent_params = {'approximator_params': approximator_params,
-                    'algorithm_params': algorithm_params,
-                    'fit_params': fit_params}
-    agent = FQI(approximator, pi, mdp.info, agent_params)
+    agent = FQI(approximator, pi, mdp.info,
+                approximator_params=approximator_params, **algorithm_params)
 
     # Algorithm
     core = Core(agent, mdp)

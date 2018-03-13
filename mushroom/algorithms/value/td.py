@@ -14,13 +14,23 @@ class TD(Agent):
     Implements functions to run TD algorithms.
 
     """
-    def __init__(self, approximator, policy, mdp_info, params, features=None):
-        self.alpha = params['algorithm_params']['learning_rate']
+    def __init__(self, approximator, policy, mdp_info, learning_rate,
+                 features=None):
+        """
+        Constructor.
+
+        Args:
+            approximator (object): the approximator to use to fit the
+               Q-function;
+            learning_rate (float): the learning rate.
+
+        """
+        self.alpha = learning_rate
 
         policy.set_q(approximator)
         self.approximator = approximator
 
-        super(TD, self).__init__(policy, mdp_info, params, features)
+        super(TD, self).__init__(policy, mdp_info, features)
 
     def fit(self, dataset):
         assert len(dataset) == 1
@@ -34,7 +44,7 @@ class TD(Agent):
         Utility to parse the dataset that is supposed to contain only a sample.
 
         Args:
-             dataset (list): the current episode step.
+            dataset (list): the current episode step.
 
         Returns:
             A tuple containing state, action, reward, next state, absorbing and
@@ -71,10 +81,10 @@ class QLearning(TD):
     "Learning from Delayed Rewards". Watkins C.J.C.H.. 1989.
 
     """
-    def __init__(self, policy, mdp_info, params):
+    def __init__(self, policy, mdp_info, learning_rate):
         self.Q = Table(mdp_info.size)
 
-        super(QLearning, self).__init__(self.Q, policy, mdp_info, params)
+        super(QLearning, self).__init__(self.Q, policy, mdp_info, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
@@ -91,10 +101,11 @@ class DoubleQLearning(TD):
     "Double Q-Learning". Hasselt H. V.. 2010.
 
     """
-    def __init__(self, policy, mdp_info, params):
+    def __init__(self, policy, mdp_info, learning_rate):
         self.Q = EnsembleTable(2, mdp_info.size)
 
-        super(DoubleQLearning, self).__init__(self.Q, policy, mdp_info, params)
+        super(DoubleQLearning, self).__init__(self.Q, policy, mdp_info,
+                                              learning_rate)
 
         self.alpha = [deepcopy(self.alpha), deepcopy(self.alpha)]
 
@@ -128,13 +139,27 @@ class WeightedQLearning(TD):
     D'Eramo C. et. al.. 2016.
 
     """
-    def __init__(self, policy, mdp_info, params):
+    def __init__(self, policy, mdp_info, learning_rate, sampling=True,
+                 precision=1000, weighted_policy=False):
+        """
+        Constructor.
+
+        Args:
+            sampling (bool, True): use the approximated version to speed up
+                the computation;
+            precision (int, 1000): number of samples to use in the approximated
+                version;
+            weighted_policy (bool, False): whether to use the weighted policy
+                or not.
+
+
+        """
         self.Q = Table(mdp_info.size)
-        self._sampling = params.pop('sampling', True)
-        self._precision = params.pop('precision', 1000)
+        self._sampling = sampling
+        self._precision = precision
 
         super(WeightedQLearning, self).__init__(self.Q, policy, mdp_info,
-                                                params)
+                                                learning_rate)
 
         self._n_updates = Table(mdp_info.size)
         self._sigma = Table(mdp_info.size, initial_value=1e10)
@@ -142,7 +167,7 @@ class WeightedQLearning(TD):
         self._Q2 = Table(mdp_info.size)
         self._weights_var = Table(mdp_info.size)
 
-        self._use_weighted_policy = params.get('weighted_policy', False)
+        self._use_weighted_policy = weighted_policy
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
@@ -212,11 +237,12 @@ class SpeedyQLearning(TD):
     "Speedy Q-Learning". Ghavamzadeh et. al.. 2011.
 
     """
-    def __init__(self, policy, mdp_info, params):
+    def __init__(self, policy, mdp_info, learning_rate):
         self.Q = Table(mdp_info.size)
         self.old_q = deepcopy(self.Q)
 
-        super(SpeedyQLearning, self).__init__(self.Q, policy, mdp_info, params)
+        super(SpeedyQLearning, self).__init__(self.Q, policy, mdp_info,
+                                              learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
         old_q = deepcopy(self.Q)
@@ -240,9 +266,9 @@ class SARSA(TD):
     SARSA algorithm.
 
     """
-    def __init__(self, policy, mdp_info, params):
+    def __init__(self, policy, mdp_info, learning_rate):
         self.Q = Table(mdp_info.size)
-        super(SARSA, self).__init__(self.Q, policy, mdp_info, params)
+        super(SARSA, self).__init__(self.Q, policy, mdp_info, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
@@ -259,14 +285,22 @@ class SARSALambdaDiscrete(TD):
     Discrete version of SARSA(lambda) algorithm.
 
     """
-    def __init__(self, policy, mdp_info, params):
-        self.Q = Table(mdp_info.size)
-        self._lambda = params['algorithm_params']['lambda']
+    def __init__(self, policy, mdp_info, learning_rate, lambda_coeff,
+                 trace='replacing'):
+        """
+        Constructor.
 
-        trace = params.get('algorithm_params', 'replacing')
+        Args:
+            lambda_coeff (float): eligibility trace coefficient;
+            trace (str, 'replacing'): type of eligibility trace to use.
+
+        """
+        self.Q = Table(mdp_info.size)
+        self._lambda = lambda_coeff
+
         self.e = EligibilityTrace(self.Q.shape, trace)
         super(SARSALambdaDiscrete, self).__init__(self.Q, policy, mdp_info,
-                                                  params)
+                                                  learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
@@ -289,13 +323,24 @@ class SARSALambdaContinuous(TD):
     Continuous version of SARSA(lambda) algorithm.
 
     """
-    def __init__(self, approximator, policy, mdp_info, params, features):
-        self.Q = Regressor(approximator, **params['approximator_params'])
+    def __init__(self, approximator, policy, mdp_info, learning_rate,
+                 lambda_coeff, features, approximator_params=None):
+        """
+        Constructor.
+
+        Args:
+            lambda_coeff (float): eligibility trace coefficient.
+
+        """
+        self._approximator_params = dict() if approximator_params is None else \
+            approximator_params
+
+        self.Q = Regressor(approximator, **self._approximator_params)
         self.e = np.zeros(self.Q.weights_size)
-        self._lambda = params['algorithm_params']['lambda']
+        self._lambda = lambda_coeff
 
         super(SARSALambdaContinuous, self).__init__(self.Q, policy, mdp_info,
-                                                    params, features)
+                                                    learning_rate, features)
 
     def _update(self, state, action, reward, next_state, absorbing):
         phi_state = self.phi(state)
@@ -328,9 +373,10 @@ class ExpectedSARSA(TD):
     al.. 2009.
 
     """
-    def __init__(self, policy, mdp_info, params):
+    def __init__(self, policy, mdp_info, learning_rate):
         self.Q = Table(mdp_info.size)
-        super(ExpectedSARSA, self).__init__(self.Q, policy, mdp_info, params)
+        super(ExpectedSARSA, self).__init__(self.Q, policy, mdp_info,
+                                            learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
@@ -350,14 +396,25 @@ class TrueOnlineSARSALambda(TD):
     "True Online TD(lambda)". Seijen H. V. et al.. 2014.
 
     """
-    def __init__(self, policy, mdp_info, params, features):
-        self.Q = Regressor(LinearApproximator, **params['approximator_params'])
+    def __init__(self, policy, mdp_info, learning_rate, lambda_coeff,
+                 features, approximator_params=None):
+        """
+        Constructor.
+
+        Args:
+            lambda_coeff (float): eligibility trace coefficient.
+
+        """
+        self._approximator_params = dict() if approximator_params is None else \
+            approximator_params
+
+        self.Q = Regressor(LinearApproximator, **self._approximator_params)
         self.e = np.zeros(self.Q.weights_size)
-        self._lambda = params['algorithm_params']['lambda']
+        self._lambda = lambda_coeff
         self._q_old = None
 
         super(TrueOnlineSARSALambda, self).__init__(self.Q, policy, mdp_info,
-                                                    params, features)
+                                                    learning_rate, features)
 
     def _update(self, state, action, reward, next_state, absorbing):
         phi_state = self.phi(state)
@@ -400,14 +457,19 @@ class RLearning(TD):
     Schwartz A.. 1993.
 
     """
-    def __init__(self, policy, mdp_info, params):
-        assert 'beta' in params['algorithm_params']
+    def __init__(self, policy, mdp_info, learning_rate, beta):
+        """
+        Constructor.
 
+        Args:
+            beta (float): beta coefficient.
+
+        """
         self.Q = Table(mdp_info.size)
         self._rho = 0.
-        self.beta = params['algorithm_params']['beta']
+        self.beta = beta
 
-        super(RLearning, self).__init__(self.Q, policy, mdp_info, params)
+        super(RLearning, self).__init__(self.Q, policy, mdp_info, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
@@ -430,23 +492,33 @@ class RQLearning(TD):
     Processes". Tateo D. et al.. 2017.
 
     """
-    def __init__(self, policy, mdp_info, params):
-        alg_params = params['algorithm_params']
+    def __init__(self, policy, mdp_info, learning_rate, off_policy=False,
+                 beta=None, delta=None):
+        """
+        Constructor.
 
-        self.off_policy = alg_params['off_policy']
-        if 'delta' in alg_params and 'beta' not in alg_params:
-            self.delta = alg_params['delta']
+        Args:
+            off_policy (bool, False): whether to use the off policy setting or
+                the online one;
+            beta (float, None): beta coefficient;
+            delta (float, None): delta coefficient.
+
+        """
+        self.off_policy = off_policy
+        if 'delta' is not None and 'beta' is None:
+            self.delta = delta
             self.beta = None
-        elif 'delta' not in alg_params and 'beta' in alg_params:
+        elif 'delta' is None and 'beta' is not None:
             self.delta = None
-            self.beta = alg_params['beta']
+            self.beta = beta
         else:
             raise ValueError('delta or beta parameters needed.')
 
         self.Q = Table(mdp_info.size)
         self.Q_tilde = Table(mdp_info.size)
         self.R_tilde = Table(mdp_info.size)
-        super(RQLearning, self).__init__(self.Q, policy, mdp_info, params)
+        super(RQLearning, self).__init__(self.Q, policy, mdp_info,
+                                         learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
         alpha = self.alpha(state, action, target=reward)

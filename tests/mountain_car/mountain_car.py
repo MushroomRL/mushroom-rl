@@ -41,12 +41,10 @@ def experiment(alpha):
                                output_shape=(mdp.info.action_space.n,),
                                n_actions=mdp.info.action_space.n)
     algorithm_params = {'learning_rate': learning_rate,
-                        'lambda': .9}
-    fit_params = dict()
-    agent_params = {'approximator_params': approximator_params,
-                    'algorithm_params': algorithm_params,
-                    'fit_params': fit_params}
-    agent = TrueOnlineSARSALambda(pi, mdp.info, agent_params, features)
+                        'lambda_coeff': .9}
+    agent = TrueOnlineSARSALambda(pi, mdp.info,
+                                  approximator_params=approximator_params,
+                                  features=features, **algorithm_params)
 
     # Algorithm
     core = Core(agent, mdp)

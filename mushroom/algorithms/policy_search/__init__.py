@@ -4,4 +4,4 @@ from .gpomdp import GPOMDP
 from .enac import eNAC
 
 
-__all__ = ['REINFORCE', 'GPOMDP', 'eNAC']
+__all__ = ['PolicyGradient', 'REINFORCE', 'GPOMDP', 'eNAC']

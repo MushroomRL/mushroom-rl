@@ -13,23 +13,34 @@ class BatchTD(Agent):
     Abstract class to implement a generic Batch TD algorithm.
 
     """
-    def __init__(self, approximator, policy, mdp_info, params, features=None):
+    def __init__(self, approximator, policy, mdp_info, n_iterations,
+                 fit_params=None, approximator_params=None, features=None,
+                 quiet=False):
         """
         Constructor.
 
         Args:
             approximator (object): approximator used by the algorithm and the
                 policy.
+            n_iterations (int): number of iterations to perform for training;
+            fit_params (dict, None): parameters of the fitting algorithm of the
+                approximator;
+            approximator_params (dict, None): parameters of the approximator to
+                build;
+            quiet (bool, False): whether to show the progress bar or not.
 
         """
-        self._n_iterations = params['algorithm_params']['n_iterations']
-        self._quiet = params['algorithm_params'].get('quiet', False)
+        self._n_iterations = n_iterations
+        self._fit_params = dict() if fit_params is None else fit_params
+        self._approximator_params = dict() if approximator_params is None else\
+            approximator_params
+        self._quiet = quiet
 
         self.approximator = Regressor(approximator,
-                                      **params['approximator_params'])
+                                      **self._approximator_params)
         policy.set_q(self.approximator)
 
-        super(BatchTD, self).__init__(policy, mdp_info, params, features)
+        super(BatchTD, self).__init__(policy, mdp_info, features)
 
 
 class FQI(BatchTD):
@@ -38,13 +49,24 @@ class FQI(BatchTD):
     "Tree-Based Batch Mode Reinforcement Learning", Ernst D. et al.. 2005.
 
     """
-    def __init__(self, approximator, policy, mdp_info, params):
-        super(FQI, self).__init__(approximator, policy, mdp_info, params)
+    def __init__(self, approximator, policy, mdp_info, n_iterations,
+                 fit_params=None, approximator_params=None, features=None,
+                 quiet=False, boosted=False):
+        """
+        Constructor.
+
+        Args:
+            boosted (bool, False): whether to use boosted FQI or not.
+
+        """
+        super(FQI, self).__init__(approximator, policy, mdp_info, n_iterations,
+                                  fit_params, approximator_params, features,
+                                  quiet)
 
         self._target = None
 
         # "Boosted Fitted Q-Iteration". Tosatto S. et al.. 2017.
-        self._boosted = params['algorithm_params'].get('boosted', False)
+        self._boosted = boosted
         if self._boosted:
             self._prediction = 0.
             self._next_q = 0.
@@ -87,8 +109,7 @@ class FQI(BatchTD):
             max_q = np.max(q, axis=1)
             self._target = reward + self.mdp_info.gamma * max_q
 
-        self.approximator.fit(state, action, self._target,
-                              **self.params['fit_params'])
+        self.approximator.fit(state, action, self._target, **self._fit_params)
 
     def _fit_boosted(self, x):
         """
@@ -114,7 +135,7 @@ class FQI(BatchTD):
         self._prediction += self._target
 
         self.approximator.fit(state, action, self._target, idx=self._idx,
-                              **self.params['fit_params'])
+                              **self._fit_params)
 
         self._idx += 1
 
@@ -126,9 +147,12 @@ class DoubleFQI(FQI):
     Problems". D'Eramo C. et al.. 2017.
 
     """
-    def __init__(self, approximator, policy, mdp_info, params):
-        params['approximator_params']['n_models'] = 2
-        super(DoubleFQI, self).__init__(approximator, policy, mdp_info, params)
+    def __init__(self, approximator, policy, mdp_info, n_iterations,
+                 fit_params=None, approximator_params=None, features=None,
+                 quiet=False):
+        super(DoubleFQI, self).__init__(approximator, policy, mdp_info,
+                                        n_iterations, fit_params,
+                                        approximator_params, features, quiet)
 
     def _fit(self, x):
         state = list()
@@ -161,7 +185,7 @@ class DoubleFQI(FQI):
 
         for i in xrange(2):
             self.approximator.fit(state[i], action[i], self._target[i], idx=i,
-                                  **self.params['fit_params'])
+                                  **self._fit_params)
 
 
 class LSPI(BatchTD):

@@ -60,10 +60,7 @@ def experiment(alg, n_runs, n_iterations, ep_per_run, use_tensorflow):
     # Agent
     learning_rate = AdaptiveParameter(value=.01)
     algorithm_params = dict(learning_rate=learning_rate)
-    fit_params = dict()
-    agent_params = {'algorithm_params': algorithm_params,
-                    'fit_params': fit_params}
-    agent = alg(policy, mdp.info, agent_params, phi)
+    agent = alg(policy, mdp.info, features=phi, **algorithm_params)
 
     # Train
     core = Core(agent, mdp)
@@ -86,4 +83,5 @@ if __name__ == '__main__':
     algs = [REINFORCE, GPOMDP, eNAC]
 
     for alg in algs:
-        experiment(alg, n_runs=10, n_iterations=40, ep_per_run=100, use_tensorflow=True)
+        experiment(alg, n_runs=10, n_iterations=40, ep_per_run=100,
+                   use_tensorflow=True)

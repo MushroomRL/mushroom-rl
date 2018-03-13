@@ -9,12 +9,19 @@ class PolicyGradient(Agent):
     al.. 2011.
 
     """
-    def __init__(self, policy, mdp_info, params, features):
-        self.learning_rate = params['algorithm_params'].pop('learning_rate')
+    def __init__(self, policy, mdp_info, learning_rate, features):
+        """
+        Constructor.
+
+        Args:
+            learning_rate (float): the learning rate.
+
+        """
+        self.learning_rate = learning_rate
         self.df = 1
         self.J_episode = 0
 
-        super(PolicyGradient, self).__init__(policy, mdp_info, params, features)
+        super(PolicyGradient, self).__init__(policy, mdp_info, features)
 
     def fit(self, dataset):
         J = list()

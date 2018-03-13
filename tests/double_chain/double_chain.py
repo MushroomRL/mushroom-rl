@@ -26,10 +26,7 @@ def experiment(algorithm_class, decay_exp):
     learning_rate = ExponentialDecayParameter(value=1., decay_exp=decay_exp,
                                               size=mdp.info.size)
     algorithm_params = dict(learning_rate=learning_rate)
-    fit_params = dict()
-    agent_params = {'algorithm_params': algorithm_params,
-                    'fit_params': fit_params}
-    agent = algorithm_class(pi, mdp.info, agent_params)
+    agent = algorithm_class(pi, mdp.info, **algorithm_params)
 
     # Algorithm
     collect_Q = CollectQ(agent.approximator)

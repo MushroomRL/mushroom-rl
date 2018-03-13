@@ -4,20 +4,18 @@ class Agent(object):
     following its policy).
 
     """
-    def __init__(self, policy, mdp_info, params, features=None):
+    def __init__(self, policy, mdp_info, features=None):
         """
         Constructor.
 
         Args:
             policy (Policy): the policy followed by the agent;
             mdp_info (MDPInfo): information about the MDP;
-            params (dict): other parameters of the algorithm;
             features (object, None): features to extract from the state.
 
         """
         self.policy = policy
         self.mdp_info = mdp_info
-        self.params = params
 
         self.phi = features
 
