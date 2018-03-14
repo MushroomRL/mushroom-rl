@@ -294,7 +294,7 @@ def experiment():
             agent.policy.set_q(agent.approximator)
 
         np.save(folder_name + '/scores.npy', scores)
-        for n_epoch in range(1, max_steps / evaluation_frequency + 1):
+        for n_epoch in range(1, max_steps // evaluation_frequency + 1):
             print_epoch(n_epoch)
             print('- Learning:')
             # learning step
