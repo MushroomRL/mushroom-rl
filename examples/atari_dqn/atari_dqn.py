@@ -4,7 +4,7 @@ import os
 
 import numpy as np
 
-from .convnet import ConvNet
+from convnet import ConvNet
 from mushroom.algorithms.value import AveragedDQN, DQN, DoubleDQN
 from mushroom.core import Core
 from mushroom.environments import *
