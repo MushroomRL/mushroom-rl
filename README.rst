@@ -24,12 +24,12 @@ You can do a minimal installation of ``Mushroom`` with:
 
 	git clone https://github.com/carloderamo/mushroom.git
 	cd mushroom
-	pip install -e .
+	pip3 install -e .
 
 Installing everything
 ---------------------
 To install the whole set of features, you will need additional packages installed.
-You can install everything by running ``pip install -e '.[all]'``.
+You can install everything by running ``pip3 install -e '.[all]'``.
 
 How to set and run and experiment
 =================================
@@ -41,4 +41,4 @@ For instance, to run a quick experiment with one of the provided example scripts
 
 .. code:: shell
 
-    python examples/car_on_hill_fqi.py 
+    python3 examples/car_on_hill_fqi.py
