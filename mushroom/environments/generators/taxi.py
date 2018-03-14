@@ -108,7 +108,7 @@ def compute_probabilities(grid_map, cell_list, passenger_list, prob):
     passenger_states = cartesian([[0, 1]] * len(passenger_list))
 
     for i in range(n_states):
-        idx = i / len(cell_list)
+        idx = i // len(cell_list)
         collected_passengers = np.array(
             passenger_list)[np.argwhere(passenger_states[idx] == 1).ravel()]
         state = c[i % len(cell_list)]

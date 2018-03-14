@@ -23,7 +23,7 @@ class CarOnHill(Environment):
         self.max_velocity = 3.
         high = np.array([self.max_pos, self.max_velocity])
         self._g = 9.81
-        self._m = 1
+        self._m = 1.
         self._dt = .1
         self._discrete_actions = [-4., 4.]
 

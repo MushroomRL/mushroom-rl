@@ -90,7 +90,7 @@ class EpsGreedy(TDPolicy):
         q = self._approximator.predict(np.expand_dims(state, axis=0)).ravel()
         max_a = np.argwhere(q == np.max(q)).ravel()
 
-        p = self._epsilon.get_value(state) / float(self._approximator.n_actions)
+        p = self._epsilon.get_value(state) / self._approximator.n_actions
 
         if len(args) == 2:
             action = args[1]

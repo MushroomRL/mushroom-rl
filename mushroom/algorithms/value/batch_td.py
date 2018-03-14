@@ -161,7 +161,7 @@ class DoubleFQI(FQI):
         next_state = list()
         absorbing = list()
 
-        half = len(x) / 2
+        half = len(x) // 2
         for i in range(2):
             s, a, r, ss, ab, _ = parse_dataset(x[i * half:(i + 1) * half])
             state.append(s)

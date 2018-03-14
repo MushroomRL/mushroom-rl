@@ -66,7 +66,7 @@ class LQR(Environment):
         symmetric reward matrices.
 
         Args:
-            dimensions (int): number of state/action dimensions;
+            dimensions (int): number of state-action dimensions;
             eps (double, 0.1): reward matrix weights specifier;
             index (int, 0): selector for the principal state;
             random_init (bool, False): start from a random state;

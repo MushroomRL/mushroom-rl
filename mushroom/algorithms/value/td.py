@@ -203,7 +203,7 @@ class WeightedQLearning(TD):
                 evaluated.
 
         Returns:
-            The weighted estimator value in `next_state`.
+            The weighted estimator value in ``next_state``.
 
         """
         means = self.Q[next_state, :]
@@ -255,7 +255,7 @@ class SpeedyQLearning(TD):
 
         alpha = self.alpha(state, action)
         q_cur = self.Q[state, action]
-        self.Q[state, action] = q_cur + alpha * (target_old-q_cur) + (
+        self.Q[state, action] = q_cur + alpha * (target_old - q_cur) + (
             1. - alpha) * (target_cur - target_old)
 
         self.old_q = old_q

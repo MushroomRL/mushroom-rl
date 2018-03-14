@@ -142,7 +142,7 @@ class ReplayMemory(object):
 
         """
         indexes = np.arange(self.size) if indexes is None else indexes
-        n_batches = int(np.ceil(indexes.size / float(batch_size)))
+        n_batches = int(np.ceil(indexes.size / batch_size))
         np.random.shuffle(indexes)
         batches = [(i * batch_size, min(indexes.size, (
             i + 1) * batch_size)) for i in range(n_batches)]

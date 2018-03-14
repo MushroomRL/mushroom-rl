@@ -90,7 +90,7 @@ def experiment(alg):
     # evaluate initial policy
     pi.set_epsilon(epsilon_test)
     mdp.set_episode_end(ends_at_life=False)
-    for n_epoch in range(1, max_steps / evaluation_frequency + 1):
+    for n_epoch in range(1, max_steps // evaluation_frequency + 1):
         # learning step
         pi.set_epsilon(epsilon)
         mdp.set_episode_end(ends_at_life=True)

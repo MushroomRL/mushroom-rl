@@ -54,7 +54,7 @@ class AbstractGridWorld(Environment):
 
     @staticmethod
     def convert_to_grid(state, width):
-        return np.array([state[0] / width, state[0] % width])
+        return np.array([state[0] // width, state[0] % width])
 
     @staticmethod
     def convert_to_int(state, width):

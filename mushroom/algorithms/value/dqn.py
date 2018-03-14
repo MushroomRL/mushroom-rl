@@ -186,7 +186,7 @@ class AveragedDQN(DQN):
         assert isinstance(self.target_approximator.model, Ensemble)
 
     def _update_target(self):
-        idx = self._n_updates / self._target_update_frequency\
+        idx = self._n_updates // self._target_update_frequency\
               % self._n_approximators
         self.target_approximator.model[idx].set_weights(
             self.approximator.model.get_weights())
