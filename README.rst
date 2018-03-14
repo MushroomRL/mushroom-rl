@@ -29,11 +29,11 @@ You can do a minimal installation of ``Mushroom`` with:
 Installing everything
 ---------------------
 To install the whole set of features, you will need additional packages installed.
-You can install everything by running 
+You can install everything by running:
 
 .. code:: shell
 
-	pip3 install -e '.[all]'``.
+	pip3 install -e '.[all]'
 
 How to set and run and experiment
 =================================
