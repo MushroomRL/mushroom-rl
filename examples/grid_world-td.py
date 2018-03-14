@@ -65,15 +65,15 @@ if __name__ == '__main__':
              WeightedQLearning: 'WQ', SpeedyQLearning: 'SPQ', SARSA: 'SARSA'}
 
     for e in [1, .8]:
-        print 'Exp: ', e
+        print('Exp: ', e)
         fig = plt.figure()
         plt.suptitle(names[e])
         legend_labels = []
         for a in [QLearning, DoubleQLearning, WeightedQLearning,
                   SpeedyQLearning, SARSA]:
-            print 'Alg: ', names[a]
+            print('Alg: ', names[a])
             out = Parallel(n_jobs=-1)(
-                delayed(experiment)(a, e) for _ in xrange(n_experiment))
+                delayed(experiment)(a, e) for _ in range(n_experiment))
             r = np.array([o[0] for o in out])
             max_Qs = np.array([o[1] for o in out])
 

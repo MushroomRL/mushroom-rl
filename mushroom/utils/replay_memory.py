@@ -38,7 +38,7 @@ class Buffer(object):
 
         """
         s = np.empty(self._buf[0].shape + (self._size,), dtype=np.float32)
-        for i in xrange(self._size):
+        for i in range(self._size):
             s[..., i] = self._buf[i]
 
         return s
@@ -102,7 +102,7 @@ class ReplayMemory(object):
             dataset (list): list of elements to add to the replay memory.
 
         """
-        for i in xrange(len(dataset)):
+        for i in range(len(dataset)):
             self._states[self._idx, ...] = dataset[i][0]
             self._actions[self._idx, ...] = dataset[i][1]
             self._rewards[self._idx, ...] = dataset[i][2]
@@ -145,7 +145,7 @@ class ReplayMemory(object):
         n_batches = int(np.ceil(indexes.size / float(batch_size)))
         np.random.shuffle(indexes)
         batches = [(i * batch_size, min(indexes.size, (
-            i + 1) * batch_size)) for i in xrange(n_batches)]
+            i + 1) * batch_size)) for i in range(n_batches)]
         for (batch_start, batch_end) in batches:
             yield self.get_idxs(indexes[batch_start:batch_end])
 
@@ -187,12 +187,12 @@ class ReplayMemory(object):
             self._history_length,), dtype=np.float32)
         for j, idx in enumerate(idxs):
             if idx >= self._history_length - 1:
-                for k in xrange(self._history_length):
+                for k in range(self._history_length):
                     s[j, ..., self._history_length - 1 - k] = self._states[
                         idx - k, ...]
             else:
                 indexes = [(idx - i) % self.size for i in
-                           reversed(range(self._history_length))]
+                           reversed(list(range(self._history_length)))]
                 for k, index in enumerate(indexes):
                     s[j, ..., k] = self._states[index, ...]
 

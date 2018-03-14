@@ -43,7 +43,7 @@ def compute_probabilities(state_n, prob):
     """
     p = np.zeros((state_n, 2, state_n))
 
-    for i in xrange(state_n):
+    for i in range(state_n):
         if i == 0:
             p[i, 1, i] = 1.
         else:

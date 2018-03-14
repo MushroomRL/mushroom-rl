@@ -4,7 +4,7 @@ import os
 
 import numpy as np
 
-from convnet import ConvNet
+from .convnet import ConvNet
 from mushroom.algorithms.value import AveragedDQN, DQN, DoubleDQN
 from mushroom.core import Core
 from mushroom.environments import *
@@ -25,15 +25,15 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 
 def print_epoch(epoch):
-    print '################################################################'
-    print 'Epoch: ', epoch
-    print '----------------------------------------------------------------'
+    print('################################################################')
+    print('Epoch: ', epoch)
+    print('----------------------------------------------------------------')
 
 
 def get_stats(dataset):
     score = compute_scores(dataset)
-    print('min_reward: %f, max_reward: %f, mean_reward: %f,'
-          ' games_completed: %d' % score)
+    print(('min_reward: %f, max_reward: %f, mean_reward: %f,'
+          ' games_completed: %d' % score))
 
     return score
 
@@ -294,9 +294,9 @@ def experiment():
             agent.policy.set_q(agent.approximator)
 
         np.save(folder_name + '/scores.npy', scores)
-        for n_epoch in xrange(1, max_steps / evaluation_frequency + 1):
+        for n_epoch in range(1, max_steps / evaluation_frequency + 1):
             print_epoch(n_epoch)
-            print '- Learning:'
+            print('- Learning:')
             # learning step
             pi.set_epsilon(epsilon)
             mdp.set_episode_end(ends_at_life=True)
@@ -307,7 +307,7 @@ def experiment():
             if args.save:
                 agent.approximator.model.save()
 
-            print '- Evaluation:'
+            print('- Evaluation:')
             # evaluation step
             pi.set_epsilon(epsilon_test)
             mdp.set_episode_end(ends_at_life=False)

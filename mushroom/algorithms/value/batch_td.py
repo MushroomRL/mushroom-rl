@@ -162,7 +162,7 @@ class DoubleFQI(FQI):
         absorbing = list()
 
         half = len(x) / 2
-        for i in xrange(2):
+        for i in range(2):
             s, a, r, ss, ab, _ = parse_dataset(x[i * half:(i + 1) * half])
             state.append(s)
             action.append(a)
@@ -173,7 +173,7 @@ class DoubleFQI(FQI):
         if self._target is None:
             self._target = reward
         else:
-            for i in xrange(2):
+            for i in range(2):
                 q_i = self.approximator.predict(next_state[i], idx=i)
 
                 amax_q = np.expand_dims(np.argmax(q_i, axis=1), axis=1)
@@ -183,7 +183,7 @@ class DoubleFQI(FQI):
                     max_q *= 1 - absorbing[i]
                 self._target[i] = reward[i] + self.mdp_info.gamma * max_q
 
-        for i in xrange(2):
+        for i in range(2):
             self.approximator.fit(state[i], action[i], self._target[i], idx=i,
                                   **self._fit_params)
 

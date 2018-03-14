@@ -209,7 +209,7 @@ class WeightedQLearning(TD):
         means = self.Q[next_state, :]
         sigmas = np.zeros(self.Q.shape[-1])
 
-        for a in xrange(sigmas.size):
+        for a in range(sigmas.size):
             sigmas[a] = self._sigma[next_state, np.array([a])]
 
         if self._sampling:

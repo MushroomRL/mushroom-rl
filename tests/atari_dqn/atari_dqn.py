@@ -90,7 +90,7 @@ def experiment(alg):
     # evaluate initial policy
     pi.set_epsilon(epsilon_test)
     mdp.set_episode_end(ends_at_life=False)
-    for n_epoch in xrange(1, max_steps / evaluation_frequency + 1):
+    for n_epoch in range(1, max_steps / evaluation_frequency + 1):
         # learning step
         pi.set_epsilon(epsilon)
         mdp.set_episode_end(ends_at_life=True)
@@ -117,7 +117,7 @@ if __name__ == '__main__':
     a_res = experiment('adqn')
     a_test_res = np.load('tests/atari_dqn/aw.npy')
 
-    for i in xrange(len(res)):
+    for i in range(len(res)):
         assert np.array_equal(res[i], test_res[i])
         assert np.array_equal(d_res[i], d_test_res[i])
         assert np.array_equal(a_res[i], a_test_res[i])

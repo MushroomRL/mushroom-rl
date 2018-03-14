@@ -44,10 +44,10 @@ def uniform_grid(n_centers, ranges):
         i1 = 0
         dim = len(discrete_values)
 
-        for i in xrange(dim):
-            for r in xrange(n_rows):
+        for i in range(dim):
+            for r in range(n_rows):
                 idx_r = r + i * n_rows
-                for c in xrange(n_cols):
+                for c in range(n_cols):
                     grid[idx_r, c] = grid[r, c]
                 grid[idx_r, n_cols] = discrete_values[i1]
 

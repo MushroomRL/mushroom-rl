@@ -35,13 +35,13 @@ class GPOMDP(PolicyGradient):
 
         n_episodes = len(self.list_sum_d_log_pi_ep)
 
-        for i in xrange(n_episodes):
+        for i in range(n_episodes):
             list_sum_d_log_pi = self.list_sum_d_log_pi_ep[i]
             list_reward = self.list_reward_ep[i]
 
             n_steps = len(list_sum_d_log_pi)
 
-            for t in xrange(n_steps):
+            for t in range(n_steps):
                 step_grad = list_sum_d_log_pi[t]
                 step_reward = list_reward[t]
                 baseline = self.baseline_num[t] / self.baseline_den[t]

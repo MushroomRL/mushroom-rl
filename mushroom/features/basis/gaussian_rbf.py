@@ -69,7 +69,7 @@ class GaussianRBF:
         grid, b = uniform_grid(n_centers, ranges)
 
         basis = list()
-        for i in xrange(len(grid)):
+        for i in range(len(grid)):
             v = grid[i, :]
             bf = GaussianRBF(v, b, dimensions)
             basis.append(bf)

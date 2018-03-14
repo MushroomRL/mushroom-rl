@@ -65,4 +65,4 @@ if __name__ == '__main__':
     Js = Parallel(
         n_jobs=-1)(delayed(experiment)(alpha) for _ in range(n_experiment))
 
-    print(np.mean(Js))
+    print((np.mean(Js)))

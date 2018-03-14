@@ -59,7 +59,7 @@ if __name__ == '__main__':
         for a in [QLearning, DoubleQLearning, WeightedQLearning,
                   SpeedyQLearning]:
             out = Parallel(n_jobs=-1)(
-                delayed(experiment)(a, e) for _ in xrange(n_experiment))
+                delayed(experiment)(a, e) for _ in range(n_experiment))
             Qs = np.array([o for o in out])
 
             Qs = np.mean(Qs, 0)

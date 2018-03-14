@@ -53,7 +53,7 @@ if __name__ == '__main__':
     for i, a in enumerate([QLearning, DoubleQLearning, WeightedQLearning,
                            SpeedyQLearning, SARSA]):
         out = Parallel(n_jobs=-1)(
-            delayed(experiment)(a) for _ in xrange(n_experiment))
+            delayed(experiment)(a) for _ in range(n_experiment))
         r = np.array([o[0] for o in out])
         max_Qs = np.array([o[1] for o in out])
 

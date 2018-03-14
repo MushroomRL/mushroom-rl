@@ -26,7 +26,7 @@ def generate(n_centers, ranges):
     grid, b = uniform_grid(n_centers, ranges)
 
     tensor_list = list()
-    for i in xrange(len(grid)):
+    for i in range(len(grid)):
         v = grid[i, :]
         bf = {'type': tensors.gaussian_tensor, 'params': [v, b]}
         tensor_list.append(bf)

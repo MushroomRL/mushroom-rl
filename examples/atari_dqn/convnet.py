@@ -27,7 +27,7 @@ class ConvNet:
                 self._target_w = list()
                 self._w = list()
                 with tf.variable_scope('weights_placeholder'):
-                    for i in xrange(len(w)):
+                    for i in range(len(w)):
                         self._target_w.append(tf.placeholder(w[i].dtype,
                                                              shape=w[i].shape))
                         self._w.append(w[i].assign(self._target_w[i]))
@@ -55,7 +55,7 @@ class ConvNet:
                               scope=self._scope_name)
         assert len(w) == len(weights)
 
-        for i in xrange(len(w)):
+        for i in range(len(w)):
             self._session.run(self._w[i],
                               feed_dict={self._target_w[i]: weights[i]})
 

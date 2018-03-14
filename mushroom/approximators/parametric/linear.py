@@ -85,7 +85,7 @@ class LinearApproximator:
                 shape = (n_phi * n_outs, n_outs)
                 df = np.zeros(shape)
                 start = 0
-                for i in xrange(n_outs):
+                for i in range(n_outs):
                     stop = start + n_phi
                     df[start:stop, i] = state
                     start = stop

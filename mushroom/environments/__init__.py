@@ -1,7 +1,7 @@
 from .environment import Environment, MDPInfo
 from .atari import Atari
 from .car_on_hill import CarOnHill
-from generators.simple_chain import generate_simple_chain
+from .generators.simple_chain import generate_simple_chain
 from .grid_world import GridWorld, GridWorldVanHasselt
 from .gym_env import Gym
 from .finite_mdp import FiniteMDP

@@ -24,9 +24,9 @@ def value_iteration(prob, reward, gamma, eps):
     while True:
         value_old = deepcopy(value)
 
-        for state in xrange(n_states):
+        for state in range(n_states):
             vmax = -np.inf
-            for action in xrange(n_actions):
+            for action in range(n_actions):
                 prob_state_action = prob[state, action, :]
                 reward_state_action = reward[state, action, :]
                 va = prob_state_action.T.dot(
@@ -65,7 +65,7 @@ def policy_iteration(prob, reward, gamma):
         r_pi = np.zeros(n_states)
         i = np.eye(n_states)
 
-        for state in xrange(n_states):
+        for state in range(n_states):
             action = policy[state]
             p_pi_s = prob[state, action, :]
             r_pi_s = reward[state, action, :]
@@ -77,9 +77,9 @@ def policy_iteration(prob, reward, gamma):
 
         changed = False
 
-        for state in xrange(n_states):
+        for state in range(n_states):
             vmax = value[state]
-            for action in xrange(n_actions):
+            for action in range(n_actions):
                 if action != policy[state]:
                     p_sa = prob[state, action]
                     r_sa = reward[state, action]

@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-from features_implementation import FeaturesImplementation
+from .features_implementation import FeaturesImplementation
 
 
 class TensorflowFeatures(FeaturesImplementation):

@@ -77,7 +77,7 @@ class DQN(Agent):
             self.target_approximator.model.set_weights(
                 self.approximator.model.get_weights())
         else:
-            for i in xrange(self._n_approximators):
+            for i in range(self._n_approximators):
                 self.target_approximator.model[i].set_weights(
                     self.approximator.model.get_weights())
 
@@ -196,7 +196,7 @@ class AveragedDQN(DQN):
 
     def _next_q(self, next_state, absorbing):
         q = list()
-        for idx in xrange(self._n_fitted_target_models):
+        for idx in range(self._n_fitted_target_models):
             q.append(self.target_approximator.predict(next_state, idx=idx))
         q = np.mean(q, axis=0)
         if np.any(absorbing):

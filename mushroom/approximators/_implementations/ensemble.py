@@ -23,7 +23,7 @@ class Ensemble(object):
         self._prediction = prediction
         self._model = list()
 
-        for _ in xrange(n_models):
+        for _ in range(n_models):
             self._model.append(model(**params))
 
     def fit(self, *z, **fit_params):
@@ -59,7 +59,7 @@ class Ensemble(object):
         idx = predict_params.pop('idx', None)
         if idx is None:
             predictions = list()
-            for i in xrange(len(self._model)):
+            for i in range(len(self._model)):
                 try:
                     predictions.append(self[i].predict(*z, **predict_params))
                 except NotFittedError:

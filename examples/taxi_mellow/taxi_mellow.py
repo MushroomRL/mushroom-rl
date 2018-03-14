@@ -44,11 +44,11 @@ if __name__ == '__main__':
               Mellowmax: np.linspace(.5, 10, 10)}
 
     for p in [EpsGreedy, Boltzmann, Mellowmax]:
-        print 'Policy: ', algs[p]
+        print('Policy: ', algs[p])
         Js = list()
         for v in ranges[p]:
             out = Parallel(n_jobs=-1)(
-                delayed(experiment)(p, v) for _ in xrange(n_experiment))
+                delayed(experiment)(p, v) for _ in range(n_experiment))
             J = [np.mean(o) for o in out]
             Js.append(np.mean(J))
 

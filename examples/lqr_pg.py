@@ -44,17 +44,17 @@ def experiment(alg, n_runs, n_iterations, ep_per_run):
     # Train
     core = Core(agent, mdp)
     dataset_eval = core.evaluate(n_episodes=ep_per_run)
-    print 'policy parameters: ', policy.get_weights()
+    print('policy parameters: ', policy.get_weights())
     J = compute_J(dataset_eval, gamma=mdp.info.gamma)
-    print('J at start : ' + str(np.mean(J)))
+    print(('J at start : ' + str(np.mean(J))))
 
-    for i in xrange(n_runs):
+    for i in range(n_runs):
         core.learn(n_episodes=n_iterations * ep_per_run,
                    n_episodes_per_fit=ep_per_run)
         dataset_eval = core.evaluate(n_episodes=ep_per_run)
-        print 'policy parameters: ', policy.get_weights()
+        print('policy parameters: ', policy.get_weights())
         J = compute_J(dataset_eval, gamma=mdp.info.gamma)
-        print('J at iteration ' + str(i) + ': ' + str(np.mean(J)))
+        print(('J at iteration ' + str(i) + ': ' + str(np.mean(J))))
 
     np.save('ship_steering.npy', dataset_eval)
 
@@ -64,5 +64,5 @@ if __name__ == '__main__':
     algs = [REINFORCE, GPOMDP, eNAC]
 
     for alg in algs:
-        print alg.__name__
+        print(alg.__name__)
         experiment(alg, n_runs=10, n_iterations=40, ep_per_run=100)

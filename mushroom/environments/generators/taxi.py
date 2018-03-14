@@ -107,7 +107,7 @@ def compute_probabilities(grid_map, cell_list, passenger_list, prob):
     directions = [[-1, 0], [1, 0], [0, -1], [0, 1]]
     passenger_states = cartesian([[0, 1]] * len(passenger_list))
 
-    for i in xrange(n_states):
+    for i in range(n_states):
         idx = i / len(cell_list)
         collected_passengers = np.array(
             passenger_list)[np.argwhere(passenger_states[idx] == 1).ravel()]
@@ -117,7 +117,7 @@ def compute_probabilities(grid_map, cell_list, passenger_list, prob):
             if g[tuple(state)] in ['F']\
                     and state.tolist() not in collected_passengers.tolist():
                 continue
-            for a in xrange(len(directions)):
+            for a in range(len(directions)):
                 new_state = state + directions[a]
 
                 j = np.where((c == new_state).all(axis=1))[0]
@@ -197,10 +197,10 @@ def compute_reward(grid_map, cell_list, passenger_list, rew):
     passenger_states = cartesian([[0, 1]] * len(passenger_list))
 
     for goal in np.argwhere(g == 'G'):
-        for a in xrange(len(directions)):
+        for a in range(len(directions)):
             prev_state = goal - directions[a]
             if prev_state in c:
-                for i in xrange(len(passenger_states)):
+                for i in range(len(passenger_states)):
                     i_idx = np.where((c == prev_state).all(axis=1))[0] + len(
                         cell_list) * i
                     j_idx = j = np.where((c == goal).all(axis=1))[0] + len(

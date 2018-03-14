@@ -66,14 +66,14 @@ def experiment(alg, n_runs, n_iterations, ep_per_run, use_tensorflow):
     core = Core(agent, mdp)
     dataset_eval = core.evaluate(n_episodes=ep_per_run)
     J = compute_J(dataset_eval, gamma=mdp.info.gamma)
-    print('J at start : ' + str(np.mean(J)))
+    print(('J at start : ' + str(np.mean(J))))
 
-    for i in xrange(n_runs):
+    for i in range(n_runs):
         core.learn(n_episodes=n_iterations * ep_per_run,
                    n_episodes_per_fit=ep_per_run)
         dataset_eval = core.evaluate(n_episodes=ep_per_run)
         J = compute_J(dataset_eval, gamma=mdp.info.gamma)
-        print('J at iteration ' + str(i) + ': ' + str(np.mean(J)))
+        print(('J at iteration ' + str(i) + ': ' + str(np.mean(J))))
 
     np.save('ship_steering.npy', dataset_eval)
 

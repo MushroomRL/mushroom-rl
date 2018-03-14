@@ -28,7 +28,7 @@ class ActionRegressor:
         self._input_preprocessor = params.pop('input_preprocessor', list())
         self._output_preprocessor = params.pop('output_preprocessor', list())
 
-        for i in xrange(self._n_actions):
+        for i in range(self._n_actions):
             self.model.append(approximator(**params))
 
     def fit(self, state, action, q, **fit_params):
@@ -45,7 +45,7 @@ class ActionRegressor:
         """
         state, q = self._preprocess(state, q)
 
-        for i in xrange(len(self.model)):
+        for i in range(len(self.model)):
             idxs = np.argwhere((action == i)[:, 0]).ravel()
 
             if idxs.size:
@@ -74,14 +74,14 @@ class ActionRegressor:
         if len(z) == 2:
             action = z[1]
             q = np.zeros(state.shape[0])
-            for i in xrange(self._n_actions):
+            for i in range(self._n_actions):
                 idxs = np.argwhere((action == i)[:, 0]).ravel()
                 if idxs.size:
                     q[idxs] = self.model[i].predict(state[idxs, :],
                                                     **predict_params)
         else:
             q = np.zeros((state.shape[0], self._n_actions))
-            for i in xrange(self._n_actions):
+            for i in range(self._n_actions):
                 q[:, i] = self.model[i].predict(state,
                                                 **predict_params).flatten()
 

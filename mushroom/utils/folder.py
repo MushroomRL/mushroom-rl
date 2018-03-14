@@ -38,8 +38,8 @@ def force_symlink(src, dst):
 
     try:
         os.symlink(src, dst)
-    except OSError, e:
-        print e.message
+    except OSError as e:
+        print(e.message)
         if e.errno == errno.EEXIST:
             os.remove(dst)
             os.symlink(src, dst)

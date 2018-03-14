@@ -1,2 +1,2 @@
-from grid_world import *
-from simple_chain import *
+from .grid_world import *
+from .simple_chain import *

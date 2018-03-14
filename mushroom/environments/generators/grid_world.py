@@ -93,11 +93,11 @@ def compute_probabilities(grid_map, cell_list, prob):
     p = np.zeros((n_states, 4, n_states))
     directions = [[-1, 0], [1, 0], [0, -1], [0, 1]]
 
-    for i in xrange(len(c)):
+    for i in range(len(c)):
         state = c[i]
 
         if g[tuple(state)] in ['.', 'S']:
-            for a in xrange(len(directions)):
+            for a in range(len(directions)):
                 new_state = state + directions[a]
                 j = np.where((c == new_state).all(axis=1))[0]
                 if j.size > 0:
@@ -134,7 +134,7 @@ def compute_reward(grid_map, cell_list, pos_rew, neg_rew):
     for goal in np.argwhere(g == 'G'):
         j = np.where((c == goal).all(axis=1))[0]
 
-        for a in xrange(len(directions)):
+        for a in range(len(directions)):
             prev_state = goal - directions[a]
             if prev_state in c:
                 i = np.where((c == prev_state).all(axis=1))[0]
@@ -143,7 +143,7 @@ def compute_reward(grid_map, cell_list, pos_rew, neg_rew):
     for hole in np.argwhere(g == '*'):
         j = np.where((c == hole).all(axis=1))[0]
 
-        for a in xrange(len(directions)):
+        for a in range(len(directions)):
             prev_state = hole - directions[a]
             if prev_state in c:
                 i = np.where((c == prev_state).all(axis=1))[0]

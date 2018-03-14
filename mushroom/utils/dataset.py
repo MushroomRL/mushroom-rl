@@ -27,7 +27,7 @@ def parse_dataset(dataset, features=None):
     last = np.ones(len(dataset))
 
     if features is not None:
-        for i in xrange(len(dataset)):
+        for i in range(len(dataset)):
             state[i, ...] = features(dataset[i][0])
             action[i, ...] = dataset[i][1]
             reward[i] = dataset[i][2]
@@ -35,7 +35,7 @@ def parse_dataset(dataset, features=None):
             absorbing[i] = dataset[i][4]
             last[i] = dataset[i][5]
     else:
-        for i in xrange(len(dataset)):
+        for i in range(len(dataset)):
             state[i, ...] = dataset[i][0]
             action[i, ...] = dataset[i][1]
             reward[i] = dataset[i][2]
@@ -137,7 +137,7 @@ def compute_J(dataset, gamma=1.):
 
     j = 0.
     episode_steps = 0
-    for i in xrange(len(dataset)):
+    for i in range(len(dataset)):
         j += gamma ** episode_steps * dataset[i][2]
         episode_steps += 1
         if dataset[i][-1]:
@@ -172,7 +172,7 @@ def compute_scores(dataset):
     score = 0.
     episode_steps = 0
     n_episodes = 0
-    for i in xrange(len(dataset)):
+    for i in range(len(dataset)):
         score += dataset[i][2]
         episode_steps += 1
         if dataset[i][-1]:

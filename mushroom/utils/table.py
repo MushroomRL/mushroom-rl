@@ -69,11 +69,11 @@ class Table:
         values = list()
         if len(z) == 2:
             action = z[1]
-            for i in xrange(len(state)):
+            for i in range(len(state)):
                 val = self[state[i], action[i]]
                 values.append(val)
         else:
-            for i in xrange(len(state)):
+            for i in range(len(state)):
                 val = self[state[i], :]
                 values.append(val)
 

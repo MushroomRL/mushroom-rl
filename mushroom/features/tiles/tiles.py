@@ -71,7 +71,7 @@ class Tiles:
 
         tilings = list()
         offset = (high - low) / (np.array(n_tiles) * n_tilings - n_tilings + 1.)
-        for i in xrange(n_tilings):
+        for i in range(n_tilings):
             x_min = low - (n_tilings - 1 - i) * offset
             x_max = high + i * offset
             x_range = [[x, y] for x, y in zip(x_min, x_max)]

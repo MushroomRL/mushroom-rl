@@ -1,6 +1,6 @@
 import numpy as np
 
-from features_implementation import FeaturesImplementation
+from .features_implementation import FeaturesImplementation
 
 
 class TilesFeatures(FeaturesImplementation):
