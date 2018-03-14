@@ -31,13 +31,13 @@ Example
 Initially, the MDP, the policy and the features are created:
 
 .. literalinclude:: code/approximator.py
-   :lines: 1-32
+   :lines: 1-29
 
 The following snippet, sets the output shape of the regressor to the number of
 actions, creating a ``QRegressor``:
 
 .. literalinclude:: code/approximator.py
-   :lines: 33-35
+   :lines: 30-32
 
 If you prefer to use an ``ActionRegressor``, simply set the number of actions to (1,):
 
@@ -51,7 +51,7 @@ Then, the rest of the code fits the approximator and runs the evaluation renderi
 the behaviour of the agent:
 
 .. literalinclude:: code/approximator.py
-   :lines: 36-51
+   :lines: 33-
 
 Generic regressor
 -----------------

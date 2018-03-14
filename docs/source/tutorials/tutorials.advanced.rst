@@ -44,11 +44,11 @@ tilings for the correctness of the update (see *"Reinforcement Learning: An Intr
 Sutton & Barto, 1998* for details). After that, the learning is run as usual:
 
 .. literalinclude:: code/advanced_experiment.py
-   :lines: 32-49
+   :lines: 32-46
 
 To visualize the learned policy the rendering method of OpenAI Gym is used. To
 activate the rendering in the environments that supports it, it is necessary to
 set ``render=True``.
 
 .. literalinclude:: code/advanced_experiment.py
-   :lines: 51-52
+   :lines: 48-

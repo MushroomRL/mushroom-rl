@@ -70,8 +70,12 @@ class Gym(Environment):
 
         return self._state, reward, absorbing, info
 
-    def render(self, mode='human', close=False):
-        self.env.render(mode=mode, close=close)
+    def render(self, mode='human'):
+        self.env.render(mode=mode)
+
+
+    def stop(self):
+        self.env.close()
 
     @staticmethod
     def _convert_gym_space(space):

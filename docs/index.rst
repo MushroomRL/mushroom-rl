@@ -61,11 +61,7 @@ Eventually, the **agent** is:
     from mushroom.algorithms.value import QLearning
 
     learning_rate = Parameter(value=.6)
-    algorithm_params = dict(learning_rate=learning_rate)
-    fit_params = dict()
-    agent_params = {'algorithm_params': algorithm_params,
-                    'fit_params': fit_params}
-    agent = QLearning(policy, mdp.info, agent_params)
+    agent = QLearning(policy, mdp.info, learning_rate)
 
 Learn: 
 
@@ -84,8 +80,8 @@ Print final Q-table:
 
     shape = agent.approximator.shape
     q = np.zeros(shape)
-    for i in xrange(shape[0]):
-        for j in xrange(shape[1]):
+    for i in range(shape[0]):
+        for j in range(shape[1]):
             state = np.array([i])
             action = np.array([j])
             q[i, j] = agent.approximator.predict(state, action)
@@ -119,13 +115,13 @@ Installation can be done running
 
 ::
 
-    pip install -e .
+    pip3 install -e .
     
 and
 
 ::
 
-    pip install -r requirements.txt
+    pip3 install -r requirements.txt
     
 to install all its dependencies.
 

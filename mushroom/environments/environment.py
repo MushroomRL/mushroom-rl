@@ -95,6 +95,14 @@ class Environment(object):
     def render(self, mode='human', close=False):
         raise NotImplementedError
 
+    def stop(self):
+        """
+        Method used to stop an mdp. Useful when dealing with real world
+        environments, simulators, or when using openai-gym rendering
+
+        """
+        pass
+
     @property
     def info(self):
         """

@@ -159,6 +159,8 @@ class Core(object):
 
             last = sample[-1]
 
+        self.mdp.stop()
+
         return dataset
 
     def _step(self, render):

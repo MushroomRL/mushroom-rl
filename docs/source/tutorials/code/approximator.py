@@ -27,17 +27,13 @@ features = Features(tilings=tilings)
 
 # Agent
 learning_rate = Parameter(.1 / n_tilings)
-algorithm_params = {'learning_rate': learning_rate,
-                    'lambda': .9}
-fit_params = dict()
 approximator_params = dict(input_shape=(features.size,),
                            output_shape=(mdp.info.action_space.n,),
                            n_actions=mdp.info.action_space.n)
-agent_params = {'approximator_params': approximator_params,
-                'algorithm_params': algorithm_params,
-                'fit_params': fit_params}
-agent = SARSALambdaContinuous(LinearApproximator, pi, mdp.info, agent_params,
-                              features)
+agent = SARSALambdaContinuous(LinearApproximator, pi, mdp.info,
+                              approximator_params=approximator_params,
+                              learning_rate=learning_rate,
+                              lambda_coeff= .9, features=features)
 
 # Algorithm
 collect_dataset = CollectDataset()

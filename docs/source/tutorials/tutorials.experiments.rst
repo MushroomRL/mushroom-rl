@@ -27,7 +27,7 @@ learning. It also contains the features to extract in the case of MDP with conti
 state and action spaces. An agent can be defined this way:
 
 .. literalinclude:: code/simple_experiment.py
-   :lines: 13-31
+   :lines: 13-27
 
 This piece of code creates the policy followed by the agent (e.g. :math:`\epsilon`-greedy)
 with :math:`\varepsilon = 1`. Then, the policy approximator is created specifying the
@@ -41,13 +41,13 @@ the agent and the MDP object and contains the function to learn in the MDP and
 evaluate the learned policy. It can be created with:
 
 .. literalinclude:: code/simple_experiment.py
-   :lines: 33
+   :lines: 29
 
 Once the core has been created, the agent can be trained collecting a dataset and
 fitting the policy:
 
 .. literalinclude:: code/simple_experiment.py
-   :lines: 35
+   :lines: 31
 
 In this case, the agent's policy is fitted only once, after that 1000 episodes
 have been collected. This is a common practice in batch RL algorithms such as
@@ -61,4 +61,4 @@ Fixing :math:`\varepsilon = 0`, the greedy policy is applied starting from the
 provided initial states, then the average cumulative discounted reward is returned.
 
 .. literalinclude:: code/simple_experiment.py
-   :lines: 37-
+   :lines: 33-

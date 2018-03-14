@@ -23,12 +23,8 @@ approximator_params = dict(input_shape=mdp.info.observation_space.shape,
 approximator = ExtraTreesRegressor
 
 # Agent
-algorithm_params = dict(n_iterations=20)
-fit_params = dict()
-agent_params = {'approximator_params': approximator_params,
-                'algorithm_params': algorithm_params,
-                'fit_params': fit_params}
-agent = FQI(approximator, pi, mdp.info, agent_params)
+agent = FQI(approximator, pi, mdp.info, n_iterations=20,
+            approximator_params=approximator_params)
 
 core = Core(agent, mdp)
 
