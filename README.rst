@@ -34,7 +34,7 @@ You can install everything by running:
 .. code:: shell
 
 	pip3 install -e '.[all]'
-	pip3 install install gym[atari]
+	pip3 install gym[atari]
 
 How to set and run and experiment
 =================================
