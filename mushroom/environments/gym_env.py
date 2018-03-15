@@ -73,7 +73,6 @@ class Gym(Environment):
     def render(self, mode='human'):
         self.env.render(mode=mode)
 
-
     def stop(self):
         self.env.close()
 
