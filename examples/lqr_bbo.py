@@ -1,6 +1,6 @@
 import numpy as np
 
-from mushroom.algorithms.policy_search import RWR
+from mushroom.algorithms.policy_search import RWR, PGPE
 from mushroom.approximators.parametric import LinearApproximator
 from mushroom.approximators.regressor import Regressor
 from mushroom.core import Core
@@ -8,20 +8,21 @@ from mushroom.environments import LQR
 from mushroom.policy import MultivariateGaussianPolicy
 from mushroom.distributions import GaussianDistribution
 from mushroom.utils.dataset import compute_J
+from mushroom.utils.parameters import AdaptiveParameter
 
 from tqdm import tqdm
 
 
 """
 This script aims to replicate the experiments on the LQR MDP 
-using policy gradient algorithms.
+using black box optimization algorithms.
 
 """
 
 tqdm.monitor_interval = 0
 
 
-def experiment(alg, n_runs, fit_per_run, ep_per_run):
+def experiment(alg, params, n_runs, fit_per_run, ep_per_run):
     np.random.seed()
 
     # MDP
@@ -41,7 +42,7 @@ def experiment(alg, n_runs, fit_per_run, ep_per_run):
     distribution = GaussianDistribution(mu, sigma)
 
     # Agent
-    agent = alg(distribution, policy, mdp.info, beta=1.0)
+    agent = alg(distribution, policy, mdp.info, **params)
 
     # Train
     core = Core(agent, mdp)
@@ -60,9 +61,11 @@ def experiment(alg, n_runs, fit_per_run, ep_per_run):
 
 
 if __name__ == '__main__':
+    learning_rate = AdaptiveParameter(value=0.05)
 
-    algs = [RWR]
+    algs = [RWR, PGPE]
+    params = [{'beta': 1}, {'learning_rate': learning_rate}]
 
-    for alg in algs:
+    for alg, params in zip(algs, params):
         print(alg.__name__)
-        experiment(alg, n_runs=10, fit_per_run=40, ep_per_run=100)
+        experiment(alg, params, n_runs=4, fit_per_run=10, ep_per_run=100)

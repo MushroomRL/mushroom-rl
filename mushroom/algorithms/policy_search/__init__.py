@@ -2,7 +2,7 @@ from .policy_gradient import PolicyGradient
 from .reinforce import REINFORCE
 from .gpomdp import GPOMDP
 from .enac import eNAC
-from .rwr import RWR
+from .black_box_optimization import RWR, PGPE
 
 
-__all__ = ['PolicyGradient', 'REINFORCE', 'GPOMDP', 'eNAC', 'RWR']
+__all__ = ['PolicyGradient', 'REINFORCE', 'GPOMDP', 'eNAC', 'RWR', 'PGPE']

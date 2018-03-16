@@ -6,8 +6,7 @@ class GaussianDistribution:
     def __init__(self, mu, sigma):
         self._mu = mu
         self._sigma = sigma
-        inv_sigma = np.linalg.inv(sigma)
-        self._K = inv_sigma + inv_sigma.T
+        self.inv_sigma = np.linalg.inv(sigma)
 
     def sample(self):
         return np.random.multivariate_normal(self._mu, self._sigma)
@@ -23,7 +22,8 @@ class GaussianDistribution:
 
     def diff_log(self, theta):
         delta = theta - self._mu
-        g = .5 * self._mu.dot(self._K).dot(delta.T)
+        g = self.inv_sigma.dot(delta)
+
         return g
 
     def get_parameters(self):
