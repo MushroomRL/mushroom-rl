@@ -159,6 +159,7 @@ class Core(object):
 
             last = sample[-1]
 
+        self.agent.stop()
         self.mdp.stop()
 
         return dataset

@@ -75,8 +75,6 @@ def experiment(alg, n_runs, n_iterations, ep_per_run, use_tensorflow):
         J = compute_J(dataset_eval, gamma=mdp.info.gamma)
         print(('J at iteration ' + str(i) + ': ' + str(np.mean(J))))
 
-    np.save('ship_steering.npy', dataset_eval)
-
 
 if __name__ == '__main__':
 

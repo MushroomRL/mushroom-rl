@@ -1,13 +1,13 @@
 import numpy as np
 
-from mushroom.algorithms.policy_search import REINFORCE, GPOMDP, eNAC
+from mushroom.algorithms.policy_search import RWR
 from mushroom.approximators.parametric import LinearApproximator
 from mushroom.approximators.regressor import Regressor
 from mushroom.core import Core
 from mushroom.environments import LQR
 from mushroom.policy import MultivariateGaussianPolicy
+from mushroom.distributions import GaussianDistribution
 from mushroom.utils.dataset import compute_J
-from mushroom.utils.parameters import AdaptiveParameter
 
 from tqdm import tqdm
 
@@ -21,7 +21,7 @@ using policy gradient algorithms.
 tqdm.monitor_interval = 0
 
 
-def experiment(alg, n_runs, n_iterations, ep_per_run):
+def experiment(alg, n_runs, fit_per_run, ep_per_run):
     np.random.seed()
 
     # MDP
@@ -36,31 +36,33 @@ def experiment(alg, n_runs, n_iterations, ep_per_run):
     sigma = .1 * np.eye(1)
     policy = MultivariateGaussianPolicy(mu=approximator, sigma=sigma)
 
+    mu = np.zeros(policy.weights_size)
+    sigma = 1e-3 * np.eye(policy.weights_size)
+    distribution = GaussianDistribution(mu, sigma)
+
     # Agent
-    learning_rate = AdaptiveParameter(value=.01)
-    algorithm_params = dict(learning_rate=learning_rate)
-    agent = alg(policy, mdp.info, **algorithm_params)
+    agent = alg(distribution, policy, mdp.info, beta=1.0)
 
     # Train
     core = Core(agent, mdp)
     dataset_eval = core.evaluate(n_episodes=ep_per_run)
-    print('policy parameters: ', policy.get_weights())
+    print('distribution parameters: ', distribution.get_parameters())
     J = compute_J(dataset_eval, gamma=mdp.info.gamma)
-    print(('J at start : ' + str(np.mean(J))))
+    print('J at start : ' + str(np.mean(J)))
 
     for i in range(n_runs):
-        core.learn(n_episodes=n_iterations * ep_per_run,
+        core.learn(n_episodes=fit_per_run * ep_per_run,
                    n_episodes_per_fit=ep_per_run)
         dataset_eval = core.evaluate(n_episodes=ep_per_run)
-        print('policy parameters: ', policy.get_weights())
+        print('distribution parameters: ', distribution.get_parameters())
         J = compute_J(dataset_eval, gamma=mdp.info.gamma)
         print('J at iteration ' + str(i) + ': ' + str(np.mean(J)))
 
 
 if __name__ == '__main__':
 
-    algs = [REINFORCE, GPOMDP, eNAC]
+    algs = [RWR]
 
     for alg in algs:
         print(alg.__name__)
-        experiment(alg, n_runs=10, n_iterations=40, ep_per_run=100)
+        experiment(alg, n_runs=10, fit_per_run=40, ep_per_run=100)
