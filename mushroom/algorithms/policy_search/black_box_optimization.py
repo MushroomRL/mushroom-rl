@@ -1,6 +1,7 @@
+import numpy as np
+
 from mushroom.algorithms.agent import Agent
 from mushroom.utils.dataset import compute_J
-import numpy as np
 
 
 class BlackBoxOptimization(Agent):
@@ -127,7 +128,3 @@ class PGPE(BlackBoxOptimization):
         omega = self.distribution.get_parameters()
         omega += self.learning_rate(grad_J) * grad_J
         self.distribution.set_parameters(omega)
-
-
-
-

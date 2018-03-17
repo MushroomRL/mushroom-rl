@@ -46,7 +46,7 @@ def experiment(alg, n_runs, n_iterations, ep_per_run):
     dataset_eval = core.evaluate(n_episodes=ep_per_run)
     print('policy parameters: ', policy.get_weights())
     J = compute_J(dataset_eval, gamma=mdp.info.gamma)
-    print(('J at start : ' + str(np.mean(J))))
+    print('J at start : ' + str(np.mean(J)))
 
     for i in range(n_runs):
         core.learn(n_episodes=n_iterations * ep_per_run,

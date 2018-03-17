@@ -18,7 +18,7 @@ class GaussianDistribution:
         if weights is None:
             self._mu = np.mean(theta)
         else:
-            self._mu = weights.dot(theta)/np.sum(weights)
+            self._mu = weights.dot(theta) / np.sum(weights)
 
     def diff_log(self, theta):
         delta = theta - self._mu

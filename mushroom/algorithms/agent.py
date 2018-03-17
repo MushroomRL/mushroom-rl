@@ -66,7 +66,7 @@ class Agent(object):
     def stop(self):
         """
         Method used to stop an agent. Useful when dealing with real world
-        environments, simulators, or to cleanup enviroments internals after
+        environments, simulators, or to cleanup environments internals after
         a core learn/evaluate to enforce consistency.
 
         """

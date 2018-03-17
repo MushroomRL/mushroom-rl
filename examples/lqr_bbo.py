@@ -4,9 +4,9 @@ from mushroom.algorithms.policy_search import RWR, PGPE
 from mushroom.approximators.parametric import LinearApproximator
 from mushroom.approximators.regressor import Regressor
 from mushroom.core import Core
+from mushroom.distributions import GaussianDistribution
 from mushroom.environments import LQR
 from mushroom.policy import MultivariateGaussianPolicy
-from mushroom.distributions import GaussianDistribution
 from mushroom.utils.dataset import compute_J
 from mushroom.utils.parameters import AdaptiveParameter
 

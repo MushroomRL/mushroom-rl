@@ -9,7 +9,7 @@ class DeterministicPolicy:
     def __call__(self, state, action):
         policy_action = self._approximator.predict(state)
 
-        return 1.0 if np.array_equal(action, policy_action) else 0.0
+        return 1. if np.array_equal(action, policy_action) else 0.
 
     def draw_action(self, state):
         return self._approximator.predict(state)
