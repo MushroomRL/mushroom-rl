@@ -3,6 +3,8 @@ import numpy as np
 from mushroom.algorithms.agent import Agent
 from mushroom.utils.dataset import compute_J
 
+from scipy.optimize import minimize
+
 
 class BlackBoxOptimization(Agent):
     """
@@ -75,7 +77,6 @@ class RWR(BlackBoxOptimization):
         Jep -= np.max(Jep)
 
         d = np.exp(self.beta * Jep)
-        theta = np.array(theta)
 
         self.distribution.mle(theta, d)
 
@@ -128,3 +129,65 @@ class PGPE(BlackBoxOptimization):
         omega = self.distribution.get_parameters()
         omega += self.learning_rate(grad_J) * grad_J
         self.distribution.set_parameters(omega)
+
+
+class REPS(BlackBoxOptimization):
+    def __init__(self, distribution, policy, mdp_info, eps, features=None):
+        """
+        Constructor.
+
+        Args:
+            beta (float): the temperature for the exponential
+             reward transformation.
+
+        """
+        self.eps = eps
+
+        super().__init__(distribution, policy, mdp_info, features)
+
+    def _update(self, Jep, theta):
+        eta_start = np.ones(1)
+
+
+        res = minimize(REPS._dual_function, eta_start,
+                       jac=REPS._dual_function_diff,
+                       bounds=((np.finfo(np.float32).eps, np.inf),),
+                       args=(self.eps, Jep, theta))
+
+        eta_opt = np.asscalar(res.x)
+
+        Jep -= np.max(Jep)
+
+        d = np.exp(Jep/eta_opt)
+
+        self.distribution.mle(theta, d)
+
+    @staticmethod
+    def _dual_function(eta_array, *args):
+
+        eta = np.asscalar(eta_array)
+        eps, Jep, theta = args
+
+        max_J = np.max(Jep)
+
+        r = Jep - max_J
+        sum1 = np.mean(np.exp(r / eta))
+
+        return eta * eps + eta * np.log(sum1) + max_J
+
+    @staticmethod
+    def _dual_function_diff(eta_array, *args):
+
+        eta =np.asscalar(eta_array)
+        eps, Jep, theta = args
+
+        max_J = np.max(Jep)
+
+        r = Jep - max_J
+
+        sum1 = np.mean(np.exp(r / eta))
+        sum2 = np.mean(np.exp(r / eta) * r)
+
+        gradient = eps + np.log(sum1) - sum2 / (eta * sum1)
+
+        return np.array([gradient])

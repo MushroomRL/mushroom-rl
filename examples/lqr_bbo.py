@@ -1,12 +1,12 @@
 import numpy as np
 
-from mushroom.algorithms.policy_search import RWR, PGPE
+from mushroom.algorithms.policy_search import RWR, PGPE, REPS
 from mushroom.approximators.parametric import LinearApproximator
 from mushroom.approximators.regressor import Regressor
 from mushroom.core import Core
 from mushroom.distributions import GaussianDistribution
 from mushroom.environments import LQR
-from mushroom.policy import MultivariateGaussianPolicy
+from mushroom.policy import DeterministicPolicy
 from mushroom.utils.dataset import compute_J
 from mushroom.utils.parameters import AdaptiveParameter
 
@@ -34,8 +34,7 @@ def experiment(alg, params, n_runs, fit_per_run, ep_per_run):
                              output_shape=mdp.info.action_space.shape,
                              params=approximator_params)
 
-    sigma = .1 * np.eye(1)
-    policy = MultivariateGaussianPolicy(mu=approximator, sigma=sigma)
+    policy = DeterministicPolicy(mu=approximator)
 
     mu = np.zeros(policy.weights_size)
     sigma = 1e-3 * np.eye(policy.weights_size)
@@ -63,8 +62,8 @@ def experiment(alg, params, n_runs, fit_per_run, ep_per_run):
 if __name__ == '__main__':
     learning_rate = AdaptiveParameter(value=0.05)
 
-    algs = [RWR, PGPE]
-    params = [{'beta': 1}, {'learning_rate': learning_rate}]
+    algs = [REPS, RWR, PGPE]
+    params = [{'eps': 0.5}, {'beta': 1}, {'learning_rate': learning_rate}]
 
     for alg, params in zip(algs, params):
         print(alg.__name__)
