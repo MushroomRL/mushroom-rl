@@ -4,7 +4,7 @@ from mushroom.algorithms.policy_search import RWR, PGPE, REPS
 from mushroom.approximators.parametric import LinearApproximator
 from mushroom.approximators.regressor import Regressor
 from mushroom.core import Core
-from mushroom.distributions import GaussianDistribution
+from mushroom.distributions import GaussianCholeskyDistribution
 from mushroom.environments import LQR
 from mushroom.policy import DeterministicPolicy
 from mushroom.utils.dataset import compute_J
@@ -38,7 +38,7 @@ def experiment(alg, params, n_runs, fit_per_run, ep_per_run):
 
     mu = np.zeros(policy.weights_size)
     sigma = 1e-3 * np.eye(policy.weights_size)
-    distribution = GaussianDistribution(mu, sigma)
+    distribution = GaussianCholeskyDistribution(mu, sigma)
 
     # Agent
     agent = alg(distribution, policy, mdp.info, **params)

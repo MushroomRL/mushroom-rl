@@ -1,3 +1,3 @@
-from .gaussian import GaussianDistribution
+from .gaussian import GaussianDistribution, GaussianCholeskyDistribution
 
-__all__ = ['GaussianDistribution']
+__all__ = ['GaussianDistribution', 'GaussianCholeskyDistribution']
