@@ -67,8 +67,8 @@ class Atari(Environment):
 
         return self._state, reward, absorbing, info
 
-    def render(self, mode='human', close=False):
-        self.env.render(mode=mode, close=close)
+    def render(self, mode='human'):
+        self.env.render(mode=mode)
 
     def set_episode_end(self, ends_at_life):
         """

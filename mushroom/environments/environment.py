@@ -92,7 +92,7 @@ class Environment(object):
         """
         raise NotImplementedError
 
-    def render(self, mode='human', close=False):
+    def render(self, mode='human'):
         raise NotImplementedError
 
     def stop(self):
