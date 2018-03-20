@@ -70,6 +70,9 @@ class Atari(Environment):
     def render(self, mode='human'):
         self.env.render(mode=mode)
 
+    def stop(self):
+        self.env.close()
+
     def set_episode_end(self, ends_at_life):
         """
         Setter.
