@@ -19,8 +19,8 @@ class BlackBoxOptimization(Agent):
         Constructor.
 
         Args:
-            distribution: the distribution of policy parameters
-            policy: the policy to use
+            distribution: the distribution of policy parameters;
+            policy: the policy to use.
 
         """
         self.distribution = distribution
@@ -49,11 +49,14 @@ class BlackBoxOptimization(Agent):
     def _update(self, Jep, theta):
         """
         Function that implements the update routine of distribution parameters.
-        Every black box algorithms should implement this function with the proper update.
+        Every black box algorithms should implement this function with the
+        proper update.
 
         Args:
-            Jep (np.ndarray): a vector containing the J of the considered trajectories
-            theta (np.ndarray): a matrix of policy parameters of the considered trajectories
+            Jep (np.ndarray): a vector containing the J of the considered
+                trajectories;
+            theta (np.ndarray): a matrix of policy parameters of the considered
+                trajectories.
 
         """
         raise NotImplementedError('BlackBoxOptimization is an abstract class')
@@ -82,7 +85,8 @@ class RWR(BlackBoxOptimization):
 
 
 class PGPE(BlackBoxOptimization):
-    def __init__(self, distribution, policy, mdp_info, learning_rate, features=None):
+    def __init__(self, distribution, policy, mdp_info, learning_rate,
+                 features=None):
         """
         Constructor.
 
@@ -158,7 +162,7 @@ class REPS(BlackBoxOptimization):
 
         Jep -= np.max(Jep)
 
-        d = np.exp(Jep/eta_opt)
+        d = np.exp(Jep / eta_opt)
 
         self.distribution.mle(theta, d)
 
@@ -177,8 +181,7 @@ class REPS(BlackBoxOptimization):
 
     @staticmethod
     def _dual_function_diff(eta_array, *args):
-
-        eta =np.asscalar(eta_array)
+        eta = np.asscalar(eta_array)
         eps, Jep, theta = args
 
         max_J = np.max(Jep)
