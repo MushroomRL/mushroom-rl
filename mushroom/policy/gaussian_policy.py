@@ -29,9 +29,9 @@ class GaussianPolicy:
     def diff_log(self, state, action):
         mu, sigma = self._compute_gaussian(state, False)
         delta = action - mu
-        g_mu = np.expand_dims(self._approximator.diff(state), axis=1)
+        j_mu = np.expand_dims(self._approximator.diff(state), axis=1)
 
-        g = g_mu.dot(delta) / sigma**2
+        g = j_mu.dot(delta) / sigma**2
 
         return g
 
@@ -91,12 +91,12 @@ class MultivariateGaussianPolicy:
 
         delta = action - mu
 
-        g_mu = self._approximator.diff(state)
+        j_mu = self._approximator.diff(state)
 
-        if len(g_mu.shape) == 1:
-            g_mu = np.expand_dims(g_mu, axis=1)
+        if len(j_mu.shape) == 1:
+            j_mu = np.expand_dims(j_mu, axis=1)
 
-        g = .5 * g_mu.dot(inv_sigma + inv_sigma.T).dot(delta.T)
+        g = .5 * j_mu.dot(inv_sigma + inv_sigma.T).dot(delta.T)
 
         return g
 
@@ -125,11 +125,11 @@ class MultivariateGaussianPolicy:
 
 
 class MultivariateDiagonalGaussianPolicy:
-    def __init__(self, mu, sigma):
+    def __init__(self, mu, std):
         self.__name__ = 'MultivariateDiagonalGaussianPolicy'
 
         self._approximator = mu
-        self._sigma = sigma
+        self._std = std
 
     def __call__(self, state, action):
         mu, sigma, _ = self._compute_multivariate_gaussian(state)
@@ -150,39 +150,121 @@ class MultivariateDiagonalGaussianPolicy:
 
         delta = action - mu
 
-        g_mu = self._approximator.diff(state)
+        # Compute mean derivative
+        j_mu = self._approximator.diff(state)
 
-        if len(g_mu.shape) == 1:
-            g_mu = np.expand_dims(g_mu, axis=1)
+        if len(j_mu.shape) == 1:
+            j_mu = np.expand_dims(j_mu, axis=1)
 
-        g = .5 * g_mu.dot(inv_sigma + inv_sigma.T).dot(delta.T)
+        g_mu = .5 * j_mu.dot(inv_sigma + inv_sigma.T).dot(delta.T)
 
-        g_sigma = -1. / self._sigma + delta**2 / self._sigma**3
+        # Compute standard deviation derivative
+        g_sigma = -1. / self._std + delta**2 / self._std**3
 
-        return np.concatenate((g, g_sigma), axis=0)
+        return np.concatenate((g_mu, g_sigma), axis=0)
 
-    def set_sigma(self, sigma):
-        self._sigma = sigma
+    def set_std(self, std):
+        self._std = std
 
     def set_weights(self, weights):
         self._approximator.set_weights(
             weights[0:self._approximator.weights_size])
-        self._sigma = weights[self._approximator.weights_size:]
+        self._std = weights[self._approximator.weights_size:]
 
     def get_weights(self):
-        return np.concatenate((self._approximator.get_weights(), self._sigma), axis=0)
+        return np.concatenate((self._approximator.get_weights(), self._std), axis=0)
 
     @property
     def weights_size(self):
-        return self._approximator.weights_size + self._sigma.size
+        return self._approximator.weights_size + self._std.size
 
     def _compute_multivariate_gaussian(self, state):
         mu = np.reshape(self._approximator.predict(np.expand_dims(state,
                                                                   axis=0)), -1)
 
-        sigma2 = self._sigma**2
+        sigma = self._std**2
 
-        return mu, np.diag(sigma2), np.diag(1. / sigma2)
+        return mu, np.diag(sigma), np.diag(1. / sigma)
+
+    def __str__(self):
+        return self.__name__
+
+
+class MultivariateStateStdGaussianPolicy:
+    def __init__(self, mu, std, eps=1e-6):
+        self.__name__ = 'MultivariateStateStdGaussianPolicy'
+
+        assert(eps > 0)
+
+        self._mu_approximator = mu
+        self._std_approximator = std
+        self._eps = eps
+
+    def __call__(self, state, action):
+        mu, sigma, _ = self._compute_multivariate_gaussian(state)
+
+        return multivariate_normal.pdf(action, mu, sigma)
+
+    def draw_action(self, state):
+        mu, sigma, _ = self._compute_multivariate_gaussian(state)
+
+        return np.random.multivariate_normal(mu, sigma)
+
+    def diff(self, state, action):
+        return self(state, action) * self.diff_log(state, action)
+
+    def diff_log(self, state, action):
+
+        mu, sigma, std = self._compute_multivariate_gaussian(state)
+        diag_sigma = np.diag(sigma)
+
+        delta = action - mu
+
+        # Compute mean derivative
+        j_mu = self._mu_approximator.diff(state)
+
+        if len(j_mu.shape) == 1:
+            j_mu = np.expand_dims(j_mu, axis=1)
+
+        sigma_inv = np.diag(1/diag_sigma)
+
+        g_mu = j_mu.dot(sigma_inv).dot(delta.T)
+
+        # Compute variance derivative
+        w = (delta**2 - diag_sigma) * std / diag_sigma**2
+        j_sigma = self._std_approximator.diff(state).T
+        g_sigma = np.atleast_1d(w.dot(j_sigma))
+
+        return np.concatenate((g_mu, g_sigma), axis=0)
+
+    def set_weights(self, weights):
+        mu_weights = weights[0:self._mu_approximator.weights_size]
+        std_weights = weights[self._mu_approximator.weights_size:]
+
+        self._mu_approximator.set_weights(mu_weights)
+        self._std_approximator.set_weights(std_weights)
+
+    def get_weights(self):
+        mu_weights = self._mu_approximator.get_weights()
+        std_weights = self._std_approximator.get_weights()
+
+        return np.concatenate((mu_weights, std_weights), axis=0)
+
+    @property
+    def weights_size(self):
+        return self._mu_approximator.weights_size + \
+               self._std_approximator.weights_size
+
+    def _compute_multivariate_gaussian(self, state):
+        mu = np.reshape(self._mu_approximator.predict(
+            np.expand_dims(state, axis=0)), -1)
+
+        std = np.reshape(self._std_approximator.predict(
+            np.expand_dims(state, axis=0)), -1)
+
+        sigma = std**2 + self._eps
+
+        return mu, np.diag(sigma), std
 
     def __str__(self):
         return self.__name__

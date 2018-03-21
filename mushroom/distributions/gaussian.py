@@ -14,6 +14,9 @@ class GaussianDistribution:
     def log_pdf(self, theta):
         return multivariate_normal.logpdf(theta, self._mu, self._sigma)
 
+    def __call__(self, theta):
+        return multivariate_normal.pdf(theta, self._mu, self._sigma)
+
     def mle(self, theta, weights=None):
         if weights is None:
             self._mu = np.mean(theta, axis=0)
@@ -49,6 +52,10 @@ class GaussianCholeskyDistribution:
     def log_pdf(self, theta):
         sigma = self._chol_sigma.dot(self._chol_sigma.T)
         return multivariate_normal.logpdf(theta, self._mu, sigma)
+
+    def __call__(self, theta):
+        sigma = self._chol_sigma.dot(self._chol_sigma.T)
+        return multivariate_normal.pdf(theta, self._mu, sigma)
 
     def mle(self, theta, weights=None):
         if weights is None:
