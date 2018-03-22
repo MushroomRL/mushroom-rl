@@ -37,11 +37,6 @@ def cholesky_gaussian():
         exact_diff = dist.diff(theta)
         numerical_diff = numerical_diff_dist(dist, theta)
 
-        print('---------------------------------')
-        print(exact_diff)
-        print(numerical_diff)
-        print(exact_diff-numerical_diff)
-
         assert np.allclose(exact_diff, numerical_diff)
 
 

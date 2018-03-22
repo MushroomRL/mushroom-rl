@@ -93,10 +93,10 @@ class GaussianCholeskyDistribution:
 
         S = inv_chol.dot(delta_a).dot(delta_b).dot(inv_sigma)
 
-        g_cov = S - np.diag(inv_chol)
+        g_cov = S - np.diag(np.diag(inv_chol))
 
         g[:n_dims] = g_mean
-        g[n_dims:] = g_cov[np.tril_indices(n_dims)]
+        g[n_dims:] = g_cov[np.triu_indices(n_dims)]
 
         return g
 
