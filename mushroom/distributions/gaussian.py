@@ -96,7 +96,7 @@ class GaussianCholeskyDistribution:
         g_cov = S - np.diag(np.diag(inv_chol))
 
         g[:n_dims] = g_mean
-        g[n_dims:] = g_cov[np.triu_indices(n_dims)]
+        g[n_dims:] = g_cov.T[np.tril_indices(n_dims)]
 
         return g
 

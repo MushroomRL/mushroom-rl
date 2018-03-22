@@ -23,7 +23,7 @@ def gaussian():
 
 def cholesky_gaussian():
     print('Testing gaussian cholesky distribution...')
-    n_dims = 2
+    n_dims = 6
 
     random_matrix = np.random.rand(n_dims, n_dims)
     sigma = random_matrix.dot(random_matrix.T)
