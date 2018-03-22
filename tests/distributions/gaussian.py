@@ -2,6 +2,7 @@ import numpy as np
 from mushroom.distributions import *
 from mushroom.utils.numerical_gradient import numerical_diff_dist
 
+
 def gaussian():
     print('Testing gaussian distribution...')
     n_dims = 6
