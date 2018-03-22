@@ -29,6 +29,9 @@ class GaussianDistribution:
 
         return g
 
+    def diff(self, theta):
+        return self(theta) * self.diff_log(theta)
+
     def get_parameters(self):
         return self._mu
 
@@ -77,7 +80,7 @@ class GaussianCholeskyDistribution:
     def diff_log(self, theta):
         n_dims = len(self._mu)
         inv_chol = np.linalg.inv(self._chol_sigma)
-        inv_sigma = inv_chol.dot(inv_chol.T)
+        inv_sigma = inv_chol.T.dot(inv_chol)
 
         g = np.empty(self.parameters_size)
 
@@ -85,20 +88,20 @@ class GaussianCholeskyDistribution:
         g_mean = inv_sigma.dot(delta)
 
         delta = theta - self._mu
-        delta_T = np.reshape(delta, (1, -1))
+        delta_a = np.reshape(delta, (-1, 1))
+        delta_b = np.reshape(delta, (1, -1))
 
-        tmp = delta.dot(delta_T).dot(inv_sigma)
-        R = np.linalg.solve(self._chol_sigma, tmp)
+        S = inv_chol.dot(delta_a).dot(delta_b).dot(inv_sigma)
 
-        chol_diag = np.diag(self._chol_sigma)
-        inv_chol_diag = 1 / chol_diag
-
-        g_cov = R - np.diag(inv_chol_diag)
+        g_cov = S - np.diag(inv_chol)
 
         g[:n_dims] = g_mean
         g[n_dims:] = g_cov[np.tril_indices(n_dims)]
 
         return g
+
+    def diff(self, theta):
+        return self(theta) * self.diff_log(theta)
 
     def get_parameters(self):
         rho = np.empty(self.parameters_size)
