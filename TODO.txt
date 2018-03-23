@@ -1,20 +1,22 @@
+Interfaces:
+    a) Policy interface
+    b) Distribution interface
+
 Algorithms:
-    b) Policy-based:
+    a) Policy search:
         * Policy gradient:
+            - fix step based gradient interface
             - Natural gradient
+            - NES
+        * TRPO
 
-Environment:
-    * LQR
+    b) Actor-critic:
+        * Deterministic policy gradient
 
-Testare:
-    * LSPI
-    * ENAC
-
-Varie:
-    * Fix get_value() in Parameters nel caso vettoriale
-
-Paper:
-   * togliere pybrain e mettere chainerrl
+Various:
+    * Fix get_value() in Parameters (vectorial parameters)
 
 Doc:
-   * Tutorial
+   * Policies documentation
+   * Distributions documentation
+   * new algorithms documentation (BBO algs)
