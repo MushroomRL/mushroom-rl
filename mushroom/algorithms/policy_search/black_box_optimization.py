@@ -1,17 +1,15 @@
 import numpy as np
+from scipy.optimize import minimize
 
 from mushroom.algorithms.agent import Agent
 from mushroom.utils.dataset import compute_J
-
-from scipy.optimize import minimize
 
 
 class BlackBoxOptimization(Agent):
     """
     Base class for black box optimization algorithms.
-    This algorithms work on a distribution of policy parameters,
-    and often they do not rely on stochastic and differentiable
-    policies.
+    These algorithms work on a distribution of policy parameters and often they
+    do not rely on stochastic and differentiable policies.
 
     """
     def __init__(self, distribution, policy, mdp_info, features=None):
@@ -151,7 +149,6 @@ class REPS(BlackBoxOptimization):
 
     def _update(self, Jep, theta):
         eta_start = np.ones(1)
-
 
         res = minimize(REPS._dual_function, eta_start,
                        jac=REPS._dual_function_diff,
