@@ -43,6 +43,76 @@ class GaussianDistribution:
         return len(self._mu)
 
 
+class GaussianDiagonalDistribution:
+    def __init__(self, mu, std):
+        assert(len(std.shape) == 1)
+        self._mu = mu
+        self._std = std
+
+    def sample(self):
+        sigma = np.diag(self._std**2)
+        return np.random.multivariate_normal(self._mu, sigma)
+
+    def log_pdf(self, theta):
+        sigma = np.diag(self._std ** 2)
+        return multivariate_normal.logpdf(theta, self._mu, sigma)
+
+    def __call__(self, theta):
+        sigma = np.diag(self._std ** 2)
+        return multivariate_normal.pdf(theta, self._mu, sigma)
+
+    def mle(self, theta, weights=None):
+        if weights is None:
+            self._mu = np.mean(theta, axis=0)
+            self._std = np.std(theta, axis=0)
+        else:
+            sumD = np.sum(weights)
+            sumD2 = np.sum(weights**2)
+            Z = sumD - sumD2 / sumD
+
+            self._mu = weights.dot(theta) / sumD
+
+            delta2 = (theta - self._mu)**2
+            self._std = np.sqrt(weights.dot(delta2) / Z)
+
+    def diff_log(self, theta):
+        n_dims = len(self._mu)
+
+        sigma = self._std**2
+
+        g = np.empty(self.parameters_size)
+
+        delta = theta - self._mu
+
+        g_mean = delta / sigma
+        g_cov = delta**2 / (self._std**3) - 1 / self._std
+
+        g[:n_dims] = g_mean
+        g[n_dims:] = g_cov
+        return g
+
+    def diff(self, theta):
+        return self(theta) * self.diff_log(theta)
+
+    def get_parameters(self):
+        rho = np.empty(self.parameters_size)
+        n_dims = len(self._mu)
+
+        rho[:n_dims] = self._mu
+        rho[n_dims:] = self._std
+
+        return rho
+
+    def set_parameters(self, rho):
+        n_dims = len(self._mu)
+        self._mu = rho[:n_dims]
+        self._std = rho[n_dims:]
+
+    @property
+    def parameters_size(self):
+        return 2 * len(self._mu)
+
+
 class GaussianCholeskyDistribution:
     def __init__(self, mu, sigma):
         self._mu = mu
@@ -87,7 +157,6 @@ class GaussianCholeskyDistribution:
         delta = theta - self._mu
         g_mean = inv_sigma.dot(delta)
 
-        delta = theta - self._mu
         delta_a = np.reshape(delta, (-1, 1))
         delta_b = np.reshape(delta, (1, -1))
 
