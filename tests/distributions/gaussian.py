@@ -21,6 +21,22 @@ def gaussian():
 
         assert np.allclose(exact_diff, numerical_diff)
 
+def diagonal_gaussian():
+    print('Testing diagonal gaussian distribution...')
+    n_dims = 6
+
+    std = np.abs(np.random.rand(n_dims))
+    mu = np.random.randn(n_dims)
+
+    dist = GaussianDiagonalDistribution(mu, std)
+
+    for i in range(20):
+        theta = dist.sample()
+        exact_diff = dist.diff(theta)
+        numerical_diff = numerical_diff_dist(dist, theta)
+
+        assert np.allclose(exact_diff, numerical_diff)
+
 
 def cholesky_gaussian():
     print('Testing gaussian cholesky distribution...')
@@ -45,4 +61,5 @@ if __name__ == '__main__':
     print('Executing policy test...')
 
     gaussian()
+    diagonal_gaussian()
     cholesky_gaussian()
