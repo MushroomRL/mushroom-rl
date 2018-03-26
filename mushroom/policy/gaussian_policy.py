@@ -232,7 +232,7 @@ class MultivariateStateStdGaussianPolicy:
 
         # Compute variance derivative
         w = (delta**2 - diag_sigma) * std / diag_sigma**2
-        j_sigma = self._std_approximator.diff(state).T
+        j_sigma = np.atleast_2d(self._std_approximator.diff(state).T)
         g_sigma = np.atleast_1d(w.dot(j_sigma))
 
         return np.concatenate((g_mu, g_sigma), axis=0)
