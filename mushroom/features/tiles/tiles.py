@@ -70,7 +70,7 @@ class Tiles:
 
         Args:
             n_tilings (int): number of tilings;
-            n_tiles (int): number of tiles for each tilings;
+            n_tiles (list): number of tiles for each tilings for each dimension;
             low (np.ndarray): lowest value for each dimension;
             high (np.ndarray): highest value for each dimension.
 
