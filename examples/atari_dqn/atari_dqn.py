@@ -269,7 +269,6 @@ def experiment():
 
         # Algorithm
         core = Core(agent, mdp)
-        core_test = Core(agent, mdp)
 
         # RUN
 
@@ -286,9 +285,8 @@ def experiment():
         mdp.set_episode_end(ends_at_life=False)
         if args.algorithm == 'ddqn':
             agent.policy.set_q(agent.target_approximator)
-        dataset = core_test.evaluate(n_steps=test_samples,
-                                     render=args.render,
-                                     quiet=args.quiet)
+        dataset = core.evaluate(n_steps=test_samples, render=args.render,
+                                quiet=args.quiet)
         scores.append(get_stats(dataset))
         if args.algorithm == 'ddqn':
             agent.policy.set_q(agent.approximator)
@@ -311,12 +309,10 @@ def experiment():
             # evaluation step
             pi.set_epsilon(epsilon_test)
             mdp.set_episode_end(ends_at_life=False)
-            core_test.reset()
             if args.algorithm == 'ddqn':
                 agent.policy.set_q(agent.target_approximator)
-            dataset = core_test.evaluate(n_steps=test_samples,
-                                         render=args.render,
-                                         quiet=args.quiet)
+            dataset = core.evaluate(n_steps=test_samples, render=args.render,
+                                    quiet=args.quiet)
             scores.append(get_stats(dataset))
             if args.algorithm == 'ddqn':
                 agent.policy.set_q(agent.approximator)
