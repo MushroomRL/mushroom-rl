@@ -5,12 +5,11 @@ from mushroom.approximators.parametric import LinearApproximator
 from mushroom.approximators.regressor import Regressor
 from mushroom.core import Core
 from mushroom.environments import ShipSteering
-from mushroom.features.basis import GaussianRBF
+from mushroom.features.tiles import Tiles
 from mushroom.features.features import Features
-from mushroom.features.tensors import gaussian_tensor
-from mushroom.policy import GaussianPolicy, MultivariateGaussianPolicy, MultivariateDiagonalGaussianPolicy
+from mushroom.policy import MultivariateDiagonalGaussianPolicy
 from mushroom.utils.dataset import compute_J
-from mushroom.utils.parameters import Parameter, AdaptiveParameter
+from mushroom.utils.parameters import Parameter
 from tqdm import tqdm
 
 
@@ -22,31 +21,24 @@ using policy gradient algorithms.
 
 tqdm.monitor_interval = 0
 
-def experiment(alg, n_runs, n_iterations, ep_per_run, use_tensorflow):
+def experiment(alg, learning_rate, n_runs, n_iterations, ep_per_run):
     np.random.seed()
 
     # MDP
     mdp = ShipSteering()
 
     # Policy
-    if use_tensorflow:
-        tensor_list = gaussian_tensor.generate([3, 3, 6, 2],
-                                               [[0., 150.],
-                                                [0., 150.],
-                                                [-np.pi, np.pi],
-                                                [-np.pi / 12, np.pi / 12]])
+    high = [150, 150, np.pi]
+    low = [0, 0, -np.pi]
+    n_tiles = [5, 5, 6]
+    low = np.array(low, dtype=np.float)
+    high = np.array(high, dtype=np.float)
+    n_tilings = 2
 
-        phi = Features(tensor_list=tensor_list, name='phi',
-                       input_dim=mdp.info.observation_space.shape[0])
-    else:
-        basis = GaussianRBF.generate([3, 3, 6, 2],
-                                     [[0., 150.],
-                                      [0., 150.],
-                                      [-np.pi, np.pi],
-                                      [-np.pi / 12, np.pi / 12]])
+    tilings = Tiles.generate(n_tilings=n_tilings, n_tiles=n_tiles, low=low,
+                             high=high)
 
-        phi = Features(basis_list=basis)
-
+    phi = Features(tilings=tilings)
     input_shape = (phi.size,)
 
     approximator_params = dict(input_dim=phi.size)
@@ -54,15 +46,15 @@ def experiment(alg, n_runs, n_iterations, ep_per_run, use_tensorflow):
                              output_shape=mdp.info.action_space.shape,
                              params=approximator_params)
 
-    sigma = np.array([[.05]])
-    policy = MultivariateGaussianPolicy(mu=approximator, sigma=sigma)
+    std = np.array([3e-1])
+    policy = MultivariateDiagonalGaussianPolicy(mu=approximator, std=std)
 
     # Agent
-    learning_rate = AdaptiveParameter(value=.01)
     algorithm_params = dict(learning_rate=learning_rate)
     agent = alg(policy, mdp.info, features=phi, **algorithm_params)
 
     # Train
+    print(alg.__name__)
     core = Core(agent, mdp)
     dataset_eval = core.evaluate(n_episodes=ep_per_run)
     J = compute_J(dataset_eval, gamma=mdp.info.gamma)
@@ -78,8 +70,12 @@ def experiment(alg, n_runs, n_iterations, ep_per_run, use_tensorflow):
 
 if __name__ == '__main__':
 
-    algs = [REINFORCE, GPOMDP, eNAC]
+    algs_params =[
+        (REINFORCE, Parameter(1e-4)),
+        #(GPOMDP, Parameter(1e-4)),
+        #(eNAC, Parameter(1e-2))
+    ]
 
-    for alg in algs:
-        experiment(alg, n_runs=10, n_iterations=40, ep_per_run=100,
-                   use_tensorflow=True)
+
+    for alg, learning_rate in algs_params:
+        experiment(alg, learning_rate, n_runs=100, n_iterations=5, ep_per_run=40)
