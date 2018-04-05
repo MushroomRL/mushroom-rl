@@ -64,6 +64,20 @@ class Tiles:
 
     @staticmethod
     def generate(n_tilings, n_tiles, low, high):
+        """
+        Factory method to build ``n_tilings`` tilings of ``n_tiles`` tiles with
+        a range between ``low`` and ``high`` for each dimension.
+
+        Args:
+            n_tilings (int): number of tilings;
+            n_tiles (list): number of tiles for each tilings for each dimension;
+            low (np.ndarray): lowest value for each dimension;
+            high (np.ndarray): highest value for each dimension.
+
+        Returns:
+            The list of the generated tiles.
+
+        """
         assert len(n_tiles) == len(low) == len(high)
 
         low = np.array(low, dtype=np.float)
