@@ -1,15 +1,16 @@
 import numpy as np
 
-from mushroom.algorithms.policy_search import REINFORCE, GPOMDP, eNAC
+from mushroom.algorithms.policy_search import REPS, RWR, PGPE
 from mushroom.approximators.parametric import LinearApproximator
 from mushroom.approximators.regressor import Regressor
 from mushroom.core import Core
 from mushroom.environments import ShipSteering
 from mushroom.features.tiles import Tiles
 from mushroom.features.features import Features
-from mushroom.policy import MultivariateDiagonalGaussianPolicy
+from mushroom.distributions import GaussianDiagonalDistribution
+from mushroom.policy import DeterministicPolicy
 from mushroom.utils.dataset import compute_J
-from mushroom.utils.parameters import Parameter
+from mushroom.utils.parameters import AdaptiveParameter
 from tqdm import tqdm
 
 
@@ -21,7 +22,7 @@ using policy gradient algorithms.
 
 tqdm.monitor_interval = 0
 
-def experiment(alg, learning_rate, n_runs, n_iterations, ep_per_run):
+def experiment(alg, params, n_runs, n_iterations, ep_per_run):
     np.random.seed()
 
     # MDP
@@ -33,7 +34,7 @@ def experiment(alg, learning_rate, n_runs, n_iterations, ep_per_run):
     n_tiles = [5, 5, 6]
     low = np.array(low, dtype=np.float)
     high = np.array(high, dtype=np.float)
-    n_tilings = 2
+    n_tilings = 1
 
     tilings = Tiles.generate(n_tilings=n_tilings, n_tiles=n_tiles, low=low,
                              high=high)
@@ -46,12 +47,14 @@ def experiment(alg, learning_rate, n_runs, n_iterations, ep_per_run):
                              output_shape=mdp.info.action_space.shape,
                              params=approximator_params)
 
-    std = np.array([3e-1])
-    policy = MultivariateDiagonalGaussianPolicy(mu=approximator, std=std)
+    policy = DeterministicPolicy(approximator)
+
+    mu = np.zeros(policy.weights_size)
+    sigma = 4e-1 * np.ones(policy.weights_size)
+    distribution = GaussianDiagonalDistribution(mu, sigma)
 
     # Agent
-    algorithm_params = dict(learning_rate=learning_rate)
-    agent = alg(policy, mdp.info, features=phi, **algorithm_params)
+    agent = alg(distribution, policy, mdp.info, features=phi, **params)
 
     # Train
     print(alg.__name__)
@@ -70,12 +73,11 @@ def experiment(alg, learning_rate, n_runs, n_iterations, ep_per_run):
 
 if __name__ == '__main__':
 
-    algs_params =[
-        (REINFORCE, Parameter(1e-4)),
-        #(GPOMDP, Parameter(1e-4)),
-        #(eNAC, Parameter(1e-2))
-    ]
+    algs_params = [
+        (REPS, {'eps': 1.0}),
+        (RWR, {'beta': 0.7}),
+        (PGPE, {'learning_rate': AdaptiveParameter(value=1.5)}),
+        ]
 
-
-    for alg, learning_rate in algs_params:
-        experiment(alg, learning_rate, n_runs=100, n_iterations=5, ep_per_run=40)
+    for alg, params in algs_params:
+        experiment(alg, params, n_runs=25, n_iterations=10, ep_per_run=20)
