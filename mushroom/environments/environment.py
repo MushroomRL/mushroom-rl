@@ -111,6 +111,3 @@ class Environment(object):
 
         """
         return self._mdp_info
-
-    def __str__(self):
-        return self.__name__

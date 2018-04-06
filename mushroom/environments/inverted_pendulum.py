@@ -16,8 +16,6 @@ class InvertedPendulum(Environment):
         Constructor.
 
         """
-        self.__name__ = 'InvertedPendulum'
-
         # MDP parameters
         self.max_degree = np.inf
         self.max_angular_velocity = np.inf

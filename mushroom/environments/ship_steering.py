@@ -3,7 +3,6 @@ import numpy as np
 from mushroom.environments import Environment, MDPInfo
 from mushroom.utils import spaces
 from mushroom.utils.angles_utils import normalize_angle
-from mushroom.utils.angles_utils import *
 
 
 class ShipSteering(Environment):
@@ -22,8 +21,6 @@ class ShipSteering(Environment):
              n_steps_action (int, 3): number of integration intervals for each
                                       step of the mdp.
         """
-        self.__name__ = 'ShipSteering'
-
         # MDP parameters
         self.field_size = 150 if small else 1000
         low = np.array([0, 0, -np.pi, -np.pi / 12.])

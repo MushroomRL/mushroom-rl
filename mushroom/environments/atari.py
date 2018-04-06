@@ -24,10 +24,8 @@ class Atari(Environment):
                 lost or not.
 
         """
-        self.__name__ = name
-
         # MPD creation
-        self.env = gym.make(self.__name__)
+        self.env = gym.make(name)
 
         # MDP parameters
         self.img_size = (width, height)

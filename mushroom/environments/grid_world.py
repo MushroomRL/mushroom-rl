@@ -67,8 +67,6 @@ class GridWorld(AbstractGridWorld):
 
     """
     def __init__(self, height, width, goal, start=(0, 0)):
-        self.__name__ = 'GridWorld'
-
         # MDP properties
         observation_space = spaces.Discrete(height * width)
         action_space = spaces.Discrete(4)
@@ -109,8 +107,6 @@ class GridWorldVanHasselt(AbstractGridWorld):
 
     """
     def __init__(self, height=3, width=3, goal=(0, 2), start=(2, 0)):
-        self.__name__ = 'GridWorldVanHasselt'
-
         # MDP properties
         observation_space = spaces.Discrete(height * width)
         action_space = spaces.Discrete(4)

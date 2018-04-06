@@ -10,8 +10,6 @@ class REINFORCE(PolicyGradient):
 
     """
     def __init__(self, policy, mdp_info, learning_rate, features=None):
-        self.__name__ = 'REINFORCE'
-
         super(REINFORCE, self).__init__(policy, mdp_info, learning_rate,
                                         features)
 

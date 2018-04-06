@@ -133,6 +133,3 @@ class PolicyGradient(Agent):
             state = self.phi(state)
 
         return state, action, reward, next_state, absorbing, last
-
-    def __str__(self):
-        return self.__name__

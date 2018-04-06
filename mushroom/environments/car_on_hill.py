@@ -16,8 +16,6 @@ class CarOnHill(Environment):
         Constructor.
 
         """
-        self.__name__ = 'CarOnHill'
-
         # MDP parameters
         self.max_pos = 1.
         self.max_velocity = 3.

@@ -18,8 +18,6 @@ class eNAC(PolicyGradient):
             critic_features (Features, None): features used by the critic.
 
         """
-        self.__name__ = 'eNAC'
-
         super(eNAC, self).__init__(policy, mdp_info, learning_rate, features)
         self.phi_c = critic_features
 

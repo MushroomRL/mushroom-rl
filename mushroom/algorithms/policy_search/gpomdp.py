@@ -11,8 +11,6 @@ class GPOMDP(PolicyGradient):
 
     """
     def __init__(self, policy, mdp_info, learning_rate, features=None):
-        self.__name__ = 'GPOMDP'
-
         super(GPOMDP, self).__init__(policy, mdp_info, learning_rate, features)
 
         self.sum_d_log_pi = None

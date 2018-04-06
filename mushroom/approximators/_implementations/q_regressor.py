@@ -104,6 +104,3 @@ class QRegressor:
 
     def __len__(self):
         return len(self.model)
-
-    def __str__(self):
-        return 'QRegressor of ' + str(self.model) + '.'

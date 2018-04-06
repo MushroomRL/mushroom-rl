@@ -21,8 +21,6 @@ class FiniteMDP(Environment):
             horizon (int, np.inf): the horizon.
 
         """
-        self.__name__ = 'FiniteMDP'
-
         assert p.shape == rew.shape
         assert mu is None or p.shape[0] == mu.size
 

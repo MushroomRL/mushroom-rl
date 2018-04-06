@@ -14,7 +14,8 @@ Algorithms:
         * Deterministic policy gradient
 
 Various:
-    * Fix get_value() in Parameters (vectorial parameters)
+    * Fix get_value() in Parameters in modo che venga lanciato un errore quando
+    l'utente prova a farsi ritornare il valore del parametro per slice
 
 Doc:
    * Policies documentation

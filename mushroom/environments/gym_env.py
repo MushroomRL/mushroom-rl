@@ -23,10 +23,8 @@ class Gym(Environment):
              gamma (float): the discount factor.
 
         """
-        self.__name__ = name
-
         # MPD creation
-        self.env = gym.make(self.__name__)
+        self.env = gym.make(name)
 
         self.env._max_episode_steps = np.inf  # Hack to ignore gym time limit.
 
