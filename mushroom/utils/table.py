@@ -19,7 +19,6 @@ class Table:
             dtype ([int, float], None): the dtype of the table array.
 
         """
-        self.__name__ = 'Table'
         self.table = np.ones(shape, dtype=dtype) * initial_value
 
     def __getitem__(self, args):
@@ -99,9 +98,6 @@ class Table:
 
         """
         return self.table.shape
-
-    def __str__(self):
-        return self.__name__
 
 
 class EnsembleTable(Ensemble):
