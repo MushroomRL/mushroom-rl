@@ -1,8 +1,10 @@
-from .td_policy import Boltzmann, EpsGreedy, Mellowmax
-from .gaussian_policy import GaussianPolicy, MultivariateGaussianPolicy,\
-    MultivariateDiagonalGaussianPolicy, MultivariateStateStdGaussianPolicy
+from .policy import Policy, ParametricPolicy
+from .td_policy import TDPolicy, Boltzmann, EpsGreedy, Mellowmax
+from .gaussian_policy import GaussianPolicy, DiagonalGaussianPolicy, \
+     StateStdGaussianPolicy
 from .deterministic_policy import DeterministicPolicy
 
-__all__ = ['Boltzmann', 'EpsGreedy', 'Mellowmax', 'GaussianPolicy',
-           'MultivariateGaussianPolicy', 'MultivariateDiagonalGaussianPolicy',
-           'MultivariateStateStdGaussianPolicy', 'DeterministicPolicy']
+__all__ = ['Policy', 'ParametricPolicy', 'TDPolicy',
+           'Boltzmann', 'EpsGreedy', 'Mellowmax',
+           'GaussianPolicy', 'DiagonalGaussianPolicy',
+           'StateStdGaussianPolicy', 'DeterministicPolicy']

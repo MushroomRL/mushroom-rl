@@ -5,7 +5,7 @@ from mushroom.approximators.parametric import LinearApproximator
 from mushroom.approximators.regressor import Regressor
 from mushroom.core import Core
 from mushroom.environments import LQR
-from mushroom.policy import MultivariateStateStdGaussianPolicy
+from mushroom.policy import StateStdGaussianPolicy
 from mushroom.utils.dataset import compute_J
 from mushroom.utils.parameters import AdaptiveParameter
 
@@ -41,7 +41,7 @@ def experiment(alg, n_runs, n_iterations, ep_per_run):
     sigma_weights = 2*np.ones(sigma.weights_size)
     sigma.set_weights(sigma_weights)
 
-    policy = MultivariateStateStdGaussianPolicy(approximator, sigma)
+    policy = StateStdGaussianPolicy(approximator, sigma)
 
     # Agent
     learning_rate = AdaptiveParameter(value=.01)
@@ -70,4 +70,4 @@ if __name__ == '__main__':
 
     for alg in algs:
         print(alg.__name__)
-        experiment(alg, n_runs=10, n_iterations=40, ep_per_run=100)
+        experiment(alg, n_runs=10, n_iterations=4, ep_per_run=100)

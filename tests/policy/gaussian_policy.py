@@ -1,14 +1,12 @@
-import numpy as np
 from mushroom.policy.gaussian_policy import *
 from mushroom.approximators.regressor import Regressor
 from mushroom.approximators.parametric import LinearApproximator
 from mushroom.utils.numerical_gradient import numerical_diff_policy
-from mushroom.utils.parameters import Parameter
 
 
 def univariate_gaussian():
     print('Testing univariate gaussian policy...')
-    sigma = Parameter(1e-3)
+    sigma = 1e-3*np.eye(1)
 
     n_dims = 5
 
@@ -48,7 +46,7 @@ def multivariate_gaussian():
                              output_shape=(n_outs,),
                              params=approximator_params)
 
-    pi = MultivariateGaussianPolicy(approximator, sigma)
+    pi = GaussianPolicy(approximator, sigma)
     mu_weights = np.random.rand(pi.weights_size)
     pi.set_weights(mu_weights)
 
@@ -76,7 +74,7 @@ def multivariate_diagonal_gaussian():
                              output_shape=(n_outs,),
                              params=approximator_params)
 
-    pi = MultivariateDiagonalGaussianPolicy(approximator, std)
+    pi = DiagonalGaussianPolicy(approximator, std)
     mu_weights = np.random.rand(pi.weights_size)
     pi.set_weights(mu_weights)
 
@@ -109,7 +107,7 @@ def multivariate_state_std_gaussian():
                                  output_shape=(n_outs,),
                                  params=approximator_params)
 
-    pi = MultivariateStateStdGaussianPolicy(mu_approximator, std_approximator)
+    pi = StateStdGaussianPolicy(mu_approximator, std_approximator)
     mu_weights = np.random.rand(pi.weights_size)+0.1
     pi.set_weights(mu_weights)
 

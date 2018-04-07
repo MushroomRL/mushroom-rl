@@ -1,47 +1,18 @@
 import numpy as np
 from scipy.optimize import brentq
 from scipy.special import logsumexp
+from .policy import Policy
 
 from mushroom.utils.parameters import Parameter
-from mushroom.utils.table import Table
 
 
-class TDPolicy(object):
+class TDPolicy(Policy):
     def __init__(self):
         """
         Constructor.
 
         """
         self._approximator = None
-
-    def __call__(self, *args):
-        """
-        Compute the probability of taking action in a certain state following
-        the policy.
-
-        Args:
-            *args (list): list containing a state or a state and an action.
-
-        Returns:
-            The probability of all actions following the policy in the given
-            state if the list contains only the state, else the probability
-            of the given action in the given state following the policy.
-
-        """
-        raise NotImplementedError
-
-    def draw_action(self, state):
-        """
-        Sample an action in ``state`` using the policy.
-
-        Args:
-            state (np.ndarray): the state where the agent is.
-
-        Returns:
-            The action sampled from the policy.
-
-        """
-        raise NotImplementedError
 
     def set_q(self, approximator):
         """

@@ -1,76 +1,45 @@
 import numpy as np
 
-from mushroom.utils.parameters import Parameter
-from scipy.stats import norm, multivariate_normal
+from .policy import ParametricPolicy
+from scipy.stats import multivariate_normal
 
 
-class GaussianPolicy:
+class GaussianPolicy(ParametricPolicy):
+    """
+    Gaussian policy.
+    This is a differentiable policy for continuous action spaces.
+    The policy samples an action in every state following a gaussian
+    distribution, where the mean is computed in the state and the covariance
+    matrix is fixed.
+    """
     def __init__(self, mu, sigma):
-        self.__name__ = 'GaussianPolicy'
+        """
+        Constructor.
 
-        assert isinstance(sigma, Parameter)
+        Args:
+            mu (Regressor): the regressor representing the mean w.r.t. the
+                            state
+            sigma (np.ndarray): a square positive definite matrix
+                                representing the covariance matrix. The size of
+                                this matrix must be n x n, where n is the
+                                action dimensionality
 
-        self._approximator = mu
-        self._sigma = sigma
-
-    def __call__(self, state, action):
-        mu, sigma = self._compute_gaussian(state, False)
-
-        return norm.pdf(action[0], mu[0], sigma)
-
-    def draw_action(self, state):
-        mu, sigma = self._compute_gaussian(state)
-
-        return np.random.normal(mu, sigma)
-
-    def diff(self, state, action):
-        return self(state, action) * self.diff_log(state, action)
-
-    def diff_log(self, state, action):
-        mu, sigma = self._compute_gaussian(state, False)
-        delta = action - mu
-        j_mu = np.expand_dims(self._approximator.diff(state), axis=1)
-
-        g = j_mu.dot(delta) / sigma**2
-
-        return g
-
-    def set_sigma(self, sigma):
-        assert isinstance(sigma, Parameter)
-
-        self._sigma = sigma
-
-    def set_weights(self, weights):
-        self._approximator.set_weights(weights)
-
-    def get_weights(self):
-        return self._approximator.get_weights()
-
-    @property
-    def weights_size(self):
-        return self._approximator.weights_size
-
-    def _compute_gaussian(self, state, update=True):
-        if update:
-            sigma = self._sigma(state)
-        else:
-            sigma = self._sigma.get_value(state)
-        mu = np.reshape(self._approximator.predict(np.expand_dims(state,
-                                                                  axis=0)), -1)
-
-        return mu, sigma
-
-    def __str__(self):
-        return self.__name__
-
-
-class MultivariateGaussianPolicy:
-    def __init__(self, mu, sigma):
-        self.__name__ = 'MultivariateGaussianPolicy'
-
+        """
         self._approximator = mu
         self._inv_sigma = np.linalg.inv(sigma)
         self._sigma = sigma
+
+    def set_sigma(self, sigma):
+        """
+        Setter.
+
+        Args:
+            sigma (np.ndarray): the new covariance matrix. Must be a square
+                                positive definite matrix
+
+        """
+        self._sigma = sigma
+        self._inv_sigma = np.linalg.inv(sigma)
 
     def __call__(self, state, action):
         mu, sigma, _ = self._compute_multivariate_gaussian(state)
@@ -81,9 +50,6 @@ class MultivariateGaussianPolicy:
         mu, sigma, _ = self._compute_multivariate_gaussian(state)
 
         return np.random.multivariate_normal(mu, sigma)
-
-    def diff(self, state, action):
-        return self(state, action) * self.diff_log(state, action)
 
     def diff_log(self, state, action):
 
@@ -99,10 +65,6 @@ class MultivariateGaussianPolicy:
         g = .5 * j_mu.dot(inv_sigma + inv_sigma.T).dot(delta.T)
 
         return g
-
-    def set_sigma(self, sigma):
-        self._sigma = sigma
-        self._inv_sigma = np.linalg.inv(sigma)
 
     def set_weights(self, weights):
         self._approximator.set_weights(weights)
@@ -120,15 +82,40 @@ class MultivariateGaussianPolicy:
 
         return mu, self._sigma, self._inv_sigma
 
-    def __str__(self):
-        return self.__name__
 
-
-class MultivariateDiagonalGaussianPolicy:
+class DiagonalGaussianPolicy(ParametricPolicy):
+    """
+    Gaussian policy with learnable standard deviation. The Covariance matrix is
+    constrained to be a diagonal matrix, where the diagonal is the squared
+    standard deviation vector.
+    This is a differentiable policy for continuous action spaces.
+    This policy is similar to the gaussian policy, but the weights includes
+    also the standard deviation.
+    """
     def __init__(self, mu, std):
-        self.__name__ = 'MultivariateDiagonalGaussianPolicy'
+        """
+        Constructor.
 
+        Args:
+            mu (Regressor): the regressor representing the mean w.r.t. the
+                            state
+            std (np.ndarray): a vector of standard deviations. The lenght of
+                                this vector must be equal to the action
+                                dimensionality
+
+        """
         self._approximator = mu
+        self._std = std
+
+    def set_std(self, std):
+        """
+        Setter.
+
+        Args:
+            std (np.ndarray): the new standard deviation. Must be a square
+                                positive definite matrix
+
+        """
         self._std = std
 
     def __call__(self, state, action):
@@ -140,9 +127,6 @@ class MultivariateDiagonalGaussianPolicy:
         mu, sigma, _ = self._compute_multivariate_gaussian(state)
 
         return np.random.multivariate_normal(mu, sigma)
-
-    def diff(self, state, action):
-        return self(state, action) * self.diff_log(state, action)
 
     def diff_log(self, state, action):
 
@@ -162,9 +146,6 @@ class MultivariateDiagonalGaussianPolicy:
         g_sigma = -1. / self._std + delta**2 / self._std**3
 
         return np.concatenate((g_mu, g_sigma), axis=0)
-
-    def set_std(self, std):
-        self._std = std
 
     def set_weights(self, weights):
         self._approximator.set_weights(
@@ -186,14 +167,32 @@ class MultivariateDiagonalGaussianPolicy:
 
         return mu, np.diag(sigma), np.diag(1. / sigma)
 
-    def __str__(self):
-        return self.__name__
 
-
-class MultivariateStateStdGaussianPolicy:
+class StateStdGaussianPolicy(ParametricPolicy):
+    """
+    Gaussian policy with learnable standard deviation. The Covariance matrix is
+    constrained to be a diagonal matrix, where the diagonal is the squared
+    standard deviation, wich is computed for each state.
+    This is a differentiable policy for continuous action spaces.
+    This policy is similar to the diagonal gaussian policy, but a parametric
+    regressor is used to compute the standard deviation, so the standard
+    deviation depends on the current state.
+    """
     def __init__(self, mu, std, eps=1e-6):
-        self.__name__ = 'MultivariateStateStdGaussianPolicy'
+        """
+        Constructor.
 
+        Args:
+            mu (Regressor): the regressor representing the mean w.r.t. the
+                            state
+            std (Regressor): the regressor representing the standard
+                             deviations w.r.t. the state. The output
+                             dimensionality of the regressor must be equal to
+                             the action dimensionality
+            eps(float, 1e-6): A positive constant added to the variance to
+                              ensure that is always greater than zero
+
+        """
         assert(eps > 0)
 
         self._mu_approximator = mu
@@ -209,9 +208,6 @@ class MultivariateStateStdGaussianPolicy:
         mu, sigma, _ = self._compute_multivariate_gaussian(state)
 
         return np.random.multivariate_normal(mu, sigma)
-
-    def diff(self, state, action):
-        return self(state, action) * self.diff_log(state, action)
 
     def diff_log(self, state, action):
 
@@ -265,6 +261,3 @@ class MultivariateStateStdGaussianPolicy:
         sigma = std**2 + self._eps
 
         return mu, np.diag(sigma), std
-
-    def __str__(self):
-        return self.__name__

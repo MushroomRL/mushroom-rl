@@ -1,10 +1,32 @@
 import numpy as np
+from .policy import ParametricPolicy
 
 
-class DeterministicPolicy:
+class DeterministicPolicy(ParametricPolicy):
+    """
+    Simple parametric policy representing a deterministic policy. As
+    deterministic policies are degenerate probability functions where all
+    the probability mass is on the deterministic action,they are not
+    differentiable, even if the mean value approximator is differentiable.
+    """
     def __init__(self, mu):
-        self.__name__ = 'DeterministicPolicy'
+        """
+        Constructor.
+
+        Args:
+            mu (Regressor): the regressor representing the action to select
+                            in each state
+        """
         self._approximator = mu
+
+    def get_regressor(self):
+        """
+        Getter.
+
+        Returns:
+            the regressor that is used to map state to actions.
+        """
+        return self._approximator
 
     def __call__(self, state, action):
         policy_action = self._approximator.predict(state)
@@ -13,12 +35,6 @@ class DeterministicPolicy:
 
     def draw_action(self, state):
         return self._approximator.predict(state)
-
-    def diff(self, state, action):
-        raise RuntimeError('Deterministic policy is not differentiable')
-
-    def diff_log(self, state, action):
-        raise RuntimeError('Deterministic policy is not differentiable')
 
     def set_weights(self, weights):
         self._approximator.set_weights(weights)
@@ -29,6 +45,3 @@ class DeterministicPolicy:
     @property
     def weights_size(self):
         return self._approximator.weights_size
-
-    def __str__(self):
-        return self.__name__
