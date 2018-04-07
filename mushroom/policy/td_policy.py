@@ -59,9 +59,6 @@ class TDPolicy(object):
         """
         return self._approximator
 
-    def __str__(self):
-        return self.__name__
-
 
 class EpsGreedy(TDPolicy):
     """
@@ -78,8 +75,6 @@ class EpsGreedy(TDPolicy):
                 step.
 
         """
-        self.__name__ = 'EpsGreedy'
-
         super(EpsGreedy, self).__init__()
 
         assert isinstance(epsilon, Parameter)
@@ -158,8 +153,6 @@ class Boltzmann(TDPolicy):
             more and more greedy.
 
         """
-        self.__name__ = 'Boltzmann'
-
         super(Boltzmann, self).__init__()
         self._beta = beta
 
@@ -229,8 +222,6 @@ class Mellowmax(Boltzmann):
                 minimization with Brent's method.
 
         """
-        self.__name__ = 'Mellowmax'
-
         beta_mellow = self.MellowmaxParameter(self, omega, beta_min, beta_max)
 
         super(Mellowmax, self).__init__(beta_mellow)

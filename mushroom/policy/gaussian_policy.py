@@ -6,8 +6,6 @@ from scipy.stats import norm, multivariate_normal
 
 class GaussianPolicy:
     def __init__(self, mu, sigma):
-        self.__name__ = 'GaussianPolicy'
-
         assert isinstance(sigma, Parameter)
 
         self._approximator = mu
@@ -60,14 +58,9 @@ class GaussianPolicy:
 
         return mu, sigma
 
-    def __str__(self):
-        return self.__name__
-
 
 class MultivariateGaussianPolicy:
     def __init__(self, mu, sigma):
-        self.__name__ = 'MultivariateGaussianPolicy'
-
         self._approximator = mu
         self._inv_sigma = np.linalg.inv(sigma)
         self._sigma = sigma
@@ -120,14 +113,9 @@ class MultivariateGaussianPolicy:
 
         return mu, self._sigma, self._inv_sigma
 
-    def __str__(self):
-        return self.__name__
-
 
 class MultivariateDiagonalGaussianPolicy:
     def __init__(self, mu, std):
-        self.__name__ = 'MultivariateDiagonalGaussianPolicy'
-
         self._approximator = mu
         self._std = std
 
@@ -186,14 +174,9 @@ class MultivariateDiagonalGaussianPolicy:
 
         return mu, np.diag(sigma), np.diag(1. / sigma)
 
-    def __str__(self):
-        return self.__name__
-
 
 class MultivariateStateStdGaussianPolicy:
     def __init__(self, mu, std, eps=1e-6):
-        self.__name__ = 'MultivariateStateStdGaussianPolicy'
-
         assert(eps > 0)
 
         self._mu_approximator = mu
@@ -265,6 +248,3 @@ class MultivariateStateStdGaussianPolicy:
         sigma = std**2 + self._eps
 
         return mu, np.diag(sigma), std
-
-    def __str__(self):
-        return self.__name__

@@ -3,7 +3,6 @@ import numpy as np
 
 class DeterministicPolicy:
     def __init__(self, mu):
-        self.__name__ = 'DeterministicPolicy'
         self._approximator = mu
 
     def __call__(self, state, action):
@@ -29,6 +28,3 @@ class DeterministicPolicy:
     @property
     def weights_size(self):
         return self._approximator.weights_size
-
-    def __str__(self):
-        return self.__name__
