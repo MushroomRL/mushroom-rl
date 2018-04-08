@@ -40,3 +40,14 @@ enac
     :inherited-members:
     :undoc-members:
     :show-inheritance:
+
+black_box_optimization
+----------------------
+
+.. automodule:: mushroom.algorithms.policy_search.black_box_optimization
+    :members:
+    :private-members:
+    :inherited-members:
+    :undoc-members:
+    :show-inheritance:
+
