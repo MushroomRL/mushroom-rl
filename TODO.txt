@@ -1,7 +1,3 @@
-Interfaces:
-    a) Policy interface
-    b) Distribution interface
-
 Algorithms:
     a) Policy search:
         * Policy gradient:
@@ -13,11 +9,9 @@ Algorithms:
     b) Actor-critic:
         * Deterministic policy gradient
 
+    c) Value based:
+        * Q Lambda
+
 Various:
     * Fix get_value() in Parameters in modo che venga lanciato un errore quando
     l'utente prova a farsi ritornare il valore del parametro per slice
-
-Doc:
-   * Policies documentation
-   * Distributions documentation
-   * new algorithms documentation (BBO algs)
