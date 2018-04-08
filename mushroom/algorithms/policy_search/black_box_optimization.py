@@ -17,8 +17,8 @@ class BlackBoxOptimization(Agent):
         Constructor.
 
         Args:
-            distribution: the distribution of policy parameters;
-            policy: the policy to use.
+            distribution (Distribution): the distribution of policy parameters;
+            policy (ParametricPolicy): the policy to use.
 
         """
         self.distribution = distribution
@@ -61,13 +61,19 @@ class BlackBoxOptimization(Agent):
 
 
 class RWR(BlackBoxOptimization):
+    """
+    Reward Weighted Regression algorithm.
+    "A Survey on Policy Search for Robotics", Deisenroth M. P., Neumann G.,
+    Peters J. 2013.
+    """
+
     def __init__(self, distribution, policy, mdp_info, beta, features=None):
         """
         Constructor.
 
         Args:
-            beta (float): the temperature for the exponential
-             reward transformation.
+            beta (float): the temperature for the exponential reward
+                          transformation.
 
         """
         self.beta = beta
@@ -83,6 +89,12 @@ class RWR(BlackBoxOptimization):
 
 
 class PGPE(BlackBoxOptimization):
+    """
+    Policy Gradient with Parameter Exploration algorithm.
+    "A Survey on Policy Search for Robotics", Deisenroth M. P., Neumann G.,
+    Peters J. 2013.
+    """
+
     def __init__(self, distribution, policy, mdp_info, learning_rate,
                  features=None):
         """
@@ -134,13 +146,20 @@ class PGPE(BlackBoxOptimization):
 
 
 class REPS(BlackBoxOptimization):
+    """
+    Episodic REPS algorithm.
+    "A Survey on Policy Search for Robotics", Deisenroth M. P., Neumann G.,
+    Peters J. 2013.
+    """
+
     def __init__(self, distribution, policy, mdp_info, eps, features=None):
         """
         Constructor.
 
         Args:
-            beta (float): the temperature for the exponential
-             reward transformation.
+            eps (float): the maximum admissible value for the Kullback-Leibler
+                         divergence between the new distribution and the
+                         previous one at each update step.
 
         """
         self.eps = eps
