@@ -67,7 +67,7 @@ class ParametricPolicy(Policy):
         """
         Compute the derivative of the probability density function, in the
         specified state and action pair. Normally it is computed w.r.t. the
-        derivative of the logarithm of the probability densiti function,
+        derivative of the logarithm of the probability density function,
         exploiting the likelihood ratio trick, i.e.:
 
         .. math::
@@ -86,8 +86,9 @@ class ParametricPolicy(Policy):
     def set_weights(self, weights):
         """
         Setter.
+
         Args:
-            weights (np.ndarray): the vector of the new weight to be used by
+            weights (np.ndarray): the vector of the new weights to be used by
                                   the policy
         """
         raise NotImplementedError
@@ -95,6 +96,7 @@ class ParametricPolicy(Policy):
     def get_weights(self):
         """
         Getter.
+
         Returns:
              The current policy weights
         """
@@ -104,6 +106,7 @@ class ParametricPolicy(Policy):
     def weights_size(self):
         """
         Property.
+
         Returns:
              The size of the policy weights
         """

@@ -10,5 +10,6 @@ List of the Mushroom modules:
     mushroom.approximators
     mushroom.features
     mushroom.policy
+    mushroom.distributions
     mushroom.solvers
     mushroom.utils

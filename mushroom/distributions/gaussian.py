@@ -1,8 +1,13 @@
 import numpy as np
+from .distribution import Distribution
 from scipy.stats import multivariate_normal
 
 
-class GaussianDistribution:
+class GaussianDistribution(Distribution):
+    """
+    Gaussian distribution with fixed covariance matrix. The parameters
+    vector represents only the mean.
+    """
     def __init__(self, mu, sigma):
         self._mu = mu
         self._sigma = sigma
@@ -29,9 +34,6 @@ class GaussianDistribution:
 
         return g
 
-    def diff(self, theta):
-        return self(theta) * self.diff_log(theta)
-
     def get_parameters(self):
         return self._mu
 
@@ -43,7 +45,11 @@ class GaussianDistribution:
         return len(self._mu)
 
 
-class GaussianDiagonalDistribution:
+class GaussianDiagonalDistribution(Distribution):
+    """
+    Gaussian distribution with diagonal covariance matrix. The parameters
+    vector represents the mean and the standard deviation for each dimension.
+    """
     def __init__(self, mu, std):
         assert(len(std.shape) == 1)
         self._mu = mu
@@ -91,9 +97,6 @@ class GaussianDiagonalDistribution:
         g[n_dims:] = g_cov
         return g
 
-    def diff(self, theta):
-        return self(theta) * self.diff_log(theta)
-
     def get_parameters(self):
         rho = np.empty(self.parameters_size)
         n_dims = len(self._mu)
@@ -113,7 +116,13 @@ class GaussianDiagonalDistribution:
         return 2 * len(self._mu)
 
 
-class GaussianCholeskyDistribution:
+class GaussianCholeskyDistribution(Distribution):
+    """
+    Gaussian distribution with full covariance matrix. The parameters
+    vector represents the mean and the Cholesky decomposition of the
+    covariance matrix. This parametrization enforce the covariance matrix to be
+    positive definite.
+    """
     def __init__(self, mu, sigma):
         self._mu = mu
         self._chol_sigma = np.linalg.cholesky(sigma)
@@ -168,9 +177,6 @@ class GaussianCholeskyDistribution:
         g[n_dims:] = g_cov.T[np.tril_indices(n_dims)]
 
         return g
-
-    def diff(self, theta):
-        return self(theta) * self.diff_log(theta)
 
     def get_parameters(self):
         rho = np.empty(self.parameters_size)
