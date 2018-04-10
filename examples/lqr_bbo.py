@@ -22,17 +22,15 @@ using black box optimization algorithms.
 tqdm.monitor_interval = 0
 
 
-def experiment(alg, params, n_runs, fit_per_run, ep_per_run):
+def experiment(alg, params, n_epochs, fit_per_run, ep_per_run):
     np.random.seed()
 
     # MDP
     mdp = LQR.generate(dimensions=1)
 
-    approximator_params = dict(input_dim=mdp.info.observation_space.shape)
     approximator = Regressor(LinearApproximator,
                              input_shape=mdp.info.observation_space.shape,
-                             output_shape=mdp.info.action_space.shape,
-                             params=approximator_params)
+                             output_shape=mdp.info.action_space.shape)
 
     policy = DeterministicPolicy(mu=approximator)
 
@@ -50,7 +48,7 @@ def experiment(alg, params, n_runs, fit_per_run, ep_per_run):
     J = compute_J(dataset_eval, gamma=mdp.info.gamma)
     print('J at start : ' + str(np.mean(J)))
 
-    for i in range(n_runs):
+    for i in range(n_epochs):
         core.learn(n_episodes=fit_per_run * ep_per_run,
                    n_episodes_per_fit=ep_per_run)
         dataset_eval = core.evaluate(n_episodes=ep_per_run)
@@ -63,8 +61,8 @@ if __name__ == '__main__':
     learning_rate = AdaptiveParameter(value=0.05)
 
     algs = [REPS, RWR, PGPE]
-    params = [{'eps': 0.5}, {'beta': 1}, {'learning_rate': learning_rate}]
+    params = [{'eps': 0.5}, {'beta': 0.7}, {'learning_rate': learning_rate}]
 
     for alg, params in zip(algs, params):
         print(alg.__name__)
-        experiment(alg, params, n_runs=4, fit_per_run=10, ep_per_run=100)
+        experiment(alg, params, n_epochs=4, fit_per_run=10, ep_per_run=100)
