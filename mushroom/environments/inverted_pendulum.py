@@ -3,85 +3,94 @@ from scipy.integrate import odeint
 
 from mushroom.environments import Environment, MDPInfo
 from mushroom.utils import spaces
+from mushroom.utils.angles_utils import normalize_angle
 
 
 class InvertedPendulum(Environment):
     """
-    The Inverted Pendulum environment as presented in:
-    "Least-Squares Policy Iteration". Lagoudakis M. G. and Parr R.. 2003.
+    The Inverted Pendulum environment (continuous version) as presented in:
+    "Reinforcement Learning In Continuous Time and Space". Doya K.. 2000.
+    "Off-Policy Actor-Critic". Degris T. et al.. 2012.
+    "Deterministic Policy Gradient Algorithms". Silver D. et al. 2014.
 
     """
-    def __init__(self):
+    def __init__(self, random_start=False, m=1.0, l=1.0, g=9.8, mu=1e-2,
+                 max_u=2.0):
         """
         Constructor.
 
+        Args:
+            random_start: whether to start from a random position or from the
+                          horizontal one
+            m (float, 1.0): Mass of the pendulum
+            l (float, 1.0): Length of the pendulum
+            g (float, 9.8): gravity acceleration constant
+            mu (float, 1e-2): friction constant of the pendulum
+            max_u (float, 2.0): maximum allowed input torque
+
         """
         # MDP parameters
-        self.max_degree = np.inf
-        self.max_angular_velocity = np.inf
-        high = np.array([self.max_degree, self.max_angular_velocity])
-        self._g = 9.8
-        self._m = 2.
-        self._M = 8.
-        self._l = .5
-        self._alpha = 1. / (self._m + self._M)
-        self._dt = .1
-        self._discrete_actions = [-50., 0., 50.]
+        self._g = g
+        self._m = m
+        self._l = l
+        self._mu = mu
+        self._random = random_start
+        self._dt = 0.02
+        self._max_u = max_u
+        self._max_omega = 78.54
+        high = np.array([np.pi, self._max_omega])
 
         # MDP properties
         observation_space = spaces.Box(low=-high, high=high)
-        action_space = spaces.Discrete(3)
-        horizon = 3000
-        gamma = .95
+        action_space = spaces.Box(low=np.array([-max_u]),
+                                  high=np.array([max_u]))
+        horizon = 5000
+        gamma = .99
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
         super(InvertedPendulum, self).__init__(mdp_info)
 
     def reset(self, state=None):
         if state is None:
-            self._state = np.array([0., 0.])
+            if self._random:
+                angle = np.random.uniform(-np.pi, np.pi)
+            else:
+                angle = np.pi/2
+
+            self._state = np.array([angle, 0.])
         else:
             self._state = state
-
-        self._state[0] = self._range_pi(self._state[0])
+            self._state[0] = normalize_angle(self._state[0])
+            self._state[1] = np.maximum(-self._max_omega,
+                                        np.minimum(self._state[1],
+                                                   self._max_omega))
 
         return self._state
 
     def step(self, action):
-        action = self._discrete_actions[action[0]]
-        action += np.random.uniform(-10., 10.)
-        sa = np.append(self._state, action)
-        new_state = odeint(self._dpds, sa, [0, self._dt])
 
-        self._state = new_state[-1, :-1]
-        self._state[0] = self._range_pi(self._state[0])
+        u = np.maximum(-self._max_u, np.minimum(self._max_u, action[0]))
+        new_state = odeint(self._dynamics, self._state, [0, self._dt],
+                           (u,))
 
-        if np.abs(self._state[0]) > np.pi / 2.:
-            reward = -1
-            absorbing = True
-        else:
-            reward = 0
-            absorbing = False
+        self._state = np.array(new_state[-1])
+        self._state[0] = normalize_angle(self._state[0])
+        self._state[1] = np.maximum(-self._max_omega,
+                                    np.minimum(self._state[1],
+                                               self._max_omega))
 
-        return self._state, reward, absorbing, {}
+        reward = np.cos(self._state[0])
 
-    def _dpds(self, state_action, t):
-        angle = state_action[0]
-        velocity = state_action[1]
-        u = state_action[-1]
+        return self._state, reward, False, {}
 
-        dp = velocity
-        ds = (
-            self._g * np.sin(angle) - self._alpha * self._m * self._l * dp**2 *
-            np.sin(2 * angle) * .5 - self._alpha * np.cos(angle) * u) / (
-            4 / 3. * self._l - self._alpha * self._m * self._l * np.cos(
-                angle)**2)
+    def _dynamics(self, state, t, u):
+        theta = state[0]
+        omega = np.maximum(-self._max_omega,
+                           np.minimum(state[1], self._max_omega))
 
-        return dp, ds, 0.
+        d_theta = omega
+        d_omega = (-self._mu*omega + self._m*self._g*self._l*np.sin(theta) + u)\
+                  / (self._m*self._l**2)
 
-    @staticmethod
-    def _range_pi(angle):
-        pi_2 = np.pi * 2
-        angle = angle - pi_2 * np.floor(angle / pi_2)
+        return d_theta, d_omega
 
-        return angle if angle <= np.pi else angle - pi_2
