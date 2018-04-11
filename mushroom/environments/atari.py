@@ -1,5 +1,6 @@
+import cv2
+cv2.ocl.setUseOpenCL(False)
 import gym
-from PIL import Image
 
 from mushroom.environments import Environment, MDPInfo
 from mushroom.utils.spaces import *
@@ -51,6 +52,11 @@ class Atari(Environment):
         else:
             self._state = self._preprocess_observation(self.env.reset())
 
+        if self.env.unwrapped.get_action_meanings()[1] == 'FIRE':
+            obs, _, _, _ = self.env.step(1)  # Force FIRE action
+
+            self._state = self._preprocess_observation(obs)
+
         return self._state
 
     def step(self, action):
@@ -83,7 +89,8 @@ class Atari(Environment):
         self._episode_ends_at_life = ends_at_life
 
     def _preprocess_observation(self, obs):
-        image = Image.fromarray(obs, 'RGB').convert('L').resize(self.img_size)
+        image = cv2.cvtColor(obs, cv2.COLOR_RGB2GRAY)
+        image = cv2.resize(image, self.img_size,
+                           interpolation=cv2.INTER_LINEAR)
 
-        return np.asarray(image.getdata(), dtype=np.uint8).reshape(
-            image.size[1], image.size[0])  # Convert to array and return
+        return np.array(image, dtype=np.uint8)
