@@ -22,7 +22,8 @@ using policy gradient algorithms.
 
 tqdm.monitor_interval = 0
 
-def experiment(alg, params, n_runs, n_iterations, ep_per_run):
+
+def experiment(alg, params, n_epochs, n_iterations, ep_per_run):
     np.random.seed()
 
     # MDP
@@ -42,10 +43,8 @@ def experiment(alg, params, n_runs, n_iterations, ep_per_run):
     phi = Features(tilings=tilings)
     input_shape = (phi.size,)
 
-    approximator_params = dict(input_dim=phi.size)
     approximator = Regressor(LinearApproximator, input_shape=input_shape,
-                             output_shape=mdp.info.action_space.shape,
-                             params=approximator_params)
+                             output_shape=mdp.info.action_space.shape)
 
     policy = DeterministicPolicy(approximator)
 
@@ -63,7 +62,7 @@ def experiment(alg, params, n_runs, n_iterations, ep_per_run):
     J = compute_J(dataset_eval, gamma=mdp.info.gamma)
     print('J at start : ' + str(np.mean(J)))
 
-    for i in range(n_runs):
+    for i in range(n_epochs):
         core.learn(n_episodes=n_iterations * ep_per_run,
                    n_episodes_per_fit=ep_per_run)
         dataset_eval = core.evaluate(n_episodes=ep_per_run)
@@ -80,4 +79,4 @@ if __name__ == '__main__':
         ]
 
     for alg, params in algs_params:
-        experiment(alg, params, n_runs=25, n_iterations=10, ep_per_run=20)
+        experiment(alg, params, n_epochs=25, n_iterations=10, ep_per_run=20)
