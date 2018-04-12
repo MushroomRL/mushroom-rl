@@ -81,6 +81,11 @@ class ShipSteering(Environment):
             if new_state[0] > self.field_size \
                or new_state[1] > self.field_size \
                or new_state[0] < 0 or new_state[1] < 0:
+
+                new_state[0] = np.maximum(0, np.minimum(new_state[0],
+                                                        self.field_size))
+                new_state[1] = np.maximum(0, np.minimum(new_state[1],
+                                                        self.field_size))
                 reward = self._out_reward
                 absorbing = True
                 break
