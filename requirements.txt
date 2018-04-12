@@ -10,3 +10,4 @@ pillow
 tqdm
 h5py
 pygame
+opencv-python
