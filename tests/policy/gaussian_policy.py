@@ -121,6 +121,39 @@ def multivariate_state_std_gaussian():
 
         assert np.allclose(exact_diff, numerical_diff)
 
+
+def multivariate_state_log_std_gaussian():
+    print('Testing multivariate state log var gaussian policy...')
+    n_dims = 5
+    n_outs = 3
+
+    std = np.random.randn(n_outs)
+
+    approximator_params = dict(input_dim=n_dims)
+    mu_approximator = Regressor(LinearApproximator,
+                                input_shape=(n_dims,),
+                                output_shape=(n_outs,),
+                                params=approximator_params)
+
+    log_var_approximator = Regressor(LinearApproximator,
+                                 input_shape=(n_dims,),
+                                 output_shape=(n_outs,),
+                                 params=approximator_params)
+
+    pi = StateLogStdGaussianPolicy(mu_approximator, log_var_approximator)
+    mu_weights = np.random.rand(pi.weights_size)
+    pi.set_weights(mu_weights)
+
+    x = np.random.randn(20, n_dims)
+
+    for x_i in x:
+        state = np.atleast_1d(x_i)
+        action = pi.draw_action(state)
+        exact_diff = pi.diff(state, action)
+        numerical_diff = numerical_diff_policy(pi, state, action)
+
+        assert np.allclose(exact_diff, numerical_diff)
+
 if __name__ == '__main__':
     print('Executing policy test...')
 
@@ -128,3 +161,4 @@ if __name__ == '__main__':
     multivariate_gaussian()
     multivariate_diagonal_gaussian()
     multivariate_state_std_gaussian()
+    multivariate_state_log_std_gaussian()

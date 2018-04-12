@@ -172,7 +172,7 @@ class StateStdGaussianPolicy(ParametricPolicy):
     """
     Gaussian policy with learnable standard deviation. The Covariance matrix is
     constrained to be a diagonal matrix, where the diagonal is the squared
-    standard deviation, wich is computed for each state.
+    standard deviation, which is computed for each state.
     This is a differentiable policy for continuous action spaces.
     This policy is similar to the diagonal gaussian policy, but a parametric
     regressor is used to compute the standard deviation, so the standard
@@ -261,3 +261,95 @@ class StateStdGaussianPolicy(ParametricPolicy):
         sigma = std**2 + self._eps
 
         return mu, np.diag(sigma), std
+
+
+class StateLogStdGaussianPolicy(ParametricPolicy):
+    """
+    Gaussian policy with learnable standard deviation. The Covariance matrix is
+    constrained to be a diagonal matrix, the diagonal is computed by an
+    exponential transformation of the logarithm of the standard deviation
+    computed in each state.
+    This is a differentiable policy for continuous action spaces.
+    This policy is similar to the State std gaussian policy, but here the
+    regressor represents the logarithm of the standard deviation
+    """
+    def __init__(self, mu, log_std, eps=1e-6):
+        """
+        Constructor.
+
+        Args:
+            mu (Regressor): the regressor representing the mean w.r.t. the
+                            state
+            log_sigma (Regressor): a regressor representing the logarithm of the
+                                   variance w.r.t. the state. The output
+                                   dimensionality of the regressor must be equal
+                                   to the action dimensionality
+        """
+        assert(eps > 0)
+
+        self._mu_approximator = mu
+        self._log_std_approximator = log_std
+        self._eps = eps
+
+    def __call__(self, state, action):
+        mu, sigma = self._compute_multivariate_gaussian(state)
+
+        return multivariate_normal.pdf(action, mu, sigma)
+
+    def draw_action(self, state):
+        mu, sigma = self._compute_multivariate_gaussian(state)
+
+        return np.random.multivariate_normal(mu, sigma)
+
+    def diff_log(self, state, action):
+
+        mu, sigma = self._compute_multivariate_gaussian(state)
+        diag_sigma = np.diag(sigma)
+
+        delta = action - mu
+
+        # Compute mean derivative
+        j_mu = self._mu_approximator.diff(state)
+
+        if len(j_mu.shape) == 1:
+            j_mu = np.expand_dims(j_mu, axis=1)
+
+        sigma_inv = np.diag(1/diag_sigma)
+
+        g_mu = j_mu.dot(sigma_inv).dot(delta.T)
+
+        # Compute variance derivative
+        w = delta**2 / diag_sigma
+        j_sigma = np.atleast_2d(self._log_std_approximator.diff(state).T)
+        g_sigma = np.atleast_1d(w.dot(j_sigma)) - np.sum(j_sigma, axis=0)
+
+        return np.concatenate((g_mu, g_sigma), axis=0)
+
+    def set_weights(self, weights):
+        mu_weights = weights[0:self._mu_approximator.weights_size]
+        log_std_weights = weights[self._mu_approximator.weights_size:]
+
+        self._mu_approximator.set_weights(mu_weights)
+        self._log_std_approximator.set_weights(log_std_weights)
+
+    def get_weights(self):
+        mu_weights = self._mu_approximator.get_weights()
+        log_std_weights = self._log_std_approximator.get_weights()
+
+        return np.concatenate((mu_weights, log_std_weights), axis=0)
+
+    @property
+    def weights_size(self):
+        return self._mu_approximator.weights_size + \
+               self._log_std_approximator.weights_size
+
+    def _compute_multivariate_gaussian(self, state):
+        mu = np.reshape(self._mu_approximator.predict(
+            np.expand_dims(state, axis=0)), -1)
+
+        log_std = np.reshape(self._log_std_approximator.predict(
+            np.expand_dims(state, axis=0)), -1)
+
+        sigma = np.exp(log_std)**2
+
+        return mu, np.diag(sigma)
