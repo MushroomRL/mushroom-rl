@@ -36,6 +36,13 @@ class CollectDataset:
         """
         return self._dataset
 
+    def clean(self):
+        """
+        Deletes the current dataset
+
+        """
+        self._dataset = list()
+
 
 class CollectQ:
     """
