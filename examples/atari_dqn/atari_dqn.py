@@ -113,10 +113,12 @@ def experiment():
                          help='Exploration rate used during evaluation.')
     arg_alg.add_argument("--test-samples", type=int, default=125000,
                          help='Number of steps for each evaluation.')
-    arg_alg.add_argument("--max-no-op-actions", type=int, default=30,
+    arg_alg.add_argument("--max-no-op-actions", type=int, default=8,
                          help='Maximum number of no-op action performed at the'
                               'beginning of the episodes. The minimum number is'
-                              'history_length.')
+                              'history_length. This number is 30 in the DQN'
+                              'Deepmind paper, but they consider the first 30'
+                              'frame without frame skipping.')
     arg_alg.add_argument("--no-op-action-value", type=int, default=0,
                          help='Value of the no-op action.')
 
