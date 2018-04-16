@@ -322,6 +322,8 @@ def experiment():
 
             np.save(folder_name + '/scores.npy', scores)
 
+        core.stop()
+
     return scores
 
 

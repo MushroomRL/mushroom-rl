@@ -34,6 +34,7 @@ class Core(object):
         self._n_episodes = None
         self._n_steps_per_fit = None
         self._n_episodes_per_fit = None
+        self._last = None
 
     def learn(self, n_steps=None, n_episodes=None, n_steps_per_fit=None,
               n_episodes_per_fit=None, render=False, quiet=False, resume=False):
@@ -140,6 +141,9 @@ class Core(object):
             self.reset(initial_states)
 
         while move_condition():
+            if self._last:
+                self.reset(initial_states)
+
             sample = self._step(render)
             dataset.append(sample)
             self._total_steps_counter += 1
@@ -162,11 +166,10 @@ class Core(object):
 
                 dataset = list()
 
-            if sample[-1]:
-                self.reset(initial_states)
+            self._last = sample[-1]
 
-        self.agent.stop()
-        self.mdp.stop()
+        if not resume:
+            self.stop()
 
         return dataset
 
@@ -213,3 +216,12 @@ class Core(object):
         self._state = self.mdp.reset(initial_state)
         self.agent.episode_start()
         self._episode_steps = 0
+        self._last = False
+
+    def stop(self):
+        """
+        Stop the agent and the environment.
+
+        """
+        self.agent.stop()
+        self.mdp.stop()
