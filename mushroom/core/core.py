@@ -34,10 +34,9 @@ class Core(object):
         self._n_episodes = None
         self._n_steps_per_fit = None
         self._n_episodes_per_fit = None
-        self._last = None
 
     def learn(self, n_steps=None, n_episodes=None, n_steps_per_fit=None,
-              n_episodes_per_fit=None, render=False, quiet=False, resume=False):
+              n_episodes_per_fit=None, render=False, quiet=False):
         """
         This function moves the agent in the environment and fits the policy
         using the collected samples. The agent can be moved for a given number
@@ -53,9 +52,7 @@ class Core(object):
             n_episodes_per_fit (int, None): number of episodes between each fit
                 of the policy;
             render (bool, False): whether to render the environment or not;
-            quiet (bool, False): whether to show the progress bar or not;
-            resume (bool, False): whether to restart from the last state reached
-                or reset the mdp.
+            quiet (bool, False): whether to show the progress bar or not.
 
         """
         assert (n_episodes_per_fit is not None and n_steps_per_fit is None)\
@@ -71,10 +68,10 @@ class Core(object):
             fit_condition = lambda: self._current_episodes_counter\
                                      >= self._n_episodes_per_fit
 
-        self._run(n_steps, n_episodes, fit_condition, render, quiet, resume)
+        self._run(n_steps, n_episodes, fit_condition, render, quiet)
 
     def evaluate(self, initial_states=None, n_steps=None, n_episodes=None,
-                 render=False, quiet=False, resume=False):
+                 render=False, quiet=False):
         """
         This function moves the agent in the environment using its policy.
         The agent is moved for a provided number of steps, episodes, or from
@@ -87,18 +84,16 @@ class Core(object):
             n_steps (int, None): number of steps to move the agent;
             n_episodes (int, None): number of episodes to move the agent;
             render (bool, False): whether to render the environment or not;
-            quiet (bool, False): whether to show the progress bar or not;
-            resume (bool, False): whether to restart from the last state reached
-                or reset the mdp.
+            quiet (bool, False): whether to show the progress bar or not.
 
         """
         fit_condition = lambda: False
 
         return self._run(n_steps, n_episodes, fit_condition, render, quiet,
-                         resume, initial_states)
+                         initial_states)
 
     def _run(self, n_steps, n_episodes, fit_condition, render, quiet,
-             resume, initial_states=None):
+             initial_states=None):
         assert n_episodes is not None and n_steps is None and initial_states is None\
             or n_episodes is None and n_steps is not None and initial_states is None\
             or n_episodes is None and n_steps is None and initial_states is not None
@@ -125,23 +120,19 @@ class Core(object):
                                          leave=False)
 
         return self._run_impl(move_condition, fit_condition, steps_progress_bar,
-                              episodes_progress_bar, render, initial_states,
-                              resume)
+                              episodes_progress_bar, render, initial_states)
 
     def _run_impl(self, move_condition, fit_condition, steps_progress_bar,
-                  episodes_progress_bar, render, initial_states, resume):
+                  episodes_progress_bar, render, initial_states):
         self._total_episodes_counter = 0
         self._total_steps_counter = 0
         self._current_episodes_counter = 0
         self._current_steps_counter = 0
 
         dataset = list()
-
-        if not resume:
-            self.reset(initial_states)
-
+        last = True
         while move_condition():
-            if self._last:
+            if last:
                 self.reset(initial_states)
 
             sample = self._step(render)
@@ -166,10 +157,10 @@ class Core(object):
 
                 dataset = list()
 
-            self._last = sample[-1]
+            last = sample[-1]
 
-        if not resume:
-            self.stop()
+        self.agent.stop()
+        self.mdp.stop()
 
         return dataset
 
@@ -216,12 +207,3 @@ class Core(object):
         self._state = self.mdp.reset(initial_state)
         self.agent.episode_start()
         self._episode_steps = 0
-        self._last = False
-
-    def stop(self):
-        """
-        Stop the agent and the environment.
-
-        """
-        self.agent.stop()
-        self.mdp.stop()

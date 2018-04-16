@@ -216,8 +216,6 @@ def experiment():
         # MDP
         mdp = Atari(args.name, args.screen_width, args.screen_height,
                     ends_at_life=True)
-        mdp_test = Atari(args.name, args.screen_width, args.screen_height,
-                         ends_at_life=False)
 
         # Policy
         epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
@@ -273,7 +271,6 @@ def experiment():
 
         # Algorithm
         core = Core(agent, mdp)
-        core_test = Core(agent, mdp_test)
 
         # RUN
 
@@ -289,8 +286,9 @@ def experiment():
         pi.set_epsilon(epsilon_test)
         if args.algorithm == 'ddqn':
             agent.policy.set_q(agent.target_approximator)
-        dataset = core_test.evaluate(n_steps=test_samples, render=args.render,
-                                     quiet=args.quiet)
+        mdp.set_episode_end(False)
+        dataset = core.evaluate(n_steps=test_samples, render=args.render,
+                                quiet=args.quiet)
         scores.append(get_stats(dataset))
         if args.algorithm == 'ddqn':
             agent.policy.set_q(agent.approximator)
@@ -301,9 +299,9 @@ def experiment():
             print('- Learning:')
             # learning step
             pi.set_epsilon(epsilon)
+            mdp.set_episode_end(True)
             core.learn(n_steps=evaluation_frequency,
-                       n_steps_per_fit=train_frequency, quiet=args.quiet,
-                       resume=True)
+                       n_steps_per_fit=train_frequency, quiet=args.quiet)
 
             if args.save:
                 agent.approximator.model.save()
@@ -313,16 +311,14 @@ def experiment():
             pi.set_epsilon(epsilon_test)
             if args.algorithm == 'ddqn':
                 agent.policy.set_q(agent.target_approximator)
-            dataset = core_test.evaluate(n_steps=test_samples,
-                                         render=args.render,
-                                         quiet=args.quiet)
+            mdp.set_episode_end(False)
+            dataset = core.evaluate(n_steps=test_samples, render=args.render,
+                                    quiet=args.quiet)
             scores.append(get_stats(dataset))
             if args.algorithm == 'ddqn':
                 agent.policy.set_q(agent.approximator)
 
             np.save(folder_name + '/scores.npy', scores)
-
-        core.stop()
 
     return scores
 
