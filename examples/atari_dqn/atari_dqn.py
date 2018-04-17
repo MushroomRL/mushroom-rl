@@ -169,6 +169,10 @@ def experiment():
 
         # Agent
         algorithm_params = dict(
+            batch_size=1,
+            train_frequency=1,
+            target_update_frequency=1,
+            initial_replay_size=0,
             max_replay_size=0,
             history_length=args.history_length,
             max_no_op_actions=args.max_no_op_actions,
