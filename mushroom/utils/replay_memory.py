@@ -7,16 +7,18 @@ class Buffer(object):
     state of the agent to provide to the policy.
 
     """
-    def __init__(self, size):
+    def __init__(self, size, dtype=np.float32):
         """
         Constructor.
 
         Args:
             size (int): number of elements for each state (e.g. number of frames
-                for each Atari state).
+                for each Atari state);
+            dtype (object): dtype of the state array.
 
         """
         self._size = size
+        self._dtype = dtype
 
         self._buf = [None] * self._size
 
@@ -37,7 +39,7 @@ class Buffer(object):
             The elements in the buffer.
 
         """
-        s = np.empty(self._buf[0].shape + (self._size,), dtype=np.float32)
+        s = np.empty(self._buf[0].shape + (self._size,), dtype=self._dtype)
         for i in range(self._size):
             s[..., i] = self._buf[i]
 
@@ -64,7 +66,8 @@ class ReplayMemory(object):
     game.
 
     """
-    def __init__(self, mdp_info, initial_size, max_size, history_length=1):
+    def __init__(self, mdp_info, initial_size, max_size, history_length=1,
+                 dtype=np.float32):
         """
         Constructor.
 
@@ -75,24 +78,20 @@ class ReplayMemory(object):
             max_size (int): maximum number of elements that the replay memory
                 can contain;
             history_length (int, 1): number of frames to concatenate to compose
-                the state.
+                the state;
+            dtype (object, np.float32): dtype of the state array.
 
         """
         self._initial_size = initial_size
         self._max_size = max_size
         self._history_length = history_length
-        self._idx = 0
-        self._full = False
+        self._dtype = dtype
 
         self._observation_shape = tuple(
             [self._max_size]) + mdp_info.observation_space.shape
         self._action_shape = (self._max_size, mdp_info.action_space.shape[0])
 
-        self._states = np.ones(self._observation_shape, dtype=np.float32)
-        self._actions = np.ones(self._action_shape, dtype=np.float32)
-        self._rewards = np.ones(self._max_size, dtype=np.float32)
-        self._absorbing = np.ones(self._max_size, dtype=np.bool)
-        self._last = np.ones(self._max_size, dtype=np.bool)
+        self.reset()
 
     def add(self, dataset):
         """
@@ -116,7 +115,9 @@ class ReplayMemory(object):
 
     def get(self, n_samples):
         """
-        Returns the provided number of states from the replay memory.
+        Returns the provided number of states from the replay memory. Indexes
+        are checked in order to guarantee that all concatenated states belong to
+        the same episode.
 
         Args:
             n_samples (int): the number of states to return.
@@ -125,7 +126,14 @@ class ReplayMemory(object):
             The requested number of states.
 
         """
-        idxs = np.random.randint(self.size, size=n_samples)
+        idxs = np.zeros(n_samples, dtype=int)
+        for i in range(n_samples):
+            while True:
+                idx = np.random.randint(self.size)
+                if self._last[idx - self._history_length:idx].any():
+                    continue
+                idxs[i] = idx
+                break
 
         return self.get_idxs(idxs)
 
@@ -184,7 +192,7 @@ class ReplayMemory(object):
 
         """
         s = np.empty((idxs.size,) + self._states.shape[1:] + (
-            self._history_length,), dtype=np.float32)
+            self._history_length,), dtype=self._dtype)
         for j, idx in enumerate(idxs):
             if idx >= self._history_length - 1:
                 for k in range(self._history_length):
@@ -205,8 +213,8 @@ class ReplayMemory(object):
         """
         self._idx = 0
         self._full = False
-        self._states = np.ones(self._observation_shape, dtype=np.float32)
-        self._actions = np.ones(self._action_shape, dtype=np.float32)
+        self._states = np.ones(self._observation_shape, dtype=self._dtype)
+        self._actions = np.ones(self._action_shape, dtype=np.uint8)
         self._rewards = np.ones(self._max_size, dtype=np.float32)
         self._absorbing = np.ones(self._max_size, dtype=np.bool)
         self._last = np.ones(self._max_size, dtype=np.bool)

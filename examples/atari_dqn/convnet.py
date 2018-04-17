@@ -94,8 +94,9 @@ class ConvNet:
                                      shape=[None] + list(
                                          convnet_pars['input_shape']),
                                      name='input')
+            scaled_x = self._x / 255.
             hidden_1 = tf.layers.conv2d(
-                self._x, 32, 8, 4, activation=tf.nn.relu,
+                scaled_x, 32, 8, 4, activation=tf.nn.relu,
                 kernel_initializer=tf.glorot_uniform_initializer(),
                 bias_initializer=tf.glorot_uniform_initializer(),
                 name='hidden_1'

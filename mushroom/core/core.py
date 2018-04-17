@@ -42,7 +42,7 @@ class Core(object):
         using the collected samples. The agent can be moved for a given number
         of steps or a given number of episodes and, independently from this
         choice, the policy can be fitted after a given number of steps or a
-        given number of episodes.
+        given number of episodes. By default, the environment is reset.
 
         Args:
             n_steps (int, None): number of steps to move the agent;
@@ -75,7 +75,8 @@ class Core(object):
         """
         This function moves the agent in the environment using its policy.
         The agent is moved for a provided number of steps, episodes, or from
-        a set of initial states for the whole episode.
+        a set of initial states for the whole episode. By default, the
+        environment is reset.
 
         Args:
             initial_states (np.ndarray, None): the starting states of each
@@ -131,7 +132,6 @@ class Core(object):
         dataset = list()
         last = True
         while move_condition():
-
             if last:
                 self.reset(initial_states)
 

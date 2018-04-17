@@ -18,7 +18,7 @@ class DQN(Agent):
                  train_frequency, target_update_frequency, initial_replay_size,
                  max_replay_size, fit_params=None, approximator_params=None,
                  n_approximators=1, history_length=1, clip_reward=True,
-                 max_no_op_actions=0, no_op_action_value=0):
+                 max_no_op_actions=0, no_op_action_value=0, dtype=np.float32):
         """
         Constructor.
 
@@ -42,7 +42,8 @@ class DQN(Agent):
             clip_reward (bool, True): whether to clip the reward or not;
             max_no_op_actions (int, 0): maximum number of no-op actions that
                 can be sampled;
-            no_op_action_value (int, 0): value of the no-op action.
+            no_op_action_value (int, 0): value of the no-op action;
+            dtype (object, np.float32): dtype of the state array.
 
         """
         self._fit_params = dict() if fit_params is None else fit_params
@@ -50,14 +51,14 @@ class DQN(Agent):
         self._batch_size = batch_size
         self._n_approximators = n_approximators
         self._clip_reward = clip_reward
-        self._train_frequency = train_frequency
-        self._target_update_frequency = target_update_frequency
+        self._target_update_frequency = target_update_frequency / train_frequency
         self._max_no_op_actions = max_no_op_actions
         self._no_op_action_value = no_op_action_value
 
         self._replay_memory = ReplayMemory(mdp_info, initial_replay_size,
-                                           max_replay_size, history_length)
-        self._buffer = Buffer(size=history_length)
+                                           max_replay_size, history_length,
+                                           dtype)
+        self._buffer = Buffer(history_length, dtype)
 
         self._n_updates = 0
         self._episode_steps = 0

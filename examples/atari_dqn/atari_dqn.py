@@ -113,10 +113,12 @@ def experiment():
                          help='Exploration rate used during evaluation.')
     arg_alg.add_argument("--test-samples", type=int, default=125000,
                          help='Number of steps for each evaluation.')
-    arg_alg.add_argument("--max-no-op-actions", type=int, default=30,
+    arg_alg.add_argument("--max-no-op-actions", type=int, default=8,
                          help='Maximum number of no-op action performed at the'
                               'beginning of the episodes. The minimum number is'
-                              'history_length.')
+                              'history_length. This number is 30 in the DQN'
+                              'Deepmind paper, but they consider the first 30'
+                              'frame without frame skipping.')
     arg_alg.add_argument("--no-op-action-value", type=int, default=0,
                          help='Value of the no-op action.')
 
@@ -142,7 +144,7 @@ def experiment():
     if args.load_path:
         # MDP
         mdp = Atari(args.name, args.screen_width, args.screen_height,
-                    ends_at_life=True)
+                    ends_at_life=False)
 
         # Policy
         epsilon_test = Parameter(value=args.test_exploration_rate)
@@ -155,7 +157,6 @@ def experiment():
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            input_preprocessor=[Scaler(mdp.info.observation_space.high[0, 0])],
             name='test',
             load_path=args.load_path,
             optimizer={'name': args.optimizer,
@@ -168,10 +169,15 @@ def experiment():
 
         # Agent
         algorithm_params = dict(
+            batch_size=1,
+            train_frequency=1,
+            target_update_frequency=1,
+            initial_replay_size=0,
             max_replay_size=0,
             history_length=args.history_length,
             max_no_op_actions=args.max_no_op_actions,
-            no_op_action_value=args.no_op_action_value
+            no_op_action_value=args.no_op_action_value,
+            dtype=np.uint8
         )
         agent = DQN(approximator, pi, mdp.info,
                     approximator_params=approximator_params, **algorithm_params)
@@ -181,7 +187,6 @@ def experiment():
 
         # Evaluate model
         pi.set_epsilon(epsilon_test)
-        mdp.set_episode_end(ends_at_life=False)
         dataset = core_test.evaluate(n_steps=args.test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
@@ -230,8 +235,6 @@ def experiment():
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            input_preprocessor=[Scaler(
-                mdp.info.observation_space.high[0, 0])],
             folder_name=folder_name,
             optimizer={'name': args.optimizer,
                        'lr': args.learning_rate,
@@ -251,7 +254,8 @@ def experiment():
             train_frequency=train_frequency,
             target_update_frequency=target_update_frequency,
             max_no_op_actions=args.max_no_op_actions,
-            no_op_action_value=args.no_op_action_value
+            no_op_action_value=args.no_op_action_value,
+            dtype=np.uint8
         )
 
         if args.algorithm == 'dqn':
@@ -282,9 +286,9 @@ def experiment():
 
         # Evaluate initial policy
         pi.set_epsilon(epsilon_test)
-        mdp.set_episode_end(ends_at_life=False)
         if args.algorithm == 'ddqn':
             agent.policy.set_q(agent.target_approximator)
+        mdp.set_episode_end(False)
         dataset = core.evaluate(n_steps=test_samples, render=args.render,
                                 quiet=args.quiet)
         scores.append(get_stats(dataset))
@@ -297,10 +301,9 @@ def experiment():
             print('- Learning:')
             # learning step
             pi.set_epsilon(epsilon)
-            mdp.set_episode_end(ends_at_life=True)
+            mdp.set_episode_end(True)
             core.learn(n_steps=evaluation_frequency,
-                       n_steps_per_fit=train_frequency,
-                       quiet=args.quiet)
+                       n_steps_per_fit=train_frequency, quiet=args.quiet)
 
             if args.save:
                 agent.approximator.model.save()
@@ -308,9 +311,9 @@ def experiment():
             print('- Evaluation:')
             # evaluation step
             pi.set_epsilon(epsilon_test)
-            mdp.set_episode_end(ends_at_life=False)
             if args.algorithm == 'ddqn':
                 agent.policy.set_q(agent.target_approximator)
+            mdp.set_episode_end(False)
             dataset = core.evaluate(n_steps=test_samples, render=args.render,
                                     quiet=args.quiet)
             scores.append(get_stats(dataset))
