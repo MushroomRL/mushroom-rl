@@ -187,7 +187,6 @@ def experiment():
 
         # Evaluate model
         pi.set_epsilon(epsilon_test)
-        mdp.set_episode_end(ends_at_life=False)
         dataset = core_test.evaluate(n_steps=args.test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
