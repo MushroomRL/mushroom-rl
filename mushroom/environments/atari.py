@@ -74,6 +74,7 @@ class Atari(Environment):
         self._max_lives = self.env.unwrapped.ale.lives()
         self._lives = self._max_lives
         self._force_fire = None
+        self._real_reset = True
 
         # MDP properties
         action_space = Discrete(self.env.action_space.n)
@@ -87,7 +88,7 @@ class Atari(Environment):
 
     def reset(self, state=None):
         if self._episode_ends_at_life:
-            if self._lives == 0 or self._lives == self._max_lives:
+            if self._real_reset:
                 self._state = self._preprocess_observation(self.env.reset())
                 self._lives = self._max_lives
         else:
@@ -104,6 +105,7 @@ class Atari(Environment):
             self._force_fire = False
 
         obs, reward, absorbing, info = self.env.step(action)
+        self._real_reset = absorbing
         if info['ale.lives'] != self._lives:
             if self._episode_ends_at_life:
                 absorbing = True
@@ -119,6 +121,7 @@ class Atari(Environment):
 
     def stop(self):
         self.env.close()
+        self._real_reset = True
 
     def set_episode_end(self, ends_at_life):
         """
