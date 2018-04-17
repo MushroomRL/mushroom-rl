@@ -87,12 +87,9 @@ class Atari(Environment):
         super(Atari, self).__init__(mdp_info)
 
     def reset(self, state=None):
-        if self._episode_ends_at_life:
-            if self._real_reset:
-                self._state = self._preprocess_observation(self.env.reset())
-                self._lives = self._max_lives
-        else:
+        if self._real_reset:
             self._state = self._preprocess_observation(self.env.reset())
+            self._lives = self._max_lives
 
         self._force_fire = self.env.unwrapped.get_action_meanings()[1] == 'FIRE'
 
