@@ -157,7 +157,6 @@ def experiment():
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            input_preprocessor=[Scaler(mdp.info.observation_space.high[0, 0])],
             name='test',
             load_path=args.load_path,
             optimizer={'name': args.optimizer,
@@ -173,7 +172,8 @@ def experiment():
             max_replay_size=0,
             history_length=args.history_length,
             max_no_op_actions=args.max_no_op_actions,
-            no_op_action_value=args.no_op_action_value
+            no_op_action_value=args.no_op_action_value,
+            dtype=np.uint8
         )
         agent = DQN(approximator, pi, mdp.info,
                     approximator_params=approximator_params, **algorithm_params)
@@ -232,8 +232,6 @@ def experiment():
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            input_preprocessor=[Scaler(
-                mdp.info.observation_space.high[0, 0])],
             folder_name=folder_name,
             optimizer={'name': args.optimizer,
                        'lr': args.learning_rate,
@@ -253,7 +251,8 @@ def experiment():
             train_frequency=train_frequency,
             target_update_frequency=target_update_frequency,
             max_no_op_actions=args.max_no_op_actions,
-            no_op_action_value=args.no_op_action_value
+            no_op_action_value=args.no_op_action_value,
+            dtype=np.uint8
         )
 
         if args.algorithm == 'dqn':
