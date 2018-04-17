@@ -127,16 +127,14 @@ class ReplayMemory(object):
             The requested number of states.
 
         """
-        idxs = list()
-        for _ in range(n_samples):
+        idxs = np.empty(n_samples)
+        for i in range(n_samples):
             while True:
                 idx = np.random.randint(self.size)
                 if self._absorbing[idx - self._history_length:idx].any():
                     continue
-                idxs.append(idx)
+                idxs[i] = idx
                 break
-
-        idxs = np.array(idxs)
 
         return self.get_idxs(idxs)
 
