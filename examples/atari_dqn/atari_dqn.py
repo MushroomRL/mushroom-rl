@@ -144,7 +144,7 @@ def experiment():
     if args.load_path:
         # MDP
         mdp = Atari(args.name, args.screen_width, args.screen_height,
-                    ends_at_life=True)
+                    ends_at_life=False)
 
         # Policy
         epsilon_test = Parameter(value=args.test_exploration_rate)
