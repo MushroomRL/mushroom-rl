@@ -131,7 +131,7 @@ class ReplayMemory(object):
         for i in range(n_samples):
             while True:
                 idx = np.random.randint(self.size)
-                if self._absorbing[idx - self._history_length:idx].any():
+                if self._last[idx - self._history_length:idx].any():
                     continue
                 idxs[i] = idx
                 break
