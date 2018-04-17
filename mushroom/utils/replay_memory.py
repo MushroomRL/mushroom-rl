@@ -116,7 +116,9 @@ class ReplayMemory(object):
 
     def get(self, n_samples):
         """
-        Returns the provided number of states from the replay memory.
+        Returns the provided number of states from the replay memory. Indexes
+        are checked in order to guarantee that all concatenated states belong to
+        the same episode.
 
         Args:
             n_samples (int): the number of states to return.
@@ -125,7 +127,16 @@ class ReplayMemory(object):
             The requested number of states.
 
         """
-        idxs = np.random.randint(self.size, size=n_samples)
+        idxs = list()
+        for _ in range(n_samples):
+            while True:
+                idx = np.random.randint(self.size)
+                if self._absorbing[idx - self._history_length:idx].any():
+                    continue
+                idxs.append(idx)
+                break
+
+        idxs = np.array(idxs)
 
         return self.get_idxs(idxs)
 
