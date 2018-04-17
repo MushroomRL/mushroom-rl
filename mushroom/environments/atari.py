@@ -71,9 +71,9 @@ class Atari(Environment):
         # MDP parameters
         self.img_size = (width, height)
         self._episode_ends_at_life = ends_at_life
-        self._max_lives = self.env.env.env.ale.lives()
+        self._max_lives = self.env.unwrapped.ale.lives()
         self._lives = self._max_lives
-        self._force_fire = self.env.unwrapped.get_action_meanings()[1] == 'FIRE'
+        self._force_fire = None
 
         # MDP properties
         action_space = Discrete(self.env.action_space.n)
@@ -92,6 +92,8 @@ class Atari(Environment):
                 self._lives = self._max_lives
         else:
             self._state = self._preprocess_observation(self.env.reset())
+
+        self._force_fire = self.env.unwrapped.get_action_meanings()[1] == 'FIRE'
 
         return self._state
 
