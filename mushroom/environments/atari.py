@@ -33,6 +33,7 @@ class Atari(Environment):
         self._episode_ends_at_life = ends_at_life
         self._max_lives = self.env.env.ale.lives()
         self._lives = self._max_lives
+        self._force_fire = self.env.unwrapped.get_action_meanings()[1] == 'FIRE'
 
         # MDP properties
         action_space = Discrete(self.env.action_space.n)
@@ -52,20 +53,20 @@ class Atari(Environment):
         else:
             self._state = self._preprocess_observation(self.env.reset())
 
-        if self.env.unwrapped.get_action_meanings()[1] == 'FIRE':
-            obs, _, _, _ = self.env.step(1)  # Force FIRE action
-
-            self._state = self._preprocess_observation(obs)
-
         return self._state
 
     def step(self, action):
-        obs, reward, absorbing, info = self.env.step(action)
+        # Force FIRE action to start episodes in games with lives
+        if self._force_fire:
+            obs, _, _, _ = self.env.step(1)
+            self._force_fire = False
 
-        if self._episode_ends_at_life:
-            if info['ale.lives'] != self._lives:
+        obs, reward, absorbing, info = self.env.step(action)
+        if info['ale.lives'] != self._lives:
+            if self._episode_ends_at_life:
                 absorbing = True
-                self._lives = info['ale.lives']
+            self._lives = info['ale.lives']
+            self._force_fire = True
 
         self._state = self._preprocess_observation(obs)
 
