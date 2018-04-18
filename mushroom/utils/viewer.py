@@ -96,6 +96,7 @@ class Viewer:
 
         """
         center = self._transform(center)
+        radius = int(radius*self._ratio[0])
         pygame.draw.circle(self.screen, color, center, radius, width)
 
     def display(self, s):
@@ -120,7 +121,7 @@ class Viewer:
 
     def _transform(self, p):
         return np.array([p[0]*self._ratio[0],
-                         self._height - p[1]*self._ratio[1]])
+                         self._height - p[1]*self._ratio[1]]).astype(int)
 
     def _rotate(self, p, theta):
         return np.array([np.cos(theta)*p[0] - np.sin(theta)*p[1],

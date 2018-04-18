@@ -4,6 +4,7 @@ from scipy.integrate import odeint
 from mushroom.environments import Environment, MDPInfo
 from mushroom.utils import spaces
 from mushroom.utils.angles_utils import normalize_angle
+from mushroom.utils.viewer import Viewer
 
 
 class InvertedPendulum(Environment):
@@ -15,7 +16,7 @@ class InvertedPendulum(Environment):
 
     """
     def __init__(self, random_start=False, m=1.0, l=1.0, g=9.8, mu=1e-2,
-                 max_u=2.0):
+                 max_u=2.0, horizon=5000):
         """
         Constructor.
 
@@ -35,7 +36,7 @@ class InvertedPendulum(Environment):
         self._l = l
         self._mu = mu
         self._random = random_start
-        self._dt = 0.02
+        self._dt = 0.01
         self._max_u = max_u
         self._max_omega = 78.54
         high = np.array([np.pi, self._max_omega])
@@ -44,9 +45,11 @@ class InvertedPendulum(Environment):
         observation_space = spaces.Box(low=-high, high=high)
         action_space = spaces.Box(low=np.array([-max_u]),
                                   high=np.array([max_u]))
-        horizon = 5000
         gamma = .99
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+
+        # Visualization
+        self._viewer = Viewer(2.5*l, 2.5*l)
 
         super(InvertedPendulum, self).__init__(mdp_info)
 
@@ -68,7 +71,6 @@ class InvertedPendulum(Environment):
         return self._state
 
     def step(self, action):
-
         u = np.maximum(-self._max_u, np.minimum(self._max_u, action[0]))
         new_state = odeint(self._dynamics, self._state, [0, self._dt],
                            (u,))
@@ -82,6 +84,22 @@ class InvertedPendulum(Environment):
         reward = np.cos(self._state[0])
 
         return self._state, reward, False, {}
+
+    def render(self, mode='human'):
+        start = 1.25*self._l*np.ones(2)
+        end = 1.25*self._l*np.ones(2)
+
+        end[0] += self._l*np.sin(self._state[0])
+        end[1] += self._l*np.cos(self._state[0])
+
+        self._viewer.line(start, end)
+        self._viewer.circle(start, self._l/40)
+        self._viewer.circle(end, self._l/20)
+
+        self._viewer.display(self._dt)
+
+    def stop(self):
+        self._viewer.close()
 
     def _dynamics(self, state, t, u):
         theta = state[0]
