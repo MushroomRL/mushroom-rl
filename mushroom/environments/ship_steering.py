@@ -112,14 +112,14 @@ class ShipSteering(Environment):
                           width=3)
 
         boat = [
-            [-2, -2],
-            [-2, 2],
-            [2, 2],
-            [4, 0.0],
-            [2, -2]
+            [-4, -4],
+            [-4, 4],
+            [4, 4],
+            [8, 0.0],
+            [4, -4]
         ]
         self._viewer.polygon(self._state[:2], self._state[2], boat,
-                             color=(104, 64, 27))
+                             color=(32, 193, 54))
 
         self._viewer.display(self._dt)
 
