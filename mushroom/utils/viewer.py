@@ -68,9 +68,9 @@ class Viewer:
         """
         Draw a polygon on the screen and apply a rototranslation to it.
         Args:
-            center: the center of the polygon
-            angle: the rotation to apply to the polygon
-            points: the points of the polygon w.r.t. the center
+            center (np.ndarray): the center of the polygon
+            angle (float): the rotation to apply to the polygon
+            points (list): the points of the polygon w.r.t. the center
             color (tuple, (255, 255, 255)) : the color of the polygon
             width (int, 0): the width of the polygon line, 0 to fill the polygon
 
@@ -85,6 +85,19 @@ class Viewer:
 
         pygame.draw.polygon(self.screen, color, poly, width)
 
+    def circle(self, center, radius, color=(255, 255, 255), width=0):
+        """
+        Draw a circle on the screen.
+        Args:
+            center (np.ndarray): the center of the circle
+            radius (float): the radius of the circle
+            color (tuple, (255, 255, 255)) : the color of the circle
+            width (int, 0): the width of the circle line, 0 to fill the circle
+
+        """
+        center = self._transform(center)
+        pygame.draw.circle(self.screen, color, center, radius, width)
+
     def display(self, s):
         """
         Display current frame and initialize the next frame to the background
@@ -95,7 +108,7 @@ class Viewer:
         """
         pygame.display.flip()
         time.sleep(s)
-        self.screen.fill((0, 0, 0))
+        self.screen.fill(self._background)
 
     def close(self):
         """

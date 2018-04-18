@@ -50,7 +50,8 @@ class ShipSteering(Environment):
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
         # Visualization
-        self._viewer = Viewer(self.field_size, self.field_size)
+        self._viewer = Viewer(self.field_size, self.field_size,
+                              background=(66, 131, 237))
 
         super(ShipSteering, self).__init__(mdp_info)
 
@@ -107,7 +108,8 @@ class ShipSteering(Environment):
         return self._state, reward, absorbing, {}
 
     def render(self, mode='human'):
-        self._viewer.line(self._gate_s, self._gate_e)
+        self._viewer.line(self._gate_s, self._gate_e,
+                          width=3)
 
         boat = [
             [-2, -2],
@@ -116,7 +118,8 @@ class ShipSteering(Environment):
             [4, 0.0],
             [2, -2]
         ]
-        self._viewer.polygon(self._state[:2], self._state[2], boat)
+        self._viewer.polygon(self._state[:2], self._state[2], boat,
+                             color=(104, 64, 27))
 
         self._viewer.display(self._dt)
 
