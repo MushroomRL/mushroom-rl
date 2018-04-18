@@ -3,6 +3,7 @@ import numpy as np
 from mushroom.environments import Environment, MDPInfo
 from mushroom.utils import spaces
 from mushroom.utils.angles_utils import normalize_angle
+from mushroom.utils.viewer import Viewer
 
 
 class ShipSteering(Environment):
@@ -47,6 +48,9 @@ class ShipSteering(Environment):
         horizon = 5000
         gamma = .99
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+
+        # Visualization
+        self._viewer = Viewer(self.field_size, self.field_size)
 
         super(ShipSteering, self).__init__(mdp_info)
 
@@ -101,6 +105,23 @@ class ShipSteering(Environment):
         self._state = new_state
 
         return self._state, reward, absorbing, {}
+
+    def render(self, mode='human'):
+        self._viewer.line(self._gate_s, self._gate_e)
+
+        boat = [
+            [-2, -2],
+            [-2, 2],
+            [2, 2],
+            [4, 0.0],
+            [2, -2]
+        ]
+        self._viewer.polygon(self._state[:2], self._state[2], boat)
+
+        self._viewer.display(self._dt)
+
+    def stop(self):
+        self._viewer.close()
 
     def _through_gate(self, start, end):
         r = self._gate_e - self._gate_s
