@@ -16,7 +16,7 @@ class InvertedPendulum(Environment):
 
     """
     def __init__(self, random_start=False, m=1.0, l=1.0, g=9.8, mu=1e-2,
-                 max_u=2.0, horizon=5000):
+                 max_u=5.0, horizon=5000):
         """
         Constructor.
 
@@ -50,6 +50,7 @@ class InvertedPendulum(Environment):
 
         # Visualization
         self._viewer = Viewer(2.5*l, 2.5*l)
+        self._last_u = None
 
         super(InvertedPendulum, self).__init__(mdp_info)
 
@@ -83,6 +84,8 @@ class InvertedPendulum(Environment):
 
         reward = np.cos(self._state[0])
 
+        self._last_u = u
+
         return self._state, reward, False, {}
 
     def render(self, mode='human'):
@@ -95,6 +98,8 @@ class InvertedPendulum(Environment):
         self._viewer.line(start, end)
         self._viewer.circle(start, self._l/40)
         self._viewer.circle(end, self._l/20)
+        self._viewer.torque_arrow(start, self._last_u, self._max_u,
+                                  self._l/5)
 
         self._viewer.display(self._dt)
 
