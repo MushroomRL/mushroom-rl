@@ -2,7 +2,7 @@ numpy>=1.11
 scipy
 gym
 gym[atari]
-tensorflow==1.5
+tensorflow>=1.5
 scikit-learn>=0.17
 matplotlib
 joblib
