@@ -99,6 +99,33 @@ class Viewer:
         radius = int(radius*self._ratio[0])
         pygame.draw.circle(self.screen, color, center, radius, width)
 
+    def torque_arrow(self, center, torque, max_torque,
+                     max_radius, color=(255, 255, 255), width=1):
+
+        angle_end = 3*np.pi/2 if torque > 0 else 0
+        angle_start = 0 if torque > 0 else np.pi/2
+        radius = abs(torque)/max_torque*max_radius
+
+        r = int(radius*self._ratio[0])
+        if r != 0:
+            c = self._transform(center)
+            rect = pygame.Rect(c[0] - r, c[1] - r, 2*r, 2*r)
+            pygame.draw.arc(self.screen, color, rect,
+                            angle_start, angle_end, width)
+
+            arrow_center = center
+            arrow_center[1] -= radius*np.sign(torque)
+            arrow_scale = radius/4
+            self.arrow_head(arrow_center, arrow_scale, 0, color)
+
+    def arrow_head(self, center, scale, angle, color=(255, 255, 255)):
+        points = [[-0.5*scale, -0.5*scale],
+                  [-0.5*scale, 0.5*scale],
+                  [0.5*scale, 0]]
+
+        self.polygon(center, angle, points, color)
+
+
     def display(self, s):
         """
         Display current frame and initialize the next frame to the background
