@@ -98,7 +98,7 @@ class InvertedPendulum(Environment):
         self._viewer.line(start, end)
         self._viewer.circle(start, self._l/40)
         self._viewer.circle(end, self._l/20)
-        self._viewer.torque_arrow(start, self._last_u, self._max_u,
+        self._viewer.torque_arrow(start, -self._last_u, self._max_u,
                                   self._l/5)
 
         self._viewer.display(self._dt)
