@@ -91,8 +91,8 @@ def experiment():
     arg_alg.add_argument("--history-length", type=int, default=4,
                          help='Number of frames composing a state.')
     arg_alg.add_argument("--target-update-frequency", type=int, default=10000,
-                         help='Number of learning step before each update of'
-                              'the target network.')
+                         help='Number of collected samples before each update'
+                              'of the target network.')
     arg_alg.add_argument("--evaluation-frequency", type=int, default=250000,
                          help='Number of learning step before each evaluation.'
                               'This number represents an epoch.')
