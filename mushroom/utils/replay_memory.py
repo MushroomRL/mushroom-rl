@@ -130,7 +130,7 @@ class ReplayMemory(object):
         for i in range(n_samples):
             while True:
                 idx = np.random.randint(self.size)
-                if self._history_length > 1 and self._last[idx - self._history_length:idx].any():
+                if self._last[idx - self._history_length:idx - 1].any():
                     continue
                 idxs[i] = idx
                 break
@@ -143,7 +143,7 @@ class ReplayMemory(object):
 
         Args:
              batch_size (int): number of elements of the batch to be generated;
-             indexes (list): indexes to use to extract states;
+             indexes (list, None): indexes to use to extract states.
 
         Yields:
             A batch composed of the required number of states.
