@@ -101,6 +101,18 @@ class Viewer:
 
     def torque_arrow(self, center, torque, max_torque,
                      max_radius, color=(255, 255, 255), width=1):
+        """
+        Draw a torque arrow, i.e. a circular arrow representing a torque. The
+        radius of the arrow is directly proportional to the torque value
+        Args:
+            center (np.ndarray): the point where the torque is applied
+            torque (float): the applied torque value
+            max_torque (float): the maximum torque value
+            max_radius (float): the radius to use for the maximum torque
+            color (tuple, (255, 255, 255)): the color of the arrow
+            width (int, 1): the width of the torque arrow
+
+        """
 
         angle_end = 3*np.pi/2 if torque > 0 else 0
         angle_start = 0 if torque > 0 else np.pi/2
@@ -119,6 +131,15 @@ class Viewer:
             self.arrow_head(arrow_center, arrow_scale, 0, color)
 
     def arrow_head(self, center, scale, angle, color=(255, 255, 255)):
+        """
+        Draw an harrow head.
+        Args:
+            center (np.ndarray): the position of the arrow head
+            scale (float): scale of the arrow, correspond to the length
+            angle (float): the angle of rotation of the angle head
+            color (tuple, (255, 255, 255)): the color of the arrow
+
+        """
         points = [[-0.5*scale, -0.5*scale],
                   [-0.5*scale, 0.5*scale],
                   [0.5*scale, 0]]
