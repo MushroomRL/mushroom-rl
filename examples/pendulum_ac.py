@@ -120,8 +120,8 @@ def experiment(n_epochs, n_episodes):
     phi = Features(tilings=tilings)
 
     tilings_v = tilings + Tiles.generate(1, [1, 1],
-                             mdp.info.observation_space.low,
-                             mdp.info.observation_space.high+1e-3)
+                                         mdp.info.observation_space.low,
+                                         mdp.info.observation_space.high+1e-3)
     psi = Features(tilings=tilings_v)
 
     input_shape = (phi.size,)
@@ -138,10 +138,10 @@ def experiment(n_epochs, n_episodes):
     policy = StateLogStdGaussianPolicy(mu, std)
 
     agent = SAC_AVG(policy, mdp.info,
-                alpha_theta, alpha_v, alpha_r,
-                lambda_par=0.5,
-                value_function_features=psi,
-                policy_features=phi)
+                    alpha_theta, alpha_v, alpha_r,
+                    lambda_par=0.5,
+                    value_function_features=psi,
+                    policy_features=phi)
 
     # Train
     dataset_callback = CollectDataset()
