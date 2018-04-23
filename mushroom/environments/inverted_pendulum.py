@@ -38,7 +38,7 @@ class InvertedPendulum(Environment):
         self._random = random_start
         self._dt = 0.01
         self._max_u = max_u
-        self._max_omega = 78.54
+        self._max_omega = 5/2*np.pi
         high = np.array([np.pi, self._max_omega])
 
         # MDP properties

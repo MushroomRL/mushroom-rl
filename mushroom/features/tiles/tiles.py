@@ -63,7 +63,7 @@ class Tiles:
         return tile_index
 
     @staticmethod
-    def generate(n_tilings, n_tiles, low, high):
+    def generate(n_tilings, n_tiles, low, high, uniform=False):
         """
         Factory method to build ``n_tilings`` tilings of ``n_tiles`` tiles with
         a range between ``low`` and ``high`` for each dimension.
@@ -73,6 +73,11 @@ class Tiles:
             n_tiles (list): number of tiles for each tilings for each dimension;
             low (np.ndarray): lowest value for each dimension;
             high (np.ndarray): highest value for each dimension.
+            uniform (bool, False): if True the displacement for each tiling will
+                                   be w/n_tilings, where w is the tile width.
+                                   Otherwise, the displacement will be
+                                   k*w/n_tilings, where k=2i+1, where i is the
+                                   dimension index.
 
         Returns:
             The list of the generated tiles.
@@ -84,14 +89,29 @@ class Tiles:
         high = np.array(high, dtype=np.float)
 
         tilings = list()
-        offset = (high - low) / (np.array(n_tiles) * n_tilings - n_tilings + 1.)
+
+        shift = Tiles._compute_shift(uniform, len(low))
+        width = (high - low) / \
+                (np.array(n_tiles) * n_tilings - shift*n_tilings + shift)
+        offset = width
+
         for i in range(n_tilings):
-            x_min = low - (n_tilings - 1 - i) * offset
+            x_min = low - (n_tilings - 1 - i) * offset * shift
             x_max = high + i * offset
             x_range = [[x, y] for x, y in zip(x_min, x_max)]
             tilings.append(Tiles(x_range, n_tiles))
 
         return tilings
+
+    @staticmethod
+    def _compute_shift(uniform, n_dims):
+        if uniform:
+            return 1
+        else:
+            shift = np.empty(n_dims)
+            for i in range(n_dims):
+                shift[i] = 2*i+1
+            return shift
 
     @property
     def size(self):
