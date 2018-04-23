@@ -130,36 +130,17 @@ class ReplayMemory(object):
         for i in range(n_samples):
             while True:
                 idx = np.random.randint(self.size)
-                if self._last[idx - self._history_length:idx - 1].any():
+                if not self._check_idx(idx):
                     continue
                 idxs[i] = idx
                 break
 
-        return self.get_idxs(idxs)
+        return self._get_dataset(idxs)
 
-    def generator(self, batch_size, indexes=None):
+    def _get_dataset(self, idxs):
         """
-        Generator to iterate over the replay memory states.
-
-        Args:
-             batch_size (int): number of elements of the batch to be generated;
-             indexes (list, None): indexes to use to extract states.
-
-        Yields:
-            A batch composed of the required number of states.
-
-        """
-        indexes = np.arange(self.size) if indexes is None else indexes
-        n_batches = int(np.ceil(indexes.size / batch_size))
-        np.random.shuffle(indexes)
-        batches = [(i * batch_size, min(indexes.size, (
-            i + 1) * batch_size)) for i in range(n_batches)]
-        for (batch_start, batch_end) in batches:
-            yield self.get_idxs(indexes[batch_start:batch_end])
-
-    def get_idxs(self, idxs):
-        """
-        Returns the states a the provided indexes.
+        Returns the dataset a the provided indexes concatenating the samples
+        contained in the ``history_length`` window.
 
         Args:
             idxs (list): the indexes of the states to return.
@@ -168,10 +149,6 @@ class ReplayMemory(object):
             The states at the provided indexes.
 
         """
-        if not self._full and np.any(idxs < self._history_length):
-            idxs[np.argwhere(
-                idxs < self._history_length).ravel()] += self._history_length
-
         s = self._get_state(idxs - 1)
         ss = self._get_state(idxs)
 
@@ -205,6 +182,35 @@ class ReplayMemory(object):
                     s[j, ..., k] = self._states[index, ...]
 
         return s
+
+    def _check_idx(self, idx):
+        """
+        Check the correctness of the index. The first condition avoids the
+        concatenation of samples with samples at the end of the memory when the
+        memory is not full. The second condition avoids the concatenation of
+        samples with samples before the current index ``self._idx`` of the
+        replay memory. The third condition avoids the presence of absorbing
+        states in intermediate samples in a concatenation.
+
+        Args:
+            idx (int): index to check.
+
+        Returns:
+            A bool specifying whether the index can be used or discarded.
+
+        """
+        first_cond = idx >= self._history_length or self._full
+        second_cond = (idx >= self._idx + self._history_length) or (
+            idx < self._idx)
+        if idx >= self._history_length:
+            third_cond = not self._last[
+                idx - self._history_length:idx - 1].any()
+        else:
+            idxs = [(idx - i) % self.size for i in range(self._history_length,
+                                                         1, -1)]
+            third_cond = not self._last[idxs].any()
+
+        return first_cond and second_cond and third_cond
 
     def reset(self):
         """
