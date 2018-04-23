@@ -109,7 +109,7 @@ def experiment(n_epochs, n_episodes):
     mdp = InvertedPendulum(horizon=n_steps)
 
     # Agent
-    n_tilings = 10
+    n_tilings = 11
     alpha_r = Parameter(.0001)
     alpha_theta = Parameter(0.001/n_tilings)
     alpha_v = Parameter(.1/n_tilings)
