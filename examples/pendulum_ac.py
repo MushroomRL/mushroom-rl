@@ -160,7 +160,7 @@ def experiment(n_epochs, n_episodes):
         print('Mean Reward at iteration ' + str(i) + ': ' +
               str(np.sum(J)/n_steps/n_episodes))
 
-    print('Press a button tu run visualize the pendulum...')
+    print('Press a button to visualize the pendulum...')
     input()
     core.evaluate(n_steps=n_steps, render=True)
 
