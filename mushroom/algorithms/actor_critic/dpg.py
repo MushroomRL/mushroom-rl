@@ -17,7 +17,7 @@ class COPDAC_Q(Agent):
         self._alpha_omega = alpha_omega
         self._alpha_v = alpha_v
 
-        if value_function_features is not None:
+        if self._psi is not None:
             input_shape = (self._psi.size,)
         else:
             input_shape = mdp_info.observation_space.shape
@@ -38,16 +38,16 @@ class COPDAC_Q(Agent):
 
             s_phi = self.phi(s) if self.phi is not None else s
             s_psi = self._psi(s) if self._psi is not None else s
-            ss_phi = self.phi(ss) if self.phi is not None else ss
+            ss_psi = self._psi(ss) if self._psi is not None else ss
 
-            q_next = self._Q(ss, self._mu(ss_phi)) if not absorbing else 0
+            q_next = np.asscalar(self._V(ss_psi)) if not absorbing else 0
 
             grad_mu_s = np.atleast_2d(self._mu.diff(s_phi))
             omega = self._A.get_weights()
 
             delta = r + self.mdp_info.gamma * q_next - self._Q(s, a)
-            delta_theta = self._alpha_theta(s, a)*grad_mu_s.T.dot(
-                grad_mu_s.dot(omega))
+            delta_theta = self._alpha_theta(s, a) * \
+                          omega.dot(grad_mu_s.T).dot(grad_mu_s)
             delta_omega = self._alpha_omega(s, a)*delta*self._nu(s, a)
             delta_v = self._alpha_v(s, a)*delta*s_psi
 
@@ -60,14 +60,10 @@ class COPDAC_Q(Agent):
             v_new = self._V.get_weights() + delta_v
             self._V.set_weights(v_new)
 
-            # print('V max:', np.max(v_new))
-            # print('V min:', np.min(v_new))
-            # print('A max:', np.max(omega_new))
-            # print('A min:', np.min(omega_new))
-
     def _Q(self, state, action):
         state_psi = self._psi(state) if self._psi is not None else state
-        return self._V(state_psi) + self._A(self._nu(state, action))
+        return np.asscalar(self._V(state_psi)) + \
+               np.asscalar(self._A(self._nu(state, action)))
 
     def _nu(self, state, action):
         state_phi = self.phi(state) if self.phi is not None else state
