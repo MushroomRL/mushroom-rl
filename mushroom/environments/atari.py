@@ -80,7 +80,7 @@ class Atari(Environment):
         action_space = Discrete(self.env.action_space.n)
         observation_space = Box(
             low=0., high=255., shape=(self.img_size[1], self.img_size[0]))
-        horizon = np.inf
+        horizon = np.inf  # the gym time limit is used.
         gamma = .99
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
