@@ -206,4 +206,5 @@ class Core(object):
 
         self._state = self.mdp.reset(initial_state)
         self.agent.episode_start()
+        self.agent._next_action = None
         self._episode_steps = 0
