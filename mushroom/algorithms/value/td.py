@@ -225,7 +225,7 @@ class WeightedQLearning(TD):
             raise NotImplementedError
 
         if self._use_weighted_policy:
-            self._next_action = np.array(
+            self.next_action = np.array(
                 [np.random.choice(self.mdp_info.action_space.n, p=self._w)])
 
         return np.dot(self._w, means)
@@ -273,8 +273,8 @@ class SARSA(TD):
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
 
-        self._next_action = self.draw_action(next_state)
-        q_next = self.Q[next_state, self._next_action] if not absorbing else 0.
+        self.next_action = self.draw_action(next_state)
+        q_next = self.Q[next_state, self.next_action] if not absorbing else 0.
 
         self.Q[state, action] = q_current + self.alpha(state, action) * (
             reward + self.mdp_info.gamma * q_next - q_current)
@@ -305,8 +305,8 @@ class SARSALambdaDiscrete(TD):
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
 
-        self._next_action = self.draw_action(next_state)
-        q_next = self.Q[next_state, self._next_action] if not absorbing else 0.
+        self.next_action = self.draw_action(next_state)
+        q_next = self.Q[next_state, self.next_action] if not absorbing else 0.
 
         delta = reward + self.mdp_info.gamma * q_next - q_current
         self.e.update(state, action)
@@ -351,10 +351,10 @@ class SARSALambdaContinuous(TD):
         self.e = self.mdp_info.gamma * self._lambda * self.e + self.Q.diff(
             phi_state, action)
 
-        self._next_action = self.draw_action(next_state)
+        self.next_action = self.draw_action(next_state)
         phi_next_state = self.phi(next_state)
         q_next = self.Q.predict(phi_next_state,
-                                self._next_action) if not absorbing else 0.
+                                self.next_action) if not absorbing else 0.
 
         delta = reward + self.mdp_info.gamma * q_next - q_current
 
@@ -431,10 +431,10 @@ class TrueOnlineSARSALambda(TD):
         self.e = self.mdp_info.gamma * self._lambda * self.e + alpha * (
             1. - self.mdp_info.gamma * self._lambda * e_phi) * phi_state_action
 
-        self._next_action = self.draw_action(next_state)
+        self.next_action = self.draw_action(next_state)
         phi_next_state = self.phi(next_state)
         q_next = self.Q.predict(phi_next_state,
-                                self._next_action) if not absorbing else 0.
+                                self.next_action) if not absorbing else 0.
 
         delta = reward + self.mdp_info.gamma * q_next - self._q_old
 
@@ -553,6 +553,6 @@ class RQLearning(TD):
         if self.off_policy:
             return np.max(self.Q[next_state, :])
         else:
-            self._next_action = self.draw_action(next_state)
+            self.next_action = self.draw_action(next_state)
 
-            return self.Q[next_state, self._next_action]
+            return self.Q[next_state, self.next_action]

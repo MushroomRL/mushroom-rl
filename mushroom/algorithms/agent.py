@@ -19,7 +19,7 @@ class Agent(object):
 
         self.phi = features
 
-        self._next_action = None
+        self.next_action = None
 
     def fit(self, dataset):
         """
@@ -47,11 +47,11 @@ class Agent(object):
         if self.phi is not None:
             state = self.phi(state)
 
-        if self._next_action is None:
+        if self.next_action is None:
             return self.policy.draw_action(state)
         else:
-            action = self._next_action
-            self._next_action = None
+            action = self.next_action
+            self.next_action = None
 
             return action
 
