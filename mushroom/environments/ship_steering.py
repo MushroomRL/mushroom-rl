@@ -71,7 +71,7 @@ class ShipSteering(Environment):
 
     def step(self, action):
 
-        r = np.maximum(-self.omega_max, np.minimum(self.omega_max, action[0]))
+        r = self._bound(action[0], -self.omega_max, self.omega_max)
 
         new_state = self._state
 
@@ -87,10 +87,9 @@ class ShipSteering(Environment):
                or new_state[1] > self.field_size \
                or new_state[0] < 0 or new_state[1] < 0:
 
-                new_state[0] = np.maximum(0, np.minimum(new_state[0],
-                                                        self.field_size))
-                new_state[1] = np.maximum(0, np.minimum(new_state[1],
-                                                        self.field_size))
+                new_state[0] = self._bound(new_state[0], 0, self.field_size)
+                new_state[1] = self._bound(new_state[1], 0, self.field_size)
+
                 reward = self._out_reward
                 absorbing = True
                 break

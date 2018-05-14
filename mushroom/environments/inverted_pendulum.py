@@ -65,22 +65,20 @@ class InvertedPendulum(Environment):
         else:
             self._state = state
             self._state[0] = normalize_angle(self._state[0])
-            self._state[1] = np.maximum(-self._max_omega,
-                                        np.minimum(self._state[1],
-                                                   self._max_omega))
+            self._state[1] = self._bound(self._state[1],
+                                         -self._max_omega,self._max_omega)
 
         return self._state
 
     def step(self, action):
-        u = np.maximum(-self._max_u, np.minimum(self._max_u, action[0]))
+        u = self._bound(action[0], -self._max_u, self._max_u)
         new_state = odeint(self._dynamics, self._state, [0, self._dt],
                            (u,))
 
         self._state = np.array(new_state[-1])
         self._state[0] = normalize_angle(self._state[0])
-        self._state[1] = np.maximum(-self._max_omega,
-                                    np.minimum(self._state[1],
-                                               self._max_omega))
+        self._state[1] = self._bound(self._state[1],
+                                  -self._max_omega, self._max_omega)
 
         reward = np.cos(self._state[0])
 
@@ -108,8 +106,7 @@ class InvertedPendulum(Environment):
 
     def _dynamics(self, state, t, u):
         theta = state[0]
-        omega = np.maximum(-self._max_omega,
-                           np.minimum(state[1], self._max_omega))
+        omega = self._bound(state[1], -self._max_omega, self._max_omega)
 
         d_theta = omega
         d_omega = (-self._mu*omega + self._m*self._g*self._l*np.sin(theta) + u)\

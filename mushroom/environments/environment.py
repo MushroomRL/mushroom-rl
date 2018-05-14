@@ -1,3 +1,5 @@
+import numpy as np
+
 class MDPInfo:
     """
     This class is used to store the information of the environment.
@@ -111,3 +113,17 @@ class Environment(object):
 
         """
         return self._mdp_info
+
+    @staticmethod
+    def _bound(x, min, max):
+        """
+        Method used to bound state and action variables
+        Args:
+            x: the variable to bound
+            min: the minimum value
+            max: the maximum value
+
+        Returns:
+            the bounded variable
+        """
+        return np.maximum(min, np.minimum(x, max))
