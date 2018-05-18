@@ -50,7 +50,7 @@ def experiment(alg, params, n_epochs, n_episodes, n_ep_per_fit):
         print('mu:    ', p[:n_weights])
         print('sigma: ', p[n_weights:])
         print('Reward at iteration ' + str(i) + ': ' +
-              str(np.sum(J)/n_episodes))
+              str(np.mean(J)))
 
     print('Press a button to visualize the segway...')
     input()
