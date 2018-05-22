@@ -40,7 +40,7 @@ setup(
     description='A Python toolkit for Reinforcement Learning experiments.',
 
     # The project's main homepage.
-    url='https://github.com/carloderamo/' + name,
+    url='https://github.com/AIRLab-POLIMI/' + name,
 
     # Author details
     author="Carlo D'Eramo",
