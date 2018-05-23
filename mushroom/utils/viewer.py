@@ -18,13 +18,14 @@ class Viewer:
             height (int, 500): height of the environment window
             background (tuple, (0, 0, 0)): background color of the screen
         """
-        pygame.init()
         self._size = (width, height)
         self._width = width
         self._height = height
         self._screen = None
         self._ratio = np.array([width/env_width, height/env_height])
         self._background = background
+        self._initialized = False
+
 
     @property
     def screen(self):
@@ -34,6 +35,10 @@ class Viewer:
             The screen created by this viewer.
 
         """
+        if not self._initialized:
+            pygame.init()
+            self._initialized = True
+
         if self._screen is None:
             self._screen = pygame.display.set_mode(self._size)
 
