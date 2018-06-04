@@ -215,7 +215,7 @@ def experiment(n_epochs, n_steps, n_steps_test):
     for n in range(n_epochs):
         print('Epoch: ', n)
         core.learn(n_steps=n_steps,
-                   n_steps_per_fit=1)
+                   n_steps_per_fit=train_frequency)
         dataset = core.evaluate(n_steps=n_steps_test, render=False)
         J = compute_J(dataset, gamma)
         print('J: ', np.mean(J))
