@@ -1,5 +1,3 @@
-import argparse
-import datetime
 import os
 
 import numpy as np
@@ -200,7 +198,6 @@ def experiment(n_epochs, n_steps, n_steps_test):
                 initial_replay_size=initial_replay_size,
                 max_replay_size=max_replay_size,
                 history_length=1,
-                train_frequency=train_frequency,
                 target_update_frequency=target_update_frequency,
                 max_no_op_actions=0,
                 no_op_action_value=0,

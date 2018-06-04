@@ -60,8 +60,7 @@ def experiment(alg):
         n_approximators=2 if alg == 'adqn' else 1,
         max_replay_size=max_replay_size,
         history_length=4,
-        train_frequency=train_frequency,
-        target_update_frequency=target_update_frequency,
+        target_update_frequency=target_update_frequency//train_frequency,
         max_no_op_actions=10,
         no_op_action_value=0
     )

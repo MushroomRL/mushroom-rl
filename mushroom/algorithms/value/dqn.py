@@ -15,23 +15,22 @@ class DQN(Agent):
 
     """
     def __init__(self, approximator, policy, mdp_info, batch_size,
-                 train_frequency, target_update_frequency, initial_replay_size,
-                 max_replay_size, fit_params=None, approximator_params=None,
-                 n_approximators=1, history_length=1, clip_reward=True,
-                 max_no_op_actions=0, no_op_action_value=0, dtype=np.float32):
+                 initial_replay_size, max_replay_size,
+                 target_update_frequency=2500,fit_params=None,
+                 approximator_params=None, n_approximators=1,
+                 history_length=1, clip_reward=True, max_no_op_actions=0,
+                 no_op_action_value=0, dtype=np.float32):
         """
         Constructor.
 
         Args:
             batch_size (int): the number of samples in a batch;
-            train_frequency (int): the number of samples collected between each
-                gradient descent step of the online network;
-            target_update_frequency (int): the number of samples collected
-                between each update of the target network;
             initial_replay_size (int): the number of samples to collect before
                 starting the learning;
             max_replay_size (int): the maximum number of samples in the replay
                 memory;
+            target_update_frequency (int): the number of samples collected
+                between each update of the target network;
             fit_params (dict, None): parameters of the fitting algorithm of the
                 approximator;
             approximator_params (dict, None): parameters of the approximator to
@@ -51,7 +50,7 @@ class DQN(Agent):
         self._batch_size = batch_size
         self._n_approximators = n_approximators
         self._clip_reward = clip_reward
-        self._target_update_frequency = target_update_frequency // train_frequency
+        self._target_update_frequency = target_update_frequency
         self._max_no_op_actions = max_no_op_actions
         self._no_op_action_value = no_op_action_value
 

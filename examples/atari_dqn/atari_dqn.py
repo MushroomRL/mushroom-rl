@@ -251,8 +251,7 @@ def experiment():
             initial_replay_size=initial_replay_size,
             max_replay_size=max_replay_size,
             history_length=args.history_length,
-            train_frequency=train_frequency,
-            target_update_frequency=target_update_frequency,
+            target_update_frequency=target_update_frequency//train_frequency,
             max_no_op_actions=args.max_no_op_actions,
             no_op_action_value=args.no_op_action_value,
             dtype=np.uint8
