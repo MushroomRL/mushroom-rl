@@ -16,7 +16,7 @@ class DQN(Agent):
     """
     def __init__(self, approximator, policy, mdp_info, batch_size,
                  initial_replay_size, max_replay_size,
-                 target_update_frequency=2500,fit_params=None,
+                 target_update_frequency=2500, fit_params=None,
                  approximator_params=None, n_approximators=1,
                  history_length=1, clip_reward=True, max_no_op_actions=0,
                  no_op_action_value=0, dtype=np.float32):

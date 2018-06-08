@@ -4,18 +4,16 @@ import os
 
 import numpy as np
 
-from convnet import ConvNet
+from .convnet import ConvNet
 from mushroom.algorithms.value import AveragedDQN, DQN, DoubleDQN
 from mushroom.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
 from mushroom.utils.dataset import compute_scores
 from mushroom.utils.parameters import LinearDecayParameter, Parameter
-from mushroom.utils.preprocessor import Scaler
 
 """
-This script can be used to run Atari experiments with DQN emulating the one
-presented in:
+This script runs Atari experiments with DQN as presented in:
 "Human-Level Control Through Deep Reinforcement Learning". Mnih V. et al.. 2015.
 
 """
@@ -67,15 +65,16 @@ def experiment():
                                   'rmsprop',
                                   'rmspropcentered'],
                          default='adam',
-                         help='Name of the optimizer to use to learn.')
+                         help='Name of the optimizer to use.')
     arg_net.add_argument("--learning-rate", type=float, default=.00025,
-                         help='Learning rate value of the optimizer. Only used'
-                              'in rmspropcentered')
+                         help='Learning rate value of the optimizer.')
     arg_net.add_argument("--decay", type=float, default=.95,
                          help='Discount factor for the history coming from the'
-                              'gradient momentum in rmspropcentered')
+                              'gradient momentum in rmspropcentered and'
+                              'rmsprop')
     arg_net.add_argument("--epsilon", type=float, default=.01,
-                         help='Epsilon term used in rmspropcentered')
+                         help='Epsilon term used in rmspropcentered and'
+                              'rmsprop')
 
     arg_alg = parser.add_argument_group('Algorithm')
     arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'adqn'],
@@ -94,16 +93,17 @@ def experiment():
                          help='Number of collected samples before each update'
                               'of the target network.')
     arg_alg.add_argument("--evaluation-frequency", type=int, default=250000,
-                         help='Number of learning step before each evaluation.'
-                              'This number represents an epoch.')
+                         help='Number of collected samples before each'
+                              'evaluation. An epoch ends after this number of'
+                              'steps')
     arg_alg.add_argument("--train-frequency", type=int, default=4,
-                         help='Number of learning steps before each fit of the'
-                              'neural network.')
+                         help='Number of collected samples before each fit of'
+                              'the neural network.')
     arg_alg.add_argument("--max-steps", type=int, default=50000000,
-                         help='Total number of learning steps.')
+                         help='Total number of collected samples.')
     arg_alg.add_argument("--final-exploration-frame", type=int, default=1000000,
-                         help='Number of steps until the exploration rate stops'
-                              'decreasing.')
+                         help='Number of collected samples until the exploration'
+                              'rate stops decreasing.')
     arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.,
                          help='Initial value of the exploration rate.')
     arg_alg.add_argument("--final-exploration-rate", type=float, default=.1,
@@ -112,13 +112,16 @@ def experiment():
     arg_alg.add_argument("--test-exploration-rate", type=float, default=.05,
                          help='Exploration rate used during evaluation.')
     arg_alg.add_argument("--test-samples", type=int, default=125000,
-                         help='Number of steps for each evaluation.')
+                         help='Number of collected samples for each'
+                              'evaluation.')
     arg_alg.add_argument("--max-no-op-actions", type=int, default=8,
-                         help='Maximum number of no-op action performed at the'
+                         help='Maximum number of no-op actions performed at the'
                               'beginning of the episodes. The minimum number is'
-                              'history_length. This number is 30 in the DQN'
-                              'Deepmind paper, but they consider the first 30'
-                              'frame without frame skipping.')
+                              'history_length. This number is reported to be 30'
+                              'in the DQN Deepmind paper but, since they'
+                              'consider the first 30 frames without frame'
+                              'skipping and that the number of skipped frames'
+                              'is generally 4, we set it to 8.')
     arg_alg.add_argument("--no-op-action-value", type=int, default=0,
                          help='Value of the no-op action.')
 

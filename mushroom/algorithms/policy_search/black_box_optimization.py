@@ -62,18 +62,18 @@ class BlackBoxOptimization(Agent):
 
 class RWR(BlackBoxOptimization):
     """
-    Reward Weighted Regression algorithm.
+    Reward-Weighted Regression algorithm.
     "A Survey on Policy Search for Robotics", Deisenroth M. P., Neumann G.,
-    Peters J. 2013.
-    """
+    Peters J.. 2013.
 
+    """
     def __init__(self, distribution, policy, mdp_info, beta, features=None):
         """
         Constructor.
 
         Args:
             beta (float): the temperature for the exponential reward
-                          transformation.
+                transformation.
 
         """
         self.beta = beta
@@ -92,16 +92,16 @@ class PGPE(BlackBoxOptimization):
     """
     Policy Gradient with Parameter Exploration algorithm.
     "A Survey on Policy Search for Robotics", Deisenroth M. P., Neumann G.,
-    Peters J. 2013.
-    """
+    Peters J.. 2013.
 
+    """
     def __init__(self, distribution, policy, mdp_info, learning_rate,
                  features=None):
         """
         Constructor.
 
         Args:
-            learning_rate (Parameter): the learning rate for the gradient step
+            learning_rate (Parameter): the learning rate for the gradient step.
 
         """
         self.learning_rate = learning_rate
@@ -122,12 +122,12 @@ class PGPE(BlackBoxOptimization):
             diff_log_dist2 = diff_log_dist**2
 
             diff_log_dist_list.append(diff_log_dist)
-            baseline_num_list.append(J_i*diff_log_dist2)
+            baseline_num_list.append(J_i * diff_log_dist2)
             baseline_den_list.append(diff_log_dist2)
 
         # Compute baseline
         baseline = np.mean(baseline_num_list, axis=0) / \
-                   np.mean(baseline_den_list, axis=0)
+            np.mean(baseline_den_list, axis=0)
         baseline[np.logical_not(np.isfinite(baseline))] = 0.
 
         # Compute gradient
@@ -147,19 +147,19 @@ class PGPE(BlackBoxOptimization):
 
 class REPS(BlackBoxOptimization):
     """
-    Episodic REPS algorithm.
+    Episodic Relative Entropy Policy Search algorithm.
     "A Survey on Policy Search for Robotics", Deisenroth M. P., Neumann G.,
-    Peters J. 2013.
-    """
+    Peters J.. 2013.
 
+    """
     def __init__(self, distribution, policy, mdp_info, eps, features=None):
         """
         Constructor.
 
         Args:
             eps (float): the maximum admissible value for the Kullback-Leibler
-                         divergence between the new distribution and the
-                         previous one at each update step.
+                divergence between the new distribution and the
+                previous one at each update step.
 
         """
         self.eps = eps
@@ -184,7 +184,6 @@ class REPS(BlackBoxOptimization):
 
     @staticmethod
     def _dual_function(eta_array, *args):
-
         eta = np.asscalar(eta_array)
         eps, Jep, theta = args
 

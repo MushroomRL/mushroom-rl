@@ -1,10 +1,10 @@
 class Distribution(object):
     """
-    Interface for Distributions.
-    Represent a generic probability distribution. Probability distribution
-    are often used by black box optimization algorithms in order to perform
-    parameter space exploration. Often they are referred as high level
-    policies.
+    Interface for Distributions to represent a generic probability distribution.
+    Probability distributions are often used by black box optimization
+    algorithms in order to perform exploration in parameter space. In
+    literature, they are also known as high level policies.
+
     """
 
     def sample(self):
@@ -12,7 +12,8 @@ class Distribution(object):
         Draw a sample from the distribution.
 
         Returns:
-            A random vector sampled from the distribution
+            A random vector sampled from the distribution.
+
         """
         raise NotImplementedError
 
@@ -25,7 +26,8 @@ class Distribution(object):
             theta (np.ndarray): the point where the log pdf is calculated
 
         Returns:
-            The value of the log pdf in the specified point
+            The value of the log pdf in the specified point.
+
         """
         raise NotImplementedError
 
@@ -37,7 +39,8 @@ class Distribution(object):
             theta (np.ndarray): the point where the pdf is calculated
 
         Returns:
-            The value of the pdf in the specified point
+            The value of the pdf in the specified point.
+
         """
         raise NotImplementedError
 
@@ -55,6 +58,7 @@ class Distribution(object):
                                         elements of this vector must be equal
                                         to the number of rows of the theta
                                         matrix.
+
         """
         raise NotImplementedError
 
@@ -68,7 +72,8 @@ class Distribution(object):
             calculated
 
         Returns:
-            The gradient of the log pdf in the specified point
+            The gradient of the log pdf in the specified point.
+
         """
         raise NotImplementedError
 
@@ -82,13 +87,13 @@ class Distribution(object):
         .. math::
             \\nabla_{\\rho}p(\\theta)=p(\\theta)\\nabla_{\\rho}\\log p(\\theta)
 
-
         Args:
             theta (np.ndarray): the point where the gradient of the pdf is
-            calculated
+            calculated.
 
         Returns:
-            The gradient of the pdf in the specified point
+            The gradient of the pdf in the specified point.
+
         """
         return self(theta) * self.diff_log(theta)
 
@@ -97,7 +102,8 @@ class Distribution(object):
         Getter.
 
         Returns:
-             The current distribution parameters
+             The current distribution parameters.
+
         """
         raise NotImplementedError
 
@@ -108,6 +114,7 @@ class Distribution(object):
         Args:
             rho (np.ndarray): the vector of the new parameters to be used by
                               the distribution
+
         """
         raise NotImplementedError
 
@@ -117,6 +124,7 @@ class Distribution(object):
         Property.
 
         Returns:
-             The size of the distribution parameters
+             The size of the distribution parameters.
+
         """
         raise NotImplementedError
