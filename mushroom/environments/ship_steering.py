@@ -94,7 +94,7 @@ class ShipSteering(Environment):
                 absorbing = True
                 break
 
-            elif self._through_gate(self._state[:2], new_state[:2]):
+            elif self._through_gate(state[:2], new_state[:2]):
                 reward = self._success_reward
                 absorbing = True
                 break
