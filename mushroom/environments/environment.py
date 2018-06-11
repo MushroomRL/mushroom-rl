@@ -115,15 +115,17 @@ class Environment(object):
         return self._mdp_info
 
     @staticmethod
-    def _bound(x, min, max):
+    def _bound(x, min_value, max_value):
         """
-        Method used to bound state and action variables
+        Method used to bound state and action variables.
+
         Args:
-            x: the variable to bound
-            min: the minimum value
-            max: the maximum value
+            x: the variable to bound;
+            min_value: the minimum value;
+            max_value: the maximum value;
 
         Returns:
-            the bounded variable
+            The bounded variable.
+
         """
-        return np.maximum(min, np.minimum(x, max))
+        return np.maximum(min_value, np.minimum(x, max_value))
