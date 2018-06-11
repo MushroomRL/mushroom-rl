@@ -9,6 +9,14 @@ from mushroom.utils.callbacks import CollectDataset
 from mushroom.utils.parameters import Parameter
 
 
+"""
+This script aims to replicate the experiments on the Taxi MDP as presented in:
+"An Alternative Softmax Operator for Reinforcement Learning", Asadi K. et al..
+2017. 
+
+"""
+
+
 def experiment(policy, value):
     np.random.seed()
 

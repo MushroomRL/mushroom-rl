@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import cm
 
 from mushroom.algorithms.actor_critic import COPDAC_Q
 from mushroom.core import Core
@@ -15,11 +17,8 @@ from mushroom.utils.callbacks import CollectDataset
 from tqdm import tqdm
 tqdm.monitor_interval = 0
 
-import matplotlib.pyplot as plt
-from matplotlib import cm
 
-
-class Display():
+class Display:
     def __init__(self, V, mu, low, high, phi, psi):
         plt.ion()
 
@@ -98,9 +97,9 @@ def experiment(n_epochs, n_episodes):
 
     # Agent
     n_tilings = 10
-    alpha_theta = Parameter(5e-3/n_tilings)
-    alpha_omega = Parameter(0.5/n_tilings)
-    alpha_v = Parameter(0.5/n_tilings)
+    alpha_theta = Parameter(5e-3 / n_tilings)
+    alpha_omega = Parameter(0.5 / n_tilings)
+    alpha_v = Parameter(0.5 / n_tilings)
     tilings = Tiles.generate(n_tilings, [10, 10],
                              mdp.info.observation_space.low,
                              mdp.info.observation_space.high + 1e-3)
@@ -112,7 +111,7 @@ def experiment(n_epochs, n_episodes):
     mu = Regressor(LinearApproximator, input_shape=input_shape,
                    output_shape=mdp.info.action_space.shape)
 
-    sigma = 1e-1*np.eye(1)
+    sigma = 1e-1 * np.eye(1)
     policy = GaussianPolicy(mu, sigma)
 
     agent = COPDAC_Q(policy, mu, mdp.info,
@@ -139,7 +138,7 @@ def experiment(n_epochs, n_episodes):
 
     print('Press a button to visualize the pendulum...')
     input()
-    sigma = 1e-8*np.eye(1)
+    sigma = 1e-8 * np.eye(1)
     policy.set_sigma(sigma)
     core.evaluate(n_steps=n_steps, render=True)
 

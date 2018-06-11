@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import cm
 
 from mushroom.algorithms.actor_critic import SAC_AVG
 from mushroom.core import Core
@@ -7,7 +9,7 @@ from mushroom.features import Features
 from mushroom.features.tiles import Tiles
 from mushroom.approximators import Regressor
 from mushroom.approximators.parametric import LinearApproximator
-from mushroom.policy import StateLogStdGaussianPolicy, StateStdGaussianPolicy
+from mushroom.policy import StateLogStdGaussianPolicy
 from mushroom.utils.dataset import compute_J
 from mushroom.utils.callbacks import CollectDataset
 from mushroom.utils.parameters import Parameter
@@ -15,11 +17,8 @@ from mushroom.utils.parameters import Parameter
 from tqdm import tqdm
 tqdm.monitor_interval = 0
 
-import matplotlib.pyplot as plt
-from matplotlib import cm
 
-
-class Display():
+class Display:
     def __init__(self, V, mu, std, low, high, phi, psi):
         plt.ion()
 
@@ -100,7 +99,6 @@ class Display():
         return vv, mm, ss
 
 
-
 def experiment(n_epochs, n_episodes):
     np.random.seed()
 
@@ -163,6 +161,7 @@ def experiment(n_epochs, n_episodes):
     print('Press a button to visualize the pendulum...')
     input()
     core.evaluate(n_steps=n_steps, render=True)
+
 
 if __name__ == '__main__':
     n_epochs = 24
