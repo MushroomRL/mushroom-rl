@@ -180,7 +180,7 @@ class InvertedPendulumDiscrete(Environment):
             u = 0.
         else:
             u = self._max_u
-        action += np.random.uniform(-self._noise_u, self._noise_u)
+        u += np.random.uniform(-self._noise_u, self._noise_u)
         new_state = odeint(self._dynamics, self._state, [0, self._dt],
                            (u,))
 
