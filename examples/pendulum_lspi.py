@@ -7,7 +7,7 @@ from mushroom.environments import *
 from mushroom.features import Features
 from mushroom.features.basis import PolynomialBasis, GaussianRBF
 from mushroom.policy import EpsGreedy
-from mushroom.utils.dataset import compute_J
+from mushroom.utils.dataset import episodes_length
 from mushroom.utils.parameters import Parameter
 
 
@@ -39,30 +39,31 @@ def experiment():
             basis.append(GaussianRBF(np.array([i, j]), np.array([1.])))
     features = Features(basis_list=basis)
 
+    fit_params = dict()
     approximator_params = dict(input_shape=(features.size,),
                                output_shape=(mdp.info.action_space.n,),
                                n_actions=mdp.info.action_space.n)
-    algorithm_params = dict()
-    agent = LSPI(pi, mdp.info, approximator_params=approximator_params,
-                 features=features, **algorithm_params)
+    agent = LSPI(pi, mdp.info, fit_params=fit_params,
+                 approximator_params=approximator_params, features=features)
 
     # Algorithm
     core = Core(agent, mdp)
 
     # Train
-    core.learn(n_episodes=1000, n_episodes_per_fit=1000)
+    core.learn(n_episodes=100, n_episodes_per_fit=100)
 
     # Test
     test_epsilon = Parameter(0.)
     agent.policy.set_epsilon(test_epsilon)
 
-    dataset = core.evaluate(n_episodes=1000)
+    dataset = core.evaluate(n_episodes=1, quiet=True)
 
-    return np.mean(compute_J(dataset, mdp.info.gamma))
+    return np.mean(episodes_length(dataset))
 
 
 if __name__ == '__main__':
-    n_experiment = 100
+    n_experiment = 1
 
-    Js = Parallel(n_jobs=-1)(delayed(experiment)() for _ in range(n_experiment))
-    print((np.mean(Js)))
+    steps = Parallel(n_jobs=-1)(delayed(experiment)() for _ in range(
+        n_experiment))
+    print(np.mean(steps))

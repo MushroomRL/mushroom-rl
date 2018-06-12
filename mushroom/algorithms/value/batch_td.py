@@ -192,8 +192,10 @@ class LSPI(BatchTD):
     "Least-Squares Policy Iteration". Lagoudakis M. G. and Parr R.. 2003.
 
     """
-    def __init__(self, policy, mdp_info, fit_params=None,
+    def __init__(self, policy, mdp_info, epsilon=1e-2, fit_params=None,
                  approximator_params=None, features=None):
+        self._epsilon = epsilon
+
         k = features.size * mdp_info.action_space.n
         self._A = np.zeros((k, k))
         self._b = np.zeros((k, 1))
@@ -206,24 +208,30 @@ class LSPI(BatchTD):
             dataset, self.phi)
         phi_state_action = get_action_features(phi_state, action,
                                                self.mdp_info.action_space.n)
-        q = self.approximator.predict(phi_next_state)
-        if np.any(absorbing):
-            q *= 1 - absorbing.reshape(-1, 1)
 
-        next_action = np.argmax(q, axis=1).reshape(-1, 1)
-        phi_next_state_next_action = get_action_features(
-            phi_next_state,
-            next_action,
-            self.mdp_info.action_space.n
-        )
+        norm = np.inf
+        while norm > self._epsilon:
+            q = self.approximator.predict(phi_next_state)
+            if np.any(absorbing):
+                q *= 1 - absorbing.reshape(-1, 1)
 
-        tmp = phi_state_action - self.mdp_info.gamma *\
-            phi_next_state_next_action
-        self._A += phi_state_action.T.dot(tmp)
-        self._b += (phi_state_action.T.dot(reward)).reshape(-1, 1)
+            next_action = np.argmax(q, axis=1).reshape(-1, 1)
+            phi_next_state_next_action = get_action_features(
+                phi_next_state,
+                next_action,
+                self.mdp_info.action_space.n
+            )
 
-        if np.linalg.matrix_rank(self._A) == self._A.shape[1]:
-            w = np.linalg.solve(self._A, self._b)
-        else:
-            w = np.linalg.pinv(self._A).dot(self._b)
-        self.approximator.set_weights(w)
+            tmp = phi_state_action - self.mdp_info.gamma *\
+                phi_next_state_next_action
+            self._A += phi_state_action.T.dot(tmp)
+            self._b += (phi_state_action.T.dot(reward)).reshape(-1, 1)
+
+            old_w = self.approximator.get_weights()
+            if np.linalg.matrix_rank(self._A) == self._A.shape[1]:
+                w = np.linalg.solve(self._A, self._b).ravel()
+            else:
+                w = np.linalg.pinv(self._A).dot(self._b).ravel()
+            self.approximator.set_weights(w)
+
+            norm = np.linalg.norm(w - old_w)
