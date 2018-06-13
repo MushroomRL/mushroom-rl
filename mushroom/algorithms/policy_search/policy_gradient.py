@@ -274,7 +274,7 @@ class GPOMDP(PolicyGradient):
 
 class eNAC(PolicyGradient):
     """
-    ENAC algorithm.
+    Episodic Natural Actor Critic algorithm.
     "A Survey on Policy Search for Robotics", Deisenroth M. P., Neumann G.,
     Peters J. 2013.
 

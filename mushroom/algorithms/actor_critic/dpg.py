@@ -5,11 +5,8 @@ from mushroom.approximators.parametric import LinearApproximator
 
 
 class COPDAC_Q(Agent):
-    def __init__(self, policy, mu, mdp_info,
-                 alpha_theta, alpha_omega, alpha_v,
-                 value_function_features=None,
-                 policy_features=None):
-
+    def __init__(self, policy, mu, mdp_info, alpha_theta, alpha_omega, alpha_v,
+                 value_function_features=None, policy_features=None):
         self._mu = mu
         self._psi = value_function_features
 
@@ -47,9 +44,9 @@ class COPDAC_Q(Agent):
 
             delta = r + self.mdp_info.gamma * q_next - self._Q(s, a)
             delta_theta = self._alpha_theta(s, a) * \
-                          omega.dot(grad_mu_s.T).dot(grad_mu_s)
-            delta_omega = self._alpha_omega(s, a)*delta*self._nu(s, a)
-            delta_v = self._alpha_v(s, a)*delta*s_psi
+                omega.dot(grad_mu_s.T).dot(grad_mu_s)
+            delta_omega = self._alpha_omega(s, a) * delta * self._nu(s, a)
+            delta_v = self._alpha_v(s, a) * delta * s_psi
 
             theta_new = self._mu.get_weights() + delta_theta
             self._mu.set_weights(theta_new)
@@ -63,7 +60,7 @@ class COPDAC_Q(Agent):
     def _Q(self, state, action):
         state_psi = self._psi(state) if self._psi is not None else state
         return np.asscalar(self._V(state_psi)) + \
-               np.asscalar(self._A(self._nu(state, action)))
+            np.asscalar(self._A(self._nu(state, action)))
 
     def _nu(self, state, action):
         state_phi = self.phi(state) if self.phi is not None else state
@@ -71,5 +68,3 @@ class COPDAC_Q(Agent):
         delta = action - self._mu(state_phi)
 
         return delta.dot(grad_mu)
-
-
