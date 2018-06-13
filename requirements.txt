@@ -12,3 +12,4 @@ h5py
 pygame
 opencv-python
 torch
+pytest

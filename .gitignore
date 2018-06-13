@@ -6,3 +6,4 @@ mushroom.egg-info/
 *.xml
 logs/
 *.h5
+.pytest_cache

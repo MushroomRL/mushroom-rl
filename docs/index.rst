@@ -139,6 +139,12 @@ or to compile the pdf version:
     cd mushroom/docs
     make latexpdf
 
+To launch mushroom test suite:
+
+::
+    cd mushroom/tests
+    python3 -m pytest
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:

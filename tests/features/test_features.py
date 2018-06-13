@@ -6,7 +6,7 @@ from mushroom.features.basis import GaussianRBF, FourierBasis
 from mushroom.features.tensors import gaussian_tensor
 
 
-def tiles():
+def test_tiles():
     tilings = Tiles.generate(3, [3, 3],
                              np.array([0., -.5]),
                              np.array([1., .5]))
@@ -28,7 +28,7 @@ def tiles():
         assert np.all(features(x_i[0], x_i[1]) == y[i])
 
 
-def basis():
+def test_basis():
     rbf = GaussianRBF.generate([3, 3], [[0., 1.], [-.5, .5]])
     features = Features(basis_list=rbf)
 
@@ -48,7 +48,7 @@ def basis():
         assert np.all(features(x_i[0], x_i[1]) == y[i])
 
 
-def tensor():
+def test_tensor():
     rbf = gaussian_tensor.generate([3, 3], [[0., 1.], [-.5, .5]])
     features = Features(tensor_list=rbf, name='rbf', input_dim=2)
 
@@ -68,7 +68,7 @@ def tensor():
         assert np.allclose(features(x_i[0], x_i[1]), y[i])
 
 
-def basis_and_tensors():
+def test_basis_and_tensors():
     basis_rbf = GaussianRBF.generate([3, 3], [[0., 1.], [-.5, .5]])
     tensor_rbf = gaussian_tensor.generate([3, 3], [[0., 1.], [-.5, .5]])
     features_1 = Features(tensor_list=tensor_rbf, name='rbf', input_dim=2)
@@ -82,7 +82,7 @@ def basis_and_tensors():
     assert np.allclose(y_1, y_2)
 
 
-def fourier():
+def test_fourier():
     low = np.array([-1.0, 0.5])
     high = np.array([1.0, 2.5])
     basis_list = FourierBasis.generate(low, high, 5)
@@ -101,15 +101,3 @@ def fourier():
                     0.95105652, 0.15643447, -1.])
 
     assert np.allclose(features(x), res)
-
-
-
-
-if __name__ == '__main__':
-    print('Executing features test...')
-
-    tiles()
-    basis()
-    tensor()
-    basis_and_tensors()
-    fourier()
