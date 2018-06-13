@@ -21,6 +21,7 @@ class ShipSteering(Environment):
              small (bool, True): whether to use a small state space or not.
              n_steps_action (int, 3): number of integration intervals for each
                                       step of the mdp.
+
         """
         # MDP parameters
         self.field_size = 150 if small else 1000

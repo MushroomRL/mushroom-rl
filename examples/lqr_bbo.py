@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 
 from mushroom.algorithms.policy_search import RWR, PGPE, REPS
 from mushroom.approximators.parametric import LinearApproximator
@@ -10,12 +11,10 @@ from mushroom.policy import DeterministicPolicy
 from mushroom.utils.dataset import compute_J
 from mushroom.utils.parameters import AdaptiveParameter
 
-from tqdm import tqdm
-
 
 """
-This script aims to replicate the experiments on the LQR MDP 
-using black box optimization algorithms.
+This script aims to replicate the experiments on the LQR MDP using episode-based
+policy search algorithms, also known as Black Box policy search algorithms.
 
 """
 

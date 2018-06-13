@@ -47,15 +47,15 @@ def parse_dataset(dataset, features=None):
         next_state), np.array(absorbing), np.array(last)
 
 
-def mean_episode_length(dataset):
+def episodes_length(dataset):
     """
-    Compute the mean length of an episode in the dataset.
+    Compute the length of each episode in the dataset.
 
     Args:
         dataset (list): the dataset to consider.
 
     Returns:
-        The mean length of an episode in the dataset.
+        A list of length of each episode in the dataset.
 
     """
     lengths = list()
@@ -66,7 +66,7 @@ def mean_episode_length(dataset):
             lengths.append(l)
             l = 0
 
-    return np.mean(lengths)
+    return lengths
 
 
 def select_episodes(dataset, n_episodes, parse=False):

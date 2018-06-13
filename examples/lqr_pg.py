@@ -13,8 +13,8 @@ from tqdm import tqdm
 
 
 """
-This script aims to replicate the experiments on the LQR MDP 
-using policy gradient algorithms.
+This script aims to replicate the experiments on the LQR MDP using policy
+gradient algorithms.
 
 """
 
@@ -38,7 +38,7 @@ def experiment(alg, n_epochs, n_iterations, ep_per_run):
                       output_shape=mdp.info.action_space.shape,
                       params=approximator_params)
 
-    sigma_weights = 2*np.ones(sigma.weights_size)
+    sigma_weights = 2 * np.ones(sigma.weights_size)
     sigma.set_weights(sigma_weights)
 
     policy = StateStdGaussianPolicy(approximator, sigma)

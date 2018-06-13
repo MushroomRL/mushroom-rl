@@ -23,12 +23,12 @@ def experiment(alg, params, n_epochs, n_episodes, n_ep_per_fit):
 
     # Policy
     approximator = Regressor(LinearApproximator,
-                   input_shape=mdp.info.observation_space.shape,
-                   output_shape=mdp.info.action_space.shape)
+                             input_shape=mdp.info.observation_space.shape,
+                             output_shape=mdp.info.action_space.shape)
 
     n_weights = approximator.weights_size
     mu = np.zeros(n_weights)
-    sigma = 2e-0*np.ones(n_weights)
+    sigma = 2e-0 * np.ones(n_weights)
     policy = DeterministicPolicy(approximator)
     dist = GaussianDiagonalDistribution(mu, sigma)
 

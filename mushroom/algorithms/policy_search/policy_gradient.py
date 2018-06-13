@@ -2,6 +2,7 @@ from mushroom.algorithms.agent import Agent
 
 import numpy as np
 
+
 class PolicyGradient(Agent):
     """
     Abstract class to implement a generic Policy Search algorithm using the
@@ -22,7 +23,7 @@ class PolicyGradient(Agent):
         self.df = 1
         self.J_episode = 0
 
-        super(PolicyGradient, self).__init__(policy, mdp_info, features)
+        super().__init__(policy, mdp_info, features)
 
     def fit(self, dataset):
         J = list()
@@ -81,8 +82,9 @@ class PolicyGradient(Agent):
         This function is called, when parsing the dataset, at each episode step.
 
         Args:
-            state (np.ndarray): the state at the current step;
-            action (np.ndarray): the action at the current step.
+            x (np.ndarray): the state at the current step;
+            u (np.ndarray): the action at the current step;
+            r (np.ndarray): the reward at the current step.
 
         """
         raise NotImplementedError('PolicyGradient is an abstract class')
@@ -144,9 +146,7 @@ class REINFORCE(PolicyGradient):
 
     """
     def __init__(self, policy, mdp_info, learning_rate, features=None):
-        super(REINFORCE, self).__init__(policy, mdp_info, learning_rate,
-                                        features)
-
+        super().__init__(policy, mdp_info, learning_rate, features)
         self.sum_d_log_pi = None
         self.list_sum_d_log_pi = list()
         self.baseline_num = list()
@@ -193,7 +193,7 @@ class GPOMDP(PolicyGradient):
 
     """
     def __init__(self, policy, mdp_info, learning_rate, features=None):
-        super(GPOMDP, self).__init__(policy, mdp_info, learning_rate, features)
+        super().__init__(policy, mdp_info, learning_rate, features)
 
         self.sum_d_log_pi = None
         self.list_sum_d_log_pi = list()
@@ -288,7 +288,7 @@ class eNAC(PolicyGradient):
             critic_features (Features, None): features used by the critic.
 
         """
-        super(eNAC, self).__init__(policy, mdp_info, learning_rate, features)
+        super().__init__(policy, mdp_info, learning_rate, features)
         self.phi_c = critic_features
 
         self.sum_grad_log = None

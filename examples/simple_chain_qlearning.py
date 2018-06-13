@@ -22,7 +22,7 @@ def experiment():
 
     # Policy
     epsilon = Parameter(value=.15)
-    pi = EpsGreedy(epsilon=epsilon,)
+    pi = EpsGreedy(epsilon=epsilon)
 
     # Agent
     learning_rate = Parameter(value=.2)
