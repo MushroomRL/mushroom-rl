@@ -4,6 +4,7 @@ from mushroom.algorithms.value import DQN
 from mushroom.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
+from mushroom.approximators.parametric.pytorch_network import *
 from mushroom.utils.dataset import compute_J
 from mushroom.utils.parameters import Parameter
 
@@ -33,7 +34,7 @@ class Network(nn.Module):
                                 gain=nn.init.calculate_gain('linear'))
 
     def forward(self, state, action=None):
-        features1 = F.relu(self._h1(state))
+        features1 = F.relu(self._h1(torch.squeeze(state, 2)))
         features2 = F.relu(self._h2(features1))
         q = self._h3(features2)
 
@@ -42,38 +43,6 @@ class Network(nn.Module):
         else:
             q_acted = torch.squeeze(q.gather(1, action))
             return q_acted
-
-
-class SimpleNet:
-    def __init__(self, **params):
-        self._name = params['name']
-        self._network = Network(params)
-        self._optimizer = optim.Adam(self._network.parameters(),
-                                     lr=params['optimizer']['lr'])
-
-    def predict(self, s):
-        s = torch.from_numpy(np.squeeze(s, -1))
-        val = self._network.forward(s).detach().numpy()
-
-        return val
-
-    def fit(self, s, a, q):
-        s = torch.from_numpy(np.squeeze(s, -1))
-        a = torch.from_numpy(a).long()
-        q = torch.from_numpy(q)
-
-        q_acted = self._network(s, a)
-        loss = F.smooth_l1_loss(q_acted, q)
-        self._optimizer.zero_grad()
-        loss.backward()
-        self._optimizer.step()
-
-    def set_weights(self, weights):
-        self._network.load_state_dict(weights)
-
-    def get_weights(self):
-        return self._network.state_dict()
-
 
 
 def experiment(n_epochs, n_steps, n_steps_test):
@@ -98,18 +67,18 @@ def experiment(n_epochs, n_steps, n_steps_test):
 
     # Approximator
     input_shape = mdp.info.observation_space.shape + (1,)
-    approximator_params = dict(n_features=n_features,
+    approximator_params = dict(network=Network,
+                               optimizer={'class': optim.Adam,
+                                          'params': {'lr': .0001}},
+                               loss=F.smooth_l1_loss,
+                               n_features=n_features,
                                input_shape=input_shape,
                                output_shape=mdp.info.action_space.size,
-                               n_actions=mdp.info.action_space.n,
-                               optimizer={'name': 'adam',
-                                          'lr': .0001,
-                                          'decay': .95,
-                                          'epsilon': .01})
+                               n_actions=mdp.info.action_space.n)
 
 
     # Agent
-    agent = DQN(SimpleNet, pi, mdp.info,
+    agent = DQN(PyTorchApproximator, pi, mdp.info,
                 approximator_params=approximator_params,
                 batch_size=batch_size,
                 n_approximators=1,
