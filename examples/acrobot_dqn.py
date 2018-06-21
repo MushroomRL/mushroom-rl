@@ -16,7 +16,7 @@ class Network(nn.Module):
     def __init__(self, params):
         super(Network, self).__init__()
 
-        n_input = params['input_shape'][0]
+        n_input = params['input_shape'][-1]
         n_output = params['output_shape'][0]
         n_features = params['n_features']
 
@@ -32,7 +32,7 @@ class Network(nn.Module):
                                 gain=nn.init.calculate_gain('linear'))
 
     def forward(self, state, action=None):
-        features1 = F.relu(self._h1(torch.squeeze(state, 2)))
+        features1 = F.relu(self._h1(torch.squeeze(state, 1).float()))
         features2 = F.relu(self._h2(features1))
         q = self._h3(features2)
 
@@ -68,7 +68,7 @@ def experiment(n_epochs, n_steps, n_steps_test):
     train_frequency = 1
 
     # Approximator
-    input_shape = mdp.info.observation_space.shape + (1,)
+    input_shape = (1,) + mdp.info.observation_space.shape
     approximator_params = dict(network=Network,
                                optimizer={'class': optim.Adam,
                                           'params': {'lr': .001}},

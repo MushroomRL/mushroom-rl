@@ -15,7 +15,8 @@ class PyTorchApproximator:
     def __init__(self, network, optimizer, loss, n_epochs=1, batch_size=0,
                  quiet=True, **params):
         """
-        Constructor
+        Constructor.
+
         Args:
             network (torch.nn.Module): the network class to use;
             optimizer (torch.optim): the optimizer used for every fit step;

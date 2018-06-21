@@ -1,11 +1,15 @@
 import argparse
 import datetime
-import os
+import pathlib
 
 import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
 
-from .convnet import ConvNet
 from mushroom.algorithms.value import AveragedDQN, DQN, DoubleDQN
+from mushroom.approximators.parametric import PyTorchApproximator
 from mushroom.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
@@ -18,8 +22,44 @@ This script runs Atari experiments with DQN as presented in:
 
 """
 
-# Disable tf cpp warnings
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+
+class Network(nn.Module):
+    def __init__(self, params):
+        super(Network, self).__init__()
+
+        n_input = params['input_shape'][-1]
+        n_output = params['output_shape'][0]
+
+        self._h1 = nn.Conv2d(n_input, 32, kernel_size=8, stride=4)
+        self._h2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
+        self._h3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+        self._h4 = nn.Linear(3136, 512)
+        self._h5 = nn.Linear(512, n_output)
+
+        nn.init.xavier_uniform_(self._h1.weight,
+                                gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self._h2.weight,
+                                gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self._h3.weight,
+                                gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self._h4.weight,
+                                gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self._h5.weight,
+                                gain=nn.init.calculate_gain('linear'))
+
+    def forward(self, state, action=None):
+        h = F.relu(self._h1(state.float()))
+        h = F.relu(self._h2(h))
+        h = F.relu(self._h3(h))
+        h = self._h4(h.view(-1, 3136))
+        q = self._h5(h)
+
+        if action is None:
+            return q
+        else:
+            q_acted = torch.squeeze(q.gather(1, action))
+
+            return q_acted
 
 
 def print_epoch(epoch):
@@ -143,6 +183,27 @@ def experiment():
 
     scores = list()
 
+    optimizer = dict()
+    if args.optimizer == 'adam':
+        optimizer['class'] = optim.Adam
+        optimizer['params'] = dict(lr=args.learning_rate)
+    elif args.optimizer == 'adadelta':
+        optimizer['class'] = optim.Adadelta
+        optimizer['params'] = dict(lr=args.learning_rate)
+    elif args.optimizer == 'rmsprop':
+        optimizer['class'] = optim.RMSprop
+        optimizer['params'] = dict(lr=args.learning_rate,
+                                   alpha=args.decay,
+                                   eps=args.epsilon)
+    elif args.optimizer == 'rmspropcentered':
+        optimizer['class'] = optim.RMSprop
+        optimizer['params'] = dict(lr=args.learning_rate,
+                                   alpha=args.decay,
+                                   eps=args.epsilon,
+                                   centered=True)
+    else:
+        raise ValueError
+
     # Evaluation of the model provided by the user.
     if args.load_path:
         # MDP
@@ -157,18 +218,16 @@ def experiment():
         input_shape = (args.screen_height, args.screen_width,
                        args.history_length)
         approximator_params = dict(
+            network=Network,
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            name='test',
             load_path=args.load_path,
-            optimizer={'name': args.optimizer,
-                       'lr': args.learning_rate,
-                       'decay': args.decay,
-                       'epsilon': args.epsilon}
+            optimizer=optimizer,
+            loss=F.smooth_l1_loss
         )
 
-        approximator = ConvNet
+        approximator = PyTorchApproximator
 
         # Agent
         algorithm_params = dict(
@@ -200,6 +259,7 @@ def experiment():
         # Summary folder
         folder_name = './logs/atari_' + args.algorithm + '_' + args.name +\
             '_' + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        pathlib.Path(folder_name).mkdir(parents=True)
 
         # Settings
         if args.debug:
@@ -235,17 +295,16 @@ def experiment():
         input_shape = (args.screen_height, args.screen_width,
                        args.history_length)
         approximator_params = dict(
+            network=Network,
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
             folder_name=folder_name,
-            optimizer={'name': args.optimizer,
-                       'lr': args.learning_rate,
-                       'decay': args.decay,
-                       'epsilon': args.epsilon}
+            optimizer=optimizer,
+            loss=F.smooth_l1_loss
         )
 
-        approximator = ConvNet
+        approximator = PyTorchApproximator
 
         # Agent
         algorithm_params = dict(
