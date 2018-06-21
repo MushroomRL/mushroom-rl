@@ -1,12 +1,13 @@
 import torch
 from tqdm import trange, tqdm
+
 from mushroom.utils.minibatches import minibatch_generator
 
 
 class PyTorchApproximator:
     """
     Class to interface a pytorch model to the mushroom Regressor interface.
-    This class implements all you need to use a generic pytorch model and train
+    This class implements all is needed to use a generic pytorch model and train
     it using a specified optimizer and objective function.
     This class supports also minibatches.
 
@@ -19,14 +20,14 @@ class PyTorchApproximator:
             network (torch.nn.Module): the network class to use;
             optimizer (torch.optim): the optimizer used for every fit step;
             loss (torch.nn.functional): the loss function to optimize in the
-                                        fit method;
+                fit method;
             n_epochs (int, 1): the number of epochs to run during the fit;
             batch_size (int, 0): the size of each minibatch. If 0, the whole
-                                 dataset is fed to the optimizer at each epoch.
+                dataset is fed to the optimizer at each epoch;
             quiet (bool, True): if False, shows two progress bars, one for
-                                epochs and one for the minibatches
+                epochs and one for the minibatches;
             params (dict): dictionary of parameters needed to construct the
-                           network
+                network.
 
         """
         self._n_epochs = n_epochs
@@ -45,7 +46,6 @@ class PyTorchApproximator:
         return val
 
     def fit(self, *args):
-
         if self._batch_size > 0:
             batches = minibatch_generator(self._batch_size, args)
         else:

@@ -1,4 +1,5 @@
 import numpy as np
+
 from mushroom.algorithms.agent import Agent
 from mushroom.approximators import Regressor
 from mushroom.approximators.parametric import LinearApproximator
@@ -62,12 +63,12 @@ class SAC(Agent):
             v_next = self._V(ss_psi) if not absorbing else 0
 
             # Compute TD error
-            delta = r + self.mdp_info.gamma*v_next - self._V(s_psi)
+            delta = r + self.mdp_info.gamma * v_next - self._V(s_psi)
 
             # Update traces
-            self._e_v = self.mdp_info.gamma*self._lambda*self._e_v + s_psi
-            self._e_theta = self.mdp_info.gamma*self._lambda*self._e_theta + \
-                self.policy.diff_log(s_phi, a)
+            self._e_v = self.mdp_info.gamma * self._lambda * self._e_v + s_psi
+            self._e_theta = self.mdp_info.gamma * self._lambda * \
+                self._e_theta + self.policy.diff_log(s_phi, a)
 
             # Update value function
             delta_v = self._alpha_v(s, a) * delta * self._e_v
