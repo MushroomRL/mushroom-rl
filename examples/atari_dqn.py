@@ -51,7 +51,7 @@ class Network(nn.Module):
         h = F.relu(self._h1(state.float()))
         h = F.relu(self._h2(h))
         h = F.relu(self._h3(h))
-        h = self._h4(h.view(-1, 3136))
+        h = F.relu(self._h4(h.view(-1, 3136)))
         q = self._h5(h)
 
         if action is None:
