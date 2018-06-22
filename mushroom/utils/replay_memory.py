@@ -39,9 +39,9 @@ class Buffer(object):
             The elements in the buffer.
 
         """
-        s = np.empty(self._buf[0].shape + (self._size,), dtype=self._dtype)
+        s = np.empty((self._size,) + self._buf[0].shape, dtype=self._dtype)
         for i in range(self._size):
-            s[..., i] = self._buf[i]
+            s[i] = self._buf[i]
 
         return s
 
@@ -168,18 +168,17 @@ class ReplayMemory(object):
             The states built from the elements at the provided indexes.
 
         """
-        s = np.empty((idxs.size,) + self._states.shape[1:] + (
-            self._history_length,), dtype=self._dtype)
+        s = np.empty((idxs.size,) + (self._history_length,) +
+                     self._states.shape[1:], dtype=self._dtype)
         for j, idx in enumerate(idxs):
             if idx >= self._history_length - 1:
                 for k in range(self._history_length):
-                    s[j, ..., self._history_length - 1 - k] = self._states[
-                        idx - k, ...]
+                    s[j, self._history_length - 1 - k] = self._states[idx - k]
             else:
                 indexes = [(idx - i) % self.size for i in
                            reversed(list(range(self._history_length)))]
                 for k, index in enumerate(indexes):
-                    s[j, ..., k] = self._states[index, ...]
+                    s[j, k] = self._states[index]
 
         return s
 

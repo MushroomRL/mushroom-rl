@@ -1,4 +1,5 @@
 import numpy as np
+
 from mushroom.algorithms.agent import Agent
 from mushroom.approximators import Regressor
 from mushroom.approximators.parametric import LinearApproximator
@@ -19,8 +20,7 @@ class COPDAC_Q(Agent):
         else:
             input_shape = mdp_info.observation_space.shape
 
-        self._V = Regressor(LinearApproximator,
-                            input_shape=input_shape,
+        self._V = Regressor(LinearApproximator, input_shape=input_shape,
                             output_shape=(1,))
 
         self._A = Regressor(LinearApproximator,
@@ -59,6 +59,7 @@ class COPDAC_Q(Agent):
 
     def _Q(self, state, action):
         state_psi = self._psi(state) if self._psi is not None else state
+
         return np.asscalar(self._V(state_psi)) + \
             np.asscalar(self._A(self._nu(state, action)))
 
