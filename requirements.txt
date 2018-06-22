@@ -5,9 +5,7 @@ gym[atari]
 scikit-learn>=0.17
 matplotlib
 joblib
-pillow
 tqdm
-h5py
 pygame
 opencv-python
 torch
