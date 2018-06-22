@@ -7,7 +7,6 @@ from mushroom.environments import *
 from mushroom.features import Features
 from mushroom.features.tiles import Tiles
 from mushroom.policy import EpsGreedy
-from mushroom.utils.callbacks import CollectDataset
 from mushroom.utils.dataset import compute_J
 from mushroom.utils.parameters import Parameter
 

@@ -3,7 +3,7 @@ import numpy as np
 from mushroom.features import Features
 from mushroom.features.tiles import Tiles
 from mushroom.features.basis import GaussianRBF, FourierBasis
-from mushroom.features.tensors import gaussian_tensor
+from mushroom.features.tensors import PyTorchGaussianRBF
 
 
 def test_tiles():
@@ -49,8 +49,8 @@ def test_basis():
 
 
 def test_tensor():
-    rbf = gaussian_tensor.generate([3, 3], [[0., 1.], [-.5, .5]])
-    features = Features(tensor_list=rbf, name='rbf', input_dim=2)
+    rbf = PyTorchGaussianRBF.generate([3, 3], [[0., 1.], [-.5, .5]])
+    features = Features(tensor_list=rbf)
 
     x = np.random.rand(10, 2) + [0., -.5]
 
@@ -70,8 +70,8 @@ def test_tensor():
 
 def test_basis_and_tensors():
     basis_rbf = GaussianRBF.generate([3, 3], [[0., 1.], [-.5, .5]])
-    tensor_rbf = gaussian_tensor.generate([3, 3], [[0., 1.], [-.5, .5]])
-    features_1 = Features(tensor_list=tensor_rbf, name='rbf', input_dim=2)
+    tensor_rbf = PyTorchGaussianRBF.generate([3, 3], [[0., 1.], [-.5, .5]])
+    features_1 = Features(tensor_list=tensor_rbf)
     features_2 = Features(basis_list=basis_rbf)
 
     x = np.random.rand(10, 2) + [0., -.5]

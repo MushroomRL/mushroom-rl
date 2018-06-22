@@ -3,7 +3,7 @@ from mushroom.distributions import *
 from mushroom.utils.numerical_gradient import numerical_diff_dist
 
 
-def gaussian():
+def test_gaussian():
     print('Testing gaussian distribution...')
     n_dims = 6
 
@@ -21,7 +21,8 @@ def gaussian():
 
         assert np.allclose(exact_diff, numerical_diff)
 
-def diagonal_gaussian():
+
+def test_diagonal_gaussian():
     print('Testing diagonal gaussian distribution...')
     n_dims = 6
 
@@ -38,7 +39,7 @@ def diagonal_gaussian():
         assert np.allclose(exact_diff, numerical_diff)
 
 
-def cholesky_gaussian():
+def test_cholesky_gaussian():
     print('Testing gaussian cholesky distribution...')
     n_dims = 6
 
@@ -55,11 +56,3 @@ def cholesky_gaussian():
         numerical_diff = numerical_diff_dist(dist, theta)
 
         assert np.allclose(exact_diff, numerical_diff)
-
-
-if __name__ == '__main__':
-    print('Executing policy test...')
-
-    gaussian()
-    diagonal_gaussian()
-    cholesky_gaussian()
