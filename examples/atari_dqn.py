@@ -48,7 +48,7 @@ class Network(nn.Module):
                                 gain=nn.init.calculate_gain('linear'))
 
     def forward(self, state, action=None):
-        h = F.relu(self._h1(state.float()))
+        h = F.relu(self._h1(state.float() / 255.))
         h = F.relu(self._h2(h))
         h = F.relu(self._h3(h))
         h = F.relu(self._h4(h.view(-1, 3136)))
