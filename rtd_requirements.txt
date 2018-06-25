@@ -1,5 +1,5 @@
 opencv-python
-numpy>=1.11
+numpy>=1.11.1
 scipy
 gym
 gym[atari]
