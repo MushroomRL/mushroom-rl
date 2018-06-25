@@ -1,3 +1,4 @@
+opencv-python
 numpy>=1.11
 scipy
 gym
@@ -7,4 +8,3 @@ matplotlib
 joblib
 tqdm
 pygame
-opencv-python
