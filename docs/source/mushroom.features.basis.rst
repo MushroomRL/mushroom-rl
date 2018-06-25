@@ -1,7 +1,17 @@
 Basis
 =====
 
-gaussian_rbf
+Fourier
+-------
+
+.. automodule:: mushroom.features.basis.fourier
+    :members:
+    :private-members:
+    :inherited-members:
+    :undoc-members:
+    :show-inheritance:
+
+Gaussian RBF
 ------------
 
 .. automodule:: mushroom.features.basis.gaussian_rbf
@@ -11,7 +21,7 @@ gaussian_rbf
     :undoc-members:
     :show-inheritance:
 
-polynomial
+Polynomial
 ----------
 
 .. automodule:: mushroom.features.basis.polynomial

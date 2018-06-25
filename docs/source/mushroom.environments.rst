@@ -11,7 +11,7 @@ Environments
     :undoc-members:
     :show-inheritance:
 
-atari
+Atari
 ~~~~~
 
 .. automodule:: mushroom.environments.atari
@@ -21,7 +21,7 @@ atari
     :undoc-members:
     :show-inheritance:
 
-car_on_hill
+Car on hill
 ~~~~~~~~~~~
 
 .. automodule:: mushroom.environments.car_on_hill
@@ -31,7 +31,7 @@ car_on_hill
     :undoc-members:
     :show-inheritance:
 
-finite_mdp
+Finite MDP
 ~~~~~~~~~~
 
 .. automodule:: mushroom.environments.finite_mdp
@@ -41,7 +41,7 @@ finite_mdp
     :undoc-members:
     :show-inheritance:
 
-grid_world
+Grid World
 ~~~~~~~~~~
 
 .. automodule:: mushroom.environments.grid_world
@@ -51,8 +51,8 @@ grid_world
     :undoc-members:
     :show-inheritance:
 
-gym_env
-~~~~~~~
+Gym
+~~~
 
 .. automodule:: mushroom.environments.gym_env
     :members:
@@ -61,7 +61,7 @@ gym_env
     :undoc-members:
     :show-inheritance:
 
-inverted_pendulum
+Inverted pendulum
 ~~~~~~~~~~~~~~~~~
 
 .. automodule:: mushroom.environments.inverted_pendulum
@@ -71,8 +71,8 @@ inverted_pendulum
     :undoc-members:
     :show-inheritance:
 
-lqr
-~~~~
+LQR
+~~~
 
 .. automodule:: mushroom.environments.lqr
     :members:
@@ -81,7 +81,17 @@ lqr
     :undoc-members:
     :show-inheritance:
 
-ship_steering
+Segway
+~~~~~~~~~~~~~
+
+.. automodule:: mushroom.environments.segway
+    :members:
+    :private-members:
+    :inherited-members:
+    :undoc-members:
+    :show-inheritance:
+
+Ship steering
 ~~~~~~~~~~~~~
 
 .. automodule:: mushroom.environments.ship_steering
@@ -91,13 +101,33 @@ ship_steering
     :undoc-members:
     :show-inheritance:
     
-generators
+Generators
 ----------
 
-simple_chain 
+Grid world
+~~~~~~~~~~
+
+.. automodule:: mushroom.environments.generators.grid_world
+    :members:
+    :private-members:
+    :inherited-members:
+    :undoc-members:
+    :show-inheritance:
+
+Simple chain
 ~~~~~~~~~~~~
 
 .. automodule:: mushroom.environments.generators.simple_chain
+    :members:
+    :private-members:
+    :inherited-members:
+    :undoc-members:
+    :show-inheritance:
+
+Taxi
+~~~~
+
+.. automodule:: mushroom.environments.generators.taxi
     :members:
     :private-members:
     :inherited-members:

@@ -8,7 +8,7 @@ Distributions
     :undoc-members:
     :show-inheritance:
 
-gaussian
+Gaussian
 --------
 
 .. automodule:: mushroom.distributions.gaussian

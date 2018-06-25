@@ -8,7 +8,7 @@ Policy
     :undoc-members:
     :show-inheritance:
 
-gaussian_policy
+Gaussian policy
 ---------------
 
 .. automodule:: mushroom.policy.gaussian_policy
@@ -18,7 +18,7 @@ gaussian_policy
     :undoc-members:
     :show-inheritance:
 
-td_policy
+TD policy
 ---------
 
 .. automodule:: mushroom.policy.td_policy

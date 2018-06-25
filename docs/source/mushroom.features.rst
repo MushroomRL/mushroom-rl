@@ -9,7 +9,7 @@ Mushroom supports three types of features:
 * tensor basis functions;
 * tiles.
 
-The GPU-accelerated basis functions are a Tensorflow implementation of the standard
+The GPU-accelerated basis functions are a Pytorch implementation of the standard
 basis functions. They are less straightforward than the standard ones, but they
 are faster to compute as they can exploit parallel computing, e.g. GPU-acceleration
 and multi-core systems.

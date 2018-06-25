@@ -2,7 +2,7 @@ import numpy as np
 
 from mushroom.environments import Environment, MDPInfo
 from mushroom.utils import spaces
-from mushroom.utils.angles_utils import normalize_angle
+from mushroom.utils.angles import normalize_angle
 from mushroom.utils.viewer import Viewer
 
 

@@ -1,91 +1,31 @@
 Utils
 =====
 
-spaces
+Angles
 ------
 
-.. automodule:: mushroom.utils.spaces
-    :members:
-    :undoc-members:
-    :show-inheritance:
-    
-dataset
--------
-
-.. automodule:: mushroom.utils.dataset
-    :members:
-    :undoc-members:
-    :show-inheritance:
-    
-preprocessor
-------------
-
-.. automodule:: mushroom.utils.preprocessor
+.. automodule:: mushroom.utils.angles
     :members:
     :undoc-members:
     :show-inheritance:
 
-callbacks
+Callbacks
 ---------
 
 .. automodule:: mushroom.utils.callbacks
     :members:
     :undoc-members:
     :show-inheritance:
-    
-features
---------
 
-.. automodule:: mushroom.utils.features
+Dataset
+-------
+
+.. automodule:: mushroom.utils.dataset
     :members:
-    :private-members:
-    :inherited-members:
     :undoc-members:
     :show-inheritance:
 
-parameters
-----------
-
-.. automodule:: mushroom.utils.parameters
-    :members:
-    :private-members:
-    :inherited-members:
-    :undoc-members:
-    :show-inheritance:
-    
-variance_parameters
--------------------
-
-.. automodule:: mushroom.utils.variance_parameters
-    :members:
-    :private-members:
-    :inherited-members:
-    :undoc-members:
-    :show-inheritance:
-
-
-replay_memory
--------------
-
-.. automodule:: mushroom.utils.replay_memory
-    :members:
-    :private-members:
-    :inherited-members:
-    :undoc-members:
-    :show-inheritance:
-
-table
------
-
-.. automodule:: mushroom.utils.table
-    :members:
-    :private-members:
-    :inherited-members:
-    :undoc-members:
-    :show-inheritance:
-    
-    
-eligibility_trace
+Eligibility trace
 -----------------
 
 .. automodule:: mushroom.utils.eligibility_trace
@@ -95,8 +35,17 @@ eligibility_trace
     :undoc-members:
     :show-inheritance:
 
-    
-folder
+Features
+--------
+
+.. automodule:: mushroom.utils.features
+    :members:
+    :private-members:
+    :inherited-members:
+    :undoc-members:
+    :show-inheritance:
+
+Folder
 ------
 
 .. automodule:: mushroom.utils.folder
@@ -106,4 +55,88 @@ folder
     :undoc-members:
     :show-inheritance:
 
+Minibatches
+-----------
 
+.. automodule:: mushroom.utils.minibatches
+    :members:
+    :private-members:
+    :inherited-members:
+    :undoc-members:
+    :show-inheritance:
+
+Numerical gradient
+------------------
+
+.. automodule:: mushroom.utils.numerical_gradient
+    :members:
+    :private-members:
+    :inherited-members:
+    :undoc-members:
+    :show-inheritance:
+
+Parameters
+----------
+
+.. automodule:: mushroom.utils.parameters
+    :members:
+    :private-members:
+    :inherited-members:
+    :undoc-members:
+    :show-inheritance:
+
+Preprocessor
+------------
+
+.. automodule:: mushroom.utils.preprocessor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Replay memory
+-------------
+
+.. automodule:: mushroom.utils.replay_memory
+    :members:
+    :private-members:
+    :inherited-members:
+    :undoc-members:
+    :show-inheritance:
+
+Spaces
+------
+
+.. automodule:: mushroom.utils.spaces
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    
+Table
+-----
+
+.. automodule:: mushroom.utils.table
+    :members:
+    :private-members:
+    :inherited-members:
+    :undoc-members:
+    :show-inheritance:
+    
+Variance parameters
+-------------------
+
+.. automodule:: mushroom.utils.variance_parameters
+    :members:
+    :private-members:
+    :inherited-members:
+    :undoc-members:
+    :show-inheritance:
+
+Viewer
+------
+
+.. automodule:: mushroom.utils.viewer
+    :members:
+    :private-members:
+    :inherited-members:
+    :undoc-members:
+    :show-inheritance:

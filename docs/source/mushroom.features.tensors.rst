@@ -1,7 +1,7 @@
 Tensors
 =======
 
-gaussian_tensor
+Gaussian tensor
 ---------------
 
 .. automodule:: mushroom.features.tensors.gaussian_tensor

@@ -1,7 +1,17 @@
 Value
 =====
 
-batch_td
+TD
+--
+
+.. automodule:: mushroom.algorithms.value.td
+    :members:
+    :private-members:
+    :inherited-members:
+    :undoc-members:
+    :show-inheritance:
+
+Batch TD
 --------
 
 .. automodule:: mushroom.algorithms.value.batch_td
@@ -11,20 +21,10 @@ batch_td
     :undoc-members:
     :show-inheritance:
 
-dqn
+DQN
 ---
 
 .. automodule:: mushroom.algorithms.value.dqn
-    :members:
-    :private-members:
-    :inherited-members:
-    :undoc-members:
-    :show-inheritance:
-
-td
---
-
-.. automodule:: mushroom.algorithms.value.td
     :members:
     :private-members:
     :inherited-members:

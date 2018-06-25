@@ -1,7 +1,7 @@
 Solvers
 =======
 
-dynamic_programming
+Dynamic programming
 -------------------
 
 .. automodule:: mushroom.solvers.dynamic_programming
