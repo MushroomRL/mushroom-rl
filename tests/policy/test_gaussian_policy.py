@@ -6,7 +6,7 @@ from mushroom.utils.numerical_gradient import numerical_diff_policy
 
 def test_univariate_gaussian():
     print('Testing univariate gaussian policy...')
-    sigma = 1e-3*np.eye(1)
+    sigma = 1e-3 * np.eye(1)
 
     n_dims = 5
 
@@ -97,7 +97,7 @@ def test_multivariate_state_std_gaussian():
                                  output_shape=(n_outs,))
 
     pi = StateStdGaussianPolicy(mu_approximator, std_approximator)
-    weights = np.random.rand(pi.weights_size)+0.1
+    weights = np.random.rand(pi.weights_size) + .1
     pi.set_weights(weights)
 
     x = np.random.randn(20, n_dims)
@@ -121,8 +121,8 @@ def test_multivariate_state_log_std_gaussian():
                                 output_shape=(n_outs,))
 
     log_var_approximator = Regressor(LinearApproximator,
-                                 input_shape=(n_dims,),
-                                 output_shape=(n_outs,))
+                                     input_shape=(n_dims,),
+                                     output_shape=(n_outs,))
 
     pi = StateLogStdGaussianPolicy(mu_approximator, log_var_approximator)
     weights = np.random.rand(pi.weights_size)

@@ -5,15 +5,17 @@ from mushroom.utils.features import uniform_grid
 
 class PyTorchGaussianRBF(nn.Module):
     """
-    Pytorch module to implement a gaussian radial basis function
+    Pytorch module to implement a gaussian radial basis function.
+
     """
     def __init__(self, mu, scale):
         self._mu = torch.from_numpy(mu)
         self._scale = torch.from_numpy(scale)
 
     def forward(self, x):
-        delta = x-self._mu
-        return torch.exp(-torch.sum(delta**2/self._scale, 1))
+        delta = x - self._mu
+
+        return torch.exp(-torch.sum(delta**2 / self._scale, 1))
 
     @staticmethod
     def generate(n_centers, ranges):

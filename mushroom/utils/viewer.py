@@ -12,6 +12,7 @@ class Viewer:
                  background=(0, 0, 0)):
         """
         Constructor.
+
         Args:
             env_width (int): The x dimension limit of the desired environment;
             env_height (int): The y dimension limit of the desired environment;
