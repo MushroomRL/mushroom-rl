@@ -4,7 +4,7 @@ from mushroom.utils.numerical_gradient import numerical_diff_dist
 
 
 def test_gaussian():
-    print('Testing gaussian distribution...')
+    np.random.seed(88)
     n_dims = 6
 
     random_matrix = np.random.rand(n_dims, n_dims)
@@ -23,7 +23,7 @@ def test_gaussian():
 
 
 def test_diagonal_gaussian():
-    print('Testing diagonal gaussian distribution...')
+    np.random.seed(88)
     n_dims = 6
 
     std = np.abs(np.random.rand(n_dims))
@@ -40,7 +40,7 @@ def test_diagonal_gaussian():
 
 
 def test_cholesky_gaussian():
-    print('Testing gaussian cholesky distribution...')
+    np.random.seed(88)
     n_dims = 6
 
     random_matrix = np.random.rand(n_dims, n_dims)
