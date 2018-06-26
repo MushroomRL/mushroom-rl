@@ -142,6 +142,7 @@ or to compile the pdf version:
 To launch mushroom test suite:
 
 ::
+
     cd mushroom/tests
     python3 -m pytest
 

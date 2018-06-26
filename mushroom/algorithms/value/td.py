@@ -22,7 +22,7 @@ class TD(Agent):
         Args:
             approximator (object): the approximator to use to fit the
                Q-function;
-            learning_rate (float): the learning rate.
+            learning_rate (Parameter): the learning rate.
 
         """
         self.alpha = learning_rate
@@ -462,7 +462,7 @@ class RLearning(TD):
         Constructor.
 
         Args:
-            beta (float): beta coefficient.
+            beta (Parameter): beta coefficient.
 
         """
         self.Q = Table(mdp_info.size)
@@ -500,15 +500,15 @@ class RQLearning(TD):
         Args:
             off_policy (bool, False): whether to use the off policy setting or
                 the online one;
-            beta (float, None): beta coefficient;
-            delta (float, None): delta coefficient.
+            beta (Parameter, None): beta coefficient;
+            delta (Parameter, None): delta coefficient.
 
         """
         self.off_policy = off_policy
-        if 'delta' is not None and 'beta' is None:
+        if delta is not None and beta is None:
             self.delta = delta
             self.beta = None
-        elif 'delta' is None and 'beta' is not None:
+        elif delta is None and beta is not None:
             self.delta = None
             self.beta = beta
         else:

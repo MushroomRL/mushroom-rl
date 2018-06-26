@@ -2,7 +2,20 @@ import numpy as np
 
 
 def numerical_diff_policy(policy, state, action, eps=1e-6):
+    """
+    Compute the gradient of a policy in (``state``, ``action``) numerically.
 
+    Args:
+        policy (Policy): the policy whose gradient has to be returned;
+        state (np.ndarray): the state;
+        action (np.ndarray): the action;
+        eps (float, 1e-6): the value of the perturbation.
+
+    Returns:
+        The gradient of the provided policy in (``state``, ``action``)
+        computed numerically.
+
+    """
     w_start = policy.get_weights()
 
     g = np.zeros(policy.weights_size)
@@ -24,7 +37,19 @@ def numerical_diff_policy(policy, state, action, eps=1e-6):
 
 
 def numerical_diff_dist(dist, theta, eps=1e-6):
+    """
+    Compute the gradient of a distribution in ``theta`` numerically.
 
+    Args:
+        dist (Distribution): the distribution whose gradient has to be returned;
+        theta (np.ndarray): the parametrization where to compute the gradient;
+        eps (float, 1e-6): the value of the perturbation.
+
+    Returns:
+        The gradient of the provided distribution ``theta`` computed
+        numerically.
+
+    """
     rho_start = dist.get_parameters()
 
     g = np.zeros(dist.parameters_size)
