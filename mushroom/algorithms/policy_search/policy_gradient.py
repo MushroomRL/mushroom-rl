@@ -89,15 +89,11 @@ class PolicyGradient(Agent):
         """
         raise NotImplementedError('PolicyGradient is an abstract class')
 
-    def _episode_end_update(self, J_episode):
+    def _episode_end_update(self):
         """
         This function is called, when parsing the dataset, at the beginning
         of each episode. The implementation is dependent on the algorithm (e.g.
         REINFORCE updates some data structures).
-
-        Args:
-            J_episode (float): cumulative discounted reward of the current
-                episode.
 
         """
         raise NotImplementedError('PolicyGradient is an abstract class')
