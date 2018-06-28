@@ -58,7 +58,7 @@ class Display:
         self._counter = 0
 
         plt.draw()
-        plt.pause(0.1)
+        plt.pause(.1)
 
     def __call__(self, *args, **kwargs):
         vv, mm, ss = self._compute_data()
@@ -73,7 +73,7 @@ class Display:
         self._counter = 0
 
         plt.draw()
-        plt.pause(0.1)
+        plt.pause(.1)
 
     def _compute_data(self):
         n_points = len(self._theta) * len(self._omega)
@@ -109,17 +109,17 @@ def experiment(n_epochs, n_episodes):
     # Agent
     n_tilings = 11
     alpha_r = Parameter(.0001)
-    alpha_theta = Parameter(0.001/n_tilings)
-    alpha_v = Parameter(.1/n_tilings)
+    alpha_theta = Parameter(.001 / n_tilings)
+    alpha_v = Parameter(.1 / n_tilings)
     tilings = Tiles.generate(n_tilings-1, [10, 10],
                              mdp.info.observation_space.low,
-                             mdp.info.observation_space.high+1e-3)
+                             mdp.info.observation_space.high + 1e-3)
 
     phi = Features(tilings=tilings)
 
     tilings_v = tilings + Tiles.generate(1, [1, 1],
                                          mdp.info.observation_space.low,
-                                         mdp.info.observation_space.high+1e-3)
+                                         mdp.info.observation_space.high + 1e-3)
     psi = Features(tilings=tilings_v)
 
     input_shape = (phi.size,)
@@ -130,14 +130,14 @@ def experiment(n_epochs, n_episodes):
     std = Regressor(LinearApproximator, input_shape=input_shape,
                     output_shape=mdp.info.action_space.shape)
 
-    std_0 = np.sqrt(1.0)
-    std.set_weights(np.log(std_0)/n_tilings*np.ones(std.weights_size))
+    std_0 = np.sqrt(1.)
+    std.set_weights(np.log(std_0) / n_tilings * np.ones(std.weights_size))
 
     policy = StateLogStdGaussianPolicy(mu, std)
 
     agent = SAC_AVG(policy, mdp.info,
                     alpha_theta, alpha_v, alpha_r,
-                    lambda_par=0.5,
+                    lambda_par=.5,
                     value_function_features=psi,
                     policy_features=phi)
 
@@ -152,11 +152,11 @@ def experiment(n_epochs, n_episodes):
     for i in range(n_epochs):
         core.learn(n_episodes=n_episodes,
                    n_steps_per_fit=1, render=False)
-        J = compute_J(dataset_callback.get(), gamma=1.0)
+        J = compute_J(dataset_callback.get(), gamma=1.)
         dataset_callback.clean()
         display_callback()
         print('Mean Reward at iteration ' + str(i) + ': ' +
-              str(np.sum(J)/n_steps/n_episodes))
+              str(np.sum(J) / n_steps/n_episodes))
 
     print('Press a button to visualize the pendulum...')
     input()

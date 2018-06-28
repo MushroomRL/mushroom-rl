@@ -30,8 +30,8 @@ policy = StateStdGaussianPolicy(approximator, sigma)
 learning_rate = AdaptiveParameter(value=.01)
 algorithm_params = dict(learning_rate=learning_rate)
 
-test_agent = REINFORCE(policy, mdp.info, **algorithm_params)
-core = Core(test_agent, mdp)
+agent_test = REINFORCE(policy, mdp.info, **algorithm_params)
+core = Core(agent_test, mdp)
 
 s = np.arange(10)
 a = np.arange(10)

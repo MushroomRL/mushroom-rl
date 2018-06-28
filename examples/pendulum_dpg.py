@@ -65,7 +65,7 @@ class Display:
         self._counter = 0
 
         plt.draw()
-        plt.pause(0.1)
+        plt.pause(.1)
 
     def _compute_data(self):
         n_points = len(self._theta) * len(self._omega)
