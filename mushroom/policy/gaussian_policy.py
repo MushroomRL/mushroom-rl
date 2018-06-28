@@ -273,7 +273,7 @@ class StateLogStdGaussianPolicy(ParametricPolicy):
     This policy is similar to the State std gaussian policy, but here the
     regressor represents the logarithm of the standard deviation
     """
-    def __init__(self, mu, log_std, eps=1e-6):
+    def __init__(self, mu, log_std):
         """
         Constructor.
 
@@ -285,11 +285,9 @@ class StateLogStdGaussianPolicy(ParametricPolicy):
                                    dimensionality of the regressor must be equal
                                    to the action dimensionality
         """
-        assert(eps > 0)
 
         self._mu_approximator = mu
         self._log_std_approximator = log_std
-        self._eps = eps
 
     def __call__(self, state, action):
         mu, sigma = self._compute_multivariate_gaussian(state)
