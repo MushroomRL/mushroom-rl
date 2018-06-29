@@ -46,13 +46,13 @@ class PyTorchApproximator:
                                              **optimizer['params'])
         self._loss = loss
 
-    def predict(self, s):
+    def predict(self, *args):
         if self._device is None:
-            s = torch.from_numpy(s)
-            val = self._network.forward(s).detach().numpy()
+            torch_args = [torch.from_numpy(x) for x in args]
+            val = self._network.forward(*torch_args).detach().numpy()
         else:
-            s = torch.from_numpy(s).cuda(self._device)
-            val = self._network.forward(s).detach().cpu().numpy()
+            torch_args = [torch.from_numpy(x).cuda(self._device) for x in args]
+            val = self._network.forward(*torch_args).detach().cpu().numpy()
 
         return val
 
@@ -64,25 +64,15 @@ class PyTorchApproximator:
 
         for _ in trange(self._n_epochs, disable=self._quiet):
             for batch in tqdm(batches, disable=self._quiet):
-                if len(args) == 3:
-                    s = torch.from_numpy(batch[0])
-                    a = torch.from_numpy(batch[1]).long()
-                    q = torch.from_numpy(batch[2])
 
-                    if self._device is None:
-                        x = [s, a]
-                        y = q
-                    else:
-                        x = [s.cuda(self._device), a.cuda(self._device)]
-                        y = q.cuda(self._device)
+                if self._device is None:
+                    torch_args = [torch.from_numpy(x) for x in batch]
+                else:
+                    torch_args = [torch.from_numpy(x).cuda(self._device) for x
+                                  in args]
 
-                elif len(args) == 2:
-                    if self._device is None:
-                        x = [torch.from_numpy(batch[0])]
-                        y = torch.from_numpy(batch[1])
-                    else:
-                        x = [torch.from_numpy(batch[0]).cuda(self._device)]
-                        y = torch.from_numpy(batch[1].cuda(self._device))
+                x = torch_args[:-1]
+                y = torch_args[-1]
 
                 y_hat = self._network(*x)
                 loss = self._loss(y_hat, y)

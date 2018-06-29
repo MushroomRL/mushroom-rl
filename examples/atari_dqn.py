@@ -57,7 +57,7 @@ class Network(nn.Module):
         if action is None:
             return q
         else:
-            q_acted = torch.squeeze(q.gather(1, action))
+            q_acted = torch.squeeze(q.gather(1, action.long()))
 
             return q_acted
 
