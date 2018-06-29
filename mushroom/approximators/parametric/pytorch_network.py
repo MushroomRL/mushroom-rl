@@ -19,7 +19,7 @@ class PyTorchApproximator:
 
         Args:
             network (torch.nn.Module): the network class to use;
-            optimizer (torch.optim): the optimizer used for every fit step;
+            optimizer (dict): the optimizer used for every fit step;
             loss (torch.nn.functional): the loss function to optimize in the
                 fit method;
             n_epochs (int, 1): the number of epochs to run during the fit;
