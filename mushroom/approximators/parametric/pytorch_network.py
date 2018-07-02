@@ -46,17 +46,18 @@ class PyTorchApproximator:
                                              **optimizer['params'])
         self._loss = loss
 
-    def predict(self, *args):
+    def predict(self, *args, **kwargs):
         if self._device is None:
             torch_args = [torch.from_numpy(x) for x in args]
-            val = self._network.forward(*torch_args).detach().numpy()
+            val = self._network.forward(*torch_args, **kwargs).detach().numpy()
         else:
             torch_args = [torch.from_numpy(x).cuda(self._device) for x in args]
-            val = self._network.forward(*torch_args).detach().cpu().numpy()
+            val = self._network.forward(*torch_args,
+                                        **kwargs).detach().cpu().numpy()
 
         return val
 
-    def fit(self, *args):
+    def fit(self, *args, **kwargs):
         if self._batch_size > 0:
             batches = minibatch_generator(self._batch_size, args)
         else:
@@ -74,8 +75,8 @@ class PyTorchApproximator:
                 x = torch_args[:-1]
                 y = torch_args[-1]
 
-                y_hat = self._network(*x)
-                loss = self._loss(y_hat, y)
+                y_hat = self._network(*x, **kwargs)
+                loss = self._loss(y_hat, y.type(y_hat.type()))
                 self._optimizer.zero_grad()
                 loss.backward()
                 self._optimizer.step()
