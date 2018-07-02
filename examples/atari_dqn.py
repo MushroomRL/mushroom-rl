@@ -27,7 +27,7 @@ class Network(nn.Module):
     def __init__(self, params):
         super(Network, self).__init__()
 
-        n_input = params['input_shape'][-1]
+        n_input = params['input_shape'][0]
         n_output = params['output_shape'][0]
 
         self._h1 = nn.Conv2d(n_input, 32, kernel_size=8, stride=4)
@@ -218,8 +218,8 @@ def experiment():
         pi = EpsGreedy(epsilon=epsilon_test)
 
         # Approximator
-        input_shape = (args.screen_height, args.screen_width,
-                       args.history_length)
+        input_shape = (args.history_length, args.screen_height,
+                       args.screen_width)
         approximator_params = dict(
             network=Network,
             input_shape=input_shape,
@@ -296,8 +296,8 @@ def experiment():
         pi = EpsGreedy(epsilon=epsilon_random)
 
         # Approximator
-        input_shape = (args.screen_height, args.screen_width,
-                       args.history_length)
+        input_shape = (args.history_length, args.screen_height,
+                       args.screen_width)
         approximator_params = dict(
             network=Network,
             input_shape=input_shape,
