@@ -81,7 +81,7 @@ class DQN(Agent):
                 self.target_approximator.model[i].set_weights(
                     self.approximator.model.get_weights())
 
-        super(DQN, self).__init__(policy, mdp_info)
+        super().__init__(policy, mdp_info)
 
     def fit(self, dataset):
         self._replay_memory.add(dataset)
@@ -178,8 +178,7 @@ class AveragedDQN(DQN):
 
     """
     def __init__(self, approximator, policy, mdp_info, **params):
-        super(AveragedDQN, self).__init__(approximator, policy, mdp_info,
-                                          **params)
+        super().__init__(approximator, policy, mdp_info, **params)
 
         self._n_fitted_target_models = 1
 

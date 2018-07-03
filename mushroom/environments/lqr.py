@@ -56,7 +56,7 @@ class LQR(Environment):
         action_space = spaces.Box(low=low_u, high=high_u)
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
-        super(LQR, self).__init__(mdp_info)
+        super().__init__(mdp_info)
 
     @staticmethod
     def generate(dimensions, eps=0.1, index=0, random_init=False,

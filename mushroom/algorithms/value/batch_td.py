@@ -35,7 +35,7 @@ class BatchTD(Agent):
                                       **self._approximator_params)
         policy.set_q(self.approximator)
 
-        super(BatchTD, self).__init__(policy, mdp_info, features)
+        super().__init__(policy, mdp_info, features)
 
 
 class FQI(BatchTD):
@@ -59,8 +59,8 @@ class FQI(BatchTD):
         self._n_iterations = n_iterations
         self._quiet = quiet
 
-        super(FQI, self).__init__(approximator, policy, mdp_info, fit_params,
-                                  approximator_params)
+        super().__init__(approximator, policy, mdp_info, fit_params,
+                         approximator_params)
 
         self._target = None
 
@@ -148,9 +148,8 @@ class DoubleFQI(FQI):
     """
     def __init__(self, approximator, policy, mdp_info, n_iterations,
                  fit_params=None, approximator_params=None, quiet=False):
-        super(DoubleFQI, self).__init__(approximator, policy, mdp_info,
-                                        n_iterations, fit_params,
-                                        approximator_params, quiet)
+        super().__init__(approximator, policy, mdp_info, n_iterations,
+                         fit_params, approximator_params, quiet)
 
     def _fit(self, x):
         state = list()
@@ -200,8 +199,8 @@ class LSPI(BatchTD):
         self._A = np.zeros((k, k))
         self._b = np.zeros((k, 1))
 
-        super(LSPI, self).__init__(LinearApproximator, policy, mdp_info,
-                                   fit_params, approximator_params, features)
+        super().__init__(LinearApproximator, policy, mdp_info, fit_params,
+                         approximator_params, features)
 
     def fit(self, dataset):
         phi_state, action, reward, phi_next_state, absorbing, _ = parse_dataset(

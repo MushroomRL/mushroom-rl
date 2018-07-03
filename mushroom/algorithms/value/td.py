@@ -30,7 +30,7 @@ class TD(Agent):
         policy.set_q(approximator)
         self.approximator = approximator
 
-        super(TD, self).__init__(policy, mdp_info, features)
+        super().__init__(policy, mdp_info, features)
 
     def fit(self, dataset):
         assert len(dataset) == 1
@@ -84,7 +84,7 @@ class QLearning(TD):
     def __init__(self, policy, mdp_info, learning_rate):
         self.Q = Table(mdp_info.size)
 
-        super(QLearning, self).__init__(self.Q, policy, mdp_info, learning_rate)
+        super().__init__(self.Q, policy, mdp_info, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
@@ -104,8 +104,7 @@ class DoubleQLearning(TD):
     def __init__(self, policy, mdp_info, learning_rate):
         self.Q = EnsembleTable(2, mdp_info.size)
 
-        super(DoubleQLearning, self).__init__(self.Q, policy, mdp_info,
-                                              learning_rate)
+        super().__init__(self.Q, policy, mdp_info, learning_rate)
 
         self.alpha = [deepcopy(self.alpha), deepcopy(self.alpha)]
 
@@ -158,8 +157,7 @@ class WeightedQLearning(TD):
         self._sampling = sampling
         self._precision = precision
 
-        super(WeightedQLearning, self).__init__(self.Q, policy, mdp_info,
-                                                learning_rate)
+        super().__init__(self.Q, policy, mdp_info, learning_rate)
 
         self._n_updates = Table(mdp_info.size)
         self._sigma = Table(mdp_info.size, initial_value=1e10)
@@ -241,8 +239,7 @@ class SpeedyQLearning(TD):
         self.Q = Table(mdp_info.size)
         self.old_q = deepcopy(self.Q)
 
-        super(SpeedyQLearning, self).__init__(self.Q, policy, mdp_info,
-                                              learning_rate)
+        super().__init__(self.Q, policy, mdp_info, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
         old_q = deepcopy(self.Q)
@@ -268,7 +265,7 @@ class SARSA(TD):
     """
     def __init__(self, policy, mdp_info, learning_rate):
         self.Q = Table(mdp_info.size)
-        super(SARSA, self).__init__(self.Q, policy, mdp_info, learning_rate)
+        super().__init__(self.Q, policy, mdp_info, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
@@ -299,8 +296,7 @@ class SARSALambdaDiscrete(TD):
         self._lambda = lambda_coeff
 
         self.e = EligibilityTrace(self.Q.shape, trace)
-        super(SARSALambdaDiscrete, self).__init__(self.Q, policy, mdp_info,
-                                                  learning_rate)
+        super().__init__(self.Q, policy, mdp_info, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
@@ -339,8 +335,7 @@ class SARSALambdaContinuous(TD):
         self.e = np.zeros(self.Q.weights_size)
         self._lambda = lambda_coeff
 
-        super(SARSALambdaContinuous, self).__init__(self.Q, policy, mdp_info,
-                                                    learning_rate, features)
+        super().__init__(self.Q, policy, mdp_info, learning_rate, features)
 
     def _update(self, state, action, reward, next_state, absorbing):
         phi_state = self.phi(state)
@@ -375,8 +370,7 @@ class ExpectedSARSA(TD):
     """
     def __init__(self, policy, mdp_info, learning_rate):
         self.Q = Table(mdp_info.size)
-        super(ExpectedSARSA, self).__init__(self.Q, policy, mdp_info,
-                                            learning_rate)
+        super().__init__(self.Q, policy, mdp_info, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
@@ -413,8 +407,7 @@ class TrueOnlineSARSALambda(TD):
         self._lambda = lambda_coeff
         self._q_old = None
 
-        super(TrueOnlineSARSALambda, self).__init__(self.Q, policy, mdp_info,
-                                                    learning_rate, features)
+        super().__init__(self.Q, policy, mdp_info, learning_rate, features)
 
     def _update(self, state, action, reward, next_state, absorbing):
         phi_state = self.phi(state)
@@ -469,7 +462,7 @@ class RLearning(TD):
         self._rho = 0.
         self.beta = beta
 
-        super(RLearning, self).__init__(self.Q, policy, mdp_info, learning_rate)
+        super().__init__(self.Q, policy, mdp_info, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
@@ -517,8 +510,7 @@ class RQLearning(TD):
         self.Q = Table(mdp_info.size)
         self.Q_tilde = Table(mdp_info.size)
         self.R_tilde = Table(mdp_info.size)
-        super(RQLearning, self).__init__(self.Q, policy, mdp_info,
-                                         learning_rate)
+        super().__init__(self.Q, policy, mdp_info, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
         alpha = self.alpha(state, action, target=reward)

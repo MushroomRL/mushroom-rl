@@ -36,7 +36,7 @@ class FiniteMDP(Environment):
         gamma = gamma
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
-        super(FiniteMDP, self).__init__(mdp_info)
+        super().__init__(mdp_info)
 
     def reset(self, state=None):
         if state is None:

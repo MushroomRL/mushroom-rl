@@ -19,7 +19,7 @@ class VarianceParameter(Parameter):
         self._x2 = Table(size)
         self._parameter_value = Table(size)
 
-        super(VarianceParameter, self).__init__(value, min_value, size)
+        super().__init__(value, min_value, size)
 
     def _compute(self, *idx, **kwargs):
         return self._parameter_value[idx]

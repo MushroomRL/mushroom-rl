@@ -48,7 +48,7 @@ class Gym(Environment):
         else:
             self._convert_state = self._no_convert
 
-        super(Gym, self).__init__(mdp_info)
+        super().__init__(mdp_info)
 
     def reset(self, state=None):
         if state is None:

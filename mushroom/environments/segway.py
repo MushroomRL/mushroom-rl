@@ -11,24 +11,24 @@ class Segway(Environment):
     """
     The Segway environment (continuous version) as presented in:
     "Deep Learning for Actor-Critic Reinforcement Learning". Xueli Jia. 2015.
+
     """
     def __init__(self, random_start=False):
         """
         Constructor.
 
         Args:
-            random_start: whether to start from a random position or from the
-                          horizontal one
+            random_start (bool, False): whether to start from a random position
+                or from the horizontal one.
 
         """
         # MDP parameters
-
         gamma = 0.97
 
-        self._Mr = 0.3*2
+        self._Mr = 0.3 * 2
         self._Mp = 2.55
         self._Ip = 2.6e-2
-        self._Ir = 4.54e-4*2
+        self._Ir = 4.54e-4 * 2
         self._l = 13.8e-2
         self._r = 5.5e-2
         self._dt = 1e-2
@@ -37,7 +37,7 @@ class Segway(Environment):
 
         self._random = random_start
 
-        high = np.array([-np.pi/2, 15, 75])
+        high = np.array([-np.pi / 2, 15, 75])
 
         # MDP properties
         observation_space = spaces.Box(low=-high, high=high)
@@ -47,15 +47,15 @@ class Segway(Environment):
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
         # Visualization
-        self._viewer = Viewer(5*self._l, 5*self._l)
+        self._viewer = Viewer(5 * self._l, 5 * self._l)
         self._last_x = 0
 
-        super(Segway, self).__init__(mdp_info)
+        super().__init__(mdp_info)
 
     def reset(self, state=None):
         if state is None:
             if self._random:
-                angle = np.random.uniform(-np.pi/2, np.pi/2)
+                angle = np.random.uniform(-np.pi / 2, np.pi / 2)
             else:
                 angle = -np.pi/8
 
@@ -102,12 +102,12 @@ class Segway(Environment):
 
         omegaP = d_alpha
 
-        dOmegaP = -(h2*self._l*self._Mp*self._r*np.sin(alpha)*omegaP**2 -
-                    self._g*h1*self._l*self._Mp*np.sin(alpha) + (h2 + h1)*u)\
-                  / (h1*h3-h2**2)
-        dOmegaR = (h3*self._l*self._Mp*self._r*np.sin(alpha)*omegaP**2 -
-                   self._g*h2*self._l*self._Mp*np.sin(alpha) + (h3 + h2)*u)\
-                  / (h1*h3-h2**2)
+        dOmegaP = -(h2 * self._l * self._Mp * self._r * np.sin(
+            alpha) * omegaP**2 - self._g * h1 * self._l * self._Mp * np.sin(
+            alpha) + (h2 + h1) * u) / (h1 * h3 - h2**2)
+        dOmegaR = (h3 * self._l * self._Mp * self._r * np.sin(
+            alpha) * omegaP**2 - self._g * h2 * self._l * self._Mp * np.sin(
+            alpha) + (h3 + h2) * u) / (h1 * h3 - h2**2)
 
         dx = list()
         dx.append(omegaP)
@@ -124,18 +124,18 @@ class Segway(Environment):
 
         self._last_x += dx
 
-        if self._last_x > 2.5*self._l or self._last_x < -2.5*self._l:
-            self._last_x = (2.5*self._l + self._last_x)%(5*self._l) \
-                           - 2.5*self._l
+        if self._last_x > 2.5 * self._l or self._last_x < -2.5 * self._l:
+            self._last_x = (2.5 * self._l + self._last_x) % (
+                5 * self._l) - 2.5 * self._l
 
         start[0] += self._last_x
-        end[0] += -2*self._l*np.sin(self._state[0]) + self._last_x
-        end[1] += 2*self._l*np.cos(self._state[0])
+        end[0] += -2 * self._l * np.sin(self._state[0]) + self._last_x
+        end[1] += 2 * self._l * np.cos(self._state[0])
 
         if (start[0] > 5 * self._l and end[0] > 5 * self._l) \
                 or (start[0] < 0 and end[0] < 0):
-            start[0] = start[0]%5*self._l
-            end[0] = end[0]%5*self._l
+            start[0] = start[0] % 5 * self._l
+            end[0] = end[0] % 5 * self._l
 
         self._viewer.line(start, end)
         self._viewer.circle(start, self._r)

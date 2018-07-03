@@ -31,7 +31,7 @@ class AbstractGridWorld(Environment):
         self._start = start
         self._goal = goal
 
-        super(AbstractGridWorld, self).__init__(mdp_info)
+        super().__init__(mdp_info)
 
     def reset(self, state=None):
         if state is None:
@@ -74,7 +74,7 @@ class GridWorld(AbstractGridWorld):
         gamma = .9
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
-        super(GridWorld, self).__init__(mdp_info, height, width, start, goal)
+        super().__init__(mdp_info, height, width, start, goal)
 
     def _step(self, state, action):
         if action == 0:
@@ -114,7 +114,7 @@ class GridWorldVanHasselt(AbstractGridWorld):
         gamma = .95
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
-        super(GridWorldVanHasselt, self).__init__(mdp_info, height, width,
+        super().__init__(mdp_info, height, width,
                                                   start, goal)
 
     def _step(self, state, action):

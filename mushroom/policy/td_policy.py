@@ -46,7 +46,7 @@ class EpsGreedy(TDPolicy):
                 step.
 
         """
-        super(EpsGreedy, self).__init__()
+        super().__init__()
 
         assert isinstance(epsilon, Parameter)
         self._epsilon = epsilon
@@ -124,7 +124,7 @@ class Boltzmann(TDPolicy):
             more and more greedy.
 
         """
-        super(Boltzmann, self).__init__()
+        super().__init__()
         self._beta = beta
 
     def __call__(self, *args):
@@ -195,4 +195,4 @@ class Mellowmax(Boltzmann):
         """
         beta_mellow = self.MellowmaxParameter(self, omega, beta_min, beta_max)
 
-        super(Mellowmax, self).__init__(beta_mellow)
+        super().__init__(beta_mellow)
