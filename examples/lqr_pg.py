@@ -27,16 +27,13 @@ def experiment(alg, n_epochs, n_iterations, ep_per_run):
     # MDP
     mdp = LQR.generate(dimensions=1)
 
-    approximator_params = dict(input_dim=mdp.info.observation_space.shape)
     approximator = Regressor(LinearApproximator,
                              input_shape=mdp.info.observation_space.shape,
-                             output_shape=mdp.info.action_space.shape,
-                             params=approximator_params)
+                             output_shape=mdp.info.action_space.shape)
 
     sigma = Regressor(LinearApproximator,
                       input_shape=mdp.info.observation_space.shape,
-                      output_shape=mdp.info.action_space.shape,
-                      params=approximator_params)
+                      output_shape=mdp.info.action_space.shape)
 
     sigma_weights = 2 * np.ones(sigma.weights_size)
     sigma.set_weights(sigma_weights)
