@@ -24,11 +24,11 @@ This script runs Atari experiments with DQN as presented in:
 
 
 class Network(nn.Module):
-    def __init__(self, params):
+    def __init__(self, input_shape, output_shape):
         super(Network, self).__init__()
 
-        n_input = params['input_shape'][0]
-        n_output = params['output_shape'][0]
+        n_input = input_shape[0]
+        n_output = output_shape[0]
 
         self._h1 = nn.Conv2d(n_input, 32, kernel_size=8, stride=4)
         self._h2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
@@ -303,7 +303,6 @@ def experiment():
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            folder_name=folder_name,
             optimizer=optimizer,
             loss=F.smooth_l1_loss,
             device=args.device

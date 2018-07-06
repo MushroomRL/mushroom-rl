@@ -63,8 +63,6 @@ def test_copdac_q():
 
     w = agent._V.get_weights()
 
-    np.save('w.npy', w)
-
     assert np.allclose(w_1, w[66])
     assert np.allclose(w_2, w[78])
 

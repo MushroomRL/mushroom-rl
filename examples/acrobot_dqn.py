@@ -13,12 +13,11 @@ from mushroom.utils.parameters import Parameter, LinearDecayParameter
 
 
 class Network(nn.Module):
-    def __init__(self, params):
+    def __init__(self, input_shape, output_shape, n_features):
         super(Network, self).__init__()
 
-        n_input = params['input_shape'][-1]
-        n_output = params['output_shape'][0]
-        n_features = params['n_features']
+        n_input = input_shape[-1]
+        n_output = output_shape[0]
 
         self._h1 = nn.Linear(n_input, n_features)
         self._h2 = nn.Linear(n_features, n_features)
@@ -73,7 +72,8 @@ def experiment(n_epochs, n_steps, n_steps_test):
     approximator_params = dict(network=Network,
                                optimizer={'class': optim.Adam,
                                           'params': {'lr': .001}},
-                               loss=F.smooth_l1_loss, n_features=n_features,
+                               loss=F.smooth_l1_loss,
+                               n_features=n_features,
                                input_shape=input_shape,
                                output_shape=mdp.info.action_space.size,
                                n_actions=mdp.info.action_space.n)

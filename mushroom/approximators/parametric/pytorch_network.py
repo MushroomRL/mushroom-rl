@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from tqdm import trange, tqdm
 
 from mushroom.utils.minibatches import minibatch_generator
@@ -12,12 +13,14 @@ class PyTorchApproximator:
     This class supports also minibatches.
 
     """
-    def __init__(self, network, optimizer, loss, n_epochs=1, batch_size=0,
-                 device=None, quiet=True, **params):
+    def __init__(self, input_shape, output_shape, network, optimizer, loss,
+                 n_epochs=1, batch_size=0, device=None, quiet=True, **params):
         """
         Constructor.
 
         Args:
+            input_shape (tuple): shape of the input of the network;
+            output_shape (tuple): shape of the output of the network;
             network (torch.nn.Module): the network class to use;
             optimizer (dict): the optimizer used for every fit step;
             loss (torch.nn.functional): the loss function to optimize in the
@@ -38,7 +41,7 @@ class PyTorchApproximator:
         self._device = device
         self._quiet = quiet
 
-        self._network = network(params)
+        self._network = network(input_shape, output_shape, **params)
         if self._device is not None:
             self._network.cuda(self._device)
 
@@ -58,12 +61,13 @@ class PyTorchApproximator:
         return val
 
     def fit(self, *args, **kwargs):
-        if self._batch_size > 0:
-            batches = minibatch_generator(self._batch_size, args)
-        else:
-            batches = [args]
+        for t in trange(self._n_epochs, disable=self._quiet):
+            if self._batch_size > 0:
+                batches = minibatch_generator(self._batch_size, *args)
+            else:
+                batches = [args]
 
-        for _ in trange(self._n_epochs, disable=self._quiet):
+            loss_current = list()
             for batch in tqdm(batches, disable=self._quiet):
 
                 if self._device is None:
@@ -77,9 +81,15 @@ class PyTorchApproximator:
 
                 y_hat = self._network(*x, **kwargs)
                 loss = self._loss(y_hat, y.type(y_hat.type()))
+                loss_current.append(loss.item())
+
                 self._optimizer.zero_grad()
                 loss.backward()
                 self._optimizer.step()
+
+            if not self._quiet:
+                tqdm.write('loss at epoch ' + str(t) + ' ' +
+                           str(np.mean(loss_current)))
 
     def set_weights(self, weights):
         self._network.load_state_dict(weights)
