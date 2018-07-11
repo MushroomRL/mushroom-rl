@@ -104,7 +104,7 @@ def experiment():
                                   'adam',
                                   'rmsprop',
                                   'rmspropcentered'],
-                         default='adam',
+                         default='rmsprop',
                          help='Name of the optimizer to use.')
     arg_net.add_argument("--learning-rate", type=float, default=.00025,
                          help='Learning rate value of the optimizer.')
@@ -112,7 +112,7 @@ def experiment():
                          help='Discount factor for the history coming from the'
                               'gradient momentum in rmspropcentered and'
                               'rmsprop')
-    arg_net.add_argument("--epsilon", type=float, default=.01,
+    arg_net.add_argument("--epsilon", type=float, default=1e-8,
                          help='Epsilon term used in rmspropcentered and'
                               'rmsprop')
 
