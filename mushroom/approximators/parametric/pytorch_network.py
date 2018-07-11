@@ -79,6 +79,8 @@ class PyTorchApproximator:
                 x = torch_args[:-1]
                 y_hat = self._network(*x, **kwargs)
                 y = torch.tensor(torch_args[-1], dtype=y_hat.dtype)
+                if self._device is not None:
+                    y = y.cuda()
 
                 loss = self._loss(y_hat, y)
                 loss_current.append(loss.item())
