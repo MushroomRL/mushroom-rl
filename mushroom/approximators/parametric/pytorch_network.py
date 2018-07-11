@@ -14,7 +14,8 @@ class PyTorchApproximator:
 
     """
     def __init__(self, input_shape, output_shape, network, optimizer, loss,
-                 n_epochs=1, batch_size=0, device=None, quiet=True, **params):
+                 n_epochs=1, batch_size=0, use_cuda=False, quiet=True,
+                 **params):
         """
         Constructor.
 
@@ -28,7 +29,7 @@ class PyTorchApproximator:
             n_epochs (int, 1): the number of epochs to run during the fit;
             batch_size (int, 0): the size of each minibatch. If 0, the whole
                 dataset is fed to the optimizer at each epoch;
-            device (int, None): if None, runs the network on the CPU;
+            use_cuda (bool, False): if True, runs the network on the GPU;
                 otherwise the integer provided specifies the GPU device to use;
             quiet (bool, True): if False, shows two progress bars, one for
                 epochs and one for the minibatches;
@@ -38,23 +39,23 @@ class PyTorchApproximator:
         """
         self._n_epochs = n_epochs
         self._batch_size = batch_size
-        self._device = device
+        self._use_cuda = use_cuda
         self._quiet = quiet
 
         self._network = network(input_shape, output_shape, **params)
-        if self._device is not None:
-            self._network.cuda(self._device)
+        if self._use_cuda:
+            self._network.cuda()
 
         self._optimizer = optimizer['class'](self._network.parameters(),
                                              **optimizer['params'])
         self._loss = loss
 
     def predict(self, *args, **kwargs):
-        if self._device is None:
+        if not self._use_cuda:
             torch_args = [torch.from_numpy(x) for x in args]
             val = self._network.forward(*torch_args, **kwargs).detach().numpy()
         else:
-            torch_args = [torch.from_numpy(x).cuda(self._device) for x in args]
+            torch_args = [torch.from_numpy(x).cuda() for x in args]
             val = self._network.forward(*torch_args,
                                         **kwargs).detach().cpu().numpy()
 
@@ -69,17 +70,16 @@ class PyTorchApproximator:
 
             loss_current = list()
             for batch in tqdm(batches, disable=self._quiet):
-                if self._device is None:
+                if not self._use_cuda:
                     torch_args = [torch.from_numpy(x) for x in batch]
                 else:
-                    torch_args = [torch.from_numpy(x).cuda(self._device) for x
-                                  in args]
+                    torch_args = [torch.from_numpy(x).cuda() for x in args]
 
                 x = torch_args[:-1]
                 y_hat = self._network(*x, **kwargs)
                 y = torch.tensor(torch_args[-1], dtype=y_hat.dtype)
-                if self._device is not None:
-                    y = y.cuda(self._device)
+                if self._use_cuda:
+                    y = y.cuda()
 
                 loss = self._loss(y_hat, y)
                 loss_current.append(loss.item())

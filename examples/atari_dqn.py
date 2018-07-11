@@ -166,9 +166,8 @@ def experiment():
                          help='Value of the no-op action.')
 
     arg_utils = parser.add_argument_group('Utils')
-    arg_utils.add_argument('--device', type=int, default=None,
-                           help='ID of the GPU device to use. If None, CPU is'
-                                'used.')
+    arg_utils.add_argument('--use-cuda', action='store_true',
+                           help='Flag specifying whether to use the GPU.')
     arg_utils.add_argument('--load-path', type=str,
                            help='Path of the model to be loaded.')
     arg_utils.add_argument('--save', action='store_true',
@@ -228,7 +227,7 @@ def experiment():
             load_path=args.load_path,
             optimizer=optimizer,
             loss=F.smooth_l1_loss,
-            device=args.device
+            use_cuda=args.use_cuda
         )
 
         approximator = PyTorchApproximator
@@ -305,7 +304,7 @@ def experiment():
             n_actions=mdp.info.action_space.n,
             optimizer=optimizer,
             loss=F.smooth_l1_loss,
-            device=args.device
+            use_cuda=args.use_cuda
         )
 
         approximator = PyTorchApproximator
