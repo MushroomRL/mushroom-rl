@@ -70,7 +70,6 @@ class PyTorchApproximator:
 
             loss_current = list()
             for batch in tqdm(batches, disable=self._quiet):
-
                 if self._device is None:
                     torch_args = [torch.from_numpy(x) for x in batch]
                 else:
@@ -78,11 +77,10 @@ class PyTorchApproximator:
                                   in args]
 
                 x = torch_args[:-1]
-                y = torch_args[-1]
-
                 y_hat = self._network(*x, **kwargs)
-                loss = self._loss(y_hat,
-                                  y.type(y_hat.type()).cuda(self._device))
+                y = torch.tensor(torch_args[-1], dtype=y_hat.dtype)
+
+                loss = self._loss(y_hat, y)
                 loss_current.append(loss.item())
 
                 self._optimizer.zero_grad()
