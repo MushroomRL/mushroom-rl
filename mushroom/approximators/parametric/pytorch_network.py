@@ -41,7 +41,6 @@ class PyTorchApproximator:
         self._device = device
         self._quiet = quiet
 
-        params['device'] = self._device
         self._network = network(input_shape, output_shape, **params)
         if self._device is not None:
             self._network.cuda(self._device)
