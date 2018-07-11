@@ -81,7 +81,8 @@ class PyTorchApproximator:
                 y = torch_args[-1]
 
                 y_hat = self._network(*x, **kwargs)
-                loss = self._loss(y_hat, y.type(y_hat.type()))
+                loss = self._loss(y_hat,
+                                  y.type(y_hat.type()).cuda(self._device))
                 loss_current.append(loss.item())
 
                 self._optimizer.zero_grad()
