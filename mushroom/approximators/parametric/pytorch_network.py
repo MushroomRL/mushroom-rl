@@ -77,7 +77,14 @@ class PyTorchApproximator:
 
                 x = torch_args[:-1]
                 y_hat = self._network(*x, **kwargs)
-                y = torch.tensor(torch_args[-1], dtype=y_hat.dtype)
+
+                if isinstance(y_hat, tuple):
+                    output_type = y_hat[0].dtype
+                else:
+                    output_type = y_hat.dtype
+
+                y = torch.tensor(torch_args[-1], dtype=output_type)
+
                 if self._use_cuda:
                     y = y.cuda()
 
