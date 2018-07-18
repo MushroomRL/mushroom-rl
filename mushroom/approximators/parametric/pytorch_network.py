@@ -100,7 +100,26 @@ class PyTorchApproximator:
                            str(np.mean(loss_current)))
 
     def set_weights(self, weights):
-        self._network.load_state_dict(weights)
+
+        idx = 0
+        for p in self._network.parameters():
+            shape = p.data.shape
+
+            c = 1
+            for s in shape:
+                c *= s
+
+            w = np.reshape(weights[idx:idx+c], shape)
+            p.data = torch.from_numpy(w).type(p.data.dtype)
+            idx += c
 
     def get_weights(self):
-        return self._network.state_dict()
+        weights = list()
+
+        for p in self._network.parameters():
+            w = p.data.detach().cpu().numpy()
+            weights.append(w.flatten())
+
+        weights = np.concatenate(weights, 0)
+
+        return weights
