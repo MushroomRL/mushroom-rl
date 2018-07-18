@@ -13,9 +13,9 @@ class PyTorchApproximator:
     This class supports also minibatches.
 
     """
-    def __init__(self, input_shape, output_shape, network, optimizer, loss,
-                 n_epochs=1, batch_size=0, use_cuda=False, quiet=True,
-                 **params):
+    def __init__(self, input_shape, output_shape, network, optimizer=None,
+                 loss=None, n_epochs=1, batch_size=0, use_cuda=False,
+                 quiet=True, **params):
         """
         Constructor.
 
@@ -46,8 +46,9 @@ class PyTorchApproximator:
         if self._use_cuda:
             self._network.cuda()
 
-        self._optimizer = optimizer['class'](self._network.parameters(),
-                                             **optimizer['params'])
+        if optimizer is not None:
+            self._optimizer = optimizer['class'](self._network.parameters(),
+                                                 **optimizer['params'])
         self._loss = loss
 
     def predict(self, *args, **kwargs):
@@ -110,7 +111,13 @@ class PyTorchApproximator:
                 c *= s
 
             w = np.reshape(weights[idx:idx+c], shape)
-            p.data = torch.from_numpy(w).type(p.data.dtype)
+
+            if not self._use_cuda:
+                w_tensor = torch.from_numpy(w).type(p.data.dtype)
+            else:
+                w_tensor = torch.from_numpy(w).type(p.data.dtype).cuda()
+
+            p.data = w_tensor
             idx += c
 
     def get_weights(self):
@@ -123,3 +130,33 @@ class PyTorchApproximator:
         weights = np.concatenate(weights, 0)
 
         return weights
+
+    @property
+    def weights_size(self):
+        return sum(p.numel() for p in self._network.parameters())
+
+    def diff(self, *args, **kwargs):
+        if not self._use_cuda:
+            torch_args = [torch.from_numpy(np.atleast_2d(x)) for x in args]
+        else:
+            torch_args = [torch.from_numpy(np.atleast_2d(x)).cuda()
+                          for x in args]
+
+        y_hat = self._network(*torch_args, **kwargs)
+
+        gradients = list()
+        for i in range(y_hat.shape[1]):
+            y_hat[:, i].backward(retain_graph=True)
+
+            gradient = list()
+            for p in self._network.parameters():
+                g = p.grad.data.detach().cpu().numpy()
+                gradient.append(g.flatten())
+
+            g = np.concatenate(gradient, 0)
+
+            gradients.append(g)
+
+        g = np.stack(gradients, -1)
+
+        return g

@@ -109,6 +109,8 @@ def test_pytorch_approximator():
 
     assert error < 2e-4
 
+    gradient = approximator.diff(a[0])
+    assert gradient.shape[1] == 2
 
     old_weights = approximator.get_weights()
     approximator.set_weights(old_weights)
