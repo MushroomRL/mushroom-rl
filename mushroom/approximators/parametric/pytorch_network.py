@@ -15,7 +15,7 @@ class PyTorchApproximator:
     """
     def __init__(self, input_shape, output_shape, network, optimizer=None,
                  loss=None, n_epochs=1, batch_size=0, use_cuda=False,
-                 quiet=True, **params):
+                 dropout=False, quiet=True, **params):
         """
         Constructor.
 
@@ -31,6 +31,8 @@ class PyTorchApproximator:
                 dataset is fed to the optimizer at each epoch;
             use_cuda (bool, False): if True, runs the network on the GPU;
                 otherwise the integer provided specifies the GPU device to use;
+            dropout (bool, False): if True, dropout is applied only during
+                train;
             quiet (bool, True): if False, shows two progress bars, one for
                 epochs and one for the minibatches;
             params (dict): dictionary of parameters needed to construct the
@@ -40,11 +42,15 @@ class PyTorchApproximator:
         self._n_epochs = n_epochs
         self._batch_size = batch_size
         self._use_cuda = use_cuda
+        self._dropout = dropout
         self._quiet = quiet
 
-        self._network = network(input_shape, output_shape, **params)
+        self._network = network(input_shape, output_shape, use_cuda=use_cuda,
+                                dropout=dropout, **params)
         if self._use_cuda:
             self._network.cuda()
+        if self._dropout:
+            self._network.eval()
 
         if optimizer is not None:
             self._optimizer = optimizer['class'](self._network.parameters(),
@@ -63,6 +69,9 @@ class PyTorchApproximator:
         return val
 
     def fit(self, *args, **kwargs):
+        if self._dropout:
+            self._network.train()
+
         for t in trange(self._n_epochs, disable=self._quiet):
             if self._batch_size > 0:
                 batches = minibatch_generator(self._batch_size, *args)
@@ -99,6 +108,9 @@ class PyTorchApproximator:
             if not self._quiet:
                 tqdm.write('loss at epoch ' + str(t) + ' ' +
                            str(np.mean(loss_current)))
+
+        if self._dropout:
+            self._network.eval()
 
     def set_weights(self, weights):
 
