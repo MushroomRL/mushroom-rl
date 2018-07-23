@@ -1,4 +1,3 @@
-import numpy as np
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
@@ -13,7 +12,7 @@ from mushroom.utils.parameters import Parameter, LinearDecayParameter
 
 
 class Network(nn.Module):
-    def __init__(self, input_shape, output_shape, n_features):
+    def __init__(self, input_shape, output_shape, n_features, **kwargs):
         super(Network, self).__init__()
 
         n_input = input_shape[-1]
