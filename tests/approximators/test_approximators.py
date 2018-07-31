@@ -17,7 +17,7 @@ def test_linear_approximator():
     a = np.random.rand(1000, 3)
 
     k = np.random.rand(3, 2)
-    b = a.dot(k) + np.random.randn(1000, 2)*noise
+    b = a.dot(k) + np.random.randn(1000, 2) * noise
 
     approximator = Regressor(LinearApproximator,
                              input_shape=(3,),
@@ -36,11 +36,12 @@ def test_linear_approximator():
 
     lp = len(point)
     for i in range(derivative.shape[1]):
-        assert (derivative[i*lp:(i+1)*lp, i] == point).all()
+        assert (derivative[i * lp:(i + 1) * lp, i] == point).all()
 
 
 class ExampleNet(nn.Module):
-    def __init__(self, input_shape, output_shape, n_neurons, n_hidden):
+    def __init__(self, input_shape, output_shape, n_neurons, n_hidden,
+                 **kwargs):
         super(ExampleNet, self).__init__()
 
         self._h = nn.ModuleList()
@@ -98,7 +99,7 @@ def test_pytorch_approximator():
     approximator.fit(a, b)
 
     bhat = approximator.predict(a)
-    error = np.linalg.norm(b-bhat, 'fro')/1000
+    error = np.linalg.norm(b - bhat, 'fro') / 1000
     error_inf = np.max(np.abs(b-bhat))
 
     print(b[:10])
