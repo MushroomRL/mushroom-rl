@@ -14,8 +14,8 @@ class PyTorchApproximator:
 
     """
     def __init__(self, input_shape, output_shape, network, optimizer=None,
-                 loss=None, n_epochs=1, batch_size=0, use_cuda=False,
-                 dropout=False, quiet=True, n_fit_targets=1, **params):
+                 loss=None, n_epochs=1, batch_size=0, n_fit_targets=1,
+                 use_cuda=False, dropout=False, quiet=True, **params):
         """
         Constructor.
 
@@ -29,8 +29,9 @@ class PyTorchApproximator:
             n_epochs (int, 1): the number of epochs to run during the fit;
             batch_size (int, 0): the size of each minibatch. If 0, the whole
                 dataset is fed to the optimizer at each epoch;
+            n_fit_targets (int, 1): the number of fit targets used by the fit
+                method of the network;
             use_cuda (bool, False): if True, runs the network on the GPU;
-                otherwise the integer provided specifies the GPU device to use;
             dropout (bool, False): if True, dropout is applied only during
                 train;
             quiet (bool, True): if False, shows two progress bars, one for
