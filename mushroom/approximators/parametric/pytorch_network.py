@@ -15,7 +15,7 @@ class PyTorchApproximator:
     """
     def __init__(self, input_shape, output_shape, network, optimizer=None,
                  loss=None, n_epochs=1, batch_size=0, use_cuda=False,
-                 dropout=False, quiet=True, **params):
+                 dropout=False, quiet=True, n_fit_targets=1, **params):
         """
         Constructor.
 
@@ -44,6 +44,7 @@ class PyTorchApproximator:
         self._use_cuda = use_cuda
         self._dropout = dropout
         self._quiet = quiet
+        self._n_fit_targets = n_fit_targets
 
         self._network = network(input_shape, output_shape, use_cuda=use_cuda,
                                 dropout=dropout, **params)
@@ -85,7 +86,8 @@ class PyTorchApproximator:
                 else:
                     torch_args = [torch.from_numpy(x).cuda() for x in args]
 
-                x = torch_args[:-1]
+                x = torch_args[:-self._n_fit_targets]
+
                 y_hat = self._network(*x, **kwargs)
 
                 if isinstance(y_hat, tuple):
@@ -93,12 +95,13 @@ class PyTorchApproximator:
                 else:
                     output_type = y_hat.dtype
 
-                y = torch.tensor(torch_args[-1], dtype=output_type)
+                y = [torch.tensor(y_i, dtype=output_type) for y_i
+                     in torch_args[-self._n_fit_targets:]]
 
                 if self._use_cuda:
-                    y = y.cuda()
+                    y = [y_i.cuda() for y_i in y]
 
-                loss = self._loss(y_hat, y)
+                loss = self._loss(y_hat, *y)
                 loss_current.append(loss.item())
 
                 self._optimizer.zero_grad()
