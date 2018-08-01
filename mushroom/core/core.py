@@ -104,7 +104,7 @@ class Core(object):
             move_condition =\
                 lambda: self._total_steps_counter < n_steps
 
-            steps_progress_bar = tqdm(total=self._n_steps,
+            steps_progress_bar = tqdm(total=n_steps,
                                       dynamic_ncols=True, disable=quiet,
                                       leave=False)
             episodes_progress_bar = tqdm(disable=True)
