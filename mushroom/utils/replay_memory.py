@@ -69,12 +69,12 @@ class ReplayMemory(object):
 
         self._current_sample_idx = stop
 
-        return np.stack([np.array(self._states[i]) for i in range(start, stop)]),\
-            np.array([self._actions[i] for i in range(start, stop)]),\
-            np.array([self._rewards[i] for i in range(start, stop)]),\
-            np.stack([np.array(self._next_states[i]) for i in range(start, stop)]),\
-            np.array([self._absorbing[i] for i in range(start, stop)]),\
-            np.array([self._last[i] for i in range(start, stop)])
+        return np.stack([np.array(self._states[i]) for i in self._sample_idxs[start:stop]]),\
+            np.array([self._actions[i] for i in self._sample_idxs[start:stop]]),\
+            np.array([self._rewards[i] for i in self._sample_idxs[start:stop]]),\
+            np.stack([np.array(self._next_states[i]) for i in self._sample_idxs[start:stop]]),\
+            np.array([self._absorbing[i] for i in self._sample_idxs[start:stop]]),\
+            np.array([self._last[i] for i in self._sample_idxs[start:stop]])
 
     def reset(self):
         """
