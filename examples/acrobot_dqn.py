@@ -67,7 +67,7 @@ def experiment(n_epochs, n_steps, n_steps_test):
     train_frequency = 1
 
     # Approximator
-    input_shape = (1,) + mdp.info.observation_space.shape
+    input_shape = mdp.info.observation_space.shape
     approximator_params = dict(network=Network,
                                optimizer={'class': optim.Adam,
                                           'params': {'lr': .001}},
