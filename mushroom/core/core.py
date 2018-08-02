@@ -187,7 +187,7 @@ class Core(object):
             self._episode_steps < self.mdp.info.horizon and not absorbing)
 
         state = self._state
-        self._state = np.array(next_state)  # Copy for safety reasons
+        self._state = next_state
 
         return state, action, reward, next_state, absorbing, last
 
