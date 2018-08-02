@@ -1,4 +1,5 @@
 from copy import deepcopy
+from collections import deque
 
 import cv2
 cv2.ocl.setUseOpenCL(False)
@@ -117,8 +118,10 @@ class Atari(Environment):
     def reset(self, state=None):
         if self._real_reset:
             self._state = self._preprocess_observation(self.env.reset())
-            self._state = [deepcopy(
-                self._state) for _ in range(self._history_length)]
+            self._state = deque([deepcopy(
+                self._state) for _ in range(self._history_length)],
+                maxlen=self._history_length
+            )
             self._lives = self._max_lives
 
         self._force_fire = self.env.unwrapped.get_action_meanings()[1] == 'FIRE'
@@ -145,7 +148,6 @@ class Atari(Environment):
             self._force_fire = True
 
         self._state.append(self._preprocess_observation(obs))
-        self._state = self._state[1:]
 
         return LazyFrames(list(self._state),
                           self._history_length), reward, absorbing, info
