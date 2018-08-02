@@ -145,7 +145,8 @@ class Atari(Environment):
             if self._episode_ends_at_life:
                 absorbing = True
             self._lives = info['ale.lives']
-            self._force_fire = True
+            self._force_fire = self.env.unwrapped.get_action_meanings()[
+                1] == 'FIRE'
 
         self._state.append(self._preprocess_observation(obs))
 
