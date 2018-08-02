@@ -12,13 +12,11 @@ class ReplayMemory(object):
     game.
 
     """
-    def __init__(self, mdp_info, initial_size, max_size):
+    def __init__(self, initial_size, max_size):
         """
         Constructor.
 
         Args:
-            mdp_info (MDPInfo): an object containing the info of the
-                environment;
             initial_size (int): initial number of elements in the replay memory;
             max_size (int): maximum number of elements that the replay memory
                 can contain.
@@ -26,10 +24,6 @@ class ReplayMemory(object):
         """
         self._initial_size = initial_size
         self._max_size = max_size
-
-        self._observation_shape = tuple(
-            [self._max_size]) + mdp_info.observation_space.shape
-        self._action_shape = (self._max_size, mdp_info.action_space.shape[0])
 
         self.reset()
 
@@ -72,6 +66,8 @@ class ReplayMemory(object):
 
         start = self._current_sample_idx
         stop = start + n_samples
+
+        self._current_sample_idx = stop
 
         return np.stack([np.array(self._states[i]) for i in range(start, stop)]),\
             np.array([self._actions[i] for i in range(start, stop)]),\

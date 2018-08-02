@@ -47,8 +47,7 @@ class DQN(Agent):
         self._clip_reward = clip_reward
         self._target_update_frequency = target_update_frequency
 
-        self._replay_memory = ReplayMemory(mdp_info, initial_replay_size,
-                                           max_replay_size)
+        self._replay_memory = ReplayMemory(initial_replay_size, max_replay_size)
 
         self._n_updates = 0
 
