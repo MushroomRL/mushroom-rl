@@ -162,8 +162,6 @@ def experiment():
                               'consider the first 30 frames without frame'
                               'skipping and that the number of skipped frames'
                               'is generally 4, we set it to 8.')
-    arg_alg.add_argument("--no-op-action-value", type=int, default=0,
-                         help='Value of the no-op action.')
 
     arg_utils = parser.add_argument_group('Utils')
     arg_utils.add_argument('--use-cuda', action='store_true',
