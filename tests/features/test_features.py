@@ -29,7 +29,9 @@ def test_tiles():
 
 
 def test_basis():
-    rbf = GaussianRBF.generate([3, 3], [[0., 1.], [-.5, .5]])
+    low = np.array([0., -.5])
+    high = np.array([1., .5])
+    rbf = GaussianRBF.generate([3, 3], high, low)
     features = Features(basis_list=rbf)
 
     x = np.random.rand(10, 2) + [0., -.5]
@@ -49,7 +51,9 @@ def test_basis():
 
 
 def test_tensor():
-    rbf = PyTorchGaussianRBF.generate([3, 3], [[0., 1.], [-.5, .5]])
+    low = np.array([0., -.5])
+    high = np.array([1., .5])
+    rbf = PyTorchGaussianRBF.generate([3, 3], low, high)
     features = Features(tensor_list=rbf)
 
     x = np.random.rand(10, 2) + [0., -.5]
@@ -69,8 +73,10 @@ def test_tensor():
 
 
 def test_basis_and_tensors():
-    basis_rbf = GaussianRBF.generate([3, 3], [[0., 1.], [-.5, .5]])
-    tensor_rbf = PyTorchGaussianRBF.generate([3, 3], [[0., 1.], [-.5, .5]])
+    low = np.array([0., -.5])
+    high = np.array([1., .5])
+    basis_rbf = GaussianRBF.generate([3, 3], low, high)
+    tensor_rbf = PyTorchGaussianRBF.generate([3, 3], low, high)
     features_1 = Features(tensor_list=tensor_rbf)
     features_2 = Features(basis_list=basis_rbf)
 

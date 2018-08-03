@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def uniform_grid(n_centers, ranges):
+def uniform_grid(n_centers, low, high):
     """
     This function is used to create the parameters of uniformly spaced radial
     basis functions with 25% of overlap. It creates a uniformly spaced grid of
@@ -10,20 +10,20 @@ def uniform_grid(n_centers, ranges):
 
     Args:
          n_centers (list): number of centers of each dimension;
-         ranges (list): list of ranges specified as couples of numbers for each
-            dimension;
+         low (np.ndarray): lowest value for each dimension;
+         high (np.ndarray): highest value for each dimension.
 
     Returns:
         The uniformly spaced grid and the scale vector.
 
     """
-    n_features = len(ranges)
+    n_features = len(low)
     b = np.zeros(n_features)
     c = list()
     tot_points = 1
     for i, n in enumerate(n_centers):
-        start = ranges[i][0]
-        end = ranges[i][1]
+        start = low[i]
+        end = high[i]
 
         b[i] = (end - start) ** 2 / n ** 3
         m = abs(start - end) / n

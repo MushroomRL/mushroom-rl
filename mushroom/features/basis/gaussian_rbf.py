@@ -43,7 +43,7 @@ class GaussianRBF:
         return name
 
     @staticmethod
-    def generate(n_centers, ranges, dimensions=None):
+    def generate(n_centers, low, high, dimensions=None):
         """
         Factory method to build uniformly spaced gaussian radial basis functions
         with a 25\% overlap.
@@ -51,8 +51,8 @@ class GaussianRBF:
         Args:
             n_centers (list): list of the number of radial basis functions to be
                 used for each dimension.
-            ranges (list): list of two-elements lists specifying the range of
-                each state variable;
+            low (np.ndarray): lowest value for each dimension;
+            high (np.ndarray): highest value for each dimension;
             dimensions (list, None): list of the dimensions of the input to be
                 considered by the feature. The number of dimensions must match
                 the number of elements in ``n_centers`` and ``ranges``.
@@ -61,12 +61,12 @@ class GaussianRBF:
             The list of the generated radial basis functions.
 
         """
-        n_features = len(ranges)
+        n_features = len(low)
         assert len(n_centers) == n_features
-        assert len(ranges[0]) == 2
+        assert len(low) == len(high)
         assert dimensions is None or n_features == len(dimensions)
 
-        grid, b = uniform_grid(n_centers, ranges)
+        grid, b = uniform_grid(n_centers, low, high)
 
         basis = list()
         for i in range(len(grid)):

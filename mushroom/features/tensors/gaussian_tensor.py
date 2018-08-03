@@ -18,7 +18,7 @@ class PyTorchGaussianRBF(nn.Module):
         return torch.exp(-torch.sum(delta**2 / self._scale, 1))
 
     @staticmethod
-    def generate(n_centers, ranges):
+    def generate(n_centers, low, high):
         """
         Factory method that generates the list of dictionaries to build the
         tensors representing a set of uniformly spaced Gaussian radial basis
@@ -26,19 +26,19 @@ class PyTorchGaussianRBF(nn.Module):
 
         Args:
             n_centers (list): list of the number of radial basis functions to be
-                              used for each dimension.
-            ranges (list): list of two-elements lists specifying the range of
-                           each state variable.
+                              used for each dimension;
+            low (np.ndarray): lowest value for each dimension;
+            high (np.ndarray): highest value for each dimension.
 
         Returns:
             The list of dictionaries as described above.
 
         """
-        n_features = len(ranges)
+        n_features = len(low)
         assert len(n_centers) == n_features
-        assert len(ranges[0]) == 2
+        assert len(low) == len(high)
 
-        grid, scale = uniform_grid(n_centers, ranges)
+        grid, scale = uniform_grid(n_centers, low, high)
 
         tensor_list = list()
         for i in range(len(grid)):
