@@ -26,3 +26,7 @@ class PyTorchFeatures(FeaturesImplementation):
             return y[0]
         else:
             return y
+
+    @property
+    def size(self):
+        return len(self._phi)
