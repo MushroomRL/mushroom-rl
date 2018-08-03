@@ -55,7 +55,7 @@ class GaussianRBF:
             high (np.ndarray): highest value for each dimension;
             dimensions (list, None): list of the dimensions of the input to be
                 considered by the feature. The number of dimensions must match
-                the number of elements in ``n_centers`` and ``ranges``.
+                the number of elements in ``n_centers`` and ``low``.
 
         Returns:
             The list of the generated radial basis functions.
