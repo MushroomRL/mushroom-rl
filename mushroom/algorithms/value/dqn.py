@@ -17,8 +17,7 @@ class DQN(Agent):
     def __init__(self, approximator, policy, mdp_info, batch_size,
                  initial_replay_size, max_replay_size,
                  target_update_frequency=2500, fit_params=None,
-                 approximator_params=None, n_approximators=1, clip_reward=True,
-                 dtype=np.float32):
+                 approximator_params=None, n_approximators=1, clip_reward=True):
         """
         Constructor.
 
@@ -36,8 +35,7 @@ class DQN(Agent):
                 build;
             n_approximators (int, 1): the number of approximator to use in
                 ``AverageDQN``;
-            clip_reward (bool, True): whether to clip the reward or not;
-            dtype (object, np.float32): dtype of the state array.
+            clip_reward (bool, True): whether to clip the reward or not.
 
         """
         self._fit_params = dict() if fit_params is None else fit_params
