@@ -4,7 +4,7 @@ import numpy as np
 
 from mushroom.algorithms.agent import Agent
 from mushroom.approximators.regressor import Ensemble, Regressor
-from mushroom.utils.replay_memory import Buffer, ReplayMemory
+from mushroom.utils.replay_memory import ReplayMemory
 
 
 class DQN(Agent):
@@ -17,9 +17,8 @@ class DQN(Agent):
     def __init__(self, approximator, policy, mdp_info, batch_size,
                  initial_replay_size, max_replay_size,
                  target_update_frequency=2500, fit_params=None,
-                 approximator_params=None, n_approximators=1,
-                 history_length=1, clip_reward=True, max_no_op_actions=0,
-                 no_op_action_value=0, dtype=np.float32):
+                 approximator_params=None, n_approximators=1, clip_reward=True,
+                 dtype=np.float32):
         """
         Constructor.
 
@@ -37,11 +36,7 @@ class DQN(Agent):
                 build;
             n_approximators (int, 1): the number of approximator to use in
                 ``AverageDQN``;
-            history_length (int, 1): the number of samples composing a state;
             clip_reward (bool, True): whether to clip the reward or not;
-            max_no_op_actions (int, 0): maximum number of no-op actions that
-                can be sampled;
-            no_op_action_value (int, 0): value of the no-op action;
             dtype (object, np.float32): dtype of the state array.
 
         """
@@ -51,17 +46,10 @@ class DQN(Agent):
         self._n_approximators = n_approximators
         self._clip_reward = clip_reward
         self._target_update_frequency = target_update_frequency
-        self._max_no_op_actions = max_no_op_actions
-        self._no_op_action_value = no_op_action_value
 
-        self._replay_memory = ReplayMemory(mdp_info, initial_replay_size,
-                                           max_replay_size, history_length,
-                                           dtype)
-        self._buffer = Buffer(history_length, dtype)
+        self._replay_memory = ReplayMemory(initial_replay_size, max_replay_size)
 
         self._n_updates = 0
-        self._episode_steps = 0
-        self._no_op_actions = None
 
         apprx_params_train = deepcopy(approximator_params)
         apprx_params_target = deepcopy(approximator_params)
@@ -127,27 +115,9 @@ class DQN(Agent):
         return np.max(q, axis=1)
 
     def draw_action(self, state):
-        self._buffer.add(state)
-
-        if self._episode_steps < self._no_op_actions:
-            action = np.array([self._no_op_action_value])
-            self.policy.update()
-        else:
-            extended_state = self._buffer.get()
-
-            action = super(DQN, self).draw_action(extended_state)
-
-        self._episode_steps += 1
+        action = super(DQN, self).draw_action(np.array(state))
 
         return action
-
-    def episode_start(self):
-        if self._max_no_op_actions == 0:
-            self._no_op_actions = 0
-        else:
-            self._no_op_actions = np.random.randint(
-                self._buffer.size, self._max_no_op_actions + 1)
-        self._episode_steps = 0
 
 
 class DoubleDQN(DQN):

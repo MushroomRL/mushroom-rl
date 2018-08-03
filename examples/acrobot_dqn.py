@@ -67,7 +67,7 @@ def experiment(n_epochs, n_steps, n_steps_test):
     train_frequency = 1
 
     # Approximator
-    input_shape = (1,) + mdp.info.observation_space.shape
+    input_shape = mdp.info.observation_space.shape
     approximator_params = dict(network=Network,
                                optimizer={'class': optim.Adam,
                                           'params': {'lr': .001}},
@@ -81,9 +81,8 @@ def experiment(n_epochs, n_steps, n_steps_test):
     agent = DQN(PyTorchApproximator, pi, mdp.info,
                 approximator_params=approximator_params, batch_size=batch_size,
                 n_approximators=1, initial_replay_size=initial_replay_size,
-                max_replay_size=max_replay_size, history_length=1,
-                target_update_frequency=target_update_frequency,
-                max_no_op_actions=0, no_op_action_value=0, dtype=np.float32)
+                max_replay_size=max_replay_size,
+                target_update_frequency=target_update_frequency)
 
     # Algorithm
     core = Core(agent, mdp)

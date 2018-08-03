@@ -1,3 +1,6 @@
+from copy import deepcopy
+from collections import deque
+
 import cv2
 cv2.ocl.setUseOpenCL(False)
 import gym
@@ -39,6 +42,25 @@ class MaxAndSkip(gym.Wrapper):
         return self.env.reset(**kwargs)
 
 
+class LazyFrames(object):
+    """
+    From OpenAI Baseline.
+    https://github.com/openai/baselines/blob/master/baselines/common/atari_wrappers.py
+
+    """
+    def __init__(self, frames, history_length):
+        self._frames = frames
+
+        assert len(self._frames) == history_length
+
+    def __array__(self, dtype=None):
+        out = np.stack(self._frames)
+        if dtype is not None:
+            out = out.astype(dtype)
+
+        return out
+
+
 class Atari(Environment):
     """
     The Atari environment as presented in:
@@ -47,7 +69,7 @@ class Atari(Environment):
 
     """
     def __init__(self, name, width=84, height=84, ends_at_life=False,
-                 max_pooling=True):
+                 max_pooling=True, history_length=4, max_no_op_actions=30):
         """
         Constructor.
 
@@ -58,13 +80,15 @@ class Atari(Environment):
             ends_at_life (bool, False): whether the episode ends when a life is
                lost or not;
             max_pooling (bool, True): whether to do max-pooling or
-                average-pooling of the last two frames when using NoFrameskip.
+                average-pooling of the last two frames when using NoFrameskip;
+            history_length (int, 4): number of frames to form a state;
+            max_no_op_actions (int, 30): maximum number of no-op action to
+                execute at the beginning of an episode.
 
         """
         # MPD creation
         if 'NoFrameskip' in name:
-            skip = 3 if 'SpaceInvaders' in name else 4
-            self.env = MaxAndSkip(gym.make(name), skip, max_pooling)
+            self.env = MaxAndSkip(gym.make(name), history_length, max_pooling)
         else:
             self.env = gym.make(name)
 
@@ -75,6 +99,11 @@ class Atari(Environment):
         self._lives = self._max_lives
         self._force_fire = None
         self._real_reset = True
+        self._max_no_op_actions = max_no_op_actions
+        self._history_length = history_length
+        self._current_no_op = None
+
+        assert self.env.unwrapped.get_action_meanings()[0] == 'NOOP'
 
         # MDP properties
         action_space = Discrete(self.env.action_space.n)
@@ -89,17 +118,26 @@ class Atari(Environment):
     def reset(self, state=None):
         if self._real_reset:
             self._state = self._preprocess_observation(self.env.reset())
+            self._state = deque([deepcopy(
+                self._state) for _ in range(self._history_length)],
+                maxlen=self._history_length
+            )
             self._lives = self._max_lives
 
         self._force_fire = self.env.unwrapped.get_action_meanings()[1] == 'FIRE'
 
-        return self._state
+        self._current_no_op = np.random.randint(self._max_no_op_actions + 1)
+
+        return LazyFrames(list(self._state), self._history_length)
 
     def step(self, action):
         # Force FIRE action to start episodes in games with lives
         if self._force_fire:
-            obs, _, _, _ = self.env.step(1)
+            obs, _, _, _ = self.env.env.step(1)
             self._force_fire = False
+        while self._current_no_op > 0:
+            obs, _, _, _ = self.env.env.step(0)
+            self._current_no_op -= 1
 
         obs, reward, absorbing, info = self.env.step(action)
         self._real_reset = absorbing
@@ -107,11 +145,13 @@ class Atari(Environment):
             if self._episode_ends_at_life:
                 absorbing = True
             self._lives = info['ale.lives']
-            self._force_fire = True
+            self._force_fire = self.env.unwrapped.get_action_meanings()[
+                1] == 'FIRE'
 
-        self._state = self._preprocess_observation(obs)
+        self._state.append(self._preprocess_observation(obs))
 
-        return self._state, reward, absorbing, info
+        return LazyFrames(list(self._state),
+                          self._history_length), reward, absorbing, info
 
     def render(self, mode='human'):
         self.env.render(mode=mode)

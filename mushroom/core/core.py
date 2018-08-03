@@ -30,7 +30,6 @@ class Core(object):
         self._current_episodes_counter = 0
         self._current_steps_counter = 0
         self._episode_steps = None
-        self._n_steps = None
         self._n_episodes = None
         self._n_steps_per_fit = None
         self._n_episodes_per_fit = None
@@ -98,15 +97,14 @@ class Core(object):
             or n_episodes is None and n_steps is not None and initial_states is None\
             or n_episodes is None and n_steps is None and initial_states is not None
 
-        self._n_steps = n_steps
         self._n_episodes = len(
             initial_states) if initial_states is not None else n_episodes
 
         if n_steps is not None:
             move_condition =\
-                lambda: self._total_steps_counter < self._n_steps
+                lambda: self._total_steps_counter < n_steps
 
-            steps_progress_bar = tqdm(total=self._n_steps,
+            steps_progress_bar = tqdm(total=n_steps,
                                       dynamic_ncols=True, disable=quiet,
                                       leave=False)
             episodes_progress_bar = tqdm(disable=True)
@@ -189,7 +187,7 @@ class Core(object):
             self._episode_steps < self.mdp.info.horizon and not absorbing)
 
         state = self._state
-        self._state = np.array(next_state)  # Copy for safety reasons
+        self._state = next_state
 
         return state, action, reward, next_state, absorbing, last
 

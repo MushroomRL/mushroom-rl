@@ -162,8 +162,6 @@ def experiment():
                               'consider the first 30 frames without frame'
                               'skipping and that the number of skipped frames'
                               'is generally 4, we set it to 8.')
-    arg_alg.add_argument("--no-op-action-value", type=int, default=0,
-                         help='Value of the no-op action.')
 
     arg_utils = parser.add_argument_group('Utils')
     arg_utils.add_argument('--use-cuda', action='store_true',
@@ -210,7 +208,8 @@ def experiment():
     if args.load_path:
         # MDP
         mdp = Atari(args.name, args.screen_width, args.screen_height,
-                    ends_at_life=False)
+                    ends_at_life=False, history_length=args.history_length,
+                    max_no_op_actions=args.max_no_op_actions)
 
         # Policy
         epsilon_test = Parameter(value=args.test_exploration_rate)
@@ -238,11 +237,7 @@ def experiment():
             train_frequency=1,
             target_update_frequency=1,
             initial_replay_size=0,
-            max_replay_size=0,
-            history_length=args.history_length,
-            max_no_op_actions=args.max_no_op_actions,
-            no_op_action_value=args.no_op_action_value,
-            dtype=np.uint8
+            max_replay_size=0
         )
         agent = DQN(approximator, pi, mdp.info,
                     approximator_params=approximator_params, **algorithm_params)
@@ -284,7 +279,8 @@ def experiment():
 
         # MDP
         mdp = Atari(args.name, args.screen_width, args.screen_height,
-                    ends_at_life=True)
+                    ends_at_life=True, history_length=args.history_length,
+                    max_no_op_actions=args.max_no_op_actions)
 
         # Policy
         epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
@@ -315,11 +311,7 @@ def experiment():
             n_approximators=args.n_approximators,
             initial_replay_size=initial_replay_size,
             max_replay_size=max_replay_size,
-            history_length=args.history_length,
-            target_update_frequency=target_update_frequency // train_frequency,
-            max_no_op_actions=args.max_no_op_actions,
-            no_op_action_value=args.no_op_action_value,
-            dtype=np.uint8
+            target_update_frequency=target_update_frequency // train_frequency
         )
 
         if args.algorithm == 'dqn':
