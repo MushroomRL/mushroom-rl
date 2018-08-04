@@ -6,11 +6,6 @@ class ReplayMemory(object):
     This class implements function to manage a replay memory as the one used in
     "Human-Level Control Through Deep Reinforcement Learning" by Mnih V. et al..
 
-    In the case of the Atari games, the replay memory stores each single frame,
-    then returns a state composed of a provided number of concatenated frames.
-    In Atari games, this helps to provide information about the history of the
-    game.
-
     """
     def __init__(self, initial_size, max_size):
         """
@@ -69,12 +64,22 @@ class ReplayMemory(object):
 
         self._current_sample_idx = stop
 
-        return np.stack([np.array(self._states[i]) for i in self._sample_idxs[start:stop]]),\
-            np.array([self._actions[i] for i in self._sample_idxs[start:stop]]),\
-            np.array([self._rewards[i] for i in self._sample_idxs[start:stop]]),\
-            np.stack([np.array(self._next_states[i]) for i in self._sample_idxs[start:stop]]),\
-            np.array([self._absorbing[i] for i in self._sample_idxs[start:stop]]),\
-            np.array([self._last[i] for i in self._sample_idxs[start:stop]])
+        s = [None for _ in range(n_samples)]
+        a = [None for _ in range(n_samples)]
+        r = [None for _ in range(n_samples)]
+        ss = [None for _ in range(n_samples)]
+        ab = [None for _ in range(n_samples)]
+        last = [None for _ in range(n_samples)]
+        for i, j in enumerate(self._sample_idxs[start:stop]):
+            s[i] = np.array(self._states[j])
+            a[i] = self._actions[j]
+            r[i] = self._rewards[j]
+            ss[i] = np.array(self._next_states[j])
+            ab[i] = self._absorbing[j]
+            last[i] = self._last[j]
+
+        return np.stack(s), np.array(a), np.array(r), np.stack(ss),\
+            np.array(ab), np.array(last)
 
     def reset(self):
         """
