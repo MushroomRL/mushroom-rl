@@ -64,19 +64,19 @@ class ReplayMemory(object):
 
         self._current_sample_idx = stop
 
-        s = [None for _ in range(n_samples)]
-        a = [None for _ in range(n_samples)]
-        r = [None for _ in range(n_samples)]
-        ss = [None for _ in range(n_samples)]
-        ab = [None for _ in range(n_samples)]
-        last = [None for _ in range(n_samples)]
-        for i, j in enumerate(self._sample_idxs[start:stop]):
-            s[i] = np.array(self._states[j])
-            a[i] = self._actions[j]
-            r[i] = self._rewards[j]
-            ss[i] = np.array(self._next_states[j])
-            ab[i] = self._absorbing[j]
-            last[i] = self._last[j]
+        s = list()
+        a = list()
+        r = list()
+        ss = list()
+        ab = list()
+        last = list()
+        for i in self._sample_idxs[start:stop]:
+            s.append(np.array(self._states[i]))
+            a.append(self._actions[i])
+            r.append(self._rewards[i])
+            ss.append(np.array(self._next_states[i]))
+            ab.append(self._absorbing[i])
+            last.append(self._last[i])
 
         return np.stack(s), np.array(a), np.array(r), np.stack(ss),\
             np.array(ab), np.array(last)
