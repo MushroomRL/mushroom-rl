@@ -78,7 +78,7 @@ class ReplayMemory(object):
             ab.append(self._absorbing[i])
             last.append(self._last[i])
 
-        return np.stack(s), np.array(a), np.array(r), np.stack(ss),\
+        return np.array(s), np.array(a), np.array(r), np.array(ss),\
             np.array(ab), np.array(last)
 
     def reset(self):

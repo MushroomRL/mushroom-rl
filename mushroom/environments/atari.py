@@ -54,7 +54,7 @@ class LazyFrames(object):
         assert len(self._frames) == history_length
 
     def __array__(self, dtype=None):
-        out = np.stack(self._frames)
+        out = np.array(self._frames)
         if dtype is not None:
             out = out.astype(dtype)
 
