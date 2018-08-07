@@ -361,6 +361,7 @@ def experiment():
             mdp.set_episode_end(False)
             dataset = core.evaluate(n_steps=test_samples, render=args.render,
                                     quiet=args.quiet)
+            scores.append(get_stats(dataset))
 
             np.save(folder_name + '/scores.npy', scores)
 
