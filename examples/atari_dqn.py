@@ -337,14 +337,10 @@ def experiment():
 
         # Evaluate initial policy
         pi.set_epsilon(epsilon_test)
-        if args.algorithm == 'ddqn':
-            agent.policy.set_q(agent.target_approximator)
         mdp.set_episode_end(False)
         dataset = core.evaluate(n_steps=test_samples, render=args.render,
                                 quiet=args.quiet)
         scores.append(get_stats(dataset))
-        if args.algorithm == 'ddqn':
-            agent.policy.set_q(agent.approximator)
 
         np.save(folder_name + '/scores.npy', scores)
         for n_epoch in range(1, max_steps // evaluation_frequency + 1):
@@ -362,14 +358,9 @@ def experiment():
             print('- Evaluation:')
             # evaluation step
             pi.set_epsilon(epsilon_test)
-            if args.algorithm == 'ddqn':
-                agent.policy.set_q(agent.target_approximator)
             mdp.set_episode_end(False)
             dataset = core.evaluate(n_steps=test_samples, render=args.render,
                                     quiet=args.quiet)
-            scores.append(get_stats(dataset))
-            if args.algorithm == 'ddqn':
-                agent.policy.set_q(agent.approximator)
 
             np.save(folder_name + '/scores.npy', scores)
 
