@@ -151,7 +151,7 @@ class Atari(Environment):
             self._force_fire = self.env.unwrapped.get_action_meanings()[
                 1] == 'FIRE'
 
-        self._state.append(deepcopy(self._preprocess_observation(obs)))
+        self._state.append(self._preprocess_observation(obs))
 
         return LazyFrames(list(self._state),
                           self._history_length), reward, absorbing, info
