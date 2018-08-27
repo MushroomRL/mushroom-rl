@@ -123,7 +123,7 @@ class InvertedPendulumDiscrete(Environment):
 
     """
     def __init__(self, m=2., M=8., l=.5, g=9.8, mu=1e-2, max_u=50., noise_u=10.,
-                 horizon=3000):
+                 horizon=3000, gamma=.95):
         """
         Constructor.
 
@@ -135,7 +135,8 @@ class InvertedPendulumDiscrete(Environment):
             mu (float, 1e-2): friction constant of the pendulum;
             max_u (float, 50.): maximum allowed input torque;
             noise_u (float, 10.): maximum noise on the action;
-            horizon (int, 3000): horizon of the problem.
+            horizon (int, 3000): horizon of the problem;
+            gamma (int, .95): discount factor.
 
         """
         # MDP parameters
@@ -153,7 +154,6 @@ class InvertedPendulumDiscrete(Environment):
         # MDP properties
         observation_space = spaces.Box(low=-high, high=high)
         action_space = spaces.Discrete(3)
-        gamma = .95
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
         # Visualization
