@@ -15,8 +15,8 @@ class InvertedPendulum(Environment):
     "Deterministic Policy Gradient Algorithms". Silver D. et al. 2014.
 
     """
-    def __init__(self, random_start=False, m=1.0, l=1.0, g=9.8, mu=1e-2,
-                 max_u=5.0, horizon=5000):
+    def __init__(self, random_start=False, m=1., l=1., g=9.8, mu=1e-2,
+                 max_u=5., horizon=5000, gamma=.99):
         """
         Constructor.
 
@@ -28,7 +28,8 @@ class InvertedPendulum(Environment):
             g (float, 9.8): gravity acceleration constant;
             mu (float, 1e-2): friction constant of the pendulum;
             max_u (float, 5.0): maximum allowed input torque;
-            horizon (int, 5000): horizon of the problem.
+            horizon (int, 5000): horizon of the problem;
+            gamma (int, .99): discount factor.
 
         """
         # MDP parameters
@@ -37,7 +38,7 @@ class InvertedPendulum(Environment):
         self._g = g
         self._mu = mu
         self._random = random_start
-        self._dt = 0.01
+        self._dt = .01
         self._max_u = max_u
         self._max_omega = 5 / 2 * np.pi
         high = np.array([np.pi, self._max_omega])
@@ -46,7 +47,6 @@ class InvertedPendulum(Environment):
         observation_space = spaces.Box(low=-high, high=high)
         action_space = spaces.Box(low=np.array([-max_u]),
                                   high=np.array([max_u]))
-        gamma = .99
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
         # Visualization

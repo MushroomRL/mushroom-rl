@@ -11,7 +11,7 @@ class CarOnHill(Environment):
     "Tree-Based Batch Mode Reinforcement Learning". Ernst D. et al.. 2005.
 
     """
-    def __init__(self):
+    def __init__(self, horizon=100, gamma=.95):
         """
         Constructor.
 
@@ -28,8 +28,6 @@ class CarOnHill(Environment):
         # MDP properties
         observation_space = spaces.Box(low=-high, high=high)
         action_space = spaces.Discrete(2)
-        horizon = 100
-        gamma = .95
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
         super().__init__(mdp_info)
