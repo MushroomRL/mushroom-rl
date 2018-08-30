@@ -108,7 +108,7 @@ class ReplayMemory(object):
             allows it to be used.
 
         """
-        return self.size >= self._initial_size
+        return self.size > self._initial_size
 
     @property
     def size(self):
