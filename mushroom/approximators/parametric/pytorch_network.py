@@ -62,11 +62,19 @@ class PyTorchApproximator:
     def predict(self, *args, **kwargs):
         if not self._use_cuda:
             torch_args = [torch.from_numpy(x) for x in args]
-            val = self._network.forward(*torch_args, **kwargs).detach().numpy()
+            val = self._network.forward(*torch_args, **kwargs)
+            if isinstance(val, tuple):
+                val = tuple([x.detach().numpy() for x in val])
+            else:
+                val = val.detach().numpy()
         else:
             torch_args = [torch.from_numpy(x).cuda() for x in args]
             val = self._network.forward(*torch_args,
-                                        **kwargs).detach().cpu().numpy()
+                                        **kwargs)
+            if isinstance(val, tuple):
+                val = tuple([x.detach().cpu().numpy() for x in val])
+            else:
+                val = val.detach().cpu().numpy()
 
         return val
 
