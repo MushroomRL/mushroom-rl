@@ -22,6 +22,8 @@ class DQN(Agent):
         Constructor.
 
         Args:
+            approximator (object): the approximator to use to fit the
+               Q-function;
             batch_size (int): the number of samples in a batch;
             initial_replay_size (int): the number of samples to collect before
                 starting the learning;

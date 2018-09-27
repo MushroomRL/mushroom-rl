@@ -2,11 +2,22 @@ from copy import deepcopy
 
 import numpy as np
 
-import torch
+import torch.nn as nn
 from mushroom.algorithms import Agent
 from mushroom.approximators import Regressor
-from mushroom.approximators.parametric import PyTorchApproximator
 from mushroom.utils.replay_memory import ReplayMemory
+
+
+class ActorLoss(nn.Module):
+    def __init__(self, critic):
+        super().__init__()
+
+        self._critic = critic
+
+    def forward(self, action, state):
+        q = self._critic.model.network(state, action)
+
+        return -q.mean()
 
 
 class DDPG(Agent):
@@ -16,17 +27,19 @@ class DDPG(Agent):
     Lillicrap T. P. et al.. 2016.
 
     """
-    def __init__(self, policy_class, mdp_info, batch_size,
-                 initial_replay_size, max_replay_size,
+    def __init__(self, actor_approximator, critic_approximator, policy_class,
+                 mdp_info, batch_size, initial_replay_size, max_replay_size,
                  tau, actor_params, critic_params, policy_params,
                  critic_fit_params=None):
         """
         Constructor.
 
         Args:
-            batch_size (int): the number of samples in a batch;
+            actor_approximator (object): the approximator to use for the actor;
+            critic_approximator (object): the approximator to use for the
+                critic;
             policy_class (Policy): class of the policy;
-            batch_size (int):
+            batch_size (int): the number of samples in a batch;
             initial_replay_size (int): the number of samples to collect before
                 starting the learning;
             max_replay_size (int): the maximum number of samples in the replay
@@ -50,17 +63,20 @@ class DDPG(Agent):
 
         self._n_updates = 0
 
-        target_actor_params = deepcopy(actor_params)
         target_critic_params = deepcopy(critic_params)
-
-        self._actor_approximator = Regressor(PyTorchApproximator,
-                                             **actor_params)
-        self._critic_approximator = Regressor(PyTorchApproximator,
+        self._critic_approximator = Regressor(critic_approximator,
                                               **critic_params)
-        self._target_actor_approximator = Regressor(PyTorchApproximator,
-                                                    **target_actor_params)
-        self._target_critic_approximator = Regressor(PyTorchApproximator,
+        self._target_critic_approximator = Regressor(critic_approximator,
                                                      **target_critic_params)
+
+        if 'loss' not in actor_params:
+            actor_params['loss'] = ActorLoss(self._critic_approximator)
+
+        target_actor_params = deepcopy(actor_params)
+        self._actor_approximator = Regressor(actor_approximator,
+                                             **actor_params)
+        self._target_actor_approximator = Regressor(actor_approximator,
+                                                    **target_actor_params)
 
         self._target_actor_approximator.model.set_weights(
             self._actor_approximator.model.get_weights())
@@ -81,25 +97,11 @@ class DDPG(Agent):
 
             self._critic_approximator.fit(state, action, q,
                                           **self._critic_fit_params)
-            self._update_actor(state)
+            self._actor_approximator.fit(state, state)
 
             self._n_updates += 1
 
             self._update_target()
-
-    def _update_actor(self, state):
-        critic = self._critic_approximator.model._network
-        actor = self._actor_approximator.model._network
-
-        state = torch.from_numpy(state)
-
-        q = critic(state, actor(state))
-
-        loss = -q.mean()
-
-        self._actor_approximator.model._optimizer.zero_grad()
-        loss.backward()
-        self._actor_approximator.model._optimizer.step()
 
     def _update_target(self):
         """

@@ -12,7 +12,7 @@ from mushroom.utils.dataset import compute_J
 
 class CriticNetwork(nn.Module):
     def __init__(self, input_shape, output_shape, n_features, **kwargs):
-        super(CriticNetwork, self).__init__()
+        super().__init__()
 
         n_input = input_shape[-1]
         n_output = output_shape[0]
@@ -83,14 +83,16 @@ def experiment(n_epochs, n_steps, n_steps_test):
     n_features = 80
 
     # Approximator
+    actor_approximator = PyTorchApproximator
     actor_input_shape = mdp.info.observation_space.shape
     actor_params = dict(network=ActorNetwork,
                         optimizer={'class': optim.Adam,
                                    'params': {'lr': .001}},
-                        loss=None,
                         n_features=n_features,
                         input_shape=actor_input_shape,
                         output_shape=mdp.info.action_space.shape)
+
+    critic_approximator = PyTorchApproximator
     critic_input_shape = (actor_input_shape[0] + mdp.info.action_space.shape[0],)
     critic_params = dict(network=CriticNetwork,
                          optimizer={'class': optim.Adam,
@@ -101,7 +103,8 @@ def experiment(n_epochs, n_steps, n_steps_test):
                          output_shape=(1,))
 
     # Agent
-    agent = DDPG(policy_class, mdp.info, batch_size=batch_size,
+    agent = DDPG(actor_approximator, critic_approximator, policy_class,
+                 mdp.info, batch_size=batch_size,
                  initial_replay_size=initial_replay_size,
                  max_replay_size=max_replay_size, tau=.001,
                  actor_params=actor_params, critic_params=critic_params,

@@ -47,30 +47,30 @@ class PyTorchApproximator:
         self._quiet = quiet
         self._n_fit_targets = n_fit_targets
 
-        self._network = network(input_shape, output_shape, use_cuda=use_cuda,
-                                dropout=dropout, **params)
+        self.network = network(input_shape, output_shape, use_cuda=use_cuda,
+                               dropout=dropout, **params)
         if self._use_cuda:
-            self._network.cuda()
+            self.network.cuda()
         if self._dropout:
-            self._network.eval()
+            self.network.eval()
 
         if optimizer is not None:
-            self._optimizer = optimizer['class'](self._network.parameters(),
+            self._optimizer = optimizer['class'](self.network.parameters(),
                                                  **optimizer['params'])
         self._loss = loss
 
     def predict(self, *args, **kwargs):
         if not self._use_cuda:
             torch_args = [torch.from_numpy(x) for x in args]
-            val = self._network.forward(*torch_args, **kwargs)
+            val = self.network.forward(*torch_args, **kwargs)
             if isinstance(val, tuple):
                 val = tuple([x.detach().numpy() for x in val])
             else:
                 val = val.detach().numpy()
         else:
             torch_args = [torch.from_numpy(x).cuda() for x in args]
-            val = self._network.forward(*torch_args,
-                                        **kwargs)
+            val = self.network.forward(*torch_args,
+                                       **kwargs)
             if isinstance(val, tuple):
                 val = tuple([x.detach().cpu().numpy() for x in val])
             else:
@@ -80,7 +80,7 @@ class PyTorchApproximator:
 
     def fit(self, *args, **kwargs):
         if self._dropout:
-            self._network.train()
+            self.network.train()
 
         for t in trange(self._n_epochs, disable=self._quiet):
             if self._batch_size > 0:
@@ -97,7 +97,7 @@ class PyTorchApproximator:
 
                 x = torch_args[:-self._n_fit_targets]
 
-                y_hat = self._network(*x, **kwargs)
+                y_hat = self.network(*x, **kwargs)
 
                 if isinstance(y_hat, tuple):
                     output_type = y_hat[0].dtype
@@ -122,12 +122,12 @@ class PyTorchApproximator:
                            str(np.mean(loss_current)))
 
         if self._dropout:
-            self._network.eval()
+            self.network.eval()
 
     def set_weights(self, weights):
 
         idx = 0
-        for p in self._network.parameters():
+        for p in self.network.parameters():
             shape = p.data.shape
 
             c = 1
@@ -147,7 +147,7 @@ class PyTorchApproximator:
     def get_weights(self):
         weights = list()
 
-        for p in self._network.parameters():
+        for p in self.network.parameters():
             w = p.data.detach().cpu().numpy()
             weights.append(w.flatten())
 
@@ -157,7 +157,7 @@ class PyTorchApproximator:
 
     @property
     def weights_size(self):
-        return sum(p.numel() for p in self._network.parameters())
+        return sum(p.numel() for p in self.network.parameters())
 
     def diff(self, *args, **kwargs):
         if not self._use_cuda:
@@ -166,14 +166,14 @@ class PyTorchApproximator:
             torch_args = [torch.from_numpy(np.atleast_2d(x)).cuda()
                           for x in args]
 
-        y_hat = self._network(*torch_args, **kwargs)
+        y_hat = self.network(*torch_args, **kwargs)
 
         gradients = list()
         for i in range(y_hat.shape[1]):
             y_hat[:, i].backward(retain_graph=True)
 
             gradient = list()
-            for p in self._network.parameters():
+            for p in self.network.parameters():
                 g = p.grad.data.detach().cpu().numpy()
                 gradient.append(g.flatten())
 
