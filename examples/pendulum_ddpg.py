@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-from mushroom.algorithms.deep import DDPG
+from mushroom.algorithms.actor_critic import DDPG
 from mushroom.core import Core
 from mushroom.environments import *
 from mushroom.policy import GaussianPolicy
