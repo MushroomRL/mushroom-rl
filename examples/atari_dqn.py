@@ -25,7 +25,7 @@ This script runs Atari experiments with DQN as presented in:
 
 class Network(nn.Module):
     def __init__(self, input_shape, output_shape, **kwargs):
-        super(Network, self).__init__()
+        super().__init__()
 
         n_input = input_shape[0]
         n_output = output_shape[0]
