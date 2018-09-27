@@ -130,4 +130,4 @@ def experiment(n_epochs, n_steps, n_steps_test):
 
 
 if __name__ == '__main__':
-    experiment(n_epochs=20, n_steps=1000, n_steps_test=2000)
+    experiment(n_epochs=40, n_steps=1000, n_steps_test=2000)

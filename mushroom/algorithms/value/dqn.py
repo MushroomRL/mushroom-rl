@@ -16,8 +16,8 @@ class DQN(Agent):
     """
     def __init__(self, approximator, policy, mdp_info, batch_size,
                  initial_replay_size, max_replay_size,
-                 target_update_frequency=2500, fit_params=None,
-                 approximator_params=None, n_approximators=1, clip_reward=True):
+                 approximator_params, target_update_frequency,
+                 fit_params=None, n_approximators=1, clip_reward=True):
         """
         Constructor.
 
@@ -27,12 +27,12 @@ class DQN(Agent):
                 starting the learning;
             max_replay_size (int): the maximum number of samples in the replay
                 memory;
+            approximator_params (dict): parameters of the approximator to
+                build;
             target_update_frequency (int): the number of samples collected
                 between each update of the target network;
             fit_params (dict, None): parameters of the fitting algorithm of the
                 approximator;
-            approximator_params (dict, None): parameters of the approximator to
-                build;
             n_approximators (int, 1): the number of approximator to use in
                 ``AverageDQN``;
             clip_reward (bool, True): whether to clip the reward or not.

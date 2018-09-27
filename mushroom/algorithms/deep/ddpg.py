@@ -20,6 +20,27 @@ class DDPG(Agent):
                  initial_replay_size, max_replay_size,
                  tau, actor_params, critic_params, policy_params,
                  critic_fit_params=None):
+        """
+        Constructor.
+
+        Args:
+            batch_size (int): the number of samples in a batch;
+            policy_class (Policy): class of the policy;
+            batch_size (int):
+            initial_replay_size (int): the number of samples to collect before
+                starting the learning;
+            max_replay_size (int): the maximum number of samples in the replay
+                memory;
+            tau (float): value of coefficient for soft updates;
+            actor_params (dict): parameters of the actor approximator to
+                build;
+            critic_params (dict): parameters of the critic approximator to
+                build;
+            policy_params (dict): parameters of the policy to build;
+            critic_fit_params (dict, None): parameters of the fitting algorithm
+                of the critic approximator;
+
+        """
         self._critic_fit_params = dict() if critic_fit_params is None else critic_fit_params
 
         self._batch_size = batch_size
@@ -82,7 +103,7 @@ class DDPG(Agent):
 
     def _update_target(self):
         """
-        Update the target network.
+        Update the target networks.
 
         """
         critic_weights = self._tau * self._critic_approximator.model.get_weights()
@@ -102,7 +123,8 @@ class DDPG(Agent):
                 ``next_state``.
 
         Returns:
-            Maximum action-value for each state in ``next_state``.
+            Action-values returned by the critic for ``next_state`` and the
+            action returned by the actor.
 
         """
         a = self._target_actor_approximator(next_state)
