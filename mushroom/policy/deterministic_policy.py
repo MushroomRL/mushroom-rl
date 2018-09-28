@@ -8,6 +8,7 @@ class DeterministicPolicy(ParametricPolicy):
     deterministic policies are degenerate probability functions where all
     the probability mass is on the deterministic action,they are not
     differentiable, even if the mean value approximator is differentiable.
+
     """
     def __init__(self, mu):
         """
@@ -15,7 +16,8 @@ class DeterministicPolicy(ParametricPolicy):
 
         Args:
             mu (Regressor): the regressor representing the action to select
-                            in each state
+                in each state.
+
         """
         self._approximator = mu
 
@@ -25,6 +27,7 @@ class DeterministicPolicy(ParametricPolicy):
 
         Returns:
             the regressor that is used to map state to actions.
+
         """
         return self._approximator
 

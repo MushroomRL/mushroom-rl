@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from mushroom.algorithms.actor_critic import DDPG
 from mushroom.core import Core
 from mushroom.environments import *
-from mushroom.policy import GaussianPolicy
+from mushroom.policy import OrnsteinUhlenbeckPolicy
 from mushroom.approximators.parametric.pytorch_network import *
 from mushroom.utils.dataset import compute_J
 
@@ -73,8 +73,8 @@ def experiment(n_epochs, n_steps, n_steps_test):
     mdp = Gym('Pendulum-v0', horizon, gamma)
 
     # Policy
-    policy_class = GaussianPolicy
-    policy_params = dict(sigma=np.ones((1, 1)) * .1)
+    policy_class = OrnsteinUhlenbeckPolicy
+    policy_params = dict(sigma=np.ones(1) * .2, theta=.15, dt=1e-2)
 
     # Settings
     initial_replay_size = 500

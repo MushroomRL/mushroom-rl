@@ -11,6 +11,7 @@ class GaussianPolicy(ParametricPolicy):
     The policy samples an action in every state following a gaussian
     distribution, where the mean is computed in the state and the covariance
     matrix is fixed.
+
     """
     def __init__(self, mu, sigma):
         """
@@ -18,11 +19,10 @@ class GaussianPolicy(ParametricPolicy):
 
         Args:
             mu (Regressor): the regressor representing the mean w.r.t. the
-                            state
-            sigma (np.ndarray): a square positive definite matrix
-                                representing the covariance matrix. The size of
-                                this matrix must be n x n, where n is the
-                                action dimensionality
+                state;
+            sigma (np.ndarray): a square positive definite matrix representing
+                the covariance matrix. The size of this matrix must be n x n,
+                where n is the action dimensionality.
 
         """
         self._approximator = mu
@@ -35,7 +35,7 @@ class GaussianPolicy(ParametricPolicy):
 
         Args:
             sigma (np.ndarray): the new covariance matrix. Must be a square
-                                positive definite matrix
+                positive definite matrix.
 
         """
         self._sigma = sigma
@@ -85,12 +85,14 @@ class GaussianPolicy(ParametricPolicy):
 
 class DiagonalGaussianPolicy(ParametricPolicy):
     """
-    Gaussian policy with learnable standard deviation. The Covariance matrix is
+    Gaussian policy with learnable standard deviation.
+    The Covariance matrix is
     constrained to be a diagonal matrix, where the diagonal is the squared
     standard deviation vector.
     This is a differentiable policy for continuous action spaces.
     This policy is similar to the gaussian policy, but the weights includes
     also the standard deviation.
+
     """
     def __init__(self, mu, std):
         """
@@ -98,10 +100,9 @@ class DiagonalGaussianPolicy(ParametricPolicy):
 
         Args:
             mu (Regressor): the regressor representing the mean w.r.t. the
-                            state
-            std (np.ndarray): a vector of standard deviations. The lenght of
-                                this vector must be equal to the action
-                                dimensionality
+                state;
+            std (np.ndarray): a vector of standard deviations. The length of
+                this vector must be equal to the action dimensionality.
 
         """
         self._approximator = mu
@@ -113,7 +114,7 @@ class DiagonalGaussianPolicy(ParametricPolicy):
 
         Args:
             std (np.ndarray): the new standard deviation. Must be a square
-                                positive definite matrix
+                positive definite matrix.
 
         """
         self._std = std
@@ -129,7 +130,6 @@ class DiagonalGaussianPolicy(ParametricPolicy):
         return np.random.multivariate_normal(mu, sigma)
 
     def diff_log(self, state, action):
-
         mu, _, inv_sigma = self._compute_multivariate_gaussian(state)
 
         delta = action - mu
@@ -153,7 +153,8 @@ class DiagonalGaussianPolicy(ParametricPolicy):
         self._std = weights[self._approximator.weights_size:]
 
     def get_weights(self):
-        return np.concatenate((self._approximator.get_weights(), self._std), axis=0)
+        return np.concatenate((self._approximator.get_weights(), self._std),
+                              axis=0)
 
     @property
     def weights_size(self):
@@ -170,13 +171,15 @@ class DiagonalGaussianPolicy(ParametricPolicy):
 
 class StateStdGaussianPolicy(ParametricPolicy):
     """
-    Gaussian policy with learnable standard deviation. The Covariance matrix is
+    Gaussian policy with learnable standard deviation.
+    The Covariance matrix is
     constrained to be a diagonal matrix, where the diagonal is the squared
     standard deviation, which is computed for each state.
     This is a differentiable policy for continuous action spaces.
     This policy is similar to the diagonal gaussian policy, but a parametric
     regressor is used to compute the standard deviation, so the standard
     deviation depends on the current state.
+
     """
     def __init__(self, mu, std, eps=1e-6):
         """
@@ -184,13 +187,12 @@ class StateStdGaussianPolicy(ParametricPolicy):
 
         Args:
             mu (Regressor): the regressor representing the mean w.r.t. the
-                            state
+                state;
             std (Regressor): the regressor representing the standard
-                             deviations w.r.t. the state. The output
-                             dimensionality of the regressor must be equal to
-                             the action dimensionality
+                deviations w.r.t. the state. The output dimensionality of the
+                regressor must be equal to the action dimensionality;
             eps(float, 1e-6): A positive constant added to the variance to
-                              ensure that is always greater than zero
+                ensure that is always greater than zero.
 
         """
         assert(eps > 0)
@@ -222,7 +224,7 @@ class StateStdGaussianPolicy(ParametricPolicy):
         if len(j_mu.shape) == 1:
             j_mu = np.expand_dims(j_mu, axis=1)
 
-        sigma_inv = np.diag(1/diag_sigma)
+        sigma_inv = np.diag(1 / diag_sigma)
 
         g_mu = j_mu.dot(sigma_inv).dot(delta.T)
 
@@ -265,13 +267,15 @@ class StateStdGaussianPolicy(ParametricPolicy):
 
 class StateLogStdGaussianPolicy(ParametricPolicy):
     """
-    Gaussian policy with learnable standard deviation. The Covariance matrix is
+    Gaussian policy with learnable standard deviation.
+    The Covariance matrix is
     constrained to be a diagonal matrix, the diagonal is computed by an
     exponential transformation of the logarithm of the standard deviation
     computed in each state.
     This is a differentiable policy for continuous action spaces.
     This policy is similar to the State std gaussian policy, but here the
-    regressor represents the logarithm of the standard deviation
+    regressor represents the logarithm of the standard deviation.
+
     """
     def __init__(self, mu, log_std):
         """
@@ -279,13 +283,12 @@ class StateLogStdGaussianPolicy(ParametricPolicy):
 
         Args:
             mu (Regressor): the regressor representing the mean w.r.t. the
-                            state
-            log_sigma (Regressor): a regressor representing the logarithm of the
-                                   variance w.r.t. the state. The output
-                                   dimensionality of the regressor must be equal
-                                   to the action dimensionality
-        """
+                state;
+            log_std (Regressor): a regressor representing the logarithm of the
+                variance w.r.t. the state. The output dimensionality of the
+                regressor must be equal to the action dimensionality.
 
+        """
         self._mu_approximator = mu
         self._log_std_approximator = log_std
 

@@ -313,6 +313,8 @@ class SARSALambdaDiscrete(TD):
     def episode_start(self):
         self.e.reset()
 
+        super().episode_start()
+
 
 class SARSALambdaContinuous(TD):
     """
@@ -359,6 +361,8 @@ class SARSALambdaContinuous(TD):
 
     def episode_start(self):
         self.e = np.zeros(self.Q.weights_size)
+
+        super().episode_start()
 
 
 class ExpectedSARSA(TD):
@@ -441,6 +445,8 @@ class TrueOnlineSARSALambda(TD):
     def episode_start(self):
         self._q_old = None
         self.e = np.zeros(self.Q.weights_size)
+
+        super().episode_start()
 
 
 class RLearning(TD):

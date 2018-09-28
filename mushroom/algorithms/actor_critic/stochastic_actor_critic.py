@@ -52,6 +52,8 @@ class SAC(Agent):
         self._e_v = np.zeros(self._V.weights_size)
         self._e_theta = np.zeros(self.policy.weights_size)
 
+        super().episode_start()
+
     def fit(self, dataset):
         for step in dataset:
             s, a, r, ss, absorbing, _ = step
@@ -131,6 +133,8 @@ class SAC_AVG(Agent):
     def episode_start(self):
         self._e_v = np.zeros(self._V.weights_size)
         self._e_theta = np.zeros(self.policy.weights_size)
+
+        super().episode_start()
 
     def fit(self, dataset):
         for step in dataset:

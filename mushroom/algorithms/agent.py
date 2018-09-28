@@ -57,11 +57,10 @@ class Agent(object):
 
     def episode_start(self):
         """
-        Reset some parameters when a new episode starts. It is used only by
-        some algorithms (e.g. DQN).
+        Called by the agent when a new episode starts.
 
         """
-        pass
+        self.policy.reset()
 
     def stop(self):
         """

@@ -35,6 +35,14 @@ class Policy(object):
         """
         raise NotImplementedError
 
+    def reset(self):
+        """
+        Useful when the policy needs a special initialization at the beginning
+        of an episode.
+
+        """
+        pass
+
 
 class ParametricPolicy(Policy):
     """
