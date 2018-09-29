@@ -30,7 +30,7 @@ class DDPG(Agent):
     def __init__(self, actor_approximator, critic_approximator, policy_class,
                  mdp_info, batch_size, initial_replay_size, max_replay_size,
                  tau, actor_params, critic_params, policy_params,
-                 critic_fit_params=None):
+                 actor_fit_params=None, critic_fit_params=None):
         """
         Constructor.
 
@@ -50,10 +50,13 @@ class DDPG(Agent):
             critic_params (dict): parameters of the critic approximator to
                 build;
             policy_params (dict): parameters of the policy to build;
+            actor_fit_params (dict, None): parameters of the fitting algorithm
+                of the actor approximator;
             critic_fit_params (dict, None): parameters of the fitting algorithm
                 of the critic approximator;
 
         """
+        self._actor_fit_params = dict() if actor_fit_params is None else actor_fit_params
         self._critic_fit_params = dict() if critic_fit_params is None else critic_fit_params
 
         self._batch_size = batch_size
@@ -97,7 +100,8 @@ class DDPG(Agent):
 
             self._critic_approximator.fit(state, action, q,
                                           **self._critic_fit_params)
-            self._actor_approximator.fit(state, state)
+            self._actor_approximator.fit(state, state,
+                                         **self._actor_fit_params)
 
             self._n_updates += 1
 
