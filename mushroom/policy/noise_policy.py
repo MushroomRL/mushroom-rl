@@ -38,9 +38,11 @@ class OrnsteinUhlenbeckPolicy(ParametricPolicy):
     def draw_action(self, state):
         mu = self._approximator.predict(state)
 
-        x = self.x_prev - self._theta * self.x_prev * self._dt + self._sigma *\
-            np.sqrt(self._dt) * np.random.normal(size=self._approximator.output_shape)
-        self.x_prev = x
+        x = self._x_prev - self._theta * self._x_prev * self._dt +\
+            self._sigma * np.sqrt(self._dt) * np.random.normal(
+                size=self._approximator.output_shape
+            )
+        self._x_prev = x
 
         return mu + x
 
@@ -55,4 +57,4 @@ class OrnsteinUhlenbeckPolicy(ParametricPolicy):
         return self._approximator.weights_size
 
     def reset(self):
-        self.x_prev = self._x0 if self._x0 is not None else np.zeros(self._approximator.output_shape)
+        self._x_prev = self._x0 if self._x0 is not None else np.zeros(self._approximator.output_shape)
