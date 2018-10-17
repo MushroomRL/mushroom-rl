@@ -1,6 +1,5 @@
 from dm_control import suite
 
-from gym import spaces as gym_spaces
 from mushroom.environments import Environment, MDPInfo
 from mushroom.utils.spaces import *
 from mushroom.utils.viewer import ImageViewer
@@ -13,8 +12,8 @@ class Mujoco(Environment):
     information.
 
     """
-    def __init__(self, domain_name, task_name, horizon, gamma, dt=.01,
-                 width_screen=480, height_screen=480, camera_id=0):
+    def __init__(self, domain_name, task_name, horizon, gamma, task_kwargs=None,
+                 dt=.01, width_screen=480, height_screen=480, camera_id=0):
         """
         Constructor.
 
@@ -23,6 +22,7 @@ class Mujoco(Environment):
              task_name (str): name of the task of the environment;
              horizon (int): the horizon;
              gamma (float): the discount factor;
+             task_kwargs (dict, None): parameters of the task;
              dt (float, .01): duration of a control step;
              width_screen (int, 480): width of the screen;
              height_screen (int, 480): height of the screen;
@@ -30,7 +30,11 @@ class Mujoco(Environment):
 
         """
         # MDP creation
-        self.env = suite.load(domain_name, task_name)
+        if task_kwargs is None:
+            task_kwargs = dict()
+        task_kwargs['time_limit'] = np.inf  # Hack to ignore dm_control time limit.
+
+        self.env = suite.load(domain_name, task_name, task_kwargs=task_kwargs)
 
         # MDP properties
         action_space = self._convert_action_space(self.env.action_spec())
