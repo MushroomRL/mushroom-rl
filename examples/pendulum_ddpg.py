@@ -70,7 +70,8 @@ def experiment(n_epochs, n_steps, n_steps_test):
     horizon = 500
     gamma = 0.99
     gamma_eval = 1.
-    mdp = Gym('Pendulum-v0', horizon, gamma)
+    #mdp = Gym('Pendulum-v0', horizon, gamma)
+    mdp = Mujoco('cartpole', 'swingup', horizon, gamma)
 
     # Policy
     policy_class = OrnsteinUhlenbeckPolicy
@@ -133,4 +134,4 @@ def experiment(n_epochs, n_steps, n_steps_test):
 
 
 if __name__ == '__main__':
-    experiment(n_epochs=1, n_steps=1000, n_steps_test=2000)
+    experiment(n_epochs=40, n_steps=1000, n_steps_test=2000)
