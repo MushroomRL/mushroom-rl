@@ -21,7 +21,11 @@ with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
         requires_list.append(str(line))
 
 # specific dependencies for modules
-extras = dict()
+extras = {
+    #'mujoco': ['dm_control'],
+    'gym': ['gym'],
+    'atari': ['gym[atari]']
+}
 
 # Meta dependency groups.
 all_deps = []

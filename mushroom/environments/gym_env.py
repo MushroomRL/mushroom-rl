@@ -18,12 +18,11 @@ class Gym(Environment):
 
         Args:
              name (str): gym id of the environment;
-             horizon (int): horizon of the MDP;
              horizon (int): the horizon;
              gamma (float): the discount factor.
 
         """
-        # MPD creation
+        # MDP creation
         self.env = gym.make(name)
 
         self.env._max_episode_steps = np.inf  # Hack to ignore gym time limit.

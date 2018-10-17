@@ -5,9 +5,10 @@ Algorithms:
             - Natural gradient
             - NES
         * TRPO
+        * PPO
 
     b) Actor-critic:
-        * Deterministic policy gradient
+        * A2C
 
     c) Value based:
         * Q Lambda

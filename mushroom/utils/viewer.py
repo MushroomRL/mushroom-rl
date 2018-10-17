@@ -3,6 +3,51 @@ import time
 import numpy as np
 
 
+class ImageViewer:
+    """
+    Interface to pygame for visualizing plain images. Used in mujoco.py.
+
+    """
+    def __init__(self, size, dt):
+        """
+        Constructor.
+
+        Args:
+            size ([list, tuple]): size of the displayed image;
+            dt (float): duration of a control step.
+
+        """
+        self._size = size
+        self._dt = dt
+        self._initialized = False
+        self._screen = None
+
+    def display(self, img):
+        """
+        Display given frame.
+
+        Args:
+            img: image to display.
+
+        """
+        if not self._initialized:
+            pygame.init()
+            self._initialized = True
+
+        if self._screen is None:
+            self._screen = pygame.display.set_mode(self._size)
+
+        img = np.transpose(img, (1, 0, 2))
+        surf = pygame.surfarray.make_surface(img)
+        self._screen.blit(surf, (0, 0))
+        pygame.display.flip()
+        time.sleep(self._dt)
+
+    @property
+    def size(self):
+        return self._size
+
+
 class Viewer:
     """
     Interface to pygame for visualizing mushroom native environments.
