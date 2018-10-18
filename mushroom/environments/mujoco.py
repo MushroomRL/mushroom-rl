@@ -76,7 +76,11 @@ class Mujoco(Environment):
     def _convert_observation_space(observation_space):
         observation_shape = 0
         for i in observation_space:
-            observation_shape += observation_space[i].shape[0]
+            shape = observation_space[i].shape
+            if len(shape) > 0:
+                observation_shape += shape[0]
+            else:
+                observation_shape += 1
 
         return Box(low=-np.inf, high=np.inf, shape=(observation_shape,))
 
@@ -91,6 +95,6 @@ class Mujoco(Environment):
     def _convert_observation(observation):
         obs = list()
         for i in observation:
-            obs.append(observation[i])
+            obs.append(np.atleast_1d(observation[i]))
 
         return np.concatenate(obs)
