@@ -5,7 +5,6 @@ Distributions
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Gaussian
@@ -15,7 +14,6 @@ Gaussian
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 

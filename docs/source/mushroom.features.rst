@@ -21,7 +21,6 @@ that builds the one requested by the user.
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 The factory method returns a class that extends the abstract class
@@ -31,7 +30,6 @@ The factory method returns a class that extends the abstract class
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Components

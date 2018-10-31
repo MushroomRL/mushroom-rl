@@ -12,7 +12,6 @@ Regressor
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
     
     
@@ -26,7 +25,6 @@ Linear
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Pytorch Neural Network
@@ -36,5 +34,4 @@ Pytorch Neural Network
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:

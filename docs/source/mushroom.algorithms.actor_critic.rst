@@ -8,7 +8,15 @@ Deterministic Policy Gradient
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
+    :show-inheritance:
+
+Deep Deterministic Policy Gradient
+-----------------------------
+
+.. automodule:: mushroom.algorithms.actor_critic.ddpg
+    :members:
+    :private-members:
+    :inherited-members:
     :show-inheritance:
 
 Stochastic Actor-Critic
@@ -18,6 +26,5 @@ Stochastic Actor-Critic
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 

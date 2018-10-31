@@ -8,7 +8,6 @@ Environments
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Atari
@@ -18,7 +17,6 @@ Atari
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Car on hill
@@ -28,7 +26,6 @@ Car on hill
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Finite MDP
@@ -38,7 +35,6 @@ Finite MDP
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Grid World
@@ -48,7 +44,6 @@ Grid World
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Gym
@@ -58,7 +53,6 @@ Gym
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Inverted pendulum
@@ -68,7 +62,6 @@ Inverted pendulum
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 LQR
@@ -78,7 +71,15 @@ LQR
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
+    :show-inheritance:
+
+Mujoco
+~~~~~~
+
+.. automodule:: mushroom.environments.mujoco
+    :members:
+    :private-members:
+    :inherited-members:
     :show-inheritance:
 
 Segway
@@ -88,7 +89,6 @@ Segway
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Ship steering
@@ -98,7 +98,6 @@ Ship steering
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
     
 Generators
@@ -111,7 +110,6 @@ Grid world
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Simple chain
@@ -121,7 +119,6 @@ Simple chain
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Taxi
@@ -131,5 +128,4 @@ Taxi
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:

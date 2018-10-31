@@ -8,7 +8,6 @@ TD
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Batch TD
@@ -18,7 +17,6 @@ Batch TD
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 DQN
@@ -28,5 +26,4 @@ DQN
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:

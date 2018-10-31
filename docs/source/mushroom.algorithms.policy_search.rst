@@ -8,7 +8,6 @@ Policy gradient
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Black-Box optimization
@@ -18,6 +17,5 @@ Black-Box optimization
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 

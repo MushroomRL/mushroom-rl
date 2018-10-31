@@ -8,7 +8,6 @@ Fourier
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Gaussian RBF
@@ -18,7 +17,6 @@ Gaussian RBF
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Polynomial
@@ -28,5 +26,4 @@ Polynomial
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:

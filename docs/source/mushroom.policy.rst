@@ -5,7 +5,6 @@ Policy
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Gaussian policy
@@ -15,7 +14,6 @@ Gaussian policy
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 TD policy
@@ -25,7 +23,6 @@ TD policy
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 

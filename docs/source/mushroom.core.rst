@@ -5,5 +5,4 @@ Core
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:

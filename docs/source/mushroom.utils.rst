@@ -6,7 +6,6 @@ Angles
 
 .. automodule:: mushroom.utils.angles
     :members:
-    :undoc-members:
     :show-inheritance:
 
 Callbacks
@@ -14,7 +13,6 @@ Callbacks
 
 .. automodule:: mushroom.utils.callbacks
     :members:
-    :undoc-members:
     :show-inheritance:
 
 Dataset
@@ -22,7 +20,6 @@ Dataset
 
 .. automodule:: mushroom.utils.dataset
     :members:
-    :undoc-members:
     :show-inheritance:
 
 Eligibility trace
@@ -42,7 +39,6 @@ Features
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Folder
@@ -52,7 +48,6 @@ Folder
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Minibatches
@@ -72,7 +67,6 @@ Numerical gradient
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Parameters
@@ -82,7 +76,6 @@ Parameters
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Preprocessor
@@ -90,7 +83,6 @@ Preprocessor
 
 .. automodule:: mushroom.utils.preprocessor
     :members:
-    :undoc-members:
     :show-inheritance:
 
 Replay memory
@@ -100,7 +92,6 @@ Replay memory
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Spaces
@@ -108,7 +99,6 @@ Spaces
 
 .. automodule:: mushroom.utils.spaces
     :members:
-    :undoc-members:
     :show-inheritance:
     
 Table
@@ -118,7 +108,6 @@ Table
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
     
 Variance parameters
@@ -128,7 +117,6 @@ Variance parameters
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
 
 Viewer
@@ -138,5 +126,4 @@ Viewer
     :members:
     :private-members:
     :inherited-members:
-    :undoc-members:
     :show-inheritance:
