@@ -9,6 +9,10 @@ from mushroom.utils.replay_memory import ReplayMemory
 
 
 class ActorLoss(nn.Module):
+    """
+    Class used to implement the loss function of the actor.
+    
+    """
     def __init__(self, critic):
         super().__init__()
 
