@@ -12,21 +12,31 @@ class PuddleWorld(Environment):
     "Off-Policy Actor-Critic". Degris T. et al.. 2012.
 
     """
-    def __init__(self, start=[.2, .4], goal=[1., 1.], goal_threshold=.1,
-                 noise=.025, thrust=.05,
-                 puddle_center=[[.3, .6], [.4, .5], [.8, .9]],
-                 puddle_width=[[.1, .03], [.03, .1], [.03, .1]]):
+    def __init__(self, start=None, goal=None, goal_threshold=.1, noise=.025,
+                 thrust=.05, puddle_center=None, puddle_width=None):
         """
         Constructor.
 
+        Args:
+            start (np.array, None): starting position of the agent;
+            goal (np.array, None): goal position;
+            goal_threshold (float, .1): distance threshold of the agent from the
+                goal to consider it reached;
+            noise (float, .025): noise in actions;
+            thrust (float, .05): distance walked during each action;
+            puddle_center (np.array, None): center of the puddle;
+            puddle_width (np.array, None): width of the puddle.
+
         """
         # MDP parameters
-        self._start = np.array(start)
-        self._goal = np.array(goal)
+        self._start = np.array([.2, .4]) if start is None else start
+        self._goal = np.array([1., 1.]) if goal is None else goal
         self._goal_threshold = goal_threshold
         self._noise = noise
         self._thrust = thrust
+        puddle_center = [[.3, .6], [.4, .5], [.8, .9]] if puddle_center is None else puddle_center
         self._puddle_center = [np.array(center) for center in puddle_center]
+        puddle_width = [[.1, .03], [.03, .1], [.03, .1]] if puddle_width is None else puddle_width
         self._puddle_width = [np.array(width) for width in puddle_width]
 
         self._actions = [np.zeros(2) for _ in range(5)]
