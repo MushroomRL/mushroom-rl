@@ -128,7 +128,8 @@ class PuddleWorld(Environment):
         return self._viewer.render(return_rgb_array=mode == 'rgb_array')
 
     def stop(self):
-        self._viewer.close()
+        if self._viewer is not None:
+            self._viewer.close()
 
     def _get_reward(self, state):
         reward = -1.
