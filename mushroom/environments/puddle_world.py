@@ -13,7 +13,8 @@ class PuddleWorld(Environment):
 
     """
     def __init__(self, start=None, goal=None, goal_threshold=.1, noise=.025,
-                 thrust=.05, puddle_center=None, puddle_width=None):
+                 thrust=.05, puddle_center=None, puddle_width=None,
+                 gamma=.99, horizon=5000):
         """
         Constructor.
 
@@ -25,7 +26,7 @@ class PuddleWorld(Environment):
             noise (float, .025): noise in actions;
             thrust (float, .05): distance walked during each action;
             puddle_center (np.array, None): center of the puddle;
-            puddle_width (np.array, None): width of the puddle.
+            puddle_width (np.array, None): width of the puddle;
 
         """
         # MDP parameters
@@ -48,8 +49,6 @@ class PuddleWorld(Environment):
         # MDP properties
         action_space = Discrete(5)
         observation_space = Box(0., 1., shape=(2,))
-        gamma = .99
-        horizon = 5000
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
         super().__init__(mdp_info)
