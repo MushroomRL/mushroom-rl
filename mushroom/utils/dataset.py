@@ -140,7 +140,7 @@ def compute_J(dataset, gamma=1.):
     for i in range(len(dataset)):
         j += gamma ** episode_steps * dataset[i][2]
         episode_steps += 1
-        if dataset[i][-1]:
+        if dataset[i][-1] or i == len(dataset) - 1:
             js.append(j)
             j = 0.
             episode_steps = 0
