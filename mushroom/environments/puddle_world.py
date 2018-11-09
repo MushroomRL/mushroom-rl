@@ -1,9 +1,9 @@
 import numpy as np
 from scipy.stats import norm
-from gym.envs.classic_control import rendering
 
 from mushroom.environments import Environment, MDPInfo
 from mushroom.utils.spaces import Discrete, Box
+from mushroom.utils.viewer import Viewer
 
 
 class PuddleWorld(Environment):
@@ -44,12 +44,14 @@ class PuddleWorld(Environment):
         for i in range(4):
             self._actions[i][i // 2] = thrust * (i % 2 * 2 - 1)
 
-        self._viewer = None
-
         # MDP properties
         action_space = Discrete(5)
         observation_space = Box(0., 1., shape=(2,))
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+
+        # Visualization
+        self._pixels = None
+        self._viewer = Viewer(1.0, 1.0)
 
         super().__init__(mdp_info)
 
@@ -74,58 +76,28 @@ class PuddleWorld(Environment):
 
         return self._state, reward, absorbing, {}
 
-    def render(self, mode='human', close=False):
-        if close:
-            if self._viewer is not None:
-                self._viewer.close()
-                self._viewer = None
-            return
-
-        screen_width = 600
-        screen_height = 400
-
-        if self._viewer is None:
-            self._viewer = rendering.Viewer(screen_width, screen_height)
-
-            import pyglet
-            img_width = 100
-            img_height = 100
-            fformat = 'RGB'
-            pixels = np.zeros((img_width, img_height, len(fformat)))
-            for i in range(img_width):
-                for j in range(img_height):
-                    x = float(i) / img_width
-                    y = float(j) / img_height
-                    pixels[j, i] = self._get_reward(np.array([x, y]))
+    def render(self):
+        if self._pixels is None:
+            img_size = 100
+            pixels = np.zeros((img_size, img_size, 3))
+            for i in range(img_size):
+                for j in range(img_size):
+                    x = i / img_size
+                    y = j / img_size
+                    pixels[i, img_size - 1 - j] = self._get_reward(
+                        np.array([x, y]))
 
             pixels -= pixels.min()
             pixels *= 255. / pixels.max()
-            pixels = np.floor(pixels)
+            self._pixels = np.floor(255 - pixels)
 
-            img = pyglet.image.create(img_width, img_height)
-            img.format = fformat
-            data = [chr(int(pixel)) for pixel in pixels.flatten()]
+        self._viewer.background_image(self._pixels)
+        self._viewer.circle(self._state, 0.01,
+                            color=(0, 255, 0))
+        self._viewer.circle(self._goal, self._goal_threshold,
+                            color=(255, 0, 0), width=1)
 
-            img.set_data(fformat, img_width * len(fformat), ''.join(data))
-            bg_image = Image(img, screen_width, screen_height)
-            bg_image.set_color(1., 1., 1.)
-
-            self._viewer.add_geom(bg_image)
-
-            thickness = 5
-            agent_polygon = rendering.FilledPolygon([(-thickness, -thickness),
-                                                     (-thickness, thickness),
-                                                     (thickness, thickness),
-                                                     (thickness, -thickness)])
-            agent_polygon.set_color(0., 1., 0.)
-            self.agenttrans = rendering.Transform()
-            agent_polygon.add_attr(self.agenttrans)
-            self._viewer.add_geom(agent_polygon)
-
-        self.agenttrans.set_translation(self._state[0] * screen_width,
-                                        self._state[1] * screen_height)
-
-        return self._viewer.render(return_rgb_array=mode == 'rgb_array')
+        self._viewer.display(0.1)
 
     def stop(self):
         if self._viewer is not None:
@@ -138,15 +110,3 @@ class PuddleWorld(Environment):
                 state[1], cen[1], wid[1])
 
         return reward
-
-
-class Image(rendering.Geom):
-    def __init__(self, img, width, height):
-        rendering.Geom.__init__(self)
-        self.width = width
-        self.height = height
-        self.img = img
-        self.flip = False
-
-    def render1(self):
-        self.img.blit(0, 0, width=self.width, height=self.height)

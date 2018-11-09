@@ -72,6 +72,7 @@ class Viewer:
         self._screen = None
         self._ratio = np.array([width / env_width, height / env_height])
         self._background = background
+
         self._initialized = False
 
     @property
@@ -205,6 +206,11 @@ class Viewer:
 
         self.polygon(center, angle, points, color)
 
+    def background_image(self, img):
+        surf = pygame.surfarray.make_surface(img)
+        surf = pygame.transform.smoothscale(surf, self.size)
+        self.screen.blit(surf, (0, 0))
+
     def display(self, s):
         """
         Display current frame and initialize the next frame to the background
@@ -216,6 +222,7 @@ class Viewer:
         """
         pygame.display.flip()
         time.sleep(s)
+
         self.screen.fill(self._background)
 
     def close(self):
