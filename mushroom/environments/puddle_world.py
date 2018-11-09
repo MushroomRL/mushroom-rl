@@ -94,8 +94,15 @@ class PuddleWorld(Environment):
         self._viewer.background_image(self._pixels)
         self._viewer.circle(self._state, 0.01,
                             color=(0, 255, 0))
-        self._viewer.circle(self._goal, self._goal_threshold,
-                            color=(255, 0, 0), width=1)
+
+        goal_area = [
+            [-self._goal_threshold, 0],
+            [0, self._goal_threshold],
+            [self._goal_threshold, 0],
+            [0, -self._goal_threshold]
+        ]
+        self._viewer.polygon(self._goal, 0, goal_area,
+                             color=(255, 0, 0), width=1)
 
         self._viewer.display(0.1)
 

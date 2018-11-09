@@ -207,6 +207,14 @@ class Viewer:
         self.polygon(center, angle, points, color)
 
     def background_image(self, img):
+        """
+        Use the given image as background for the window, rescaling it
+        appropriately.
+
+        Args:
+            img: the image to be used.
+
+        """
         surf = pygame.surfarray.make_surface(img)
         surf = pygame.transform.smoothscale(surf, self.size)
         self.screen.blit(surf, (0, 0))
