@@ -13,8 +13,8 @@ class PuddleWorld(Environment):
 
     """
     def __init__(self, start=None, goal=None, goal_threshold=.1, noise_step=.025,
-                 noise_reward=0, thrust=.05, puddle_center=None, puddle_width=None,
-                 gamma=.99, horizon=5000):
+                 noise_reward=0, reward_goal=0., thrust=.05, puddle_center=None,
+                 puddle_width=None, gamma=.99, horizon=5000):
         """
         Constructor.
 
@@ -25,6 +25,7 @@ class PuddleWorld(Environment):
                 goal to consider it reached;
             noise_step (float, .025): noise in actions;
             noise_reward (float, 0): standard deviation of gaussian noise in reward;
+            reward_goal (float, 0): reward obtained reaching goal state;
             thrust (float, .05): distance walked during each action;
             puddle_center (np.array, None): center of the puddle;
             puddle_width (np.array, None): width of the puddle;
@@ -36,6 +37,7 @@ class PuddleWorld(Environment):
         self._goal_threshold = goal_threshold
         self._noise_step = noise_step
         self._noise_reward = noise_reward
+        self._reward_goal = reward_goal
         self._thrust = thrust
         puddle_center = [[.3, .6], [.4, .5], [.8, .9]] if puddle_center is None else puddle_center
         self._puddle_center = [np.array(center) for center in puddle_center]
@@ -74,8 +76,11 @@ class PuddleWorld(Environment):
         absorbing = np.linalg.norm((self._state - self._goal),
                                    ord=1) < self._goal_threshold
 
-        reward = np.random.randn() * self._noise_reward + self._get_reward(
-            self._state)
+        if not absorbing:
+            reward = np.random.randn() * self._noise_reward + self._get_reward(
+                self._state)
+        else:
+            reward = self._reward_goal
 
         return self._state, reward, absorbing, {}
 
