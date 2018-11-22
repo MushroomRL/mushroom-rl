@@ -12,8 +12,8 @@ class PuddleWorld(Environment):
     "Off-Policy Actor-Critic". Degris T. et al.. 2012.
 
     """
-    def __init__(self, start=None, goal=None, goal_threshold=.1, noise=.025,
-                 thrust=.05, puddle_center=None, puddle_width=None,
+    def __init__(self, start=None, goal=None, goal_threshold=.1, noise_step=.025,
+                 noise_reward=0, thrust=.05, puddle_center=None, puddle_width=None,
                  gamma=.99, horizon=5000):
         """
         Constructor.
@@ -23,7 +23,8 @@ class PuddleWorld(Environment):
             goal (np.array, None): goal position;
             goal_threshold (float, .1): distance threshold of the agent from the
                 goal to consider it reached;
-            noise (float, .025): noise in actions;
+            noise_step (float, .025): noise in actions;
+            noise_reward (float, 0): standard deviation of gaussian noise in reward;
             thrust (float, .05): distance walked during each action;
             puddle_center (np.array, None): center of the puddle;
             puddle_width (np.array, None): width of the puddle;
@@ -33,7 +34,8 @@ class PuddleWorld(Environment):
         self._start = np.array([.2, .4]) if start is None else start
         self._goal = np.array([1., 1.]) if goal is None else goal
         self._goal_threshold = goal_threshold
-        self._noise = noise
+        self._noise_step = noise_step
+        self._noise_reward = noise_reward
         self._thrust = thrust
         puddle_center = [[.3, .6], [.4, .5], [.8, .9]] if puddle_center is None else puddle_center
         self._puddle_center = [np.array(center) for center in puddle_center]
@@ -66,13 +68,14 @@ class PuddleWorld(Environment):
     def step(self, action):
         idx = action[0]
         self._state += self._actions[idx] + np.random.uniform(
-            low=-self._noise, high=self._noise, size=(2,))
+            low=-self._noise_step, high=self._noise_step, size=(2,))
         self._state = np.clip(self._state, 0., 1.)
-
-        reward = self._get_reward(self._state)
 
         absorbing = np.linalg.norm((self._state - self._goal),
                                    ord=1) < self._goal_threshold
+
+        reward = np.random.randn() * self._noise_reward + self._get_reward(
+            self._state)
 
         return self._state, reward, absorbing, {}
 
