@@ -24,7 +24,8 @@ with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
 extras = {
     #'mujoco': ['dm_control'],
     'gym': ['gym'],
-    'atari': ['gym[atari]']
+    'atari': ['gym[atari]'],
+    'bullet': ['pybullet']
 }
 
 # Meta dependency groups.

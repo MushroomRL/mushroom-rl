@@ -1,4 +1,14 @@
+try:
+    import pybullet
+except ImportError:
+    pass
 import gym
+
+try:
+    import pybullet_envs
+    import time
+except ImportError:
+    pass
 
 from gym import spaces as gym_spaces
 from mushroom.environments import Environment, MDPInfo
@@ -23,6 +33,9 @@ class Gym(Environment):
 
         """
         # MDP creation
+        if '- '+ name in pybullet_envs.getList():
+            pybullet.connect(pybullet.DIRECT)
+
         self.env = gym.make(name)
 
         self.env._max_episode_steps = np.inf  # Hack to ignore gym time limit.
