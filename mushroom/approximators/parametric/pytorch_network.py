@@ -14,7 +14,7 @@ class PyTorchApproximator:
 
     """
     def __init__(self, input_shape, output_shape, network, optimizer=None,
-                 loss=None, n_epochs=1, batch_size=0, n_fit_targets=1,
+                 loss=None, batch_size=0, n_fit_targets=1,
                  use_cuda=False, dropout=False, quiet=True, **params):
         """
         Constructor.
@@ -26,7 +26,6 @@ class PyTorchApproximator:
             optimizer (dict): the optimizer used for every fit step;
             loss (torch.nn.functional): the loss function to optimize in the
                 fit method;
-            n_epochs (int, 1): the number of epochs to run during the fit;
             batch_size (int, 0): the size of each minibatch. If 0, the whole
                 dataset is fed to the optimizer at each epoch;
             n_fit_targets (int, 1): the number of fit targets used by the fit
@@ -40,7 +39,6 @@ class PyTorchApproximator:
                 network.
 
         """
-        self._n_epochs = n_epochs
         self._batch_size = batch_size
         self._use_cuda = use_cuda
         self._dropout = dropout
@@ -82,7 +80,9 @@ class PyTorchApproximator:
         if self._dropout:
             self.network.train()
 
-        for t in trange(self._n_epochs, disable=self._quiet):
+        n_epochs = kwargs.pop('n_epochs', 1)
+
+        for t in trange(n_epochs, disable=self._quiet):
             if self._batch_size > 0:
                 batches = minibatch_generator(self._batch_size, *args)
             else:
