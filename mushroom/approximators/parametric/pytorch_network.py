@@ -82,44 +82,44 @@ class PyTorchApproximator:
 
         n_epochs = kwargs.pop('n_epochs', 1)
 
-        for t in trange(n_epochs, disable=self._quiet):
-            if self._batch_size > 0:
-                batches = minibatch_generator(self._batch_size, *args)
-            else:
-                batches = [args]
-
-            loss_current = list()
-            for batch in tqdm(batches, disable=self._quiet):
-                if not self._use_cuda:
-                    torch_args = [torch.from_numpy(x) for x in batch]
+        with trange(n_epochs, disable=self._quiet) as t_epochs:
+            for _ in t_epochs:
+                if self._batch_size > 0:
+                    batches = minibatch_generator(self._batch_size, *args)
                 else:
-                    torch_args = [torch.from_numpy(x).cuda() for x in args]
+                    batches = [args]
 
-                x = torch_args[:-self._n_fit_targets]
+                loss_current = list()
+                for batch in batches:
+                    if not self._use_cuda:
+                        torch_args = [torch.from_numpy(x) for x in batch]
+                    else:
+                        torch_args = [torch.from_numpy(x).cuda() for x in args]
 
-                y_hat = self.network(*x, **kwargs)
+                    x = torch_args[:-self._n_fit_targets]
 
-                if isinstance(y_hat, tuple):
-                    output_type = y_hat[0].dtype
-                else:
-                    output_type = y_hat.dtype
+                    y_hat = self.network(*x, **kwargs)
 
-                y = [torch.tensor(y_i, dtype=output_type) for y_i
-                     in torch_args[-self._n_fit_targets:]]
+                    if isinstance(y_hat, tuple):
+                        output_type = y_hat[0].dtype
+                    else:
+                        output_type = y_hat.dtype
 
-                if self._use_cuda:
-                    y = [y_i.cuda() for y_i in y]
+                    y = [torch.tensor(y_i, dtype=output_type) for y_i
+                         in torch_args[-self._n_fit_targets:]]
 
-                loss = self._loss(y_hat, *y)
-                loss_current.append(loss.item())
+                    if self._use_cuda:
+                        y = [y_i.cuda() for y_i in y]
 
-                self._optimizer.zero_grad()
-                loss.backward()
-                self._optimizer.step()
+                    loss = self._loss(y_hat, *y)
+                    loss_current.append(loss.item())
 
-            if not self._quiet:
-                tqdm.write('loss at epoch ' + str(t) + ' ' +
-                           str(np.mean(loss_current)))
+                    self._optimizer.zero_grad()
+                    loss.backward()
+                    self._optimizer.step()
+
+                if not self._quiet:
+                    t_epochs.set_postfix(loss=np.mean(loss_current))
 
         if self._dropout:
             self.network.eval()
