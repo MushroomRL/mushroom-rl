@@ -87,21 +87,29 @@ class PyTorchApproximator:
             check_loss = True
         else:
             n_epochs = kwargs.pop('n_epochs', 1)
+            check_loss = False
 
         patience_count = 0
         best_loss = np.inf
         epochs_count = 0
         if check_loss:
-            while patience_count < patience and epochs_count < n_epochs:
-                mean_loss_current = self._fit_epoch(args, kwargs)
+            with tqdm(total=n_epochs if n_epochs < np.inf else None,
+                      dynamic_ncols=True, disable=self._quiet,
+                      leave=False) as t_epochs:
+                while patience_count < patience and epochs_count < n_epochs:
+                    mean_loss_current = self._fit_epoch(args, kwargs)
 
-                if best_loss - mean_loss_current > epsilon or best_loss == np.inf:
-                    patience_count = 0
-                    best_loss = mean_loss_current
-                else:
-                    patience_count += 1
+                    if not self._quiet:
+                        t_epochs.set_postfix(loss=mean_loss_current)
+                        t_epochs.update(1)
 
-                epochs_count += 1
+                    if best_loss - mean_loss_current > epsilon:
+                        patience_count = 0
+                        best_loss = mean_loss_current
+                    else:
+                        patience_count += 1
+
+                    epochs_count += 1
         else:
             with trange(n_epochs, disable=self._quiet) as t_epochs:
                 for _ in t_epochs:
