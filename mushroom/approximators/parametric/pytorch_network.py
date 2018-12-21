@@ -163,7 +163,6 @@ class PyTorchApproximator:
         return loss.item()
 
     def set_weights(self, weights):
-
         idx = 0
         for p in self.network.parameters():
             shape = p.data.shape
@@ -181,6 +180,8 @@ class PyTorchApproximator:
 
             p.data = w_tensor
             idx += c
+
+        assert idx == weights.size
 
     def get_weights(self):
         weights = list()
