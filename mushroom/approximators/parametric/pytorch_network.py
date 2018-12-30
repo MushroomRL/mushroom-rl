@@ -15,7 +15,7 @@ class PyTorchApproximator:
     """
     def __init__(self, input_shape, output_shape, network, optimizer=None,
                  loss=None, batch_size=0, n_fit_targets=1, use_cuda=False,
-                 dropout=False, quiet=True, **params):
+                 reinitialize=False, dropout=False, quiet=True, **params):
         """
         Constructor.
 
@@ -31,6 +31,10 @@ class PyTorchApproximator:
             n_fit_targets (int, 1): the number of fit targets used by the fit
                 method of the network;
             use_cuda (bool, False): if True, runs the network on the GPU;
+            reinitialize (bool, False): if True, the approximator is re
+            initialized at every fit call. To perform the initialization, the
+            weights_init method must be defined properly for the selected
+            model network.
             dropout (bool, False): if True, dropout is applied only during
                 train;
             quiet (bool, True): if False, shows two progress bars, one for
@@ -40,6 +44,7 @@ class PyTorchApproximator:
 
         """
         self._batch_size = batch_size
+        self._reinitialize = reinitialize
         self._use_cuda = use_cuda
         self._dropout = dropout
         self._quiet = quiet
@@ -47,6 +52,7 @@ class PyTorchApproximator:
 
         self.network = network(input_shape, output_shape, use_cuda=use_cuda,
                                dropout=dropout, **params)
+
         if self._use_cuda:
             self.network.cuda()
         if self._dropout:
@@ -77,6 +83,9 @@ class PyTorchApproximator:
         return val
 
     def fit(self, *args, **kwargs):
+        if self._reinitialize:
+            self.network.weights_init()
+
         if self._dropout:
             self.network.train()
 
