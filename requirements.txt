@@ -1,6 +1,6 @@
-numpy>=1.11
+numpy
 scipy
-scikit-learn>=0.17
+scikit-learn
 matplotlib
 joblib
 tqdm

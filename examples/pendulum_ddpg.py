@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 from mushroom.algorithms.actor_critic import DDPG
 from mushroom.core import Core
-from mushroom.environments import *
+from mushroom.environments.gym_env import Gym
 from mushroom.policy import OrnsteinUhlenbeckPolicy
 from mushroom.approximators.parametric.pytorch_network import *
 from mushroom.utils.dataset import compute_J
@@ -70,8 +70,7 @@ def experiment(n_epochs, n_steps, n_steps_test):
     horizon = 500
     gamma = 0.99
     gamma_eval = 1.
-    #mdp = Gym('Pendulum-v0', horizon, gamma)
-    mdp = Mujoco('cartpole', 'swingup', horizon, gamma)
+    mdp = Gym('Pendulum-v0', horizon, gamma)
 
     # Policy
     policy_class = OrnsteinUhlenbeckPolicy

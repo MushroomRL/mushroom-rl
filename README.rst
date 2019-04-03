@@ -1,5 +1,5 @@
 Mushroom
-******
+********
 
 **Mushroom: Reinforcement Learning python library.**
 
@@ -7,11 +7,12 @@ Mushroom
    :depth: 2
 
 What is Mushroom
-============
-Mushroom is a python Reinforcement Learning (RL) library using Tensorflow and
-OpenAI Gym libraries. It allows to perform RL experiments in a simple way providing TD (e.g. Q-Learning, SARSA),
-batch TD (e.g. FQI) algorithms, other new algorithms such as DQN and a small set of policy-based
-algorithms that will be enlarged soon.
+================
+Mushroom is a python Reinforcement Learning (RL) library whose modularity allows to easily use
+well known python libraries for tensor computation (e.g. PyTorch, Tensorflow) and RL benchmark
+(e.g. OpenAI Gym, PyBullet). It allows to perform RL experiments in a simple way
+providing online TD (e.g. Q-Learning, SARSA), batch TD (e.g. FQI) algorithms, deep RL
+algorithms (e.g. DQN and DDPG), and several policy-search algorithms (e.g. REINFORCE, REPS).
 
 Full documentation available at http://mushroomrl.readthedocs.io/en/latest/.
 
@@ -34,7 +35,6 @@ You can install everything by running:
 .. code:: shell
 
 	pip3 install -e '.[all]'
-	pip3 install gym[atari]
 
 How to set and run and experiment
 =================================

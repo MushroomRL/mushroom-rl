@@ -7,8 +7,8 @@ from mushroom.utils.viewer import ImageViewer
 
 class Mujoco(Environment):
     """
-    Interface for dm_control Mujoco environments. It makes it possible to use
-    every dm_control Mujoco environment just providing the necessary
+    Interface for dm_control suite Mujoco environments. It makes it possible to use
+    every dm_control suite Mujoco environment just providing the necessary
     information.
 
     """

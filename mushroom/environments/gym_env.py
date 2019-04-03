@@ -1,7 +1,3 @@
-try:
-    import pybullet
-except ImportError:
-    pass
 import gym
 
 try:
@@ -33,7 +29,8 @@ class Gym(Environment):
 
         """
         # MDP creation
-        if '- '+ name in pybullet_envs.getList():
+        if '- ' + name in pybullet_envs.getList():
+            import pybullet
             pybullet.connect(pybullet.DIRECT)
 
         self.env = gym.make(name)

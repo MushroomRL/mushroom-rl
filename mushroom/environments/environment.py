@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class MDPInfo:
     """
     This class is used to store the information of the environment.
