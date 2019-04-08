@@ -315,7 +315,7 @@ class StateLogStdGaussianPolicy(ParametricPolicy):
         if len(j_mu.shape) == 1:
             j_mu = np.expand_dims(j_mu, axis=1)
 
-        sigma_inv = np.diag(1/diag_sigma)
+        sigma_inv = np.diag(1 / diag_sigma)
 
         g_mu = j_mu.dot(sigma_inv).dot(delta.T)
 

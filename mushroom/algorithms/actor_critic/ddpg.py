@@ -68,8 +68,6 @@ class DDPG(Agent):
 
         self._replay_memory = ReplayMemory(initial_replay_size, max_replay_size)
 
-        self._n_updates = 0
-
         target_critic_params = deepcopy(critic_params)
         self._critic_approximator = Regressor(critic_approximator,
                                               **critic_params)
@@ -106,8 +104,6 @@ class DDPG(Agent):
                                           **self._critic_fit_params)
             self._actor_approximator.fit(state, state,
                                          **self._actor_fit_params)
-
-            self._n_updates += 1
 
             self._update_target()
 
