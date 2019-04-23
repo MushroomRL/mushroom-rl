@@ -157,7 +157,7 @@ class PyTorchApproximator:
         else:
             output_type = y_hat.dtype
 
-        y = [y_i.clone().detach().requires_grad_(True).type(output_type) for y_i
+        y = [y_i.clone().detach().requires_grad_(False).type(output_type) for y_i
              in torch_args[-self._n_fit_targets:]]
 
         if self._use_cuda:
