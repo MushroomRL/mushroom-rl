@@ -333,7 +333,8 @@ def experiment():
                    n_steps_per_fit=initial_replay_size, quiet=args.quiet)
 
         if args.save:
-            agent.approximator.model.save()
+            np.save(folder_name + '/weights-exp-0-0.npy',
+                    agent.approximator.get_weights())
 
         # Evaluate initial policy
         pi.set_epsilon(epsilon_test)
@@ -353,7 +354,8 @@ def experiment():
                        n_steps_per_fit=train_frequency, quiet=args.quiet)
 
             if args.save:
-                agent.approximator.model.save()
+                np.save(folder_name + '/weights-exp-0-' + str(n_epoch) + '.npy',
+                        agent.approximator.get_weights())
 
             print('- Evaluation:')
             # evaluation step
