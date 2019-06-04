@@ -120,6 +120,27 @@ class Viewer:
 
         pygame.draw.line(self.screen, color, start, end, width)
 
+    def square(self, center, angle, edge, color=(255, 255, 255), width=0):
+        """
+        Draw a square on the screen and apply a roto-translation to it.
+
+        Args:
+            center (np.ndarray): the center of the polygon;
+            angle (float): the rotation to apply to the polygon;
+            edge (float): length of an edge;
+            color (tuple, (255, 255, 255)) : the color of the polygon;
+            width (int, 0): the width of the polygon line, 0 to fill the
+                polygon.
+
+        """
+        edge_2 = edge / 2
+        points = [[edge_2, edge_2],
+                  [edge_2, -edge_2],
+                  [-edge_2, -edge_2],
+                  [-edge_2, edge_2]]
+
+        self.polygon(center, angle, points, color, width)
+
     def polygon(self, center, angle, points, color=(255, 255, 255), width=0):
         """
         Draw a polygon on the screen and apply a roto-translation to it.

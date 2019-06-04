@@ -1,7 +1,9 @@
 import numpy as np
+from scipy.stats import norm
 
 from mushroom.environments import Environment, MDPInfo
 from mushroom.utils import spaces
+from mushroom.utils.viewer import Viewer
 
 
 class AbstractGridWorld(Environment):
@@ -31,6 +33,10 @@ class AbstractGridWorld(Environment):
         self._start = start
         self._goal = goal
 
+        # Visualization
+        self._viewer = Viewer(self._width, self._height, 500,
+                              self._height * 500 // self._width)
+
         super().__init__(mdp_info)
 
     def reset(self, state=None):
@@ -48,6 +54,30 @@ class AbstractGridWorld(Environment):
         self._state = self.convert_to_int(new_state, self._width)
 
         return self._state, reward, absorbing, info
+
+    def render(self):
+        for row in range(1, self._height):
+            for col in range(1, self._width):
+                self._viewer.line(np.array([col, 0]),
+                                  np.array([col, self._height]))
+                self._viewer.line(np.array([0, row]),
+                                  np.array([self._width, row]))
+
+        goal_center = np.array([.5 + self._goal[1],
+                                self._height - (.5 + self._goal[0])])
+        self._viewer.square(goal_center, 0, 1, (0, 255, 0))
+
+        start_grid = self.convert_to_grid(self._start, self._width)
+        start_center = np.array([.5 + start_grid[1],
+                                 self._height - (.5 + start_grid[0])])
+        self._viewer.square(start_center, 0, 1, (255, 0, 0))
+
+        state_grid = self.convert_to_grid(self._state, self._width)
+        state_center = np.array([.5 + state_grid[1],
+                                 self._height - (.5 + state_grid[0])])
+        self._viewer.circle(state_center, .4, (0, 0, 255))
+
+        self._viewer.display(.1)
 
     def _step(self, state, action):
         raise NotImplementedError('AbstractGridWorld is an abstract class.')
@@ -114,8 +144,7 @@ class GridWorldVanHasselt(AbstractGridWorld):
         gamma = .95
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
-        super().__init__(mdp_info, height, width,
-                                                  start, goal)
+        super().__init__(mdp_info, height, width, start, goal)
 
     def _step(self, state, action):
         if np.array_equal(state, self._goal):

@@ -95,7 +95,7 @@ class Environment(object):
         """
         raise NotImplementedError
 
-    def render(self, mode='human'):
+    def render(self):
         raise NotImplementedError
 
     def stop(self):
