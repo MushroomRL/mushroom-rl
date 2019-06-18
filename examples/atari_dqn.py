@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-from mushroom.algorithms.value import AveragedDQN, DQN, DoubleDQN
+from mushroom.algorithms.value import AveragedDQN, CategoricalDQN, DQN, DoubleDQN
 from mushroom.approximators.parametric import PyTorchApproximator
 from mushroom.core import Core
 from mushroom.environments import *
@@ -24,6 +24,8 @@ This script runs Atari experiments with DQN as presented in:
 
 
 class Network(nn.Module):
+    n_features = 512
+
     def __init__(self, input_shape, output_shape, **kwargs):
         super().__init__()
 
@@ -33,8 +35,8 @@ class Network(nn.Module):
         self._h1 = nn.Conv2d(n_input, 32, kernel_size=8, stride=4)
         self._h2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self._h3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
-        self._h4 = nn.Linear(3136, 512)
-        self._h5 = nn.Linear(512, n_output)
+        self._h4 = nn.Linear(3136, self.n_features)
+        self._h5 = nn.Linear(self.n_features, n_output)
 
         nn.init.xavier_uniform_(self._h1.weight,
                                 gain=nn.init.calculate_gain('relu'))
@@ -60,6 +62,35 @@ class Network(nn.Module):
             q_acted = torch.squeeze(q.gather(1, action.long()))
 
             return q_acted
+
+
+class FeatureNetwork(nn.Module):
+    def __init__(self, input_shape, output_shape, **kwargs):
+        super().__init__()
+
+        n_input = input_shape[0]
+
+        self._h1 = nn.Conv2d(n_input, 32, kernel_size=8, stride=4)
+        self._h2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
+        self._h3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+        self._h4 = nn.Linear(3136, Network.n_features)
+
+        nn.init.xavier_uniform_(self._h1.weight,
+                                gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self._h2.weight,
+                                gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self._h3.weight,
+                                gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self._h4.weight,
+                                gain=nn.init.calculate_gain('relu'))
+
+    def forward(self, state, action=None):
+        h = F.relu(self._h1(state.float() / 255.))
+        h = F.relu(self._h2(h))
+        h = F.relu(self._h3(h))
+        h = F.relu(self._h4(h.view(-1, 3136)))
+
+        return h
 
 
 def print_epoch(epoch):
@@ -117,7 +148,7 @@ def experiment():
                               'rmsprop')
 
     arg_alg = parser.add_argument_group('Algorithm')
-    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'adqn'],
+    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'adqn', 'cdqn'],
                          default='dqn',
                          help='Name of the algorithm. dqn is for standard'
                               'DQN, ddqn is for Double DQN and adqn is for'
@@ -157,6 +188,12 @@ def experiment():
     arg_alg.add_argument("--max-no-op-actions", type=int, default=30,
                          help='Maximum number of no-op actions performed at the'
                               'beginning of the episodes.')
+    arg_alg.add_argument("--n-atoms", type=int, default=51,
+                         help='Number of atoms for Categorical DQN.')
+    arg_alg.add_argument("--v-min", type=int, default=-10,
+                         help='Minimum action-value for Categorical DQN.')
+    arg_alg.add_argument("--v-max", type=int, default=10,
+                         help='Maximum action-value for Categorical DQN.')
 
     arg_utils = parser.add_argument_group('Utils')
     arg_utils.add_argument('--use-cuda', action='store_true',
@@ -285,16 +322,23 @@ def experiment():
         epsilon_random = Parameter(value=1)
         pi = EpsGreedy(epsilon=epsilon_random)
 
+        class CategoricalLoss(nn.Module):
+            def forward(self, input, target):
+                input = input.clamp(1e-5)
+
+                return - torch.sum(target * torch.log(input))
+
         # Approximator
         input_shape = (args.history_length, args.screen_height,
                        args.screen_width)
         approximator_params = dict(
-            network=Network,
+            network=Network if args.algorithm != 'cdqn' else FeatureNetwork,
             input_shape=input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
+            n_features=Network.n_features,
             optimizer=optimizer,
-            loss=F.smooth_l1_loss,
+            loss=F.smooth_l1_loss if args.algorithm != 'cdqn' else CategoricalLoss(),
             use_cuda=args.use_cuda
         )
 
@@ -321,6 +365,11 @@ def experiment():
             agent = AveragedDQN(approximator, pi, mdp.info,
                                 approximator_params=approximator_params,
                                 **algorithm_params)
+        elif args.algorithm == 'cdqn':
+            agent = CategoricalDQN(pi, mdp.info,
+                                   approximator_params=approximator_params,
+                                   n_atoms=args.n_atoms, v_min=args.v_min,
+                                   v_max=args.v_max, **algorithm_params)
 
         # Algorithm
         core = Core(agent, mdp)
