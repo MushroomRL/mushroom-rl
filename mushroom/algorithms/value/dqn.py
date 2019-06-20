@@ -297,8 +297,3 @@ class CategoricalDQN(DQN):
 
             if self._n_updates % self._target_update_frequency == 0:
                 self._update_target()
-
-    def draw_action(self, state):
-        action = super(DQN, self).draw_action(np.array(state))
-
-        return action
