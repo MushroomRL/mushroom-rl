@@ -218,10 +218,12 @@ def experiment():
     optimizer = dict()
     if args.optimizer == 'adam':
         optimizer['class'] = optim.Adam
-        optimizer['params'] = dict(lr=args.learning_rate)
+        optimizer['params'] = dict(lr=args.learning_rate,
+                                   eps=args.epsilon)
     elif args.optimizer == 'adadelta':
         optimizer['class'] = optim.Adadelta
-        optimizer['params'] = dict(lr=args.learning_rate)
+        optimizer['params'] = dict(lr=args.learning_rate,
+                                   eps=args.epsilon)
     elif args.optimizer == 'rmsprop':
         optimizer['class'] = optim.RMSprop
         optimizer['params'] = dict(lr=args.learning_rate,
