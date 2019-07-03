@@ -160,6 +160,9 @@ class Core(object):
         self.agent.stop()
         self.mdp.stop()
 
+        steps_progress_bar.close()
+        episodes_progress_bar.close()
+
         return dataset
 
     def _step(self, render):
