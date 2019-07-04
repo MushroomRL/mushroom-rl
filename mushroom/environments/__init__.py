@@ -3,19 +3,25 @@ __extras__ = []
 from .environment import Environment, MDPInfo
 try:
     Atari = None
-    Gym = None
     from .atari import Atari
     __extras__.append('Atari')
+except ImportError:
+    pass
+
+try:
+    Gym = None
     from .gym_env import Gym
     __extras__.append('Gym')
 except ImportError:
     pass
+
 try:
     Mujoco = None
     from .mujoco import Mujoco
     __extras__.append('Mujoco')
 except ImportError:
     pass
+
 from .car_on_hill import CarOnHill
 from .generators.simple_chain import generate_simple_chain
 from .grid_world import GridWorld, GridWorldVanHasselt
