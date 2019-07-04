@@ -28,8 +28,8 @@ class Ensemble(object):
 
     def fit(self, *z, **fit_params):
         """
-        Fit the ``idx``-th model of the ensemble if ``idx`` is provided, a
-        random model otherwise.
+        Fit the ``idx``-th model of the ensemble if ``idx`` is provided, every
+        model otherwise.
 
         Args:
             *z (list): a list containing the inputs to use to predict with each
@@ -39,7 +39,8 @@ class Ensemble(object):
         """
         idx = fit_params.pop('idx', None)
         if idx is None:
-            self[np.random.choice(len(self))].fit(*z, **fit_params)
+            for i in range(len(self)):
+                self[i].fit(*z, **fit_params)
         else:
             self[idx].fit(*z, **fit_params)
 
@@ -72,6 +73,8 @@ class Ensemble(object):
                 results = np.mean(predictions, axis=0)
             elif self._prediction == 'sum':
                 results = np.sum(predictions, axis=0)
+            elif self._prediction == 'min':
+                results = np.amin(predictions, axis=0)
             else:
                 raise ValueError
             if predict_params.get('compute_variance', False):
