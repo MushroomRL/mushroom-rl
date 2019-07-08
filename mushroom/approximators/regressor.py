@@ -203,4 +203,4 @@ class Regressor:
                                       ' non-differentiable regressor.')
 
     def __len__(self):
-        return len(self._impl)
+        return 1 if self._n_models == 1 else len(self._impl)
