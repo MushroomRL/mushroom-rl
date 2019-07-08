@@ -54,23 +54,13 @@ class ReplayMemory(object):
             The requested number of samples.
 
         """
-        if self._current_sample_idx + n_samples >= len(self._sample_idxs):
-            self._sample_idxs = np.random.choice(self.size, self.size,
-                                                 replace=False)
-            self._current_sample_idx = 0
-
-        start = self._current_sample_idx
-        stop = start + n_samples
-
-        self._current_sample_idx = stop
-
         s = list()
         a = list()
         r = list()
         ss = list()
         ab = list()
         last = list()
-        for i in self._sample_idxs[start:stop]:
+        for i in np.random.choice(self.size, size=n_samples, replace=False):
             s.append(np.array(self._states[i]))
             a.append(self._actions[i])
             r.append(self._rewards[i])
@@ -94,11 +84,6 @@ class ReplayMemory(object):
         self._next_states = [None for _ in range(self._max_size)]
         self._absorbing = [None for _ in range(self._max_size)]
         self._last = [None for _ in range(self._max_size)]
-
-        self._sample_idxs = np.random.choice(self._initial_size,
-                                             self._initial_size,
-                                             replace=False)
-        self._current_sample_idx = 0
 
     @property
     def initialized(self):
