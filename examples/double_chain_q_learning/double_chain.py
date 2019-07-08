@@ -7,7 +7,7 @@ from mushroom.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
 from mushroom.utils.callbacks import CollectQ
-from mushroom.utils.parameters import Parameter, ExponentialDecayParameter
+from mushroom.utils.parameters import Parameter, ExponentialParameter
 
 
 """
@@ -18,7 +18,7 @@ chain is the one presented in:
 """
 
 
-def experiment(algorithm_class, decay_exp):
+def experiment(algorithm_class, exp):
     np.random.seed()
 
     # MDP
@@ -31,8 +31,7 @@ def experiment(algorithm_class, decay_exp):
     pi = EpsGreedy(epsilon=epsilon)
 
     # Agent
-    learning_rate = ExponentialDecayParameter(value=1., decay_exp=decay_exp,
-                                              size=mdp.info.size)
+    learning_rate = ExponentialParameter(value=1., exp=exp, size=mdp.info.size)
     algorithm_params = dict(learning_rate=learning_rate)
     agent = algorithm_class(pi, mdp.info, **algorithm_params)
 
