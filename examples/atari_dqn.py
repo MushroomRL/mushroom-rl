@@ -14,7 +14,7 @@ from mushroom.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
 from mushroom.utils.dataset import compute_scores
-from mushroom.utils.parameters import LinearDecayParameter, Parameter
+from mushroom.utils.parameters import LinearParameter, Parameter
 
 """
 This script runs Atari experiments with DQN as presented in:
@@ -317,9 +317,9 @@ def experiment():
                     max_no_op_actions=args.max_no_op_actions)
 
         # Policy
-        epsilon = LinearDecayParameter(value=args.initial_exploration_rate,
-                                       min_value=args.final_exploration_rate,
-                                       n=args.final_exploration_frame)
+        epsilon = LinearParameter(value=args.initial_exploration_rate,
+                                  threshold_value=args.final_exploration_rate,
+                                  n=args.final_exploration_frame)
         epsilon_test = Parameter(value=args.test_exploration_rate)
         epsilon_random = Parameter(value=1)
         pi = EpsGreedy(epsilon=epsilon_random)

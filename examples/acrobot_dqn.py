@@ -8,7 +8,7 @@ from mushroom.environments import *
 from mushroom.policy import EpsGreedy
 from mushroom.approximators.parametric.pytorch_network import *
 from mushroom.utils.dataset import compute_J
-from mushroom.utils.parameters import Parameter, LinearDecayParameter
+from mushroom.utils.parameters import Parameter, LinearParameter
 
 
 class Network(nn.Module):
@@ -53,7 +53,7 @@ def experiment(n_epochs, n_steps, n_steps_test):
     mdp = Gym('Acrobot-v1', horizon, gamma)
 
     # Policy
-    epsilon = LinearDecayParameter(value=1., min_value=.01, n=5000)
+    epsilon = LinearParameter(value=1., threshold_value=.01, n=5000)
     epsilon_test = Parameter(value=0.)
     epsilon_random = Parameter(value=1.)
     pi = EpsGreedy(epsilon=epsilon_random)

@@ -12,7 +12,7 @@ from mushroom.environments import *
 from mushroom.policy import EpsGreedy
 from mushroom.utils.callbacks import CollectDataset, CollectMaxQ
 from mushroom.utils.dataset import parse_dataset
-from mushroom.utils.parameters import ExponentialDecayParameter
+from mushroom.utils.parameters import ExponentialParameter
 
 
 """
@@ -25,20 +25,18 @@ SARSA and many variants of Q-Learning are used.
 """
 
 
-def experiment(algorithm_class, decay_exp):
+def experiment(algorithm_class, exp):
     np.random.seed()
 
     # MDP
     mdp = GridWorldVanHasselt()
 
     # Policy
-    epsilon = ExponentialDecayParameter(value=1, decay_exp=.5,
-                                        size=mdp.info.observation_space.size)
+    epsilon = ExponentialParameter(value=1, exp=.5, size=mdp.info.observation_space.size)
     pi = EpsGreedy(epsilon=epsilon)
 
     # Agent
-    learning_rate = ExponentialDecayParameter(value=1, decay_exp=decay_exp,
-                                              size=mdp.info.size)
+    learning_rate = ExponentialParameter(value=1, exp=exp, size=mdp.info.size)
     algorithm_params = dict(learning_rate=learning_rate)
     agent = algorithm_class(pi, mdp.info, **algorithm_params)
 

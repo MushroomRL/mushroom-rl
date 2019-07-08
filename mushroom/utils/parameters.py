@@ -9,13 +9,16 @@ class Parameter(object):
     tuple.
 
     """
-    def __init__(self, value, min_value=None, size=(1,)):
+    def __init__(self, value, min_value=None, max_value=None, size=(1,)):
         """
         Constructor.
 
         Args:
             value (float): initial value of the parameter;
-            min_value (float): minimum value that it can reach when decreasing;
+            min_value (float, None): minimum value that the parameter can reach
+                when decreasing;
+            max_value (float, None): maximum value that the parameter can reach
+                when increasing;
             size (tuple, (1,)): shape of the matrix of parameters; this shape
                 can be used to have a single parameter for each state or
                 state-action tuple.
@@ -23,6 +26,7 @@ class Parameter(object):
         """
         self._initial_value = value
         self._min_value = min_value
+        self._max_value = max_value
         self._n_updates = Table(size)
 
     def __call__(self, *idx, **kwargs):
@@ -56,10 +60,10 @@ class Parameter(object):
         """
         new_value = self._compute(*idx, **kwargs)
 
-        if self._min_value is None or new_value >= self._min_value:
+        if self._min_value is None and self._max_value is None:
             return new_value
         else:
-            return self._min_value
+            return np.clip(new_value, self._min_value, self._max_value)
 
     def _compute(self, *idx, **kwargs):
         """
@@ -90,35 +94,40 @@ class Parameter(object):
         return self._n_updates.table.shape
 
 
-class LinearDecayParameter(Parameter):
+class LinearParameter(Parameter):
     """
-    This class implements a linearly decaying parameter according to the number
+    This class implements a linearly changing parameter according to the number
     of times it has been used.
 
     """
-    def __init__(self, value,  min_value, n, size=(1,)):
-        self._coeff = (min_value - value) / n
+    def __init__(self, value, threshold_value, n, size=(1,)):
+        self._coeff = (threshold_value - value) / n
 
-        super(LinearDecayParameter, self).__init__(value, min_value, size)
+        if self._coeff >= 0:
+            super().__init__(value, None, threshold_value, size)
+        else:
+            super().__init__(value, threshold_value, None, size)
 
     def _compute(self, *idx, **kwargs):
         return self._coeff * self._n_updates[idx] + self._initial_value
 
 
-class ExponentialDecayParameter(Parameter):
+class ExponentialParameter(Parameter):
     """
-    This class implements a exponentially decaying parameter according to the
+    This class implements a exponentially changing parameter according to the
     number of times it has been used.
 
     """
-    def __init__(self, value, decay_exp=1., min_value=None, size=(1,)):
-        self._decay_exp = decay_exp
+    def __init__(self, value, exp=1., min_value=None, max_value=None,
+                 size=(1,)):
+        self._exp = exp
 
-        super(ExponentialDecayParameter, self).__init__(value, min_value, size)
+        super().__init__(value, min_value, max_value, size)
 
     def _compute(self, *idx, **kwargs):
         n = np.maximum(self._n_updates[idx], 1)
-        return self._initial_value / n ** self._decay_exp
+
+        return self._initial_value / n ** self._exp
 
 
 class AdaptiveParameter(object):
@@ -149,7 +158,7 @@ class AdaptiveParameter(object):
         if len(args) == 2:
             gradient = args[0]
             nat_gradient = args[1]
-            tmp = np.asscalar(gradient.dot(nat_gradient))
+            tmp = (gradient.dot(nat_gradient)).item()
             lambda_v = np.sqrt(tmp / (4. * self._eps))
             # For numerical stability
             lambda_v = max(lambda_v, 1e-8)
