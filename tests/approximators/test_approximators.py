@@ -92,11 +92,10 @@ def test_pytorch_approximator():
                              loss=F.mse_loss,
                              n_neurons=100,
                              n_hidden=1,
-                             n_epochs=200,
                              batch_size=100,
                              quiet=True)
 
-    approximator.fit(a, b)
+    approximator.fit(a, b, n_epochs=200)
 
     bhat = approximator.predict(a)
     error = np.linalg.norm(b - bhat, 'fro') / 1000
@@ -129,7 +128,3 @@ def test_pytorch_approximator():
     bhat_random = approximator.predict(a)
 
     assert not np.array_equal(bhat, bhat_random)
-
-
-
-
