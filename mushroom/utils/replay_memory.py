@@ -198,8 +198,8 @@ class PrioritizedReplayMemory(object):
         total_p = self._tree.total_p
         segment = total_p / n_samples
 
-        a = np.arange(0, total_p, segment)
-        b = np.arange(segment, total_p + segment, segment)
+        a = np.arange(n_samples) * segment
+        b = np.arange(1, n_samples + 1) * segment
         samples = np.random.uniform(a, b)
         for i, s in enumerate(samples):
             idx, p, data = self._tree.get(s)
