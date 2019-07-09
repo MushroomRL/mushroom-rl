@@ -118,7 +118,7 @@ class SumTree(object):
             idx = self._idx + self._max_size - 1
 
             self._data[self._idx] = d
-            self.update(idx, p)
+            self.update([idx], [p])
 
             self._idx += 1
             if self._idx == self._max_size:
@@ -163,6 +163,10 @@ class SumTree(object):
         return self._idx if not self._full else self._max_size
 
     @property
+    def max_p(self):
+        return self._tree[-self._max_size:].max()
+
+    @property
     def total_p(self):
         return self._tree[0]
 
@@ -177,8 +181,7 @@ class PrioritizedReplayMemory(object):
 
         self._tree = SumTree(max_size)
 
-    def add(self, dataset, error):
-        p = self._get_priority(error)
+    def add(self, dataset, p):
         self._tree.add(dataset, p)
 
     def get(self, n_samples):
@@ -189,27 +192,34 @@ class PrioritizedReplayMemory(object):
         absorbing = [None for _ in range(n_samples)]
         last = [None for _ in range(n_samples)]
 
-        segment = self._tree.total_p / n_samples
-        idxs = np.zeros(n_samples)
+        idxs = np.zeros(n_samples, dtype=np.int)
         priorities = np.zeros(n_samples)
 
-        a = np.arange(n_samples) * segment
-        b = np.arange(1, n_samples) * segment
-        samples = np.random.uniform(a, b, size=n_samples)
+        total_p = self._tree.total_p
+        segment = total_p / n_samples
+
+        a = np.arange(0, total_p, segment)
+        b = np.arange(segment, total_p + segment, segment)
+        samples = np.random.uniform(a, b)
         for i, s in enumerate(samples):
             idx, p, data = self._tree.get(s)
 
             idxs[i] = idx
             priorities[i] = p
-            states[i], actions[i], rewards[i], next_states[i], absorbing[i],\
-                last[i] = data
+            states[i] = np.array(data[0])
+            actions[i] = data[1]
+            rewards[i] = data[2]
+            next_states[i] = np.array(data[3])
+            absorbing[i] = data[4]
+            last[i] = data[5]
 
         sampling_probabilities = priorities / self._tree.total_p
         is_weight = (self._tree.size * sampling_probabilities) ** -self._beta()
         is_weight /= is_weight.max()
 
-        return (states, actions, rewards, next_states, absorbing, last), idxs,\
-            is_weight
+        return np.array(states), np.array(actions), np.array(rewards),\
+            np.array(next_states), np.array(absorbing), np.array(last),\
+            idxs, is_weight
 
     def update(self, error, idx):
         p = self._get_priority(error)
@@ -217,3 +227,22 @@ class PrioritizedReplayMemory(object):
 
     def _get_priority(self, error):
         return (np.abs(error) + self._epsilon) ** self._alpha
+
+    @property
+    def initialized(self):
+        """
+        Returns:
+            Whether the replay memory has reached the number of elements that
+            allows it to be used.
+
+        """
+        return self._tree.size > self._initial_size
+
+    @property
+    def max_priority(self):
+        """
+        Returns:
+            The maximum value of priority inside the replay memory.
+
+        """
+        return self._tree.max_p if self.initialized else 1.

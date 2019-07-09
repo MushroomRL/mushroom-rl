@@ -2,13 +2,12 @@ from copy import deepcopy
 
 import numpy as np
 import torch.nn as nn
-import torch.optim as optim
 import torch.nn.functional as F
 
 from mushroom.algorithms.agent import Agent
 from mushroom.approximators.parametric.pytorch_network import *
 from mushroom.approximators.regressor import Ensemble, Regressor
-from mushroom.utils.replay_memory import ReplayMemory
+from mushroom.utils.replay_memory import PrioritizedReplayMemory, ReplayMemory
 
 
 class DQN(Agent):
@@ -57,9 +56,14 @@ class DQN(Agent):
 
         if replay_memory is not None:
             self._replay_memory = replay_memory
+            if isinstance(replay_memory, PrioritizedReplayMemory):
+                self._fit = self._fit_prioritized
+            else:
+                self._fit = self._fit_standard
         else:
             self._replay_memory = ReplayMemory(initial_replay_size,
                                                max_replay_size)
+            self._fit = self._fit_standard
 
         self._n_updates = 0
 
@@ -82,9 +86,21 @@ class DQN(Agent):
         super().__init__(policy, mdp_info)
 
     def fit(self, dataset):
+        out = self._fit(dataset)
+
+        if out is not None:
+            state, action, q = out
+            self.approximator.fit(state, action, q, **self._fit_params)
+
+            self._n_updates += 1
+
+            if self._n_updates % self._target_update_frequency == 0:
+                self._update_target()
+
+    def _fit_standard(self, dataset):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
-            state, action, reward, next_state, absorbing, _ =\
+            state, action, reward, next_state, absorbing, _ = \
                 self._replay_memory.get(self._batch_size)
 
             if self._clip_reward:
@@ -93,12 +109,27 @@ class DQN(Agent):
             q_next = self._next_q(next_state, absorbing)
             q = reward + self.mdp_info.gamma * q_next
 
-            self.approximator.fit(state, action, q, **self._fit_params)
+            return state, action, q
 
-            self._n_updates += 1
+    def _fit_prioritized(self, dataset):
+        self._replay_memory.add(
+            dataset, np.ones(len(dataset)) * self._replay_memory.max_priority)
+        if self._replay_memory.initialized:
+            state, action, reward, next_state, absorbing, _, idxs, is_weight = \
+                self._replay_memory.get(self._batch_size)
 
-            if self._n_updates % self._target_update_frequency == 0:
-                self._update_target()
+            if self._clip_reward:
+                reward = np.clip(reward, -1, 1)
+
+            q_next = self._next_q(next_state, absorbing)
+            q = reward + self.mdp_info.gamma * q_next
+            td_error = q - self.approximator.predict(state, action)
+
+            self._replay_memory.update(td_error, idxs)
+
+            # CAPIRE COME USARE IS WEIGHTS
+
+            return state, action, q
 
     def _update_target(self):
         """
