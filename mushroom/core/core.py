@@ -1,7 +1,5 @@
 from tqdm import tqdm
 
-import numpy as np
-
 
 class Core(object):
     """

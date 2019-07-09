@@ -15,6 +15,7 @@ from mushroom.environments import *
 from mushroom.policy import EpsGreedy
 from mushroom.utils.dataset import compute_scores
 from mushroom.utils.parameters import LinearParameter, Parameter
+from mushroom.utils.replay_memory import PrioritizedReplayMemory
 
 """
 This script runs Atari experiments with DQN as presented in:
@@ -128,6 +129,8 @@ def experiment():
                          help='Initial size of the replay memory.')
     arg_mem.add_argument("--max-replay-size", type=int, default=500000,
                          help='Max size of the replay memory.')
+    arg_mem.add_argument("--prioritized", action='store_true',
+                         help='Whether to use prioritized memory or not.')
 
     arg_net = parser.add_argument_group('Deep Q-Network')
     arg_net.add_argument("--optimizer",
@@ -328,7 +331,7 @@ def experiment():
             def forward(self, input, target):
                 input = input.clamp(1e-5)
 
-                return - torch.sum(target * torch.log(input))
+                return -torch.sum(target * torch.log(input))
 
         # Approximator
         input_shape = (args.history_length, args.screen_height,
@@ -346,13 +349,22 @@ def experiment():
 
         approximator = PyTorchApproximator
 
-        # Agent
+        if args.prioritized:
+            replay_memory = PrioritizedReplayMemory(
+                initial_replay_size, max_replay_size, alpha=.6,
+                beta=LinearParameter(.4, threshold_value=1, n=600)
+            )
+        else:
+            replay_memory = None
+
+            # Agent
         algorithm_params = dict(
             batch_size=args.batch_size,
             n_approximators=args.n_approximators,
+            target_update_frequency=target_update_frequency // train_frequency,
+            replay_memory=replay_memory,
             initial_replay_size=initial_replay_size,
-            max_replay_size=max_replay_size,
-            target_update_frequency=target_update_frequency // train_frequency
+            max_replay_size=max_replay_size
         )
 
         if args.algorithm == 'dqn':

@@ -19,9 +19,10 @@ class DQN(Agent):
 
     """
     def __init__(self, approximator, policy, mdp_info, batch_size,
-                 initial_replay_size, max_replay_size,
                  approximator_params, target_update_frequency,
-                 fit_params=None, n_approximators=1, clip_reward=True):
+                 replay_memory=None, initial_replay_size=500,
+                 max_replay_size=5000, fit_params=None, n_approximators=1,
+                 clip_reward=True):
         """
         Constructor.
 
@@ -29,14 +30,17 @@ class DQN(Agent):
             approximator (object): the approximator to use to fit the
                Q-function;
             batch_size (int): the number of samples in a batch;
-            initial_replay_size (int): the number of samples to collect before
-                starting the learning;
-            max_replay_size (int): the maximum number of samples in the replay
-                memory;
             approximator_params (dict): parameters of the approximator to
                 build;
             target_update_frequency (int): the number of samples collected
                 between each update of the target network;
+            replay_memory ([ReplayMemory, PrioritizedReplayMemory], None): the
+                object of the replay memory to use; if None, a default replay
+                memory is created;
+            initial_replay_size (int): the number of samples to collect before
+                starting the learning;
+            max_replay_size (int): the maximum number of samples in the replay
+                memory;
             fit_params (dict, None): parameters of the fitting algorithm of the
                 approximator;
             n_approximators (int, 1): the number of approximator to use in
@@ -51,7 +55,11 @@ class DQN(Agent):
         self._clip_reward = clip_reward
         self._target_update_frequency = target_update_frequency
 
-        self._replay_memory = ReplayMemory(initial_replay_size, max_replay_size)
+        if replay_memory is not None:
+            self._replay_memory = replay_memory
+        else:
+            self._replay_memory = ReplayMemory(initial_replay_size,
+                                               max_replay_size)
 
         self._n_updates = 0
 
