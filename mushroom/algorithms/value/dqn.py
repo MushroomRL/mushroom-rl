@@ -89,7 +89,8 @@ class DQN(Agent):
         out = self._fit(dataset)
 
         if out is not None:
-            state, action, q = out
+            state, action, q = out[:-1]
+            self._fit_params['weights'] = out[-1]
             self.approximator.fit(state, action, q, **self._fit_params)
 
             self._n_updates += 1
@@ -109,7 +110,7 @@ class DQN(Agent):
             q_next = self._next_q(next_state, absorbing)
             q = reward + self.mdp_info.gamma * q_next
 
-            return state, action, q
+            return state, action, q, None
 
     def _fit_prioritized(self, dataset):
         self._replay_memory.add(
@@ -127,9 +128,7 @@ class DQN(Agent):
 
             self._replay_memory.update(td_error, idxs)
 
-            # CAPIRE COME USARE IS WEIGHTS
-
-            return state, action, q
+            return state, action, q, is_weight
 
     def _update_target(self):
         """
