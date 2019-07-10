@@ -352,7 +352,8 @@ def experiment():
         if args.prioritized:
             replay_memory = PrioritizedReplayMemory(
                 initial_replay_size, max_replay_size, alpha=.6,
-                beta=LinearParameter(.4, threshold_value=1, n=600)
+                beta=LinearParameter(.4, threshold_value=1,
+                                     n=max_steps // train_frequency)
             )
         else:
             replay_memory = None

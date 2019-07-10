@@ -153,6 +153,9 @@ class SumTree(object):
         if left >= len(self._tree):
             return idx
 
+        if self._tree[left] == self._tree[right]:
+            return self._retrieve(s, np.random.choice([left, right]))
+
         if s <= self._tree[left]:
             return self._retrieve(s, left)
         else:
@@ -206,12 +209,10 @@ class PrioritizedReplayMemory(object):
 
             idxs[i] = idx
             priorities[i] = p
-            states[i] = np.array(data[0])
-            actions[i] = data[1]
-            rewards[i] = data[2]
-            next_states[i] = np.array(data[3])
-            absorbing[i] = data[4]
-            last[i] = data[5]
+            states[i], actions[i], rewards[i], next_states[i], absorbing[i],\
+                last[i] = data
+            states[i] = np.array(states[i])
+            next_states[i] = np.array(next_states[i])
 
         sampling_probabilities = priorities / self._tree.total_p
         is_weight = (self._tree.size * sampling_probabilities) ** -self._beta()
