@@ -86,16 +86,11 @@ class DQN(Agent):
         super().__init__(policy, mdp_info)
 
     def fit(self, dataset):
-        out = self._fit(dataset)
+        self._fit(dataset)
 
-        if out is not None:
-            state, action, q = out[:-1]
-            self.approximator.fit(state, action, q, **self._fit_params)
-
-            self._n_updates += 1
-
-            if self._n_updates % self._target_update_frequency == 0:
-                self._update_target()
+        self._n_updates += 1
+        if self._n_updates % self._target_update_frequency == 0:
+            self._update_target()
 
     def _fit_standard(self, dataset):
         self._replay_memory.add(dataset)
@@ -109,7 +104,7 @@ class DQN(Agent):
             q_next = self._next_q(next_state, absorbing)
             q = reward + self.mdp_info.gamma * q_next
 
-            return state, action, q, None
+            self.approximator.fit(state, action, q, **self._fit_params)
 
     def _fit_prioritized(self, dataset):
         self._replay_memory.add(
@@ -127,7 +122,8 @@ class DQN(Agent):
 
             self._replay_memory.update(td_error, idxs)
 
-            return state, action, q, is_weight
+            self.approximator.fit(state, action, q, weights=is_weight,
+                                  **self._fit_params)
 
     def _update_target(self):
         """
