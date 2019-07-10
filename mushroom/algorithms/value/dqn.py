@@ -90,7 +90,6 @@ class DQN(Agent):
 
         if out is not None:
             state, action, q = out[:-1]
-            self._fit_params['weights'] = out[-1]
             self.approximator.fit(state, action, q, **self._fit_params)
 
             self._n_updates += 1

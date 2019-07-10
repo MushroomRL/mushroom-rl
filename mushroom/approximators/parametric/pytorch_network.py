@@ -98,6 +98,12 @@ class PyTorchApproximator:
             n_epochs = kwargs.pop('n_epochs', 1)
             check_loss = False
 
+        if 'weights' in kwargs:
+            args += (kwargs.pop('weights'),)
+            use_weights = True
+        else:
+            use_weights = False
+
         patience_count = 0
         best_loss = np.inf
         epochs_count = 0
@@ -106,7 +112,8 @@ class PyTorchApproximator:
                       dynamic_ncols=True, disable=self._quiet,
                       leave=False) as t_epochs:
                 while patience_count < patience and epochs_count < n_epochs:
-                    mean_loss_current = self._fit_epoch(args, kwargs)
+                    mean_loss_current = self._fit_epoch(args, use_weights,
+                                                        kwargs)
 
                     if not self._quiet:
                         t_epochs.set_postfix(loss=mean_loss_current)
@@ -122,7 +129,8 @@ class PyTorchApproximator:
         else:
             with trange(n_epochs, disable=self._quiet) as t_epochs:
                 for _ in t_epochs:
-                    mean_loss_current = self._fit_epoch(args, kwargs)
+                    mean_loss_current = self._fit_epoch(args, use_weights,
+                                                        kwargs)
 
                     if not self._quiet:
                         t_epochs.set_postfix(loss=mean_loss_current)
@@ -130,7 +138,7 @@ class PyTorchApproximator:
         if self._dropout:
             self.network.eval()
 
-    def _fit_epoch(self, args, kwargs):
+    def _fit_epoch(self, args, use_weights, kwargs):
         if self._batch_size > 0:
             batches = minibatch_generator(self._batch_size, *args)
         else:
@@ -138,17 +146,21 @@ class PyTorchApproximator:
 
         loss_current = list()
         for batch in batches:
-            loss_current.append(self._fit_batch(batch, **kwargs))
+            loss_current.append(self._fit_batch(batch, use_weights, **kwargs))
 
         return np.mean(loss_current)
 
-    def _fit_batch(self, batch, weights=None, **kwargs):
+    def _fit_batch(self, batch, use_weights, **kwargs):
+        if use_weights:
+            weights = torch.from_numpy(batch[-1]).type(torch.float)
+            if self._use_cuda:
+                weights = weights.cuda()
+            batch = batch[:-1]
+
         if not self._use_cuda:
             torch_args = [torch.from_numpy(x) for x in batch]
-            weights = torch.from_numpy(weights).type(torch.float)
         else:
             torch_args = [torch.from_numpy(x).cuda() for x in batch]
-            weights = torch.from_numpy(weights).type(torch.float).cuda()
 
         x = torch_args[:-self._n_fit_targets]
 
@@ -165,11 +177,12 @@ class PyTorchApproximator:
         if self._use_cuda:
             y = [y_i.cuda() for y_i in y]
 
-        if weights is None:
+        if not use_weights:
             loss = self._loss(y_hat, *y)
         else:
-            loss = self._loss(y_hat, *y, reduction='none') * weights
-            loss = loss.mean()
+            loss = self._loss(y_hat, *y, reduction='none')
+            loss @= weights
+            loss = loss / weights.sum()
 
         self._optimizer.zero_grad()
         loss.backward()
