@@ -1,4 +1,4 @@
-import queue
+from collections import deque
 
 import numpy as np
 
@@ -33,12 +33,12 @@ class ReplayMemory(object):
 
         """
         for i in range(len(dataset)):
-            self._states.put(dataset[i][0])
-            self._actions.put(dataset[i][1])
-            self._rewards.put(dataset[i][2])
-            self._next_states.put(dataset[i][3])
-            self._absorbing.put(dataset[i][4])
-            self._last.put(dataset[i][5])
+            self._states.appendleft(dataset[i][0])
+            self._actions.appendleft(dataset[i][1])
+            self._rewards.appendleft(dataset[i][2])
+            self._next_states.appendleft(dataset[i][3])
+            self._absorbing.appendleft(dataset[i][4])
+            self._last.appendleft(dataset[i][5])
 
             self._count += 1
             if self._count == self._max_size:
@@ -63,12 +63,12 @@ class ReplayMemory(object):
         last = [None for _ in range(n_samples)]
         for j, i in enumerate(np.random.choice(self.size, size=n_samples,
                                                replace=False)):
-            s[j] = np.array(self._states.queue[i])
-            a[j] = self._actions.queue[i]
-            r[j] = self._rewards.queue[i]
-            ss[j] = np.array(self._next_states.queue[i])
-            ab[j] = self._absorbing.queue[i]
-            last[j] = self._last.queue[i]
+            s[j] = np.array(self._states[i])
+            a[j] = self._actions[i]
+            r[j] = self._rewards[i]
+            ss[j] = np.array(self._next_states[i])
+            ab[j] = self._absorbing[i]
+            last[j] = self._last[i]
 
         return np.array(s), np.array(a), np.array(r), np.array(ss),\
             np.array(ab), np.array(last)
@@ -80,12 +80,12 @@ class ReplayMemory(object):
         """
         self._count = 0
         self._full = False
-        self._states = queue.Queue(self._max_size)
-        self._actions = queue.Queue(self._max_size)
-        self._rewards = queue.Queue(self._max_size)
-        self._next_states = queue.Queue(self._max_size)
-        self._absorbing = queue.Queue(self._max_size)
-        self._last = queue.Queue(self._max_size)
+        self._states = deque(list(), self._max_size)
+        self._actions = deque(list(), self._max_size)
+        self._rewards = deque(list(), self._max_size)
+        self._next_states = deque(list(), self._max_size)
+        self._absorbing = deque(list(), self._max_size)
+        self._last = deque(list(), self._max_size)
 
     @property
     def initialized(self):
