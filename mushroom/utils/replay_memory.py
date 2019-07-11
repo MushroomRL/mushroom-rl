@@ -41,8 +41,6 @@ class ReplayMemory(object):
             self._last.appendleft(dataset[i][5])
 
             self._count += 1
-            if self._count == self._max_size:
-                self._full = True
 
     def get(self, n_samples):
         """
@@ -79,7 +77,6 @@ class ReplayMemory(object):
 
         """
         self._count = 0
-        self._full = False
         self._states = deque(list(), self._max_size)
         self._actions = deque(list(), self._max_size)
         self._rewards = deque(list(), self._max_size)
@@ -104,7 +101,7 @@ class ReplayMemory(object):
             The number of elements contained in the replay memory.
 
         """
-        return self._count
+        return np.minimum(self._count, self._max_size)
 
 
 class SumTree(object):
