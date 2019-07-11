@@ -1,3 +1,5 @@
+import queue
+
 import numpy as np
 
 
@@ -31,12 +33,12 @@ class ReplayMemory(object):
 
         """
         for i in range(len(dataset)):
-            self._states[self._idx] = dataset[i][0]
-            self._actions[self._idx] = dataset[i][1]
-            self._rewards[self._idx] = dataset[i][2]
-            self._next_states[self._idx] = dataset[i][3]
-            self._absorbing[self._idx] = dataset[i][4]
-            self._last[self._idx] = dataset[i][5]
+            self._states.put(dataset[i][0])
+            self._actions.put(dataset[i][1])
+            self._rewards.put(dataset[i][2])
+            self._next_states.put(dataset[i][3])
+            self._absorbing.put(dataset[i][4])
+            self._last.put(dataset[i][5])
 
             self._idx += 1
             if self._idx == self._max_size:
@@ -62,12 +64,12 @@ class ReplayMemory(object):
         last = [None for _ in range(n_samples)]
         for j, i in enumerate(np.random.choice(self.size, size=n_samples,
                                                replace=False)):
-            s[j] = np.array(self._states[i])
-            a[j] = self._actions[i]
-            r[j] = self._rewards[i]
-            ss[j] = np.array(self._next_states[i])
-            ab[j] = self._absorbing[i]
-            last[j] = self._last[i]
+            s[j] = np.array(self._states.queue[i])
+            a[j] = self._actions.queue[i]
+            r[j] = self._rewards.queue[i]
+            ss[j] = np.array(self._next_states.queue[i])
+            ab[j] = self._absorbing.queue[i]
+            last[j] = self._last.queue[i]
 
         return np.array(s), np.array(a), np.array(r), np.array(ss),\
             np.array(ab), np.array(last)
@@ -79,12 +81,12 @@ class ReplayMemory(object):
         """
         self._idx = 0
         self._full = False
-        self._states = [None for _ in range(self._max_size)]
-        self._actions = [None for _ in range(self._max_size)]
-        self._rewards = [None for _ in range(self._max_size)]
-        self._next_states = [None for _ in range(self._max_size)]
-        self._absorbing = [None for _ in range(self._max_size)]
-        self._last = [None for _ in range(self._max_size)]
+        self._states = queue.Queue(self._max_size)
+        self._actions = queue.Queue(self._max_size)
+        self._rewards = queue.Queue(self._max_size)
+        self._next_states = queue.Queue(self._max_size)
+        self._absorbing = queue.Queue(self._max_size)
+        self._last = queue.Queue(self._max_size)
 
     @property
     def initialized(self):
