@@ -40,10 +40,9 @@ class ReplayMemory(object):
             self._absorbing.put(dataset[i][4])
             self._last.put(dataset[i][5])
 
-            self._idx += 1
-            if self._idx == self._max_size:
+            self._count += 1
+            if self._count == self._max_size:
                 self._full = True
-                self._idx = 0
 
     def get(self, n_samples):
         """
@@ -79,7 +78,7 @@ class ReplayMemory(object):
         Reset the replay memory.
 
         """
-        self._idx = 0
+        self._count = 0
         self._full = False
         self._states = queue.Queue(self._max_size)
         self._actions = queue.Queue(self._max_size)
@@ -105,7 +104,7 @@ class ReplayMemory(object):
             The number of elements contained in the replay memory.
 
         """
-        return self._idx if not self._full else self._max_size
+        return self._count
 
 
 class SumTree(object):
