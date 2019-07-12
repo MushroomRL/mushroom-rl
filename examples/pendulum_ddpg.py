@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-from mushroom.algorithms.actor_critic import DDPG
+from mushroom.algorithms.actor_critic import DDPG, TD3
 from mushroom.core import Core
 from mushroom.environments.gym_env import Gym
 from mushroom.policy import OrnsteinUhlenbeckPolicy
@@ -63,7 +63,7 @@ class ActorNetwork(nn.Module):
         return a
 
 
-def experiment(n_epochs, n_steps, n_steps_test):
+def experiment(alg, n_epochs, n_steps, n_steps_test):
     np.random.seed()
 
     # MDP
@@ -103,12 +103,12 @@ def experiment(n_epochs, n_steps, n_steps_test):
                          output_shape=(1,))
 
     # Agent
-    agent = DDPG(actor_approximator, critic_approximator, policy_class,
-                 mdp.info, batch_size=batch_size,
-                 initial_replay_size=initial_replay_size,
-                 max_replay_size=max_replay_size, tau=.001,
-                 actor_params=actor_params, critic_params=critic_params,
-                 policy_params=policy_params)
+    agent = alg(actor_approximator, critic_approximator, policy_class,
+                mdp.info, batch_size=batch_size,
+                initial_replay_size=initial_replay_size,
+                max_replay_size=max_replay_size, tau=.001,
+                actor_params=actor_params, critic_params=critic_params,
+                policy_params=policy_params)
 
     # Algorithm
     core = Core(agent, mdp)
@@ -133,4 +133,12 @@ def experiment(n_epochs, n_steps, n_steps_test):
 
 
 if __name__ == '__main__':
-    experiment(n_epochs=40, n_steps=1000, n_steps_test=2000)
+
+    algs = [
+        DDPG,
+        TD3
+    ]
+
+    for alg in algs:
+        print('Algorithm: ', alg.__name__)
+        experiment(alg=alg, n_epochs=40, n_steps=1000, n_steps_test=2000)
