@@ -59,13 +59,21 @@ class ReplayMemory(object):
         ss = [None for _ in range(n_samples)]
         ab = [None for _ in range(n_samples)]
         last = [None for _ in range(n_samples)]
-        for j, i in enumerate(np.random.choice(self.size, size=n_samples)):
-            s[j] = np.array(self._states[i])
-            a[j] = self._actions[i]
-            r[j] = self._rewards[i]
-            ss[j] = np.array(self._next_states[i])
-            ab[j] = self._absorbing[i]
-            last[j] = self._last[i]
+        for i in range(n_samples):
+            idx = self._idxs[self._idx] % self.size
+
+            s[i] = np.array(self._states[idx])
+            a[i] = self._actions[idx]
+            r[i] = self._rewards[idx]
+            ss[i] = np.array(self._next_states[idx])
+            ab[i] = self._absorbing[idx]
+            last[i] = self._last[idx]
+
+            self._idx += 1
+            if self._idx == len(self._idxs):
+                self._idx = 0
+                self._idxs = np.random.randint(self._max_size,
+                                               size=self._max_size)
 
         return np.array(s), np.array(a), np.array(r), np.array(ss),\
             np.array(ab), np.array(last)
@@ -76,6 +84,8 @@ class ReplayMemory(object):
 
         """
         self._count = 0
+        self._idx = 0
+        self._idxs = np.random.randint(self._max_size, size=self._max_size)
         self._states = deque(list(), self._max_size)
         self._actions = deque(list(), self._max_size)
         self._rewards = deque(list(), self._max_size)
