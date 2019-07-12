@@ -59,8 +59,7 @@ class ReplayMemory(object):
         ss = [None for _ in range(n_samples)]
         ab = [None for _ in range(n_samples)]
         last = [None for _ in range(n_samples)]
-        for j, i in enumerate(np.random.choice(self.size, size=n_samples,
-                                               replace=False)):
+        for j, i in enumerate(np.random.choice(self.size, size=n_samples)):
             s[j] = np.array(self._states[i])
             a[j] = self._actions[i]
             r[j] = self._rewards[i]
