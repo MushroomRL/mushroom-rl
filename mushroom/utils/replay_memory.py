@@ -1,3 +1,5 @@
+from collections import deque
+
 import numpy as np
 
 
@@ -31,17 +33,14 @@ class ReplayMemory(object):
 
         """
         for i in range(len(dataset)):
-            self._states[self._idx] = dataset[i][0]
-            self._actions[self._idx] = dataset[i][1]
-            self._rewards[self._idx] = dataset[i][2]
-            self._next_states[self._idx] = dataset[i][3]
-            self._absorbing[self._idx] = dataset[i][4]
-            self._last[self._idx] = dataset[i][5]
+            self._states.appendleft(dataset[i][0])
+            self._actions.appendleft(dataset[i][1])
+            self._rewards.appendleft(dataset[i][2])
+            self._next_states.appendleft(dataset[i][3])
+            self._absorbing.appendleft(dataset[i][4])
+            self._last.appendleft(dataset[i][5])
 
-            self._idx += 1
-            if self._idx == self._max_size:
-                self._full = True
-                self._idx = 0
+            self._count += 1
 
     def get(self, n_samples):
         """
@@ -60,8 +59,7 @@ class ReplayMemory(object):
         ss = [None for _ in range(n_samples)]
         ab = [None for _ in range(n_samples)]
         last = [None for _ in range(n_samples)]
-        for j, i in enumerate(np.random.choice(self.size, size=n_samples,
-                                               replace=False)):
+        for j, i in enumerate(np.random.choice(self.size, size=n_samples)):
             s[j] = np.array(self._states[i])
             a[j] = self._actions[i]
             r[j] = self._rewards[i]
@@ -77,14 +75,13 @@ class ReplayMemory(object):
         Reset the replay memory.
 
         """
-        self._idx = 0
-        self._full = False
-        self._states = [None for _ in range(self._max_size)]
-        self._actions = [None for _ in range(self._max_size)]
-        self._rewards = [None for _ in range(self._max_size)]
-        self._next_states = [None for _ in range(self._max_size)]
-        self._absorbing = [None for _ in range(self._max_size)]
-        self._last = [None for _ in range(self._max_size)]
+        self._count = 0
+        self._states = deque(list(), self._max_size)
+        self._actions = deque(list(), self._max_size)
+        self._rewards = deque(list(), self._max_size)
+        self._next_states = deque(list(), self._max_size)
+        self._absorbing = deque(list(), self._max_size)
+        self._last = deque(list(), self._max_size)
 
     @property
     def initialized(self):
@@ -103,7 +100,7 @@ class ReplayMemory(object):
             The number of elements contained in the replay memory.
 
         """
-        return self._idx if not self._full else self._max_size
+        return np.minimum(self._count, self._max_size)
 
 
 class SumTree(object):
