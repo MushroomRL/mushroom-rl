@@ -11,7 +11,7 @@ Deterministic Policy Gradient
     :show-inheritance:
 
 Deep Deterministic Policy Gradient
------------------------------
+----------------------------------
 
 .. automodule:: mushroom.algorithms.actor_critic.ddpg
     :members:

@@ -88,7 +88,6 @@ class DDPG(Agent):
         self._policy_delay = policy_delay
         self._fit_count = 0
 
-
         self._replay_memory = ReplayMemory(initial_replay_size, max_replay_size)
 
         target_critic_params = deepcopy(critic_params)
