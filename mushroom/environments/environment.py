@@ -90,7 +90,9 @@ class Environment(object):
 
         Returns:
             The state reached by the agent executing ``action`` in its current
-            state.
+            state, the reward obtained in the transition and a flag to signal
+            if the next state is absorbing. Also an additional dictionary is
+            returned (possibly empty).
 
         """
         raise NotImplementedError
