@@ -198,7 +198,7 @@ epub_exclude_files = ['search.html']
 # -- Options for autodoc ---------------------------------------------------
 
 autodoc_member_order = 'bysource'
-autodoc_mock_imports = ['torch']
+autodoc_mock_imports = ['torch', 'pybullet']
 
 def skip(app, what, name, obj, skip, options):
     if name == "__init__" or name == "__call__":
