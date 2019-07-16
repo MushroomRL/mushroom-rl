@@ -1,5 +1,3 @@
-from collections import deque
-
 import numpy as np
 
 
@@ -33,14 +31,17 @@ class ReplayMemory(object):
 
         """
         for i in range(len(dataset)):
-            self._states.appendleft(dataset[i][0])
-            self._actions.appendleft(dataset[i][1])
-            self._rewards.appendleft(dataset[i][2])
-            self._next_states.appendleft(dataset[i][3])
-            self._absorbing.appendleft(dataset[i][4])
-            self._last.appendleft(dataset[i][5])
+            self._states[self._idx] = dataset[i][0]
+            self._actions[self._idx] = dataset[i][1]
+            self._rewards[self._idx] = dataset[i][2]
+            self._next_states[self._idx] = dataset[i][3]
+            self._absorbing[self._idx] = dataset[i][4]
+            self._last[self._idx] = dataset[i][5]
 
-            self._count += 1
+            self._idx += 1
+            if self._idx == self._max_size:
+                self._full = True
+                self._idx = 0
 
     def get(self, n_samples):
         """
@@ -53,27 +54,19 @@ class ReplayMemory(object):
             The requested number of samples.
 
         """
-        s = [None for _ in range(n_samples)]
-        a = [None for _ in range(n_samples)]
-        r = [None for _ in range(n_samples)]
-        ss = [None for _ in range(n_samples)]
-        ab = [None for _ in range(n_samples)]
-        last = [None for _ in range(n_samples)]
-        for i in range(n_samples):
-            idx = self._idxs[self._idx] % self.size
-
-            s[i] = np.array(self._states[idx])
-            a[i] = self._actions[idx]
-            r[i] = self._rewards[idx]
-            ss[i] = np.array(self._next_states[idx])
-            ab[i] = self._absorbing[idx]
-            last[i] = self._last[idx]
-
-            self._idx += 1
-            if self._idx == len(self._idxs):
-                self._idx = 0
-                self._idxs = np.random.randint(self._max_size,
-                                               size=self._max_size)
+        s = list()
+        a = list()
+        r = list()
+        ss = list()
+        ab = list()
+        last = list()
+        for i in np.random.randint(self.size, size=n_samples):
+            s.append(np.array(self._states[i]))
+            a.append(self._actions[i])
+            r.append(self._rewards[i])
+            ss.append(np.array(self._next_states[i]))
+            ab.append(self._absorbing[i])
+            last.append(self._last[i])
 
         return np.array(s), np.array(a), np.array(r), np.array(ss),\
             np.array(ab), np.array(last)
@@ -83,15 +76,14 @@ class ReplayMemory(object):
         Reset the replay memory.
 
         """
-        self._count = 0
         self._idx = 0
-        self._idxs = np.random.randint(self._max_size, size=self._max_size)
-        self._states = deque(list(), self._max_size)
-        self._actions = deque(list(), self._max_size)
-        self._rewards = deque(list(), self._max_size)
-        self._next_states = deque(list(), self._max_size)
-        self._absorbing = deque(list(), self._max_size)
-        self._last = deque(list(), self._max_size)
+        self._full = False
+        self._states = [None for _ in range(self._max_size)]
+        self._actions = [None for _ in range(self._max_size)]
+        self._rewards = [None for _ in range(self._max_size)]
+        self._next_states = [None for _ in range(self._max_size)]
+        self._absorbing = [None for _ in range(self._max_size)]
+        self._last = [None for _ in range(self._max_size)]
 
     @property
     def initialized(self):
@@ -110,7 +102,7 @@ class ReplayMemory(object):
             The number of elements contained in the replay memory.
 
         """
-        return np.minimum(self._count, self._max_size)
+        return self._idx if not self._full else self._max_size
 
 
 class SumTree(object):
