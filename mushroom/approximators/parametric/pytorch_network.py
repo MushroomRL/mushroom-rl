@@ -146,11 +146,20 @@ class PyTorchApproximator:
 
         loss_current = list()
         for batch in batches:
-            loss_current.append(self._fit_batch(batch, use_weights, **kwargs))
+            loss_current.append(self._fit_batch(batch, use_weights, kwargs))
 
         return np.mean(loss_current)
 
-    def _fit_batch(self, batch, use_weights, **kwargs):
+    def _fit_batch(self, batch, use_weights, kwargs):
+        loss = self._compute_batch_loss(batch, use_weights, kwargs)
+
+        self._optimizer.zero_grad()
+        loss.backward()
+        self._optimizer.step()
+
+        return loss.item()
+
+    def _compute_batch_loss(self, batch, use_weights, kwargs):
         if use_weights:
             weights = torch.from_numpy(batch[-1]).type(torch.float)
             if self._use_cuda:
@@ -184,11 +193,7 @@ class PyTorchApproximator:
             loss @= weights
             loss = loss / weights.sum()
 
-        self._optimizer.zero_grad()
-        loss.backward()
-        self._optimizer.step()
-
-        return loss.item()
+        return loss
 
     def set_weights(self, weights):
         idx = 0

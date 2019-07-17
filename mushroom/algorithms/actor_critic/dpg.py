@@ -43,7 +43,7 @@ class COPDAC_Q(Agent):
             s_psi = self._psi(s) if self._psi is not None else s
             ss_psi = self._psi(ss) if self._psi is not None else ss
 
-            q_next = np.asscalar(self._V(ss_psi)) if not absorbing else 0
+            q_next = self._V(ss_psi).item() if not absorbing else 0
 
             grad_mu_s = np.atleast_2d(self._mu.diff(s_phi))
             omega = self._A.get_weights()
@@ -66,8 +66,8 @@ class COPDAC_Q(Agent):
     def _Q(self, state, action):
         state_psi = self._psi(state) if self._psi is not None else state
 
-        return np.asscalar(self._V(state_psi)) + \
-            np.asscalar(self._A(self._nu(state, action)))
+        return self._V(state_psi).item() + self._A(self._nu(state,
+                                                            action)).item()
 
     def _nu(self, state, action):
         state_phi = self.phi(state) if self.phi is not None else state

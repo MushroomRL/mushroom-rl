@@ -176,7 +176,7 @@ class REPS(BlackBoxOptimization):
                        bounds=((np.finfo(np.float32).eps, np.inf),),
                        args=(self.eps, Jep, theta))
 
-        eta_opt = np.asscalar(res.x)
+        eta_opt = res.x.item()
 
         Jep -= np.max(Jep)
 
@@ -186,7 +186,7 @@ class REPS(BlackBoxOptimization):
 
     @staticmethod
     def _dual_function(eta_array, *args):
-        eta = np.asscalar(eta_array)
+        eta = eta_array.item()
         eps, Jep, theta = args
 
         max_J = np.max(Jep)
@@ -198,7 +198,7 @@ class REPS(BlackBoxOptimization):
 
     @staticmethod
     def _dual_function_diff(eta_array, *args):
-        eta = np.asscalar(eta_array)
+        eta = eta_array.item()
         eps, Jep, theta = args
 
         max_J = np.max(Jep)
