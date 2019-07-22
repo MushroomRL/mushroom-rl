@@ -188,7 +188,7 @@ class PPO(Agent):
         self._batch_size = batch_size
         self._eps_ppo = eps_ppo
 
-        self._p_optim = optim.Adam(self.policy.parameters(), lr=lr_p)
+        self._p_optim = optim.Adam(policy.parameters(), lr=lr_p)
 
         self._lambda = lam
 
