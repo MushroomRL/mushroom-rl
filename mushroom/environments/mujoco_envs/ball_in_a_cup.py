@@ -1,12 +1,12 @@
-from mushroom.environments.mujoco_raw import MojucoRaw, ObservationType
+from mushroom.environments.mujoco import MuJoCo, ObservationType
 import numpy as np
 import os
 
 
-class BallInACup(MojucoRaw):
+class BallInACup(MuJoCo):
 
     def __init__(self):
-        xml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "xml", "ball-in-a-cup.xml")
+        xml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "ball_in_a_cup", "model.xml")
         action_spec = [("wam/base_yaw_joint", -150., 150.), ("wam/shoulder_pitch_joint", -125., 125.),
                        ("wam/shoulder_yaw_joint", -40., 40,), ("wam/elbow_pitch_joint", -60., 60.),
                        ("wam/wrist_yaw_joint", -5., 5.), ("wam/wrist_pitch_joint", -5., 5.),
