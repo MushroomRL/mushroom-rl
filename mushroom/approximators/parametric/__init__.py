@@ -1,4 +1,4 @@
 from .linear import LinearApproximator
-from .pytorch_network import PyTorchApproximator
+from .torch_approximator import TorchApproximator
 
-__all__ = ['LinearApproximator', 'PyTorchApproximator']
+__all__ = ['LinearApproximator', 'TorchApproximator']

@@ -3,9 +3,10 @@ import numpy as np
 from tqdm import trange, tqdm
 
 from mushroom.utils.minibatches import minibatch_generator
+from mushroom.utils.torch import get_weights, set_weights
 
 
-class PyTorchApproximator:
+class TorchApproximator:
     """
     Class to interface a pytorch model to the mushroom Regressor interface.
     This class implements all is needed to use a generic pytorch model and train
@@ -196,36 +197,10 @@ class PyTorchApproximator:
         return loss
 
     def set_weights(self, weights):
-        idx = 0
-        for p in self.network.parameters():
-            shape = p.data.shape
-
-            c = 1
-            for s in shape:
-                c *= s
-
-            w = np.reshape(weights[idx:idx+c], shape)
-
-            if not self._use_cuda:
-                w_tensor = torch.from_numpy(w).type(p.data.dtype)
-            else:
-                w_tensor = torch.from_numpy(w).type(p.data.dtype).cuda()
-
-            p.data = w_tensor
-            idx += c
-
-        assert idx == weights.size
+        set_weights(self.network.parameters(), weights, self._use_cuda)
 
     def get_weights(self):
-        weights = list()
-
-        for p in self.network.parameters():
-            w = p.data.detach().cpu().numpy()
-            weights.append(w.flatten())
-
-        weights = np.concatenate(weights, 0)
-
-        return weights
+        return get_weights(self.network.parameters())
 
     @property
     def weights_size(self):

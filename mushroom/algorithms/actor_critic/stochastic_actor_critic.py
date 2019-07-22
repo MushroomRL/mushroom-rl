@@ -5,7 +5,7 @@ from mushroom.approximators import Regressor
 from mushroom.approximators.parametric import LinearApproximator
 
 
-class SAC(Agent):
+class StochasticAC(Agent):
     """
     Stochastic Actor critic in the episodic setting as presented in:
     "Model-Free Reinforcement Learning with Continuous Action in Practice".
@@ -83,7 +83,7 @@ class SAC(Agent):
             self.policy.set_weights(theta_new)
 
 
-class SAC_AVG(Agent):
+class StochasticAC_AVG(Agent):
     """
     Stochastic Actor critic in the average reward setting as presented in:
     "Model-Free Reinforcement Learning with Continuous Action in Practice".

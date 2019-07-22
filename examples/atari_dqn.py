@@ -9,7 +9,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from mushroom.algorithms.value import AveragedDQN, CategoricalDQN, DQN, DoubleDQN
-from mushroom.approximators.parametric import PyTorchApproximator
+from mushroom.approximators.parametric import TorchApproximator
 from mushroom.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
@@ -266,7 +266,7 @@ def experiment():
             use_cuda=args.use_cuda
         )
 
-        approximator = PyTorchApproximator
+        approximator = TorchApproximator
 
         # Agent
         algorithm_params = dict(
@@ -347,7 +347,7 @@ def experiment():
             use_cuda=args.use_cuda
         )
 
-        approximator = PyTorchApproximator
+        approximator = TorchApproximator
 
         if args.prioritized:
             replay_memory = PrioritizedReplayMemory(

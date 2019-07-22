@@ -83,7 +83,7 @@ def test_pytorch_approximator():
     k = np.random.rand(4, 2)
     b = np.sin(a).dot(k) + np.random.randn(1000, 2)*noise
 
-    approximator = Regressor(PyTorchApproximator,
+    approximator = Regressor(TorchApproximator,
                              input_shape=(4,),
                              output_shape=(2,),
                              network=ExampleNet,

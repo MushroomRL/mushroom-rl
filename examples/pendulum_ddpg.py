@@ -6,7 +6,7 @@ from mushroom.algorithms.actor_critic import DDPG, TD3
 from mushroom.core import Core
 from mushroom.environments.gym_env import Gym
 from mushroom.policy import OrnsteinUhlenbeckPolicy
-from mushroom.approximators.parametric.pytorch_network import *
+from mushroom.approximators.parametric.torch_approximator import *
 from mushroom.utils.dataset import compute_J
 
 
@@ -83,7 +83,7 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
     n_features = 80
 
     # Approximator
-    actor_approximator = PyTorchApproximator
+    actor_approximator = TorchApproximator
     actor_input_shape = mdp.info.observation_space.shape
     actor_params = dict(network=ActorNetwork,
                         optimizer={'class': optim.Adam,
@@ -92,7 +92,7 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
                         input_shape=actor_input_shape,
                         output_shape=mdp.info.action_space.shape)
 
-    critic_approximator = PyTorchApproximator
+    critic_approximator = TorchApproximator
     critic_input_shape = (actor_input_shape[0] + mdp.info.action_space.shape[0],)
     critic_params = dict(network=CriticNetwork,
                          optimizer={'class': optim.Adam,
