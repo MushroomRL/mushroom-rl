@@ -9,7 +9,6 @@ from mushroom.policy import EpsGreedy
 from mushroom.utils.dataset import compute_J
 from mushroom.utils.parameters import Parameter
 
-
 """
 This script aims to replicate the experiments on the Car on Hill MDP as
 presented in:

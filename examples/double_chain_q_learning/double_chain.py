@@ -11,8 +11,8 @@ from mushroom.utils.parameters import Parameter, ExponentialParameter
 
 
 """
-Simple script to solve a double chain with Q-Learning. The considered double
-chain is the one presented in:
+Simple script to solve a double chain with Q-Learning and some of its variants.
+The considered double chain is the one presented in:
 "Relative Entropy Policy Search". Peters J. et al.. 2010.
 
 """
