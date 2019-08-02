@@ -30,7 +30,6 @@ class GenericRegressor:
                 regressor.
 
         """
-        z = self._preprocess(*z)
         self.model.fit(*z, **fit_params)
 
     def predict(self, *x, **predict_params):
@@ -46,8 +45,6 @@ class GenericRegressor:
             The predictions of the model.
 
         """
-        x = self._preprocess(*x)
-
         return self.model.predict(*x, **predict_params)
 
     def reset(self):
@@ -72,32 +69,7 @@ class GenericRegressor:
         self.model.set_weights(w)
 
     def diff(self, *x):
-        x = self._preprocess(*x)
-
         return self.model.diff(*x)
-
-    def _preprocess(self, *z):
-        x = list(z[:self._n_inputs])
-        y = list(z[self._n_inputs:])
-
-        if len(self._input_preprocessor) > 0 and not isinstance(
-                self._input_preprocessor[0], list):
-            self._input_preprocessor = [self._input_preprocessor]
-        for i, ip in enumerate(self._input_preprocessor):
-            for p in ip:
-                x[i] = p(x[i])
-        z = [i for i in x]
-
-        if len(y) > 0:
-            if len(self._output_preprocessor) > 0 and not isinstance(
-                    self._output_preprocessor[0], list):
-                self._output_preprocessor = [self._output_preprocessor]
-            for o, op in enumerate(self._output_preprocessor):
-                for p in op:
-                    y[o] = p(y[o])
-        z += [i for i in y]
-
-        return z
 
     def __len__(self):
         return len(self.model)

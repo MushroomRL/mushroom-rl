@@ -55,7 +55,7 @@ class QRegressor:
         """
         assert len(z) == 1 or len(z) == 2
 
-        state = self._preprocess(z[0])
+        state = z[0]
         q = self.model.predict(state, **predict_params)
 
         if len(z) == 2:
@@ -90,17 +90,6 @@ class QRegressor:
 
     def diff(self, state, action=None):
         return self.model.diff(state, action)
-
-    def _preprocess(self, state, q=None):
-        for p in self._input_preprocessor:
-            state = p(state)
-
-        if q is not None:
-            for p in self._output_preprocessor:
-                q = p(q)
-
-            return state, q
-        return state
 
     def __len__(self):
         return len(self.model)

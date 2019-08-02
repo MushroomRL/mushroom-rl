@@ -6,7 +6,7 @@ class LinearApproximator:
     This class implements a linear approximator.
 
     """
-    def __init__(self, weights=None, input_shape=None, output_shape=1,
+    def __init__(self, weights=None, input_shape=None, output_shape=(1,),
                  **kwargs):
         """
         Constructor.
@@ -14,8 +14,10 @@ class LinearApproximator:
         Args:
              weights (np.ndarray): array of weights to initialize the weights
                 of the approximator;
-             input_shape (np.ndarray): the shape of the input of the model;
-             output_shape (np.ndarray): the shape of the output of the model;
+             input_shape (np.ndarray, None): the shape of the input of the
+                model;
+             output_shape (np.ndarray, (1,)): the shape of the output of the
+                model;
              **kwargs (dict): other params of the approximator.
 
         """

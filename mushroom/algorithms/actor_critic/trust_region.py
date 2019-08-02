@@ -30,9 +30,16 @@ def compute_gae(V, s, ss, r, absorbing, last, gamma, lam):
 
 class TRPO(Agent):
     def __init__(self, mdp_info, policy, critic_params,
-                 ent_coeff=0.0, max_kl=0.001, lam=1.0,
+                 ent_coeff=0., max_kl=.001, lam=1.,
                  n_epochs_v=3, n_epochs_line_search=10, n_epochs_cg=10,
                  cg_damping=1e-2, cg_residual_tol=1e-10, quiet=True):
+        """
+        Constructor.
+
+        Args:
+
+
+        """
         self._n_epochs_line_search = n_epochs_line_search
         self._n_epochs_v = n_epochs_v
         self._n_epochs_cg = n_epochs_cg
@@ -55,15 +62,16 @@ class TRPO(Agent):
         if not self._quiet:
             tqdm.write('Iteration ' + str(self._iter))
 
-        x, u, r, xn, absorbing, last = parse_dataset(dataset)
-        x = x.astype(np.float32)
-        u = u.astype(np.float32)
-        r = r.astype(np.float32)
-        xn = xn.astype(np.float32)
+        state, action, reward, next_state, absorbing, last = parse_dataset(dataset)
+        x = state.astype(np.float32)
+        u = action.astype(np.float32)
+        r = reward.astype(np.float32)
+        xn = next_state.astype(np.float32)
 
         obs = torch.tensor(x, dtype=torch.float)
         act = torch.tensor(u, dtype=torch.float)
-        v_target, np_adv = compute_gae(self._V, x, xn, r, absorbing, last, self.mdp_info.gamma, self._lambda)
+        v_target, np_adv = compute_gae(self._V, x, xn, r, absorbing, last,
+                                       self.mdp_info.gamma, self._lambda)
         np_adv = (np_adv - np.mean(np_adv)) / (np.std(np_adv) + 1e-8)
         adv = torch.tensor(np_adv, dtype=torch.float)
 
@@ -84,10 +92,12 @@ class TRPO(Agent):
         stepdir = self._conjugate_gradient(g, obs, old_pol_dist)
 
         # Line search
-        shs = .5 * stepdir.dot(self._fisher_vector_product(torch.from_numpy(stepdir), obs, old_pol_dist))
+        shs = .5 * stepdir.dot(self._fisher_vector_product(
+            torch.from_numpy(stepdir), obs, old_pol_dist)
+        )
         lm = np.sqrt(shs / self._max_kl)
         fullstep = stepdir / lm
-        stepsize = 1.0
+        stepsize = 1.
 
         theta_old = self.policy.get_weights()
 
@@ -125,13 +135,14 @@ class TRPO(Agent):
         rdotr = r.dot(r)
 
         for i in range(self._n_epochs_cg):
-            z = self._fisher_vector_product(torch.from_numpy(p), obs, old_pol_dist).detach().numpy()
+            z = self._fisher_vector_product(
+                torch.from_numpy(p), obs, old_pol_dist).detach().numpy()
             v = rdotr / p.dot(z)
-            x += v*p
-            r -= v*z
+            x += v * p
+            r -= v * z
             newrdotr = r.dot(r)
-            mu = newrdotr/rdotr
-            p = r + mu*p
+            mu = newrdotr / rdotr
+            p = r + mu * p
 
             rdotr = newrdotr
             if rdotr < self._cg_residual_tol:
@@ -141,18 +152,22 @@ class TRPO(Agent):
     def _fisher_vector_product(self, p, obs, old_pol_dist):
         self._zero_grad()
         kl = self._compute_kl(obs, old_pol_dist)
-        grads = torch.autograd.grad(kl, self.policy.parameters(), create_graph=True, retain_graph=True)
+        grads = torch.autograd.grad(kl, self.policy.parameters(),
+                                    create_graph=True, retain_graph=True)
         flat_grad_kl = torch.cat([grad.view(-1) for grad in grads])
 
         kl_v = (flat_grad_kl * torch.autograd.Variable(p)).sum()
-        grads = torch.autograd.grad(kl_v, self.policy.parameters(), retain_graph=True)
-        flat_grad_grad_kl = torch.cat([grad.contiguous().view(-1) for grad in grads]).data
+        grads = torch.autograd.grad(kl_v, self.policy.parameters(),
+                                    retain_graph=True)
+        flat_grad_grad_kl = torch.cat(
+            [grad.contiguous().view(-1) for grad in grads]).data
 
         return flat_grad_grad_kl + p * self._cg_damping
 
     def _compute_kl(self, obs, old_pol_dist):
         new_pol_dist = self.policy.distribution_t(obs)
-        return torch.mean(torch.distributions.kl.kl_divergence(new_pol_dist, old_pol_dist))
+        return torch.mean(torch.distributions.kl.kl_divergence(new_pol_dist,
+                                                               old_pol_dist))
 
     def _compute_loss(self, obs, act, adv, old_log_prob):
         ratio = torch.exp(self.policy.log_prob_t(obs, act) - old_log_prob)
@@ -171,7 +186,9 @@ class TRPO(Agent):
 
             logging_ent = self.policy.entropy(x)
             new_pol_dist = self.policy.distribution(x)
-            logging_kl = torch.mean(torch.distributions.kl.kl_divergence(new_pol_dist, old_pol_dist))
+            logging_kl = torch.mean(
+                torch.distributions.kl.kl_divergence(new_pol_dist, old_pol_dist)
+            )
             avg_rwd = np.mean(compute_J(dataset))
             tqdm.write("Iterations Results:\n\trewards {} vf_loss {}\n\tentropy {}  kl {}".format(
                 avg_rwd, logging_verr, logging_ent, logging_kl))
@@ -182,7 +199,6 @@ class TRPO(Agent):
 class PPO(Agent):
     def __init__(self, mdp_info, policy, critic_params, lr_p, n_epochs_v,
                  n_epochs_policy, batch_size, eps_ppo, lam, quiet=True):
-
         self._n_epochs_policy = n_epochs_policy
         self._n_epochs_v = n_epochs_v
         self._batch_size = batch_size
@@ -228,11 +244,16 @@ class PPO(Agent):
 
     def _update_policy(self, obs, act, adv, old_log_p):
         for epoch in range(self._n_epochs_policy):
-            for obs_i, act_i, adv_i, old_log_p_i in minibatch_generator(self._batch_size, obs, act, adv, old_log_p):
+            for obs_i, act_i, adv_i, old_log_p_i in minibatch_generator(
+                    self._batch_size, obs, act, adv, old_log_p):
                 self._p_optim.zero_grad()
-                prob_ratio = torch.exp(self.policy.log_prob_t(obs_i, act_i) - old_log_p_i)
-                clipped_ratio = torch.clamp(prob_ratio, 1 - self._eps_ppo, 1 + self._eps_ppo)
-                loss = -torch.mean(torch.min(prob_ratio * adv_i, clipped_ratio * adv_i))
+                prob_ratio = torch.exp(
+                    self.policy.log_prob_t(obs_i, act_i) - old_log_p_i
+                )
+                clipped_ratio = torch.clamp(prob_ratio, 1 - self._eps_ppo,
+                                            1 + self._eps_ppo)
+                loss = -torch.mean(torch.min(prob_ratio * adv_i,
+                                             clipped_ratio * adv_i))
                 loss.backward()
                 self._p_optim.step()
 
@@ -247,7 +268,8 @@ class PPO(Agent):
 
             logging_ent = self.policy.entropy(x)
             new_pol_dist = self.policy.distribution(x)
-            logging_kl = torch.mean(torch.distributions.kl.kl_divergence(new_pol_dist, old_pol_dist))
+            logging_kl = torch.mean(torch.distributions.kl.kl_divergence(
+                new_pol_dist, old_pol_dist))
             avg_rwd = np.mean(compute_J(dataset))
             tqdm.write("Iterations Results:\n\trewards {} vf_loss {}\n\tentropy {}  kl {}".format(
                 avg_rwd, logging_verr, logging_ent, logging_kl))
