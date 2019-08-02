@@ -28,6 +28,15 @@ Car on hill
     :inherited-members:
     :show-inheritance:
 
+DeepMind Control Suite
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: mushroom.environments.dm_control_env
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
 Finite MDP
 ~~~~~~~~~~
 
@@ -77,6 +86,15 @@ Mujoco
 ~~~~~~
 
 .. automodule:: mushroom.environments.mujoco
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+Puddle World
+~~~~~~~~~~~~
+
+.. automodule:: mushroom.environments.puddle_world
     :members:
     :private-members:
     :inherited-members:

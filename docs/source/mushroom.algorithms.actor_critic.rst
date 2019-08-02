@@ -28,3 +28,11 @@ Stochastic Actor-Critic
     :inherited-members:
     :show-inheritance:
 
+Trust-Region Optimization
+-------------------------
+
+.. automodule:: mushroom.algorithms.actor_critic.trust_region
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:

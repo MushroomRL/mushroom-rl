@@ -50,7 +50,7 @@ setup(
 
     # Author details
     author="Carlo D'Eramo",
-    author_email='carlo.deramo@polimi.it',
+    author_email='carlo.deramo@gmail.com',
 
     # Choose your license
     license='',

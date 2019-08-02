@@ -235,7 +235,7 @@ class GPOMDP(PolicyGradient):
         return gradient,
 
     def _step_update(self, x, u, r):
-        discounted_reward = self.df*r
+        discounted_reward = self.df * r
         self.list_reward.append(discounted_reward)
 
         d_log_pi = self.policy.diff_log(x, u)

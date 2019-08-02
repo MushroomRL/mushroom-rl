@@ -29,4 +29,3 @@ Subpackages
     mushroom.algorithms.value
     mushroom.algorithms.policy_search
     mushroom.algorithms.actor_critic
-    

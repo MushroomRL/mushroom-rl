@@ -193,6 +193,13 @@ class LSPI(BatchTD):
     """
     def __init__(self, policy, mdp_info, epsilon=1e-2, fit_params=None,
                  approximator_params=None, features=None):
+        """
+        Constructor.
+
+        Args:
+            epsilon (float, 1e-2): termination coefficient.
+
+        """
         self._epsilon = epsilon
 
         k = features.size * mdp_info.action_space.n
