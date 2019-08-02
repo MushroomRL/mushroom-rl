@@ -84,7 +84,7 @@ if __name__ == '__main__':
     max_kl = .015
 
     policy_params = dict(
-        std_0 =1.0,
+        std_0=1.,
         n_features=64,
         batch_size=64,
         use_cuda=False
@@ -95,12 +95,12 @@ if __name__ == '__main__':
                       n_epochs_policy=10,
                       batch_size=64,
                       eps_ppo=.2,
-                      lam=0.95,
+                      lam=.95,
                       quiet=False)
 
     trpo_params = dict(ent_coeff=0.0,
-                       max_kl=0.001,
-                       lam=1.0,
+                       max_kl=.001,
+                       lam=1.,
                        n_epochs_v=3,
                        n_epochs_line_search=10,
                        n_epochs_cg=10,
@@ -115,5 +115,7 @@ if __name__ == '__main__':
 
     # Bipedal Walker
     for alg, alg_name, alg_params in algs_params:
-        experiment(alg=alg, env_id='BipedalWalker-v2', horizon=1600, gamma=.99, n_epochs=10, n_steps=30000,
-                   n_steps_per_fit=3000, n_episodes_test=10, alg_params=alg_params, policy_params=policy_params)
+        experiment(alg=alg, env_id='BipedalWalker-v2', horizon=1600, gamma=.99,
+                   n_epochs=10, n_steps=30000, n_steps_per_fit=3000,
+                   n_episodes_test=10, alg_params=alg_params,
+                   policy_params=policy_params)

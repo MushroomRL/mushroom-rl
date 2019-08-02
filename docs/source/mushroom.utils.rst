@@ -78,13 +78,6 @@ Parameters
     :inherited-members:
     :show-inheritance:
 
-Preprocessor
-------------
-
-.. automodule:: mushroom.utils.preprocessor
-    :members:
-    :show-inheritance:
-
 Replay memory
 -------------
 
@@ -105,6 +98,15 @@ Table
 -----
 
 .. automodule:: mushroom.utils.table
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+Torch
+-----
+
+.. automodule:: mushroom.utils.torch
     :members:
     :private-members:
     :inherited-members:

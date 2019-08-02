@@ -8,12 +8,10 @@ from mushroom.utils.spaces import Box
 
 class ObservationType(Enum):
     """
-
-    An enum indicating the type of data that should be added to the observation of the environment, can be
-    Joint-/Body-/Site- positions and velocities
+    An enum indicating the type of data that should be added to the observation
+    of the environment, can be Joint-/Body-/Site- positions and velocities.
 
     """
-
     __order__ = "BODY_POS BODY_VEL JOINT_POS JOINT_VEL SITE_POS SITE_VEL"
     BODY_POS = 0
     BODY_VEL = 1
@@ -25,12 +23,10 @@ class ObservationType(Enum):
 
 class DataMap:
     """
-
-    Helper variable to access the correct arrays in the MuJoCo data structure given the type of data that we want
-    to access
+    Helper variable to access the correct arrays in the MuJoCo data structure
+    given the type of data that we want to access.
 
     """
-
     def __init__(self, sim):
         self.sim = sim
 
@@ -53,54 +49,70 @@ class DataMap:
 
 
 class MuJoCo(Environment):
+    """
+        Class to create a Mushroom environment using the MuJoCo simulator.
 
-    def __init__(self, file_name, actuation_spec, observation_spec, gamma, horizon, nsubsteps=1,
-                 additional_data_spec=None, collision_groups=None):
+    """
+    def __init__(self, file_name, actuation_spec, observation_spec, gamma,
+                 horizon, nsubsteps=1, additional_data_spec=None,
+                 collision_groups=None):
         """
-
-        Create a mushroom environment using the MuJoCo simulator
+        Constructor.
 
         Args:
-            file_name (string): The path to the XML file with which the environment should be created
-            actuation_spec (list): A list specifying the names of the joints which should be controllable by the
-                                   agent. Each element of the dictionary is a tuple in the form:
-                                   (joint_name, lower_torque_limit, upper_torque_limit)
-            observation_spec (list): A list containing the names of data that should be made available to the agent as
-                                     an observation and their type (ObservationType). An entry in the list is given by:
-                                     (name, type)
-            gamma (float): The discounting factor of the environment
-            horizon (int): The maximum horizon for the environment
-            nsubsteps (int): The number of substeps to use by the MuJoCo simulator. An action given by the agent will be
-                             applied for nsubsteps before the agent receives the next observation and can act
-                             accordingly
-            additional_data_spec (list): A list containing the data fields of interest, which should be read from or
-                                         written to during simulation. The entries are given as the following tuples:
-                                         (key, name, type)
-                                         key is a string for later referencing in the "read_data" and "write_data"
-                                         methods. The name is the name of the object in the XML specification and the
-                                         type is the ObservationType
-            collision_groups (list): A list containing groups of geoms for which collisions should be checked during
-                                     simulation via "check_collision". The entries are given as the following tuples:
-                                     (key, geom_names)
-                                     key is a string for later referencing in the "check_collision" method.
-                                     geom_names is a list of geom names in the XML specification.
+            file_name (string): The path to the XML file with which the
+                environment should be created;
+            actuation_spec (list): A list specifying the names of the joints
+                which should be controllable by the agent. Each element of the
+                dictionary is a tuple in the form: (joint_name,
+                lower_torque_limit, upper_torque_limit);
+            observation_spec (list): A list containing the names of data that
+                should be made available to the agent as an observation and
+                their type (ObservationType). An entry in the list is given by:
+                (name, type);
+            gamma (float): The discounting factor of the environment;
+            horizon (int): The maximum horizon for the environment;
+            nsubsteps (int): The number of substeps to use by the MuJoCo
+                simulator. An action given by the agent will be applied for
+                nsubsteps before the agent receives the next observation and
+                can act accordingly;
+            additional_data_spec (list): A list containing the data fields of
+                interest, which should be read from or written to during
+                simulation. The entries are given as the following tuples:
+                (key, name, type) key is a string for later referencing in the
+                "read_data" and "write_data" methods. The name is the name of
+                the object in the XML specification and the type is the
+                ObservationType;
+            collision_groups (list): A list containing groups of geoms for
+                which collisions should be checked during simulation via
+                ``check_collision``. The entries are given as:
+                ``(key, geom_names)``, where key is a string for later
+                referencing in the "check_collision" method, and geom_names is
+                a list of geom names in the XML specification.
         """
-
         # Create the simulation
-        self.sim = mujoco_py.MjSim(mujoco_py.load_model_from_path(file_name), nsubsteps=nsubsteps)
+        self.sim = mujoco_py.MjSim(mujoco_py.load_model_from_path(file_name),
+                                   nsubsteps=nsubsteps)
         self.viewer = None
 
         # Create a mapping from ObservationTypes to the corresponding index and data arrays
-        self.id_maps = [self.sim.model._body_name2id, self.sim.model._body_name2id, self.sim.model._joint_name2id,
-                        self.sim.model._joint_name2id, self.sim.model._site_name2id, self.sim.model._site_name2id]
+        self.id_maps = [self.sim.model._body_name2id,
+                        self.sim.model._body_name2id,
+                        self.sim.model._joint_name2id,
+                        self.sim.model._joint_name2id,
+                        self.sim.model._site_name2id,
+                        self.sim.model._site_name2id]
         self.data_map = DataMap(self.sim)
 
-        # Read the actuation spec and build the mapping between actions and ids as well as their limits
+        # Read the actuation spec and build the mapping between actions and ids
+        # as well as their limits
         low = []
         high = []
         self.action_indices = []
         for name, lb, ub in actuation_spec:
-            self.action_indices.append(self.id_maps[ObservationType.JOINT_POS.value][name])
+            self.action_indices.append(
+                self.id_maps[ObservationType.JOINT_POS.value][name]
+            )
             low.append(lb)
             high.append(ub)
 
@@ -109,7 +121,9 @@ class MuJoCo(Environment):
         # Read the number of kinds of observations
         n_obs = [0] * len(ObservationType)
         for otype in ObservationType:
-            n_obs[otype.value] = int(np.sum([1 if ot == otype else 0 for __, ot in observation_spec]))
+            n_obs[otype.value] = int(np.sum(
+                [1 if ot == otype else 0 for __, ot in observation_spec]
+            ))
 
         # Pre-compute the offsets using this information
         offsets = [0]
@@ -121,8 +135,9 @@ class MuJoCo(Environment):
             offsets.append(offsets[i - 1] + mul * n_obs[i - 1])
             # n_obs[i] += n_obs[i - 1]
 
-        # Read the observation spec and build the mapping to quickly assemble the observations in every step. It is
-        # ensured that the values appear in the order they are specified
+        # Read the observation spec and build the mapping to quickly assemble
+        # the observations in every step. It is ensured that the values appear
+        # in the order they are specified
         low = []
         high = []
         self.observation_indices = []
@@ -134,14 +149,20 @@ class MuJoCo(Environment):
             else:
                 indices = self.observation_sub_indices[ot.value]
 
-            # Depending on the type of the observation, we need to add multiple entries in the indices list
+            # Depending on the type of the observation, we need to add multiple
+            # entries in the indices list
             if ot == ObservationType.JOINT_POS or ot == ObservationType.JOINT_VEL:
-                self.observation_indices.append(offsets[ot.value] + len(indices))
+                self.observation_indices.append(
+                    offsets[ot.value] + len(indices)
+                )
             else:
-                self.observation_indices.extend([offsets[ot.value] + 3 * len(indices) + i for i in range(0, 3)])
+                self.observation_indices.extend(
+                    [offsets[ot.value] + 3 * len(indices) + i for i in range(0, 3)]
+                )
             indices.append(self.id_maps[ot.value][name])
 
-            # We can only specify limits for the joint positions, all other information can be potentially unbounded
+            # We can only specify limits for the joint positions, all other
+            # information can be potentially unbounded
             if ot == ObservationType.JOINT_POS:
                 joint_range = self.sim.model.jnt_range[indices[-1]]
                 if joint_range[0] == joint_range[1] == 0.0:
@@ -160,10 +181,12 @@ class MuJoCo(Environment):
 
         observation_space = Box(np.array(low), np.array(high))
 
-        # Pre-process the additional data to allow for fast writing and reading to and from arrays in MuJoCo
+        # Pre-process the additional data to allow for fast writing and reading
+        # to and from arrays in MuJoCo
         self.additional_data = {}
         for key, name, ot in additional_data_spec:
-            self.additional_data[key] = (ot.value, self.id_maps[ot.value][name])
+            self.additional_data[key] = (ot.value,
+                                         self.id_maps[ot.value][name])
 
         # Pre-process the collision groups for "fast" detection of contacts
         self.collision_groups = {}
@@ -171,7 +194,8 @@ class MuJoCo(Environment):
             for name, geom_names in collision_groups:
                 self.collision_groups[name] = {self.sim.model._geom_name2id[geom_name] for geom_name in geom_names}
 
-        # Finally, we create the MDP information and call the constructor of the parent class
+        # Finally, we create the MDP information and call the constructor of
+        # the parent class
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
         super().__init__(mdp_info)
 
@@ -184,15 +208,6 @@ class MuJoCo(Environment):
         return self._create_observation()
 
     def _create_observation(self):
-        """
-
-        Creates the observation of the environment using the information passed in the constructor
-
-        Returns:
-            An observation containing the information specified in the constructor as a one-dimensional numpy array
-
-        """
-
         observation = []
         for i in range(0, len(ObservationType)):
             if i in self.observation_sub_indices:
@@ -223,15 +238,14 @@ class MuJoCo(Environment):
 
     def read_data(self, name):
         """
-
-        Reads data form the MuJoCo data structure
+        Read data form the MuJoCo data structure.
 
         Args:
-            name (string): A name referring to an entry contained the additional_data_spec list handed to the
-                           constructor
+            name (string): A name referring to an entry contained the
+                additional_data_spec list handed to the constructor.
 
         Returns:
-            The desired data as a one-dimensional numpy array
+            The desired data as a one-dimensional numpy array.
 
         """
         data_id, id = self.additional_data[name]
@@ -239,13 +253,12 @@ class MuJoCo(Environment):
 
     def write_data(self, name, value):
         """
-
-        Writes data to the MuJoCo data structure
+        Write data to the MuJoCo data structure.
 
         Args:
-            name (string): A name referring to an entry contained in the additional_data_spec list handed to the
-                           constructor
-            value (ndarray): The data that should be written
+            name (string): A name referring to an entry contained in the
+                additional_data_spec list handed to the constructor;
+            value (ndarray): The data that should be written.
 
         """
         data_id, id = self.additional_data[name]
@@ -253,17 +266,18 @@ class MuJoCo(Environment):
 
     def check_collision(self, group1, group2):
         """
-
-        Checks for collision between the specified groups
+        Check for collision between the specified groups.
 
         Args:
-            group1 (string): A name referring to an entry contained in the collision_groups list handed to the
-                             constructor
-            group2 (string): A name referring to an entry contained in the collision_groups list handed to the
-                             constructor
+            group1 (string): A name referring to an entry contained in the
+                collision_groups list handed to the constructor;
+            group2 (string): A name referring to an entry contained in the
+                collision_groups list handed to the constructor.
 
         Returns:
-            A flag indicating whether a collision occurred between the given groups or not
+            A flag indicating whether a collision occurred between the given
+            groups or not.
+
         """
         ids1 = self.collision_groups[group1]
         ids2 = self.collision_groups[group2]
@@ -285,33 +299,37 @@ class MuJoCo(Environment):
 
     def reward(self, state, action, next_state):
         """
-        Compute the reward based on the given transition
+        Compute the reward based on the given transition.
 
         Args:
-            state (np.array): the current state of the system
-            action (np.array): the action that is applied in the current state
-            next_state (np.array): the state reached after applying the given action
+            state (np.array): the current state of the system;
+            action (np.array): the action that is applied in the current state;
+            next_state (np.array): the state reached after applying the given
+                action.
 
         Returns:
-            The reward as a floating point scalar value
+            The reward as a floating point scalar value.
 
         """
         raise NotImplementedError
 
     def is_absorbing(self, state):
         """
-        Check whether the given state is an absorbing state or not
+        Check whether the given state is an absorbing state or not.
 
         Args:
-            state (np.array): the state of the system
+            state (np.array): the state of the system.
 
         Returns:
-            A boolean flag indicating whether this state is absorbing or not
+            A boolean flag indicating whether this state is absorbing or not.
+
         """
         raise NotImplementedError
 
     def setup(self):
         """
-        A function that allows to execute setup code after an environment reset
+        A function that allows to execute setup code after an environment
+        reset.
+
         """
         pass
