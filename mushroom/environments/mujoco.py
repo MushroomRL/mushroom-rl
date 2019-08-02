@@ -50,7 +50,7 @@ class DataMap:
 
 class MuJoCo(Environment):
     """
-        Class to create a Mushroom environment using the MuJoCo simulator.
+    Class to create a Mushroom environment using the MuJoCo simulator.
 
     """
     def __init__(self, file_name, actuation_spec, observation_spec, gamma,

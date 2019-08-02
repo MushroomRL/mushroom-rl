@@ -28,8 +28,8 @@ Car on hill
     :inherited-members:
     :show-inheritance:
 
-DeepMind control
-~~~~~~~~~~~~~~~~
+DeepMind Control Suite
+~~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: mushroom.environments.dm_control_env
     :members:
