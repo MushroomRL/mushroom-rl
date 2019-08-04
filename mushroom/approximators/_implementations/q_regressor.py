@@ -35,7 +35,6 @@ class QRegressor:
                 regressor.
 
         """
-        state, q = self._preprocess(state, q)
         self.model.fit(state, action, q, **fit_params)
 
     def predict(self, *z, **predict_params):
