@@ -2,7 +2,7 @@ import numpy as np
 
 
 class PolynomialBasis:
-    """
+    r"""
     Class implementing polynomial basis functions. The value of the feature
     is computed using the formula:
     

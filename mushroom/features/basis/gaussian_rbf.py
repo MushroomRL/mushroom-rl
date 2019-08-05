@@ -3,7 +3,7 @@ from mushroom.utils.features import uniform_grid
 
 
 class GaussianRBF:
-    """
+    r"""
     Class implementing Gaussian radial basis functions. The value of the feature
     is computed using the formula:
     
@@ -44,7 +44,7 @@ class GaussianRBF:
 
     @staticmethod
     def generate(n_centers, low, high, dimensions=None):
-        """
+        r"""
         Factory method to build uniformly spaced gaussian radial basis functions
         with a 25\% overlap.
 
