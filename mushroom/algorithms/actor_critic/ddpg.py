@@ -2,46 +2,12 @@ from copy import deepcopy
 
 import numpy as np
 
-import torch.nn as nn
-from mushroom.algorithms import Agent
+from mushroom.algorithms import ReparametrizationAC
 from mushroom.approximators import Regressor
 from mushroom.utils.replay_memory import ReplayMemory
 
 
-class ActorLoss(nn.Module):
-    """
-    Class used to implement the loss function of the actor.
-    
-    """
-    def __init__(self, critic):
-        super().__init__()
-
-        self._critic = critic
-
-    def forward(self, action, state):
-        q = self._critic.model.network(state, action)
-
-        return -q.mean()
-
-
-class ActorLossTD3(nn.Module):
-    """
-    Class used to implement the loss function of the actor.
-
-    """
-
-    def __init__(self, critic):
-        super().__init__()
-
-        self._critic = critic
-
-    def forward(self, action, state):
-        q = self._critic.model[0].network(state, action)
-
-        return -q.mean()
-
-
-class DDPG(Agent):
+class DDPG(ReparametrizationAC):
     """
     Deep Deterministic Policy Gradient algorithm.
     "Continuous Control with Deep Reinforcement Learning".
@@ -51,7 +17,7 @@ class DDPG(Agent):
     def __init__(self, actor_approximator, critic_approximator, policy_class,
                  mdp_info, batch_size, initial_replay_size, max_replay_size,
                  tau, actor_params, critic_params, policy_params,
-                 policy_delay=1, actor_fit_params=None, critic_fit_params=None):
+                 policy_delay=1, critic_fit_params=None):
         """
         Constructor.
 
@@ -73,14 +39,11 @@ class DDPG(Agent):
             policy_params (dict): parameters of the policy to build;
             policy_delay (int, 1): the number of updates of the critic after
                 which an actor update is implemented;
-            actor_fit_params (dict, None): parameters of the fitting algorithm
-                of the actor approximator;
             critic_fit_params (dict, None): parameters of the fitting algorithm
                 of the critic approximator;
 
         """
 
-        self._actor_fit_params = dict() if actor_fit_params is None else actor_fit_params
         self._critic_fit_params = dict() if critic_fit_params is None else critic_fit_params
 
         self._batch_size = batch_size
@@ -95,11 +58,6 @@ class DDPG(Agent):
                                               **critic_params)
         self._target_critic_approximator = Regressor(critic_approximator,
                                                      **target_critic_params)
-
-        if 'loss' not in actor_params:
-            actor_params['loss'] = ActorLoss(self._critic_approximator)
-        else:
-            actor_params['loss'] = actor_params['loss'](self._critic_approximator)
 
         target_actor_params = deepcopy(actor_params)
         self._actor_approximator = Regressor(actor_approximator,
@@ -125,12 +83,18 @@ class DDPG(Agent):
                                           **self._critic_fit_params)
 
             if self._fit_count % self._policy_delay == 0:
-                self._actor_approximator.fit(state, state,
-                                             **self._actor_fit_params)
+                loss = self._loss(state)
+                self._optimize_actor_parameters(loss)
 
             self._update_target()
 
             self._fit_count += 1
+
+    def _loss(self, state):
+        action = self._critic_approximator(state)
+        q = self._critic(state, action)
+
+        return -q.mean()
 
     def _init_target(self):
         """
@@ -186,8 +150,7 @@ class TD3(DDPG):
     def __init__(self, actor_approximator, critic_approximator, policy_class,
                  mdp_info, batch_size, initial_replay_size, max_replay_size,
                  tau, actor_params, critic_params, policy_params,
-                 policy_delay=2, noise_std=0.2, noise_clip=0.5,
-                 actor_fit_params=None, critic_fit_params=None):
+                 policy_delay=2, noise_std=0.2, noise_clip=0.5, critic_fit_params=None):
         """
         Constructor.
 
@@ -212,8 +175,6 @@ class TD3(DDPG):
             noise_std (float, 0.2): standard deviation of the noise used for policy
                 smoothing;
             noise_clip (float, 0.5): maximum absolute value for policy smoothing noise;
-            actor_fit_params (dict, None): parameters of the fitting algorithm
-                of the actor approximator;
             critic_fit_params (dict, None): parameters of the fitting algorithm
                 of the critic approximator;
 
@@ -229,13 +190,16 @@ class TD3(DDPG):
         if 'prediction' not in critic_params.keys():
             critic_params['prediction'] = 'min'
 
-        if 'loss' not in actor_params:
-            actor_params['loss'] = ActorLossTD3
-
         super().__init__(actor_approximator, critic_approximator, policy_class,
                          mdp_info, batch_size, initial_replay_size, max_replay_size,
                          tau, actor_params, critic_params, policy_params,
-                         policy_delay, actor_fit_params, critic_fit_params)
+                         policy_delay, critic_fit_params)
+
+    def _loss(self, state):
+        action = self._critic_approximator(state)
+        q = self._critic_approximator(state, action, idx=0)
+
+        return -q.mean()
 
     def _init_target(self):
         """
