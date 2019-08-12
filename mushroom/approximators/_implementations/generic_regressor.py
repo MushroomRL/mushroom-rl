@@ -16,8 +16,6 @@ class GenericRegressor:
 
         """
         self._n_inputs = n_inputs
-        self._input_preprocessor = params.pop('input_preprocessor', list())
-        self._output_preprocessor = params.pop('output_preprocessor', list())
         self.model = approximator(**params)
 
     def fit(self, *z, **fit_params):

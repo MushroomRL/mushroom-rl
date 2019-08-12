@@ -25,9 +25,6 @@ class ActionRegressor:
         self.model = list()
         self._n_actions = n_actions
 
-        self._input_preprocessor = params.pop('input_preprocessor', list())
-        self._output_preprocessor = params.pop('output_preprocessor', list())
-
         for i in range(self._n_actions):
             self.model.append(approximator(**params))
 
@@ -43,8 +40,6 @@ class ActionRegressor:
                 of each regressor.
 
         """
-        state, q = self._preprocess(state, q)
-
         for i in range(len(self.model)):
             idxs = np.argwhere((action == i)[:, 0]).ravel()
 
