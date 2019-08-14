@@ -2,8 +2,9 @@ from copy import deepcopy
 
 import numpy as np
 
-from mushroom.algorithms import ReparametrizationAC
+from mushroom.algorithms.actor_critic import ReparametrizationAC
 from mushroom.approximators import Regressor
+from mushroom.approximators.parametric import TorchApproximator
 from mushroom.utils.replay_memory import ReplayMemory
 
 
@@ -14,18 +15,16 @@ class DDPG(ReparametrizationAC):
     Lillicrap T. P. et al.. 2016.
 
     """
-    def __init__(self, actor_approximator, critic_approximator, policy_class,
-                 mdp_info, batch_size, initial_replay_size, max_replay_size,
-                 tau, actor_params, critic_params, policy_params,
+    def __init__(self, mdp_info, policy_class, policy_params,
+                 batch_size, initial_replay_size, max_replay_size,
+                 tau, critic_params, actor_params, actor_optimizer,
                  policy_delay=1, critic_fit_params=None):
         """
         Constructor.
 
         Args:
-            actor_approximator (object): the approximator to use for the actor;
-            critic_approximator (object): the approximator to use for the
-                critic;
             policy_class (Policy): class of the policy;
+            policy_params (dict): parameters of the policy to build;
             batch_size (int): the number of samples in a batch;
             initial_replay_size (int): the number of samples to collect before
                 starting the learning;
@@ -36,7 +35,8 @@ class DDPG(ReparametrizationAC):
                 build;
             critic_params (dict): parameters of the critic approximator to
                 build;
-            policy_params (dict): parameters of the policy to build;
+            actor_optimizer (dict): parameters to specify the actor optimizer
+                algorithm;
             policy_delay (int, 1): the number of updates of the critic after
                 which an actor update is implemented;
             critic_fit_params (dict, None): parameters of the fitting algorithm
@@ -54,21 +54,23 @@ class DDPG(ReparametrizationAC):
         self._replay_memory = ReplayMemory(initial_replay_size, max_replay_size)
 
         target_critic_params = deepcopy(critic_params)
-        self._critic_approximator = Regressor(critic_approximator,
+        self._critic_approximator = Regressor(TorchApproximator,
                                               **critic_params)
-        self._target_critic_approximator = Regressor(critic_approximator,
+        self._target_critic_approximator = Regressor(TorchApproximator,
                                                      **target_critic_params)
 
         target_actor_params = deepcopy(actor_params)
-        self._actor_approximator = Regressor(actor_approximator,
+        self._actor_approximator = Regressor(TorchApproximator,
                                              **actor_params)
-        self._target_actor_approximator = Regressor(actor_approximator,
+        self._target_actor_approximator = Regressor(TorchApproximator,
                                                     **target_actor_params)
 
         self._init_target()
 
         policy = policy_class(self._actor_approximator, **policy_params)
-        super().__init__(policy, mdp_info)
+
+        policy_parameters = self._actor_approximator.model.network.parameters()
+        super().__init__(policy, mdp_info, actor_optimizer, policy_parameters)
 
     def fit(self, dataset):
         self._replay_memory.add(dataset)
@@ -91,8 +93,8 @@ class DDPG(ReparametrizationAC):
             self._fit_count += 1
 
     def _loss(self, state):
-        action = self._critic_approximator(state)
-        q = self._critic(state, action)
+        action = self._actor_approximator(state, output_tensor=True)
+        q = self._critic_approximator(state, action, output_tensor=True)
 
         return -q.mean()
 
@@ -101,21 +103,21 @@ class DDPG(ReparametrizationAC):
         Init weights for target approximators
 
         """
-        self._target_actor_approximator.model.set_weights(
-            self._actor_approximator.model.get_weights())
-        self._target_critic_approximator.model.set_weights(
-            self._critic_approximator.model.get_weights())
+        self._target_actor_approximator.set_weights(
+            self._actor_approximator.get_weights())
+        self._target_critic_approximator.set_weights(
+            self._critic_approximator.get_weights())
 
     def _update_target(self):
         """
         Update the target networks.
 
         """
-        critic_weights = self._tau * self._critic_approximator.model.get_weights()
+        critic_weights = self._tau * self._critic_approximator.get_weights()
         critic_weights += (1 - self._tau) * self._target_critic_approximator.get_weights()
         self._target_critic_approximator.set_weights(critic_weights)
 
-        actor_weights = self._tau * self._actor_approximator.model.get_weights()
+        actor_weights = self._tau * self._actor_approximator.get_weights()
         actor_weights += (1 - self._tau) * self._target_actor_approximator.get_weights()
         self._target_actor_approximator.set_weights(actor_weights)
 
@@ -147,17 +149,15 @@ class TD3(DDPG):
     Fujimoto S. et al.. 2018.
 
     """
-    def __init__(self, actor_approximator, critic_approximator, policy_class,
-                 mdp_info, batch_size, initial_replay_size, max_replay_size,
-                 tau, actor_params, critic_params, policy_params,
-                 policy_delay=2, noise_std=0.2, noise_clip=0.5, critic_fit_params=None):
+    def __init__(self, mdp_info, policy_class, policy_params,
+                 batch_size, initial_replay_size, max_replay_size,
+                 tau, critic_params, actor_params, actor_optimizer,
+                 policy_delay=2, noise_std=0.2, noise_clip=0.5,
+                 critic_fit_params=None):
         """
         Constructor.
 
         Args:
-            actor_approximator (object): the approximator to use for the actor;
-            critic_approximator (object): the approximator to use for the
-                critic;
             policy_class (Policy): class of the policy;
             batch_size (int): the number of samples in a batch;
             initial_replay_size (int): the number of samples to collect before
@@ -190,14 +190,14 @@ class TD3(DDPG):
         if 'prediction' not in critic_params.keys():
             critic_params['prediction'] = 'min'
 
-        super().__init__(actor_approximator, critic_approximator, policy_class,
-                         mdp_info, batch_size, initial_replay_size, max_replay_size,
-                         tau, actor_params, critic_params, policy_params,
+        super().__init__(mdp_info, policy_class, policy_params,
+                         batch_size, initial_replay_size, max_replay_size,
+                         tau, critic_params, actor_params, actor_optimizer,
                          policy_delay, critic_fit_params)
 
     def _loss(self, state):
-        action = self._critic_approximator(state)
-        q = self._critic_approximator(state, action, idx=0)
+        action = self._actor_approximator(state, output_tensor=True)
+        q = self._critic_approximator(state, action, idx=0, output_tensor=True)
 
         return -q.mean()
 
@@ -206,8 +206,8 @@ class TD3(DDPG):
         Init weights for target approximators
 
         """
-        self._target_actor_approximator.model.set_weights(
-            self._actor_approximator.model.get_weights())
+        self._target_actor_approximator.set_weights(
+            self._actor_approximator.get_weights())
         for i in range(len(self._critic_approximator)):
             self._target_critic_approximator.model[i].set_weights(
                 self._critic_approximator.model[i].get_weights())
@@ -222,7 +222,7 @@ class TD3(DDPG):
             critic_weights_i += (1 - self._tau) * self._target_critic_approximator.model[i].get_weights()
             self._target_critic_approximator.model[i].set_weights(critic_weights_i)
 
-        actor_weights = self._tau * self._actor_approximator.model.get_weights()
+        actor_weights = self._tau * self._actor_approximator.get_weights()
         actor_weights += (1 - self._tau) * self._target_actor_approximator.get_weights()
         self._target_actor_approximator.set_weights(actor_weights)
 

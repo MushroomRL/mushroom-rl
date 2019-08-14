@@ -5,6 +5,8 @@ import numpy as np
 import torch
 import torch.optim as optim
 
+from itertools import chain
+
 from mushroom.algorithms.actor_critic import ReparametrizationAC
 from mushroom.policy import Policy
 from mushroom.approximators import Regressor
@@ -12,34 +14,63 @@ from mushroom.approximators.parametric import TorchApproximator
 from mushroom.utils.replay_memory import ReplayMemory
 
 
-class SACGaussianPolicy(Policy):
-    def __init__(self, mu_approximator, sigma_approximator):
+class SACPolicy(Policy):
+    """
+    Class used to implement the policy used by the Soft Actor-Critic
+    algorithm. The policy is a Gaussian policy squashed by a tanh.
+    This class implements the compute_action_and_log_prob and the
+    compute_action_and_log_prob_t methods, that are fundamental for
+    the internals calculations of the SAC algorithm.
+
+    """
+    def __init__(self, mu_approximator, sigma_approximator, min_a, max_a):
         """
         Constructor.
 
         Args:
-            approximator (Regressor): a regressor computing mean and variance given a state
+            mu_approximator (Regressor): a regressor computing mean in given a state;
+            sigma_approximator (Regressor): a regressor computing the variance in
+               given a state;
+            min_a (np.ndarray): a vector specifying the minimum action value for
+                each component;
+            max_a (np.ndarray): a vector specifying the maximum action value for
+                each component.
+
         """
         self._mu_approximator = mu_approximator
         self._sigma_approximator = sigma_approximator
+        self._delta_a = torch.from_numpy(0.5*(max_a - min_a))
+        self._central_a = torch.from_numpy(0.5*(max_a + min_a))
 
-    def __call__(self, state, action, use_log=True):
-        if use_log:
-            return self._mu_approximator.log_prob(state, action)
-        else:
-            return np.exp(self._mu_approximator.log_prob(state, action))
+    def __call__(self, state, action, use_log=True, tensor_output=False):
+        raise NotImplementedError
 
     def draw_action(self, state):
-        mu, sigma = self._approximator.predict(state)
+        return self.compute_action_and_log_prob_t(state, compute_log_prob=False).detach().cpu().numpy()
 
-        a = mu + sigma*np.random.randn(len(sigma))
-        return a
+    def compute_action_and_log_prob(self, state):
+        a, log_prob = self.compute_action_and_log_prob_t(state)
+        log_prob = log_prob.flatten()
+        return a.detach().cpu().numpy(), log_prob.detach().cpu().numpy()
 
-    def set_weights(self, weights):
-        self._approximator.set_weights(weights)
+    def compute_action_and_log_prob_t(self, state, compute_log_prob=True):
+        dist = self.distribution(state)
+        a_raw = dist.sample()
+        a = torch.tanh(a_raw)
+        a_true = a*self._delta_a + self._central_a
 
-    def get_weights(self):
-        return self._approximator.get_weights()
+        if compute_log_prob:
+            log_prob = dist.log_prob(a_raw)
+            log_prob -= torch.log(1. - a.pow(2) + 1e-6)
+            log_prob = log_prob.sum(dim=1, keepdim=True)
+            return a_true, log_prob
+        else:
+            return a_true
+
+    def distribution(self, state):
+        mu = self._mu_approximator.predict(state, output_tensor=True)
+        log_sigma = self._sigma_approximator.predict(state, output_tensor=True)
+        return torch.distributions.Normal(loc=mu, scale=log_sigma.exp())
 
     def reset(self):
         pass
@@ -73,6 +104,8 @@ class SAC(ReparametrizationAC):
                 to build;
             actor_sigma_params (dict): parameters of the actor sigma approximator
                 to build;
+            actor_optimizer (dict): parameters to specify the actor
+                optimizer algorithm;
             critic_params (dict): parameters of the critic approximator to
                 build;
             critic_fit_params (dict, None): parameters of the fitting algorithm
@@ -104,19 +137,22 @@ class SAC(ReparametrizationAC):
                                                      **target_critic_params)
 
         self._log_alpha = torch.tensor(0., requires_grad=True, dtype=torch.float32)
-        self._alpha_optim = optim.Adam([self.log_alpha], lr=lr_alpha)
+        self._alpha_optim = optim.Adam([self._log_alpha], lr=lr_alpha)
 
-        self._actor_mu_approximator = Regressor(TorchApproximator,
-                                                **actor_mu_params)
-        self._actor_sigma_approximator = Regressor(TorchApproximator,
-                                                   **actor_sigma_params)
-        policy = SACGaussianPolicy(self._actor_mu_approximator,
-                                   self._actor_sigma_approximator)
+        actor_mu_approximator = Regressor(TorchApproximator,
+                                          **actor_mu_params)
+        actor_sigma_approximator = Regressor(TorchApproximator,
+                                             **actor_sigma_params)
+
+        policy = SACPolicy(actor_mu_approximator,
+                           actor_sigma_approximator,
+                           mdp_info.action_space.low,
+                           mdp_info.action_space.high)
 
         self._init_target()
 
-        policy_parameters = self._actor_mu_approximator.network.params() + \
-                            self._actor_sigma_approximator.network.params()
+        policy_parameters = chain(actor_mu_approximator.model.network.parameters(),
+                                  actor_sigma_approximator.model.network.parameters())
         super().__init__(policy, mdp_info, actor_optimizer, policy_parameters)
 
     def fit(self, dataset):
@@ -125,14 +161,15 @@ class SAC(ReparametrizationAC):
             state, action, reward, next_state, absorbing, _ = \
                 self._replay_memory.get(self._batch_size)
 
-            if self._replay_memory.size() > self._warmup_transitions:
-                eps = np.random.randn(action.shape)
-                loss = self._loss(action, state, eps)
+            if self._replay_memory.size > self._warmup_transitions:
+                action_new, log_prob = self.policy.compute_action_and_log_prob_t(state)
+                loss = self._loss(state, action_new, log_prob)
                 self._optimize_actor_parameters(loss)
-                self._update_alpha(state, eps)
+                self._update_alpha(log_prob.detach())
 
             q_next = self._next_q(next_state, absorbing)
             q = reward + self.mdp_info.gamma * q_next
+
             self._critic_approximator.fit(state, action, q,
                                           **self._critic_fit_params)
 
@@ -147,22 +184,21 @@ class SAC(ReparametrizationAC):
             self._target_critic_approximator.model[i].set_weights(
                 self._critic_approximator.model[i].get_weights())
 
-    def _loss(self, action, state, eps):
-        mu = self._actor_mu_approximator.predict(state)
-        sigma = self._actor_sigma_approximator.predict()
-
-        action_new = mu + eps * sigma
-
+    def _loss(self, state, action_new, log_prob):
         q_0 = self._critic_approximator(state, action_new,
-                                        tensor_output=True, idx=0)
+                                        output_tensor=True, idx=0)
         q_1 = self._critic_approximator(state, action_new,
-                                        tensor_output=True, idx=1)
+                                        output_tensor=True, idx=1)
 
         q = torch.min(q_0, q_1)
 
-        log_prob = self._log_prob(state, action)
+        return (self._alpha * log_prob - q).mean()
 
-        return (self._alpha() * log_prob - q).mean()
+    def _update_alpha(self, log_prob):
+        alpha_loss = - (self._log_alpha * (log_prob + self._target_entropy)).mean()
+        self._alpha_optim.zero_grad()
+        alpha_loss.backward()
+        self._alpha_optim.step()
 
     def _update_target(self):
         """
@@ -173,22 +209,6 @@ class SAC(ReparametrizationAC):
             critic_weights_i = self._tau * self._critic_approximator.model[i].get_weights()
             critic_weights_i += (1 - self._tau) * self._target_critic_approximator.model[i].get_weights()
             self._target_critic_approximator.model[i].set_weights(critic_weights_i)
-
-    def _compute_log_prob(self, state, action):
-        return self._critic_approximator.model.network(state, action)
-
-    def _alpha(self):
-        return self.log_alpha.exp()
-
-    def _alpha_np(self):
-        return self._alpha().detach().cpu().numpy()
-
-    def _update_alpha(self, state, eps):
-        log_prob = self._compute_log_prob(state, eps)
-        alpha_loss = - (self._log_alpha * (log_prob + self._target_entropy)).mean()
-        self._alpha_optim.zero_grad()
-        alpha_loss.backward()
-        self._alpha_optim.step()
 
     def _next_q(self, next_state, absorbing):
         """
@@ -203,10 +223,23 @@ class SAC(ReparametrizationAC):
             action returned by the actor.
 
         """
-        a = self.policy(next_state)
-        log_prob_next = self.policy(next_state, a)
+        a, log_prob_next = self.policy.compute_action_and_log_prob(next_state)
 
-        q = self._target_critic_approximator.predict(next_state, a) - self._alpha_np() * log_prob_next
+        q = self._target_critic_approximator.predict(next_state, a) - self._alpha_np * log_prob_next
         q *= 1 - absorbing
 
+        # print('q', q.shape)
+        # print('target', self._target_critic_approximator.predict(next_state, a).shape)
+        # print('log_prob', log_prob_next.shape)
+        # print('alpha', self._alpha_np)
+        # exit()
+
         return q
+
+    @property
+    def _alpha(self):
+        return self._log_alpha.exp()
+
+    @property
+    def _alpha_np(self):
+        return self._alpha.detach().cpu().numpy()

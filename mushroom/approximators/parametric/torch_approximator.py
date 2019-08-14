@@ -66,7 +66,8 @@ class TorchApproximator:
 
     def predict(self, *args, output_tensor=False, **kwargs):
         if not self._use_cuda:
-            torch_args = [torch.from_numpy(x) for x in args]
+            torch_args = [torch.from_numpy(x) if isinstance(x, np.ndarray) else x
+                          for x in args]
             val = self.network.forward(*torch_args, **kwargs)
 
             if output_tensor:

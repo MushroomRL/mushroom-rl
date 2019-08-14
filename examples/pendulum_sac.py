@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-from mushroom.algorithms.actor_critic import DDPG, TD3
+from mushroom.algorithms.actor_critic import SAC
 from mushroom.core import Core
 from mushroom.environments.gym_env import Gym
 from mushroom.policy import OrnsteinUhlenbeckPolicy
@@ -72,23 +72,25 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
     gamma_eval = 1.
     mdp = Gym('Pendulum-v0', horizon, gamma)
 
-    # Policy
-    policy_class = OrnsteinUhlenbeckPolicy
-    policy_params = dict(sigma=np.ones(1) * .2, theta=.15, dt=1e-2)
-
     # Settings
+    warmup_transitions = 1000
     initial_replay_size = 500
     max_replay_size = 5000
     batch_size = 200
     n_features = 80
     tau = .001
+    lr_alpha = .001
 
     # Approximator
     actor_input_shape = mdp.info.observation_space.shape
-    actor_params = dict(network=ActorNetwork,
-                        n_features=n_features,
-                        input_shape=actor_input_shape,
-                        output_shape=mdp.info.action_space.shape)
+    actor_mu_params = dict(network=ActorNetwork,
+                           n_features=n_features,
+                           input_shape=actor_input_shape,
+                           output_shape=mdp.info.action_space.shape)
+    actor_sigma_params = dict(network=ActorNetwork,
+                              n_features=n_features,
+                              input_shape=actor_input_shape,
+                              output_shape=mdp.info.action_space.shape)
 
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': .001}}
@@ -103,9 +105,11 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
                          output_shape=(1,))
 
     # Agent
-    agent = alg(mdp.info, policy_class, policy_params,
+    agent = alg(mdp.info,
                 batch_size, initial_replay_size, max_replay_size,
-                tau, critic_params, actor_params, actor_optimizer)
+                warmup_transitions, tau, lr_alpha,
+                actor_mu_params, actor_sigma_params,
+                actor_optimizer, critic_params, critic_fit_params=None)
 
     # Algorithm
     core = Core(agent, mdp)
@@ -131,8 +135,7 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
 
 if __name__ == '__main__':
     algs = [
-        DDPG,
-        TD3
+        SAC
     ]
 
     for alg in algs:
