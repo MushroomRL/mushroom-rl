@@ -1,3 +1,6 @@
+import numpy as np
+
+import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
@@ -6,7 +9,6 @@ from mushroom.algorithms.actor_critic import DDPG, TD3
 from mushroom.core import Core
 from mushroom.environments.gym_env import Gym
 from mushroom.policy import OrnsteinUhlenbeckPolicy
-from mushroom.approximators.parametric.torch_approximator import *
 from mushroom.utils.dataset import compute_J
 
 

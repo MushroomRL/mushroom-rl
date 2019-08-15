@@ -50,19 +50,17 @@ class SACPolicy(Policy):
 
     def compute_action_and_log_prob(self, state):
         a, log_prob = self.compute_action_and_log_prob_t(state)
-        log_prob = log_prob.flatten()
         return a.detach().cpu().numpy(), log_prob.detach().cpu().numpy()
 
     def compute_action_and_log_prob_t(self, state, compute_log_prob=True):
         dist = self.distribution(state)
-        a_raw = dist.sample()
+        a_raw = dist.rsample()
         a = torch.tanh(a_raw)
         a_true = a*self._delta_a + self._central_a
 
         if compute_log_prob:
-            log_prob = dist.log_prob(a_raw)
-            log_prob -= torch.log(1. - a.pow(2) + 1e-6)
-            log_prob = log_prob.sum(dim=1, keepdim=True)
+            log_prob = dist.log_prob(a_raw).flatten()
+            log_prob -= torch.log(1. - a.pow(2) + 1e-6).sum(dim=1)
             return a_true, log_prob
         else:
             return a_true
@@ -70,7 +68,7 @@ class SACPolicy(Policy):
     def distribution(self, state):
         mu = self._mu_approximator.predict(state, output_tensor=True)
         log_sigma = self._sigma_approximator.predict(state, output_tensor=True)
-        return torch.distributions.Normal(loc=mu, scale=log_sigma.exp())
+        return torch.distributions.Normal(mu, log_sigma.exp())
 
     def reset(self):
         pass
@@ -227,12 +225,6 @@ class SAC(ReparametrizationAC):
 
         q = self._target_critic_approximator.predict(next_state, a) - self._alpha_np * log_prob_next
         q *= 1 - absorbing
-
-        # print('q', q.shape)
-        # print('target', self._target_critic_approximator.predict(next_state, a).shape)
-        # print('log_prob', log_prob_next.shape)
-        # print('alpha', self._alpha_np)
-        # exit()
 
         return q
 
