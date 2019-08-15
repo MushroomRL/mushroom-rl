@@ -64,11 +64,15 @@ class TorchApproximator:
                                                  **optimizer['params'])
         self._loss = loss
 
-    def predict(self, *args, **kwargs):
+    def predict(self, *args, output_tensor=False, **kwargs):
         if not self._use_cuda:
-            torch_args = [torch.from_numpy(x) for x in args]
+            torch_args = [torch.from_numpy(x) if isinstance(x, np.ndarray) else x
+                          for x in args]
             val = self.network.forward(*torch_args, **kwargs)
-            if isinstance(val, tuple):
+
+            if output_tensor:
+                return val
+            elif isinstance(val, tuple):
                 val = tuple([x.detach().numpy() for x in val])
             else:
                 val = val.detach().numpy()
@@ -76,7 +80,10 @@ class TorchApproximator:
             torch_args = [torch.from_numpy(x).cuda() for x in args]
             val = self.network.forward(*torch_args,
                                        **kwargs)
-            if isinstance(val, tuple):
+
+            if output_tensor:
+                return val
+            elif isinstance(val, tuple):
                 val = tuple([x.detach().cpu().numpy() for x in val])
             else:
                 val = val.detach().cpu().numpy()
