@@ -131,7 +131,7 @@ class TorchApproximator:
                     mean_loss_current = self._fit_epoch(train_args, use_weights,
                                                         kwargs)
 
-                    if validation_split < 1:
+                    if len(val_args[0]):
                         mean_val_loss_current = self._compute_batch_loss(
                             val_args, use_weights, kwargs
                         )
