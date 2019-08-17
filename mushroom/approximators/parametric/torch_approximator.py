@@ -101,6 +101,7 @@ class TorchApproximator:
             epsilon = kwargs.pop('epsilon')
             patience = kwargs.pop('patience', 1)
             n_epochs = kwargs.pop('n_epochs', np.inf)
+            validation_split = kwargs.pop('validation_split', 1)
             check_loss = True
         else:
             n_epochs = kwargs.pop('n_epochs', 1)
@@ -112,6 +113,13 @@ class TorchApproximator:
         else:
             use_weights = False
 
+        if 0 < validation_split <= 1:
+            train_len = np.ceil(len(args[0]) * validation_split).astype(np.int)
+            train_args = [a[:train_len] for a in args]
+            val_args = [a[train_len:] for a in args]
+        else:
+            raise ValueError
+
         patience_count = 0
         best_loss = np.inf
         epochs_count = 0
@@ -120,16 +128,25 @@ class TorchApproximator:
                       dynamic_ncols=True, disable=self._quiet,
                       leave=False) as t_epochs:
                 while patience_count < patience and epochs_count < n_epochs:
-                    mean_loss_current = self._fit_epoch(args, use_weights,
+                    mean_loss_current = self._fit_epoch(train_args, use_weights,
                                                         kwargs)
 
+                    if validation_split < 1:
+                        mean_val_loss_current = self._compute_batch_loss(
+                            val_args, use_weights, kwargs
+                        )
+
+                        loss = mean_val_loss_current.item()
+                    else:
+                        loss = mean_loss_current
+
                     if not self._quiet:
-                        t_epochs.set_postfix(loss=mean_loss_current)
+                        t_epochs.set_postfix(loss=loss)
                         t_epochs.update(1)
 
-                    if best_loss - mean_loss_current > epsilon:
+                    if best_loss - loss > epsilon:
                         patience_count = 0
-                        best_loss = mean_loss_current
+                        best_loss = loss
                     else:
                         patience_count += 1
 
@@ -137,7 +154,7 @@ class TorchApproximator:
         else:
             with trange(n_epochs, disable=self._quiet) as t_epochs:
                 for _ in t_epochs:
-                    mean_loss_current = self._fit_epoch(args, use_weights,
+                    mean_loss_current = self._fit_epoch(train_args, use_weights,
                                                         kwargs)
 
                     if not self._quiet:
