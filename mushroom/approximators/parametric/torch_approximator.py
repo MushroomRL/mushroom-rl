@@ -105,6 +105,7 @@ class TorchApproximator:
             check_loss = True
         else:
             n_epochs = kwargs.pop('n_epochs', 1)
+            validation_split = 1
             check_loss = False
 
         if 'weights' in kwargs:
@@ -114,7 +115,8 @@ class TorchApproximator:
             use_weights = False
 
         if 0 < validation_split <= 1:
-            train_len = np.ceil(len(args[0]) * validation_split).astype(np.int)
+            train_len = np.ceil(len(args[0]) * validation_split).astype(
+                np.int)
             train_args = [a[:train_len] for a in args]
             val_args = [a[train_len:] for a in args]
         else:

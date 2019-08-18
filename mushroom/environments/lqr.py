@@ -26,7 +26,7 @@ class LQR(Environment):
 
     """
     def __init__(self, A, B, Q, R, max_pos=np.inf, max_action=np.inf,
-                 random_init=False, gamma=0.9, horizon=50):
+                 random_init=False, episodic=False, gamma=0.9, horizon=50):
         """
         Constructor.
 
@@ -38,6 +38,8 @@ class LQR(Environment):
                 max_pos (float, np.inf): maximum value of the state;
                 max_action (float, np.inf): maximum value of the action;
                 random_init (bool, False): start from a random state;
+                episodic (bool, False): end the episode when the state goes over
+                the threshold;
                 gamma (float, 0.9): discount factor;
                 horizon (int, 50): horizon of the mdp.
 
@@ -48,6 +50,7 @@ class LQR(Environment):
         self.R = R
         self._max_pos = max_pos
         self._max_action = max_action
+        self._episodic = episodic
         self.random_init = random_init
 
         # MDP properties
@@ -65,7 +68,8 @@ class LQR(Environment):
 
     @staticmethod
     def generate(dimensions, max_pos=np.inf, max_action=np.inf, eps=.1,
-                 index=0, random_init=False, gamma=.9, horizon=50):
+                 index=0, random_init=False, episodic=False, gamma=.9,
+                 horizon=50):
         """
         Factory method that generates an lqr with identity dynamics and
         symmetric reward matrices.
@@ -77,6 +81,8 @@ class LQR(Environment):
             eps (double, .1): reward matrix weights specifier;
             index (int, 0): selector for the principal state;
             random_init (bool, False): start from a random state;
+            episodic (bool, False): end the episode when the state goes over the
+                threshold;
             gamma (float, .9): discount factor;
             horizon (int, 50): horizon of the mdp.
 
@@ -91,7 +97,8 @@ class LQR(Environment):
         Q[index, index] = 1. - eps
         R[index, index] = eps
 
-        return LQR(A, B, Q, R, max_pos, max_action, random_init, gamma, horizon)
+        return LQR(A, B, Q, R, max_pos, max_action, random_init, episodic,
+                   gamma, horizon)
 
     def reset(self, state=None):
         if state is None:
@@ -111,4 +118,9 @@ class LQR(Environment):
         reward = -(x.dot(self.Q).dot(x) + u.dot(self.R).dot(u))
         self._state = self.A.dot(x) + self.B.dot(u)
 
-        return self._state, reward, False, {}
+        if self._episodic and np.abs(self._state) > self._max_pos:
+            absorbing = True
+        else:
+            absorbing = False
+
+        return self._state, reward, absorbing, {}
