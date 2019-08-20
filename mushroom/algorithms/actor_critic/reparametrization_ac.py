@@ -280,6 +280,7 @@ class TD3(DDPG):
 
         return q
 
+
 class SACPolicy(Policy):
     """
     Class used to implement the policy used by the Soft Actor-Critic
@@ -308,7 +309,7 @@ class SACPolicy(Policy):
         self._delta_a = torch.from_numpy(0.5*(max_a - min_a))
         self._central_a = torch.from_numpy(0.5*(max_a + min_a))
 
-    def __call__(self, state, action, use_log=True, tensor_output=False):
+    def __call__(self, state, action, use_log=True):
         raise NotImplementedError
 
     def draw_action(self, state):
