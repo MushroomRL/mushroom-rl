@@ -90,26 +90,23 @@ class TorchApproximator:
 
         return val
 
-    def fit(self, *args, **kwargs):
+    def fit(self, *args, n_epochs=None, weights=None, epsilon=None, patience=1,
+            validation_split=1., **kwargs):
         if self._reinitialize:
             self.network.weights_init()
 
         if self._dropout:
             self.network.train()
 
-        if 'epsilon' in kwargs:
-            epsilon = kwargs.pop('epsilon')
-            patience = kwargs.pop('patience', 1)
-            n_epochs = kwargs.pop('n_epochs', np.inf)
-            validation_split = kwargs.pop('validation_split', 1)
+        if epsilon is not None:
+            n_epochs = np.inf if n_epochs is None else n_epochs
             check_loss = True
         else:
-            n_epochs = kwargs.pop('n_epochs', 1)
-            validation_split = 1
+            n_epochs = 1 if n_epochs is None else n_epochs
             check_loss = False
 
-        if 'weights' in kwargs:
-            args += (kwargs.pop('weights'),)
+        if weights is not None:
+            args += (weights,)
             use_weights = True
         else:
             use_weights = False
