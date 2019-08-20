@@ -13,7 +13,7 @@ Deterministic Policy Gradient
 Deep Deterministic Policy Gradient
 ----------------------------------
 
-.. automodule:: mushroom.algorithms.actor_critic.ddpg
+.. automodule:: mushroom.algorithms.actor_critic.reparametrization_ac
     :members:
     :private-members:
     :inherited-members:

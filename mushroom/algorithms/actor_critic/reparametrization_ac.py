@@ -16,7 +16,8 @@ from itertools import chain
 class ReparametrizationAC(Agent):
     """
     Base class for algorithms that uses the reparametrization trick, such as
-    SAC, DDPG and TD3
+    SAC, DDPG and TD3.
+
     """
     def __init__(self, policy, mdp_info, optimizer, parameters):
         if optimizer is not None:
@@ -27,9 +28,11 @@ class ReparametrizationAC(Agent):
 
     def _optimize_actor_parameters(self, loss):
         """
-        Method used to update actor parameters to maximize a given loss
+        Method used to update actor parameters to maximize a given loss.
+
         Args:
-            loss (torch.tensor): the loss computed by the algorithm;
+            loss (torch.tensor): the loss computed by the algorithm.
+
         """
         self._optimizer.zero_grad()
         loss.backward()
@@ -231,7 +234,7 @@ class TD3(DDPG):
 
     def _init_target(self):
         """
-        Init weights for target approximators
+        Init weights for target approximators.
 
         """
         self._target_actor_approximator.set_weights(
@@ -319,10 +322,13 @@ class SACPolicy(Policy):
         """
         Function that samples actions using the reparametrization trick and
         the log probability for such actions.
+
         Args:
             state (np.ndarray): the state in which the action is sampled.
+
         Returns:
             The actions sampled and the log probability as numpy arrays.
+
         """
         a, log_prob = self.compute_action_and_log_prob_t(state)
         return a.detach().cpu().numpy(), log_prob.detach().cpu().numpy()
@@ -331,12 +337,16 @@ class SACPolicy(Policy):
         """
         Function that samples actions using the reparametrization trick and,
         optionally, the log probability for such actions.
+
         Args:
             state (np.ndarray): the state in which the action is sampled;
             compute_log_prob (bool): whether to compute the log probability
-                or not.
+            or not.
+
         Returns:
-            The actions sampled and, optionally, the log probability as torch tensors.
+            The actions sampled and, optionally, the log probability as torch
+            tensors.
+
         """
         dist = self.distribution(state)
         a_raw = dist.rsample()
@@ -363,7 +373,8 @@ class SAC(ReparametrizationAC):
     """
     Soft Actor-Critic algorithm.
     "Soft Actor-Critic Algorithms and Applications".
-    Haarnoja T. et al.. 2019
+    Haarnoja T. et al.. 2019.
+
     """
     def __init__(self, mdp_info,
                  batch_size, initial_replay_size, max_replay_size,
@@ -392,7 +403,8 @@ class SAC(ReparametrizationAC):
             critic_params (dict): parameters of the critic approximator to
                 build;
             critic_fit_params (dict, None): parameters of the fitting algorithm
-                of the critic approximator;
+                of the critic approximator.
+
         """
         self._critic_fit_params = dict() if critic_fit_params is None else critic_fit_params
 
@@ -460,7 +472,7 @@ class SAC(ReparametrizationAC):
 
     def _init_target(self):
         """
-        Init weights for target approximators
+        Init weights for target approximators.
 
         """
         for i in range(len(self._critic_approximator)):

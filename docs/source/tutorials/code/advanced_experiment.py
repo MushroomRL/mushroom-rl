@@ -35,7 +35,7 @@ learning_rate = Parameter(.1 / n_tilings)
 agent = SARSALambdaContinuous(LinearApproximator, pi, mdp.info,
                               approximator_params=approximator_params,
                               learning_rate=learning_rate,
-                              lambda_coeff= .9, features=features)
+                              lambda_coeff=.9, features=features)
 
 # Algorithm
 collect_dataset = CollectDataset()
