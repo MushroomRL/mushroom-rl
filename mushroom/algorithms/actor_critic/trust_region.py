@@ -31,8 +31,9 @@ def compute_gae(V, s, ss, r, absorbing, last, gamma, lam):
 class TRPO(Agent):
     def __init__(self, mdp_info, policy, critic_params,
                  ent_coeff=0., max_kl=.001, lam=1.,
-                 n_epochs_v=3, n_epochs_line_search=10, n_epochs_cg=10,
-                 cg_damping=1e-2, cg_residual_tol=1e-10, quiet=True):
+                 n_epochs_line_search=10, n_epochs_cg=10,
+                 cg_damping=1e-2, cg_residual_tol=1e-10, quiet=True,
+                 critic_fit_params=None):
         """
         Constructor.
 
@@ -40,8 +41,9 @@ class TRPO(Agent):
 
 
         """
+        self._critic_fit_params = dict(n_epochs=3) if critic_fit_params is None else critic_fit_params
+
         self._n_epochs_line_search = n_epochs_line_search
-        self._n_epochs_v = n_epochs_v
         self._n_epochs_cg = n_epochs_cg
         self._cg_damping = cg_damping
         self._cg_residual_tol = cg_residual_tol
@@ -119,7 +121,7 @@ class TRPO(Agent):
             self.policy.set_weights(theta_old)
 
         # VF update
-        self._V.fit(x, v_target, n_epochs=self._n_epochs_v)
+        self._V.fit(x, v_target, **self._critic_fit_params)
 
         # Print fit information
         self._print_fit_info(dataset, x, v_target, old_pol_dist)
@@ -197,10 +199,12 @@ class TRPO(Agent):
 
 
 class PPO(Agent):
-    def __init__(self, mdp_info, policy, critic_params, lr_p, n_epochs_v,
-                 n_epochs_policy, batch_size, eps_ppo, lam, quiet=True):
+    def __init__(self, mdp_info, policy, critic_params, lr_p,
+                 n_epochs_policy, batch_size, eps_ppo, lam, quiet=True,
+                 critic_fit_params=None):
+        self._critic_fit_params = dict(n_epochs=10) if critic_fit_params is None else critic_fit_params
+
         self._n_epochs_policy = n_epochs_policy
-        self._n_epochs_v = n_epochs_v
         self._batch_size = batch_size
         self._eps_ppo = eps_ppo
 
@@ -234,7 +238,7 @@ class PPO(Agent):
         old_pol_dist = self.policy.distribution_t(obs)
         old_log_p = old_pol_dist.log_prob(act)[:, None].detach()
 
-        self._V.fit(x, v_target, n_epochs=self._n_epochs_v)
+        self._V.fit(x, v_target, **self._critic_fit_params)
 
         self._update_policy(obs, act, adv, old_log_p)
 

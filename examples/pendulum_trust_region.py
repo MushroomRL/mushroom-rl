@@ -90,32 +90,30 @@ if __name__ == '__main__':
         use_cuda=False
     )
 
-    ppo_params = dict(lr_p=3e-4,
-                      n_epochs_v=10,
-                      n_epochs_policy=10,
+    ppo_params = dict(lr_p=1e-3,
+                      n_epochs_policy=4,
                       batch_size=64,
                       eps_ppo=.2,
                       lam=.95,
-                      quiet=False)
+                      quiet=True)
 
     trpo_params = dict(ent_coeff=0.0,
                        max_kl=.001,
-                       lam=1.,
-                       n_epochs_v=3,
+                       lam=.98,
                        n_epochs_line_search=10,
                        n_epochs_cg=10,
                        cg_damping=1e-2,
                        cg_residual_tol=1e-10,
-                       quiet=False)
+                       quiet=True)
 
     algs_params = [
-        (TRPO, 'trpo', trpo_params),
+        #(TRPO, 'trpo', trpo_params),
         (PPO, 'ppo', ppo_params)
      ]
 
     # Bipedal Walker
     for alg, alg_name, alg_params in algs_params:
-        experiment(alg=alg, env_id='BipedalWalker-v2', horizon=1600, gamma=.99,
-                   n_epochs=10, n_steps=30000, n_steps_per_fit=3000,
+        experiment(alg=alg, env_id='Pendulum-v0', horizon=500, gamma=.99,
+                   n_epochs=40, n_steps=30000, n_steps_per_fit=3000,
                    n_episodes_test=10, alg_params=alg_params,
                    policy_params=policy_params)
