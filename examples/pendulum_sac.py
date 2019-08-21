@@ -70,17 +70,16 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
     # MDP
     horizon = 500
     gamma = 0.99
-    gamma_eval = 1.
     mdp = Gym('Pendulum-v0', horizon, gamma)
 
     # Settings
-    initial_replay_size = 500
-    max_replay_size = 5000
-    batch_size = 200
-    n_features = 80
-    warmup_transitions = 1000
+    initial_replay_size = 64
+    max_replay_size = 50000
+    batch_size = 64
+    n_features = 64
+    warmup_transitions = 100
     tau = 0.005
-    lr_alpha = 1e-4
+    lr_alpha = 3e-4
 
     # Approximator
     actor_input_shape = mdp.info.observation_space.shape
@@ -94,12 +93,12 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
                               output_shape=mdp.info.action_space.shape)
 
     actor_optimizer = {'class': optim.Adam,
-                       'params': {'lr': 1e-4}}
+                       'params': {'lr': 3e-4}}
 
     critic_input_shape = (actor_input_shape[0] + mdp.info.action_space.shape[0],)
     critic_params = dict(network=CriticNetwork,
                          optimizer={'class': optim.Adam,
-                                    'params': {'lr': 1e-4}},
+                                    'params': {'lr': 3e-4}},
                          loss=F.mse_loss,
                          n_features=n_features,
                          input_shape=critic_input_shape,
@@ -119,14 +118,14 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
 
     # RUN
     dataset = core.evaluate(n_steps=n_steps_test, render=False)
-    J = compute_J(dataset, gamma_eval)
+    J = compute_J(dataset, gamma)
     print('J: ', np.mean(J))
 
     for n in range(n_epochs):
         print('Epoch: ', n)
         core.learn(n_steps=n_steps, n_steps_per_fit=1)
         dataset = core.evaluate(n_steps=n_steps_test, render=False)
-        J = compute_J(dataset, gamma_eval)
+        J = compute_J(dataset, gamma)
         print('J: ', np.mean(J))
 
     print('Press a button to visualize pendulum')

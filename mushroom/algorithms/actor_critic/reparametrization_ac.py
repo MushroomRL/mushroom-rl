@@ -380,7 +380,8 @@ class SAC(ReparametrizationAC):
                  batch_size, initial_replay_size, max_replay_size,
                  warmup_transitions, tau, lr_alpha,
                  actor_mu_params, actor_sigma_params,
-                 actor_optimizer, critic_params, critic_fit_params=None):
+                 actor_optimizer, critic_params,
+                 target_entropy=None, critic_fit_params=None):
         """
         Constructor.
 
@@ -402,6 +403,8 @@ class SAC(ReparametrizationAC):
                 optimizer algorithm;
             critic_params (dict): parameters of the critic approximator to
                 build;
+            target_entropy (float, None): target entropy for the policy, if None
+                a default value is computed ;
             critic_fit_params (dict, None): parameters of the fitting algorithm
                 of the critic approximator.
 
@@ -411,7 +414,11 @@ class SAC(ReparametrizationAC):
         self._batch_size = batch_size
         self._warmup_transitions = warmup_transitions
         self._tau = tau
-        self._target_entropy = - mdp_info.action_space.shape[0]
+
+        if target_entropy is None:
+            self._target_entropy = -np.prod(mdp_info.action_space.shape).astype(np.float32)
+        else:
+            self._target_entropy = target_entropy
 
         self._replay_memory = ReplayMemory(initial_replay_size, max_replay_size)
 
