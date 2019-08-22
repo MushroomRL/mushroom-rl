@@ -90,7 +90,8 @@ if __name__ == '__main__':
         use_cuda=False
     )
 
-    ppo_params = dict(lr_p=1e-3,
+    ppo_params = dict(actor_optimizer={'class': optim.Adam,
+                                       'params': {'lr': 3e-4}},
                       n_epochs_policy=4,
                       batch_size=64,
                       eps_ppo=.2,
@@ -107,11 +108,10 @@ if __name__ == '__main__':
                        quiet=True)
 
     algs_params = [
-        #(TRPO, 'trpo', trpo_params),
-        (PPO, 'ppo', ppo_params)
+        (PPO, 'ppo', ppo_params),
+        (TRPO, 'trpo', trpo_params),
      ]
 
-    # Bipedal Walker
     for alg, alg_name, alg_params in algs_params:
         experiment(alg=alg, env_id='Pendulum-v0', horizon=500, gamma=.99,
                    n_epochs=40, n_steps=30000, n_steps_per_fit=3000,

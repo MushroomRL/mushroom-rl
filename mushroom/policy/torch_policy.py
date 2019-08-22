@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 from mushroom.policy import Policy
-from mushroom.utils.torch import get_weights, set_weights
+from mushroom.utils.torch import get_weights, set_weights, to_float_tensor
 
 from itertools import chain
 
@@ -24,24 +24,24 @@ class TorchPolicy(Policy):
         self._use_cuda = use_cuda
 
     def __call__(self, state, action):
-        s = self._to_tensor(state)
-        a = self._to_tensor(action)
+        s = to_float_tensor(state, self._use_cuda)
+        a = to_float_tensor(action, self._use_cuda)
 
         return np.exp(self.log_prob_t(s, a).item())
 
     def draw_action(self, state):
         with torch.no_grad():
-            s = torch.tensor(np.atleast_2d(state), dtype=torch.float)
+            s = to_float_tensor(np.atleast_2d(state), self._use_cuda)
             a = self.draw_action_t(s)
 
         return torch.squeeze(a, dim=0).detach().cpu().numpy()
 
     def distribution(self, state):
-        s = self._to_tensor(state)
+        s = to_float_tensor(state, self._use_cuda)
         return self.distribution_t(s)
 
     def entropy(self, state=None):
-        s = self._to_tensor(state) if state is not None else None
+        s = to_float_tensor(state, self._use_cuda) if state is not None else None
         return self.entropy_t(s)
 
     def draw_action_t(self, state):
@@ -67,10 +67,6 @@ class TorchPolicy(Policy):
 
     def reset(self):
         pass
-
-    def _to_tensor(self, x):
-        x = torch.tensor(x, dtype=torch.float)
-        return x.cuda if self._use_cuda else x
 
 
 class GaussianTorchPolicy(TorchPolicy):

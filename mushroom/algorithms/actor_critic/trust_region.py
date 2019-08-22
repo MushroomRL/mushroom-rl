@@ -2,7 +2,6 @@ import numpy as np
 from tqdm import tqdm
 
 import torch
-import torch.optim as optim
 import torch.nn.functional as F
 
 from mushroom.algorithms.agent import Agent
@@ -199,7 +198,7 @@ class TRPO(Agent):
 
 
 class PPO(Agent):
-    def __init__(self, mdp_info, policy, critic_params, lr_p,
+    def __init__(self, mdp_info, policy, critic_params, actor_optimizer,
                  n_epochs_policy, batch_size, eps_ppo, lam, quiet=True,
                  critic_fit_params=None):
         self._critic_fit_params = dict(n_epochs=10) if critic_fit_params is None else critic_fit_params
@@ -208,7 +207,7 @@ class PPO(Agent):
         self._batch_size = batch_size
         self._eps_ppo = eps_ppo
 
-        self._p_optim = optim.Adam(policy.parameters(), lr=lr_p)
+        self._optimizer = actor_optimizer['class'](policy.parameters(), **actor_optimizer['params'])
 
         self._lambda = lam
 
@@ -250,7 +249,7 @@ class PPO(Agent):
         for epoch in range(self._n_epochs_policy):
             for obs_i, act_i, adv_i, old_log_p_i in minibatch_generator(
                     self._batch_size, obs, act, adv, old_log_p):
-                self._p_optim.zero_grad()
+                self._optimizer.zero_grad()
                 prob_ratio = torch.exp(
                     self.policy.log_prob_t(obs_i, act_i) - old_log_p_i
                 )
@@ -259,7 +258,7 @@ class PPO(Agent):
                 loss = -torch.mean(torch.min(prob_ratio * adv_i,
                                              clipped_ratio * adv_i))
                 loss.backward()
-                self._p_optim.step()
+                self._optimizer.step()
 
     def _print_fit_info(self, dataset, x, v_target, old_pol_dist):
         if not self._quiet:

@@ -19,10 +19,10 @@ class ReparametrizationAC(Agent):
     SAC, DDPG and TD3.
 
     """
-    def __init__(self, policy, mdp_info, optimizer, parameters):
-        if optimizer is not None:
-            self._optimizer = optimizer['class'](parameters,
-                                                 **optimizer['params'])
+    def __init__(self, policy, mdp_info, actor_optimizer, parameters):
+        if actor_optimizer is not None:
+            self._optimizer = actor_optimizer['class'](parameters,
+                                                       **actor_optimizer['params'])
 
         super().__init__(policy, mdp_info)
 
@@ -312,7 +312,7 @@ class SACPolicy(Policy):
         self._delta_a = torch.from_numpy(0.5*(max_a - min_a))
         self._central_a = torch.from_numpy(0.5*(max_a + min_a))
 
-    def __call__(self, state, action, use_log=True):
+    def __call__(self, state, action):
         raise NotImplementedError
 
     def draw_action(self, state):

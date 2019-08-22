@@ -52,3 +52,8 @@ def get_gradient(params):
             view = p.grad.view(-1)
         views.append(view)
     return torch.cat(views, 0)
+
+
+def to_float_tensor(x, use_cuda=False):
+    x = torch.tensor(x, dtype=torch.float)
+    return x.cuda() if use_cuda else x
