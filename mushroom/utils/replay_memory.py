@@ -106,7 +106,19 @@ class ReplayMemory(object):
 
 
 class SumTree(object):
+    """
+    This class implements a sum tree data structure.
+    This is used, for instance, by ``PrioritizedReplayMemory``.
+
+    """
     def __init__(self, max_size):
+        """
+        Constructor.
+
+        Args:
+            max_size (int): maximum size of the tree.
+
+        """
         self._max_size = max_size
         self._tree = np.zeros(2 * max_size - 1)
         self._data = [None for _ in range(max_size)]
@@ -114,6 +126,14 @@ class SumTree(object):
         self._full = False
 
     def add(self, dataset, priority):
+        """
+        Add elements to the tree.
+
+        Args:
+            dataset (list): list of elements to add to the tree;
+            p (np.ndarray): priority of each sample in the dataset.
+
+        """
         for d, p in zip(dataset, priority):
             idx = self._idx + self._max_size - 1
 
@@ -126,12 +146,30 @@ class SumTree(object):
                 self._full = True
 
     def get(self, s):
+        """
+        Returns the provided number of states from the replay memory.
+
+        Args:
+            s (float): the value of the samples to return.
+
+        Returns:
+            The requested sample.
+
+        """
         idx = self._retrieve(s, 0)
         data_idx = idx - self._max_size + 1
 
         return idx, self._tree[idx], self._data[data_idx]
 
     def update(self, idx, priorities):
+        """
+        Update the priority of the sample at the provided index in the dataset.
+
+        Args:
+            idx (np.ndarray): indexes of the transitions in the dataset;
+            priorities (np.ndarray): priorities of the transitions.
+
+        """
         for i, p in zip(idx, priorities):
             delta = p - self._tree[i]
 
@@ -163,19 +201,53 @@ class SumTree(object):
 
     @property
     def size(self):
+        """
+        Returns:
+            The current size of the tree.
+
+        """
         return self._idx if not self._full else self._max_size
 
     @property
     def max_p(self):
+        """
+        Returns:
+            The maximum priority among the ones in the tree.
+
+        """
         return self._tree[-self._max_size:].max()
 
     @property
     def total_p(self):
+        """
+        Returns:
+            The sum of the priorities in the tree, i.e. the value of the root
+            node.
+
+        """
         return self._tree[0]
 
 
 class PrioritizedReplayMemory(object):
+    """
+    This class implements function to manage a prioritized replay memory as the
+    one used in "Prioritized Experience Replay" by Schaul et al., 2015.
+
+    """
     def __init__(self, initial_size, max_size, alpha, beta, epsilon=.01):
+        """
+        Constructor.
+
+        Args:
+            initial_size (int): initial number of elements in the replay
+                memory;
+            max_size (int): maximum number of elements that the replay memory
+                can contain;
+            alpha (float): prioritization coefficient;
+            beta (float): importance sampling coefficient;
+            epsilon (float, .01): small value to avoid zero probabilities.
+
+        """
         self._initial_size = initial_size
         self._max_size = max_size
         self._alpha = alpha
@@ -185,9 +257,27 @@ class PrioritizedReplayMemory(object):
         self._tree = SumTree(max_size)
 
     def add(self, dataset, p):
+        """
+        Add elements to the replay memory.
+
+        Args:
+            dataset (list): list of elements to add to the replay memory;
+            p (np.ndarray): priority of each sample in the dataset.
+
+        """
         self._tree.add(dataset, p)
 
     def get(self, n_samples):
+        """
+        Returns the provided number of states from the replay memory.
+
+        Args:
+            n_samples (int): the number of samples to return.
+
+        Returns:
+            The requested number of samples.
+
+        """
         states = [None for _ in range(n_samples)]
         actions = [None for _ in range(n_samples)]
         rewards = [None for _ in range(n_samples)]
@@ -223,6 +313,14 @@ class PrioritizedReplayMemory(object):
             idxs, is_weight
 
     def update(self, error, idx):
+        """
+        Update the priority of the sample at the provided index in the dataset.
+
+        Args:
+            error (np.ndarray): errors to consider to compute the priorities;
+            idx (np.ndarray): indexes of the transitions in the dataset.
+
+        """
         p = self._get_priority(error)
         self._tree.update(idx, p)
 

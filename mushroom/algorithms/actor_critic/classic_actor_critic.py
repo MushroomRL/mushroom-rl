@@ -22,9 +22,9 @@ class StochasticAC(Agent):
             mdp_info: information about the MDP;
             alpha_theta (Parameter): learning rate for policy update;
             alpha_v (Parameter): learning rate for the value function;
-            lambda_par (float, 0.9): trace decay parameter;
-            value_function_features (Features, None): features used by the value
-                function approximator;
+            lambda_par (float, .9): trace decay parameter;
+            value_function_features (Features, None): features used by the
+                value function approximator;
             policy_features (Features, None): features used by the policy.
 
         """
@@ -102,7 +102,7 @@ class StochasticAC_AVG(Agent):
             alpha_theta (Parameter): learning rate for policy update;
             alpha_v (Parameter): learning rate for the value function;
             alpha_r (Parameter): learning rate for the reward trace;
-            lambda_par (float, 0.9): trace decay parameter;
+            lambda_par (float, .9): trace decay parameter;
             value_function_features (Features, None): features used by the
                 value function approximator;
             policy_features (Features, None): features used by the policy.

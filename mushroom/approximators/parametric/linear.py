@@ -68,15 +68,47 @@ class LinearApproximator:
 
     @property
     def weights_size(self):
+        """
+        Returns:
+            The size of the array of weights.
+
+        """
         return self._w.size
 
     def get_weights(self):
+        """
+        Getter.
+
+        Returns:
+            The set of weights of the approximator.
+
+        """
         return self._w.flatten()
 
     def set_weights(self, w):
+        """
+        Setter.
+
+        Args:
+            w (np.ndarray): the set of weights to set.
+
+        """
         self._w = w.reshape(self._w.shape)
 
     def diff(self, state, action=None):
+        """
+        Compute the derivative of the output w.r.t. ``state``, and ``action``
+        if provided.
+
+        Args:
+            state (np.ndarray): the state;
+            action (np.ndarray, None): the action.
+
+        Returns:
+            The derivative of the output w.r.t. ``state``, and ``action``
+            if provided.
+
+        """
         if len(self._w.shape) == 1 or self._w.shape[0] == 1:
             return state
         else:

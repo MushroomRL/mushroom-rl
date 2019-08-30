@@ -65,6 +65,20 @@ class TorchApproximator:
         self._loss = loss
 
     def predict(self, *args, output_tensor=False, **kwargs):
+        """
+        Predict.
+
+        Args:
+            args (list): input;
+            output_tensor (bool, False): whether to return the output as tensor
+                or not;
+            **kwargs (dict): other parameters used by the predict method
+                the regressor.
+
+        Returns:
+            The predictions of the model.
+
+        """
         if not self._use_cuda:
             torch_args = [torch.from_numpy(x) if isinstance(x, np.ndarray) else x
                           for x in args]
@@ -92,6 +106,23 @@ class TorchApproximator:
 
     def fit(self, *args, n_epochs=None, weights=None, epsilon=None, patience=1,
             validation_split=1., **kwargs):
+        """
+        Fit the model.
+
+        Args:
+            args (list): input;
+            n_epochs (int, None): the number of training epochs;
+            weights (np.ndarray, None): the weights of each sample in the
+                computation of the loss;
+            epsilon (float, None): the coefficient used for early stopping;
+            patience (float, 1.): the number of epochs to wait until stop
+                the learning if not improving;
+            validation_split (float, 1.): the percentage of the dataset to use
+                as training set;
+            **kwargs (dict): other parameters used by the fit method of the
+                regressor.
+
+        """
         if self._reinitialize:
             self.network.weights_init()
 
@@ -220,16 +251,48 @@ class TorchApproximator:
         return loss
 
     def set_weights(self, weights):
+        """
+        Setter.
+
+        Args:
+            w (np.ndarray): the set of weights to set.
+
+        """
         set_weights(self.network.parameters(), weights, self._use_cuda)
 
     def get_weights(self):
+        """
+        Getter.
+
+        Returns:
+            The set of weights of the approximator.
+
+        """
         return get_weights(self.network.parameters())
 
     @property
     def weights_size(self):
+        """
+        Returns:
+            The size of the array of weights.
+
+        """
         return sum(p.numel() for p in self.network.parameters())
 
     def diff(self, *args, **kwargs):
+        """
+        Compute the derivative of the output w.r.t. ``state``, and ``action``
+        if provided.
+
+        Args:
+            state (np.ndarray): the state;
+            action (np.ndarray, None): the action.
+
+        Returns:
+            The derivative of the output w.r.t. ``state``, and ``action``
+            if provided.
+
+        """
         if not self._use_cuda:
             torch_args = [torch.from_numpy(np.atleast_2d(x)) for x in args]
         else:
