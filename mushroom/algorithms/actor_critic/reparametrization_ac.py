@@ -21,8 +21,9 @@ class ReparametrizationAC(Agent):
     """
     def __init__(self, policy, mdp_info, actor_optimizer, parameters):
         if actor_optimizer is not None:
-            self._optimizer = actor_optimizer['class'](parameters,
-                                                       **actor_optimizer['params'])
+            self._optimizer = actor_optimizer['class'](
+                parameters, **actor_optimizer['params']
+            )
 
         super().__init__(policy, mdp_info)
 
@@ -44,6 +45,7 @@ class A2C(ReparametrizationAC):
     Advantage Actor Critic algorithm.
 
     """
+    pass
 
 
 class DDPG(ReparametrizationAC):
@@ -108,6 +110,7 @@ class DDPG(ReparametrizationAC):
         policy = policy_class(self._actor_approximator, **policy_params)
 
         policy_parameters = self._actor_approximator.model.network.parameters()
+
         super().__init__(policy, mdp_info, actor_optimizer, policy_parameters)
 
     def fit(self, dataset):
@@ -197,24 +200,27 @@ class TD3(DDPG):
 
         Args:
             policy_class (Policy): class of the policy;
+            policy_params (dict): parameters of the policy to build;
             batch_size (int): the number of samples in a batch;
             initial_replay_size (int): the number of samples to collect before
                 starting the learning;
             max_replay_size (int): the maximum number of samples in the replay
                 memory;
             tau (float): value of coefficient for soft updates;
-            actor_params (dict): parameters of the actor approximator to
-                build;
             critic_params (dict): parameters of the critic approximator to
                 build;
-            policy_params (dict): parameters of the policy to build;
+            actor_params (dict): parameters of the actor approximator to
+                build;
+            actor_optimizer (dict): parameters to specify the actor
+                optimizer algorithm;
             policy_delay (int, 2): the number of updates of the critic after
                 which an actor update is implemented;
-            noise_std (float, 0.2): standard deviation of the noise used for policy
-                smoothing;
-            noise_clip (float, 0.5): maximum absolute value for policy smoothing noise;
+            noise_std (float, .2): standard deviation of the noise used for
+                policy smoothing;
+            noise_clip (float, .5): maximum absolute value for policy smoothing
+                noise;
             critic_fit_params (dict, None): parameters of the fitting algorithm
-                of the critic approximator;
+                of the critic approximator.
 
         """
         self._noise_std = noise_std
@@ -241,7 +247,7 @@ class TD3(DDPG):
 
     def _init_target(self):
         """
-        Init weights for target approximators.
+        Initialize weights for target approximators.
 
         """
         self._target_actor_approximator.set_weights(
@@ -305,13 +311,14 @@ class SACPolicy(Policy):
         Constructor.
 
         Args:
-            mu_approximator (Regressor): a regressor computing mean in given a state;
-            sigma_approximator (Regressor): a regressor computing the variance in
-               given a state;
-            min_a (np.ndarray): a vector specifying the minimum action value for
-                each component;
-            max_a (np.ndarray): a vector specifying the maximum action value for
-                each component.
+            mu_approximator (Regressor): a regressor computing mean in given a
+                state;
+            sigma_approximator (Regressor): a regressor computing the variance
+                in given a state;
+            min_a (np.ndarray): a vector specifying the minimum action value
+                for each component;
+            max_a (np.ndarray): a vector specifying the maximum action value
+                for each component.
 
         """
         self._mu_approximator = mu_approximator
@@ -348,8 +355,8 @@ class SACPolicy(Policy):
 
         Args:
             state (np.ndarray): the state in which the action is sampled;
-            compute_log_prob (bool): whether to compute the log probability
-            or not.
+            compute_log_prob (bool, True): whether to compute the log
+            probability or not.
 
         Returns:
             The actions sampled and, optionally, the log probability as torch
@@ -405,14 +412,14 @@ class SAC(ReparametrizationAC):
             lr_alpha (float): Learning rate for the entropy coefficient;
             actor_mu_params (dict): parameters of the actor mean approximator
                 to build;
-            actor_sigma_params (dict): parameters of the actor sigma approximator
-                to build;
+            actor_sigma_params (dict): parameters of the actor sigm
+                approximator to build;
             actor_optimizer (dict): parameters to specify the actor
                 optimizer algorithm;
             critic_params (dict): parameters of the critic approximator to
                 build;
-            target_entropy (float, None): target entropy for the policy, if None
-                a default value is computed ;
+            target_entropy (float, None): target entropy for the policy, if
+                None a default value is computed ;
             critic_fit_params (dict, None): parameters of the fitting algorithm
                 of the critic approximator.
 
