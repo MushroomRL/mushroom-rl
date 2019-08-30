@@ -11,8 +11,11 @@ from itertools import chain
 
 class TorchPolicy(Policy):
     """
-    Mushroom interface for a generic PyTorch policy.
+    Interface for a generic PyTorch policy.
     A PyTorch policy is a policy implemented as a neural network using PyTorch.
+    Functions ending with '_t' use tensors as input, and also as output when
+    required.
+
     """
     def __init__(self, use_cuda):
         """
@@ -38,32 +41,125 @@ class TorchPolicy(Policy):
         return torch.squeeze(a, dim=0).detach().cpu().numpy()
 
     def distribution(self, state):
+        """
+        Compute the policy distribution in the given states.
+
+        Args:
+            state (np.ndarray): the set of states where the distribution is
+                computed.
+
+        Returns:
+            The torch distribution for the provided states.
+
+        """
         s = to_float_tensor(state, self._use_cuda)
+
         return self.distribution_t(s)
 
     def entropy(self, state=None):
+        """
+        Compute the entropy of the policy.
+
+        Args:
+            state (np.ndarray, None): the set of states to consider. If the
+                entropy of the policy can be computed in closed form, then
+                ``state`` can be None.
+
+        Returns:
+            The value of the entropy of the policy.
+
+        """
         s = to_float_tensor(state, self._use_cuda) if state is not None else None
+
         return self.entropy_t(s)
 
     def draw_action_t(self, state):
+        """
+        Draw an action given a tensor.
+
+        Args:
+            state (torch.Tensor): set of states.
+
+        Returns:
+            The tensor of the actions to perform in each state.
+
+        """
         raise NotImplementedError
 
     def log_prob_t(self, state, action):
+        """
+        Compute the logarithm of the probability of taking ``action`` in
+        ``state``.
+
+        Args:
+            state (torch.Tensor): set of states.
+            action (torch.Tensor): set of actions.
+
+        Returns:
+            The tensor of log-probability.
+
+        """
         raise NotImplementedError
 
-    def entropy_t(self, state):
+    def entropy_t(self, state=None):
+        """
+        Compute the entropy of the policy.
+
+        Args:
+            state (torch.Tensor): the set of states to consider. If the
+                entropy of the policy can be computed in closed form, then
+                ``state`` can be None.
+
+        Returns:
+            The value of the entropy of the policy.
+
+        """
         raise NotImplementedError
 
     def distribution_t(self, state):
+        """
+        Compute the policy distribution in the given states.
+
+        Args:
+            state (torch.Tensor): the set of states where the distribution is
+                computed.
+
+        Returns:
+            The torch distribution for the provided states.
+
+        """
         raise NotImplementedError
 
     def set_weights(self, weights):
+        """
+        Setter.
+
+        Args:
+            weights (np.ndarray): the vector of the new weights to be used by
+                the policy.
+
+        """
         raise NotImplementedError
 
     def get_weights(self):
+        """
+        Getter.
+
+        Returns:
+             The current policy weights.
+
+        """
         raise NotImplementedError
 
     def parameters(self):
+        """
+        Returns the trainable policy parameters, as expected by torch
+        optimizers.
+
+        Returns:
+            List of parameters to be optimized.
+
+        """
         raise NotImplementedError
 
     def reset(self):
@@ -71,7 +167,25 @@ class TorchPolicy(Policy):
 
 
 class GaussianTorchPolicy(TorchPolicy):
-    def __init__(self, network, input_shape, output_shape, std_0=1., use_cuda=False, **params):
+    """
+    Torch policy implementing a Gaussian policy with trainable standard
+    deviation. The standard deviation is not state-dependent.
+
+    """
+    def __init__(self, network, input_shape, output_shape, std_0=1.,
+                 use_cuda=False, **params):
+        """
+        Constructor.
+
+        Args:
+            network (object): the network class used to implement the mean
+                regressor;
+            input_shape (tuple): the shape of the state space;
+            output_shape (tuple): the shape of the action space;
+            std_0 (float, 1.): initial standard deviation;
+            params (dict): parameters used by the network constructor.
+
+        """
         super().__init__(use_cuda)
 
         self._action_dim = output_shape[0]
