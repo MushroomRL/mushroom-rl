@@ -19,7 +19,8 @@ class TorchPolicy(Policy):
         Constructor.
 
         Args:
-            use_cuda (nn.Module): whether to use cuda or not.
+            use_cuda (bool): whether to use cuda or not.
+
         """
         self._use_cuda = use_cuda
 

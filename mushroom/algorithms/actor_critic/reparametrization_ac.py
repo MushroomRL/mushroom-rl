@@ -183,7 +183,7 @@ class TD3(DDPG):
     def __init__(self, mdp_info, policy_class, policy_params,
                  batch_size, initial_replay_size, max_replay_size,
                  tau, critic_params, actor_params, actor_optimizer,
-                 policy_delay=2, noise_std=0.2, noise_clip=0.5,
+                 policy_delay=2, noise_std=.2, noise_clip=.5,
                  critic_fit_params=None):
         """
         Constructor.
@@ -309,14 +309,15 @@ class SACPolicy(Policy):
         """
         self._mu_approximator = mu_approximator
         self._sigma_approximator = sigma_approximator
-        self._delta_a = torch.from_numpy(0.5*(max_a - min_a))
-        self._central_a = torch.from_numpy(0.5*(max_a + min_a))
+        self._delta_a = torch.from_numpy(.5 * (max_a - min_a))
+        self._central_a = torch.from_numpy(.5 * (max_a + min_a))
 
     def __call__(self, state, action):
         raise NotImplementedError
 
     def draw_action(self, state):
-        return self.compute_action_and_log_prob_t(state, compute_log_prob=False).detach().cpu().numpy()
+        return self.compute_action_and_log_prob_t(
+            state, compute_log_prob=False).detach().cpu().numpy()
 
     def compute_action_and_log_prob(self, state):
         """
@@ -351,7 +352,7 @@ class SACPolicy(Policy):
         dist = self.distribution(state)
         a_raw = dist.rsample()
         a = torch.tanh(a_raw)
-        a_true = a*self._delta_a + self._central_a
+        a_true = a * self._delta_a + self._central_a
 
         if compute_log_prob:
             log_prob = dist.log_prob(a_raw).flatten()
