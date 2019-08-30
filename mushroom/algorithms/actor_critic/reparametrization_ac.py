@@ -39,6 +39,13 @@ class ReparametrizationAC(Agent):
         self._optimizer.step()
 
 
+class A2C(ReparametrizationAC):
+    """
+    Advantage Actor Critic algorithm.
+
+    """
+
+
 class DDPG(ReparametrizationAC):
     """
     Deep Deterministic Policy Gradient algorithm.
