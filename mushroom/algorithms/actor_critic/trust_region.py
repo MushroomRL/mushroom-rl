@@ -10,24 +10,16 @@ from mushroom.approximators.parametric import TorchApproximator
 from mushroom.utils.torch import get_gradient, zero_grad
 from mushroom.utils.minibatches import minibatch_generator
 from mushroom.utils.dataset import parse_dataset, compute_J
-
-
-def compute_gae(V, s, ss, r, absorbing, last, gamma, lam):
-    v = V(s)
-    v_next = V(ss)
-    gen_adv = np.empty_like(v)
-    for rev_k, _ in enumerate(reversed(v)):
-        k = len(v) - rev_k - 1
-        if last[k] or rev_k == 0:
-            gen_adv[k] = r[k] - v[k]
-            if not absorbing[k]:
-                gen_adv[k] += gamma * v_next[k]
-        else:
-            gen_adv[k] = r[k] + gamma * v_next[k] - v[k] + gamma * lam * gen_adv[k + 1]
-    return gen_adv + v, gen_adv
+from mushroom.utils.value_functions import compute_gae
 
 
 class TRPO(Agent):
+    """
+    Trust Region Policy optimization algorithm.
+    "Trust Region Policy Optimization".
+    Schulman J. et al.. 2015.
+
+    """
     def __init__(self, mdp_info, policy, critic_params,
                  ent_coeff=0., max_kl=.001, lam=1.,
                  n_epochs_line_search=10, n_epochs_cg=10,
@@ -37,7 +29,26 @@ class TRPO(Agent):
         Constructor.
 
         Args:
-
+            policy (TorchPolicy): torch policy to be learned by the algorithm
+            critic_params (dict): parameters of the critic approximator to
+                build;
+            ent_coeff (float, 0): coefficient for the entropy penalty;
+            max_kl (float, .001): maximum kl allowed for every policy
+                update;
+            lam float(float, 1.): lambda coefficient used by generalized
+                advantage estimation;
+            n_epochs_line_search (int, 10): maximum number of iterations
+                of the line search algorithm;
+            n_epochs_cg (int, 10): maximum number of iterations of the
+                conjugate gradient algorithm;
+            cg_damping (float, 1e-2): damping factor for the conjugate
+                gradient algorithm;
+            cg_residual_tol (float, 1e-10): conjugate gradient residual
+                tolerance;
+            quiet (bool, True): if true, the algorithm will print debug
+                information;
+            critic_fit_params (dict, None): parameters of the fitting algorithm
+                of the critic approximator.
 
         """
         self._critic_fit_params = dict(n_epochs=3) if critic_fit_params is None else critic_fit_params
@@ -198,9 +209,35 @@ class TRPO(Agent):
 
 
 class PPO(Agent):
+    """
+    Proximal Policy Optimization algorithm.
+    "Proximal Policy Optimization Algorithms".
+    Schulman J. et al.. 2017.
+
+    """
     def __init__(self, mdp_info, policy, critic_params, actor_optimizer,
                  n_epochs_policy, batch_size, eps_ppo, lam, quiet=True,
                  critic_fit_params=None):
+        """
+        Constructor.
+
+        Args:
+            policy (TorchPolicy): torch policy to be learned by the algorithm
+            critic_params (dict): parameters of the critic approximator to
+                build;
+            actor_optimizer (dict): parameters to specify the actor optimizer
+                algorithm;
+            n_epochs_policy (int): number of policy updates for every dataset;
+            batch_size (int): size of minibatches for every optimization step
+            eps_ppo (float): value for probability ratio clipping;
+            lam float(float, 1.): lambda coefficient used by generalized
+                advantage estimation;
+            quiet (bool, True): if true, the algorithm will print debug
+                information;
+            critic_fit_params (dict, None): parameters of the fitting algorithm
+                of the critic approximator.
+
+        """
         self._critic_fit_params = dict(n_epochs=10) if critic_fit_params is None else critic_fit_params
 
         self._n_epochs_policy = n_epochs_policy

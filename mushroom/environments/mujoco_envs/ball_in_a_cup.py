@@ -4,8 +4,15 @@ import os
 
 
 class BallInACup(MuJoCo):
+    """
+    Mujoco simulation of Ball In A Cup task, using Barret WAM robot.
 
+    """
     def __init__(self):
+        """
+        Constructor.
+
+        """
         xml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "ball_in_a_cup", "model.xml")
         action_spec = [("wam/base_yaw_joint", -150., 150.), ("wam/shoulder_pitch_joint", -125., 125.),
                        ("wam/shoulder_yaw_joint", -40., 40,), ("wam/elbow_pitch_joint", -60., 60.),

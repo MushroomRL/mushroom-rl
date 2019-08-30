@@ -71,4 +71,15 @@ def normalize_angle(angle):
 
 
 def shortest_angular_distance(from_angle, to_angle):
+    """
+    Compute the shortest distance between two angles
+
+    Args:
+        from_angle (float): starting angle;
+        to_angle (float): final angle.
+
+    Returns:
+        The shortest distance between from_angle and to_angle.
+
+    """
     return normalize_angle(to_angle - from_angle)
