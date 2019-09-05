@@ -8,7 +8,8 @@ from tqdm import tqdm, trange
 
 from mushroom.core import Core
 from mushroom.environments import Gym
-from mushroom.algorithms.actor_critic import TRPO, PPO
+from mushroom.algorithms.actor_critic import TRPO, PPO, A2C
+
 from mushroom.policy import GaussianTorchPolicy
 from mushroom.utils.dataset import compute_J
 
@@ -90,6 +91,10 @@ if __name__ == '__main__':
         use_cuda=False
     )
 
+    a2c_params = dict(actor_optimizer={'class': optim.Adam,
+                                       'params': {'lr': 3e-4}},
+                      ent_coeff=0.01)
+
     ppo_params = dict(actor_optimizer={'class': optim.Adam,
                                        'params': {'lr': 3e-4}},
                       n_epochs_policy=4,
@@ -108,6 +113,7 @@ if __name__ == '__main__':
                        quiet=True)
 
     algs_params = [
+        (A2C, 'a2c', a2c_params),
         (PPO, 'ppo', ppo_params),
         (TRPO, 'trpo', trpo_params),
      ]

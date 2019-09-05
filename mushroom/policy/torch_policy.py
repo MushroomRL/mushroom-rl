@@ -71,7 +71,7 @@ class TorchPolicy(Policy):
         """
         s = to_float_tensor(state, self._use_cuda) if state is not None else None
 
-        return self.entropy_t(s)
+        return self.entropy_t(s).detach().numpy()
 
     def draw_action_t(self, state):
         """
@@ -111,7 +111,7 @@ class TorchPolicy(Policy):
                 ``state`` can be None.
 
         Returns:
-            The value of the entropy of the policy.
+            The tensor value of the entropy of the policy.
 
         """
         raise NotImplementedError
@@ -165,6 +165,13 @@ class TorchPolicy(Policy):
     def reset(self):
         pass
 
+    @property
+    def use_cuda(self):
+        """
+        True if the policy is using cuda_tensors.
+        """
+        return self._use_cuda
+
 
 class GaussianTorchPolicy(TorchPolicy):
     """
@@ -203,8 +210,8 @@ class GaussianTorchPolicy(TorchPolicy):
     def log_prob_t(self, state, action):
         return self.distribution_t(state).log_prob(action)[:, None]
 
-    def entropy_t(self, state):
-        return self._action_dim / 2 * np.log(2 * np.pi * np.e) + torch.sum(self._log_sigma).detach().numpy()
+    def entropy_t(self, state=None):
+        return self._action_dim / 2 * np.log(2 * np.pi * np.e) + torch.sum(self._log_sigma)
 
     def distribution_t(self, state):
         mu, sigma = self.get_mean_and_covariance(state)

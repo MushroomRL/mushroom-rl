@@ -1,6 +1,30 @@
 import numpy as np
 
 
+def compute_advantage(V, s, ss, r, absorbing, gamma):
+    """
+    Function to estimate the advantage and new value function target
+    over a dataset.
+
+    Args:
+        V (Regressor): the current value function regressor;
+        s (numpy.ndarray): the set of states in which we want
+            to evaluate the advantage;
+        ss (numpy.ndarray): the set of next states in which we want
+            to evaluate the advantage;
+        r (numpy.ndarray): the reward obtained in each transition
+            from state s to state ss;
+        absorbing (numpy.ndarray): an array of boolean flags indicating
+            if the reached state is absorbing;
+        gamma (float): the discount factor of the considered problem.
+    """
+    v = V(s).squeeze()
+    v_next = V(ss).squeeze() * (1 - absorbing)
+
+    adv = r + gamma * v_next - v
+    return adv[:, np.newaxis], v[:, np.newaxis]
+
+
 def compute_gae(V, s, ss, r, absorbing, last, gamma, lam):
     """
     Function to compute Generalized Advantage Estimation (GAE)
@@ -20,7 +44,7 @@ def compute_gae(V, s, ss, r, absorbing, last, gamma, lam):
             from state s to state ss;
         absorbing (numpy.ndarray): an array of boolean flags indicating
             if the reached state is absorbing;
-        absorbing (numpy.ndarray): an array of boolean flags indicating
+        last (numpy.ndarray): an array of boolean flags indicating
             if the reached state is the last of the trajectory;
         gamma (float): the discount factor of the considered problem;
         lam (float): the value for the lamba coefficient used by GEA

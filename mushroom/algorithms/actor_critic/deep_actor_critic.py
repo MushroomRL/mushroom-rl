@@ -8,12 +8,15 @@ from mushroom.policy import Policy
 from mushroom.approximators import Regressor
 from mushroom.approximators.parametric import TorchApproximator
 from mushroom.utils.replay_memory import ReplayMemory
+from mushroom.utils.value_functions import compute_advantage
+from mushroom.utils.dataset import parse_dataset
+from mushroom.utils.torch import to_float_tensor
 
 from copy import deepcopy
 from itertools import chain
 
 
-class ReparametrizationAC(Agent):
+class DeepAC(Agent):
     """
     Base class for algorithms that uses the reparametrization trick, such as
     SAC, DDPG and TD3.
@@ -40,15 +43,63 @@ class ReparametrizationAC(Agent):
         self._optimizer.step()
 
 
-class A2C(ReparametrizationAC):
+class A2C(DeepAC):
     """
-    Advantage Actor Critic algorithm.
+    Advantage Actor Critic algorithm (A2C).
+    Synchronous version of the A3C algorithm.
+    "Asynchronous Methods for Deep Reinforcement Learning".
+    Mnih V. et. al.. 2016.
 
     """
-    pass
+    def __init__(self, mdp_info, policy, critic_params, actor_optimizer,
+                 ent_coeff, critic_fit_params=None):
+        """
+        Constructor.
+
+        Args:
+            policy (TorchPolicy): torch policy to be learned by the algorithm
+            critic_params (dict): parameters of the critic approximator to
+                build;
+            actor_optimizer (dict): parameters to specify the actor optimizer
+                algorithm;
+            ent_coeff (float, 0): coefficient for the entropy penalty;
+            critic_fit_params (dict, None): parameters of the fitting algorithm
+                of the critic approximator.
+
+        """
+        self._critic_fit_params = dict() if critic_fit_params is None else critic_fit_params
+
+        self._entropy_coeff = ent_coeff
+
+        self._V = Regressor(TorchApproximator, **critic_params)
+
+        super().__init__(policy, mdp_info, actor_optimizer, policy.parameters())
+
+    def fit(self, dataset):
+            state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
+
+            adv, v = compute_advantage(self._V, state, next_state,
+                                       reward, absorbing, self.mdp_info.gamma)
+            self._V.fit(state, v, **self._critic_fit_params)
+
+            loss = self._loss(state, action, adv)
+            self._optimize_actor_parameters(loss)
+
+    def _loss(self, state, action, adv):
+        use_cuda = self.policy.use_cuda
+
+        s = to_float_tensor(state, use_cuda)
+        a = to_float_tensor(action, use_cuda)
+
+        adv_t = to_float_tensor(adv, use_cuda)
+
+        gradient_loss = -torch.mean(self.policy.log_prob_t(s, a)*adv_t)
+        entropy_loss = -self.policy.entropy_t(s)
+
+        return gradient_loss + self._entropy_coeff * entropy_loss
 
 
-class DDPG(ReparametrizationAC):
+class DDPG(DeepAC):
     """
     Deep Deterministic Policy Gradient algorithm.
     "Continuous Control with Deep Reinforcement Learning".
@@ -384,7 +435,7 @@ class SACPolicy(Policy):
         pass
 
 
-class SAC(ReparametrizationAC):
+class SAC(DeepAC):
     """
     Soft Actor-Critic algorithm.
     "Soft Actor-Critic Algorithms and Applications".
