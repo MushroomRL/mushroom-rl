@@ -146,8 +146,17 @@ To launch mushroom test suite:
     pytest
 
 .. toctree::
+   :hidden:
    :maxdepth: 2
-   :caption: Contents:
+   :caption: API:
+   :glob:
 
-   source/mushroom
-   source/tutorials/tutorials
+   source/*
+
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+   :caption: Tutorials:
+   :glob:
+
+   source/tutorials/*
