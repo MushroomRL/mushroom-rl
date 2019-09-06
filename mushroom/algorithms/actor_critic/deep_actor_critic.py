@@ -23,10 +23,25 @@ class DeepAC(Agent):
 
     """
     def __init__(self, policy, mdp_info, actor_optimizer, parameters):
+        """
+        Constructor.
+
+        Args:
+            actor_optimizer (dict): parameters to specify the actor optimizer
+                algorithm;
+            parameters: policy parameters to be optimized.
+        """
         if actor_optimizer is not None:
             self._optimizer = actor_optimizer['class'](
                 parameters, **actor_optimizer['params']
             )
+
+            self._clipping = None
+            self._parameters = parameters
+
+            if 'clipping' in actor_optimizer:
+                self._clipping = actor_optimizer['clipping']['method']
+                self._clipping_params = actor_optimizer['clipping']['params']
 
         super().__init__(policy, mdp_info)
 
@@ -40,7 +55,12 @@ class DeepAC(Agent):
         """
         self._optimizer.zero_grad()
         loss.backward()
+        self._clip_gradient()
         self._optimizer.step()
+
+    def _clip_gradient(self):
+        if self._clipping:
+            self._clipping(self._parameters, **self._clipping_params)
 
 
 class A2C(DeepAC):
@@ -52,7 +72,7 @@ class A2C(DeepAC):
 
     """
     def __init__(self, mdp_info, policy, critic_params, actor_optimizer,
-                 ent_coeff, critic_fit_params=None):
+                 ent_coeff, max_grad_norm=None, critic_fit_params=None):
         """
         Constructor.
 
@@ -63,6 +83,9 @@ class A2C(DeepAC):
             actor_optimizer (dict): parameters to specify the actor optimizer
                 algorithm;
             ent_coeff (float, 0): coefficient for the entropy penalty;
+            max_grad_norm (float, None): maximum norm for gradient clipping.
+                If None, no clipping will be performed, unless specified otherwise
+                in actor_optimizer;
             critic_fit_params (dict, None): parameters of the fitting algorithm
                 of the critic approximator.
 
@@ -72,6 +95,12 @@ class A2C(DeepAC):
         self._entropy_coeff = ent_coeff
 
         self._V = Regressor(TorchApproximator, **critic_params)
+
+        if 'clipping' not in actor_optimizer and max_grad_norm is not None:
+            actor_optimizer = deepcopy(actor_optimizer)
+            clipping_params = dict(max_norm=max_grad_norm, norm_type=2)
+            actor_optimizer['clipping'] = dict(method=torch.nn.utils.clip_grad_norm_,
+                                               params=clipping_params)
 
         super().__init__(policy, mdp_info, actor_optimizer, policy.parameters())
 

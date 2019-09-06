@@ -69,7 +69,7 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
     np.random.seed()
 
     # MDP
-    horizon = 500
+    horizon = 200
     gamma = 0.99
     gamma_eval = 1.
     mdp = Gym('Pendulum-v0', horizon, gamma)

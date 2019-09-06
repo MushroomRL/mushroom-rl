@@ -8,7 +8,7 @@ from tqdm import tqdm, trange
 
 from mushroom.core import Core
 from mushroom.environments import Gym
-from mushroom.algorithms.actor_critic import TRPO, PPO
+from mushroom.algorithms.actor_critic import A2C
 
 from mushroom.policy import GaussianTorchPolicy
 from mushroom.utils.dataset import compute_J
@@ -48,7 +48,7 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
 
     critic_params = dict(network=Network,
                          optimizer={'class': optim.Adam,
-                                    'params': {'lr': 3e-4}},
+                                    'params': {'lr': 7e-4}},
                          loss=F.mse_loss,
                          n_features=64,
                          input_shape=mdp.info.observation_space.shape,
@@ -90,30 +90,17 @@ if __name__ == '__main__':
         use_cuda=False
     )
 
-    ppo_params = dict(actor_optimizer={'class': optim.Adam,
-                                       'params': {'lr': 3e-4}},
-                      n_epochs_policy=4,
-                      batch_size=64,
-                      eps_ppo=.2,
-                      lam=.95,
-                      quiet=True)
-
-    trpo_params = dict(ent_coeff=0.0,
-                       max_kl=.001,
-                       lam=.98,
-                       n_epochs_line_search=10,
-                       n_epochs_cg=10,
-                       cg_damping=1e-2,
-                       cg_residual_tol=1e-10,
-                       quiet=True)
+    a2c_params = dict(actor_optimizer={'class': optim.Adam,
+                                       'params': {'lr': 7e-4}},
+                      max_grad_norm=0.5,
+                      ent_coeff=0.01)
 
     algs_params = [
-        (PPO, 'ppo', ppo_params),
-        (TRPO, 'trpo', trpo_params),
+        (A2C, 'a2c', a2c_params)
      ]
 
     for alg, alg_name, alg_params in algs_params:
         experiment(alg=alg, env_id='Pendulum-v0', horizon=200, gamma=.99,
-                   n_epochs=40, n_steps=30000, n_steps_per_fit=256,
+                   n_epochs=40, n_steps=30000, n_steps_per_fit=5,
                    n_episodes_test=10, alg_params=alg_params,
                    policy_params=policy_params)

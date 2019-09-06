@@ -92,7 +92,7 @@ def experiment(n_epochs, n_episodes):
     np.random.seed()
 
     # MDP
-    n_steps = 5000
+    n_steps = 200
     mdp = InvertedPendulum(horizon=n_steps)
 
     # Agent
