@@ -111,6 +111,15 @@ Torch
     :private-members:
     :inherited-members:
     :show-inheritance:
+
+Value Functions
+---------------
+
+.. automodule:: mushroom.utils.value_functions
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
     
 Variance parameters
 -------------------
