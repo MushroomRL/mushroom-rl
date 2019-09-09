@@ -32,11 +32,10 @@ The factory method returns a class that extends the abstract class
     :inherited-members:
     :show-inheritance:
 
-Components
-----------
+The documentation for every feature type can be found here:
 
 .. toctree::
 
-    mushroom.features.basis
-    mushroom.features.tensors
-    mushroom.features.tiles
+    features/mushroom.features.basis
+    features/mushroom.features.tensors
+    features/mushroom.features.tiles

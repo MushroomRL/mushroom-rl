@@ -44,6 +44,10 @@ class MDPInfo:
 
 
 class Environment(object):
+    """
+    Basic interface used by any mushroom environment.
+
+    """
     def __init__(self, mdp_info):
         """
         Constructor.
