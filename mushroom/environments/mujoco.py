@@ -215,17 +215,34 @@ class MuJoCo(Environment):
 
         return np.concatenate(observation)[self.observation_indices]
 
+    def _compute_actual_action(self, action):
+        """
+        Compute a transformation of the action provided to the
+        environment. Useful to add systems simulated directly in python.
+        By default, it returns the clipped action, but this method can be
+        overwritten by subclasses.
+
+        Args:
+            action (np.ndarray): numpy array with the actions +
+                provided to the environment.
+
+        Returns:
+            The action to be set in the actual mujoco simulation.
+
+        """
+
+        return np.clip(action, self._mdp_info.action_space.low, self._mdp_info.action_space.high)
+
     def step(self, action):
         cur_obs = self._create_observation()
 
-        clipped_action = np.clip(action, self._mdp_info.action_space.low, self._mdp_info.action_space.high)
-        self.sim.data.qfrc_applied[self.action_indices] = clipped_action
+        actual_action = self._compute_actual_action(action)
+        self.sim.data.qfrc_applied[self.action_indices] = actual_action
 
         self.sim.step()
 
         next_obs = self._create_observation()
 
-        # Do we pass the clipped or non-clipped action?
         reward = self.reward(cur_obs, action, next_obs)
 
         return next_obs, reward, self.is_absorbing(next_obs), {}
