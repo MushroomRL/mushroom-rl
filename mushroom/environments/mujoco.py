@@ -94,6 +94,7 @@ class MuJoCo(Environment):
         self.sim = mujoco_py.MjSim(mujoco_py.load_model_from_path(file_name),
                                    nsubsteps=nsubsteps)
         self.viewer = None
+        self._state = None
 
         # Create a mapping from ObservationTypes to the corresponding index and data arrays
         self.id_maps = [self.sim.model._body_name2id,
@@ -205,7 +206,9 @@ class MuJoCo(Environment):
     def reset(self, state=None):
         mj_fun.mj_resetData(self.sim.model, self.sim.data)
         self.setup()
-        return self._create_observation()
+
+        self._state = self._create_observation()
+        return self._state
 
     def _create_observation(self):
         observation = []
@@ -234,18 +237,18 @@ class MuJoCo(Environment):
         return np.clip(action, self._mdp_info.action_space.low, self._mdp_info.action_space.high)
 
     def step(self, action):
-        cur_obs = self._create_observation()
+        cur_obs = self._state
 
         actual_action = self._compute_actual_action(action)
         self.sim.data.qfrc_applied[self.action_indices] = actual_action
 
         self.sim.step()
 
-        next_obs = self._create_observation()
+        self._state = self._create_observation()
 
-        reward = self.reward(cur_obs, action, next_obs)
+        reward = self.reward(cur_obs, action, self._state)
 
-        return next_obs, reward, self.is_absorbing(next_obs), {}
+        return self._state, reward, self.is_absorbing(self._state), {}
 
     def render(self):
         if self.viewer is None:
