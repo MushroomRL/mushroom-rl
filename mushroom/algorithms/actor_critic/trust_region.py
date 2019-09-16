@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from mushroom.algorithms.agent import Agent
 from mushroom.approximators import Regressor
 from mushroom.approximators.parametric import TorchApproximator
-from mushroom.utils.torch import get_gradient, zero_grad
+from mushroom.utils.torch import get_gradient, zero_grad, to_float_tensor
 from mushroom.utils.minibatches import minibatch_generator
 from mushroom.utils.dataset import parse_dataset, compute_J
 from mushroom.utils.value_functions import compute_gae
@@ -80,12 +80,12 @@ class TRPO(Agent):
         r = reward.astype(np.float32)
         xn = next_state.astype(np.float32)
 
-        obs = torch.tensor(x, dtype=torch.float)
-        act = torch.tensor(u, dtype=torch.float)
+        obs = to_float_tensor(x, self.policy.use_cuda)
+        act = to_float_tensor(u, self.policy.use_cuda)
         v_target, np_adv = compute_gae(self._V, x, xn, r, absorbing, last,
                                        self.mdp_info.gamma, self._lambda)
         np_adv = (np_adv - np.mean(np_adv)) / (np.std(np_adv) + 1e-8)
-        adv = torch.tensor(np_adv, dtype=torch.float)
+        adv = to_float_tensor(np_adv, self.policy.use_cuda)
 
         # Policy update
         old_pol_dist = self.policy.distribution_t(obs)
@@ -104,9 +104,9 @@ class TRPO(Agent):
         stepdir = self._conjugate_gradient(g, obs, old_pol_dist)
 
         # Line search
-        shs = .5 * stepdir.dot(self._fisher_vector_product(
-            torch.from_numpy(stepdir), obs, old_pol_dist)
-        )
+        stepdir_t = to_float_tensor(stepdir, self.policy.use_cuda)
+        direction = self._fisher_vector_product(stepdir_t, obs, old_pol_dist).detach().cpu().numpy()
+        shs = .5 * stepdir.dot(direction)
         lm = np.sqrt(shs / self._max_kl)
         fullstep = stepdir / lm
         stepsize = 1.
@@ -141,14 +141,16 @@ class TRPO(Agent):
         zero_grad(self.policy.parameters())
 
     def _conjugate_gradient(self, b, obs, old_pol_dist):
-        p = b.detach().numpy()
-        r = b.detach().numpy()
-        x = np.zeros_like(b)
+        p = b.detach().cpu().numpy()
+        r = b.detach().cpu().numpy()
+        x = np.zeros_like(p)
         rdotr = r.dot(r)
 
         for i in range(self._n_epochs_cg):
-            z = self._fisher_vector_product(
-                torch.from_numpy(p), obs, old_pol_dist).detach().numpy()
+            p_tensor = torch.from_numpy(p)
+            if self.policy.use_cuda:
+                p_tensor = p_tensor.cuda()
+            z = self._fisher_vector_product(p_tensor, obs, old_pol_dist).detach().cpu().numpy()
             v = rdotr / p.dot(z)
             x += v * p
             r -= v * z
@@ -162,6 +164,10 @@ class TRPO(Agent):
         return x
 
     def _fisher_vector_product(self, p, obs, old_pol_dist):
+
+        if self.policy.use_cuda:
+            p = p.cuda()
+
         self._zero_grad()
         kl = self._compute_kl(obs, old_pol_dist)
         grads = torch.autograd.grad(kl, self.policy.parameters(),
@@ -265,11 +271,11 @@ class PPO(Agent):
         r = r.astype(np.float32)
         xn = xn.astype(np.float32)
 
-        obs = torch.tensor(x, dtype=torch.float)
-        act = torch.tensor(u, dtype=torch.float)
+        obs = to_float_tensor(x, self.policy.use_cuda)
+        act = to_float_tensor(u, self.policy.use_cuda)
         v_target, np_adv = compute_gae(self._V, x, xn, r, absorbing, last, self.mdp_info.gamma, self._lambda)
         np_adv = (np_adv - np.mean(np_adv)) / (np.std(np_adv) + 1e-8)
-        adv = torch.tensor(np_adv, dtype=torch.float)
+        adv = to_float_tensor(np_adv, self.policy.use_cuda)
 
         old_pol_dist = self.policy.distribution_t(obs)
         old_log_p = old_pol_dist.log_prob(act)[:, None].detach()

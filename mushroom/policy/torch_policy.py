@@ -71,7 +71,7 @@ class TorchPolicy(Policy):
         """
         s = to_float_tensor(state, self._use_cuda) if state is not None else None
 
-        return self.entropy_t(s).detach().numpy()
+        return self.entropy_t(s).detach().cpu().numpy()
 
     def draw_action_t(self, state):
         """
@@ -198,11 +198,14 @@ class GaussianTorchPolicy(TorchPolicy):
         self._action_dim = output_shape[0]
 
         self._mu = network(input_shape, output_shape, **params)
-        self._log_sigma = nn.Parameter(torch.ones(self._action_dim) * np.log(std_0))
+
+        log_sigma_init = torch.ones(self._action_dim) * np.log(std_0)
 
         if self._use_cuda:
             self._mu.cuda()
-            self._log_sigma = self._log_sigma.cuda()
+            log_sigma_init = log_sigma_init.cuda()
+
+        self._log_sigma = nn.Parameter(log_sigma_init)
 
     def draw_action_t(self, state):
         return self.distribution_t(state).sample().detach()
@@ -221,7 +224,10 @@ class GaussianTorchPolicy(TorchPolicy):
         return self._mu(state), torch.diag(torch.exp(2 * self._log_sigma))
 
     def set_weights(self, weights):
-        self._log_sigma.data = torch.from_numpy(weights[-self._action_dim:])
+        log_sigma_data =  torch.from_numpy(weights[-self._action_dim:])
+        if self.use_cuda:
+            log_sigma_data = log_sigma_data.cuda()
+        self._log_sigma.data = log_sigma_data
 
         set_weights(self._mu.parameters(), weights[:-self._action_dim], self._use_cuda)
 

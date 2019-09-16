@@ -87,7 +87,8 @@ if __name__ == '__main__':
     policy_params = dict(
         std_0=1.,
         n_features=64,
-        use_cuda=False
+        use_cuda=torch.cuda.is_available()
+
     )
 
     ppo_params = dict(actor_optimizer={'class': optim.Adam,
