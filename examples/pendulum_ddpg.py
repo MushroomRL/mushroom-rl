@@ -68,10 +68,11 @@ class ActorNetwork(nn.Module):
 def experiment(alg, n_epochs, n_steps, n_steps_test):
     np.random.seed()
 
+    use_cuda = torch.cuda.is_available()
+
     # MDP
     horizon = 200
     gamma = 0.99
-    gamma_eval = 1.
     mdp = Gym('Pendulum-v0', horizon, gamma)
 
     # Policy
@@ -90,7 +91,8 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
     actor_params = dict(network=ActorNetwork,
                         n_features=n_features,
                         input_shape=actor_input_shape,
-                        output_shape=mdp.info.action_space.shape)
+                        output_shape=mdp.info.action_space.shape,
+                        use_cuda=use_cuda)
 
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': .001}}
@@ -102,7 +104,8 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
                          loss=F.mse_loss,
                          n_features=n_features,
                          input_shape=critic_input_shape,
-                         output_shape=(1,))
+                         output_shape=(1,),
+                         use_cuda=use_cuda)
 
     # Agent
     agent = alg(mdp.info, policy_class, policy_params,
@@ -116,14 +119,14 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
 
     # RUN
     dataset = core.evaluate(n_steps=n_steps_test, render=False)
-    J = compute_J(dataset, gamma_eval)
+    J = compute_J(dataset, gamma)
     print('J: ', np.mean(J))
 
     for n in range(n_epochs):
         print('Epoch: ', n)
         core.learn(n_steps=n_steps, n_steps_per_fit=1)
         dataset = core.evaluate(n_steps=n_steps_test, render=False)
-        J = compute_J(dataset, gamma_eval)
+        J = compute_J(dataset, gamma)
         print('J: ', np.mean(J))
 
     print('Press a button to visualize pendulum')

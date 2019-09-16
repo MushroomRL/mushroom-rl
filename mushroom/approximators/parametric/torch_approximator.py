@@ -91,7 +91,8 @@ class TorchApproximator:
             else:
                 val = val.detach().numpy()
         else:
-            torch_args = [torch.from_numpy(x).cuda() for x in args]
+            torch_args = [torch.from_numpy(x).cuda()
+                          if isinstance(x, np.ndarray) else x.cuda() for x in args]
             val = self.network.forward(*torch_args,
                                        **kwargs)
 
