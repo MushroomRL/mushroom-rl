@@ -26,29 +26,30 @@ class Network(nn.Module):
         self._h3 = nn.Linear(n_features, n_output)
 
         nn.init.xavier_uniform_(self._h1.weight,
-                                gain=nn.init.calculate_gain('relu'))
+                                gain=nn.init.calculate_gain('tanh'))
         nn.init.xavier_uniform_(self._h2.weight,
-                                gain=nn.init.calculate_gain('relu'))
+                                gain=nn.init.calculate_gain('tanh'))
         nn.init.xavier_uniform_(self._h3.weight,
                                 gain=nn.init.calculate_gain('linear'))
 
     def forward(self, state, **kwargs):
-        features1 = F.relu(self._h1(torch.squeeze(state, 1).float()))
-        features2 = F.relu(self._h2(features1))
+        features1 = F.tanh(self._h1(torch.squeeze(state, 1).float()))
+        features2 = F.tanh(self._h2(features1))
         a = self._h3(features2)
 
         return a
 
 
-def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, n_episodes_test,
+def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, n_step_test,
                alg_params, policy_params):
     print(alg.__name__)
 
     mdp = Gym(env_id, horizon, gamma)
 
     critic_params = dict(network=Network,
-                         optimizer={'class': optim.Adam,
-                                    'params': {'lr': 7e-4}},
+                         optimizer={'class': optim.RMSprop,
+                                    'params': {'lr': 7e-4,
+                                               'eps': 1e-5}},
                          loss=F.mse_loss,
                          n_features=64,
                          input_shape=mdp.info.observation_space.shape,
@@ -65,7 +66,7 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
 
     for it in trange(n_epochs):
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit)
-        dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
+        dataset = core.evaluate(n_steps=n_step_test, render=False)
 
         J = np.mean(compute_J(dataset, mdp.info.gamma))
         R = np.mean(compute_J(dataset))
@@ -81,17 +82,15 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
 
 
 if __name__ == '__main__':
-
-    max_kl = .015
-
     policy_params = dict(
         std_0=1.,
         n_features=64,
         use_cuda=False
     )
 
-    a2c_params = dict(actor_optimizer={'class': optim.Adam,
-                                       'params': {'lr': 7e-4}},
+    a2c_params = dict(actor_optimizer={'class': optim.RMSprop,
+                                       'params': {'lr': 7e-4,
+                                                  'eps': 3e-3}},
                       max_grad_norm=0.5,
                       ent_coeff=0.01)
 
@@ -102,5 +101,5 @@ if __name__ == '__main__':
     for alg, alg_name, alg_params in algs_params:
         experiment(alg=alg, env_id='Pendulum-v0', horizon=200, gamma=.99,
                    n_epochs=40, n_steps=30000, n_steps_per_fit=5,
-                   n_episodes_test=10, alg_params=alg_params,
+                   n_step_test=5000, alg_params=alg_params,
                    policy_params=policy_params)

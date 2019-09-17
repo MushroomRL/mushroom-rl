@@ -224,7 +224,7 @@ class GaussianTorchPolicy(TorchPolicy):
         return self._mu(state), torch.diag(torch.exp(2 * self._log_sigma))
 
     def set_weights(self, weights):
-        log_sigma_data =  torch.from_numpy(weights[-self._action_dim:])
+        log_sigma_data = torch.from_numpy(weights[-self._action_dim:])
         if self.use_cuda:
             log_sigma_data = log_sigma_data.cuda()
         self._log_sigma.data = log_sigma_data
