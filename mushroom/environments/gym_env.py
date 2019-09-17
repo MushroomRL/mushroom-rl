@@ -81,8 +81,10 @@ class Gym(Environment):
         self.env.render(mode=mode)
 
     def stop(self):
-        #self.env.close()
-        pass
+        try:
+            self.env.close()
+        except:
+            pass
 
     @staticmethod
     def _convert_gym_space(space):
