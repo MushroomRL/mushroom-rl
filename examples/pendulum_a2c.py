@@ -33,8 +33,8 @@ class Network(nn.Module):
                                 gain=nn.init.calculate_gain('linear'))
 
     def forward(self, state, **kwargs):
-        features1 = F.tanh(self._h1(torch.squeeze(state, 1).float()))
-        features2 = F.tanh(self._h2(features1))
+        features1 = torch.tanh(self._h1(torch.squeeze(state, 1).float()))
+        features2 = torch.tanh(self._h2(features1))
         a = self._h3(features2)
 
         return a
