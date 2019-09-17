@@ -403,8 +403,16 @@ class SACPolicy(Policy):
         """
         self._mu_approximator = mu_approximator
         self._sigma_approximator = sigma_approximator
+
         self._delta_a = torch.from_numpy(.5 * (max_a - min_a))
         self._central_a = torch.from_numpy(.5 * (max_a + min_a))
+
+        use_cuda = self._mu_approximator.model.use_cuda
+
+        if use_cuda:
+            self._delta_a = self._delta_a.cuda()
+            self._central_a = self._central_a.cuda()
+
 
     def __call__(self, state, action):
         raise NotImplementedError
@@ -462,6 +470,10 @@ class SACPolicy(Policy):
 
     def reset(self):
         pass
+
+    @property
+    def use_cuda(self):
+        return self._mu_approximator.model.use_cuda
 
 
 class SAC(DeepAC):
@@ -533,9 +545,6 @@ class SAC(DeepAC):
         self._target_critic_approximator = Regressor(TorchApproximator,
                                                      **target_critic_params)
 
-        self._log_alpha = torch.tensor(0., requires_grad=True, dtype=torch.float32)
-        self._alpha_optim = optim.Adam([self._log_alpha], lr=lr_alpha)
-
         actor_mu_approximator = Regressor(TorchApproximator,
                                           **actor_mu_params)
         actor_sigma_approximator = Regressor(TorchApproximator,
@@ -547,6 +556,13 @@ class SAC(DeepAC):
                            mdp_info.action_space.high)
 
         self._init_target()
+
+        self._log_alpha = torch.tensor(0., dtype=torch.float32)
+
+        if policy.use_cuda:
+            self._log_alpha = self._log_alpha.cuda().requires_grad_()
+
+        self._alpha_optim = optim.Adam([self._log_alpha], lr=lr_alpha)
 
         policy_parameters = chain(actor_mu_approximator.model.network.parameters(),
                                   actor_sigma_approximator.model.network.parameters())

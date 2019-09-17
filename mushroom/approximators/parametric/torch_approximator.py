@@ -318,3 +318,7 @@ class TorchApproximator:
         g = np.stack(gradients, -1)
 
         return g
+
+    @property
+    def use_cuda(self):
+        return self._use_cuda

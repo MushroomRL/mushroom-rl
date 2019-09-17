@@ -81,16 +81,20 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
     tau = 0.005
     lr_alpha = 3e-4
 
+    use_cuda = torch.cuda.is_available()
+
     # Approximator
     actor_input_shape = mdp.info.observation_space.shape
     actor_mu_params = dict(network=ActorNetwork,
                            n_features=n_features,
                            input_shape=actor_input_shape,
-                           output_shape=mdp.info.action_space.shape)
+                           output_shape=mdp.info.action_space.shape,
+                           use_cuda=use_cuda)
     actor_sigma_params = dict(network=ActorNetwork,
                               n_features=n_features,
                               input_shape=actor_input_shape,
-                              output_shape=mdp.info.action_space.shape)
+                              output_shape=mdp.info.action_space.shape,
+                              use_cuda=use_cuda)
 
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': 3e-4}}
@@ -102,7 +106,8 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
                          loss=F.mse_loss,
                          n_features=n_features,
                          input_shape=critic_input_shape,
-                         output_shape=(1,))
+                         output_shape=(1,),
+                         use_cuda=use_cuda)
 
     # Agent
     agent = alg(mdp.info,
