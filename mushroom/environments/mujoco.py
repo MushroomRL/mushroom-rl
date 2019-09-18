@@ -63,9 +63,8 @@ class MuJoCo(Environment):
             file_name (string): The path to the XML file with which the
                 environment should be created;
             actuation_spec (list): A list specifying the names of the joints
-                which should be controllable by the agent. Each element of the
-                dictionary is a tuple in the form: (joint_name,
-                lower_torque_limit, upper_torque_limit);
+                which should be controllable by the agent. Can be left empty
+                when all actuators should be used;
             observation_spec (list): A list containing the names of data that
                 should be made available to the agent as an observation and
                 their type (ObservationType). An entry in the list is given by:
@@ -107,15 +106,22 @@ class MuJoCo(Environment):
 
         # Read the actuation spec and build the mapping between actions and ids
         # as well as their limits
+        if len(actuation_spec) == 0:
+            self.action_indices = [i for i in range(0, len(self.sim.model._actuator_name2id))]
+        else:
+            self.action_indices = []
+            for name in actuation_spec:
+                self.action_indices.append(self.sim.model._actuator_name2id[name])
+
         low = []
         high = []
-        self.action_indices = []
-        for name, lb, ub in actuation_spec:
-            self.action_indices.append(
-                self.id_maps[ObservationType.JOINT_POS.value][name]
-            )
-            low.append(lb)
-            high.append(ub)
+        for index in self.action_indices:
+            if self.sim.model.actuator_ctrllimited[index]:
+                low.append(self.sim.model.actuator_ctrlrange[index][0])
+                high.append(self.sim.model.actuator_ctrlrange[index][1])
+            else:
+                low.append(-np.inf)
+                high.append(np.inf)
 
         action_space = Box(np.array(low), np.array(high))
 
@@ -234,13 +240,13 @@ class MuJoCo(Environment):
 
         """
 
-        return np.clip(action, self._mdp_info.action_space.low, self._mdp_info.action_space.high)
+        return action
 
     def step(self, action):
         cur_obs = self._state
 
-        actual_action = self._compute_actual_action(action)
-        self.sim.data.qfrc_applied[self.action_indices] = actual_action
+        # The clipping of the outputs is done by MuJoCo for us
+        self.sim.data.ctrl[self.action_indices] = self._compute_actual_action(action)
 
         self.sim.step()
 

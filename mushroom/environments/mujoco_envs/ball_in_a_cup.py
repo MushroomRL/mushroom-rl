@@ -9,7 +9,11 @@ class BallInACup(MuJoCo):
 
     """
     def __init__(self):
-        xml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "xml", "ball-in-a-cup.xml")
+        """
+        Constructor.
+
+        """
+        xml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "ball_in_a_cup", "model.xml")
         action_spec = ["act/wam/base_yaw_joint", "act/wam/shoulder_pitch_joint", "act/wam/shoulder_yaw_joint",
                        "act/wam/elbow_pitch_joint", "act/wam/wrist_yaw_joint", "act/wam/wrist_pitch_joint",
                        "act/wam/palm_yaw_joint"]
