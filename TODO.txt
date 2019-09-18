@@ -4,8 +4,6 @@ Algorithms:
             - fix step based gradient interface
             - Natural gradient
             - NES
-        * TRPO
-        * PPO
 
     b) Actor-critic:
         * A2C

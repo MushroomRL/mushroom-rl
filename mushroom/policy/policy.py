@@ -97,7 +97,8 @@ class ParametricPolicy(Policy):
 
         Args:
             weights (np.ndarray): the vector of the new weights to be used by
-                                  the policy
+                the policy.
+
         """
         raise NotImplementedError
 
@@ -106,7 +107,8 @@ class ParametricPolicy(Policy):
         Getter.
 
         Returns:
-             The current policy weights
+             The current policy weights.
+
         """
         raise NotImplementedError
 
@@ -116,6 +118,7 @@ class ParametricPolicy(Policy):
         Property.
 
         Returns:
-             The size of the policy weights
+             The size of the policy weights.
+
         """
         raise NotImplementedError

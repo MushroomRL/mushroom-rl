@@ -2,7 +2,7 @@ import numpy as np
 
 
 class FourierBasis:
-    """
+    r"""
     Class implementing Fourier basis functions. The value of the feature
     is computed using the formula:
 

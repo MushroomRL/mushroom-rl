@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
-from mushroom.algorithms.actor_critic import SAC_AVG
+from mushroom.algorithms.actor_critic import StochasticAC_AVG
 from mushroom.core import Core
 from mushroom.environments import *
 from mushroom.features import Features
@@ -135,11 +135,11 @@ def experiment(n_epochs, n_episodes):
 
     policy = StateLogStdGaussianPolicy(mu, std)
 
-    agent = SAC_AVG(policy, mdp.info,
-                    alpha_theta, alpha_v, alpha_r,
-                    lambda_par=.5,
-                    value_function_features=psi,
-                    policy_features=phi)
+    agent = StochasticAC_AVG(policy, mdp.info,
+                             alpha_theta, alpha_v, alpha_r,
+                             lambda_par=.5,
+                             value_function_features=psi,
+                             policy_features=phi)
 
     # Train
     dataset_callback = CollectDataset()

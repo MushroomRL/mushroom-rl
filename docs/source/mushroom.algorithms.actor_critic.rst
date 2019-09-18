@@ -1,30 +1,29 @@
 Actor-Critic
 ============
 
-Deterministic Policy Gradient
------------------------------
+Classical Actor-Critic Methods
+------------------------------
 
-.. automodule:: mushroom.algorithms.actor_critic.dpg
+.. automodule:: mushroom.algorithms.actor_critic.classic_actor_critic
     :members:
     :private-members:
     :inherited-members:
     :show-inheritance:
 
-Deep Deterministic Policy Gradient
-----------------------------------
+Deep Actor-Critic Methods
+-------------------------
 
-.. automodule:: mushroom.algorithms.actor_critic.ddpg
+.. automodule:: mushroom.algorithms.actor_critic.deep_actor_critic
     :members:
     :private-members:
     :inherited-members:
     :show-inheritance:
 
-Stochastic Actor-Critic
------------------------
+Trust-Region Optimization
+-------------------------
 
-.. automodule:: mushroom.algorithms.actor_critic.stochastic_actor_critic
+.. automodule:: mushroom.algorithms.actor_critic.trust_region
     :members:
     :private-members:
     :inherited-members:
     :show-inheritance:
-

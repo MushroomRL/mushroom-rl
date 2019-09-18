@@ -1,10 +1,13 @@
-from mushroom.environments.mujoco_raw import MojucoRaw, ObservationType
+from mushroom.environments.mujoco import MuJoCo, ObservationType
 import numpy as np
 import os
 
 
-class BallInACup(MojucoRaw):
+class BallInACup(MuJoCo):
+    """
+    Mujoco simulation of Ball In A Cup task, using Barret WAM robot.
 
+    """
     def __init__(self):
         xml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "xml", "ball-in-a-cup.xml")
         action_spec = ["act/wam/base_yaw_joint", "act/wam/shoulder_pitch_joint", "act/wam/shoulder_yaw_joint",

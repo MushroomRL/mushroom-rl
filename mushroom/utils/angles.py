@@ -1,5 +1,4 @@
-
-#*********************************************************************
+# *********************************************************************
 # Software License Agreement (BSD License)
 #
 #  Copyright (c) 2015, Bossa Nova Robotics
@@ -31,7 +30,7 @@
 #  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 #  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 #  POSSIBILITY OF SUCH DAMAGE.
-#********************************************************************/
+# ********************************************************************/
 
 from math import fmod
 import numpy as np
@@ -48,7 +47,7 @@ def normalize_angle_positive(angle):
          The wrapped angle.
 
     """
-    pi_2 = 2.0 * np.pi
+    pi_2 = 2. * np.pi
 
     return fmod(fmod(angle, pi_2) + pi_2, pi_2)
 
@@ -66,10 +65,21 @@ def normalize_angle(angle):
     """
     a = normalize_angle_positive(angle)
     if a > np.pi:
-        a -= 2.0 * np.pi
+        a -= 2. * np.pi
 
     return a
 
 
 def shortest_angular_distance(from_angle, to_angle):
+    """
+    Compute the shortest distance between two angles
+
+    Args:
+        from_angle (float): starting angle;
+        to_angle (float): final angle.
+
+    Returns:
+        The shortest distance between from_angle and to_angle.
+
+    """
     return normalize_angle(to_angle - from_angle)

@@ -1,3 +1,6 @@
+import numpy as np
+
+import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
@@ -6,7 +9,6 @@ from mushroom.algorithms.actor_critic import DDPG, TD3
 from mushroom.core import Core
 from mushroom.environments.gym_env import Gym
 from mushroom.policy import OrnsteinUhlenbeckPolicy
-from mushroom.approximators.parametric.pytorch_network import *
 from mushroom.utils.dataset import compute_J
 
 
@@ -66,10 +68,11 @@ class ActorNetwork(nn.Module):
 def experiment(alg, n_epochs, n_steps, n_steps_test):
     np.random.seed()
 
+    use_cuda = torch.cuda.is_available()
+
     # MDP
-    horizon = 500
+    horizon = 200
     gamma = 0.99
-    gamma_eval = 1.
     mdp = Gym('Pendulum-v0', horizon, gamma)
 
     # Policy
@@ -81,18 +84,19 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
     max_replay_size = 5000
     batch_size = 200
     n_features = 80
+    tau = .001
 
     # Approximator
-    actor_approximator = PyTorchApproximator
     actor_input_shape = mdp.info.observation_space.shape
     actor_params = dict(network=ActorNetwork,
-                        optimizer={'class': optim.Adam,
-                                   'params': {'lr': .001}},
                         n_features=n_features,
                         input_shape=actor_input_shape,
-                        output_shape=mdp.info.action_space.shape)
+                        output_shape=mdp.info.action_space.shape,
+                        use_cuda=use_cuda)
 
-    critic_approximator = PyTorchApproximator
+    actor_optimizer = {'class': optim.Adam,
+                       'params': {'lr': .001}}
+
     critic_input_shape = (actor_input_shape[0] + mdp.info.action_space.shape[0],)
     critic_params = dict(network=CriticNetwork,
                          optimizer={'class': optim.Adam,
@@ -100,15 +104,13 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
                          loss=F.mse_loss,
                          n_features=n_features,
                          input_shape=critic_input_shape,
-                         output_shape=(1,))
+                         output_shape=(1,),
+                         use_cuda=use_cuda)
 
     # Agent
-    agent = alg(actor_approximator, critic_approximator, policy_class,
-                mdp.info, batch_size=batch_size,
-                initial_replay_size=initial_replay_size,
-                max_replay_size=max_replay_size, tau=.001,
-                actor_params=actor_params, critic_params=critic_params,
-                policy_params=policy_params)
+    agent = alg(mdp.info, policy_class, policy_params,
+                batch_size, initial_replay_size, max_replay_size,
+                tau, critic_params, actor_params, actor_optimizer)
 
     # Algorithm
     core = Core(agent, mdp)
@@ -117,14 +119,14 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
 
     # RUN
     dataset = core.evaluate(n_steps=n_steps_test, render=False)
-    J = compute_J(dataset, gamma_eval)
+    J = compute_J(dataset, gamma)
     print('J: ', np.mean(J))
 
     for n in range(n_epochs):
         print('Epoch: ', n)
         core.learn(n_steps=n_steps, n_steps_per_fit=1)
         dataset = core.evaluate(n_steps=n_steps_test, render=False)
-        J = compute_J(dataset, gamma_eval)
+        J = compute_J(dataset, gamma)
         print('J: ', np.mean(J))
 
     print('Press a button to visualize pendulum')
@@ -133,7 +135,6 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
 
 
 if __name__ == '__main__':
-
     algs = [
         DDPG,
         TD3

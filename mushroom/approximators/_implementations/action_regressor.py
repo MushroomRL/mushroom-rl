@@ -25,9 +25,6 @@ class ActionRegressor:
         self.model = list()
         self._n_actions = n_actions
 
-        self._input_preprocessor = params.pop('input_preprocessor', list())
-        self._output_preprocessor = params.pop('output_preprocessor', list())
-
         for i in range(self._n_actions):
             self.model.append(approximator(**params))
 
@@ -43,8 +40,6 @@ class ActionRegressor:
                 of each regressor.
 
         """
-        state, q = self._preprocess(state, q)
-
         for i in range(len(self.model)):
             idxs = np.argwhere((action == i)[:, 0]).ravel()
 
@@ -69,8 +64,6 @@ class ActionRegressor:
         assert len(z) == 1 or len(z) == 2
 
         state = z[0]
-        state = self._preprocess(state)
-
         if len(z) == 2:
             action = z[1]
             q = np.zeros(state.shape[0])
@@ -131,17 +124,6 @@ class ActionRegressor:
             diff[s * a:s * (a + 1)] = self.model[a].diff(state)
 
             return diff
-
-    def _preprocess(self, state, q=None):
-        for p in self._input_preprocessor:
-            state = p(state)
-
-        if q is not None:
-            for p in self._output_preprocessor:
-                q = p(q)
-
-            return state, q
-        return state
 
     def __len__(self):
         return len(self.model[0])

@@ -36,6 +36,19 @@ You can install everything by running:
 
 	pip3 install -e '.[all]'
 
+This will install every dependency of mushroom, except MuJoCo dependencies.
+To use the ``mujoco-py`` mushroom interface you can run the command:
+
+.. code:: shell
+
+	pip3 install -e '.[mujoco]'
+
+You might need to install external dependencies first. For more information about mujoco-py
+installation follow the instructions on the `project page <https://github.com/openai/mujoco-py>`_
+
+To use dm_control mushroom interface, install ``dm_control`` following the instruction that can
+be found `here <https://github.com/deepmind/dm_control>`_
+
 How to set and run and experiment
 =================================
 To run experiments, Mushroom requires a script file that provides the necessary information

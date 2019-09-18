@@ -19,8 +19,6 @@ class QRegressor:
             params (dict): parameters dictionary to the regressor.
 
         """
-        self._input_preprocessor = params.pop('input_preprocessor', list())
-        self._output_preprocessor = params.pop('output_preprocessor', list())
         self.model = approximator(**params)
 
     def fit(self, state, action, q, **fit_params):
@@ -35,7 +33,6 @@ class QRegressor:
                 regressor.
 
         """
-        state, q = self._preprocess(state, q)
         self.model.fit(state, action, q, **fit_params)
 
     def predict(self, *z, **predict_params):
@@ -55,7 +52,7 @@ class QRegressor:
         """
         assert len(z) == 1 or len(z) == 2
 
-        state = self._preprocess(z[0])
+        state = z[0]
         q = self.model.predict(state, **predict_params)
 
         if len(z) == 2:
@@ -90,17 +87,6 @@ class QRegressor:
 
     def diff(self, state, action=None):
         return self.model.diff(state, action)
-
-    def _preprocess(self, state, q=None):
-        for p in self._input_preprocessor:
-            state = p(state)
-
-        if q is not None:
-            for p in self._output_preprocessor:
-                q = p(q)
-
-            return state, q
-        return state
 
     def __len__(self):
         return len(self.model)

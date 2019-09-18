@@ -9,7 +9,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from mushroom.algorithms.value import AveragedDQN, CategoricalDQN, DQN, DoubleDQN
-from mushroom.approximators.parametric import PyTorchApproximator
+from mushroom.approximators.parametric import TorchApproximator
 from mushroom.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
@@ -18,7 +18,8 @@ from mushroom.utils.parameters import LinearParameter, Parameter
 from mushroom.utils.replay_memory import PrioritizedReplayMemory
 
 """
-This script runs Atari experiments with DQN as presented in:
+This script runs Atari experiments with DQN, and some of its variants, as
+presented in:
 "Human-Level Control Through Deep Reinforcement Learning". Mnih V. et al.. 2015.
 
 """
@@ -266,7 +267,7 @@ def experiment():
             use_cuda=args.use_cuda
         )
 
-        approximator = PyTorchApproximator
+        approximator = TorchApproximator
 
         # Agent
         algorithm_params = dict(
@@ -347,7 +348,7 @@ def experiment():
             use_cuda=args.use_cuda
         )
 
-        approximator = PyTorchApproximator
+        approximator = TorchApproximator
 
         if args.prioritized:
             replay_memory = PrioritizedReplayMemory(

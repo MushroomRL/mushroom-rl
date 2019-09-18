@@ -27,10 +27,10 @@ Linear
     :inherited-members:
     :show-inheritance:
 
-Pytorch Neural Network
-~~~~~~~~~~~~~~~~~~~~~~
+Torch Approximator
+~~~~~~~~~~~~~~~~~~
 
-.. automodule:: mushroom.approximators.parametric.pytorch_network
+.. automodule:: mushroom.approximators.parametric.torch_approximator
     :members:
     :private-members:
     :inherited-members:

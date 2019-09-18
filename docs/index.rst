@@ -19,20 +19,20 @@ in order to run them without excessive effort. Moreover, it is designed in such
 a way that new algorithms and other stuff can generally be added transparently
 without the need of editing other parts of the code. Mushroom makes a large use
 of the environments provided by
-`OpenAI Gym <https://gym.openai.com/>`_ library and of the regression models
-provided by `Scikit-Learn <http://scikit-learn.org/stable/>`_ library giving
-also the possibility to build and run neural networks using
-`Tensorflow <https://www.tensorflow.org>`_ library.
+`OpenAI Gym <https://gym.openai.com/>`_,
+`DeepMind Control Suite <https://github.com/deepmind/dm_control>`_ and
+`MuJoCo <http://www.mujoco.org/>`_ libraries, and
+the `PyTorch <https://pytorch.org>`_ library for tensor computation.
 
 With Mushroom you can:
 
 - solve RL problems simply writing a single small script;
 - add custom algorithms and other stuff transparently;
-- use all RL environments offered by OpenAI Gym and build customized
+- use all RL environments offered by well-known libraries and build customized
   environments as well;
 - exploit regression models offered by Scikit-Learn or build a customized one
-  with Tensorflow;
-- run experiments with CPU or GPU.
+  with PyTorch;
+- run experiments on GPU.
 
 Basic run example
 -----------------
@@ -143,12 +143,20 @@ To launch mushroom test suite:
 
 ::
 
-    cd mushroom/tests
-    python3 -m pytest
+    pytest
 
 .. toctree::
+   :hidden:
    :maxdepth: 2
-   :caption: Contents:
+   :caption: API:
+   :glob:
 
-   source/mushroom
-   source/tutorials/tutorials
+   source/*
+
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+   :caption: Tutorials:
+   :glob:
+
+   source/tutorials/*

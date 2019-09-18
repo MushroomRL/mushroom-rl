@@ -22,16 +22,18 @@ with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
 
 # specific dependencies for modules
 extras = {
-    #'mujoco': ['dm_control'],
     'gym': ['gym'],
-    'atari': ['gym[atari]'],
-    'bullet': ['pybullet']
+    'atari': ['atari_py~=0.2.0', 'Pillow', 'opencv-python'],
+    'box2d': ['box2d-py~=2.3.5'],
+    'bullet': ['pybullet'],
+    'mujoco': ['mujoco_py']
 }
 
 # Meta dependency groups.
 all_deps = []
 for group_name in extras:
-    all_deps += extras[group_name]
+    if group_name != 'mujoco':
+        all_deps += extras[group_name]
 extras['all'] = all_deps
 
 setup(
@@ -40,7 +42,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='1.0.0',
+    version='1.1.0',
 
     description='A Python toolkit for Reinforcement Learning experiments.',
 
@@ -49,7 +51,7 @@ setup(
 
     # Author details
     author="Carlo D'Eramo",
-    author_email='carlo.deramo@polimi.it',
+    author_email='carlo.deramo@gmail.com',
 
     # Choose your license
     license='',

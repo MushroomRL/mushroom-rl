@@ -18,7 +18,7 @@ class Regressor:
     approximator of the Q-function: if the value of ``n_actions`` is equal to
     the ``output_shape`` then a ``QRegressor`` is created, else
     (``output_shape`` should be (1,)) an ``ActionRegressor`` is created.
-    Else a ``GenericRegressor`` is created.
+    Otherwise a ``GenericRegressor`` is created.
     An ``Ensemble`` model can be used for all the previous implementations
     listed before simply providing a ``n_models`` parameter greater than 1.
 

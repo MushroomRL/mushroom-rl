@@ -6,7 +6,7 @@ from mushroom.algorithms.value import DQN
 from mushroom.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
-from mushroom.approximators.parametric.pytorch_network import *
+from mushroom.approximators.parametric.torch_approximator import *
 from mushroom.utils.dataset import compute_J
 from mushroom.utils.parameters import Parameter, LinearParameter
 
@@ -78,7 +78,7 @@ def experiment(n_epochs, n_steps, n_steps_test):
                                n_actions=mdp.info.action_space.n)
 
     # Agent
-    agent = DQN(PyTorchApproximator, pi, mdp.info,
+    agent = DQN(TorchApproximator, pi, mdp.info,
                 approximator_params=approximator_params, batch_size=batch_size,
                 n_approximators=1, initial_replay_size=initial_replay_size,
                 max_replay_size=max_replay_size,

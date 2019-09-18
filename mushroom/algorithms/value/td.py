@@ -147,10 +147,7 @@ class WeightedQLearning(TD):
             sampling (bool, True): use the approximated version to speed up
                 the computation;
             precision (int, 1000): number of samples to use in the approximated
-                version;
-            weighted_policy (bool, False): whether to use the weighted policy
-                or not.
-
+                version.
 
         """
         self.Q = Table(mdp_info.size)
@@ -164,8 +161,6 @@ class WeightedQLearning(TD):
         self._Q = Table(mdp_info.size)
         self._Q2 = Table(mdp_info.size)
         self._weights_var = Table(mdp_info.size)
-
-        self._use_weighted_policy = weighted_policy
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
@@ -221,10 +216,6 @@ class WeightedQLearning(TD):
             self._w = count / self._precision
         else:
             raise NotImplementedError
-
-        if self._use_weighted_policy:
-            self.next_action = np.array(
-                [np.random.choice(self.mdp_info.action_space.n, p=self._w)])
 
         return np.dot(self._w, means)
 

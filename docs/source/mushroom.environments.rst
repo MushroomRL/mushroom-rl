@@ -1,14 +1,19 @@
 Environments
 ============
 
+In mushroom we distinguish between two different types of environment classes:
+
+
+- proper environments
+- generators
+
+While environments directly implement the ``Environment`` interface, generators
+are a set of methods used to generate finite markov chains that represent a
+specific environment  e.g., grid worlds.
+
+
 Environments
 ------------
-
-.. automodule:: mushroom.environments.environment
-    :members:
-    :private-members:
-    :inherited-members:
-    :show-inheritance:
 
 Atari
 ~~~~~
@@ -23,6 +28,15 @@ Car on hill
 ~~~~~~~~~~~
 
 .. automodule:: mushroom.environments.car_on_hill
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+DeepMind Control Suite
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: mushroom.environments.dm_control_env
     :members:
     :private-members:
     :inherited-members:
@@ -77,6 +91,15 @@ Mujoco
 ~~~~~~
 
 .. automodule:: mushroom.environments.mujoco
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+Puddle World
+~~~~~~~~~~~~
+
+.. automodule:: mushroom.environments.puddle_world
     :members:
     :private-members:
     :inherited-members:

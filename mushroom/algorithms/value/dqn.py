@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from mushroom.algorithms.agent import Agent
-from mushroom.approximators.parametric.pytorch_network import *
+from mushroom.approximators.parametric.torch_approximator import *
 from mushroom.approximators.regressor import Ensemble, Regressor
 from mushroom.utils.replay_memory import PrioritizedReplayMemory, ReplayMemory
 
@@ -290,7 +290,7 @@ class CategoricalDQN(DQN):
         self._delta = (v_max - v_min) / (n_atoms - 1)
         self._a_values = np.arange(v_min, v_max + self._delta, self._delta)
 
-        super().__init__(PyTorchApproximator, policy, mdp_info, **params)
+        super().__init__(TorchApproximator, policy, mdp_info, **params)
 
     def fit(self, dataset):
         self._replay_memory.add(dataset)

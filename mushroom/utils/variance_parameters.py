@@ -12,6 +12,14 @@ class VarianceParameter(Parameter):
     """
     def __init__(self, value, exponential=False, min_value=None, tol=1.,
                  size=(1,)):
+        """
+        Constructor.
+
+        Args:
+            tol (float): value of the variance of the target variable such that
+                The parameter value is 0.5.
+
+        """
         self._exponential = exponential
         self._tol = tol
         self._weights_var = Table(size)
@@ -25,6 +33,17 @@ class VarianceParameter(Parameter):
         return self._parameter_value[idx]
 
     def update(self, *idx, **kwargs):
+        """
+        Updates the value of the parameter in the provided index.
+
+        Args:
+            *idx (list): index of the parameter whose number of visits has to be
+                updated.
+            target (float): Value of the target variable;
+            factor (float): Multiplicative factor for the parameter value, useful
+                when the parameter depend on another parameter value.
+
+        """
         x = kwargs['target']
         factor = kwargs.get('factor', 1.)
 
@@ -54,6 +73,11 @@ class VarianceParameter(Parameter):
 
 
 class VarianceIncreasingParameter(VarianceParameter):
+    """
+    Class implementing a parameter that increases with the target
+    variance.
+
+    """
     def _compute_parameter(self, sigma, **kwargs):
         if self._exponential:
             return 1 - np.exp(sigma * np.log(.5) / self._tol)
@@ -62,6 +86,11 @@ class VarianceIncreasingParameter(VarianceParameter):
 
 
 class VarianceDecreasingParameter(VarianceParameter):
+    """
+    Class implementing a parameter that decreases with the target
+    variance.
+
+    """
     def _compute_parameter(self, sigma, **kwargs):
         if self._exponential:
             return np.exp(sigma * np.log(.5) / self._tol)
@@ -70,8 +99,22 @@ class VarianceDecreasingParameter(VarianceParameter):
 
 
 class WindowedVarianceParameter(Parameter):
+    """
+    Abstract class to implement variance-dependent parameters. A ``target``
+    parameter is expected. differently from the "Variance Parameter" class
+    the variance is computed in a window interval.
+
+    """
     def __init__(self, value, exponential=False, min_value=None, tol=1.,
                  window=100, size=(1,)):
+        """
+        Constructor.
+
+        Args:
+            tol (float): value of the variance of the target variable such that the
+                parameter value is 0.5.
+            window (int):
+        """
         self._exponential = exponential
         self._tol = tol
         self._weights_var = Table(size)
@@ -86,6 +129,17 @@ class WindowedVarianceParameter(Parameter):
         return self._parameter_value[idx]
 
     def update(self, *idx, **kwargs):
+        """
+        Updates the value of the parameter in the provided index.
+
+        Args:
+            *idx (list): index of the parameter whose number of visits has to be
+                updated.
+            target (float): Value of the target variable;
+            factor (float): Multiplicative factor for the parameter value, useful
+                when the parameter depend on another parameter value.
+
+        """
         x = kwargs['target']
         factor = kwargs.get('factor', 1.)
 
@@ -125,6 +179,12 @@ class WindowedVarianceParameter(Parameter):
 
 
 class WindowedVarianceIncreasingParameter(WindowedVarianceParameter):
+    """
+    Class implementing a parameter that decreases with the target
+    variance, where the variance is computed in a fixed length
+    window.
+
+    """
     def _compute_parameter(self, sigma, **kwargs):
         if self._exponential:
             return 1 - np.exp(sigma * np.log(.5) / self._tol)

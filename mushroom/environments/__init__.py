@@ -16,8 +16,15 @@ except ImportError:
     pass
 
 try:
+    DMControl = None
+    from .dm_control_env import DMControl
+    __extras__.append('DMControl')
+except ImportError:
+    pass
+
+try:
     Mujoco = None
-    from .mujoco import Mujoco
+    from .mujoco import MuJoCo
     __extras__.append('Mujoco')
 except ImportError:
     pass

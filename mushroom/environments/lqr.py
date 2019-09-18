@@ -25,7 +25,8 @@ class LQR(Environment):
     Parisi S., Pirotta M., Smacchia N., Bascetta L., Restelli M.. 2014
 
     """
-    def __init__(self, A, B, Q, R, random_init=False, gamma=0.9, horizon=50):
+    def __init__(self, A, B, Q, R, max_pos=np.inf, max_action=np.inf,
+                 random_init=False, episodic=False, gamma=0.9, horizon=50):
         """
         Constructor.
 
@@ -34,7 +35,11 @@ class LQR(Environment):
                 B (np.ndarray): the action dynamics matrix;
                 Q (np.ndarray): reward weight matrix for state;
                 R (np.ndarray): reward weight matrix for action;
+                max_pos (float, np.inf): maximum value of the state;
+                max_action (float, np.inf): maximum value of the action;
                 random_init (bool, False): start from a random state;
+                episodic (bool, False): end the episode when the state goes over
+                the threshold;
                 gamma (float, 0.9): discount factor;
                 horizon (int, 50): horizon of the mdp.
 
@@ -43,13 +48,16 @@ class LQR(Environment):
         self.B = B
         self.Q = Q
         self.R = R
+        self._max_pos = max_pos
+        self._max_action = max_action
+        self._episodic = episodic
         self.random_init = random_init
 
         # MDP properties
-        high_x = np.inf * np.ones(A.shape[0])
+        high_x = self._max_pos * np.ones(A.shape[0])
         low_x = -high_x
 
-        high_u = np.inf * np.ones(B.shape[0])
+        high_u = self._max_action * np.ones(B.shape[0])
         low_u = -high_u
 
         observation_space = spaces.Box(low=low_x, high=high_x)
@@ -59,18 +67,23 @@ class LQR(Environment):
         super().__init__(mdp_info)
 
     @staticmethod
-    def generate(dimensions, eps=0.1, index=0, random_init=False,
-                 gamma=0.9, horizon=50):
+    def generate(dimensions, max_pos=np.inf, max_action=np.inf, eps=.1,
+                 index=0, random_init=False, episodic=False, gamma=.9,
+                 horizon=50):
         """
         Factory method that generates an lqr with identity dynamics and
         symmetric reward matrices.
 
         Args:
             dimensions (int): number of state-action dimensions;
-            eps (double, 0.1): reward matrix weights specifier;
+            max_pos (float, np.inf): maximum value of the state;
+            max_action (float, np.inf): maximum value of the action;
+            eps (double, .1): reward matrix weights specifier;
             index (int, 0): selector for the principal state;
             random_init (bool, False): start from a random state;
-            gamma (float, 0.9): discount factor;
+            episodic (bool, False): end the episode when the state goes over the
+                threshold;
+            gamma (float, .9): discount factor;
             horizon (int, 50): horizon of the mdp.
 
         """
@@ -84,7 +97,8 @@ class LQR(Environment):
         Q[index, index] = 1. - eps
         R[index, index] = eps
 
-        return LQR(A, B, Q, R, random_init, gamma, horizon)
+        return LQR(A, B, Q, R, max_pos, max_action, random_init, episodic,
+                   gamma, horizon)
 
     def reset(self, state=None):
         if state is None:
@@ -104,4 +118,9 @@ class LQR(Environment):
         reward = -(x.dot(self.Q).dot(x) + u.dot(self.R).dot(u))
         self._state = self.A.dot(x) + self.B.dot(u)
 
-        return self._state, reward, False, {}
+        if self._episodic and np.abs(self._state) > self._max_pos:
+            absorbing = True
+        else:
+            absorbing = False
+
+        return self._state, reward, absorbing, {}

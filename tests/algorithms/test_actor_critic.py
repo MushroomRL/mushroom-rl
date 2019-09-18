@@ -72,8 +72,8 @@ def test_sac():
                                          mdp.info.observation_space.low,
                                          mdp.info.observation_space.high + 1e-3)
     psi = Features(tilings=tilings_v)
-    agent = SAC(policy, mdp.info, alpha_theta, alpha_v, lambda_par=.5,
-                value_function_features=psi, policy_features=phi)
+    agent = StochasticAC(policy, mdp.info, alpha_theta, alpha_v, lambda_par=.5,
+                         value_function_features=psi, policy_features=phi)
     agent.fit(dataset)
 
     w_1 = .09370429
@@ -91,9 +91,9 @@ def test_sac_avg():
                                          mdp.info.observation_space.low,
                                          mdp.info.observation_space.high + 1e-3)
     psi = Features(tilings=tilings_v)
-    agent = SAC_AVG(policy, mdp.info, alpha_theta, alpha_v, alpha_r,
-                    lambda_par=.5, value_function_features=psi,
-                    policy_features=phi)
+    agent = StochasticAC_AVG(policy, mdp.info, alpha_theta, alpha_v, alpha_r,
+                             lambda_par=.5, value_function_features=psi,
+                             policy_features=phi)
     agent.fit(dataset)
 
     w_1 = .09645764

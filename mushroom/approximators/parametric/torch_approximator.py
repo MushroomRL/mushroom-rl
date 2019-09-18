@@ -3,9 +3,10 @@ import numpy as np
 from tqdm import trange, tqdm
 
 from mushroom.utils.minibatches import minibatch_generator
+from mushroom.utils.torch import get_weights, set_weights
 
 
-class PyTorchApproximator:
+class TorchApproximator:
     """
     Class to interface a pytorch model to the mushroom Regressor interface.
     This class implements all is needed to use a generic pytorch model and train
@@ -63,46 +64,92 @@ class PyTorchApproximator:
                                                  **optimizer['params'])
         self._loss = loss
 
-    def predict(self, *args, **kwargs):
+    def predict(self, *args, output_tensor=False, **kwargs):
+        """
+        Predict.
+
+        Args:
+            args (list): input;
+            output_tensor (bool, False): whether to return the output as tensor
+                or not;
+            **kwargs (dict): other parameters used by the predict method
+                the regressor.
+
+        Returns:
+            The predictions of the model.
+
+        """
         if not self._use_cuda:
-            torch_args = [torch.from_numpy(x) for x in args]
+            torch_args = [torch.from_numpy(x) if isinstance(x, np.ndarray) else x
+                          for x in args]
             val = self.network.forward(*torch_args, **kwargs)
-            if isinstance(val, tuple):
+
+            if output_tensor:
+                return val
+            elif isinstance(val, tuple):
                 val = tuple([x.detach().numpy() for x in val])
             else:
                 val = val.detach().numpy()
         else:
-            torch_args = [torch.from_numpy(x).cuda() for x in args]
+            torch_args = [torch.from_numpy(x).cuda()
+                          if isinstance(x, np.ndarray) else x.cuda() for x in args]
             val = self.network.forward(*torch_args,
                                        **kwargs)
-            if isinstance(val, tuple):
+
+            if output_tensor:
+                return val
+            elif isinstance(val, tuple):
                 val = tuple([x.detach().cpu().numpy() for x in val])
             else:
                 val = val.detach().cpu().numpy()
 
         return val
 
-    def fit(self, *args, **kwargs):
+    def fit(self, *args, n_epochs=None, weights=None, epsilon=None, patience=1,
+            validation_split=1., **kwargs):
+        """
+        Fit the model.
+
+        Args:
+            args (list): input;
+            n_epochs (int, None): the number of training epochs;
+            weights (np.ndarray, None): the weights of each sample in the
+                computation of the loss;
+            epsilon (float, None): the coefficient used for early stopping;
+            patience (float, 1.): the number of epochs to wait until stop
+                the learning if not improving;
+            validation_split (float, 1.): the percentage of the dataset to use
+                as training set;
+            **kwargs (dict): other parameters used by the fit method of the
+                regressor.
+
+        """
         if self._reinitialize:
             self.network.weights_init()
 
         if self._dropout:
             self.network.train()
 
-        if 'epsilon' in kwargs:
-            epsilon = kwargs.pop('epsilon')
-            patience = kwargs.pop('patience', 1)
-            n_epochs = kwargs.pop('n_epochs', np.inf)
+        if epsilon is not None:
+            n_epochs = np.inf if n_epochs is None else n_epochs
             check_loss = True
         else:
-            n_epochs = kwargs.pop('n_epochs', 1)
+            n_epochs = 1 if n_epochs is None else n_epochs
             check_loss = False
 
-        if 'weights' in kwargs:
-            args += (kwargs.pop('weights'),)
+        if weights is not None:
+            args += (weights,)
             use_weights = True
         else:
             use_weights = False
+
+        if 0 < validation_split <= 1:
+            train_len = np.ceil(len(args[0]) * validation_split).astype(
+                np.int)
+            train_args = [a[:train_len] for a in args]
+            val_args = [a[train_len:] for a in args]
+        else:
+            raise ValueError
 
         patience_count = 0
         best_loss = np.inf
@@ -112,16 +159,25 @@ class PyTorchApproximator:
                       dynamic_ncols=True, disable=self._quiet,
                       leave=False) as t_epochs:
                 while patience_count < patience and epochs_count < n_epochs:
-                    mean_loss_current = self._fit_epoch(args, use_weights,
+                    mean_loss_current = self._fit_epoch(train_args, use_weights,
                                                         kwargs)
 
+                    if len(val_args[0]):
+                        mean_val_loss_current = self._compute_batch_loss(
+                            val_args, use_weights, kwargs
+                        )
+
+                        loss = mean_val_loss_current.item()
+                    else:
+                        loss = mean_loss_current
+
                     if not self._quiet:
-                        t_epochs.set_postfix(loss=mean_loss_current)
+                        t_epochs.set_postfix(loss=loss)
                         t_epochs.update(1)
 
-                    if best_loss - mean_loss_current > epsilon:
+                    if best_loss - loss > epsilon:
                         patience_count = 0
-                        best_loss = mean_loss_current
+                        best_loss = loss
                     else:
                         patience_count += 1
 
@@ -129,7 +185,7 @@ class PyTorchApproximator:
         else:
             with trange(n_epochs, disable=self._quiet) as t_epochs:
                 for _ in t_epochs:
-                    mean_loss_current = self._fit_epoch(args, use_weights,
+                    mean_loss_current = self._fit_epoch(train_args, use_weights,
                                                         kwargs)
 
                     if not self._quiet:
@@ -196,42 +252,48 @@ class PyTorchApproximator:
         return loss
 
     def set_weights(self, weights):
-        idx = 0
-        for p in self.network.parameters():
-            shape = p.data.shape
+        """
+        Setter.
 
-            c = 1
-            for s in shape:
-                c *= s
+        Args:
+            w (np.ndarray): the set of weights to set.
 
-            w = np.reshape(weights[idx:idx+c], shape)
-
-            if not self._use_cuda:
-                w_tensor = torch.from_numpy(w).type(p.data.dtype)
-            else:
-                w_tensor = torch.from_numpy(w).type(p.data.dtype).cuda()
-
-            p.data = w_tensor
-            idx += c
-
-        assert idx == weights.size
+        """
+        set_weights(self.network.parameters(), weights, self._use_cuda)
 
     def get_weights(self):
-        weights = list()
+        """
+        Getter.
 
-        for p in self.network.parameters():
-            w = p.data.detach().cpu().numpy()
-            weights.append(w.flatten())
+        Returns:
+            The set of weights of the approximator.
 
-        weights = np.concatenate(weights, 0)
-
-        return weights
+        """
+        return get_weights(self.network.parameters())
 
     @property
     def weights_size(self):
+        """
+        Returns:
+            The size of the array of weights.
+
+        """
         return sum(p.numel() for p in self.network.parameters())
 
     def diff(self, *args, **kwargs):
+        """
+        Compute the derivative of the output w.r.t. ``state``, and ``action``
+        if provided.
+
+        Args:
+            state (np.ndarray): the state;
+            action (np.ndarray, None): the action.
+
+        Returns:
+            The derivative of the output w.r.t. ``state``, and ``action``
+            if provided.
+
+        """
         if not self._use_cuda:
             torch_args = [torch.from_numpy(np.atleast_2d(x)) for x in args]
         else:
@@ -256,3 +318,7 @@ class PyTorchApproximator:
         g = np.stack(gradients, -1)
 
         return g
+
+    @property
+    def use_cuda(self):
+        return self._use_cuda

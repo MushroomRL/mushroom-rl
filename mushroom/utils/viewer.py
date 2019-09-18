@@ -5,7 +5,7 @@ import numpy as np
 
 class ImageViewer:
     """
-    Interface to pygame for visualizing plain images. Used in mujoco.py.
+    Interface to pygame for visualizing plain images.
 
     """
     def __init__(self, size, dt):
