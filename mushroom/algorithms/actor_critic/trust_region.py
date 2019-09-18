@@ -1,6 +1,8 @@
 import numpy as np
 from tqdm import tqdm
 
+from copy import deepcopy
+
 import torch
 import torch.nn.functional as F
 
@@ -68,6 +70,8 @@ class TRPO(Agent):
         self._iter = 1
         self._quiet = quiet
 
+        self._old_policy = None
+
         super().__init__(policy, mdp_info, None)
 
     def fit(self, dataset):
@@ -88,27 +92,27 @@ class TRPO(Agent):
         adv = to_float_tensor(np_adv, self.policy.use_cuda)
 
         # Policy update
-        old_pol_dist = self.policy.distribution_t(obs)
-        old_log_prob = self.policy.log_prob_t(obs, act).detach()
+        self._old_policy = deepcopy(self.policy)
+        old_pol_dist = self._old_policy.distribution_t(obs)
+        old_log_prob = self._old_policy.log_prob_t(obs, act).detach()
 
-        self._zero_grad()
+        zero_grad(self.policy.parameters())
         loss = self._compute_loss(obs, act, adv, old_log_prob)
 
         prev_loss = loss.item()
 
         # Compute Gradient
-        loss.backward(retain_graph=True)
+        loss.backward()
         g = get_gradient(self.policy.parameters())
 
-        # Compute direction trough conjugate gradient
+        # Compute direction through conjugate gradient
         stepdir = self._conjugate_gradient(g, obs, old_pol_dist)
 
         # Line search
-        stepdir_t = to_float_tensor(stepdir, self.policy.use_cuda)
-        direction = self._fisher_vector_product(stepdir_t, obs, old_pol_dist).detach().cpu().numpy()
+        direction = self._fisher_vector_product(stepdir, obs, old_pol_dist).detach().cpu().numpy()
         shs = .5 * stepdir.dot(direction)
         lm = np.sqrt(shs / self._max_kl)
-        fullstep = stepdir / lm
+        full_step = stepdir / lm
         stepsize = 1.
 
         theta_old = self.policy.get_weights()
@@ -116,7 +120,7 @@ class TRPO(Agent):
         violation = True
 
         for _ in range(self._n_epochs_line_search):
-            theta_new = theta_old + fullstep * stepsize
+            theta_new = theta_old + full_step * stepsize
             self.policy.set_weights(theta_new)
 
             new_loss = self._compute_loss(obs, act, adv, old_log_prob)
@@ -137,48 +141,41 @@ class TRPO(Agent):
         self._print_fit_info(dataset, x, v_target, old_pol_dist)
         self._iter += 1
 
-    def _zero_grad(self):
-        zero_grad(self.policy.parameters())
-
     def _conjugate_gradient(self, b, obs, old_pol_dist):
         p = b.detach().cpu().numpy()
         r = b.detach().cpu().numpy()
         x = np.zeros_like(p)
-        rdotr = r.dot(r)
+        r2 = r.dot(r)
 
         for i in range(self._n_epochs_cg):
-            p_tensor = torch.from_numpy(p)
-            if self.policy.use_cuda:
-                p_tensor = p_tensor.cuda()
-            z = self._fisher_vector_product(p_tensor, obs, old_pol_dist).detach().cpu().numpy()
-            v = rdotr / p.dot(z)
+            z = self._fisher_vector_product(p, obs, old_pol_dist).detach().cpu().numpy()
+            v = r2 / p.dot(z)
             x += v * p
             r -= v * z
-            newrdotr = r.dot(r)
-            mu = newrdotr / rdotr
+            r2_new = r.dot(r)
+            mu = r2_new / r2
             p = r + mu * p
 
-            rdotr = newrdotr
-            if rdotr < self._cg_residual_tol:
+            r2 = r2_new
+            if r2 < self._cg_residual_tol:
                 break
         return x
 
     def _fisher_vector_product(self, p, obs, old_pol_dist):
-
+        p_tensor = torch.from_numpy(p)
         if self.policy.use_cuda:
-            p = p.cuda()
+            p_tensor = p_tensor.cuda()
 
-        self._zero_grad()
+        return self._fisher_vector_product_t(p_tensor, obs, old_pol_dist)
+
+    def _fisher_vector_product_t(self, p, obs, old_pol_dist):
         kl = self._compute_kl(obs, old_pol_dist)
-        grads = torch.autograd.grad(kl, self.policy.parameters(),
-                                    create_graph=True, retain_graph=True)
+        grads = torch.autograd.grad(kl, self.policy.parameters(), create_graph=True)
         flat_grad_kl = torch.cat([grad.view(-1) for grad in grads])
 
-        kl_v = (flat_grad_kl * torch.autograd.Variable(p)).sum()
-        grads = torch.autograd.grad(kl_v, self.policy.parameters(),
-                                    retain_graph=True)
-        flat_grad_grad_kl = torch.cat(
-            [grad.contiguous().view(-1) for grad in grads]).data
+        kl_v = torch.sum(flat_grad_kl * p)
+        grads_v = torch.autograd.grad(kl_v, self.policy.parameters(), create_graph=False)
+        flat_grad_grad_kl = torch.cat([grad.contiguous().view(-1) for grad in grads_v]).data
 
         return flat_grad_grad_kl + p * self._cg_damping
 
