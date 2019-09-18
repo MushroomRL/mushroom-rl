@@ -62,9 +62,7 @@ class MojucoRaw(Environment):
 
         Args:
             file_name (string): The path to the XML file with which the environment should be created
-            actuation_spec (list): A list specifying the names of the joints which should be controllable by the
-                                   agent. Each element of the dictionary is a tuple in the form:
-                                   (joint_name, lower_torque_limit, upper_torque_limit)
+            actuation_spec (list): A list specifying of actuator names (strings) that should be controlled by the agent
             observation_spec (list): A list containing the names of data that should be made available to the agent as
                                      an observation and their type (ObservationType). An entry in the list is given by:
                                      (name, type)
@@ -99,10 +97,11 @@ class MojucoRaw(Environment):
         low = []
         high = []
         self.action_indices = []
-        for name, lb, ub in actuation_spec:
-            self.action_indices.append(self.id_maps[ObservationType.JOINT_POS.value][name])
-            low.append(lb)
-            high.append(ub)
+        for name in actuation_spec:
+            index = self.sim.model._actuator_name2id[name]
+            self.action_indices.append(index)
+            low.append(self.sim.model.actuator_ctrlrange[index][0])
+            high.append(self.sim.model.actuator_ctrlrange[index][1])
 
         action_space = Box(np.array(low), np.array(high))
 
@@ -203,8 +202,8 @@ class MojucoRaw(Environment):
     def step(self, action):
         cur_obs = self._create_observation()
 
-        clipped_action = np.clip(action, self._mdp_info.action_space.low, self._mdp_info.action_space.high)
-        self.sim.data.qfrc_applied[self.action_indices] = clipped_action
+        # The clipping of the outputs is done by MuJoCo for us
+        self.sim.data.ctrl[self.action_indices] = action
 
         self.sim.step()
 
