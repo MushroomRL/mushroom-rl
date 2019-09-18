@@ -109,8 +109,8 @@ if __name__ == '__main__':
                        quiet=True)
 
     algs_params = [
-        #(PPO, 'ppo', ppo_params),
         (TRPO, 'trpo', trpo_params),
+        (PPO, 'ppo', ppo_params)
      ]
 
     for alg, alg_name, alg_params in algs_params:
