@@ -1,6 +1,18 @@
 Mushroom
 ********
 
+.. image:: https://travis-ci.org/AIRLab-POLIMI/mushroom.svg?branch=master
+    :target: https://travis-ci.org/AIRLab-POLIMI/mushroom
+    
+.. image:: https://api.codeclimate.com/v1/badges/4a56cb5f751e762bea69/maintainability
+   :target: https://codeclimate.com/github/AIRLab-POLIMI/mushroom/maintainability
+   :alt: Maintainability
+   
+.. image:: https://api.codeclimate.com/v1/badges/4a56cb5f751e762bea69/test_coverage
+   :target: https://codeclimate.com/github/AIRLab-POLIMI/mushroom/test_coverage
+   :alt: Test Coverage
+
+
 **Mushroom: Reinforcement Learning python library.**
 
 .. contents:: **Contents of this document:**
