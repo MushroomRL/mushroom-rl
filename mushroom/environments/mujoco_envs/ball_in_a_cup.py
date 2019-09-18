@@ -14,10 +14,9 @@ class BallInACup(MuJoCo):
 
         """
         xml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "ball_in_a_cup", "model.xml")
-        action_spec = [("wam/base_yaw_joint", -150., 150.), ("wam/shoulder_pitch_joint", -125., 125.),
-                       ("wam/shoulder_yaw_joint", -40., 40,), ("wam/elbow_pitch_joint", -60., 60.),
-                       ("wam/wrist_yaw_joint", -5., 5.), ("wam/wrist_pitch_joint", -5., 5.),
-                       ("wam/palm_yaw_joint", -2., 2.)]
+        action_spec = ["act/wam/base_yaw_joint", "act/wam/shoulder_pitch_joint", "act/wam/shoulder_yaw_joint",
+                       "act/wam/elbow_pitch_joint", "act/wam/wrist_yaw_joint", "act/wam/wrist_pitch_joint",
+                       "act/wam/palm_yaw_joint"]
 
         observation_spec = [("wam/base_yaw_joint", ObservationType.JOINT_POS),
                             ("wam/base_yaw_joint", ObservationType.JOINT_VEL),

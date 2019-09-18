@@ -322,4 +322,17 @@
             </body>
         </body>
     </worldbody>
+
+
+    <actuator>
+        <general name="act/wam/base_yaw_joint" ctrllimited="true" ctrlrange="-150. 150." joint="wam/base_yaw_joint" gear="1" dyntype="none" gaintype="fixed" biastype="none" gainprm="1"/>
+        <general name="act/wam/shoulder_pitch_joint" ctrllimited="true" ctrlrange="-125. 125." joint="wam/shoulder_pitch_joint" gear="1" dyntype="none" gaintype="fixed" biastype="none" gainprm="1"/>
+        <general name="act/wam/shoulder_yaw_joint" ctrllimited="true" ctrlrange="-40. 40" joint="wam/shoulder_yaw_joint" gear="1" dyntype="none" gaintype="fixed" biastype="none" gainprm="1"/>
+        <general name="act/wam/elbow_pitch_joint" ctrllimited="true" ctrlrange="-60. 60." joint="wam/elbow_pitch_joint" gear="1" dyntype="none" gaintype="fixed" biastype="none" gainprm="1"/>
+        <general name="act/wam/wrist_yaw_joint" ctrllimited="true" ctrlrange="-5. 5." joint="wam/wrist_yaw_joint" gear="1" dyntype="none" gaintype="fixed" biastype="none" gainprm="1"/>
+        <general name="act/wam/wrist_pitch_joint" ctrllimited="true" ctrlrange="-5. 5." joint="wam/wrist_pitch_joint" gear="1" dyntype="none" gaintype="fixed" biastype="none" gainprm="1"/>
+        <general name="act/wam/palm_yaw_joint" ctrllimited="true" ctrlrange="-2. 2." joint="wam/palm_yaw_joint" gear="1" dyntype="none" gaintype="fixed" biastype="none" gainprm="1"/>
+    </actuator>
+
+
 </mujoco>
