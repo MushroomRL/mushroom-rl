@@ -12,7 +12,8 @@ python:
   - "3.7"
 install:
   - pip install -e .[all]
+  - pip install pytest-cov
 script:
-  - pytest 
+  - pytest --cov=mushroom
 after_script:
   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
