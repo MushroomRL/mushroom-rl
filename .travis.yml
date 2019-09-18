@@ -13,4 +13,4 @@ install:
 script:
   - pytest --cov=mushroom --cov-report=xml
 after_script:
-  - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
+  - ./cc-test-reporter after-build -r coverage.xml --exit-code $TRAVIS_TEST_RESULT
