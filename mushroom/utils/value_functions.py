@@ -1,10 +1,11 @@
 import numpy as np
 
 
-def compute_advantage(V, s, ss, r, absorbing, gamma):
+def compute_advantage_montecarlo(V, s, ss, r, absorbing, gamma):
     """
     Function to estimate the advantage and new value function target
-    over a dataset.
+    over a dataset. The value function is estimated using rollouts
+    (monte carlo estimation).
 
     Args:
         V (Regressor): the current value function regressor;
@@ -17,12 +18,50 @@ def compute_advantage(V, s, ss, r, absorbing, gamma):
         absorbing (numpy.ndarray): an array of boolean flags indicating
             if the reached state is absorbing;
         gamma (float): the discount factor of the considered problem.
+    Returns:
+        The new estimate for the value function of the next state
+        and the advantage function.
+    """
+    r = r.squeeze()
+    q = np.zeros(len(r))
+    v = V(s).squeeze()
+
+    q_next = np.asscalar(V(ss[-1]).squeeze())
+    for rev_k, _ in enumerate(reversed(r)):
+        k = len(r) - rev_k - 1
+        q_next = r[k] + gamma * q_next * (1. - absorbing[k])
+        q[k] = q_next
+
+    adv = q - v
+    return q[:, np.newaxis], adv[:, np.newaxis]
+
+
+def compute_advantage(V, s, ss, r, absorbing, gamma):
+    """
+    Function to estimate the advantage and new value function target
+    over a dataset. The value function is estimated using bootstrapping.
+
+    Args:
+        V (Regressor): the current value function regressor;
+        s (numpy.ndarray): the set of states in which we want
+            to evaluate the advantage;
+        ss (numpy.ndarray): the set of next states in which we want
+            to evaluate the advantage;
+        r (numpy.ndarray): the reward obtained in each transition
+            from state s to state ss;
+        absorbing (numpy.ndarray): an array of boolean flags indicating
+            if the reached state is absorbing;
+        gamma (float): the discount factor of the considered problem.
+    Returns:
+        The new estimate for the value function of the next state
+        and the advantage function.
     """
     v = V(s).squeeze()
     v_next = V(ss).squeeze() * (1 - absorbing)
 
-    adv = r + gamma * v_next - v
-    return adv[:, np.newaxis], v[:, np.newaxis]
+    q = r + gamma * v_next
+    adv = q - v
+    return q[:, np.newaxis], adv[:, np.newaxis]
 
 
 def compute_gae(V, s, ss, r, absorbing, last, gamma, lam):
@@ -49,6 +88,9 @@ def compute_gae(V, s, ss, r, absorbing, last, gamma, lam):
         gamma (float): the discount factor of the considered problem;
         lam (float): the value for the lamba coefficient used by GEA
             algorithm.
+    Returns:
+        The new estimate for the value function of the next state
+        and the estimated generalized advantage.
     """
     v = V(s)
     v_next = V(ss)

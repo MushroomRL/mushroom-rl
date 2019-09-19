@@ -8,7 +8,7 @@ from mushroom.policy import Policy
 from mushroom.approximators import Regressor
 from mushroom.approximators.parametric import TorchApproximator
 from mushroom.utils.replay_memory import ReplayMemory
-from mushroom.utils.value_functions import compute_advantage
+from mushroom.utils.value_functions import compute_advantage_montecarlo
 from mushroom.utils.dataset import parse_dataset
 from mushroom.utils.torch import to_float_tensor
 
@@ -107,8 +107,8 @@ class A2C(DeepAC):
     def fit(self, dataset):
             state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
 
-            adv, v = compute_advantage(self._V, state, next_state,
-                                       reward, absorbing, self.mdp_info.gamma)
+            v, adv = compute_advantage_montecarlo(self._V, state, next_state, reward,
+                                                  absorbing, self.mdp_info.gamma)
             self._V.fit(state, v, **self._critic_fit_params)
 
             loss = self._loss(state, action, adv)
