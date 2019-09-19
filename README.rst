@@ -35,7 +35,7 @@ You can do a minimal installation of ``Mushroom`` with:
 
 .. code:: shell
 
-	git clone https://github.com/carloderamo/mushroom.git
+	git clone https://github.com/AIRLab-POLIMI/mushroom.git
 	cd mushroom
 	pip3 install -e .
 
