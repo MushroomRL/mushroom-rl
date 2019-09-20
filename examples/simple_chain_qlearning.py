@@ -6,6 +6,8 @@ from mushroom.environments import *
 from mushroom.policy import EpsGreedy
 from mushroom.utils.parameters import Parameter
 
+from mushroom.utils.dataset import compute_J
+
 
 """
 Simple script to solve a simple chain with Q-Learning.
@@ -29,11 +31,21 @@ def experiment():
     algorithm_params = dict(learning_rate=learning_rate)
     agent = QLearning(pi, mdp.info, **algorithm_params)
 
-    # Algorithm
+    # Core
     core = Core(agent, mdp)
+
+    # Initial policy Evaluation
+    dataset = core.evaluate(n_steps=1000)
+    J = np.mean(compute_J(dataset, mdp.info.gamma))
+    print('J start:', J)
 
     # Train
     core.learn(n_steps=10000, n_steps_per_fit=1)
+
+    # Final Policy Evaluation
+    dataset = core.evaluate(n_steps=1000)
+    J = np.mean(compute_J(dataset, mdp.info.gamma))
+    print('J final:', J)
 
 
 if __name__ == '__main__':

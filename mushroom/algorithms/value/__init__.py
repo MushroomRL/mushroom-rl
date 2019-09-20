@@ -1,12 +1,9 @@
-from .batch_td import BatchTD, FQI, DoubleFQI, LSPI
-from .dqn import DQN, DoubleDQN, AveragedDQN, CategoricalDQN
-from .td import TD, QLearning, DoubleQLearning, WeightedQLearning,\
-    SpeedyQLearning, RLearning, RQLearning, SARSA, SARSALambdaDiscrete,\
-    SARSALambdaContinuous, ExpectedSARSA, TrueOnlineSARSALambda
+from .batch_td import *
+from .dqn import *
+from .td import *
 
-
-__all__ = ['BatchTD', 'FQI', 'DoubleFQI', 'LSPI', 'TD', 'DQN', 'DoubleDQN',
+__all__ = ['FQI', 'DoubleFQI', 'LSPI', 'DQN', 'DoubleDQN',
            'AveragedDQN', 'CategoricalDQN', 'QLearning', 'DoubleQLearning',
            'WeightedQLearning', 'SpeedyQLearning', 'RLearning', 'RQLearning',
-           'SARSA', 'SARSALambdaDiscrete', 'SARSALambdaContinuous',
+           'SARSA', 'SARSALambda', 'SARSALambdaContinuous',
            'ExpectedSARSA', 'TrueOnlineSARSALambda']

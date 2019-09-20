@@ -3,7 +3,7 @@ from joblib import Parallel, delayed
 
 from mushroom.algorithms.value import TrueOnlineSARSALambda
 from mushroom.core import Core
-from mushroom.environments import *
+from mushroom.environments import Gym
 from mushroom.features import Features
 from mushroom.features.tiles import Tiles
 from mushroom.policy import EpsGreedy
