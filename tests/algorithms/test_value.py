@@ -114,7 +114,7 @@ def test_sarsa():
 
 
 def test_sarsa_lambda_discrete():
-    alg = SARSALambdaDiscrete(pi, mdp.info, Parameter(.1), .9)
+    alg = SARSALambda(pi, mdp.info, Parameter(.1), .9)
 
     alg.Q.table = np.arange(np.prod(mdp.info.size)).reshape(
         mdp.info.size).astype(np.float)
