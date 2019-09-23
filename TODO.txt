@@ -5,12 +5,10 @@ Algorithms:
             - Natural gradient
             - NES
 
-    b) Actor-critic:
-        * A2C
-
-    c) Value based:
+    b) Value based:
         * Q Lambda
+Environments:
+    * Fix InvertedPendulumDiscrete visualization: is a cartpole environment, not a simple pendulum. Consider renaming.
 
 Various:
-    * Fix get_value() in Parameters in modo che venga lanciato un errore quando
-    l'utente prova a farsi ritornare il valore del parametro per slice
+    * Fix get_value() in Parameters such that an exception is raised when the parameter value is returned as slice.
