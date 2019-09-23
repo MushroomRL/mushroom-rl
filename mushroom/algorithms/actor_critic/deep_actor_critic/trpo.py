@@ -108,30 +108,7 @@ class TRPO(Agent):
         stepdir = self._conjugate_gradient(g, obs, old_pol_dist)
 
         # Line search
-        direction = self._fisher_vector_product(stepdir, obs, old_pol_dist).detach().cpu().numpy()
-        shs = .5 * stepdir.dot(direction)
-        lm = np.sqrt(shs / self._max_kl)
-        full_step = stepdir / lm
-        stepsize = 1.
-
-        theta_old = self.policy.get_weights()
-
-        violation = True
-
-        for _ in range(self._n_epochs_line_search):
-            theta_new = theta_old + full_step * stepsize
-            self.policy.set_weights(theta_new)
-
-            new_loss = self._compute_loss(obs, act, adv, old_log_prob)
-            kl = self._compute_kl(obs, old_pol_dist)
-            improve = new_loss - prev_loss
-            if kl <= self._max_kl * 1.5 or improve >= 0:
-                violation = False
-                break
-            stepsize *= .5
-
-        if violation:
-            self.policy.set_weights(theta_old)
+        self._line_search(obs, act, adv, old_log_prob, old_pol_dist, prev_loss, stepdir)
 
         # VF update
         self._V.fit(x, v_target, **self._critic_fit_params)
@@ -139,6 +116,24 @@ class TRPO(Agent):
         # Print fit information
         self._print_fit_info(dataset, x, v_target, old_pol_dist)
         self._iter += 1
+
+    def _fisher_vector_product(self, p, obs, old_pol_dist):
+        p_tensor = torch.from_numpy(p)
+        if self.policy.use_cuda:
+            p_tensor = p_tensor.cuda()
+
+        return self._fisher_vector_product_t(p_tensor, obs, old_pol_dist)
+
+    def _fisher_vector_product_t(self, p, obs, old_pol_dist):
+        kl = self._compute_kl(obs, old_pol_dist)
+        grads = torch.autograd.grad(kl, self.policy.parameters(), create_graph=True)
+        flat_grad_kl = torch.cat([grad.view(-1) for grad in grads])
+
+        kl_v = torch.sum(flat_grad_kl * p)
+        grads_v = torch.autograd.grad(kl_v, self.policy.parameters(), create_graph=False)
+        flat_grad_grad_kl = torch.cat([grad.contiguous().view(-1) for grad in grads_v]).data
+
+        return flat_grad_grad_kl + p * self._cg_damping
 
     def _conjugate_gradient(self, b, obs, old_pol_dist):
         p = b.detach().cpu().numpy()
@@ -160,23 +155,34 @@ class TRPO(Agent):
                 break
         return x
 
-    def _fisher_vector_product(self, p, obs, old_pol_dist):
-        p_tensor = torch.from_numpy(p)
-        if self.policy.use_cuda:
-            p_tensor = p_tensor.cuda()
+    def _line_search(self, obs, act, adv, old_log_prob, old_pol_dist, prev_loss, stepdir):
+        # Compute optimal step size
+        direction = self._fisher_vector_product(stepdir, obs, old_pol_dist).detach().cpu().numpy()
+        shs = .5 * stepdir.dot(direction)
+        lm = np.sqrt(shs / self._max_kl)
+        full_step = stepdir / lm
+        stepsize = 1.
 
-        return self._fisher_vector_product_t(p_tensor, obs, old_pol_dist)
+        # Save old policy parameters
+        theta_old = self.policy.get_weights()
 
-    def _fisher_vector_product_t(self, p, obs, old_pol_dist):
-        kl = self._compute_kl(obs, old_pol_dist)
-        grads = torch.autograd.grad(kl, self.policy.parameters(), create_graph=True)
-        flat_grad_kl = torch.cat([grad.view(-1) for grad in grads])
+        # Perform Line search
+        violation = True
 
-        kl_v = torch.sum(flat_grad_kl * p)
-        grads_v = torch.autograd.grad(kl_v, self.policy.parameters(), create_graph=False)
-        flat_grad_grad_kl = torch.cat([grad.contiguous().view(-1) for grad in grads_v]).data
+        for _ in range(self._n_epochs_line_search):
+            theta_new = theta_old + full_step * stepsize
+            self.policy.set_weights(theta_new)
 
-        return flat_grad_grad_kl + p * self._cg_damping
+            new_loss = self._compute_loss(obs, act, adv, old_log_prob)
+            kl = self._compute_kl(obs, old_pol_dist)
+            improve = new_loss - prev_loss
+            if kl <= self._max_kl * 1.5 or improve >= 0:
+                violation = False
+                break
+            stepsize *= .5
+
+        if violation:
+            self.policy.set_weights(theta_old)
 
     def _compute_kl(self, obs, old_pol_dist):
         new_pol_dist = self.policy.distribution_t(obs)
