@@ -318,6 +318,37 @@ class MuJoCo(Environment):
                 return True
         return False
 
+    def get_collision_force(self, group1, group2):
+        """
+        Returns the collision force and torques between the specified groups.
+
+        Args:
+            group1 (string): A name referring to an entry contained in the
+                collision_groups list handed to the constructor;
+            group2 (string): A name referring to an entry contained in the
+                collision_groups list handed to the constructor.
+
+        Returns:
+            A 6D vector specifying the collision forces/torques[3D force + 3D torque]
+            between the given groups. Vector of 0's in case there was no collision.
+            http://mujoco.org/book/programming.html#siContact
+
+        """
+        ids1 = self.collision_groups[group1]
+        ids2 = self.collision_groups[group2]
+
+        c_array = np.zeros(6, dtype=np.float64)
+        for con_i in range(0, self.sim.data.ncon):
+            con = self.sim.data.contact[con_i]
+
+            if (con.geom1 in ids1 and con.geom2 in ids2 or
+               con.geom1 in ids2 and con.geom2 in ids1):
+
+                mujoco_py.functions.mj_contactForce(self.sim.model, self.sim.data, con_i, c_array)
+                return c_array
+
+        return c_array
+
     def stop(self):
         v = self.viewer
         self.viewer = None
