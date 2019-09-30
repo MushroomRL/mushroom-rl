@@ -430,17 +430,17 @@ class MuJoCo(Environment):
         print("##################### Debug_model_objects #################################")
         print("Bodies info:   (name / body_xpos / body_xvelp)")
         for name in self.sim.model.body_names:
-            print(f"{name}: {self.sim.data.get_body_xpos(name)} | {self.sim.data.get_body_xvelp(name)}")
+            print("{}: {} | {}".format(name, self.sim.data.get_body_xpos(name), self.sim.data.get_body_xvelp(name)))
 
         print("\nGeoms info:    (name / geom_xpos / geom_xvelp)")
         for name in self.sim.model.geom_names:
-            print(f"{name}: {self.sim.data.get_geom_xpos(name)} | {self.sim.data.get_geom_xvelp(name)}")
+            print("{}: {} | {}".format(name, self.sim.data.get_geom_xpos(name), self.sim.data.get_geom_xvelp(name)))
 
         print("\nJoints info:   (name / qpos / qvel)")
         for name in self.sim.model.joint_names:
-            print(f"{name}: {self.sim.data.get_joint_qpos(name)} | {self.sim.data.get_joint_qvel(name)}")
+            print("{}: {} | {}".format(name, self.sim.data.get_joint_qpos(name), self.sim.data.get_joint_qvel(name)))
 
         print("\nSites info:    (name / site_xpos / site_xvelp)")
         for name in self.sim.model.site_names:
-            print(f"{name}: {self.sim.data.get_site_xpos(name)} | {self.sim.data.get_site_xvelp(name)}")
+            print("{}: {} | {}".format(name, self.sim.data.get_site_xpos(name), self.sim.data.get_site_xvelp(name)))
         print("###########################################################################")
