@@ -21,40 +21,13 @@ class ObservationType(Enum):
     SITE_VEL = 5
 
 
-class DataMap:
-    """
-    Helper variable to access the correct arrays in the MuJoCo data structure
-    given the type of data that we want to access.
-
-    """
-    def __init__(self, sim):
-        self.sim = sim
-
-    def __call__(self, otype):
-        if not isinstance(otype, ObservationType):
-            otype = ObservationType(otype)
-
-        if otype == ObservationType.BODY_POS:
-            return self.sim.data.body_xpos
-        elif otype == ObservationType.BODY_VEL:
-            return self.sim.data.body_xvelp
-        elif otype == ObservationType.JOINT_POS:
-            return self.sim.data.qpos
-        elif otype == ObservationType.JOINT_VEL:
-            return self.sim.data.qvel
-        elif otype == ObservationType.SITE_POS:
-            return self.sim.data.site_xpos
-        else:
-            return self.sim.data.site_xvelp
-
-
 class MuJoCo(Environment):
     """
     Class to create a Mushroom environment using the MuJoCo simulator.
 
     """
     def __init__(self, file_name, actuation_spec, observation_spec, gamma,
-                 horizon, nsubsteps=1, nintermediatesteps=1, additional_data_spec=None,
+                 horizon, n_substeps=1, n_intermediate_steps=1, additional_data_spec=None,
                  collision_groups=None):
         """
         Constructor.
@@ -71,9 +44,9 @@ class MuJoCo(Environment):
                 (name, type);
             gamma (float): The discounting factor of the environment;
             horizon (int): The maximum horizon for the environment;
-            nsubsteps (int): The number of substeps to use by the MuJoCo
+            n_substeps (int): The number of substeps to use by the MuJoCo
                 simulator. An action given by the agent will be applied for
-                nsubsteps before the agent receives the next observation and
+                n_substeps before the agent receives the next observation and
                 can act accordingly;
             additional_data_spec (list): A list containing the data fields of
                 interest, which should be read from or written to during
@@ -91,20 +64,11 @@ class MuJoCo(Environment):
         """
         # Create the simulation
         self.sim = mujoco_py.MjSim(mujoco_py.load_model_from_path(file_name),
-                                   nsubsteps=nsubsteps)
+                                   nsubsteps=n_substeps)
 
-        self.nintermediatesteps = nintermediatesteps
+        self.n_intermediate_steps = n_intermediate_steps
         self.viewer = None
         self._state = None
-
-        # Create a mapping from ObservationTypes to the corresponding index and data arrays
-        self.id_maps = [self.sim.model._body_name2id,
-                        self.sim.model._body_name2id,
-                        self.sim.model._joint_name2id,
-                        self.sim.model._joint_name2id,
-                        self.sim.model._site_name2id,
-                        self.sim.model._site_name2id]
-        self.data_map = DataMap(self.sim)
 
         # Read the actuation spec and build the mapping between actions and ids
         # as well as their limits
@@ -127,13 +91,16 @@ class MuJoCo(Environment):
 
         action_space = Box(np.array(low), np.array(high))
 
+        # Read the observation spec to build a mapping at every step. It is
+        # ensured that the values appear in the order they are specified.
         if len(observation_spec) == 0:
-            self.observation_map = [(name, otype)
-                                    for otype in (ObservationType.JOINT_POS, ObservationType.JOINT_VEL)
-                                    for name in self.sim.model.joint_names]
+            raise AttributeError("No Environment observations were specified. "
+                                 "Add at least one observation to the observation_spec.")
         else:
             self.observation_map = observation_spec
 
+        # We can only specify limits for the joint positions, all other
+        # information can be potentially unbounded
         low = []
         high = []
         high.append(np.inf)
@@ -148,12 +115,11 @@ class MuJoCo(Environment):
                 high.extend([np.inf] * obs_count)
         observation_space = (np.array(low), np.array(high))
 
-        # Pre-process the additional data to allow for fast writing and reading
+        # Pre-process the additional data to allow easier writing and reading
         # to and from arrays in MuJoCo
         self.additional_data = {}
         for key, name, ot in additional_data_spec:
-            self.additional_data[key] = (ot.value,
-                                         self.id_maps[ot.value][name])
+            self.additional_data[key] = (name, ot)
 
         # Pre-process the collision groups for "fast" detection of contacts
         self.collision_groups = {}
@@ -189,14 +155,14 @@ class MuJoCo(Environment):
         del v
 
     def _observation_map(self, name, otype):
-        if otype == ObservationType.JOINT_POS:
-            data = self.sim.data.get_joint_qpos(name)
-        elif otype == ObservationType.JOINT_VEL:
-            data = self.sim.data.get_joint_qvel(name)
-        elif otype == ObservationType.BODY_POS:
+        if otype == ObservationType.BODY_POS:
             data = self.sim.data.get_body_xpos(name)
         elif otype == ObservationType.BODY_VEL:
             data = self.sim.data.get_body_xvelp(name)
+        elif otype == ObservationType.JOINT_POS:
+            data = self.sim.data.get_joint_qpos(name)
+        elif otype == ObservationType.JOINT_VEL:
+            data = self.sim.data.get_joint_qvel(name)
         elif otype == ObservationType.SITE_POS:
             data = self.sim.data.get_site_xpos(name)
         else:
@@ -219,7 +185,7 @@ class MuJoCo(Environment):
 
         self._step_init(cur_obs, action)
 
-        for i in range(self.nintermediatesteps):
+        for i in range(self.n_intermediate_steps):
 
             ctrl_action = self._compute_action(action)
             self.sim.data.ctrl[self.action_indices] = ctrl_action
@@ -309,8 +275,8 @@ class MuJoCo(Environment):
             The desired data as a one-dimensional numpy array.
 
         """
-        data_id, id = self.additional_data[name]
-        return self.data_map(data_id)[id]
+        data_id, otype = self.additional_data[name]
+        return np.array(self._observation_map(data_id, otype))
 
     def write_data(self, name, value):
         """
@@ -322,8 +288,15 @@ class MuJoCo(Environment):
             value (ndarray): The data that should be written.
 
         """
-        data_id, id = self.additional_data[name]
-        self.data_map(data_id)[id][:] = value
+        data_id, otype = self.additional_data[name]
+
+        if otype == ObservationType.JOINT_POS:
+            self.sim.data.set_joint_qpos(data_id, value)
+        elif otype == ObservationType.JOINT_VEL:
+            self.sim.data.set_joint_qvel(data_id, value)
+        else:
+            data_buffer = self._observation_map(data_id, otype)
+            data_buffer[:] = value
 
     def check_collision(self, group1, group2):
         """
@@ -421,26 +394,3 @@ class MuJoCo(Environment):
 
         """
         pass
-
-    def _debug_model_objects(self):
-        """
-        Returns information associated with the model's objects of types
-        "body", "geom", "joint", "site".
-        """
-        print("##################### Debug_model_objects #################################")
-        print("Bodies info:   (name / body_xpos / body_xvelp)")
-        for name in self.sim.model.body_names:
-            print("{}: {} | {}".format(name, self.sim.data.get_body_xpos(name), self.sim.data.get_body_xvelp(name)))
-
-        print("\nGeoms info:    (name / geom_xpos / geom_xvelp)")
-        for name in self.sim.model.geom_names:
-            print("{}: {} | {}".format(name, self.sim.data.get_geom_xpos(name), self.sim.data.get_geom_xvelp(name)))
-
-        print("\nJoints info:   (name / qpos / qvel)")
-        for name in self.sim.model.joint_names:
-            print("{}: {} | {}".format(name, self.sim.data.get_joint_qpos(name), self.sim.data.get_joint_qvel(name)))
-
-        print("\nSites info:    (name / site_xpos / site_xvelp)")
-        for name in self.sim.model.site_names:
-            print("{}: {} | {}".format(name, self.sim.data.get_site_xpos(name), self.sim.data.get_site_xvelp(name)))
-        print("###########################################################################")
