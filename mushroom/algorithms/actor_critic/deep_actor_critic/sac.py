@@ -100,6 +100,17 @@ class SACPolicy(Policy):
             return a_true
 
     def distribution(self, state):
+        """
+        Compute the policy distribution in the given states.
+
+        Args:
+            state (np.ndarray): the set of states where the distribution is
+                computed.
+
+        Returns:
+            The torch distribution for the provided states.
+
+        """
         mu = self._mu_approximator.predict(state, output_tensor=True)
         log_sigma = self._sigma_approximator.predict(state, output_tensor=True)
         return torch.distributions.Normal(mu, log_sigma.exp())
@@ -107,8 +118,39 @@ class SACPolicy(Policy):
     def reset(self):
         pass
 
+    def set_weights(self, weights):
+        """
+        Setter.
+
+        Args:
+            weights (np.ndarray): the vector of the new weights to be used by
+                the policy.
+
+        """
+        mu_weights = weights[:self._mu_approximator.weights_size]
+        sigma_weights = weights[self._mu_approximator.weights_size:]
+
+        self._mu_approximator.set_weights(mu_weights)
+        self._sigma_approximator.set_weights(sigma_weights)
+
+    def get_weights(self):
+        """
+        Getter.
+
+        Returns:
+             The current policy weights.
+
+        """
+        mu_weights = self._mu_approximator.get_weights()
+        sigma_weights = self._sigma_approximator.get_weights()
+
+        return np.concatenate([mu_weights, sigma_weights])
+
     @property
     def use_cuda(self):
+        """
+        True if the policy is using cuda_tensors.
+        """
         return self._mu_approximator.model.use_cuda
 
 
