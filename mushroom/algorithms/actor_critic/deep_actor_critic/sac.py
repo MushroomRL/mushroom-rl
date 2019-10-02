@@ -8,6 +8,7 @@ from mushroom.policy import Policy
 from mushroom.approximators import Regressor
 from mushroom.approximators.parametric import TorchApproximator
 from mushroom.utils.replay_memory import ReplayMemory
+from mushroom.utils.torch import to_float_tensor
 
 from copy import deepcopy
 from itertools import chain
@@ -40,15 +41,14 @@ class SACPolicy(Policy):
         self._mu_approximator = mu_approximator
         self._sigma_approximator = sigma_approximator
 
-        self._delta_a = torch.from_numpy(.5 * (max_a - min_a))
-        self._central_a = torch.from_numpy(.5 * (max_a + min_a))
+        self._delta_a = to_float_tensor(.5 * (max_a - min_a), self.use_cuda)
+        self._central_a = to_float_tensor(.5 * (max_a + min_a), self.use_cuda)
 
         use_cuda = self._mu_approximator.model.use_cuda
 
         if use_cuda:
             self._delta_a = self._delta_a.cuda()
             self._central_a = self._central_a.cuda()
-
 
     def __call__(self, state, action):
         raise NotImplementedError
@@ -93,7 +93,7 @@ class SACPolicy(Policy):
         a_true = a * self._delta_a + self._central_a
 
         if compute_log_prob:
-            log_prob = dist.log_prob(a_raw).flatten()
+            log_prob = dist.log_prob(a_raw).sum(dim=1)
             log_prob -= torch.log(1. - a.pow(2) + 1e-6).sum(dim=1)
             return a_true, log_prob
         else:
@@ -197,6 +197,8 @@ class SAC(DeepAC):
 
         if policy.use_cuda:
             self._log_alpha = self._log_alpha.cuda().requires_grad_()
+        else:
+            self._log_alpha.requires_grad_()
 
         self._alpha_optim = optim.Adam([self._log_alpha], lr=lr_alpha)
 
