@@ -288,6 +288,7 @@ class MuJoCo(Environment):
             value (ndarray): The data that should be written.
 
         """
+
         data_id, otype = self.additional_data[name]
 
         if otype == ObservationType.JOINT_POS:
