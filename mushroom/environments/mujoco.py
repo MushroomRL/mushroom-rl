@@ -48,6 +48,9 @@ class MuJoCo(Environment):
                 simulator. An action given by the agent will be applied for
                 n_substeps before the agent receives the next observation and
                 can act accordingly;
+            n_intermediate_steps (int): The number of steps between every action
+                taken by the agent. Similar to n_substeps but allows the user
+                to modify, control and access intermediate states.
             additional_data_spec (list): A list containing the data fields of
                 interest, which should be read from or written to during
                 simulation. The entries are given as the following tuples:
@@ -103,7 +106,6 @@ class MuJoCo(Environment):
         # information can be potentially unbounded
         low = []
         high = []
-        high.append(np.inf)
         for name, ot in self.observation_map:
             obs_count = len(self._observation_map(name, ot))
             if obs_count == 1:
@@ -113,7 +115,7 @@ class MuJoCo(Environment):
             else:
                 low.extend([-np.inf] * obs_count)
                 high.extend([np.inf] * obs_count)
-        observation_space = (np.array(low), np.array(high))
+        observation_space = Box(np.array(low), np.array(high))
 
         # Pre-process the additional data to allow easier writing and reading
         # to and from arrays in MuJoCo
@@ -190,15 +192,15 @@ class MuJoCo(Environment):
             ctrl_action = self._compute_action(action)
             self.sim.data.ctrl[self.action_indices] = ctrl_action
 
-            self._apply_external_generalized_force()
+            self._simulation_pre_step()
 
             self.sim.step()
 
-            self._intermediate_step_update()
+            self._simulation_post_step()
 
         self._state = self._create_observation()
 
-        self._step_update()
+        self._step_finalize()
 
         reward = self.reward(cur_obs, action, self._state)
 
@@ -239,9 +241,11 @@ class MuJoCo(Environment):
         """
         return action
 
-    def _apply_external_generalized_force(self):
+    def _simulation_pre_step(self):
         """
-        Aplies an external force/torque to the specified bodies.
+        Allows information to be accesed and changed at every intermediate step
+            before taking a step in the mujoco simulation.
+            Can be usefull to apply an external force/torque to the specified bodies.
 
         ex: apply a force over X to the torso:
             force = [200, 0, 0]
@@ -250,14 +254,15 @@ class MuJoCo(Environment):
         """
         pass
 
-    def _intermediate_step_update(self):
+    def _simulation_post_step(self):
         """
-        Allows information to be accesed at every intermediate step.
-        Can be usefull to average forces over all intermediate steps.
+        Allows information to be accesed at every intermediate step
+            after taking a step in the mujoco simulation.
+            Can be usefull to average forces over all intermediate steps.
         """
         pass
 
-    def _step_update(self):
+    def _step_finalize(self):
         """
         Allows information to be accesed at the end of a step.
         """
