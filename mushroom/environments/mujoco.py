@@ -5,6 +5,8 @@ from enum import Enum
 from mushroom.environments import Environment, MDPInfo
 from mushroom.utils.spaces import Box
 
+import glfw
+
 
 class ObservationType(Enum):
     """
@@ -152,9 +154,11 @@ class MuJoCo(Environment):
         self.viewer.render()
 
     def stop(self):
-        v = self.viewer
-        self.viewer = None
-        del v
+        if self.viewer is not None:
+            v = self.viewer
+            self.viewer = None
+            glfw.destroy_window(v.window)
+            del v
 
     def _observation_map(self, name, otype):
         if otype == ObservationType.BODY_POS:
