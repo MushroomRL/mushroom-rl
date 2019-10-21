@@ -4,9 +4,7 @@ import numpy as np
 from enum import Enum
 from mushroom.environments import Environment, MDPInfo
 from mushroom.utils.spaces import Box
-
 import glfw
-
 
 class ObservationType(Enum):
     """
@@ -111,9 +109,9 @@ class MuJoCo(Environment):
         for name, ot in self.observation_map:
             obs_count = len(self._observation_map(name, ot))
             if obs_count == 1:
-                joint_id = self.sim.model._actuator_name2id[name]
-                low.append(self.sim.model.actuator_ctrlrange[joint_id][0])
-                high.append(self.sim.model.actuator_ctrlrange[joint_id][1])
+                joint_range = self.sim.model.jnt_range[self.sim.model._joint_name2id[name]]
+                low.append(joint_range[0])
+                high.append(joint_range[1])
             else:
                 low.extend([-np.inf] * obs_count)
                 high.extend([np.inf] * obs_count)
