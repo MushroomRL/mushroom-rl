@@ -48,7 +48,7 @@ class BallInACup(MuJoCo):
                                        "forearm_link_convex_decomposition_p1_geom",
                                        "forearm_link_convex_decomposition_p2_geom"])]
 
-        super().__init__(xml_path, action_spec, observation_spec, 0.9999, 2000, nsubsteps=4,
+        super().__init__(xml_path, action_spec, observation_spec, 0.9999, 2000, n_substeps=4,
                          additional_data_spec=additional_data_spec, collision_groups=collision_groups)
 
         self.init_robot_pos = np.array([0.0, 0.58760536, 0.0, 1.36004913, 0.0, -0.32072943, -1.57])
