@@ -91,7 +91,6 @@ class MuJoCo(Environment):
             else:
                 low.append(-np.inf)
                 high.append(np.inf)
-
         action_space = Box(np.array(low), np.array(high))
 
         # Read the observation spec to build a mapping at every step. It is
@@ -108,10 +107,14 @@ class MuJoCo(Environment):
         high = []
         for name, ot in self.observation_map:
             obs_count = len(self._observation_map(name, ot))
-            if obs_count == 1:
+            if obs_count == 1 and ot == ObservationType.JOINT_POS:
                 joint_range = self.sim.model.jnt_range[self.sim.model._joint_name2id[name]]
-                low.append(joint_range[0])
-                high.append(joint_range[1])
+                if not(joint_range[0] == joint_range[1] == 0.0):
+                    low.append(joint_range[0])
+                    high.append(joint_range[1])
+                else:
+                    low.extend(-np.inf)
+                    high.extend(np.inf)
             else:
                 low.extend([-np.inf] * obs_count)
                 high.extend([np.inf] * obs_count)
