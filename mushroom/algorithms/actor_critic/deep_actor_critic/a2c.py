@@ -31,8 +31,8 @@ class A2C(DeepAC):
                 algorithm;
             ent_coeff (float, 0): coefficient for the entropy penalty;
             max_grad_norm (float, None): maximum norm for gradient clipping.
-                If None, no clipping will be performed, unless specified otherwise
-                in actor_optimizer;
+                If None, no clipping will be performed, unless specified
+                otherwise in actor_optimizer;
             critic_fit_params (dict, None): parameters of the fitting algorithm
                 of the critic approximator.
 
@@ -46,16 +46,18 @@ class A2C(DeepAC):
         if 'clipping' not in actor_optimizer and max_grad_norm is not None:
             actor_optimizer = deepcopy(actor_optimizer)
             clipping_params = dict(max_norm=max_grad_norm, norm_type=2)
-            actor_optimizer['clipping'] = dict(method=torch.nn.utils.clip_grad_norm_,
-                                               params=clipping_params)
+            actor_optimizer['clipping'] = dict(
+                method=torch.nn.utils.clip_grad_norm_, params=clipping_params)
 
-        super().__init__(policy, mdp_info, actor_optimizer, policy.parameters())
+        super().__init__(policy, mdp_info, actor_optimizer,
+                         policy.parameters())
 
     def fit(self, dataset):
             state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
 
-            v, adv = compute_advantage_montecarlo(self._V, state, next_state, reward,
-                                                  absorbing, self.mdp_info.gamma)
+            v, adv = compute_advantage_montecarlo(self._V, state, next_state,
+                                                  reward, absorbing,
+                                                  self.mdp_info.gamma)
             self._V.fit(state, v, **self._critic_fit_params)
 
             loss = self._loss(state, action, adv)

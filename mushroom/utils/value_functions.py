@@ -26,7 +26,7 @@ def compute_advantage_montecarlo(V, s, ss, r, absorbing, gamma):
     q = np.zeros(len(r))
     v = V(s).squeeze()
 
-    q_next = np.asscalar(V(ss[-1]).squeeze())
+    q_next = V(ss[-1]).squeeze().item()
     for rev_k, _ in enumerate(reversed(r)):
         k = len(r) - rev_k - 1
         q_next = r[k] + gamma * q_next * (1. - absorbing[k])
