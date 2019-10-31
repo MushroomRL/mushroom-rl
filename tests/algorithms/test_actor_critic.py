@@ -12,13 +12,14 @@ from mushroom.environments import InvertedPendulum
 from mushroom.features import Features
 from mushroom.features.tiles import Tiles
 from mushroom.policy import GaussianTorchPolicy
+from mushroom.policy import OrnsteinUhlenbeckPolicy
 from mushroom.policy.gaussian_policy import GaussianPolicy
 from mushroom.utils.parameters import Parameter
 
 
-class Network(nn.Module):
+class ActorNetwork(nn.Module):
     def __init__(self, input_shape, output_shape, n_features, **kwargs):
-        super(Network, self).__init__()
+        super().__init__()
 
         n_input = input_shape[-1]
         n_output = output_shape[0]
@@ -42,7 +43,35 @@ class Network(nn.Module):
         return a
 
 
+class CriticNetwork(nn.Module):
+    def __init__(self, input_shape, output_shape, n_features, **kwargs):
+        super().__init__()
+
+        n_input = input_shape[-1]
+        n_output = output_shape[0]
+
+        self._h1 = nn.Linear(n_input, n_features)
+        self._h2 = nn.Linear(n_features, n_features)
+        self._h3 = nn.Linear(n_features, n_output)
+
+        nn.init.xavier_uniform_(self._h1.weight,
+                                gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self._h2.weight,
+                                gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self._h3.weight,
+                                gain=nn.init.calculate_gain('linear'))
+
+    def forward(self, state, action):
+        state_action = torch.cat((state.float(), action.float()), dim=1)
+        features1 = F.relu(self._h1(state_action))
+        features2 = F.relu(self._h2(features1))
+        q = self._h3(features2)
+
+        return torch.squeeze(q)
+
+
 torch.manual_seed(1)
+np.random.seed(1)
 
 n_steps = 5000
 mdp = InvertedPendulum(horizon=n_steps)
@@ -151,7 +180,7 @@ def test_a2c():
                       max_grad_norm=0.5,
                       ent_coeff=0.01)
 
-    critic_params = dict(network=Network,
+    critic_params = dict(network=ActorNetwork,
                          optimizer={'class': optim.RMSprop,
                                     'params': {'lr': 7e-4,
                                                'eps': 1e-5}},
@@ -160,7 +189,7 @@ def test_a2c():
                          input_shape=mdp.info.observation_space.shape,
                          output_shape=(1,))
 
-    policy = GaussianTorchPolicy(Network,
+    policy = GaussianTorchPolicy(ActorNetwork,
                                  mdp.info.observation_space.shape,
                                  mdp.info.action_space.shape,
                                  **policy_params)
@@ -171,6 +200,130 @@ def test_a2c():
 
     w_1 = -0.20738243
     w_2 = -0.3641879
+
+    w = agent._V.get_weights()
+
+    assert np.allclose(w[8], w_1)
+    assert np.allclose(w[19], w_2)
+
+
+def test_ddpg():
+    policy_class = OrnsteinUhlenbeckPolicy
+    policy_params = dict(sigma=np.ones(1) * .2, theta=.15, dt=1e-2)
+
+    # Settings
+    initial_replay_size = 500
+    max_replay_size = 5000
+    batch_size = 200
+    n_features = 80
+    tau = .001
+
+    # Approximator
+    actor_input_shape = mdp.info.observation_space.shape
+    actor_params = dict(network=ActorNetwork,
+                        n_features=n_features,
+                        input_shape=actor_input_shape,
+                        output_shape=mdp.info.action_space.shape)
+
+    actor_optimizer = {'class': optim.Adam,
+                       'params': {'lr': .001}}
+
+    critic_input_shape = (
+    actor_input_shape[0] + mdp.info.action_space.shape[0],)
+    critic_params = dict(network=CriticNetwork,
+                         optimizer={'class': optim.Adam,
+                                    'params': {'lr': .001}},
+                         loss=F.mse_loss,
+                         n_features=n_features,
+                         input_shape=critic_input_shape,
+                         output_shape=(1,))
+
+    # Agent
+    agent = DDPG(mdp.info, policy_class, policy_params,
+                 batch_size, initial_replay_size, max_replay_size,
+                 tau, critic_params, actor_params, actor_optimizer)
+
+    agent.fit(dataset)
+
+    w_1 = -0.021946758
+    w_2 = -0.2121516
+
+    w = agent._critic_approximator.get_weights()
+
+    assert np.allclose(w[8], w_1)
+    assert np.allclose(w[19], w_2)
+
+    agent = TD3(mdp.info, policy_class, policy_params,
+                batch_size, initial_replay_size, max_replay_size,
+                tau, critic_params, actor_params, actor_optimizer)
+
+    agent.fit(dataset)
+
+    w_1 = 0.17241871
+    w_2 = -0.20675948
+
+    w = agent._critic_approximator.model[0].get_weights()
+
+    assert np.allclose(w[8], w_1)
+    assert np.allclose(w[19], w_2)
+
+
+def test_trust_region():
+    policy_params = dict(
+        std_0=1.,
+        n_features=64,
+        use_cuda=torch.cuda.is_available()
+
+    )
+
+    ppo_params = dict(actor_optimizer={'class': optim.Adam,
+                                       'params': {'lr': 3e-4}},
+                      n_epochs_policy=4,
+                      batch_size=64,
+                      eps_ppo=.2,
+                      lam=.95,
+                      quiet=True)
+
+    trpo_params = dict(ent_coeff=0.0,
+                       max_kl=.001,
+                       lam=.98,
+                       n_epochs_line_search=10,
+                       n_epochs_cg=10,
+                       cg_damping=1e-2,
+                       cg_residual_tol=1e-10,
+                       quiet=True)
+
+    critic_params = dict(network=ActorNetwork,
+                         optimizer={'class': optim.Adam,
+                                    'params': {'lr': 3e-4}},
+                         loss=F.mse_loss,
+                         n_features=64,
+                         input_shape=mdp.info.observation_space.shape,
+                         output_shape=(1,))
+
+    policy = GaussianTorchPolicy(ActorNetwork,
+                                 mdp.info.observation_space.shape,
+                                 mdp.info.action_space.shape,
+                                 **policy_params)
+
+    agent = PPO(mdp.info, policy, critic_params, **ppo_params)
+
+    agent.fit(dataset)
+
+    w_1 = 0.4254744
+    w_2 = 0.405263
+
+    w = agent._V.get_weights()
+
+    assert np.allclose(w[8], w_1)
+    assert np.allclose(w[19], w_2)
+
+    agent = TRPO(mdp.info, policy, critic_params, **trpo_params)
+
+    agent.fit(dataset)
+
+    w_1 = 0.21880294
+    w_2 = 0.4693784
 
     w = agent._V.get_weights()
 

@@ -81,7 +81,6 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
 
 
 if __name__ == '__main__':
-
     max_kl = .015
 
     policy_params = dict(
