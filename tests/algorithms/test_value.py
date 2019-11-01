@@ -33,8 +33,6 @@ def test_q_learning():
 
 
 def test_double_q_learning():
-    np.random.seed(1)
-
     alg = DoubleQLearning(pi, mdp.info, Parameter(.5))
 
     alg.Q[0].table = np.arange(np.prod(mdp.info.size)).reshape(mdp.info.size)

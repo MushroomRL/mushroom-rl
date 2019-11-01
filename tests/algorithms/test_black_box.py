@@ -1,104 +1,63 @@
 import numpy as np
+import torch
 
 from mushroom.algorithms.policy_search import PGPE, REPS, RWR
 from mushroom.approximators import Regressor
 from mushroom.core import Core
 from mushroom.approximators.parametric import LinearApproximator
 from mushroom.distributions import GaussianDiagonalDistribution
-from mushroom.environments import ShipSteering
-from mushroom.features import Features
-from mushroom.features.tiles import Tiles
+from mushroom.environments import LQR
 from mushroom.policy import DeterministicPolicy
 from mushroom.utils.parameters import AdaptiveParameter
 
-mdp = ShipSteering()
 
-high = [150, 150, np.pi]
-low = [0, 0, -np.pi]
-n_tiles = [5, 5, 6]
-low = np.array(low, dtype=np.float)
-high = np.array(high, dtype=np.float)
-n_tilings = 1
+def learn(alg, **alg_params):
+    np.random.seed(1)
+    torch.manual_seed(1)
 
-tilings = Tiles.generate(n_tilings=n_tilings, n_tiles=n_tiles, low=low,
-                         high=high)
+    # MDP
+    mdp = LQR.generate(dimensions=2)
 
-phi = Features(tilings=tilings)
-input_shape = (phi.size,)
+    approximator = Regressor(LinearApproximator,
+                             input_shape=mdp.info.observation_space.shape,
+                             output_shape=mdp.info.action_space.shape)
 
-approximator = Regressor(LinearApproximator, input_shape=input_shape,
-                         output_shape=mdp.info.action_space.shape)
+    policy = DeterministicPolicy(mu=approximator)
 
-policy = DeterministicPolicy(approximator)
+    mu = np.zeros(policy.weights_size)
+    sigma = 1e-3 * np.ones(policy.weights_size)
+    distribution = GaussianDiagonalDistribution(mu, sigma)
 
-mu = np.zeros(policy.weights_size)
-sigma = 4e-1 * np.ones(policy.weights_size)
-distribution_test = GaussianDiagonalDistribution(mu, sigma)
-agent_test = RWR(distribution_test, policy, mdp.info, beta=1.)
-core = Core(agent_test, mdp)
+    agent_test = alg(distribution, policy, mdp.info, **alg_params)
+    core = Core(agent_test, mdp)
 
-s = np.arange(10)
-a = np.arange(10)
-r = np.arange(10)
-ss = s + 5
-ab = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
-last = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
+    core.learn(n_episodes=5, n_episodes_per_fit=5)
 
-dataset = list()
-for i in range(s.size):
-    dataset.append([np.array([s[i]]), np.array([a[i]]), r[i],
-                    np.array([ss[i]]), ab[i], last[i]])
-
-np.random.seed(88)
+    return distribution
 
 
 def test_RWR():
-    distribution = GaussianDiagonalDistribution(mu, sigma)
-    agent = RWR(distribution, policy, mdp.info, beta=1., features=phi)
+    distribution = learn(RWR, beta=1.)
+    w = distribution.get_parameters()
+    w_test = np.array([0.00086195, -0.00229678, 0.00173919, -0.0007568,
+                       0.00073533, 0.00101203, 0.00119701, 0.00094453])
 
-    agent.episode_start()
-
-    agent.fit(dataset)
-
-    w_1 = 4.24574375e-1
-    w_2 = -1.10809513e-1
-
-    w = agent.policy.get_weights()
-
-    assert np.allclose(w_1, w[10])
-    assert np.allclose(w_2, w[18])
+    assert np.allclose(w, w_test)
 
 
 def test_REPS():
-    distribution = GaussianDiagonalDistribution(mu, sigma)
-    agent = REPS(distribution, policy, mdp.info, eps=.7, features=phi)
+    distribution = learn(REPS, eps=.7)
+    w = distribution.get_parameters()
+    w_test = np.array([0.00050246, -0.00175432, 0.00128979, -0.00050779,
+                       0.00071795, 0.00108254, 0.00098966, 0.00086633])
 
-    agent.episode_start()
-
-    agent.fit(dataset)
-
-    w_1 = .76179551
-    w_2 = .08787432
-
-    w = agent.policy.get_weights()
-
-    assert np.allclose(w_1, w[10])
-    assert np.allclose(w_2, w[18])
+    assert np.allclose(w, w_test)
 
 
 def test_PGPE():
-    distribution = GaussianDiagonalDistribution(mu, sigma)
-    agent = PGPE(distribution, policy, mdp.info,
-                 learning_rate=AdaptiveParameter(1.5), features=phi)
+    distribution = learn(PGPE, learning_rate=AdaptiveParameter(1.5))
+    w = distribution.get_parameters()
+    w_test = np.array([0.02489092, 0.31062211, 0.2051433, 0.05959651,
+                       -0.78302236, 0.77381954, 0.23676176, -0.29855654])
 
-    agent.episode_start()
-
-    agent.fit(dataset)
-
-    w_1 = .54454343
-    w_2 = .5449792
-
-    w = agent.policy.get_weights()
-
-    assert np.allclose(w_1, w[10])
-    assert np.allclose(w_2, w[18])
+    assert np.allclose(w, w_test)

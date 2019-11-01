@@ -99,13 +99,6 @@ def test_pytorch_approximator():
 
     bhat = approximator.predict(a)
     error = np.linalg.norm(b - bhat, 'fro') / 1000
-    error_inf = np.max(np.abs(b-bhat))
-
-    print(b[:10])
-
-    print(bhat[:10])
-
-    print(error_inf)
 
     assert error < 2e-4
 
