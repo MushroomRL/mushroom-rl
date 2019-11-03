@@ -77,7 +77,7 @@ def test_PPO():
     w = policy.get_weights()
     w_test = np.load('tests/algorithms/ppo_w.npy')
 
-    assert np.allclose(w, w_test)
+    assert np.allclose(w, w_test, rtol=1e-3)
 
 
 def test_TRPO():
@@ -92,4 +92,4 @@ def test_TRPO():
     w = policy.get_weights()
     w_test = np.load('tests/algorithms/trpo_w.npy')
 
-    assert np.allclose(w, w_test)
+    assert np.allclose(w, w_test, rtol=1e-3)
