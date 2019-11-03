@@ -13,7 +13,7 @@ from mushroom.policy import GaussianTorchPolicy
 
 def learn(alg, alg_params):
     class Network(nn.Module):
-        def __init__(self, input_shape, output_shape, n_features, **kwargs):
+        def __init__(self, input_shape, output_shape, **kwargs):
             super(Network, self).__init__()
 
             n_input = input_shape[-1]
@@ -29,16 +29,18 @@ def learn(alg, alg_params):
 
     mdp = Gym('Pendulum-v0', 200, .99)
     mdp.seed(1)
+    np.random.seed(1)
+    torch.manual_seed(1)
+    torch.cuda.manual_seed(1)
 
     critic_params = dict(network=Network,
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': 3e-4}},
                          loss=F.mse_loss,
-                         n_features=4,
                          input_shape=mdp.info.observation_space.shape,
                          output_shape=(1,))
 
-    policy_params = dict(std_0=1., n_features=4, use_cuda=False)
+    policy_params = dict(std_0=1., use_cuda=False)
 
     policy = GaussianTorchPolicy(Network,
                                  mdp.info.observation_space.shape,
@@ -55,10 +57,6 @@ def learn(alg, alg_params):
 
 
 def test_PPO():
-    np.random.seed(1)
-    torch.manual_seed(1)
-    torch.cuda.manual_seed(1)
-
     params = dict(actor_optimizer={'class': optim.Adam,
                                    'params': {'lr': 3e-4}},
                   n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95,
@@ -72,10 +70,6 @@ def test_PPO():
 
 
 def test_TRPO():
-    np.random.seed(1)
-    torch.manual_seed(1)
-    torch.cuda.manual_seed(1)
-
     params = dict(ent_coeff=0.0, max_kl=.001, lam=.98, n_epochs_line_search=10,
                   n_epochs_cg=10, cg_damping=1e-2, cg_residual_tol=1e-10,
                   quiet=True)

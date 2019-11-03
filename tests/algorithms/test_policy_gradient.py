@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 from mushroom.algorithms.policy_search import *
 from mushroom.approximators import Regressor
@@ -8,66 +9,57 @@ from mushroom.environments.lqr import LQR
 from mushroom.policy.gaussian_policy import StateStdGaussianPolicy
 from mushroom.utils.parameters import AdaptiveParameter
 
-mdp = LQR.generate(dimensions=1)
 
-approximator_params = dict(input_dim=mdp.info.observation_space.shape)
-approximator = Regressor(LinearApproximator,
-                         input_shape=mdp.info.observation_space.shape,
-                         output_shape=mdp.info.action_space.shape,
-                         params=approximator_params)
+def learn(alg, alg_params):
+    mdp = LQR.generate(dimensions=1)
+    np.random.seed(1)
+    torch.manual_seed(1)
+    torch.cuda.manual_seed(1)
 
-sigma = Regressor(LinearApproximator,
-                  input_shape=mdp.info.observation_space.shape,
-                  output_shape=mdp.info.action_space.shape,
-                  params=approximator_params)
+    approximator_params = dict(input_dim=mdp.info.observation_space.shape)
+    approximator = Regressor(LinearApproximator,
+                             input_shape=mdp.info.observation_space.shape,
+                             output_shape=mdp.info.action_space.shape,
+                             params=approximator_params)
 
-sigma_weights = 2 * np.ones(sigma.weights_size)
-sigma.set_weights(sigma_weights)
+    sigma = Regressor(LinearApproximator,
+                      input_shape=mdp.info.observation_space.shape,
+                      output_shape=mdp.info.action_space.shape,
+                      params=approximator_params)
 
-policy = StateStdGaussianPolicy(approximator, sigma)
+    sigma_weights = 2 * np.ones(sigma.weights_size)
+    sigma.set_weights(sigma_weights)
 
-# Agent
-learning_rate = AdaptiveParameter(value=.01)
-algorithm_params = dict(learning_rate=learning_rate)
+    policy = StateStdGaussianPolicy(approximator, sigma)
 
-agent_test = REINFORCE(policy, mdp.info, **algorithm_params)
-core = Core(agent_test, mdp)
+    agent = alg(policy, mdp.info, **alg_params)
 
-s = np.arange(10)
-a = np.arange(10)
-r = np.arange(10)
-ss = s + 5
-ab = np.array([0, 0, 0, 0, 1, 0, 0, 0, 1, 0])
-last = np.array([0, 0, 0, 0, 1, 0, 0, 0, 1, 0])
+    core = Core(agent, mdp)
 
-dataset = list()
-for i in range(s.size):
-    dataset.append([np.array([s[i]]), np.array([a[i]]), r[i],
-                    np.array([ss[i]]), np.array([ab[i]]), np.array([last[i]])])
+    core.learn(n_episodes=10, n_episodes_per_fit=5)
+
+    return policy
 
 
 def test_REINFORCE():
-    agent = REINFORCE(policy, mdp.info, **algorithm_params)
-    agent.fit(dataset)
+    params = dict(learning_rate=AdaptiveParameter(value=.01))
+    policy = learn(REINFORCE, params)
+    w = np.array([-0.0084793 ,  2.00536528])
 
-    w = np.array([-.07071067, 2.07071068])
-
-    assert np.allclose(w, agent.policy.get_weights())
+    assert np.allclose(w, policy.get_weights())
 
 
 def test_GPOMDP():
-    agent = GPOMDP(policy, mdp.info, **algorithm_params)
-    agent.fit(dataset)
+    params = dict(learning_rate=AdaptiveParameter(value=.01))
+    policy = learn(GPOMDP, params)
+    w = np.array([-0.07623939,  2.05232858])
 
-    w = np.array([-.12837306, 2.15241166])
-
-    assert np.allclose(w, agent.policy.get_weights())
+    assert np.allclose(w, policy.get_weights())
 
 
 def test_eNAC():
-    agent = eNAC(policy, mdp.info, **algorithm_params)
-    agent.fit(dataset)
+    params = dict(learning_rate=AdaptiveParameter(value=.01))
+    policy = learn(eNAC, params)
+    w = np.array([-0.03668018,  2.05112355])
 
-    w = np.array([-.0305895, 2.13147422])
-
-    assert np.allclose(w, agent.policy.get_weights())
+    assert np.allclose(w, policy.get_weights())
