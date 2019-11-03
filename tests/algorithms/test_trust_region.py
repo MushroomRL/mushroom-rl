@@ -19,23 +19,13 @@ def learn(alg, alg_params):
             n_input = input_shape[-1]
             n_output = output_shape[0]
 
-            self._h1 = nn.Linear(n_input, n_features)
-            self._h2 = nn.Linear(n_features, n_features)
-            self._h3 = nn.Linear(n_features, n_output)
+            self._h = nn.Linear(n_input, n_output)
 
-            nn.init.xavier_uniform_(self._h1.weight,
+            nn.init.xavier_uniform_(self._h.weight,
                                     gain=nn.init.calculate_gain('relu'))
-            nn.init.xavier_uniform_(self._h2.weight,
-                                    gain=nn.init.calculate_gain('relu'))
-            nn.init.xavier_uniform_(self._h3.weight,
-                                    gain=nn.init.calculate_gain('linear'))
 
         def forward(self, state, **kwargs):
-            features1 = F.relu(self._h1(torch.squeeze(state, 1).float()))
-            features2 = F.relu(self._h2(features1))
-            a = self._h3(features2)
-
-            return a
+            return F.relu(self._h(torch.squeeze(state, 1).float()))
 
     mdp = Gym('Pendulum-v0', 200, .99)
     mdp.seed(1)
@@ -44,11 +34,11 @@ def learn(alg, alg_params):
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': 3e-4}},
                          loss=F.mse_loss,
-                         n_features=64,
+                         n_features=4,
                          input_shape=mdp.info.observation_space.shape,
                          output_shape=(1,))
 
-    policy_params = dict(std_0=1., n_features=64, use_cuda=False)
+    policy_params = dict(std_0=1., n_features=4, use_cuda=False)
 
     policy = GaussianTorchPolicy(Network,
                                  mdp.info.observation_space.shape,
@@ -75,9 +65,10 @@ def test_PPO():
                   quiet=True)
     policy = learn(PPO, params)
     w = policy.get_weights()
-    w_test = np.load('tests/algorithms/ppo_w.npy')
+    w_test = np.array([-1.6293062, 1.0408604, -3.5757786e-1, 2.6958251e-1,
+                       -8.7002787e-4])
 
-    assert np.allclose(w, w_test, rtol=1e-3)
+    assert np.allclose(w, w_test)
 
 
 def test_TRPO():
@@ -90,6 +81,7 @@ def test_TRPO():
                   quiet=True)
     policy = learn(TRPO, params)
     w = policy.get_weights()
-    w_test = np.load('tests/algorithms/trpo_w.npy')
+    w_test = np.array([-1.5759772, 1.0822705, -0.37794656, 0.29728204,
+                       -0.0396419])
 
-    assert np.allclose(w, w_test, rtol=1e-3)
+    assert np.allclose(w, w_test)
