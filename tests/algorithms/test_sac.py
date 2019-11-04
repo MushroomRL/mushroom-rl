@@ -92,16 +92,16 @@ def test_sac():
                          use_cuda=False)
 
     # Agent
-    agent = SAC(mdp.info,
-                batch_size, initial_replay_size, max_replay_size,
-                warmup_transitions, tau, lr_alpha,
-                actor_mu_params, actor_sigma_params,
-                actor_optimizer, critic_params, critic_fit_params=None)
+    agent = SAC(mdp.info, batch_size, initial_replay_size, max_replay_size,
+                warmup_transitions, tau, lr_alpha, actor_mu_params,
+                actor_sigma_params, actor_optimizer, critic_params,
+                critic_fit_params=None)
 
     # Algorithm
     core = Core(agent, mdp)
 
-    core.learn(n_steps=initial_replay_size, n_steps_per_fit=initial_replay_size)
+    core.learn(n_steps=initial_replay_size,
+               n_steps_per_fit=initial_replay_size)
 
     w = agent.policy.get_weights()
     w_test = np.array([1.6995193, -0.73282796, 1.2989079, -0.26830125,

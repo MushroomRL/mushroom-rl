@@ -26,17 +26,18 @@ class FQI(BatchTD):
         self._n_iterations = n_iterations
         self._quiet = quiet
 
-        super().__init__(approximator, policy, mdp_info, fit_params,
-                         approximator_params)
-
-        self._target = None
-
         # "Boosted Fitted Q-Iteration". Tosatto S. et al.. 2017.
         self._boosted = boosted
         if self._boosted:
             self._prediction = 0.
             self._next_q = 0.
             self._idx = 0
+            approximator_params['n_models'] = n_iterations
+
+        super().__init__(approximator, policy, mdp_info, fit_params,
+                         approximator_params)
+
+        self._target = None
 
     def fit(self, dataset):
         """
@@ -115,6 +116,8 @@ class DoubleFQI(FQI):
     """
     def __init__(self, approximator, policy, mdp_info, n_iterations,
                  fit_params=None, approximator_params=None, quiet=False):
+        approximator_params['n_models'] = 2
+
         super().__init__(approximator, policy, mdp_info, n_iterations,
                          fit_params, approximator_params, quiet)
 

@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from mushroom.algorithms.actor_critic import StochasticAC_AVG
+from mushroom.algorithms.actor_critic import StochasticAC, StochasticAC_AVG
 from mushroom.core import Core
 from mushroom.environments import *
 from mushroom.features import Features
@@ -12,7 +12,7 @@ from mushroom.policy import StateLogStdGaussianPolicy
 from mushroom.utils.parameters import Parameter
 
 
-def test_stochastic_ac():
+def learn(alg):
     n_steps = 50
     mdp = InvertedPendulum(horizon=n_steps)
     np.random.seed(1)
@@ -48,18 +48,34 @@ def test_stochastic_ac():
 
     policy = StateLogStdGaussianPolicy(mu, std)
 
-    agent = StochasticAC_AVG(policy, mdp.info,
-                             alpha_theta, alpha_v, alpha_r,
-                             lambda_par=.5,
-                             value_function_features=psi,
-                             policy_features=phi)
+    if alg is StochasticAC:
+        agent = alg(policy, mdp.info, alpha_theta, alpha_v, lambda_par=.5,
+                    value_function_features=psi, policy_features=phi)
+    elif alg is StochasticAC_AVG:
+        agent = alg(policy, mdp.info, alpha_theta, alpha_v, alpha_r,
+                    lambda_par=.5, value_function_features=psi,
+                    policy_features=phi)
 
     core = Core(agent, mdp)
 
     core.learn(n_episodes=2, n_episodes_per_fit=1)
 
-    w = policy.get_weights()
+    return policy
 
+
+def test_stochastic_ac():
+    policy = learn(StochasticAC)
+
+    w = policy.get_weights()
+    w_test = np.array([-0.0026135, 0.01222979])
+
+    assert np.allclose(w, w_test)
+
+
+def test_stochastic_ac_avg():
+    policy = learn(StochasticAC_AVG)
+
+    w = policy.get_weights()
     w_test = np.array([-0.00295433, 0.01325534])
 
     assert np.allclose(w, w_test)
