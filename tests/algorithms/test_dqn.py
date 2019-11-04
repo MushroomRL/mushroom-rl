@@ -153,4 +153,4 @@ def test_categorical_dqn():
                        0.659329, 0.5941985, -1.1264751, 0.8307397, 0.01681535,
                        0.08285073])
 
-    assert np.allclose(w, w_test)
+    assert np.allclose(w, w_test, rtol=1e-4)
