@@ -3,6 +3,7 @@ from scipy.integrate import odeint
 
 from mushroom.environments import Environment, MDPInfo
 from mushroom.utils import spaces
+from mushroom.utils.viewer import Viewer
 
 
 class CarOnHill(Environment):
@@ -29,6 +30,10 @@ class CarOnHill(Environment):
         observation_space = spaces.Box(low=-high, high=high)
         action_space = spaces.Discrete(2)
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+
+        # Visualization
+        self._viewer = Viewer(1, 1)
+
 
         super().__init__(mdp_info)
 
@@ -60,6 +65,55 @@ class CarOnHill(Environment):
             absorbing = False
 
         return self._state, reward, absorbing, {}
+
+    def render(self):
+        # Slope
+        self._viewer.function(0, 1, self._height)
+
+        # Car
+        car_body = [
+            [-3e-2, 0],
+            [-3e-2, 2e-2],
+            [-2e-2, 2e-2],
+            [-1e-2, 3e-2],
+            [1e-2, 3e-2],
+            [2e-2, 2e-2],
+            [3e-2, 2e-2],
+            [3e-2, 0]
+        ]
+
+        x_car = (self._state[0] + 1) / 2
+        y_car = self._height(x_car)
+        c_car = [x_car, y_car]
+        angle = self._angle(x_car)
+        self._viewer.polygon(c_car, angle, car_body,
+                             color=(32, 193, 54))
+
+        self._viewer.display(self._dt)
+
+    @staticmethod
+    def _angle(x):
+        if x < 0.5:
+            m = 4 * x - 1
+        else:
+            m = 1 / ((20 * x ** 2 - 20*x + 6) ** 1.5)
+
+        return np.arctan(m)
+
+    @staticmethod
+    def _height(x):
+        y_neg = 4 * x**2 - 2 * x
+        y_pos = (2*x-1)/np.sqrt(5*(2*x-1)**2+1)
+        y = np.zeros_like(x)
+
+        mask = x < 0.5
+        neg_mask = np.logical_not(mask)
+        y[mask] = y_neg[mask]
+        y[neg_mask] = y_pos[neg_mask]
+
+        y_norm = (y + 1)/2
+
+        return y_norm
 
     def _dpds(self, state_action, t):
         position = state_action[0]

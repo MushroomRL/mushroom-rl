@@ -240,6 +240,13 @@ class Viewer:
         surf = pygame.transform.smoothscale(surf, self.size)
         self.screen.blit(surf, (0, 0))
 
+    def function(self, x_s, x_e, f, n_points=100,  width=1, color=(255,255,255)):
+        x = np.linspace(x_s, x_e, n_points)
+        y = f(x)
+
+        points = [self._transform([a, b]) for a, b in zip(x,y)]
+        pygame.draw.lines(self.screen, color, False, points, width)
+
     def display(self, s):
         """
         Display current frame and initialize the next frame to the background
