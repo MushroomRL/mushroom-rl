@@ -25,7 +25,13 @@ def test_imports():
 
     import mushroom.environments
     import mushroom.environments.generators
-    import mushroom.environments.mujoco_envs
+
+    try:
+        import mujoco_py
+    except ImportError:
+        pass
+    else:
+        import mushroom.environments.mujoco_envs
 
     import mushroom.features
     import mushroom.features._implementations
