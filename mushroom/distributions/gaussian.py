@@ -142,7 +142,7 @@ class GaussianCholeskyDistribution(Distribution):
     def mle(self, theta, weights=None):
         if weights is None:
             self._mu = np.mean(theta, axis=0)
-            sigma = np.cov(theta)
+            sigma = np.cov(theta, rowvar=False)
         else:
             sumD = np.sum(weights)
             sumD2 = np.sum(weights**2)
