@@ -78,6 +78,15 @@ Inverted pendulum
     :inherited-members:
     :show-inheritance:
 
+Cart Pole
+~~~~~~~~~
+
+.. automodule:: mushroom.environments.cart_pole
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
 LQR
 ~~~
 

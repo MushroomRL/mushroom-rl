@@ -13,7 +13,7 @@ def test_lspi():
     np.random.seed(1)
 
     # MDP
-    mdp = InvertedPendulumDiscrete()
+    mdp = CartPole()
 
     # Policy
     epsilon = Parameter(value=1.)

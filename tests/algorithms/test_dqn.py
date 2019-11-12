@@ -48,7 +48,7 @@ class FeatureNetwork(nn.Module):
 
 def learn(alg, alg_params):
     # MDP
-    mdp = InvertedPendulumDiscrete()
+    mdp = CartPole()
     np.random.seed(1)
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)

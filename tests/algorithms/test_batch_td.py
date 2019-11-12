@@ -10,7 +10,7 @@ from mushroom.utils.parameters import Parameter
 
 
 def test_lspi():
-    mdp = InvertedPendulumDiscrete()
+    mdp = CartPole()
     np.random.seed(1)
 
     # Policy

@@ -179,6 +179,52 @@ class Viewer:
         radius = int(radius * self._ratio[0])
         pygame.draw.circle(self.screen, color, center, radius, width)
 
+    def arrow_head(self, center, scale, angle, color=(255, 255, 255)):
+        """
+        Draw an harrow head.
+
+        Args:
+            center (np.ndarray): the position of the arrow head;
+            scale (float): scale of the arrow, correspond to the length;
+            angle (float): the angle of rotation of the angle head;
+            color (tuple, (255, 255, 255)): the color of the arrow.
+
+        """
+        points = [[-0.5 * scale, -0.5 * scale],
+                  [-0.5 * scale, 0.5 * scale],
+                  [0.5 * scale, 0]]
+
+        self.polygon(center, angle, points, color)
+
+    def force_arrow(self, center, direction, force, max_force,
+                    max_length, color=(255, 255, 255), width=1):
+        """
+        Draw a torque arrow, i.e. a circular arrow representing a torque. The
+        radius of the arrow is directly proportional to the torque value.
+
+        Args:
+            center (np.ndarray): the point where the force is applied;
+            direction (np.ndarray): the direction of the force;
+            force (float): the applied force value;
+            max_force (float): the maximum force value;
+            max_length (float): the length to use for the maximum force;
+            color (tuple, (255, 255, 255)): the color of the arrow;
+            width (int, 1): the width of the force arrow.
+
+        """
+        length = force / max_force * max_length
+
+        if length != 0:
+
+            c = self._transform(center)
+            direction = direction / np.linalg.norm(direction)
+            end = center + length * direction
+            e = self._transform(end)
+            delta = e - c
+
+            pygame.draw.line(self.screen, color, c, e, width)
+            self.arrow_head(end, max_length / 4, np.arctan2(delta[1], delta[0]), color)
+
     def torque_arrow(self, center, torque, max_torque,
                      max_radius, color=(255, 255, 255), width=1):
         """
@@ -210,23 +256,6 @@ class Viewer:
             arrow_scale = radius / 4
             self.arrow_head(arrow_center, arrow_scale, 0, color)
 
-    def arrow_head(self, center, scale, angle, color=(255, 255, 255)):
-        """
-        Draw an harrow head.
-
-        Args:
-            center (np.ndarray): the position of the arrow head;
-            scale (float): scale of the arrow, correspond to the length;
-            angle (float): the angle of rotation of the angle head;
-            color (tuple, (255, 255, 255)): the color of the arrow.
-
-        """
-        points = [[-0.5 * scale, -0.5 * scale],
-                  [-0.5 * scale, 0.5 * scale],
-                  [0.5 * scale, 0]]
-
-        self.polygon(center, angle, points, color)
-
     def background_image(self, img):
         """
         Use the given image as background for the window, rescaling it
@@ -241,6 +270,18 @@ class Viewer:
         self.screen.blit(surf, (0, 0))
 
     def function(self, x_s, x_e, f, n_points=100,  width=1, color=(255,255,255)):
+        """
+        Draw the graph of a function in the image.
+
+        Args:
+            x_s (float): starting x coordinate;
+            x_e (float): final x coordinate;
+            f (function): the function that maps x coorinates into y coordinates;
+            n_points (int, 100): the number of segments used to approximate the function to draw;
+            width (int, 1): thw width of the line drawn;
+            color (tuple, (255,255,255)): the color of the line.
+
+        """
         x = np.linspace(x_s, x_e, n_points)
         y = f(x)
 

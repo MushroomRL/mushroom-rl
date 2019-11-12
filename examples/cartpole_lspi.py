@@ -23,7 +23,7 @@ def experiment():
     np.random.seed()
 
     # MDP
-    mdp = InvertedPendulumDiscrete()
+    mdp = CartPole()
 
     # Policy
     epsilon = Parameter(value=1.)
@@ -48,6 +48,7 @@ def experiment():
 
     # Algorithm
     core = Core(agent, mdp)
+    core.evaluate(n_episodes=3, render=True)
 
     # Train
     core.learn(n_episodes=100, n_episodes_per_fit=100)
@@ -58,12 +59,13 @@ def experiment():
 
     dataset = core.evaluate(n_episodes=1, quiet=True)
 
+    core.evaluate(n_steps=100, render=True)
+
     return np.mean(episodes_length(dataset))
 
 
 if __name__ == '__main__':
     n_experiment = 1
 
-    steps = Parallel(n_jobs=-1)(delayed(experiment)() for _ in range(
-        n_experiment))
-    print(np.mean(steps))
+    steps = experiment()
+    print('Final episode lenght: ', steps)
