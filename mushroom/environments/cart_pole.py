@@ -72,6 +72,9 @@ class CartPole(Environment):
             u = 0.
         else:
             u = self._max_u
+
+        self._last_u = u
+
         u += np.random.uniform(-self._noise_u, self._noise_u)
         new_state = odeint(self._dynamics, self._state, [0, self._dt],
                            (u,))
@@ -86,8 +89,6 @@ class CartPole(Environment):
             reward = 0.
             absorbing = False
 
-        self._last_u = u
-
         return self._state, reward, absorbing, {}
 
     def render(self, mode='human'):
@@ -98,10 +99,12 @@ class CartPole(Environment):
         end[1] += self._l * np.cos(self._state[0])
 
         self._viewer.line(start, end)
-        self._viewer.circle(start, self._l / 40)
+        self._viewer.square(start, 0,  self._l / 10)
         self._viewer.circle(end, self._l / 20)
-        self._viewer.torque_arrow(start, -self._last_u, self._max_u,
-                                  self._l / 5)
+
+        direction = np.array([1, 0])
+        self._viewer.force_arrow(start, direction, -self._last_u,
+                                 self._max_u, self._l / 5)
 
         self._viewer.display(self._dt)
 
