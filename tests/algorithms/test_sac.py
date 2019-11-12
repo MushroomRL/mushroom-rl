@@ -60,7 +60,7 @@ def test_sac():
     max_replay_size = 50000
     batch_size = 64
     n_features = 64
-    warmup_transitions = 100
+    warmup_transitions = 10
     tau = 0.005
     lr_alpha = 3e-4
 
@@ -100,11 +100,11 @@ def test_sac():
     # Algorithm
     core = Core(agent, mdp)
 
-    core.learn(n_steps=initial_replay_size,
+    core.learn(n_steps=2 * initial_replay_size,
                n_steps_per_fit=initial_replay_size)
 
     w = agent.policy.get_weights()
-    w_test = np.array([1.6995193, -0.73282796, 1.2989079, -0.26830125,
-                       0.5094043, -0.5001421, -0.18989229, -0.30646914])
+    w_test = np.array([ 1.6998193, -0.732528, 1.2986078, -0.26860124,
+                        0.5094043, -0.5001421, -0.18989229, -0.30646914])
 
     assert np.allclose(w, w_test)
