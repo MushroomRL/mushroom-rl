@@ -23,7 +23,7 @@ def experiment():
     np.random.seed()
 
     # MDP
-    mdp = InvertedPendulumDiscrete()
+    mdp = CartPole()
 
     # Policy
     epsilon = Parameter(value=1.)
