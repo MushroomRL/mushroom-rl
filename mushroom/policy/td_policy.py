@@ -144,6 +144,30 @@ class Boltzmann(TDPolicy):
         return np.array([np.random.choice(self._approximator.n_actions,
                                           p=self(state))])
 
+    def set_beta(self, beta):
+        """
+        Setter.
+
+        Args:
+            beta (Parameter): the inverse of the temperature distribution.
+
+        """
+        assert isinstance(beta, Parameter)
+
+        self._beta = beta
+
+    def update(self, *idx):
+        """
+        Update the value of the beta parameter at the provided index (e.g. in
+        case of different values of beta for each visited state according to
+        the number of visits).
+
+        Args:
+            *idx (list): index of the parameter to be updated.
+
+        """
+        self._beta.update(*idx)
+
 
 class Mellowmax(Boltzmann):
     """
@@ -196,3 +220,9 @@ class Mellowmax(Boltzmann):
         beta_mellow = self.MellowmaxParameter(self, omega, beta_min, beta_max)
 
         super().__init__(beta_mellow)
+
+    def set_beta(self, beta):
+        raise RuntimeError('Cannot change the beta parameter of Mellowmax policy')
+
+    def update(self, *idx):
+        raise RuntimeError('Cannot update the beta parameter of Mellowmax policy')
