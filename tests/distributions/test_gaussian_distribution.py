@@ -24,7 +24,7 @@ def test_gaussian():
     theta = dist.sample()
     log_p = dist.log_pdf(theta)
     log_p_test = -5.622792079250801
-    assert log_p == log_p_test
+    assert np.isclose(log_p, log_p_test)
 
     theta = np.random.randn(100, n_dims)
 
@@ -57,7 +57,7 @@ def test_diagonal_gaussian():
     theta = dist.sample()
     log_p = dist.log_pdf(theta)
     log_p_test = -7.818947754486631
-    assert log_p == log_p_test
+    assert np.isclose(log_p, log_p_test)
 
     theta = np.random.randn(100, n_dims)
 
@@ -72,6 +72,7 @@ def test_diagonal_gaussian():
                           0.2495252 , 0.20968329,  0.97527594,  1.08187144,
                           1.04907019,  1.0634484 , 1.03453275,  1.03961039])
     assert np.allclose(dist.get_parameters(), wmle_test)
+
 
 def test_cholesky_gaussian():
     np.random.seed(88)
@@ -94,7 +95,7 @@ def test_cholesky_gaussian():
     theta = dist.sample()
     log_p = dist.log_pdf(theta)
     log_p_test = -5.622792079250836
-    assert log_p == log_p_test
+    assert np.isclose(log_p, log_p_test)
 
     theta = np.random.randn(100, n_dims)
 
