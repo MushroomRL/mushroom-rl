@@ -34,7 +34,6 @@ class CarOnHill(Environment):
         # Visualization
         self._viewer = Viewer(1, 1)
 
-
         super().__init__(mdp_info)
 
     def reset(self, state=None):
@@ -86,8 +85,7 @@ class CarOnHill(Environment):
         y_car = self._height(x_car)
         c_car = [x_car, y_car]
         angle = self._angle(x_car)
-        self._viewer.polygon(c_car, angle, car_body,
-                             color=(32, 193, 54))
+        self._viewer.polygon(c_car, angle, car_body, color=(32, 193, 54))
 
         self._viewer.display(self._dt)
 
@@ -96,22 +94,22 @@ class CarOnHill(Environment):
         if x < 0.5:
             m = 4 * x - 1
         else:
-            m = 1 / ((20 * x ** 2 - 20*x + 6) ** 1.5)
+            m = 1 / ((20 * x**2 - 20 * x + 6) ** 1.5)
 
         return np.arctan(m)
 
     @staticmethod
     def _height(x):
         y_neg = 4 * x**2 - 2 * x
-        y_pos = (2*x-1)/np.sqrt(5*(2*x-1)**2+1)
+        y_pos = (2 * x - 1) / np.sqrt(5 * (2 * x - 1)**2 + 1)
         y = np.zeros_like(x)
 
-        mask = x < 0.5
+        mask = x < .5
         neg_mask = np.logical_not(mask)
         y[mask] = y_neg[mask]
         y[neg_mask] = y_pos[neg_mask]
 
-        y_norm = (y + 1)/2
+        y_norm = (y + 1) / 2
 
         return y_norm
 
