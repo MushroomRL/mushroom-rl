@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.stats import norm
 
 from mushroom.environments import Environment, MDPInfo
 from mushroom.utils import spaces
