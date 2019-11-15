@@ -63,6 +63,7 @@ class CartPole(Environment):
             self._state = state
             self._state[0] = normalize_angle(self._state[0])
 
+        self._last_u = 0
         return self._state
 
     def step(self, action):

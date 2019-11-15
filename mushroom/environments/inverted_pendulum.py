@@ -69,6 +69,7 @@ class InvertedPendulum(Environment):
             self._state[1] = self._bound(self._state[1], -self._max_omega,
                                          self._max_omega)
 
+        self._last_u = 0
         return self._state
 
     def step(self, action):
