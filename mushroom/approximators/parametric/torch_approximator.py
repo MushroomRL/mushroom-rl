@@ -111,7 +111,9 @@ class TorchApproximator:
         Fit the model.
 
         Args:
-            args (list): input;
+            *args (list): input, where the last ``n_fit_targets`` elements
+                are considered as the target, while the others are considered
+                as input;
             n_epochs (int, None): the number of training epochs;
             weights (np.ndarray, None): the weights of each sample in the
                 computation of the loss;
