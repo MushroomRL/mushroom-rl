@@ -12,19 +12,19 @@ Mushroom
    :target: https://codeclimate.com/github/AIRLab-POLIMI/mushroom/test_coverage
    :alt: Test Coverage
 
-
-**Mushroom: Reinforcement Learning python library.**
+**Mushroom: Reinforcement Learning Python library.**
 
 .. contents:: **Contents of this document:**
    :depth: 2
 
 What is Mushroom
 ================
-Mushroom is a python Reinforcement Learning (RL) library whose modularity allows to easily use
-well known python libraries for tensor computation (e.g. PyTorch, Tensorflow) and RL benchmark
-(e.g. OpenAI Gym, PyBullet). It allows to perform RL experiments in a simple way
-providing online TD (e.g. Q-Learning, SARSA), batch TD (e.g. FQI) algorithms, deep RL
-algorithms (e.g. DQN and DDPG), and several policy-search algorithms (e.g. REINFORCE, REPS).
+Mushroom is a Python Reinforcement Learning (RL) library whose modularity allows
+to easily use well-known Python libraries for tensor computation (e.g. PyTorch,
+Tensorflow) and RL benchmarks (e.g. OpenAI Gym, PyBullet, Deepmind Control Suite).
+It allows to perform RL experiments in a simple way providing classical RL algorithms
+(e.g. Q-Learning, SARSA, FQI), and deep RL algorithms (e.g. DQN, DDPG,
+SAC, TD3, TRPO, PPO).
 
 Full documentation available at http://mushroomrl.readthedocs.io/en/latest/.
 
