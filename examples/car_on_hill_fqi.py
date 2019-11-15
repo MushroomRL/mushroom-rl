@@ -43,6 +43,9 @@ def experiment():
     # Algorithm
     core = Core(agent, mdp)
 
+    # Render
+    core.evaluate(n_episodes=1, render=True)
+
     # Train
     core.learn(n_episodes=1000, n_episodes_per_fit=1000)
 
@@ -58,6 +61,9 @@ def experiment():
             cont += 1
 
     dataset = core.evaluate(initial_states=initial_states)
+
+    # Render
+    core.evaluate(n_episodes=3, render=True)
 
     return np.mean(compute_J(dataset, mdp.info.gamma))
 
