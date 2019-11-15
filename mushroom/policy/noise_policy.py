@@ -32,6 +32,8 @@ class OrnsteinUhlenbeckPolicy(ParametricPolicy):
         self._dt = dt
         self._x0 = x0
 
+        self.reset()
+
     def __call__(self, state, action):
         raise NotImplementedError
 
