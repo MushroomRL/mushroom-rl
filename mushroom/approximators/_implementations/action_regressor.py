@@ -71,12 +71,12 @@ class ActionRegressor:
                 idxs = np.argwhere((action == i)[:, 0]).ravel()
                 if idxs.size:
                     q[idxs] = self.model[i].predict(state[idxs, :],
-                                                    **predict_params)
+                                                    **predict_params).squeeze()
         else:
             q = np.zeros((state.shape[0], self._n_actions))
             for i in range(self._n_actions):
                 q[:, i] = self.model[i].predict(state,
-                                                **predict_params).flatten()
+                                                **predict_params).squeeze()
 
         return q
 

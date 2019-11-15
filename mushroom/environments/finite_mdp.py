@@ -53,7 +53,7 @@ class FiniteMDP(Environment):
     def step(self, action):
         p = self.p[self._state[0], action[0], :]
         next_state = np.array([np.random.choice(p.size, p=p)])
-        absorbing = not np.any(self.p[next_state[0], :, :])
+        absorbing = not np.any(self.p[next_state[0]])
         reward = self.r[self._state[0], action[0], next_state[0]]
 
         self._state = next_state
