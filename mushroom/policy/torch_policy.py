@@ -28,8 +28,8 @@ class TorchPolicy(Policy):
         self._use_cuda = use_cuda
 
     def __call__(self, state, action):
-        s = to_float_tensor(state, self._use_cuda)
-        a = to_float_tensor(action, self._use_cuda)
+        s = to_float_tensor(np.atleast_2d(state), self._use_cuda)
+        a = to_float_tensor(np.atleast_2d(action), self._use_cuda)
 
         return np.exp(self.log_prob_t(s, a).item())
 
@@ -71,7 +71,7 @@ class TorchPolicy(Policy):
         """
         s = to_float_tensor(state, self._use_cuda) if state is not None else None
 
-        return self.entropy_t(s).detach().cpu().numpy()
+        return self.entropy_t(s).detach().cpu().numpy().item()
 
     def draw_action_t(self, state):
         """
