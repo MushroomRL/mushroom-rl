@@ -3,7 +3,8 @@ import numpy as np
 from mushroom.environments.atari import Atari
 from mushroom.environments.car_on_hill import CarOnHill
 from mushroom.environments.cart_pole import CartPole
-from mushroom.environments.generators import generate_grid_world, generate_simple_chain
+from mushroom.environments.generators import generate_grid_world,\
+    generate_simple_chain, generate_taxi
 from mushroom.environments.grid_world import GridWorld, GridWorldVanHasselt
 from mushroom.environments.gym_env import Gym
 from mushroom.environments.inverted_pendulum import InvertedPendulum
@@ -163,5 +164,16 @@ def test_ship_steering():
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.rand()])
     ns_test = np.array([0., 7.19403055, 1.66804923, 0.08134399])
+
+    assert np.allclose(ns, ns_test)
+
+
+def test_taxi():
+    np.random.seed(1)
+    mdp = generate_taxi('tests/environments/taxi.txt')
+    mdp.reset()
+    for i in range(10):
+        ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
+    ns_test = 5
 
     assert np.allclose(ns, ns_test)
