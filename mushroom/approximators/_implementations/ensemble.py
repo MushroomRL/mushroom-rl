@@ -7,7 +7,7 @@ class Ensemble(object):
     This class is used to create an ensemble of regressors.
 
     """
-    def __init__(self, model, n_models, prediction='mean', **params):
+    def __init__(self, model, n_models, **params):
         """
         Constructor.
 
@@ -15,18 +15,15 @@ class Ensemble(object):
             approximator (object): the model class to approximate the
                 Q-function.
             n_models (int): number of regressors in the ensemble;
-            prediction (str, 'mean'): the type of prediction to make. It can
-                be a 'mean' of the ensembles, or a 'sum'.
             **params (dict): parameters dictionary to create each regressor.
 
         """
-        self._prediction = prediction
         self._model = list()
 
         for _ in range(n_models):
             self._model.append(model(**params))
 
-    def fit(self, *z, **fit_params):
+    def fit(self, *z, idx=None, **fit_params):
         """
         Fit the ``idx``-th model of the ensemble if ``idx`` is provided, every
         model otherwise.
@@ -34,54 +31,57 @@ class Ensemble(object):
         Args:
             *z (list): a list containing the inputs to use to predict with each
                 regressor of the ensemble;
+            idx (int, None): index of the model to fit;
             **fit_params (dict): other params.
 
         """
-        idx = fit_params.pop('idx', None)
         if idx is None:
             for i in range(len(self)):
                 self[i].fit(*z, **fit_params)
         else:
             self[idx].fit(*z, **fit_params)
 
-    def predict(self, *z, **predict_params):
+    def predict(self, *z, idx=None, prediction='mean', compute_variance=False):
         """
         Predict.
 
         Args:
             *z (list): a list containing the inputs to use to predict with each
                 regressor of the ensemble;
-            **predict_params (dict): other params.
+            idx (int, None): index of the model to use for prediction;
+            prediction (str, 'mean'): the type of prediction to make. It can
+                be a 'mean' of the ensembles, or a 'sum';
+            compute_variance (bool, False): whether to compute the variance
+                of the prediction or not.
 
         Returns:
             The predictions of the model.
 
         """
-        idx = predict_params.pop('idx', None)
         if idx is None:
             predictions = list()
             for i in range(len(self._model)):
                 try:
-                    predictions.append(self[i].predict(*z, **predict_params))
+                    predictions.append(self[i].predict(*z))
                 except NotFittedError:
                     pass
 
             if len(predictions) == 0:
                 raise NotFittedError
 
-            if self._prediction == 'mean':
+            if prediction == 'mean':
                 results = np.mean(predictions, axis=0)
-            elif self._prediction == 'sum':
+            elif prediction == 'sum':
                 results = np.sum(predictions, axis=0)
-            elif self._prediction == 'min':
+            elif prediction == 'min':
                 results = np.amin(predictions, axis=0)
             else:
                 raise ValueError
-            if predict_params.get('compute_variance', False):
-                results = [results] + np.var(predictions, ddof=1, axis=0)
+            if compute_variance:
+                results = [results, np.var(predictions, ddof=1, axis=0)]
         else:
             try:
-                results = self[idx].predict(*z, **predict_params)
+                results = self[idx].predict(*z)
             except NotFittedError:
                 raise NotFittedError
 
