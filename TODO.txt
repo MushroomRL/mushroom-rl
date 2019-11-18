@@ -7,8 +7,6 @@ Algorithms:
 
     b) Value based:
         * Q Lambda
-Environments:
-    * Fix InvertedPendulumDiscrete visualization: is a cartpole environment, not a simple pendulum. Consider renaming.
 
 Various:
     * Fix get_value() in Parameters such that an exception is raised when the parameter value is returned as slice.
