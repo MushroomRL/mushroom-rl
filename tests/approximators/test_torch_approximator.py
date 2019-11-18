@@ -64,9 +64,8 @@ def test_pytorch_approximator():
     assert np.allclose(y, y_test)
 
     gradient = approximator.diff(x_s[0], x_a[0])
-    gradient_test = np.array([[0.], [0.], [0.], [0.], [0.02627479],
-                              [0.76513696], [0.6672573], [0.35979462], [0.],
-                              [1.]])
+    gradient_test = np.array([0., 0., 0., 0., 0.02627479, 0.76513696,
+                              0.6672573, 0.35979462, 0., 1.])
     assert np.allclose(gradient, gradient_test)
 
     gradient = approximator.diff(x_s[0])

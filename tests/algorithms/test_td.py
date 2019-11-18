@@ -1,7 +1,11 @@
 import numpy as np
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
 from mushroom.algorithms.value import *
-from mushroom.approximators.parametric import LinearApproximator
+from mushroom.approximators.parametric import LinearApproximator, TorchApproximator
 from mushroom.core import Core
 from mushroom.environments.grid_world import GridWorld
 from mushroom.environments.gym_env import Gym
@@ -11,8 +15,33 @@ from mushroom.policy.td_policy import EpsGreedy
 from mushroom.utils.parameters import Parameter
 
 
+class Network(nn.Module):
+    def __init__(self, input_shape, output_shape, **kwargs):
+        super().__init__()
+
+        n_input = input_shape[-1]
+        n_output = output_shape[0]
+
+        self._h1 = nn.Linear(n_input, n_output)
+
+        nn.init.xavier_uniform_(self._h1.weight,
+                                gain=nn.init.calculate_gain('relu'))
+
+    def forward(self, state, action=None):
+        q = F.relu(self._h1(torch.squeeze(state, 1).float()))
+
+        if action is None:
+            return q
+        else:
+            action = action.long()
+            q_acted = torch.squeeze(q.gather(1, action))
+
+            return q_acted
+
+
 def initialize():
     np.random.seed(1)
+    torch.manual_seed(1)
     return EpsGreedy(Parameter(1)), GridWorld(2, 2, start=(0, 0), goal=(1, 1)),\
            Gym(name='MountainCar-v0', horizon=np.inf, gamma=1.)
 
@@ -124,7 +153,7 @@ def test_sarsa_lambda_discrete():
     assert np.allclose(agent.Q.table, test_q)
 
 
-def test_sarsa_lambda_continuous():
+def test_sarsa_lambda_continuous_linear():
     pi, _, mdp_continuous = initialize()
     mdp_continuous.seed(1)
     n_tilings = 1
@@ -149,6 +178,36 @@ def test_sarsa_lambda_continuous():
 
     test_w = np.array([-16.38428419, 0., -14.31250136, 0., -15.68571525, 0.,
                        -10.15663821, 0., -15.0545445, 0., -8.3683605, 0.])
+
+    assert np.allclose(agent.Q.get_weights(), test_w)
+
+
+def test_sarsa_lambda_continuous_nn():
+    pi, _, mdp_continuous = initialize()
+    mdp_continuous.seed(1)
+
+    features = Features(
+        n_outputs=mdp_continuous.info.observation_space.shape[0]
+    )
+
+    approximator_params = dict(
+        input_shape=(features.size,),
+        output_shape=(mdp_continuous.info.action_space.n,),
+        network=Network,
+        n_actions=mdp_continuous.info.action_space.n
+    )
+    agent = SARSALambdaContinuous(TorchApproximator, pi, mdp_continuous.info,
+                                  Parameter(.1), .9, features=features,
+                                  approximator_params=approximator_params)
+
+    core = Core(agent, mdp_continuous)
+
+    # Train
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
+    test_w = np.array([-0.18968964, 0.4296857, 0.52967095, 0.5674884,
+                       -0.12784956, -0.10572472, -0.14546978, -0.67001086,
+                       -0.93925357])
 
     assert np.allclose(agent.Q.get_weights(), test_w)
 

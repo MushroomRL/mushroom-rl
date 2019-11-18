@@ -39,9 +39,6 @@ class FeatureNetwork(nn.Module):
     def __init__(self, input_shape, output_shape, **kwargs):
         super().__init__()
 
-        n_input = input_shape[-1]
-        n_output = n_input
-
     def forward(self, state, action=None):
         return torch.squeeze(state, 1).float()
 

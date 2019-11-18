@@ -41,7 +41,8 @@ class Ensemble(object):
         else:
             self[idx].fit(*z, **fit_params)
 
-    def predict(self, *z, idx=None, prediction='mean', compute_variance=False):
+    def predict(self, *z, idx=None, prediction='mean', compute_variance=False,
+                **predict_params):
         """
         Predict.
 
@@ -52,7 +53,9 @@ class Ensemble(object):
             prediction (str, 'mean'): the type of prediction to make. It can
                 be a 'mean' of the ensembles, or a 'sum';
             compute_variance (bool, False): whether to compute the variance
-                of the prediction or not.
+                of the prediction or not;
+            **predict_params (dict): other parameters used by the predict method
+                the regressor.
 
         Returns:
             The predictions of the model.
@@ -62,7 +65,7 @@ class Ensemble(object):
             predictions = list()
             for i in range(len(self._model)):
                 try:
-                    predictions.append(self[i].predict(*z))
+                    predictions.append(self[i].predict(*z, **predict_params))
                 except NotFittedError:
                     pass
 
@@ -81,7 +84,7 @@ class Ensemble(object):
                 results = [results, np.var(predictions, ddof=1, axis=0)]
         else:
             try:
-                results = self[idx].predict(*z)
+                results = self[idx].predict(*z, **predict_params)
             except NotFittedError:
                 raise NotFittedError
 

@@ -89,7 +89,7 @@ class QRegressor:
         if action is None:
             return self.model.diff(state)
         else:
-            return self.model.diff(state, action)
+            return self.model.diff(state, action).squeeze()
 
     def __len__(self):
         return len(self.model)

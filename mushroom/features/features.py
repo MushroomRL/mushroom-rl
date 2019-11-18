@@ -1,41 +1,55 @@
 import numpy as np
 
 from ._implementations.basis_features import BasisFeatures
+from ._implementations.functional_features import FunctionalFeatures
 from ._implementations.tiles_features import TilesFeatures
 from ._implementations.pytorch_features import PyTorchFeatures
 
 
-def Features(basis_list=None, tilings=None, tensor_list=None, device=None):
+def Features(basis_list=None, tilings=None, tensor_list=None,
+             n_outputs=None, function=None, device=None):
     """
     Factory method to build the requested type of features. The types are
     mutually exclusive.
 
-    The difference between ``basis_list`` and ``tensor_list`` is that the former
-    is a list of python classes each one evaluating a single element of the
-    feature vector, while the latter consists in a list  of PyTorch modules that
-    can be used to build a PyTorch network. The use of ``tensor_list`` is a
-    faster way to compute features than `basis_list` and is suggested when the
-    computation of the requested features is slow (see the Gaussian radial basis
-    function implementation as an example).
+    Possible features are tilings (``tilings``), basis functions
+    (``basis_list``), tensor basis (``tensor_list``), and functional mappings
+    (``n_outputs`` and ``function``).
+
+    The difference between ``basis_list`` and ``tensor_list`` is that the
+    former is a list of python classes each one evaluating a single element of
+    the feature vector, while the latter consists in a list  of PyTorch modules
+    that can be used to build a PyTorch network. The use of ``tensor_list`` is
+    a faster way to compute features than `basis_list` and is suggested when
+    the computation of the requested features is slow (see the Gaussian radial
+    basis function implementation as an example). A functional mapping applies
+    a function to the input computing an ``n_outputs``-dimensional vector,
+    where the mapping is expressed by ``function``. If ``function`` is not
+    provided, the identity is used.
 
     Args:
         basis_list (list, None): list of basis functions;
         tilings ([object, list], None): single object or list of tilings;
         tensor_list (list, None): list of dictionaries containing the
             instructions to build the requested tensors;
+        n_outputs (int, None): dimensionality of the feature mapping;
+        function (object, None): a callable function to be used as feature
+            mapping. Only needed when using a functional mapping.
         device (int, None): where to run the group of tensors. Only
-            needed when using a list of tensors;
+            needed when using a list of tensors.
 
     Returns:
         The class implementing the requested type of features.
 
     """
-    if basis_list is not None and tilings is None and tensor_list is None:
+    if basis_list is not None and tilings is None and tensor_list is None and n_outputs is None:
         return BasisFeatures(basis_list)
-    elif basis_list is None and tilings is not None and tensor_list is None:
+    elif basis_list is None and tilings is not None and tensor_list is None and n_outputs is None:
         return TilesFeatures(tilings)
-    elif basis_list is None and tilings is None and tensor_list is not None:
+    elif basis_list is None and tilings is None and tensor_list is not None and n_outputs is None:
         return PyTorchFeatures(tensor_list, device=device)
+    elif basis_list is None and tilings is None and tensor_list is None and n_outputs is not None:
+        return FunctionalFeatures(n_outputs, function)
     else:
         raise ValueError('You must specify a list of basis or a list of tilings'
                          'or a list of tensors.')

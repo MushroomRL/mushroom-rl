@@ -105,18 +105,17 @@ class EnsembleTable(Ensemble):
     This class implements functions to manage table ensembles.
 
     """
-    def __init__(self, n_models, shape, prediction='mean'):
+    def __init__(self, n_models, shape):
         """
         Constructor.
 
         Args:
             n_models (int): number of models in the ensemble;
-            shape (np.ndarray): shape of each table in the ensemble;
-            prediction (str, 'mean'): type of prediction to return.
+            shape (np.ndarray): shape of each table in the ensemble.
 
         """
         approximator_params = dict(shape=shape)
-        super(EnsembleTable, self).__init__(Table, n_models, prediction,
+        super(EnsembleTable, self).__init__(Table, n_models,
                                             **approximator_params)
 
     @property

@@ -52,9 +52,6 @@ class TD3(DDPG):
         else:
             critic_params['n_models'] = 2
 
-        if 'prediction' not in critic_params.keys():
-            critic_params['prediction'] = 'min'
-
         super().__init__(mdp_info, policy_class, policy_params,
                          batch_size, initial_replay_size, max_replay_size,
                          tau, critic_params, actor_params, actor_optimizer,
@@ -112,7 +109,8 @@ class TD3(DDPG):
         eps_clipped = np.clip(eps, -self._noise_clip, self._noise_clip)
         a_smoothed = np.clip(a + eps_clipped, low, high)
 
-        q = self._target_critic_approximator.predict(next_state, a_smoothed)
+        q = self._target_critic_approximator.predict(next_state, a_smoothed,
+                                                     prediction='min')
         q *= 1 - absorbing
 
         return q

@@ -212,11 +212,6 @@ class SAC(DeepAC):
         else:
             critic_params['n_models'] = 2
 
-        if 'prediction' in critic_params.keys():
-            assert critic_params['prediction'] == 'min'
-        else:
-            critic_params['prediction'] = 'min'
-
         target_critic_params = deepcopy(critic_params)
         self._critic_approximator = Regressor(TorchApproximator,
                                               **critic_params)
@@ -318,7 +313,8 @@ class SAC(DeepAC):
         """
         a, log_prob_next = self.policy.compute_action_and_log_prob(next_state)
 
-        q = self._target_critic_approximator.predict(next_state, a) - self._alpha_np * log_prob_next
+        q = self._target_critic_approximator.predict(
+            next_state, a, prediction='min') - self._alpha_np * log_prob_next
         q *= 1 - absorbing
 
         return q
