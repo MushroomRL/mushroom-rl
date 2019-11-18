@@ -86,7 +86,10 @@ class QRegressor:
         self.model.set_weights(w)
 
     def diff(self, state, action=None):
-        return self.model.diff(state, action)
+        if action is None:
+            return self.model.diff(state)
+        else:
+            return self.model.diff(state, action)
 
     def __len__(self):
         return len(self.model)

@@ -3,7 +3,7 @@ import numpy as np
 from tqdm import trange, tqdm
 
 from mushroom.utils.minibatches import minibatch_generator
-from mushroom.utils.torch import get_weights, set_weights
+from mushroom.utils.torch import get_weights, set_weights, zero_grad
 
 
 class TorchApproximator:
@@ -303,9 +303,12 @@ class TorchApproximator:
                           for x in args]
 
         y_hat = self.network(*torch_args, **kwargs)
+        n_outs = 1 if len(y_hat.shape) == 0 else y_hat.shape[-1]
+        y_hat = y_hat.view(-1, n_outs)
 
         gradients = list()
         for i in range(y_hat.shape[1]):
+            zero_grad(self.network.parameters())
             y_hat[:, i].backward(retain_graph=True)
 
             gradient = list()
