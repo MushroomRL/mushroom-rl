@@ -13,7 +13,7 @@ from mushroom.approximators.parametric import TorchApproximator
 from mushroom.core import Core
 from mushroom.environments import *
 from mushroom.policy import EpsGreedy
-from mushroom.utils.dataset import compute_scores
+from mushroom.utils.dataset import compute_metrics
 from mushroom.utils.parameters import LinearParameter, Parameter
 from mushroom.utils.replay_memory import PrioritizedReplayMemory
 
@@ -102,7 +102,7 @@ def print_epoch(epoch):
 
 
 def get_stats(dataset):
-    score = compute_scores(dataset)
+    score = compute_metrics(dataset)
     print(('min_reward: %f, max_reward: %f, mean_reward: %f,'
           ' games_completed: %d' % score))
 

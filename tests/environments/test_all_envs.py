@@ -85,8 +85,10 @@ def test_grid_world():
     np.random.seed(1)
     mdp = GridWorld(start=(0, 0), goal=(2, 2), height=3, width=3)
     mdp.reset()
+    mdp.render()
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
+    mdp.render()
 
     assert ns == 0
 
@@ -148,9 +150,11 @@ def test_puddle_world():
     np.random.seed(1)
     mdp = PuddleWorld()
     mdp.reset()
+    mdp.render()
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
     ns_test = np.array([0.41899424, 0.4022506])
+    mdp.render()
 
     assert np.allclose(ns, ns_test)
 

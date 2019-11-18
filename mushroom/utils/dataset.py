@@ -69,7 +69,7 @@ def episodes_length(dataset):
     return lengths
 
 
-def select_episodes(dataset, n_episodes, parse=False):
+def select_first_episodes(dataset, n_episodes, parse=False):
     """
     Return the first ``n_episodes`` episodes in the provided dataset.
 
@@ -94,7 +94,7 @@ def select_episodes(dataset, n_episodes, parse=False):
     return sub_dataset if not parse else parse_dataset(sub_dataset)
 
 
-def select_samples(dataset, n_samples, parse=False):
+def select_random_samples(dataset, n_samples, parse=False):
     """
     Return the randomly picked desired number of samples in the provided
     dataset.
@@ -150,13 +150,13 @@ def compute_J(dataset, gamma=1.):
     return js
 
 
-def compute_scores(dataset):
+def compute_metrics(dataset, gamma=1.0):
     """
-    Compute the scores of each episode in the dataset. This is meant to be used
-    for the Atari environments.
+    Compute the metrics of each complete episode in the dataset.
 
     Args:
-        dataset (list): the dataset to consider.
+        dataset (list): the dataset to consider;
+        gamma (float, 1.0): the discount factor.
 
     Returns:
         The minimum score reached in an episode,
@@ -164,24 +164,18 @@ def compute_scores(dataset):
         the mean score reached,
         the number of completed games.
 
-        If no game has been completed, it returns 0 for all values.
+        If episode has been completed, it returns 0 for all values.
 
     """
-    scores = list()
 
-    score = 0.
-    episode_steps = 0
-    n_episodes = 0
-    for i in range(len(dataset)):
-        score += dataset[i][2]
-        episode_steps += 1
+    for i in reversed(range(len(dataset))):
         if dataset[i][-1]:
-            scores.append(score)
-            score = 0.
-            episode_steps = 0
-            n_episodes += 1
+            break
 
-    if len(scores) > 0:
-        return np.min(scores), np.max(scores), np.mean(scores), n_episodes
+    dataset = dataset[:i]
+
+    if len(dataset) > 0:
+        J = compute_J(dataset, gamma)
+        return np.min(J), np.max(J), np.mean(J), len(J)
     else:
         return 0, 0, 0, 0
