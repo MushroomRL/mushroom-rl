@@ -51,7 +51,7 @@ def experiment(algorithm_class, exp):
     core.learn(n_steps=10000, n_steps_per_fit=1, quiet=True)
 
     _, _, reward, _, _, _ = parse_dataset(collect_dataset.get())
-    max_Qs = collect_max_Q.get_values()
+    max_Qs = collect_max_Q.get()
 
     return reward, max_Qs
 

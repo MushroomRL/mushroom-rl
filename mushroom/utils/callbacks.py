@@ -5,18 +5,15 @@ import numpy as np
 from mushroom.utils.table import EnsembleTable
 
 
-class CollectDataset:
+class Callback(object):
     """
-    This callback can be used to collect samples during the learning of the
-    agent.
+    Interface for all basic callbacks. Implements a list in which it is possible to store data and
+    methods to query and clean the content stored by the callback.
+
 
     """
     def __init__(self):
-        """
-        Constructor.
-
-        """
-        self._dataset = list()
+        self._data_list = list()
 
     def __call__(self, dataset):
         """
@@ -26,25 +23,42 @@ class CollectDataset:
             dataset (list): the samples to collect.
 
         """
-        self._dataset += dataset
+        raise NotImplementedError
 
     def get(self):
         """
         Returns:
-             The current samples list.
+             The current collected data as a list.
 
         """
-        return self._dataset
+        return self._data_list
 
     def clean(self):
         """
-        Deletes the current dataset
+        Deletes the current stored data list
 
         """
-        self._dataset = list()
+        self._data_list = list()
 
 
-class CollectQ:
+class CollectDataset(Callback):
+    """
+    This callback can be used to collect samples during the learning of the
+    agent.
+
+    """
+    def __call__(self, dataset):
+        """
+        Add samples to the samples list.
+
+        Args:
+            dataset (list): the samples to collect.
+
+        """
+        self._data_list += dataset
+
+
+class CollectQ(Callback):
     """
     This callback can be used to collect the action values in all states at the
     current time step.
@@ -61,7 +75,7 @@ class CollectQ:
         """
         self._approximator = approximator
 
-        self._qs = list()
+        super().__init__()
 
     def __call__(self, **kwargs):
         """
@@ -75,20 +89,12 @@ class CollectQ:
             qs = list()
             for m in self._approximator.model:
                 qs.append(m.table)
-            self._qs.append(deepcopy(np.mean(qs, 0)))
+            self._data_list.append(deepcopy(np.mean(qs, 0)))
         else:
-            self._qs.append(deepcopy(self._approximator.table))
-
-    def get_values(self):
-        """
-        Returns:
-             The current action-values list.
-
-        """
-        return self._qs
+            self._data_list.append(deepcopy(self._approximator.table))
 
 
-class CollectMaxQ:
+class CollectMaxQ(Callback):
     """
     This callback can be used to collect the maximum action value in a given
     state at each call.
@@ -106,7 +112,7 @@ class CollectMaxQ:
         self._approximator = approximator
         self._state = state
 
-        self._max_qs = list()
+        super().__init__()
 
     def __call__(self, **kwargs):
         """
@@ -119,18 +125,10 @@ class CollectMaxQ:
         q = self._approximator.predict(self._state)
         max_q = np.max(q)
 
-        self._max_qs.append(max_q)
-
-    def get_values(self):
-        """
-        Returns:
-             The current maximum action-values list.
-
-        """
-        return self._max_qs
+        self._data_list.append(max_q)
 
 
-class CollectParameters:
+class CollectParameters(Callback):
     """
     This callback can be used to collect the values of a parameter
     (e.g. learning rate) during a run of the agent.
@@ -149,7 +147,8 @@ class CollectParameters:
         """
         self._parameter = parameter
         self._idx = idx
-        self._p = list()
+
+        super().__init__()
 
     def __call__(self, **kwargs):
         """
@@ -162,12 +161,4 @@ class CollectParameters:
         value = self._parameter.get_value(*self._idx)
         if isinstance(value, np.ndarray):
             value = np.array(value)
-        self._p.append(value)
-
-    def get_values(self):
-        """
-        Returns:
-             The current parameter values list.
-
-        """
-        return self._p
+        self._data_list.append(value)

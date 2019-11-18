@@ -43,7 +43,7 @@ def experiment(algorithm_class, exp):
     # Train
     core.learn(n_steps=20000, n_steps_per_fit=1, quiet=True)
 
-    Qs = collect_Q.get_values()
+    Qs = collect_Q.get()
 
     return Qs
 
