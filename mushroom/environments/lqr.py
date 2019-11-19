@@ -57,7 +57,7 @@ class LQR(Environment):
         high_x = self._max_pos * np.ones(A.shape[0])
         low_x = -high_x
 
-        high_u = self._max_action * np.ones(B.shape[0])
+        high_u = self._max_action * np.ones(B.shape[1])
         low_u = -high_u
 
         observation_space = spaces.Box(low=low_x, high=high_x)
@@ -113,13 +113,18 @@ class LQR(Environment):
 
     def step(self, action):
         x = self._state
-        u = action
+        u = self._bound(action, self.info.action_space.low, self.info.action_space.high)
 
         reward = -(x.dot(self.Q).dot(x) + u.dot(self.R).dot(u))
         self._state = self.A.dot(x) + self.B.dot(u)
 
-        if self._episodic and np.abs(self._state) > self._max_pos:
-            absorbing = True
+        if np.any(self._state > self._max_pos):
+            if self._episodic:
+                absorbing = True
+            else:
+                self._state = self._bound(self._state,
+                                          self.info.observation_space.low,
+                                          self.info.observation_space.high)
         else:
             absorbing = False
 
