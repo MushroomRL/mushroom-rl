@@ -27,7 +27,7 @@ def compute_advantage_montecarlo(V, s, ss, r, absorbing, gamma):
     v = V(s).squeeze()
 
     q_next = V(ss[-1]).squeeze().item()
-    for rev_k, _ in enumerate(reversed(r)):
+    for rev_k in range(len(r)):
         k = len(r) - rev_k - 1
         q_next = r[k] + gamma * q_next * (1. - absorbing[k])
         q[k] = q_next
@@ -95,7 +95,7 @@ def compute_gae(V, s, ss, r, absorbing, last, gamma, lam):
     v = V(s)
     v_next = V(ss)
     gen_adv = np.empty_like(v)
-    for rev_k, _ in enumerate(reversed(v)):
+    for rev_k in range(len(v)):
         k = len(v) - rev_k - 1
         if last[k] or rev_k == 0:
             gen_adv[k] = r[k] - v[k]
