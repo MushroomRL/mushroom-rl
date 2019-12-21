@@ -11,6 +11,8 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
+from mushroom import __version__
+
 here = path.abspath(path.dirname(__file__))
 name = 'mushroom'
 
@@ -42,7 +44,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='1.2.0',
+    version=__version__,
 
     description='A Python toolkit for Reinforcement Learning experiments.',
 
