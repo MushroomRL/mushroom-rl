@@ -40,8 +40,8 @@ class Network(nn.Module):
         return a
 
 
-def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, n_step_test,
-               alg_params, policy_params):
+def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit,
+               n_step_test, alg_params, policy_params):
     print(alg.__name__)
 
     mdp = Gym(env_id, horizon, gamma)
@@ -55,12 +55,14 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
                          input_shape=mdp.info.observation_space.shape,
                          output_shape=(1,))
 
+    alg_params['critic_params'] = critic_params
+
     policy = GaussianTorchPolicy(Network,
                                  mdp.info.observation_space.shape,
                                  mdp.info.action_space.shape,
                                  **policy_params)
 
-    agent = alg(mdp.info, policy, critic_params, **alg_params)
+    agent = alg(mdp.info, policy, **alg_params)
 
     core = Core(agent, mdp)
 

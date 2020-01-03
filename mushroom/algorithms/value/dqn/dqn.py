@@ -15,8 +15,8 @@ class DQN(Agent):
     Mnih V. et al.. 2015.
 
     """
-    def __init__(self, approximator, policy, mdp_info, batch_size,
-                 approximator_params, target_update_frequency,
+    def __init__(self, mdp_info, policy, approximator, approximator_params,
+                 batch_size, target_update_frequency,
                  replay_memory=None, initial_replay_size=500,
                  max_replay_size=5000, fit_params=None, n_approximators=1,
                  clip_reward=True):
@@ -26,9 +26,9 @@ class DQN(Agent):
         Args:
             approximator (object): the approximator to use to fit the
                Q-function;
-            batch_size (int): the number of samples in a batch;
             approximator_params (dict): parameters of the approximator to
                 build;
+            batch_size (int): the number of samples in a batch;
             target_update_frequency (int): the number of samples collected
                 between each update of the target network;
             replay_memory ([ReplayMemory, PrioritizedReplayMemory], None): the
@@ -41,7 +41,7 @@ class DQN(Agent):
             fit_params (dict, None): parameters of the fitting algorithm of the
                 approximator;
             n_approximators (int, 1): the number of approximator to use in
-                ``AverageDQN``;
+                ``AveragedDQN``;
             clip_reward (bool, True): whether to clip the reward or not.
 
         """
@@ -81,7 +81,7 @@ class DQN(Agent):
                 self.target_approximator.model[i].set_weights(
                     self.approximator.model.get_weights())
 
-        super().__init__(policy, mdp_info)
+        super().__init__(mdp_info, policy)
 
     def fit(self, dataset):
         self._fit(dataset)
@@ -180,8 +180,8 @@ class AveragedDQN(DQN):
     Learning". Anschel O. et al.. 2017.
 
     """
-    def __init__(self, approximator, policy, mdp_info, **params):
-        super().__init__(approximator, policy, mdp_info, **params)
+    def __init__(self, mdp_info, policy, approximator, **params):
+        super().__init__(mdp_info, policy, approximator, **params)
 
         self._n_fitted_target_models = 1
 

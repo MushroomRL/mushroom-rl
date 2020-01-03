@@ -12,14 +12,12 @@ class StochasticAC(Agent):
     Degris T. et al.. 2012.
 
     """
-    def __init__(self, policy, mdp_info, alpha_theta, alpha_v, lambda_par=.9,
+    def __init__(self, mdp_info, policy, alpha_theta, alpha_v, lambda_par=.9,
                  value_function_features=None, policy_features=None):
         """
         Constructor.
 
         Args:
-            policy (ParametricPolicy): a differentiable stochastic policy;
-            mdp_info: information about the MDP;
             alpha_theta (Parameter): learning rate for policy update;
             alpha_v (Parameter): learning rate for the value function;
             lambda_par (float, .9): trace decay parameter;
@@ -35,7 +33,7 @@ class StochasticAC(Agent):
 
         self._lambda = lambda_par
 
-        super().__init__(policy, mdp_info, policy_features)
+        super().__init__(mdp_info, policy, policy_features)
 
         if self._psi is not None:
             input_shape = (self._psi.size,)
@@ -90,15 +88,13 @@ class StochasticAC_AVG(Agent):
     Degris T. et al.. 2012.
 
     """
-    def __init__(self, policy, mdp_info, alpha_theta, alpha_v, alpha_r,
+    def __init__(self, mdp_info, policy, alpha_theta, alpha_v, alpha_r,
                  lambda_par=.9, value_function_features=None,
                  policy_features=None):
         """
         Constructor.
 
         Args:
-            policy (ParametricPolicy): a differentiable stochastic policy;
-            mdp_info: information about the MDP;
             alpha_theta (Parameter): learning rate for policy update;
             alpha_v (Parameter): learning rate for the value function;
             alpha_r (Parameter): learning rate for the reward trace;
@@ -116,7 +112,7 @@ class StochasticAC_AVG(Agent):
 
         self._lambda = lambda_par
 
-        super().__init__(policy, mdp_info, policy_features)
+        super().__init__(mdp_info, policy, policy_features)
 
         if self._psi is not None:
             input_shape = (self._psi.size,)

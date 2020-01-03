@@ -38,7 +38,7 @@ def experiment(alg, params, n_epochs, fit_per_run, ep_per_run):
     distribution = GaussianCholeskyDistribution(mu, sigma)
 
     # Agent
-    agent = alg(distribution, policy, mdp.info, **params)
+    agent = alg(mdp.info, distribution, policy, **params)
 
     # Train
     core = Core(agent, mdp)

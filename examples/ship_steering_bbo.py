@@ -53,7 +53,7 @@ def experiment(alg, params, n_epochs, n_iterations, ep_per_run):
     distribution = GaussianDiagonalDistribution(mu, sigma)
 
     # Agent
-    agent = alg(distribution, policy, mdp.info, features=phi, **params)
+    agent = alg(mdp.info, distribution, policy, features=phi, **params)
 
     # Train
     print(alg.__name__)

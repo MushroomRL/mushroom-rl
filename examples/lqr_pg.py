@@ -43,7 +43,7 @@ def experiment(alg, n_epochs, n_iterations, ep_per_run):
     # Agent
     learning_rate = AdaptiveParameter(value=.01)
     algorithm_params = dict(learning_rate=learning_rate)
-    agent = alg(policy, mdp.info, **algorithm_params)
+    agent = alg(mdp.info, policy, **algorithm_params)
 
     # Train
     core = Core(agent, mdp)

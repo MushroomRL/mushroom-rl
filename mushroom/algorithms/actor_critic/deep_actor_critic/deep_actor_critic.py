@@ -7,7 +7,7 @@ class DeepAC(Agent):
     SAC, DDPG and TD3.
 
     """
-    def __init__(self, policy, mdp_info, actor_optimizer, parameters):
+    def __init__(self, mdp_info, policy, actor_optimizer, parameters):
         """
         Constructor.
 
@@ -28,7 +28,7 @@ class DeepAC(Agent):
                 self._clipping = actor_optimizer['clipping']['method']
                 self._clipping_params = actor_optimizer['clipping']['params']
 
-        super().__init__(policy, mdp_info)
+        super().__init__(mdp_info, policy)
 
     def fit(self, dataset):
         """

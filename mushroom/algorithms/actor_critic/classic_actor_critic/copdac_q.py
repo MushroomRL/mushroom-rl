@@ -13,14 +13,12 @@ class COPDAC_Q(Agent):
 
     """
 
-    def __init__(self, policy, mu, mdp_info, alpha_theta, alpha_omega, alpha_v,
+    def __init__(self, mdp_info, policy, mu, alpha_theta, alpha_omega, alpha_v,
                  value_function_features=None, policy_features=None):
         """
         Constructor.
 
         Args:
-            policy (Policy): any exploration policy, possibly using the deterministic
-                policy as mean regressor;
             mu (Regressor): regressor that describe the deterministic policy to be
                 learned i.e., the deterministic mapping between state and action.
             alpha_theta (Parameter): learning rate for policy update;
@@ -50,7 +48,7 @@ class COPDAC_Q(Agent):
                             input_shape=(self._mu.weights_size,),
                             output_shape=(1,))
 
-        super().__init__(policy, mdp_info, policy_features)
+        super().__init__(mdp_info, policy, policy_features)
 
     def fit(self, dataset):
         for step in dataset:

@@ -277,7 +277,7 @@ def experiment():
             initial_replay_size=0,
             max_replay_size=0
         )
-        agent = DQN(approximator, pi, mdp.info,
+        agent = DQN(mdp.info, pi, approximator,
                     approximator_params=approximator_params, **algorithm_params)
 
         # Algorithm
@@ -370,19 +370,19 @@ def experiment():
         )
 
         if args.algorithm == 'dqn':
-            agent = DQN(approximator, pi, mdp.info,
+            agent = DQN(mdp.info, pi, approximator,
                         approximator_params=approximator_params,
                         **algorithm_params)
         elif args.algorithm == 'ddqn':
-            agent = DoubleDQN(approximator, pi, mdp.info,
+            agent = DoubleDQN(mdp.info, pi, approximator,
                               approximator_params=approximator_params,
                               **algorithm_params)
         elif args.algorithm == 'adqn':
-            agent = AveragedDQN(approximator, pi, mdp.info,
+            agent = AveragedDQN(mdp.info, pi, approximator,
                                 approximator_params=approximator_params,
                                 **algorithm_params)
         elif args.algorithm == 'cdqn':
-            agent = CategoricalDQN(pi, mdp.info,
+            agent = CategoricalDQN(mdp.info, pi,
                                    approximator_params=approximator_params,
                                    n_atoms=args.n_atoms, v_min=args.v_min,
                                    v_max=args.v_max, **algorithm_params)

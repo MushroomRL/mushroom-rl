@@ -67,11 +67,11 @@ def learn(alg, alg_params):
 
     # Agent
     if alg is not CategoricalDQN:
-        agent = alg(TorchApproximator, pi, mdp.info,
+        agent = alg(mdp.info, pi, TorchApproximator,
                     approximator_params=approximator_params, **alg_params)
     else:
-        agent = alg(pi, mdp.info, n_atoms=2, v_min=-1, v_max=1,
-                    approximator_params=approximator_params, **alg_params)
+        agent = alg(mdp.info, pi, approximator_params=approximator_params,
+                    n_atoms=2, v_min=-1, v_max=1, **alg_params)
 
     # Algorithm
     core = Core(agent, mdp)

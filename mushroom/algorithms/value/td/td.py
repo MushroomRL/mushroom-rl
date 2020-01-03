@@ -8,7 +8,7 @@ class TD(Agent):
     Implements functions to run TD algorithms.
 
     """
-    def __init__(self, approximator, policy, mdp_info, learning_rate,
+    def __init__(self, mdp_info, policy, approximator, learning_rate,
                  features=None):
         """
         Constructor.
@@ -24,7 +24,7 @@ class TD(Agent):
         policy.set_q(approximator)
         self.approximator = approximator
 
-        super().__init__(policy, mdp_info, features)
+        super().__init__(mdp_info, policy, features)
 
     def fit(self, dataset):
         assert len(dataset) == 1

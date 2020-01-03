@@ -48,7 +48,7 @@ def initialize():
 
 def test_q_learning():
     pi, mdp, _ = initialize()
-    agent = QLearning(pi, mdp.info, Parameter(.5))
+    agent = QLearning(mdp.info, pi, Parameter(.5))
 
     core = Core(agent, mdp)
 
@@ -65,7 +65,7 @@ def test_q_learning():
 
 def test_double_q_learning():
     pi, mdp, _ = initialize()
-    agent = DoubleQLearning(pi, mdp.info, Parameter(.5))
+    agent = DoubleQLearning(mdp.info, pi, Parameter(.5))
 
     core = Core(agent, mdp)
 
@@ -87,7 +87,7 @@ def test_double_q_learning():
 
 def test_weighted_q_learning():
     pi, mdp, _ = initialize()
-    agent = WeightedQLearning(pi, mdp.info, Parameter(.5))
+    agent = WeightedQLearning(mdp.info, pi, Parameter(.5))
 
     core = Core(agent, mdp)
 
@@ -104,7 +104,7 @@ def test_weighted_q_learning():
 
 def test_speedy_q_learning():
     pi, mdp, _ = initialize()
-    agent = SpeedyQLearning(pi, mdp.info, Parameter(.5))
+    agent = SpeedyQLearning(mdp.info, pi, Parameter(.5))
 
     core = Core(agent, mdp)
 
@@ -121,7 +121,7 @@ def test_speedy_q_learning():
 
 def test_sarsa():
     pi, mdp, _ = initialize()
-    agent = SARSA(pi, mdp.info, Parameter(.1))
+    agent = SARSA(mdp.info, pi, Parameter(.1))
 
     core = Core(agent, mdp)
 
@@ -138,7 +138,7 @@ def test_sarsa():
 
 def test_sarsa_lambda_discrete():
     pi, mdp, _ = initialize()
-    agent = SARSALambda(pi, mdp.info, Parameter(.1), .9)
+    agent = SARSALambda(mdp.info, pi, Parameter(.1), .9)
 
     core = Core(agent, mdp)
 
@@ -167,7 +167,7 @@ def test_sarsa_lambda_continuous_linear():
         output_shape=(mdp_continuous.info.action_space.n,),
         n_actions=mdp_continuous.info.action_space.n
     )
-    agent = SARSALambdaContinuous(LinearApproximator, pi, mdp_continuous.info,
+    agent = SARSALambdaContinuous(mdp_continuous.info, pi, LinearApproximator,
                                   Parameter(.1), .9, features=features,
                                   approximator_params=approximator_params)
 
@@ -196,7 +196,7 @@ def test_sarsa_lambda_continuous_nn():
         network=Network,
         n_actions=mdp_continuous.info.action_space.n
     )
-    agent = SARSALambdaContinuous(TorchApproximator, pi, mdp_continuous.info,
+    agent = SARSALambdaContinuous(mdp_continuous.info, pi, TorchApproximator,
                                   Parameter(.1), .9, features=features,
                                   approximator_params=approximator_params)
 
@@ -214,7 +214,7 @@ def test_sarsa_lambda_continuous_nn():
 
 def test_expected_sarsa():
     pi, mdp, _ = initialize()
-    agent = ExpectedSARSA(pi, mdp.info, Parameter(.1))
+    agent = ExpectedSARSA(mdp.info, pi, Parameter(.1))
 
     core = Core(agent, mdp)
 
@@ -243,7 +243,7 @@ def test_true_online_sarsa_lambda():
         output_shape=(mdp_continuous.info.action_space.n,),
         n_actions=mdp_continuous.info.action_space.n
     )
-    agent = TrueOnlineSARSALambda(pi, mdp_continuous.info,
+    agent = TrueOnlineSARSALambda(mdp_continuous.info, pi,
                                   Parameter(.1), .9, features=features,
                                   approximator_params=approximator_params)
 
@@ -260,7 +260,7 @@ def test_true_online_sarsa_lambda():
 
 def test_r_learning():
     pi, mdp, _ = initialize()
-    agent = RLearning(pi, mdp.info, Parameter(.1), Parameter(.5))
+    agent = RLearning(mdp.info, pi, Parameter(.1), Parameter(.5))
 
     core = Core(agent, mdp)
 
@@ -278,7 +278,7 @@ def test_r_learning():
 def test_rq_learning():
     pi, mdp, _ = initialize()
 
-    agent = RQLearning(pi, mdp.info, Parameter(.1), beta=Parameter(.5))
+    agent = RQLearning(mdp.info, pi, Parameter(.1), beta=Parameter(.5))
 
     core = Core(agent, mdp)
 
@@ -292,7 +292,7 @@ def test_rq_learning():
 
     assert np.allclose(agent.Q.table, test_q)
 
-    agent = RQLearning(pi, mdp.info, Parameter(.1), delta=Parameter(.5))
+    agent = RQLearning(mdp.info, pi, Parameter(.1), delta=Parameter(.5))
 
     core = Core(agent, mdp)
 
@@ -306,7 +306,7 @@ def test_rq_learning():
 
     assert np.allclose(agent.Q.table, test_q)
 
-    agent = RQLearning(pi, mdp.info, Parameter(.1), off_policy=True,
+    agent = RQLearning(mdp.info, pi, Parameter(.1), off_policy=True,
                        beta=Parameter(.5))
 
     core = Core(agent, mdp)
@@ -321,7 +321,7 @@ def test_rq_learning():
 
     assert np.allclose(agent.Q.table, test_q)
 
-    agent = RQLearning(pi, mdp.info, Parameter(.1), off_policy=True,
+    agent = RQLearning(mdp.info, pi, Parameter(.1), off_policy=True,
                        delta=Parameter(.5))
 
     core = Core(agent, mdp)

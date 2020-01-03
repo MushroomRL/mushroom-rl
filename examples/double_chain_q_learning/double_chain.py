@@ -33,7 +33,7 @@ def experiment(algorithm_class, exp):
     # Agent
     learning_rate = ExponentialParameter(value=1., exp=exp, size=mdp.info.size)
     algorithm_params = dict(learning_rate=learning_rate)
-    agent = algorithm_class(pi, mdp.info, **algorithm_params)
+    agent = algorithm_class(mdp.info, pi, **algorithm_params)
 
     # Algorithm
     collect_Q = CollectQ(agent.approximator)

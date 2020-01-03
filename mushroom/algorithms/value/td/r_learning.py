@@ -11,7 +11,7 @@ class RLearning(TD):
     Schwartz A.. 1993.
 
     """
-    def __init__(self, policy, mdp_info, learning_rate, beta):
+    def __init__(self, mdp_info, policy, learning_rate, beta):
         """
         Constructor.
 
@@ -23,7 +23,7 @@ class RLearning(TD):
         self._rho = 0.
         self.beta = beta
 
-        super().__init__(self.Q, policy, mdp_info, learning_rate)
+        super().__init__(mdp_info, policy, self.Q, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]

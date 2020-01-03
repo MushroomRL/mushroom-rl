@@ -32,7 +32,7 @@ def experiment(alg, params, n_epochs, n_episodes, n_ep_per_fit):
     policy = DeterministicPolicy(approximator)
     dist = GaussianDiagonalDistribution(mu, sigma)
 
-    agent = alg(dist, policy, mdp.info, **params)
+    agent = alg(mdp.info, dist, policy, **params)
 
     # Train
     print(alg.__name__)

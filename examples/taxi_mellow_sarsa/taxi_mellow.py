@@ -29,7 +29,7 @@ def experiment(policy, value):
     # Agent
     learning_rate = Parameter(value=.15)
     algorithm_params = dict(learning_rate=learning_rate)
-    agent = SARSA(pi, mdp.info, **algorithm_params)
+    agent = SARSA(mdp.info, pi, **algorithm_params)
 
     # Algorithm
     collect_dataset = CollectDataset()

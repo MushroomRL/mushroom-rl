@@ -32,7 +32,7 @@ def learn(alg, alg_params):
 
     policy = StateStdGaussianPolicy(approximator, sigma)
 
-    agent = alg(policy, mdp.info, **alg_params)
+    agent = alg(mdp.info, policy, **alg_params)
 
     core = Core(agent, mdp)
 

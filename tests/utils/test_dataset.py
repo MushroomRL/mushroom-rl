@@ -15,7 +15,7 @@ def test_dataset_utils():
     alpha = Parameter(value=0.)
     pi = EpsGreedy(epsilon=epsilon)
 
-    agent = SARSA(pi, mdp.info, alpha)
+    agent = SARSA(mdp.info, pi, alpha)
     core = Core(agent, mdp)
 
     dataset = core.evaluate(n_episodes=10)

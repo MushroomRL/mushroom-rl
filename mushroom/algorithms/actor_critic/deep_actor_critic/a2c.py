@@ -18,17 +18,17 @@ class A2C(DeepAC):
     Mnih V. et. al.. 2016.
 
     """
-    def __init__(self, mdp_info, policy, critic_params, actor_optimizer,
+    def __init__(self, mdp_info, policy, actor_optimizer, critic_params,
                  ent_coeff, max_grad_norm=None, critic_fit_params=None):
         """
         Constructor.
 
         Args:
-            policy (TorchPolicy): torch policy to be learned by the algorithm
-            critic_params (dict): parameters of the critic approximator to
-                build;
+            policy (TorchPolicy): torch policy to be learned by the algorithm;
             actor_optimizer (dict): parameters to specify the actor optimizer
                 algorithm;
+            critic_params (dict): parameters of the critic approximator to
+                build;
             ent_coeff (float, 0): coefficient for the entropy penalty;
             max_grad_norm (float, None): maximum norm for gradient clipping.
                 If None, no clipping will be performed, unless specified
@@ -49,8 +49,7 @@ class A2C(DeepAC):
             actor_optimizer['clipping'] = dict(
                 method=torch.nn.utils.clip_grad_norm_, params=clipping_params)
 
-        super().__init__(policy, mdp_info, actor_optimizer,
-                         policy.parameters())
+        super().__init__(mdp_info, policy, actor_optimizer, policy.parameters())
 
     def fit(self, dataset):
             state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)

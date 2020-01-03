@@ -135,7 +135,7 @@ def experiment(n_epochs, n_episodes):
 
     policy = StateLogStdGaussianPolicy(mu, std)
 
-    agent = StochasticAC_AVG(policy, mdp.info,
+    agent = StochasticAC_AVG(mdp.info, policy,
                              alpha_theta, alpha_v, alpha_r,
                              lambda_par=.5,
                              value_function_features=psi,

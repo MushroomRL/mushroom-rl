@@ -114,7 +114,7 @@ def experiment(n_epochs, n_episodes):
     sigma = 1e-1 * np.eye(1)
     policy = GaussianPolicy(mu, sigma)
 
-    agent = COPDAC_Q(policy, mu, mdp.info,
+    agent = COPDAC_Q(mdp.info, policy, mu,
                      alpha_theta, alpha_omega, alpha_v,
                      value_function_features=phi,
                      policy_features=phi)

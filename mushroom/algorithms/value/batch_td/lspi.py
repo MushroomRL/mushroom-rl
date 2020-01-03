@@ -12,8 +12,8 @@ class LSPI(BatchTD):
     "Least-Squares Policy Iteration". Lagoudakis M. G. and Parr R.. 2003.
 
     """
-    def __init__(self, policy, mdp_info, epsilon=1e-2, fit_params=None,
-                 approximator_params=None, features=None):
+    def __init__(self, mdp_info, policy, approximator_params=None,
+                 epsilon=1e-2, fit_params=None, features=None):
         """
         Constructor.
 
@@ -27,8 +27,8 @@ class LSPI(BatchTD):
         self._A = np.zeros((k, k))
         self._b = np.zeros((k, 1))
 
-        super().__init__(LinearApproximator, policy, mdp_info, fit_params,
-                         approximator_params, features)
+        super().__init__(mdp_info, policy, LinearApproximator,
+                         approximator_params, fit_params, features)
 
     def fit(self, dataset):
         phi_state, action, reward, phi_next_state, absorbing, _ = parse_dataset(

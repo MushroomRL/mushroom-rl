@@ -47,7 +47,9 @@ def learn(alg, alg_params):
                                  mdp.info.action_space.shape,
                                  **policy_params)
 
-    agent = alg(mdp.info, policy, critic_params, **alg_params)
+    alg_params['critic_params'] = critic_params
+
+    agent = alg(mdp.info, policy, **alg_params)
 
     core = Core(agent, mdp)
 

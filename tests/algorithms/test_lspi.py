@@ -27,8 +27,8 @@ def test_lspi():
     approximator_params = dict(input_shape=(features.size,),
                                output_shape=(mdp.info.action_space.n,),
                                n_actions=mdp.info.action_space.n)
-    agent = LSPI(pi, mdp.info, fit_params=fit_params,
-                 approximator_params=approximator_params, features=features)
+    agent = LSPI(mdp.info, pi, approximator_params=approximator_params,
+                 fit_params=fit_params, features=features)
 
     # Algorithm
     core = Core(agent, mdp)

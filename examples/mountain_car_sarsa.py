@@ -43,7 +43,7 @@ def experiment(alpha):
     algorithm_params = {'learning_rate': learning_rate,
                         'lambda_coeff': .9}
 
-    agent = TrueOnlineSARSALambda(pi, mdp.info,
+    agent = TrueOnlineSARSALambda(mdp.info, pi,
                                   approximator_params=approximator_params,
                                   features=features, **algorithm_params)
 

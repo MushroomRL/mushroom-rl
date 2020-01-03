@@ -161,16 +161,22 @@ class SAC(DeepAC):
     Haarnoja T. et al.. 2019.
 
     """
-    def __init__(self, mdp_info,
-                 batch_size, initial_replay_size, max_replay_size,
-                 warmup_transitions, tau, lr_alpha,
-                 actor_mu_params, actor_sigma_params,
-                 actor_optimizer, critic_params,
-                 target_entropy=None, critic_fit_params=None):
+    def __init__(self, mdp_info, actor_mu_params, actor_sigma_params,
+                 actor_optimizer, critic_params, batch_size,
+                 initial_replay_size, max_replay_size, warmup_transitions, tau,
+                 lr_alpha, target_entropy=None, critic_fit_params=None):
         """
         Constructor.
 
         Args:
+            actor_mu_params (dict): parameters of the actor mean approximator
+                to build;
+            actor_sigma_params (dict): parameters of the actor sigm
+                approximator to build;
+            actor_optimizer (dict): parameters to specify the actor
+                optimizer algorithm;
+            critic_params (dict): parameters of the critic approximator to
+                build;
             batch_size (int): the number of samples in a batch;
             initial_replay_size (int): the number of samples to collect before
                 starting the learning;
@@ -180,14 +186,6 @@ class SAC(DeepAC):
                 replay memory to start the policy fitting;
             tau (float): value of coefficient for soft updates;
             lr_alpha (float): Learning rate for the entropy coefficient;
-            actor_mu_params (dict): parameters of the actor mean approximator
-                to build;
-            actor_sigma_params (dict): parameters of the actor sigm
-                approximator to build;
-            actor_optimizer (dict): parameters to specify the actor
-                optimizer algorithm;
-            critic_params (dict): parameters of the critic approximator to
-                build;
             target_entropy (float, None): target entropy for the policy, if
                 None a default value is computed ;
             critic_fit_params (dict, None): parameters of the fitting algorithm
@@ -241,7 +239,7 @@ class SAC(DeepAC):
 
         policy_parameters = chain(actor_mu_approximator.model.network.parameters(),
                                   actor_sigma_approximator.model.network.parameters())
-        super().__init__(policy, mdp_info, actor_optimizer, policy_parameters)
+        super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
 
     def fit(self, dataset):
         self._replay_memory.add(dataset)

@@ -92,9 +92,9 @@ def test_sac():
                          use_cuda=False)
 
     # Agent
-    agent = SAC(mdp.info, batch_size, initial_replay_size, max_replay_size,
-                warmup_transitions, tau, lr_alpha, actor_mu_params,
-                actor_sigma_params, actor_optimizer, critic_params,
+    agent = SAC(mdp.info, actor_mu_params, actor_sigma_params, actor_optimizer,
+                critic_params, batch_size, initial_replay_size, max_replay_size,
+                warmup_transitions, tau, lr_alpha,
                 critic_fit_params=None)
 
     # Algorithm

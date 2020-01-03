@@ -20,7 +20,7 @@ class PPO(Agent):
     Schulman J. et al.. 2017.
 
     """
-    def __init__(self, mdp_info, policy, critic_params, actor_optimizer,
+    def __init__(self, mdp_info, policy, actor_optimizer, critic_params,
                  n_epochs_policy, batch_size, eps_ppo, lam, quiet=True,
                  critic_fit_params=None):
         """
@@ -28,10 +28,10 @@ class PPO(Agent):
 
         Args:
             policy (TorchPolicy): torch policy to be learned by the algorithm
-            critic_params (dict): parameters of the critic approximator to
-                build;
             actor_optimizer (dict): parameters to specify the actor optimizer
                 algorithm;
+            critic_params (dict): parameters of the critic approximator to
+                build;
             n_epochs_policy (int): number of policy updates for every dataset;
             batch_size (int): size of minibatches for every optimization step
             eps_ppo (float): value for probability ratio clipping;
@@ -58,7 +58,7 @@ class PPO(Agent):
         self._quiet = quiet
         self._iter = 1
 
-        super().__init__(policy, mdp_info, None)
+        super().__init__(mdp_info, policy, None)
 
     def fit(self, dataset):
         if not self._quiet:

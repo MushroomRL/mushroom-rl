@@ -17,27 +17,27 @@ class DDPG(DeepAC):
 
     """
     def __init__(self, mdp_info, policy_class, policy_params,
-                 batch_size, initial_replay_size, max_replay_size,
-                 tau, critic_params, actor_params, actor_optimizer,
-                 policy_delay=1, critic_fit_params=None):
+                 actor_params, actor_optimizer, critic_params, batch_size,
+                 initial_replay_size, max_replay_size, tau, policy_delay=1,
+                 critic_fit_params=None):
         """
         Constructor.
 
         Args:
             policy_class (Policy): class of the policy;
             policy_params (dict): parameters of the policy to build;
+            actor_params (dict): parameters of the actor approximator to
+                build;
+            actor_optimizer (dict): parameters to specify the actor optimizer
+                algorithm;
+            critic_params (dict): parameters of the critic approximator to
+                build;
             batch_size (int): the number of samples in a batch;
             initial_replay_size (int): the number of samples to collect before
                 starting the learning;
             max_replay_size (int): the maximum number of samples in the replay
                 memory;
             tau (float): value of coefficient for soft updates;
-            actor_params (dict): parameters of the actor approximator to
-                build;
-            critic_params (dict): parameters of the critic approximator to
-                build;
-            actor_optimizer (dict): parameters to specify the actor optimizer
-                algorithm;
             policy_delay (int, 1): the number of updates of the critic after
                 which an actor update is implemented;
             critic_fit_params (dict, None): parameters of the fitting algorithm
@@ -72,7 +72,7 @@ class DDPG(DeepAC):
 
         policy_parameters = self._actor_approximator.model.network.parameters()
 
-        super().__init__(policy, mdp_info, actor_optimizer, policy_parameters)
+        super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
 
     def fit(self, dataset):
         self._replay_memory.add(dataset)

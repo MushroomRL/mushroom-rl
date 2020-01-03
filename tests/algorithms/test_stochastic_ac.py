@@ -49,10 +49,10 @@ def learn(alg):
     policy = StateLogStdGaussianPolicy(mu, std)
 
     if alg is StochasticAC:
-        agent = alg(policy, mdp.info, alpha_theta, alpha_v, lambda_par=.5,
+        agent = alg(mdp.info, policy, alpha_theta, alpha_v, lambda_par=.5,
                     value_function_features=psi, policy_features=phi)
     elif alg is StochasticAC_AVG:
-        agent = alg(policy, mdp.info, alpha_theta, alpha_v, alpha_r,
+        agent = alg(mdp.info, policy, alpha_theta, alpha_v, alpha_r,
                     lambda_par=.5, value_function_features=psi,
                     policy_features=phi)
 

@@ -63,8 +63,8 @@ class CategoricalDQN(DQN):
     Bellemare M. et al.. 2017.
 
     """
-    def __init__(self, policy, mdp_info, n_atoms, v_min, v_max,
-                 approximator_params, **params):
+    def __init__(self, mdp_info, policy, approximator_params, n_atoms, v_min,
+                 v_max, **params):
         """
         Constructor.
 
@@ -88,7 +88,7 @@ class CategoricalDQN(DQN):
         self._delta = (v_max - v_min) / (n_atoms - 1)
         self._a_values = np.arange(v_min, v_max + self._delta, self._delta)
 
-        super().__init__(TorchApproximator, policy, mdp_info, **params)
+        super().__init__(mdp_info, policy, TorchApproximator, **params)
 
     def fit(self, dataset):
         self._replay_memory.add(dataset)

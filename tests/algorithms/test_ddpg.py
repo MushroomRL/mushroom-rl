@@ -87,8 +87,8 @@ def learn(alg):
 
     # Agent
     agent = alg(mdp.info, policy_class, policy_params,
-                batch_size, initial_replay_size, max_replay_size,
-                tau, critic_params, actor_params, actor_optimizer)
+                actor_params, actor_optimizer, critic_params, batch_size,
+                initial_replay_size, max_replay_size, tau)
 
     # Algorithm
     core = Core(agent, mdp)

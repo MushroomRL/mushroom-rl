@@ -78,7 +78,7 @@ def experiment(n_epochs, n_steps, n_steps_test):
                                n_actions=mdp.info.action_space.n)
 
     # Agent
-    agent = DQN(TorchApproximator, pi, mdp.info,
+    agent = DQN(mdp.info, pi, TorchApproximator,
                 approximator_params=approximator_params, batch_size=batch_size,
                 n_approximators=1, initial_replay_size=initial_replay_size,
                 max_replay_size=max_replay_size,

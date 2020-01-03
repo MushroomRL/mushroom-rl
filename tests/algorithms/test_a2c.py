@@ -29,23 +29,17 @@ class Network(nn.Module):
 
 
 def test_a2c():
-    policy_params = dict(
-        std_0=1.,
-        n_features=64,
-        use_cuda=False
-    )
-
-    algorithm_params = dict(actor_optimizer={'class': optim.RMSprop,
-                                             'params': {'lr': 7e-4,
-                                                        'eps': 3e-3}},
-                            max_grad_norm=0.5,
-                            ent_coeff=0.01)
-
     mdp = Gym(name='Pendulum-v0', horizon=200, gamma=.99)
     mdp.seed(1)
     np.random.seed(1)
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
+
+    policy_params = dict(
+        std_0=1.,
+        n_features=64,
+        use_cuda=False
+    )
 
     critic_params = dict(network=Network,
                          optimizer={'class': optim.RMSprop,
@@ -55,12 +49,19 @@ def test_a2c():
                          input_shape=mdp.info.observation_space.shape,
                          output_shape=(1,))
 
+    algorithm_params = dict(critic_params=critic_params,
+                            actor_optimizer={'class': optim.RMSprop,
+                                             'params': {'lr': 7e-4,
+                                                        'eps': 3e-3}},
+                            max_grad_norm=0.5,
+                            ent_coeff=0.01)
+
     policy = GaussianTorchPolicy(Network,
                                  mdp.info.observation_space.shape,
                                  mdp.info.action_space.shape,
                                  **policy_params)
 
-    agent = A2C(mdp.info, policy, critic_params, **algorithm_params)
+    agent = A2C(mdp.info, policy, **algorithm_params)
 
     core = Core(agent, mdp)
 

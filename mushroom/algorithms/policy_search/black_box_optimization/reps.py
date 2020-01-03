@@ -12,7 +12,7 @@ class REPS(BlackBoxOptimization):
     Peters J.. 2013.
 
     """
-    def __init__(self, distribution, policy, mdp_info, eps, features=None):
+    def __init__(self, mdp_info, distribution, policy, eps, features=None):
         """
         Constructor.
 
@@ -24,7 +24,7 @@ class REPS(BlackBoxOptimization):
         """
         self.eps = eps
 
-        super().__init__(distribution, policy, mdp_info, features)
+        super().__init__(mdp_info, distribution, policy, features)
 
     def _update(self, Jep, theta):
         eta_start = np.ones(1)

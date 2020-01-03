@@ -11,7 +11,7 @@ class BlackBoxOptimization(Agent):
     do not rely on stochastic and differentiable policies.
 
     """
-    def __init__(self, distribution, policy, mdp_info, features=None):
+    def __init__(self, mdp_info, distribution, policy, features=None):
         """
         Constructor.
 
@@ -23,7 +23,7 @@ class BlackBoxOptimization(Agent):
         self.distribution = distribution
         self._theta_list = list()
 
-        super().__init__(policy, mdp_info, features)
+        super().__init__(mdp_info, policy, features)
 
     def episode_start(self):
         theta = self.distribution.sample()

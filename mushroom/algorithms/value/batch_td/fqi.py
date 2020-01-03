@@ -11,8 +11,8 @@ class FQI(BatchTD):
     "Tree-Based Batch Mode Reinforcement Learning", Ernst D. et al.. 2005.
 
     """
-    def __init__(self, approximator, policy, mdp_info, n_iterations,
-                 fit_params=None, approximator_params=None, quiet=False,
+    def __init__(self, mdp_info, policy, approximator, n_iterations,
+                 approximator_params=None, fit_params=None, quiet=False,
                  boosted=False):
         """
         Constructor.
@@ -34,8 +34,8 @@ class FQI(BatchTD):
             self._idx = 0
             approximator_params['n_models'] = n_iterations
 
-        super().__init__(approximator, policy, mdp_info, fit_params,
-                         approximator_params)
+        super().__init__(mdp_info, policy, approximator, approximator_params,
+                         fit_params)
 
         self._target = None
 
@@ -114,12 +114,12 @@ class DoubleFQI(FQI):
     Problems". D'Eramo C. et al.. 2017.
 
     """
-    def __init__(self, approximator, policy, mdp_info, n_iterations,
-                 fit_params=None, approximator_params=None, quiet=False):
+    def __init__(self, mdp_info, policy, approximator, n_iterations,
+                 approximator_params=None, fit_params=None, quiet=False):
         approximator_params['n_models'] = 2
 
-        super().__init__(approximator, policy, mdp_info, n_iterations,
-                         fit_params, approximator_params, quiet)
+        super().__init__(mdp_info, policy, approximator, n_iterations,
+                         approximator_params, fit_params, quiet)
 
     def _fit(self, x):
         state = list()

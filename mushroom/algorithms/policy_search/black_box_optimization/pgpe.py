@@ -10,7 +10,7 @@ class PGPE(BlackBoxOptimization):
     Peters J.. 2013.
 
     """
-    def __init__(self, distribution, policy, mdp_info, learning_rate,
+    def __init__(self, mdp_info, distribution, policy, learning_rate,
                  features=None):
         """
         Constructor.
@@ -21,7 +21,7 @@ class PGPE(BlackBoxOptimization):
         """
         self.learning_rate = learning_rate
 
-        super().__init__(distribution, policy, mdp_info, features)
+        super().__init__(mdp_info, distribution, policy, features)
 
     def _update(self, Jep, theta):
         baseline_num_list = list()

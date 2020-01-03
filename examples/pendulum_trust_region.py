@@ -59,7 +59,9 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
                                  mdp.info.action_space.shape,
                                  **policy_params)
 
-    agent = alg(mdp.info, policy, critic_params, **alg_params)
+    alg_params['critic_params'] = critic_params
+
+    agent = alg(mdp.info, policy, **alg_params)
 
     core = Core(agent, mdp)
 

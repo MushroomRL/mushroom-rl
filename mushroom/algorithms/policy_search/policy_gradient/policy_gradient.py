@@ -11,7 +11,7 @@ class PolicyGradient(Agent):
     al.. 2011.
 
     """
-    def __init__(self, policy, mdp_info, learning_rate, features):
+    def __init__(self, mdp_info, policy, learning_rate, features):
         """
         Constructor.
 
@@ -23,7 +23,7 @@ class PolicyGradient(Agent):
         self.df = 1
         self.J_episode = 0
 
-        super().__init__(policy, mdp_info, features)
+        super().__init__(mdp_info, policy, features)
 
     def fit(self, dataset):
         J = list()

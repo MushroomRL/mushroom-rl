@@ -15,7 +15,7 @@ def test_collect_dataset():
     eps = Parameter(0.1)
     pi = EpsGreedy(eps)
     alpha = Parameter(0.2)
-    agent = SARSA(pi, mdp.info, alpha)
+    agent = SARSA(mdp.info, pi, alpha)
 
     core = Core(agent, mdp, callbacks=[callback])
 
@@ -38,7 +38,7 @@ def test_collect_Q():
     eps = Parameter(0.1)
     pi = EpsGreedy(eps)
     alpha = Parameter(0.1)
-    agent = SARSA(pi, mdp.info, alpha)
+    agent = SARSA(mdp.info, pi, alpha)
 
     callback_q = CollectQ(agent.Q)
     callback_max_q = CollectMaxQ(agent.Q, np.array([2]))
@@ -63,10 +63,10 @@ def test_collect_parameter():
     mdp = GridWorld(3, 3, (2, 2))
 
     eps = ExponentialParameter(value=1, exp=.5,
-                                   size=mdp.info.observation_space.size)
+                               size=mdp.info.observation_space.size)
     pi = EpsGreedy(eps)
     alpha = Parameter(0.1)
-    agent = SARSA(pi, mdp.info, alpha)
+    agent = SARSA(mdp.info, pi, alpha)
 
     callback_eps = CollectParameters(eps, 1)
 

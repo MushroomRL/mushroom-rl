@@ -11,7 +11,7 @@ class RQLearning(TD):
     Processes". Tateo D. et al.. 2017.
 
     """
-    def __init__(self, policy, mdp_info, learning_rate, off_policy=False,
+    def __init__(self, mdp_info, policy, learning_rate, off_policy=False,
                  beta=None, delta=None):
         """
         Constructor.
@@ -36,7 +36,7 @@ class RQLearning(TD):
         self.Q = Table(mdp_info.size)
         self.Q_tilde = Table(mdp_info.size)
         self.R_tilde = Table(mdp_info.size)
-        super().__init__(self.Q, policy, mdp_info, learning_rate)
+        super().__init__(mdp_info, policy, self.Q, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
         alpha = self.alpha(state, action, target=reward)

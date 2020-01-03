@@ -28,7 +28,7 @@ def learn(alg, **alg_params):
     sigma = 1e-3 * np.ones(policy.weights_size)
     distribution = GaussianDiagonalDistribution(mu, sigma)
 
-    agent_test = alg(distribution, policy, mdp.info, **alg_params)
+    agent_test = alg(mdp.info, distribution, policy, **alg_params)
     core = Core(agent_test, mdp)
 
     core.learn(n_episodes=5, n_episodes_per_fit=5)

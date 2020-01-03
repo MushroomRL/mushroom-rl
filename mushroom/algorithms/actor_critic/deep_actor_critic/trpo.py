@@ -71,7 +71,7 @@ class TRPO(Agent):
 
         self._old_policy = None
 
-        super().__init__(policy, mdp_info, None)
+        super().__init__(mdp_info, policy, None)
 
     def fit(self, dataset):
         if not self._quiet:
@@ -213,4 +213,3 @@ class TRPO(Agent):
                 avg_rwd, logging_verr, logging_ent, logging_kl))
             tqdm.write(
                 '--------------------------------------------------------------------------------------------------')
-

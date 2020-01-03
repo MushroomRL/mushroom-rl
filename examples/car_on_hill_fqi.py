@@ -37,7 +37,7 @@ def experiment():
 
     # Agent
     algorithm_params = dict(n_iterations=20)
-    agent = FQI(approximator, pi, mdp.info,
+    agent = FQI(mdp.info, pi, approximator,
                 approximator_params=approximator_params, **algorithm_params)
 
     # Algorithm

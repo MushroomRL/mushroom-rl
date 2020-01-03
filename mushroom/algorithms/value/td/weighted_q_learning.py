@@ -11,8 +11,8 @@ class WeightedQLearning(TD):
     D'Eramo C. et. al.. 2016.
 
     """
-    def __init__(self, policy, mdp_info, learning_rate, sampling=True,
-                 precision=1000, weighted_policy=False):
+    def __init__(self, mdp_info, policy, learning_rate, sampling=True,
+                 precision=1000):
         """
         Constructor.
 
@@ -27,7 +27,7 @@ class WeightedQLearning(TD):
         self._sampling = sampling
         self._precision = precision
 
-        super().__init__(self.Q, policy, mdp_info, learning_rate)
+        super().__init__(mdp_info, policy, self.Q, learning_rate)
 
         self._n_updates = Table(mdp_info.size)
         self._sigma = Table(mdp_info.size, initial_value=1e10)
@@ -91,4 +91,3 @@ class WeightedQLearning(TD):
             raise NotImplementedError
 
         return np.dot(self._w, means)
-

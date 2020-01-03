@@ -11,29 +11,28 @@ class TD3(DDPG):
     Fujimoto S. et al.. 2018.
 
     """
-    def __init__(self, mdp_info, policy_class, policy_params,
-                 batch_size, initial_replay_size, max_replay_size,
-                 tau, critic_params, actor_params, actor_optimizer,
-                 policy_delay=2, noise_std=.2, noise_clip=.5,
-                 critic_fit_params=None):
+    def __init__(self, mdp_info, policy_class, policy_params, actor_params,
+                 actor_optimizer, critic_params, batch_size,
+                 initial_replay_size, max_replay_size, tau, policy_delay=2,
+                 noise_std=.2, noise_clip=.5, critic_fit_params=None):
         """
         Constructor.
 
         Args:
             policy_class (Policy): class of the policy;
             policy_params (dict): parameters of the policy to build;
+            actor_params (dict): parameters of the actor approximator to
+                build;
+            actor_optimizer (dict): parameters to specify the actor
+                optimizer algorithm;
+            critic_params (dict): parameters of the critic approximator to
+                build;
             batch_size (int): the number of samples in a batch;
             initial_replay_size (int): the number of samples to collect before
                 starting the learning;
             max_replay_size (int): the maximum number of samples in the replay
                 memory;
             tau (float): value of coefficient for soft updates;
-            critic_params (dict): parameters of the critic approximator to
-                build;
-            actor_params (dict): parameters of the actor approximator to
-                build;
-            actor_optimizer (dict): parameters to specify the actor
-                optimizer algorithm;
             policy_delay (int, 2): the number of updates of the critic after
                 which an actor update is implemented;
             noise_std (float, .2): standard deviation of the noise used for
@@ -52,9 +51,9 @@ class TD3(DDPG):
         else:
             critic_params['n_models'] = 2
 
-        super().__init__(mdp_info, policy_class, policy_params,
-                         batch_size, initial_replay_size, max_replay_size,
-                         tau, critic_params, actor_params, actor_optimizer,
+        super().__init__(mdp_info, policy_class, policy_params,  actor_params,
+                         actor_optimizer, critic_params, batch_size,
+                         initial_replay_size, max_replay_size, tau,
                          policy_delay, critic_fit_params)
 
     def _loss(self, state):
