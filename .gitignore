@@ -1,6 +1,6 @@
 build/
 dist/
-mushroom.egg-info/
+mushroom_rl.egg-info/
 .idea/
 *.pyc
 *.xml

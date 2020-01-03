@@ -84,7 +84,7 @@ def policy_iteration(prob, reward, gamma):
                     p_sa = prob[state, action]
                     r_sa = reward[state, action]
                     va = p_sa.T.dot(r_sa + gamma * value)
-                    if va > vmax:
+                    if va > vmax and not np.isclose(va, vmax):
                         policy[state] = action
                         vmax = va
                         changed = True
