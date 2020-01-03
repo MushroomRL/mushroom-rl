@@ -4,15 +4,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from mushroom.algorithms.value import *
-from mushroom.approximators.parametric import LinearApproximator, TorchApproximator
-from mushroom.core import Core
-from mushroom.environments.grid_world import GridWorld
-from mushroom.environments.gym_env import Gym
-from mushroom.features import Features
-from mushroom.features.tiles import Tiles
-from mushroom.policy.td_policy import EpsGreedy
-from mushroom.utils.parameters import Parameter
+from mushroom_rl.algorithms.value import *
+from mushroom_rl.approximators.parametric import LinearApproximator, TorchApproximator
+from mushroom_rl.core import Core
+from mushroom_rl.environments.grid_world import GridWorld
+from mushroom_rl.environments.gym_env import Gym
+from mushroom_rl.features import Features
+from mushroom_rl.features.tiles import Tiles
+from mushroom_rl.policy.td_policy import EpsGreedy
+from mushroom_rl.utils.parameters import Parameter
 
 
 class Network(nn.Module):

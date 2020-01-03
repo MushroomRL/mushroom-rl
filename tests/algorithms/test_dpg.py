@@ -1,15 +1,15 @@
 import numpy as np
 import torch
 
-from mushroom.algorithms.actor_critic import COPDAC_Q
-from mushroom.core import Core
-from mushroom.environments import *
-from mushroom.features import Features
-from mushroom.features.tiles import Tiles
-from mushroom.approximators import Regressor
-from mushroom.approximators.parametric import LinearApproximator
-from mushroom.policy import GaussianPolicy
-from mushroom.utils.parameters import Parameter
+from mushroom_rl.algorithms.actor_critic import COPDAC_Q
+from mushroom_rl.core import Core
+from mushroom_rl.environments import *
+from mushroom_rl.features import Features
+from mushroom_rl.features.tiles import Tiles
+from mushroom_rl.approximators import Regressor
+from mushroom_rl.approximators.parametric import LinearApproximator
+from mushroom_rl.policy import GaussianPolicy
+from mushroom_rl.utils.parameters import Parameter
 
 
 def test_copdac_q():

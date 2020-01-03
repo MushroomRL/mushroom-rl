@@ -3,7 +3,7 @@ import torch.nn as nn
 
 import numpy as np
 
-from mushroom.policy.torch_policy import TorchPolicy, GaussianTorchPolicy
+from mushroom_rl.policy.torch_policy import TorchPolicy, GaussianTorchPolicy
 
 
 def abstract_method_tester(f, *args):

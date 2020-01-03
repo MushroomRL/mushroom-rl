@@ -2,10 +2,9 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
-from mushroom import __version__
+from mushroom_rl import __version__
 
 here = path.abspath(path.dirname(__file__))
-name = 'mushroom'
 
 requires_list = []
 with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
@@ -27,7 +26,7 @@ for group_name in extras:
 extras['all'] = all_deps
 
 setup(
-    name=name,
+    name='mushroom-rl',
     version=__version__,
     description='A Python toolkit for Reinforcement Learning experiments.',
     url='https://github.com/AIRLab-POLIMI/mushroom',
@@ -35,7 +34,7 @@ setup(
     author_email='carlo.deramo@gmail.com',
     license='MIT',
     packages=[package for package in find_packages()
-              if package.startswith(name)],
+              if package.startswith('mushroom_rl')],
     zip_safe=False,
     install_requires=requires_list,
     extras_require=extras

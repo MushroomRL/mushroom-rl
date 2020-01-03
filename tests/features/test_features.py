@@ -1,9 +1,9 @@
 import numpy as np
 
-from mushroom.features import Features
-from mushroom.features.tiles import Tiles
-from mushroom.features.basis import GaussianRBF, FourierBasis
-from mushroom.features.tensors import PyTorchGaussianRBF
+from mushroom_rl.features import Features
+from mushroom_rl.features.tiles import Tiles
+from mushroom_rl.features.basis import GaussianRBF, FourierBasis
+from mushroom_rl.features.tensors import PyTorchGaussianRBF
 
 
 def test_tiles():

@@ -4,13 +4,13 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-from mushroom.algorithms.value import DQN
-from mushroom.approximators.parametric import TorchApproximator
-from mushroom.core import Core
-from mushroom.environments import Atari
-from mushroom.policy import EpsGreedy
-from mushroom.utils.dataset import compute_metrics
-from mushroom.utils.parameters import LinearParameter, Parameter
+from mushroom_rl.algorithms.value import DQN
+from mushroom_rl.approximators.parametric import TorchApproximator
+from mushroom_rl.core import Core
+from mushroom_rl.environments import Atari
+from mushroom_rl.policy import EpsGreedy
+from mushroom_rl.utils.dataset import compute_metrics
+from mushroom_rl.utils.parameters import LinearParameter, Parameter
 
 
 class Network(nn.Module):

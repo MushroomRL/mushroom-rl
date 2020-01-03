@@ -1,5 +1,5 @@
 try:
-    from mushroom.environments.dm_control_env import DMControl
+    from mushroom_rl.environments.dm_control_env import DMControl
     import numpy as np
 
     def test_dm_control():

@@ -1,6 +1,6 @@
 import numpy as np
-from mushroom.distributions import *
-from mushroom.utils.numerical_gradient import numerical_diff_dist
+from mushroom_rl.distributions import *
+from mushroom_rl.utils.numerical_gradient import numerical_diff_dist
 
 
 def test_gaussian():

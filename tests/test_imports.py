@@ -1,47 +1,47 @@
 
 
 def test_imports():
-    import mushroom
+    import mushroom_rl
 
-    import mushroom.algorithms
-    import mushroom.algorithms.actor_critic
-    import mushroom.algorithms.actor_critic.classic_actor_critic
-    import mushroom.algorithms.actor_critic.deep_actor_critic
-    import mushroom.algorithms.policy_search
-    import mushroom.algorithms.policy_search.black_box_optimization
-    import mushroom.algorithms.policy_search.policy_gradient
-    import mushroom.algorithms.value
-    import mushroom.algorithms.value.batch_td
-    import mushroom.algorithms.value.td
-    import mushroom.algorithms.value.dqn
+    import mushroom_rl.algorithms
+    import mushroom_rl.algorithms.actor_critic
+    import mushroom_rl.algorithms.actor_critic.classic_actor_critic
+    import mushroom_rl.algorithms.actor_critic.deep_actor_critic
+    import mushroom_rl.algorithms.policy_search
+    import mushroom_rl.algorithms.policy_search.black_box_optimization
+    import mushroom_rl.algorithms.policy_search.policy_gradient
+    import mushroom_rl.algorithms.value
+    import mushroom_rl.algorithms.value.batch_td
+    import mushroom_rl.algorithms.value.td
+    import mushroom_rl.algorithms.value.dqn
 
-    import mushroom.approximators
-    import mushroom.approximators._implementations
-    import mushroom.approximators.parametric
+    import mushroom_rl.approximators
+    import mushroom_rl.approximators._implementations
+    import mushroom_rl.approximators.parametric
 
-    import mushroom.core
+    import mushroom_rl.core
 
-    import mushroom.distributions
+    import mushroom_rl.distributions
 
-    import mushroom.environments
-    import mushroom.environments.generators
+    import mushroom_rl.environments
+    import mushroom_rl.environments.generators
 
     try:
         import mujoco_py
     except ImportError:
         pass
     else:
-        import mushroom.environments.mujoco_envs
+        import mushroom_rl.environments.mujoco_envs
 
-    import mushroom.features
-    import mushroom.features._implementations
-    import mushroom.features.basis
-    import mushroom.features.tensors
-    import mushroom.features.tiles
+    import mushroom_rl.features
+    import mushroom_rl.features._implementations
+    import mushroom_rl.features.basis
+    import mushroom_rl.features.tensors
+    import mushroom_rl.features.tiles
 
-    import mushroom.policy
+    import mushroom_rl.policy
 
-    import mushroom.solvers
+    import mushroom_rl.solvers
 
-    import mushroom.utils
+    import mushroom_rl.utils
 

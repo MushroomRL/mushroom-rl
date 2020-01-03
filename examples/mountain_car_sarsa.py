@@ -1,14 +1,14 @@
 import numpy as np
 from joblib import Parallel, delayed
 
-from mushroom.algorithms.value import TrueOnlineSARSALambda
-from mushroom.core import Core
-from mushroom.environments import Gym
-from mushroom.features import Features
-from mushroom.features.tiles import Tiles
-from mushroom.policy import EpsGreedy
-from mushroom.utils.dataset import compute_J
-from mushroom.utils.parameters import Parameter
+from mushroom_rl.algorithms.value import TrueOnlineSARSALambda
+from mushroom_rl.core import Core
+from mushroom_rl.environments import Gym
+from mushroom_rl.features import Features
+from mushroom_rl.features.tiles import Tiles
+from mushroom_rl.policy import EpsGreedy
+from mushroom_rl.utils.dataset import compute_J
+from mushroom_rl.utils.parameters import Parameter
 
 """
 This script aims to replicate the experiments on the Mountain Car MDP as

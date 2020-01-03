@@ -1,8 +1,8 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from mushroom.approximators import Regressor
-from mushroom.approximators.parametric import LinearApproximator
+from mushroom_rl.approximators import Regressor
+from mushroom_rl.approximators.parametric import LinearApproximator
 
 
 x = np.arange(10).reshape(-1, 1)

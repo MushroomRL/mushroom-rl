@@ -2,12 +2,12 @@ import numpy as np
 from joblib import Parallel, delayed
 from sklearn.ensemble import ExtraTreesRegressor
 
-from mushroom.algorithms.value import FQI
-from mushroom.core import Core
-from mushroom.environments import *
-from mushroom.policy import EpsGreedy
-from mushroom.utils.dataset import compute_J
-from mushroom.utils.parameters import Parameter
+from mushroom_rl.algorithms.value import FQI
+from mushroom_rl.core import Core
+from mushroom_rl.environments import *
+from mushroom_rl.policy import EpsGreedy
+from mushroom_rl.utils.dataset import compute_J
+from mushroom_rl.utils.parameters import Parameter
 
 """
 This script aims to replicate the experiments on the Car on Hill MDP as

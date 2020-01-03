@@ -5,10 +5,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-from mushroom.algorithms.actor_critic import PPO, TRPO
-from mushroom.core import Core
-from mushroom.environments import Gym
-from mushroom.policy import GaussianTorchPolicy
+from mushroom_rl.algorithms.actor_critic import PPO, TRPO
+from mushroom_rl.core import Core
+from mushroom_rl.environments import Gym
+from mushroom_rl.policy import GaussianTorchPolicy
 
 
 def learn(alg, alg_params):

@@ -1,4 +1,4 @@
-from mushroom.policy import Policy, ParametricPolicy
+from mushroom_rl.policy import Policy, ParametricPolicy
 
 
 def abstract_method_tester(f, ex, *args):

@@ -1,16 +1,16 @@
 import numpy as np
 
-from mushroom.algorithms.policy_search import REPS, RWR, PGPE
-from mushroom.approximators.parametric import LinearApproximator
-from mushroom.approximators.regressor import Regressor
-from mushroom.core import Core
-from mushroom.environments import ShipSteering
-from mushroom.features.tiles import Tiles
-from mushroom.features.features import Features
-from mushroom.distributions import GaussianDiagonalDistribution
-from mushroom.policy import DeterministicPolicy
-from mushroom.utils.dataset import compute_J
-from mushroom.utils.parameters import AdaptiveParameter
+from mushroom_rl.algorithms.policy_search import REPS, RWR, PGPE
+from mushroom_rl.approximators.parametric import LinearApproximator
+from mushroom_rl.approximators.regressor import Regressor
+from mushroom_rl.core import Core
+from mushroom_rl.environments import ShipSteering
+from mushroom_rl.features.tiles import Tiles
+from mushroom_rl.features.features import Features
+from mushroom_rl.distributions import GaussianDiagonalDistribution
+from mushroom_rl.policy import DeterministicPolicy
+from mushroom_rl.utils.dataset import compute_J
+from mushroom_rl.utils.parameters import AdaptiveParameter
 from tqdm import tqdm
 
 

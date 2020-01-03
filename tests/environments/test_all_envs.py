@@ -1,17 +1,17 @@
 import numpy as np
 
-from mushroom.environments.atari import Atari
-from mushroom.environments.car_on_hill import CarOnHill
-from mushroom.environments.cart_pole import CartPole
-from mushroom.environments.generators import generate_grid_world,\
+from mushroom_rl.environments.atari import Atari
+from mushroom_rl.environments.car_on_hill import CarOnHill
+from mushroom_rl.environments.cart_pole import CartPole
+from mushroom_rl.environments.generators import generate_grid_world,\
     generate_simple_chain, generate_taxi
-from mushroom.environments.grid_world import GridWorld, GridWorldVanHasselt
-from mushroom.environments.gym_env import Gym
-from mushroom.environments.inverted_pendulum import InvertedPendulum
-from mushroom.environments.lqr import LQR
-from mushroom.environments.puddle_world import PuddleWorld
-from mushroom.environments.segway import Segway
-from mushroom.environments.ship_steering import ShipSteering
+from mushroom_rl.environments.grid_world import GridWorld, GridWorldVanHasselt
+from mushroom_rl.environments.gym_env import Gym
+from mushroom_rl.environments.inverted_pendulum import InvertedPendulum
+from mushroom_rl.environments.lqr import LQR
+from mushroom_rl.environments.puddle_world import PuddleWorld
+from mushroom_rl.environments.segway import Segway
+from mushroom_rl.environments.ship_steering import ShipSteering
 
 import os
 os.environ["SDL_VIDEODRIVER"] = "dummy"

@@ -20,7 +20,7 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
-from mushroom import __version__
+from mushroom_rl import __version__
 
 
 # -- General configuration ------------------------------------------------

@@ -5,11 +5,11 @@ import torch.optim as optim
 
 import numpy as np
 
-from mushroom.core import Core
-from mushroom.environments import Gym
-from mushroom.algorithms.actor_critic import A2C
+from mushroom_rl.core import Core
+from mushroom_rl.environments import Gym
+from mushroom_rl.algorithms.actor_critic import A2C
 
-from mushroom.policy import GaussianTorchPolicy
+from mushroom_rl.policy import GaussianTorchPolicy
 
 
 class Network(nn.Module):

@@ -5,10 +5,10 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-from mushroom.algorithms.actor_critic import SAC
-from mushroom.core import Core
-from mushroom.environments.gym_env import Gym
-from mushroom.utils.dataset import compute_J
+from mushroom_rl.algorithms.actor_critic import SAC
+from mushroom_rl.core import Core
+from mushroom_rl.environments.gym_env import Gym
+from mushroom_rl.utils.dataset import compute_J
 
 
 class CriticNetwork(nn.Module):

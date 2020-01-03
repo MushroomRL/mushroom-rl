@@ -1,9 +1,9 @@
-from mushroom.core import Core
-from mushroom.environments import GridWorld
-from mushroom.algorithms.value import SARSA
-from mushroom.policy import EpsGreedy
-from mushroom.utils.parameters import Parameter, ExponentialParameter
-from mushroom.utils.callbacks import *
+from mushroom_rl.core import Core
+from mushroom_rl.environments import GridWorld
+from mushroom_rl.algorithms.value import SARSA
+from mushroom_rl.policy import EpsGreedy
+from mushroom_rl.utils.parameters import Parameter, ExponentialParameter
+from mushroom_rl.utils.callbacks import *
 
 
 def test_collect_dataset():

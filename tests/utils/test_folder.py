@@ -1,4 +1,4 @@
-from mushroom.utils.folder import *
+from mushroom_rl.utils.folder import *
 
 
 def test_folder_utils(tmpdir):

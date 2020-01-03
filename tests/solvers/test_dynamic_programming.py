@@ -1,5 +1,5 @@
 import numpy as np
-from mushroom.solvers.dynamic_programming import policy_iteration, value_iteration
+from mushroom_rl.solvers.dynamic_programming import policy_iteration, value_iteration
 
 
 def test_value_iteration():

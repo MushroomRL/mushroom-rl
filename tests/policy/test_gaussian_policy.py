@@ -1,7 +1,7 @@
-from mushroom.policy.gaussian_policy import *
-from mushroom.approximators.regressor import Regressor
-from mushroom.approximators.parametric import LinearApproximator
-from mushroom.utils.numerical_gradient import numerical_diff_policy
+from mushroom_rl.policy.gaussian_policy import *
+from mushroom_rl.approximators.regressor import Regressor
+from mushroom_rl.approximators.parametric import LinearApproximator
+from mushroom_rl.utils.numerical_gradient import numerical_diff_policy
 
 
 def test_univariate_gaussian():

@@ -1,13 +1,13 @@
 import numpy as np
 import torch
 
-from mushroom.algorithms.policy_search import *
-from mushroom.approximators import Regressor
-from mushroom.approximators.parametric import LinearApproximator
-from mushroom.core import Core
-from mushroom.environments.lqr import LQR
-from mushroom.policy.gaussian_policy import StateStdGaussianPolicy
-from mushroom.utils.parameters import AdaptiveParameter
+from mushroom_rl.algorithms.policy_search import *
+from mushroom_rl.approximators import Regressor
+from mushroom_rl.approximators.parametric import LinearApproximator
+from mushroom_rl.core import Core
+from mushroom_rl.environments.lqr import LQR
+from mushroom_rl.policy.gaussian_policy import StateStdGaussianPolicy
+from mushroom_rl.utils.parameters import AdaptiveParameter
 
 
 def learn(alg, alg_params):

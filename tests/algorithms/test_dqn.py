@@ -2,13 +2,13 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-from mushroom.algorithms.value import DQN, DoubleDQN, AveragedDQN, CategoricalDQN
-from mushroom.core import Core
-from mushroom.environments import *
-from mushroom.policy import EpsGreedy
-from mushroom.approximators.parametric.torch_approximator import *
-from mushroom.utils.parameters import Parameter, LinearParameter
-from mushroom.utils.replay_memory import PrioritizedReplayMemory
+from mushroom_rl.algorithms.value import DQN, DoubleDQN, AveragedDQN, CategoricalDQN
+from mushroom_rl.core import Core
+from mushroom_rl.environments import *
+from mushroom_rl.policy import EpsGreedy
+from mushroom_rl.approximators.parametric.torch_approximator import *
+from mushroom_rl.utils.parameters import Parameter, LinearParameter
+from mushroom_rl.utils.replay_memory import PrioritizedReplayMemory
 
 
 class Network(nn.Module):

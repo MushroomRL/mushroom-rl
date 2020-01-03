@@ -1,15 +1,15 @@
 import numpy as np
 from tqdm import tqdm
 
-from mushroom.algorithms.policy_search import RWR, PGPE, REPS
-from mushroom.approximators.parametric import LinearApproximator
-from mushroom.approximators.regressor import Regressor
-from mushroom.core import Core
-from mushroom.distributions import GaussianCholeskyDistribution
-from mushroom.environments import LQR
-from mushroom.policy import DeterministicPolicy
-from mushroom.utils.dataset import compute_J
-from mushroom.utils.parameters import AdaptiveParameter
+from mushroom_rl.algorithms.policy_search import RWR, PGPE, REPS
+from mushroom_rl.approximators.parametric import LinearApproximator
+from mushroom_rl.approximators.regressor import Regressor
+from mushroom_rl.core import Core
+from mushroom_rl.distributions import GaussianCholeskyDistribution
+from mushroom_rl.environments import LQR
+from mushroom_rl.policy import DeterministicPolicy
+from mushroom_rl.utils.dataset import compute_J
+from mushroom_rl.utils.parameters import AdaptiveParameter
 
 
 """

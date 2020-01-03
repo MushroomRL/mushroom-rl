@@ -1,7 +1,7 @@
-from mushroom.policy import DeterministicPolicy
-from mushroom.approximators.regressor import Regressor
-from mushroom.approximators.parametric import LinearApproximator
-from mushroom.utils.numerical_gradient import numerical_diff_policy
+from mushroom_rl.policy import DeterministicPolicy
+from mushroom_rl.approximators.regressor import Regressor
+from mushroom_rl.approximators.parametric import LinearApproximator
+from mushroom_rl.utils.numerical_gradient import numerical_diff_policy
 
 import numpy as np
 

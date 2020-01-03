@@ -1,14 +1,14 @@
 import numpy as np
 
-from mushroom.algorithms.value import SARSALambdaContinuous
-from mushroom.approximators.parametric import LinearApproximator
-from mushroom.core import Core
-from mushroom.environments import *
-from mushroom.features import Features
-from mushroom.features.tiles import Tiles
-from mushroom.policy import EpsGreedy
-from mushroom.utils.callbacks import CollectDataset
-from mushroom.utils.parameters import Parameter
+from mushroom_rl.algorithms.value import SARSALambdaContinuous
+from mushroom_rl.approximators.parametric import LinearApproximator
+from mushroom_rl.core import Core
+from mushroom_rl.environments import *
+from mushroom_rl.features import Features
+from mushroom_rl.features.tiles import Tiles
+from mushroom_rl.policy import EpsGreedy
+from mushroom_rl.utils.callbacks import CollectDataset
+from mushroom_rl.utils.parameters import Parameter
 
 
 # MDP

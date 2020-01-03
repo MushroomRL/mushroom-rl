@@ -1,7 +1,7 @@
 import numpy as np
 
-from mushroom.approximators.regressor import Regressor
-from mushroom.approximators.parametric import *
+from mushroom_rl.approximators.regressor import Regressor
+from mushroom_rl.approximators.parametric import *
 
 
 def test_linear_approximator():

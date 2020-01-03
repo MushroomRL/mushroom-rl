@@ -1,15 +1,15 @@
 import numpy as np
 
-from mushroom.core import Core
-from mushroom.environments.segway import Segway
-from mushroom.algorithms.policy_search import *
-from mushroom.policy import DeterministicPolicy
-from mushroom.distributions import GaussianDiagonalDistribution
-from mushroom.approximators import Regressor
-from mushroom.approximators.parametric import LinearApproximator
-from mushroom.utils.dataset import compute_J
-from mushroom.utils.callbacks import CollectDataset
-from mushroom.utils.parameters import AdaptiveParameter
+from mushroom_rl.core import Core
+from mushroom_rl.environments.segway import Segway
+from mushroom_rl.algorithms.policy_search import *
+from mushroom_rl.policy import DeterministicPolicy
+from mushroom_rl.distributions import GaussianDiagonalDistribution
+from mushroom_rl.approximators import Regressor
+from mushroom_rl.approximators.parametric import LinearApproximator
+from mushroom_rl.utils.dataset import compute_J
+from mushroom_rl.utils.callbacks import CollectDataset
+from mushroom_rl.utils.parameters import AdaptiveParameter
 
 from tqdm import tqdm
 tqdm.monitor_interval = 0

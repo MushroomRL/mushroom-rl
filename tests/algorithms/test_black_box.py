@@ -1,14 +1,14 @@
 import numpy as np
 import torch
 
-from mushroom.algorithms.policy_search import PGPE, REPS, RWR
-from mushroom.approximators import Regressor
-from mushroom.core import Core
-from mushroom.approximators.parametric import LinearApproximator
-from mushroom.distributions import GaussianDiagonalDistribution
-from mushroom.environments import LQR
-from mushroom.policy import DeterministicPolicy
-from mushroom.utils.parameters import AdaptiveParameter
+from mushroom_rl.algorithms.policy_search import PGPE, REPS, RWR
+from mushroom_rl.approximators import Regressor
+from mushroom_rl.core import Core
+from mushroom_rl.approximators.parametric import LinearApproximator
+from mushroom_rl.distributions import GaussianDiagonalDistribution
+from mushroom_rl.environments import LQR
+from mushroom_rl.policy import DeterministicPolicy
+from mushroom_rl.utils.parameters import AdaptiveParameter
 
 
 def learn(alg, **alg_params):
