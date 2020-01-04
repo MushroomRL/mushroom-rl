@@ -1,7 +1,7 @@
 Environments
 ============
 
-In mushroom we distinguish between two different types of environment classes:
+In mushroom_rl we distinguish between two different types of environment classes:
 
 
 - proper environments
@@ -18,7 +18,7 @@ Environments
 Atari
 ~~~~~
 
-.. automodule:: mushroom.environments.atari
+.. automodule:: mushroom_rl.environments.atari
     :members:
     :private-members:
     :inherited-members:
@@ -27,7 +27,7 @@ Atari
 Car on hill
 ~~~~~~~~~~~
 
-.. automodule:: mushroom.environments.car_on_hill
+.. automodule:: mushroom_rl.environments.car_on_hill
     :members:
     :private-members:
     :inherited-members:
@@ -36,7 +36,7 @@ Car on hill
 DeepMind Control Suite
 ~~~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: mushroom.environments.dm_control_env
+.. automodule:: mushroom_rl.environments.dm_control_env
     :members:
     :private-members:
     :inherited-members:
@@ -45,7 +45,7 @@ DeepMind Control Suite
 Finite MDP
 ~~~~~~~~~~
 
-.. automodule:: mushroom.environments.finite_mdp
+.. automodule:: mushroom_rl.environments.finite_mdp
     :members:
     :private-members:
     :inherited-members:
@@ -54,7 +54,7 @@ Finite MDP
 Grid World
 ~~~~~~~~~~
 
-.. automodule:: mushroom.environments.grid_world
+.. automodule:: mushroom_rl.environments.grid_world
     :members:
     :private-members:
     :inherited-members:
@@ -63,7 +63,7 @@ Grid World
 Gym
 ~~~
 
-.. automodule:: mushroom.environments.gym_env
+.. automodule:: mushroom_rl.environments.gym_env
     :members:
     :private-members:
     :inherited-members:
@@ -72,7 +72,7 @@ Gym
 Inverted pendulum
 ~~~~~~~~~~~~~~~~~
 
-.. automodule:: mushroom.environments.inverted_pendulum
+.. automodule:: mushroom_rl.environments.inverted_pendulum
     :members:
     :private-members:
     :inherited-members:
@@ -81,7 +81,7 @@ Inverted pendulum
 Cart Pole
 ~~~~~~~~~
 
-.. automodule:: mushroom.environments.cart_pole
+.. automodule:: mushroom_rl.environments.cart_pole
     :members:
     :private-members:
     :inherited-members:
@@ -90,7 +90,7 @@ Cart Pole
 LQR
 ~~~
 
-.. automodule:: mushroom.environments.lqr
+.. automodule:: mushroom_rl.environments.lqr
     :members:
     :private-members:
     :inherited-members:
@@ -99,7 +99,7 @@ LQR
 Mujoco
 ~~~~~~
 
-.. automodule:: mushroom.environments.mujoco
+.. automodule:: mushroom_rl.environments.mujoco
     :members:
     :private-members:
     :inherited-members:
@@ -108,7 +108,7 @@ Mujoco
 Puddle World
 ~~~~~~~~~~~~
 
-.. automodule:: mushroom.environments.puddle_world
+.. automodule:: mushroom_rl.environments.puddle_world
     :members:
     :private-members:
     :inherited-members:
@@ -117,7 +117,7 @@ Puddle World
 Segway
 ~~~~~~~~~~~~~
 
-.. automodule:: mushroom.environments.segway
+.. automodule:: mushroom_rl.environments.segway
     :members:
     :private-members:
     :inherited-members:
@@ -126,7 +126,7 @@ Segway
 Ship steering
 ~~~~~~~~~~~~~
 
-.. automodule:: mushroom.environments.ship_steering
+.. automodule:: mushroom_rl.environments.ship_steering
     :members:
     :private-members:
     :inherited-members:
@@ -138,7 +138,7 @@ Generators
 Grid world
 ~~~~~~~~~~
 
-.. automodule:: mushroom.environments.generators.grid_world
+.. automodule:: mushroom_rl.environments.generators.grid_world
     :members:
     :private-members:
     :inherited-members:
@@ -147,7 +147,7 @@ Grid world
 Simple chain
 ~~~~~~~~~~~~
 
-.. automodule:: mushroom.environments.generators.simple_chain
+.. automodule:: mushroom_rl.environments.generators.simple_chain
     :members:
     :private-members:
     :inherited-members:
@@ -156,7 +156,7 @@ Simple chain
 Taxi
 ~~~~
 
-.. automodule:: mushroom.environments.generators.taxi
+.. automodule:: mushroom_rl.environments.generators.taxi
     :members:
     :private-members:
     :inherited-members:

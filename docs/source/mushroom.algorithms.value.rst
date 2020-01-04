@@ -4,7 +4,7 @@ Value-Based
 TD
 --
 
-.. automodule:: mushroom.algorithms.value.td
+.. automodule:: mushroom_rl.algorithms.value.td
     :members:
     :private-members:
     :inherited-members:
@@ -13,7 +13,7 @@ TD
 Batch TD
 --------
 
-.. automodule:: mushroom.algorithms.value.batch_td
+.. automodule:: mushroom_rl.algorithms.value.batch_td
     :members:
     :private-members:
     :inherited-members:
@@ -22,7 +22,7 @@ Batch TD
 DQN
 ---
 
-.. automodule:: mushroom.algorithms.value.dqn
+.. automodule:: mushroom_rl.algorithms.value.dqn
     :members:
     :private-members:
     :inherited-members:

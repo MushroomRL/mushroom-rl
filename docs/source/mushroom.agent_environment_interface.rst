@@ -1,7 +1,7 @@
 Agent-Environment Interface
 ===========================
 
-The three basic interface of mushroom are the Agent, the Environment and the Core interface.
+The three basic interface of mushroom_rl are the Agent, the Environment and the Core interface.
 
 - The ``Agent`` is the basic interface for any Reinforcement Learning algorithm.
 - The ``Environment`` is the basic interface for every problem/task that the agent should solve.
@@ -11,7 +11,7 @@ The three basic interface of mushroom are the Agent, the Environment and the Cor
 Agent
 -----
 
-Mushroom provides the implementations of several algorithms belonging to all
+MushroomRL provides the implementations of several algorithms belonging to all
 categories of RL:
 
 - value-based;
@@ -21,7 +21,7 @@ categories of RL:
 One can easily implement customized algorithms following the structure of the
 already available ones, by extending the following interface:
 
-.. automodule:: mushroom.algorithms.agent
+.. automodule:: mushroom_rl.algorithms.agent
     :members:
     :private-members:
     :inherited-members:
@@ -30,12 +30,12 @@ already available ones, by extending the following interface:
 Environment
 -----------
 
-Mushroom provides several implementation of well known benchmarks with both
+MushroomRL provides several implementation of well known benchmarks with both
 continuous and discrete action spaces.
 
 To implement a new environment, it is mandatory to use the following interface:
 
-.. automodule:: mushroom.environments.environment
+.. automodule:: mushroom_rl.environments.environment
     :members:
     :private-members:
     :inherited-members:
@@ -45,7 +45,7 @@ To implement a new environment, it is mandatory to use the following interface:
 Core
 ----
 
-.. automodule:: mushroom.core.core
+.. automodule:: mushroom_rl.core.core
     :members:
     :private-members:
     :inherited-members:

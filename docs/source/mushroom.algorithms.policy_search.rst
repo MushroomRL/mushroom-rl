@@ -4,7 +4,7 @@ Policy search
 Policy gradient
 ---------------
 
-.. automodule:: mushroom.algorithms.policy_search.policy_gradient
+.. automodule:: mushroom_rl.algorithms.policy_search.policy_gradient
     :members:
     :private-members:
     :inherited-members:
@@ -13,7 +13,7 @@ Policy gradient
 Black-Box optimization
 ----------------------
 
-.. automodule:: mushroom.algorithms.policy_search.black_box_optimization
+.. automodule:: mushroom_rl.algorithms.policy_search.black_box_optimization
     :members:
     :private-members:
     :inherited-members:

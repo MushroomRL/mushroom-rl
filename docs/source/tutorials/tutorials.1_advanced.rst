@@ -11,7 +11,7 @@ extracted from the raw values. This way, the linear approximator is often able
 to solve the MDPs, despite its simplicity. Many RL algorithms rely on the use of
 a linear approximator to solve a MDP, therefore the use of features is very
 important.
-This tutorial shows how to solve a continuous MDP in Mushroom using an
+This tutorial shows how to solve a continuous MDP in MushroomRL using an
 algorithm that requires the use of a linear approximator.
 
 Initially, the MDP and the policy are created:
@@ -19,7 +19,7 @@ Initially, the MDP and the policy are created:
 .. literalinclude:: code/advanced_experiment.py
    :lines: 1-19
 
-This is an environment created with the Mushroom interface to the OpenAI Gym
+This is an environment created with the MushroomRL interface to the OpenAI Gym
 library. Each environment offered by OpenAI Gym can be created this way simply
 providing the corresponding id in the ``name`` parameter, except for the Atari
 that are managed by a separate class.
@@ -34,7 +34,7 @@ In this example, we use sparse coding by means of **tiles** features. The
 Sutton & Barto, 1998*). Eventually, the grid is passed to the ``Features``
 factory method that returns the features class.
 
-Mushroom offers other type of features such a **radial basis functions** and
+MushroomRL offers other type of features such a **radial basis functions** and
 **polynomial** features. The former have also a faster implementation written in
 Tensorflow that can be used transparently.
 

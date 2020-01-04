@@ -4,7 +4,7 @@ How to make a deep RL experiment
 The usual script to run a deep RL experiment does not significantly differ from
 the one for a shallow RL experiment.
 This tutorial shows how to solve `Atari <https://gym.openai.com/envs/#atari/>`_
-games in Mushroom using ``DQN``, and how to solve
+games in MushroomRL using ``DQN``, and how to solve
 `MuJoCo <https://github.com/deepmind/dm_control/>`_ tasks using ``DDPG``. This
 tutorial will not explain some technicalities that are already described in the
 previous tutorials, and will only briefly explain how to run deep RL experiments.

@@ -1,7 +1,7 @@
 Policy
 ======
 
-.. automodule:: mushroom.policy.policy
+.. automodule:: mushroom_rl.policy.policy
     :members:
     :private-members:
     :inherited-members:
@@ -10,7 +10,7 @@ Policy
 Deterministic policy
 --------------------
 
-.. automodule:: mushroom.policy.deterministic_policy
+.. automodule:: mushroom_rl.policy.deterministic_policy
     :members:
     :private-members:
     :inherited-members:
@@ -19,7 +19,7 @@ Deterministic policy
 Gaussian policy
 ---------------
 
-.. automodule:: mushroom.policy.gaussian_policy
+.. automodule:: mushroom_rl.policy.gaussian_policy
     :members:
     :private-members:
     :inherited-members:
@@ -28,7 +28,7 @@ Gaussian policy
 Noise policy
 ------------
 
-.. automodule:: mushroom.policy.noise_policy
+.. automodule:: mushroom_rl.policy.noise_policy
     :members:
     :private-members:
     :inherited-members:
@@ -37,7 +37,7 @@ Noise policy
 TD policy
 ---------
 
-.. automodule:: mushroom.policy.td_policy
+.. automodule:: mushroom_rl.policy.td_policy
     :members:
     :private-members:
     :inherited-members:
@@ -46,7 +46,7 @@ TD policy
 Torch policy
 ------------
 
-.. automodule:: mushroom.policy.torch_policy
+.. automodule:: mushroom_rl.policy.torch_policy
     :members:
     :private-members:
     :inherited-members:

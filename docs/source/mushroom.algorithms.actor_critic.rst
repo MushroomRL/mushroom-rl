@@ -4,7 +4,7 @@ Actor-Critic
 Classical Actor-Critic Methods
 ------------------------------
 
-.. automodule:: mushroom.algorithms.actor_critic.classic_actor_critic
+.. automodule:: mushroom_rl.algorithms.actor_critic.classic_actor_critic
     :members:
     :private-members:
     :inherited-members:
@@ -13,7 +13,7 @@ Classical Actor-Critic Methods
 Deep Actor-Critic Methods
 -------------------------
 
-.. automodule:: mushroom.algorithms.actor_critic.deep_actor_critic
+.. automodule:: mushroom_rl.algorithms.actor_critic.deep_actor_critic
     :members:
     :private-members:
     :inherited-members:

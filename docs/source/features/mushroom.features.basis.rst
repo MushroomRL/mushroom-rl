@@ -4,7 +4,7 @@ Basis
 Fourier
 -------
 
-.. automodule:: mushroom.features.basis.fourier
+.. automodule:: mushroom_rl.features.basis.fourier
     :members:
     :private-members:
     :inherited-members:
@@ -13,7 +13,7 @@ Fourier
 Gaussian RBF
 ------------
 
-.. automodule:: mushroom.features.basis.gaussian_rbf
+.. automodule:: mushroom_rl.features.basis.gaussian_rbf
     :members:
     :private-members:
     :inherited-members:
@@ -22,7 +22,7 @@ Gaussian RBF
 Polynomial
 ----------
 
-.. automodule:: mushroom.features.basis.polynomial
+.. automodule:: mushroom_rl.features.basis.polynomial
     :members:
     :private-members:
     :inherited-members:

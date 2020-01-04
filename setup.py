@@ -25,11 +25,22 @@ for group_name in extras:
         all_deps += extras[group_name]
 extras['all'] = all_deps
 
+long_description = 'Mushroom is a Python Reinforcement Learning (RL) library' \
+                   'whose modularity allows to easily use well-known Python' \
+                   'libraries for tensor computation (e.g. PyTorch, Tensorflow)' \
+                   'and RL benchmarks (e.g. OpenAI Gym, PyBullet, Deepmind' \
+                   'Control Suite). It allows to perform RL experiments in a' \
+                   'simple way providing classical RL algorithms' \
+                   '(e.g. Q-Learning, SARSA, FQI), and deep RL algorithms' \
+                   '(e.g. DQN, DDPG, SAC, TD3, TRPO, PPO). Full documentation' \
+                   'available at http://mushroomrl.readthedocs.io/en/latest/.'
+
 setup(
     name='mushroom-rl',
     version=__version__,
     description='A Python toolkit for Reinforcement Learning experiments.',
-    url='https://github.com/AIRLab-POLIMI/mushroom',
+    long_description=long_description,
+    url='https://github.com/AIRLab-POLIMI/mushroom-rl',
     author="Carlo D'Eramo",
     author_email='carlo.deramo@gmail.com',
     license='MIT',

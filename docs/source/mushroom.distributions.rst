@@ -1,7 +1,7 @@
 Distributions
 =============
 
-.. automodule:: mushroom.distributions.distribution
+.. automodule:: mushroom_rl.distributions.distribution
     :members:
     :private-members:
     :inherited-members:
@@ -10,7 +10,7 @@ Distributions
 Gaussian
 --------
 
-.. automodule:: mushroom.distributions.gaussian
+.. automodule:: mushroom_rl.distributions.gaussian
     :members:
     :private-members:
     :inherited-members:

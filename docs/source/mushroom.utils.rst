@@ -4,28 +4,28 @@ Utils
 Angles
 ------
 
-.. automodule:: mushroom.utils.angles
+.. automodule:: mushroom_rl.utils.angles
     :members:
     :show-inheritance:
 
 Callbacks
 ---------
 
-.. automodule:: mushroom.utils.callbacks
+.. automodule:: mushroom_rl.utils.callbacks
     :members:
     :show-inheritance:
 
 Dataset
 -------
 
-.. automodule:: mushroom.utils.dataset
+.. automodule:: mushroom_rl.utils.dataset
     :members:
     :show-inheritance:
 
 Eligibility trace
 -----------------
 
-.. automodule:: mushroom.utils.eligibility_trace
+.. automodule:: mushroom_rl.utils.eligibility_trace
     :members:
     :private-members:
     :inherited-members:
@@ -35,7 +35,7 @@ Eligibility trace
 Features
 --------
 
-.. automodule:: mushroom.utils.features
+.. automodule:: mushroom_rl.utils.features
     :members:
     :private-members:
     :inherited-members:
@@ -44,7 +44,7 @@ Features
 Folder
 ------
 
-.. automodule:: mushroom.utils.folder
+.. automodule:: mushroom_rl.utils.folder
     :members:
     :private-members:
     :inherited-members:
@@ -53,7 +53,7 @@ Folder
 Minibatches
 -----------
 
-.. automodule:: mushroom.utils.minibatches
+.. automodule:: mushroom_rl.utils.minibatches
     :members:
     :private-members:
     :inherited-members:
@@ -63,7 +63,7 @@ Minibatches
 Numerical gradient
 ------------------
 
-.. automodule:: mushroom.utils.numerical_gradient
+.. automodule:: mushroom_rl.utils.numerical_gradient
     :members:
     :private-members:
     :inherited-members:
@@ -72,7 +72,7 @@ Numerical gradient
 Parameters
 ----------
 
-.. automodule:: mushroom.utils.parameters
+.. automodule:: mushroom_rl.utils.parameters
     :members:
     :private-members:
     :inherited-members:
@@ -81,7 +81,7 @@ Parameters
 Replay memory
 -------------
 
-.. automodule:: mushroom.utils.replay_memory
+.. automodule:: mushroom_rl.utils.replay_memory
     :members:
     :private-members:
     :inherited-members:
@@ -90,14 +90,14 @@ Replay memory
 Spaces
 ------
 
-.. automodule:: mushroom.utils.spaces
+.. automodule:: mushroom_rl.utils.spaces
     :members:
     :show-inheritance:
     
 Table
 -----
 
-.. automodule:: mushroom.utils.table
+.. automodule:: mushroom_rl.utils.table
     :members:
     :private-members:
     :inherited-members:
@@ -106,7 +106,7 @@ Table
 Torch
 -----
 
-.. automodule:: mushroom.utils.torch
+.. automodule:: mushroom_rl.utils.torch
     :members:
     :private-members:
     :inherited-members:
@@ -115,7 +115,7 @@ Torch
 Value Functions
 ---------------
 
-.. automodule:: mushroom.utils.value_functions
+.. automodule:: mushroom_rl.utils.value_functions
     :members:
     :private-members:
     :inherited-members:
@@ -124,7 +124,7 @@ Value Functions
 Variance parameters
 -------------------
 
-.. automodule:: mushroom.utils.variance_parameters
+.. automodule:: mushroom_rl.utils.variance_parameters
     :members:
     :private-members:
     :inherited-members:
@@ -133,7 +133,7 @@ Variance parameters
 Viewer
 ------
 
-.. automodule:: mushroom.utils.viewer
+.. automodule:: mushroom_rl.utils.viewer
     :members:
     :private-members:
     :inherited-members:

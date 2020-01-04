@@ -54,8 +54,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Mushroom'
-copyright = u'2018, 2019 Carlo D\'Eramo, Davide Tateo'
+project = u'MushroomRL'
+copyright = u'2018, 2019, 2020 Carlo D\'Eramo, Davide Tateo'
 author = u'Carlo D\'Eramo'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -122,7 +122,7 @@ html_show_sourcelink=False
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'Mushroomdoc'
+htmlhelp_basename = 'MushroomRLdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -149,7 +149,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'Mushroom.tex', u'Mushroom Documentation',
+    (master_doc, 'MushroomRL.tex', u'MushroomRL Documentation',
      u'Carlo D\'Eramo, Davide Tateo', 'manual'),
 ]
 
@@ -159,7 +159,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'mushroom', u'Mushroom Documentation',
+    (master_doc, 'mushroom_rl', u'MushroomRL Documentation',
      [author], 1)
 ]
 
@@ -170,8 +170,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'Mushroom', u'Mushroom Documentation',
-     author, 'Mushroom', 'One line description of project.',
+    (master_doc, 'MushroomRL', u'MushroomRL Documentation',
+     author, 'MushroomRL', 'One line description of project.',
      'Miscellaneous'),
 ]
 

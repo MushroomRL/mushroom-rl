@@ -4,7 +4,7 @@ Solvers
 Dynamic programming
 -------------------
 
-.. automodule:: mushroom.solvers.dynamic_programming
+.. automodule:: mushroom_rl.solvers.dynamic_programming
     :members:
     :private-members:
     :inherited-members:
@@ -13,7 +13,7 @@ Dynamic programming
 Car-On-Hill brute-force solver
 ------------------------------
 
-.. automodule:: mushroom.solvers.car_on_hill
+.. automodule:: mushroom_rl.solvers.car_on_hill
     :members:
     :private-members:
     :inherited-members:

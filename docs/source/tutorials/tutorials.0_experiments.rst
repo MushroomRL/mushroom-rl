@@ -1,8 +1,8 @@
 How to make a simple experiment
 ===============================
 
-The main purpose of Mushroom is to simplify the scripting of RL experiments. A
-standard example of a script to run an experiment in Mushroom, consists of:
+The main purpose of MushroomRL is to simplify the scripting of RL experiments. A
+standard example of a script to run an experiment in MushroomRL, consists of:
 
 * an **initial part** where the setting of the experiment are specified;
 * a **middle part** where the experiment is run;
@@ -21,7 +21,7 @@ The MDP can be simply created with:
 .. literalinclude:: code/simple_experiment.py
    :lines: 1-11
 
-A Mushroom **agent** is the algorithm that is run to learn in the MDP. It consists
+A MushroomRL **agent** is the algorithm that is run to learn in the MDP. It consists
 of a policy approximator and of the methods to improve the policy during the
 learning. It also contains the features to extract in the case of MDP with continuous
 state and action spaces. An agent can be defined this way:

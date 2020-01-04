@@ -1,7 +1,7 @@
 Tiles
 =====
 
-.. automodule:: mushroom.features.tiles.tiles
+.. automodule:: mushroom_rl.features.tiles.tiles
     :members:
     :private-members:
     :inherited-members:

@@ -3,28 +3,28 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-========
-Mushroom
-========
+==========
+MushroomRL
+==========
 
 Reinforcement Learning python library
 -------------------------------------
 
 .. highlight:: python
 
-Mushroom is a Reinforcement Learning (RL) library that aims to be a simple, yet
+MushroomRL is a Reinforcement Learning (RL) library that aims to be a simple, yet
 powerful way to make **RL** and **deep RL** experiments. The idea behind Mushroom
 consists in offering the majority of RL algorithms providing a common interface
 in order to run them without excessive effort. Moreover, it is designed in such
 a way that new algorithms and other stuff can generally be added transparently
-without the need of editing other parts of the code. Mushroom makes a large use
+without the need of editing other parts of the code. MushroomRL makes a large use
 of the environments provided by
 `OpenAI Gym <https://gym.openai.com/>`_,
 `DeepMind Control Suite <https://github.com/deepmind/dm_control>`_ and
 `MuJoCo <http://www.mujoco.org/>`_ libraries, and
 the `PyTorch <https://pytorch.org>`_ library for tensor computation.
 
-With Mushroom you can:
+With MushroomRL you can:
 
 - solve RL problems simply writing a single small script;
 - add custom algorithms and other stuff transparently;
@@ -40,7 +40,7 @@ Solve a discrete MDP in few a lines. Firstly, create a **MDP**:
 
 ::
 
-    from mushroom.environments import GridWorld
+    from mushroom_rl.environments import GridWorld
 
     mdp = GridWorld(width=3, height=3, goal=(2, 2), start=(0, 0))
 
@@ -48,8 +48,8 @@ Then, an epsilon-greedy **policy** with:
 
 ::
 
-    from mushroom.policy import EpsGreedy
-    from mushroom.utils.parameters import Parameter
+    from mushroom_rl.policy import EpsGreedy
+    from mushroom_rl.utils.parameters import Parameter
 
     epsilon = Parameter(value=1.)
     policy = EpsGreedy(epsilon=epsilon)
@@ -58,7 +58,7 @@ Eventually, the **agent** is:
 
 ::
 
-    from mushroom.algorithms.value import QLearning
+    from mushroom_rl.algorithms.value import QLearning
 
     learning_rate = Parameter(value=.6)
     agent = QLearning(policy, mdp.info, learning_rate)
@@ -67,7 +67,7 @@ Learn:
 
 ::
 
-    from mushroom.core.core import Core
+    from mushroom_rl.core.core import Core
 
     core = Core(agent, mdp)
     core.learn(n_steps=10000, n_steps_per_fit=1)
@@ -109,37 +109,29 @@ representing a state of the MDP.
 Download and installation
 -------------------------
 
-Mushroom can be downloaded from the
-`GitHub <https://github.com/carloderamo/mushroom>`_ repository.
+MushroomRL can be downloaded from the
+`GitHub <https://github.com/AIRLab-POLIMI/mushroom-rl>`_ repository.
 Installation can be done running
 
 ::
 
-    pip3 install -e .
-    
-and
-
-::
-
-    pip3 install -r requirements.txt
-    
-to install all its dependencies.
+    pip3 install mushroom_rl
 
 To compile the documentation:
 
 ::
 
-    cd mushroom/docs
+    cd mushroom_rl/docs
     make html
 
 or to compile the pdf version:
 
 ::
 
-    cd mushroom/docs
+    cd mushroom_rl/docs
     make latexpdf
 
-To launch mushroom test suite:
+To launch MushroomRL test suite:
 
 ::
 

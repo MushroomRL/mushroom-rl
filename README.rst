@@ -1,29 +1,29 @@
-Mushroom
-********
+MushroomRL
+**********
 
-.. image:: https://travis-ci.org/AIRLab-POLIMI/mushroom.svg?branch=master
-   :target: https://travis-ci.org/AIRLab-POLIMI/mushroom
+.. image:: https://travis-ci.org/AIRLab-POLIMI/mushroom-rl.svg?branch=master
+   :target: https://travis-ci.org/AIRLab-POLIMI/mushroom-rl
 
 .. image:: https://readthedocs.org/projects/mushroomrl/badge/?version=latest
    :target: https://mushroomrl.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
     
 .. image:: https://api.codeclimate.com/v1/badges/4a56cb5f751e762bea69/maintainability
-   :target: https://codeclimate.com/github/AIRLab-POLIMI/mushroom/maintainability
+   :target: https://codeclimate.com/github/AIRLab-POLIMI/mushroom-rl/maintainability
    :alt: Maintainability
    
 .. image:: https://api.codeclimate.com/v1/badges/4a56cb5f751e762bea69/test_coverage
-   :target: https://codeclimate.com/github/AIRLab-POLIMI/mushroom/test_coverage
+   :target: https://codeclimate.com/github/AIRLab-POLIMI/mushroom-rl/test_coverage
    :alt: Test Coverage
 
-**Mushroom: Reinforcement Learning Python library.**
+**MushroomRL: Reinforcement Learning Python library.**
 
 .. contents:: **Contents of this document:**
    :depth: 2
 
-What is Mushroom
-================
-Mushroom is a Python Reinforcement Learning (RL) library whose modularity allows
+What is MushroomRL
+==================
+MushroomRL is a Python Reinforcement Learning (RL) library whose modularity allows
 to easily use well-known Python libraries for tensor computation (e.g. PyTorch,
 Tensorflow) and RL benchmarks (e.g. OpenAI Gym, PyBullet, Deepmind Control Suite).
 It allows to perform RL experiments in a simple way providing classical RL algorithms
@@ -35,13 +35,11 @@ Full documentation available at http://mushroomrl.readthedocs.io/en/latest/.
 Installation
 ============
 
-You can do a minimal installation of ``Mushroom`` with:
+You can do a minimal installation of ``MushroomRL`` with:
 
 .. code:: shell
 
-	git clone https://github.com/AIRLab-POLIMI/mushroom.git
-	cd mushroom
-	pip3 install -e .
+	pip3 install mushroom_rl
 
 Installing everything
 ---------------------
@@ -50,24 +48,24 @@ You can install everything by running:
 
 .. code:: shell
 
-	pip3 install -e '.[all]'
+	pip3 install mushroom_rl '.[all]'
 
-This will install every dependency of mushroom, except MuJoCo dependencies.
-To use the ``mujoco-py`` mushroom interface you can run the command:
+This will install every dependency of MushroomRL, except MuJoCo dependencies.
+To use the ``mujoco-py`` MushroomRL interface you can run the command:
 
 .. code:: shell
 
-	pip3 install -e '.[mujoco]'
+	pip3 install mushroom_rl '.[mujoco]'
 
 You might need to install external dependencies first. For more information about mujoco-py
 installation follow the instructions on the `project page <https://github.com/openai/mujoco-py>`_
 
-To use dm_control mushroom interface, install ``dm_control`` following the instruction that can
+To use dm_control MushroomRL interface, install ``dm_control`` following the instruction that can
 be found `here <https://github.com/deepmind/dm_control>`_
 
 How to set and run and experiment
 =================================
-To run experiments, Mushroom requires a script file that provides the necessary information
+To run experiments, MushroomRL requires a script file that provides the necessary information
 for the experiment. Follow the scripts in the "examples" folder to have an idea
 of how an experiment can be run.
 

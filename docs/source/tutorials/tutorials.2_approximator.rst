@@ -1,7 +1,7 @@
 How to create a regressor
 =========================
 
-Mushroom offers a high-level interface to build function regressors. Indeed, it
+MushroomRL offers a high-level interface to build function regressors. Indeed, it
 transparently manages regressors for generic functions and Q-function regressors.
 The user should not care about the low-level implementation of these regressors and
 should only use the ``Regressor`` interface. This interface creates a Q-function regressor
@@ -12,7 +12,7 @@ Usage of the ``Regressor`` interface
 ------------------------------------
 
 When the action space of RL problems is finite and the adopted approach is value-based,
- we want to compute the Q-function of each action. In Mushroom, this is possible using:
+ we want to compute the Q-function of each action. In MushroomRL, this is possible using:
 
 * a Q-function regressor with a different approximator for each action (``ActionRegressor``);
 * a single Q-function regressor with a different output for each action (``QRegressor``).
