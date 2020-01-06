@@ -48,5 +48,9 @@ setup(
               if package.startswith('mushroom_rl')],
     zip_safe=False,
     install_requires=requires_list,
-    extras_require=extras
+    extras_require=extras,
+    classifiers=["Programming Language :: Python :: 3",
+                 "License :: OSI Approved :: MIT License",
+                 "Operating System :: OS Independent",
+                 ]
 )
