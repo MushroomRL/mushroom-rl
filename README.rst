@@ -8,11 +8,11 @@ MushroomRL
    :target: https://mushroomrl.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
     
-.. image:: https://api.codeclimate.com/v1/badges/4a56cb5f751e762bea69/maintainability
+.. image:: https://api.codeclimate.com/v1/badges/3de0080368fd3f390a66/maintainability
    :target: https://codeclimate.com/github/AIRLab-POLIMI/mushroom-rl/maintainability
    :alt: Maintainability
    
-.. image:: https://api.codeclimate.com/v1/badges/4a56cb5f751e762bea69/test_coverage
+.. image:: https://api.codeclimate.com/v1/badges/3de0080368fd3f390a66/test_coverage
    :target: https://codeclimate.com/github/AIRLab-POLIMI/mushroom-rl/test_coverage
    :alt: Test Coverage
 
