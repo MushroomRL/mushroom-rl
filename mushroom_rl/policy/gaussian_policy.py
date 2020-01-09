@@ -4,7 +4,23 @@ from .policy import ParametricPolicy
 from scipy.stats import multivariate_normal
 
 
-class GaussianPolicy(ParametricPolicy):
+class AbstractGaussianPolicy(ParametricPolicy):
+    """
+    Abstract class of Gaussian policies.
+
+    """
+    def __call__(self, state, action):
+        mu, sigma = self._compute_multivariate_gaussian(state)[:2]
+
+        return multivariate_normal.pdf(action, mu, sigma)
+
+    def draw_action(self, state):
+        mu, sigma = self._compute_multivariate_gaussian(state)[:2]
+
+        return np.random.multivariate_normal(mu, sigma)
+
+
+class GaussianPolicy(AbstractGaussianPolicy):
     """
     Gaussian policy.
     This is a differentiable policy for continuous action spaces.
@@ -41,16 +57,6 @@ class GaussianPolicy(ParametricPolicy):
         self._sigma = sigma
         self._inv_sigma = np.linalg.inv(sigma)
 
-    def __call__(self, state, action):
-        mu, sigma, _ = self._compute_multivariate_gaussian(state)
-
-        return multivariate_normal.pdf(action, mu, sigma)
-
-    def draw_action(self, state):
-        mu, sigma, _ = self._compute_multivariate_gaussian(state)
-
-        return np.random.multivariate_normal(mu, sigma)
-
     def diff_log(self, state, action):
 
         mu, _, inv_sigma = self._compute_multivariate_gaussian(state)
@@ -83,7 +89,7 @@ class GaussianPolicy(ParametricPolicy):
         return mu, self._sigma, self._inv_sigma
 
 
-class DiagonalGaussianPolicy(ParametricPolicy):
+class DiagonalGaussianPolicy(AbstractGaussianPolicy):
     """
     Gaussian policy with learnable standard deviation.
     The Covariance matrix is
@@ -118,16 +124,6 @@ class DiagonalGaussianPolicy(ParametricPolicy):
 
         """
         self._std = std
-
-    def __call__(self, state, action):
-        mu, sigma, _ = self._compute_multivariate_gaussian(state)
-
-        return multivariate_normal.pdf(action, mu, sigma)
-
-    def draw_action(self, state):
-        mu, sigma, _ = self._compute_multivariate_gaussian(state)
-
-        return np.random.multivariate_normal(mu, sigma)
 
     def diff_log(self, state, action):
         mu, _, inv_sigma = self._compute_multivariate_gaussian(state)
@@ -169,7 +165,7 @@ class DiagonalGaussianPolicy(ParametricPolicy):
         return mu, np.diag(sigma), np.diag(1. / sigma)
 
 
-class StateStdGaussianPolicy(ParametricPolicy):
+class StateStdGaussianPolicy(AbstractGaussianPolicy):
     """
     Gaussian policy with learnable standard deviation.
     The Covariance matrix is
@@ -200,16 +196,6 @@ class StateStdGaussianPolicy(ParametricPolicy):
         self._mu_approximator = mu
         self._std_approximator = std
         self._eps = eps
-
-    def __call__(self, state, action):
-        mu, sigma, _ = self._compute_multivariate_gaussian(state)
-
-        return multivariate_normal.pdf(action, mu, sigma)
-
-    def draw_action(self, state):
-        mu, sigma, _ = self._compute_multivariate_gaussian(state)
-
-        return np.random.multivariate_normal(mu, sigma)
 
     def diff_log(self, state, action):
 
@@ -265,7 +251,7 @@ class StateStdGaussianPolicy(ParametricPolicy):
         return mu, np.diag(sigma), std
 
 
-class StateLogStdGaussianPolicy(ParametricPolicy):
+class StateLogStdGaussianPolicy(AbstractGaussianPolicy):
     """
     Gaussian policy with learnable standard deviation.
     The Covariance matrix is
@@ -291,16 +277,6 @@ class StateLogStdGaussianPolicy(ParametricPolicy):
         """
         self._mu_approximator = mu
         self._log_std_approximator = log_std
-
-    def __call__(self, state, action):
-        mu, sigma = self._compute_multivariate_gaussian(state)
-
-        return multivariate_normal.pdf(action, mu, sigma)
-
-    def draw_action(self, state):
-        mu, sigma = self._compute_multivariate_gaussian(state)
-
-        return np.random.multivariate_normal(mu, sigma)
 
     def diff_log(self, state, action):
 

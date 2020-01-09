@@ -1,5 +1,3 @@
-import numpy as np
-
 from .features_implementation import FeaturesImplementation
 
 
@@ -12,15 +10,6 @@ class FunctionalFeatures(FeaturesImplementation):
         x = self._concatenate(args)
 
         return self._function(x)
-
-    @staticmethod
-    def _concatenate(args):
-        if len(args) > 1:
-            x = np.concatenate(args, axis=-1)
-        else:
-            x = args[0]
-
-        return x
 
     @property
     def size(self):

@@ -16,10 +16,7 @@ class TilesFeatures(FeaturesImplementation):
             self._size += tiling.size
 
     def __call__(self, *args):
-        if len(args) > 1:
-            x = np.concatenate(args, axis=-1)
-        else:
-            x = args[0]
+        x = self._concatenate(args)
 
         y = list()
 
