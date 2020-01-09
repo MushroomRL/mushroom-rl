@@ -121,7 +121,7 @@ algorithm_params = dict(
     max_replay_size=max_replay_size
 )
 
-agent = DQN(approximator, pi, mdp.info,
+agent = DQN(mdp.info, pi, approximator,
             approximator_params=approximator_params,
             **algorithm_params)
 

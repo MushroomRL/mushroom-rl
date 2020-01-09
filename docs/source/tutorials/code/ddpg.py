@@ -103,8 +103,9 @@ critic_params = dict(network=CriticNetwork,
 
 # Agent
 agent = DDPG(mdp.info, policy_class, policy_params,
+             actor_params, actor_optimizer, critic_params,
              batch_size, initial_replay_size, max_replay_size,
-             tau, critic_params, actor_params, actor_optimizer)
+             tau)
 
 # Algorithm
 core = Core(agent, mdp)
