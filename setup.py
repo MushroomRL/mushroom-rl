@@ -40,7 +40,7 @@ setup(
     version=__version__,
     description='A Python toolkit for Reinforcement Learning experiments.',
     long_description=long_description,
-    url='https://github.com/AIRLab-POLIMI/mushroom-rl',
+    url='https://github.com/MushroomRL/mushroom-rl',
     author="Carlo D'Eramo",
     author_email='carlo.deramo@gmail.com',
     license='MIT',

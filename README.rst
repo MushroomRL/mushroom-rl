@@ -1,19 +1,19 @@
 MushroomRL
 **********
 
-.. image:: https://travis-ci.org/AIRLab-POLIMI/mushroom-rl.svg?branch=master
-   :target: https://travis-ci.org/AIRLab-POLIMI/mushroom-rl
+.. image:: https://travis-ci.org/MushroomRL/mushroom-rl.svg?branch=master
+   :target: https://travis-ci.org/MushroomRL/mushroom-rl
 
 .. image:: https://readthedocs.org/projects/mushroomrl/badge/?version=latest
    :target: https://mushroomrl.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
     
-.. image:: https://api.codeclimate.com/v1/badges/3de0080368fd3f390a66/maintainability
-   :target: https://codeclimate.com/github/AIRLab-POLIMI/mushroom-rl/maintainability
+.. image:: https://api.codeclimate.com/v1/badges/3b0e7167358a661ed882/maintainability
+   :target: https://codeclimate.com/github/MushroomRL/mushroom-rl/maintainability
    :alt: Maintainability
    
-.. image:: https://api.codeclimate.com/v1/badges/3de0080368fd3f390a66/test_coverage
-   :target: https://codeclimate.com/github/AIRLab-POLIMI/mushroom-rl/test_coverage
+.. image:: https://api.codeclimate.com/v1/badges/3b0e7167358a661ed882/test_coverage
+   :target: https://codeclimate.com/github/MushroomRL/mushroom-rl/test_coverage
    :alt: Test Coverage
 
 **MushroomRL: Reinforcement Learning Python library.**
