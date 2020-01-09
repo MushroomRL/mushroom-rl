@@ -110,7 +110,7 @@ Download and installation
 -------------------------
 
 MushroomRL can be downloaded from the
-`GitHub <https://github.com/AIRLab-POLIMI/mushroom-rl>`_ repository.
+`GitHub <https://github.com/MushroomRL/mushroom-rl>`_ repository.
 Installation can be done running
 
 ::
