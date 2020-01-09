@@ -29,7 +29,7 @@ class PyTorchGaussianRBF(nn.Module):
         """
         Factory method that generates the list of dictionaries to build the
         tensors representing a set of uniformly spaced Gaussian radial basis
-        functions with a 25\% overlap.
+        functions with a 25% overlap.
 
         Args:
             n_centers (list): list of the number of radial basis functions to be

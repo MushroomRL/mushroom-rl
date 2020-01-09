@@ -47,35 +47,25 @@ class Gym(Environment):
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
         if isinstance(action_space, Discrete):
-            self._convert_action = self._convert_action_function
+            self._convert_action = lambda a: a[0]
         else:
-            self._convert_action = self._no_convert
-
-        if isinstance(observation_space,
-                      Discrete) and len(observation_space.size) > 1:
-                self._convert_state = self._convert_state_function
-        else:
-            self._convert_state = self._no_convert
+            self._convert_action = lambda a: a
 
         super().__init__(mdp_info)
 
     def reset(self, state=None):
         if state is None:
-            self._state = self.env.reset()
+            return self.env.reset()
         else:
             self.env.reset()
             self.env.state = state
-            self._state = state
 
-        return self._state
+            return state
 
     def step(self, action):
         action = self._convert_action(action)
-        self._state, reward, absorbing, info = self.env.step(action)
 
-        self._state = self._convert_state(self._state)
-
-        return self._state, reward, absorbing, info
+        return self.env.step(action)
 
     def render(self, mode='human'):
         self.env.render(mode=mode)
@@ -94,15 +84,3 @@ class Gym(Environment):
             return Box(low=space.low, high=space.high, shape=space.shape)
         else:
             raise ValueError
-
-    @staticmethod
-    def _no_convert(x):
-        return x
-
-    @staticmethod
-    def _convert_state_function(state):
-        return state - state.low
-
-    @staticmethod
-    def _convert_action_function(action):
-        return int(action[0])
