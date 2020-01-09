@@ -56,3 +56,14 @@ class DeepAC(Agent):
     def _clip_gradient(self):
         if self._clipping:
             self._clipping(self._parameters, **self._clipping_params)
+
+    @staticmethod
+    def _init_target(online, target):
+        for i in range(len(target)):
+            target[i].set_weights(online[i].get_weights())
+
+    def _update_target(self, online, target):
+        for i in range(len(target)):
+            weights = self._tau * online[i].get_weights()
+            weights += (1 - self._tau) * target[i].get_weights()
+            target[i].set_weights(weights)

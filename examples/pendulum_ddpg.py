@@ -135,10 +135,7 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
 
 
 if __name__ == '__main__':
-    algs = [
-        DDPG,
-        TD3
-    ]
+    algs = [DDPG, TD3]
 
     for alg in algs:
         print('Algorithm: ', alg.__name__)

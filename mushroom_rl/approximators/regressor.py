@@ -204,3 +204,11 @@ class Regressor:
 
     def __len__(self):
         return 1 if self._n_models == 1 else len(self._impl)
+
+    def __getitem__(self, item):
+        if len(self) == 1:
+            assert item == 0
+
+            return self.model
+        else:
+            return self.model[item]
