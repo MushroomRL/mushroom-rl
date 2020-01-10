@@ -73,7 +73,7 @@ We create the actor and the critic approximators:
 Finally, we create the ``agent`` and the ``core``:
 
 .. literalinclude:: code/ddpg.py
-   :lines: 104-110
+   :lines: 104-111
 
 As in ``DQN``, we alternate learning and evaluation steps:
 

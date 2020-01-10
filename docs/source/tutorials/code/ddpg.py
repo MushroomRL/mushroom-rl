@@ -90,12 +90,12 @@ actor_params = dict(network=ActorNetwork,
                     output_shape=mdp.info.action_space.shape)
 
 actor_optimizer = {'class': optim.Adam,
-                   'params': {'lr': .001}}
+                   'params': {'lr': 1e-5}}
 
 critic_input_shape = (actor_input_shape[0] + mdp.info.action_space.shape[0],)
 critic_params = dict(network=CriticNetwork,
                      optimizer={'class': optim.Adam,
-                                'params': {'lr': .001}},
+                                'params': {'lr': 1e-3}},
                      loss=F.mse_loss,
                      n_features=n_features,
                      input_shape=critic_input_shape,
@@ -120,10 +120,11 @@ n_steps_test = 2000
 
 dataset = core.evaluate(n_steps=n_steps_test, render=False)
 J = compute_J(dataset, gamma_eval)
+print('Epoch: 0')
 print('J: ', np.mean(J))
 
 for n in range(n_epochs):
-    print('Epoch: ', n)
+    print('Epoch: ', n+1)
     core.learn(n_steps=n_steps, n_steps_per_fit=1)
     dataset = core.evaluate(n_steps=n_steps_test, render=False)
     J = compute_J(dataset, gamma_eval)
