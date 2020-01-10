@@ -62,31 +62,6 @@ class TD3(DDPG):
 
         return -q.mean()
 
-    def _init_target(self):
-        """
-        Initialize weights for target approximators.
-
-        """
-        self._target_actor_approximator.set_weights(
-            self._actor_approximator.get_weights())
-        for i in range(len(self._critic_approximator)):
-            self._target_critic_approximator.model[i].set_weights(
-                self._critic_approximator.model[i].get_weights())
-
-    def _update_target(self):
-        """
-        Update the target networks.
-
-        """
-        for i in range(len(self._target_critic_approximator)):
-            critic_weights_i = self._tau * self._critic_approximator.model[i].get_weights()
-            critic_weights_i += (1 - self._tau) * self._target_critic_approximator.model[i].get_weights()
-            self._target_critic_approximator.model[i].set_weights(critic_weights_i)
-
-        actor_weights = self._tau * self._actor_approximator.get_weights()
-        actor_weights += (1 - self._tau) * self._target_actor_approximator.get_weights()
-        self._target_actor_approximator.set_weights(actor_weights)
-
     def _next_q(self, next_state, absorbing):
         """
         Args:

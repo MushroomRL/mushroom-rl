@@ -131,23 +131,18 @@ def compute_reward(grid_map, cell_list, pos_rew, neg_rew):
     r = np.zeros((n_states, 4, n_states))
     directions = [[-1, 0], [1, 0], [0, -1], [0, 1]]
 
-    for goal in np.argwhere(g == 'G'):
-        j = np.where((c == goal).all(axis=1))[0]
+    def give_reward(t, rew):
+        for x in np.argwhere(g == t):
+            j = np.where((c == x).all(axis=1))[0]
 
-        for a in range(len(directions)):
-            prev_state = goal - directions[a]
-            if prev_state in c:
-                i = np.where((c == prev_state).all(axis=1))[0]
-                r[i, a, j] = pos_rew
+            for a in range(len(directions)):
+                prev_state = x - directions[a]
+                if prev_state in c:
+                    i = np.where((c == prev_state).all(axis=1))[0]
+                    r[i, a, j] = rew
 
-    for hole in np.argwhere(g == '*'):
-        j = np.where((c == hole).all(axis=1))[0]
-
-        for a in range(len(directions)):
-            prev_state = hole - directions[a]
-            if prev_state in c:
-                i = np.where((c == prev_state).all(axis=1))[0]
-                r[i, a, j] = neg_rew
+    give_reward('G', pos_rew)
+    give_reward('*', neg_rew)
 
     return r
 

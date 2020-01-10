@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class FeaturesImplementation(object):
     def __call__(self, *x):
         """
@@ -13,6 +16,15 @@ class FeaturesImplementation(object):
 
         """
         pass
+
+    @staticmethod
+    def _concatenate(args):
+        if len(args) > 1:
+            x = np.concatenate(args, axis=-1)
+        else:
+            x = args[0]
+
+        return x
 
     @property
     def size(self):

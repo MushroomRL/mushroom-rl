@@ -70,6 +70,14 @@ class Regressor:
     def __call__(self, *z, **predict_params):
         return self.predict(*z, **predict_params)
 
+    def _ndim(self):
+        if isinstance(self._input_shape[0], tuple):
+            ndim = len(self._input_shape[0])
+        else:
+            ndim = len(self._input_shape)
+
+        return ndim
+
     def fit(self, *z, **fit_params):
         """
         Fit the model.
@@ -79,10 +87,7 @@ class Regressor:
             **fit_params (dict): parameters to use to fit the model.
 
         """
-        if isinstance(self.input_shape[0], tuple):
-            ndim = len(self._input_shape[0])
-        else:
-            ndim = len(self._input_shape)
+        ndim = self._ndim()
 
         if z[0].ndim == ndim:
             z = [np.expand_dims(z_i, axis=0) for z_i in z]
@@ -100,10 +105,7 @@ class Regressor:
             The model prediction.
 
         """
-        if isinstance(self._input_shape[0], tuple):
-            ndim = len(self._input_shape[0])
-        else:
-            ndim = len(self._input_shape)
+        ndim = self._ndim()
 
         if z[0].ndim == ndim:
             z = [np.expand_dims(z_i, axis=0) for z_i in z]
@@ -204,3 +206,11 @@ class Regressor:
 
     def __len__(self):
         return 1 if self._n_models == 1 else len(self._impl)
+
+    def __getitem__(self, item):
+        if len(self) == 1:
+            assert item == 0
+
+            return self.model
+        else:
+            return self.model[item]

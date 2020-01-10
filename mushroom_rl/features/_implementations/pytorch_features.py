@@ -10,10 +10,7 @@ class PyTorchFeatures(FeaturesImplementation):
         self._device = device
 
     def __call__(self, *args):
-        if len(args) > 1:
-            x = np.concatenate(args, axis=-1)
-        else:
-            x = args[0]
+        x = self._concatenate(args)
 
         x = torch.from_numpy(np.atleast_2d(x))
 

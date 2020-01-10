@@ -81,6 +81,20 @@ class AbstractGridWorld(Environment):
     def _step(self, state, action):
         raise NotImplementedError('AbstractGridWorld is an abstract class.')
 
+    def _grid_step(self, state, action):
+        if action == 0:
+            if state[0] > 0:
+                state[0] -= 1
+        elif action == 1:
+            if state[0] + 1 < self._height:
+                state[0] += 1
+        elif action == 2:
+            if state[1] > 0:
+                state[1] -= 1
+        elif action == 3:
+            if state[1] + 1 < self._width:
+                state[1] += 1
+
     @staticmethod
     def convert_to_grid(state, width):
         return np.array([state[0] // width, state[0] % width])
@@ -106,18 +120,7 @@ class GridWorld(AbstractGridWorld):
         super().__init__(mdp_info, height, width, start, goal)
 
     def _step(self, state, action):
-        if action == 0:
-            if state[0] > 0:
-                state[0] -= 1
-        elif action == 1:
-            if state[0] + 1 < self._height:
-                state[0] += 1
-        elif action == 2:
-            if state[1] > 0:
-                state[1] -= 1
-        elif action == 3:
-            if state[1] + 1 < self._width:
-                state[1] += 1
+        self._grid_step(state, action)
 
         if np.array_equal(state, self._goal):
             reward = 10
@@ -150,18 +153,7 @@ class GridWorldVanHasselt(AbstractGridWorld):
             reward = 5
             absorbing = True
         else:
-            if action == 0:
-                if state[0] > 0:
-                    state[0] -= 1
-            elif action == 1:
-                if state[0] + 1 < self._height:
-                    state[0] += 1
-            elif action == 2:
-                if state[1] > 0:
-                    state[1] -= 1
-            elif action == 3:
-                if state[1] + 1 < self._width:
-                    state[1] += 1
+            self._grid_step(state, action)
 
             reward = np.random.choice([-12, 10])
             absorbing = False

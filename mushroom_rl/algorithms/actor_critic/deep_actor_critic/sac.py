@@ -226,7 +226,8 @@ class SAC(DeepAC):
                            mdp_info.action_space.low,
                            mdp_info.action_space.high)
 
-        self._init_target()
+        self._init_target(self._critic_approximator,
+                          self._target_critic_approximator)
 
         self._log_alpha = torch.tensor(0., dtype=torch.float32)
 
@@ -259,16 +260,8 @@ class SAC(DeepAC):
             self._critic_approximator.fit(state, action, q,
                                           **self._critic_fit_params)
 
-            self._update_target()
-
-    def _init_target(self):
-        """
-        Init weights for target approximators.
-
-        """
-        for i in range(len(self._critic_approximator)):
-            self._target_critic_approximator.model[i].set_weights(
-                self._critic_approximator.model[i].get_weights())
+            self._update_target(self._critic_approximator,
+                                self._target_critic_approximator)
 
     def _loss(self, state, action_new, log_prob):
         q_0 = self._critic_approximator(state, action_new,
@@ -285,16 +278,6 @@ class SAC(DeepAC):
         self._alpha_optim.zero_grad()
         alpha_loss.backward()
         self._alpha_optim.step()
-
-    def _update_target(self):
-        """
-        Update the target networks.
-
-        """
-        for i in range(len(self._target_critic_approximator)):
-            critic_weights_i = self._tau * self._critic_approximator.model[i].get_weights()
-            critic_weights_i += (1 - self._tau) * self._target_critic_approximator.model[i].get_weights()
-            self._target_critic_approximator.model[i].set_weights(critic_weights_i)
 
     def _next_q(self, next_state, absorbing):
         """

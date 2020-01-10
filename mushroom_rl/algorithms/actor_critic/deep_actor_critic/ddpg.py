@@ -44,7 +44,6 @@ class DDPG(DeepAC):
                 of the critic approximator;
 
         """
-
         self._critic_fit_params = dict() if critic_fit_params is None else critic_fit_params
 
         self._batch_size = batch_size
@@ -66,7 +65,10 @@ class DDPG(DeepAC):
         self._target_actor_approximator = Regressor(TorchApproximator,
                                                     **target_actor_params)
 
-        self._init_target()
+        self._init_target(self._critic_approximator,
+                          self._target_critic_approximator)
+        self._init_target(self._actor_approximator,
+                          self._target_actor_approximator)
 
         policy = policy_class(self._actor_approximator, **policy_params)
 
@@ -90,7 +92,10 @@ class DDPG(DeepAC):
                 loss = self._loss(state)
                 self._optimize_actor_parameters(loss)
 
-            self._update_target()
+            self._update_target(self._critic_approximator,
+                                self._target_critic_approximator)
+            self._update_target(self._actor_approximator,
+                                self._target_actor_approximator)
 
             self._fit_count += 1
 
@@ -99,29 +104,6 @@ class DDPG(DeepAC):
         q = self._critic_approximator(state, action, output_tensor=True)
 
         return -q.mean()
-
-    def _init_target(self):
-        """
-        Init weights for target approximators
-
-        """
-        self._target_actor_approximator.set_weights(
-            self._actor_approximator.get_weights())
-        self._target_critic_approximator.set_weights(
-            self._critic_approximator.get_weights())
-
-    def _update_target(self):
-        """
-        Update the target networks.
-
-        """
-        critic_weights = self._tau * self._critic_approximator.get_weights()
-        critic_weights += (1 - self._tau) * self._target_critic_approximator.get_weights()
-        self._target_critic_approximator.set_weights(critic_weights)
-
-        actor_weights = self._tau * self._actor_approximator.get_weights()
-        actor_weights += (1 - self._tau) * self._target_actor_approximator.get_weights()
-        self._target_actor_approximator.set_weights(actor_weights)
 
     def _next_q(self, next_state, absorbing):
         """
