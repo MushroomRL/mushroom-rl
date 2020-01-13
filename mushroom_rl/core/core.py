@@ -6,7 +6,7 @@ class Core(object):
     Implements the functions to run a generic algorithm.
 
     """
-    def __init__(self, agent, mdp, callbacks=None):
+    def __init__(self, agent, mdp, callbacks=None, preprocessors=None):
         """
         Constructor.
 
@@ -14,12 +14,16 @@ class Core(object):
             agent (Agent): the agent moving according to a policy;
             mdp (Environment): the environment in which the agent moves;
             callbacks (list): list of callbacks to execute at the end of
-                each learn iteration.
+                each learn iteration;
+            preprocessors (list): list of state preprocessors to be
+                applied to state variables before feeding them to the
+                agent.
 
         """
         self.agent = agent
         self.mdp = mdp
         self.callbacks = callbacks if callbacks is not None else list()
+        self._preprocessors = preprocessors if preprocessors is not None else list()
 
         self._state = None
 
@@ -188,7 +192,7 @@ class Core(object):
             self._episode_steps < self.mdp.info.horizon and not absorbing)
 
         state = self._state
-        self._state = next_state.copy()
+        self._state = self._preprocess(next_state.copy())
 
         return state, action, reward, next_state, absorbing, last
 
@@ -203,7 +207,23 @@ class Core(object):
         else:
             initial_state = initial_states[self._total_episodes_counter]
 
-        self._state = self.mdp.reset(initial_state).copy()
+        self._state = self._preprocess(self.mdp.reset(initial_state).copy())
         self.agent.episode_start()
         self.agent.next_action = None
         self._episode_steps = 0
+
+    def _preprocess(self, state):
+        """
+        Method to apply state preprocessors.
+
+        Args:
+            state (np.ndarray): the state to be preprocessed.
+
+        Returns:
+             The preprocessed state.
+
+        """
+        for p in self._preprocessors:
+            state = p(state)
+
+        return state
