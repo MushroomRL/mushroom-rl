@@ -16,7 +16,8 @@ extras = {
     'atari': ['atari_py~=0.2.0', 'Pillow', 'opencv-python'],
     'box2d': ['box2d-py~=2.3.5'],
     'bullet': ['pybullet'],
-    'mujoco': ['mujoco_py']
+    'mujoco': ['mujoco_py'],
+    'plots': ['PyQt5', 'pyqtgraph']
 }
 
 all_deps = []
