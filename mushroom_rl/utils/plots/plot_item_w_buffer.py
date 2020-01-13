@@ -1,5 +1,4 @@
 import random
-from collections import Iterable
 from itertools import product
 
 import numpy as np
@@ -57,7 +56,7 @@ class PlotItemWBuffer(PlotItem):
 
         super().__init__(*args, **kwargs)
 
-        if not isinstance(self.data_buffers, Iterable):
+        if not isinstance(self.data_buffers, list):
             self.data_buffers = [self.data_buffers]
 
         self.PlotDataItemsList = list()
