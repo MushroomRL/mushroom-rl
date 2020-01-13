@@ -1,11 +1,12 @@
 import time
 
-import pyqtgraph as pg
 from PyQt5.QtGui import QBrush, QColor
 from PyQt5.QtWidgets import QTreeWidgetItem
+from PyQt5 import QtCore
+
+import pyqtgraph as pg
 from pyqtgraph import PlotItem
 from pyqtgraph.Qt import QtGui
-from qtpy import QtCore
 
 
 class Window(QtGui.QSplitter):
