@@ -17,7 +17,7 @@ extras = {
     'box2d': ['box2d-py~=2.3.5'],
     'bullet': ['pybullet'],
     'mujoco': ['mujoco_py'],
-    'plots': ['PyQt5', 'pyqtgraph']
+    'plots': ['pyqtgraph']
 }
 
 all_deps = []
