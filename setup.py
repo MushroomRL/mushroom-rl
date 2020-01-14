@@ -1,3 +1,5 @@
+import sys
+
 from setuptools import setup, find_packages
 from codecs import open
 from os import path
@@ -19,6 +21,9 @@ extras = {
     'mujoco': ['mujoco_py'],
     'plots': ['pyqtgraph']
 }
+
+if sys.version_info != (3, 5):
+    extras['plots'].insert(0, 'PyQt5')
 
 all_deps = []
 for group_name in extras:
