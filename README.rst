@@ -50,7 +50,14 @@ You can install everything by running:
 
 	pip3 install mushroom_rl '.[all]'
 
-This will install every dependency of MushroomRL, except MuJoCo dependencies.
+This will install every dependecy of the Plots viewer.
+To install what is needed you can run the command:
+
+.. code:: shell
+
+	pip3 install mushroom_rl '.[plots]'
+
+This will install every dependency of MushroomRL, except MuJoCo and Plots dependencies.
 To use the ``mujoco-py`` MushroomRL interface you can run the command:
 
 .. code:: shell

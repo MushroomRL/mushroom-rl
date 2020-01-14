@@ -3,7 +3,6 @@ import numpy as np
 from mushroom_rl.algorithms.value import SARSALambdaContinuous
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.core import Core
-from mushroom_rl.environments import *
 from mushroom_rl.features import Features
 from mushroom_rl.features.tiles import Tiles
 from mushroom_rl.policy import EpsGreedy

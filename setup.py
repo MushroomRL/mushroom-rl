@@ -17,12 +17,12 @@ extras = {
     'box2d': ['box2d-py~=2.3.5'],
     'bullet': ['pybullet'],
     'mujoco': ['mujoco_py'],
-    'plots': ['PyQt5', 'pyqtgraph']
+    'plots': ['pyqtgraph']
 }
 
 all_deps = []
 for group_name in extras:
-    if group_name != 'mujoco':
+    if group_name not in ['mujoco', 'plots']:
         all_deps += extras[group_name]
 extras['all'] = all_deps
 
