@@ -74,12 +74,12 @@ class DQN(Agent):
         policy.set_q(self.approximator)
 
         if self._n_approximators == 1:
-            self.target_approximator.model.set_weights(
-                self.approximator.model.get_weights())
+            self.target_approximator.set_weights(
+                self.approximator.get_weights())
         else:
             for i in range(self._n_approximators):
-                self.target_approximator.model[i].set_weights(
-                    self.approximator.model.get_weights())
+                self.target_approximator[i].set_weights(
+                    self.approximator.get_weights())
 
         super().__init__(mdp_info, policy)
 
@@ -128,8 +128,8 @@ class DQN(Agent):
         Update the target network.
 
         """
-        self.target_approximator.model.set_weights(
-            self.approximator.model.get_weights())
+        self.target_approximator.set_weights(
+            self.approximator.get_weights())
 
     def _next_q(self, next_state, absorbing):
         """
@@ -185,13 +185,13 @@ class AveragedDQN(DQN):
 
         self._n_fitted_target_models = 1
 
-        assert isinstance(self.target_approximator.model, Ensemble)
+        assert len(self.target_approximator) > 1
 
     def _update_target(self):
         idx = self._n_updates // self._target_update_frequency\
               % self._n_approximators
-        self.target_approximator.model[idx].set_weights(
-            self.approximator.model.get_weights())
+        self.target_approximator[idx].set_weights(
+            self.approximator.get_weights())
 
         if self._n_fitted_target_models < self._n_approximators:
             self._n_fitted_target_models += 1
