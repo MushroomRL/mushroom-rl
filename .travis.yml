@@ -5,9 +5,8 @@ before_script:
   - ./cc-test-reporter before-build
 before_install:
   - sudo apt-get update
-  - echo $VIRTUAL_ENV
+  - sudo virtualenv --system-site-packages test_env
   - sudo apt-get -y install python3-pyqt5
-  - pip list
 python:
   - "3.5_with_system_site_packages"
   - "3.6"
