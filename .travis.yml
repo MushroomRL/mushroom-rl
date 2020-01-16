@@ -6,15 +6,15 @@ before_script:
 before_install:
   - sudo apt-get update
   - sudo apt-get -y install python3-pyqt5
-  - sudo virtualenv --system-site-packages test_env
-  - source /home/travis/build/MushroomRL/mushroom-rl/test_env/bin/activate
+  - echo $VIRTUAL_ENV
+  - ln -s /usr/lib/python2.7/dist-packages/PyQt5 $VIRTUAL_ENV
 python:
-  - "3.5_with_system_site_packages"
+  - "3.5"
   - "3.6"
   - "3.7"
 install:
-  - pip install -e .[all,plots]
-  - pip install pytest-cov
+  - sudo pip install -e .[all,plots]
+  - sudo pip install pytest-cov
 script:
   - pip list
   - pytest --cov=mushroom_rl --cov-report=xml
