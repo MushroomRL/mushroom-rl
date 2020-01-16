@@ -14,11 +14,10 @@ from mushroom_rl.approximators.parametric import TorchApproximator
 from torch import optim, nn
 
 from mushroom_rl.environments.cart_pole import CartPole
-from mushroom_rl.utils.preprocessors import \
-    NormalizationBoxedProcessor
+from mushroom_rl.utils.preprocessors import NormalizationBoxedPreprocessor
 
 
-def test_normalizing_env():
+def test_normalizing_():
     np.random.seed(88)
 
     class Network(nn.Module):
@@ -66,9 +65,8 @@ def test_normalizing_env():
     agent = DQN(mdp.info, pi, TorchApproximator,
                 approximator_params=approximator_params, **alg_params)
 
-
-    norm_box = NormalizationBoxedProcessor(mdp_info=mdp.info,
-                                           clip_obs=5.0, alpha=0.001)
+    norm_box = NormalizationBoxedPreprocessor(mdp_info=mdp.info,
+                                              clip_obs=5.0, alpha=0.001)
 
     core = Core(agent, mdp, preprocessors=[norm_box])
 

@@ -4,7 +4,7 @@ import numpy as np
 from mushroom_rl.utils.running_stats import RunningStandardization
 
 
-class NormalizationProcessor(object):
+class NormalizationPreprocessor(object):
     """
     Normalizes observations from the environment using
         RunningStandardization.
@@ -80,7 +80,7 @@ class NormalizationProcessor(object):
             self.set_state(data)
 
 
-class NormalizationBoxedProcessor(NormalizationProcessor):
+class NormalizationBoxedPreprocessor(NormalizationPreprocessor):
     """
     Normalizes observations from the environment using
         mdp_info.observation_space Box range. For observations which
@@ -100,7 +100,7 @@ class NormalizationBoxedProcessor(NormalizationProcessor):
 
         """
 
-        super(NormalizationBoxedProcessor, self).__init__(mdp_info, clip_obs, alpha)
+        super(NormalizationBoxedPreprocessor, self).__init__(mdp_info, clip_obs, alpha)
 
         # create mask where observations will be normalized between
         # boxed values(not inf)
@@ -133,7 +133,7 @@ class NormalizationBoxedProcessor(NormalizationProcessor):
         orig_obs = obs.copy()
 
         if self.run_norm_obs:
-            obs = super(NormalizationBoxedProcessor, self).__call__(obs)
+            obs = super(NormalizationBoxedPreprocessor, self).__call__(obs)
 
         obs[self.stand_obs_mask] = \
             ((orig_obs - self.obs_mean) / self.obs_delta)[self.stand_obs_mask]
