@@ -23,6 +23,7 @@ extras = {
 }
 
 if sys.version_info[0:2] != (3, 5):
+    extras['plots'].insert(0, 'sip')
     extras['plots'].insert(0, 'PyQt5')
 
 all_deps = []
