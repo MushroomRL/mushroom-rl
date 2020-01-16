@@ -22,10 +22,6 @@ extras = {
     'plots': ['pyqtgraph']
 }
 
-if sys.version_info[0:2] != (3, 5):
-    extras['plots'].insert(0, 'PyQt5')
-    extras['plots'].insert(0, 'sip')
-
 all_deps = []
 for group_name in extras:
     if group_name not in ['mujoco', 'plots']:
