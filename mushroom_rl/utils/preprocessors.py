@@ -41,6 +41,20 @@ class NormalizationProcessor(object):
                            -self.clip_obs, self.clip_obs)
         return norm_obs
 
+    def get_state(self):
+        """
+        Returns a dict with the normalization state.
+
+        """
+        return self.obs_runstand.get_state()
+
+    def set_state(self, data):
+        """
+        Sets the current normalization state from the data dict.
+
+        """
+        self.obs_runstand.set_state(data)
+
     def save_state(self, path):
         """
         Saves the running normalization state to path.
@@ -50,9 +64,9 @@ class NormalizationProcessor(object):
 
         """
         with open(path, 'wb') as f:
-            pickle.dump(self.obs_runstand.get_state(), f, protocol=3)
+            pickle.dump(self.get_state(), f, protocol=3)
 
-    def set_state(self, path):
+    def load_state(self, path):
         """
         Loads the running normalization state from path.
 
@@ -63,7 +77,7 @@ class NormalizationProcessor(object):
         """
         with open(path, 'rb') as f:
             data = pickle.load(f)
-            self.obs_runstand.set_state(data)
+            self.set_state(data)
 
 
 class NormalizationBoxedProcessor(NormalizationProcessor):

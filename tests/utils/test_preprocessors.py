@@ -79,13 +79,13 @@ def test_normalizing_env():
             and core._state.max() <= norm_box.clip_obs)
 
     # loading and setting data correctly
-    state_dict1 = norm_box.obs_runstand.get_state()
+    state_dict1 = norm_box.get_state()
     norm_box.save_state("./run_norm_state")
 
     core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
 
-    norm_box.set_state("./run_norm_state")
-    state_dict2 = norm_box.obs_runstand.get_state()
+    norm_box.load_state("./run_norm_state")
+    state_dict2 = norm_box.get_state()
 
     os.remove("./run_norm_state")
     assert ((state_dict1["mean"] == state_dict2["mean"]).all()
