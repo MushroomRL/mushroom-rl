@@ -4,7 +4,7 @@ before_script:
   - chmod +x ./cc-test-reporter
   - ./cc-test-reporter before-build
 before_install:
-  - ls -la -r $VIRTUAL_ENV/lib
+  - ls -la -R $VIRTUAL_ENV/lib
   - ls -la $VIRTUAL_ENV
   - sudo apt-get update
   - sudo apt-get -y install python3-pyqt5
