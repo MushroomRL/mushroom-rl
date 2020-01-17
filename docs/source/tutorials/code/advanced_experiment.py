@@ -8,7 +8,7 @@ from mushroom_rl.features.tiles import Tiles
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.utils.callbacks import CollectDataset
 from mushroom_rl.utils.parameters import Parameter
-
+from mushroom_rl.environments import Gym
 
 # MDP
 mdp = Gym(name='MountainCar-v0', horizon=np.inf, gamma=1.)
