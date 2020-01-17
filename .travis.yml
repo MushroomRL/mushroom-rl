@@ -7,7 +7,7 @@ before_install:
   - sudo apt-get update
   - sudo apt-get -y install python3-pyqt5
   - echo $VIRTUAL_ENV
-  - ls /usr/lib/
+  - ls /usr/lib/python3/
   - ln -s /usr/lib/python2.7/dist-packages/PyQt5 $VIRTUAL_ENV
 python:
   - "3.5"
