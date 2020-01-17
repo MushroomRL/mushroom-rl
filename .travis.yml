@@ -4,9 +4,10 @@ before_script:
   - chmod +x ./cc-test-reporter
   - ./cc-test-reporter before-build
 before_install:
-  - sudo apt-get update
-  - sudo apt-get -y install python3-pyqt5
-  - ln -s /usr/lib/python3/dist-packages/PyQt5 $VIRTUAL_ENV/PyQt5
+  - ls $VIRTUAL_ENV
+  #- sudo apt-get update
+  #- sudo apt-get -y install python3-pyqt5
+  #- ln -s /usr/lib/python3/dist-packages/PyQt5 $VIRTUAL_ENV/PyQt5
 python:
   - "3.5"
   - "3.6"
