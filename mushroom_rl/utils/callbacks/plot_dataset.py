@@ -9,13 +9,11 @@ class PlotDataset(CollectDataset):
     """
     This callback is used for plotting the values of the actions, observations, reward per step,
     reward per episode, episode length only for the training.
-
     """
 
-    def __init__(self, mdp, window_size=1000, update_freq=10):
+    def __init__(self, mdp, window_size=1000, update_freq=10, show=True):
         """
         Constructor.
-
         Args:
             mdp (Environment): Environment used to extract additional parameters
                 like observation space limits, etc.;
@@ -27,7 +25,6 @@ class PlotDataset(CollectDataset):
                 method of the window runs sequentially with the rest of the script.
                 So this update frequency is only relevant if the frequency of refresh
                 calls is too high, avoiding excessive updates.
-
         """
 
         super().__init__()
@@ -89,13 +86,14 @@ class PlotDataset(CollectDataset):
             track_if_deactivated=[True, True, False, False, False],
             update_freq=update_freq)
 
+        if show:
+            self.plot_window.show()
+
     def __call__(self, dataset):
         """
         Add samples to DataBuffers and refresh window.
-
         Args:
             dataset (list): the samples to collect.
-
         """
 
         for sample in dataset:
@@ -103,7 +101,7 @@ class PlotDataset(CollectDataset):
             obs = sample[0]
             action = sample[1]
             reward = sample[2]
-            absorbing = sample[4]
+            last = sample[5]
 
             for i in range(len(action)):
                 self.action_buffers_list[i].update([action[i]])
@@ -112,16 +110,15 @@ class PlotDataset(CollectDataset):
                 self.observation_buffers_list[i].update([obs[i]])
 
             self.instant_reward_buffer.update([reward])
-            self.training_reward_buffer.update([[reward, absorbing]])
-            self.episodic_len_buffer_training.update([[1, absorbing]])
+            self.training_reward_buffer.update([[reward, last]])
+            self.episodic_len_buffer_training.update([[1, last]])
 
-            self.plot_window.refresh()
+        self.plot_window.refresh()
 
     def get_state(self):
         """
         Returns:
              The dictionary of data in each DataBuffer in tree structure associated with the plot name.
-
         """
         data = dict(plot_data={plot.name: {buffer.name: buffer.get()}
                                for plot in self.plot_window.plot_list
@@ -132,10 +129,8 @@ class PlotDataset(CollectDataset):
     def set_state(self, data):
         """
         Set the state of the DataBuffers to resume the plots.
-
         Args:
             data (dict): data of each plot and databuffer.
-
         """
 
         normalize_data = data["plot_data"]
@@ -153,10 +148,8 @@ class PlotDataset(CollectDataset):
     def save_state(self, path):
         """
         Save the data in the plots given a path.
-
         Args:
             path (str): path to save the data.
-
         """
         data = self.get_state()
         with open(path, 'wb') as f:
@@ -165,10 +158,8 @@ class PlotDataset(CollectDataset):
     def load_state(self, path):
         """
         Load the data to the plots given a path.
-
         Args:
             path (str): path to load the data.
-
         """
         with open(path, 'rb') as f:
             data = pickle.load(f)

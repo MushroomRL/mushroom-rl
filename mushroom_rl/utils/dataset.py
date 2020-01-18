@@ -47,6 +47,30 @@ def parse_dataset(dataset, features=None):
         next_state), np.array(absorbing), np.array(last)
 
 
+def convert_vector_samples_to_mushroom_tuple_samples(samples):
+    """
+    Joins the multiple components of a dataset into sample tuples.
+
+    Args:
+    samples (tuple(np.array)): tuple of arrays with multiple samples
+        and divided into:
+            array(states), array(actions), array(rewards),
+            array(next_states), array(absorbings), array(lasts)
+
+    Returns:
+        List of tuples with sample data:
+            [(state0, action0, reward0, next_state0, absorbing0, last0),
+                                    (...),
+            (stateN, actionN, rewardN, next_stateN, absorbingN, last0N)]
+    """
+
+    mushroom_samples = []
+    for state, action, reward, next_state, absorbing, last in zip(*samples):
+        mushroom_samples.append((state, action, reward.item(0), next_state,
+                                 absorbing.item(0), last.item(0)))
+    return mushroom_samples
+
+
 def episodes_length(dataset):
     """
     Compute the length of each episode in the dataset.
