@@ -12,7 +12,7 @@ class PlotDataset(CollectDataset):
 
     """
 
-    def __init__(self, mdp, window_size=1000, update_freq=10):
+    def __init__(self, mdp, window_size=1000, update_freq=10, show=True):
         """
         Constructor.
 
@@ -89,6 +89,9 @@ class PlotDataset(CollectDataset):
             track_if_deactivated=[True, True, False, False, False],
             update_freq=update_freq)
 
+        if show:
+            self.plot_window.show()
+
     def __call__(self, dataset):
         """
         Add samples to DataBuffers and refresh window.
@@ -103,7 +106,7 @@ class PlotDataset(CollectDataset):
             obs = sample[0]
             action = sample[1]
             reward = sample[2]
-            absorbing = sample[4]
+            last = sample[5]
 
             for i in range(len(action)):
                 self.action_buffers_list[i].update([action[i]])
@@ -112,10 +115,10 @@ class PlotDataset(CollectDataset):
                 self.observation_buffers_list[i].update([obs[i]])
 
             self.instant_reward_buffer.update([reward])
-            self.training_reward_buffer.update([[reward, absorbing]])
-            self.episodic_len_buffer_training.update([[1, absorbing]])
+            self.training_reward_buffer.update([[reward, last]])
+            self.episodic_len_buffer_training.update([[1, last]])
 
-            self.plot_window.refresh()
+        self.plot_window.refresh()
 
     def get_state(self):
         """
