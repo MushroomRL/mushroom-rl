@@ -3,7 +3,7 @@ import pickle
 from mushroom_rl.utils.callbacks.collect_dataset import CollectDataset
 import mushroom_rl.utils.plots as plots
 from mushroom_rl.utils.spaces import Box
-
+from mushroom_rl.utils.dataset import episodes_length, compute_J
 
 class PlotDataset(CollectDataset):
     """
@@ -45,11 +45,9 @@ class PlotDataset(CollectDataset):
         self.instant_reward_buffer = \
             plots.DataBuffer("Instant_reward", window_size)
 
-        self.training_reward_buffer = \
-            plots.common_buffers.EndOfEpisodeBuffer("Episode_reward")
+        self.training_reward_buffer = plots.DataBuffer("Episode_reward")
 
-        self.episodic_len_buffer_training = \
-            plots.common_buffers.EndOfEpisodeBuffer("Episode_len")
+        self.episodic_len_buffer_training = plots.DataBuffer("Episode_len")
 
         if isinstance(mdp.info.action_space, Box):
             high_actions = mdp.info.action_space.high.tolist()
@@ -100,13 +98,12 @@ class PlotDataset(CollectDataset):
             dataset (list): the samples to collect.
 
         """
+        super().__call__(dataset)
 
         for sample in dataset:
-
             obs = sample[0]
             action = sample[1]
             reward = sample[2]
-            last = sample[5]
 
             for i in range(len(action)):
                 self.action_buffers_list[i].update([action[i]])
@@ -115,8 +112,20 @@ class PlotDataset(CollectDataset):
                 self.observation_buffers_list[i].update([obs[i]])
 
             self.instant_reward_buffer.update([reward])
-            self.training_reward_buffer.update([[reward, last]])
-            self.episodic_len_buffer_training.update([[1, last]])
+
+        lengths_of_episodes = episodes_length(self._data_list)
+
+        start_index = 0
+        for length_of_episode in lengths_of_episodes:
+            sub_dataset = self._data_list[start_index:start_index+length_of_episode]
+
+            episodic_reward = compute_J(sub_dataset)
+            self.training_reward_buffer.update([episodic_reward[0]])
+            self.episodic_len_buffer_training.update([length_of_episode])
+
+            start_index = length_of_episode
+
+        self._data_list = self._data_list[start_index:]
 
         self.plot_window.refresh()
 
