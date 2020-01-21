@@ -1,3 +1,4 @@
+import os
 import numpy as np
 
 import torch
@@ -112,7 +113,7 @@ def create_agent(mdp):
     return agent
 
 
-def experiment(n_epochs, n_steps, n_steps_test):
+def experiment(n_epochs, n_steps, n_steps_test, save_states_to_disk=False):
     np.random.seed()
 
     # MDP
@@ -138,29 +139,17 @@ def experiment(n_epochs, n_steps, n_steps_test):
         dataset = core.evaluate(n_steps=n_steps_test, render=False)
         print('Epoch: ', n, '  J: ', np.mean(compute_J(dataset, gamma)))
 
-    ### Both normalization and plot states can be saved and loaded: ###
+    if save_states_to_disk:
+        # save normalization / plot states to disk path
+        os.makedirs("./temp/", exist_ok=True)
+        normalizer.save_state("./temp/normalization_state")
+        plotter.save_state("./temp/plotting_state")
 
-    # get normalization / plot states to a variable
-    norm_state = normalizer.get_state()
-    plot_state = plotter.get_state()
-    print(norm_state)
-    print(plot_state)
-
-    # set states directly
-    normalizer.set_state(norm_state)
-    plotter.set_state(plot_state)
-
-    # save normalization / plot states to disk path
-    #os.makedirs("./temp/", exist_ok=True)
-    #normalizer.save_state("./temp/normalization_state")
-    #plotter.save_state("./temp/plotting_state")
-    #print("Files saved")
-
-    # load states from disk path
-    #normalizer.load_state("./temp/normalization_state")
-    #plotter.load_state("./temp/plotting_state")
-    #print("Files loaded")
+        # load states from disk path
+        normalizer.load_state("./temp/normalization_state")
+        plotter.load_state("./temp/plotting_state")
 
 
 if __name__ == '__main__':
-    experiment(n_epochs=5, n_steps=1000, n_steps_test=1000)
+    experiment(n_epochs=5, n_steps=1000, n_steps_test=1000,
+               save_states_to_disk=False)
