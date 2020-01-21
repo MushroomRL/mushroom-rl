@@ -61,12 +61,12 @@ class PlotDataset(CollectDataset):
                                                   maxs=high_actions,
                                                   mins=low_actions)
 
-        dotted_limits = []
+        dotted_limits = None
         if isinstance(mdp_info.observation_space, Box):
             high_mdp = mdp_info.observation_space.high.tolist()
             low_mdp = mdp_info.observation_space.low.tolist()
-
             if obs_normalized:
+                dotted_limits = []
                 for i in range(len(high_mdp)):
                     if abs(high_mdp[i]) == inf:
                         dotted_limits.append(True)
