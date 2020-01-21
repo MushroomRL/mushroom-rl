@@ -4,6 +4,7 @@ from mushroom_rl.utils.callbacks.collect_dataset import CollectDataset
 import mushroom_rl.utils.plots as plots
 from mushroom_rl.utils.spaces import Box
 from mushroom_rl.utils.dataset import episodes_length, compute_J
+from math import inf
 
 class PlotDataset(CollectDataset):
     """
@@ -11,7 +12,7 @@ class PlotDataset(CollectDataset):
     reward per episode, episode length only for the training.
     """
 
-    def __init__(self, mdp_info, window_size=1000, update_freq=10, show=True):
+    def __init__(self, mdp_info, obs_normalized=False, window_size=1000, update_freq=10, show=True):
 
         """
         Constructor.
@@ -60,16 +61,29 @@ class PlotDataset(CollectDataset):
                                                   maxs=high_actions,
                                                   mins=low_actions)
 
+        dotted_limits = []
         if isinstance(mdp_info.observation_space, Box):
             high_mdp = mdp_info.observation_space.high.tolist()
             low_mdp = mdp_info.observation_space.low.tolist()
+
+            if obs_normalized:
+                for i in range(len(high_mdp)):
+                    if abs(high_mdp[i]) == inf:
+                        dotted_limits.append(True)
+                    else:
+                        dotted_limits.append(False)
+                        
+                    high_mdp[i] = 1
+                    low_mdp[i] = -1
+
+
         else:
             high_mdp = None
             low_mdp = None
 
         observation_plot = plots.common_plots.Observations(self.observation_buffers_list,
                                                            maxs=high_mdp,
-                                                           mins=low_mdp)
+                                                           mins=low_mdp, dotted_limits=dotted_limits)
 
         step_reward_plot = plots.common_plots.RewardPerStep(self.instant_reward_buffer)
 

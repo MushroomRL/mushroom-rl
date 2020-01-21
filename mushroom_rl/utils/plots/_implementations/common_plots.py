@@ -57,7 +57,7 @@ class Observations(_Limited):
     """
     Class that represents a plot for the observations.
     """
-    def __init__(self, plot_buffers, maxs=None, mins=None):
+    def __init__(self, plot_buffers, maxs=None, mins=None, dotted_limits=None):
         """
         Constructor.
 
@@ -69,9 +69,11 @@ class Observations(_Limited):
             mins(list, None) : List of mins of each DataBuffer plotted (each observation) that
                 allows for plotting of a horizontal line if min exists. If a element of mins
                 is None then no min horizontal line is drawn, e. g. [2, 3, None, ...]
+            dotted_limits (list, None) : List of booleans that define if a limit is a fictitious
+                limits (used on the running normalization of non limited values).
         """
         title = "Observations"
-        super().__init__(title, plot_buffers, maxs=maxs, mins=mins)
+        super().__init__(title, plot_buffers, maxs=maxs, mins=mins, dotted_limits=dotted_limits)
 
 
 class LenOfEpisodeTraining(PlotItemWBuffer):
