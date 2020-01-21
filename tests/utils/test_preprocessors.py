@@ -17,7 +17,7 @@ from mushroom_rl.environments.cart_pole import CartPole
 from mushroom_rl.utils.preprocessors import NormalizationBoxedPreprocessor
 
 
-def test_normalizing_():
+def test_normalizing_preprocessor():
     np.random.seed(88)
 
     class Network(nn.Module):
