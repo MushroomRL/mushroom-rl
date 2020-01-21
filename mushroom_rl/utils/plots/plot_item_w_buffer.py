@@ -2,6 +2,7 @@ import random
 from itertools import product
 
 import numpy as np
+from PyQt5.QtGui import QPen
 from pyqtgraph import PlotItem, PlotDataItem, mkPen, mkColor, mkQApp
 
 
@@ -171,7 +172,7 @@ class _Limited(PlotItemWBuffer):
     This class represents the plots that need horizontal lines to specify the limits of the variables.
     """
 
-    def __init__(self, title, plot_buffers, maxs=None, mins=None):
+    def __init__(self, title, plot_buffers, maxs=None, mins=None, dotted_limits=None):
         """
         Contructor.
 
@@ -179,8 +180,9 @@ class _Limited(PlotItemWBuffer):
             title (str) : Name of the plot. Also is show in the title section by default;
             plot_buffers ([DataBuffer]) : List of DataBuffers for each curve;
             maxs (list, None) : List of maximums values to draw horizontal lines;
-            mins (list, None) : List of minimums values to draw horizontal lines.
-
+            mins (list, None) : List of minimums values to draw horizontal lines;
+            dotted_limits (list, None) : List of booleans that define if a limit is a fictitious
+                limits (used on the running normalization of non limited values).
         """
         curves_params = []
 
@@ -204,16 +206,18 @@ class _Limited(PlotItemWBuffer):
         self._mins_exist = False
 
         if isinstance(maxs, list):
-            self._maxs_exist = bool(maxs)
-        elif isinstance(maxs, np.ndarray):
-            self._maxs_exist = maxs.any()
+            self._maxs_exist = bool(maxs) or bool(dotted_limits)
         if isinstance(mins, list):
-            self._mins_exist = bool(mins)
-        elif isinstance(mins, np.ndarray):
-            self._mins_exist = mins.any()
+            self._mins_exist = bool(mins) or bool(dotted_limits)
 
         self._maxs_vals = maxs
         self._mins_vals = mins
+
+        if dotted_limits is not None:
+            for i in range(len(dotted_limits)):
+                if dotted_limits[i]:
+                    self._maxs_vals[i] = 1
+                    self._mins_vals[i] = -1
 
         self._maxlineitems = []
         self._minlineitems = []
@@ -229,6 +233,8 @@ class _Limited(PlotItemWBuffer):
                     self._mins_vals[i] = None
                 self._minlineitems.append(None)
 
+        self.dotted_limits = dotted_limits
+
     def draw(self, item):
         """
         Method to draw plot and respective horizontal lines from the limits of the variables.
@@ -239,13 +245,21 @@ class _Limited(PlotItemWBuffer):
         super().draw(item)
         i_item = self.PlotDataItemsList.index(item)
 
+        pen = item.opts['pen']
+
+        if self.dotted_limits is not None:
+            if self.dotted_limits[i_item]:
+                pen = QPen(pen)
+                pen.setDashPattern([6, 12, 6, 12])
+
         if self._maxs_exist:
             if self._maxs_vals[i_item] != None:
-                self._maxlineitems[i_item] = self.addLine(y=self._maxs_vals[i_item], pen=item.opts['pen'])
+                self._maxlineitems[i_item] = self.addLine(y=self._maxs_vals[i_item], pen=pen)
 
         if self._mins_exist:
             if self._mins_vals[i_item] != None:
-                self._minlineitems[i_item] = self.addLine(y=self._mins_vals[i_item], pen=item.opts['pen'])
+                self._minlineitems[i_item] = self.addLine(y=self._mins_vals[i_item], pen=pen)
+
 
     def erase(self, item):
         """
