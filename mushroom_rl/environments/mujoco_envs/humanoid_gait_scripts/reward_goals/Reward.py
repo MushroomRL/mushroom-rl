@@ -1,8 +1,11 @@
+import os
+from pathlib import Path
+
 import numpy as np
 from collections import deque
 
-from humanoid_environment import tfUtils
-from humanoid_environment.RewardGoals.Trajectory import CompleteHumanoidTrajectory
+from ..humanoid_tfutils import convert_traj_quat_to_euler
+from .Trajectory import CompleteHumanoidTrajectory
 
 
 class GoalRewardInterface:
@@ -52,7 +55,12 @@ class MaxVelocityReward(GoalRewardInterface):
         self.traj_start = traj_start
 
         if traj_start:
+            if "traj_path" not in kwargs:
+                kwargs["traj_path"] = os.path.join(
+                        Path(os.path.dirname(os.path.abspath(__file__))).parent.parent,
+                        "data", "humanoid_gait", "gait_trajectory.npz")
             self.trajectory = CompleteHumanoidTrajectory(**kwargs)
+            self.reset_state()
 
     def __call__(self, state, action, next_state):
         return next_state[13]    # velocity over x
@@ -89,6 +97,10 @@ class VelocityProfileReward(GoalRewardInterface):
 
         self.traj_start = traj_start
         if traj_start:
+            if "traj_path" not in kwargs:
+                kwargs["traj_path"] = os.path.join(
+                        Path(os.path.dirname(os.path.abspath(__file__))).parent.parent,
+                        "data", "humanoid_gait", "gait_trajectory.npz")
             self.trajectory = CompleteHumanoidTrajectory(**kwargs)
             self.reset_state()
 
@@ -138,8 +150,8 @@ class CompleteTrajectoryReward(GoalRewardInterface, CompleteHumanoidTrajectory):
     Implements a goal reward for matching a kinematic trajectory.
 
     """
-    def __init__(self, sim, traj_path="assets/GaitTrajectory.npz", traj_dt=0.0025,
-                 control_dt=0.005, traj_speed_mult=1.0,
+    def __init__(self, sim, traj_path=None,
+                 traj_dt=0.0025, control_dt=0.005, traj_speed_mult=1.0,
                  use_error_terminate=False, **kwargs):
         """
         Constructor.
@@ -148,8 +160,9 @@ class CompleteTrajectoryReward(GoalRewardInterface, CompleteHumanoidTrajectory):
             sim (MjSim): Mujoco simulation object which is passed to
                 the Humanoid Trajectory as is used to set model to
                 trajectory corresponding initial state.
-            traj_path (string): Path with the trajectory for the
-                model to follow.
+            traj_path (string, None): Path with the trajectory for the
+                model to follow. If None is passed, use default
+                trajectory.
             traj_dt (float): Time step of the trajectory file.
                 control_dt (float): Model control frequency(used to
                 synchronize trajectory with the control step)
@@ -160,6 +173,9 @@ class CompleteTrajectoryReward(GoalRewardInterface, CompleteHumanoidTrajectory):
                  trajectory.
 
         """
+        if traj_path is None:
+            traj_path = os.path.join(Path(os.path.dirname(os.path.abspath(__file__))).parent.parent,
+                                     "data", "humanoid_gait", "gait_trajectory.npz")
 
         super(CompleteTrajectoryReward, self).__init__(sim, traj_path, traj_dt,
                                                        control_dt, traj_speed_mult)
@@ -172,7 +188,7 @@ class CompleteTrajectoryReward(GoalRewardInterface, CompleteHumanoidTrajectory):
         # trajectories will be compared with torso orientation as euler,
         # as quaternion rotation only makes sense when conjugated,
         # and not compared on individual dimensions.
-        self.euler_traj = tfUtils.convert_traj_quat_to_euler(self.subtraj)
+        self.euler_traj = convert_traj_quat_to_euler(self.subtraj)
 
         # used to normalize values to similar range
         self.traj_data_range = np.clip(2 * np.std(self.euler_traj, axis=1), 0.15, np.inf)
@@ -206,7 +222,7 @@ class CompleteTrajectoryReward(GoalRewardInterface, CompleteHumanoidTrajectory):
         return norm_traj_reward
 
     def _calculate_each_comp_reward(self, state, action, next_state):
-        euler_state = tfUtils.convert_traj_quat_to_euler(next_state, offset=2)
+        euler_state = convert_traj_quat_to_euler(next_state, offset=2)
 
         foot_vec = np.append((self.sim.data.body_xpos[1] - self.sim.data.body_xpos[4]),
                              (self.sim.data.body_xpos[1] - self.sim.data.body_xpos[7]))

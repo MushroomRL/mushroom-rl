@@ -1,13 +1,14 @@
 import mujoco_py
+import os
 
 from mushroom_rl.utils import spaces
 from mushroom_rl.environments.mujoco import MuJoCo, ObservationType
 from mushroom_rl.utils.running_stats import *
 
-from .external_simulation import NoExternalSimulation, MuscleSimulation
-from .reward_goals import CompleteTrajectoryReward, VelocityProfileReward, \
+from .humanoid_gait_scripts import NoExternalSimulation, MuscleSimulation
+from .humanoid_gait_scripts import CompleteTrajectoryReward, VelocityProfileReward, \
     MaxVelocityReward, NoGoalReward, HumanoidTrajectory
-from .humanoid_tfutils import *
+from .humanoid_gait_scripts.humanoid_tfutils import quat_to_euler
 
 
 class HumanoidGait(MuJoCo):
@@ -15,23 +16,20 @@ class HumanoidGait(MuJoCo):
     Mujoco simulation of a Humanoid Model.
 
     """
-    def __init__(self, model_path='assets/human7segment.xml',
-                 gamma=0.99, horizon=2000, nmidsteps=10, use_muscles=True,
-                 goal_reward=None, goal_reward_params=None,
+    def __init__(self,  gamma=0.99, horizon=2000, nmidsteps=10,
+                 use_muscles=True, goal_reward=None, goal_reward_params=None,
                  obs_avg_window=1, act_avg_window=1):
         """
         Constructor.
 
         Args:
-            model_path (string): Path of model. Used model is in the assets
-                folder by default.
             nmidsteps (int): Number of steps to apply the same action to
                 the environment and wait for the next observation.
             use_muscles (bool): If external muscle simulation should be used
                 for actions. If not apply torques directly to the joints.
             goal_reward (string, None): type of trajectory used for training.
                 Options available:
-                    'complete'   - Use trajectory in assets/GaitTrajectory.npz
+                    'trajectory'   - Use trajectory in assets/GaitTrajectory.npz
                                    as reference.
                     'velocity'   - Velocity goal for the center of mass of the
                                    model to follow. The goal is given by a
@@ -50,6 +48,9 @@ class HumanoidGait(MuJoCo):
         self.goal_reward = goal_reward
         self.act_avg_window = act_avg_window
         self.obs_avg_window = obs_avg_window
+
+        model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                  "data", "humanoid_gait", "human7segment.xml")
 
         action_spec = ["right_hip_frontal", "right_hip_sagittal",
                        "right_knee", "right_ankle", "left_hip_frontal",
@@ -111,7 +112,7 @@ class HumanoidGait(MuJoCo):
                                               **goal_reward_params))
 
         # Decide which goal to follow
-        if goal_reward == "complete":
+        if goal_reward == "trajectory":
             self.goal_reward = CompleteTrajectoryReward(**goal_reward_params)
         elif goal_reward == "velocity":
             self.goal_reward = VelocityProfileReward(**goal_reward_params)
