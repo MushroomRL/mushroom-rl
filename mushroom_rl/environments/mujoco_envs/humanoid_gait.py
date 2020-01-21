@@ -29,15 +29,15 @@ class HumanoidGait(MuJoCo):
                 for actions. If not apply torques directly to the joints.
             goal_reward (string, None): type of trajectory used for training.
                 Options available:
-                    'trajectory'   - Use trajectory in assets/GaitTrajectory.npz
-                                   as reference.
-                    'velocity'   - Velocity goal for the center of mass of the
-                                   model to follow. The goal is given by a
-                                   VelocityProfile instance (or subclass).
-                                   And should be included in the goal_reward_params.
-                    'maxvelocity'- Tries to achieve the maximum possible
-                                   velocity.
-                       NONE      - Follows no goal(just tries to survive).
+                    'trajectory'  - Use trajectory in assets/GaitTrajectory.npz
+                                    as reference.
+                    'vel_profile' - Velocity goal for the center of mass of the
+                                    model to follow. The goal is given by a
+                                    VelocityProfile instance (or subclass).
+                                    And should be included in the goal_reward_params.
+                    'max_vel'     - Tries to achieve the maximum possible
+                                    velocity.
+                       NONE       - Follows no goal(just tries to survive).
             goal_reward_params (dict, None): params needed for creation goal
                 reward.
             obs_avg_window: (int) : Size of window used to average observations.
@@ -114,9 +114,9 @@ class HumanoidGait(MuJoCo):
         # Decide which goal to follow
         if goal_reward == "trajectory":
             self.goal_reward = CompleteTrajectoryReward(**goal_reward_params)
-        elif goal_reward == "velocity":
+        elif goal_reward == "vel_profile":
             self.goal_reward = VelocityProfileReward(**goal_reward_params)
-        elif goal_reward == "maxvelocity":
+        elif goal_reward == "max_vel":
             self.goal_reward = MaxVelocityReward(**goal_reward_params)
         elif goal_reward is None:
             self.goal_reward = NoGoalReward()
