@@ -47,15 +47,17 @@ def parse_dataset(dataset, features=None):
         next_state), np.array(absorbing), np.array(last)
 
 
-def convert_vector_samples_to_mushroom_tuple_samples(samples):
+def arrays_as_dataset(states, actions, rewards, next_states, absorbings, lasts):
     """
     Joins the multiple components of a dataset into sample tuples.
 
     Args:
-    samples (tuple(np.array)): tuple of arrays with multiple samples
-        and divided into:
-            array(states), array(actions), array(rewards),
-            array(next_states), array(absorbings), array(lasts)
+        states (np.array): array with multiple states.
+        actions (np.array): array with multiple actions.
+        rewards (np.array): array with multiple rewards.
+        next_states (np.array): array with multiple next_states.
+        absorbings (np.array): array with multiple absorbings.
+        lasts (np.array): array with multiple lasts.
 
     Returns:
         List of tuples with sample data:
@@ -64,10 +66,14 @@ def convert_vector_samples_to_mushroom_tuple_samples(samples):
             (stateN, actionN, rewardN, next_stateN, absorbingN, last0N)]
     """
 
+    assert (len(states) == len(actions) == len(rewards)
+            == len(next_states) == len(absorbings) == len(lasts))
+
     mushroom_samples = []
-    for state, action, reward, next_state, absorbing, last in zip(*samples):
-        mushroom_samples.append((state, action, reward.item(0), next_state,
-                                 absorbing.item(0), last.item(0)))
+    for s, a, r, ss, ab, last in zip(states, actions, rewards, next_states,
+                                     absorbings.astype(bool), lasts.astype(bool)):
+        mushroom_samples.append((s, a, r.item(0), ss,
+                                 ab.item(0), last.item(0)))
     return mushroom_samples
 
 
