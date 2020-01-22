@@ -1,2 +1,0 @@
-from .MuscleSimulation import MuscleSimulation
-from .ExternalSimulation import NoExternalSimulation

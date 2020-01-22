@@ -96,7 +96,7 @@ class HumanoidGait(MuJoCo):
             self.external_actuator = MuscleSimulation(self.sim)
             self.info.action_space = spaces.Box(*self.external_actuator.get_action_space())
         else:
-            self.external_actuator = NoExternalSimulation(self.sim)
+            self.external_actuator = NoExternalSimulation()
 
         # so agent can apply normalized actions[-1,1] to environment(more stable)
         # (and they will convert them to meaningful values)
@@ -228,13 +228,9 @@ class HumanoidGait(MuJoCo):
             traj_vel_reward = np.exp(-20.0 * np.square(next_state[13] - next_state[33]))
 
         ### costs ###
-        if isinstance(self.external_actuator, NoExternalSimulation):
-            # move_cost reduces the frequency of high torques applied to joints.
-            #self.norm_act_delta
-            #delta = (self.info.action_space.high - self.info.action_space.low) / 2.0
-            move_cost = np.mean(np.abs(action / self.norm_act_delta))
-        else:
-            move_cost = self.external_actuator.reward(state, action, next_state)
+        move_cost = self.external_actuator.reward(state,
+                                                  action / self.norm_act_delta,
+                                                  next_state)
 
         # Penalization for reaching absorbing state
         fall_cost = 0.0
@@ -340,3 +336,4 @@ class HumanoidGait(MuJoCo):
     def _get_body_center_of_mass_pos(self, body_name):
         # returns the position of the center of mass of the subtree with id==body_name
         return self.sim.data.subtree_com[self.sim.model._body_name2id[body_name]]
+

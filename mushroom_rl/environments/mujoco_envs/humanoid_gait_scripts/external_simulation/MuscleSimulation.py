@@ -1,13 +1,45 @@
 
 import numpy as np
 from .humanmuscle import HAB, HAM, HAD, HFL, BFSH, GAS, GLU, REF, VAS, SOL, TIA
-from .ExternalSimulation import ExternalSimulationInterface
 
 
-class MuscleSimulation(ExternalSimulationInterface):
+class NoExternalSimulation(object):
+    def get_action_space(self):
+        return np.array([]), np.array([])
+
+    def get_observation_space(self):
+        return np.array([]), np.array([])
+
+    def reward(self, state, action, next_state):
+        move_cost = np.sum(np.square(action))
+        return move_cost
+
+    def is_absorving(self, state):
+        return False
+
+    def get_observation(self):
+        return np.array([])
+
+    def update_state(self):
+        pass
+
+    def reset(self):
+        pass
+
+    def preprocess_action(self, action):
+        return action
+
+    def initialize_internal_states(self, state, action):
+        pass
+
+    def external_stimulus_to_joint_torques(self, stimu):
+        return stimu
+
+
+class MuscleSimulation(object):
     def __init__(self, sim):
-        super().__init__(sim)
-        self.musc = self._create_muscles()  # container with all muscle objects [muscle name: muscle object]
+        self.sim = sim
+        self.musc = self._create_muscles()  # container with all muscle objects {muscle name: muscle object}
         self.nmusc = len(self.musc)
 
         self._metcost = 0  # metabolic cost of all muscles for an action
