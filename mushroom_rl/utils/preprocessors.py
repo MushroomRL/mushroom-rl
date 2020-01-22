@@ -15,7 +15,8 @@ class NormalizationPreprocessor(object):
         Constructor.
 
         Args:
-            mdp_info (MDPInfo): mdp_info object.
+            mdp_info (MDPInfo): mdp_info object to extract information
+                about the observation_space.
             clip_obs (float): Values to clip the normalized
                 observations.
             alpha (float): Moving average catchup parameter for
@@ -92,7 +93,8 @@ class NormalizationBoxedPreprocessor(NormalizationPreprocessor):
         Constructor.
 
         Args:
-            mdp_info (MDPInfo): mdp_info object.
+            mdp_info (MDPInfo): mdp_info object to extract information
+                about the observation_space.
             clip_obs (float): Values to clip the normalized
                 observations.
             alpha (float): Moving average catchup parameter for

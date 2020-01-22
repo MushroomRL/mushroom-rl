@@ -1,4 +1,5 @@
 import pickle
+import numpy as np
 
 from mushroom_rl.utils.callbacks.collect_dataset import CollectDataset
 import mushroom_rl.utils.plots as plots
@@ -9,16 +10,16 @@ class PlotDataset(CollectDataset):
     """
     This callback is used for plotting the values of the actions, observations, reward per step,
     reward per episode, episode length only for the training.
-
     """
 
-    def __init__(self, mdp, window_size=1000, update_freq=10, show=True):
+    def __init__(self, mdp_info, obs_normalized=False, window_size=1000, update_freq=10, show=True):
+
         """
         Constructor.
 
         Args:
-            mdp (Environment): Environment used to extract additional parameters
-                like observation space limits, etc.;
+            mdp_info (MDPInfo): mdp_info object to extract information
+                about action/observation_spaces.
             window_size (int): Number of steps plotted in the windowed plots.
                 Only action, observation and reward per step plots are affected.
                 The other are always adding information;
@@ -27,18 +28,17 @@ class PlotDataset(CollectDataset):
                 method of the window runs sequentially with the rest of the script.
                 So this update frequency is only relevant if the frequency of refresh
                 calls is too high, avoiding excessive updates.
-
         """
 
         super().__init__()
         # create buffers
         self.action_buffers_list = []
-        for i in range(mdp.info.action_space.shape[0]):
+        for i in range(mdp_info.action_space.shape[0]):
             self.action_buffers_list.append(
                 plots.DataBuffer('Action_' + str(i), window_size))
 
         self.observation_buffers_list = []
-        for i in range(mdp.info.observation_space.shape[0]):
+        for i in range(mdp_info.observation_space.shape[0]):
             self.observation_buffers_list.append(
                 plots.DataBuffer('Observation_' + str(i), window_size))
 
@@ -49,9 +49,9 @@ class PlotDataset(CollectDataset):
 
         self.episodic_len_buffer_training = plots.DataBuffer("Episode_len")
 
-        if isinstance(mdp.info.action_space, Box):
-            high_actions = mdp.info.action_space.high.tolist()
-            low_actions = mdp.info.action_space.low.tolist()
+        if isinstance(mdp_info.action_space, Box):
+            high_actions = mdp_info.action_space.high.tolist()
+            low_actions = mdp_info.action_space.low.tolist()
         else:
             high_actions = None
             low_actions = None
@@ -61,16 +61,29 @@ class PlotDataset(CollectDataset):
                                                   maxs=high_actions,
                                                   mins=low_actions)
 
-        if isinstance(mdp.info.observation_space, Box):
-            high_mdp = mdp.info.observation_space.high.tolist()
-            low_mdp = mdp.info.observation_space.low.tolist()
+        dotted_limits = None
+        if isinstance(mdp_info.observation_space, Box):
+            high_mdp = mdp_info.observation_space.high.tolist()
+            low_mdp = mdp_info.observation_space.low.tolist()
+            if obs_normalized:
+                dotted_limits = []
+                for i in range(len(high_mdp)):
+                    if abs(high_mdp[i]) == np.inf:
+                        dotted_limits.append(True)
+                    else:
+                        dotted_limits.append(False)
+                        
+                    high_mdp[i] = 1
+                    low_mdp[i] = -1
+
+
         else:
             high_mdp = None
             low_mdp = None
 
         observation_plot = plots.common_plots.Observations(self.observation_buffers_list,
                                                            maxs=high_mdp,
-                                                           mins=low_mdp)
+                                                           mins=low_mdp, dotted_limits=dotted_limits)
 
         step_reward_plot = plots.common_plots.RewardPerStep(self.instant_reward_buffer)
 
@@ -93,10 +106,8 @@ class PlotDataset(CollectDataset):
     def __call__(self, dataset):
         """
         Add samples to DataBuffers and refresh window.
-
         Args:
             dataset (list): the samples to collect.
-
         """
         super().__call__(dataset)
 
@@ -133,25 +144,21 @@ class PlotDataset(CollectDataset):
         """
         Returns:
              The dictionary of data in each DataBuffer in tree structure associated with the plot name.
-
         """
-        data = dict(plot_data={plot.name: {buffer.name: buffer.get()}
-                               for plot in self.plot_window.plot_list
-                               for buffer in plot.data_buffers})
+        data = {plot.name: {buffer.name: buffer.get()}
+                for p_i, plot in enumerate(self.plot_window.plot_list)
+                for buffer in plot.data_buffers
+                if self.plot_window._track_if_deactivated[p_i]}
 
         return data
 
     def set_state(self, data):
         """
         Set the state of the DataBuffers to resume the plots.
-
         Args:
             data (dict): data of each plot and databuffer.
-
         """
-
-        normalize_data = data["plot_data"]
-        for plot_name, buffer_dict in normalize_data.items():
+        for plot_name, buffer_dict in data.items():
             # could use keys to find if plots where in dicts instead of list
             for plot in self.plot_window.plot_list:
                 if plot.name == plot_name:
@@ -165,10 +172,8 @@ class PlotDataset(CollectDataset):
     def save_state(self, path):
         """
         Save the data in the plots given a path.
-
         Args:
             path (str): path to save the data.
-
         """
         data = self.get_state()
         with open(path, 'wb') as f:
@@ -177,10 +182,8 @@ class PlotDataset(CollectDataset):
     def load_state(self, path):
         """
         Load the data to the plots given a path.
-
         Args:
             path (str): path to load the data.
-
         """
         with open(path, 'rb') as f:
             data = pickle.load(f)
