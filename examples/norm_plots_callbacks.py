@@ -128,7 +128,7 @@ def experiment(n_epochs, n_steps, n_steps_test, save_states_to_disk=False):
     normalizer = NormalizationBoxedPreprocessor(mdp_info=mdp.info)
 
     # plotting callback
-    plotter = PlotDataset(mdp.info)
+    plotter = PlotDataset(mdp.info, obs_normalized=True)
 
     # Algorithm(with normalizing and plotting)
     core = Core(agent, mdp, callbacks=[plotter], preprocessors=[normalizer])

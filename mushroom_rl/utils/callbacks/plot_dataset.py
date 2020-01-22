@@ -1,10 +1,10 @@
 import pickle
+import numpy as np
 
 from mushroom_rl.utils.callbacks.collect_dataset import CollectDataset
 import mushroom_rl.utils.plots as plots
 from mushroom_rl.utils.spaces import Box
 from mushroom_rl.utils.dataset import episodes_length, compute_J
-from math import inf
 
 class PlotDataset(CollectDataset):
     """
@@ -61,14 +61,14 @@ class PlotDataset(CollectDataset):
                                                   maxs=high_actions,
                                                   mins=low_actions)
 
-        dotted_limits = []
+        dotted_limits = None
         if isinstance(mdp_info.observation_space, Box):
             high_mdp = mdp_info.observation_space.high.tolist()
             low_mdp = mdp_info.observation_space.low.tolist()
-
             if obs_normalized:
+                dotted_limits = []
                 for i in range(len(high_mdp)):
-                    if abs(high_mdp[i]) == inf:
+                    if abs(high_mdp[i]) == np.inf:
                         dotted_limits.append(True)
                     else:
                         dotted_limits.append(False)
