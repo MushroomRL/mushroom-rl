@@ -10,7 +10,7 @@ from mushroom_rl.utils.preprocessors import NormalizationBoxedPreprocessor
 
 from mushroom_rl.algorithms.actor_critic import SAC
 from mushroom_rl.core import Core
-from mushroom_rl.utils.dataset import compute_J
+from mushroom_rl.utils.dataset import compute_J, episodes_length
 
 from mushroom_rl.environments.mujoco_envs import HumanoidGait
 from mushroom_rl.environments.mujoco_envs.humanoid_gait_scripts import \
@@ -135,19 +135,19 @@ def create_SAC_agent(mdp, use_cuda=None):
 
     return agent
 
-def create_mdp(goal, gamma, horizon):
+def create_mdp(gamma, horizon, goal, use_muscles):
     if goal == "trajectory":
         mdp = HumanoidGait(gamma=gamma, horizon=horizon, nmidsteps=10,
                            goal_reward="trajectory",
                            goal_reward_params=dict(use_error_terminate=True),
-                           use_muscles=True,
+                           use_muscles=use_muscles,
                            obs_avg_window=1, act_avg_window=1)
 
     elif goal == "max_vel":
         mdp = HumanoidGait(gamma=gamma, horizon=horizon, nmidsteps=10,
                            goal_reward="max_vel",
                            goal_reward_params=dict(traj_start=True),
-                           use_muscles=False,
+                           use_muscles=use_muscles,
                            obs_avg_window=1, act_avg_window=1)
 
     elif goal == "vel_profile":
@@ -160,7 +160,7 @@ def create_mdp(goal, gamma, horizon):
                            goal_reward="vel_profile",
                            goal_reward_params=dict(traj_start=True,
                                                    **velocity_profile),
-                           use_muscles=False,
+                           use_muscles=use_muscles,
                            obs_avg_window=1, act_avg_window=1)
     else:
         raise NotImplementedError("Invalid goal selected, try one of "
@@ -168,13 +168,13 @@ def create_mdp(goal, gamma, horizon):
     return mdp
 
 
-def experiment(goal, n_epochs, n_steps, n_episodes_test):
+def experiment(goal, use_muscles, n_epochs, n_steps, n_episodes_test):
     np.random.seed(1)
 
     # MDP
     gamma = 0.99
     horizon = 2000
-    mdp = create_mdp(goal, gamma, horizon)
+    mdp = create_mdp(gamma, horizon, goal, use_muscles=use_muscles)
 
     # Agent
     agent = create_SAC_agent(mdp)
@@ -192,7 +192,10 @@ def experiment(goal, n_epochs, n_steps, n_episodes_test):
     for n in range(n_epochs):
         core.learn(n_steps=n_steps, n_steps_per_fit=1)
         dataset = core.evaluate(n_episodes=n_episodes_test, render=True)
-        print('Epoch: ', n, '  J: ', np.mean(compute_J(dataset, gamma)))
+        print('Epoch: ', n,
+              '  J: ', np.mean(compute_J(dataset, gamma)),
+              '  Len_ep: ', int(np.round(np.mean(episodes_length(dataset))))
+              )
 
     print('Press a button to visualize humanoid')
     input()
@@ -201,4 +204,5 @@ def experiment(goal, n_epochs, n_steps, n_episodes_test):
 
 if __name__ == '__main__':
     goal = ["trajectory", "vel_profile", "max_vel"]
-    experiment(goal=goal[0], n_epochs=200, n_steps=10000, n_episodes_test=2000)
+    experiment(goal=goal[0], use_muscles=True,
+               n_epochs=250, n_steps=10000, n_episodes_test=10)
