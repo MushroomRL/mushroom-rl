@@ -13,7 +13,13 @@ from .humanoid_gait_scripts.humanoid_tfutils import quat_to_euler
 
 class HumanoidGait(MuJoCo):
     """
-    Mujoco simulation of a Humanoid Model.
+    Mujoco simulation of a Humanoid Model, based on:
+
+        "A deep reinforcement learning based approach towards
+        generating human walking behavior with a neuromuscular model.
+        Accepted in 2019 IEEE-RAS 19th International Conference
+        on Humanoid Robots (Humanoids)"
+        Anand, A., Zhao, G., Roth, H., and Seyfarth, A. (2019).
 
     """
     def __init__(self,  gamma=0.99, horizon=2000, nmidsteps=10,
