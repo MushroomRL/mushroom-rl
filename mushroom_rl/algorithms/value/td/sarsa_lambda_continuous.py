@@ -25,6 +25,12 @@ class SARSALambdaContinuous(TD):
         self.e = np.zeros(self.Q.weights_size)
         self._lambda = lambda_coeff
 
+        self._add_save_attr(
+            _approximator_params='pickle',
+            Q='pickle',
+            _lambda='numpy',
+            e='numpy')
+
         super().__init__(mdp_info, policy, self.Q, learning_rate, features)
 
     def _update(self, state, action, reward, next_state, absorbing):

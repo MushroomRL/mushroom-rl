@@ -1,10 +1,22 @@
-import numpy as np
+# import sys
+# import os
+# sys.path = [os.getcwd()] + sys.path
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
+import numpy as np
+import shutil
+import pathlib
+import itertools
+from copy import deepcopy
+from datetime import datetime
+from helper.utils import TestUtils as tu
+
+import mushroom_rl
+from mushroom_rl.algorithms import Agent
 from mushroom_rl.algorithms.actor_critic import DDPG, TD3
 from mushroom_rl.core import Core
 from mushroom_rl.environments.gym_env import Gym
@@ -95,20 +107,58 @@ def learn(alg):
 
     core.learn(n_episodes=10, n_episodes_per_fit=5)
 
-    return agent.policy
+    return agent
 
 
 def test_ddpg():
-    policy = learn(DDPG)
+    policy = learn(DDPG).policy
     w = policy.get_weights()
     w_test = np.array([-0.28865, -0.7487735, -0.5533644, -0.34702766])
 
     assert np.allclose(w, w_test)
 
 
+def test_ddpg_save():
+    
+    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+
+    agent_save = learn(DDPG)
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    shutil.rmtree(agent_path)
+
+    for att, method in agent_save.__dict__.items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+        #print('{}: {}'.format(att, type(save_attr)))
+
+        tu.assert_eq(save_attr, load_attr)
+
+
 def test_td3():
-    policy = learn(TD3)
+    policy = learn(TD3).policy
     w = policy.get_weights()
     w_test = np.array([1.7005192, -0.73382795, 1.2999079, -0.26730126])
 
     assert np.allclose(w, w_test)
+
+
+def test_td3_save():
+    
+    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+
+    agent_save = learn(TD3)
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    shutil.rmtree(agent_path)
+
+    for att, method in agent_save.__dict__.items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+        #print('{}: {}'.format(att, type(save_attr)))
+
+        tu.assert_eq(save_attr, load_attr)

@@ -1,10 +1,21 @@
+# import sys
+# import os
+# sys.path = [os.getcwd()] + sys.path
+
+# import sys
+# print('\n'.join(sys.path))
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
 import numpy as np
+import shutil
+from datetime import datetime
+from helper.utils import TestUtils as tu
 
+from mushroom_rl.algorithms import Agent
 from mushroom_rl.core import Core
 from mushroom_rl.environments import Gym
 from mushroom_rl.algorithms.actor_critic import A2C
@@ -27,8 +38,7 @@ class Network(nn.Module):
     def forward(self, state):
         return F.relu(self._h(torch.squeeze(state, 1).float()))
 
-
-def test_a2c():
+def learn_a2c():
     mdp = Gym(name='Pendulum-v0', horizon=200, gamma=.99)
     mdp.seed(1)
     np.random.seed(1)
@@ -64,11 +74,36 @@ def test_a2c():
     agent = A2C(mdp.info, policy, **algorithm_params)
 
     core = Core(agent, mdp)
-
     core.learn(n_episodes=10, n_episodes_per_fit=5)
+
+    return agent
+
+
+def test_a2c():
+    
+    agent = learn_a2c()
 
     w = agent.policy.get_weights()
     w_test = np.array([-1.6307759, 1.0356185, -0.34508315, 0.27108294,
                        -0.01047843])
 
     assert np.allclose(w, w_test)
+
+
+def test_a2c_save():
+
+    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+
+    agent_save = learn_a2c()
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    shutil.rmtree(agent_path)
+
+    for att, method in agent_save.__dict__.items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+        #print('{}: {}'.format(att, type(save_attr)))
+
+        tu.assert_eq(save_attr, load_attr)

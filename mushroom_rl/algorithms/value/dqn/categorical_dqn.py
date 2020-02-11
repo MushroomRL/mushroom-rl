@@ -88,6 +88,13 @@ class CategoricalDQN(DQN):
         self._delta = (v_max - v_min) / (n_atoms - 1)
         self._a_values = np.arange(v_min, v_max + self._delta, self._delta)
 
+        self._add_save_attr(
+            _n_atoms='numpy',
+            _v_min='numpy',
+            _v_max='numpy',
+            _delta='numpy',
+            _a_values='numpy')
+
         super().__init__(mdp_info, policy, TorchApproximator, **params)
 
     def fit(self, dataset):

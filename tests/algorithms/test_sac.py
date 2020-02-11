@@ -5,6 +5,11 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
+import shutil
+from datetime import datetime
+from helper.utils import TestUtils as tu
+
+from mushroom_rl.algorithms import Agent
 from mushroom_rl.algorithms.actor_critic import SAC
 from mushroom_rl.core import Core
 from mushroom_rl.environments.gym_env import Gym
@@ -44,8 +49,8 @@ class ActorNetwork(nn.Module):
     def forward(self, state):
         return F.relu(self._h(torch.squeeze(state, 1).float()))
 
+def learn_sac():
 
-def test_sac():
     # MDP
     horizon = 200
     gamma = 0.99
@@ -102,9 +107,30 @@ def test_sac():
 
     core.learn(n_steps=2 * initial_replay_size,
                n_steps_per_fit=initial_replay_size)
+    
+    return agent
 
-    w = agent.policy.get_weights()
+def test_sac():
+    policy = learn_sac().policy
+    w = policy.get_weights()
     w_test = np.array([ 1.6998193, -0.732528, 1.2986078, -0.26860124,
                         0.5094043, -0.5001421, -0.18989229, -0.30646914])
 
     assert np.allclose(w, w_test)
+
+def test_sac_save():
+    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+
+    agent_save = learn_sac()
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    shutil.rmtree(agent_path)
+
+    for att, method in agent_save.__dict__.items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+        #print('{}: {}'.format(att, type(save_attr)))
+
+        tu.assert_eq(save_attr, load_attr)

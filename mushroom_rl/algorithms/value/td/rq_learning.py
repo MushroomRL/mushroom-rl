@@ -36,6 +36,15 @@ class RQLearning(TD):
         self.Q = Table(mdp_info.size)
         self.Q_tilde = Table(mdp_info.size)
         self.R_tilde = Table(mdp_info.size)
+
+        self._add_save_attr(
+            off_policy='pickle',
+            delta='pickle',
+            beta='pickle',
+            Q='pickle',
+            Q_tilde='pickle',
+            R_tilde='pickle')
+
         super().__init__(mdp_info, policy, self.Q, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
