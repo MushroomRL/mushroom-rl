@@ -1,7 +1,7 @@
 # Uncomment to run tests locally
-import sys
-import os
-sys.path = [os.getcwd()] + sys.path
+# import sys
+# import os
+# sys.path = [os.getcwd()] + sys.path
 
 import torch
 import numpy as np

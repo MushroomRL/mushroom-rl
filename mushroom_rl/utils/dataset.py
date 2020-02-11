@@ -47,6 +47,35 @@ def parse_dataset(dataset, features=None):
         next_state), np.array(absorbing), np.array(last)
 
 
+def arrays_as_dataset(states, actions, rewards, next_states, absorbings, lasts):
+    """
+    Joins the multiple components of a dataset into sample tuples.
+
+    Args:
+        states (np.array): array with multiple states.
+        actions (np.array): array with multiple actions.
+        rewards (np.array): array with multiple rewards.
+        next_states (np.array): array with multiple next_states.
+        absorbings (np.array): array with multiple absorbings.
+        lasts (np.array): array with multiple lasts.
+
+    Returns:
+        List of tuples with sample data:
+            [(state0, action0, reward0, next_state0, absorbing0, last0),
+                                    (...),
+            (stateN, actionN, rewardN, next_stateN, absorbingN, last0N)]
+    """
+
+    assert (len(states) == len(actions) == len(rewards)
+            == len(next_states) == len(absorbings) == len(lasts))
+
+    dataset = []
+    for s, a, r, ss, ab, last in zip(states, actions, rewards, next_states,
+                                     absorbings.astype(bool), lasts.astype(bool)):
+        dataset.append((s, a, r.item(0), ss, ab.item(0), last.item(0)))
+    return dataset
+
+
 def episodes_length(dataset):
     """
     Compute the length of each episode in the dataset.
