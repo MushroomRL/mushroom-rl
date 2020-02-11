@@ -138,12 +138,12 @@ class Agent(object):
 
     @staticmethod
     def _load_pickle(path):
-        with open(path, 'rb') as f:
+        with Path(path).open('rb') as f:
             return pickle.load(f)
     
     @staticmethod
     def _load_numpy(path):
-        with open(path, 'rb') as f:
+        with Path(path).open('rb') as f:
             return np.load(f)
     
     @staticmethod
@@ -152,7 +152,7 @@ class Agent(object):
     
     @staticmethod
     def _load_json(path):
-        with open(path, 'r') as f:
+        with Path(path).open('r') as f:
             return json.load(f)
 
     def save(self, path):
@@ -187,12 +187,12 @@ class Agent(object):
 
     @staticmethod
     def _save_pickle(path, obj):
-        with open(path, 'wb') as f:
+        with Path(path).open('wb') as f:
             pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
     
     @staticmethod
     def _save_numpy(path, obj):
-        with open(path, 'wb') as f:
+        with Path(path).open('wb') as f:
             np.save(f, obj)
     
     @staticmethod
@@ -201,7 +201,7 @@ class Agent(object):
     
     @staticmethod
     def _save_json(path, obj):
-        with open(path, 'w') as f:
+        with Path(path).open('w') as f:
             json.dump(obj, f)
 
     def copy(self):
