@@ -1,3 +1,7 @@
+# import sys
+# import os
+# sys.path = [os.getcwd()] + sys.path
+
 import gym
 import numpy as np
 import torch
@@ -5,27 +9,37 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
+import shutil
+import pathlib
+import itertools
+from copy import deepcopy
+from datetime import datetime
+from helper.utils import TestUtils as tu
+
+import mushroom_rl
+from mushroom_rl.algorithms import Agent
+
 from mushroom_rl.algorithms.actor_critic import PPO, TRPO
 from mushroom_rl.core import Core
 from mushroom_rl.environments import Gym
 from mushroom_rl.policy import GaussianTorchPolicy
 
+class Network(nn.Module):
+    def __init__(self, input_shape, output_shape, **kwargs):
+        super(Network, self).__init__()
+
+        n_input = input_shape[-1]
+        n_output = output_shape[0]
+
+        self._h = nn.Linear(n_input, n_output)
+
+        nn.init.xavier_uniform_(self._h.weight,
+                                gain=nn.init.calculate_gain('relu'))
+
+    def forward(self, state, **kwargs):
+        return F.relu(self._h(torch.squeeze(state, 1).float()))
 
 def learn(alg, alg_params):
-    class Network(nn.Module):
-        def __init__(self, input_shape, output_shape, **kwargs):
-            super(Network, self).__init__()
-
-            n_input = input_shape[-1]
-            n_output = output_shape[0]
-
-            self._h = nn.Linear(n_input, n_output)
-
-            nn.init.xavier_uniform_(self._h.weight,
-                                    gain=nn.init.calculate_gain('relu'))
-
-        def forward(self, state, **kwargs):
-            return F.relu(self._h(torch.squeeze(state, 1).float()))
 
     mdp = Gym('Pendulum-v0', 200, .99)
     mdp.seed(1)
@@ -55,7 +69,7 @@ def learn(alg, alg_params):
 
     core.learn(n_episodes=2, n_episodes_per_fit=1)
 
-    return policy
+    return agent
 
 
 def test_PPO():
@@ -63,7 +77,7 @@ def test_PPO():
                                    'params': {'lr': 3e-4}},
                   n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95,
                   quiet=True)
-    policy = learn(PPO, params)
+    policy = learn(PPO, params).policy
     w = policy.get_weights()
     w_test = np.array([-1.6293062, 1.0408604, -3.5757786e-1, 2.6958251e-1,
                        -8.7002787e-4])
@@ -71,13 +85,56 @@ def test_PPO():
     assert np.allclose(w, w_test)
 
 
+def test_PPO_save():
+    params = dict(actor_optimizer={'class': optim.Adam,
+                                   'params': {'lr': 3e-4}},
+                  n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95,
+                  quiet=True)
+    
+    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+
+    agent_save = learn(PPO, params)
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    shutil.rmtree(agent_path)
+
+    for att, method in agent_save.__dict__.items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+        #print('{}: {}'.format(att, type(save_attr)))
+        tu.assert_eq(save_attr, load_attr)
+
+
 def test_TRPO():
     params = dict(ent_coeff=0.0, max_kl=.001, lam=.98, n_epochs_line_search=10,
                   n_epochs_cg=10, cg_damping=1e-2, cg_residual_tol=1e-10,
                   quiet=True)
-    policy = learn(TRPO, params)
+    policy = learn(TRPO, params).policy
     w = policy.get_weights()
     w_test = np.array([-1.5759772, 1.0822705, -0.37794656, 0.29728204,
                        -0.0396419])
 
     assert np.allclose(w, w_test)
+
+
+def test_TRPO_save():
+    params = dict(ent_coeff=0.0, max_kl=.001, lam=.98, n_epochs_line_search=10,
+                  n_epochs_cg=10, cg_damping=1e-2, cg_residual_tol=1e-10,
+                  quiet=True)
+    
+    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+
+    agent_save = learn(TRPO, params)
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    shutil.rmtree(agent_path)
+
+    for att, method in agent_save.__dict__.items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+        #print('{}: {}'.format(att, type(save_attr)))
+        tu.assert_eq(save_attr, load_attr)

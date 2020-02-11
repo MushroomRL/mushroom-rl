@@ -15,6 +15,10 @@ class SpeedyQLearning(TD):
         self.Q = Table(mdp_info.size)
         self.old_q = deepcopy(self.Q)
 
+        self._add_save_attr(
+            Q='pickle',
+            old_q='pickle')
+
         super().__init__(mdp_info, policy, self.Q, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):

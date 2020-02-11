@@ -17,6 +17,12 @@ class REINFORCE(PolicyGradient):
         self.baseline_num = list()
         self.baseline_den = list()
 
+        self._add_save_attr(
+            sum_d_log_pi='numpy',
+            list_sum_d_log_pi='pickle',
+            baseline_num='pickle',
+            baseline_den='pickle')
+
         # Ignore divide by zero
         np.seterr(divide='ignore', invalid='ignore')
 

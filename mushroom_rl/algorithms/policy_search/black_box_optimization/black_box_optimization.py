@@ -23,6 +23,10 @@ class BlackBoxOptimization(Agent):
         self.distribution = distribution
         self._theta_list = list()
 
+        self._add_save_attr(
+            distribution='pickle',
+            _theta_list='pickle')
+
         super().__init__(mdp_info, policy, features)
 
     def episode_start(self):

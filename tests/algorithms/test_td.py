@@ -4,6 +4,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import shutil
+from datetime import datetime
+from helper.utils import TestUtils as tu
+
+from mushroom_rl.algorithms import Agent
 from mushroom_rl.algorithms.value import *
 from mushroom_rl.approximators.parametric import LinearApproximator, TorchApproximator
 from mushroom_rl.core import Core
@@ -13,7 +18,6 @@ from mushroom_rl.features import Features
 from mushroom_rl.features.tiles import Tiles
 from mushroom_rl.policy.td_policy import EpsGreedy
 from mushroom_rl.utils.parameters import Parameter
-
 
 class Network(nn.Module):
     def __init__(self, input_shape, output_shape, **kwargs):
@@ -63,6 +67,29 @@ def test_q_learning():
     assert np.allclose(agent.Q.table, test_q)
 
 
+def test_q_learning_save():
+    pi, mdp, _ = initialize()
+    agent_save = QLearning(mdp.info, pi, Parameter(.5))
+
+    core = Core(agent_save, mdp)
+
+    # Train
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
+    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    shutil.rmtree(agent_path)
+
+    for att, method in agent_save.__dict__.items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+        #print('{}: {}'.format(att, type(save_attr)))
+        tu.assert_eq(save_attr, load_attr)
+
+
 def test_double_q_learning():
     pi, mdp, _ = initialize()
     agent = DoubleQLearning(mdp.info, pi, Parameter(.5))
@@ -85,6 +112,30 @@ def test_double_q_learning():
     assert np.allclose(agent.Q[1].table, test_q_1)
 
 
+def test_double_q_learning_save():
+    pi, mdp, _ = initialize()
+    agent_save = DoubleQLearning(mdp.info, pi, Parameter(.5))
+
+    core = Core(agent_save, mdp)
+
+    # Train
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
+    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    shutil.rmtree(agent_path)
+
+    for att, method in agent_save.__dict__.items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+        #print('{}: {}'.format(att, type(save_attr)))
+
+        tu.assert_eq(save_attr, load_attr)
+
+
 def test_weighted_q_learning():
     pi, mdp, _ = initialize()
     agent = WeightedQLearning(mdp.info, pi, Parameter(.5))
@@ -100,6 +151,30 @@ def test_weighted_q_learning():
                        [0., 0., 0., 0.]])
 
     assert np.allclose(agent.Q.table, test_q)
+
+
+def test_weighted_q_learning_save():
+    pi, mdp, _ = initialize()
+    agent_save = WeightedQLearning(mdp.info, pi, Parameter(.5))
+
+    core = Core(agent_save, mdp)
+
+    # Train
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
+    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    shutil.rmtree(agent_path)
+
+    for att, method in agent_save.__dict__.items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+        #print('{}: {}'.format(att, type(save_attr)))
+
+        tu.assert_eq(save_attr, load_attr)
 
 
 def test_speedy_q_learning():
@@ -119,6 +194,30 @@ def test_speedy_q_learning():
     assert np.allclose(agent.Q.table, test_q)
 
 
+def test_speedy_q_learning_save():
+    pi, mdp, _ = initialize()
+    agent_save = SpeedyQLearning(mdp.info, pi, Parameter(.5))
+
+    core = Core(agent_save, mdp)
+
+    # Train
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
+    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    shutil.rmtree(agent_path)
+
+    for att, method in agent_save.__dict__.items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+        #print('{}: {}'.format(att, type(save_attr)))
+
+        tu.assert_eq(save_attr, load_attr)
+
+
 def test_sarsa():
     pi, mdp, _ = initialize()
     agent = SARSA(mdp.info, pi, Parameter(.1))
@@ -136,6 +235,30 @@ def test_sarsa():
     assert np.allclose(agent.Q.table, test_q)
 
 
+def test_sarsa_save():
+    pi, mdp, _ = initialize()
+    agent_save = SARSA(mdp.info, pi, Parameter(.1))
+
+    core = Core(agent_save, mdp)
+
+    # Train
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
+    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    shutil.rmtree(agent_path)
+
+    for att, method in agent_save.__dict__.items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+        #print('{}: {}'.format(att, type(save_attr)))
+
+        tu.assert_eq(save_attr, load_attr)
+
+
 def test_sarsa_lambda_discrete():
     pi, mdp, _ = initialize()
     agent = SARSALambda(mdp.info, pi, Parameter(.1), .9)
@@ -151,6 +274,30 @@ def test_sarsa_lambda_discrete():
                        [0., 0., 0., 0.]])
 
     assert np.allclose(agent.Q.table, test_q)
+
+
+def test_sarsa_lambda_discrete_save():
+    pi, mdp, _ = initialize()
+    agent_save = SARSALambda(mdp.info, pi, Parameter(.1), .9)
+
+    core = Core(agent_save, mdp)
+
+    # Train
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
+    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    shutil.rmtree(agent_path)
+
+    for att, method in agent_save.__dict__.items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+        #print('{}: {}'.format(att, type(save_attr)))
+
+        tu.assert_eq(save_attr, load_attr)
 
 
 def test_sarsa_lambda_continuous_linear():
@@ -182,10 +329,48 @@ def test_sarsa_lambda_continuous_linear():
     assert np.allclose(agent.Q.get_weights(), test_w)
 
 
+def test_sarsa_lambda_continuous_linear_save():
+    pi, _, mdp_continuous = initialize()
+    mdp_continuous.seed(1)
+    n_tilings = 1
+    tilings = Tiles.generate(n_tilings, [2, 2],
+                             mdp_continuous.info.observation_space.low,
+                             mdp_continuous.info.observation_space.high)
+    features = Features(tilings=tilings)
+
+    approximator_params = dict(
+        input_shape=(features.size,),
+        output_shape=(mdp_continuous.info.action_space.n,),
+        n_actions=mdp_continuous.info.action_space.n
+    )
+    agent_save = SARSALambdaContinuous(mdp_continuous.info, pi, LinearApproximator,
+                                  Parameter(.1), .9, features=features,
+                                  approximator_params=approximator_params)
+
+    core = Core(agent_save, mdp_continuous)
+
+    # Train
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
+    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    shutil.rmtree(agent_path)
+
+    for att, method in agent_save.__dict__.items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+        #print('{}: {}'.format(att, type(save_attr)))
+
+        tu.assert_eq(save_attr, load_attr)
+
+
 def test_sarsa_lambda_continuous_nn():
     pi, _, mdp_continuous = initialize()
     mdp_continuous.seed(1)
-
+    
     features = Features(
         n_outputs=mdp_continuous.info.observation_space.shape[0]
     )
@@ -212,6 +397,44 @@ def test_sarsa_lambda_continuous_nn():
     assert np.allclose(agent.Q.get_weights(), test_w)
 
 
+def test_sarsa_lambda_continuous_nn_save():
+    pi, _, mdp_continuous = initialize()
+    mdp_continuous.seed(1)
+
+    features = Features(
+        n_outputs=mdp_continuous.info.observation_space.shape[0]
+    )
+
+    approximator_params = dict(
+        input_shape=(features.size,),
+        output_shape=(mdp_continuous.info.action_space.n,),
+        network=Network,
+        n_actions=mdp_continuous.info.action_space.n
+    )
+    agent_save = SARSALambdaContinuous(mdp_continuous.info, pi, TorchApproximator,
+                                  Parameter(.1), .9, features=features,
+                                  approximator_params=approximator_params)
+
+    core = Core(agent_save, mdp_continuous)
+
+    # Train
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
+    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    shutil.rmtree(agent_path)
+
+    for att, method in agent_save.__dict__.items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+        #print('{}: {}'.format(att, type(save_attr)))
+
+        tu.assert_eq(save_attr, load_attr)
+
+
 def test_expected_sarsa():
     pi, mdp, _ = initialize()
     agent = ExpectedSARSA(mdp.info, pi, Parameter(.1))
@@ -227,6 +450,30 @@ def test_expected_sarsa():
                        [0., 0., 0., 0.]])
 
     assert np.allclose(agent.Q.table, test_q)
+
+
+def test_expected_sarsa_save():
+    pi, mdp, _ = initialize()
+    agent_save = ExpectedSARSA(mdp.info, pi, Parameter(.1))
+
+    core = Core(agent_save, mdp)
+
+    # Train
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
+    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    shutil.rmtree(agent_path)
+
+    for att, method in agent_save.__dict__.items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+        #print('{}: {}'.format(att, type(save_attr)))
+
+        tu.assert_eq(save_attr, load_attr)
 
 
 def test_true_online_sarsa_lambda():
@@ -258,6 +505,44 @@ def test_true_online_sarsa_lambda():
     assert np.allclose(agent.Q.get_weights(), test_w)
 
 
+def test_true_online_sarsa_lambda_save():
+    pi, _, mdp_continuous = initialize()
+    mdp_continuous.seed(1)
+    n_tilings = 1
+    tilings = Tiles.generate(n_tilings, [2, 2],
+                             mdp_continuous.info.observation_space.low,
+                             mdp_continuous.info.observation_space.high)
+    features = Features(tilings=tilings)
+
+    approximator_params = dict(
+        input_shape=(features.size,),
+        output_shape=(mdp_continuous.info.action_space.n,),
+        n_actions=mdp_continuous.info.action_space.n
+    )
+    agent_save = TrueOnlineSARSALambda(mdp_continuous.info, pi,
+                                  Parameter(.1), .9, features=features,
+                                  approximator_params=approximator_params)
+
+    core = Core(agent_save, mdp_continuous)
+
+    # Train
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
+    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    shutil.rmtree(agent_path)
+
+    for att, method in agent_save.__dict__.items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+        #print('{}: {}'.format(att, type(save_attr)))
+
+        tu.assert_eq(save_attr, load_attr)
+
+
 def test_r_learning():
     pi, mdp, _ = initialize()
     agent = RLearning(mdp.info, pi, Parameter(.1), Parameter(.5))
@@ -273,6 +558,30 @@ def test_r_learning():
                        [0., 0., 0., 0.]])
 
     assert np.allclose(agent.Q.table, test_q)
+
+
+def test_r_learning_save():
+    pi, mdp, _ = initialize()
+    agent_save = RLearning(mdp.info, pi, Parameter(.1), Parameter(.5))
+
+    core = Core(agent_save, mdp)
+
+    # Train
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
+    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    shutil.rmtree(agent_path)
+
+    for att, method in agent_save.__dict__.items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+        #print('{}: {}'.format(att, type(save_attr)))
+
+        tu.assert_eq(save_attr, load_attr)
 
 
 def test_rq_learning():
@@ -335,3 +644,27 @@ def test_rq_learning():
                        [0., 0., 0., 0.]])
 
     assert np.allclose(agent.Q.table, test_q)
+
+
+def test_rq_learning_save():
+    pi, mdp, _ = initialize()
+
+    agent_save = RQLearning(mdp.info, pi, Parameter(.1), beta=Parameter(.5))
+
+    core = Core(agent_save, mdp)
+
+    # Train
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
+    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    shutil.rmtree(agent_path)
+
+    for att, method in agent_save.__dict__.items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+        #print('{}: {}'.format(att, type(save_attr)))
+        tu.assert_eq(save_attr, load_attr)

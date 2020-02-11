@@ -81,6 +81,18 @@ class DQN(Agent):
                 self.target_approximator.model[i].set_weights(
                     self.approximator.model.get_weights())
 
+        self._add_save_attr(
+            _fit_params='pickle',
+            _batch_size='numpy',
+            _n_approximators='numpy',
+            _clip_reward='numpy',
+            _target_update_frequency='numpy',
+            _replay_memory='pickle',
+            _fit='pickle',
+            _n_updates='numpy',
+            approximator='pickle',
+            target_approximator='pickle')
+
         super().__init__(mdp_info, policy)
 
     def fit(self, dataset):
@@ -184,6 +196,8 @@ class AveragedDQN(DQN):
         super().__init__(mdp_info, policy, approximator, **params)
 
         self._n_fitted_target_models = 1
+
+        self._add_save_attr(_n_fitted_target_models='numpy')
 
         assert isinstance(self.target_approximator.model, Ensemble)
 

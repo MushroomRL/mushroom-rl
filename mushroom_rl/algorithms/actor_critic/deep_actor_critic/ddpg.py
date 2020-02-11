@@ -74,6 +74,18 @@ class DDPG(DeepAC):
 
         policy_parameters = self._actor_approximator.model.network.parameters()
 
+        self._add_save_attr(
+            _critic_fit_params='pickle', 
+            _batch_size='numpy',
+            _tau='numpy',
+            _policy_delay='numpy',
+            _fit_count='numpy',
+            _replay_memory='pickle',
+            _critic_approximator='pickle',
+            _target_critic_approximator='pickle',
+            _actor_approximator='pickle',
+            _target_actor_approximator='pickle')
+
         super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
 
     def fit(self, dataset):
@@ -124,3 +136,7 @@ class DDPG(DeepAC):
         q *= 1 - absorbing
 
         return q
+
+    def _post_load(self):
+        if self._optimizer is not None:
+            self._parameters = list(self._actor_approximator.model.network.parameters())

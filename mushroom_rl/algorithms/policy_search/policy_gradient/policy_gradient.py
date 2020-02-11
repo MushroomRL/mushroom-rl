@@ -23,6 +23,11 @@ class PolicyGradient(Agent):
         self.df = 1
         self.J_episode = 0
 
+        self._add_save_attr(
+            learning_rate='pickle',
+            df='numpy',
+            J_episode='numpy')
+
         super().__init__(mdp_info, policy, features)
 
     def fit(self, dataset):

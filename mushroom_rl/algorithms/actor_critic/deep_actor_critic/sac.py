@@ -240,6 +240,19 @@ class SAC(DeepAC):
 
         policy_parameters = chain(actor_mu_approximator.model.network.parameters(),
                                   actor_sigma_approximator.model.network.parameters())
+
+        self._add_save_attr(
+            _critic_fit_params='pickle',
+            _batch_size='numpy',
+            _warmup_transitions='numpy',
+            _tau='numpy',
+            _target_entropy='numpy',
+            _replay_memory='pickle',
+            _critic_approximator='pickle',
+            _target_critic_approximator='pickle',
+            _log_alpha='pickle',
+            _alpha_optim='pickle')
+
         super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
 
     def fit(self, dataset):
@@ -299,6 +312,11 @@ class SAC(DeepAC):
         q *= 1 - absorbing
 
         return q
+
+    def _post_load(self):
+        if self._optimizer is not None:
+            self._parameters = list(chain(self.policy._mu_approximator.model.network.parameters(),
+                                  self.policy._sigma_approximator.model.network.parameters()))
 
     @property
     def _alpha(self):

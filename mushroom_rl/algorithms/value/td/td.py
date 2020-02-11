@@ -24,6 +24,10 @@ class TD(Agent):
         policy.set_q(approximator)
         self.approximator = approximator
 
+        self._add_save_attr(
+            alpha='pickle',
+            approximator='pickle')
+
         super().__init__(mdp_info, policy, features)
 
     def fit(self, dataset):
