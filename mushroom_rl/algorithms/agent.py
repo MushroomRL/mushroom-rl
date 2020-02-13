@@ -12,8 +12,6 @@ class Agent(object):
 
     """
 
-    _save_attributes = dict()
-
     def __init__(self, mdp_info, policy, features=None):
         """
         Constructor.
@@ -95,6 +93,8 @@ class Agent(object):
             attr_dict (dict): dictionary of attributes mapped to the method that should be used to save and load them
 
         """
+        if not hasattr(self, '_save_attributes'):
+            self._save_attributes = dict(_save_attributes='json')
         self._save_attributes.update(attr_dict)
 
     @classmethod
@@ -116,7 +116,7 @@ class Agent(object):
 
         agent = agent_type.__new__(agent_type)
 
-        for att, method in agent._save_attributes.items():
+        for att, method in save_attributes.items():
             load_path = Path(path, '{}.{}'.format(att, method))
             
             if load_path.is_file():
@@ -166,7 +166,7 @@ class Agent(object):
         if not isinstance(path, str): raise ValueError('path has to be of type string')
 
         path_obj = Path(path)
-        path_obj.mkdir(parents=True)
+        path_obj.mkdir(parents=True, exist_ok=True)
 
         # Save algorithm type and save_attributes
         agent_config = dict(
