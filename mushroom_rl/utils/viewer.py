@@ -199,8 +199,8 @@ class Viewer:
     def force_arrow(self, center, direction, force, max_force,
                     max_length, color=(255, 255, 255), width=1):
         """
-        Draw a torque arrow, i.e. a circular arrow representing a torque. The
-        radius of the arrow is directly proportional to the torque value.
+        Draw a force arrow, i.e. an arrow representing a force. The
+        length of the arrow is directly proportional to the force value.
 
         Args:
             center (np.ndarray): the point where the force is applied;
