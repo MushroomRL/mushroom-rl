@@ -18,6 +18,7 @@ class A2C(DeepAC):
     Mnih V. et. al.. 2016.
 
     """
+
     def __init__(self, mdp_info, policy, actor_optimizer, critic_params,
                  ent_coeff, max_grad_norm=None, critic_fit_params=None):
         """
@@ -49,6 +50,11 @@ class A2C(DeepAC):
             actor_optimizer['clipping'] = dict(
                 method=torch.nn.utils.clip_grad_norm_, params=clipping_params)
 
+        self._add_save_attr(
+            _critic_fit_params='pickle',
+            _entropy_coeff='numpy',
+            _V='pickle')
+
         super().__init__(mdp_info, policy, actor_optimizer, policy.parameters())
 
     def fit(self, dataset):
@@ -74,3 +80,7 @@ class A2C(DeepAC):
         entropy_loss = -self.policy.entropy_t(s)
 
         return gradient_loss + self._entropy_coeff * entropy_loss
+
+    def _post_load(self):
+        if self._optimizer is not None:
+            self._parameters = list(self.policy.parameters())

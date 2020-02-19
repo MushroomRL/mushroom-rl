@@ -71,6 +71,20 @@ class TRPO(Agent):
 
         self._old_policy = None
 
+        self._add_save_attr(
+            _critic_fit_params='pickle', 
+            _n_epochs_line_search='numpy',
+            _n_epochs_cg='numpy',
+            _cg_damping='numpy',
+            _cg_residual_tol='numpy',
+            _max_kl='numpy',
+            _ent_coeff='numpy',
+            _lambda='numpy',
+            _V='pickle',
+            _old_policy='pickle',
+            _iter='numpy',
+            _quiet='numpy')
+
         super().__init__(mdp_info, policy, None)
 
     def fit(self, dataset):

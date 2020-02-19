@@ -29,4 +29,9 @@ class BatchTD(Agent):
                                       **self._approximator_params)
         policy.set_q(self.approximator)
 
+        self._add_save_attr(
+            _approximator_params='pickle',
+            approximator='pickle',
+            _fit_params='pickle')
+
         super().__init__(mdp_info, policy, features)

@@ -27,6 +27,17 @@ class WeightedQLearning(TD):
         self._sampling = sampling
         self._precision = precision
 
+        self._add_save_attr(
+            Q='pickle',
+            _sampling='numpy',
+            _precision='numpy',
+            _n_updates='pickle',
+            _sigma='pickle',
+            _Q='pickle',
+            _Q2='pickle',
+            _weights_var='pickle',
+            _w='numpy')
+
         super().__init__(mdp_info, policy, self.Q, learning_rate)
 
         self._n_updates = Table(mdp_info.size)
