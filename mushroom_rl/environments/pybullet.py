@@ -1,6 +1,5 @@
 import pybullet
 import pybullet_data
-import time
 import numpy as np
 from enum import Enum
 from mushroom_rl.environments import Environment, MDPInfo
