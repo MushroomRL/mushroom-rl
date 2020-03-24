@@ -37,13 +37,12 @@ class NormalizationPreprocessor(object):
             Normalized observation array with the same shape.
 
         """
-        self.obs_runstand.update_stats(obs)
-
         assert obs.shape == self.obs_shape, \
             "Values given to running_norm have incorrect shape " \
             "(obs shape: {},  expected shape: {})" \
             .format(obs.shape, self.obs_shape)
 
+        self.obs_runstand.update_stats(obs)
         norm_obs = np.clip(
             (obs - self.obs_runstand.mean) / self.obs_runstand.std,
             -self.clip_obs, self.clip_obs
