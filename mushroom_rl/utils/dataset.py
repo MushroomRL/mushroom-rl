@@ -178,13 +178,13 @@ def compute_J(dataset, gamma=1.):
     return js
 
 
-def compute_metrics(dataset, gamma=1.0):
+def compute_metrics(dataset, gamma=1.):
     """
     Compute the metrics of each complete episode in the dataset.
 
     Args:
         dataset (list): the dataset to consider;
-        gamma (float, 1.0): the discount factor.
+        gamma (float, 1.): the discount factor.
 
     Returns:
         The minimum score reached in an episode,
@@ -192,12 +192,12 @@ def compute_metrics(dataset, gamma=1.0):
         the mean score reached,
         the number of completed games.
 
-        If episode has been completed, it returns 0 for all values.
+        If episode has not been completed, it returns 0 for all values.
 
     """
-
     for i in reversed(range(len(dataset))):
         if dataset[i][-1]:
+            i += 1
             break
 
     dataset = dataset[:i]
