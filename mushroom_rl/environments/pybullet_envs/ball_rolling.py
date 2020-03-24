@@ -17,7 +17,10 @@ class BallRolling(PyBullet):
                        ("R_WAA", pybullet.POSITION_CONTROL)
                        ]
 
-        observation_spec = [("R_SFE", PyBulletObservationType.JOINT_POS),
+        observation_spec = [("ball", PyBulletObservationType.BODY_POS),
+                            ("ball", PyBulletObservationType.BODY_LIN_VEL),
+                            ("R_palm", PyBulletObservationType.LINK_POS),
+                            ("R_SFE", PyBulletObservationType.JOINT_POS),
                             ("R_SFE", PyBulletObservationType.JOINT_VEL),
                             ("R_SAA", PyBulletObservationType.JOINT_POS),
                             ("R_SAA", PyBulletObservationType.JOINT_VEL),
@@ -40,60 +43,49 @@ class BallRolling(PyBullet):
 
         super().__init__(files, action_spec, pybullet.POSITION_CONTROL, observation_spec, 0.99, 1000)
 
-        plane, robot, table, ball = self._model_ids
-        pybullet.changeDynamics(plane, -1, restitution=1)
-        pybullet.changeDynamics(table, -1, restitution=1)
-        pybullet.changeDynamics(ball, -1, restitution=0.8, rollingFriction=0.01)
-        pybullet.changeDynamics(robot, -1, restitution=1)
-        for i in range(pybullet.getNumJoints(robot)):
-            pybullet.changeDynamics(robot, i, restitution=1)
+        self._touched = False
+
+        pybullet.changeDynamics(self._model_map['plane'], -1, restitution=1)
+        pybullet.changeDynamics(self._model_map['table'], -1, restitution=1)
+        pybullet.changeDynamics(self._model_map['ball'], -1, restitution=0.8, rollingFriction=0.01)
+        pybullet.changeDynamics(self._model_map['darias'], -1, restitution=1)
+        for i in range(pybullet.getNumJoints(self._model_map['darias'])):
+            pybullet.changeDynamics(self._model_map['darias'], i, restitution=1)
 
     def setup(self):
-        plane, robot, table, ball = self._model_ids
-
         x_start = np.random.rand() * 0.2 + 0.4
         speed = np.random.rand() * 2 + 2
         theta = (np.random.rand() * 20 - 10) / 180 * np.pi
 
         # self.darias.resetJoints(self.initial_joints)
-        pybullet.resetBasePositionAndOrientation(table, [0.5, 0, 0.3], [0, 0, 0, 1])
-        pybullet.resetBasePositionAndOrientation(ball, [x_start, 1, 0.8], [0, 0, 0, 1])
-        pybullet.resetBaseVelocity(ball, [speed * np.sin(theta), -speed * np.cos(theta), 0], [0, 0, 0])
+        pybullet.resetBasePositionAndOrientation(self._model_map['table'], [0.5, 0, 0.3], [0, 0, 0, 1])
+        pybullet.resetBasePositionAndOrientation(self._model_map['ball'], [x_start, 1, 0.8], [0, 0, 0, 1])
+        pybullet.resetBaseVelocity(self._model_map['ball'], [speed * np.sin(theta), -speed * np.cos(theta), 0],
+                                   [0, 0, 0])
+
+        self._touched = False
 
     def reward(self, state, action, next_state):
-        # R = [-1, -1, -1]
-        # reward_ball = np.dot((np.array(state[4]) / self.context[1]) ** 2, R)
-        # Q = [-2, -1.8, -1.5, -1.3, -1, -1, -1]
-        # reward_darias = np.dot(np.array(state[1]) ** 2, Q)
-        #
-        # hand_ball_distance = self.getMagnitude(np.array(state[2]) - np.array(state[6]))
-        # reward_position = -1 * (hand_ball_distance) ** 2
-        #
-        # # print(reward_ball, reward_darias, reward_position)
-        #
-        # # reward = 10*reward_ball+reward_darias
-        # # reward = 10 * reward_ball+ 50*reward_position
-        # if self.touched:
-        #     reward = 5 * reward_ball
-        # else:
-        #     reward = 100 * reward_position
-        #
-        # if self.getMagnitude(state[4]) < 0.0001: #FIXME
-        #     reward = 20000
-        # return reward / self._maxSteps
+        if self._touched:
+            R = [-1, -1, -1]
+            ball_speed = state[7:10]
+            reward_ball = np.dot(ball_speed**2, R)
+            reward = 5e-3 * reward_ball
+        else:
+            ball_pos = state[:3]
+            hand_pos = state[10:13]
+            hand_ball_distance = np.linalg.norm(ball_pos - hand_pos)
+            reward_position = -hand_ball_distance**2
+            reward = 0.1 * reward_position
 
-        return 0
+        if np.linalg.norm(state[7:10]) < 0.0001:
+            reward = 20
+        return reward
 
     def is_absorbing(self, state):
-        return False
-        # if (self.getMagnitude(self._observation[4]) < 0.0001):
-        #     return True
-        # if self._observation[2][2] < 0.7:
-        #     return True
-        # return False
-
-    # def getMagnitude(self, vec):
-    #     return np.sqrt(vec[0]**2 + vec[1]**2 + vec[2]**2)
+        ball_speed = state[7:9]
+        ball_height = state[2]
+        return np.linalg.norm(ball_speed) < 0.0001 or ball_height < 0.7
 
     def _custom_load_models(self):
 
@@ -112,14 +104,21 @@ class BallRolling(PyBullet):
                                         baseVisualShapeIndex=ball_visual,
                                         basePosition=[0.5, 1, 0.8])
 
-        return [table, ball]
+        return dict(table=table, ball=ball)
 
+    def _step_finalize(self):
+
+        if not self._touched:
+            robot = self._model_map['darias']
+            ball = self._model_map['ball']
+            contact_points = pybullet.getContactPoints(bodyA=robot,bodyB=ball)
+
+            self._touched = len(contact_points) > 0
 
 
 if __name__ == '__main__':
     from mushroom_rl.core import Core
     from mushroom_rl.algorithms import Agent
-
 
     class DummyAgent(Agent):
         def __init__(self, n_actions):
@@ -134,11 +133,12 @@ if __name__ == '__main__':
         def fit(self, dataset):
             pass
 
-
     mdp = BallRolling()
     agent = DummyAgent(mdp.info.action_space.shape[0])
 
     core = Core(agent, mdp)
-    mdp.reset()
-
-    core.evaluate(n_episodes=3, render=True)
+    dataset = core.evaluate(n_episodes=2, render=True)
+    print("mdp_info state shape", mdp.info.observation_space.shape)
+    print("actual state shape", dataset[0][0].shape)
+    print("mdp_info action shape", mdp.info.action_space.shape)
+    print("actual action shape", dataset[0][1].shape)

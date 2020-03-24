@@ -13,9 +13,15 @@ class PyBulletObservationType(Enum):
     of the environment, can be Joint-/Body-/Site- positions and velocities.
 
     """
-    __order__ = "JOINT_POS JOINT_VEL"
-    JOINT_POS = 0
-    JOINT_VEL = 1
+    __order__ = "BODY_POS BODY_LIN_VEL BODY_ANG_VEL JOINT_POS JOINT_VEL LINK_POS LINK_LIN_VEL LINK_ANG_VEL"
+    BODY_POS = 0
+    BODY_LIN_VEL = 1
+    BODY_ANG_VEL = 2
+    JOINT_POS = 3
+    JOINT_VEL = 4
+    LINK_POS = 5
+    LINK_LIN_VEL = 6
+    LINK_ANG_VEL = 7
 
 
 class PyBulletViewer(ImageViewer):
@@ -96,20 +102,26 @@ class PyBullet(Environment):
         self._viewer = PyBulletViewer((500, 500), self._timestep * self._n_intermediate_steps)
         self._state = None
 
-        # Load model
-        self._model_ids = list()
+        # Load model and create access maps
+        self._model_map = dict()
         for file_name in files:
-            self._model_ids.append(pybullet.loadURDF(file_name))
-        self._model_ids += self._custom_load_models()
+            model_id = pybullet.loadURDF(file_name)
+            model_name = pybullet.getBodyInfo(model_id)[1].decode('UTF-8')
+            self._model_map[model_name] = model_id
+        self._model_map.update(self._custom_load_models())
+
+        self._joint_map = dict()
+        self._link_map = dict()
+        for model_id in self._model_map.values():
+            for joint_id in range(pybullet.getNumJoints(model_id)):
+                joint_data = pybullet.getJointInfo(model_id, joint_id)
+                joint_name = joint_data[1].decode('UTF-8')
+                link_name = joint_data[12].decode('UTF-8')
+                self._joint_map[joint_name] = (model_id, joint_id)
+                self._link_map[link_name] = (model_id, joint_id)
 
         # Read the actuation spec and build the mapping between actions and ids
         # as well as their limits
-        self._joint_map = dict()
-        for model_id in self._model_ids:
-            for joint_id in range(pybullet.getNumJoints(model_id)):
-                name = pybullet.getJointInfo(model_id, joint_id)[1].decode('UTF-8')
-                self._joint_map[name] = (model_id, joint_id)
-
         assert(len(actuation_spec) > 0)
         self._action_data = list()
         for name, mode in actuation_spec:
@@ -147,7 +159,6 @@ class PyBullet(Environment):
     def reset(self, state=None):
         pybullet.restoreState(self._initial_state)
         self.setup()
-        pybullet.stepSimulation()
         self._state = self._create_observation()
         return self._state
 
@@ -207,29 +218,70 @@ class PyBullet(Environment):
         low = list()
         high = list()
 
-        for name, type in self._observation_map:
-            model_id, joint_id = self._joint_map[name]
-            joint_info = pybullet.getJointInfo(model_id, joint_id)
-
-            if type is PyBulletObservationType.JOINT_POS:
-                low.append(joint_info[8])
-                high.append(joint_info[9])
+        for name, obs_type in self._observation_map:
+            if obs_type is PyBulletObservationType.BODY_POS \
+               or obs_type is PyBulletObservationType.BODY_LIN_VEL \
+               or obs_type is PyBulletObservationType.BODY_ANG_VEL:
+                n_dim = 7 if obs_type is PyBulletObservationType.BODY_POS else 3
+                low += [-np.inf] * n_dim
+                high += [-np.inf] * n_dim
+            elif obs_type is PyBulletObservationType.LINK_POS \
+                 or obs_type is PyBulletObservationType.LINK_LIN_VEL \
+                 or obs_type is PyBulletObservationType.LINK_ANG_VEL:
+                n_dim = 7 if obs_type is PyBulletObservationType.LINK_POS else 3
+                low += [-np.inf] * n_dim
+                high += [-np.inf] * n_dim
             else:
-                low.append(-np.inf)
-                high.append(np.inf)
+                model_id, joint_id = self._joint_map[name]
+                joint_info = pybullet.getJointInfo(model_id, joint_id)
+
+                if obs_type is PyBulletObservationType.JOINT_POS:
+                    low.append(joint_info[8])
+                    high.append(joint_info[9])
+                else:
+                    low.append(-np.inf)
+                    high.append(np.inf)
 
         return np.array(low), np.array(high)
 
     def _create_observation(self):
         data_obs = list()
 
-        for name, type in self._observation_map:
-            model_id, joint_id = self._joint_map[name]
-            pos, vel, _, _ = pybullet.getJointState(model_id, joint_id)
-            if type is PyBulletObservationType.JOINT_POS:
-                data_obs.append(pos)
-            elif type is PyBulletObservationType.JOINT_VEL:
-                data_obs.append(vel)
+        for name, obs_type in self._observation_map:
+            if obs_type is PyBulletObservationType.BODY_POS \
+               or obs_type is PyBulletObservationType.BODY_LIN_VEL \
+               or obs_type is PyBulletObservationType.BODY_ANG_VEL:
+                model_id = self._model_map[name]
+                if obs_type is PyBulletObservationType.BODY_POS:
+                    t, q = pybullet.getBasePositionAndOrientation(model_id)
+                    data_obs += t + q
+                else:
+                    v, w = pybullet.getBaseVelocity(model_id)
+                    if obs_type is PyBulletObservationType.BODY_LIN_VEL:
+                        data_obs += v
+                    else:
+                        data_obs += w
+            elif obs_type is PyBulletObservationType.LINK_POS \
+                    or obs_type is PyBulletObservationType.LINK_LIN_VEL \
+                    or obs_type is PyBulletObservationType.LINK_ANG_VEL:
+                model_id, link_id = self._link_map[name]
+
+                if obs_type is PyBulletObservationType.LINK_POS:
+                    link_data = pybullet.getLinkState(model_id, link_id)
+                    t = link_data[0]
+                    q = link_data[1]
+                    data_obs += t + q
+                elif obs_type is PyBulletObservationType.LINK_LIN_VEL:
+                    data_obs += pybullet.getLinkState(model_id, link_id, computeLinkVelocity=True)[-2]
+                elif obs_type is PyBulletObservationType.LINK_ANG_VEL:
+                    data_obs += pybullet.getLinkState(model_id, link_id, computeLinkVelocity=True)[-1]
+            else:
+                model_id, joint_id = self._joint_map[name]
+                pos, vel, _, _ = pybullet.getJointState(model_id, joint_id)
+                if obs_type is PyBulletObservationType.JOINT_POS:
+                    data_obs.append(pos)
+                elif obs_type is PyBulletObservationType.JOINT_VEL:
+                    data_obs.append(vel)
 
         return np.array(data_obs)
 
@@ -280,7 +332,7 @@ class PyBullet(Environment):
                 provided at every step.
 
         Returns:
-            The action to be set in the actual mujoco simulation.
+            The action to be set in the actual pybullet simulation.
 
         """
         return action
@@ -288,20 +340,15 @@ class PyBullet(Environment):
     def _simulation_pre_step(self):
         """
         Allows information to be accesed and changed at every intermediate step
-            before taking a step in the mujoco simulation.
+            before taking a step in the pybullet simulation.
             Can be usefull to apply an external force/torque to the specified bodies.
-
-        ex: apply a force over X to the torso:
-            force = [200, 0, 0]
-            torque = [0, 0, 0]
-            self.sim.data.xfrc_applied[self.sim.model._body_name2id["torso"],:] = force + torque
         """
         pass
 
     def _simulation_post_step(self):
         """
         Allows information to be accesed at every intermediate step
-            after taking a step in the mujoco simulation.
+            after taking a step in the pybullet simulation.
             Can be usefull to average forces over all intermediate steps.
         """
         pass
@@ -317,7 +364,7 @@ class PyBullet(Environment):
         Allows to custom load a set of objects in the simulation
 
         Returns:
-            A list with the ids of the loaded objects
+            A dictionary with the names and the ids of the loaded objects
         """
         return list()
 
