@@ -6,8 +6,8 @@ from mushroom_rl.utils.running_stats import RunningStandardization
 
 class NormalizationPreprocessor(object):
     """
-    Normalizes observations from the environment using
-        RunningStandardization.
+    Normalize observations from the environment using
+    ``RunningStandardization``.
 
     """
     def __init__(self, mdp_info, clip_obs=10., alpha=1e-32):
@@ -15,53 +15,63 @@ class NormalizationPreprocessor(object):
         Constructor.
 
         Args:
-            mdp_info (MDPInfo): mdp_info object to extract information
-                about the observation_space.
-            clip_obs (float): Values to clip the normalized
-                observations.
-            alpha (float): Moving average catchup parameter for
-                the normalization.
+            mdp_info (MDPInfo): information of the MDP;
+            clip_obs (float, 10.): values to clip the normalized observations;
+            alpha (float, 1e-32): moving average catchup parameter for the
+                normalization.
 
         """
-
         self.clip_obs = clip_obs
-        self.obs_runstand = RunningStandardization(shape=mdp_info.observation_space.shape,
+        self.obs_shape = mdp_info.observation_space.shape
+        self.obs_runstand = RunningStandardization(shape=self.obs_shape,
                                                    alpha=alpha)
 
     def __call__(self, obs):
         """
-        Calls function to normalize the observation.
-        Args:
-            obs (np.array): observation to be normalized
+        Call function to normalize the observation.
 
-        Returns a normalized observation array with the same shape
+        Args:
+            obs (np.ndarray): observation to be normalized.
+
+        Returns:
+            Normalized observation array with the same shape.
 
         """
         self.obs_runstand.update_stats(obs)
-        norm_obs = np.clip((obs - self.obs_runstand.mean) / self.obs_runstand.std,
-                           -self.clip_obs, self.clip_obs)
+
+        assert obs.shape == self.obs_shape, \
+            "Values given to running_norm have incorrect shape " \
+            "(obs shape: {},  expected shape: {})" \
+            .format(obs.shape, self.obs_shape)
+
+        norm_obs = np.clip(
+            (obs - self.obs_runstand.mean) / self.obs_runstand.std,
+            -self.clip_obs, self.clip_obs
+        )
+
         return norm_obs
 
     def get_state(self):
         """
-        Returns a dict with the normalization state.
+        Returns:
+            A dictionary with the normalization state.
 
         """
         return self.obs_runstand.get_state()
 
     def set_state(self, data):
         """
-        Sets the current normalization state from the data dict.
+        Set the current normalization state from the data dict.
 
         """
         self.obs_runstand.set_state(data)
 
     def save_state(self, path):
         """
-        Saves the running normalization state to path.
+        Save the running normalization state to path.
 
         Args:
-            path (string): Path to save the running normalization state.
+            path (str): path to save the running normalization state.
 
         """
         with open(path, 'wb') as f:
@@ -69,10 +79,10 @@ class NormalizationPreprocessor(object):
 
     def load_state(self, path):
         """
-        Loads the running normalization state from path.
+        Load the running normalization state from path.
 
         Args:
-            path (string): Path to load the running normalization
+            path (string): path to load the running normalization
                 state from.
 
         """
@@ -83,9 +93,9 @@ class NormalizationPreprocessor(object):
 
 class NormalizationBoxedPreprocessor(NormalizationPreprocessor):
     """
-    Normalizes observations from the environment using
-        mdp_info.observation_space Box range. For observations which
-        are not limited falls back to using RunningStandardization.
+    Normalize observations from the environment using
+    the bounds of the observation space of the environment. For observations
+    that are not limited falls back to using running mean standardization.
 
     """
     def __init__(self, mdp_info, clip_obs=10., alpha=1e-32):
@@ -93,43 +103,45 @@ class NormalizationBoxedPreprocessor(NormalizationPreprocessor):
         Constructor.
 
         Args:
-            mdp_info (MDPInfo): mdp_info object to extract information
-                about the observation_space.
-            clip_obs (float): Values to clip the normalized
-                observations.
-            alpha (float): Moving average catchup parameter for
+            mdp_info (MDPInfo): information of the MDP;
+            clip_obs (float, 10.): values to clip the normalized
+                observations;
+            alpha (float, 1e-32): moving average catchup parameter for
                 the normalization.
 
         """
+        super(NormalizationBoxedPreprocessor, self).__init__(mdp_info, clip_obs,
+                                                             alpha)
 
-        super(NormalizationBoxedPreprocessor, self).__init__(mdp_info, clip_obs, alpha)
-
-        # create mask where observations will be normalized between
-        # boxed values(not inf)
         obs_low, obs_high = (mdp_info.observation_space.low.copy(),
                              mdp_info.observation_space.high.copy())
 
-        self.stand_obs_mask = np.where(~(np.isinf(obs_low) | np.isinf(obs_high)))
+        self.stand_obs_mask = np.where(
+            ~(np.isinf(obs_low) | np.isinf(obs_high))
+        )
 
-        # turn off running stats if all observations will be boxed
+        assert np.squeeze(self.stand_obs_mask).size > 0, \
+            "All observations have unlimited range, you should use " \
+            "NormalizationPreprocessor directly instead."
+
         self.run_norm_obs = len(np.squeeze(self.stand_obs_mask)) != obs_low.shape[0]
 
-        # mean/delta values to use for normalization for observations
         self.obs_mean = np.zeros_like(obs_low)
         self.obs_delta = np.ones_like(obs_low)
-        self.obs_mean[self.stand_obs_mask] = (obs_high[self.stand_obs_mask]
-                                              + obs_low[self.stand_obs_mask]) / 2.0
-        self.obs_delta[self.stand_obs_mask] = (obs_high[self.stand_obs_mask]
-                                               - obs_low[self.stand_obs_mask]) / 2.0
+        self.obs_mean[self.stand_obs_mask] = (
+            obs_high[self.stand_obs_mask] + obs_low[self.stand_obs_mask]) / 2.
+        self.obs_delta[self.stand_obs_mask] = (
+            obs_high[self.stand_obs_mask] - obs_low[self.stand_obs_mask]) / 2.
 
     def __call__(self, obs):
         """
-        Calls function to normalize the observation.
+        Call function to normalize the observation.
 
         Args:
-            obs (np.array): observation to be normalized
+            obs (np.ndarray): observation to be normalized.
 
-        Returns a normalized observation array with the same shape
+        Returns:
+            Normalized observation array with the same shape.
 
         """
         orig_obs = obs.copy()

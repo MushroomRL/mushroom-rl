@@ -223,7 +223,8 @@ class Viewer:
             delta = e - c
 
             pygame.draw.line(self.screen, color, c, e, width)
-            self.arrow_head(end, max_length / 4, np.arctan2(delta[1], delta[0]), color)
+            self.arrow_head(end, max_length / 4, np.arctan2(delta[1], delta[0]),
+                            color)
 
     def torque_arrow(self, center, torque, max_torque,
                      max_radius, color=(255, 255, 255), width=1):
@@ -276,8 +277,10 @@ class Viewer:
         Args:
             x_s (float): starting x coordinate;
             x_e (float): final x coordinate;
-            f (function): the function that maps x coorinates into y coordinates;
-            n_points (int, 100): the number of segments used to approximate the function to draw;
+            f (function): the function that maps x coorinates into y
+                coordinates;
+            n_points (int, 100): the number of segments used to approximate the
+                function to draw;
             width (int, 1): thw width of the line drawn;
             color (tuple, (255,255,255)): the color of the line.
 
