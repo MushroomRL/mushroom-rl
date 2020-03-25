@@ -270,7 +270,7 @@ class Viewer:
         surf = pygame.transform.smoothscale(surf, self.size)
         self.screen.blit(surf, (0, 0))
 
-    def function(self, x_s, x_e, f, n_points=100,  width=1, color=(255,255,255)):
+    def function(self, x_s, x_e, f, n_points=100,  width=1, color=(255, 255, 255)):
         """
         Draw the graph of a function in the image.
 
@@ -317,6 +317,7 @@ class Viewer:
         return np.array([p[0] * self._ratio[0],
                          self._height - p[1] * self._ratio[1]]).astype(int)
 
-    def _rotate(self, p, theta):
+    @staticmethod
+    def _rotate(p, theta):
         return np.array([np.cos(theta) * p[0] - np.sin(theta) * p[1],
                          np.sin(theta) * p[0] + np.cos(theta) * p[1]])

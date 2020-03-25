@@ -124,6 +124,5 @@ def test_eNAC_save():
     for att, method in agent_save.__dict__.items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
-        #print('{}: {}'.format(att, type(save_attr)))
 
         tu.assert_eq(save_attr, load_attr)

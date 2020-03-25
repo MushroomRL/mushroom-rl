@@ -1,22 +1,23 @@
-__extras__ = []
+__all__ = []
 
 try:
-    from .plot_item_w_buffer import PlotItemWBuffer
-    __extras__.append('PlotItemWBuffer')
+    from .plot_item_buffer import PlotItemBuffer
+    __all__.append('PlotItemWBuffer')
 
     from .databuffer import DataBuffer
-    __extras__.append('DataBuffer')
+    __all__.append('DataBuffer')
 
     from .window import Window
-    __extras__.append('Window')
+    __all__.append('Window')
 
-    from ._implementations import common_plots
-    __extras__.append('common_plots')
+    from .common_plots import Actions, LenOfEpisodeTraining, Observations,\
+        RewardPerEpisode, RewardPerStep
+
+    __all__ += ['Actions', 'LenOfEpisodeTraining', 'Observations',
+                'RewardPerEpisode', 'RewardPerStep']
 
     from ._implementations import common_buffers
-    __extras__.append('common_buffers')
+    __all__.append('common_buffers')
 
 except ImportError:
     pass
-
-__all__ = __extras__

@@ -103,9 +103,15 @@ class LQR(Environment):
     def reset(self, state=None):
         if state is None:
             if self.random_init:
-                self._state = np.random.uniform(-3, 3, size=self.A.shape[0])
+                self._state = self._bound(
+                    np.random.uniform(-3, 3, size=self.A.shape[0]),
+                    self.info.observation_space.low,
+                    self.info.observation_space.high
+                )
             else:
-                self._state = 10. * np.ones(self.A.shape[0])
+                init_value = .9 * self._max_pos if np.isfinite(
+                    self._max_pos) else 10
+                self._state = init_value * np.ones(self.A.shape[0])
         else:
             self._state = state
 
@@ -113,13 +119,15 @@ class LQR(Environment):
 
     def step(self, action):
         x = self._state
-        u = self._bound(action, self.info.action_space.low, self.info.action_space.high)
+        u = self._bound(action, self.info.action_space.low,
+                        self.info.action_space.high)
 
         reward = -(x.dot(self.Q).dot(x) + u.dot(self.R).dot(u))
         self._state = self.A.dot(x) + self.B.dot(u)
 
-        if np.any(self._state > self._max_pos):
+        if np.any(np.abs(self._state) > self._max_pos):
             if self._episodic:
+                reward = -self._max_pos ** 2 * 10
                 absorbing = True
             else:
                 self._state = self._bound(self._state,

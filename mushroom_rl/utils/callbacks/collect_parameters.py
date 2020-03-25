@@ -8,7 +8,6 @@ class CollectParameters(Callback):
     (e.g. learning rate) during a run of the agent.
 
     """
-
     def __init__(self, parameter, *idx):
         """
         Constructor.
@@ -25,14 +24,7 @@ class CollectParameters(Callback):
 
         super().__init__()
 
-    def __call__(self, **kwargs):
-        """
-        Add the parameter value to the parameter values list.
-
-        Args:
-            **kwargs (dict): empty dictionary.
-
-        """
+    def __call__(self, dataset):
         value = self._parameter.get_value(*self._idx)
         if isinstance(value, np.ndarray):
             value = np.array(value)

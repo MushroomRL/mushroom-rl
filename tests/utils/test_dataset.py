@@ -54,7 +54,7 @@ def test_dataset_utils():
 
     index = np.sum(L_test[:2]) + L_test[2]//2
     min_J, max_J, mean_J, n_episodes = compute_metrics(dataset[:index], mdp.info.gamma)
-    assert min_J == 0.0
-    assert max_J == 0.0011610630703530948
-    assert mean_J == 0.0005805315351765474
+    assert min_J == 0.0011610630703530948
+    assert max_J == 0.2781283894436937
+    assert mean_J == 0.1396447262570234
     assert n_episodes == 2

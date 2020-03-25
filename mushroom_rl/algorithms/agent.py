@@ -5,6 +5,7 @@ import numpy as np
 from copy import deepcopy
 from pathlib import Path, PurePath
 
+
 class Agent(object):
     """
     This class implements the functions to manage the agent (e.g. move the agent

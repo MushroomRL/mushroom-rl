@@ -6,7 +6,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from mushroom_rl.utils.callbacks import PlotDataset
-from mushroom_rl.utils.preprocessors import NormalizationBoxedPreprocessor
+from mushroom_rl.utils.preprocessors import MinMaxPreprocessor
 
 from mushroom_rl.algorithms.actor_critic import SAC
 from mushroom_rl.core import Core
@@ -180,13 +180,13 @@ def experiment(goal, use_muscles, n_epochs, n_steps, n_episodes_test):
     agent = create_SAC_agent(mdp)
 
     # normalization callback
-    normalizer = NormalizationBoxedPreprocessor(mdp_info=mdp.info)
+    normalizer = MinMaxPreprocessor(mdp_info=mdp.info)
 
     # plotting callback
     plotter = PlotDataset(mdp.info)
 
     # Algorithm(with normalization and plotting)
-    core = Core(agent, mdp, callbacks=[plotter], preprocessors=[normalizer])
+    core = Core(agent, mdp, callbacks_episode=[plotter], preprocessors=[normalizer])
 
     # training loop
     for n in range(n_epochs):

@@ -13,8 +13,8 @@ from mushroom_rl.core import Core
 from mushroom_rl.approximators.parametric import TorchApproximator
 from torch import optim, nn
 
-from mushroom_rl.environments.cart_pole import CartPole
-from mushroom_rl.utils.preprocessors import NormalizationBoxedPreprocessor
+from mushroom_rl.environments import Gym
+from mushroom_rl.utils.preprocessors import MinMaxPreprocessor
 
 
 def test_normalizing_preprocessor():
@@ -41,7 +41,7 @@ def test_normalizing_preprocessor():
                 q_acted = torch.squeeze(q.gather(1, action))
                 return q_acted
 
-    mdp = CartPole()
+    mdp = Gym('CartPole-v0', horizon=500, gamma=.99)
 
     # Policy
     epsilon_random = Parameter(value=1.)
@@ -65,8 +65,8 @@ def test_normalizing_preprocessor():
     agent = DQN(mdp.info, pi, TorchApproximator,
                 approximator_params=approximator_params, **alg_params)
 
-    norm_box = NormalizationBoxedPreprocessor(mdp_info=mdp.info,
-                                              clip_obs=5.0, alpha=0.001)
+    norm_box = MinMaxPreprocessor(mdp_info=mdp.info,
+                                  clip_obs=5.0, alpha=0.001)
 
     core = Core(agent, mdp, preprocessors=[norm_box])
 
@@ -87,5 +87,5 @@ def test_normalizing_preprocessor():
 
     os.remove("./run_norm_state")
     assert ((state_dict1["mean"] == state_dict2["mean"]).all()
-            and (state_dict1["std"] == state_dict2["std"]).all()
+            and (state_dict1["var"] == state_dict2["var"]).all()
             and state_dict1["count"] == state_dict2["count"])

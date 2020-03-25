@@ -5,18 +5,16 @@ from PyQt5.QtWidgets import QTreeWidgetItem
 from PyQt5 import QtCore
 
 import pyqtgraph as pg
-from pyqtgraph import PlotItem
 from pyqtgraph.Qt import QtGui
 
 
 class Window(QtGui.QSplitter):
     """
     This class is used creating windows for plotting.
-    """
 
-    # Used for alternating colors in activation widget.
-    WhiteBrush = QBrush(QColor(255, 255, 255))  # Deactivated
-    GreenBrush = QBrush(QColor(0, 255, 0))  # Activated
+    """
+    WhiteBrush = QBrush(QColor(255, 255, 255))
+    GreenBrush = QBrush(QColor(0, 255, 0))
 
     def __init__(self, plot_list, track_if_deactivated=False,
                  title="None", size=(800, 600), fullscreen=False,
@@ -25,18 +23,18 @@ class Window(QtGui.QSplitter):
         Constructor.
 
         Args:
-            plot_list (list): List of plots to add to the window;
-            track_if_deactivated (bool, False): Flag that determines if the plot is not being plotted,
-                if the respective DataBuffers should track the variable. Should be used when
-                DataBuffers in the plot dont need to be tracked;
-            title (str, "None") : Title of the plot. The title is automattically shown.
-            size (tuple, (800, 600)) : Size of the window in pixels;
-            fullscreen (bool, False) : Fullscreen flag;
-            update_freq (int, 10) : Frequency(Hz) that the plot should be updated. For more
-                Window update_freq parameter.
-        """
+            plot_list (list): list of plots to add to the window;
+            track_if_deactivated (bool, False): flag that determines if the
+                respective data buffers should track the variable, when plot is
+                not active. Should be used when data buffers in the plot do not
+                need to be tracked;
+            title (str, "None"): title of the plot;
+            size (tuple, (800, 600)): size of the window in pixels;
+            fullscreen (bool, False): fullscreen flag;
+            update_freq (int, 10): frequency(Hz) of update of the plots.
 
-        pg.mkQApp()  # Initialize App
+        """
+        pg.mkQApp()
 
         self._title = title
         self._size = size
@@ -48,15 +46,12 @@ class Window(QtGui.QSplitter):
         if not isinstance(self.plot_list, list):
             self.plot_list = [self.plot_list]
 
-        # Widget for using plot widget and plot activation widget
         super().__init__(QtCore.Qt.Horizontal)
 
-        # Plot activation widget
         self._activation_widget = QtGui.QTreeWidget()
         self._activation_widget.setHeaderLabels(["Plots"])
 
-        # Callback when clicked
-        self._activation_widget.itemClicked.connect(self.Clicked)
+        self._activation_widget.itemClicked.connect(self.clicked)
 
         self._dependencies = dict()
         self._activation_items = dict()
@@ -64,7 +59,6 @@ class Window(QtGui.QSplitter):
         listitem = QTreeWidgetItem(self._activation_widget, ["ALL"])
         listitem.setBackground(0, Window.WhiteBrush)
 
-        # Creation of plot activation widget
         for plot_instance in self.plot_list:
             listitem_parent = QTreeWidgetItem(self._activation_widget, [plot_instance.name])
             listitem_parent.setBackground(0, Window.WhiteBrush)
@@ -77,41 +71,41 @@ class Window(QtGui.QSplitter):
                 listitem.setBackground(0, Window.WhiteBrush)
 
                 self._activation_items[plot_instance.data_buffers[i].name] = listitem
-                self._dependencies[plot_instance.data_buffers[i].name] = [plot_instance,
-                                                                          plot_instance.PlotDataItemsList[i]]
+                self._dependencies[plot_instance.data_buffers[i].name] = [
+                    plot_instance, plot_instance.plot_data_items_list[i]
+                ]
 
-        # Plotting Widget
         self._GraphicsWindow = pg.GraphicsWindow(title=title)
 
         self.addWidget(self._activation_widget)
         self.addWidget(self._GraphicsWindow)
 
-        # Start refresh timer
         self.timecounter = time.perf_counter()
         self.timeinterval = (1.0 / update_freq)
 
         self.refresh()
 
-        # By default all plots start deactivated
         for plot in self.plot_list:
             self._deactivate_buffer_plots(plot)
 
     def draw(self, item):
         """
-        Draw PlotItem on the Plot Widget.
+        Draw ``PlotItem`` on the plot widget.
 
         Args:
-            item (PlotItem) : Plot item to be drawn.
+            item (PlotItem): plot item to be drawn.
+
         """
         self._GraphicsWindow.addItem(item)
         self._GraphicsWindow.nextRow()
 
     def erase(self, item):
         """
-        Remove PlotItem from the Plot Widget.
+        Remove ``PlotItem`` from the plot widget.
 
         Args:
-            item (PlotItem) : Plot Item to be removed.
+            item (PlotItem): plot item to be removed.
+
         """
         self._GraphicsWindow.removeItem(item)
 
@@ -130,11 +124,12 @@ class Window(QtGui.QSplitter):
 
     def activate(self, item):
         """
-        Activate the plots and DataBuffers connected to the given item,
-            if it's not already activated.
+        Activate the plots and data buffers connected to the given item.
 
         Args:
-             item (QTreeWidgetItem) : QTreeWidgetItem that represents the plots to be activated.
+             item (QTreeWidgetItem): ``QTreeWidgetItem`` that represents the
+             plots to be activated.
+
         """
         if not self.check_activated(item):
             item.setBackground(0, Window.GreenBrush)
@@ -145,11 +140,12 @@ class Window(QtGui.QSplitter):
 
     def deactivate(self, item):
         """
-        Deactivate the plots and DataBuffers connected to the given item,
-            if it's not already deactivated.
+        Deactivate the plots and DataBuffers connected to the given item
 
         Args:
-             item (QTreeWidgetItem) : QTreeWidgetItem that represents the plots to be deactivated.
+             item (QTreeWidgetItem): ``QTreeWidgetItem`` that represents the
+             plots to be deactivated.
+
         """
         if self.check_activated(item):
             item.setBackground(0, Window.WhiteBrush)
@@ -161,30 +157,31 @@ class Window(QtGui.QSplitter):
 
             callback_func_params[0].erase(callback_func_params[1])
 
-    def Clicked(self, item):
+    def clicked(self, item):
         """
-        Callback when plot activation widget object is clicked.
+        Callback to be used when plot activation widget object is clicked.
 
         Args:
-             item (QTreeWidgetItem) : QTreeWidgetItem clicked.
-        """
+             item (QTreeWidgetItem): ``QTreeWidgetItem`` clicked.
 
+        """
         if item.text(0) == "ALL":
-            # If clicked 'ALL', all deactivated plots are activated.
             if self.check_activated(item):
                 item.setBackground(0, Window.WhiteBrush)
                 for activation_item_key in self._activation_items:
-                    activation_item = self._activation_items[activation_item_key]
+                    activation_item = self._activation_items[
+                        activation_item_key
+                    ]
                     self.deactivate(activation_item)
 
-            # If clicked 'ALL', all activated plots are deactivated.
             else:
                 item.setBackground(0, Window.GreenBrush)
                 for activation_item_key in self._activation_items:
-                    activation_item = self._activation_items[activation_item_key]
+                    activation_item = self._activation_items[
+                        activation_item_key
+                    ]
                     self.activate(activation_item)
 
-        # Activate and deactivate individual plots
         else:
             if self.check_activated(item):
                 self.deactivate(item)
@@ -192,44 +189,27 @@ class Window(QtGui.QSplitter):
                 self.activate(item)
 
     def _deactivate_buffer_plots(self, plot):
-        """
-        Deactivate buffers related to that plot. Currently if two plots use the same data buffer
-        and if one of those plots is activated that doesn't plot that databuffer.
-
-        Args:
-            plot (PlotItem) : PlotItem databuffers to be deactivated.
-        """
         plot.refresh_state(False)
         if not self._track_if_deactivated[self.plot_list.index(plot)]:
             for buffer in plot.data_buffers:
-                buffer.tracking_state(False)
+                buffer.enable_tracking(False)
 
     def _activate_buffer_plots(self, plot):
-        """
-        Activate buffers related to that plot.
-        Args:
-            plot (PlotItem) : PlotItem databuffers to be activated.
-        """
         for buffer in plot.data_buffers:
             plot.refresh_state(True)
-            buffer.tracking_state(True)
-
-    def show(self):
-        """
-        Show window method.
-        """
-        super().show()
+            buffer.enable_tracking(True)
 
     @staticmethod
     def check_activated(item):
         """
-        Check if QTreeWidgetItem is activated.
+        Check if ``QTreeWidgetItem`` is activated.
 
         Args:
-            item (QTreeWidgetItem) : QTreeWidgetItem to be analised.
+            item (QTreeWidgetItem): ``QTreeWidgetItem`` to be analysed.
 
         Returns:
             If activated returns True, else False.
+
         """
         return (item.background(0).color().getRgb()[0] == 0
                 and item.background(0).color().getRgb()[2] == 0)

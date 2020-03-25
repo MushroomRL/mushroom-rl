@@ -38,7 +38,7 @@ agent = SARSALambdaContinuous(mdp.info, pi, LinearApproximator,
 # Algorithm
 collect_dataset = CollectDataset()
 callbacks = [collect_dataset]
-core = Core(agent, mdp, callbacks=callbacks)
+core = Core(agent, mdp, callbacks_episode=callbacks)
 
 # Train
 core.learn(n_episodes=100, n_steps_per_fit=1)

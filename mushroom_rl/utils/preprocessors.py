@@ -4,10 +4,10 @@ import numpy as np
 from mushroom_rl.utils.running_stats import RunningStandardization
 
 
-class NormalizationPreprocessor(object):
+class StandardizationPreprocessor(object):
     """
-    Normalize observations from the environment using
-    ``RunningStandardization``.
+    Preprocess observations from the environment using a running
+    standardization.
 
     """
     def __init__(self, mdp_info, clip_obs=10., alpha=1e-32):
@@ -81,8 +81,7 @@ class NormalizationPreprocessor(object):
         Load the running normalization state from path.
 
         Args:
-            path (string): path to load the running normalization
-                state from.
+            path (string): path to load the running normalization state from.
 
         """
         with open(path, 'rb') as f:
@@ -90,11 +89,11 @@ class NormalizationPreprocessor(object):
             self.set_state(data)
 
 
-class NormalizationBoxedPreprocessor(NormalizationPreprocessor):
+class MinMaxPreprocessor(StandardizationPreprocessor):
     """
-    Normalize observations from the environment using
-    the bounds of the observation space of the environment. For observations
-    that are not limited falls back to using running mean standardization.
+    Preprocess observations from the environment using the bounds of the
+    observation space of the environment. For observations that are not limited
+    falls back to using running mean standardization.
 
     """
     def __init__(self, mdp_info, clip_obs=10., alpha=1e-32):
@@ -103,14 +102,13 @@ class NormalizationBoxedPreprocessor(NormalizationPreprocessor):
 
         Args:
             mdp_info (MDPInfo): information of the MDP;
-            clip_obs (float, 10.): values to clip the normalized
-                observations;
-            alpha (float, 1e-32): moving average catchup parameter for
-                the normalization.
+            clip_obs (float, 10.): values to clip the normalized observations;
+            alpha (float, 1e-32): moving average catchup parameter for the
+                normalization.
 
         """
-        super(NormalizationBoxedPreprocessor, self).__init__(mdp_info, clip_obs,
-                                                             alpha)
+        super(MinMaxPreprocessor, self).__init__(mdp_info, clip_obs,
+                                                 alpha)
 
         obs_low, obs_high = (mdp_info.observation_space.low.copy(),
                              mdp_info.observation_space.high.copy())
@@ -146,7 +144,7 @@ class NormalizationBoxedPreprocessor(NormalizationPreprocessor):
         orig_obs = obs.copy()
 
         if self.run_norm_obs:
-            obs = super(NormalizationBoxedPreprocessor, self).__call__(obs)
+            obs = super(MinMaxPreprocessor, self).__call__(obs)
 
         obs[self.stand_obs_mask] = \
             ((orig_obs - self.obs_mean) / self.obs_delta)[self.stand_obs_mask]

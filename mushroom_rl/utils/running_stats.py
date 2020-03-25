@@ -68,10 +68,20 @@ class RunningStandardization:
 
     @property
     def mean(self):
+        """
+        Returns:
+            The estimated mean value.
+
+        """
         return self._m
 
     @property
     def std(self):
+        """
+        Returns:
+            The estimated standard deviation value.
+
+        """
         return np.sqrt(self._s / self._n)
 
 
@@ -120,6 +130,11 @@ class RunningExpWeightedAverage:
 
     @property
     def mean(self):
+        """
+        Returns:
+            The estimated mean value.
+
+        """
         return self._avg_value
 
 
@@ -168,4 +183,9 @@ class RunningAveragedWindow:
 
     @property
     def mean(self):
+        """
+        Returns:
+            The estimated mean value.
+
+        """
         return np.mean(self.avg_buffer, axis=0)

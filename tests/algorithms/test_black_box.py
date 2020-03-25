@@ -63,7 +63,6 @@ def test_RWR_save():
     for att, method in agent_save.__dict__.items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
-        #print('{}: {}'.format(att, type(save_attr)))
 
         tu.assert_eq(save_attr, load_attr)
 
@@ -91,7 +90,6 @@ def test_REPS_save():
     for att, method in agent_save.__dict__.items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
-        #print('{}: {}'.format(att, type(save_attr)))
 
         tu.assert_eq(save_attr, load_attr)
 
@@ -119,6 +117,5 @@ def test_PGPE_save():
     for att, method in agent_save.__dict__.items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
-        #print('{}: {}'.format(att, type(save_attr)))
 
         tu.assert_eq(save_attr, load_attr)

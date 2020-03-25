@@ -12,4 +12,5 @@ from .collect_max_q import CollectMaxQ
 from .collect_q import CollectQ
 from .collect_parameters import CollectParameters
 
-__all__ = ['Callback', 'CollectDataset', 'CollectQ', 'CollectMaxQ', 'CollectParameters'] + __extras__
+__all__ = ['Callback', 'CollectDataset', 'CollectQ', 'CollectMaxQ',
+           'CollectParameters'] + __extras__

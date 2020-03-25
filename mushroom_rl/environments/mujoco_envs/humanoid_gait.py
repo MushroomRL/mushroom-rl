@@ -145,7 +145,7 @@ class HumanoidGait(MuJoCo):
 
         # observation averaging(ministep grf / traveling velocity / observations / actions)
         self.mean_grf = RunningAveragedWindow(shape=(6,), window_size=nmidsteps)
-        self.mean_vel = RunningExpWeightedWindow(shape=(3,), alpha=0.005)
+        self.mean_vel = RunningExpWeightedAverage(shape=(3,), alpha=0.005)
         self.mean_obs = RunningAveragedWindow(shape=self.info.observation_space.shape,
                                               window_size=obs_avg_window)
         self.mean_act = RunningAveragedWindow(shape=self.info.action_space.shape,
@@ -294,7 +294,7 @@ class HumanoidGait(MuJoCo):
                     -> observations related to the external actuator
         """
         obs = np.concatenate([super(HumanoidGait, self)._create_observation()[2:],
-                              self.mean_grf.get_avg_value() / 1000.0,
+                              self.mean_grf.mean / 1000.,
                               self.goal_reward.get_observation(),
                               self.external_actuator.get_observation()
                               ]).flatten()
@@ -303,7 +303,7 @@ class HumanoidGait(MuJoCo):
     def _preprocess_action(self, action):
         action = self.external_actuator.preprocess_action(action)
         self.mean_act.update_stats(action)
-        return self.mean_act.get_avg_value()
+        return self.mean_act.mean
 
     def _step_init(self, state, action):
         self.external_actuator.initialize_internal_states(state, action)
@@ -335,8 +335,8 @@ class HumanoidGait(MuJoCo):
         self.mean_vel.update_stats(self.sim.data.qvel[0:3])
 
         # return mean of observations
-        avg_obs = self.mean_obs.get_avg_value()
-        avg_obs[13:16] = self.mean_vel.get_avg_value()
+        avg_obs = self.mean_obs.mean
+        avg_obs[13:16] = self.mean_vel.mean
         return avg_obs, reward, absorbing, info
 
     def _get_body_center_of_mass_pos(self, body_name):

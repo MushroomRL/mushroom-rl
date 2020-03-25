@@ -37,7 +37,7 @@ def experiment(alg, params, n_epochs, n_episodes, n_ep_per_fit):
     # Train
     print(alg.__name__)
     dataset_callback = CollectDataset()
-    core = Core(agent, mdp, callbacks=[dataset_callback])
+    core = Core(agent, mdp, callbacks_episode=[dataset_callback])
 
     for i in range(n_epochs):
         core.learn(n_episodes=n_episodes,

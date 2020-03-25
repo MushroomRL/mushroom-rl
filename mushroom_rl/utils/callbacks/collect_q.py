@@ -10,7 +10,6 @@ class CollectQ(Callback):
     current time step.
 
     """
-
     def __init__(self, approximator):
         """
         Constructor.
@@ -24,14 +23,7 @@ class CollectQ(Callback):
 
         super().__init__()
 
-    def __call__(self, **kwargs):
-        """
-        Add action values to the action-values list.
-
-        Args:
-            **kwargs (dict): empty dictionary.
-
-        """
+    def __call__(self, dataset):
         if isinstance(self._approximator, EnsembleTable):
             qs = list()
             for m in self._approximator.model:

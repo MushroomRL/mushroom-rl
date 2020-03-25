@@ -147,7 +147,7 @@ def experiment(n_epochs, n_episodes):
                                mdp.info.observation_space.low,
                                mdp.info.observation_space.high,
                                phi, psi)
-    core = Core(agent, mdp, callbacks=[dataset_callback])
+    core = Core(agent, mdp, callbacks_episode=[dataset_callback])
 
     for i in range(n_epochs):
         core.learn(n_episodes=n_episodes,

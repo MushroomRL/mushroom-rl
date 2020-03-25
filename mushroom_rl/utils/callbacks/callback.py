@@ -1,11 +1,15 @@
 class Callback(object):
     """
-    Interface for all basic callbacks. Implements a list in which it is possible to store data and
-    methods to query and clean the content stored by the callback.
+    Interface for all basic callbacks. Implements a list in which it is possible
+    to store data and methods to query and clean the content stored by the
+    callback.
 
     """
-
     def __init__(self):
+        """
+        Constructor.
+
+        """
         self._data_list = list()
 
     def __call__(self, dataset):
@@ -28,9 +32,7 @@ class Callback(object):
 
     def clean(self):
         """
-        Deletes the current stored data list
+        Delete the current stored data list
 
         """
         self._data_list = list()
-
-

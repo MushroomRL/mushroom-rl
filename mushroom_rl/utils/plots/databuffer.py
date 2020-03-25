@@ -4,37 +4,33 @@ from collections import deque
 
 class DataBuffer(object):
     """
-    This class represents the data of a certain variable and how it should be recorded.
+    This class represents the data of a certain variable and how it should be
+    recorded.
 
     """
-    def __init__(self, name, length=None, tracking_enabled=True):
+    def __init__(self, name, length=None):
         """
         Constructor.
 
         Args:
-            name (str): Name of the DataBuffer(each DataBuffer represents one variable);
-            length (int): Size of the DataBuffer. If length is None the buffer will
-                infinitly accumulate data. If the ammount of samples surpasses the size,
-                data is taken out of the buffer as a queue.
-            tracking_enabled (bool): Value of initialization of attribute _tracking_enabled.
-                This flag determines whether the DataBuffer should include the given value to
-                itself. This is usefull when plotting, and there is no need to always be appending
-                information. Allows for faster script.
-        """
+            name (str): name of the data buffer (each data buffer represents one
+                variable);
+            length (int, None): size of the data buffer queue. If length is
+                ``None``, the buffer is unbounded.
 
+        """
         self._buffer = deque(maxlen=length)
         self.name = name
-        self._tracking_enabled = tracking_enabled
+        self._tracking_enabled = True
 
         assert isinstance(name, str), "Name of DataBuffer needs to be a string"
 
     @property
     def size(self):
         """
-        Size of queue
-
         Returns:
-            Size of the queue
+            The size of the queue.
+
         """
         return len(self._buffer)
 
@@ -43,51 +39,69 @@ class DataBuffer(object):
         Append values to buffer if tracking enabled.
 
         Args:
-            data (list) : list of values to append.
+            data (list): list of values to append.
+
         """
         if self._tracking_enabled:
             self._buffer.extend(data)
 
     def get(self):
         """
-        Get buffer.
+        Getter.
 
         Returns:
-            Buffer deque.
+            Buffer queue.
 
         """
         return self._buffer
 
     def set(self, buffer):
         """
-        Set buffer.
+        Setter.
 
         Args:
-            buffer (deque)
+            buffer (deque): the queue to be used as buffer.
+
         """
         self._buffer = buffer
 
     def reset(self):
         """
         Remove all the values from buffer.
+
         """
         self._buffer.clear()
 
-    def tracking_state(self, state):
+    def enable_tracking(self, status):
         """
-        Set _tracking_state.
+        Enable or disable tracking of data. If tracking is disabled, data is not
+        stored in the buffer.
 
         Args:
-            state (bool): Flag value of tracking state.
+            status (bool): whether to enable (True) or disable (False) tracking.
+
         """
-        self._tracking_enabled = state
+        self._tracking_enabled = status
 
     def save(self, path):
+        """
+        Save the data buffer.
+
+        """
         path = path + "/{}".format(self.name)
         with open(path, "wb") as file:
             pickle.dump(self, file)
 
-    def load(self, path):
+    @staticmethod
+    def load(path):
+        """
+        Load the data buffer.
+
+        Returns:
+            The loaded data buffer instance.
+
+        """
         with open(path, "rb") as file:
             loaded_instance = pickle.load(file)
+
         return loaded_instance

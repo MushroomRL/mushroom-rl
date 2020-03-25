@@ -1,13 +1,13 @@
 from mushroom_rl.utils.callbacks.callback import Callback
 import numpy as np
 
+
 class CollectMaxQ(Callback):
     """
     This callback can be used to collect the maximum action value in a given
     state at each call.
 
     """
-
     def __init__(self, approximator, state):
         """
         Constructor.
@@ -22,14 +22,7 @@ class CollectMaxQ(Callback):
 
         super().__init__()
 
-    def __call__(self, **kwargs):
-        """
-        Add maximum action values to the maximum action-values list.
-
-        Args:
-            **kwargs (dict): empty dictionary.
-
-        """
+    def __call__(self, dataset):
         q = self._approximator.predict(self._state)
         max_q = np.max(q)
 
