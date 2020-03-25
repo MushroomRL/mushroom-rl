@@ -119,7 +119,7 @@ class MinMaxPreprocessor(StandardizationPreprocessor):
 
         assert np.squeeze(self.stand_obs_mask).size > 0, \
             "All observations have unlimited range, you should use " \
-            "NormalizationPreprocessor directly instead."
+            "StandardizationPreprocessor directly instead."
 
         self.run_norm_obs = len(np.squeeze(self.stand_obs_mask)) != obs_low.shape[0]
 
