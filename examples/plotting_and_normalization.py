@@ -1,7 +1,7 @@
 import os
 
 from mushroom_rl.utils.preprocessors import MinMaxPreprocessor
-from mushroom_rl.utils.callbacks.plot_dataset import PlotDataset
+from mushroom_rl.utils.callbacks import PlotDataset
 
 import numpy as np
 
