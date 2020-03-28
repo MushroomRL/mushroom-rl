@@ -197,8 +197,8 @@ class HumanoidGait(MuJoCo):
                         or isinstance(self.goal_reward, MaxVelocityReward))
                      else self.goal_reward.get_observation())
 
-        self.mean_vel.reset(init_values=start_vel)
-        self.mean_obs.reset(init_values=start_obs)
+        self.mean_vel.reset(start_vel)
+        self.mean_obs.reset(start_obs)
         self.mean_act.reset()
         self.external_actuator.reset()
 
