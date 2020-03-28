@@ -81,3 +81,17 @@ For instance, to run a quick experiment with one of the provided example scripts
 .. code:: shell
 
     python3 examples/car_on_hill_fqi.py
+   
+Cite Mushroom
+=============
+If you are using mushroom for your scientific publications, please cite:
+
+.. code:: bibtex
+
+   @misc{deramo2020mushroomrl,
+         title={MushroomRL: Simplifying Reinforcement Learning Research},
+         author={D'Eramo, Carlo and Tateo, Davide and Bonarini, Andrea and Restelli, Marcello and Peters, Jan},
+         journal={arXiv preprint arXiv:2001.01102},
+         year={2020},
+         howpublished={\url{https://github.com/MushroomRL/mushroom-rl}}
+   }
