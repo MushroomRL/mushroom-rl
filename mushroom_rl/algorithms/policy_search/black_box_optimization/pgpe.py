@@ -21,8 +21,7 @@ class PGPE(BlackBoxOptimization):
         """
         self.learning_rate = learning_rate
 
-        self._add_save_attr(
-            learning_rate='pickle')
+        self._add_save_attr(learning_rate='pickle')
 
         super().__init__(mdp_info, distribution, policy, features)
 

@@ -34,7 +34,8 @@ class Agent(object):
             mdp_info='pickle',
             policy='pickle',
             phi='pickle',
-            next_action='numpy')
+            next_action='numpy'
+        )
 
     def fit(self, dataset):
         """
@@ -86,25 +87,17 @@ class Agent(object):
         """
         pass
 
-    def _add_save_attr(self, **attr_dict): # private, put documentation, check if same keys get overwritten
-        """
-        Adds attributes that should be saved for an agent.
-
-        Args:
-            attr_dict (dict): dictionary of attributes mapped to the method that should be used to save and load them
-
-        """
-        if not hasattr(self, '_save_attributes'):
-            self._save_attributes = dict(_save_attributes='json')
-        self._save_attributes.update(attr_dict)
-
     @classmethod
     def load(cls, path):
         """
-        Loads and deserializes the agent from the given location on disk.
+        Load and deserialize the agent from the given location on disk.
 
         Args:
-            path (string): Relative or absolute path to the agents save location.
+            path (string): Relative or absolute path to the agents save
+                location.
+
+        Returns:
+            The loaded agent.
 
         """
         if not isinstance(path, str): 
@@ -112,8 +105,8 @@ class Agent(object):
         if not Path(path).is_dir():
             raise NotADirectoryError("Path to load agent is not valid")
 
-        # Get algorithm type and save_attributes
-        agent_type, save_attributes = cls._load_pickle(PurePath(path, 'agent.config')).values()
+        agent_type, save_attributes = cls._load_pickle(
+            PurePath(path, 'agent.config')).values()
 
         agent = agent_type.__new__(agent_type)
 
@@ -122,17 +115,80 @@ class Agent(object):
             
             if load_path.is_file():
                 load_method = getattr(cls, '_load_{}'.format(method))
-                if load_method is None: raise NotImplementedError('Method _load_{} is not implemented'.format(method))
+                if load_method is None:
+                    raise NotImplementedError('Method _load_{} is not'
+                                              'implemented'.format(method))
                 att_val = load_method(load_path.resolve())
                 setattr(agent, att, att_val)
             else:
                 setattr(agent, att, None)
+
         agent._post_load()
+
         return agent
+
+    def save(self, path):
+        """
+        Serialize and save the agent to the given path on disk.
+
+        Args:
+            path (string): Relative or absolute path to the agents save
+                location.
+
+        """
+        if not isinstance(path, str):
+            raise ValueError('path has to be of type string')
+
+        path_obj = Path(path)
+        path_obj.mkdir(parents=True, exist_ok=True)
+
+        # Save algorithm type and save_attributes
+        agent_config = dict(
+            type=type(self),
+            save_attributes=self._save_attributes
+        )
+        self._save_pickle(PurePath(path, 'agent.config'), agent_config)
+
+        for att, method in self._save_attributes.items():
+            attribute = getattr(self, att) if hasattr(self, att) else None
+            save_method = getattr(self, '_save_{}'.format(method)) if hasattr(
+                self, '_save_{}'.format(method)) else None
+            if attribute is None:
+                continue
+            elif save_method is None:
+                raise NotImplementedError(
+                    "Method _save_{} is not implemented for class '{}'".format(
+                        method, self.__class__.__name__)
+                )
+            else:
+                save_method(PurePath(path, "{}.{}".format(att, method)),
+                            attribute)
+
+    def copy(self):
+        """
+        Returns:
+             A deepcopy of the agent.
+
+        """
+        return deepcopy(self)
+
+    def _add_save_attr(self, **attr_dict):
+        """
+        Add attributes that should be saved for an agent.
+
+        Args:
+            attr_dict (dict): dictionary of attributes mapped to the method that
+                should be used to save and load them.
+
+        """
+        if not hasattr(self, '_save_attributes'):
+            self._save_attributes = dict(_save_attributes='json')
+        self._save_attributes.update(attr_dict)
 
     def _post_load(self):
         """
-        This method can be overwritten to implement logic that is executed after the loading of the agent.
+        This method can be overwritten to implement logic that is executed after
+        the loading of the agent.
 
         """
         pass
@@ -156,36 +212,6 @@ class Agent(object):
         with Path(path).open('r') as f:
             return json.load(f)
 
-    def save(self, path):
-        """
-        Serialize and save the agent to the given path on disk.
-
-        Args:
-            path (string): Relative or absolute path to the agents save location.
-
-        """
-        if not isinstance(path, str): raise ValueError('path has to be of type string')
-
-        path_obj = Path(path)
-        path_obj.mkdir(parents=True, exist_ok=True)
-
-        # Save algorithm type and save_attributes
-        agent_config = dict(
-            type=type(self),
-            save_attributes=self._save_attributes
-        )
-        self._save_pickle(PurePath(path, 'agent.config'), agent_config)
-
-        for att, method in self._save_attributes.items():
-            attribute = getattr(self, att) if hasattr(self, att) else None
-            save_method = getattr(self, '_save_{}'.format(method)) if hasattr(self, '_save_{}'.format(method)) else None
-            if attribute is None:
-                continue
-            elif save_method is None:
-                raise NotImplementedError("Method _save_{} is not implemented for class '{}'".format(method, self.__class__.__name__))
-            else:
-                save_method(PurePath(path, "{}.{}".format(att, method)), attribute)
-
     @staticmethod
     def _save_pickle(path, obj):
         with Path(path).open('wb') as f:
@@ -204,9 +230,3 @@ class Agent(object):
     def _save_json(path, obj):
         with Path(path).open('w') as f:
             json.dump(obj, f)
-
-    def copy(self):
-        """
-        Creates and returns a deepcopy of the agent.
-        """
-        return deepcopy(self)

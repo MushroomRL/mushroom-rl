@@ -29,7 +29,8 @@ class SARSALambdaContinuous(TD):
             _approximator_params='pickle',
             Q='pickle',
             _lambda='numpy',
-            e='numpy')
+            e='numpy'
+        )
 
         super().__init__(mdp_info, policy, self.Q, learning_rate, features)
 

@@ -53,7 +53,8 @@ class A2C(DeepAC):
         self._add_save_attr(
             _critic_fit_params='pickle',
             _entropy_coeff='numpy',
-            _V='pickle')
+            _V='pickle'
+        )
 
         super().__init__(mdp_info, policy, actor_optimizer, policy.parameters())
 

@@ -23,10 +23,7 @@ class RLearning(TD):
         self._rho = 0.
         self.beta = beta
 
-        self._add_save_attr(
-            Q='pickle',
-            _rho='numpy',
-            beta='pickle')
+        self._add_save_attr(Q='pickle', _rho='numpy', beta='pickle')
 
         super().__init__(mdp_info, policy, self.Q, learning_rate)
 

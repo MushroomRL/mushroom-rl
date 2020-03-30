@@ -31,16 +31,19 @@ class VelocityProfile:
 
 
 class PeriodicVelocityProfile(VelocityProfile):
-    def __init__(self, velocity_profile_array: np.ndarray, period: (float, int), timestep: (float, int)):
+    def __init__(self, velocity_profile_array, period, timestep):
 
         if 1 / timestep < 2 * (1 / period):
-            raise ValueError("This timestep doesn't respect the Nyquist theorem for this given period")
+            raise ValueError("This timestep doesn't respect the Nyquist theorem"
+                             "for this given period")
 
         sampling = period / timestep
         rest = sampling - int(sampling)
         if rest != 0:
             warnings.warn(
-                'Velocity Profile doesnt have a full period or a set of full periods. There will be some desync due to sampling.')
+                'Velocity Profile doesnt have a full period or a set of full'
+                'periods. There will be some desync due to sampling.')
+
         super().__init__(velocity_profile_array, timestep)
 
 
@@ -73,7 +76,8 @@ class RandomConstantVelocityProfile(ConstantVelocityProfile):
 
 
 class SquareWaveVelocityProfile(PeriodicVelocityProfile):
-    def __init__(self, amplitude, period, timestep, duty=0.5, offset=0, phase=0):
+    def __init__(self, amplitude, period, timestep, duty=0.5, offset=0,
+                 phase=0):
         time_array = np.arange(0, period, timestep)
         phase_array = 2 * np.pi * (time_array / period)
         phase_array += phase
@@ -94,13 +98,15 @@ class VelocityProfile3D:
                     timestep = self._profileslist[i].timestep
                 else:
                     if timestep != self._profileslist[i].timestep:
-                        raise ValueError('Values of timesteps differ in velocity profiles')
+                        raise ValueError('Values of timesteps differ in'
+                                         'velocity profiles')
 
                 if size is None:
                     size = self._profileslist[i].size
                 else:
                     if size != self._profileslist[i].size:
-                        raise ValueError('Size of values buffer differ in velocity profiles')
+                        raise ValueError('Size of values buffer differ in'
+                                         'velocity profiles')
 
         if size == None:
             size = 1

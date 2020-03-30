@@ -25,7 +25,9 @@ class SARSALambda(TD):
         self._add_save_attr(
             Q='pickle',
             _lambda='numpy',
-            e='pickle')
+            e='pickle'
+        )
+
         super().__init__(mdp_info, policy, self.Q, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):

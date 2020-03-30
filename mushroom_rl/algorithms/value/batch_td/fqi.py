@@ -41,7 +41,8 @@ class FQI(BatchTD):
             _prediction='numpy',
             _next_q='pickle',
             _idx='numpy',
-            _target='pickle')
+            _target='pickle'
+        )
 
         super().__init__(mdp_info, policy, approximator, approximator_params,
                          fit_params)

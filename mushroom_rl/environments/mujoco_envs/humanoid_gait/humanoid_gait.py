@@ -14,8 +14,8 @@ from mushroom_rl.environments.mujoco_envs.humanoid_gait.utils import quat_to_eul
 class HumanoidGait(MuJoCo):
     """
     Mujoco simulation of a Humanoid Model, based on:
-    "A deep reinforcement learning based approach towards
-    generating human walking behavior with a neuromuscular model".
+    "A deep reinforcement learning based approach towards generating human
+    walking behavior with a neuromuscular model".
     Anand, A., Zhao, G., Roth, H., and Seyfarth, A. (2019).
 
     """
@@ -28,8 +28,8 @@ class HumanoidGait(MuJoCo):
         Args:
             gamma (float, 0.99): discount factor for the environment;
             horizon (int, 2000): horizon for the environment;
-            n_intermediate_steps (int, 10): number of steps to apply the same action to
-                the environment and wait for the next observation;
+            n_intermediate_steps (int, 10): number of steps to apply the same
+                action to the environment and wait for the next observation;
             use_muscles (bool): if external muscle simulation should be used
                 for actions. If not apply torques directly to the joints;
             goal_reward (string, None): type of trajectory used for training
@@ -39,13 +39,15 @@ class HumanoidGait(MuJoCo):
                     'vel_profile' - Velocity goal for the center of mass of the
                                     model to follow. The goal is given by a
                                     VelocityProfile instance (or subclass).
-                                    And should be included in the goal_reward_params;
+                                    And should be included in the
+                                    ``goal_reward_params``;
                     'max_vel'     - Tries to achieve the maximum possible
                                     velocity;
                     None          - Follows no goal(just tries to survive);
             goal_reward_params (dict, None): params needed for creation goal
                 reward;
-            obs_avg_window: (int, 1) : size of window used to average observations;
+            obs_avg_window (int, 1): size of window used to average
+                observations;
             act_avg_window (int, 1): size of window used to average actions.
 
         """
@@ -54,8 +56,9 @@ class HumanoidGait(MuJoCo):
         self.act_avg_window = act_avg_window
         self.obs_avg_window = obs_avg_window
 
-        model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)).parent,
-                                  "data", "humanoid_gait", "human7segment.xml")
+        model_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)).parent, "data",
+            "humanoid_gait", "human7segment.xml")
 
         action_spec = ["right_hip_frontal", "right_hip_sagittal",
                        "right_knee", "right_ankle", "left_hip_frontal",
@@ -90,19 +93,21 @@ class HumanoidGait(MuJoCo):
                             ("right_foot", ["right_foot"])
                             ]
 
-        super().__init__(model_path, action_spec, observation_spec,
-                         gamma=gamma, horizon=horizon,
-                         n_substeps=1, n_intermediate_steps=n_intermediate_steps,
+        super().__init__(model_path, action_spec, observation_spec, gamma=gamma,
+                         horizon=horizon, n_substeps=1,
+                         n_intermediate_steps=n_intermediate_steps,
                          additional_data_spec=additional_data_spec,
                          collision_groups=collision_groups)
 
         if use_muscles:
             self.external_actuator = MuscleSimulation(self.sim)
-            self.info.action_space = spaces.Box(*self.external_actuator.get_action_space())
+            self.info.action_space = spaces.Box(
+                *self.external_actuator.get_action_space())
         else:
             self.external_actuator = NoExternalSimulation()
 
-        low, high = self.info.action_space.low.copy(), self.info.action_space.high.copy()
+        low, high = self.info.action_space.low.copy(),\
+                    self.info.action_space.high.copy()
         self.norm_act_mean = (high + low) / 2.0
         self.norm_act_delta = (high - low) / 2.0
         self.info.action_space.low[:] = -1.0
@@ -113,7 +118,8 @@ class HumanoidGait(MuJoCo):
 
         if goal_reward == "trajectory":
             control_dt = self.sim.model.opt.timestep * self.n_intermediate_steps
-            self.goal_reward = CompleteTrajectoryReward(self.sim, control_dt, **goal_reward_params)
+            self.goal_reward = CompleteTrajectoryReward(self.sim, control_dt,
+                                                        **goal_reward_params)
         elif goal_reward == "vel_profile":
             self.goal_reward = VelocityProfileReward(**goal_reward_params)
         elif goal_reward == "max_vel":
@@ -121,7 +127,8 @@ class HumanoidGait(MuJoCo):
         elif goal_reward is None:
             self.goal_reward = NoGoalReward()
         else:
-            raise NotImplementedError("The specified goal reward has not been implemented: ", goal_reward)
+            raise NotImplementedError("The specified goal reward has not been"
+                                      "implemented: ", goal_reward)
 
         if isinstance(self.goal_reward, HumanoidTrajectory):
             self.reward_weights = dict(live_reward=0.10, goal_reward=0.40,
@@ -134,12 +141,15 @@ class HumanoidGait(MuJoCo):
 
         self.info.observation_space = spaces.Box(*self._get_observation_space())
 
-        self.mean_grf = RunningAveragedWindow(shape=(6,), window_size=n_intermediate_steps)
+        self.mean_grf = RunningAveragedWindow(shape=(6,),
+                                              window_size=n_intermediate_steps)
         self.mean_vel = RunningExpWeightedAverage(shape=(3,), alpha=0.005)
-        self.mean_obs = RunningAveragedWindow(shape=self.info.observation_space.shape,
-                                              window_size=obs_avg_window)
-        self.mean_act = RunningAveragedWindow(shape=self.info.action_space.shape,
-                                              window_size=act_avg_window)
+        self.mean_obs = RunningAveragedWindow(
+            shape=self.info.observation_space.shape,
+            window_size=obs_avg_window
+        )
+        self.mean_act = RunningAveragedWindow(
+            shape=self.info.action_space.shape, window_size=act_avg_window)
 
     def step(self, action):
         action = ((action.copy() * self.norm_act_delta) + self.norm_act_mean)
@@ -162,10 +172,10 @@ class HumanoidGait(MuJoCo):
     def setup(self):
         self.goal_reward.reset_state()
         start_obs = self._reset_model(qpos_noise=0.0, qvel_noise=0.0)
-        start_vel = (self.sim.data.qvel[0:3]
-                     if (self.goal_reward is None
-                        or isinstance(self.goal_reward, MaxVelocityReward))
-                     else self.goal_reward.get_observation())
+        start_vel = (
+            self.sim.data.qvel[0:3] if (self.goal_reward is None or isinstance(
+                self.goal_reward, MaxVelocityReward)
+                                      ) else self.goal_reward.get_observation())
 
         self.mean_vel.reset(start_vel)
         self.mean_obs.reset(start_obs)
@@ -179,19 +189,21 @@ class HumanoidGait(MuJoCo):
 
         traj_vel_reward = 0.0
         if isinstance(self.goal_reward, HumanoidTrajectory):
-            traj_vel_reward = np.exp(-20.0 * np.square(next_state[13] - next_state[33]))
+            traj_vel_reward = np.exp(-20.0 * np.square(
+                next_state[13] - next_state[33]))
 
-        move_cost = self.external_actuator.cost(state, action / self.norm_act_delta, next_state)
+        move_cost = self.external_actuator.cost(
+            state, action / self.norm_act_delta, next_state)
 
         fall_cost = 0.0
         if self._has_fallen(next_state):
             fall_cost = -1.0
 
         total_reward = self.reward_weights["live_reward"] * live_reward \
-                       + self.reward_weights["goal_reward"] * goal_reward \
-                       + self.reward_weights["traj_vel_reward"] * traj_vel_reward \
-                       - self.reward_weights["move_cost"] * move_cost \
-                       + self.reward_weights["fall_cost"] * fall_cost
+            + self.reward_weights["goal_reward"] * goal_reward \
+            + self.reward_weights["traj_vel_reward"] * traj_vel_reward \
+            - self.reward_weights["move_cost"] * move_cost \
+            + self.reward_weights["fall_cost"] * fall_cost
 
         return total_reward
 
@@ -216,13 +228,13 @@ class HumanoidGait(MuJoCo):
                 np.concatenate([sim_high, grf_high, r_high, a_high]))
 
     def _reset_model(self, qpos_noise=0.0, qvel_noise=0.0):
-        self._set_state(self.sim.data.qpos + np.random.uniform(low=-qpos_noise,
-                                                               high=qpos_noise,
-                                                               size=self.sim.model.nq),
-                        self.sim.data.qvel + np.random.uniform(low=-qvel_noise,
-                                                               high=qvel_noise,
-                                                               size=self.sim.model.nv)
-                        )
+        self._set_state(self.sim.data.qpos + np.random.uniform(
+            low=-qpos_noise, high=qpos_noise, size=self.sim.model.nq),
+            self.sim.data.qvel + np.random.uniform(low=-qvel_noise,
+                                                   high=qvel_noise,
+                                                   size=self.sim.model.nv)
+        )
+
         return self._create_observation()
 
     def _set_state(self, qpos, qvel):
@@ -238,7 +250,8 @@ class HumanoidGait(MuJoCo):
         return ((state[0] < 0.90) or (state[0] > 1.20)
                 or abs(torso_euler[0]) > np.pi / 12
                 or (torso_euler[1] < -np.pi / 12) or (torso_euler[1] > np.pi / 8)
-                or (torso_euler[2] < -np.pi / 4) or (torso_euler[2] > np.pi / 4))
+                or (torso_euler[2] < -np.pi / 4) or (torso_euler[2] > np.pi / 4)
+                )
 
     def _create_observation(self):
         """
@@ -281,12 +294,17 @@ class HumanoidGait(MuJoCo):
         self.external_actuator.initialize_internal_states(state, action)
 
     def _compute_action(self, action):
-        action = self.external_actuator.external_stimulus_to_joint_torques(action)
+        action = self.external_actuator.external_stimulus_to_joint_torques(
+            action
+        )
+
         return action
 
     def _simulation_post_step(self):
-        grf = np.concatenate([self.get_collision_force("floor", "right_foot")[:3],
-                              self.get_collision_force("floor", "left_foot")[:3]])
+        grf = np.concatenate(
+            [self.get_collision_force("floor", "right_foot")[:3],
+             self.get_collision_force("floor", "left_foot")[:3]]
+        )
 
         self.mean_grf.update_stats(grf)
 
@@ -295,5 +313,5 @@ class HumanoidGait(MuJoCo):
         self.external_actuator.update_state()
 
     def _get_body_center_of_mass_pos(self, body_name):
-        return self.sim.data.subtree_com[self.sim.model._body_name2id[body_name]]
-
+        return self.sim.data.subtree_com[
+            self.sim.model._body_name2id[body_name]]

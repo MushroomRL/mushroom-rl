@@ -33,7 +33,8 @@ class GPOMDP(PolicyGradient):
             list_reward_ep='pickle',
             baseline_num='pickle',
             baseline_den='pickle',
-            step_count='numpy')
+            step_count='numpy'
+        )
 
         # Ignore divide by zero
         np.seterr(divide='ignore', invalid='ignore')

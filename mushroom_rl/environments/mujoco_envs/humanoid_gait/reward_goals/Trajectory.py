@@ -27,10 +27,10 @@ class Trajectory(object):
                 with a 'trajectory_data' array and possibly a
                 'split_points' array inside. The 'trajectory_data'
                 should be in the shape (joints x observations);
-            traj_dt (float): time step of the trajectory file;
-            control_dt (float): Model control frequency (used to
+            traj_dt (float, 0.01): time step of the trajectory file;
+            control_dt (float, 0.01): Model control frequency (used to
                 synchronize trajectory with the control step);
-            traj_speed_mult (float): Factor to speed up or slowdown the
+            traj_speed_mult (float, 1.0): Factor to speed up or slowdown the
                 trajectory velocity.
 
         """
@@ -50,23 +50,29 @@ class Trajectory(object):
         self.traj_speed_multiplier = traj_speed_mult
 
         if self.traj_dt != control_dt or traj_speed_mult != 1.0:
-            new_traj_sampling_factor = (1 / traj_speed_mult) * (self.traj_dt / control_dt)
+            new_traj_sampling_factor = (1 / traj_speed_mult) * (
+                    self.traj_dt / control_dt)
 
-            self.trajectory = self._interpolate_trajectory(self.trajectory,
-                                                           factor=new_traj_sampling_factor)
+            self.trajectory = self._interpolate_trajectory(
+                self.trajectory, factor=new_traj_sampling_factor
+            )
 
-            self.split_points = np.round(self.split_points * new_traj_sampling_factor
-                                         ).astype(np.int32)
+            self.split_points = np.round(
+                self.split_points * new_traj_sampling_factor).astype(np.int32)
 
     def _interpolate_trajectory(self, traj, factor):
         x = np.arange(traj.shape[1])
-        x_new = np.linspace(0, traj.shape[1] - 1, round(traj.shape[1] * factor), endpoint=True)
+        x_new = np.linspace(0, traj.shape[1] - 1, round(traj.shape[1] * factor),
+                            endpoint=True)
         new_traj = interpolate.interp1d(x, traj, kind="cubic", axis=1)(x_new)
         return new_traj
 
-    def _get_traj_gait_sub_steps(self, initial_walking_step, number_of_walking_steps=1):
+    def _get_traj_gait_sub_steps(self, initial_walking_step,
+                                 number_of_walking_steps=1):
         start_sim_step = self.split_points[initial_walking_step]
-        end_sim_step = self.split_points[initial_walking_step + number_of_walking_steps]
+        end_sim_step = self.split_points[
+            initial_walking_step + number_of_walking_steps
+        ]
 
         sub_traj = self.trajectory[:, start_sim_step:end_sim_step].copy()
         initial_x_pos = self.trajectory[0][start_sim_step]
@@ -99,12 +105,12 @@ class HumanoidTrajectory(Trajectory):
                 with a 'trajectory_data' array and possibly a
                 'split_points' array inside. The 'trajectory_data'
                 should be in the shape (joints x observations);
-            traj_dt (float): time step of the trajectory file;
-            control_dt (float): Model control frequency(used to
+            traj_dt (float, 0.0025): time step of the trajectory file;
+            control_dt (float, 0.005): Model control frequency(used to
                 synchronize trajectory with the control step)
-            traj_speed_mult (float): factor to speed up or slowdown the
+            traj_speed_mult (float, 1.0): factor to speed up or slowdown the
                 trajectory velocity;
-            velocity_smooth_window (int): size of window used to average
+            velocity_smooth_window (int, 1001): size of window used to average
                 the torso velocity. Is used in order to get the average
                 travelling velocity(as walking velocity from humanoids
                 are sinusoidal).
@@ -127,21 +133,27 @@ class HumanoidTrajectory(Trajectory):
     def traj_length(self):
         return self.subtraj.shape[1]
 
-    def _get_traj_gait_sub_steps(self, initial_walking_step, number_of_walking_steps=1):
+    def _get_traj_gait_sub_steps(self, initial_walking_step,
+                                 number_of_walking_steps=1):
         start_sim_step = self.split_points[initial_walking_step]
-        end_sim_step = self.split_points[initial_walking_step + number_of_walking_steps]
+        end_sim_step = self.split_points[
+            initial_walking_step + number_of_walking_steps
+        ]
 
         sub_traj = self.trajectory[:, start_sim_step:end_sim_step].copy()
         initial_x_pos = self.trajectory[0][start_sim_step]
         sub_traj[0, :] -= initial_x_pos
 
-        sub_vel_profile = self.complete_velocity_profile[:, start_sim_step:end_sim_step].copy()
+        sub_vel_profile = self.complete_velocity_profile[
+                          :, start_sim_step:end_sim_step].copy()
 
         return sub_traj, sub_vel_profile
 
-    def _smooth_vel_profile(self, vel, use_simple_mean=False, window_size=1001, polyorder=2):
+    def _smooth_vel_profile(self, vel, use_simple_mean=False, window_size=1001,
+                            polyorder=2):
         if use_simple_mean:
-            filtered = np.tile(np.mean(vel, axis=1), reps=(self.trajectory.shape[1], 1)).T
+            filtered = np.tile(np.mean(vel, axis=1),
+                               reps=(self.trajectory.shape[1], 1)).T
         else:
             filtered = signal.savgol_filter(vel, window_length=window_size,
                                             polyorder=polyorder, axis=1)
@@ -179,8 +191,10 @@ class HumanoidTrajectory(Trajectory):
             if self.subtraj_step_no >= self.traj_length:
                 self.get_next_sub_trajectory()
 
-            self.sim.data.qpos[0:15] = np.r_[self.x_dist + self.subtraj[0, self.subtraj_step_no],
-                                             self.subtraj[1:15, self.subtraj_step_no]]
+            self.sim.data.qpos[0:15] = np.r_[
+                self.x_dist + self.subtraj[0, self.subtraj_step_no],
+                self.subtraj[1:15, self.subtraj_step_no]
+            ]
             self.sim.data.qvel[0:14] = self.subtraj[15:29, self.subtraj_step_no]
             self.sim.forward()
 
@@ -192,11 +206,10 @@ class HumanoidTrajectory(Trajectory):
 class CompleteHumanoidTrajectory(HumanoidTrajectory):
     def __init__(self, sim, traj_path, traj_dt=0.0025,
                  control_dt=0.005, traj_speed_mult=1.0, **kwargs):
-        super(CompleteHumanoidTrajectory, self).__init__(sim=sim,
-                                                         traj_path=traj_path,
-                                                         traj_dt=traj_dt,
-                                                         control_dt=control_dt,
-                                                         traj_speed_mult=traj_speed_mult)
+        super(CompleteHumanoidTrajectory, self).__init__(
+            sim=sim, traj_path=traj_path, traj_dt=traj_dt,
+            control_dt=control_dt, traj_speed_mult=traj_speed_mult
+        )
 
         self.subtraj = self.trajectory.copy()
         self.velocity_profile = self.complete_velocity_profile.copy()
@@ -205,7 +218,8 @@ class CompleteHumanoidTrajectory(HumanoidTrajectory):
     def reset_trajectory(self, substep_no=None):
         self.x_dist = 0
         if substep_no is None:
-            self.subtraj_step_no = int(np.random.rand() * (self.traj_length * 0.45))
+            self.subtraj_step_no = int(np.random.rand() * (
+                    self.traj_length * 0.45))
         else:
             self.subtraj_step_no = substep_no
 
@@ -233,6 +247,7 @@ class CompleteHumanoidTrajectory(HumanoidTrajectory):
             ax[0, j].legend(["Joint {} pos".format(j)])
 
             ax[1, j].plot(self.subtraj[7 + j + 14, 0:n_points])
-            ax[1, j].plot(np.diff(self.subtraj[7 + j, 0:n_points]) / self.control_dt)
+            ax[1, j].plot(np.diff(
+                self.subtraj[7 + j, 0:n_points]) / self.control_dt)
             ax[1, j].legend(["Joint {} vel".format(j), "derivate of pos"])
         plt.show()

@@ -24,6 +24,7 @@ class GoalRewardInterface:
 
         Returs:
             The reward for the current transition.
+
         """
         raise NotImplementedError
 
@@ -32,7 +33,7 @@ class GoalRewardInterface:
         Getter.
 
         Returns:
-             The low and hight arrays of the observation space
+             The low and high arrays of the observation space
 
         """
         obs = self.get_observation()
@@ -53,14 +54,14 @@ class GoalRewardInterface:
         Getter.
 
         Returns:
-            Whether the current state is absorbing.
+            Whether the current state is absorbing or not.
 
         """
         return False
 
     def update_state(self):
         """
-        Updates the state of the object after each transition.
+        Update the state of the object after each transition.
 
         """
         pass
@@ -84,7 +85,7 @@ class NoGoalReward(GoalRewardInterface):
 
 class MaxVelocityReward(GoalRewardInterface):
     """
-    Implements a goal reward for achieving the maximum possible velocity.
+    Implement a goal reward for achieving the maximum possible velocity.
 
     """
     def __init__(self, traj_start=False, **kwargs):
@@ -92,26 +93,28 @@ class MaxVelocityReward(GoalRewardInterface):
         Constructor.
 
         Args:
-            traj_start (bool): If model initial position should be set
+            traj_start (bool, False): If model initial position should be set
                 from a valid trajectory state. If False starts from the
-                model.xml base position.
-            kwargs: additional parameters which can be passed to trajectory
-                when using traj_start. 'traj_path' should be given to
-                select a diferent trajectory. Rest of the arguments
+                model.xml base position;
+            **kwargs (dict): additional parameters which can be passed to
+                trajectory when using ``traj_start``. ``traj_path`` should be
+                given to select a different trajectory. Rest of the arguments
                 are not important.
+
         """
         self.traj_start = traj_start
 
         if traj_start:
             if "traj_path" not in kwargs:
                 kwargs["traj_path"] = os.path.join(
-                        Path(os.path.dirname(os.path.abspath(__file__))).parent.parent,
-                        "data", "humanoid_gait", "gait_trajectory.npz")
+                    Path(os.path.dirname(os.path.abspath(__file__))).parent.parent,
+                    "data", "humanoid_gait", "gait_trajectory.npz"
+                )
             self.trajectory = CompleteHumanoidTrajectory(**kwargs)
             self.reset_state()
 
     def __call__(self, state, action, next_state):
-        return next_state[13]    # velocity over x
+        return next_state[13]
 
     def reset_state(self):
         if self.traj_start:
@@ -120,26 +123,25 @@ class MaxVelocityReward(GoalRewardInterface):
 
 class VelocityProfileReward(GoalRewardInterface):
     """
-    Implements a goal reward for following a velocity profile.
+    Implement a goal reward for following a velocity profile.
 
     """
-    def __init__(self, profile_instance,
-                 traj_start=False, **kwargs):
+    def __init__(self, profile_instance, traj_start=False, **kwargs):
         """
         Constructor.
 
         Args:
             profile_instance (VelocityProfile): Velocity profile to
                 follow. See RewardGoals.VelocityProfile.py;
-            traj_start (bool): If model initial position should be set
+            traj_start (bool, False): If model initial position should be set
                 from a valid trajectory state. If False starts from the
                 model.xml base position;
-            kwargs: additional parameters which can be passed to trajectory
-                when using traj_start. 'traj_path' should be given to
-                select a diferent trajectory. Rest of the arguments
+            **kwargs (dict): additional parameters which can be passed to
+                trajectory when using ``traj_start``. ``traj_path`` should be
+                given to select a diferent trajectory. Rest of the arguments
                 are not important.
-        """
 
+        """
         self.profile = profile_instance
         self.velocity_profile = deque(self.profile.values)
 
@@ -209,23 +211,24 @@ class CompleteTrajectoryReward(GoalRewardInterface, CompleteHumanoidTrajectory):
             control_dt (float, 0.005): frequency of the controller;
             traj_path (string, None): path with the trajectory for the
                 model to follow. If None is passed, use default
-                trajectory.
-            traj_dt (float): time step of the trajectory file;
-                control_dt (float): model control frequency (used to
-                synchronize trajectory with the control step)
-            traj_speed_mult (float): factor to speed up or slowdown the
+                trajectory;
+            traj_dt (float, 0.0025): time step of the trajectory file;
+            traj_speed_mult (float, 1.0): factor to speed up or slowdown the
                 trajectory velocity;
-            use_error_terminate (bool): If episode should be terminated
+            use_error_terminate (bool, False): If episode should be terminated
                 when the model deviates significantly from the reference
                  trajectory.
 
         """
         if traj_path is None:
-            traj_path = os.path.join(Path(os.path.dirname(os.path.abspath(__file__))).parent.parent,
-                                     "data", "humanoid_gait", "gait_trajectory.npz")
+            traj_path = os.path.join(
+                Path(os.path.dirname(os.path.abspath(__file__))).parent.parent,
+                "data", "humanoid_gait", "gait_trajectory.npz"
+            )
 
         super(CompleteTrajectoryReward, self).__init__(sim, traj_path, traj_dt,
-                                                       control_dt, traj_speed_mult)
+                                                       control_dt,
+                                                       traj_speed_mult)
         self.error_terminate = use_error_terminate
 
         self.error_threshold = 0.20
@@ -247,7 +250,8 @@ class CompleteTrajectoryReward(GoalRewardInterface, CompleteHumanoidTrajectory):
                                                self.traj_data_range[17:34]])
 
     def __call__(self, state, action, next_state):
-        traj_reward_vec = self._calculate_each_comp_reward(state, action, next_state)
+        traj_reward_vec = self._calculate_each_comp_reward(state, action,
+                                                           next_state)
 
         norm_traj_reward = np.sum(traj_reward_vec * self.joint_importance) / np.sum(
                 self.joint_importance)
@@ -262,14 +266,18 @@ class CompleteTrajectoryReward(GoalRewardInterface, CompleteHumanoidTrajectory):
     def _calculate_each_comp_reward(self, state, action, next_state):
         euler_state = convert_traj_quat_to_euler(next_state, offset=2)
 
-        foot_vec = np.append((self.sim.data.body_xpos[1] - self.sim.data.body_xpos[4]),
-                             (self.sim.data.body_xpos[1] - self.sim.data.body_xpos[7]))
+        foot_vec = np.append(
+            (self.sim.data.body_xpos[1] - self.sim.data.body_xpos[4]),
+            (self.sim.data.body_xpos[1] - self.sim.data.body_xpos[7])
+        )
 
         current_state = np.concatenate([euler_state[0:12],
                                         euler_state[15:26], foot_vec])
 
-        current_target = np.concatenate([self.euler_traj[2:14, self.subtraj_step_no],
-                                         self.euler_traj[17:34, self.subtraj_step_no]])
+        current_target = np.concatenate(
+            [self.euler_traj[2:14, self.subtraj_step_no],
+            self.euler_traj[17:34, self.subtraj_step_no]]
+        )
 
         current_error_standard = (np.subtract(current_state, current_target) /
                                   self.traj_data_range)

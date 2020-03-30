@@ -34,7 +34,8 @@ class DeepAC(Agent):
         self._add_save_attr(
             _optimizer='pickle',
             _clipping='pickle',
-            _clipping_params='pickle')
+            _clipping_params='pickle'
+        )
 
         super().__init__(mdp_info, policy)
 
@@ -77,9 +78,5 @@ class DeepAC(Agent):
             target[i].set_weights(weights)
 
     def _post_load(self):
-        """
-        This method can be overwritten to implement logic that is executed after the loading of the agent.
-        DeepAC requires the `_parameters` attribute to be set in the `_post_load` method.
-
-        """
-        raise NotImplementedError('DeepAC is an abstract class. Subclasses need to implement the `_post_load` method.')
+        raise NotImplementedError('DeepAC is an abstract class. Subclasses need'
+                                  'to implement the `_post_load` method.')

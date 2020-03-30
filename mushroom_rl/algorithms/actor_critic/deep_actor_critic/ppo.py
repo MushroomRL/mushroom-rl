@@ -67,7 +67,8 @@ class PPO(Agent):
             _lambda='numpy',
             _V='pickle',
             _quiet='numpy',
-            _iter='numpy')
+            _iter='numpy'
+        )
 
         super().__init__(mdp_info, policy, None)
 

@@ -36,7 +36,8 @@ class WeightedQLearning(TD):
             _Q='pickle',
             _Q2='pickle',
             _weights_var='pickle',
-            _w='numpy')
+            _w='numpy'
+        )
 
         super().__init__(mdp_info, policy, self.Q, learning_rate)
 

@@ -53,7 +53,8 @@ class TD3(DDPG):
 
         self._add_save_attr(
             _noise_std='numpy', 
-            _noise_clip='numpy')
+            _noise_clip='numpy'
+        )
 
         super().__init__(mdp_info, policy_class, policy_params,  actor_params,
                          actor_optimizer, critic_params, batch_size,

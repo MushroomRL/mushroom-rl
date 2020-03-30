@@ -84,7 +84,8 @@ class DDPG(DeepAC):
             _critic_approximator='pickle',
             _target_critic_approximator='pickle',
             _actor_approximator='pickle',
-            _target_actor_approximator='pickle')
+            _target_actor_approximator='pickle'
+        )
 
         super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
 

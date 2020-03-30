@@ -26,7 +26,8 @@ class PolicyGradient(Agent):
         self._add_save_attr(
             learning_rate='pickle',
             df='numpy',
-            J_episode='numpy')
+            J_episode='numpy'
+        )
 
         super().__init__(mdp_info, policy, features)
 

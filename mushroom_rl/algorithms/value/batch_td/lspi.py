@@ -27,10 +27,7 @@ class LSPI(BatchTD):
         self._A = np.zeros((k, k))
         self._b = np.zeros((k, 1))
 
-        self._add_save_attr(
-            _epsilon='numpy',
-            _A='numpy',
-            _b='numpy')
+        self._add_save_attr(_epsilon='numpy', _A='numpy', _b='numpy')
 
         super().__init__(mdp_info, policy, LinearApproximator,
                          approximator_params, fit_params, features)

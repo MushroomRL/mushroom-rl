@@ -21,7 +21,8 @@ class REINFORCE(PolicyGradient):
             sum_d_log_pi='numpy',
             list_sum_d_log_pi='pickle',
             baseline_num='pickle',
-            baseline_den='pickle')
+            baseline_den='pickle'
+        )
 
         # Ignore divide by zero
         np.seterr(divide='ignore', invalid='ignore')

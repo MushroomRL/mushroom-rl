@@ -91,7 +91,8 @@ class DQN(Agent):
             _fit='pickle',
             _n_updates='numpy',
             approximator='pickle',
-            target_approximator='pickle')
+            target_approximator='pickle'
+        )
 
         super().__init__(mdp_info, policy)
 

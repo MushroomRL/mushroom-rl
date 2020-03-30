@@ -32,6 +32,7 @@ class BatchTD(Agent):
         self._add_save_attr(
             _approximator_params='pickle',
             approximator='pickle',
-            _fit_params='pickle')
+            _fit_params='pickle'
+        )
 
         super().__init__(mdp_info, policy, features)

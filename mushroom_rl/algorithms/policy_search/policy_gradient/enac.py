@@ -30,7 +30,8 @@ class eNAC(PolicyGradient):
             phi_c='pickle', 
             sum_grad_log='numpy', 
             psi_ext='pickle', 
-            sum_grad_log_list='pickle')
+            sum_grad_log_list='pickle'
+        )
 
     def _compute_gradient(self, J):
         R = np.array(J)

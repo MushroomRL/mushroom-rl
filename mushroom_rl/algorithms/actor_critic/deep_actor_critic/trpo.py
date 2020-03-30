@@ -83,7 +83,8 @@ class TRPO(Agent):
             _V='pickle',
             _old_policy='pickle',
             _iter='numpy',
-            _quiet='numpy')
+            _quiet='numpy'
+        )
 
         super().__init__(mdp_info, policy, None)
 

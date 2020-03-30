@@ -93,7 +93,8 @@ class CategoricalDQN(DQN):
             _v_min='numpy',
             _v_max='numpy',
             _delta='numpy',
-            _a_values='numpy')
+            _a_values='numpy'
+        )
 
         super().__init__(mdp_info, policy, TorchApproximator, **params)
 

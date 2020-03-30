@@ -55,7 +55,8 @@ class COPDAC_Q(Agent):
             _alpha_omega='pickle',
             _alpha_v='pickle',
             _V='pickle',
-            _A='pickle')
+            _A='pickle'
+        )
 
         super().__init__(mdp_info, policy, policy_features)
 

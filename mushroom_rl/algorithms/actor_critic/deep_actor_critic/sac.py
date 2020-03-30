@@ -251,7 +251,8 @@ class SAC(DeepAC):
             _critic_approximator='pickle',
             _target_critic_approximator='pickle',
             _log_alpha='pickle',
-            _alpha_optim='pickle')
+            _alpha_optim='pickle'
+        )
 
         super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
 
@@ -315,8 +316,11 @@ class SAC(DeepAC):
 
     def _post_load(self):
         if self._optimizer is not None:
-            self._parameters = list(chain(self.policy._mu_approximator.model.network.parameters(),
-                                  self.policy._sigma_approximator.model.network.parameters()))
+            self._parameters = list(
+                chain(self.policy._mu_approximator.model.network.parameters(),
+                      self.policy._sigma_approximator.model.network.parameters()
+                )
+            )
 
     @property
     def _alpha(self):

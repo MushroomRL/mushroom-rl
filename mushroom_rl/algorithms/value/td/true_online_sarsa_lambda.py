@@ -34,7 +34,8 @@ class TrueOnlineSARSALambda(TD):
             Q='pickle',
             _q_old='pickle',
             _lambda='numpy',
-            e='numpy')
+            e='numpy'
+        )
 
         super().__init__(mdp_info, policy, self.Q, learning_rate, features)
 
