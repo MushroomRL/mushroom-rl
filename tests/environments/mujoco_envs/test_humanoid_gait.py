@@ -8,14 +8,14 @@ try:
 
     def create_mdp(goal, gamma, horizon):
         if goal == "trajectory":
-            mdp = HumanoidGait(gamma=gamma, horizon=horizon, nmidsteps=10,
+            mdp = HumanoidGait(gamma=gamma, horizon=horizon, n_intermediate_steps=10,
                                goal_reward="trajectory",
                                goal_reward_params=dict(use_error_terminate=True),
                                use_muscles=True,
                                obs_avg_window=1, act_avg_window=1)
 
         elif goal == "max_vel":
-            mdp = HumanoidGait(gamma=gamma, horizon=horizon, nmidsteps=10,
+            mdp = HumanoidGait(gamma=gamma, horizon=horizon, n_intermediate_steps=10,
                                goal_reward="max_vel",
                                goal_reward_params=dict(traj_start=True),
                                use_muscles=False,
@@ -27,7 +27,7 @@ try:
                     ConstantVelocityProfile(0),
                     ConstantVelocityProfile(0)]))
 
-            mdp = HumanoidGait(gamma=gamma, horizon=horizon, nmidsteps=10,
+            mdp = HumanoidGait(gamma=gamma, horizon=horizon, n_intermediate_steps=10,
                                goal_reward="vel_profile",
                                goal_reward_params=dict(traj_start=True,
                                                        **velocity_profile),

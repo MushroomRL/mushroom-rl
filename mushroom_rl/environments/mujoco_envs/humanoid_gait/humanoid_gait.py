@@ -1,5 +1,5 @@
 import mujoco_py
-import os
+from pathlib import Path
 
 from mushroom_rl.utils import spaces
 from mushroom_rl.environments.mujoco import MuJoCo, ObservationType
@@ -56,9 +56,7 @@ class HumanoidGait(MuJoCo):
         self.act_avg_window = act_avg_window
         self.obs_avg_window = obs_avg_window
 
-        model_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)).parent, "data",
-            "humanoid_gait", "human7segment.xml")
+        model_path = Path(__file__).resolve().parent.parent / "data" / "humanoid_gait" / "human7segment.xml"
 
         action_spec = ["right_hip_frontal", "right_hip_sagittal",
                        "right_knee", "right_ankle", "left_hip_frontal",
@@ -93,7 +91,7 @@ class HumanoidGait(MuJoCo):
                             ("right_foot", ["right_foot"])
                             ]
 
-        super().__init__(model_path, action_spec, observation_spec, gamma=gamma,
+        super().__init__(model_path.as_posix(), action_spec, observation_spec, gamma=gamma,
                          horizon=horizon, n_substeps=1,
                          n_intermediate_steps=n_intermediate_steps,
                          additional_data_spec=additional_data_spec,
@@ -121,9 +119,9 @@ class HumanoidGait(MuJoCo):
             self.goal_reward = CompleteTrajectoryReward(self.sim, control_dt,
                                                         **goal_reward_params)
         elif goal_reward == "vel_profile":
-            self.goal_reward = VelocityProfileReward(**goal_reward_params)
+            self.goal_reward = VelocityProfileReward(self.sim, **goal_reward_params)
         elif goal_reward == "max_vel":
-            self.goal_reward = MaxVelocityReward(**goal_reward_params)
+            self.goal_reward = MaxVelocityReward(self.sim, **goal_reward_params)
         elif goal_reward is None:
             self.goal_reward = NoGoalReward()
         else:
@@ -197,13 +195,13 @@ class HumanoidGait(MuJoCo):
 
         fall_cost = 0.0
         if self._has_fallen(next_state):
-            fall_cost = -1.0
+            fall_cost = 1.0
 
         total_reward = self.reward_weights["live_reward"] * live_reward \
             + self.reward_weights["goal_reward"] * goal_reward \
             + self.reward_weights["traj_vel_reward"] * traj_vel_reward \
             - self.reward_weights["move_cost"] * move_cost \
-            + self.reward_weights["fall_cost"] * fall_cost
+            - self.reward_weights["fall_cost"] * fall_cost
 
         return total_reward
 

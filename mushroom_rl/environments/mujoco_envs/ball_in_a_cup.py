@@ -1,6 +1,6 @@
 from mushroom_rl.environments.mujoco import MuJoCo, ObservationType
 import numpy as np
-import os
+from pathlib import Path
 
 
 class BallInACup(MuJoCo):
@@ -13,7 +13,7 @@ class BallInACup(MuJoCo):
         Constructor.
 
         """
-        xml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "ball_in_a_cup", "model.xml")
+        xml_path = (Path(__file__).resolve().parent / "data" / "ball_in_a_cup" / "model.xml").as_posix()
         action_spec = ["act/wam/base_yaw_joint", "act/wam/shoulder_pitch_joint", "act/wam/shoulder_yaw_joint",
                        "act/wam/elbow_pitch_joint", "act/wam/wrist_yaw_joint", "act/wam/wrist_pitch_joint",
                        "act/wam/palm_yaw_joint"]

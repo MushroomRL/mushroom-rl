@@ -157,7 +157,7 @@ def create_mdp(gamma, horizon, goal, use_muscles):
                 ConstantVelocityProfile(0),
                 ConstantVelocityProfile(0)]))
 
-        mdp = HumanoidGait(gamma=gamma, horizon=horizon, nmidsteps=10,
+        mdp = HumanoidGait(gamma=gamma, horizon=horizon, n_intermediate_steps=10,
                            goal_reward="vel_profile",
                            goal_reward_params=dict(traj_start=True,
                                                    **velocity_profile),

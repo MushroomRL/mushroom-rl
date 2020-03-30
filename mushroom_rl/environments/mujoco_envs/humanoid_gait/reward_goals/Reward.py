@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import numpy as np
@@ -88,11 +87,14 @@ class MaxVelocityReward(GoalRewardInterface):
     Implement a goal reward for achieving the maximum possible velocity.
 
     """
-    def __init__(self, traj_start=False, **kwargs):
+    def __init__(self, sim, traj_start=False, **kwargs):
         """
         Constructor.
 
         Args:
+            sim (MjSim): Mujoco simulation object which is passed to
+                the Humanoid Trajectory as is used to set model to
+                trajectory corresponding initial state;
             traj_start (bool, False): If model initial position should be set
                 from a valid trajectory state. If False starts from the
                 model.xml base position;
@@ -106,11 +108,10 @@ class MaxVelocityReward(GoalRewardInterface):
 
         if traj_start:
             if "traj_path" not in kwargs:
-                kwargs["traj_path"] = os.path.join(
-                    Path(os.path.dirname(os.path.abspath(__file__))).parent.parent,
-                    "data", "humanoid_gait", "gait_trajectory.npz"
-                )
-            self.trajectory = CompleteHumanoidTrajectory(**kwargs)
+                traj_path = Path(__file__).resolve().parent.parent.parent /\
+                            "data" / "humanoid_gait" / "gait_trajectory.npz"
+                kwargs["traj_path"] = traj_path.as_posix()
+            self.trajectory = CompleteHumanoidTrajectory(sim, **kwargs)
             self.reset_state()
 
     def __call__(self, state, action, next_state):
@@ -126,11 +127,14 @@ class VelocityProfileReward(GoalRewardInterface):
     Implement a goal reward for following a velocity profile.
 
     """
-    def __init__(self, profile_instance, traj_start=False, **kwargs):
+    def __init__(self, sim, profile_instance, traj_start=False, **kwargs):
         """
         Constructor.
 
         Args:
+            sim (MjSim): Mujoco simulation object which is passed to
+                the Humanoid Trajectory as is used to set model to
+                trajectory corresponding initial state;
             profile_instance (VelocityProfile): Velocity profile to
                 follow. See RewardGoals.VelocityProfile.py;
             traj_start (bool, False): If model initial position should be set
@@ -148,10 +152,10 @@ class VelocityProfileReward(GoalRewardInterface):
         self.traj_start = traj_start
         if traj_start:
             if "traj_path" not in kwargs:
-                kwargs["traj_path"] = os.path.join(
-                        Path(os.path.dirname(os.path.abspath(__file__))).parent.parent,
-                        "data", "humanoid_gait", "gait_trajectory.npz")
-            self.trajectory = CompleteHumanoidTrajectory(**kwargs)
+                traj_path = Path(__file__).resolve().parent.parent.parent /\
+                            "data" / "humanoid_gait" / "gait_trajectory.npz"
+                kwargs["traj_path"] = traj_path.as_posix()
+            self.trajectory = CompleteHumanoidTrajectory(sim, **kwargs)
             self.reset_state()
 
     def __call__(self, state, action, next_state):
@@ -221,10 +225,8 @@ class CompleteTrajectoryReward(GoalRewardInterface, CompleteHumanoidTrajectory):
 
         """
         if traj_path is None:
-            traj_path = os.path.join(
-                Path(os.path.dirname(os.path.abspath(__file__))).parent.parent,
-                "data", "humanoid_gait", "gait_trajectory.npz"
-            )
+            traj_path = Path(__file__).resolve().parent.parent.parent / "data" / "humanoid_gait" / "gait_trajectory.npz"
+            traj_path = traj_path.as_posix()
 
         super(CompleteTrajectoryReward, self).__init__(sim, traj_path, traj_dt,
                                                        control_dt,
