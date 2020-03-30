@@ -5,12 +5,17 @@ from scipy.signal import square
 
 
 class VelocityProfile:
+    """
+    Interface representing a velocity profile
+
+    """
     def __init__(self, velocity_profile_array, timestep):
         self._velocity_profile_array = velocity_profile_array
         self._timestep = timestep
 
     @property
     def values(self):
+
         return self._velocity_profile_array
 
     @property

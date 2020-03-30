@@ -1,12 +1,8 @@
-
-
-
-
 try:
     import numpy as np
 
     from mushroom_rl.environments.mujoco_envs import HumanoidGait
-    from mushroom_rl.environments.mujoco_envs.humanoid_gait_scripts import \
+    from mushroom_rl.environments.mujoco_envs.humanoid_gait import \
         VelocityProfile3D, RandomConstantVelocityProfile, ConstantVelocityProfile
 
 

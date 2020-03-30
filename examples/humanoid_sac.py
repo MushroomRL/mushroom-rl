@@ -13,7 +13,7 @@ from mushroom_rl.core import Core
 from mushroom_rl.utils.dataset import compute_J, episodes_length
 
 from mushroom_rl.environments.mujoco_envs import HumanoidGait
-from mushroom_rl.environments.mujoco_envs.humanoid_gait_scripts import \
+from mushroom_rl.environments.mujoco_envs.humanoid_gait import \
     VelocityProfile3D, RandomConstantVelocityProfile, ConstantVelocityProfile
 
 
@@ -135,16 +135,17 @@ def create_SAC_agent(mdp, use_cuda=None):
 
     return agent
 
+
 def create_mdp(gamma, horizon, goal, use_muscles):
     if goal == "trajectory":
-        mdp = HumanoidGait(gamma=gamma, horizon=horizon, nmidsteps=10,
+        mdp = HumanoidGait(gamma=gamma, horizon=horizon, n_intermediate_steps=10,
                            goal_reward="trajectory",
                            goal_reward_params=dict(use_error_terminate=True),
                            use_muscles=use_muscles,
                            obs_avg_window=1, act_avg_window=1)
 
     elif goal == "max_vel":
-        mdp = HumanoidGait(gamma=gamma, horizon=horizon, nmidsteps=10,
+        mdp = HumanoidGait(gamma=gamma, horizon=horizon, n_intermediate_steps=10,
                            goal_reward="max_vel",
                            goal_reward_params=dict(traj_start=True),
                            use_muscles=use_muscles,
@@ -186,7 +187,7 @@ def experiment(goal, use_muscles, n_epochs, n_steps, n_episodes_test):
     plotter = PlotDataset(mdp.info)
 
     # Algorithm(with normalization and plotting)
-    core = Core(agent, mdp, callbacks_episode=[plotter], preprocessors=[normalizer])
+    core = Core(agent, mdp, callback_step=plotter, preprocessors=[normalizer])
 
     # training loop
     for n in range(n_epochs):

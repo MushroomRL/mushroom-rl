@@ -4,32 +4,80 @@ from pathlib import Path
 import numpy as np
 from collections import deque
 
-from ..humanoid_tfutils import convert_traj_quat_to_euler
+from mushroom_rl.environments.mujoco_envs.humanoid_gait.utils import convert_traj_quat_to_euler
 from .Trajectory import CompleteHumanoidTrajectory
 
 
 class GoalRewardInterface:
+    """
+    Interface to specify a reward function for the ``HumanoidGait`` environment.
+
+    """
     def __call__(self, state, action, next_state):
+        """
+        Compute the reward.
+
+        Args:
+            state (np.ndarray): last state;
+            action (np.ndarray): applied action;
+            next_state (np.ndarray): current state;
+
+        Returs:
+            The reward for the current transition.
+        """
         raise NotImplementedError
 
     def get_observation_space(self):
+        """
+        Getter.
+
+        Returns:
+             The low and hight arrays of the observation space
+
+        """
         obs = self.get_observation()
         return -np.inf * np.ones(len(obs)), np.inf * np.ones(len(obs))
 
     def get_observation(self):
+        """
+        Getter.
+
+        Returns:
+             The current observation.
+
+        """
         return np.array([])
 
-    def is_absorving(self, state):
+    def is_absorbing(self, state):
+        """
+        Getter.
+
+        Returns:
+            Whether the current state is absorbing.
+
+        """
         return False
 
     def update_state(self):
+        """
+        Updates the state of the object after each transition.
+
+        """
         pass
 
     def reset_state(self):
+        """
+        Reset the state of the object.
+
+        """
         pass
 
 
 class NoGoalReward(GoalRewardInterface):
+    """
+    Implement a reward function that is always 0.
+
+    """
     def __call__(self, state, action, next_state):
         return 0
 
@@ -82,10 +130,10 @@ class VelocityProfileReward(GoalRewardInterface):
 
         Args:
             profile_instance (VelocityProfile): Velocity profile to
-                follow. See RewardGoals.VelocityProfile.py
+                follow. See RewardGoals.VelocityProfile.py;
             traj_start (bool): If model initial position should be set
                 from a valid trajectory state. If False starts from the
-                model.xml base position.
+                model.xml base position;
             kwargs: additional parameters which can be passed to trajectory
                 when using traj_start. 'traj_path' should be given to
                 select a diferent trajectory. Rest of the arguments
@@ -117,8 +165,6 @@ class VelocityProfileReward(GoalRewardInterface):
         self.velocity_profile = deque(self.profile.reset())
 
         if self.traj_start:
-            # initializes the model in a trajectory position whose velocity
-            # is closest to the target velocity profile for the episode.
             substep_no = np.argmin(
                     np.linalg.norm(
                             self.trajectory.velocity_profile
@@ -150,8 +196,8 @@ class CompleteTrajectoryReward(GoalRewardInterface, CompleteHumanoidTrajectory):
     Implements a goal reward for matching a kinematic trajectory.
 
     """
-    def __init__(self, sim, traj_path=None,
-                 traj_dt=0.0025, control_dt=0.005, traj_speed_mult=1.0,
+    def __init__(self, sim, control_dt=0.005, traj_path=None,
+                 traj_dt=0.0025, traj_speed_mult=1.0,
                  use_error_terminate=False, **kwargs):
         """
         Constructor.
@@ -159,15 +205,16 @@ class CompleteTrajectoryReward(GoalRewardInterface, CompleteHumanoidTrajectory):
         Args:
             sim (MjSim): Mujoco simulation object which is passed to
                 the Humanoid Trajectory as is used to set model to
-                trajectory corresponding initial state.
-            traj_path (string, None): Path with the trajectory for the
+                trajectory corresponding initial state;
+            control_dt (float, 0.005): frequency of the controller;
+            traj_path (string, None): path with the trajectory for the
                 model to follow. If None is passed, use default
                 trajectory.
-            traj_dt (float): Time step of the trajectory file.
-                control_dt (float): Model control frequency(used to
+            traj_dt (float): time step of the trajectory file;
+                control_dt (float): model control frequency (used to
                 synchronize trajectory with the control step)
-            traj_speed_mult (float): Factor to speed up or slowdown the
-                trajectory velocity.
+            traj_speed_mult (float): factor to speed up or slowdown the
+                trajectory velocity;
             use_error_terminate (bool): If episode should be terminated
                 when the model deviates significantly from the reference
                  trajectory.
@@ -181,28 +228,21 @@ class CompleteTrajectoryReward(GoalRewardInterface, CompleteHumanoidTrajectory):
                                                        control_dt, traj_speed_mult)
         self.error_terminate = use_error_terminate
 
-        # stop simulation for trajectory error above threshold
         self.error_threshold = 0.20
         self.terminate_trajectory_flag = False
 
-        # trajectories will be compared with torso orientation as euler,
-        # as quaternion rotation only makes sense when conjugated,
-        # and not compared on individual dimensions.
         self.euler_traj = convert_traj_quat_to_euler(self.subtraj)
 
-        # used to normalize values to similar range
         self.traj_data_range = np.clip(2 * np.std(self.euler_traj, axis=1), 0.15, np.inf)
 
-        # set relative weights for joints
         self.joint_importance = np.where(self.traj_data_range < 0.15, 2 * self.traj_data_range, 1.0)
-        self.joint_importance[2 :14] *= 1.0     # torso z_pos + torso orientation(euler) + joint pos
-        self.joint_importance[17:28] *= 0.1     # torso angular vel + joint velocity
-        self.joint_importance[28:34] *= 5.0     # foot vector
+        self.joint_importance[2 :14] *= 1.0
+        self.joint_importance[17:28] *= 0.1
+        self.joint_importance[28:34] *= 5.0
         self.joint_importance = np.r_[self.joint_importance[2:14],
                                       self.joint_importance[17:28],
                                       self.joint_importance[28:34]]
 
-        # called after so its easier to set joint importance
         self.traj_data_range = np.concatenate([self.traj_data_range[2:14],
                                                self.traj_data_range[17:34]])
 
@@ -215,8 +255,6 @@ class CompleteTrajectoryReward(GoalRewardInterface, CompleteHumanoidTrajectory):
         if self.error_terminate and norm_traj_reward < (1 - self.error_threshold):
             self.terminate_trajectory_flag = True
 
-        # rescales reward to [~0,1] after applying threshold
-        # (only makes sense to use if trajectory is being cut bellow the threshold)
         if self.error_terminate:
             norm_traj_reward = 1 + (norm_traj_reward - 1) / self.error_threshold
         return norm_traj_reward
@@ -247,7 +285,7 @@ class CompleteTrajectoryReward(GoalRewardInterface, CompleteHumanoidTrajectory):
     def get_observation(self):
         return self.velocity_profile[:, self.subtraj_step_no]
 
-    def is_absorving(self, state):
+    def is_absorbing(self, state):
         return self.terminate_trajectory_flag
 
     def reset_state(self):

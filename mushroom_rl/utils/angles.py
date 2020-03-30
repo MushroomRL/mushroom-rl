@@ -34,6 +34,7 @@
 
 from math import fmod
 import numpy as np
+from scipy.spatial.transform import Rotation as R
 
 
 def normalize_angle_positive(angle):
@@ -83,3 +84,37 @@ def shortest_angular_distance(from_angle, to_angle):
 
     """
     return normalize_angle(to_angle - from_angle)
+
+
+def quat_to_euler(quat):
+    """
+    Convert a quaternion to euler angles.
+
+    Args:
+        quat (np.ndarray):  quaternion to be converted, must be in format [w, x, y, z]
+
+    Returns:
+        The euler angles [x, y, z] representation of the quaternion
+
+    """
+    if len(quat.shape) < 2:
+        return R.from_quat(quat[[1, 2, 3, 0]]).as_euler('xyz')
+    else:
+        return R.from_quat(quat[[1, 2, 3, 0], :].T).as_euler('xyz').T
+
+
+def euler_to_quat(euler):
+    """
+    Convert euler angles into a quaternion.
+
+    Args:
+        euler (np.ndarray):  euler angles to be converted
+
+    Returns:
+        Quaternion in format [w, x, y, z]
+
+    """
+    if len(euler.shape) < 2:
+        return R.from_euler('xyz', euler).as_quat()[[3, 0, 1, 2]]
+    else:
+        return R.from_euler('xyz', euler.T).as_quat()[:, [3, 0, 1, 2]].T

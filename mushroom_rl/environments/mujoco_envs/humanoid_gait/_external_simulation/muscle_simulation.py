@@ -1,4 +1,3 @@
-
 import numpy as np
 from .humanmuscle import HAB, HAM, HAD, HFL, BFSH, GAS, GLU, REF, VAS, SOL, TIA
 
@@ -10,11 +9,11 @@ class NoExternalSimulation(object):
     def get_observation_space(self):
         return np.array([]), np.array([])
 
-    def reward(self, state, action, next_state):
+    def cost(self, state, action, next_state):
         move_cost = np.sum(np.square(action))
         return move_cost
 
-    def is_absorving(self, state):
+    def is_absorbing(self, state):
         return False
 
     def get_observation(self):
@@ -56,12 +55,12 @@ class MuscleSimulation(object):
         low = -np.inf * np.ones(len(obs))
         return low, high
 
-    def reward(self, state, action, next_state):
+    def cost(self, state, action, next_state):
         # returns cost value between [0, 1]
         reward = 1 - (5 * self._metcost)
         return reward
 
-    def is_absorving(self, state):
+    def is_absorbing(self, state):
         return False
 
     def update_state(self):
@@ -215,4 +214,5 @@ class MuscleSimulation(object):
 
         tor = [-torHipAbdR, torHipExtR, torKneFleR, torAnkExtR,
                torHipAbdL, torHipExtL, torKneFleL, torAnkExtL]
+
         return np.squeeze(tor)
