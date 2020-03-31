@@ -95,3 +95,4 @@ If you are using mushroom for your scientific publications, please cite:
          year={2020},
          howpublished={\url{https://github.com/MushroomRL/mushroom-rl}}
    }
+
