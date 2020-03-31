@@ -1,0 +1,5 @@
+[run]
+omit =
+    mushroom_rl/environments/mujoco.py
+    mushroom_rl/environments/mujoco_envs/*
+
