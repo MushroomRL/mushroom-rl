@@ -1,5 +1,5 @@
 import numpy as np
-from .mtcmodel import MuscleTendonComplex
+from .mtc_model import MuscleTendonComplex
 
 # timestep = 1e-3  # 2e-4 -> original value
 

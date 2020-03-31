@@ -1,7 +1,8 @@
-from .Reward import NoGoalReward, MaxVelocityReward, \
+from .reward import NoGoalReward, MaxVelocityReward, \
     VelocityProfileReward, CompleteTrajectoryReward
 
-from .Trajectory import CompleteHumanoidTrajectory, HumanoidTrajectory
+from .trajectory import HumanoidTrajectory
 
-from .VelocityProfile import VelocityProfile, PeriodicVelocityProfile, SinVelocityProfile, ConstantVelocityProfile, \
-    RandomConstantVelocityProfile, SquareWaveVelocityProfile,  VelocityProfile3D
+from .velocity_profile import VelocityProfile, PeriodicVelocityProfile,\
+    SinVelocityProfile, ConstantVelocityProfile, RandomConstantVelocityProfile,\
+    SquareWaveVelocityProfile,  VelocityProfile3D

@@ -1,5 +1,5 @@
 import numpy as np
-from .humanmuscle import HAB, HAM, HAD, HFL, BFSH, GAS, GLU, REF, VAS, SOL, TIA
+from .human_muscle import HAB, HAM, HAD, HFL, BFSH, GAS, GLU, REF, VAS, SOL, TIA
 
 
 class NoExternalSimulation(object):

@@ -6,8 +6,8 @@ from scipy.signal import square
 
 class VelocityProfile:
     """
-    Interface that represents and handles the velocity profile of the center of mass
-    of the Humanoid that must be matched at each timestep.
+    Interface that represents and handles the velocity profile of the center of
+    mass of the humanoid that must be matched at each timestep.
 
     """
     def __init__(self, velocity_profile_array, timestep):
@@ -15,7 +15,8 @@ class VelocityProfile:
         Constructor.
 
         Args:
-            velocity_profile_array (np.ndarray): velocity of the center at each timestep;
+            velocity_profile_array (np.ndarray): velocity of the center at each
+                timestep;
             timestep (float): time corresponding to each step of simulation.
 
         """
@@ -70,7 +71,8 @@ class PeriodicVelocityProfile(VelocityProfile):
         Constructor.
 
         Args:
-            velocity_profile_array (np.ndarray): velocity of the center at each timestep;
+            velocity_profile_array (np.ndarray): velocity of the center at each
+                timestep;
             period (float): time corresponding to one cycle;
             timestep (float): time corresponding to each step of simulation.
 
@@ -102,8 +104,8 @@ class SinVelocityProfile(PeriodicVelocityProfile):
             amplitude (np.ndarray): amplitude of the sine wave;
             period (float): time corresponding to one cycle;
             timestep (float): time corresponding to each step of simulation;
-            offset (float): increment of velocity to each velocity value;
-            phase (float): angle in rads of the phase of the sine wave.
+            offset (float, 0): increment of velocity to each velocity value;
+            phase (float, 0): angle in rads of the phase of the sine wave.
 
         """
         time_array = np.arange(0, period, timestep)
@@ -170,11 +172,11 @@ class SquareWaveVelocityProfile(PeriodicVelocityProfile):
             amplitude (np.ndarray): amplitude of the square wave;
             period (float): time corresponding to one cycle;
             timestep (float): time corresponding to each step of simulation;
-            duty (float): value between 0 and 1 and determines the relative time that
-                the step transition occurs between the start and the
+            duty (float, 0.5): value between 0 and 1 and determines the relative
+                time that the step transition occurs between the start and the
                 end of the cycle;
-            offset (float): increment of velocity to each velocity value;
-            phase (float): angle in rads of the phase of the sine wave.
+            offset (float, 0): increment of velocity to each velocity value;
+            phase (float, 0): angle in rads of the phase of the sine wave.
 
         """
         time_array = np.arange(0, period, timestep)

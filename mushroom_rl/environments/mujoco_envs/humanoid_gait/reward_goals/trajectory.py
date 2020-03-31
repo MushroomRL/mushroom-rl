@@ -17,7 +17,7 @@ class Trajectory(object):
 
     """
     def __init__(self, traj_path, traj_dt=0.01, control_dt=0.01,
-                 traj_speed_mult=1.0, **kwargs):
+                 traj_speed_mult=1.0):
         """
         Constructor.
 
@@ -28,13 +28,12 @@ class Trajectory(object):
                 'split_points' array inside. The 'trajectory_data'
                 should be in the shape (joints x observations);
             traj_dt (float, 0.01): time step of the trajectory file;
-            control_dt (float, 0.01): Model control frequency (used to
+            control_dt (float, 0.01): model control frequency (used to
                 synchronize trajectory with the control step);
-            traj_speed_mult (float, 1.0): Factor to speed up or slowdown the
+            traj_speed_mult (float, 1.0): factor to speed up or slowdown the
                 trajectory velocity.
 
         """
-
         trajectory_files = np.load(traj_path)
         self.trajectory = trajectory_files["trajectory_data"]
 
@@ -82,7 +81,7 @@ class Trajectory(object):
 
 class HumanoidTrajectory(Trajectory):
     """
-    Loads a trajectory to be used by the HumanoidEnv. The trajectory
+    Loads a trajectory to be used by the humanoid environment. The trajectory
     file should be structured as:
     trajectory[0:15] -> model's qpos;
     trajectory[15:29] -> model's qvel;
@@ -92,7 +91,7 @@ class HumanoidTrajectory(Trajectory):
     """
     def __init__(self, sim, traj_path, traj_dt=0.0025,
                  control_dt=0.005, traj_speed_mult=1.0,
-                 velocity_smooth_window=1001, **kwargs):
+                 velocity_smooth_window=1001):
         """
         Constructor.
 
@@ -111,13 +110,12 @@ class HumanoidTrajectory(Trajectory):
             traj_speed_mult (float, 1.0): factor to speed up or slowdown the
                 trajectory velocity;
             velocity_smooth_window (int, 1001): size of window used to average
-                the torso velocity. Is used in order to get the average
+                the torso velocity. It is used in order to get the average
                 travelling velocity(as walking velocity from humanoids
                 are sinusoidal).
 
         """
-        super(HumanoidTrajectory, self).__init__(traj_path, traj_dt,
-                                                 control_dt, traj_speed_mult)
+        super().__init__(traj_path, traj_dt, control_dt, traj_speed_mult)
 
         self.sim = sim
         self.trajectory[15:29] *= traj_speed_mult
@@ -127,7 +125,10 @@ class HumanoidTrajectory(Trajectory):
 
         self.subtraj_step_no = 0
         self.x_dist = 0
-        self.subtraj = None
+
+        self.subtraj = self.trajectory.copy()
+        self.velocity_profile = self.complete_velocity_profile.copy()
+        self.reset_trajectory()
 
     @property
     def traj_length(self):
@@ -169,14 +170,26 @@ class HumanoidTrajectory(Trajectory):
             substep_no (int, None): starting point of the trajectory.
                 If None, the trajectory starts from a random point.
         """
-        raise NotImplementedError
+        self.x_dist = 0
+        if substep_no is None:
+            self.subtraj_step_no = int(np.random.rand() * (
+                    self.traj_length * 0.45))
+        else:
+            self.subtraj_step_no = substep_no
+
+        self.subtraj = self.trajectory.copy()
+        self.subtraj[0, :] -= self.subtraj[0, self.subtraj_step_no]
+
+        self.sim.data.qpos[0:15] = self.subtraj[0:15, self.subtraj_step_no]
+        self.sim.data.qvel[0:14] = self.subtraj[15:29, self.subtraj_step_no]
 
     def get_next_sub_trajectory(self):
         """
         Get the next trajectory once the current one reaches it's end.
 
         """
-        raise NotImplementedError
+        self.x_dist += self.subtraj[0][-1]
+        self.reset_trajectory()
 
     def play_trajectory_demo(self, freq=200):
         """
@@ -201,37 +214,6 @@ class HumanoidTrajectory(Trajectory):
             self.subtraj_step_no += 1
             time.sleep(1 / freq)
             viewer.render()
-
-
-class CompleteHumanoidTrajectory(HumanoidTrajectory):
-    def __init__(self, sim, traj_path, traj_dt=0.0025,
-                 control_dt=0.005, traj_speed_mult=1.0, **kwargs):
-        super(CompleteHumanoidTrajectory, self).__init__(
-            sim=sim, traj_path=traj_path, traj_dt=traj_dt,
-            control_dt=control_dt, traj_speed_mult=traj_speed_mult
-        )
-
-        self.subtraj = self.trajectory.copy()
-        self.velocity_profile = self.complete_velocity_profile.copy()
-        self.reset_trajectory()
-
-    def reset_trajectory(self, substep_no=None):
-        self.x_dist = 0
-        if substep_no is None:
-            self.subtraj_step_no = int(np.random.rand() * (
-                    self.traj_length * 0.45))
-        else:
-            self.subtraj_step_no = substep_no
-
-        self.subtraj = self.trajectory.copy()
-        self.subtraj[0, :] -= self.subtraj[0, self.subtraj_step_no]
-
-        self.sim.data.qpos[0:15] = self.subtraj[0:15, self.subtraj_step_no]
-        self.sim.data.qvel[0:14] = self.subtraj[15:29, self.subtraj_step_no]
-
-    def get_next_sub_trajectory(self):
-        self.x_dist += self.subtraj[0][-1]
-        self.reset_trajectory()
 
     def _plot_joint_trajectories(self, n_points=2000):
         """

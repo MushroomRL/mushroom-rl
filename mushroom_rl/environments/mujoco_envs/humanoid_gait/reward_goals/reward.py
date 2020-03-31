@@ -4,7 +4,7 @@ import numpy as np
 from collections import deque
 
 from mushroom_rl.environments.mujoco_envs.humanoid_gait.utils import convert_traj_quat_to_euler
-from .Trajectory import CompleteHumanoidTrajectory
+from .trajectory import HumanoidTrajectory
 
 
 class GoalRewardInterface:
@@ -19,7 +19,7 @@ class GoalRewardInterface:
         Args:
             state (np.ndarray): last state;
             action (np.ndarray): applied action;
-            next_state (np.ndarray): current state;
+            next_state (np.ndarray): current state.
 
         Returs:
             The reward for the current transition.
@@ -111,7 +111,7 @@ class MaxVelocityReward(GoalRewardInterface):
                 traj_path = Path(__file__).resolve().parent.parent.parent /\
                             "data" / "humanoid_gait" / "gait_trajectory.npz"
                 kwargs["traj_path"] = traj_path.as_posix()
-            self.trajectory = CompleteHumanoidTrajectory(sim, **kwargs)
+            self.trajectory = HumanoidTrajectory(sim, **kwargs)
             self.reset_state()
 
     def __call__(self, state, action, next_state):
@@ -136,7 +136,7 @@ class VelocityProfileReward(GoalRewardInterface):
                 the Humanoid Trajectory as is used to set model to
                 trajectory corresponding initial state;
             profile_instance (VelocityProfile): Velocity profile to
-                follow. See RewardGoals.VelocityProfile.py;
+                follow. See RewardGoals.velocity_profile.py;
             traj_start (bool, False): If model initial position should be set
                 from a valid trajectory state. If False starts from the
                 model.xml base position;
@@ -155,7 +155,7 @@ class VelocityProfileReward(GoalRewardInterface):
                 traj_path = Path(__file__).resolve().parent.parent.parent /\
                             "data" / "humanoid_gait" / "gait_trajectory.npz"
                 kwargs["traj_path"] = traj_path.as_posix()
-            self.trajectory = CompleteHumanoidTrajectory(sim, **kwargs)
+            self.trajectory = HumanoidTrajectory(sim, **kwargs)
             self.reset_state()
 
     def __call__(self, state, action, next_state):
@@ -197,7 +197,7 @@ class VelocityProfileReward(GoalRewardInterface):
         plt.show()
 
 
-class CompleteTrajectoryReward(GoalRewardInterface, CompleteHumanoidTrajectory):
+class CompleteTrajectoryReward(GoalRewardInterface, HumanoidTrajectory):
     """
     Implements a goal reward for matching a kinematic trajectory.
 
