@@ -2,6 +2,11 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
+from setuptools import Extension
+from Cython.Build import cythonize
+from Cython.Distutils import build_ext
+import numpy
+
 from mushroom_rl import __version__
 
 here = path.abspath(path.dirname(__file__))
@@ -36,6 +41,12 @@ long_description = 'Mushroom is a Python Reinforcement Learning (RL) library' \
                    ' (e.g. DQN, DDPG, SAC, TD3, TRPO, PPO). Full documentation' \
                    ' available at http://mushroomrl.readthedocs.io/en/latest/.'
 
+
+ext_modules = [Extension("muscle_simulation_stepupdate",
+                        ["mushroom_rl/environments/mujoco_envs/humanoid_gait/"
+                         "_external_simulation/muscle_simulation_stepupdate.pyx"],
+                         include_dirs=[numpy.get_include()])]
+
 setup(
     name='mushroom-rl',
     version=__version__,
@@ -53,5 +64,7 @@ setup(
     classifiers=["Programming Language :: Python :: 3",
                  "License :: OSI Approved :: MIT License",
                  "Operating System :: OS Independent",
-                 ]
+                ],
+    cmdclass={'build_ext': build_ext},
+    ext_modules=cythonize(ext_modules)
 )
