@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-import shutil
 from datetime import datetime
 from helper.utils import TestUtils as tu
 
@@ -14,6 +13,7 @@ from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.policy import GaussianPolicy
 from mushroom_rl.utils.parameters import Parameter
+
 
 def learn_copdac_q():
     n_steps = 50
@@ -53,28 +53,25 @@ def learn_copdac_q():
     
     return agent
 
-def test_copdac_q():
 
+def test_copdac_q():
     policy = learn_copdac_q().policy
     w = policy.get_weights()
     w_test = np.array([0, -6.62180045e-7, 0, -4.23972882e-2])
 
     assert np.allclose(w, w_test)
 
-def test_copdac_q_save():
 
-    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+def test_copdac_q_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
     agent_save = learn_copdac_q()
 
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    shutil.rmtree(agent_path)
-
     for att, method in agent_save.__dict__.items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
-        #print('{}: {}'.format(att, type(save_attr)))
 
         tu.assert_eq(save_attr, load_attr)

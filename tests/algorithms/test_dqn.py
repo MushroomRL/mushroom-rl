@@ -2,7 +2,6 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-import shutil
 from datetime import datetime
 from helper.utils import TestUtils as tu
 
@@ -99,22 +98,19 @@ def test_dqn():
     assert np.allclose(w, w_test)
 
 
-def test_dqn_save():
+def test_dqn_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
     params = dict(batch_size=50, n_approximators=1, initial_replay_size=50,
                   max_replay_size=500, target_update_frequency=50)
     agent_save = learn(DQN, params)
 
-    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
-
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
-
-    shutil.rmtree(agent_path)
 
     for att, method in agent_save.__dict__.items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
-        #print('{}: {}'.format(att, type(save_attr)))
 
         tu.assert_eq(save_attr, load_attr)
 
@@ -137,7 +133,9 @@ def test_prioritized_dqn():
     assert np.allclose(w, w_test)
 
 
-def test_prioritized_dqn_save():
+def test_prioritized_dqn_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
     replay_memory = PrioritizedReplayMemory(
         50, 500, alpha=.6,
         beta=LinearParameter(.4, threshold_value=1, n=500 // 5)
@@ -147,12 +145,8 @@ def test_prioritized_dqn_save():
                   replay_memory=replay_memory)
     agent_save = learn(DQN, params)
 
-    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
-
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
-
-    shutil.rmtree(agent_path)
 
     for att, method in agent_save.__dict__.items():
         save_attr = getattr(agent_save, att)
@@ -175,22 +169,19 @@ def test_double_dqn():
     assert np.allclose(w, w_test)
 
 
-def test_double_dqn_save():
+def test_double_dqn_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
     params = dict(batch_size=50, n_approximators=1, initial_replay_size=50,
                   max_replay_size=500, target_update_frequency=50)
     agent_save = learn(DoubleDQN, params)
 
-    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
-
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
-
-    shutil.rmtree(agent_path)
 
     for att, method in agent_save.__dict__.items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
-        #print('{}: {}'.format(att, type(save_attr)))
 
         tu.assert_eq(save_attr, load_attr)
 
@@ -208,22 +199,19 @@ def test_averaged_dqn():
     assert np.allclose(w, w_test)
 
 
-def test_averaged_dqn_save():
+def test_averaged_dqn_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
     params = dict(batch_size=50, n_approximators=5, initial_replay_size=50,
                   max_replay_size=5000, target_update_frequency=50)
     agent_save = learn(AveragedDQN, params)
 
-    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
-
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
-
-    shutil.rmtree(agent_path)
 
     for att, method in agent_save.__dict__.items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
-        #print('{}: {}'.format(att, type(save_attr)))
 
         tu.assert_eq(save_attr, load_attr)
 
@@ -243,21 +231,18 @@ def test_categorical_dqn():
     assert np.allclose(w, w_test, rtol=1e-4)
 
 
-def test_categorical_dqn_save():
+def test_categorical_dqn_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
     params = dict(batch_size=50, n_approximators=1, initial_replay_size=50,
                   max_replay_size=5000, target_update_frequency=50)
     agent_save = learn(CategoricalDQN, params)
 
-    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
-
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
-
-    shutil.rmtree(agent_path)
 
     for att, method in agent_save.__dict__.items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
-        #print('{}: {}'.format(att, type(save_attr)))
 
         tu.assert_eq(save_attr, load_attr)

@@ -5,6 +5,12 @@ import numpy as np
 from copy import deepcopy
 from pathlib import Path, PurePath
 
+import sys
+if sys.version_info >= (3, 7):
+    from zipfile import ZipFile
+else:
+    from zipfile37 import ZipFile
+
 
 class Agent(object):
     """
@@ -93,35 +99,36 @@ class Agent(object):
         Load and deserialize the agent from the given location on disk.
 
         Args:
-            path (string): Relative or absolute path to the agents save
+            path (Path, string): Relative or absolute path to the agents save
                 location.
 
         Returns:
             The loaded agent.
 
         """
-        if not isinstance(path, str): 
-            raise ValueError('path has to be of type string')
-        if not Path(path).is_dir():
-            raise NotADirectoryError("Path to load agent is not valid")
+        path = Path(path)
+        if not path.exists():
+            raise ValueError("Path to load agent is not valid")
 
-        agent_type, save_attributes = cls._load_pickle(
-            PurePath(path, 'agent.config')).values()
+        with ZipFile(path, 'r') as zip_file:
+            print(zip_file.namelist())
+            agent_type, save_attributes = cls._load_pickle(zip_file, 'agent.config').values()
 
-        agent = agent_type.__new__(agent_type)
+            agent = agent_type.__new__(agent_type)
 
-        for att, method in save_attributes.items():
-            load_path = Path(path, '{}.{}'.format(att, method))
-            
-            if load_path.is_file():
-                load_method = getattr(cls, '_load_{}'.format(method))
-                if load_method is None:
-                    raise NotImplementedError('Method _load_{} is not'
-                                              'implemented'.format(method))
-                att_val = load_method(load_path.resolve())
-                setattr(agent, att, att_val)
-            else:
-                setattr(agent, att, None)
+            for att, method in save_attributes.items():
+                file_name = '{}.{}'.format(att, method)
+
+                if file_name in zip_file.namelist():
+                    load_method = getattr(cls, '_load_{}'.format(method))
+                    if load_method is None:
+                        raise NotImplementedError('Method _load_{} is not'
+                                                  'implemented'.format(method))
+                    att_val = load_method(zip_file, file_name)
+                    setattr(agent, att, att_val)
+                else:
+                    print('att', att, 'named', file_name, 'not in zip')
+                    setattr(agent, att, None)
 
         agent._post_load()
 
@@ -132,37 +139,35 @@ class Agent(object):
         Serialize and save the agent to the given path on disk.
 
         Args:
-            path (string): Relative or absolute path to the agents save
+            path (Path, string): Relative or absolute path to the agents save
                 location.
 
         """
-        if not isinstance(path, str):
-            raise ValueError('path has to be of type string')
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
 
-        path_obj = Path(path)
-        path_obj.mkdir(parents=True, exist_ok=True)
+        with ZipFile(path, 'w') as zip_file:
+            agent_config = dict(
+                type=type(self),
+                save_attributes=self._save_attributes
+            )
 
-        # Save algorithm type and save_attributes
-        agent_config = dict(
-            type=type(self),
-            save_attributes=self._save_attributes
-        )
-        self._save_pickle(PurePath(path, 'agent.config'), agent_config)
+            self._save_pickle(zip_file, 'agent.config', agent_config)
 
-        for att, method in self._save_attributes.items():
-            attribute = getattr(self, att) if hasattr(self, att) else None
-            save_method = getattr(self, '_save_{}'.format(method)) if hasattr(
-                self, '_save_{}'.format(method)) else None
-            if attribute is None:
-                continue
-            elif save_method is None:
-                raise NotImplementedError(
-                    "Method _save_{} is not implemented for class '{}'".format(
-                        method, self.__class__.__name__)
-                )
-            else:
-                save_method(PurePath(path, "{}.{}".format(att, method)),
-                            attribute)
+            for att, method in self._save_attributes.items():
+                attribute = getattr(self, att) if hasattr(self, att) else None
+                save_method = getattr(self, '_save_{}'.format(method)) if hasattr(
+                    self, '_save_{}'.format(method)) else None
+                if attribute is None:
+                    continue
+                elif save_method is None:
+                    raise NotImplementedError(
+                        "Method _save_{} is not implemented for class '{}'".format(
+                            method, self.__class__.__name__)
+                    )
+                else:
+                    file_name = "{}.{}".format(att, method)
+                    save_method(zip_file, file_name, attribute)
 
     def copy(self):
         """
@@ -194,39 +199,43 @@ class Agent(object):
         pass
 
     @staticmethod
-    def _load_pickle(path):
-        with Path(path).open('rb') as f:
+    def _load_pickle(zip_file, name):
+        with zip_file.open(name, 'r') as f:
             return pickle.load(f)
     
     @staticmethod
-    def _load_numpy(path):
-        with Path(path).open('rb') as f:
+    def _load_numpy(zip_file, name):
+        print('loading ', name)
+        with zip_file.open(name, 'r') as f:
             return np.load(f)
     
     @staticmethod
-    def _load_torch(path):
-        return torch.load(path)
+    def _load_torch(zip_file, name):
+        with zip_file.open(name, 'r') as f:
+            return torch.load(f)
     
     @staticmethod
-    def _load_json(path):
-        with Path(path).open('r') as f:
+    def _load_json(zip_file, name):
+        with zip_file.open(name, 'r') as f:
             return json.load(f)
 
     @staticmethod
-    def _save_pickle(path, obj):
-        with Path(path).open('wb') as f:
+    def _save_pickle(zip_file, name, obj):
+        with zip_file.open(name, 'w') as f:
             pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
     
     @staticmethod
-    def _save_numpy(path, obj):
-        with Path(path).open('wb') as f:
+    def _save_numpy(zip_file, name, obj):
+        with zip_file.open(name, 'w') as f:
             np.save(f, obj)
     
     @staticmethod
-    def _save_torch(path, obj):
-        torch.save(obj, path)
+    def _save_torch(zip_file, name, obj):
+        with zip_file.open(name, 'w') as f:
+            torch.save(obj, f)
     
     @staticmethod
-    def _save_json(path, obj):
-        with Path(path).open('w') as f:
-            json.dump(obj, f)
+    def _save_json(zip_file, name, obj):
+        with zip_file.open(name, 'w') as f:
+            string = json.dumps(obj)
+            f.write(string.encode('utf8'))

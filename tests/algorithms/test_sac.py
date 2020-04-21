@@ -5,7 +5,6 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-import shutil
 from datetime import datetime
 from helper.utils import TestUtils as tu
 
@@ -49,8 +48,8 @@ class ActorNetwork(nn.Module):
     def forward(self, state):
         return F.relu(self._h(torch.squeeze(state, 1).float()))
 
-def learn_sac():
 
+def learn_sac():
     # MDP
     horizon = 200
     gamma = 0.99
@@ -118,19 +117,16 @@ def test_sac():
 
     assert np.allclose(w, w_test)
 
-def test_sac_save():
-    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+def test_sac_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
     agent_save = learn_sac()
 
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    shutil.rmtree(agent_path)
-
     for att, method in agent_save.__dict__.items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
-        #print('{}: {}'.format(att, type(save_attr)))
 
         tu.assert_eq(save_attr, load_attr)

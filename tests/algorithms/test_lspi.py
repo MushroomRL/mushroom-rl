@@ -1,6 +1,5 @@
 import numpy as np
 
-import shutil
 from datetime import datetime
 from helper.utils import TestUtils as tu
 
@@ -12,6 +11,7 @@ from mushroom_rl.features import Features
 from mushroom_rl.features.basis import PolynomialBasis
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.utils.parameters import Parameter
+
 
 def learn_lspi():
     np.random.seed(1)
@@ -51,20 +51,16 @@ def test_lspi():
     assert np.allclose(w, w_test)
 
 
-def test_lspi_save():
+def test_lspi_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
     agent_save = learn_lspi()
-
-    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
 
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    shutil.rmtree(agent_path)
-
     for att, method in agent_save.__dict__.items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
-        #print('{}: {}'.format(att, type(save_attr)))
 
         tu.assert_eq(save_attr, load_attr)

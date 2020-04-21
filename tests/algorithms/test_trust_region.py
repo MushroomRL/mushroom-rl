@@ -1,28 +1,19 @@
-# import sys
-# import os
-# sys.path = [os.getcwd()] + sys.path
-
-import gym
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-import shutil
-import pathlib
-import itertools
-from copy import deepcopy
 from datetime import datetime
 from helper.utils import TestUtils as tu
 
-import mushroom_rl
 from mushroom_rl.algorithms import Agent
 
 from mushroom_rl.algorithms.actor_critic import PPO, TRPO
 from mushroom_rl.core import Core
 from mushroom_rl.environments import Gym
 from mushroom_rl.policy import GaussianTorchPolicy
+
 
 class Network(nn.Module):
     def __init__(self, input_shape, output_shape, **kwargs):
@@ -39,8 +30,8 @@ class Network(nn.Module):
     def forward(self, state, **kwargs):
         return F.relu(self._h(torch.squeeze(state, 1).float()))
 
-def learn(alg, alg_params):
 
+def learn(alg, alg_params):
     mdp = Gym('Pendulum-v0', 200, .99)
     mdp.seed(1)
     np.random.seed(1)
@@ -85,25 +76,22 @@ def test_PPO():
     assert np.allclose(w, w_test)
 
 
-def test_PPO_save():
+def test_PPO_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
     params = dict(actor_optimizer={'class': optim.Adam,
                                    'params': {'lr': 3e-4}},
                   n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95,
                   quiet=True)
-    
-    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
 
     agent_save = learn(PPO, params)
 
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    shutil.rmtree(agent_path)
-
     for att, method in agent_save.__dict__.items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
-        #print('{}: {}'.format(att, type(save_attr)))
         tu.assert_eq(save_attr, load_attr)
 
 
@@ -119,22 +107,19 @@ def test_TRPO():
     assert np.allclose(w, w_test)
 
 
-def test_TRPO_save():
+def test_TRPO_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
     params = dict(ent_coeff=0.0, max_kl=.001, lam=.98, n_epochs_line_search=10,
                   n_epochs_cg=10, cg_damping=1e-2, cg_residual_tol=1e-10,
                   quiet=True)
-    
-    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
 
     agent_save = learn(TRPO, params)
 
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    shutil.rmtree(agent_path)
-
     for att, method in agent_save.__dict__.items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
-        #print('{}: {}'.format(att, type(save_attr)))
         tu.assert_eq(save_attr, load_attr)

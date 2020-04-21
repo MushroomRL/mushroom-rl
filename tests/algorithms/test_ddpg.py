@@ -1,21 +1,12 @@
-# import sys
-# import os
-# sys.path = [os.getcwd()] + sys.path
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
 import numpy as np
-import shutil
-import pathlib
-import itertools
-from copy import deepcopy
 from datetime import datetime
 from helper.utils import TestUtils as tu
 
-import mushroom_rl
 from mushroom_rl.algorithms import Agent
 from mushroom_rl.algorithms.actor_critic import DDPG, TD3
 from mushroom_rl.core import Core
@@ -118,16 +109,13 @@ def test_ddpg():
     assert np.allclose(w, w_test)
 
 
-def test_ddpg_save():
-    
-    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+def test_ddpg_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
     agent_save = learn(DDPG)
 
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
-
-    shutil.rmtree(agent_path)
 
     for att, method in agent_save.__dict__.items():
         save_attr = getattr(agent_save, att)
@@ -145,20 +133,16 @@ def test_td3():
     assert np.allclose(w, w_test)
 
 
-def test_td3_save():
-    
-    agent_path = './agentdir{}/'.format(datetime.now().strftime("%H%M%S%f"))
+def test_td3_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
     agent_save = learn(TD3)
 
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    shutil.rmtree(agent_path)
-
     for att, method in agent_save.__dict__.items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
-        #print('{}: {}'.format(att, type(save_attr)))
 
         tu.assert_eq(save_attr, load_attr)
