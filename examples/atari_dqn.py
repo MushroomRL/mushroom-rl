@@ -364,7 +364,7 @@ def experiment():
                    n_steps_per_fit=initial_replay_size, quiet=args.quiet)
 
         if args.save:
-            agent.save(folder_name + '/0')
+            agent.save(folder_name + '/0.msh')
 
         # Evaluate initial policy
         pi.set_epsilon(epsilon_test)
@@ -384,7 +384,7 @@ def experiment():
                        n_steps_per_fit=train_frequency, quiet=args.quiet)
 
             if args.save:
-                agent.save(folder_name + '/' + str(n_epoch))
+                agent.save(folder_name + '/' + str(n_epoch) + '.msh')
 
             print('- Evaluation:')
             # evaluation step
