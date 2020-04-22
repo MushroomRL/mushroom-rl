@@ -88,7 +88,7 @@ def test_a2c_save(tmpdir):
 
     agent_save = learn_a2c()
 
-    agent_save.save(agent_path)
+    agent_save.save(agent_path, full_save=True)
     agent_load = Agent.load(agent_path)
 
     for att, method in agent_save.__dict__.items():

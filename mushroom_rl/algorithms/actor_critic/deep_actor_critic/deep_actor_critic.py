@@ -18,14 +18,15 @@ class DeepAC(Agent):
             parameters: policy parameters to be optimized.
         """
         if actor_optimizer is not None:
+            if parameters is not None and not isinstance(parameters, list):
+                parameters = list(parameters)
+            self._parameters = parameters
+
             self._optimizer = actor_optimizer['class'](
                 parameters, **actor_optimizer['params']
             )
 
             self._clipping = None
-            if parameters is not None and not isinstance(parameters, list):
-                parameters = list(parameters)
-            self._parameters = parameters
 
             if 'clipping' in actor_optimizer:
                 self._clipping = actor_optimizer['clipping']['method']

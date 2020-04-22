@@ -105,7 +105,7 @@ def test_dqn_save(tmpdir):
                   max_replay_size=500, target_update_frequency=50)
     agent_save = learn(DQN, params)
 
-    agent_save.save(agent_path)
+    agent_save.save(agent_path, full_save=True)
     agent_load = Agent.load(agent_path)
 
     for att, method in agent_save.__dict__.items():
@@ -145,13 +145,12 @@ def test_prioritized_dqn_save(tmpdir):
                   replay_memory=replay_memory)
     agent_save = learn(DQN, params)
 
-    agent_save.save(agent_path)
+    agent_save.save(agent_path, full_save=True)
     agent_load = Agent.load(agent_path)
 
     for att, method in agent_save.__dict__.items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
-        #print('{}: {}'.format(att, type(save_attr)))
 
         tu.assert_eq(save_attr, load_attr)
 
@@ -176,7 +175,7 @@ def test_double_dqn_save(tmpdir):
                   max_replay_size=500, target_update_frequency=50)
     agent_save = learn(DoubleDQN, params)
 
-    agent_save.save(agent_path)
+    agent_save.save(agent_path, full_save=True)
     agent_load = Agent.load(agent_path)
 
     for att, method in agent_save.__dict__.items():
@@ -206,7 +205,7 @@ def test_averaged_dqn_save(tmpdir):
                   max_replay_size=5000, target_update_frequency=50)
     agent_save = learn(AveragedDQN, params)
 
-    agent_save.save(agent_path)
+    agent_save.save(agent_path, full_save=True)
     agent_load = Agent.load(agent_path)
 
     for att, method in agent_save.__dict__.items():
@@ -238,7 +237,7 @@ def test_categorical_dqn_save(tmpdir):
                   max_replay_size=5000, target_update_frequency=50)
     agent_save = learn(CategoricalDQN, params)
 
-    agent_save.save(agent_path)
+    agent_save.save(agent_path, full_save=True)
     agent_load = Agent.load(agent_path)
 
     for att, method in agent_save.__dict__.items():

@@ -28,7 +28,6 @@ class Serializable(object):
 
         with ZipFile(path, 'w') as zip_file:
             self.save_zip(zip_file, full_save)
-        print('-------------------------------------------------------------------------------------------------------')
 
     def save_zip(self, zip_file, full_save, folder=''):
         """
@@ -51,7 +50,6 @@ class Serializable(object):
             if method[-1] is not '!' or full_save:
                 method = method[:-1] if method[-1] is '!' else method
                 attribute = getattr(self, att) if hasattr(self, att) else None
-                print('saving ', att, ' is None? ', attribute is None)
 
                 if attribute is not None:
                     if hasattr(self, '_save_{}'.format(method)):
@@ -88,11 +86,10 @@ class Serializable(object):
 
     @classmethod
     def load_zip(cls, zip_file, folder=''):
-        #print(zip_file.namelist())
         config_path = Serializable._append_folder(folder, 'config')
-        type, save_attributes = cls._load_pickle(zip_file, config_path).values()
+        object_type, save_attributes = cls._load_pickle(zip_file, config_path).values()
 
-        loaded_object = type.__new__(type)
+        loaded_object = object_type.__new__(object_type)
 
         for att, method in save_attributes.items():
             method = method[:-1] if method[-1] is '!' else method
@@ -106,13 +103,11 @@ class Serializable(object):
                 att_val = load_method(zip_file, file_name)
                 setattr(loaded_object, att, att_val)
             else:
-                print('att', att, 'named', file_name, 'not in zip')
                 setattr(loaded_object, att, None)
 
         loaded_object._post_load()
 
         return loaded_object
-
 
     def copy(self):
         """
@@ -128,7 +123,9 @@ class Serializable(object):
 
         Args:
             **attr_dict (dict): dictionary of attributes mapped to the method that
-                should be used to save and load them.
+                should be used to save and load them. If a "!" character is added
+                at the end of the method, the field will be saved only if full_save
+                is set to True.
 
         """
         if not hasattr(self, '_save_attributes'):

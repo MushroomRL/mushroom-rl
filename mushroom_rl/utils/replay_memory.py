@@ -119,7 +119,7 @@ class ReplayMemory(Serializable):
         return self._idx if not self._full else self._max_size
 
     def _post_load(self):
-        if not hasattr(self, '_full'):
+        if self._full is None:
             self.reset()
 
 
@@ -374,5 +374,5 @@ class PrioritizedReplayMemory(Serializable):
         return self._tree.max_p if self.initialized else 1.
 
     def _post_load(self):
-        if not hasattr(self, '_tree'):
+        if self._tree is None:
             self._tree = SumTree(self._max_size)
