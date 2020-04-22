@@ -1,4 +1,5 @@
 import numpy as np
+
 from .human_muscle import HAB, HAM, HAD, HFL, BFSH, GAS, GLU, REF, VAS, SOL, TIA
 
 
@@ -115,7 +116,8 @@ class MuscleSimulation(object):
         return musc
 
     def reset(self):
-        self.musc = self._create_muscles()
+        for musc in self.musc.values():
+            musc.reset_state()
 
     def preprocess_action(self, stimu):
         return np.clip(stimu, 0.001, 1.0)
@@ -161,28 +163,28 @@ class MuscleSimulation(object):
         angAnkR = angAnkR + np.pi / 2.0
         angAnkL = angAnkL + np.pi / 2.0
 
-        self.musc["HABR"].stepUpdateState(np.array((angHipAbdR,)))
-        self.musc["HADR"].stepUpdateState(np.array((angHipAbdR,)))
-        self.musc["GLUR"].stepUpdateState(np.array((angHipSagR,)))
-        self.musc["HFLR"].stepUpdateState(np.array((angHipSagR,)))
-        self.musc["HAMR"].stepUpdateState(np.array((angHipSagR, angKneR)))
-        self.musc["REFR"].stepUpdateState(np.array((angHipSagR, angKneR)))
-        self.musc["BFSHR"].stepUpdateState(np.array((angKneR,)))
-        self.musc["VASR"].stepUpdateState(np.array((angKneR,)))
-        self.musc["GASR"].stepUpdateState(np.array((angKneR, angAnkR)))
-        self.musc["SOLR"].stepUpdateState(np.array((angAnkR,)))
-        self.musc["TIAR"].stepUpdateState(np.array((angAnkR,)))
-        self.musc["HABL"].stepUpdateState(np.array((angHipAbdL,)))
-        self.musc["HADL"].stepUpdateState(np.array((angHipAbdL,)))
-        self.musc["GLUL"].stepUpdateState(np.array((angHipSagL,)))
-        self.musc["HFLL"].stepUpdateState(np.array((angHipSagL,)))
-        self.musc["HAML"].stepUpdateState(np.array((angHipSagL, angKneL)))
-        self.musc["REFL"].stepUpdateState(np.array((angHipSagL, angKneL)))
-        self.musc["BFSHL"].stepUpdateState(np.array((angKneL,)))
-        self.musc["VASL"].stepUpdateState(np.array((angKneL,)))
-        self.musc["GASL"].stepUpdateState(np.array((angKneL, angAnkL)))
-        self.musc["SOLL"].stepUpdateState(np.array((angAnkL,)))
-        self.musc["TIAL"].stepUpdateState(np.array((angAnkL,)))
+        self.musc["HABR"].stepUpdateState(np.array([angHipAbdR, 0]))
+        self.musc["HADR"].stepUpdateState(np.array([angHipAbdR, 0]))
+        self.musc["GLUR"].stepUpdateState(np.array([angHipSagR, 0]))
+        self.musc["HFLR"].stepUpdateState(np.array([angHipSagR, 0]))
+        self.musc["HAMR"].stepUpdateState(np.array([angHipSagR, angKneR]))
+        self.musc["REFR"].stepUpdateState(np.array([angHipSagR, angKneR]))
+        self.musc["BFSHR"].stepUpdateState(np.array([angKneR, 0]))
+        self.musc["VASR"].stepUpdateState(np.array([angKneR, 0]))
+        self.musc["GASR"].stepUpdateState(np.array([angKneR, angAnkR]))
+        self.musc["SOLR"].stepUpdateState(np.array([angAnkR, 0]))
+        self.musc["TIAR"].stepUpdateState(np.array([angAnkR, 0]))
+        self.musc["HABL"].stepUpdateState(np.array([angHipAbdL, 0]))
+        self.musc["HADL"].stepUpdateState(np.array([angHipAbdL, 0]))
+        self.musc["GLUL"].stepUpdateState(np.array([angHipSagL, 0]))
+        self.musc["HFLL"].stepUpdateState(np.array([angHipSagL, 0]))
+        self.musc["HAML"].stepUpdateState(np.array([angHipSagL, angKneL]))
+        self.musc["REFL"].stepUpdateState(np.array([angHipSagL, angKneL]))
+        self.musc["BFSHL"].stepUpdateState(np.array([angKneL, 0]))
+        self.musc["VASL"].stepUpdateState(np.array([angKneL, 0]))
+        self.musc["GASL"].stepUpdateState(np.array([angKneL, angAnkL]))
+        self.musc["SOLL"].stepUpdateState(np.array([angAnkL, 0]))
+        self.musc["TIAL"].stepUpdateState(np.array([angAnkL, 0]))
 
         self._metcost += np.sum([musc.MR for musc in self.musc.values()])
 
