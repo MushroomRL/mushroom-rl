@@ -14,6 +14,12 @@ else:
 
 
 class Serializable(object):
+    """
+    Interface to implement serialization of a MushroomRL object.
+    This provide load and save functionality to save the object in a zip file.
+    It is possible to save the state of the agent with different levels of
+
+    """
     def save(self, path, full_save=False):
         """
         Serialize and save the object to the given path on disk.

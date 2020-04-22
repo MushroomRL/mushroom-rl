@@ -88,7 +88,6 @@ class DQN(Agent):
             _clip_reward='numpy',
             _target_update_frequency='numpy',
             _replay_memory='mushroom',
-            _fit='pickle',
             _n_updates='numpy',
             approximator='pickle',
             target_approximator='pickle'
@@ -166,6 +165,12 @@ class DQN(Agent):
         action = super(DQN, self).draw_action(np.array(state))
 
         return action
+
+    def _post_load(self):
+        if isinstance(self._replay_memory, PrioritizedReplayMemory):
+            self._fit = self._fit_prioritized
+        else:
+            self._fit = self._fit_standard
 
 
 class DoubleDQN(DQN):
