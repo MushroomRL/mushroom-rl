@@ -98,7 +98,7 @@ class MaxVelocityReward(GoalRewardInterface):
             traj_start (bool, False): If model initial position should be set
                 from a valid trajectory state. If False starts from the
                 model.xml base position;
-            **kwargs (dict): additional parameters which can be passed to
+            **kwargs: additional parameters which can be passed to
                 trajectory when using ``traj_start``. ``traj_path`` should be
                 given to select a different trajectory. Rest of the arguments
                 are not important.
@@ -140,7 +140,7 @@ class VelocityProfileReward(GoalRewardInterface):
             traj_start (bool, False): If model initial position should be set
                 from a valid trajectory state. If False starts from the
                 model.xml base position;
-            **kwargs (dict): additional parameters which can be passed to
+            **kwargs: additional parameters which can be passed to
                 trajectory when using ``traj_start``. ``traj_path`` should be
                 given to select a diferent trajectory. Rest of the arguments
                 are not important.

@@ -15,7 +15,7 @@ class Ensemble(object):
             approximator (object): the model class to approximate the
                 Q-function.
             n_models (int): number of regressors in the ensemble;
-            **params (dict): parameters dictionary to create each regressor.
+            **params: parameters dictionary to create each regressor.
 
         """
         self._model = list()
@@ -29,10 +29,10 @@ class Ensemble(object):
         model otherwise.
 
         Args:
-            *z (list): a list containing the inputs to use to predict with each
+            *z: a list containing the inputs to use to predict with each
                 regressor of the ensemble;
             idx (int, None): index of the model to fit;
-            **fit_params (dict): other params.
+            **fit_params: other params.
 
         """
         if idx is None:
@@ -47,14 +47,14 @@ class Ensemble(object):
         Predict.
 
         Args:
-            *z (list): a list containing the inputs to use to predict with each
+            *z: a list containing the inputs to use to predict with each
                 regressor of the ensemble;
             idx (int, None): index of the model to use for prediction;
             prediction (str, 'mean'): the type of prediction to make. It can
                 be a 'mean' of the ensembles, or a 'sum';
             compute_variance (bool, False): whether to compute the variance
                 of the prediction or not;
-            **predict_params (dict): other parameters used by the predict method
+            **predict_params: other parameters used by the predict method
                 the regressor.
 
         Returns:

@@ -40,7 +40,7 @@ class TorchApproximator:
                 train;
             quiet (bool, True): if False, shows two progress bars, one for
                 epochs and one for the minibatches;
-            params (dict): dictionary of parameters needed to construct the
+            **params: dictionary of parameters needed to construct the
                 network.
 
         """
@@ -69,10 +69,10 @@ class TorchApproximator:
         Predict.
 
         Args:
-            args (list): input;
+            *args: input;
             output_tensor (bool, False): whether to return the output as tensor
                 or not;
-            **kwargs (dict): other parameters used by the predict method
+            **kwargs: other parameters used by the predict method
                 the regressor.
 
         Returns:
@@ -111,7 +111,7 @@ class TorchApproximator:
         Fit the model.
 
         Args:
-            *args (list): input, where the last ``n_fit_targets`` elements
+            *args: input, where the last ``n_fit_targets`` elements
                 are considered as the target, while the others are considered
                 as input;
             n_epochs (int, None): the number of training epochs;
@@ -122,7 +122,7 @@ class TorchApproximator:
                 the learning if not improving;
             validation_split (float, 1.): the percentage of the dataset to use
                 as training set;
-            **kwargs (dict): other parameters used by the fit method of the
+            **kwargs: other parameters used by the fit method of the
                 regressor.
 
         """

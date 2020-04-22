@@ -21,9 +21,9 @@ class PlotItemBuffer(PlotItem):
                 plot;
             plot_item_data_params (list): dictionary of ``DataBuffer`` and
                 respective parameters;
-            *args (list): positional arguments to be passed to ``PlotItem``
+            *args: positional arguments to be passed to ``PlotItem``
                 class;
-            **kwargs (dict): dictionary to be passed to ``PlotItem`` class.
+            **kwargs: dictionary to be passed to ``PlotItem`` class.
 
         """
         mkQApp()

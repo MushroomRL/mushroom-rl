@@ -16,7 +16,7 @@ class QRegressor:
         Args:
             approximator (object): the model class to approximate the
                 Q-function;
-            params (dict): parameters dictionary to the regressor.
+            **params: parameters dictionary to the regressor.
 
         """
         self.model = approximator(**params)
@@ -29,7 +29,7 @@ class QRegressor:
             state (np.ndarray): states;
             action (np.ndarray): actions;
             q (np.ndarray): target q-values;
-            **fit_params (dict): other parameters used by the fit method of the
+            **fit_params: other parameters used by the fit method of the
                 regressor.
 
         """
@@ -40,10 +40,10 @@ class QRegressor:
         Predict.
 
         Args:
-            *z (list): a list containing states or states and actions depending
+            *z: a list containing states or states and actions depending
                 on whether the call requires to predict all q-values or only
                 one q-value corresponding to the provided action;
-            **predict_params (dict): other parameters used by the predict method
+            **predict_params: other parameters used by the predict method
                 of each regressor.
 
         Returns:

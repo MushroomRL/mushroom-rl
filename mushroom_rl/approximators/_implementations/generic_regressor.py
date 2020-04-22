@@ -12,7 +12,7 @@ class GenericRegressor:
             approximator (object): the model class to approximate the
                 a generic function;
             n_inputs (int): number of inputs of the regressor;
-            **params (dict): parameters dictionary to the regressor;
+            **params: parameters dictionary to the regressor;
 
         """
         self._n_inputs = n_inputs
@@ -23,8 +23,8 @@ class GenericRegressor:
         Fit the model.
 
         Args:
-            *z (list): list of inputs and targets;
-            **fit_params (dict): other parameters used by the fit method of the
+            *z: list of inputs and targets;
+            **fit_params: other parameters used by the fit method of the
                 regressor.
 
         """
@@ -36,7 +36,7 @@ class GenericRegressor:
 
         Args:
             x (list): list of inputs;
-            **predict_params (dict): other parameters used by the predict method
+            **predict_params: other parameters used by the predict method
                 the regressor.
 
         Returns:

@@ -36,7 +36,7 @@ class Regressor:
             n_actions (int, None): number of actions considered to create a
                 ``QRegressor`` or an ``ActionRegressor``;
             n_models (int, 1): number of models to create;
-            **params (dict): other parameters to create each model.
+            **params: other parameters to create each model.
 
         """
         if not approximator.__module__.startswith('sklearn'):
@@ -83,8 +83,8 @@ class Regressor:
         Fit the model.
 
         Args:
-            *z (list): list of input of the model;
-            **fit_params (dict): parameters to use to fit the model.
+            *z: list of input of the model;
+            **fit_params: parameters to use to fit the model.
 
         """
         ndim = self._ndim()
@@ -98,8 +98,8 @@ class Regressor:
         Predict the output of the model given an input.
 
         Args:
-            *z (list): list of input of the model;
-            **predict_params(dict): parameters to use to predict with the model.
+            *z: list of input of the model;
+            **predict_params: parameters to use to predict with the model.
 
         Returns:
             The model prediction.
@@ -192,7 +192,7 @@ class Regressor:
     def diff(self, *z):
         """
         Args:
-            *z (list): the input of the model.
+            *z: the input of the model.
 
         Returns:
              The derivative of the model.

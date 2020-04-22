@@ -136,7 +136,7 @@ class Serializable(object):
         Add attributes that should be saved for an agent.
 
         Args:
-            **attr_dict (dict): dictionary of attributes mapped to the method
+            **attr_dict: dictionary of attributes mapped to the method
                 that should be used to save and load them. If a "!" character
                 is added at the end of the method, the field will be saved only
                 if full_save is set to True.

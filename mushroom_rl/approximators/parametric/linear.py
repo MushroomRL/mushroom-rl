@@ -18,7 +18,7 @@ class LinearApproximator:
                 model;
              output_shape (np.ndarray, (1,)): the shape of the output of the
                 model;
-             **kwargs (dict): other params of the approximator.
+             **kwargs: other params of the approximator.
 
         """
         assert len(input_shape) == 1 and len(output_shape) == 1
@@ -41,7 +41,7 @@ class LinearApproximator:
         Args:
             x (np.ndarray): input;
             y (np.ndarray): target;
-            **fit_params (dict): other parameters used by the fit method of the
+            **fit_params: other parameters used by the fit method of the
                 regressor.
 
         """
@@ -53,7 +53,7 @@ class LinearApproximator:
 
         Args:
             x (np.ndarray): input;
-            **predict_params (dict): other parameters used by the predict method
+            **predict_params: other parameters used by the predict method
                 the regressor.
 
         Returns:
