@@ -25,8 +25,10 @@ class Serializable(object):
         Serialize and save the object to the given path on disk.
 
         Args:
-            path (Path, string): Relative or absolute path to the object save location;
-            full_save (bool): Flag to specify the amount of data to save for mushroom data structures.
+            path (Path, str): Relative or absolute path to the object save
+                location;
+            full_save (bool): Flag to specify the amount of data to save for
+                MushroomRL data structures.
 
         """
         path = Path(path)
@@ -41,8 +43,9 @@ class Serializable(object):
 
         Args:
             zip_file (ZipFile): ZipFile where te object needs to be saved;
-            full_save (bool): Flag to specify the amount of data to save for mushroom data structures;
-            folder (string, ''): Subfolder to be used by the save method.
+            full_save (bool): flag to specify the amount of data to save for
+                MushroomRL data structures;
+            folder (string, ''): subfolder to be used by the save method.
         """
         config_data = dict(
             type=type(self),
@@ -53,15 +56,16 @@ class Serializable(object):
 
         for att, method in self._save_attributes.items():
 
-            if method[-1] is not '!' or full_save:
-                method = method[:-1] if method[-1] is '!' else method
+            if not method.endswith('!') or full_save:
+                method = method[:-1] if method.endswith('!') else method
                 attribute = getattr(self, att) if hasattr(self, att) else None
 
                 if attribute is not None:
                     if hasattr(self, '_save_{}'.format(method)):
                         save_method = getattr(self, '_save_{}'.format(method))
                         file_name = "{}.{}".format(att, method)
-                        save_method(zip_file, file_name, attribute, full_save=full_save, folder=folder)
+                        save_method(zip_file, file_name, attribute,
+                                    full_save=full_save, folder=folder)
                     else:
                         raise NotImplementedError(
                             "Method _save_{} is not implemented for class '{}'".
@@ -93,14 +97,17 @@ class Serializable(object):
     @classmethod
     def load_zip(cls, zip_file, folder=''):
         config_path = Serializable._append_folder(folder, 'config')
-        object_type, save_attributes = cls._load_pickle(zip_file, config_path).values()
+        object_type, save_attributes = cls._load_pickle(zip_file,
+                                                        config_path).values()
 
         loaded_object = object_type.__new__(object_type)
         setattr(loaded_object, '_save_attributes', save_attributes)
 
         for att, method in save_attributes.items():
-            method = method[:-1] if method[-1] is '!' else method
-            file_name = Serializable._append_folder(folder, '{}.{}'.format(att, method))
+            method = method[:-1] if method.endswith('!') else method
+            file_name = Serializable._append_folder(
+                folder, '{}.{}'.format(att, method)
+            )
 
             if file_name in zip_file.namelist() or method == 'mushroom':
                 load_method = getattr(cls, '_load_{}'.format(method))
@@ -129,10 +136,10 @@ class Serializable(object):
         Add attributes that should be saved for an agent.
 
         Args:
-            **attr_dict (dict): dictionary of attributes mapped to the method that
-                should be used to save and load them. If a "!" character is added
-                at the end of the method, the field will be saved only if full_save
-                is set to True.
+            **attr_dict (dict): dictionary of attributes mapped to the method
+                that should be used to save and load them. If a "!" character
+                is added at the end of the method, the field will be saved only
+                if full_save is set to True.
 
         """
         if not hasattr(self, '_save_attributes'):
@@ -141,8 +148,8 @@ class Serializable(object):
 
     def _post_load(self):
         """
-        This method can be overwritten to implement logic that is executed after
-        the loading of the agent.
+        This method can be overwritten to implement logic that is executed
+        after the loading of the agent.
 
         """
         pass
