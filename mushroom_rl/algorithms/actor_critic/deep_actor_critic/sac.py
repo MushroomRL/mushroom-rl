@@ -247,7 +247,7 @@ class SAC(DeepAC):
             _warmup_transitions='numpy',
             _tau='numpy',
             _target_entropy='numpy',
-            _replay_memory='pickle',
+            _replay_memory='mushroom',
             _critic_approximator='pickle',
             _target_critic_approximator='pickle',
             _log_alpha='pickle',

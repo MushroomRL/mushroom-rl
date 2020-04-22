@@ -87,7 +87,7 @@ class DQN(Agent):
             _n_approximators='numpy',
             _clip_reward='numpy',
             _target_update_frequency='numpy',
-            _replay_memory='pickle',
+            _replay_memory='mushroom',
             _fit='pickle',
             _n_updates='numpy',
             approximator='pickle',

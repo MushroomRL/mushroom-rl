@@ -80,7 +80,7 @@ class DDPG(DeepAC):
             _tau='numpy',
             _policy_delay='numpy',
             _fit_count='numpy',
-            _replay_memory='pickle',
+            _replay_memory='mushroom',
             _critic_approximator='pickle',
             _target_critic_approximator='pickle',
             _actor_approximator='pickle',
