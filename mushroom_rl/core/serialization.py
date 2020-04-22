@@ -90,6 +90,7 @@ class Serializable(object):
         object_type, save_attributes = cls._load_pickle(zip_file, config_path).values()
 
         loaded_object = object_type.__new__(object_type)
+        setattr(loaded_object, '_save_attributes', save_attributes)
 
         for att, method in save_attributes.items():
             method = method[:-1] if method[-1] is '!' else method
@@ -129,7 +130,7 @@ class Serializable(object):
 
         """
         if not hasattr(self, '_save_attributes'):
-            self._save_attributes = dict(_save_attributes='json')
+            self._save_attributes = dict()
         self._save_attributes.update(attr_dict)
 
     def _post_load(self):
