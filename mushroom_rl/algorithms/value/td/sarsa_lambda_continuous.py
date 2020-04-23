@@ -28,7 +28,7 @@ class SARSALambdaContinuous(TD):
         self._add_save_attr(
             _approximator_params='pickle',
             Q='pickle',
-            _lambda='numpy',
+            _lambda='primitive',
             e='numpy'
         )
 

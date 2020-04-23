@@ -24,7 +24,7 @@ class REPS(BlackBoxOptimization):
         """
         self.eps = eps
 
-        self._add_save_attr(eps='numpy')
+        self._add_save_attr(eps='primitive')
 
         super().__init__(mdp_info, distribution, policy, features)
 

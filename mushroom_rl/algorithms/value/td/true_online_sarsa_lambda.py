@@ -33,7 +33,7 @@ class TrueOnlineSARSALambda(TD):
             _approximator_params='pickle',
             Q='pickle',
             _q_old='pickle',
-            _lambda='numpy',
+            _lambda='primitive',
             e='numpy'
         )
 

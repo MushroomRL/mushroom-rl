@@ -60,14 +60,14 @@ class PPO(Agent):
 
         self._add_save_attr(
             _critic_fit_params='pickle', 
-            _n_epochs_policy='numpy',
-            _batch_size='numpy',
-            _eps_ppo='numpy',
+            _n_epochs_policy='primitive',
+            _batch_size='primitive',
+            _eps_ppo='primitive',
             _optimizer='pickle',
-            _lambda='numpy',
+            _lambda='primitive',
             _V='pickle',
-            _quiet='numpy',
-            _iter='numpy'
+            _quiet='primitive',
+            _iter='primitive'
         )
 
         super().__init__(mdp_info, policy, None)

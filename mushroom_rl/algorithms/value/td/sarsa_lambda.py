@@ -24,7 +24,7 @@ class SARSALambda(TD):
         self.e = EligibilityTrace(self.Q.shape, trace)
         self._add_save_attr(
             Q='pickle',
-            _lambda='numpy',
+            _lambda='primitive',
             e='pickle'
         )
 
