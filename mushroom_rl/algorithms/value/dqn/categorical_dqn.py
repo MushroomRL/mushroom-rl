@@ -89,10 +89,10 @@ class CategoricalDQN(DQN):
         self._a_values = np.arange(v_min, v_max + self._delta, self._delta)
 
         self._add_save_attr(
-            _n_atoms='numpy',
-            _v_min='numpy',
-            _v_max='numpy',
-            _delta='numpy',
+            _n_atoms='primitive',
+            _v_min='primitive',
+            _v_max='primitive',
+            _delta='primitive',
             _a_values='numpy'
         )
 

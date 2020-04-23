@@ -29,8 +29,8 @@ class WeightedQLearning(TD):
 
         self._add_save_attr(
             Q='pickle',
-            _sampling='numpy',
-            _precision='numpy',
+            _sampling='primitive',
+            _precision='primitive',
             _n_updates='pickle',
             _sigma='pickle',
             _Q='pickle',

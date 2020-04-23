@@ -52,7 +52,7 @@ class A2C(DeepAC):
 
         self._add_save_attr(
             _critic_fit_params='pickle',
-            _entropy_coeff='numpy',
+            _entropy_coeff='primitive',
             _V='pickle'
         )
 

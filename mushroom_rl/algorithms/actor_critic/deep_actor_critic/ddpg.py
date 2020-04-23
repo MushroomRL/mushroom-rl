@@ -76,10 +76,10 @@ class DDPG(DeepAC):
 
         self._add_save_attr(
             _critic_fit_params='pickle', 
-            _batch_size='numpy',
-            _tau='numpy',
-            _policy_delay='numpy',
-            _fit_count='numpy',
+            _batch_size='primitive',
+            _tau='primitive',
+            _policy_delay='primitive',
+            _fit_count='primitive',
             _replay_memory='mushroom',
             _critic_approximator='pickle',
             _target_critic_approximator='pickle',

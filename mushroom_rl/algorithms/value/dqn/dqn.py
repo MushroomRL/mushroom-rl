@@ -83,12 +83,12 @@ class DQN(Agent):
 
         self._add_save_attr(
             _fit_params='pickle',
-            _batch_size='numpy',
-            _n_approximators='numpy',
-            _clip_reward='numpy',
-            _target_update_frequency='numpy',
+            _batch_size='primitive',
+            _n_approximators='primitive',
+            _clip_reward='primitive',
+            _target_update_frequency='primitive',
             _replay_memory='mushroom',
-            _n_updates='numpy',
+            _n_updates='primitive',
             approximator='pickle',
             target_approximator='pickle'
         )

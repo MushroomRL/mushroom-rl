@@ -243,10 +243,10 @@ class SAC(DeepAC):
 
         self._add_save_attr(
             _critic_fit_params='pickle',
-            _batch_size='numpy',
-            _warmup_transitions='numpy',
-            _tau='numpy',
-            _target_entropy='numpy',
+            _batch_size='primitive',
+            _warmup_transitions='primitive',
+            _tau='primitive',
+            _target_entropy='primitive',
             _replay_memory='mushroom',
             _critic_approximator='pickle',
             _target_critic_approximator='pickle',

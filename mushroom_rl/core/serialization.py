@@ -47,12 +47,7 @@ class Serializable(object):
                 MushroomRL data structures;
             folder (string, ''): subfolder to be used by the save method.
         """
-        config_data = dict(
-            type=type(self),
-            save_attributes=self._save_attributes
-        )
-
-        self._save_pickle(zip_file, 'config', config_data, folder=folder)
+        primitive_dictionary = dict()
 
         for att, method in self._save_attributes.items():
 
@@ -61,7 +56,9 @@ class Serializable(object):
                 attribute = getattr(self, att) if hasattr(self, att) else None
 
                 if attribute is not None:
-                    if hasattr(self, '_save_{}'.format(method)):
+                    if method == 'primitive':
+                        primitive_dictionary[att] = attribute
+                    elif hasattr(self, '_save_{}'.format(method)):
                         save_method = getattr(self, '_save_{}'.format(method))
                         file_name = "{}.{}".format(att, method)
                         save_method(zip_file, file_name, attribute,
@@ -71,6 +68,14 @@ class Serializable(object):
                             "Method _save_{} is not implemented for class '{}'".
                                 format(method, self.__class__.__name__)
                         )
+
+        config_data = dict(
+            type=type(self),
+            save_attributes=self._save_attributes,
+            primitive_dictionary=primitive_dictionary
+        )
+
+        self._save_pickle(zip_file, 'config', config_data, folder=folder)
 
     @classmethod
     def load(cls, path):
@@ -97,8 +102,8 @@ class Serializable(object):
     @classmethod
     def load_zip(cls, zip_file, folder=''):
         config_path = Serializable._append_folder(folder, 'config')
-        object_type, save_attributes = cls._load_pickle(zip_file,
-                                                        config_path).values()
+        object_type, save_attributes, primitive_dictionary = \
+            cls._load_pickle(zip_file, config_path).values()
 
         loaded_object = object_type.__new__(object_type)
         setattr(loaded_object, '_save_attributes', save_attributes)
@@ -109,7 +114,9 @@ class Serializable(object):
                 folder, '{}.{}'.format(att, method)
             )
 
-            if file_name in zip_file.namelist() or method == 'mushroom':
+            if method == 'primitive' and att in primitive_dictionary:
+                setattr(loaded_object, att, primitive_dictionary[att])
+            elif file_name in zip_file.namelist() or method == 'mushroom':
                 load_method = getattr(cls, '_load_{}'.format(method))
                 if load_method is None:
                     raise NotImplementedError('Method _load_{} is not'

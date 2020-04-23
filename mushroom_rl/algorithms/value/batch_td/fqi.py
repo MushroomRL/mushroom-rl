@@ -35,12 +35,12 @@ class FQI(BatchTD):
             approximator_params['n_models'] = n_iterations
 
         self._add_save_attr(
-            _n_iterations='numpy',
-            _quiet='numpy',
-            _boosted='numpy',
-            _prediction='numpy',
+            _n_iterations='primitive',
+            _quiet='primitive',
+            _boosted='primitive',
+            _prediction='primitive',
             _next_q='pickle',
-            _idx='numpy',
+            _idx='primitive',
             _target='pickle'
         )
 
