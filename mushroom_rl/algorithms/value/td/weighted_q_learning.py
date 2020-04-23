@@ -33,22 +33,23 @@ class WeightedQLearning(TD):
             _precision='numpy',
             _n_updates='pickle',
             _sigma='pickle',
-            _Q='pickle',
             _Q2='pickle',
-            _weights_var='pickle',
-            _w='numpy'
+            _w='pickle',
+            _w1='pickle',
+            _w2='pickle'
         )
 
         super().__init__(mdp_info, policy, self.Q, learning_rate)
 
         self._n_updates = Table(mdp_info.size)
         self._sigma = Table(mdp_info.size, initial_value=1e10)
-        self._Q = Table(mdp_info.size)
         self._Q2 = Table(mdp_info.size)
-        self._weights_var = Table(mdp_info.size)
+        self._w1 = Table(mdp_info.size)
+        self._w2 = Table(mdp_info.size)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
+        q2_current = self._Q2[state, action]
         q_next = self._next_q(next_state) if not absorbing else 0.
 
         target = reward + self.mdp_info.gamma * q_next
@@ -56,21 +57,20 @@ class WeightedQLearning(TD):
         alpha = self.alpha(state, action)
 
         self.Q[state, action] = q_current + alpha * (target - q_current)
+        self._Q2[state, action] = q2_current + alpha * (
+            target ** 2 - q2_current
+        )
 
         self._n_updates[state, action] += 1
 
-        self._Q[state, action] += (
-            target - self._Q[state, action]) / self._n_updates[state, action]
-        self._Q2[state, action] += (target ** 2. - self._Q2[
-            state, action]) / self._n_updates[state, action]
-        self._weights_var[state, action] = (
-            1 - alpha) ** 2. * self._weights_var[state, action] + alpha ** 2.
+        self._w2[state, action] = (1 - alpha) ** 2 * self._w2[
+            state, action] + alpha ** 2
+        self._w1[state, action] = (1 - alpha) * self._w1[state, action] + alpha
 
         if self._n_updates[state, action] > 1:
-            var = self._n_updates[state, action] * (
-                self._Q2[state, action] - self._Q[state, action] ** 2.) / (
-                self._n_updates[state, action] - 1.)
-            var_estimator = var * self._weights_var[state, action]
+            var = self._Q2[state, action] - self.Q[state, action] ** 2
+            w = self._w2[state, action] / (self._w1[state, action] * 2 + 1e-10)
+            var_estimator = var * w
             var_estimator = np.maximum(var_estimator, 1e-10)
             self._sigma[state, action] = np.sqrt(var_estimator)
 
