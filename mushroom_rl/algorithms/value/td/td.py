@@ -69,3 +69,6 @@ class TD(Agent):
 
         """
         pass
+
+    def _post_load(self):
+        self.policy.set_q(self.Q)
