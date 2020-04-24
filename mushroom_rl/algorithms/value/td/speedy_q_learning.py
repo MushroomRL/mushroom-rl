@@ -15,7 +15,7 @@ class SpeedyQLearning(TD):
         self.Q = Table(mdp_info.size)
         self.old_q = deepcopy(self.Q)
 
-        self._add_save_attr(Q='pickle', old_q='pickle')
+        self._add_save_attr(Q='mushroom', old_q='mushroom')
 
         super().__init__(mdp_info, policy, self.Q, learning_rate)
 

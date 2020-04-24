@@ -41,9 +41,9 @@ class RQLearning(TD):
             off_policy='pickle',
             delta='pickle',
             beta='pickle',
-            Q='pickle',
-            Q_tilde='pickle',
-            R_tilde='pickle'
+            Q='mushroom',
+            Q_tilde='mushroom',
+            R_tilde='mushroom'
         )
 
         super().__init__(mdp_info, policy, self.Q, learning_rate)

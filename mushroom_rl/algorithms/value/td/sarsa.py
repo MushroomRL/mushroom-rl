@@ -9,7 +9,7 @@ class SARSA(TD):
     """
     def __init__(self, mdp_info, policy, learning_rate):
         self.Q = Table(mdp_info.size)
-        self._add_save_attr(Q='pickle')
+        self._add_save_attr(Q='mushroom')
 
         super().__init__(mdp_info, policy, self.Q, learning_rate)
 

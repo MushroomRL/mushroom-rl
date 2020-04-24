@@ -28,14 +28,14 @@ class WeightedQLearning(TD):
         self._precision = precision
 
         self._add_save_attr(
-            Q='pickle',
+            Q='mushroom',
             _sampling='primitive',
             _precision='primitive',
             _n_updates='pickle',
             _sigma='pickle',
-            _Q='pickle',
-            _Q2='pickle',
-            _weights_var='pickle',
+            _Q='mushroom',
+            _Q2='mushroom',
+            _weights_var='mushroom',
             _w='numpy'
         )
 
