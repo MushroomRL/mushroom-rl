@@ -54,7 +54,7 @@ class Serializable(object):
             if not method.endswith('!') or full_save:
                 method = method[:-1] if method.endswith('!') else method
                 attribute = getattr(self, att) if hasattr(self, att) else None
-                
+
                 if attribute is not None:
                     if method == 'primitive':
                         primitive_dictionary[att] = attribute
