@@ -22,9 +22,9 @@ class TD(Agent):
         self.alpha = learning_rate
 
         policy.set_q(approximator)
-        self.approximator = approximator
+        self.Q = approximator
 
-        self._add_save_attr(alpha='pickle', approximator='pickle')
+        self._add_save_attr(alpha='pickle', Q='mushroom')
 
         super().__init__(mdp_info, policy, features)
 

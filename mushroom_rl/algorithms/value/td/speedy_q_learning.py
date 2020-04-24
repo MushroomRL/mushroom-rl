@@ -12,12 +12,12 @@ class SpeedyQLearning(TD):
 
     """
     def __init__(self, mdp_info, policy, learning_rate):
-        self.Q = Table(mdp_info.size)
-        self.old_q = deepcopy(self.Q)
+        Q = Table(mdp_info.size)
+        self.old_q = deepcopy(Q)
 
-        self._add_save_attr(Q='mushroom', old_q='mushroom')
+        self._add_save_attr(old_q='mushroom')
 
-        super().__init__(mdp_info, policy, self.Q, learning_rate)
+        super().__init__(mdp_info, policy, Q, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
         old_q = deepcopy(self.Q)

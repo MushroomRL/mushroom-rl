@@ -19,13 +19,13 @@ class RLearning(TD):
             beta (Parameter): beta coefficient.
 
         """
-        self.Q = Table(mdp_info.size)
+        Q = Table(mdp_info.size)
         self._rho = 0.
         self.beta = beta
 
-        self._add_save_attr(Q='mushroom', _rho='primitive', beta='pickle')
+        self._add_save_attr(_rho='primitive', beta='pickle')
 
-        super().__init__(mdp_info, policy, self.Q, learning_rate)
+        super().__init__(mdp_info, policy, Q, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]

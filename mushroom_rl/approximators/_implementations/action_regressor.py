@@ -1,7 +1,9 @@
 import numpy as np
 
+from mushroom_rl.core import Serializable
 
-class ActionRegressor:
+
+class ActionRegressor(Serializable):
     """
     This class is used to approximate the Q-function with a different
     approximator of the provided class for each action. It is often used in MDPs
@@ -14,7 +16,7 @@ class ActionRegressor:
         Constructor.
 
         Args:
-            approximator (object): the model class to approximate the
+            approximator (class): the model class to approximate the
                 Q-function of each action;
             n_actions (int): number of different actions of the problem. It
                 determines the number of different regressors in the action
@@ -27,6 +29,11 @@ class ActionRegressor:
 
         for i in range(self._n_actions):
             self.model.append(approximator(**params))
+
+        self._add_save_attr(
+            _n_actions='primitive',
+            model=self._get_serialization_method(approximator)
+        )
 
     def fit(self, state, action, q, **fit_params):
         """

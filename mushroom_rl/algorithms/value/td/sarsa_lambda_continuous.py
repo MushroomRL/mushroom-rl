@@ -18,21 +18,19 @@ class SARSALambdaContinuous(TD):
             lambda_coeff (float): eligibility trace coefficient.
 
         """
-        self._approximator_params = dict() if approximator_params is None else \
+        approximator_params = dict() if approximator_params is None else \
             approximator_params
 
-        self.Q = Regressor(approximator, **self._approximator_params)
-        self.e = np.zeros(self.Q.weights_size)
+        Q = Regressor(approximator, **approximator_params)
+        self.e = np.zeros(Q.weights_size)
         self._lambda = lambda_coeff
 
         self._add_save_attr(
-            _approximator_params='pickle',
-            Q='pickle',
             _lambda='primitive',
             e='numpy'
         )
 
-        super().__init__(mdp_info, policy, self.Q, learning_rate, features)
+        super().__init__(mdp_info, policy, Q, learning_rate, features)
 
     def _update(self, state, action, reward, next_state, absorbing):
         phi_state = self.phi(state)

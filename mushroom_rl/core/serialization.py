@@ -126,6 +126,7 @@ class Serializable(object):
                                                   'implemented'.format(method))
                     att_val = load_method(zip_file, file_name)
                     setattr(loaded_object, att, att_val)
+
                 else:
                     setattr(loaded_object, att, None)
 
@@ -247,4 +248,11 @@ class Serializable(object):
                 element.save_zip(zip_file, full_save=full_save, folder=element_folder)
         else:
             obj.save_zip(zip_file, full_save=full_save, folder=new_folder)
+
+    @staticmethod
+    def _get_serialization_method(class_name):
+        if issubclass(class_name, Serializable):
+            return 'mushroom'
+        else:
+            return 'pickle'
 

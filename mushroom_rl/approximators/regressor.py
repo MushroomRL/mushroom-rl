@@ -1,12 +1,13 @@
 import numpy as np
 
+from mushroom_rl.core import Serializable
 from ._implementations.q_regressor import QRegressor
 from ._implementations.action_regressor import ActionRegressor
 from ._implementations.ensemble import Ensemble
 from ._implementations.generic_regressor import GenericRegressor
 
 
-class Regressor:
+class Regressor(Serializable):
     """
     This class implements the function to manage a function approximator. This
     class selects the appropriate kind of regressor to implement according to
@@ -29,7 +30,7 @@ class Regressor:
         Constructor.
 
         Args:
-            approximator (object): the approximator class to use to create
+            approximator (class): the approximator class to use to create
                 the model;
             input_shape (tuple): the shape of the input of the model;
             output_shape (tuple, (1,)): the shape of the output of the model;
@@ -66,6 +67,14 @@ class Regressor:
             self._impl = GenericRegressor(approximator,
                                           len(self.input_shape),
                                           **params)
+
+        self._add_save_attr(
+            _input_shape='primitive',
+            _output_shape='primitive',
+            n_actions='primitive',
+            _n_models='primitive',
+            _impl='mushroom'
+        )
 
     def __call__(self, *z, **predict_params):
         return self.predict(*z, **predict_params)

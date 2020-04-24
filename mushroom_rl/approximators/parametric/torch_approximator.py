@@ -2,11 +2,12 @@ import torch
 import numpy as np
 from tqdm import trange, tqdm
 
+from mushroom_rl.core import Serializable
 from mushroom_rl.utils.minibatches import minibatch_generator
 from mushroom_rl.utils.torch import get_weights, set_weights, zero_grad
 
 
-class TorchApproximator:
+class TorchApproximator(Serializable):
     """
     Class to interface a pytorch model to the mushroom Regressor interface.
     This class implements all is needed to use a generic pytorch model and train
@@ -63,6 +64,18 @@ class TorchApproximator:
             self._optimizer = optimizer['class'](self.network.parameters(),
                                                  **optimizer['params'])
         self._loss = loss
+
+        self._add_save_attr(
+            _batch_size='primitive',
+            _reinitialize='primitive',
+            _use_cuda='primitive',
+            _dropout='primitive',
+            _quiet='primitive',
+            _n_fit_targets='primitive',
+            network='torch',
+            _optimizer='torch',
+            _loss='pickle'
+        )
 
     def predict(self, *args, output_tensor=False, **kwargs):
         """

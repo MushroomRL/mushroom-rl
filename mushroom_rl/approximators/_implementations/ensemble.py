@@ -1,8 +1,10 @@
 import numpy as np
 from sklearn.exceptions import NotFittedError
 
+from mushroom_rl.core import Serializable
 
-class Ensemble(object):
+
+class Ensemble(Serializable):
     """
     This class is used to create an ensemble of regressors.
 
@@ -12,7 +14,7 @@ class Ensemble(object):
         Constructor.
 
         Args:
-            approximator (object): the model class to approximate the
+            approximator (class): the model class to approximate the
                 Q-function.
             n_models (int): number of regressors in the ensemble;
             **params: parameters dictionary to create each regressor.
@@ -22,6 +24,10 @@ class Ensemble(object):
 
         for _ in range(n_models):
             self._model.append(model(**params))
+
+        self._add_save_attr(
+            _model=self._get_serialization_method(model)
+        )
 
     def fit(self, *z, idx=None, **fit_params):
         """

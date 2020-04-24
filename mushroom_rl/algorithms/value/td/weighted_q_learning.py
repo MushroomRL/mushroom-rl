@@ -23,23 +23,22 @@ class WeightedQLearning(TD):
                 version.
 
         """
-        self.Q = Table(mdp_info.size)
+        Q = Table(mdp_info.size)
         self._sampling = sampling
         self._precision = precision
 
         self._add_save_attr(
-            Q='mushroom',
             _sampling='primitive',
             _precision='primitive',
-            _n_updates='pickle',
-            _sigma='pickle',
+            _n_updates='mushroom',
+            _sigma='mushroom',
             _Q2='mushroom',
             _w='primitive',
             _w1='mushroom',
             _w2='mushroom'
         )
 
-        super().__init__(mdp_info, policy, self.Q, learning_rate)
+        super().__init__(mdp_info, policy, Q, learning_rate)
 
         self._n_updates = Table(mdp_info.size)
         self._sigma = Table(mdp_info.size, initial_value=1e10)
