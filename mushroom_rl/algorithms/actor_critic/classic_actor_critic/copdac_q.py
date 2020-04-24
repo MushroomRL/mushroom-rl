@@ -49,13 +49,13 @@ class COPDAC_Q(Agent):
                             output_shape=(1,))
 
         self._add_save_attr(
-            _mu='pickle',
+            _mu='mushroom',
             _psi='pickle',
             _alpha_theta='pickle',
             _alpha_omega='pickle',
             _alpha_v='pickle',
-            _V='pickle',
-            _A='pickle'
+            _V='mushroom',
+            _A='mushroom'
         )
 
         super().__init__(mdp_info, policy, policy_features)

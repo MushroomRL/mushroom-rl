@@ -51,7 +51,7 @@ class StochasticAC(Agent):
             _alpha_theta='pickle',
             _alpha_v='pickle',
             _lambda='primitive',
-            _V='pickle',
+            _V='mushroom',
             _e_v='numpy',
             _e_theta='numpy'
         )

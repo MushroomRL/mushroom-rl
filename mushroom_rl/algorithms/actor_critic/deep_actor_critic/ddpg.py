@@ -81,10 +81,10 @@ class DDPG(DeepAC):
             _policy_delay='primitive',
             _fit_count='primitive',
             _replay_memory='mushroom',
-            _critic_approximator='pickle',
-            _target_critic_approximator='pickle',
-            _actor_approximator='pickle',
-            _target_actor_approximator='pickle'
+            _critic_approximator='mushroom',
+            _target_critic_approximator='mushroom',
+            _actor_approximator='mushroom',
+            _target_actor_approximator='mushroom'
         )
 
         super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)

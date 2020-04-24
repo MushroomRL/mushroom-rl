@@ -21,17 +21,15 @@ class BatchTD(Agent):
                 approximator;
 
         """
-        self._approximator_params = dict() if approximator_params is None else\
+        approximator_params = dict() if approximator_params is None else\
             approximator_params
         self._fit_params = dict() if fit_params is None else fit_params
 
-        self.approximator = Regressor(approximator,
-                                      **self._approximator_params)
+        self.approximator = Regressor(approximator, **approximator_params)
         policy.set_q(self.approximator)
 
         self._add_save_attr(
-            _approximator_params='pickle',
-            approximator='pickle',
+            approximator='mushroom',
             _fit_params='pickle'
         )
 

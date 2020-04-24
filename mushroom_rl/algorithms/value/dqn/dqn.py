@@ -89,8 +89,8 @@ class DQN(Agent):
             _target_update_frequency='primitive',
             _replay_memory='mushroom',
             _n_updates='primitive',
-            approximator='pickle',
-            target_approximator='pickle'
+            approximator='mushroom',
+            target_approximator='mushroom'
         )
 
         super().__init__(mdp_info, policy)

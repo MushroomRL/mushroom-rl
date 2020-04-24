@@ -33,8 +33,8 @@ class DeepAC(Agent):
                 self._clipping_params = actor_optimizer['clipping']['params']
         
         self._add_save_attr(
-            _optimizer='pickle',
-            _clipping='pickle',
+            _optimizer='torch',
+            _clipping='torch',
             _clipping_params='pickle'
         )
 

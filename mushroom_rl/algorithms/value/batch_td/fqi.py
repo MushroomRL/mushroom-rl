@@ -39,7 +39,7 @@ class FQI(BatchTD):
             _quiet='primitive',
             _boosted='primitive',
             _prediction='primitive',
-            _next_q='pickle',
+            _next_q='numpy',
             _idx='primitive',
             _target='pickle'
         )
@@ -85,6 +85,7 @@ class FQI(BatchTD):
 
             max_q = np.max(q, axis=1)
             self._target = reward + self.mdp_info.gamma * max_q
+        print(type)
 
         self.approximator.fit(state, action, self._target, **self._fit_params)
 

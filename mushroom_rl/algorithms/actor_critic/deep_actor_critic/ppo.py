@@ -63,9 +63,9 @@ class PPO(Agent):
             _n_epochs_policy='primitive',
             _batch_size='primitive',
             _eps_ppo='primitive',
-            _optimizer='pickle',
+            _optimizer='torch',
             _lambda='primitive',
-            _V='pickle',
+            _V='mushroom',
             _quiet='primitive',
             _iter='primitive'
         )

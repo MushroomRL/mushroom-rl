@@ -248,10 +248,10 @@ class SAC(DeepAC):
             _tau='primitive',
             _target_entropy='primitive',
             _replay_memory='mushroom',
-            _critic_approximator='pickle',
-            _target_critic_approximator='pickle',
-            _log_alpha='pickle',
-            _alpha_optim='pickle'
+            _critic_approximator='mushroom',
+            _target_critic_approximator='mushroom',
+            _log_alpha='torch',
+            _alpha_optim='torch'
         )
 
         super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
