@@ -34,3 +34,6 @@ class BatchTD(Agent):
         )
 
         super().__init__(mdp_info, policy, features)
+
+    def _post_load(self):
+        self.policy.set_q(self.approximator)

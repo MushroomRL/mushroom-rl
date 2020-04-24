@@ -81,7 +81,7 @@ class TRPO(Agent):
             _ent_coeff='primitive',
             _lambda='primitive',
             _V='mushroom',
-            _old_policy='pickle',
+            _old_policy='mushroom',
             _iter='primitive',
             _quiet='primitive'
         )

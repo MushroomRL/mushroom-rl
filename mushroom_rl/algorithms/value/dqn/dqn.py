@@ -172,6 +172,8 @@ class DQN(Agent):
         else:
             self._fit = self._fit_standard
 
+        self.policy.set_q(self.approximator)
+
 
 class DoubleDQN(DQN):
     """

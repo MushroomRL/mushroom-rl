@@ -27,7 +27,7 @@ class Agent(Serializable):
 
         self._add_save_attr(
             mdp_info='pickle',
-            policy='pickle',
+            policy='mushroom',
             phi='pickle',
             next_action='numpy'
         )

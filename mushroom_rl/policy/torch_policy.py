@@ -29,6 +29,8 @@ class TorchPolicy(Policy):
         """
         self._use_cuda = use_cuda
 
+        self._add_save_attr(_use_cuda='primitive')
+
     def __call__(self, state, action):
         s = to_float_tensor(np.atleast_2d(state), self._use_cuda)
         a = to_float_tensor(np.atleast_2d(action), self._use_cuda)
@@ -208,6 +210,12 @@ class GaussianTorchPolicy(TorchPolicy):
             log_sigma_init = log_sigma_init.cuda()
 
         self._log_sigma = nn.Parameter(log_sigma_init)
+
+        self._add_save_attr(
+            _action_dim='primitive',
+            _mu='mushroom',
+            _log_sigma='torch'
+        )
 
     def draw_action_t(self, state):
         return self.distribution_t(state).sample().detach()

@@ -83,7 +83,6 @@ class DDPG(DeepAC):
             _replay_memory='mushroom',
             _critic_approximator='mushroom',
             _target_critic_approximator='mushroom',
-            _actor_approximator='mushroom',
             _target_actor_approximator='mushroom'
         )
 
@@ -139,5 +138,6 @@ class DDPG(DeepAC):
         return q
 
     def _post_load(self):
+        self._actor_approximator = self.policy._approximator
         if self._optimizer is not None:
             self._parameters = list(self._actor_approximator.model.network.parameters())

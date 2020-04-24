@@ -31,8 +31,18 @@ class OrnsteinUhlenbeckPolicy(ParametricPolicy):
         self._theta = theta
         self._dt = dt
         self._x0 = x0
+        self._x_prev = None
 
         self.reset()
+
+        self._add_save_attr(
+            _approximator='mushroom',
+            _sigma='numpy',
+            _theta='primitive',
+            _dt='primitive',
+            _x0='numpy',
+            _x_prev='numpy'
+        )
 
     def __call__(self, state, action):
         raise NotImplementedError

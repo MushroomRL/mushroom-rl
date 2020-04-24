@@ -54,7 +54,7 @@ class Serializable(object):
             if not method.endswith('!') or full_save:
                 method = method[:-1] if method.endswith('!') else method
                 attribute = getattr(self, att) if hasattr(self, att) else None
-
+                
                 if attribute is not None:
                     if method == 'primitive':
                         primitive_dictionary[att] = attribute
@@ -112,14 +112,16 @@ class Serializable(object):
             setattr(loaded_object, '_save_attributes', save_attributes)
 
             for att, method in save_attributes.items():
-                method = method[:-1] if method.endswith('!') else method
+                mandatory = not method.endswith('!')
+                method = method[:-1] if not mandatory else method
                 file_name = Serializable._append_folder(
                     folder, '{}.{}'.format(att, method)
                 )
 
                 if method == 'primitive' and att in primitive_dictionary:
                     setattr(loaded_object, att, primitive_dictionary[att])
-                elif file_name in zip_file.namelist() or method == 'mushroom':
+                elif file_name in zip_file.namelist() or \
+                        (method == 'mushroom' and mandatory):
                     load_method = getattr(cls, '_load_{}'.format(method))
                     if load_method is None:
                         raise NotImplementedError('Method _load_{} is not'

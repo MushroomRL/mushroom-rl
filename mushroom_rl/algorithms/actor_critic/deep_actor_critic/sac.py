@@ -50,6 +50,13 @@ class SACPolicy(Policy):
             self._delta_a = self._delta_a.cuda()
             self._central_a = self._central_a.cuda()
 
+        self._add_save_attr(
+            _mu_approximator='mushroom',
+            _sigma_approximator='mushroom',
+            _delta_a='torch',
+            _central_a='torch'
+        )
+
     def __call__(self, state, action):
         raise NotImplementedError
 
