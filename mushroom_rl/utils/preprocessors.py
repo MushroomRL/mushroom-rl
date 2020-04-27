@@ -114,12 +114,12 @@ class MinMaxPreprocessor(StandardizationPreprocessor):
                              mdp_info.observation_space.high.copy())
 
         self.stand_obs_mask = np.where(
-            ~(np.isinf(obs_low) | np.isinf(obs_high))
+            np.logical_and(np.abs(obs_low) < 1e20, np.abs(obs_low) < 1e20)
         )
 
         assert np.squeeze(self.stand_obs_mask).size > 0, \
-            "All observations have unlimited range, you should use " \
-            "StandardizationPreprocessor directly instead."
+            "All observations have unlimited/extremely large range," \
+            " you should use StandardizationPreprocessor instead."
 
         self.run_norm_obs = len(np.squeeze(self.stand_obs_mask)) != obs_low.shape[0]
 
