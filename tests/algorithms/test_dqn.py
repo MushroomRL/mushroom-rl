@@ -108,7 +108,7 @@ def test_dqn_save(tmpdir):
     agent_save.save(agent_path, full_save=True)
     agent_load = Agent.load(agent_path)
 
-    for att, method in agent_save.__dict__.items():
+    for att, method in vars(agent_save).items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
 
@@ -148,7 +148,7 @@ def test_prioritized_dqn_save(tmpdir):
     agent_save.save(agent_path, full_save=True)
     agent_load = Agent.load(agent_path)
 
-    for att, method in agent_save.__dict__.items():
+    for att, method in vars(agent_save).items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
 
@@ -178,7 +178,7 @@ def test_double_dqn_save(tmpdir):
     agent_save.save(agent_path, full_save=True)
     agent_load = Agent.load(agent_path)
 
-    for att, method in agent_save.__dict__.items():
+    for att, method in vars(agent_save).items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
 
@@ -208,7 +208,7 @@ def test_averaged_dqn_save(tmpdir):
     agent_save.save(agent_path, full_save=True)
     agent_load = Agent.load(agent_path)
 
-    for att, method in agent_save.__dict__.items():
+    for att, method in vars(agent_save).items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
 
@@ -240,7 +240,7 @@ def test_categorical_dqn_save(tmpdir):
     agent_save.save(agent_path, full_save=True)
     agent_load = Agent.load(agent_path)
 
-    for att, method in agent_save.__dict__.items():
+    for att, method in vars(agent_save).items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
 

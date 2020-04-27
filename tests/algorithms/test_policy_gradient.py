@@ -62,7 +62,7 @@ def test_REINFORCE_save(tmpdir):
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    for att, method in agent_save.__dict__.items():
+    for att, method in vars(agent_save).items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
 
@@ -87,7 +87,7 @@ def test_GPOMDP_save(tmpdir):
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    for att, method in agent_save.__dict__.items():
+    for att, method in vars(agent_save).items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
 
@@ -112,7 +112,7 @@ def test_eNAC_save(tmpdir):
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    for att, method in agent_save.__dict__.items():
+    for att, method in vars(agent_save).items():
         save_attr = getattr(agent_save, att)
         load_attr = getattr(agent_load, att)
 
