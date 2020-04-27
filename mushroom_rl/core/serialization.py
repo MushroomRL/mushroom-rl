@@ -213,7 +213,7 @@ class Serializable(object):
     def _save_pickle(zip_file, name, obj, folder, **_):
         path = Serializable._append_folder(folder, name)
         with zip_file.open(path, 'w') as f:
-            pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(obj, f, protocol=pickle.DEFAULT_PROTOCOL)
 
     @staticmethod
     def _save_numpy(zip_file, name, obj, folder, **_):
