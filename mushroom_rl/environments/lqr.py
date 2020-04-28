@@ -125,6 +125,8 @@ class LQR(Environment):
         reward = -(x.dot(self.Q).dot(x) + u.dot(self.R).dot(u))
         self._state = self.A.dot(x) + self.B.dot(u)
 
+        absorbing = False
+
         if np.any(np.abs(self._state) > self._max_pos):
             if self._episodic:
                 reward = -self._max_pos ** 2 * 10
@@ -133,7 +135,5 @@ class LQR(Environment):
                 self._state = self._bound(self._state,
                                           self.info.observation_space.low,
                                           self.info.observation_space.high)
-        else:
-            absorbing = False
 
         return self._state, reward, absorbing, {}
