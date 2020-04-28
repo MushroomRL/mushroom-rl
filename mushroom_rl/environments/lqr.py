@@ -68,8 +68,8 @@ class LQR(Environment):
 
     @staticmethod
     def generate(dimensions, max_pos=np.inf, max_action=np.inf, eps=.1,
-                 index=0, random_init=False, episodic=False, gamma=.9,
-                 horizon=50):
+                 index=0, scale=1.0, random_init=False, episodic=False,
+                 gamma=.9, horizon=50):
         """
         Factory method that generates an lqr with identity dynamics and
         symmetric reward matrices.
@@ -80,6 +80,7 @@ class LQR(Environment):
             max_action (float, np.inf): maximum value of the action;
             eps (double, .1): reward matrix weights specifier;
             index (int, 0): selector for the principal state;
+            scale (float, 1.0): scaling factor for the reward function;
             random_init (bool, False): start from a random state;
             episodic (bool, False): end the episode when the state goes over the
                 threshold;
@@ -91,8 +92,8 @@ class LQR(Environment):
 
         A = np.eye(dimensions)
         B = np.eye(dimensions)
-        Q = eps * np.eye(dimensions)
-        R = (1. - eps) * np.eye(dimensions)
+        Q = eps * np.eye(dimensions) * scale
+        R = (1. - eps) * np.eye(dimensions) * scale
 
         Q[index, index] = 1. - eps
         R[index, index] = eps
