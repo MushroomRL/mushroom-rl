@@ -95,8 +95,8 @@ class LQR(Environment):
         Q = eps * np.eye(dimensions) * scale
         R = (1. - eps) * np.eye(dimensions) * scale
 
-        Q[index, index] = 1. - eps
-        R[index, index] = eps
+        Q[index, index] = (1. - eps) * scale
+        R[index, index] = eps * scale
 
         return LQR(A, B, Q, R, max_pos, max_action, random_init, episodic,
                    gamma, horizon)
