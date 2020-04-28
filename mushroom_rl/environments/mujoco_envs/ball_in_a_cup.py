@@ -55,49 +55,49 @@ class BallInACup(MuJoCo):
         self.p_gains = np.array([200, 300, 100, 100, 10, 10, 2.5])
         self.d_gains = np.array([7, 15, 5, 2.5, 0.3, 0.3, 0.05])
 
-    def reward(self, state, action, next_state):
-        dist = self.read_data("goal_pos") - self.read_data("ball_pos")
+    def _reward(self, state, action, next_state):
+        dist = self._read_data("goal_pos") - self._read_data("ball_pos")
         return 1. if np.linalg.norm(dist) < 0.05 else 0.
 
-    def is_absorbing(self, state):
-        dist = self.read_data("goal_pos") - self.read_data("ball_pos")
-        return np.linalg.norm(dist) < 0.05 or self.check_collision("ball", "robot")
+    def _is_absorbing(self, state):
+        dist = self._read_data("goal_pos") - self._read_data("ball_pos")
+        return np.linalg.norm(dist) < 0.05 or self._check_collision("ball", "robot")
 
-    def setup(self):
+    def _setup(self):
         # Copy the initial position after the reset
-        init_pos = self.sim.data.qpos.copy()
+        init_pos = self._sim.data.qpos.copy()
         init_vel = np.zeros_like(init_pos)
 
         # Reset the system and the set the intial robot position
-        self.sim.data.qpos[:] = init_pos
-        self.sim.data.qvel[:] = init_vel
-        self.sim.data.qpos[0:7] = self.init_robot_pos
+        self._sim.data.qpos[:] = init_pos
+        self._sim.data.qvel[:] = init_vel
+        self._sim.data.qpos[0:7] = self.init_robot_pos
 
         # Do one simulation step to compute the new position of the goal_site
-        self.sim.step()
+        self._sim.step()
 
-        self.sim.data.qpos[:] = init_pos
-        self.sim.data.qvel[:] = init_vel
-        self.sim.data.qpos[0:7] = self.init_robot_pos
-        self.write_data("ball_pos", self.read_data("goal_pos") - np.array([0., 0., 0.329]))
+        self._sim.data.qpos[:] = init_pos
+        self._sim.data.qvel[:] = init_vel
+        self._sim.data.qpos[0:7] = self.init_robot_pos
+        self._write_data("ball_pos", self._read_data("goal_pos") - np.array([0., 0., 0.329]))
 
         # Stabilize the system around the initial position using a PD-Controller
         for i in range(0, 500):
-            self.sim.data.qpos[7:] = 0.
-            self.sim.data.qvel[7:] = 0.
-            self.sim.data.qpos[7] = -0.2
-            cur_pos = self.sim.data.qpos[0:7].copy()
-            cur_vel = self.sim.data.qvel[0:7].copy()
+            self._sim.data.qpos[7:] = 0.
+            self._sim.data.qvel[7:] = 0.
+            self._sim.data.qpos[7] = -0.2
+            cur_pos = self._sim.data.qpos[0:7].copy()
+            cur_vel = self._sim.data.qvel[0:7].copy()
             trq = self.p_gains * (self.init_robot_pos - cur_pos) + self.d_gains * (
                     np.zeros_like(self.init_robot_pos) - cur_vel)
-            self.sim.data.qfrc_applied[0:7] = trq
-            self.sim.step()
+            self._sim.data.qfrc_applied[0:7] = trq
+            self._sim.step()
 
         # Now simulate for more time-steps without resetting the position of the first link of the rope
         for i in range(0, 500):
-            cur_pos = self.sim.data.qpos[0:7].copy()
-            cur_vel = self.sim.data.qvel[0:7].copy()
+            cur_pos = self._sim.data.qpos[0:7].copy()
+            cur_vel = self._sim.data.qvel[0:7].copy()
             trq = self.p_gains * (self.init_robot_pos - cur_pos) + self.d_gains * (
                     np.zeros_like(self.init_robot_pos) - cur_vel)
-            self.sim.data.qfrc_applied[0:7] = trq
-            self.sim.step()
+            self._sim.data.qfrc_applied[0:7] = trq
+            self._sim.step()
