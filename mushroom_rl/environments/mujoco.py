@@ -5,7 +5,7 @@ from enum import Enum
 from mushroom_rl.environments import Environment, MDPInfo
 from mushroom_rl.utils.spaces import Box
 import glfw
-
+import time
 
 class ObservationType(Enum):
     """
@@ -427,3 +427,7 @@ class MuJoCo(Environment):
         """
         return mujoco_py.MjSim(mujoco_py.load_model_from_path(file_name),
                                nsubsteps=n_substeps)
+
+    @property
+    def _dt(self):
+        return self._sim.model.opt.timestep
