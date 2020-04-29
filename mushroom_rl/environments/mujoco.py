@@ -68,7 +68,6 @@ class MuJoCo(Environment):
         """
         # Create the simulation
         self._sim = self._load_simulation(file_name, n_substeps)
-        print(type(self._sim))
 
         self._n_intermediate_steps = n_intermediate_steps
         self._viewer = None
