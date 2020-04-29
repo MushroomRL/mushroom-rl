@@ -67,7 +67,8 @@ class MuJoCo(Environment):
                 a list of geom names in the XML specification.
         """
         # Create the simulation
-        self._load_model(file_name, n_substeps)
+        self._sim = self._load_simulation(file_name, n_substeps)
+        print(type(self._sim))
 
         self._n_intermediate_steps = n_intermediate_steps
         self._viewer = None
@@ -409,7 +410,7 @@ class MuJoCo(Environment):
         """
         pass
 
-    def _load_model(self, file_name, n_substeps, **kwargs):
+    def _load_simulation(self, file_name, n_substeps):
         """
         Load mujoco model. Can be overridden to provide custom load functions.
 
@@ -419,12 +420,11 @@ class MuJoCo(Environment):
             n_substeps (int): The number of substeps to use by the MuJoCo
                 simulator. An action given by the agent will be applied for
                 n_substeps before the agent receives the next observation and
-                can act accordingly;
-            **kwargs: optional arguments that can be passed to the function.
-                Notice that in the constructor call, no additional arguments
-                are provided. Can be used if the method is called in the
-                setup function to reload the model.
+                can act accordingly.
+
+        Returns:
+            The loaded mujoco model.
 
         """
-        self._sim = mujoco_py.MjSim(mujoco_py.load_model_from_path(file_name),
-                                    nsubsteps=n_substeps)
+        return mujoco_py.MjSim(mujoco_py.load_model_from_path(file_name),
+                               nsubsteps=n_substeps)
