@@ -123,12 +123,13 @@ class MuJoCo(Environment):
         # Pre-process the additional data to allow easier writing and reading
         # to and from arrays in MuJoCo
         self.additional_data = {}
-        for key, name, ot in additional_data_spec:
-            self.additional_data[key] = (name, ot)
+        if additional_data_spec is not None:
+            for key, name, ot in additional_data_spec:
+                self.additional_data[key] = (name, ot)
 
         # Pre-process the collision groups for "fast" detection of contacts
         self.collision_groups = {}
-        if self.collision_groups is not None:
+        if collision_groups is not None:
             for name, geom_names in collision_groups:
                 self.collision_groups[name] = {self._sim.model._geom_name2id[geom_name]
                                                for geom_name in geom_names}
@@ -198,8 +199,10 @@ class MuJoCo(Environment):
             data = self._sim.data.get_joint_qvel(name)
         elif otype == ObservationType.SITE_POS:
             data = self._sim.data.get_site_xpos(name)
-        else:
+        elif otype == ObservationType.SITE_VEL:
             data = self._sim.data.get_site_xvelp(name)
+        else:
+            raise ValueError('Invalid observation type')
 
         if hasattr(data, "__len__"):
             return data

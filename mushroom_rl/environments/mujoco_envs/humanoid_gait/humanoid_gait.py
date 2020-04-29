@@ -84,8 +84,6 @@ class HumanoidGait(MuJoCo):
                             ("left_ankle", ObservationType.JOINT_VEL),
                             ]
 
-        additional_data_spec = []
-
         collision_groups = [("floor", ["floor"]),
                             ("left_foot", ["left_foot"]),
                             ("right_foot", ["right_foot"])
@@ -94,7 +92,6 @@ class HumanoidGait(MuJoCo):
         super().__init__(model_path.as_posix(), action_spec, observation_spec, gamma=gamma,
                          horizon=horizon, n_substeps=1,
                          n_intermediate_steps=n_intermediate_steps,
-                         additional_data_spec=additional_data_spec,
                          collision_groups=collision_groups)
 
         if use_muscles:
