@@ -205,7 +205,7 @@ class AveragedDQN(DQN):
 
         self._n_fitted_target_models = 1
 
-        self._add_save_attr(_n_fitted_target_models='numpy')
+        self._add_save_attr(_n_fitted_target_models='primitive')
 
         assert len(self.target_approximator) > 1
 
