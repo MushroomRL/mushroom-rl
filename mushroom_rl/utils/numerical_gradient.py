@@ -68,3 +68,33 @@ def numerical_diff_dist(dist, theta, eps=1e-6):
     dist.set_parameters(rho_start)
 
     return g
+
+
+def numerical_diff_function(function, params, eps=1e-6):
+    """
+    Compute the gradient of a function in ``theta`` numerically.
+
+    Args:
+        function: a function whose gradient has to be returned;
+        params: parameter vector w.r.t. we need to compute the gradient;
+        eps (float, 1e-6): the value of the perturbation.
+
+    Returns:
+        The numerical  gradient of the function computed w.r.t. parameters
+        ``params``.
+
+    """
+
+    g = np.zeros_like(params)
+    n_params = len(params)
+
+    for i in range(n_params):
+        perturb = np.zeros(n_params)
+        perturb[i] = eps
+
+        v1 = function(params - perturb)
+        v2 = function(params + perturb)
+
+        g[i] = (v2 - v1) / (2 * eps)
+
+    return g
