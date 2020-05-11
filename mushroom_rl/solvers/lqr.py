@@ -38,16 +38,28 @@ def compute_lqg_V(x, lqr, K, Sigma):
     return -x.T @ P @ x - np.trace(Sigma @ (R + gamma*B.T @ P @ B)) / (1.0 - gamma)
 
 
-def compute_lqr_Q(x, lqr, K):
-    """
-    x is a (state,action) pair.
-    """
+def compute_lqr_Q_matrix(lqr, K):
     A, B, Q, R, gamma = _parse_lqr(lqr)
     P = compute_lqr_P(lqr, K)
 
     M = np.block([[Q + gamma * A.T @ P @ A, gamma * A.T @ P @ B],
                   [gamma * B.T @ P @ A, R + gamma * B.T @ P @ B]])
 
+    return M
+
+
+def compute_lqg_Q_additional_term(lqr, K, Sigma):
+    A, B, Q, R, gamma = _parse_lqr(lqr)
+    P = compute_lqr_P(lqr, K)
+    b = gamma/(1-gamma)*np.trace(Sigma @ (R + gamma * B.T @ P @ B))
+    return b
+
+
+def compute_lqr_Q(x, lqr, K):
+    """
+    x is a (state,action) pair.
+    """
+    M = compute_lqr_Q_matrix(lqr, K)
     return -x.T @ M @ x
 
 
@@ -55,14 +67,8 @@ def compute_lqg_Q(x, lqr, K, Sigma):
     """
     x is a (state,action) pair.
     """
-    A, B, Q, R, gamma = _parse_lqr(lqr)
-    P = compute_lqr_P(lqr, K)
-
-    M = np.block([[Q + gamma * A.T @ P @ A, gamma * A.T @ P @ B],
-                  [gamma * B.T @ P @ A, R + gamma * B.T @ P @ B]])
-
-    b = gamma/(1-gamma)*np.trace(Sigma @ (R + gamma * B.T @ P @ B))
-
+    M = compute_lqr_Q_matrix(lqr, K)
+    b = compute_lqg_Q_additional_term(lqr, K, Sigma)
     return -x.T @ M @ x - b
 
 
