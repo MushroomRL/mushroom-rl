@@ -2,6 +2,7 @@ import numpy as np
 
 from mushroom_rl.environments import LQR
 from mushroom_rl.solvers.lqr import solve_lqr_linear, compute_lqr_P, compute_lqr_V, compute_lqg_V, compute_lqg_gradient
+from mushroom_rl.solvers.lqr import compute_lqr_Q, compute_lqg_Q, _parse_lqr
 from mushroom_rl.utils.numerical_gradient import numerical_diff_function
 
 
@@ -35,7 +36,20 @@ def test_P():
     assert np.allclose(P, P_test)
 
 
-def test_V():
+def test_V_lqr():
+    lqr = LQR.generate(3)
+
+    K = np.array([[1.0, 0.1, 0.01],
+                  [0.5, 1.2, 0.02],
+                  [.02, 0.3, 0.9]])
+
+    x = np.array([1.0, 1.3, -0.3])
+    V_lqr = compute_lqr_V(x, lqr, K)
+
+    assert V_lqr == -6.3336186348534875
+
+
+def test_V_lqg():
     lqr = LQR.generate(3)
 
     K = np.array([[1.0, 0.1, 0.01],
@@ -47,14 +61,48 @@ def test_V():
                       [-0.19607835,  0.09953863,  0.23284475]])
 
     x = np.array([1.0, 1.3, -0.3])
-    V_lqr = compute_lqr_V(x, lqr, K)
     V_lqg = compute_lqg_V(x, lqr, K, Sigma)
 
-    assert V_lqr == -6.3336186348534875
     assert V_lqg == -28.16442629606497
 
 
-def test_gradient():
+def test_Q_lqr():
+    lqr = LQR.generate(3)
+
+    K = np.array([[1.0, 0.1, 0.01],
+                  [0.5, 1.2, 0.02],
+                  [.02, 0.3, 0.9]])
+
+    s = np.array([1.0, 1.3, -0.3])
+    a = np.array([0.5, 0.2, 0.1])
+    x = np.hstack((s, a)).reshape((-1, 1))
+
+    Q_lqr = compute_lqr_Q(x, lqr, K).item()
+
+    assert Q_lqr == -10.83964921837036
+
+
+def test_Q_lqg():
+    lqr = LQR.generate(3)
+
+    K = np.array([[1.0, 0.1, 0.01],
+                  [0.5, 1.2, 0.02],
+                  [.02, 0.3, 0.9]])
+
+    Sigma = np.array([[0.18784063,  0.02205161, -0.19607835],
+                      [0.02205161,  0.59897771,  0.09953863],
+                      [-0.19607835,  0.09953863,  0.23284475]])
+
+    s = np.array([1.0, 1.3, -0.3])
+    a = np.array([0.5, 0.2, 0.1])
+    x = np.hstack((s, a)).reshape((-1, 1))
+
+    Q_lqg = compute_lqg_Q(x, lqr, K, Sigma).item()
+
+    assert Q_lqg == -30.48737611346069
+
+
+def test_V_gradient_lqg():
     lqr = LQR.generate(3)
 
     K = np.array([[1.0, 0.1, 0.01],
@@ -73,6 +121,3 @@ def test_gradient():
     dJ_num = numerical_diff_function(f, K.reshape(-1))
 
     assert np.allclose(dJ, dJ_num)
-
-
-
