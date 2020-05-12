@@ -1,11 +1,12 @@
 import numpy as np
 
 """
-Collection of functions to compute the optimal Policy, the Value Function, the gradient, etc..., of: 
-    - Infinite horizon, dicounted, discrete-time LQR. a=Kx
-    - Infinite horizon, dicounted, discrete-time LQG. a=Gaussian(Kx, Sigma)
+Collection of functions to compute the optimal Policy, the state Value Function V, the state-action Value Function Q,
+the gradient of V and Q, ..., of: 
+    - Infinite horizon, dicounted, discrete-time LQR. a=-Ks
+    - Infinite horizon, dicounted, discrete-time LQG. a=Gaussian(-Ks, Sigma)
 
-K is the controller matrix.
+Note that all functions are derived with a=-Ks (instead of a=Ks).
 
 """
 
@@ -39,7 +40,7 @@ def solve_lqr_linear(lqr, max_iterations=100):
 def compute_lqr_P(lqr, K):
     """
     Computes the P matrix for a given policy K.
-    The value function is the result of V(x) = -x.T @ P @ x
+    The value function is the result of V(s) = -s.T @ P @ s
 
     Args:
         lqr (LQR): LQR environment
@@ -58,12 +59,12 @@ def compute_lqr_P(lqr, K):
     return vec_P.reshape(Q.shape)
 
 
-def compute_lqr_V(x, lqr, K):
+def compute_lqr_V(s, lqr, K):
     """
     Computes the value function at a state x, with the given controller matrix K.
 
     Args:
-        x (np.ndarray): state
+        s (np.ndarray): state
         lqr (LQR): LQR environment
         K (np.ndarray): controller matrix
 
@@ -72,15 +73,15 @@ def compute_lqr_V(x, lqr, K):
 
     """
     P = compute_lqr_P(lqr, K)
-    return -x.T @ P @ x
+    return -s.T @ P @ s
 
 
-def compute_lqg_V(x, lqr, K, Sigma):
+def compute_lqg_V(s, lqr, K, Sigma):
     """
     Computes the value function at a state x, with the given controller matrix K and covariance Sigma.
 
     Args:
-        x (np.ndarray): state
+        s (np.ndarray): state
         lqr (LQR): LQR environment
         K (np.ndarray): controller matrix
         Sigma (np.ndarray): covariance matrix
@@ -91,16 +92,16 @@ def compute_lqg_V(x, lqr, K, Sigma):
     """
     P = compute_lqr_P(lqr, K)
     A, B, Q, R, gamma = _parse_lqr(lqr)
-    return -x.T @ P @ x - np.trace(Sigma @ (R + gamma*B.T @ P @ B)) / (1.0 - gamma)
+    return -s.T @ P @ s - np.trace(Sigma @ (R + gamma * B.T @ P @ B)) / (1.0 - gamma)
 
 
-def compute_lqr_Q(x, lqr, K):
+def compute_lqr_Q(s, lqr, K):
     """
     Computes the state-action value function Q at a state-action pair x,
     with the given controller matrix K.
 
     Args:
-        x (np.ndarray): state-action pair
+        s (np.ndarray): state-action pair
         lqr (LQR): LQR environment
         K (np.ndarray): controller matrix
 
@@ -109,16 +110,16 @@ def compute_lqr_Q(x, lqr, K):
 
     """
     M = _compute_lqr_Q_matrix(lqr, K)
-    return -x.T @ M @ x
+    return -s.T @ M @ s
 
 
-def compute_lqg_Q(x, lqr, K, Sigma):
+def compute_lqg_Q(s, lqr, K, Sigma):
     """
     Computes the state-action value function Q at a state-action pair x,
     with the given controller matrix K and covariance Sigma.
 
     Args:
-        x (np.ndarray): state-action pair
+        s (np.ndarray): state-action pair
         lqr (LQR): LQR environment
         K (np.ndarray): controller matrix
         Sigma (np.ndarray): covariance matrix
@@ -129,17 +130,17 @@ def compute_lqg_Q(x, lqr, K, Sigma):
     """
     M = _compute_lqr_Q_matrix(lqr, K)
     b = _compute_lqg_Q_additional_term(lqr, K, Sigma)
-    return -x.T @ M @ x - b
+    return -s.T @ M @ s - b
 
 
-def compute_lqg_gradient(x, lqr, K, Sigma):
+def compute_lqg_gradient(s, lqr, K, Sigma):
     """
-    Computes the gradient of the objective function J at the state x, w.r.t. the controller matrix K, with the current
+    Computes the gradient of the objective function J at state x, w.r.t. the controller matrix K, with the current
     policy parameters K and Sigma.
     J(x, K, Sigma) = ValueFunction(x, K, Sigma)
 
     Args:
-        x (np.ndarray): state pair
+        s (np.ndarray): state pair
         lqr (LQR): LQR environment
         K (np.ndarray): controller matrix
         Sigma (np.ndarray): covariance matrix
@@ -162,7 +163,7 @@ def compute_lqg_gradient(x, lqr, K, Sigma):
 
         dPi = vec_dPi.reshape(Q.shape)
 
-        dJ[i] = (x.T @ dPi @ x).item() + gamma*np.trace(Sigma @ B.T @ dPi @ B)/(1.0-gamma)
+        dJ[i] = (s.T @ dPi @ s).item() + gamma * np.trace(Sigma @ B.T @ dPi @ B) / (1.0 - gamma)
 
     return -dJ
 
