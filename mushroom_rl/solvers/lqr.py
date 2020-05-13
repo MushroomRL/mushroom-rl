@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.metrics import pairwise_distances
 
 """
 Collection of functions to compute the optimal Policy, the state Value Function V, the state-action Value Function Q,
@@ -62,6 +63,7 @@ def compute_lqr_P(lqr, K):
 def compute_lqr_V(s, lqr, K):
     """
     Computes the value function at a state x, with the given controller matrix K.
+    Convert s if shape is not (n_samples, n_features)
 
     Args:
         s (np.ndarray): state
@@ -72,13 +74,19 @@ def compute_lqr_V(s, lqr, K):
         The value function at x
 
     """
+    if s.ndim == 1:
+        s = s.reshape((1, -1))
+
     P = compute_lqr_P(lqr, K)
-    return -s.T @ P @ s
+    m = lambda x, y: x.T @ P @ x
+    return -1. * pairwise_distances(s, metric=m).diagonal().reshape((-1, 1))
 
 
 def compute_lqg_V(s, lqr, K, Sigma):
     """
     Computes the value function at a state x, with the given controller matrix K and covariance Sigma.
+    Convert s if shape is not (n_samples, n_features)
+    Convert s if shape is not (n_samples, n_features)
 
     Args:
         s (np.ndarray): state
@@ -92,13 +100,15 @@ def compute_lqg_V(s, lqr, K, Sigma):
     """
     P = compute_lqr_P(lqr, K)
     A, B, Q, R, gamma = _parse_lqr(lqr)
-    return -s.T @ P @ s - np.trace(Sigma @ (R + gamma * B.T @ P @ B)) / (1.0 - gamma)
+
+    return compute_lqr_V(s, lqr, K) - np.trace(Sigma @ (R + gamma * B.T @ P @ B)) / (1.0 - gamma)
 
 
 def compute_lqr_Q(s, lqr, K):
     """
     Computes the state-action value function Q at a state-action pair x,
     with the given controller matrix K.
+    Convert s if shape is not (n_samples, n_features)
 
     Args:
         s (np.ndarray): state-action pair
@@ -109,14 +119,19 @@ def compute_lqr_Q(s, lqr, K):
         The Q function at x
 
     """
+    if s.ndim == 1:
+        s = s.reshape((1, -1))
+
     M = _compute_lqr_Q_matrix(lqr, K)
-    return -s.T @ M @ s
+    m = lambda x, y: x.T @ M @ x
+    return -1. * pairwise_distances(s, metric=m).diagonal().reshape((-1, 1))
 
 
 def compute_lqg_Q(s, lqr, K, Sigma):
     """
     Computes the state-action value function Q at a state-action pair x,
     with the given controller matrix K and covariance Sigma.
+    Convert s if shape is not (n_samples, n_features)
 
     Args:
         s (np.ndarray): state-action pair
@@ -128,16 +143,16 @@ def compute_lqg_Q(s, lqr, K, Sigma):
         The Q function at x
 
     """
-    M = _compute_lqr_Q_matrix(lqr, K)
     b = _compute_lqg_Q_additional_term(lqr, K, Sigma)
-    return -s.T @ M @ s - b
+    return compute_lqr_Q(s, lqr, K) - b
 
 
 def compute_lqg_gradient(s, lqr, K, Sigma):
     """
-    Computes the gradient of the objective function J at state x, w.r.t. the controller matrix K, with the current
+    Computes the gradient of the objective function J at state s, w.r.t. the controller matrix K, with the current
     policy parameters K and Sigma.
-    J(x, K, Sigma) = ValueFunction(x, K, Sigma)
+    J(s, K, Sigma) = ValueFunction(s, K, Sigma)
+    Convert s if shape is not (n_samples, n_features)
 
     Args:
         s (np.ndarray): state pair
@@ -149,13 +164,17 @@ def compute_lqg_gradient(s, lqr, K, Sigma):
         The gradient of J w.r.t. to K
 
     """
+    if s.ndim == 1:
+        s = s.reshape((1, -1))
+    batch_size = s.shape[0]
+
     A, B, Q, R, gamma = _parse_lqr(lqr)
     L, M = _compute_lqr_intermediate_results(K, A, B, Q, R, gamma)
 
     Minv = np.linalg.inv(M)
 
     n_elems = K.shape[0]*K.shape[1]
-    dJ = np.zeros(n_elems)
+    dJ = np.zeros((batch_size, n_elems))
     for i in range(n_elems):
         dLi, dMi = _compute_lqr_intermediate_results_diff(K, A, B, R, gamma, i)
 
@@ -163,7 +182,10 @@ def compute_lqg_gradient(s, lqr, K, Sigma):
 
         dPi = vec_dPi.reshape(Q.shape)
 
-        dJ[i] = (s.T @ dPi @ s).item() + gamma * np.trace(Sigma @ B.T @ dPi @ B) / (1.0 - gamma)
+        m = lambda x, y: x.T @ dPi @ x
+
+        dJ[:, i] = pairwise_distances(s, metric=m).diagonal().reshape((-1, 1)) \
+                    + gamma * np.trace(Sigma @ B.T @ dPi @ B) / (1.0 - gamma)
 
     return -dJ
 

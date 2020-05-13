@@ -42,7 +42,7 @@ def test_V_lqr():
                   [.02, 0.3, 0.9]])
 
     s = np.array([1.0, 1.3, -0.3])
-    V_lqr = compute_lqr_V(s, lqr, K)
+    V_lqr = compute_lqr_V(s, lqr, K).item()
 
     assert V_lqr == -6.3336186348534875
 
@@ -73,7 +73,7 @@ def test_Q_lqr():
 
     s = np.array([1.0, 1.3, -0.3])
     a = np.array([0.5, 0.2, 0.1])
-    sa = np.hstack((s, a)).reshape((-1, 1))
+    sa = np.hstack((s, a)).reshape((1, -1))
 
     Q_lqr = compute_lqr_Q(sa, lqr, K).item()
 
@@ -93,7 +93,7 @@ def test_Q_lqg():
 
     s = np.array([1.0, 1.3, -0.3])
     a = np.array([0.5, 0.2, 0.1])
-    sa = np.hstack((s, a)).reshape((-1, 1))
+    sa = np.hstack((s, a)).reshape((1, -1))
 
     Q_lqg = compute_lqg_Q(sa, lqr, K, Sigma).item()
 
@@ -108,7 +108,7 @@ def test_Q_lqg_10dim():
 
     s = np.ones(10)
     a = np.ones(10)
-    x = np.hstack((s, a)).reshape((-1, 1))
+    x = np.hstack((s, a)).reshape((1, -1))
     #
     Q_lqg = compute_lqg_Q(x, lqr, K, Sigma).item()
 
