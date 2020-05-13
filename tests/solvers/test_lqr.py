@@ -73,9 +73,8 @@ def test_Q_lqr():
 
     s = np.array([1.0, 1.3, -0.3])
     a = np.array([0.5, 0.2, 0.1])
-    sa = np.hstack((s, a)).reshape((1, -1))
 
-    Q_lqr = compute_lqr_Q(sa, lqr, K).item()
+    Q_lqr = compute_lqr_Q(s, a, lqr, K).item()
 
     assert Q_lqr == -10.83964921837036
 
@@ -93,9 +92,8 @@ def test_Q_lqg():
 
     s = np.array([1.0, 1.3, -0.3])
     a = np.array([0.5, 0.2, 0.1])
-    sa = np.hstack((s, a)).reshape((1, -1))
 
-    Q_lqg = compute_lqg_Q(sa, lqr, K, Sigma).item()
+    Q_lqg = compute_lqg_Q(s, a, lqr, K, Sigma).item()
 
     assert Q_lqg == -30.691880328645837
 
@@ -108,9 +106,8 @@ def test_Q_lqg_10dim():
 
     s = np.ones(10)
     a = np.ones(10)
-    x = np.hstack((s, a)).reshape((1, -1))
     #
-    Q_lqg = compute_lqg_Q(x, lqr, K, Sigma).item()
+    Q_lqg = compute_lqg_Q(s, a, lqr, K, Sigma).item()
 
     assert Q_lqg == -48.00590405904062
 

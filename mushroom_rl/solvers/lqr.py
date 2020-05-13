@@ -104,14 +104,15 @@ def compute_lqg_V(s, lqr, K, Sigma):
     return compute_lqr_V(s, lqr, K) - np.trace(Sigma @ (R + gamma * B.T @ P @ B)) / (1.0 - gamma)
 
 
-def compute_lqr_Q(s, lqr, K):
+def compute_lqr_Q(s, a, lqr, K):
     """
     Computes the state-action value function Q at a state-action pair x,
     with the given controller matrix K.
     Convert s if shape is not (n_samples, n_features)
 
     Args:
-        s (np.ndarray): state-action pair
+        s (np.ndarray): state
+        a (np.ndarray): action
         lqr (LQR): LQR environment
         K (np.ndarray): controller matrix
 
@@ -121,13 +122,16 @@ def compute_lqr_Q(s, lqr, K):
     """
     if s.ndim == 1:
         s = s.reshape((1, -1))
+    if a.ndim == 1:
+        a = a.reshape((1, -1))
+    sa = np.hstack((s, a))
 
     M = _compute_lqr_Q_matrix(lqr, K)
     m = lambda x, y: x.T @ M @ x
-    return -1. * pairwise_distances(s, metric=m).diagonal().reshape((-1, 1))
+    return -1. * pairwise_distances(sa, metric=m).diagonal().reshape((-1, 1))
 
 
-def compute_lqg_Q(s, lqr, K, Sigma):
+def compute_lqg_Q(s, a, lqr, K, Sigma):
     """
     Computes the state-action value function Q at a state-action pair x,
     with the given controller matrix K and covariance Sigma.
@@ -135,6 +139,7 @@ def compute_lqg_Q(s, lqr, K, Sigma):
 
     Args:
         s (np.ndarray): state-action pair
+        a (np.ndarray): action
         lqr (LQR): LQR environment
         K (np.ndarray): controller matrix
         Sigma (np.ndarray): covariance matrix
@@ -144,7 +149,7 @@ def compute_lqg_Q(s, lqr, K, Sigma):
 
     """
     b = _compute_lqg_Q_additional_term(lqr, K, Sigma)
-    return compute_lqr_Q(s, lqr, K) - b
+    return compute_lqr_Q(s, a, lqr, K) - b
 
 
 def compute_lqg_gradient(s, lqr, K, Sigma):
