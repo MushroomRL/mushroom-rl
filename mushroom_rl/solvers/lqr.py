@@ -71,7 +71,7 @@ def compute_lqr_V(s, lqr, K):
         K (np.ndarray): controller matrix
 
     Returns:
-        The value function at x
+        The value function at s
 
     """
     if s.ndim == 1:
@@ -95,7 +95,7 @@ def compute_lqg_V(s, lqr, K, Sigma):
         Sigma (np.ndarray): covariance matrix
 
     Returns:
-        The value function at x
+        The value function at s
 
     """
     b = _compute_lqg_V_additional_term(lqr, K, Sigma)
@@ -115,7 +115,7 @@ def compute_lqr_Q(s, a, lqr, K):
         K (np.ndarray): controller matrix
 
     Returns:
-        The Q function at x
+        The Q function at s, a
 
     """
     if s.ndim == 1:
@@ -143,7 +143,7 @@ def compute_lqg_Q(s, a, lqr, K, Sigma):
         Sigma (np.ndarray): covariance matrix
 
     Returns:
-        The Q function at x
+        The Q function at s, a
 
     """
     b = _compute_lqg_Q_additional_term(lqr, K, Sigma)
