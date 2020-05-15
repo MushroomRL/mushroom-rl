@@ -98,10 +98,8 @@ def compute_lqg_V(s, lqr, K, Sigma):
         The value function at x
 
     """
-    P = compute_lqr_P(lqr, K)
-    A, B, Q, R, gamma = _parse_lqr(lqr)
-
-    return compute_lqr_V(s, lqr, K) - np.trace(Sigma @ (R + gamma * B.T @ P @ B)) / (1.0 - gamma)
+    b = _compute_lqg_V_additional_term(lqr, K, Sigma)
+    return compute_lqr_V(s, lqr, K) - b
 
 
 def compute_lqr_Q(s, a, lqr, K):
@@ -246,4 +244,11 @@ def _compute_lqg_Q_additional_term(lqr, K, Sigma):
     A, B, Q, R, gamma = _parse_lqr(lqr)
     P = compute_lqr_P(lqr, K)
     b = gamma/(1-gamma)*np.trace(Sigma @ (R + gamma * B.T @ P @ B))
+    return b
+
+
+def _compute_lqg_V_additional_term(lqr, K, Sigma):
+    A, B, Q, R, gamma = _parse_lqr(lqr)
+    P = compute_lqr_P(lqr, K)
+    b = np.trace(Sigma @ (R + gamma * B.T @ P @ B)) / (1.0 - gamma)
     return b
