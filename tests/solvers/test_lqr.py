@@ -93,11 +93,11 @@ def test_Q_lqg():
                       [0.19607835, 0.09953863, 0.23284475]])
 
     s = np.array([1.0, 1.3, -0.3])
-    a = np.array([0.5, 0.2, 0.1])
+    a = np.array([-0.5, -0.2, 0.1])
 
     Q_lqg = compute_lqg_Q(s, a, lqr, K, Sigma).item()
 
-    assert np.allclose(Q_lqg, -30.691880328645837)
+    assert np.allclose(Q_lqg, -23.887098201718487)
 
 
 def test_Q_lqg_10dim():
