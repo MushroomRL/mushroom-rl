@@ -63,7 +63,6 @@ def compute_lqr_P(lqr, K):
 def compute_lqr_V(s, lqr, K):
     """
     Computes the value function at a state x, with the given controller matrix K.
-    Convert s if shape is not (n_samples, n_features)
 
     Args:
         s (np.ndarray): state
@@ -85,8 +84,6 @@ def compute_lqr_V(s, lqr, K):
 def compute_lqg_V(s, lqr, K, Sigma):
     """
     Computes the value function at a state x, with the given controller matrix K and covariance Sigma.
-    Convert s if shape is not (n_samples, n_features)
-    Convert s if shape is not (n_samples, n_features)
 
     Args:
         s (np.ndarray): state
@@ -106,7 +103,6 @@ def compute_lqr_Q(s, a, lqr, K):
     """
     Computes the state-action value function Q at a state-action pair x,
     with the given controller matrix K.
-    Convert s if shape is not (n_samples, n_features)
 
     Args:
         s (np.ndarray): state
@@ -133,10 +129,9 @@ def compute_lqg_Q(s, a, lqr, K, Sigma):
     """
     Computes the state-action value function Q at a state-action pair x,
     with the given controller matrix K and covariance Sigma.
-    Convert s if shape is not (n_samples, n_features)
 
     Args:
-        s (np.ndarray): state-action pair
+        s (np.ndarray): state
         a (np.ndarray): action
         lqr (LQR): LQR environment
         K (np.ndarray): controller matrix
@@ -150,15 +145,14 @@ def compute_lqg_Q(s, a, lqr, K, Sigma):
     return compute_lqr_Q(s, a, lqr, K) - b
 
 
-def compute_lqg_gradient(s, lqr, K, Sigma):
+def compute_lqg_V_gradient(s, lqr, K, Sigma):
     """
     Computes the gradient of the objective function J at state s, w.r.t. the controller matrix K, with the current
     policy parameters K and Sigma.
     J(s, K, Sigma) = ValueFunction(s, K, Sigma)
-    Convert s if shape is not (n_samples, n_features)
 
     Args:
-        s (np.ndarray): state pair
+        s (np.ndarray): state
         lqr (LQR): LQR environment
         K (np.ndarray): controller matrix
         Sigma (np.ndarray): covariance matrix
@@ -192,6 +186,31 @@ def compute_lqg_gradient(s, lqr, K, Sigma):
 
     return -dJ
 
+
+def compute_lqg_Q_gradient(s, a, lqr, K, Sigma):
+    """
+    Computes the gradient of the state-action Value function at state s and action a,
+    w.r.t. the controller matrix K, with the current policy parameters K and Sigma.
+
+    Args:
+        s (np.ndarray): state
+        a (np.ndarray): action
+        lqr (LQR): LQR environment
+        K (np.ndarray): controller matrix
+        Sigma (np.ndarray): covariance matrix
+
+    Returns:
+        The gradient of Q w.r.t. to K
+
+    """
+    if s.ndim == 1:
+        s = s.reshape((1, -1))
+    if a.ndim == 1:
+        a = a.reshape((1, -1))
+
+    s_next = (lqr.A @ s.T).T + (lqr.B @ a.T).T
+
+    return lqr.info.gamma * compute_lqg_V_gradient(s_next, lqr, K, Sigma)
 
 def _parse_lqr(lqr):
     return lqr.A, lqr.B, lqr.Q, lqr.R, lqr.info.gamma
