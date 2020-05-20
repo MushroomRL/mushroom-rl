@@ -135,6 +135,36 @@ def test_V_gradient_lqg():
     assert np.allclose(dJ, dJ_num)
 
 
+def test_V_gradient_lqg_diff_dims():
+
+    A = np.array([[1., 0.4],
+                  [0.2, 0.8]])
+
+    B = np.array([[0.8],
+                  [0.5]])
+
+    Q = np.eye(2)
+
+    R = np.eye(1)
+
+    lqr = LQR(A, B, Q, R, max_pos=np.inf, max_action=np.inf,
+              random_init=False, episodic=False, gamma=0.9, horizon=100,
+              initial_state=None)
+
+    K = np.array([[1.0, 0.1]])
+
+    Sigma = np.array([[0.2]])
+
+    s = np.array([1.0, 1.3])
+
+    dJ = compute_lqg_V_gradient(s, lqr, K, Sigma)
+
+    f = lambda theta: compute_lqg_V(s, lqr, theta.reshape(K.shape), Sigma)
+    dJ_num = numerical_diff_function(f, K.reshape(-1))
+
+    assert np.allclose(dJ, dJ_num)
+
+
 def test_Q_gradient_lqg():
     lqr = LQR.generate(3)
 

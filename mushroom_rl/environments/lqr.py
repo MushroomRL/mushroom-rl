@@ -70,7 +70,7 @@ class LQR(Environment):
         super().__init__(mdp_info)
 
     @staticmethod
-    def generate(dimensions, max_pos=np.inf, max_action=np.inf, eps=.1,
+    def generate(dimensions=None, s_dim=None, a_dim=None, max_pos=np.inf, max_action=np.inf, eps=.1,
                  index=0, scale=1.0, random_init=False, episodic=False,
                  gamma=.9, horizon=50, initial_state=None):
         """
@@ -79,6 +79,8 @@ class LQR(Environment):
 
         Args:
             dimensions (int): number of state-action dimensions;
+            s_dim (int): number of state dimensions;
+            a_dim (int): number of action dimensions;
             max_pos (float, np.inf): maximum value of the state;
             max_action (float, np.inf): maximum value of the action;
             eps (double, .1): reward matrix weights specifier;
@@ -91,12 +93,24 @@ class LQR(Environment):
             horizon (int, 50): horizon of the mdp.
 
         """
-        assert dimensions >= 1
+        assert dimensions != None or (s_dim != None and a_dim != None)
 
-        A = np.eye(dimensions)
-        B = np.eye(dimensions)
-        Q = eps * np.eye(dimensions) * scale
-        R = (1. - eps) * np.eye(dimensions) * scale
+        # A = np.eye(dimensions)
+        # B = np.eye(dimensions)
+        # Q = eps * np.eye(dimensions) * scale
+        # R = (1. - eps) * np.eye(dimensions) * scale
+        #
+        # Q[index, index] = (1. - eps) * scale
+        # R[index, index] = eps * scale
+
+
+        if s_dim == None or a_dim == None:
+            s_dim = dimensions
+            a_dim = dimensions
+        A = np.eye(s_dim)
+        B = np.eye(s_dim, a_dim)
+        Q = eps * np.eye(s_dim) * scale
+        R = (1. - eps) * np.eye(a_dim) * scale
 
         Q[index, index] = (1. - eps) * scale
         R[index, index] = eps * scale
