@@ -32,7 +32,7 @@ except ImportError:
 try:
     PyBullet = None
     from .pybullet import PyBullet
-    __extras__.append('Pybullet')
+    __extras__.append('PyBullet')
 except ImportError:
     pass
 
