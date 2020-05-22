@@ -14,6 +14,9 @@ class TDPolicy(Policy):
         """
         self._approximator = None
 
+        self._add_save_attr(_approximator='mushroom!')
+
+
     def set_q(self, approximator):
         """
         Args:
@@ -50,6 +53,8 @@ class EpsGreedy(TDPolicy):
 
         assert isinstance(epsilon, Parameter)
         self._epsilon = epsilon
+
+        self._add_save_attr(_epsilon='pickle')
 
     def __call__(self, *args):
         state = args[0]
@@ -126,6 +131,8 @@ class Boltzmann(TDPolicy):
         """
         super().__init__()
         self._beta = beta
+
+        self._add_save_attr(_beta='pickle')
 
     def __call__(self, *args):
         state = args[0]

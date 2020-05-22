@@ -74,12 +74,24 @@ class DQN(Agent):
         policy.set_q(self.approximator)
 
         if self._n_approximators == 1:
-            self.target_approximator.model.set_weights(
-                self.approximator.model.get_weights())
+            self.target_approximator.set_weights(
+                self.approximator.get_weights())
         else:
             for i in range(self._n_approximators):
-                self.target_approximator.model[i].set_weights(
-                    self.approximator.model.get_weights())
+                self.target_approximator[i].set_weights(
+                    self.approximator.get_weights())
+
+        self._add_save_attr(
+            _fit_params='pickle',
+            _batch_size='primitive',
+            _n_approximators='primitive',
+            _clip_reward='primitive',
+            _target_update_frequency='primitive',
+            _replay_memory='mushroom',
+            _n_updates='primitive',
+            approximator='mushroom',
+            target_approximator='mushroom'
+        )
 
         super().__init__(mdp_info, policy)
 
@@ -128,8 +140,8 @@ class DQN(Agent):
         Update the target network.
 
         """
-        self.target_approximator.model.set_weights(
-            self.approximator.model.get_weights())
+        self.target_approximator.set_weights(
+            self.approximator.get_weights())
 
     def _next_q(self, next_state, absorbing):
         """
@@ -153,6 +165,14 @@ class DQN(Agent):
         action = super(DQN, self).draw_action(np.array(state))
 
         return action
+
+    def _post_load(self):
+        if isinstance(self._replay_memory, PrioritizedReplayMemory):
+            self._fit = self._fit_prioritized
+        else:
+            self._fit = self._fit_standard
+
+        self.policy.set_q(self.approximator)
 
 
 class DoubleDQN(DQN):
@@ -185,13 +205,15 @@ class AveragedDQN(DQN):
 
         self._n_fitted_target_models = 1
 
-        assert isinstance(self.target_approximator.model, Ensemble)
+        self._add_save_attr(_n_fitted_target_models='primitive')
+
+        assert len(self.target_approximator) > 1
 
     def _update_target(self):
         idx = self._n_updates // self._target_update_frequency\
               % self._n_approximators
-        self.target_approximator.model[idx].set_weights(
-            self.approximator.model.get_weights())
+        self.target_approximator[idx].set_weights(
+            self.approximator.get_weights())
 
         if self._n_fitted_target_models < self._n_approximators:
             self._n_fitted_target_models += 1

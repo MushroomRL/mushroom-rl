@@ -47,6 +47,34 @@ def parse_dataset(dataset, features=None):
         next_state), np.array(absorbing), np.array(last)
 
 
+def arrays_as_dataset(states, actions, rewards, next_states, absorbings, lasts):
+    """
+    Creates a dataset of transitions from the provided arrays.
+
+    Args:
+        states (np.ndarray): array of states;
+        actions (np.ndarray): array of actions;
+        rewards (np.ndarray): array of rewards;
+        next_states (np.ndarray): array of next_states;
+        absorbings (np.ndarray): array of absorbing flags;
+        lasts (np.ndarray): array of last flags.
+
+    Returns:
+        The list of transitions.
+
+    """
+    assert (len(states) == len(actions) == len(rewards)
+            == len(next_states) == len(absorbings) == len(lasts))
+
+    dataset = list()
+    for s, a, r, ss, ab, last in zip(states, actions, rewards, next_states,
+                                     absorbings.astype(bool), lasts.astype(bool)
+                                     ):
+        dataset.append((s, a, r.item(0), ss, ab.item(0), last.item(0)))
+
+    return dataset
+
+
 def episodes_length(dataset):
     """
     Compute the length of each episode in the dataset.
@@ -150,13 +178,13 @@ def compute_J(dataset, gamma=1.):
     return js
 
 
-def compute_metrics(dataset, gamma=1.0):
+def compute_metrics(dataset, gamma=1.):
     """
     Compute the metrics of each complete episode in the dataset.
 
     Args:
         dataset (list): the dataset to consider;
-        gamma (float, 1.0): the discount factor.
+        gamma (float, 1.): the discount factor.
 
     Returns:
         The minimum score reached in an episode,
@@ -164,12 +192,12 @@ def compute_metrics(dataset, gamma=1.0):
         the mean score reached,
         the number of completed games.
 
-        If episode has been completed, it returns 0 for all values.
+        If episode has not been completed, it returns 0 for all values.
 
     """
-
     for i in reversed(range(len(dataset))):
         if dataset[i][-1]:
+            i += 1
             break
 
     dataset = dataset[:i]

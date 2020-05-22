@@ -2,11 +2,12 @@ import torch
 import numpy as np
 from tqdm import trange, tqdm
 
+from mushroom_rl.core import Serializable
 from mushroom_rl.utils.minibatches import minibatch_generator
 from mushroom_rl.utils.torch import get_weights, set_weights, zero_grad
 
 
-class TorchApproximator:
+class TorchApproximator(Serializable):
     """
     Class to interface a pytorch model to the mushroom Regressor interface.
     This class implements all is needed to use a generic pytorch model and train
@@ -40,7 +41,7 @@ class TorchApproximator:
                 train;
             quiet (bool, True): if False, shows two progress bars, one for
                 epochs and one for the minibatches;
-            params (dict): dictionary of parameters needed to construct the
+            **params: dictionary of parameters needed to construct the
                 network.
 
         """
@@ -64,15 +65,27 @@ class TorchApproximator:
                                                  **optimizer['params'])
         self._loss = loss
 
+        self._add_save_attr(
+            _batch_size='primitive',
+            _reinitialize='primitive',
+            _use_cuda='primitive',
+            _dropout='primitive',
+            _quiet='primitive',
+            _n_fit_targets='primitive',
+            network='torch',
+            _optimizer='torch',
+            _loss='pickle'
+        )
+
     def predict(self, *args, output_tensor=False, **kwargs):
         """
         Predict.
 
         Args:
-            args (list): input;
+            *args: input;
             output_tensor (bool, False): whether to return the output as tensor
                 or not;
-            **kwargs (dict): other parameters used by the predict method
+            **kwargs: other parameters used by the predict method
                 the regressor.
 
         Returns:
@@ -111,7 +124,7 @@ class TorchApproximator:
         Fit the model.
 
         Args:
-            *args (list): input, where the last ``n_fit_targets`` elements
+            *args: input, where the last ``n_fit_targets`` elements
                 are considered as the target, while the others are considered
                 as input;
             n_epochs (int, None): the number of training epochs;
@@ -122,7 +135,7 @@ class TorchApproximator:
                 the learning if not improving;
             validation_split (float, 1.): the percentage of the dataset to use
                 as training set;
-            **kwargs (dict): other parameters used by the fit method of the
+            **kwargs: other parameters used by the fit method of the
                 regressor.
 
         """

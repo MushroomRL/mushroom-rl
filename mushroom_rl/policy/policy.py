@@ -1,4 +1,7 @@
-class Policy(object):
+from mushroom_rl.core import Serializable
+
+
+class Policy(Serializable):
     """
     Interface representing a generic policy.
     A policy is a probability distribution that gives the probability of taking

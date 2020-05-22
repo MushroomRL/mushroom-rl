@@ -1,7 +1,9 @@
 import numpy as np
 
+from mushroom_rl.core import Serializable
 
-class ActionRegressor:
+
+class ActionRegressor(Serializable):
     """
     This class is used to approximate the Q-function with a different
     approximator of the provided class for each action. It is often used in MDPs
@@ -14,12 +16,12 @@ class ActionRegressor:
         Constructor.
 
         Args:
-            approximator (object): the model class to approximate the
+            approximator (class): the model class to approximate the
                 Q-function of each action;
             n_actions (int): number of different actions of the problem. It
                 determines the number of different regressors in the action
                 regressor;
-            **params (dict): parameters dictionary to create each regressor.
+            **params: parameters dictionary to create each regressor.
 
         """
         self.model = list()
@@ -27,6 +29,11 @@ class ActionRegressor:
 
         for i in range(self._n_actions):
             self.model.append(approximator(**params))
+
+        self._add_save_attr(
+            _n_actions='primitive',
+            model=self._get_serialization_method(approximator)
+        )
 
     def fit(self, state, action, q, **fit_params):
         """
@@ -36,7 +43,7 @@ class ActionRegressor:
             state (np.ndarray): states;
             action (np.ndarray): actions;
             q (np.ndarray): target q-values;
-            **fit_params (dict): other parameters used by the fit method
+            **fit_params: other parameters used by the fit method
                 of each regressor.
 
         """
@@ -51,10 +58,10 @@ class ActionRegressor:
         Predict.
 
         Args:
-            *z (list): a list containing states or states and actions depending
+            *z: a list containing states or states and actions depending
                 on whether the call requires to predict all q-values or only
                 one q-value corresponding to the provided action;
-            **predict_params (dict): other parameters used by the predict method
+            **predict_params: other parameters used by the predict method
                 of each regressor.
 
         Returns:

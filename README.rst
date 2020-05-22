@@ -39,7 +39,7 @@ You can do a minimal installation of ``MushroomRL`` with:
 
 .. code:: shell
 
-	pip3 install mushroom_rl
+    pip3 install mushroom_rl
 
 Installing everything
 ---------------------
@@ -48,14 +48,21 @@ You can install everything by running:
 
 .. code:: shell
 
-	pip3 install mushroom_rl '.[all]'
+    pip3 install mushroom_rl[all]
 
-This will install every dependency of MushroomRL, except MuJoCo dependencies.
+This will install every dependency of MushroomRL, except MuJoCo and Plots dependencies.
 To use the ``mujoco-py`` MushroomRL interface you can run the command:
 
 .. code:: shell
 
-	pip3 install mushroom_rl '.[mujoco]'
+    pip3 install mushroom_rl[mujoco]
+
+Below is the code that you need to run to install the Plots dependencies:
+
+.. code:: shell
+
+    sudo apt-get -y install python3-pyqt5
+    pip3 install mushroom_rl[plots]
 
 You might need to install external dependencies first. For more information about mujoco-py
 installation follow the instructions on the `project page <https://github.com/openai/mujoco-py>`_
@@ -74,3 +81,18 @@ For instance, to run a quick experiment with one of the provided example scripts
 .. code:: shell
 
     python3 examples/car_on_hill_fqi.py
+   
+Cite Mushroom
+=============
+If you are using mushroom for your scientific publications, please cite:
+
+.. code:: bibtex
+
+   @misc{deramo2020mushroomrl,
+         title={MushroomRL: Simplifying Reinforcement Learning Research},
+         author={D'Eramo, Carlo and Tateo, Davide and Bonarini, Andrea and Restelli, Marcello and Peters, Jan},
+         journal={arXiv preprint arXiv:2001.01102},
+         year={2020},
+         howpublished={\url{https://github.com/MushroomRL/mushroom-rl}}
+   }
+

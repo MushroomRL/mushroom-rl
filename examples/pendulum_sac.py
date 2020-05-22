@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from mushroom_rl.algorithms.actor_critic import SAC
 from mushroom_rl.core import Core
 from mushroom_rl.environments.gym_env import Gym
-from mushroom_rl.utils.dataset import compute_J
+from mushroom_rl.utils.dataset import compute_J, parse_dataset
 
 
 class CriticNetwork(nn.Module):
@@ -123,14 +123,16 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
     # RUN
     dataset = core.evaluate(n_steps=n_steps_test, render=False)
     J = compute_J(dataset, gamma)
-    print('J: ', np.mean(J))
+    s, *_ = parse_dataset(dataset)
+    print('J:', np.mean(J), 'E:', agent.policy.entropy(s))
 
     for n in range(n_epochs):
         print('Epoch: ', n)
         core.learn(n_steps=n_steps, n_steps_per_fit=1)
         dataset = core.evaluate(n_steps=n_steps_test, render=False)
         J = compute_J(dataset, gamma)
-        print('J: ', np.mean(J))
+        s, *_ = parse_dataset(dataset)
+        print('J:', np.mean(J), 'E:', agent.policy.entropy(s))
 
     print('Press a button to visualize pendulum')
     input()

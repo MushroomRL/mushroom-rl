@@ -51,6 +51,11 @@ class TD3(DDPG):
         else:
             critic_params['n_models'] = 2
 
+        self._add_save_attr(
+            _noise_std='primitive',
+            _noise_clip='primitive'
+        )
+
         super().__init__(mdp_info, policy_class, policy_params,  actor_params,
                          actor_optimizer, critic_params, batch_size,
                          initial_replay_size, max_replay_size, tau,

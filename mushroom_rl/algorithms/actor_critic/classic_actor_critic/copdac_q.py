@@ -48,6 +48,16 @@ class COPDAC_Q(Agent):
                             input_shape=(self._mu.weights_size,),
                             output_shape=(1,))
 
+        self._add_save_attr(
+            _mu='mushroom',
+            _psi='pickle',
+            _alpha_theta='pickle',
+            _alpha_omega='pickle',
+            _alpha_v='pickle',
+            _V='mushroom',
+            _A='mushroom'
+        )
+
         super().__init__(mdp_info, policy, policy_features)
 
     def fit(self, dataset):

@@ -146,31 +146,31 @@ def test_lqr():
     assert np.allclose(ns, ns_test)
 
     A = np.eye(3)
-    B = np.array([[2/3, 0], [1/3, 1/3], [0, 2/3]])
+    B = np.array([[2 / 3, 0], [1 / 3, 1 / 3], [0, 2 / 3]])
     Q = np.array([[0.1, 0., 0.], [0., 0.9, 0.], [0., 0., 0.1]])
     R = np.array([[0.1, 0.], [0., 0.9]])
-    mdp = LQR(A,B, Q, R, max_pos=11.0, max_action=0.5, episodic=True)
+    mdp = LQR(A, B, Q, R, max_pos=11.0, max_action=0.5, episodic=True)
     mdp.reset()
 
     a_test = np.array([1.0, 0.3])
     ns, r, ab, _ = mdp.step(a_test)
-    ns_test = np.array([10.33333333, 10.26666667, 10.2])
-    assert np.allclose(ns, ns_test) and np.allclose(r, -110.106) and not ab
+    ns_test = np.array([10.23333333, 10.16666667, 10.1])
+    assert np.allclose(ns, ns_test) and np.allclose(r, -107.917) and not ab
 
     a_test = np.array([0.4, -0.1])
     ns, r, ab, _ = mdp.step(a_test)
-    ns_test = np.array([10.6, 10.36666667, 10.13333333])
-    assert np.allclose(ns, ns_test) and np.allclose(r, -115.97077777777778) and not ab
+    ns_test = np.array([10.5, 10.26666667, 10.03333333])
+    assert np.allclose(ns, ns_test) and np.allclose(r, -113.72311111111117) and not ab
 
     a_test = np.array([0.5, 0.6])
     ns, r, ab, _ = mdp.step(a_test)
-    ns_test = np.array([10.93333333, 10.7, 10.46666667])
-    assert np.allclose(ns, ns_test) and np.allclose(r, -118.47544444444445) and not ab
+    ns_test = np.array([10.83333333, 10.6, 10.36666667])
+    assert np.allclose(ns, ns_test) and np.allclose(r, -116.20577777777778) and not ab
 
     a_test = np.array([0.3, -0.7])
     ns, r, ab, _ = mdp.step(a_test)
-    ns_test = np.array([11.13333333, 10.63333333, 10.13333333])
-    assert np.allclose(ns, ns_test) and np.allclose(r, -126.18388888888892) and ab
+    ns_test = np.array([11.03333333, 10.53333333, 10.03333333])
+    assert np.allclose(ns, ns_test) and np.allclose(r, -1210.0) and ab
 
 
 def test_puddle_world():

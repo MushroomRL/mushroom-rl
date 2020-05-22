@@ -202,10 +202,10 @@ def experiment():
     arg_utils = parser.add_argument_group('Utils')
     arg_utils.add_argument('--use-cuda', action='store_true',
                            help='Flag specifying whether to use the GPU.')
-    arg_utils.add_argument('--load-path', type=str,
-                           help='Path of the model to be loaded.')
     arg_utils.add_argument('--save', action='store_true',
                            help='Flag specifying whether to save the model.')
+    arg_utils.add_argument('--load-path', type=str,
+                           help='Path of the model to be loaded.')
     arg_utils.add_argument('--render', action='store_true',
                            help='Flag specifying whether to render the game.')
     arg_utils.add_argument('--quiet', action='store_true',
@@ -242,84 +242,50 @@ def experiment():
     else:
         raise ValueError
 
-    # Evaluation of the model provided by the user.
+    # Summary folder
+    folder_name = './logs/atari_' + args.algorithm + '_' + args.name +\
+        '_' + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    pathlib.Path(folder_name).mkdir(parents=True)
+
+    # Settings
+    if args.debug:
+        initial_replay_size = 50
+        max_replay_size = 500
+        train_frequency = 5
+        target_update_frequency = 10
+        test_samples = 20
+        evaluation_frequency = 50
+        max_steps = 1000
+    else:
+        initial_replay_size = args.initial_replay_size
+        max_replay_size = args.max_replay_size
+        train_frequency = args.train_frequency
+        target_update_frequency = args.target_update_frequency
+        test_samples = args.test_samples
+        evaluation_frequency = args.evaluation_frequency
+        max_steps = args.max_steps
+
+    # MDP
+    mdp = Atari(args.name, args.screen_width, args.screen_height,
+                ends_at_life=True, history_length=args.history_length,
+                max_no_op_actions=args.max_no_op_actions)
+
     if args.load_path:
-        # MDP
-        mdp = Atari(args.name, args.screen_width, args.screen_height,
-                    ends_at_life=False, history_length=args.history_length,
-                    max_no_op_actions=args.max_no_op_actions)
-
-        # Policy
-        epsilon_test = Parameter(value=args.test_exploration_rate)
-        pi = EpsGreedy(epsilon=epsilon_test)
-
-        # Approximator
-        input_shape = (args.history_length, args.screen_height,
-                       args.screen_width)
-        approximator_params = dict(
-            network=Network,
-            input_shape=input_shape,
-            output_shape=(mdp.info.action_space.n,),
-            n_actions=mdp.info.action_space.n,
-            load_path=args.load_path,
-            optimizer=optimizer,
-            loss=F.smooth_l1_loss,
-            use_cuda=args.use_cuda
-        )
-
-        approximator = TorchApproximator
-
         # Agent
-        algorithm_params = dict(
-            batch_size=1,
-            train_frequency=1,
-            target_update_frequency=1,
-            initial_replay_size=0,
-            max_replay_size=0
-        )
-        agent = DQN(mdp.info, pi, approximator,
-                    approximator_params=approximator_params, **algorithm_params)
+        agent = DQN.load(args.load_path)
+        epsilon_test = Parameter(value=args.test_exploration_rate)
+        agent.policy.set_epsilon(epsilon_test)
 
         # Algorithm
         core_test = Core(agent, mdp)
 
         # Evaluate model
-        pi.set_epsilon(epsilon_test)
         dataset = core_test.evaluate(n_steps=args.test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
         get_stats(dataset)
+
     else:
-        # DQN learning run
-
-        # Summary folder
-        folder_name = './logs/atari_' + args.algorithm + '_' + args.name +\
-            '_' + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        pathlib.Path(folder_name).mkdir(parents=True)
-
-        # Settings
-        if args.debug:
-            initial_replay_size = 50
-            max_replay_size = 500
-            train_frequency = 5
-            target_update_frequency = 10
-            test_samples = 20
-            evaluation_frequency = 50
-            max_steps = 1000
-        else:
-            initial_replay_size = args.initial_replay_size
-            max_replay_size = args.max_replay_size
-            train_frequency = args.train_frequency
-            target_update_frequency = args.target_update_frequency
-            test_samples = args.test_samples
-            evaluation_frequency = args.evaluation_frequency
-            max_steps = args.max_steps
-
-        # MDP
-        mdp = Atari(args.name, args.screen_width, args.screen_height,
-                    ends_at_life=True, history_length=args.history_length,
-                    max_no_op_actions=args.max_no_op_actions)
-
         # Policy
         epsilon = LinearParameter(value=args.initial_exploration_rate,
                                   threshold_value=args.final_exploration_rate,
@@ -359,7 +325,7 @@ def experiment():
         else:
             replay_memory = None
 
-            # Agent
+        # Agent
         algorithm_params = dict(
             batch_size=args.batch_size,
             n_approximators=args.n_approximators,
@@ -398,8 +364,7 @@ def experiment():
                    n_steps_per_fit=initial_replay_size, quiet=args.quiet)
 
         if args.save:
-            np.save(folder_name + '/weights-exp-0-0.npy',
-                    agent.approximator.get_weights())
+            agent.save(folder_name + '/agent_0.msh')
 
         # Evaluate initial policy
         pi.set_epsilon(epsilon_test)
@@ -419,8 +384,7 @@ def experiment():
                        n_steps_per_fit=train_frequency, quiet=args.quiet)
 
             if args.save:
-                np.save(folder_name + '/weights-exp-0-' + str(n_epoch) + '.npy',
-                        agent.approximator.get_weights())
+                agent.save(folder_name + '/agent_' + str(n_epoch) + '.msh')
 
             print('- Evaluation:')
             # evaluation step

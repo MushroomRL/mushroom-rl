@@ -18,11 +18,16 @@ class SARSALambda(TD):
             trace (str, 'replacing'): type of eligibility trace to use.
 
         """
-        self.Q = Table(mdp_info.size)
+        Q = Table(mdp_info.size)
         self._lambda = lambda_coeff
 
-        self.e = EligibilityTrace(self.Q.shape, trace)
-        super().__init__(mdp_info, policy, self.Q, learning_rate)
+        self.e = EligibilityTrace(Q.shape, trace)
+        self._add_save_attr(
+            _lambda='primitive',
+            e='pickle'
+        )
+
+        super().__init__(mdp_info, policy, Q, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]

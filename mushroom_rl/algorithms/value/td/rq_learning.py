@@ -33,10 +33,19 @@ class RQLearning(TD):
         else:
             raise ValueError('delta or beta parameters needed.')
 
-        self.Q = Table(mdp_info.size)
+        Q = Table(mdp_info.size)
         self.Q_tilde = Table(mdp_info.size)
         self.R_tilde = Table(mdp_info.size)
-        super().__init__(mdp_info, policy, self.Q, learning_rate)
+
+        self._add_save_attr(
+            off_policy='primitive',
+            delta='pickle',
+            beta='pickle',
+            Q_tilde='mushroom',
+            R_tilde='mushroom'
+        )
+
+        super().__init__(mdp_info, policy, Q, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
         alpha = self.alpha(state, action, target=reward)

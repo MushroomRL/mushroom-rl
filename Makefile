@@ -1,8 +1,7 @@
 package:
 	python3 setup.py sdist bdist_wheel
 
-all:
-	package
+all: package
 	python3 -m twine upload dist/*
 
 clean:

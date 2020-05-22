@@ -29,9 +29,11 @@ class Gym(Environment):
 
         """
         # MDP creation
+        self._close_at_stop = True
         if '- ' + name in pybullet_envs.getList():
             import pybullet
             pybullet.connect(pybullet.DIRECT)
+            self._close_at_stop = False
 
         self.env = gym.make(name)
 
@@ -72,7 +74,8 @@ class Gym(Environment):
 
     def stop(self):
         try:
-            self.env.close()
+            if self._close_at_stop:
+                self.env.close()
         except:
             pass
 

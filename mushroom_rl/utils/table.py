@@ -1,9 +1,10 @@
 import numpy as np
 
+from mushroom_rl.core import Serializable
 from mushroom_rl.approximators import Ensemble
 
 
-class Table:
+class Table(Serializable):
     """
     Table regressor. Used for discrete state and action spaces.
 
@@ -20,6 +21,8 @@ class Table:
 
         """
         self.table = np.ones(shape, dtype=dtype) * initial_value
+
+        self._add_save_attr(table='numpy')
 
     def __getitem__(self, args):
         if self.table.size == 1:

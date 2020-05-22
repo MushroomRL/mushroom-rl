@@ -23,10 +23,10 @@ try:
                            obs[0:14:2]) + d_gains * (np.zeros_like(des_pos) - obs[1:14:2])
 
             # Check the observations
-            assert np.allclose(obs[0:14:2], env.sim.data.qpos[0:7])
-            assert np.allclose(obs[1:14:2], env.sim.data.qvel[0:7])
-            assert np.allclose(obs[14:17], env.sim.data.body_xpos[40])
-            assert np.allclose(obs[17:], env.sim.data.body_xvelp[40])
+            assert np.allclose(obs[0:14:2], env._sim.data.qpos[0:7])
+            assert np.allclose(obs[1:14:2], env._sim.data.qvel[0:7])
+            assert np.allclose(obs[14:17], env._sim.data.body_xpos[40])
+            assert np.allclose(obs[17:], env._sim.data.body_xvelp[40])
             obs, reward, done, info = env.step(a)
 
             i += 1

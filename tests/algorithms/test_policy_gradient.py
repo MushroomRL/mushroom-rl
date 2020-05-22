@@ -1,6 +1,9 @@
 import numpy as np
 import torch
+from datetime import datetime
+from helper.utils import TestUtils as tu
 
+from mushroom_rl.algorithms import Agent
 from mushroom_rl.algorithms.policy_search import *
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
@@ -38,28 +41,79 @@ def learn(alg, alg_params):
 
     core.learn(n_episodes=10, n_episodes_per_fit=5)
 
-    return policy
+    return agent
 
 
 def test_REINFORCE():
     params = dict(learning_rate=AdaptiveParameter(value=.01))
-    policy = learn(REINFORCE, params)
+    policy = learn(REINFORCE, params).policy
     w = np.array([-0.0084793 ,  2.00536528])
 
     assert np.allclose(w, policy.get_weights())
 
 
+def test_REINFORCE_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
+    params = dict(learning_rate=AdaptiveParameter(value=.01))
+
+    agent_save = learn(REINFORCE, params)
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    for att, method in vars(agent_save).items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+
+        tu.assert_eq(save_attr, load_attr)
+
+
 def test_GPOMDP():
     params = dict(learning_rate=AdaptiveParameter(value=.01))
-    policy = learn(GPOMDP, params)
+    policy = learn(GPOMDP, params).policy
     w = np.array([-0.07623939,  2.05232858])
 
     assert np.allclose(w, policy.get_weights())
 
 
+def test_GPOMDP_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
+    params = dict(learning_rate=AdaptiveParameter(value=.01))
+
+    agent_save = learn(GPOMDP, params)
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    for att, method in vars(agent_save).items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+
+        tu.assert_eq(save_attr, load_attr)
+
+
 def test_eNAC():
     params = dict(learning_rate=AdaptiveParameter(value=.01))
-    policy = learn(eNAC, params)
+    policy = learn(eNAC, params).policy
     w = np.array([-0.03668018,  2.05112355])
 
     assert np.allclose(w, policy.get_weights())
+
+
+def test_eNAC_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
+    params = dict(learning_rate=AdaptiveParameter(value=.01))
+
+    agent_save = learn(eNAC, params)
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    for att, method in vars(agent_save).items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+
+        tu.assert_eq(save_attr, load_attr)

@@ -21,6 +21,8 @@ class RWR(BlackBoxOptimization):
         """
         self.beta = beta
 
+        self._add_save_attr(beta='primitive')
+
         super().__init__(mdp_info, distribution, policy, features)
 
     def _update(self, Jep, theta):

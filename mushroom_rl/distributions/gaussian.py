@@ -7,11 +7,26 @@ class GaussianDistribution(Distribution):
     """
     Gaussian distribution with fixed covariance matrix. The parameters
     vector represents only the mean.
+
     """
     def __init__(self, mu, sigma):
+        """
+        Constructor.
+
+        Args:
+            mu (np.ndarray): initial mean of the distribution;
+            sigma (np.ndarray): covariance matrix of the distribution.
+
+        """
         self._mu = mu
         self._sigma = sigma
-        self.inv_sigma = np.linalg.inv(sigma)
+        self._inv_sigma = np.linalg.inv(sigma)
+
+        self._add_save_attr(
+            _mu='numpy',
+            _sigma='numpy',
+            _inv_sigma='numpy'
+        )
 
     def sample(self):
         return np.random.multivariate_normal(self._mu, self._sigma)
@@ -30,7 +45,7 @@ class GaussianDistribution(Distribution):
 
     def diff_log(self, theta):
         delta = theta - self._mu
-        g = self.inv_sigma.dot(delta)
+        g = self._inv_sigma.dot(delta)
 
         return g
 
@@ -49,11 +64,26 @@ class GaussianDiagonalDistribution(Distribution):
     """
     Gaussian distribution with diagonal covariance matrix. The parameters
     vector represents the mean and the standard deviation for each dimension.
+
     """
     def __init__(self, mu, std):
+        """
+        Constructor.
+
+        Args:
+            mu (np.ndarray): initial mean of the distribution;
+            std (np.ndarray): initial vector of standard deviations for each
+                variable of the distribution.
+
+        """
         assert(len(std.shape) == 1)
         self._mu = mu
         self._std = std
+
+        self._add_save_attr(
+            _mu='numpy',
+            _std='numpy'
+        )
 
     def sample(self):
         sigma = np.diag(self._std**2)
@@ -122,10 +152,24 @@ class GaussianCholeskyDistribution(Distribution):
     vector represents the mean and the Cholesky decomposition of the
     covariance matrix. This parametrization enforce the covariance matrix to be
     positive definite.
+
     """
     def __init__(self, mu, sigma):
+        """
+        Constructor.
+
+        Args:
+            mu (np.ndarray): initial mean of the distribution;
+            sigma (np.ndarray): initial covariance matrix of the distribution.
+
+        """
         self._mu = mu
         self._chol_sigma = np.linalg.cholesky(sigma)
+
+        self._add_save_attr(
+            _mu='numpy',
+            _chol_sigma='numpy'
+        )
 
     def sample(self):
         sigma = self._chol_sigma.dot(self._chol_sigma.T)

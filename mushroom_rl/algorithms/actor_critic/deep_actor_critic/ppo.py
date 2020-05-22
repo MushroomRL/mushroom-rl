@@ -58,6 +58,18 @@ class PPO(Agent):
         self._quiet = quiet
         self._iter = 1
 
+        self._add_save_attr(
+            _critic_fit_params='pickle', 
+            _n_epochs_policy='primitive',
+            _batch_size='primitive',
+            _eps_ppo='primitive',
+            _optimizer='torch',
+            _lambda='primitive',
+            _V='mushroom',
+            _quiet='primitive',
+            _iter='primitive'
+        )
+
         super().__init__(mdp_info, policy, None)
 
     def fit(self, dataset):

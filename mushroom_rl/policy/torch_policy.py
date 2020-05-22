@@ -4,7 +4,9 @@ import torch
 import torch.nn as nn
 
 from mushroom_rl.policy import Policy
-from mushroom_rl.utils.torch import get_weights, set_weights, to_float_tensor
+from mushroom_rl.approximators import Regressor
+from mushroom_rl.approximators.parametric import TorchApproximator
+from mushroom_rl.utils.torch import to_float_tensor
 
 from itertools import chain
 
@@ -26,6 +28,8 @@ class TorchPolicy(Policy):
 
         """
         self._use_cuda = use_cuda
+
+        self._add_save_attr(_use_cuda='primitive')
 
     def __call__(self, state, action):
         s = to_float_tensor(np.atleast_2d(state), self._use_cuda)
@@ -197,15 +201,21 @@ class GaussianTorchPolicy(TorchPolicy):
 
         self._action_dim = output_shape[0]
 
-        self._mu = network(input_shape, output_shape, **params)
+        self._mu = Regressor(TorchApproximator, input_shape, output_shape,
+                             network=network, use_cuda=use_cuda, **params)
 
         log_sigma_init = torch.ones(self._action_dim) * np.log(std_0)
 
         if self._use_cuda:
-            self._mu.cuda()
             log_sigma_init = log_sigma_init.cuda()
 
         self._log_sigma = nn.Parameter(log_sigma_init)
+
+        self._add_save_attr(
+            _action_dim='primitive',
+            _mu='mushroom',
+            _log_sigma='torch'
+        )
 
     def draw_action_t(self, state):
         return self.distribution_t(state).sample().detach()
@@ -221,7 +231,7 @@ class GaussianTorchPolicy(TorchPolicy):
         return torch.distributions.MultivariateNormal(loc=mu, covariance_matrix=sigma)
 
     def get_mean_and_covariance(self, state):
-        return self._mu(state), torch.diag(torch.exp(2 * self._log_sigma))
+        return self._mu(state, output_tensor=True), torch.diag(torch.exp(2 * self._log_sigma))
 
     def set_weights(self, weights):
         log_sigma_data = torch.from_numpy(weights[-self._action_dim:])
@@ -229,13 +239,13 @@ class GaussianTorchPolicy(TorchPolicy):
             log_sigma_data = log_sigma_data.cuda()
         self._log_sigma.data = log_sigma_data
 
-        set_weights(self._mu.parameters(), weights[:-self._action_dim], self._use_cuda)
+        self._mu.set_weights(weights[:-self._action_dim])
 
     def get_weights(self):
-        mu_weights = get_weights(self._mu.parameters())
+        mu_weights = self._mu.get_weights()
         sigma_weights = self._log_sigma.data.detach().cpu().numpy()
 
         return np.concatenate([mu_weights, sigma_weights])
 
     def parameters(self):
-        return chain(self._mu.parameters(), [self._log_sigma])
+        return chain(self._mu.model.network.parameters(), [self._log_sigma])

@@ -2,6 +2,10 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
+from datetime import datetime
+from helper.utils import TestUtils as tu
+
+from mushroom_rl.algorithms import Agent
 from mushroom_rl.algorithms.value import DQN, DoubleDQN, AveragedDQN, CategoricalDQN
 from mushroom_rl.core import Core
 from mushroom_rl.environments import *
@@ -78,13 +82,13 @@ def learn(alg, alg_params):
 
     core.learn(n_steps=500, n_steps_per_fit=5)
 
-    return agent.approximator
+    return agent
 
 
 def test_dqn():
     params = dict(batch_size=50, n_approximators=1, initial_replay_size=50,
                   max_replay_size=500, target_update_frequency=50)
-    approximator = learn(DQN, params)
+    approximator = learn(DQN, params).approximator
 
     w = approximator.get_weights()
     w_test = np.array([-0.15894288, 0.47257397, 0.05482405, 0.5442066,
@@ -92,6 +96,23 @@ def test_dqn():
                        0.12486243])
 
     assert np.allclose(w, w_test)
+
+
+def test_dqn_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
+    params = dict(batch_size=50, n_approximators=1, initial_replay_size=50,
+                  max_replay_size=500, target_update_frequency=50)
+    agent_save = learn(DQN, params)
+
+    agent_save.save(agent_path, full_save=True)
+    agent_load = Agent.load(agent_path)
+
+    for att, method in vars(agent_save).items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+
+        tu.assert_eq(save_attr, load_attr)
 
 
 def test_prioritized_dqn():
@@ -102,7 +123,7 @@ def test_prioritized_dqn():
     params = dict(batch_size=50, n_approximators=1, initial_replay_size=50,
                   max_replay_size=500, target_update_frequency=50,
                   replay_memory=replay_memory)
-    approximator = learn(DQN, params)
+    approximator = learn(DQN, params).approximator
 
     w = approximator.get_weights()
     w_test = np.array([-0.1384063, 0.48957556, 0.02254359, 0.50994426,
@@ -112,10 +133,32 @@ def test_prioritized_dqn():
     assert np.allclose(w, w_test)
 
 
+def test_prioritized_dqn_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
+    replay_memory = PrioritizedReplayMemory(
+        50, 500, alpha=.6,
+        beta=LinearParameter(.4, threshold_value=1, n=500 // 5)
+    )
+    params = dict(batch_size=50, n_approximators=1, initial_replay_size=50,
+                  max_replay_size=500, target_update_frequency=50,
+                  replay_memory=replay_memory)
+    agent_save = learn(DQN, params)
+
+    agent_save.save(agent_path, full_save=True)
+    agent_load = Agent.load(agent_path)
+
+    for att, method in vars(agent_save).items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+
+        tu.assert_eq(save_attr, load_attr)
+
+
 def test_double_dqn():
     params = dict(batch_size=50, n_approximators=1, initial_replay_size=50,
                   max_replay_size=500, target_update_frequency=50)
-    approximator = learn(DoubleDQN, params)
+    approximator = learn(DoubleDQN, params).approximator
 
     w = approximator.get_weights()
     w_test = np.array([-0.15894286, 0.47257394, 0.05482561, 0.54420704,
@@ -125,10 +168,27 @@ def test_double_dqn():
     assert np.allclose(w, w_test)
 
 
+def test_double_dqn_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
+    params = dict(batch_size=50, n_approximators=1, initial_replay_size=50,
+                  max_replay_size=500, target_update_frequency=50)
+    agent_save = learn(DoubleDQN, params)
+
+    agent_save.save(agent_path, full_save=True)
+    agent_load = Agent.load(agent_path)
+
+    for att, method in vars(agent_save).items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+
+        tu.assert_eq(save_attr, load_attr)
+
+
 def test_averaged_dqn():
     params = dict(batch_size=50, n_approximators=5, initial_replay_size=50,
                   max_replay_size=5000, target_update_frequency=50)
-    approximator = learn(AveragedDQN, params)
+    approximator = learn(AveragedDQN, params).approximator
 
     w = approximator.get_weights()
     w_test = np.array([-0.15889995, 0.47253257, 0.05424322, 0.5434766,
@@ -138,10 +198,27 @@ def test_averaged_dqn():
     assert np.allclose(w, w_test)
 
 
+def test_averaged_dqn_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
+    params = dict(batch_size=50, n_approximators=5, initial_replay_size=50,
+                  max_replay_size=5000, target_update_frequency=50)
+    agent_save = learn(AveragedDQN, params)
+
+    agent_save.save(agent_path, full_save=True)
+    agent_load = Agent.load(agent_path)
+
+    for att, method in vars(agent_save).items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+
+        tu.assert_eq(save_attr, load_attr)
+
+
 def test_categorical_dqn():
     params = dict(batch_size=50, n_approximators=1, initial_replay_size=50,
                   max_replay_size=5000, target_update_frequency=50)
-    approximator = learn(CategoricalDQN, params)
+    approximator = learn(CategoricalDQN, params).approximator
 
     w = approximator.get_weights()
     w_test = np.array([1.0035713, 0.30592525, -0.38904265, -0.66449565,
@@ -151,3 +228,20 @@ def test_categorical_dqn():
                        0.08285073])
 
     assert np.allclose(w, w_test, rtol=1e-4)
+
+
+def test_categorical_dqn_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
+    params = dict(batch_size=50, n_approximators=1, initial_replay_size=50,
+                  max_replay_size=5000, target_update_frequency=50)
+    agent_save = learn(CategoricalDQN, params)
+
+    agent_save.save(agent_path, full_save=True)
+    agent_load = Agent.load(agent_path)
+
+    for att, method in vars(agent_save).items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+
+        tu.assert_eq(save_attr, load_attr)

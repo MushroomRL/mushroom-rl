@@ -1,7 +1,8 @@
 import numpy as np
+from mushroom_rl.core import Serializable
 
 
-class QRegressor:
+class QRegressor(Serializable):
     """
     This class is used to create a regressor that approximates the Q-function
     using a multi-dimensional output where each output corresponds to the
@@ -14,12 +15,16 @@ class QRegressor:
         Constructor.
 
         Args:
-            approximator (object): the model class to approximate the
+            approximator (class): the model class to approximate the
                 Q-function;
-            params (dict): parameters dictionary to the regressor.
+            **params: parameters dictionary to the regressor.
 
         """
         self.model = approximator(**params)
+
+        self._add_save_attr(
+            model=self._get_serialization_method(approximator)
+        )
 
     def fit(self, state, action, q, **fit_params):
         """
@@ -29,7 +34,7 @@ class QRegressor:
             state (np.ndarray): states;
             action (np.ndarray): actions;
             q (np.ndarray): target q-values;
-            **fit_params (dict): other parameters used by the fit method of the
+            **fit_params: other parameters used by the fit method of the
                 regressor.
 
         """
@@ -40,10 +45,10 @@ class QRegressor:
         Predict.
 
         Args:
-            *z (list): a list containing states or states and actions depending
+            *z: a list containing states or states and actions depending
                 on whether the call requires to predict all q-values or only
                 one q-value corresponding to the provided action;
-            **predict_params (dict): other parameters used by the predict method
+            **predict_params: other parameters used by the predict method
                 of each regressor.
 
         Returns:

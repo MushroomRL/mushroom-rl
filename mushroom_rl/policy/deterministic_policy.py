@@ -21,6 +21,8 @@ class DeterministicPolicy(ParametricPolicy):
         """
         self._approximator = mu
 
+        self._add_save_attr(_approximator='mushroom')
+
     def get_regressor(self):
         """
         Getter.

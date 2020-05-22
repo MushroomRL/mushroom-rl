@@ -1,7 +1,9 @@
 import numpy as np
 
+from mushroom_rl.core import Serializable
 
-class LinearApproximator:
+
+class LinearApproximator(Serializable):
     """
     This class implements a linear approximator.
 
@@ -18,7 +20,7 @@ class LinearApproximator:
                 model;
              output_shape (np.ndarray, (1,)): the shape of the output of the
                 model;
-             **kwargs (dict): other params of the approximator.
+             **kwargs: other params of the approximator.
 
         """
         assert len(input_shape) == 1 and len(output_shape) == 1
@@ -34,6 +36,8 @@ class LinearApproximator:
             raise ValueError('You should specify the initial parameter vector'
                              ' or the input dimension')
 
+        self._add_save_attr(_w='numpy')
+
     def fit(self, x, y, **fit_params):
         """
         Fit the model.
@@ -41,7 +45,7 @@ class LinearApproximator:
         Args:
             x (np.ndarray): input;
             y (np.ndarray): target;
-            **fit_params (dict): other parameters used by the fit method of the
+            **fit_params: other parameters used by the fit method of the
                 regressor.
 
         """
@@ -53,7 +57,7 @@ class LinearApproximator:
 
         Args:
             x (np.ndarray): input;
-            **predict_params (dict): other parameters used by the predict method
+            **predict_params: other parameters used by the predict method
                 the regressor.
 
         Returns:

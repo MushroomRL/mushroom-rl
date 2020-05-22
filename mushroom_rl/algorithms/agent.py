@@ -1,9 +1,13 @@
-class Agent(object):
+from mushroom_rl.core import Serializable
+
+
+class Agent(Serializable):
     """
     This class implements the functions to manage the agent (e.g. move the agent
     following its policy).
 
     """
+
     def __init__(self, mdp_info, policy, features=None):
         """
         Constructor.
@@ -20,6 +24,13 @@ class Agent(object):
         self.phi = features
 
         self.next_action = None
+
+        self._add_save_attr(
+            mdp_info='pickle',
+            policy='mushroom',
+            phi='pickle',
+            next_action='numpy'
+        )
 
     def fit(self, dataset):
         """

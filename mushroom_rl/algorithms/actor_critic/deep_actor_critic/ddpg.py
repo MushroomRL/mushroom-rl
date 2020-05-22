@@ -74,6 +74,18 @@ class DDPG(DeepAC):
 
         policy_parameters = self._actor_approximator.model.network.parameters()
 
+        self._add_save_attr(
+            _critic_fit_params='pickle', 
+            _batch_size='primitive',
+            _tau='primitive',
+            _policy_delay='primitive',
+            _fit_count='primitive',
+            _replay_memory='mushroom',
+            _critic_approximator='mushroom',
+            _target_critic_approximator='mushroom',
+            _target_actor_approximator='mushroom'
+        )
+
         super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
 
     def fit(self, dataset):
@@ -124,3 +136,8 @@ class DDPG(DeepAC):
         q *= 1 - absorbing
 
         return q
+
+    def _post_load(self):
+        self._actor_approximator = self.policy._approximator
+        if self._optimizer is not None:
+            self._parameters = list(self._actor_approximator.model.network.parameters())

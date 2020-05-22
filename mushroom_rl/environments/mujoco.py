@@ -6,6 +6,7 @@ from mushroom_rl.environments import Environment, MDPInfo
 from mushroom_rl.utils.spaces import Box
 import glfw
 
+
 class ObservationType(Enum):
     """
     An enum indicating the type of data that should be added to the observation
@@ -66,28 +67,27 @@ class MuJoCo(Environment):
                 a list of geom names in the XML specification.
         """
         # Create the simulation
-        self.sim = mujoco_py.MjSim(mujoco_py.load_model_from_path(file_name),
-                                   nsubsteps=n_substeps)
+        self._sim = self._load_simulation(file_name, n_substeps)
 
-        self.n_intermediate_steps = n_intermediate_steps
-        self.viewer = None
+        self._n_intermediate_steps = n_intermediate_steps
+        self._viewer = None
         self._state = None
 
         # Read the actuation spec and build the mapping between actions and ids
         # as well as their limits
         if len(actuation_spec) == 0:
-            self.action_indices = [i for i in range(0, len(self.sim.model._actuator_name2id))]
+            self._action_indices = [i for i in range(0, len(self._sim.model._actuator_name2id))]
         else:
-            self.action_indices = []
+            self._action_indices = []
             for name in actuation_spec:
-                self.action_indices.append(self.sim.model._actuator_name2id[name])
+                self._action_indices.append(self._sim.model._actuator_name2id[name])
 
         low = []
         high = []
-        for index in self.action_indices:
-            if self.sim.model.actuator_ctrllimited[index]:
-                low.append(self.sim.model.actuator_ctrlrange[index][0])
-                high.append(self.sim.model.actuator_ctrlrange[index][1])
+        for index in self._action_indices:
+            if self._sim.model.actuator_ctrllimited[index]:
+                low.append(self._sim.model.actuator_ctrlrange[index][0])
+                high.append(self._sim.model.actuator_ctrlrange[index][1])
             else:
                 low.append(-np.inf)
                 high.append(np.inf)
@@ -99,16 +99,16 @@ class MuJoCo(Environment):
             raise AttributeError("No Environment observations were specified. "
                                  "Add at least one observation to the observation_spec.")
         else:
-            self.observation_map = observation_spec
+            self._observation_map = observation_spec
 
         # We can only specify limits for the joint positions, all other
         # information can be potentially unbounded
         low = []
         high = []
-        for name, ot in self.observation_map:
-            obs_count = len(self._observation_map(name, ot))
+        for name, ot in self._observation_map:
+            obs_count = len(self._get_observation(name, ot))
             if obs_count == 1 and ot == ObservationType.JOINT_POS:
-                joint_range = self.sim.model.jnt_range[self.sim.model._joint_name2id[name]]
+                joint_range = self._sim.model.jnt_range[self._sim.model._joint_name2id[name]]
                 if not(joint_range[0] == joint_range[1] == 0.0):
                     low.append(joint_range[0])
                     high.append(joint_range[1])
@@ -123,14 +123,15 @@ class MuJoCo(Environment):
         # Pre-process the additional data to allow easier writing and reading
         # to and from arrays in MuJoCo
         self.additional_data = {}
-        for key, name, ot in additional_data_spec:
-            self.additional_data[key] = (name, ot)
+        if additional_data_spec is not None:
+            for key, name, ot in additional_data_spec:
+                self.additional_data[key] = (name, ot)
 
         # Pre-process the collision groups for "fast" detection of contacts
         self.collision_groups = {}
-        if self.collision_groups is not None:
+        if collision_groups is not None:
             for name, geom_names in collision_groups:
-                self.collision_groups[name] = {self.sim.model._geom_name2id[geom_name]
+                self.collision_groups[name] = {self._sim.model._geom_name2id[geom_name]
                                                for geom_name in geom_names}
 
         # Finally, we create the MDP information and call the constructor of
@@ -142,48 +143,11 @@ class MuJoCo(Environment):
         np.random.seed(seed)
 
     def reset(self, state=None):
-        mj_fun.mj_resetData(self.sim.model, self.sim.data)
-        self.setup()
+        mj_fun.mj_resetData(self._sim.model, self._sim.data)
+        self._setup()
 
         self._state = self._create_observation()
         return self._state
-
-    def render(self):
-        if self.viewer is None:
-            self.viewer = mujoco_py.MjViewer(self.sim)
-
-        self.viewer.render()
-
-    def stop(self):
-        if self.viewer is not None:
-            v = self.viewer
-            self.viewer = None
-            glfw.destroy_window(v.window)
-            del v
-
-    def _observation_map(self, name, otype):
-        if otype == ObservationType.BODY_POS:
-            data = self.sim.data.get_body_xpos(name)
-        elif otype == ObservationType.BODY_VEL:
-            data = self.sim.data.get_body_xvelp(name)
-        elif otype == ObservationType.JOINT_POS:
-            data = self.sim.data.get_joint_qpos(name)
-        elif otype == ObservationType.JOINT_VEL:
-            data = self.sim.data.get_joint_qvel(name)
-        elif otype == ObservationType.SITE_POS:
-            data = self.sim.data.get_site_xpos(name)
-        else:
-            data = self.sim.data.get_site_xvelp(name)
-
-        if hasattr(data, "__len__"):
-            return data
-        else:
-            return [data]
-
-    def _create_observation(self):
-        data_obs = [self._observation_map(name, ot)
-                    for name, ot in self.observation_map]
-        return np.concatenate(data_obs)
 
     def step(self, action):
         cur_obs = self._state
@@ -192,14 +156,14 @@ class MuJoCo(Environment):
 
         self._step_init(cur_obs, action)
 
-        for i in range(self.n_intermediate_steps):
+        for i in range(self._n_intermediate_steps):
 
             ctrl_action = self._compute_action(action)
-            self.sim.data.ctrl[self.action_indices] = ctrl_action
+            self._sim.data.ctrl[self._action_indices] = ctrl_action
 
             self._simulation_pre_step()
 
-            self.sim.step()
+            self._sim.step()
 
             self._simulation_post_step()
 
@@ -207,9 +171,48 @@ class MuJoCo(Environment):
 
         self._step_finalize()
 
-        reward = self.reward(cur_obs, action, self._state)
+        reward = self._reward(cur_obs, action, self._state)
 
-        return self._state, reward, self.is_absorbing(self._state), {}
+        return self._state, reward, self._is_absorbing(self._state), {}
+
+    def render(self):
+        if self._viewer is None:
+            self._viewer = mujoco_py.MjViewer(self._sim)
+
+        self._viewer.render()
+
+    def stop(self):
+        if self._viewer is not None:
+            v = self._viewer
+            self._viewer = None
+            glfw.destroy_window(v.window)
+            del v
+
+    def _get_observation(self, name, otype):
+        if otype == ObservationType.BODY_POS:
+            data = self._sim.data.get_body_xpos(name)
+        elif otype == ObservationType.BODY_VEL:
+            data = self._sim.data.get_body_xvelp(name)
+        elif otype == ObservationType.JOINT_POS:
+            data = self._sim.data.get_joint_qpos(name)
+        elif otype == ObservationType.JOINT_VEL:
+            data = self._sim.data.get_joint_qvel(name)
+        elif otype == ObservationType.SITE_POS:
+            data = self._sim.data.get_site_xpos(name)
+        elif otype == ObservationType.SITE_VEL:
+            data = self._sim.data.get_site_xvelp(name)
+        else:
+            raise ValueError('Invalid observation type')
+
+        if hasattr(data, "__len__"):
+            return data
+        else:
+            return [data]
+
+    def _create_observation(self):
+        data_obs = [self._get_observation(name, ot)
+                    for name, ot in self._observation_map]
+        return np.concatenate(data_obs)
 
     def _preprocess_action(self, action):
         """
@@ -273,7 +276,7 @@ class MuJoCo(Environment):
         """
         pass
 
-    def read_data(self, name):
+    def _read_data(self, name):
         """
         Read data form the MuJoCo data structure.
 
@@ -286,9 +289,9 @@ class MuJoCo(Environment):
 
         """
         data_id, otype = self.additional_data[name]
-        return np.array(self._observation_map(data_id, otype))
+        return np.array(self._get_observation(data_id, otype))
 
-    def write_data(self, name, value):
+    def _write_data(self, name, value):
         """
         Write data to the MuJoCo data structure.
 
@@ -302,14 +305,14 @@ class MuJoCo(Environment):
         data_id, otype = self.additional_data[name]
 
         if otype == ObservationType.JOINT_POS:
-            self.sim.data.set_joint_qpos(data_id, value)
+            self._sim.data.set_joint_qpos(data_id, value)
         elif otype == ObservationType.JOINT_VEL:
-            self.sim.data.set_joint_qvel(data_id, value)
+            self._sim.data.set_joint_qvel(data_id, value)
         else:
-            data_buffer = self._observation_map(data_id, otype)
+            data_buffer = self._get_observation(data_id, otype)
             data_buffer[:] = value
 
-    def check_collision(self, group1, group2):
+    def _check_collision(self, group1, group2):
         """
         Check for collision between the specified groups.
 
@@ -327,8 +330,8 @@ class MuJoCo(Environment):
         ids1 = self.collision_groups[group1]
         ids2 = self.collision_groups[group2]
 
-        for coni in range(0, self.sim.data.ncon):
-            con = self.sim.data.contact[coni]
+        for coni in range(0, self._sim.data.ncon):
+            con = self._sim.data.contact[coni]
 
             collision = con.geom1 in ids1 and con.geom2 in ids2
             collision_trans = con.geom1 in ids2 and con.geom2 in ids1
@@ -337,7 +340,7 @@ class MuJoCo(Environment):
                 return True
         return False
 
-    def get_collision_force(self, group1, group2):
+    def _get_collision_force(self, group1, group2):
         """
         Returns the collision force and torques between the specified groups.
 
@@ -357,19 +360,19 @@ class MuJoCo(Environment):
         ids2 = self.collision_groups[group2]
 
         c_array = np.zeros(6, dtype=np.float64)
-        for con_i in range(0, self.sim.data.ncon):
-            con = self.sim.data.contact[con_i]
+        for con_i in range(0, self._sim.data.ncon):
+            con = self._sim.data.contact[con_i]
 
             if (con.geom1 in ids1 and con.geom2 in ids2 or
                con.geom1 in ids2 and con.geom2 in ids1):
 
-                mujoco_py.functions.mj_contactForce(self.sim.model, self.sim.data,
+                mujoco_py.functions.mj_contactForce(self._sim.model, self._sim.data,
                                                     con_i, c_array)
                 return c_array
 
         return c_array
 
-    def reward(self, state, action, next_state):
+    def _reward(self, state, action, next_state):
         """
         Compute the reward based on the given transition.
 
@@ -385,7 +388,7 @@ class MuJoCo(Environment):
         """
         raise NotImplementedError
 
-    def is_absorbing(self, state):
+    def _is_absorbing(self, state):
         """
         Check whether the given state is an absorbing state or not.
 
@@ -398,10 +401,33 @@ class MuJoCo(Environment):
         """
         raise NotImplementedError
 
-    def setup(self):
+    def _setup(self):
         """
         A function that allows to execute setup code after an environment
         reset.
 
         """
         pass
+
+    def _load_simulation(self, file_name, n_substeps):
+        """
+        Load mujoco model. Can be overridden to provide custom load functions.
+
+        Args:
+             file_name (string): The path to the XML file with which the
+                environment should be created;
+            n_substeps (int): The number of substeps to use by the MuJoCo
+                simulator. An action given by the agent will be applied for
+                n_substeps before the agent receives the next observation and
+                can act accordingly.
+
+        Returns:
+            The loaded mujoco model.
+
+        """
+        return mujoco_py.MjSim(mujoco_py.load_model_from_path(file_name),
+                               nsubsteps=n_substeps)
+
+    @property
+    def _dt(self):
+        return self._sim.model.opt.timestep
