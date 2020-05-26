@@ -49,7 +49,7 @@ def test_V_lqr():
     assert np.allclose(V_lqr, -6.3336186348534875)
 
 
-def test_V_lqg():
+def test_V_lqr_gaussian_policy():
     lqr = LQR.generate(3)
 
     K = np.array([[1.0, 0.1, 0.01],
@@ -81,7 +81,7 @@ def test_Q_lqr():
     assert np.allclose(Q_lqr, -10.83964921837036)
 
 
-def test_Q_lqg():
+def test_Q_lqr_gaussian_policy():
     lqr = LQR.generate(3)
 
     K = np.array([[1.0, 0.1, 0.01],
@@ -100,7 +100,7 @@ def test_Q_lqg():
     assert np.allclose(Q_lqg, -23.887098201718487)
 
 
-def test_Q_lqg_10dim():
+def test_Q_lqr_gaussian_policy_10dim():
     lqr = LQR.generate(10)
 
     K = np.eye(10) * 0.1
@@ -114,7 +114,7 @@ def test_Q_lqg_10dim():
     assert np.allclose(Q_lqg, -48.00590405904062)
 
 
-def test_V_gradient_lqg():
+def test_V_lqr_gaussian_policy_gradient_K():
     lqr = LQR.generate(3)
 
     K = np.array([[1.0, 0.1, 0.01],
@@ -135,7 +135,7 @@ def test_V_gradient_lqg():
     assert np.allclose(dJ, dJ_num)
 
 
-def test_V_gradient_lqg_diff_dims():
+def test_V_lqr_gaussian_policy_gradient_K_diff_dims():
 
     A = np.array([[1., 0.4],
                   [0.2, 0.8]])
@@ -165,7 +165,7 @@ def test_V_gradient_lqg_diff_dims():
     assert np.allclose(dJ, dJ_num)
 
 
-def test_Q_gradient_lqg():
+def test_Q_lqr_gaussian_policy_gradient_K():
     lqr = LQR.generate(3)
 
     K = np.array([[1.0, 0.1, 0.01],
