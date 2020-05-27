@@ -3,8 +3,9 @@ import gym
 try:
     import pybullet_envs
     import time
+    pybullet_found = True
 except ImportError:
-    pass
+    pybullet_found = False
 
 from gym import spaces as gym_spaces
 from mushroom_rl.environments import Environment, MDPInfo
@@ -30,7 +31,7 @@ class Gym(Environment):
         """
         # MDP creation
         self._close_at_stop = True
-        if '- ' + name in pybullet_envs.getList():
+        if pybullet_found and '- ' + name in pybullet_envs.getList():
             import pybullet
             pybullet.connect(pybullet.DIRECT)
             self._close_at_stop = False
