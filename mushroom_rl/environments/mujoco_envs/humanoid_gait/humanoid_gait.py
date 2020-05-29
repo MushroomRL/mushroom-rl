@@ -34,16 +34,18 @@ class HumanoidGait(MuJoCo):
                 for actions. If not apply torques directly to the joints;
             goal_reward (string, None): type of trajectory used for training
                 Options available:
-                    'trajectory'  - Use trajectory in assets/GaitTrajectory.npz
-                                    as reference;
-                    'vel_profile' - Velocity goal for the center of mass of the
-                                    model to follow. The goal is given by a
-                                    VelocityProfile instance (or subclass).
-                                    And should be included in the
-                                    ``goal_reward_params``;
-                    'max_vel'     - Tries to achieve the maximum possible
-                                    velocity;
-                    None          - Follows no goal(just tries to survive);
+                    'trajectory'               - Use trajectory in assets/GaitTrajectory.npz
+                                                 as reference;
+                    'pure_velocity_trajectory' - Use only velocity trajectory of COM in
+                                                 assets/GaitTrajectory.npz as reference;
+                    'vel_profile'              - Velocity goal for the center of mass of the
+                                                 model to follow. The goal is given by a
+                                                 VelocityProfile instance (or subclass).
+                                                 And should be included in the
+                                                 ``goal_reward_params``;
+                    'max_vel'                  - Tries to achieve the maximum possible
+                                                 velocity;
+                    None                       - Follows no goal(just tries to survive);
             goal_reward_params (dict, None): params needed for creation goal
                 reward;
             obs_avg_window (int, 1): size of window used to average
@@ -114,7 +116,7 @@ class HumanoidGait(MuJoCo):
         if goal_reward_params is None:
             goal_reward_params = dict()
 
-        if goal_reward == "trajectory":
+        if goal_reward == "full_trajectory" or goal_reward == "pure_velocity_trajectory":
             control_dt = self.sim.model.opt.timestep * self.n_intermediate_steps
             self.goal_reward = CompleteTrajectoryReward(self.sim, control_dt,
                                                         **goal_reward_params)
@@ -128,10 +130,14 @@ class HumanoidGait(MuJoCo):
             raise NotImplementedError("The specified goal reward has not been"
                                       "implemented: ", goal_reward)
 
-        if isinstance(self.goal_reward, HumanoidTrajectory):
+        if goal_reward == "full_trajectory":
             self.reward_weights = dict(live_reward=0.10, goal_reward=0.40,
                                        traj_vel_reward=0.50,
                                        move_cost=0.10, fall_cost=0.00)
+        elif goal_reward == "pure_velocity_trajectory":
+            self.reward_weights = dict(live_reward=0.00, goal_reward=0.00,
+                                       traj_vel_reward=1.00,
+                                       move_cost=0.00, fall_cost=0.00)
         else:
             self.reward_weights = dict(live_reward=0.10, goal_reward=0.90,
                                        traj_vel_reward=0.00,
