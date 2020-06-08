@@ -10,12 +10,12 @@ class CMAC(LinearApproximator):
 
 
     """
-    def __init__(self, tiles, weights=None, output_shape=(1,), **kwargs):
+    def __init__(self, tilings, weights=None, output_shape=(1,), **kwargs):
         """
         Constructor.
 
         Args:
-            tiles (list): list of tilings to discretize the input space.
+            tilings (list): list of tilings to discretize the input space.
             weights (np.ndarray): array of weights to initialize the weights
                 of the approximator;
             input_shape (np.ndarray, None): the shape of the input of the
@@ -25,8 +25,8 @@ class CMAC(LinearApproximator):
             **kwargs: other params of the approximator.
 
         """
-        self._phi = Features(tilings=tiles)
-        self._n = len(tiles)
+        self._phi = Features(tilings=tilings)
+        self._n = len(tilings)
 
         super().__init__(weights=weights, input_shape=(self._phi.size,), output_shape=output_shape)
 

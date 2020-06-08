@@ -16,9 +16,9 @@ def test_cmac_approximator():
 
     y = np.array([np.sin(x.dot(k1)*2*np.pi), np.sin(x.dot(k2)*2*np.pi)]).T
 
-    tiles = Tiles.generate(10, [10, 10], np.zeros(2), np.ones(2))
+    tilings = Tiles.generate(10, [10, 10], np.zeros(2), np.ones(2))
     approximator = Regressor(CMAC,
-                             tiles=tiles,
+                             tilings=tilings,
                              input_shape=(2,),
                              output_shape=(2,))
 
@@ -56,9 +56,9 @@ def test_cmac_approximator():
     a = np.random.randint(n_actions, size=(1000, 1))
     q = np.random.rand(1000)
 
-    tiles = Tiles.generate(10, [10, 10, 10], np.zeros(3), np.ones(3))
+    tilings = Tiles.generate(10, [10, 10, 10], np.zeros(3), np.ones(3))
     approximator = Regressor(CMAC,
-                             tiles=tiles,
+                             tilings=tilings,
                              input_shape=(3,),
                              n_actions=n_actions,
                              n_models=5)
@@ -86,9 +86,9 @@ def test_cmac_approximator():
 
 
     # Q Regressor
-    tiles = Tiles.generate(10, [10, 10, 10], np.zeros(3), np.ones(3))
+    tilings = Tiles.generate(10, [10, 10, 10], np.zeros(3), np.ones(3))
     approximator = Regressor(CMAC,
-                             tiles=tiles,
+                             tilings=tilings,
                              input_shape=(3,),
                              n_actions=n_actions)
 
