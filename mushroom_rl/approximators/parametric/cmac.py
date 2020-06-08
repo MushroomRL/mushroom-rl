@@ -1,10 +1,10 @@
 import numpy as np
 
-from mushroom_rl.core import Serializable
+from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.features import Features
 
 
-class CMAC(Serializable):
+class CMAC(LinearApproximator):
     """
     This class implements a Cerebellar Model Arithmetic Computer.
 
@@ -25,20 +25,12 @@ class CMAC(Serializable):
             **kwargs: other params of the approximator.
 
         """
-        assert len(output_shape) == 1
-
-        output_dim = output_shape[0]
-
         self._phi = Features(tilings=tiles)
         self._n = len(tiles)
 
-        if weights is not None:
-            assert weights.size == output_dim * self._phi.size
-            self._w = weights.reshape((output_dim, -1))
-        else:
-            self._w = np.zeros((output_dim, self._phi.size))
+        super().__init__(weights=weights, input_shape=(self._phi.size,), output_shape=output_shape)
 
-        self._add_save_attr(_w='numpy', _phi='pickle')
+        self._add_save_attr(_phi='pickle')
 
     def fit(self, x, y, **fit_params):
         """
@@ -85,35 +77,6 @@ class CMAC(Serializable):
 
         return prediction
 
-    @property
-    def weights_size(self):
-        """
-        Returns:
-            The size of the array of weights.
-
-        """
-        return self._w.size
-
-    def get_weights(self):
-        """
-        Getter.
-
-        Returns:
-            The set of weights of the approximator.
-
-        """
-        return self._w.flatten()
-
-    def set_weights(self, w):
-        """
-        Setter.
-
-        Args:
-            w (np.ndarray): the set of weights to set.
-
-        """
-        self._w = w.reshape(self._w.shape)
-
     def diff(self, state, action=None):
         """
         Compute the derivative of the output w.r.t. ``state``, and ``action``
@@ -128,27 +91,6 @@ class CMAC(Serializable):
             if provided.
 
         """
+
         phi = self._phi(state)
-        if len(self._w.shape) == 1 or self._w.shape[0] == 1:
-            return phi
-        else:
-            n_phi = self._w.shape[1]
-            n_outs = self._w.shape[0]
-
-            if action is None:
-                shape = (n_phi * n_outs, n_outs)
-                df = np.zeros(shape)
-                start = 0
-                for i in range(n_outs):
-                    stop = start + n_phi
-                    df[start:stop, i] = phi
-                    start = stop
-            else:
-                shape = (n_phi * n_outs)
-                df = np.zeros(shape)
-                start = action[0] * n_phi
-                stop = start + n_phi
-                df[start:stop] = phi
-
-            return df
-
+        return super().diff(phi, action)
