@@ -58,17 +58,18 @@ class Gym(Environment):
 
     def reset(self, state=None):
         if state is None:
-            return self.env.reset()
+            return np.atleast_1d(self.env.reset())
         else:
             self.env.reset()
             self.env.state = state
 
-            return state
+            return np.atleast_1d(state)
 
     def step(self, action):
         action = self._convert_action(action)
+        obs, reward, absorbing, info = self.env.step(action)
 
-        return self.env.step(action)
+        return np.atleast_1d(obs), reward, absorbing, info
 
     def render(self, mode='human'):
         self.env.render(mode=mode)
