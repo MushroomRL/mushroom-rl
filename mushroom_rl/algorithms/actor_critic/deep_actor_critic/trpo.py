@@ -52,7 +52,7 @@ class TRPO(Agent):
                 of the critic approximator.
 
         """
-        self._critic_fit_params = dict(n_epochs=3) if critic_fit_params is None else critic_fit_params
+        self._critic_fit_params = dict(n_epochs=5) if critic_fit_params is None else critic_fit_params
 
         self._n_epochs_line_search = n_epochs_line_search
         self._n_epochs_cg = n_epochs_cg
