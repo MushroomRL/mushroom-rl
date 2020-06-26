@@ -191,7 +191,7 @@ class TRPO(Agent):
             new_loss = self._compute_loss(obs, act, adv, old_log_prob)
             kl = self._compute_kl(obs, old_pol_dist)
             improve = new_loss - prev_loss
-            if kl <= self._max_kl * 1.5 or improve >= 0:
+            if kl <= self._max_kl * 1.5 and improve >= 0:
                 violation = False
                 break
             stepsize *= .5
