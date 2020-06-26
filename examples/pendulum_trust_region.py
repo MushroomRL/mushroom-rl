@@ -50,8 +50,8 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': 3e-4}},
                          loss=F.mse_loss,
-                         n_features=64,
-                         batch_size=32,
+                         n_features=32,
+                         batch_size=64,
                          input_shape=mdp.info.observation_space.shape,
                          output_shape=(1,))
 
@@ -98,7 +98,7 @@ if __name__ == '__main__':
 
     policy_params = dict(
         std_0=1.,
-        n_features=64,
+        n_features=32,
         use_cuda=torch.cuda.is_available()
 
     )
