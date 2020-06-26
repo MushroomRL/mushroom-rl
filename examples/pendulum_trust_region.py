@@ -51,7 +51,7 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
                                     'params': {'lr': 3e-4}},
                          loss=F.mse_loss,
                          n_features=64,
-                         batch_size=64,
+                         batch_size=32,
                          input_shape=mdp.info.observation_space.shape,
                          output_shape=(1,))
 
@@ -118,7 +118,7 @@ if __name__ == '__main__':
                        n_epochs_cg=100,
                        cg_damping=1e-2,
                        cg_residual_tol=1e-10,
-                       quiet=False)
+                       quiet=True)
 
     algs_params = [
         (TRPO, 'trpo', trpo_params),
