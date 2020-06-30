@@ -32,26 +32,31 @@ class CMAC(LinearApproximator):
 
         self._add_save_attr(_phi='pickle')
 
-    def fit(self, x, y, **fit_params):
+    def fit(self, x, y, alpha=1.0, **kwargs):
         """
         Fit the model.
 
         Args:
             x (np.ndarray): input;
             y (np.ndarray): target;
-            **fit_params: other parameters used by the fit method of the
+            alpha (float): learning rate;
+            **kwargs: other parameters used by the fit method of the
                 regressor.
 
         """
         y_hat = self.predict(x)
-        delta_y = np.atleast_2d(y - y_hat).T
+        delta_y = np.atleast_2d(y - y_hat)
+        if self._w.shape[0] > 1:
+            delta_y = delta_y.T
+
         phi = np.atleast_2d(self._phi(x))
-        delta_w = np.empty_like(self._w)
-        for i in range(self._w.shape[0]):
-            sum_phi = np.sum(phi, axis=0)
-            sum_phi[sum_phi == 0] = 1.
-            delta_w[i] = delta_y[i] @ phi / self._n / sum_phi
-        self._w += delta_w
+        sum_phi = np.sum(phi, axis=0)
+        n = np.sum(phi, axis=1, keepdims=True)
+        phi_n = phi / n
+        sum_phi[sum_phi == 0] = 1.
+
+        delta_w = delta_y @ phi_n / sum_phi
+        self._w += alpha*delta_w
 
     def predict(self, x, **predict_params):
         """
@@ -75,7 +80,7 @@ class CMAC(LinearApproximator):
         for i, idx in enumerate(indexes):
             prediction[i] = np.sum(self._w[:, idx], axis=-1)
 
-        return prediction
+        return prediction.squeeze()
 
     def diff(self, state, action=None):
         """
