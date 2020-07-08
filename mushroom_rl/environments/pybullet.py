@@ -94,7 +94,7 @@ class PyBullet(Environment):
         self._n_intermediate_steps = n_intermediate_steps
 
         # Create the simulation and viewer
-        pybullet.connect(pybullet.DIRECT)
+        pybullet.connect(pybullet.GUI)
         pybullet.setTimeStep(self._timestep)
         pybullet.setGravity(0, 0, -9.81)
         pybullet.setAdditionalSearchPath(pybullet_data.getDataPath())
@@ -115,9 +115,10 @@ class PyBullet(Environment):
         for model_id in self._model_map.values():
             for joint_id in range(pybullet.getNumJoints(model_id)):
                 joint_data = pybullet.getJointInfo(model_id, joint_id)
-                joint_name = joint_data[1].decode('UTF-8')
+                if joint_data[2] != pybullet.JOINT_FIXED:
+                    joint_name = joint_data[1].decode('UTF-8')
+                    self._joint_map[joint_name] = (model_id, joint_id)
                 link_name = joint_data[12].decode('UTF-8')
-                self._joint_map[joint_name] = (model_id, joint_id)
                 self._link_map[link_name] = (model_id, joint_id)
 
         # Read the actuation spec and build the mapping between actions and ids
