@@ -94,7 +94,7 @@ class PyBullet(Environment):
         self._n_intermediate_steps = n_intermediate_steps
 
         # Create the simulation and viewer
-        pybullet.connect(pybullet.GUI)
+        pybullet.connect(pybullet.DIRECT)
         pybullet.setTimeStep(self._timestep)
         pybullet.setGravity(0, 0, -9.81)
         pybullet.setAdditionalSearchPath(pybullet_data.getDataPath())
