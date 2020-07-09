@@ -47,6 +47,16 @@ class Distribution(Serializable):
         """
         raise NotImplementedError
 
+    def entropy(self):
+        """
+        Compute the entropy of the distribution.
+
+        Returns:
+            The value of the entropy of the distribution.
+
+        """
+        raise NotImplementedError
+
     def mle(self, theta, weights=None):
         """
         Compute the (weighted) maximum likelihood estimate of the points,

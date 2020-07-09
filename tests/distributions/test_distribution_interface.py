@@ -16,6 +16,7 @@ def test_distribution_interface():
     abstract_method_tester(tmp.sample)
     abstract_method_tester(tmp.log_pdf, None)
     abstract_method_tester(tmp.__call__, None)
+    abstract_method_tester(tmp.entropy)
     abstract_method_tester(tmp.mle, None)
     abstract_method_tester(tmp.diff_log, None)
     abstract_method_tester(tmp.diff, None)
