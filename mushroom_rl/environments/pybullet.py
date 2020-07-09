@@ -292,9 +292,9 @@ class PyBullet(Environment):
         for model_id, joint_id, mode in self._action_data:
             u = action[i]
             if mode is pybullet.POSITION_CONTROL:
-                kwargs = dict(targetPosition=u)
+                kwargs = dict(targetPosition=u, force=pybullet.getJointInfo(model_id, joint_id)[10])
             elif mode is pybullet.VELOCITY_CONTROL:
-                kwargs = dict(targetVelocity=u)
+                kwargs = dict(targetVelocity=u, force=pybullet.getJointInfo(model_id, joint_id)[10])
             elif mode is pybullet.TORQUE_CONTROL:
                 kwargs = dict(force=u)
             else:
