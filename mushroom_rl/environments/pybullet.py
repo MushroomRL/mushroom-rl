@@ -66,8 +66,8 @@ class PyBullet(Environment):
     Class to create a Mushroom environment using the PyBullet simulator.
 
     """
-    def __init__(self, files, actuation_spec, control_mode, observation_spec, gamma,
-                 horizon, timestep=1/240, n_intermediate_steps=1):
+    def __init__(self, files, actuation_spec, observation_spec, gamma,
+                 horizon, timestep=1/240, n_intermediate_steps=1, debug_gui=False):
         """
         Constructor.
 
@@ -94,7 +94,10 @@ class PyBullet(Environment):
         self._n_intermediate_steps = n_intermediate_steps
 
         # Create the simulation and viewer
-        pybullet.connect(pybullet.DIRECT)
+        if debug_gui:
+            pybullet.connect(pybullet.GUI)
+        else:
+            pybullet.connect(pybullet.DIRECT)
         pybullet.setTimeStep(self._timestep)
         pybullet.setGravity(0, 0, -9.81)
         pybullet.setAdditionalSearchPath(pybullet_data.getDataPath())
