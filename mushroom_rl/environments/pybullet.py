@@ -107,8 +107,8 @@ class PyBullet(Environment):
 
         # Load model and create access maps
         self._model_map = dict()
-        for file_name in files:
-            model_id = pybullet.loadURDF(file_name, flags=pybullet.URDF_USE_IMPLICIT_CYLINDER)
+        for file_name, kwargs in files.items():
+            model_id = pybullet.loadURDF(file_name, **kwargs)
             model_name = pybullet.getBodyInfo(model_id)[1].decode('UTF-8')
             self._model_map[model_name] = model_id
         self._model_map.update(self._custom_load_models())
@@ -296,10 +296,8 @@ class PyBullet(Environment):
             u = action[i]
             if mode is pybullet.POSITION_CONTROL:
                 kwargs = dict(targetPosition=u, maxVelocity=pybullet.getJointInfo(model_id, joint_id)[11])
-                # kwargs = dict(targetPosition=u, force=pybullet.getJointInfo(model_id, joint_id)[10])
             elif mode is pybullet.VELOCITY_CONTROL:
                 kwargs = dict(targetVelocity=u, maxVelocity=pybullet.getJointInfo(model_id, joint_id)[11])
-                # kwargs = dict(targetVelocity=u, force=pybullet.getJointInfo(model_id, joint_id)[10])
             elif mode is pybullet.TORQUE_CONTROL:
                 kwargs = dict(force=u)
             else:
