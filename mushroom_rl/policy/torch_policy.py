@@ -105,7 +105,7 @@ class TorchPolicy(Policy):
         """
         raise NotImplementedError
 
-    def entropy_t(self, state=None):
+    def entropy_t(self, state):
         """
         Compute the entropy of the policy.
 
@@ -249,3 +249,66 @@ class GaussianTorchPolicy(TorchPolicy):
 
     def parameters(self):
         return chain(self._mu.model.network.parameters(), [self._log_sigma])
+
+
+class BoltzmannTorchPolicy(TorchPolicy):
+    """
+    Torch policy implementing a Boltzmann policy.
+
+    """
+    def __init__(self, network, input_shape, output_shape, beta, use_cuda=False, **params):
+        """
+        Constructor.
+
+        Args:
+            network (object): the network class used to implement the mean
+                regressor;
+            input_shape (tuple): the shape of the state space;
+            output_shape (tuple): the shape of the action space;
+            beta (Parameter): the inverse of the temperature distribution. As
+                the temperature approaches infinity, the policy becomes more and
+                more random. As the temperature approaches 0.0, the policy becomes
+                more and more greedy.
+            params (dict): parameters used by the network constructor.
+
+        """
+        super().__init__(use_cuda)
+
+        self._action_dim = output_shape[0]
+
+        self._logits = Regressor(TorchApproximator, input_shape, output_shape,
+                                 network=network, use_cuda=use_cuda, **params)
+        self._beta = beta
+
+        self._add_save_attr(
+            _action_dim='primitive',
+            _beta='pickle',
+            _logits='mushroom'
+        )
+
+    def draw_action_t(self, state):
+        action = self.distribution_t(state).sample().detach()
+        #print(action)
+        if len(action.shape) > 1:
+            return action
+        else:
+            return action.unsqueeze(0)
+
+    def log_prob_t(self, state, action):
+        return self.distribution_t(state).log_prob(action.squeeze())[:, None]
+
+    def entropy_t(self, state):
+        return torch.mean(self.distribution_t(state).entropy())
+
+    def distribution_t(self, state):
+        logits = self._logits(state, output_tensor=True) * self._beta(state.numpy())
+        return torch.distributions.Categorical(logits=logits)
+
+    def set_weights(self, weights):
+        self._logits.set_weights(weights)
+
+    def get_weights(self):
+        return self._logits.get_weights()
+
+    def parameters(self):
+        return self._logits.model.network.parameters()

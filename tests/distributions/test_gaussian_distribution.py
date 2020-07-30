@@ -37,7 +37,7 @@ def test_gaussian():
     assert np.array_equal(dist.get_parameters(), weights.dot(theta) / np.sum(weights))
 
     entropy = dist.entropy()
-    assert entropy == 4.749208309037535
+    assert entropy == 4.74920830903762
 
 
 def test_diagonal_gaussian():
