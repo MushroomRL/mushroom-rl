@@ -1,4 +1,5 @@
 import gym
+from gym import spaces as gym_spaces
 
 try:
     import pybullet_envs
@@ -7,9 +8,10 @@ try:
 except ImportError:
     pybullet_found = False
 
-from gym import spaces as gym_spaces
 from mushroom_rl.environments import Environment, MDPInfo
 from mushroom_rl.utils.spaces import *
+
+gym.logger.set_level(40)
 
 
 class Gym(Environment):

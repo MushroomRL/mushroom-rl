@@ -50,8 +50,8 @@ def test_V():
     V_lqr = compute_lqr_V(x, lqr, K)
     V_lqg = compute_lqg_V(x, lqr, K, Sigma)
 
-    assert V_lqr == -6.3336186348534875
-    assert V_lqg == -28.16442629606497
+    assert np.isclose(V_lqr, -6.3336186348534875)
+    assert np.isclose(V_lqg, -28.16442629606497)
 
 
 def test_gradient():
