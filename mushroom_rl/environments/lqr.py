@@ -95,15 +95,6 @@ class LQR(Environment):
         """
         assert dimensions != None or (s_dim != None and a_dim != None)
 
-        # A = np.eye(dimensions)
-        # B = np.eye(dimensions)
-        # Q = eps * np.eye(dimensions) * scale
-        # R = (1. - eps) * np.eye(dimensions) * scale
-        #
-        # Q[index, index] = (1. - eps) * scale
-        # R[index, index] = eps * scale
-
-
         if s_dim == None or a_dim == None:
             s_dim = dimensions
             a_dim = dimensions

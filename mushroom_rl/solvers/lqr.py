@@ -2,25 +2,28 @@ import numpy as np
 from sklearn.metrics import pairwise_distances
 
 """
-Collection of functions to compute the optimal Policy, the state Value Function V, the state-action Value Function Q,
-the gradient of V and Q, ..., of: 
-    - Infinite horizon, dicounted, discrete-time LQR, with policy a=-Ks
-    - Infinite horizon, dicounted, discrete-time LQR, with policy a=Gaussian(-Ks, Sigma)
+Collection of functions to compute LQR related quantities such as the optimal policy, the value function V,
+    the gradient of V wrt the policy parameters, ... 
 
-Note that all functions are derived with a=-Ks (instead of a=Ks).
+LQRs:
+    - Infinite horizon, Discounted, Discrete-time
+
+Policies: 
+    - Deterministic, a=-Ks
+    - Stochastic (Gaussian), a=Gaussian(-Ks, Sigma)
 
 """
 
-def solve_lqr_linear(lqr, max_iterations=100):
+def compute_lqr_feedback_gain(lqr, max_iterations=100):
     """
-    Computes the optimal controller K.
+    Computes the optimal gain matrix K.
 
     Args:
         lqr (LQR): LQR environment
         max_iterations (int): max iterations for convergence
 
     Returns:
-        The feedback gain matrix K
+        Feedback gain matrix K
 
     """
     A, B, Q, R, gamma = _parse_lqr(lqr)
@@ -40,7 +43,7 @@ def solve_lqr_linear(lqr, max_iterations=100):
 
 def compute_lqr_P(lqr, K):
     """
-    Computes the P matrix for a given policy K.
+    Computes the P matrix for a given gain matrix K.
     The value function is the result of V(s) = -s.T @ P @ s
 
     Args:
@@ -62,7 +65,7 @@ def compute_lqr_P(lqr, K):
 
 def compute_lqr_V(s, lqr, K):
     """
-    Computes the value function at a state x, with the given controller matrix K.
+    Computes the value function at a state s, with the given gain matrix K.
 
     Args:
         s (np.ndarray): state
@@ -83,7 +86,7 @@ def compute_lqr_V(s, lqr, K):
 
 def compute_lqr_V_gaussian_policy(s, lqr, K, Sigma):
     """
-    Computes the value function at a state x, with the given controller matrix K and covariance Sigma.
+    Computes the value function at a state s, with the given gain matrix K and covariance Sigma.
 
     Args:
         s (np.ndarray): state
@@ -101,8 +104,8 @@ def compute_lqr_V_gaussian_policy(s, lqr, K, Sigma):
 
 def compute_lqr_Q(s, a, lqr, K):
     """
-    Computes the state-action value function Q at a state-action pair x,
-    with the given controller matrix K.
+    Computes the state-action value function Q at a state-action pair (s, a),
+    with the given gain matrix K.
 
     Args:
         s (np.ndarray): state
@@ -127,8 +130,8 @@ def compute_lqr_Q(s, a, lqr, K):
 
 def compute_lqr_Q_gaussian_policy(s, a, lqr, K, Sigma):
     """
-    Computes the state-action value function Q at a state-action pair x,
-    with the given controller matrix K and covariance Sigma.
+    Computes the state-action value function Q at a state-action pair (s, a),
+    with the given gain matrix K and covariance Sigma.
 
     Args:
         s (np.ndarray): state
@@ -138,7 +141,7 @@ def compute_lqr_Q_gaussian_policy(s, a, lqr, K, Sigma):
         Sigma (np.ndarray): covariance matrix
 
     Returns:
-        The Q function at s, a
+        The Q function at (s, a)
 
     """
     b = _compute_lqr_Q_gaussian_policy_additional_term(lqr, K, Sigma)
@@ -147,8 +150,8 @@ def compute_lqr_Q_gaussian_policy(s, a, lqr, K, Sigma):
 
 def compute_lqr_V_gaussian_policy_gradient_K(s, lqr, K, Sigma):
     """
-    Computes the gradient of the objective function J at state s, w.r.t. the controller matrix K, with the current
-    policy parameters K and Sigma.
+    Computes the gradient of the objective function J (equal to the value function V) at state s,
+    wrt the controller matrix K, with the current policy parameters K and Sigma.
     J(s, K, Sigma) = ValueFunction(s, K, Sigma)
 
     Args:
@@ -158,7 +161,7 @@ def compute_lqr_V_gaussian_policy_gradient_K(s, lqr, K, Sigma):
         Sigma (np.ndarray): covariance matrix
 
     Returns:
-        The gradient of J w.r.t. to K
+        The gradient of J wrt to K
 
     """
     if s.ndim == 1:
@@ -189,8 +192,8 @@ def compute_lqr_V_gaussian_policy_gradient_K(s, lqr, K, Sigma):
 
 def compute_lqr_Q_gaussian_policy_gradient_K(s, a, lqr, K, Sigma):
     """
-    Computes the gradient of the state-action Value function at state s and action a,
-    w.r.t. the controller matrix K, with the current policy parameters K and Sigma.
+    Computes the gradient of the state-action Value function at state-action pair (s, a),
+    wrt the controller matrix K, with the current policy parameters K and Sigma.
 
     Args:
         s (np.ndarray): state
@@ -200,7 +203,7 @@ def compute_lqr_Q_gaussian_policy_gradient_K(s, a, lqr, K, Sigma):
         Sigma (np.ndarray): covariance matrix
 
     Returns:
-        The gradient of Q w.r.t. to K
+        The gradient of Q wrt to K
 
     """
     if s.ndim == 1:
@@ -211,6 +214,7 @@ def compute_lqr_Q_gaussian_policy_gradient_K(s, a, lqr, K, Sigma):
     s_next = (lqr.A @ s.T).T + (lqr.B @ a.T).T
 
     return lqr.info.gamma * compute_lqr_V_gaussian_policy_gradient_K(s_next, lqr, K, Sigma)
+
 
 def _parse_lqr(lqr):
     return lqr.A, lqr.B, lqr.Q, lqr.R, lqr.info.gamma
@@ -259,15 +263,15 @@ def _compute_lqr_Q_matrix(lqr, K):
     return M
 
 
-def _compute_lqr_Q_gaussian_policy_additional_term(lqr, K, Sigma):
-    A, B, Q, R, gamma = _parse_lqr(lqr)
-    P = compute_lqr_P(lqr, K)
-    b = gamma/(1-gamma)*np.trace(Sigma @ (R + gamma * B.T @ P @ B))
-    return b
-
-
 def _compute_lqr_V_gaussian_policy_additional_term(lqr, K, Sigma):
     A, B, Q, R, gamma = _parse_lqr(lqr)
     P = compute_lqr_P(lqr, K)
     b = np.trace(Sigma @ (R + gamma * B.T @ P @ B)) / (1.0 - gamma)
+    return b
+
+
+def _compute_lqr_Q_gaussian_policy_additional_term(lqr, K, Sigma):
+    A, B, Q, R, gamma = _parse_lqr(lqr)
+    P = compute_lqr_P(lqr, K)
+    b = gamma/(1-gamma)*np.trace(Sigma @ (R + gamma * B.T @ P @ B))
     return b

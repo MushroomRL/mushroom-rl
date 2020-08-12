@@ -1,6 +1,3 @@
-import numpy as np
-from numpy.testing import assert_almost_equal
-
 from mushroom_rl.environments import LQR
 from mushroom_rl.solvers.lqr import *
 from mushroom_rl.utils.numerical_gradient import numerical_diff_function
@@ -9,7 +6,7 @@ from mushroom_rl.utils.numerical_gradient import numerical_diff_function
 
 def test_lqr_solver_linear():
     lqr = LQR.generate(3)
-    K = solve_lqr_linear(lqr)
+    K = compute_lqr_feedback_gain(lqr)
 
     K_test = np.array([[0.89908343, 0., 0.],
                              [0., 0.24025307, 0.],
