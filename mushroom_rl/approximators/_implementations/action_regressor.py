@@ -125,9 +125,9 @@ class ActionRegressor(Serializable):
 
             return diff
         else:
-            diff = np.zeros(len(state) * len(self.model))
             a = action[0]
-            s = len(state)
+            s = self.model[a].weights_size
+            diff = np.zeros(s * len(self.model))
             diff[s * a:s * (a + 1)] = self.model[a].diff(state)
 
             return diff

@@ -107,3 +107,19 @@ def to_float_tensor(x, use_cuda=False):
     """
     x = torch.tensor(x, dtype=torch.float)
     return x.cuda() if use_cuda else x
+
+
+def to_int_tensor(x, use_cuda=False):
+    """
+    Function used to convert a numpy array to a float torch tensor.
+
+    Args:
+        x (np.ndarray): numpy array to be converted as torch tensor;
+        use_cuda (bool): whether to build a cuda tensors or not.
+
+    Returns:
+        A float tensor build from the values contained in the input array.
+
+    """
+    x = torch.tensor(x, dtype=torch.int)
+    return x.cuda() if use_cuda else x

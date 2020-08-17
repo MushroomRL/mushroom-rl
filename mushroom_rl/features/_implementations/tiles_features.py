@@ -42,6 +42,31 @@ class TilesFeatures(FeaturesImplementation):
 
         return y
 
+    def compute_indexes(self, *args):
+        x = self._concatenate(args)
+
+        y = list()
+
+        x = np.atleast_2d(x)
+        for s in x:
+            out = list()
+
+            offset = 0
+            for tiling in self._tiles:
+                index = tiling(s)
+
+                if index is not None:
+                    out.append(index + offset)
+
+                offset += tiling.size
+
+            y.append(out)
+
+        if len(y) == 1:
+            return y[0]
+        else:
+             return y
+
     @property
     def size(self):
         return self._size

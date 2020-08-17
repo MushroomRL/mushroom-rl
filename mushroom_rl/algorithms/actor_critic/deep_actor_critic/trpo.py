@@ -52,7 +52,7 @@ class TRPO(Agent):
                 of the critic approximator.
 
         """
-        self._critic_fit_params = dict(n_epochs=3) if critic_fit_params is None else critic_fit_params
+        self._critic_fit_params = dict(n_epochs=5) if critic_fit_params is None else critic_fit_params
 
         self._n_epochs_line_search = n_epochs_line_search
         self._n_epochs_cg = n_epochs_cg
@@ -191,7 +191,7 @@ class TRPO(Agent):
             new_loss = self._compute_loss(obs, act, adv, old_log_prob)
             kl = self._compute_kl(obs, old_pol_dist)
             improve = new_loss - prev_loss
-            if kl <= self._max_kl * 1.5 or improve >= 0:
+            if kl <= self._max_kl * 1.5 and improve >= 0:
                 violation = False
                 break
             stepsize *= .5

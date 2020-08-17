@@ -1,3 +1,7 @@
+import os
+if 'PYGAME_HIDE_SUPPORT_PROMPT' not in os.environ:
+    os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+
 import pygame
 import time
 import numpy as np

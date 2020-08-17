@@ -50,7 +50,8 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': 3e-4}},
                          loss=F.mse_loss,
-                         n_features=64,
+                         n_features=32,
+                         batch_size=64,
                          input_shape=mdp.info.observation_space.shape,
                          output_shape=(1,))
 
@@ -65,6 +66,16 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
 
     core = Core(agent, mdp)
 
+    dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
+
+    J = np.mean(compute_J(dataset, mdp.info.gamma))
+    R = np.mean(compute_J(dataset))
+    E = agent.policy.entropy()
+
+    tqdm.write('END OF EPOCH 0')
+    tqdm.write('J: {}, R: {}, entropy: {}'.format(J, R, E))
+    tqdm.write('##################################################################################################')
+
     for it in trange(n_epochs):
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit)
         dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
@@ -73,7 +84,7 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
         R = np.mean(compute_J(dataset))
         E = agent.policy.entropy()
 
-        tqdm.write('END OF EPOCH ' + str(it))
+        tqdm.write('END OF EPOCH ' + str(it+1))
         tqdm.write('J: {}, R: {}, entropy: {}'.format(J, R, E))
         tqdm.write('##################################################################################################')
 
@@ -87,7 +98,7 @@ if __name__ == '__main__':
 
     policy_params = dict(
         std_0=1.,
-        n_features=64,
+        n_features=32,
         use_cuda=torch.cuda.is_available()
 
     )
@@ -101,10 +112,10 @@ if __name__ == '__main__':
                       quiet=True)
 
     trpo_params = dict(ent_coeff=0.0,
-                       max_kl=.001,
-                       lam=.98,
+                       max_kl=.01,
+                       lam=.95,
                        n_epochs_line_search=10,
-                       n_epochs_cg=10,
+                       n_epochs_cg=100,
                        cg_damping=1e-2,
                        cg_residual_tol=1e-10,
                        quiet=True)

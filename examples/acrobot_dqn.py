@@ -10,6 +10,8 @@ from mushroom_rl.approximators.parametric.torch_approximator import *
 from mushroom_rl.utils.dataset import compute_J
 from mushroom_rl.utils.parameters import Parameter, LinearParameter
 
+from tqdm import tqdm, trange
+
 
 class Network(nn.Module):
     def __init__(self, input_shape, output_shape, n_features, **kwargs):
@@ -95,14 +97,14 @@ def experiment(n_epochs, n_steps, n_steps_test):
     J = compute_J(dataset, gamma_eval)
     print('J: ', np.mean(J))
 
-    for n in range(n_epochs):
-        print('Epoch: ', n)
+    for n in trange(n_epochs):
+        tqdm.write('Epoch: ' + str(n))
         pi.set_epsilon(epsilon)
         core.learn(n_steps=n_steps, n_steps_per_fit=train_frequency)
         pi.set_epsilon(epsilon_test)
         dataset = core.evaluate(n_steps=n_steps_test, render=False)
         J = compute_J(dataset, gamma_eval)
-        print('J: ', np.mean(J))
+        tqdm.write('J: ' + str(np.mean(J)))
 
     print('Press a button to visualize acrobot')
     input()

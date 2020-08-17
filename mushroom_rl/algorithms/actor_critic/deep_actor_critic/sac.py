@@ -122,6 +122,20 @@ class SACPolicy(Policy):
         log_sigma = self._sigma_approximator.predict(state, output_tensor=True)
         return torch.distributions.Normal(mu, log_sigma.exp())
 
+    def entropy(self, state=None):
+        """
+        Compute the entropy of the policy.
+
+        Args:
+            state (np.ndarray): the set of states to consider.
+
+        Returns:
+            The value of the entropy of the policy.
+
+        """
+
+        return torch.mean(self.distribution(state).entropy()).detach().cpu().numpy().item()
+
     def reset(self):
         pass
 

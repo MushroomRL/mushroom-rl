@@ -37,6 +37,9 @@ class GaussianDistribution(Distribution):
     def __call__(self, theta):
         return multivariate_normal.pdf(theta, self._mu, self._sigma)
 
+    def entropy(self):
+        return 0.5 * np.log(np.linalg.det(2*np.pi*np.e*self._sigma))
+
     def mle(self, theta, weights=None):
         if weights is None:
             self._mu = np.mean(theta, axis=0)
@@ -96,6 +99,9 @@ class GaussianDiagonalDistribution(Distribution):
     def __call__(self, theta):
         sigma = np.diag(self._std ** 2)
         return multivariate_normal.pdf(theta, self._mu, sigma)
+
+    def entropy(self):
+        return 0.5 * np.log(np.product(2*np.pi*np.e*self._std**2))
 
     def mle(self, theta, weights=None):
         if weights is None:
@@ -182,6 +188,10 @@ class GaussianCholeskyDistribution(Distribution):
     def __call__(self, theta):
         sigma = self._chol_sigma.dot(self._chol_sigma.T)
         return multivariate_normal.pdf(theta, self._mu, sigma)
+
+    def entropy(self):
+        std = np.diag(self._chol_sigma)
+        return 0.5 * np.log(np.product(2*np.pi*np.e*std**2))
 
     def mle(self, theta, weights=None):
         if weights is None:

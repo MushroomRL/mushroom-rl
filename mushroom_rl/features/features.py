@@ -3,11 +3,11 @@ import numpy as np
 from ._implementations.basis_features import BasisFeatures
 from ._implementations.functional_features import FunctionalFeatures
 from ._implementations.tiles_features import TilesFeatures
-from ._implementations.pytorch_features import PyTorchFeatures
+from ._implementations.torch_features import TorchFeatures
 
 
 def Features(basis_list=None, tilings=None, tensor_list=None,
-             n_outputs=None, function=None, device=None):
+             n_outputs=None, function=None):
     """
     Factory method to build the requested type of features. The types are
     mutually exclusive.
@@ -35,8 +35,6 @@ def Features(basis_list=None, tilings=None, tensor_list=None,
         n_outputs (int, None): dimensionality of the feature mapping;
         function (object, None): a callable function to be used as feature
             mapping. Only needed when using a functional mapping.
-        device (int, None): where to run the group of tensors. Only
-            needed when using a list of tensors.
 
     Returns:
         The class implementing the requested type of features.
@@ -47,12 +45,13 @@ def Features(basis_list=None, tilings=None, tensor_list=None,
     elif basis_list is None and tilings is not None and tensor_list is None and n_outputs is None:
         return TilesFeatures(tilings)
     elif basis_list is None and tilings is None and tensor_list is not None and n_outputs is None:
-        return PyTorchFeatures(tensor_list, device=device)
+        return TorchFeatures(tensor_list)
     elif basis_list is None and tilings is None and tensor_list is None and n_outputs is not None:
         return FunctionalFeatures(n_outputs, function)
     else:
-        raise ValueError('You must specify a list of basis or a list of tilings'
-                         'or a list of tensors.')
+        raise ValueError('You must specify either: a list of basis, a list of tilings, '
+                         'a list of tensors or the number of outputs '
+                         '(and optionally the functionional mapping to use).')
 
 
 def get_action_features(phi_state, action, n_actions):

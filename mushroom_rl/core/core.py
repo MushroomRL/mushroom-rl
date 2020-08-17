@@ -6,7 +6,7 @@ class Core(object):
     Implements the functions to run a generic algorithm.
 
     """
-    def __init__(self, agent, mdp, callbacks_episode=None, callback_step=None,
+    def __init__(self, agent, mdp, callbacks_fit=None, callback_step=None,
                  preprocessors=None):
         """
         Constructor.
@@ -14,8 +14,8 @@ class Core(object):
         Args:
             agent (Agent): the agent moving according to a policy;
             mdp (Environment): the environment in which the agent moves;
-            callbacks_episode (list): list of callbacks to execute at the end of
-                each learn iteration;
+            callbacks_fit (list): list of callbacks to execute at the end of
+                each fit;
             callback_step (Callback): callback to execute after each step;
             preprocessors (list): list of state preprocessors to be
                 applied to state variables before feeding them to the
@@ -24,7 +24,7 @@ class Core(object):
         """
         self.agent = agent
         self.mdp = mdp
-        self.callbacks_episode = callbacks_episode if callbacks_episode is not None else list()
+        self.callbacks_fit = callbacks_fit if callbacks_fit is not None else list()
         self.callback_step = callback_step if callback_step is not None else lambda x: None
         self._preprocessors = preprocessors if preprocessors is not None else list()
 
@@ -157,7 +157,7 @@ class Core(object):
                 self._current_episodes_counter = 0
                 self._current_steps_counter = 0
 
-                for c in self.callbacks_episode:
+                for c in self.callbacks_fit:
                     c(dataset)
 
                 dataset = list()

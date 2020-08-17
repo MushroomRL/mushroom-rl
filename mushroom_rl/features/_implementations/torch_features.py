@@ -2,20 +2,20 @@ import numpy as np
 import torch
 
 from .features_implementation import FeaturesImplementation
+from mushroom_rl.utils.torch import to_float_tensor
 
 
-class PyTorchFeatures(FeaturesImplementation):
-    def __init__(self, tensor_list, device=None):
+class TorchFeatures(FeaturesImplementation):
+    def __init__(self, tensor_list):
         self._phi = tensor_list
-        self._device = device
 
     def __call__(self, *args):
         x = self._concatenate(args)
 
-        x = torch.from_numpy(np.atleast_2d(x))
+        x = to_float_tensor(np.atleast_2d(x))
 
         y_list = [self._phi[i].forward(x) for i in range(len(self._phi))]
-        y = torch.stack(y_list, dim=-1)
+        y = torch.cat(y_list, 1).squeeze()
 
         y = y.detach().numpy()
 

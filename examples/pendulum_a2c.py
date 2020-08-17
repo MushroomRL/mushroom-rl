@@ -52,10 +52,12 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit,
                                                'eps': 1e-5}},
                          loss=F.mse_loss,
                          n_features=64,
+                         batch_size=64,
                          input_shape=mdp.info.observation_space.shape,
                          output_shape=(1,))
 
     alg_params['critic_params'] = critic_params
+
 
     policy = GaussianTorchPolicy(Network,
                                  mdp.info.observation_space.shape,
@@ -100,8 +102,8 @@ if __name__ == '__main__':
         (A2C, 'a2c', a2c_params)
      ]
 
-    for alg, alg_name, alg_params in algs_params:
+    for alg, alg_name, params in algs_params:
         experiment(alg=alg, env_id='Pendulum-v0', horizon=200, gamma=.99,
                    n_epochs=40, n_steps=30000, n_steps_per_fit=5,
-                   n_step_test=5000, alg_params=alg_params,
+                   n_step_test=5000, alg_params=params,
                    policy_params=policy_params)

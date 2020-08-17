@@ -49,7 +49,7 @@ def learn(alg, alg_params):
 def test_fqi():
     params = dict(n_iterations=10)
     _, j = learn(FQI, params)
-    j_test = -0.0874123073618985
+    j_test = -0.06763797713952796
 
     assert j == j_test
 
@@ -73,7 +73,7 @@ def test_fqi_save(tmpdir):
 def test_fqi_boosted():
     params = dict(n_iterations=10, boosted=True)
     _, j = learn(FQI, params)
-    j_test = -0.09201295511778791
+    j_test = -0.04487241596542538
 
     assert j == j_test
 

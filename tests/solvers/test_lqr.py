@@ -58,7 +58,7 @@ def test_V_lqr_gaussian_policy():
 
     s = np.array([1.0, 1.3, -0.3])
     V_lqg = compute_lqr_V_gaussian_policy(s, lqr, K, Sigma)
-
+    
     assert np.allclose(V_lqg, -28.39165320182624)
 
 

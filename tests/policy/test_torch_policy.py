@@ -3,7 +3,8 @@ import torch.nn as nn
 
 import numpy as np
 
-from mushroom_rl.policy.torch_policy import TorchPolicy, GaussianTorchPolicy
+from mushroom_rl.policy.torch_policy import TorchPolicy, GaussianTorchPolicy, BoltzmannTorchPolicy
+from mushroom_rl.utils.parameters import Parameter
 
 
 def abstract_method_tester(f, *args):
@@ -73,3 +74,22 @@ def test_gaussian_torch_policy():
     assert np.allclose(entropy, entropy_test)
 
 
+def test_boltzmann_torch_policy():
+    np.random.seed(88)
+    torch.manual_seed(88)
+    beta = Parameter(1.0)
+    pi = BoltzmannTorchPolicy(Network, (3,), (2,), beta, n_features=50)
+
+    state = np.random.rand(3)
+    action = pi.draw_action(state)
+    action_test = np.array([0])
+    assert np.allclose(action, action_test)
+
+    p_sa = pi(state, action)
+    p_sa_test = 0.7594595984401512
+    assert np.allclose(p_sa, p_sa_test)
+
+    states = np.random.rand(1000, 3)
+    entropy = pi.entropy(states)
+    entropy_test = 0.5429736971855164
+    assert np.allclose(entropy, entropy_test)
