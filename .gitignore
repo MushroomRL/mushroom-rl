@@ -8,3 +8,4 @@ logs/
 *.h5
 .pytest_cache
 .coverage*
+/mushroom_rl/environments/mujoco_envs/humanoid_gait/_external_simulation/muscle_simulation_stepupdate.c
