@@ -18,3 +18,13 @@ Car-On-Hill brute-force solver
     :private-members:
     :inherited-members:
     :show-inheritance:
+
+
+LQR solver
+----------
+
+.. automodule:: mushroom_rl.solvers.lqr
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:

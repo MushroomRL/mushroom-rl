@@ -1,18 +1,6 @@
 import numpy as np
 from sklearn.metrics import pairwise_distances
 
-"""
-Collection of functions to compute LQR related quantities such as the optimal policy, the value function V,
-    the gradient of V wrt the policy parameters, ... 
-
-LQRs:
-    - Infinite horizon, Discounted, Discrete-time
-
-Policies: 
-    - Deterministic, a=-Ks
-    - Stochastic (Gaussian), a=Gaussian(-Ks, Sigma)
-
-"""
 
 def compute_lqr_feedback_gain(lqr, max_iterations=100):
     """
@@ -44,7 +32,6 @@ def compute_lqr_feedback_gain(lqr, max_iterations=100):
 def compute_lqr_P(lqr, K):
     """
     Computes the P matrix for a given gain matrix K.
-    The value function is the result of V(s) = -s.T @ P @ s
 
     Args:
         lqr (LQR): LQR environment
