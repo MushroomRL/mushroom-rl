@@ -26,7 +26,8 @@ class LQR(Environment):
 
     """
     def __init__(self, A, B, Q, R, max_pos=np.inf, max_action=np.inf,
-                 random_init=False, episodic=False, gamma=0.9, horizon=50):
+                 random_init=False, episodic=False, gamma=0.9, horizon=50,
+                 initial_state=None):
         """
         Constructor.
 
@@ -53,6 +54,8 @@ class LQR(Environment):
         self._episodic = episodic
         self.random_init = random_init
 
+        self._initial_state = initial_state
+
         # MDP properties
         high_x = self._max_pos * np.ones(A.shape[0])
         low_x = -high_x
@@ -67,15 +70,17 @@ class LQR(Environment):
         super().__init__(mdp_info)
 
     @staticmethod
-    def generate(dimensions, max_pos=np.inf, max_action=np.inf, eps=.1,
+    def generate(dimensions=None, s_dim=None, a_dim=None, max_pos=np.inf, max_action=np.inf, eps=.1,
                  index=0, scale=1.0, random_init=False, episodic=False,
-                 gamma=.9, horizon=50):
+                 gamma=.9, horizon=50, initial_state=None):
         """
         Factory method that generates an lqr with identity dynamics and
         symmetric reward matrices.
 
         Args:
             dimensions (int): number of state-action dimensions;
+            s_dim (int): number of state dimensions;
+            a_dim (int): number of action dimensions;
             max_pos (float, np.inf): maximum value of the state;
             max_action (float, np.inf): maximum value of the action;
             eps (double, .1): reward matrix weights specifier;
@@ -88,18 +93,21 @@ class LQR(Environment):
             horizon (int, 50): horizon of the mdp.
 
         """
-        assert dimensions >= 1
+        assert dimensions != None or (s_dim != None and a_dim != None)
 
-        A = np.eye(dimensions)
-        B = np.eye(dimensions)
-        Q = eps * np.eye(dimensions) * scale
-        R = (1. - eps) * np.eye(dimensions) * scale
+        if s_dim == None or a_dim == None:
+            s_dim = dimensions
+            a_dim = dimensions
+        A = np.eye(s_dim)
+        B = np.eye(s_dim, a_dim)
+        Q = eps * np.eye(s_dim) * scale
+        R = (1. - eps) * np.eye(a_dim) * scale
 
         Q[index, index] = (1. - eps) * scale
         R[index, index] = eps * scale
 
         return LQR(A, B, Q, R, max_pos, max_action, random_init, episodic,
-                   gamma, horizon)
+                   gamma, horizon, initial_state)
 
     def reset(self, state=None):
         if state is None:
@@ -109,6 +117,8 @@ class LQR(Environment):
                     self.info.observation_space.low,
                     self.info.observation_space.high
                 )
+            elif self._initial_state is not None:
+                self._state = self._initial_state
             else:
                 init_value = .9 * self._max_pos if np.isfinite(
                     self._max_pos) else 10
