@@ -137,16 +137,16 @@ def create_SAC_agent(mdp, use_cuda=None):
 
 
 def create_mdp(gamma, horizon, goal, use_muscles):
-    if goal == "trajectory":
+    if goal == "trajectory" or  goal == "com_vel_trajectory":
         mdp = HumanoidGait(gamma=gamma, horizon=horizon, n_intermediate_steps=10,
-                           goal_reward="trajectory",
+                           goal_reward=goal,
                            goal_reward_params=dict(use_error_terminate=True),
                            use_muscles=use_muscles,
                            obs_avg_window=1, act_avg_window=1)
 
     elif goal == "max_vel":
         mdp = HumanoidGait(gamma=gamma, horizon=horizon, n_intermediate_steps=10,
-                           goal_reward="max_vel",
+                           goal_reward=goal,
                            goal_reward_params=dict(traj_start=True),
                            use_muscles=use_muscles,
                            obs_avg_window=1, act_avg_window=1)
@@ -158,14 +158,14 @@ def create_mdp(gamma, horizon, goal, use_muscles):
                 ConstantVelocityProfile(0)]))
 
         mdp = HumanoidGait(gamma=gamma, horizon=horizon, n_intermediate_steps=10,
-                           goal_reward="vel_profile",
+                           goal_reward=goal,
                            goal_reward_params=dict(traj_start=True,
                                                    **velocity_profile),
                            use_muscles=use_muscles,
                            obs_avg_window=1, act_avg_window=1)
     else:
         raise NotImplementedError("Invalid goal selected, try one of "
-                                  "['trajectory', 'vel_profile', 'max_vel']")
+                                  "['trajectory', 'com_vel_trajectory', 'vel_profile', 'max_vel']")
     return mdp
 
 
@@ -204,6 +204,6 @@ def experiment(goal, use_muscles, n_epochs, n_steps, n_episodes_test):
 
 
 if __name__ == '__main__':
-    goal = ["trajectory", "vel_profile", "max_vel"]
+    goal = ["trajectory", "com_vel_trajectory", "vel_profile", "max_vel"]
     experiment(goal=goal[0], use_muscles=True,
                n_epochs=250, n_steps=10000, n_episodes_test=10)
