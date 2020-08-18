@@ -1,5 +1,4 @@
 import numpy as np
-from sklearn.metrics import pairwise_distances
 
 
 def compute_lqr_feedback_gain(lqr, max_iterations=100):
@@ -67,8 +66,7 @@ def compute_lqr_V(s, lqr, K):
         s = s.reshape((1, -1))
 
     P = compute_lqr_P(lqr, K)
-    m = lambda x, y: x.T @ P @ x
-    return -1. * pairwise_distances(s, metric=m).diagonal().reshape((-1, 1))
+    return -1. * np.einsum('...k,kl,...l->...', s, P, s).reshape(-1, 1)
 
 
 def compute_lqr_V_gaussian_policy(s, lqr, K, Sigma):
@@ -111,8 +109,7 @@ def compute_lqr_Q(s, a, lqr, K):
     sa = np.hstack((s, a))
 
     M = _compute_lqr_Q_matrix(lqr, K)
-    m = lambda x, y: x.T @ M @ x
-    return -1. * pairwise_distances(sa, metric=m).diagonal().reshape((-1, 1))
+    return -1. * np.einsum('...k,kl,...l->...', sa, M, sa).reshape(-1, 1)
 
 
 def compute_lqr_Q_gaussian_policy(s, a, lqr, K, Sigma):
@@ -169,10 +166,8 @@ def compute_lqr_V_gaussian_policy_gradient_K(s, lqr, K, Sigma):
 
         dPi = vec_dPi.reshape(Q.shape)
 
-        m = lambda x, y: x.T @ dPi @ x
-
-        dJ[:, i] = pairwise_distances(s, metric=m).diagonal().reshape((-1, 1)) \
-                    + gamma * np.trace(Sigma @ B.T @ dPi @ B) / (1.0 - gamma)
+        dJ[:, i] = np.einsum('...k,kl,...l->...', s, dPi, s).reshape(-1, 1) \
+                   + gamma * np.trace(Sigma @ B.T @ dPi @ B) / (1.0 - gamma)
 
     return -dJ
 
