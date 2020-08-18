@@ -46,7 +46,8 @@ long_description = 'Mushroom is a Python Reinforcement Learning (RL) library' \
                    ' available at http://mushroomrl.readthedocs.io/en/latest/.'
 
 
-ext_modules = [Extension("muscle_simulation_stepupdate",
+ext_modules = [Extension("mushroom_rl.environments.mujoco_envs.humanoid_gait."
+                         "_external_simulation.muscle_simulation_stepupdate",
                         ["mushroom_rl/environments/mujoco_envs/humanoid_gait/"
                          "_external_simulation/muscle_simulation_stepupdate.pyx"],
                          include_dirs=[numpy.get_include()])]

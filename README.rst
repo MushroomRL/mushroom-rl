@@ -78,6 +78,13 @@ installation follow the instructions on the `project page <https://github.com/op
 To use dm_control MushroomRL interface, install ``dm_control`` following the instruction that can
 be found `here <https://github.com/deepmind/dm_control>`_
 
+You can also perform a local editable installation by using:
+
+.. code:: shell
+
+    pip install --no-use-pep517 -e .
+
+
 How to set and run and experiment
 =================================
 To run experiments, MushroomRL requires a script file that provides the necessary information

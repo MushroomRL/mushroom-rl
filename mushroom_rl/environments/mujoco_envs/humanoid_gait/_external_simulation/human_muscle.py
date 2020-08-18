@@ -1,5 +1,5 @@
 import numpy as np
-from muscle_simulation_stepupdate import step_update_state
+from .muscle_simulation_stepupdate import step_update_state
 
 
 class MuscleTendonComplex:
