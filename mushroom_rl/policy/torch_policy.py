@@ -204,7 +204,7 @@ class GaussianTorchPolicy(TorchPolicy):
         self._mu = Regressor(TorchApproximator, input_shape, output_shape,
                              network=network, use_cuda=use_cuda, **params)
 
-        log_sigma_init = torch.ones(self._action_dim) * np.log(std_0)
+        log_sigma_init = (torch.ones(self._action_dim) * np.log(std_0)).float()
 
         if self._use_cuda:
             log_sigma_init = log_sigma_init.cuda()
