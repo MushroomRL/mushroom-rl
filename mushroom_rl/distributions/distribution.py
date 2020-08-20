@@ -77,7 +77,7 @@ class Distribution(Serializable):
 
     def diff_log(self, theta):
         """
-        Compute the derivative of the gradient of the probability denstity
+        Compute the derivative of the logarithm of the probability density
         function in the specified point.
 
         Args:
