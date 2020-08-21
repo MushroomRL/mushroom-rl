@@ -61,7 +61,7 @@ Eventually, the **agent** is:
     from mushroom_rl.algorithms.value import QLearning
 
     learning_rate = Parameter(value=.6)
-    agent = QLearning(policy, mdp.info, learning_rate)
+    agent = QLearning(mdp.info, policy, learning_rate)
 
 Learn: 
 
