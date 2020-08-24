@@ -110,6 +110,7 @@ def compute_lqr_Q(s, a, lqr, K):
     sa = np.hstack((s, a))
 
     M = _compute_lqr_Q_matrix(lqr, K)
+
     return -1. * np.einsum('...k,kl,...l->...', sa, M, sa).reshape(-1, 1)
 
 
@@ -163,7 +164,9 @@ def compute_lqr_V_gaussian_policy_gradient_K(s, lqr, K, Sigma):
     for i in range(n_elems):
         dLi, dMi = _compute_lqr_intermediate_results_diff(K, A, B, R, gamma, i)
 
-        vec_dPi = -Minv @ dMi @ Minv @ L.reshape(-1) + np.linalg.solve(M, dLi.reshape(-1))
+        vec_dPi = -Minv @ dMi @ Minv @ L.reshape(-1) + np.linalg.solve(
+            M, dLi.reshape(-1)
+        )
 
         dPi = vec_dPi.reshape(Q.shape)
 
@@ -197,7 +200,9 @@ def compute_lqr_Q_gaussian_policy_gradient_K(s, a, lqr, K, Sigma):
 
     s_next = (lqr.A @ s.T).T + (lqr.B @ a.T).T
 
-    return lqr.info.gamma * compute_lqr_V_gaussian_policy_gradient_K(s_next, lqr, K, Sigma)
+    return lqr.info.gamma * compute_lqr_V_gaussian_policy_gradient_K(
+        s_next, lqr, K, Sigma
+    )
 
 
 def _parse_lqr(lqr):
