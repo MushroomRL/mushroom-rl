@@ -58,7 +58,7 @@ setup(
     description='A Python toolkit for Reinforcement Learning experiments.',
     long_description=long_description,
     url='https://github.com/MushroomRL/mushroom-rl',
-    author="Carlo D'Eramo",
+    author="Carlo D'Eramo, Davide Tateo",
     author_email='carlo.deramo@gmail.com',
     license='MIT',
     packages=[package for package in find_packages()
@@ -69,7 +69,9 @@ setup(
     classifiers=["Programming Language :: Python :: 3",
                  "License :: OSI Approved :: MIT License",
                  "Operating System :: OS Independent",
-                ],
+                 ],
     cmdclass={'build_ext': build_ext},
+    package_data={"mushroom_rl.environments.mujoco_envs.humanoid_gait._external_simulation":
+                  ["muscle_simulation_stepupdate.pyx"]},
     ext_modules=cythonize(ext_modules)
 )
