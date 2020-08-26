@@ -111,3 +111,4 @@ If you are using mushroom for your scientific publications, please cite:
          howpublished={\url{https://github.com/MushroomRL/mushroom-rl}}
    }
 
+For any question, drop an e-mail at mushroom4rl@gmail.com. 
