@@ -115,4 +115,4 @@ How to contact us
 =================
 For any question, drop an e-mail at mushroom4rl@gmail.com.
 
-Follow us on Twitter *@Mushroom_RL*!
+Follow us on Twitter `@Mushroom_RL <https://twitter.com/mushroom_rl>`_!
