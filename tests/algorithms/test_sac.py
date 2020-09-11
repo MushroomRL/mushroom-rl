@@ -8,9 +8,11 @@ import torch.nn.functional as F
 from datetime import datetime
 from helper.utils import TestUtils as tu
 
+from mushroom_rl.core import Core
 from mushroom_rl.algorithms import Agent
 from mushroom_rl.algorithms.actor_critic import SAC
-from mushroom_rl.core import Core
+from mushroom_rl.policy import SquashedGaussianTorchPolicy
+
 from mushroom_rl.environments.gym_env import Gym
 
 
@@ -63,40 +65,31 @@ def learn_sac():
     initial_replay_size = 64
     max_replay_size = 50000
     batch_size = 64
-    n_features = 64
     warmup_transitions = 10
     tau = 0.005
     lr_alpha = 3e-4
 
     # Approximator
-    actor_input_shape = mdp.info.observation_space.shape
-    actor_mu_params = dict(network=ActorNetwork,
-                           n_features=n_features,
-                           input_shape=actor_input_shape,
-                           output_shape=mdp.info.action_space.shape,
-                           use_cuda=False)
-    actor_sigma_params = dict(network=ActorNetwork,
-                              n_features=n_features,
-                              input_shape=actor_input_shape,
-                              output_shape=mdp.info.action_space.shape,
-                              use_cuda=False)
-
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': 3e-4}}
 
     critic_input_shape = (
-    actor_input_shape[0] + mdp.info.action_space.shape[0],)
+    mdp.info.observation_space.shape[0] + mdp.info.action_space.shape[0],)
     critic_params = dict(network=CriticNetwork,
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': 3e-4}},
                          loss=F.mse_loss,
-                         n_features=n_features,
                          input_shape=critic_input_shape,
                          output_shape=(1,),
                          use_cuda=False)
 
+    # Policy
+    policy = SquashedGaussianTorchPolicy(mdp.info,
+                                         network=ActorNetwork,
+                                         use_cuda=False)
+
     # Agent
-    agent = SAC(mdp.info, actor_mu_params, actor_sigma_params, actor_optimizer,
+    agent = SAC(mdp.info, policy, actor_optimizer,
                 critic_params, batch_size, initial_replay_size, max_replay_size,
                 warmup_transitions, tau, lr_alpha,
                 critic_fit_params=None)
@@ -109,13 +102,15 @@ def learn_sac():
     
     return agent
 
+
 def test_sac():
     policy = learn_sac().policy
     w = policy.get_weights()
-    w_test = np.array([ 1.6998193, -0.732528, 1.2986078, -0.26860124,
-                        0.5094043, -0.5001421, -0.18989229, -0.30646914])
+    w_test = np.array([-1.6303165, 1.0384407, -0.3566267, 0.2706903,
+                       0.08574516, 0.63289374, -0.67468196, 0.15983438])
 
     assert np.allclose(w, w_test)
+
 
 def test_sac_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))

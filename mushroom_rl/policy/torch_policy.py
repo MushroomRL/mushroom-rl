@@ -44,6 +44,27 @@ class TorchPolicy(Policy):
 
         return torch.squeeze(a, dim=0).detach().cpu().numpy()
 
+    def log_prob(self, state, action):
+        """
+        Compute the logarithm of the probability of taking ``action`` in
+        ``state``.
+
+        Args:
+            state (np.ndarray,): set of states.
+            action (np.ndarray,): set of actions.
+
+        Returns:
+            The value of log-probability.
+
+        """
+        with torch.no_grad():
+            s = to_float_tensor(np.atleast_2d(state), self._use_cuda)
+            a = to_float_tensor(np.atleast_2d(action), self.use_cuda)
+
+            log_prob = self.log_prob_t(s, a)
+            return log_prob.detach().cpu().numpy()
+
+
     def distribution(self, state):
         """
         Compute the policy distribution in the given states.
@@ -288,7 +309,6 @@ class BoltzmannTorchPolicy(TorchPolicy):
 
     def draw_action_t(self, state):
         action = self.distribution_t(state).sample().detach()
-        #print(action)
         if len(action.shape) > 1:
             return action
         else:
@@ -312,3 +332,101 @@ class BoltzmannTorchPolicy(TorchPolicy):
 
     def parameters(self):
         return self._logits.model.network.parameters()
+
+
+class SquashedGaussianTorchPolicy(TorchPolicy):
+    """
+    Class used to implement the policy used by the Soft Actor-Critic
+    algorithm. The policy is a Gaussian policy squashed by a tanh.
+    This class implements the compute_action_and_log_prob and the
+    compute_action_and_log_prob_t methods, that are fundamental for
+    the internals calculations of the SAC algorithm.
+
+    """
+
+    def __init__(self, mdp_info, sigma_params=None, min_a=None, max_a=None,
+                 use_cuda=False, **params):
+        """
+        Constructor.
+
+        Args:
+            mdp_info (MDPInfo): information about the mdp;
+            sigma_params (dict, None): parameters to build the variance
+                approximator, if not specified, `params` is used;
+            min_a (np.ndarray, None): vector of minimum action for each
+                component. If not specified the information from mdp_info
+                is used.
+            max_a (np.ndarray, None): vector of maximum action for each
+                component. If not specified the information from mdp_info
+                is used.
+            **mu_params: parameters to build the mean approximator.
+
+        """
+        super().__init__(use_cuda)
+
+        input_shape = mdp_info.observation_space.shape
+        output_shape = mdp_info.action_space.shape
+
+        min_a = mdp_info.action_space.low if min_a is None else min_a
+        max_a = mdp_info.action_space.high if max_a is None else max_a
+
+        self._mu = Regressor(TorchApproximator, input_shape, output_shape,
+                             use_cuda=use_cuda, **params)
+        sigma_params = params if sigma_params is None else sigma_params
+        self._sigma = Regressor(TorchApproximator, input_shape, output_shape,
+                                use_cuda=use_cuda, **sigma_params)
+
+        self._delta_a = to_float_tensor(.5 * (max_a - min_a), self.use_cuda)
+        self._central_a = to_float_tensor(.5 * (max_a + min_a), self.use_cuda)
+
+        if self.use_cuda:
+            self._delta_a = self._delta_a.cuda()
+            self._central_a = self._central_a.cuda()
+
+        self._add_save_attr(
+            _mu='mushroom',
+            _sigma='mushroom',
+            _delta_a='torch',
+            _central_a='torch'
+        )
+
+    def draw_action_t(self, state):
+        dist = self.distribution(state)
+        a_raw = dist.rsample()
+        a = torch.tanh(a_raw)
+        a_true = a * self._delta_a + self._central_a
+
+        return a_true
+
+    def log_prob_t(self, state, action):
+        a_squashed = torch.clamp((action - self._central_a) / self._delta_a, -1+5e-7, 1-5e-7)
+        a_raw = torch.atanh(a_squashed)
+        log_prob = self.distribution_t(state).log_prob(a_raw).sum(dim=1)
+        log_prob -= torch.log(1. - a_squashed.pow(2) + 1e-6).sum(dim=1)
+
+        return torch.clamp(log_prob, min=-15.0)
+
+    def entropy_t(self, state):
+        return torch.mean(self.distribution_t(state).entropy())
+
+    def distribution_t(self, state):
+        mu = self._mu.predict(state, output_tensor=True)
+        log_sigma = self._sigma.predict(state, output_tensor=True)
+        return torch.distributions.Normal(mu, log_sigma.exp())
+
+    def set_weights(self, weights):
+        mu_weights = weights[:self._mu.weights_size]
+        sigma_weights = weights[self._mu.weights_size:]
+
+        self._mu.set_weights(mu_weights)
+        self._sigma.set_weights(sigma_weights)
+
+    def get_weights(self):
+        mu_weights = self._mu.get_weights()
+        sigma_weights = self._sigma.get_weights()
+
+        return np.concatenate([mu_weights, sigma_weights])
+
+    def parameters(self):
+        return chain(self._mu.model.network.parameters(),
+                     self._sigma.model.network.parameters())

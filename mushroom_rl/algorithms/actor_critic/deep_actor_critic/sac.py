@@ -4,175 +4,11 @@ import torch
 import torch.optim as optim
 
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DeepAC
-from mushroom_rl.policy import Policy
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.replay_memory import ReplayMemory
-from mushroom_rl.utils.torch import to_float_tensor
 
 from copy import deepcopy
-from itertools import chain
-
-
-class SACPolicy(Policy):
-    """
-    Class used to implement the policy used by the Soft Actor-Critic
-    algorithm. The policy is a Gaussian policy squashed by a tanh.
-    This class implements the compute_action_and_log_prob and the
-    compute_action_and_log_prob_t methods, that are fundamental for
-    the internals calculations of the SAC algorithm.
-
-    """
-    def __init__(self, mu_approximator, sigma_approximator, min_a, max_a):
-        """
-        Constructor.
-
-        Args:
-            mu_approximator (Regressor): a regressor computing mean in given a
-                state;
-            sigma_approximator (Regressor): a regressor computing the variance
-                in given a state;
-            min_a (np.ndarray): a vector specifying the minimum action value
-                for each component;
-            max_a (np.ndarray): a vector specifying the maximum action value
-                for each component.
-
-        """
-        self._mu_approximator = mu_approximator
-        self._sigma_approximator = sigma_approximator
-
-        self._delta_a = to_float_tensor(.5 * (max_a - min_a), self.use_cuda)
-        self._central_a = to_float_tensor(.5 * (max_a + min_a), self.use_cuda)
-
-        use_cuda = self._mu_approximator.model.use_cuda
-
-        if use_cuda:
-            self._delta_a = self._delta_a.cuda()
-            self._central_a = self._central_a.cuda()
-
-        self._add_save_attr(
-            _mu_approximator='mushroom',
-            _sigma_approximator='mushroom',
-            _delta_a='torch',
-            _central_a='torch'
-        )
-
-    def __call__(self, state, action):
-        raise NotImplementedError
-
-    def draw_action(self, state):
-        return self.compute_action_and_log_prob_t(
-            state, compute_log_prob=False).detach().cpu().numpy()
-
-    def compute_action_and_log_prob(self, state):
-        """
-        Function that samples actions using the reparametrization trick and
-        the log probability for such actions.
-
-        Args:
-            state (np.ndarray): the state in which the action is sampled.
-
-        Returns:
-            The actions sampled and the log probability as numpy arrays.
-
-        """
-        a, log_prob = self.compute_action_and_log_prob_t(state)
-        return a.detach().cpu().numpy(), log_prob.detach().cpu().numpy()
-
-    def compute_action_and_log_prob_t(self, state, compute_log_prob=True):
-        """
-        Function that samples actions using the reparametrization trick and,
-        optionally, the log probability for such actions.
-
-        Args:
-            state (np.ndarray): the state in which the action is sampled;
-            compute_log_prob (bool, True): whether to compute the log
-            probability or not.
-
-        Returns:
-            The actions sampled and, optionally, the log probability as torch
-            tensors.
-
-        """
-        dist = self.distribution(state)
-        a_raw = dist.rsample()
-        a = torch.tanh(a_raw)
-        a_true = a * self._delta_a + self._central_a
-
-        if compute_log_prob:
-            log_prob = dist.log_prob(a_raw).sum(dim=1)
-            log_prob -= torch.log(1. - a.pow(2) + 1e-6).sum(dim=1)
-            return a_true, log_prob
-        else:
-            return a_true
-
-    def distribution(self, state):
-        """
-        Compute the policy distribution in the given states.
-
-        Args:
-            state (np.ndarray): the set of states where the distribution is
-                computed.
-
-        Returns:
-            The torch distribution for the provided states.
-
-        """
-        mu = self._mu_approximator.predict(state, output_tensor=True)
-        log_sigma = self._sigma_approximator.predict(state, output_tensor=True)
-        return torch.distributions.Normal(mu, log_sigma.exp())
-
-    def entropy(self, state=None):
-        """
-        Compute the entropy of the policy.
-
-        Args:
-            state (np.ndarray): the set of states to consider.
-
-        Returns:
-            The value of the entropy of the policy.
-
-        """
-
-        return torch.mean(self.distribution(state).entropy()).detach().cpu().numpy().item()
-
-    def reset(self):
-        pass
-
-    def set_weights(self, weights):
-        """
-        Setter.
-
-        Args:
-            weights (np.ndarray): the vector of the new weights to be used by
-                the policy.
-
-        """
-        mu_weights = weights[:self._mu_approximator.weights_size]
-        sigma_weights = weights[self._mu_approximator.weights_size:]
-
-        self._mu_approximator.set_weights(mu_weights)
-        self._sigma_approximator.set_weights(sigma_weights)
-
-    def get_weights(self):
-        """
-        Getter.
-
-        Returns:
-             The current policy weights.
-
-        """
-        mu_weights = self._mu_approximator.get_weights()
-        sigma_weights = self._sigma_approximator.get_weights()
-
-        return np.concatenate([mu_weights, sigma_weights])
-
-    @property
-    def use_cuda(self):
-        """
-        True if the policy is using cuda_tensors.
-        """
-        return self._mu_approximator.model.use_cuda
 
 
 class SAC(DeepAC):
@@ -182,18 +18,14 @@ class SAC(DeepAC):
     Haarnoja T. et al.. 2019.
 
     """
-    def __init__(self, mdp_info, actor_mu_params, actor_sigma_params,
-                 actor_optimizer, critic_params, batch_size,
+    def __init__(self, mdp_info, policy, actor_optimizer, critic_params, batch_size,
                  initial_replay_size, max_replay_size, warmup_transitions, tau,
                  lr_alpha, target_entropy=None, critic_fit_params=None):
         """
         Constructor.
 
         Args:
-            actor_mu_params (dict): parameters of the actor mean approximator
-                to build;
-            actor_sigma_params (dict): parameters of the actor sigm
-                approximator to build;
+            policy (TorchPolicy): the policy to be used;
             actor_optimizer (dict): parameters to specify the actor
                 optimizer algorithm;
             critic_params (dict): parameters of the critic approximator to
@@ -237,16 +69,6 @@ class SAC(DeepAC):
         self._target_critic_approximator = Regressor(TorchApproximator,
                                                      **target_critic_params)
 
-        actor_mu_approximator = Regressor(TorchApproximator,
-                                          **actor_mu_params)
-        actor_sigma_approximator = Regressor(TorchApproximator,
-                                             **actor_sigma_params)
-
-        policy = SACPolicy(actor_mu_approximator,
-                           actor_sigma_approximator,
-                           mdp_info.action_space.low,
-                           mdp_info.action_space.high)
-
         self._init_target(self._critic_approximator,
                           self._target_critic_approximator)
 
@@ -258,9 +80,6 @@ class SAC(DeepAC):
             self._log_alpha.requires_grad_()
 
         self._alpha_optim = optim.Adam([self._log_alpha], lr=lr_alpha)
-
-        policy_parameters = chain(actor_mu_approximator.model.network.parameters(),
-                                  actor_sigma_approximator.model.network.parameters())
 
         self._add_save_attr(
             _critic_fit_params='pickle',
@@ -275,7 +94,7 @@ class SAC(DeepAC):
             _alpha_optim='torch'
         )
 
-        super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
+        super().__init__(mdp_info, policy, actor_optimizer, policy.parameters())
 
     def fit(self, dataset):
         self._replay_memory.add(dataset)
@@ -284,7 +103,8 @@ class SAC(DeepAC):
                 self._replay_memory.get(self._batch_size)
 
             if self._replay_memory.size > self._warmup_transitions:
-                action_new, log_prob = self.policy.compute_action_and_log_prob_t(state)
+                action_new = self.policy.draw_action_t(state)
+                log_prob = self.policy.log_prob_t(state, action_new)
                 loss = self._loss(state, action_new, log_prob)
                 self._optimize_actor_parameters(loss)
                 self._update_alpha(log_prob.detach())
@@ -327,7 +147,8 @@ class SAC(DeepAC):
             action returned by the actor.
 
         """
-        a, log_prob_next = self.policy.compute_action_and_log_prob(next_state)
+        a = self.policy.draw_action(next_state)
+        log_prob_next = self.policy.log_prob(next_state, a)
 
         q = self._target_critic_approximator.predict(
             next_state, a, prediction='min') - self._alpha_np * log_prob_next
@@ -337,11 +158,7 @@ class SAC(DeepAC):
 
     def _post_load(self):
         if self._optimizer is not None:
-            self._parameters = list(
-                chain(self.policy._mu_approximator.model.network.parameters(),
-                      self.policy._sigma_approximator.model.network.parameters()
-                )
-            )
+            self._parameters = list(self.policy.parameters())
 
     @property
     def _alpha(self):

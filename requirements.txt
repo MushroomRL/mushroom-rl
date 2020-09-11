@@ -6,6 +6,6 @@ joblib
 tqdm
 pygame
 opencv-python
-torch
+torch>=1.6.0
 pytest
 Cython

@@ -10,10 +10,7 @@ import itertools
 
 import mushroom_rl
 from mushroom_rl.environments.environment import MDPInfo
-from mushroom_rl.policy.td_policy import TDPolicy
-from mushroom_rl.policy.torch_policy import TorchPolicy
-from mushroom_rl.policy.policy import ParametricPolicy
-from mushroom_rl.algorithms.actor_critic.deep_actor_critic.sac import SACPolicy
+from mushroom_rl.policy import *
 from mushroom_rl.utils.replay_memory import ReplayMemory, PrioritizedReplayMemory
 from mushroom_rl.approximators._implementations.ensemble import Ensemble
 from mushroom_rl.approximators._implementations.action_regressor import ActionRegressor
@@ -47,11 +44,12 @@ class TestUtils:
                 this = this.model
                 that = that.model
             for i in range(0, len(this)):
-                if cls._check_type(this[i], that[i], list) or cls._check_type(this[i], that[i], Ensemble) or cls._check_type(this[i], that[i], ExtraTreesRegressor):
+                if cls._check_type(this[i], that[i], list) or cls._check_type(this[i], that[i], Ensemble) \
+                        or cls._check_type(this[i], that[i], ExtraTreesRegressor):
                     cls.assert_eq(this[i], that[i])
                 else:
                     assert cls.eq_weights(this[i], that[i])
-        elif  cls._check_subtype(this, that, TorchPolicy) or cls._check_type(this, that, SACPolicy) or cls._check_subtype(this, that, ParametricPolicy):
+        elif cls._check_subtype(this, that, TorchPolicy) or cls._check_subtype(this, that, ParametricPolicy):
             assert cls.eq_weights(this, that)
         elif cls._check_subtype(this, that, TDPolicy):
             cls.assert_eq(this.get_q(), that.get_q())

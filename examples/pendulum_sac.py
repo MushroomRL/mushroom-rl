@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from mushroom_rl.algorithms.actor_critic import SAC
 from mushroom_rl.core import Core
 from mushroom_rl.environments.gym_env import Gym
+from mushroom_rl.policy import SquashedGaussianTorchPolicy
 from mushroom_rl.utils.dataset import compute_J, parse_dataset
 
 
@@ -84,22 +85,10 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
     use_cuda = torch.cuda.is_available()
 
     # Approximator
-    actor_input_shape = mdp.info.observation_space.shape
-    actor_mu_params = dict(network=ActorNetwork,
-                           n_features=n_features,
-                           input_shape=actor_input_shape,
-                           output_shape=mdp.info.action_space.shape,
-                           use_cuda=use_cuda)
-    actor_sigma_params = dict(network=ActorNetwork,
-                              n_features=n_features,
-                              input_shape=actor_input_shape,
-                              output_shape=mdp.info.action_space.shape,
-                              use_cuda=use_cuda)
-
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': 3e-4}}
 
-    critic_input_shape = (actor_input_shape[0] + mdp.info.action_space.shape[0],)
+    critic_input_shape = (mdp.info.observation_space.shape[0] + mdp.info.action_space.shape[0],)
     critic_params = dict(network=CriticNetwork,
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': 3e-4}},
@@ -109,9 +98,15 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
                          output_shape=(1,),
                          use_cuda=use_cuda)
 
+    # Policy
+    policy = SquashedGaussianTorchPolicy(mdp.info,
+                                         network=ActorNetwork,
+                                         n_features=n_features,
+                                         use_cuda=use_cuda)
+
     # Agent
-    agent = alg(mdp.info, actor_mu_params, actor_sigma_params,
-                actor_optimizer, critic_params, batch_size, initial_replay_size,
+    agent = alg(mdp.info, policy, actor_optimizer,
+                critic_params, batch_size, initial_replay_size,
                 max_replay_size, warmup_transitions, tau, lr_alpha,
                 critic_fit_params=None)
 
