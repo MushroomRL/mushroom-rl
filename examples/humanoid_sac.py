@@ -5,16 +5,15 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-from mushroom_rl.utils.callbacks import PlotDataset
-from mushroom_rl.utils.preprocessors import MinMaxPreprocessor
-
-from mushroom_rl.algorithms.actor_critic import SAC
 from mushroom_rl.core import Core
-from mushroom_rl.utils.dataset import compute_J, episodes_length
-
 from mushroom_rl.environments.mujoco_envs import HumanoidGait
 from mushroom_rl.environments.mujoco_envs.humanoid_gait import \
     VelocityProfile3D, RandomConstantVelocityProfile, ConstantVelocityProfile
+from mushroom_rl.algorithms.actor_critic import SAC
+from mushroom_rl.policy import SquashedGaussianTorchPolicy
+from mushroom_rl.utils.dataset import compute_J, episodes_length
+from mushroom_rl.utils.callbacks import PlotDataset
+from mushroom_rl.utils.preprocessors import MinMaxPreprocessor
 
 
 class CriticNetwork(nn.Module):
@@ -97,24 +96,16 @@ def create_SAC_agent(mdp, use_cuda=None):
 
     target_entropy = -22.0
 
-    # Approximator
-    actor_input_shape = mdp.info.observation_space.shape
-    actor_mu_params = dict(network=actor_mu_network,
-                           n_features=network_layers_actor_mu,
-                           input_shape=actor_input_shape,
-                           output_shape=mdp.info.action_space.shape,
-                           use_cuda=use_cuda)
-
-    actor_sigma_params = dict(network=actor_sigma_network,
-                              n_features=network_layers_actor_sigma,
-                              input_shape=actor_input_shape,
-                              output_shape=mdp.info.action_space.shape,
-                              use_cuda=use_cuda)
+    # Policy and Approximator
+    policy = SquashedGaussianTorchPolicy(mdp.info,
+                                         network=actor_sigma_network,
+                                         n_features=network_layers_actor_mu,
+                                         use_cuda=use_cuda)
 
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': lr_actor, 'weight_decay': weight_decay_actor}}
 
-    critic_input_shape = (actor_input_shape[0] + mdp.info.action_space.shape[0],)
+    critic_input_shape = ( mdp.info.observation_space.shape[0] + mdp.info.action_space.shape[0],)
     critic_params = dict(network=CriticNetwork,
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': lr_critic, 'weight_decay': weight_decay_critic}},
@@ -126,10 +117,10 @@ def create_SAC_agent(mdp, use_cuda=None):
 
     # create SAC agent
     agent = SAC(mdp_info=mdp.info,
+                policy=policy,
                 batch_size=batch_size, initial_replay_size=initial_replay_size,
                 max_replay_size=max_replay_size,
                 warmup_transitions=warmup_transitions, tau=tau, lr_alpha=lr_alpha,
-                actor_mu_params=actor_mu_params, actor_sigma_params=actor_sigma_params,
                 actor_optimizer=actor_optimizer, critic_params=critic_params,
                 target_entropy=target_entropy, critic_fit_params=None)
 
