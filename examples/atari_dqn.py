@@ -301,11 +301,9 @@ def experiment():
                 return -torch.sum(target * torch.log(input))
 
         # Approximator
-        input_shape = (args.history_length, args.screen_height,
-                       args.screen_width)
         approximator_params = dict(
             network=Network if args.algorithm != 'cdqn' else FeatureNetwork,
-            input_shape=input_shape,
+            input_shape=mdp.info.observation_space.shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
             n_features=Network.n_features,
