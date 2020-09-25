@@ -3,7 +3,7 @@ from .sarsa import SARSA
 from .sarsa_lambda import SARSALambda
 from .expected_sarsa import ExpectedSARSA
 from .q_learning import QLearning
-from .q_learning_lambda import QLearningLambda
+from .q_lambda import QLearningLambda
 from .double_q_learning import DoubleQLearning
 from .speedy_q_learning import SpeedyQLearning
 from .r_learning import RLearning
