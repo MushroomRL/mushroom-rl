@@ -9,6 +9,11 @@ class LazyFrames(object):
     From OpenAI Baseline.
     https://github.com/openai/baselines/blob/master/baselines/common/atari_wrappers.py
 
+    This class provides a solution to optimize the use of memory when
+    concatenating different frames, e.g. Atari frames in DQN. The frames are
+    individually stored in a list and, when numpy arrays containing them are
+    created, the reference to each frame is used instead of a copy.
+
     """
     def __init__(self, frames, history_length):
         self._frames = frames

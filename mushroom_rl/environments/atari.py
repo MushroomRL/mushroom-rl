@@ -2,7 +2,6 @@ from copy import deepcopy
 from collections import deque
 
 import gym
-from sphinx.addnodes import highlightlang
 
 from mushroom_rl.environments import Environment, MDPInfo
 from mushroom_rl.utils.spaces import *
@@ -151,4 +150,3 @@ class Atari(Environment):
 
         """
         self._episode_ends_at_life = ends_at_life
-
