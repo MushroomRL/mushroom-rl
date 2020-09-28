@@ -41,7 +41,7 @@ def preprocess_frame(obs, img_size):
 
     Args:
         obs (np.ndarray): array representing an rgb frame;
-        img_size: target size for images.
+        img_size (tuple): target size for images.
 
     Returns:
         The transformed frame as 8 bit integer array.

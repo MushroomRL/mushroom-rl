@@ -244,6 +244,44 @@ def test_sarsa_save(tmpdir):
         tu.assert_eq(save_attr, load_attr)
 
 
+def test_q_lambda():
+    pi, mdp, _ = initialize()
+    agent = QLambda(mdp.info, pi, Parameter(.1), .9)
+
+    core = Core(agent, mdp)
+
+    # Train
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
+    test_q = np.array([[5.07310744, 5.6013244, 3.42130445, 5.90556511],
+                       [3.4410511, 5.217031, 2.51555213, 4.0616156],
+                       [3.76728025, 2.17726915, 1.0955066, 4.68559],
+                       [0., 0., 0., 0.]])
+
+    assert np.allclose(agent.Q.table, test_q)
+
+
+def test_q_lambda_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
+    pi, mdp, _ = initialize()
+    agent_save = QLambda(mdp.info, pi, Parameter(.1), .9)
+
+    core = Core(agent_save, mdp)
+
+    # Train
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    for att, method in vars(agent_save).items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+
+        tu.assert_eq(save_attr, load_attr)
+
+
 def test_sarsa_lambda_discrete():
     pi, mdp, _ = initialize()
     agent = SARSALambda(mdp.info, pi, Parameter(.1), .9)
