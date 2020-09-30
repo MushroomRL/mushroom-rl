@@ -127,10 +127,10 @@ class GaussianDiagonalDistribution(Distribution):
         delta = theta - self._mu
 
         g_mean = delta / sigma
-        g_cov = delta**2 / (self._std**3) - 1 / self._std
+        g_std = delta**2 / (self._std**3) - 1 / self._std
 
         g[:n_dims] = g_mean
-        g[n_dims:] = g_cov
+        g[n_dims:] = g_std
         return g
 
     def get_parameters(self):
