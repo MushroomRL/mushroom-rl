@@ -8,3 +8,4 @@ matplotlib
 joblib
 tqdm
 pygame
+cython

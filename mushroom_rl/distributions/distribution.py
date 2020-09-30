@@ -77,12 +77,12 @@ class Distribution(Serializable):
 
     def diff_log(self, theta):
         """
-        Compute the derivative of the gradient of the probability denstity
+        Compute the derivative of the logarithm of the probability density
         function in the specified point.
 
         Args:
             theta (np.ndarray): the point where the gradient of the log pdf is
-            calculated
+            computed.
 
         Returns:
             The gradient of the log pdf in the specified point.

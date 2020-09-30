@@ -117,7 +117,9 @@ class Regressor(Serializable):
         ndim = self._ndim()
 
         if z[0].ndim == ndim:
-            z = [np.expand_dims(z_i, axis=0) for z_i in z]
+            z = [np.expand_dims(z_i, axis=0) if isinstance(z_i, np.ndarray)
+                 else z_i.unsqueeze(0)
+                 for z_i in z]
 
             return self._impl.predict(*z, **predict_params)[0]
         else:

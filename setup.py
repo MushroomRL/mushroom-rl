@@ -2,6 +2,7 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 import sys
+import glob
 
 
 from setuptools import Extension
@@ -10,6 +11,19 @@ from Cython.Distutils import build_ext
 import numpy
 
 from mushroom_rl import __version__
+
+
+def glob_data_files(data_package, data_type=None):
+    data_type = '*' if data_type is None else data_type
+    data_dir = data_package.replace(".", "/")
+    data_files = [] 
+    directories = glob.glob(data_dir+'/**/', recursive=True) 
+    for directory in directories:
+        subdir = directory[len(data_dir)+1:]
+        if subdir != "":
+            files = subdir  + data_type
+            data_files.append(files)
+    return data_files
 
 here = path.abspath(path.dirname(__file__))
 
@@ -46,11 +60,14 @@ long_description = 'Mushroom is a Python Reinforcement Learning (RL) library' \
                    ' available at http://mushroomrl.readthedocs.io/en/latest/.'
 
 
-ext_modules = [Extension("mushroom_rl.environments.mujoco_envs.humanoid_gait."
-                         "_external_simulation.muscle_simulation_stepupdate",
-                        ["mushroom_rl/environments/mujoco_envs/humanoid_gait/"
-                         "_external_simulation/muscle_simulation_stepupdate.pyx"],
+ext_modules = [Extension('mushroom_rl.environments.mujoco_envs.humanoid_gait.'
+                         '_external_simulation.muscle_simulation_stepupdate',
+                        ['mushroom_rl/environments/mujoco_envs/humanoid_gait/'
+                         '_external_simulation/muscle_simulation_stepupdate.pyx'],
                          include_dirs=[numpy.get_include()])]
+
+mujoco_data_package = 'mushroom_rl.environments.mujoco_envs.data'
+extrenal_simulation_package = 'mushroom_rl.environments.mujoco_envs.humanoid_gait._external_simulation'
 
 setup(
     name='mushroom-rl',
@@ -58,7 +75,7 @@ setup(
     description='A Python toolkit for Reinforcement Learning experiments.',
     long_description=long_description,
     url='https://github.com/MushroomRL/mushroom-rl',
-    author="Carlo D'Eramo",
+    author="Carlo D'Eramo, Davide Tateo",
     author_email='carlo.deramo@gmail.com',
     license='MIT',
     packages=[package for package in find_packages()
@@ -69,7 +86,10 @@ setup(
     classifiers=["Programming Language :: Python :: 3",
                  "License :: OSI Approved :: MIT License",
                  "Operating System :: OS Independent",
-                ],
+                 ],
     cmdclass={'build_ext': build_ext},
+    package_data={
+        mujoco_data_package: glob_data_files(mujoco_data_package),
+        extrenal_simulation_package: ["*.pyx"]},
     ext_modules=cythonize(ext_modules)
 )
