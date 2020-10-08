@@ -1,10 +1,10 @@
 import numpy as np
 
-from mushroom_rl.algorithms.value.dqn import DQN
+from mushroom_rl.algorithms.value.dqn import AbstractDQN
 from mushroom_rl.approximators.regressor import Regressor
 
 
-class AveragedDQN(DQN):
+class AveragedDQN(AbstractDQN):
     """
     Averaged-DQN algorithm.
     "Averaged-DQN: Variance Reduction and Stabilization for Deep Reinforcement

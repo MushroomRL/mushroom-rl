@@ -1,10 +1,10 @@
 import numpy as np
 
-from mushroom_rl.algorithms.value.dqn import DQN
+from mushroom_rl.algorithms.value.dqn import AbstractDQN
 from mushroom_rl.approximators.regressor import Regressor
 
 
-class MaxminDQN(DQN):
+class MaxminDQN(AbstractDQN):
     """
     MaxminDQN algorithm.
     "Maxmin Q-learning: Controlling the Estimation Bias of Q-learning".

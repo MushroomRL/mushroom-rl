@@ -76,21 +76,6 @@ class AbstractDQN(Agent):
 
         super().__init__(mdp_info, policy)
 
-
-class DQN(AbstractDQN):
-    """
-    Deep Q-Network algorithm.
-    "Human-Level Control Through Deep Reinforcement Learning".
-    Mnih V. et al.. 2015.
-
-    """
-    def _initialize_regressors(self, approximator, apprx_params_train,
-                              apprx_params_target):
-        self.approximator = Regressor(approximator, **apprx_params_train)
-        self.target_approximator = Regressor(approximator,
-                                             **apprx_params_target)
-        self._update_target()
-
     def fit(self, dataset):
         self._fit(dataset)
 
@@ -138,6 +123,18 @@ class DQN(AbstractDQN):
                 approximator.fit(state, action, q, weights=is_weight,
                                  **self._fit_params)
 
+    def draw_action(self, state):
+        action = super().draw_action(np.array(state))
+
+        return action
+
+    def _initialize_regressors(self, approximator, apprx_params_train,
+                               apprx_params_target):
+        self.approximator = Regressor(approximator, **apprx_params_train)
+        self.target_approximator = Regressor(approximator,
+                                             **apprx_params_target)
+        self._update_target()
+
     def _update_target(self):
         """
         Update the target network.
@@ -157,16 +154,7 @@ class DQN(AbstractDQN):
             Maximum action-value for each state in ``next_state``.
 
         """
-        q = self.target_approximator.predict(next_state)
-        if np.any(absorbing):
-            q *= 1 - absorbing.reshape(-1, 1)
-
-        return np.max(q, axis=1)
-
-    def draw_action(self, state):
-        action = super(DQN, self).draw_action(np.array(state))
-
-        return action
+        pass
 
     def _post_load(self):
         if isinstance(self._replay_memory, PrioritizedReplayMemory):
@@ -175,3 +163,18 @@ class DQN(AbstractDQN):
             self._fit = self._fit_standard
 
         self.policy.set_q(self.approximator)
+
+
+class DQN(AbstractDQN):
+    """
+    Deep Q-Network algorithm.
+    "Human-Level Control Through Deep Reinforcement Learning".
+    Mnih V. et al.. 2015.
+
+    """
+    def _next_q(self, next_state, absorbing):
+        q = self.target_approximator.predict(next_state)
+        if np.any(absorbing):
+            q *= 1 - absorbing.reshape(-1, 1)
+
+        return np.max(q, axis=1)
