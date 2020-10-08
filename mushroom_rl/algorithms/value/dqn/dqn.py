@@ -154,7 +154,7 @@ class AbstractDQN(Agent):
             Maximum action-value for each state in ``next_state``.
 
         """
-        pass
+        raise NotImplementedError
 
     def _post_load(self):
         if isinstance(self._replay_memory, PrioritizedReplayMemory):

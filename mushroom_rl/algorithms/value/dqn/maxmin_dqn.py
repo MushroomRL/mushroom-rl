@@ -1,10 +1,10 @@
 import numpy as np
 
-from mushroom_rl.algorithms.value.dqn import AbstractDQN
+from mushroom_rl.algorithms.value.dqn import DQN
 from mushroom_rl.approximators.regressor import Regressor
 
 
-class MaxminDQN(AbstractDQN):
+class MaxminDQN(DQN):
     """
     MaxminDQN algorithm.
     "Maxmin Q-learning: Controlling the Estimation Bias of Q-learning".
@@ -26,6 +26,14 @@ class MaxminDQN(AbstractDQN):
 
         super().__init__(mdp_info, policy, approximator, **params)
 
+    def fit(self, dataset):
+        idx = np.random.randint(self._n_approximators)
+        self._fit(dataset, approximator=self.approximator[idx])
+
+        self._n_updates += 1
+        if self._n_updates % self._target_update_frequency == 0:
+            self._update_target()
+
     def _initialize_regressors(self, approximator, apprx_params_train,
                                apprx_params_target):
         self.approximator = Regressor(approximator,
@@ -37,14 +45,6 @@ class MaxminDQN(AbstractDQN):
                                              prediction='min',
                                              **apprx_params_target)
         self._update_target()
-
-    def fit(self, dataset):
-        idx = np.random.randint(self._n_approximators)
-        self._fit(dataset, approximator=self.approximator[idx])
-
-        self._n_updates += 1
-        if self._n_updates % self._target_update_frequency == 0:
-            self._update_target()
 
     def _update_target(self):
         for i in range(len(self.target_approximator)):
