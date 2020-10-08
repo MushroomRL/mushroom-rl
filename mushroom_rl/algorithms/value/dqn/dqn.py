@@ -89,7 +89,7 @@ class DQN(AbstractDQN):
         self.approximator = Regressor(approximator, **apprx_params_train)
         self.target_approximator = Regressor(approximator,
                                              **apprx_params_target)
-        self.target_approximator.set_weights(self.approximator.get_weights())
+        self._update_target()
 
     def fit(self, dataset):
         self._fit(dataset)
@@ -143,8 +143,7 @@ class DQN(AbstractDQN):
         Update the target network.
 
         """
-        self.target_approximator.set_weights(
-            self.approximator.get_weights())
+        self.target_approximator.set_weights(self.approximator.get_weights())
 
     def _next_q(self, next_state, absorbing):
         """
