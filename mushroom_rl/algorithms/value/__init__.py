@@ -3,7 +3,7 @@ from .dqn import *
 from .td import *
 
 __all__ = ['FQI', 'DoubleFQI', 'LSPI', 'DQN', 'DoubleDQN',
-           'AveragedDQN', 'CategoricalDQN', 'QLearning', 'QLambda',
+           'AveragedDQN', 'CategoricalDQN', 'MaxminDQN', 'QLearning', 'QLambda',
            'DoubleQLearning', 'WeightedQLearning', 'SpeedyQLearning',
            'RLearning', 'RQLearning', 'SARSA', 'SARSALambda',
            'SARSALambdaContinuous', 'ExpectedSARSA', 'TrueOnlineSARSALambda']

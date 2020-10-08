@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-from mushroom_rl.algorithms.value import AveragedDQN, CategoricalDQN, DQN, DoubleDQN
+from mushroom_rl.algorithms.value import AveragedDQN, CategoricalDQN, DQN, DoubleDQN, MaxminDQN
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.core import Core
 from mushroom_rl.environments import *
@@ -152,14 +152,15 @@ def experiment():
                               'rmsprop')
 
     arg_alg = parser.add_argument_group('Algorithm')
-    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'adqn', 'cdqn'],
+    arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'adqn', 'mmdqn',
+                                                 'cdqn'],
                          default='dqn',
                          help='Name of the algorithm. dqn is for standard'
                               'DQN, ddqn is for Double DQN and adqn is for'
                               'Averaged DQN.')
     arg_alg.add_argument("--n-approximators", type=int, default=1,
                          help="Number of approximators used in the ensemble for"
-                              "Averaged DQN.")
+                              "AveragedDQN or MaxminDQN.")
     arg_alg.add_argument("--batch-size", type=int, default=32,
                          help='Batch size for each fit of the network.')
     arg_alg.add_argument("--history-length", type=int, default=4,
@@ -326,7 +327,6 @@ def experiment():
         # Agent
         algorithm_params = dict(
             batch_size=args.batch_size,
-            n_approximators=args.n_approximators,
             target_update_frequency=target_update_frequency // train_frequency,
             replay_memory=replay_memory,
             initial_replay_size=initial_replay_size,
@@ -344,7 +344,13 @@ def experiment():
         elif args.algorithm == 'adqn':
             agent = AveragedDQN(mdp.info, pi, approximator,
                                 approximator_params=approximator_params,
+                                n_approximators=args.n_approximators,
                                 **algorithm_params)
+        elif args.algorithm == 'mmdqn':
+            agent = MaxminDQN(mdp.info, pi, approximator,
+                              approximator_params=approximator_params,
+                              n_approximators=args.n_approximators,
+                              **algorithm_params)
         elif args.algorithm == 'cdqn':
             agent = CategoricalDQN(mdp.info, pi,
                                    approximator_params=approximator_params,

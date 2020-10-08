@@ -5,6 +5,7 @@ import torch.nn.functional as F
 
 from mushroom_rl.algorithms.value.dqn import DQN
 from mushroom_rl.approximators.parametric.torch_approximator import *
+from mushroom_rl.approximators.regressor import Regressor
 
 
 class CategoricalNetwork(nn.Module):
@@ -30,6 +31,13 @@ class CategoricalNetwork(nn.Module):
         for i in range(self._n_output):
             nn.init.xavier_uniform_(self._p[i].weight,
                                     gain=nn.init.calculate_gain('linear'))
+
+    def _initialize_regressors(self, approximator, apprx_params_train,
+                               apprx_params_target):
+        self.approximator = Regressor(approximator, **apprx_params_train)
+        self.target_approximator = Regressor(approximator,
+                                             **apprx_params_target)
+        self.target_approximator.set_weights(self.approximator.get_weights())
 
     def forward(self, state, action=None, get_distribution=False):
         features = self._phi(state, action)

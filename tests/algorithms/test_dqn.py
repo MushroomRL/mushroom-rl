@@ -86,7 +86,7 @@ def learn(alg, alg_params):
 
 
 def test_dqn():
-    params = dict(batch_size=50, n_approximators=1, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=50,
                   max_replay_size=500, target_update_frequency=50)
     approximator = learn(DQN, params).approximator
 
@@ -101,7 +101,7 @@ def test_dqn():
 def test_dqn_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
-    params = dict(batch_size=50, n_approximators=1, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=50,
                   max_replay_size=500, target_update_frequency=50)
     agent_save = learn(DQN, params)
 
@@ -120,7 +120,7 @@ def test_prioritized_dqn():
         50, 500, alpha=.6,
         beta=LinearParameter(.4, threshold_value=1, n=500 // 5)
     )
-    params = dict(batch_size=50, n_approximators=1, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=50,
                   max_replay_size=500, target_update_frequency=50,
                   replay_memory=replay_memory)
     approximator = learn(DQN, params).approximator
@@ -140,7 +140,7 @@ def test_prioritized_dqn_save(tmpdir):
         50, 500, alpha=.6,
         beta=LinearParameter(.4, threshold_value=1, n=500 // 5)
     )
-    params = dict(batch_size=50, n_approximators=1, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=50,
                   max_replay_size=500, target_update_frequency=50,
                   replay_memory=replay_memory)
     agent_save = learn(DQN, params)
@@ -156,7 +156,7 @@ def test_prioritized_dqn_save(tmpdir):
 
 
 def test_double_dqn():
-    params = dict(batch_size=50, n_approximators=1, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=50,
                   max_replay_size=500, target_update_frequency=50)
     approximator = learn(DoubleDQN, params).approximator
 
@@ -171,7 +171,7 @@ def test_double_dqn():
 def test_double_dqn_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
-    params = dict(batch_size=50, n_approximators=1, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=50,
                   max_replay_size=500, target_update_frequency=50)
     agent_save = learn(DoubleDQN, params)
 
@@ -216,7 +216,7 @@ def test_averaged_dqn_save(tmpdir):
 
 
 def test_categorical_dqn():
-    params = dict(batch_size=50, n_approximators=1, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=50,
                   max_replay_size=5000, target_update_frequency=50)
     approximator = learn(CategoricalDQN, params).approximator
 
@@ -233,7 +233,7 @@ def test_categorical_dqn():
 def test_categorical_dqn_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
-    params = dict(batch_size=50, n_approximators=1, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=50,
                   max_replay_size=5000, target_update_frequency=50)
     agent_save = learn(CategoricalDQN, params)
 
