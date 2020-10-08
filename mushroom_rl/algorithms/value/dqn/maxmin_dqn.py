@@ -50,10 +50,3 @@ class MaxminDQN(DQN):
         for i in range(len(self.target_approximator)):
             self.target_approximator[i].set_weights(
                 self.approximator[i].get_weights())
-
-    def _next_q(self, next_state, absorbing):
-        q = self.target_approximator.predict(next_state)
-        if np.any(absorbing):
-            q *= 1 - absorbing.reshape(-1, 1)
-
-        return np.max(q, axis=1)
