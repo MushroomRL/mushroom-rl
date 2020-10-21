@@ -11,7 +11,7 @@ from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.distributions import GaussianDiagonalDistribution
 from mushroom_rl.environments import LQR
 from mushroom_rl.policy import DeterministicPolicy
-from mushroom_rl.utils.lr_optimizers import AdaptiveParameterOptimizer
+from mushroom_rl.utils.grad_optimizers import AdaptiveParameterOptimizer
 
 
 def learn(alg, **alg_params):

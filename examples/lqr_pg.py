@@ -7,7 +7,7 @@ from mushroom_rl.core import Core
 from mushroom_rl.environments import LQR
 from mushroom_rl.policy import StateStdGaussianPolicy
 from mushroom_rl.utils.dataset import compute_J
-from mushroom_rl.utils.lr_optimizers import AdaptiveParameterOptimizer
+from mushroom_rl.utils.grad_optimizers import AdaptiveParameterOptimizer
 
 from tqdm import tqdm
 

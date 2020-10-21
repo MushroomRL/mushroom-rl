@@ -10,7 +10,7 @@ from mushroom_rl.features.features import Features
 from mushroom_rl.distributions import GaussianDiagonalDistribution
 from mushroom_rl.policy import DeterministicPolicy
 from mushroom_rl.utils.dataset import compute_J
-from mushroom_rl.utils.lr_optimizers import AdaptiveParameterOptimizer
+from mushroom_rl.utils.grad_optimizers import AdaptiveParameterOptimizer
 
 from tqdm import tqdm
 

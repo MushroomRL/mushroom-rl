@@ -9,7 +9,7 @@ from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.utils.dataset import compute_J
 from mushroom_rl.utils.callbacks import CollectDataset
-from mushroom_rl.utils.lr_optimizers import AdaptiveParameterOptimizer
+from mushroom_rl.utils.grad_optimizers import AdaptiveParameterOptimizer
 
 from tqdm import tqdm
 tqdm.monitor_interval = 0

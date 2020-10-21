@@ -21,7 +21,7 @@ from mushroom_rl.approximators import Regressor
 from mushroom_rl.policy.noise_policy import OrnsteinUhlenbeckPolicy
 from mushroom_rl.features._implementations.tiles_features import TilesFeatures
 from mushroom_rl.utils.parameters import Parameter, AdaptiveParameter, LinearParameter
-from mushroom_rl.utils.lr_optimizers import AdaptiveParameterOptimizer
+from mushroom_rl.utils.grad_optimizers import AdaptiveParameterOptimizer
 from mushroom_rl.distributions.gaussian import GaussianDiagonalDistribution
 from mushroom_rl.utils.table import Table
 from mushroom_rl.utils.spaces import Discrete
