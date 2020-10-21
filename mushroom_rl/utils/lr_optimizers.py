@@ -2,7 +2,24 @@ import numpy as np
 import numpy_ml as npml
 
 
-class AdaptiveParameterOptimizer(object):
+class GradientOptimizer(object):
+    """
+    Base class for gradient optimizers.
+    These objects take the current parameters and the gradient estimate to compute the new parameters.
+
+    """
+
+    def __init__(self, *params):
+        pass
+
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def update(self,  *args, **kwargs):
+        raise NotImplementedError
+
+
+class AdaptiveParameterOptimizer(GradientOptimizer):
     """
     This class implements an adaptive gradient step optimizer.
     Instead of moving of a step proportional to the gradient,
@@ -22,13 +39,14 @@ class AdaptiveParameterOptimizer(object):
 
     """
     def __init__(self, value, maximize=True):
-        """
+        """0
         Constructor.
 
         Args:
             value (float): the maximum step defined by the metric
             maximize (bool): by default Optimizers do a gradient ascent step. Set to False for gradient descent
         """
+        super().__init__()
         self._eps = value
         self._maximize = maximize
 
@@ -61,7 +79,7 @@ class AdaptiveParameterOptimizer(object):
                              'and natural gradient')
 
 
-class FixedLearningRateOptimizer(object):
+class FixedLearningRateOptimizer(GradientOptimizer):
     """
     This class implements a fixed learning rate optimizer.
 
@@ -74,6 +92,7 @@ class FixedLearningRateOptimizer(object):
             value (float): the learning rate
             maximize (bool): by default Optimizers do a gradient ascent step. Set to False for gradient descent
         """
+        super().__init__()
         self._lr = value
         self._maximize = maximize
 
@@ -88,7 +107,7 @@ class FixedLearningRateOptimizer(object):
         return params + self._lr * grads
 
 
-class AdamOptimizer(object):
+class AdamOptimizer(GradientOptimizer):
     """
     This class implements the Adam optimizer.
 
@@ -103,6 +122,7 @@ class AdamOptimizer(object):
             decay2 (float): Adam beta2 parameter
             maximize (bool): by default Optimizers do a gradient ascent step. Set to False for gradient descent
         """
+        super().__init__()
         self._optimizer = npml.neural_nets.optimizers.Adam(
             lr=value,
             decay1=decay1,
