@@ -21,6 +21,7 @@ from mushroom_rl.approximators import Regressor
 from mushroom_rl.policy.noise_policy import OrnsteinUhlenbeckPolicy
 from mushroom_rl.features._implementations.tiles_features import TilesFeatures
 from mushroom_rl.utils.parameters import Parameter, AdaptiveParameter, LinearParameter
+from mushroom_rl.utils.lr_optimizers import AdaptiveParameterOptimizer
 from mushroom_rl.distributions.gaussian import GaussianDiagonalDistribution
 from mushroom_rl.utils.table import Table
 from mushroom_rl.utils.spaces import Discrete
@@ -75,6 +76,8 @@ class TestUtils:
             assert cls.eq_adaptive_parameter(this, that)
         elif cls._check_type(this, that, LinearParameter):
             assert cls.eq_linear_parameter(this, that)
+        elif cls._check_type(this, that, AdaptiveParameterOptimizer):
+            assert cls.eq_adaptive_parameter_optimizer(this, that)
         elif cls._check_type(this, that, GaussianDiagonalDistribution):
             assert cls.eq_gaussian_diagonal_dist(this, that)
         elif cls._check_type(this, that, Table):
@@ -283,6 +286,15 @@ class TestUtils:
         Compare two AdaptiveParameter objects for equality
         """
         
+        res = cls._eq_numpy(this._eps, that._eps)
+        return res
+
+    @classmethod
+    def eq_adaptive_parameter_optimizer(cls, this, that):
+        """
+        Compare two AdaptiveParameterOptimizer objects for equality
+        """
+
         res = cls._eq_numpy(this._eps, that._eps)
         return res
 

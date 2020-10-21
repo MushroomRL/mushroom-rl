@@ -11,20 +11,20 @@ class PolicyGradient(Agent):
     al.. 2011.
 
     """
-    def __init__(self, mdp_info, policy, learning_rate, features):
+    def __init__(self, mdp_info, policy, grad_optimizer, features):
         """
         Constructor.
 
         Args:
-            learning_rate (float): the learning rate.
+            grad_optimizer: the gradient optimizer.
 
         """
-        self.learning_rate = learning_rate
+        self.grad_optimizer = grad_optimizer
         self.df = 1
         self.J_episode = 0
 
         self._add_save_attr(
-            learning_rate='pickle',
+            grad_optimizer='pickle',
             df='numpy',
             J_episode='numpy'
         )
@@ -66,12 +66,11 @@ class PolicyGradient(Agent):
 
         if len(res) == 1:
             grad = res[0]
-            delta = self.learning_rate(grad) * grad
+            theta_new = self.grad_optimizer(theta, grad)
         else:
             grad, nat_grad = res
-            delta = self.learning_rate(grad, nat_grad) * nat_grad
+            theta_new = self.grad_optimizer(theta, grad, nat_grad)
 
-        theta_new = theta + delta
         self.policy.set_weights(theta_new)
 
     def _init_update(self):
