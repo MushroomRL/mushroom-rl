@@ -50,7 +50,11 @@ class Gym(Environment):
 
         action_space = self._convert_gym_space(self.env.action_space)
         observation_space = self._convert_gym_space(self.env.observation_space)
-        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+        try:
+            n_rewards = self.env.n_rewards
+        except:
+            n_rewards = 1
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, n_rewards)
 
         if isinstance(action_space, Discrete):
             self._convert_action = lambda a: a[0]

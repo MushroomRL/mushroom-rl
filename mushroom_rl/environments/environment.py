@@ -6,7 +6,7 @@ class MDPInfo:
     This class is used to store the information of the environment.
 
     """
-    def __init__(self, observation_space, action_space, gamma, horizon):
+    def __init__(self, observation_space, action_space, gamma, horizon, n_rewards=1):
         """
         Constructor.
 
@@ -14,13 +14,16 @@ class MDPInfo:
              observation_space ([Box, Discrete]): the state space;
              action_space ([Box, Discrete]): the action space;
              gamma (float): the discount factor;
-             horizon (int): the horizon.
+             horizon (int): the horizon;
+             n_rewards (int, optional): the number of rewards for
+                multi-objective environments.
 
         """
         self.observation_space = observation_space
         self.action_space = action_space
         self.gamma = gamma
         self.horizon = horizon
+        self.n_rewards = n_rewards
 
     @property
     def size(self):

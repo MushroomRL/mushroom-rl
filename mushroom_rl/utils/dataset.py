@@ -21,7 +21,7 @@ def parse_dataset(dataset, features=None):
 
     state = np.ones((len(dataset),) + shape)
     action = np.ones((len(dataset),) + dataset[0][1].shape)
-    reward = np.ones(len(dataset))
+    reward = np.ones((len(dataset),) + dataset[0][2].shape)
     next_state = np.ones((len(dataset),) + shape)
     absorbing = np.ones(len(dataset))
     last = np.ones(len(dataset))
@@ -30,7 +30,7 @@ def parse_dataset(dataset, features=None):
         for i in range(len(dataset)):
             state[i, ...] = features(dataset[i][0])
             action[i, ...] = dataset[i][1]
-            reward[i] = dataset[i][2]
+            reward[i, ...] = dataset[i][2]
             next_state[i, ...] = features(dataset[i][3])
             absorbing[i] = dataset[i][4]
             last[i] = dataset[i][5]
@@ -38,7 +38,7 @@ def parse_dataset(dataset, features=None):
         for i in range(len(dataset)):
             state[i, ...] = dataset[i][0]
             action[i, ...] = dataset[i][1]
-            reward[i] = dataset[i][2]
+            reward[i, ...] = dataset[i][2]
             next_state[i, ...] = dataset[i][3]
             absorbing[i] = dataset[i][4]
             last[i] = dataset[i][5]
@@ -70,7 +70,7 @@ def arrays_as_dataset(states, actions, rewards, next_states, absorbings, lasts):
     for s, a, r, ss, ab, last in zip(states, actions, rewards, next_states,
                                      absorbings.astype(bool), lasts.astype(bool)
                                      ):
-        dataset.append((s, a, r.item(0), ss, ab.item(0), last.item(0)))
+        dataset.append((s, a, r, ss, ab.item(0), last.item(0)))
 
     return dataset
 
