@@ -25,7 +25,7 @@ class Regressor(Serializable):
 
     """
     def __init__(self, approximator, input_shape, output_shape=(1,),
-                 n_actions=None, n_rewards=None, n_models=1, **params):
+                 n_actions=None, n_models=1, **params):
         """
         Constructor.
 
@@ -36,9 +36,6 @@ class Regressor(Serializable):
             output_shape (tuple, (1,)): the shape of the output of the model;
             n_actions (int, None): number of actions considered to create a
                 ``QRegressor`` or an ``ActionRegressor``;
-            n_rewards (int, None): number of rewards considered to create a
-                ``QRegressor`` or an ``ActionRegressor`` for multi-objective
-                environments;
             n_models (int, 1): number of models to create;
             **params: other parameters to create each model.
 
@@ -51,7 +48,6 @@ class Regressor(Serializable):
         self._output_shape = output_shape
 
         self.n_actions = n_actions
-        self.n_rewards = n_rewards
 
         assert n_models >= 1
         self._n_models = n_models
@@ -63,9 +59,7 @@ class Regressor(Serializable):
 
         if n_actions is not None:
             assert n_actions >= 2
-            if len(self._output_shape) == 1 and (n_actions == self._output_shape[0]):
-                self._impl = QRegressor(approximator, **params)
-            elif len(self._output_shape) == 2 and (n_rewards == self._output_shape[1]):
+            if len(self._output_shape) >= 1 and (n_actions == self._output_shape[0]):
                 self._impl = QRegressor(approximator, **params)
             else:
                 self._impl = ActionRegressor(approximator, n_actions, **params)
@@ -78,7 +72,6 @@ class Regressor(Serializable):
             _input_shape='primitive',
             _output_shape='primitive',
             n_actions='primitive',
-            n_rewards='primitive',
             _n_models='primitive',
             _impl='mushroom'
         )
