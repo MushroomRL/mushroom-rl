@@ -9,7 +9,7 @@ from mushroom_rl.distributions import GaussianCholeskyDistribution
 from mushroom_rl.environments import LQR
 from mushroom_rl.policy import DeterministicPolicy
 from mushroom_rl.utils.dataset import compute_J
-from mushroom_rl.utils.grad_optimizers import AdaptiveParameterOptimizer
+from mushroom_rl.utils.optimizers import AdaptiveParameterOptimizer
 
 
 """
@@ -57,10 +57,10 @@ def experiment(alg, params, n_epochs, fit_per_run, ep_per_run):
 
 
 if __name__ == '__main__':
-    learning_rate = AdaptiveParameterOptimizer(value=0.05)
+    optimizer = AdaptiveParameterOptimizer(value=0.05)
 
     algs = [REPS, RWR, PGPE]
-    params = [{'eps': 0.5}, {'beta': 0.7}, {'learning_rate': learning_rate}]
+    params = [{'eps': 0.5}, {'beta': 0.7}, {'optimizer': optimizer}]
 
     for alg, params in zip(algs, params):
         print(alg.__name__)

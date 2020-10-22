@@ -10,18 +10,18 @@ class PGPE(BlackBoxOptimization):
     Peters J.. 2013.
 
     """
-    def __init__(self, mdp_info, distribution, policy, grad_optimizer,
+    def __init__(self, mdp_info, distribution, policy, optimizer,
                  features=None):
         """
         Constructor.
 
         Args:
-            grad_optimizer: the gradient step optimizer.
+            optimizer: the gradient step optimizer.
 
         """
-        self.grad_optimizer = grad_optimizer
+        self.optimizer = optimizer
 
-        self._add_save_attr(grad_optimizer='pickle')
+        self._add_save_attr(optimizer='pickle')
 
         super().__init__(mdp_info, distribution, policy, features)
 
@@ -57,6 +57,6 @@ class PGPE(BlackBoxOptimization):
 
         grad_J = np.mean(grad_J_list, axis=0)
 
-        omega = self.distribution.get_parameters()
-        omega = self.grad_optimizer(omega, grad_J)
-        self.distribution.set_parameters(omega)
+        omega_old = self.distribution.get_parameters()
+        omega_new = self.optimizer(omega_old, grad_J)
+        self.distribution.set_parameters(omega_new)

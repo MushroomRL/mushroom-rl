@@ -10,8 +10,8 @@ class GPOMDP(PolicyGradient):
     2001.
 
     """
-    def __init__(self, mdp_info, policy, grad_optimizer, features=None):
-        super().__init__(mdp_info, policy, grad_optimizer, features)
+    def __init__(self, mdp_info, policy, optimizer, features=None):
+        super().__init__(mdp_info, policy, optimizer, features)
 
         self.sum_d_log_pi = None
         self.list_sum_d_log_pi = list()

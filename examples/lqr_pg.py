@@ -7,7 +7,7 @@ from mushroom_rl.core import Core
 from mushroom_rl.environments import LQR
 from mushroom_rl.policy import StateStdGaussianPolicy
 from mushroom_rl.utils.dataset import compute_J
-from mushroom_rl.utils.grad_optimizers import AdaptiveParameterOptimizer
+from mushroom_rl.utils.optimizers import AdaptiveParameterOptimizer
 
 from tqdm import tqdm
 
@@ -41,8 +41,8 @@ def experiment(alg, n_epochs, n_iterations, ep_per_run):
     policy = StateStdGaussianPolicy(approximator, sigma)
 
     # Agent
-    learning_rate = AdaptiveParameterOptimizer(value=.01)
-    algorithm_params = dict(learning_rate=learning_rate)
+    optimizer = AdaptiveParameterOptimizer(value=.01)
+    algorithm_params = dict(learning_rate=optimizer)
     agent = alg(mdp.info, policy, **algorithm_params)
 
     # Train

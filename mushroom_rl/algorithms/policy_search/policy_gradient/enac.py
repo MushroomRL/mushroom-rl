@@ -10,7 +10,7 @@ class eNAC(PolicyGradient):
     Peters J. 2013.
 
     """
-    def __init__(self, mdp_info, policy, grad_optimizer, features=None,
+    def __init__(self, mdp_info, policy, optimizer, features=None,
                  critic_features=None):
         """
         Constructor.
@@ -19,7 +19,7 @@ class eNAC(PolicyGradient):
             critic_features (Features, None): features used by the critic.
 
         """
-        super().__init__(mdp_info, policy, grad_optimizer, features)
+        super().__init__(mdp_info, policy, optimizer, features)
         self.phi_c = critic_features
 
         self.sum_grad_log = None

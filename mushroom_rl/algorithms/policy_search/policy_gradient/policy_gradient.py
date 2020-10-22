@@ -11,20 +11,20 @@ class PolicyGradient(Agent):
     al.. 2011.
 
     """
-    def __init__(self, mdp_info, policy, grad_optimizer, features):
+    def __init__(self, mdp_info, policy, optimizer, features):
         """
         Constructor.
 
         Args:
-            grad_optimizer: the gradient optimizer.
+            optimizer: the gradient optimizer.
 
         """
-        self.grad_optimizer = grad_optimizer
+        self.optimizer = optimizer
         self.df = 1
         self.J_episode = 0
 
         self._add_save_attr(
-            grad_optimizer='pickle',
+            optimizer='pickle',
             df='numpy',
             J_episode='numpy'
         )
@@ -62,14 +62,14 @@ class PolicyGradient(Agent):
         """
         res = self._compute_gradient(J)
 
-        theta = self.policy.get_weights()
+        theta_old = self.policy.get_weights()
 
         if len(res) == 1:
             grad = res[0]
-            theta_new = self.grad_optimizer(theta, grad)
+            theta_new = self.optimizer(theta_old, grad)
         else:
             grad, nat_grad = res
-            theta_new = self.grad_optimizer(theta, grad, nat_grad)
+            theta_new = self.optimizer(theta_old, grad, nat_grad)
 
         self.policy.set_weights(theta_new)
 
