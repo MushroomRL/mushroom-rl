@@ -59,8 +59,8 @@ def experiment(alg, params, n_epochs, n_episodes, n_ep_per_fit):
 
 if __name__ == '__main__':
     algs_params = [
-        # (REPS, {'eps': 0.05}),
-        # (RWR, {'beta': 0.01}),
+        (REPS, {'eps': 0.05}),
+        (RWR, {'beta': 0.01}),
         (PGPE, {'optimizer':  AdaptiveOptimizer(eps=0.3)}),
         ]
     for alg, params in algs_params:
