@@ -14,6 +14,9 @@ from copy import deepcopy
 from itertools import chain
 
 
+EPS = 1e-6
+
+
 class SACPolicy(Policy):
     """
     Class used to implement the policy used by the Soft Actor-Critic
@@ -23,7 +26,7 @@ class SACPolicy(Policy):
     the internals calculations of the SAC algorithm.
 
     """
-    def __init__(self, mu_approximator, sigma_approximator, min_a, max_a):
+    def __init__(self, mu_approximator, sigma_approximator, min_a, max_a, log_std_min, log_std_max):
         """
         Constructor.
 
@@ -36,6 +39,8 @@ class SACPolicy(Policy):
                 for each component;
             max_a (np.ndarray): a vector specifying the maximum action value
                 for each component.
+            log_std_min (float): Min value for the policy log std;
+            log_std_max (float): Max value for the policy log std;
 
         """
         self._mu_approximator = mu_approximator
@@ -43,6 +48,9 @@ class SACPolicy(Policy):
 
         self._delta_a = to_float_tensor(.5 * (max_a - min_a), self.use_cuda)
         self._central_a = to_float_tensor(.5 * (max_a + min_a), self.use_cuda)
+
+        self._log_std_min = log_std_min
+        self._log_std_max = log_std_max
 
         use_cuda = self._mu_approximator.model.use_cuda
 
@@ -101,7 +109,7 @@ class SACPolicy(Policy):
 
         if compute_log_prob:
             log_prob = dist.log_prob(a_raw).sum(dim=1)
-            log_prob -= torch.log(1. - a.pow(2) + 1e-6).sum(dim=1)
+            log_prob -= torch.log(1. - a.pow(2) + EPS).sum(dim=1)
             return a_true, log_prob
         else:
             return a_true
@@ -120,6 +128,8 @@ class SACPolicy(Policy):
         """
         mu = self._mu_approximator.predict(state, output_tensor=True)
         log_sigma = self._sigma_approximator.predict(state, output_tensor=True)
+        # Bound the log_std
+        log_sigma = torch.clamp(log_sigma, self._log_std_min, self._log_std_max)
         return torch.distributions.Normal(mu, log_sigma.exp())
 
     def entropy(self, state=None):
@@ -185,7 +195,9 @@ class SAC(DeepAC):
     def __init__(self, mdp_info, actor_mu_params, actor_sigma_params,
                  actor_optimizer, critic_params, batch_size,
                  initial_replay_size, max_replay_size, warmup_transitions, tau,
-                 lr_alpha, target_entropy=None, critic_fit_params=None):
+                 lr_alpha,
+                 log_std_min=-20, log_std_max=2,
+                 target_entropy=None, critic_fit_params=None):
         """
         Constructor.
 
@@ -207,6 +219,8 @@ class SAC(DeepAC):
                 replay memory to start the policy fitting;
             tau (float): value of coefficient for soft updates;
             lr_alpha (float): Learning rate for the entropy coefficient;
+            log_std_min (float): Min value for the policy log std;
+            log_std_max (float): Max value for the policy log std;
             target_entropy (float, None): target entropy for the policy, if
                 None a default value is computed ;
             critic_fit_params (dict, None): parameters of the fitting algorithm
@@ -245,7 +259,9 @@ class SAC(DeepAC):
         policy = SACPolicy(actor_mu_approximator,
                            actor_sigma_approximator,
                            mdp_info.action_space.low,
-                           mdp_info.action_space.high)
+                           mdp_info.action_space.high,
+                           log_std_min,
+                           log_std_max)
 
         self._init_target(self._critic_approximator,
                           self._target_critic_approximator)
