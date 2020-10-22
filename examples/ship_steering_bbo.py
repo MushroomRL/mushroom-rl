@@ -10,7 +10,8 @@ from mushroom_rl.features.features import Features
 from mushroom_rl.distributions import GaussianDiagonalDistribution
 from mushroom_rl.policy import DeterministicPolicy
 from mushroom_rl.utils.dataset import compute_J
-from mushroom_rl.utils.parameters import AdaptiveParameter
+from mushroom_rl.utils.optimizers import AdaptiveOptimizer
+
 from tqdm import tqdm
 
 
@@ -75,7 +76,7 @@ if __name__ == '__main__':
     algs_params = [
         (REPS, {'eps': 1.0}),
         (RWR, {'beta': 0.7}),
-        (PGPE, {'learning_rate': AdaptiveParameter(value=1.5)}),
+        (PGPE, {'optimizer': AdaptiveOptimizer(eps=1.5)}),
         ]
 
     for alg, params in algs_params:

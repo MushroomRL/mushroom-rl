@@ -11,7 +11,7 @@ from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.distributions import GaussianDiagonalDistribution
 from mushroom_rl.environments import LQR
 from mushroom_rl.policy import DeterministicPolicy
-from mushroom_rl.utils.parameters import AdaptiveParameter
+from mushroom_rl.utils.optimizers import AdaptiveOptimizer
 
 
 def learn(alg, **alg_params):
@@ -88,7 +88,7 @@ def test_REPS_save(tmpdir):
 
 
 def test_PGPE():
-    distribution = learn(PGPE, learning_rate=AdaptiveParameter(1.5)).distribution
+    distribution = learn(PGPE, optimizer=AdaptiveOptimizer(1.5)).distribution
     w = distribution.get_parameters()
     w_test = np.array([0.02489092, 0.31062211, 0.2051433, 0.05959651,
                        -0.78302236, 0.77381954, 0.23676176, -0.29855654])
@@ -99,7 +99,7 @@ def test_PGPE():
 def test_PGPE_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
-    agent_save = learn(PGPE, learning_rate=AdaptiveParameter(1.5))
+    agent_save = learn(PGPE, optimizer=AdaptiveOptimizer(1.5))
 
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
