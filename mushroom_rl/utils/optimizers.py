@@ -2,7 +2,7 @@ import numpy as np
 import numpy_ml as npml
 
 
-class GradientOptimizer(object):
+class Optimizer(object):
     """
     Base class for gradient optimizers.
     These objects take the current parameters and the gradient estimate to compute the new parameters.
@@ -19,7 +19,7 @@ class GradientOptimizer(object):
         raise NotImplementedError
 
 
-class AdaptiveParameterOptimizer(GradientOptimizer):
+class AdaptiveParameterOptimizer(Optimizer):
     """
     This class implements an adaptive gradient step optimizer.
     Instead of moving of a step proportional to the gradient,
@@ -79,7 +79,7 @@ class AdaptiveParameterOptimizer(GradientOptimizer):
                              'and natural gradient')
 
 
-class FixedLearningRateOptimizer(GradientOptimizer):
+class FixedLearningRateOptimizer(Optimizer):
     """
     This class implements a fixed learning rate optimizer.
 
@@ -107,7 +107,7 @@ class FixedLearningRateOptimizer(GradientOptimizer):
         return params + self._lr * grads
 
 
-class AdamOptimizer(GradientOptimizer):
+class AdamOptimizer(Optimizer):
     """
     This class implements the Adam optimizer.
 
