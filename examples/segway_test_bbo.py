@@ -9,7 +9,7 @@ from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.utils.dataset import compute_J
 from mushroom_rl.utils.callbacks import CollectDataset
-from mushroom_rl.utils.optimizers import AdaptiveParameterOptimizer
+from mushroom_rl.utils.optimizers import AdaptiveOptimizer
 
 from tqdm import tqdm
 tqdm.monitor_interval = 0
@@ -59,9 +59,9 @@ def experiment(alg, params, n_epochs, n_episodes, n_ep_per_fit):
 
 if __name__ == '__main__':
     algs_params = [
-        (REPS, {'eps': 0.05}),
-        (RWR, {'beta': 0.01}),
-        (PGPE, {'optimizer':  AdaptiveParameterOptimizer(value=0.3)}),
+        # (REPS, {'eps': 0.05}),
+        # (RWR, {'beta': 0.01}),
+        (PGPE, {'optimizer':  AdaptiveOptimizer(eps=0.3)}),
         ]
     for alg, params in algs_params:
         experiment(alg, params, n_epochs=20, n_episodes=100, n_ep_per_fit=25)

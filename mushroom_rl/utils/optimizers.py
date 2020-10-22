@@ -1,6 +1,8 @@
 import numpy as np
 import numpy_ml as npml
 
+from mushroom_rl.utils.parameters import Parameter
+
 
 class Optimizer(object):
     """
@@ -9,21 +11,30 @@ class Optimizer(object):
 
     """
 
-    def __init__(self, *params):
-        pass
+    def __init__(self, lr=0.001, maximize=True, *params):
+        """
+        Constructor
+
+        Args:
+            lr (float/Parameter): the learning rate
+            maximize (bool): by default Optimizers do a gradient ascent step. Set to False for gradient descent
+
+        """
+        if isinstance(lr, float):
+            self._lr = Parameter(lr)
+        else:
+            self._lr = lr
+        self._maximize = maximize
 
     def __call__(self, *args, **kwargs):
         raise NotImplementedError
 
-    def update(self,  *args, **kwargs):
-        raise NotImplementedError
 
-
-class AdaptiveParameterOptimizer(Optimizer):
+class AdaptiveOptimizer(Optimizer):
     """
     This class implements an adaptive gradient step optimizer.
     Instead of moving of a step proportional to the gradient,
-    takes a step limited by a given metric.
+    takes a step limited by a given metric M.
     To specify the metric, the natural gradient has to be provided. If natural
     gradient is not provided, the identity matrix is used.
 
@@ -38,25 +49,25 @@ class AdaptiveParameterOptimizer(Optimizer):
     http://www.ias.informatik.tu-darmstadt.de/uploads/Geri/lecture-notes-constraint.pdf
 
     """
-    def __init__(self, value, maximize=True):
-        """0
+    def __init__(self, eps, maximize=True):
+        """
         Constructor.
 
         Args:
-            value (float): the maximum step defined by the metric
+            eps (float): the maximum step defined by the metric
             maximize (bool): by default Optimizers do a gradient ascent step. Set to False for gradient descent
+
         """
-        super().__init__()
-        self._eps = value
-        self._maximize = maximize
+        super().__init__(maximize=maximize)
+        self._eps = eps
 
-    def __call__(self, *args, **kwargs):
-        return self.update(*args, **kwargs)
-
-    def update(self, *args, **kwargs):
-        params = args[0]
-        grads = args[1]
-        lr = self.get_value(*args[1:], **kwargs)
+    def __call__(self, params, *args, **kwargs):
+        # If two args are passed
+        # args[0] is the gradient g, and grads[1] is the natural gradient M^{-1}g
+        grads = args[0]
+        if len(args) == 2:
+            grads = args[1]
+        lr = self.get_value(*args, **kwargs)
         if not self._maximize:
             grads *= -1
         return params + lr * grads
@@ -79,32 +90,26 @@ class AdaptiveParameterOptimizer(Optimizer):
                              'and natural gradient')
 
 
-class FixedLearningRateOptimizer(Optimizer):
+class SGDOptimizer(Optimizer):
     """
-    This class implements a fixed learning rate optimizer.
+    This class implements the SGD optimizer.
 
     """
-    def __init__(self, value, maximize=True):
+    def __init__(self, lr=0.001, maximize=True):
         """
         Constructor.
 
         Args:
-            value (float): the learning rate
+            lr (float/Parameter): the learning rate
             maximize (bool): by default Optimizers do a gradient ascent step. Set to False for gradient descent
+
         """
-        super().__init__()
-        self._lr = value
-        self._maximize = maximize
+        super().__init__(lr, maximize)
 
-    def __call__(self, *args, **kwargs):
-        params = args[0]
-        grads = args[1]
-        return self.update(params, grads)
-
-    def update(self, params, grads):
+    def __call__(self, params, grads):
         if not self._maximize:
             grads *= -1
-        return params + self._lr * grads
+        return params + self._lr() * grads
 
 
 class AdamOptimizer(Optimizer):
@@ -112,31 +117,92 @@ class AdamOptimizer(Optimizer):
     This class implements the Adam optimizer.
 
     """
-    def __init__(self, value, decay1=0.9, decay2=0.999, maximize=True):
+    def __init__(self, lr=0.001, decay1=0.9, decay2=0.999, maximize=True):
         """
         Constructor.
 
         Args:
-            value (float): the initial learning rate
+            lr (float/Parameter): the learning rate
             decay1 (float): Adam beta1 parameter
             decay2 (float): Adam beta2 parameter
             maximize (bool): by default Optimizers do a gradient ascent step. Set to False for gradient descent
+
         """
-        super().__init__()
+        super().__init__(lr, maximize)
+        # lr_scheduler must be set to None, as we have our own scheduler
         self._optimizer = npml.neural_nets.optimizers.Adam(
-            lr=value,
+            lr=self._lr.initial_value,
             decay1=decay1,
-            decay2=decay2
+            decay2=decay2,
+            lr_scheduler=None
         )
-        self._maximize = maximize
 
-    def __call__(self, *args, **kwargs):
-        params = args[0]
-        grads = args[1]
-        return self.update(params, grads)
-
-    def update(self, params, grads):
+    def __call__(self, params, grads):
         if self._maximize:
             # -1*grads because numpy_ml does gradient descent by default, not ascent
             grads *= -1
+        # Fix the numpy_ml optimizer lr to the one we computed
+        self._optimizer.lr_scheduler.lr = self._lr()
+        return self._optimizer.update(params, grads, 'theta')
+
+
+class AdaGradOptimizer(Optimizer):
+    """
+    This class implements the AdaGrad optimizer.
+
+    """
+    def __init__(self, lr=0.001, maximize=True):
+        """
+        Constructor.
+
+        Args:
+            lr (float/Parameter): the learning rate
+            maximize (bool): by default Optimizers do a gradient ascent step. Set to False for gradient descent
+
+        """
+        super().__init__(lr, maximize)
+        # lr_scheduler must be set to None, as we have our own scheduler
+        self._optimizer = npml.neural_nets.optimizers.AdaGrad(
+            lr=self._lr.initial_value,
+            lr_scheduler=None
+        )
+
+    def __call__(self, params, grads):
+        if self._maximize:
+            # -1*grads because numpy_ml does gradient descent by default, not ascent
+            grads *= -1
+        # Fix the numpy_ml optimizer lr to the one we computed
+        self._optimizer.lr_scheduler.lr = self._lr()
+        return self._optimizer.update(params, grads, 'theta')
+
+
+class RMSPropOptimizer(Optimizer):
+    """
+    This class implements the RMSProp optimizer.
+
+    """
+    def __init__(self, lr=0.001, decay=0.9, maximize=True):
+        """
+        Constructor.
+
+        Args:
+            lr (float/Parameter): the learning rate
+            decay (float): rate of decay for the moving average
+            maximize (bool): by default Optimizers do a gradient ascent step. Set to False for gradient descent
+
+        """
+        super().__init__(lr, maximize)
+        # lr_scheduler must be set to None, as we have our own scheduler
+        self._optimizer = npml.neural_nets.optimizers.RMSProp(
+            lr=self._lr.initial_value,
+            decay=decay,
+            lr_scheduler=None
+        )
+
+    def __call__(self, params, grads):
+        if self._maximize:
+            # -1*grads because numpy_ml does gradient descent by default, not ascent
+            grads *= -1
+        # Fix the numpy_ml optimizer lr to the one we computed
+        self._optimizer.lr_scheduler.lr = self._lr()
         return self._optimizer.update(params, grads, 'theta')

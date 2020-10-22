@@ -10,7 +10,7 @@ from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.core import Core
 from mushroom_rl.environments.lqr import LQR
 from mushroom_rl.policy.gaussian_policy import StateStdGaussianPolicy
-from mushroom_rl.utils.optimizers import AdaptiveParameterOptimizer
+from mushroom_rl.utils.optimizers import AdaptiveOptimizer
 
 
 def learn(alg, alg_params):
@@ -45,7 +45,7 @@ def learn(alg, alg_params):
 
 
 def test_REINFORCE():
-    params = dict(optimizer=AdaptiveParameterOptimizer(value=.01))
+    params = dict(optimizer=AdaptiveOptimizer(eps=.01))
     policy = learn(REINFORCE, params).policy
     w = np.array([-0.0084793 ,  2.00536528])
 
@@ -55,7 +55,7 @@ def test_REINFORCE():
 def test_REINFORCE_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
-    params = dict(optimizer=AdaptiveParameterOptimizer(value=.01))
+    params = dict(optimizer=AdaptiveOptimizer(eps=.01))
 
     agent_save = learn(REINFORCE, params)
 
@@ -70,7 +70,7 @@ def test_REINFORCE_save(tmpdir):
 
 
 def test_GPOMDP():
-    params = dict(optimizer=AdaptiveParameterOptimizer(value=.01))
+    params = dict(optimizer=AdaptiveOptimizer(eps=.01))
     policy = learn(GPOMDP, params).policy
     w = np.array([-0.07623939,  2.05232858])
 
@@ -80,7 +80,7 @@ def test_GPOMDP():
 def test_GPOMDP_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
-    params = dict(optimizer=AdaptiveParameterOptimizer(value=.01))
+    params = dict(optimizer=AdaptiveOptimizer(eps=.01))
 
     agent_save = learn(GPOMDP, params)
 
@@ -95,7 +95,7 @@ def test_GPOMDP_save(tmpdir):
 
 
 def test_eNAC():
-    params = dict(optimizer=AdaptiveParameterOptimizer(value=.01))
+    params = dict(optimizer=AdaptiveOptimizer(eps=.01))
     policy = learn(eNAC, params).policy
     w = np.array([-0.03668018,  2.05112355])
 
@@ -105,7 +105,7 @@ def test_eNAC():
 def test_eNAC_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
-    params = dict(optimizer=AdaptiveParameterOptimizer(value=.01))
+    params = dict(optimizer=AdaptiveOptimizer(eps=.01))
 
     agent_save = learn(eNAC, params)
 
