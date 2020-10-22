@@ -15,7 +15,7 @@ class MDPInfo:
              action_space ([Box, Discrete]): the action space;
              gamma (float): the discount factor;
              horizon (int): the horizon;
-             n_rewards (int, optional): the number of rewards for
+             n_rewards (int, 1): the number of rewards for
                 multi-objective environments.
 
         """

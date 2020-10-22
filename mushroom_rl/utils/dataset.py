@@ -21,7 +21,10 @@ def parse_dataset(dataset, features=None):
 
     state = np.ones((len(dataset),) + shape)
     action = np.ones((len(dataset),) + dataset[0][1].shape)
-    reward = np.ones((len(dataset),) + dataset[0][2].shape)
+    try:
+        reward = np.ones((len(dataset),) + dataset[0][2].shape)
+    except:
+        reward = np.ones(len(dataset))
     next_state = np.ones((len(dataset),) + shape)
     absorbing = np.ones(len(dataset))
     last = np.ones(len(dataset))
