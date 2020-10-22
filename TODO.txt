@@ -1,13 +1,10 @@
 Algorithms:
     a) Policy search:
         * Policy gradient:
-            - fix step based gradient interface
             - Natural gradient
             - NES
 
-    b) Value based:
-        * Q Lambda
-
 Various:
+    * Add logging system.
     * Fix get_value() in Parameters such that an exception is raised when the parameter value is returned as slice.
-    * Remove print functions in deep_actor_critic and add logging system.
+    * Remove print functions in deep_actor_critic
