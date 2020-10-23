@@ -79,6 +79,10 @@ installation follow the instructions on the `project page <https://github.com/op
 To use dm_control MushroomRL interface, install ``dm_control`` following the instruction that can
 be found `here <https://github.com/deepmind/dm_control>`_
 
+
+Editable Installation
+---------------------
+
 You can also perform a local editable installation by using:
 
 .. code:: shell
