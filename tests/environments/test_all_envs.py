@@ -64,7 +64,7 @@ def test_cartpole():
     mdp.render()
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
-    ns_test = np.array([1.5195833, -2.82335548])
+    ns_test = np.array([1.25234221, 2.44501606])
     mdp.render()
 
     assert np.allclose(ns, ns_test)

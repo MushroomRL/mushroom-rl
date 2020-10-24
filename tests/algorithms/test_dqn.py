@@ -6,7 +6,7 @@ from datetime import datetime
 from helper.utils import TestUtils as tu
 
 from mushroom_rl.algorithms import Agent
-from mushroom_rl.algorithms.value import DQN, DoubleDQN, AveragedDQN, CategoricalDQN
+from mushroom_rl.algorithms.value import DQN, DoubleDQN, AveragedDQN, MaxminDQN, CategoricalDQN
 from mushroom_rl.core import Core
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
@@ -91,9 +91,8 @@ def test_dqn():
     approximator = learn(DQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = np.array([-0.15894288, 0.47257397, 0.05482405, 0.5442066,
-                       -0.56469935, -0.07374532, -0.0706185, 0.40790945,
-                       0.12486243])
+    w_test = np.array([-0.20857571, 0.4301014, 0.09157596, 0.56593966, -0.573920,
+                       -0.07434221, -0.07043041, 0.42729577, 0.15255776])
 
     assert np.allclose(w, w_test)
 
@@ -126,9 +125,8 @@ def test_prioritized_dqn():
     approximator = learn(DQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = np.array([-0.1384063, 0.48957556, 0.02254359, 0.50994426,
-                       -0.56277484, -0.075808, -0.06829552, 0.3642576,
-                       0.15519235])
+    w_test = np.array([-0.2410347, 0.39138362, 0.12457055, 0.60612524, -0.54973847,
+                       -0.06486652, -0.07349031, 0.4376623, 0.14254288])
 
     assert np.allclose(w, w_test)
 
@@ -161,9 +159,8 @@ def test_double_dqn():
     approximator = learn(DoubleDQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = np.array([-0.15894286, 0.47257394, 0.05482561, 0.54420704,
-                       -0.5646987, -0.07374918, -0.07061853, 0.40789905,
-                       0.12482855])
+    w_test = np.array([-0.20857571, 0.4301014, 0.09157596, 0.56593966, -0.5739204,
+                       -0.07434221, -0.07043041, 0.42729577, 0.15255776])
 
     assert np.allclose(w, w_test)
 
@@ -191,9 +188,8 @@ def test_averaged_dqn():
     approximator = learn(AveragedDQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = np.array([-0.15889995, 0.47253257, 0.05424322, 0.5434766,
-                       -0.56529117, -0.0743931, -0.07070775, 0.4055584,
-                       0.12588869])
+    w_test = np.array([-0.20855692, 0.4300971, 0.09070298, 0.56503105, -0.57473886,
+                       -0.07523372, -0.07045465, 0.42477432, 0.15313861])
 
     assert np.allclose(w, w_test)
 
@@ -221,11 +217,10 @@ def test_categorical_dqn():
     approximator = learn(CategoricalDQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = np.array([1.0035713, 0.30592525, -0.38904265, -0.66449565,
-                       -0.71816885, 0.47653696, -0.12593754, -0.44365975,
-                       -0.47181657, -0.02598009, 0.11935875, 0.11164782,
-                       0.659329, 0.5941985, -1.1264751, 0.8307397, 0.01681535,
-                       0.08285073])
+    w_test = np.array([0.98373884, 0.2899274, -0.36921054, -0.6484974, -0.74544126,
+                       0.5038091, -0.11945444, -0.4370291, -0.47829974, -0.03261064,
+                       0.11510377, 0.1159029, 0.68508214, 0.6178692, -1.1522279,
+                       0.807069, 0.02732106, 0.07234504])
 
     assert np.allclose(w, w_test, rtol=1e-4)
 
