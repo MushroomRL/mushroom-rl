@@ -29,6 +29,8 @@ class PuddleWorld(Environment):
             thrust (float, .05): distance walked during each action;
             puddle_center (np.array, None): center of the puddle;
             puddle_width (np.array, None): width of the puddle;
+            gamma (float, .99): discount factor.
+            horizon (int, 5000): horizon of the problem;
 
         """
         # MDP parameters
