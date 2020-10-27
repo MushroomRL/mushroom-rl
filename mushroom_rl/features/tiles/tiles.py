@@ -74,10 +74,9 @@ class Tiles:
             low (np.ndarray): lowest value for each dimension;
             high (np.ndarray): highest value for each dimension.
             uniform (bool, False): if True the displacement for each tiling will
-                                   be w/n_tilings, where w is the tile width.
-                                   Otherwise, the displacement will be
-                                   k*w/n_tilings, where k=2i+1, where i is the
-                                   dimension index.
+                be w/n_tilings, where w is the tile width. Otherwise, the
+                displacement will be k * w / n_tilings, where k = 2i + 1, where
+                i is the dimension index.
 
         Returns:
             The list of the generated tiles.
@@ -91,9 +90,8 @@ class Tiles:
         tilings = list()
 
         shift = Tiles._compute_shift(uniform, len(low))
-        width = (high - low) / \
-                (np.array(n_tiles) * n_tilings - shift*n_tilings + shift)
-        offset = width
+        offset = (high - low) /\
+            (np.array(n_tiles) * n_tilings - shift * n_tilings + shift)
 
         for i in range(n_tilings):
             x_min = low - (n_tilings - 1 - i) * offset * shift
@@ -108,10 +106,7 @@ class Tiles:
         if uniform:
             return 1
         else:
-            shift = np.empty(n_dims)
-            for i in range(n_dims):
-                shift[i] = 2*i+1
-            return shift
+            return np.arange(n_dims) * 2 + 1
 
     @property
     def size(self):
