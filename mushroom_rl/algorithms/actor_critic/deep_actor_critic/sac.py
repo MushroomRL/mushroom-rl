@@ -14,9 +14,6 @@ from copy import deepcopy
 from itertools import chain
 
 
-EPS = 1e-6
-
-
 class SACPolicy(Policy):
     """
     Class used to implement the policy used by the Soft Actor-Critic
@@ -52,6 +49,8 @@ class SACPolicy(Policy):
         self._log_std_min = log_std_min
         self._log_std_max = log_std_max
 
+        self._eps_log_prob = 1e-6
+
         use_cuda = self._mu_approximator.model.use_cuda
 
         if use_cuda:
@@ -62,7 +61,8 @@ class SACPolicy(Policy):
             _mu_approximator='mushroom',
             _sigma_approximator='mushroom',
             _delta_a='torch',
-            _central_a='torch'
+            _central_a='torch',
+            _eps_log_prob='primitive'
         )
 
     def __call__(self, state, action):
@@ -109,7 +109,7 @@ class SACPolicy(Policy):
 
         if compute_log_prob:
             log_prob = dist.log_prob(a_raw).sum(dim=1)
-            log_prob -= torch.log(1. - a.pow(2) + EPS).sum(dim=1)
+            log_prob -= torch.log(1. - a.pow(2) + self._eps_log_prob).sum(dim=1)
             return a_true, log_prob
         else:
             return a_true

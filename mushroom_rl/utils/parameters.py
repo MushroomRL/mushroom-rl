@@ -93,6 +93,15 @@ class Parameter(object):
         """
         return self._n_updates.table.shape
 
+    @property
+    def initial_value(self):
+        """
+        Returns:
+            The initial value of the parameters.
+
+        """
+        return self._initial_value
+
 
 class LinearParameter(Parameter):
     """
