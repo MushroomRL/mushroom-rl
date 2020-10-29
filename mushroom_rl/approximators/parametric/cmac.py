@@ -30,7 +30,7 @@ class CMAC(LinearApproximator):
 
         super().__init__(weights=weights, input_shape=(self._phi.size,), output_shape=output_shape)
 
-        self._add_save_attr(_phi='pickle')
+        self._add_save_attr(_phi='pickle', _n='primitive')
 
     def fit(self, x, y, alpha=1.0, **kwargs):
         """
