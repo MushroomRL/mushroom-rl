@@ -56,6 +56,10 @@ if __name__ == '__main__':
     names = {1: '1', .51: '51', QLearning: 'Q', DoubleQLearning: 'DQ',
              WeightedQLearning: 'WQ', SpeedyQLearning: 'SPQ'}
 
+    log_path = Path(__file__).resolve().parent / 'logs'
+
+    log_path.mkdir(parents=True, exist_ok=True)
+
     for e in [1, .51]:
         for a in [QLearning, DoubleQLearning, WeightedQLearning,
                   SpeedyQLearning]:
@@ -65,4 +69,5 @@ if __name__ == '__main__':
 
             Qs = np.mean(Qs, 0)
 
-            np.save(names[a] + names[e] + '.npy', Qs[:, 0, 0])
+            filename = names[a] + names[e] + '.npy'
+            np.save(log_path / filename, Qs[:, 0, 0])
