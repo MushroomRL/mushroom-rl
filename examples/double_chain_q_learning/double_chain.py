@@ -1,5 +1,6 @@
 import numpy as np
 from joblib import Parallel, delayed
+from pathlib import Path
 
 from mushroom_rl.algorithms.value import QLearning, DoubleQLearning,\
     WeightedQLearning, SpeedyQLearning
@@ -22,8 +23,9 @@ def experiment(algorithm_class, exp):
     np.random.seed()
 
     # MDP
-    p = np.load('chain_structure/p.npy')
-    rew = np.load('chain_structure/rew.npy')
+    path = Path(__file__).resolve().parent / 'chain_structure'
+    p = np.load(path / 'p.npy')
+    rew = np.load(path / 'rew.npy')
     mdp = FiniteMDP(p, rew, gamma=.9)
 
     # Policy
@@ -36,7 +38,7 @@ def experiment(algorithm_class, exp):
     agent = algorithm_class(mdp.info, pi, **algorithm_params)
 
     # Algorithm
-    collect_Q = CollectQ(agent.approximator)
+    collect_Q = CollectQ(agent.Q)
     callbacks = [collect_Q]
     core = Core(agent, mdp, callbacks)
 
