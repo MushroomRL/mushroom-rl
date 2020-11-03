@@ -134,7 +134,7 @@ class Atari(Environment):
                           self._history_length), reward, absorbing, info
 
     def render(self, mode='human'):
-        self.env.render(mode=mode)
+        return self.env.render(mode=mode)
 
     def stop(self):
         self.env.close()
