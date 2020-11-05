@@ -40,7 +40,7 @@ class Gym(Environment):
             pybullet.connect(pybullet.DIRECT)
             self._close_at_stop = False
 
-        self.env = gym.make(name)
+        self.env = gym.make(name, **env_args)
         if wrappers is not None:
             for wrapper in wrappers:
                 self.env = wrapper(self.env)
