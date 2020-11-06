@@ -31,7 +31,7 @@ It allows to perform RL experiments in a simple way providing classical RL algor
 (e.g. Q-Learning, SARSA, FQI), and deep RL algorithms (e.g. DQN, DDPG, SAC, TD3,
 TRPO, PPO).
 
-Full documentation available `here <http://mushroomrl.readthedocs.io/en/latest/>`_.
+`Full documentation and tutorials available here <http://mushroomrl.readthedocs.io/en/latest/>`_.
 
 Installation
 ============
