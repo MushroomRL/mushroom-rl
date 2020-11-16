@@ -4,7 +4,7 @@ from tqdm import trange, tqdm
 
 from mushroom_rl.core import Serializable
 from mushroom_rl.utils.minibatches import minibatch_generator
-from mushroom_rl.utils.torch import get_weights, set_weights, zero_grad
+from mushroom_rl.utils.torch import get_weights, set_weights, zero_grad, update_optimizer_parameters
 
 
 class TorchApproximator(Serializable):
@@ -343,4 +343,4 @@ class TorchApproximator(Serializable):
 
     def _post_load(self):
         if self._optimizer is not None:
-            self._optimizer.param_groups[0]['params'] = list(self.network.parameters())
+            update_optimizer_parameters(self._optimizer, list(self.network.parameters()))
