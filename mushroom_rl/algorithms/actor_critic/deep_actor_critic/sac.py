@@ -184,6 +184,18 @@ class SACPolicy(Policy):
         """
         return self._mu_approximator.model.use_cuda
 
+    def parameters(self):
+        """
+        Returns the trainable policy parameters, as expected by torch
+        optimizers.
+
+        Returns:
+            List of parameters to be optimized.
+
+        """
+        return chain(self._mu_approximator.model.network.parameters(),
+                     self._sigma_approximator.model.network.parameters())
+
 
 class SAC(DeepAC):
     """
@@ -352,12 +364,7 @@ class SAC(DeepAC):
         return q
 
     def _post_load(self):
-        if self._optimizer is not None:
-            self._parameters = list(
-                chain(self.policy._mu_approximator.model.network.parameters(),
-                      self.policy._sigma_approximator.model.network.parameters()
-                )
-            )
+        self._update_optimizer_parameters(self.policy.parameters())
 
     @property
     def _alpha(self):

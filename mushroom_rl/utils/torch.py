@@ -123,3 +123,12 @@ def to_int_tensor(x, use_cuda=False):
     """
     x = torch.tensor(x, dtype=torch.int)
     return x.cuda() if use_cuda else x
+
+
+def update_optimizer_parameters(optimizer, new_parameters):
+    for p_old, p_new in zip(optimizer.param_groups[0]['params'], new_parameters):
+        data = optimizer.state[p_old]
+        del optimizer.state[p_old]
+        optimizer.state[p_new] = data
+
+    optimizer.param_groups[0]['params'] = new_parameters
