@@ -340,3 +340,7 @@ class TorchApproximator(Serializable):
     @property
     def use_cuda(self):
         return self._use_cuda
+
+    def _post_load(self):
+        if self._optimizer is not None:
+            self._optimizer.param_groups[0]['params'] = list(self.network.parameters())
