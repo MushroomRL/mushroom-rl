@@ -28,8 +28,8 @@ def test_cmac_approximator():
     y_hat = approximator.predict(x)
     y_true = np.array([np.sin(x.dot(k1) * 2 * np.pi), np.sin(x.dot(k2) * 2 * np.pi)]).T
 
-    y_test = np.array([[-0.8359434, 0.87021065],
-                       [-0.97598512, -0.77031748]])
+    y_test = np.array([[-0.73581504,  0.90877225],
+                       [-0.95854488, -0.72429239]])
 
     assert np.allclose(y_hat, y_test)
 
@@ -66,22 +66,22 @@ def test_cmac_approximator():
                              n_models=5)
 
     approximator.fit(s, a, q)
-
+    np.random.seed(2)
     x_s = np.random.rand(2, 3)
     x_a = np.random.randint(n_actions, size=(2, 1))
     y = approximator.predict(x_s, x_a, prediction='mean')
-    y_test = np.array([0.14510099, 0.06251171])
+    y_test = np.array([[0.56235045, 0.25080909]])
     assert np.allclose(y, y_test)
 
     y = approximator.predict(x_s, x_a, prediction='sum')
-    y_test = np.array([0.72550496, 0.31255853])
+    y_test = np.array([2.81175226, 1.25404543])
     assert np.allclose(y, y_test)
 
     y = approximator.predict(x_s, x_a, prediction='min')
-    y_test = np.array([0.14510099, 0.06251171])
+    y_test = np.array([0.56235045, 0.25080909])
     assert np.allclose(y, y_test)
 
     y = approximator.predict(x_s)
-    y_test = np.array([[0.0550533, 0.14510099],
-                       [0.11007289, 0.06251171]])
+    y_test = np.array([[0.10367145, 0.56235045],
+                       [0.05575822, 0.25080909]])
     assert np.allclose(y, y_test)

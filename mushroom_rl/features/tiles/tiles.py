@@ -69,7 +69,8 @@ class Tiles:
         a range between ``low`` and ``high`` for each dimension.
 
         Args:
-            n_tilings (int): number of tilings;
+            n_tilings (int): number of tilings, or -1 to compute the number
+                             automatically;
             n_tiles (list): number of tiles for each tilings for each dimension;
             low (np.ndarray): lowest value for each dimension;
             high (np.ndarray): highest value for each dimension.
@@ -84,6 +85,13 @@ class Tiles:
 
         """
         assert len(n_tiles) == len(low) == len(high)
+        assert n_tilings > 0 or n_tilings == -1
+
+        if n_tilings == -1:
+            d = np.size(low)  # space-dim
+            m = np.max([np.ceil(np.log(4 * d) / np.log(2)),
+                        np.ceil(np.log(n_tilings) / np.log(2))])
+            n_tilings = m**2
 
         # Min, max coord., side length of the state-space
         low = np.array(low, dtype=np.float)
@@ -91,16 +99,10 @@ class Tiles:
         L = high - low
 
         # Unit shift displacement vector
-        shift = 1 if uniform else 2 * np.arange(len(low)) + 1  # Miller, Glanz (1996)
-
-        # N tilings and N_mod, useful for Miller, Glanz tilings (1996)
-        d = np.size(low)  # space-dim
-        m = np.max([np.ceil(np.log(4 * d) / np.log(2)),
-                    np.ceil(np.log(n_tilings) / np.log(2))])
-        N_mod = n_tilings if uniform else 2 ** m  # Miller, Glanz (1996)
+        shift = 1 if uniform else 2 * np.arange(len(low)) + 1
 
         # Length of the sides of the tiles, l
-        be = (N_mod - 1) / N_mod
+        be = (n_tilings - 1) / n_tilings
         l = L / (np.array(n_tiles) - be)
 
         # Generate the list of tilings
@@ -108,10 +110,10 @@ class Tiles:
 
         for i in range(n_tilings):
             # Shift vector
-            v = (i * shift) % N_mod
+            v = (i * shift) % n_tilings
 
             # Min, max of the coordinates of the i-th tiling
-            x_min = low + (-N_mod + 1 + v) / N_mod * l
+            x_min = low + (-n_tilings + 1 + v) / n_tilings * l
             x_max = x_min + l * n_tiles
 
             # Rearrange x_min, x_max and append new tiling to the list

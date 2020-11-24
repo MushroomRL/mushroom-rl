@@ -211,6 +211,35 @@ def test_averaged_dqn_save(tmpdir):
         tu.assert_eq(save_attr, load_attr)
 
 
+def test_maxmin_dqn():
+    params = dict(batch_size=50, n_approximators=5, initial_replay_size=50,
+                  max_replay_size=5000, target_update_frequency=50)
+    approximator = learn(MaxminDQN, params).approximator
+
+    w = approximator[0].get_weights()
+    w_test = np.array([-0.20750952, 0.41153884, 0.06031952, 0.54991245, -0.58597267,
+                       -0.09532283, -0.1639097, 0.34269238, 0.08022686])
+
+    assert np.allclose(w, w_test)
+
+
+def test_maxmin_dqn_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
+    params = dict(batch_size=50, n_approximators=5, initial_replay_size=50,
+                  max_replay_size=5000, target_update_frequency=50)
+    agent_save = learn(MaxminDQN, params)
+
+    agent_save.save(agent_path, full_save=True)
+    agent_load = Agent.load(agent_path)
+
+    for att, method in vars(agent_save).items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+
+        tu.assert_eq(save_attr, load_attr)
+
+
 def test_categorical_dqn():
     params = dict(batch_size=50, initial_replay_size=50,
                   max_replay_size=5000, target_update_frequency=50)
