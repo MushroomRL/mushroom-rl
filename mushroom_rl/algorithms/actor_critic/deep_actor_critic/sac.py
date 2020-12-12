@@ -23,7 +23,8 @@ class SACPolicy(Policy):
     the internals calculations of the SAC algorithm.
 
     """
-    def __init__(self, mu_approximator, sigma_approximator, min_a, max_a, log_std_min, log_std_max):
+    def __init__(self, mu_approximator, sigma_approximator, min_a, max_a,
+                 log_std_min, log_std_max):
         """
         Constructor.
 

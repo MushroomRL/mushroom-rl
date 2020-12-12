@@ -42,7 +42,7 @@ def experiment(alg, n_epochs, n_iterations, ep_per_run):
 
     # Agent
     optimizer = AdaptiveOptimizer(eps=.01)
-    algorithm_params = dict(learning_rate=optimizer)
+    algorithm_params = dict(optimizer=optimizer)
     agent = alg(mdp.info, policy, **algorithm_params)
 
     # Train

@@ -168,6 +168,44 @@ def test_weighted_q_learning_save(tmpdir):
         tu.assert_eq(save_attr, load_attr)
 
 
+def test_maxmin_q_learning():
+    pi, mdp, _ = initialize()
+    agent = MaxminQLearning(mdp.info, pi, Parameter(.5), n_tables=4)
+
+    core = Core(agent, mdp)
+
+    # Train
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
+    test_q = np.array([[0., 0., 0., 0.],
+                       [0., 7.5, 0., 0.],
+                       [0., 0., 0., 5.],
+                       [0., 0., 0., 0.]])
+
+    assert np.allclose(agent.Q[0].table, test_q)
+
+
+def test_maxmin_q_learning_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
+    pi, mdp, _ = initialize()
+    agent_save = MaxminQLearning(mdp.info, pi, Parameter(.5), n_tables=5)
+
+    core = Core(agent_save, mdp)
+
+    # Train
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    for att, method in vars(agent_save).items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+
+        tu.assert_eq(save_attr, load_attr)
+
+
 def test_speedy_q_learning():
     pi, mdp, _ = initialize()
     agent = SpeedyQLearning(mdp.info, pi, Parameter(.5))
