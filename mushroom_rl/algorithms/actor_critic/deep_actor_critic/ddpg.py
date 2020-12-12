@@ -139,5 +139,4 @@ class DDPG(DeepAC):
 
     def _post_load(self):
         self._actor_approximator = self.policy._approximator
-        if self._optimizer is not None:
-            self._parameters = list(self._actor_approximator.model.network.parameters())
+        self._update_optimizer_parameters(self._actor_approximator.model.network.parameters())

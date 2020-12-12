@@ -59,7 +59,7 @@ def test_normalizing_preprocessor():
                                n_actions=mdp.info.action_space.n,
                                n_features=2, use_cuda=False)
 
-    alg_params = dict(batch_size=5, n_approximators=1, initial_replay_size=10,
+    alg_params = dict(batch_size=5, initial_replay_size=10,
                       max_replay_size=500, target_update_frequency=50)
 
     agent = DQN(mdp.info, pi, TorchApproximator,

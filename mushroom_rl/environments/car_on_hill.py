@@ -16,6 +16,10 @@ class CarOnHill(Environment):
         """
         Constructor.
 
+        Args:
+            horizon (int, 100): horizon of the problem;
+            gamma (float, .95): discount factor.
+
         """
         # MDP parameters
         self.max_pos = 1.

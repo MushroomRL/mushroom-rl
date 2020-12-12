@@ -1,4 +1,5 @@
 numpy
+numpy_ml
 scipy
 scikit-learn
 matplotlib
@@ -8,3 +9,4 @@ pygame
 opencv-python
 torch
 pytest
+Cython

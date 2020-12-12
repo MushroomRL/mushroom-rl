@@ -42,7 +42,7 @@ def experiment(algorithm_class, exp):
 
     # Algorithm
     start = mdp.convert_to_int(mdp._start, mdp._width)
-    collect_max_Q = CollectMaxQ(agent.approximator, start)
+    collect_max_Q = CollectMaxQ(agent.Q, start)
     collect_dataset = CollectDataset()
     callbacks = [collect_dataset, collect_max_Q]
     core = Core(agent, mdp, callbacks)

@@ -21,14 +21,16 @@ class Gym(Environment):
     are managed in a separate class.
 
     """
-    def __init__(self, name, horizon, gamma):
+    def __init__(self, name, horizon, gamma, wrappers=None, **env_args):
         """
         Constructor.
 
         Args:
              name (str): gym id of the environment;
              horizon (int): the horizon;
-             gamma (float): the discount factor.
+             gamma (float): the discount factor;
+             wrappers (list): list of wrappers to apply over the environment;
+             **env_args: other gym environment parameters.
 
         """
         # MDP creation
@@ -38,7 +40,10 @@ class Gym(Environment):
             pybullet.connect(pybullet.DIRECT)
             self._close_at_stop = False
 
-        self.env = gym.make(name)
+        self.env = gym.make(name, **env_args)
+        if wrappers is not None:
+            for wrapper in wrappers:
+                self.env = wrapper(self.env)
 
         self.env._max_episode_steps = np.inf  # Hack to ignore gym time limit.
 

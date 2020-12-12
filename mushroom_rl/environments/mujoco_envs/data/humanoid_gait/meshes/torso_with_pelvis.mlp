@@ -1,7 +1,7 @@
 <!DOCTYPE MeshLabDocument>
 <MeshLabProject>
  <MeshGroup>
-  <MLMesh filename="../Geometry/pelvis.stl" label="pelvis.stl">
+  <MLMesh filename="../meshes/pelvis.stl" label="pelvis.stl">
    <MLMatrix44>
 1 0 0 0 
 0 1 0 0 
@@ -9,7 +9,7 @@
 0 0 0 1 
 </MLMatrix44>
   </MLMesh>
-  <MLMesh filename="../Geometry/pelvis_lv.stl" label="pelvis_lv.stl">
+  <MLMesh filename="../meshes/pelvis_lv.stl" label="pelvis_lv.stl">
    <MLMatrix44>
 1 0 0 0 
 0 1 0 0 
@@ -17,7 +17,7 @@
 0 0 0 1 
 </MLMatrix44>
   </MLMesh>
-  <MLMesh filename="../Geometry/pelvis_lvR.stl" label="pelvis_lvR.stl">
+  <MLMesh filename="../meshes/pelvis_lvR.stl" label="pelvis_lvR.stl">
    <MLMatrix44>
 1 0 0 0 
 0 1 0 0 
@@ -25,7 +25,7 @@
 0 0 0 1 
 </MLMatrix44>
   </MLMesh>
-  <MLMesh filename="../Geometry/pelvis_rv.stl" label="pelvis_rv.stl">
+  <MLMesh filename="../meshes/pelvis_rv.stl" label="pelvis_rv.stl">
    <MLMatrix44>
 1 0 0 0 
 0 1 0 0 
@@ -33,7 +33,7 @@
 0 0 0 1 
 </MLMatrix44>
   </MLMesh>
-  <MLMesh filename="../Geometry/pelvis_rvR.stl" label="pelvis_rvR.stl">
+  <MLMesh filename="../meshes/pelvis_rvR.stl" label="pelvis_rvR.stl">
    <MLMatrix44>
 1 0 0 0 
 0 1 0 0 
@@ -41,7 +41,7 @@
 0 0 0 1 
 </MLMatrix44>
   </MLMesh>
-  <MLMesh filename="../Geometry/pisiform_lvs.stl" label="pisiform_lvs.stl">
+  <MLMesh filename="../meshes/pisiform_lvs.stl" label="pisiform_lvs.stl">
    <MLMatrix44>
 1 0 0 0 
 0 1 0 0 
@@ -49,7 +49,7 @@
 0 0 0 1 
 </MLMatrix44>
   </MLMesh>
-  <MLMesh filename="../Geometry/pisiform_rvs.stl" label="pisiform_rvs.stl">
+  <MLMesh filename="../meshes/pisiform_rvs.stl" label="pisiform_rvs.stl">
    <MLMatrix44>
 1 0 0 0 
 0 1 0 0 
@@ -57,7 +57,7 @@
 0 0 0 1 
 </MLMatrix44>
   </MLMesh>
-  <MLMesh filename="../Geometry/hat_jaw.stl" label="hat_jaw.stl">
+  <MLMesh filename="../meshes/hat_jaw.stl" label="hat_jaw.stl">
    <MLMatrix44>
 1 0 0 0 
 0 1 0 0 
@@ -65,7 +65,7 @@
 0 0 0 1 
 </MLMatrix44>
   </MLMesh>
-  <MLMesh filename="../Geometry/hat_ribs_scap.stl" label="hat_ribs_scap.stl">
+  <MLMesh filename="../meshes/hat_ribs_scap.stl" label="hat_ribs_scap.stl">
    <MLMatrix44>
 1 0 0 0 
 0 1 0 0 
@@ -73,7 +73,7 @@
 0 0 0 1 
 </MLMatrix44>
   </MLMesh>
-  <MLMesh filename="../Geometry/hat_ribs.stl" label="hat_ribs.stl">
+  <MLMesh filename="../meshes/hat_ribs.stl" label="hat_ribs.stl">
    <MLMatrix44>
 1 0 0 0 
 0 1 0 0 
@@ -81,7 +81,7 @@
 0 0 0 1 
 </MLMatrix44>
   </MLMesh>
-  <MLMesh filename="../Geometry/hat_skull.stl" label="hat_skull.stl">
+  <MLMesh filename="../meshes/hat_skull.stl" label="hat_skull.stl">
    <MLMatrix44>
 1 0 0 0 
 0 1 0 0 
@@ -89,7 +89,7 @@
 0 0 0 1 
 </MLMatrix44>
   </MLMesh>
-  <MLMesh filename="../Geometry/hat_spine.stl" label="hat_spine.stl">
+  <MLMesh filename="../meshes/hat_spine.stl" label="hat_spine.stl">
    <MLMatrix44>
 1 0 0 0 
 0 1 0 0 
@@ -97,7 +97,7 @@
 0 0 0 1 
 </MLMatrix44>
   </MLMesh>
-  <MLMesh filename="../Geometry/sacrum.stl" label="sacrum.stl">
+  <MLMesh filename="../meshes/sacrum.stl" label="sacrum.stl">
    <MLMatrix44>
 1 0 0 0 
 0 1 0 0 
@@ -105,7 +105,7 @@
 0 0 0 1 
 </MLMatrix44>
   </MLMesh>
-  <MLMesh filename="../Geometry/lumbar1.stl" label="lumbar1.stl">
+  <MLMesh filename="../meshes/lumbar1.stl" label="lumbar1.stl">
    <MLMatrix44>
 1 0 0 0 
 0 1 0 0 
@@ -113,7 +113,7 @@
 0 0 0 1 
 </MLMatrix44>
   </MLMesh>
-  <MLMesh filename="../Geometry/lumbar1sm.stl" label="lumbar1sm.stl">
+  <MLMesh filename="../meshes/lumbar1sm.stl" label="lumbar1sm.stl">
    <MLMatrix44>
 1 0 0 0 
 0 1 0 0 
@@ -121,7 +121,7 @@
 0 0 0 1 
 </MLMatrix44>
   </MLMesh>
-  <MLMesh filename="../Geometry/lumbar2.stl" label="lumbar2.stl">
+  <MLMesh filename="../meshes/lumbar2.stl" label="lumbar2.stl">
    <MLMatrix44>
 1 0 0 0 
 0 1 0 0 
@@ -129,7 +129,7 @@
 0 0 0 1 
 </MLMatrix44>
   </MLMesh>
-  <MLMesh filename="../Geometry/lumbar2sm.stl" label="lumbar2sm.stl">
+  <MLMesh filename="../meshes/lumbar2sm.stl" label="lumbar2sm.stl">
    <MLMatrix44>
 1 0 0 0 
 0 1 0 0 
@@ -137,7 +137,7 @@
 0 0 0 1 
 </MLMatrix44>
   </MLMesh>
-  <MLMesh filename="../Geometry/lumbar3.stl" label="lumbar3.stl">
+  <MLMesh filename="../meshes/lumbar3.stl" label="lumbar3.stl">
    <MLMatrix44>
 1 0 0 0 
 0 1 0 0 
@@ -145,7 +145,7 @@
 0 0 0 1 
 </MLMatrix44>
   </MLMesh>
-  <MLMesh filename="../Geometry/lumbar3sm.stl" label="lumbar3sm.stl">
+  <MLMesh filename="../meshes/lumbar3sm.stl" label="lumbar3sm.stl">
    <MLMatrix44>
 1 0 0 0 
 0 1 0 0 
@@ -153,7 +153,7 @@
 0 0 0 1 
 </MLMatrix44>
   </MLMesh>
-  <MLMesh filename="../Geometry/lumbar4.stl" label="lumbar4.stl">
+  <MLMesh filename="../meshes/lumbar4.stl" label="lumbar4.stl">
    <MLMatrix44>
 1 0 0 0 
 0 1 0 0 
@@ -161,7 +161,7 @@
 0 0 0 1 
 </MLMatrix44>
   </MLMesh>
-  <MLMesh filename="../Geometry/lumbar4sm.stl" label="lumbar4sm.stl">
+  <MLMesh filename="../meshes/lumbar4sm.stl" label="lumbar4sm.stl">
    <MLMatrix44>
 1 0 0 0 
 0 1 0 0 

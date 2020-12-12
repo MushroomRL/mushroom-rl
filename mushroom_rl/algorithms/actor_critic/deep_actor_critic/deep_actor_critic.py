@@ -1,5 +1,5 @@
 from mushroom_rl.algorithms import Agent
-
+from mushroom_rl.utils.torch import update_optimizer_parameters
 
 class DeepAC(Agent):
     """
@@ -77,6 +77,12 @@ class DeepAC(Agent):
             weights = self._tau * online[i].get_weights()
             weights += (1 - self._tau) * target[i].get_weights()
             target[i].set_weights(weights)
+
+    def _update_optimizer_parameters(self, parameters):
+        self._parameters = list(parameters)
+        if self._optimizer is not None:
+            update_optimizer_parameters(self._optimizer, self._parameters)
+
 
     def _post_load(self):
         raise NotImplementedError('DeepAC is an abstract class. Subclasses need'

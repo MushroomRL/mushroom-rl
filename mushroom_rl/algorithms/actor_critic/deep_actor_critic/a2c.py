@@ -83,5 +83,4 @@ class A2C(DeepAC):
         return gradient_loss + self._entropy_coeff * entropy_loss
 
     def _post_load(self):
-        if self._optimizer is not None:
-            self._parameters = list(self.policy.parameters())
+        self._update_optimizer_parameters(self.policy.parameters())

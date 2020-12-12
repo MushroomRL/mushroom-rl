@@ -36,17 +36,21 @@ try:
 except ImportError:
     pass
 
-from .car_on_hill import CarOnHill
 from .generators.simple_chain import generate_simple_chain
-from .grid_world import GridWorld, GridWorldVanHasselt
-from .finite_mdp import FiniteMDP
-from .inverted_pendulum import InvertedPendulum
-from .cart_pole import CartPole
-from .puddle_world import PuddleWorld
-from .ship_steering import ShipSteering
-from .lqr import LQR
 
-__all__ = ['CarOnHill', 'Environment', 'MDPInfo',
-           'FiniteMDP', 'InvertedPendulum', 'CartPole',
-           'GridWorld', 'generate_simple_chain', 'GridWorldVanHasselt',
-           'PuddleWorld', 'ShipSteering', 'LQR'] + __extras__
+from .car_on_hill import CarOnHill
+from .cart_pole import CartPole
+from .finite_mdp import FiniteMDP
+from .grid_world import GridWorld, GridWorldVanHasselt
+from .inverted_pendulum import InvertedPendulum
+from .lqr import LQR
+from .puddle_world import PuddleWorld
+from .segway import Segway
+from .ship_steering import ShipSteering
+
+
+__all__ = ['Environment', 'MDPInfo',  'generate_simple_chain',
+           'CarOnHill',  'CartPole', 'FiniteMDP',
+           'GridWorld', 'GridWorldVanHasselt', 'InvertedPendulum',
+           'LQR', 'PuddleWorld', 'Segway',
+           'ShipSteering' ] + __extras__

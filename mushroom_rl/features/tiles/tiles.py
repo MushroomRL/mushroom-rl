@@ -69,7 +69,8 @@ class Tiles:
         a range between ``low`` and ``high`` for each dimension.
 
         Args:
-            n_tilings (int): number of tilings;
+            n_tilings (int): number of tilings, or -1 to compute the number
+                             automatically;
             n_tiles (list): number of tiles for each tilings for each dimension;
             low (np.ndarray): lowest value for each dimension;
             high (np.ndarray): highest value for each dimension.
@@ -84,34 +85,42 @@ class Tiles:
 
         """
         assert len(n_tiles) == len(low) == len(high)
+        assert n_tilings > 0 or n_tilings == -1
 
+        if n_tilings == -1:
+            d = np.size(low)  # space-dim
+            m = np.max([np.ceil(np.log(4 * d) / np.log(2)),
+                        np.ceil(np.log(n_tilings) / np.log(2))])
+            n_tilings = m**2
+
+        # Min, max coord., side length of the state-space
         low = np.array(low, dtype=np.float)
         high = np.array(high, dtype=np.float)
+        L = high - low
 
+        # Unit shift displacement vector
+        shift = 1 if uniform else 2 * np.arange(len(low)) + 1
+
+        # Length of the sides of the tiles, l
+        be = (n_tilings - 1) / n_tilings
+        l = L / (np.array(n_tiles) - be)
+
+        # Generate the list of tilings
         tilings = list()
 
-        shift = Tiles._compute_shift(uniform, len(low))
-        width = (high - low) / \
-                (np.array(n_tiles) * n_tilings - shift*n_tilings + shift)
-        offset = width
-
         for i in range(n_tilings):
-            x_min = low - (n_tilings - 1 - i) * offset * shift
-            x_max = high + i * offset
+            # Shift vector
+            v = (i * shift) % n_tilings
+
+            # Min, max of the coordinates of the i-th tiling
+            x_min = low + (-n_tilings + 1 + v) / n_tilings * l
+            x_max = x_min + l * n_tiles
+
+            # Rearrange x_min, x_max and append new tiling to the list
             x_range = [[x, y] for x, y in zip(x_min, x_max)]
             tilings.append(Tiles(x_range, n_tiles))
 
         return tilings
-
-    @staticmethod
-    def _compute_shift(uniform, n_dims):
-        if uniform:
-            return 1
-        else:
-            shift = np.empty(n_dims)
-            for i in range(n_dims):
-                shift[i] = 2*i+1
-            return shift
 
     @property
     def size(self):

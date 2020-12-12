@@ -168,6 +168,44 @@ def test_weighted_q_learning_save(tmpdir):
         tu.assert_eq(save_attr, load_attr)
 
 
+def test_maxmin_q_learning():
+    pi, mdp, _ = initialize()
+    agent = MaxminQLearning(mdp.info, pi, Parameter(.5), n_tables=4)
+
+    core = Core(agent, mdp)
+
+    # Train
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
+    test_q = np.array([[0., 0., 0., 0.],
+                       [0., 7.5, 0., 0.],
+                       [0., 0., 0., 5.],
+                       [0., 0., 0., 0.]])
+
+    assert np.allclose(agent.Q[0].table, test_q)
+
+
+def test_maxmin_q_learning_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
+    pi, mdp, _ = initialize()
+    agent_save = MaxminQLearning(mdp.info, pi, Parameter(.5), n_tables=5)
+
+    core = Core(agent_save, mdp)
+
+    # Train
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    for att, method in vars(agent_save).items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+
+        tu.assert_eq(save_attr, load_attr)
+
+
 def test_speedy_q_learning():
     pi, mdp, _ = initialize()
     agent = SpeedyQLearning(mdp.info, pi, Parameter(.5))
@@ -228,6 +266,44 @@ def test_sarsa_save(tmpdir):
 
     pi, mdp, _ = initialize()
     agent_save = SARSA(mdp.info, pi, Parameter(.1))
+
+    core = Core(agent_save, mdp)
+
+    # Train
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    for att, method in vars(agent_save).items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+
+        tu.assert_eq(save_attr, load_attr)
+
+
+def test_q_lambda():
+    pi, mdp, _ = initialize()
+    agent = QLambda(mdp.info, pi, Parameter(.1), .9)
+
+    core = Core(agent, mdp)
+
+    # Train
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
+    test_q = np.array([[5.07310744, 5.6013244, 3.42130445, 5.90556511],
+                       [3.4410511, 5.217031, 2.51555213, 4.0616156],
+                       [3.76728025, 2.17726915, 1.0955066, 4.68559],
+                       [0., 0., 0., 0.]])
+
+    assert np.allclose(agent.Q.table, test_q)
+
+
+def test_q_lambda_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
+    pi, mdp, _ = initialize()
+    agent_save = QLambda(mdp.info, pi, Parameter(.1), .9)
 
     core = Core(agent_save, mdp)
 
@@ -305,8 +381,9 @@ def test_sarsa_lambda_continuous_linear():
     # Train
     core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
 
-    test_w = np.array([-16.38428419, 0., -14.31250136, 0., -15.68571525, 0.,
-                       -10.15663821, 0., -15.0545445, 0., -8.3683605, 0.])
+    test_w = np.array([-16.38428419, 0., -14.31250136, 0.,
+                       -15.68571525, 0., -10.15663821, 0.,
+                       -15.0545445,  0., -8.3683605, 0.])
 
     assert np.allclose(agent.Q.get_weights(), test_w)
 
@@ -472,8 +549,9 @@ def test_true_online_sarsa_lambda():
     # Train
     core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
 
-    test_w = np.array([-17.27410736, 0., -15.04386343, 0., -16.6551805, 0.,
-                       -11.31383707, 0., -16.11782002, 0., -9.6927357, 0.])
+    test_w = np.array([-17.27410736, 0., -15.04386343, 0.,
+                       -16.6551805, 0., -11.31383707, 0.,
+                       -16.11782002, 0., -9.6927357, 0.])
 
     assert np.allclose(agent.Q.get_weights(), test_w)
 

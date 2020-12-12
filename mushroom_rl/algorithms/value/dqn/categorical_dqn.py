@@ -3,7 +3,7 @@ from copy import deepcopy
 import torch.nn as nn
 import torch.nn.functional as F
 
-from mushroom_rl.algorithms.value.dqn import DQN
+from mushroom_rl.algorithms.value.dqn import AbstractDQN
 from mushroom_rl.approximators.parametric.torch_approximator import *
 
 
@@ -56,7 +56,7 @@ class CategoricalNetwork(nn.Module):
                 return a_p
 
 
-class CategoricalDQN(DQN):
+class CategoricalDQN(AbstractDQN):
     """
     Categorical DQN algorithm.
     "A Distributional Perspective on Reinforcement Learning".

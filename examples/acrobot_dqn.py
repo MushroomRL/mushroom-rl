@@ -82,7 +82,7 @@ def experiment(n_epochs, n_steps, n_steps_test):
     # Agent
     agent = DQN(mdp.info, pi, TorchApproximator,
                 approximator_params=approximator_params, batch_size=batch_size,
-                n_approximators=1, initial_replay_size=initial_replay_size,
+                initial_replay_size=initial_replay_size,
                 max_replay_size=max_replay_size,
                 target_update_frequency=target_update_frequency)
 

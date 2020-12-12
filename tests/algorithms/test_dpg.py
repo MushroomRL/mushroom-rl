@@ -57,7 +57,7 @@ def learn_copdac_q():
 def test_copdac_q():
     policy = learn_copdac_q().policy
     w = policy.get_weights()
-    w_test = np.array([0, -6.62180045e-7, 0, -4.23972882e-2])
+    w_test = np.array([[0.0, -6.62180045e-07, 0.0, -4.23972882e-02]])
 
     assert np.allclose(w, w_test)
 

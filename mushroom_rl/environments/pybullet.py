@@ -25,7 +25,7 @@ class PyBulletObservationType(Enum):
 
 
 class PyBulletViewer(ImageViewer):
-    def __init__(self, size, dt, distance=4, origin=(0,0,1), angles=(0, -45, 60),
+    def __init__(self, dt, size=(500, 500), distance=4, origin=(0, 0, 1), angles=(0, -45, 60),
                  fov=60, aspect=1, near_val=0.01, far_val=100):
         self._size = size
         self._distance = distance
@@ -67,7 +67,8 @@ class PyBullet(Environment):
 
     """
     def __init__(self, files, actuation_spec, observation_spec, gamma,
-                 horizon, timestep=1/240, n_intermediate_steps=1, debug_gui=False):
+                 horizon, timestep=1/240, n_intermediate_steps=1,
+                 debug_gui=False, **viewer_params):
         """
         Constructor.
 
@@ -87,6 +88,9 @@ class PyBullet(Environment):
             n_intermediate_steps (int): The number of steps between every action
                 taken by the agent. Allows the user to modify, control and
                 access intermediate states;
+            **viewer_params: other parameters to be passed to the viewer.
+                See PyBulletViewer documentation for the available options.
+
         """
 
         # Store simulation parameters
@@ -102,7 +106,7 @@ class PyBullet(Environment):
         pybullet.setGravity(0, 0, -9.81)
         pybullet.setAdditionalSearchPath(pybullet_data.getDataPath())
 
-        self._viewer = PyBulletViewer((500, 500), self._timestep * self._n_intermediate_steps)
+        self._viewer = PyBulletViewer(self._timestep * self._n_intermediate_steps, **viewer_params)
         self._state = None
 
         # Load model and create access maps

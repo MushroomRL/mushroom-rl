@@ -23,11 +23,10 @@ class CartPole(Environment):
             M (float, 8.0): mass of the cart;
             l (float, .5): length of the pendulum;
             g (float, 9.8): gravity acceleration constant;
-            mu (float, 1e-2): friction constant of the pendulum;
             max_u (float, 50.): maximum allowed input torque;
             noise_u (float, 10.): maximum noise on the action;
             horizon (int, 3000): horizon of the problem;
-            gamma (int, .95): discount factor.
+            gamma (float, .95): discount factor.
 
         """
         # MDP parameters
@@ -117,9 +116,9 @@ class CartPole(Environment):
         omega = state[1]
 
         d_theta = omega
-        d_omega = (self._g * np.sin(theta) - self._alpha * self._m * self._l *
+        d_omega = (self._g * np.sin(theta) - self._alpha * self._m * self._l * .5 *
                    d_theta ** 2 * np.sin(2 * theta) * .5 - self._alpha * np.cos(
-                    theta) * u) / (4 / 3 * self._l - self._alpha * self._m *
-                                   self._l * np.cos(theta) ** 2)
+                    theta) * u) / (2 / 3 * self._l - self._alpha * self._m *
+                                   self._l * .5 * np.cos(theta) ** 2)
 
         return d_theta, d_omega
