@@ -1,8 +1,9 @@
 import numpy as np
 from collections import deque
+from mushroom_rl.core import Serializable
 
 
-class RunningStandardization:
+class RunningStandardization(Serializable):
     """
     Compute a running standardization of values according to Welford's online
     algorithm: https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
@@ -25,6 +26,14 @@ class RunningStandardization:
         self._n = 1
         self._m = np.zeros(self._shape)
         self._s = np.ones(self._shape)
+
+        self._add_save_attr(
+            _shape='primitive',
+            _alpha='primitive',
+            _n='primitive',
+            _m='primitive',
+            _s='primitive',
+        )
 
     def reset(self):
         """
@@ -85,7 +94,7 @@ class RunningStandardization:
         return np.sqrt(self._s / self._n)
 
 
-class RunningExpWeightedAverage:
+class RunningExpWeightedAverage(Serializable):
     """
     Compute an exponentially weighted moving average.
 
@@ -103,6 +112,12 @@ class RunningExpWeightedAverage:
         self._shape = shape
         self._alpha = alpha
         self.reset(init_value)
+
+        self._add_save_attr(
+            _shape='primitive',
+            _alpha='primitive',
+            _avg_value='primitive',
+        )
 
     def reset(self, init_value=None):
         """
@@ -138,7 +153,7 @@ class RunningExpWeightedAverage:
         return self._avg_value
 
 
-class RunningAveragedWindow:
+class RunningAveragedWindow(Serializable):
     """
     Compute the running average using a window of fixed size.
 
@@ -153,9 +168,15 @@ class RunningAveragedWindow:
              init_value (np.ndarray): initial value of the filter.
 
         """
-        self.shape = shape
-        self.window_size = window_size
+        self._shape = shape
+        self._window_size = window_size
         self.reset(init_value)
+
+        self._add_save_attr(
+            _shape='primitive',
+            _window_size='primitive',
+            _avg_buffer='primitive',
+        )
 
     def reset(self, init_value=None):
         """
@@ -166,10 +187,10 @@ class RunningAveragedWindow:
 
         """
         if init_value is None:
-            self.avg_buffer = deque(np.zeros((1, *self.shape)),
-                                    maxlen=self.window_size)
+            self._avg_buffer = deque(np.zeros((1, *self._shape)),
+                                    maxlen=self._window_size)
         else:
-            self.avg_buffer = deque([init_value], maxlen=self.window_size)
+            self._avg_buffer = deque([init_value], maxlen=self._window_size)
 
     def update_stats(self, value):
         """
@@ -179,7 +200,7 @@ class RunningAveragedWindow:
             value (np.ndarray): current data value to use for the update.
 
         """
-        self.avg_buffer.append(value)
+        self._avg_buffer.append(value)
 
     @property
     def mean(self):
@@ -188,4 +209,4 @@ class RunningAveragedWindow:
             The estimated mean value.
 
         """
-        return np.mean(self.avg_buffer, axis=0)
+        return np.mean(self._avg_buffer, axis=0)
