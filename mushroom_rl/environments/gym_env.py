@@ -43,7 +43,10 @@ class Gym(Environment):
         self.env = gym.make(name, **env_args)
         if wrappers is not None:
             for wrapper in wrappers:
-                self.env = wrapper(self.env)
+                if isinstance(wrapper, tuple):
+                    self.env = wrapper[0](self.env, **wrapper[1])
+                else:
+                    self.env = wrapper(self.env)
 
         self.env._max_episode_steps = np.inf  # Hack to ignore gym time limit.
 
