@@ -88,9 +88,10 @@ class Tiles:
         assert n_tilings > 0 or n_tilings == -1
 
         if n_tilings == -1:
+            n = np.max(n_tiles)
             d = np.size(low)  # space-dim
             m = np.max([np.ceil(np.log(4 * d) / np.log(2)),
-                        np.ceil(np.log(n_tilings) / np.log(2))])
+                        np.ceil(np.log(n) / np.log(2))])
             n_tilings = m**2
 
         # Min, max coord., side length of the state-space

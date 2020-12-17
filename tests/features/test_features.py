@@ -1,7 +1,7 @@
 import numpy as np
 
 from mushroom_rl.features import Features
-from mushroom_rl.features.tiles import Tiles
+from mushroom_rl.features.tiles import Tiles, VoronoiTiles
 from mushroom_rl.features.basis import GaussianRBF, FourierBasis
 from mushroom_rl.features.tensors import GaussianRBFTensor, RandomFourierBasis
 
@@ -10,6 +10,28 @@ def test_tiles():
     tilings = Tiles.generate(3, [3, 3],
                              np.array([0., -.5]),
                              np.array([1., .5]))
+    features = Features(tilings=tilings)
+
+    x = np.random.rand(10, 2) + [0., -.5]
+
+    y = features(x)
+
+    for i, x_i in enumerate(x):
+        assert np.all(features(x_i) == y[i])
+
+    x_1 = x[:, 0].reshape(-1, 1)
+    x_2 = x[:, 1].reshape(-1, 1)
+
+    assert np.all(features(x_1, x_2) == y)
+
+    for i, x_i in enumerate(zip(x_1, x_2)):
+        assert np.all(features(x_i[0], x_i[1]) == y[i])
+
+
+def test_tiles_voronoi():
+    tilings = VoronoiTiles.generate(3, 3,
+                                    np.array([0., -.5]),
+                                    np.array([1., .5]))
     features = Features(tilings=tilings)
 
     x = np.random.rand(10, 2) + [0., -.5]
