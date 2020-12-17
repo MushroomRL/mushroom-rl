@@ -29,7 +29,11 @@ class Gym(Environment):
              name (str): gym id of the environment;
              horizon (int): the horizon;
              gamma (float): the discount factor;
-             wrappers (list): list of wrappers to apply over the environment;
+             wrappers (list): list of wrappers to apply over the environment.
+                 It is possible to pass arguments to the wrappers by providing
+                 a tuple with two elements: the gym wrapper class and a
+                 dictionary containing the parameters needed by the wrapper
+                 constructor;
              **env_args: other gym environment parameters.
 
         """
