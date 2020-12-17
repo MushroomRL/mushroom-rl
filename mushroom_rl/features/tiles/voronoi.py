@@ -68,15 +68,21 @@ class VoronoiTiles:
                         np.ceil(np.log(n_prototypes) / np.log(2))])
             n_tilings = m**2
 
-        # Min, max coord. of the state-space
-        low = np.array(low, dtype=np.float)
-        high = np.array(high, dtype=np.float)
+        if uniform:
+            low = np.array(low, dtype=np.float)
+            high = np.array(high, dtype=np.float)
+        else:
+            mu = np.array(mu, dtype=np.float)
+            sigma = np.array(sigma, dtype=np.float)
 
         # Generate the list of tilings
         tilings = list()
 
         for i in range(n_tilings):
-            prototypes = np.random.uniform(low, high, (n_prototypes, len(low)))
+            if uniform:
+                prototypes = np.random.uniform(low, high, (n_prototypes, len(low)))
+            else:
+                prototypes = np.random.normal(mu, sigma, (n_prototypes, len(mu)))
             tilings.append(VoronoiTiles(prototypes))
 
         return tilings

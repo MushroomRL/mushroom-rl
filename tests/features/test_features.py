@@ -29,25 +29,32 @@ def test_tiles():
 
 
 def test_tiles_voronoi():
-    tilings = VoronoiTiles.generate(3, 3,
-                                    np.array([0., -.5]),
-                                    np.array([1., .5]))
-    features = Features(tilings=tilings)
+    tilings_list = [
+        VoronoiTiles.generate(3, 10,
+                              low=np.array([0., -.5]),
+                              high=np.array([1., .5])),
+        VoronoiTiles.generate(3, 10,
+                              mu=np.array([.5, -.5]),
+                              sigma=np.array([.2, .6]))
+    ]
 
-    x = np.random.rand(10, 2) + [0., -.5]
+    for tilings in tilings_list:
+        features = Features(tilings=tilings)
 
-    y = features(x)
+        x = np.random.rand(10, 2) + [0., -.5]
 
-    for i, x_i in enumerate(x):
-        assert np.all(features(x_i) == y[i])
+        y = features(x)
 
-    x_1 = x[:, 0].reshape(-1, 1)
-    x_2 = x[:, 1].reshape(-1, 1)
+        for i, x_i in enumerate(x):
+            assert np.all(features(x_i) == y[i])
 
-    assert np.all(features(x_1, x_2) == y)
+        x_1 = x[:, 0].reshape(-1, 1)
+        x_2 = x[:, 1].reshape(-1, 1)
 
-    for i, x_i in enumerate(zip(x_1, x_2)):
-        assert np.all(features(x_i[0], x_i[1]) == y[i])
+        assert np.all(features(x_1, x_2) == y)
+
+        for i, x_i in enumerate(zip(x_1, x_2)):
+            assert np.all(features(x_i[0], x_i[1]) == y[i])
 
 
 def test_basis():
