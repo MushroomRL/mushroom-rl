@@ -21,7 +21,8 @@ class Gym(Environment):
     are managed in a separate class.
 
     """
-    def __init__(self, name, horizon, gamma, wrappers=None, **env_args):
+    def __init__(self, name, horizon, gamma, wrappers=None, wrappers_args=None,
+                 **env_args):
         """
         Constructor.
 
@@ -34,6 +35,7 @@ class Gym(Environment):
                  a tuple with two elements: the gym wrapper class and a
                  dictionary containing the parameters needed by the wrapper
                  constructor;
+            wrappers_args (list): list of list of arguments for each wrapper;
              **env_args: other gym environment parameters.
 
         """
@@ -45,12 +47,6 @@ class Gym(Environment):
             self._close_at_stop = False
 
         self.env = gym.make(name, **env_args)
-        if wrappers is not None:
-            for wrapper in wrappers:
-                if isinstance(wrapper, tuple):
-                    self.env = wrapper[0](self.env, **wrapper[1])
-                else:
-                    self.env = wrapper(self.env)
 
         self.env._max_episode_steps = np.inf  # Hack to ignore gym time limit.
 
@@ -69,6 +65,13 @@ class Gym(Environment):
             self._convert_action = lambda a: a
 
         super().__init__(mdp_info)
+
+        if wrappers is not None:
+            for wrapper, args in zip(wrappers, wrappers_args):
+                if isinstance(wrapper, tuple):
+                    self.env = wrapper[0](self.env, *args, **wrapper[1])
+                else:
+                    self.env = wrapper(self.env, *args, **env_args)
 
     def reset(self, state=None):
         if state is None:
