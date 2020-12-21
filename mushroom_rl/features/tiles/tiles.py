@@ -92,7 +92,7 @@ class Tiles:
             d = np.size(low)  # space-dim
             m = np.max([np.ceil(np.log(4 * d) / np.log(2)),
                         np.ceil(np.log(n) / np.log(2))])
-            n_tilings = m**2
+            n_tilings = int(m**2)
 
         # Min, max coord., side length of the state-space
         low = np.array(low, dtype=np.float)
