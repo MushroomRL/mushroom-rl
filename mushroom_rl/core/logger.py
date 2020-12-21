@@ -37,6 +37,8 @@ class Logger(object):
         self._seed = str(seed) if seed is not None else None
         self._data_dict = dict()
 
+        self._best_J = -np.inf
+
         if append:
             self._load_numpy()
 
@@ -63,13 +65,13 @@ class Logger(object):
 
     def log_agent(self, agent, epoch=None, full_save=False):
         """
-        Log agent into log folder.
+        Log agent into the log folder.
 
         Args:
             agent (Agent): The agent to be saved;
             epoch (int, None): optional epoch number to
                 be added to the agent file currently saved;
-            full_save (bool, False): wheter to save the full
+            full_save (bool, False): whether to save the full
                 data from the agent or not.
 
         """
@@ -78,6 +80,27 @@ class Logger(object):
         filename = 'agent' + self._seed_suffix + epoch_suffix + '.msh'
         path = self._results_dir / filename
         agent.save(path, full_save=full_save)
+
+    def log_best_agent(self, agent, J, full_save=False):
+        """
+        Log the best agent so far into the log folder. The agent
+        is logged only if the current performance is better
+        than the performance of the previously stored agent.
+
+        Args:
+            agent (Agent): The agent to be saved;
+            J (float): The performance metric of the current agent;
+            full_save (bool, False): whether to save the full
+                data from the agent or not.
+
+        """
+
+        if J >= self._best_J:
+            self._best_J = J
+
+            filename = 'agent' + self._seed_suffix + '-best.msh'
+            path = self._results_dir / filename
+            agent.save(path, full_save=full_save)
 
     def _load_numpy(self):
         for file in self._results_dir.iterdir():
