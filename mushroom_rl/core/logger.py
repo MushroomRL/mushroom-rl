@@ -61,17 +61,23 @@ class Logger(object):
             current_data = np.array(self._data_dict[name])
             np.save(path, current_data)
 
-    def log_agent(self, agent):
+    def log_agent(self, agent, epoch=None, full_save=False):
         """
         Log agent into log folder.
 
         Args:
-            agent (Agent): The agent to be saved.
+            agent (Agent): The agent to be saved;
+            epoch (int, None): optional epoch number to
+                be added to the agent file currently saved;
+            full_save (bool, False): wheter to save the full
+                data from the agent or not.
 
         """
-        filename = 'agent' + self._seed_suffix + '.msh'
+        epoch_suffix = '' if epoch is None else '-' + str(epoch)
+
+        filename = 'agent' + self._seed_suffix + epoch_suffix + '.msh'
         path = self._results_dir / filename
-        agent.save(path)
+        agent.save(path, full_save=full_save)
 
     def _load_numpy(self):
         for file in self._results_dir.iterdir():
