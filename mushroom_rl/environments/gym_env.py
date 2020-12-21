@@ -30,15 +30,16 @@ class Gym(Environment):
              name (str): gym id of the environment;
              horizon (int): the horizon;
              gamma (float): the discount factor;
-             wrappers (list): list of wrappers to apply over the environment.
-                 It is possible to pass arguments to the wrappers by providing
-                 a tuple with two elements: the gym wrapper class and a
-                 dictionary containing the parameters needed by the wrapper
-                 constructor;
+             wrappers (list): list of wrappers to apply over the environment. It
+                is possible to pass arguments to the wrappers by providing
+                a tuple with two elements: the gym wrapper class and a
+                dictionary containing the parameters needed by the wrapper
+                constructor;
             wrappers_args (list): list of list of arguments for each wrapper;
-             **env_args: other gym environment parameters.
+            ** env_args: other gym environment parameters.
 
         """
+
         # MDP creation
         self._close_at_stop = True
         if pybullet_found and '- ' + name in pybullet_envs.getList():
