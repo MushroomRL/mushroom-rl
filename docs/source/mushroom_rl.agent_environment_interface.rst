@@ -53,6 +53,16 @@ Core
     :inherited-members:
     :show-inheritance:
 
+Logger
+------
+
+.. automodule:: mushroom_rl.core.logger
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+
 Serialization
 -------------
 
