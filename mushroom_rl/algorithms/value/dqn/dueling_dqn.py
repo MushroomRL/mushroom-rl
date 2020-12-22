@@ -1,7 +1,6 @@
 from copy import deepcopy
 
 import torch.nn as nn
-import torch.nn.functional as F
 
 from mushroom_rl.algorithms.value.dqn import DQN
 from mushroom_rl.approximators.parametric.torch_approximator import *
@@ -18,15 +17,9 @@ class DuelingNetwork(nn.Module):
         self._phi = features_network(input_shape, (n_features,),
                                      n_features=n_features, **kwargs)
 
-        self._phiA = nn.Linear(n_features, n_features)
-        self._phiV = nn.Linear(n_features, n_features)
         self._A = nn.Linear(n_features, self._n_output)
         self._V = nn.Linear(n_features, 1)
 
-        nn.init.xavier_uniform_(self._phiA.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._phiV.weight,
-                                gain=nn.init.calculate_gain('relu'))
         nn.init.xavier_uniform_(self._A.weight,
                                 gain=nn.init.calculate_gain('linear'))
         nn.init.xavier_uniform_(self._V.weight,
@@ -35,11 +28,8 @@ class DuelingNetwork(nn.Module):
     def forward(self, state, action=None):
         features = self._phi(state)
 
-        features_advantage = F.relu(self._phiA(features))
-        features_value = F.relu(self._phiV(features))
-
-        advantage = self._A(features_advantage)
-        value = self._V(features_value)
+        advantage = self._A(features)
+        value = self._V(features)
 
         q = value + advantage
         if self._avg_advantage:
