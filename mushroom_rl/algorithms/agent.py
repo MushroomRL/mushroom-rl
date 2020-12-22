@@ -25,11 +25,14 @@ class Agent(Serializable):
 
         self.next_action = None
 
+        self._logger = None
+
         self._add_save_attr(
             mdp_info='pickle',
             policy='mushroom',
             phi='pickle',
-            next_action='numpy'
+            next_action='numpy',
+            _logger='none'
         )
 
     def fit(self, dataset):
@@ -81,3 +84,13 @@ class Agent(Serializable):
 
         """
         pass
+
+    def set_logger(self, logger):
+        """
+        Setter that can be used to pass a logger to the algorithm
+
+        Args:
+            logger (Logger): the logger to be used by the algorithm.
+
+        """
+        self._logger = logger

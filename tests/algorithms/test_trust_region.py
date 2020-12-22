@@ -66,8 +66,7 @@ def learn(alg, alg_params):
 def test_PPO():
     params = dict(actor_optimizer={'class': optim.Adam,
                                    'params': {'lr': 3e-4}},
-                  n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95,
-                  quiet=True)
+                  n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95)
     policy = learn(PPO, params).policy
     w = policy.get_weights()
     w_test = np.array([-1.6293062, 1.0408604, -3.5757786e-1, 2.6958251e-1,
@@ -81,8 +80,7 @@ def test_PPO_save(tmpdir):
 
     params = dict(actor_optimizer={'class': optim.Adam,
                                    'params': {'lr': 3e-4}},
-                  n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95,
-                  quiet=True)
+                  n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95)
 
     agent_save = learn(PPO, params)
 
@@ -97,8 +95,7 @@ def test_PPO_save(tmpdir):
 
 def test_TRPO():
     params = dict(ent_coeff=0.0, max_kl=.001, lam=.98, n_epochs_line_search=10,
-                  n_epochs_cg=10, cg_damping=1e-2, cg_residual_tol=1e-10,
-                  quiet=True)
+                  n_epochs_cg=10, cg_damping=1e-2, cg_residual_tol=1e-10)
     policy = learn(TRPO, params).policy
     w = policy.get_weights()
     w_test = np.array([-1.5759772, 1.0822705, -0.37794656, 0.29728204,
@@ -111,8 +108,7 @@ def test_TRPO_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
     params = dict(ent_coeff=0.0, max_kl=.001, lam=.98, n_epochs_line_search=10,
-                  n_epochs_cg=10, cg_damping=1e-2, cg_residual_tol=1e-10,
-                  quiet=True)
+                  n_epochs_cg=10, cg_damping=1e-2, cg_residual_tol=1e-10)
 
     agent_save = learn(TRPO, params)
 

@@ -108,8 +108,7 @@ if __name__ == '__main__':
                       n_epochs_policy=4,
                       batch_size=64,
                       eps_ppo=.2,
-                      lam=.95,
-                      quiet=True)
+                      lam=.95)
 
     trpo_params = dict(ent_coeff=0.0,
                        max_kl=.01,
@@ -117,8 +116,7 @@ if __name__ == '__main__':
                        n_epochs_line_search=10,
                        n_epochs_cg=100,
                        cg_damping=1e-2,
-                       cg_residual_tol=1e-10,
-                       quiet=True)
+                       cg_residual_tol=1e-10)
 
     algs_params = [
         (TRPO, 'trpo', trpo_params),
