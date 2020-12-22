@@ -11,15 +11,15 @@ class Logger(DataLogger, ConsoleLogger):
     automatically a log directory, save numpy data array and the current agent.
 
     """
-    def __init__(self, results_dir=None, log_console=False,
+    def __init__(self, log_name, results_dir='./logs', log_console=False,
                  use_timestamp=False, append=False, seed=None, **kwargs):
         """
         Constructor.
 
         Args:
-            results_dir (string, None): name of the logging directory. If
-                not specified, a time-stamped directory is created inside
-                a 'log' folder;
+            log_name (string): name of the current experiment directory.
+            results_dir (string, './logs'): name of the base logging directory.
+                If set to None, no directory is created;
             log_console (bool, False): whether to log or not the console output;
             use_timestamp (bool, False): If true, adds the current timestamp to
                 the folder name;
@@ -31,17 +31,19 @@ class Logger(DataLogger, ConsoleLogger):
 
         """
 
+        if log_console:
+            assert results_dir is not None
+
         timestamp = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 
-        if results_dir is None:
-            results_dir = Path('.', 'logs') / timestamp
-        else:
-            if use_timestamp:
-                results_dir += '_' + timestamp
-            results_dir = Path(results_dir)
+        if use_timestamp:
+            log_name += '_' + timestamp
 
-        print('Logging in folder: ' + results_dir.name)
-        results_dir.mkdir(parents=True, exist_ok=True)
+        if results_dir:
+            results_dir = Path(results_dir) / log_name
+
+            print('Logging in folder: ' + results_dir.name)
+            results_dir.mkdir(parents=True, exist_ok=True)
 
         suffix = '' if seed is None else '-' + str(seed)
 

@@ -45,6 +45,7 @@ class ConsoleLogger(object):
 
         self._logger = logging.getLogger(self._log_id)
         self._logger.setLevel(min(console_log_level, file_log_level))
+        self._logger.propagate = False
         ch = TqdmHandler()
         ch.setLevel(console_log_level)
         ch.setFormatter(formatter)
@@ -71,13 +72,13 @@ class ConsoleLogger(object):
         self._logger.error(msg)
 
     def strong_line(self):
-        self.info('#############################################')
+        self.info('###################################################################################################')
 
     def weak_line(self):
-        self.info('---------------------------------------------')
+        self.info('---------------------------------------------------------------------------------------------------')
 
     def epoch_info(self, epoch, **kwargs):
-        msg = 'Epoch ' + str(epoch) + ' ---'
+        msg = 'Epoch ' + str(epoch) + ' |'
 
         for name, data in kwargs.items():
             msg += ' ' + name + ': ' + str(data)

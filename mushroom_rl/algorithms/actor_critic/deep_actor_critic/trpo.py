@@ -217,7 +217,7 @@ class TRPO(Agent):
                 torch.distributions.kl.kl_divergence(old_pol_dist, new_pol_dist)
             )
             avg_rwd = np.mean(compute_J(dataset))
-            msg = "Iteration {}:\n\trewards {} vf_loss {}\n\tentropy {}  kl {}".format(
+            msg = "Iteration {}:\n\t\t\t\trewards {} vf_loss {}\n\t\t\t\tentropy {}  kl {}".format(
                 self._iter, avg_rwd, logging_verr, logging_ent, logging_kl)
 
             self._logger.info(msg)
