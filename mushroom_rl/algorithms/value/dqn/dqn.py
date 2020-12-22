@@ -12,7 +12,7 @@ class AbstractDQN(Agent):
     def __init__(self, mdp_info, policy, approximator, approximator_params,
                  batch_size, target_update_frequency,
                  replay_memory=None, initial_replay_size=500,
-                 max_replay_size=5000, fit_params=None, clip_reward=True):
+                 max_replay_size=5000, fit_params=None, clip_reward=False):
         """
         Constructor.
 
@@ -33,7 +33,7 @@ class AbstractDQN(Agent):
                 memory;
             fit_params (dict, None): parameters of the fitting algorithm of the
                 approximator;
-            clip_reward (bool, True): whether to clip the reward or not.
+            clip_reward (bool, False): whether to clip the reward or not.
 
         """
         self._fit_params = dict() if fit_params is None else fit_params
