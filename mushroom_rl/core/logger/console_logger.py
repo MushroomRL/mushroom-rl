@@ -60,24 +60,71 @@ class ConsoleLogger(object):
             self._logger.addHandler(fh)
 
     def debug(self, msg):
+        """
+        Log a message with DEBUG level
+
+        """
         self._logger.debug(msg)
 
     def info(self, msg):
+        """
+        Log a message with INFO level
+
+        """
         self._logger.info(msg)
 
-    def warn(self, msg):
-        self._logger.warn(msg)
+    def warning(self, msg):
+        """
+        Log a message with WARNING level
+
+        """
+        self._logger.warning(msg)
 
     def error(self, msg):
+        """
+        Log a message with ERROR level
+
+        """
         self._logger.error(msg)
 
+    def critical(self, msg):
+        """
+        Log a message with CRITICAL level
+
+        """
+        self._logger.critical(msg)
+
+    def exception(self, msg):
+        """
+        Log a message with ERROR level. To be called
+        only from an exception handler
+
+        """
+        self._logger.exception(msg)
+
     def strong_line(self):
+        """
+        Log a line of #
+
+        """
         self.info('###################################################################################################')
 
     def weak_line(self):
+        """
+        Log a line of -
+
+        """
         self.info('---------------------------------------------------------------------------------------------------')
 
     def epoch_info(self, epoch, **kwargs):
+        """
+        Log the epoch info with the format: Epoch <epoch number> | <label 1>: <data 1> <label 2> <data 2> ...
+
+        Args:
+            epoch (int): epoch number;
+            **kwargs: the labels and the data to be displayed.
+
+        """
         msg = 'Epoch ' + str(epoch) + ' |'
 
         for name, data in kwargs.items():
