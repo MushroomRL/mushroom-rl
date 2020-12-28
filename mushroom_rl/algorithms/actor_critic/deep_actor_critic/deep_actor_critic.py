@@ -1,6 +1,7 @@
 from mushroom_rl.algorithms import Agent
 from mushroom_rl.utils.torch import update_optimizer_parameters
 
+
 class DeepAC(Agent):
     """
     Base class for algorithms that uses the reparametrization trick, such as
@@ -82,7 +83,6 @@ class DeepAC(Agent):
         self._parameters = list(parameters)
         if self._optimizer is not None:
             update_optimizer_parameters(self._optimizer, self._parameters)
-
 
     def _post_load(self):
         raise NotImplementedError('DeepAC is an abstract class. Subclasses need'

@@ -4,9 +4,9 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 import numpy as np
-from tqdm import tqdm, trange
+from tqdm import trange
 
-from mushroom_rl.core import Core
+from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import Gym
 from mushroom_rl.algorithms.actor_critic import TRPO, PPO
 
@@ -42,7 +42,9 @@ class Network(nn.Module):
 
 def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, n_episodes_test,
                alg_params, policy_params):
-    print(alg.__name__)
+
+    logger = Logger(alg.__name__, results_dir=None)
+    logger.info('Experiment Algorithm: ' + alg.__name__)
 
     mdp = Gym(env_id, horizon, gamma)
 
@@ -63,6 +65,7 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
     alg_params['critic_params'] = critic_params
 
     agent = alg(mdp.info, policy, **alg_params)
+    agent.set_logger(logger)
 
     core = Core(agent, mdp)
 
@@ -72,9 +75,8 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
     R = np.mean(compute_J(dataset))
     E = agent.policy.entropy()
 
-    tqdm.write('END OF EPOCH 0')
-    tqdm.write('J: {}, R: {}, entropy: {}'.format(J, R, E))
-    tqdm.write('##################################################################################################')
+    logger.epoch_info(0, J=J, R=R, entropy=E)
+    logger.strong_line()
 
     for it in trange(n_epochs):
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit)
@@ -84,9 +86,8 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
         R = np.mean(compute_J(dataset))
         E = agent.policy.entropy()
 
-        tqdm.write('END OF EPOCH ' + str(it+1))
-        tqdm.write('J: {}, R: {}, entropy: {}'.format(J, R, E))
-        tqdm.write('##################################################################################################')
+        logger.epoch_info(it+1, J=J, R=R, entropy=E)
+        logger.strong_line()
 
     print('Press a button to visualize')
     input()
@@ -108,8 +109,7 @@ if __name__ == '__main__':
                       n_epochs_policy=4,
                       batch_size=64,
                       eps_ppo=.2,
-                      lam=.95,
-                      quiet=True)
+                      lam=.95)
 
     trpo_params = dict(ent_coeff=0.0,
                        max_kl=.01,
@@ -117,8 +117,7 @@ if __name__ == '__main__':
                        n_epochs_line_search=10,
                        n_epochs_cg=100,
                        cg_damping=1e-2,
-                       cg_residual_tol=1e-10,
-                       quiet=True)
+                       cg_residual_tol=1e-10)
 
     algs_params = [
         (TRPO, 'trpo', trpo_params),

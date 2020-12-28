@@ -6,7 +6,8 @@ from datetime import datetime
 from helper.utils import TestUtils as tu
 
 from mushroom_rl.algorithms import Agent
-from mushroom_rl.algorithms.value import DQN, DoubleDQN, AveragedDQN, MaxminDQN, CategoricalDQN
+from mushroom_rl.algorithms.value import DQN, DoubleDQN, AveragedDQN,\
+    MaxminDQN, DuelingDQN, CategoricalDQN
 from mushroom_rl.core import Core
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
@@ -70,12 +71,15 @@ def learn(alg, alg_params):
                                n_features=2, use_cuda=False)
 
     # Agent
-    if alg is not CategoricalDQN:
+    if alg not in [DuelingDQN, CategoricalDQN]:
         agent = alg(mdp.info, pi, TorchApproximator,
                     approximator_params=approximator_params, **alg_params)
-    else:
+    elif alg is CategoricalDQN:
         agent = alg(mdp.info, pi, approximator_params=approximator_params,
                     n_atoms=2, v_min=-1, v_max=1, **alg_params)
+    else:
+        agent = alg(mdp.info, pi, approximator_params=approximator_params,
+                    **alg_params)
 
     # Algorithm
     core = Core(agent, mdp)
@@ -229,6 +233,38 @@ def test_maxmin_dqn_save(tmpdir):
     params = dict(batch_size=50, n_approximators=5, initial_replay_size=50,
                   max_replay_size=5000, target_update_frequency=50)
     agent_save = learn(MaxminDQN, params)
+
+    agent_save.save(agent_path, full_save=True)
+    agent_load = Agent.load(agent_path)
+
+    for att, method in vars(agent_save).items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+
+        tu.assert_eq(save_attr, load_attr)
+
+
+def test_dueling_dqn():
+    params = dict(batch_size=50, initial_replay_size=50,
+                  max_replay_size=5000, target_update_frequency=50)
+    approximator = learn(DuelingDQN, params).approximator
+
+    w = approximator.get_weights()
+    w_test = np.array([-0.44132388, 0.79595834, 0.23078996, -0.17289384,
+                       -0.7490091, 0.5055381, -0.14357203, -0.4858748,
+                       -0.38062495, 0.10331012, 0.62843525, 0.5607314,
+                       0.05413188, 0.07322324, 0.56302196, -1.3005875,
+                       0.94485873, -0.34308702])
+
+    assert np.allclose(w, w_test)
+
+
+def test_dueling_dqn_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
+    params = dict(batch_size=50, initial_replay_size=50,
+                  max_replay_size=5000, target_update_frequency=50)
+    agent_save = learn(DuelingDQN, params)
 
     agent_save.save(agent_path, full_save=True)
     agent_load = Agent.load(agent_path)

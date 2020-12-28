@@ -20,7 +20,7 @@ from mushroom_rl.approximators._implementations.action_regressor import ActionRe
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.policy.noise_policy import OrnsteinUhlenbeckPolicy
 from mushroom_rl.features._implementations.tiles_features import TilesFeatures
-from mushroom_rl.utils.parameters import Parameter, AdaptiveParameter, LinearParameter
+from mushroom_rl.utils.parameters import Parameter, LinearParameter
 from mushroom_rl.utils.optimizers import AdaptiveOptimizer, SGDOptimizer, AdamOptimizer, AdaGradOptimizer, \
     RMSPropOptimizer
 from mushroom_rl.distributions.gaussian import GaussianDiagonalDistribution
@@ -73,8 +73,6 @@ class TestUtils:
             assert cls.eq_tiles_features(this, that)
         elif cls._check_type(this, that, Parameter):
             assert cls.eq_parameter(this, that)
-        elif cls._check_type(this, that, AdaptiveParameter):
-            assert cls.eq_adaptive_parameter(this, that)
         elif cls._check_type(this, that, LinearParameter):
             assert cls.eq_linear_parameter(this, that)
         elif cls._check_type(this, that, AdaptiveOptimizer):
@@ -290,18 +288,9 @@ class TestUtils:
         return res
 
     @classmethod
-    def eq_adaptive_parameter(cls, this, that):
-        """
-        Compare two AdaptiveParameter objects for equality
-        """
-        
-        res = cls._eq_numpy(this._eps, that._eps)
-        return res
-
-    @classmethod
     def eq_adaptive_optimizer(cls, this, that):
         """
-        Compare two AdaptiveParameterOptimizer objects for equality
+        Compare two AdaptiveOptimizer objects for equality
         """
 
         res = cls._eq_numpy(this._eps, that._eps)
@@ -310,7 +299,7 @@ class TestUtils:
     @classmethod
     def eq_sgd_optimizer(cls, this, that):
         """
-        Compare two AdaptiveParameterOptimizer objects for equality
+        Compare two SGDOptimizer objects for equality
         """
 
         res = cls._eq_numpy(this._eps, that._eps)
@@ -319,7 +308,7 @@ class TestUtils:
     @classmethod
     def eq_adam_optimizer(cls, this, that):
         """
-        Compare two AdaptiveParameterOptimizer objects for equality
+        Compare two AdamOptimizer objects for equality
         """
 
         res = cls._eq_numpy(this._eps, that._eps)
@@ -328,7 +317,7 @@ class TestUtils:
     @classmethod
     def eq_adagrad_optimizer(cls, this, that):
         """
-        Compare two AdaptiveParameterOptimizer objects for equality
+        Compare two AdagradParameterOptimizer objects for equality
         """
 
         res = cls._eq_numpy(this._eps, that._eps)
@@ -337,7 +326,7 @@ class TestUtils:
     @classmethod
     def eq_rmsprop_optimizer(cls, this, that):
         """
-        Compare two AdaptiveParameterOptimizer objects for equality
+        Compare two RMSPropParameterOptimizer objects for equality
         """
 
         res = cls._eq_numpy(this._eps, that._eps)

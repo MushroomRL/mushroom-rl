@@ -8,7 +8,8 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-from mushroom_rl.algorithms.value import AveragedDQN, CategoricalDQN, DQN, DoubleDQN, MaxminDQN
+from mushroom_rl.algorithms.value import AveragedDQN, CategoricalDQN, DQN,\
+    DoubleDQN, MaxminDQN, DuelingDQN
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.core import Core
 from mushroom_rl.environments import *
@@ -153,7 +154,7 @@ def experiment():
 
     arg_alg = parser.add_argument_group('Algorithm')
     arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'adqn', 'mmdqn',
-                                                 'cdqn'],
+                                                 'cdqn', 'dueldqn'],
                          default='dqn',
                          help='Name of the algorithm. dqn is for standard'
                               'DQN, ddqn is for Double DQN and adqn is for'
@@ -351,6 +352,10 @@ def experiment():
                               approximator_params=approximator_params,
                               n_approximators=args.n_approximators,
                               **algorithm_params)
+        elif args.algorithm == 'dueldqn':
+            agent = DuelingDQN(mdp.info, pi,
+                               approximator_params=approximator_params,
+                               **algorithm_params)
         elif args.algorithm == 'cdqn':
             agent = CategoricalDQN(mdp.info, pi,
                                    approximator_params=approximator_params,

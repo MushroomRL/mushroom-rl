@@ -139,7 +139,6 @@ class Core(object):
                 self.reset(initial_states)
 
             sample = self._step(render)
-            dataset.append(sample)
 
             self.callback_step([sample])
 
@@ -152,6 +151,7 @@ class Core(object):
                 self._current_episodes_counter += 1
                 episodes_progress_bar.update(1)
 
+            dataset.append(sample)
             if fit_condition():
                 self.agent.fit(dataset)
                 self._current_episodes_counter = 0

@@ -1,5 +1,4 @@
 import numpy as np
-from tqdm import tqdm
 
 import torch
 import torch.nn.functional as F
@@ -21,7 +20,7 @@ class PPO(Agent):
 
     """
     def __init__(self, mdp_info, policy, actor_optimizer, critic_params,
-                 n_epochs_policy, batch_size, eps_ppo, lam, quiet=True,
+                 n_epochs_policy, batch_size, eps_ppo, lam,
                  critic_fit_params=None):
         """
         Constructor.
@@ -37,8 +36,6 @@ class PPO(Agent):
             eps_ppo (float): value for probability ratio clipping;
             lam float(float, 1.): lambda coefficient used by generalized
                 advantage estimation;
-            quiet (bool, True): if true, the algorithm will print debug
-                information;
             critic_fit_params (dict, None): parameters of the fitting algorithm
                 of the critic approximator.
 
@@ -55,7 +52,6 @@ class PPO(Agent):
 
         self._V = Regressor(TorchApproximator, **critic_params)
 
-        self._quiet = quiet
         self._iter = 1
 
         self._add_save_attr(
@@ -66,16 +62,12 @@ class PPO(Agent):
             _optimizer='torch',
             _lambda='primitive',
             _V='mushroom',
-            _quiet='primitive',
             _iter='primitive'
         )
 
         super().__init__(mdp_info, policy, None)
 
     def fit(self, dataset):
-        if not self._quiet:
-            tqdm.write('Iteration ' + str(self._iter))
-
         x, u, r, xn, absorbing, last = parse_dataset(dataset)
         x = x.astype(np.float32)
         u = u.astype(np.float32)
@@ -96,7 +88,7 @@ class PPO(Agent):
         self._update_policy(obs, act, adv, old_log_p)
 
         # Print fit information
-        self._print_fit_info(dataset, x, v_target, old_pol_dist)
+        self._log_info(dataset, x, v_target, old_pol_dist)
         self._iter += 1
 
     def _update_policy(self, obs, act, adv, old_log_p):
@@ -114,8 +106,8 @@ class PPO(Agent):
                 loss.backward()
                 self._optimizer.step()
 
-    def _print_fit_info(self, dataset, x, v_target, old_pol_dist):
-        if not self._quiet:
+    def _log_info(self, dataset, x, v_target, old_pol_dist):
+        if self._logger:
             logging_verr = []
             torch_v_targets = torch.tensor(v_target, dtype=torch.float)
             for idx in range(len(self._V)):
@@ -128,10 +120,11 @@ class PPO(Agent):
             logging_kl = torch.mean(torch.distributions.kl.kl_divergence(
                 new_pol_dist, old_pol_dist))
             avg_rwd = np.mean(compute_J(dataset))
-            tqdm.write("Iterations Results:\n\trewards {} vf_loss {}\n\tentropy {}  kl {}".format(
-                avg_rwd, logging_verr, logging_ent, logging_kl))
-            tqdm.write(
-                '--------------------------------------------------------------------------------------------------')
+            msg = "Iteration {}:\n\t\t\t\trewards {} vf_loss {}\n\t\t\t\tentropy {}  kl {}".format(
+                self._iter, avg_rwd, logging_verr, logging_ent, logging_kl)
+
+            self._logger.info(msg)
+            self._logger.weak_line()
 
     def _post_load(self):
         if self._optimizer is not None:
