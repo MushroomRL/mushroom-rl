@@ -11,7 +11,6 @@ Various:
 
 For Mushroom 1.6:
     * drop support of ActionRegressor, simplify Regressor interface
-    * implement logging system for data and messages
     * vectorize basis functions and simplify interface
     * improvements to documentation and tutorials
     * extend support of MushroomRL classes to Serializable interface

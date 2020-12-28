@@ -1,7 +1,9 @@
 import numpy as np
 
+from mushroom_rl.core import Serializable
 
-class MDPInfo:
+
+class MDPInfo(Serializable):
     """
     This class is used to store the information of the environment.
 
@@ -21,6 +23,13 @@ class MDPInfo:
         self.action_space = action_space
         self.gamma = gamma
         self.horizon = horizon
+
+        self._add_save_attr(
+            observation_space='mushroom',
+            action_space='mushroom',
+            gamma='primitive',
+            horizon='primitive'
+        )
 
     @property
     def size(self):
