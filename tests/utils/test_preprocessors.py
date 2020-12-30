@@ -82,10 +82,9 @@ def test_normalizing_preprocessor(tmpdir):
 
     core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
 
-    norm_box.load(tmpdir / 'norm_box.msh')
+    norm_box = MinMaxPreprocessor.load(tmpdir / 'norm_box.msh')
     state_dict2 = norm_box.get_state()
 
-    os.remove("./run_norm_state")
     assert ((state_dict1["mean"] == state_dict2["mean"]).all()
             and (state_dict1["var"] == state_dict2["var"]).all()
             and state_dict1["count"] == state_dict2["count"])
