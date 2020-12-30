@@ -17,7 +17,7 @@ from mushroom_rl.environments import Gym
 from mushroom_rl.utils.preprocessors import MinMaxPreprocessor
 
 
-def test_normalizing_preprocessor():
+def test_normalizing_preprocessor(tmpdir):
     np.random.seed(88)
 
     class Network(nn.Module):
@@ -73,16 +73,16 @@ def test_normalizing_preprocessor():
     core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
 
     # training correctly
-    assert (core._state.min() >= -norm_box.clip_obs
-            and core._state.max() <= norm_box.clip_obs)
+    assert (core._state.min() >= -norm_box._clip_obs
+            and core._state.max() <= norm_box._clip_obs)
 
     # loading and setting data correctly
     state_dict1 = norm_box.get_state()
-    norm_box.save_state("./run_norm_state")
+    norm_box.save(tmpdir / 'norm_box.msh')
 
     core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
 
-    norm_box.load_state("./run_norm_state")
+    norm_box.load(tmpdir / 'norm_box.msh')
     state_dict2 = norm_box.get_state()
 
     os.remove("./run_norm_state")

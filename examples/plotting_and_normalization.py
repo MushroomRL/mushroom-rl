@@ -46,7 +46,7 @@ def experiment(n_epochs, n_iterations, ep_per_run, save_states_to_disk):
 
     # Agent
     optimizer = AdaptiveOptimizer(eps=.01)
-    algorithm_params = dict(learning_rate=optimizer)
+    algorithm_params = dict(optimizer=optimizer)
     agent = REINFORCE(mdp.info, policy, **algorithm_params)
 
     # normalization callback
@@ -68,13 +68,13 @@ def experiment(n_epochs, n_iterations, ep_per_run, save_states_to_disk):
 
     if save_states_to_disk:
         # save normalization / plot states to disk path
-        os.makedirs("./temp/", exist_ok=True)
-        prepro.save_state("./temp/normalization_state")
-        plotter.save_state("./temp/plotting_state")
+        os.makedirs("./logs/plot_and_norm", exist_ok=True)
+        prepro.save("./logs/plot_and_norm/preprocessor.msh")
+        plotter.save_state("./logs/plot_and_norm/plotting_state")
 
         # load states from disk path
-        prepro.load_state("./temp/normalization_state")
-        plotter.load_state("./temp/plotting_state")
+        prerpo = MinMaxPreprocessor.load("./logs/plot_and_norm/preprocessor.msh")
+        plotter.load_state("./logs/plot_and_norm/plotting_state")
 
 
 if __name__ == '__main__':
