@@ -14,9 +14,6 @@ For Mushroom 1.6:
     * vectorize basis functions and simplify interface
     * improvements to documentation and tutorials
     * extend support of MushroomRL classes to Serializable interface
-        - Fix RQ-Learning: delta and beta are optionally None and this may break the save.
-          Right now, using pickle to store the parameters
-        - maybe improve the mushroom save when the value is None?
     * fix use of Parameters
 
 For Mushroom 2.0:

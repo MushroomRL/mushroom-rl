@@ -104,8 +104,12 @@ class Serializable(object):
     @classmethod
     def load_zip(cls, zip_file, folder=''):
         config_path = Serializable._append_folder(folder, 'config')
-        object_type, save_attributes, primitive_dictionary = \
-            cls._load_pickle(zip_file, config_path).values()
+
+        try:
+            object_type, save_attributes, primitive_dictionary = \
+                cls._load_pickle(zip_file, config_path).values()
+        except KeyError:
+            return None
 
         if object_type is list:
             return cls._load_list(zip_file, folder, primitive_dictionary['len'])
