@@ -1,8 +1,9 @@
+from mushroom_rl.core import Serializable
 from mushroom_rl.utils.table import Table
 import numpy as np
 
 
-class Parameter(object):
+class Parameter(Serializable):
     """
     This class implements function to manage parameters, such as learning rate.
     It also allows to have a single parameter for each state of state-action
@@ -28,6 +29,13 @@ class Parameter(object):
         self._min_value = min_value
         self._max_value = max_value
         self._n_updates = Table(size)
+
+        self._add_save_attr(
+            _initial_value='primitive',
+            _min_value='primitive',
+            _max_value='primitive',
+            _n_updates='mushroom',
+        )
 
     def __call__(self, *idx, **kwargs):
         """
@@ -117,6 +125,8 @@ class LinearParameter(Parameter):
         else:
             super().__init__(value, threshold_value, None, size)
 
+        self._add_save_attr(_coeff='primitive')
+
     def _compute(self, *idx, **kwargs):
         return self._coeff * self._n_updates[idx] + self._initial_value
 
@@ -132,6 +142,8 @@ class ExponentialParameter(Parameter):
         self._exp = exp
 
         super().__init__(value, min_value, max_value, size)
+
+        self._add_save_attr(_exp='primitive')
 
     def _compute(self, *idx, **kwargs):
         n = np.maximum(self._n_updates[idx], 1)

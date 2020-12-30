@@ -23,7 +23,7 @@ class MaxminQLearning(TD):
         self._n_tables = n_tables
         Q = EnsembleTable(n_tables, mdp_info.size, prediction='min')
 
-        self._add_save_attr(_n_tables='pickle')
+        self._add_save_attr(_n_tables='primitive')
 
         super().__init__(mdp_info, policy, Q, learning_rate)
 

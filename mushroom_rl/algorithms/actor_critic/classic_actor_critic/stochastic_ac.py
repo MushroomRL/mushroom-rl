@@ -48,8 +48,8 @@ class StochasticAC(Agent):
 
         self._add_save_attr(
             _psi='pickle',
-            _alpha_theta='pickle',
-            _alpha_v='pickle',
+            _alpha_theta='mushroom',
+            _alpha_v='mushroom',
             _lambda='primitive',
             _V='mushroom',
             _e_v='numpy',
@@ -119,7 +119,7 @@ class StochasticAC_AVG(StochasticAC):
         self._alpha_r = alpha_r
         self._r_bar = 0
 
-        self._add_save_attr(_alpha_r='pickle', _r_bar='primitive')
+        self._add_save_attr(_alpha_r='mushroom', _r_bar='primitive')
 
     def _compute_td_n_traces(self, a, r, v_next, s_psi, s_phi):
         # Compute TD error

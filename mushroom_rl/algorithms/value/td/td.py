@@ -24,7 +24,7 @@ class TD(Agent):
         policy.set_q(approximator)
         self.Q = approximator
 
-        self._add_save_attr(alpha='pickle', Q='mushroom')
+        self._add_save_attr(alpha='mushroom', Q='mushroom')
 
         super().__init__(mdp_info, policy, features)
 

@@ -54,7 +54,7 @@ class EpsGreedy(TDPolicy):
         assert isinstance(epsilon, Parameter)
         self._epsilon = epsilon
 
-        self._add_save_attr(_epsilon='pickle')
+        self._add_save_attr(_epsilon='mushroom')
 
     def __call__(self, *args):
         state = args[0]
@@ -132,7 +132,7 @@ class Boltzmann(TDPolicy):
         super().__init__()
         self._beta = beta
 
-        self._add_save_attr(_beta='pickle')
+        self._add_save_attr(_beta='mushroom')
 
     def __call__(self, *args):
         state = args[0]

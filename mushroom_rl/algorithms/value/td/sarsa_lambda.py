@@ -24,7 +24,7 @@ class SARSALambda(TD):
         self.e = EligibilityTrace(Q.shape, trace)
         self._add_save_attr(
             _lambda='primitive',
-            e='pickle'
+            e='mushroom'
         )
 
         super().__init__(mdp_info, policy, Q, learning_rate)

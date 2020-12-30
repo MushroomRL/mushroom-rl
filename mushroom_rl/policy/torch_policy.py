@@ -282,13 +282,13 @@ class BoltzmannTorchPolicy(TorchPolicy):
 
         self._add_save_attr(
             _action_dim='primitive',
-            _beta='pickle',
+            _beta='mushroom',
             _logits='mushroom'
         )
 
     def draw_action_t(self, state):
         action = self.distribution_t(state).sample().detach()
-        #print(action)
+
         if len(action.shape) > 1:
             return action
         else:
