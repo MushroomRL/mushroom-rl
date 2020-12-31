@@ -23,7 +23,7 @@ class RLearning(TD):
         self._rho = 0.
         self.beta = beta
 
-        self._add_save_attr(_rho='primitive', beta='pickle')
+        self._add_save_attr(_rho='primitive', beta='mushroom')
 
         super().__init__(mdp_info, policy, Q, learning_rate)
 

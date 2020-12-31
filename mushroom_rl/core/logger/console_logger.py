@@ -23,14 +23,15 @@ class ConsoleLogger(object):
     log text into the console and optionally save a log file.
 
     """
-    def __init__(self, log_dir=None, suffix='',
+    def __init__(self, log_name, log_dir=None, suffix='',
                  console_log_level=logging.DEBUG,
                  file_log_level=logging.DEBUG):
         """
         Constructor.
 
         Args:
-            log_dir (Path): path of the logging directory. If None, no
+            log_name (str, None): Name of the current logger.
+            log_dir (Path, None): path of the logging directory. If None, no
                 the console output is not logged into a file;
             suffix (int, None): optional string to add a suffix to the logger id
                 and to the data file logged;
@@ -38,7 +39,7 @@ class ConsoleLogger(object):
             file_log_level (int, logging.DEBUG): logging level for file.
 
         """
-        self._log_id = 'log' + suffix
+        self._log_id = log_name + suffix
 
         formatter = logging.Formatter(fmt='%(asctime)s [%(levelname)s] %(message)s',
                                       datefmt='%d/%m/%Y %H:%M:%S')
@@ -131,3 +132,6 @@ class ConsoleLogger(object):
             msg += ' ' + name + ': ' + str(data)
 
         self.info(msg)
+
+    def __del__(self):
+        self._logger.handlers.clear()

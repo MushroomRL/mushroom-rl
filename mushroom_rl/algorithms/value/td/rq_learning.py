@@ -39,8 +39,8 @@ class RQLearning(TD):
 
         self._add_save_attr(
             off_policy='primitive',
-            delta='pickle',
-            beta='pickle',
+            delta='mushroom',
+            beta='mushroom',
             Q_tilde='mushroom',
             R_tilde='mushroom'
         )

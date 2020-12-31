@@ -51,9 +51,9 @@ class COPDAC_Q(Agent):
         self._add_save_attr(
             _mu='mushroom',
             _psi='pickle',
-            _alpha_theta='pickle',
-            _alpha_omega='pickle',
-            _alpha_v='pickle',
+            _alpha_theta='mushroom',
+            _alpha_omega='mushroom',
+            _alpha_v='mushroom',
             _V='mushroom',
             _A='mushroom'
         )

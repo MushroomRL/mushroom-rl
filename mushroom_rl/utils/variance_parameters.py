@@ -29,6 +29,15 @@ class VarianceParameter(Parameter):
 
         super().__init__(value, min_value, size)
 
+        self._add_save_attr(
+            _exponential='primitive',
+            _tol='primitive',
+            _weights_var='mushroom',
+            _x='mushroom',
+            _x2='mushroom',
+            _parameter_value='mushroom',
+        )
+
     def _compute(self, *idx, **kwargs):
         return self._parameter_value[idx]
 
@@ -122,6 +131,16 @@ class WindowedVarianceParameter(Parameter):
         self._index = Table(size, dtype=int)
         self._window = window
         self._parameter_value = Table(size)
+
+        self._add_save_attr(
+            _exponential='primitive',
+            _tol='primitive',
+            _weights_var='mushroom',
+            _samples='mushroom',
+            _index='mushroom',
+            _window='primitive',
+            _parameter_value='mushroom',
+        )
 
         super(WindowedVarianceParameter, self).__init__(value, min_value, size)
 

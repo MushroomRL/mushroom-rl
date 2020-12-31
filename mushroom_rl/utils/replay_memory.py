@@ -24,10 +24,10 @@ class ReplayMemory(Serializable):
         self.reset()
 
         self._add_save_attr(
-            _initial_size='pickle',
-            _max_size='pickle',
-            _idx='pickle!',
-            _full='pickle!',
+            _initial_size='primitive',
+            _max_size='primitive',
+            _idx='primitive!',
+            _full='primitive!',
             _states='pickle!',
             _actions='pickle!',
             _rewards='pickle!',
@@ -275,11 +275,11 @@ class PrioritizedReplayMemory(Serializable):
         self._tree = SumTree(max_size)
 
         self._add_save_attr(
-            _initial_size='pickle',
-            _max_size='pickle',
-            _alpha='pickle',
-            _beta='pickle',
-            _epsilon='pickle',
+            _initial_size='primitive',
+            _max_size='primitive',
+            _alpha='primitive',
+            _beta='primitive',
+            _epsilon='primitive',
             _tree='pickle!'
         )
 
