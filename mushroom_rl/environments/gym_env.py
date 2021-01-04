@@ -49,6 +49,15 @@ class Gym(Environment):
 
         self.env = gym.make(name, **env_args)
 
+        if wrappers is not None:
+            if wrappers_args is None:
+                wrappers_args = [dict()] * len(wrappers)
+            for wrapper, args in zip(wrappers, wrappers_args):
+                if isinstance(wrapper, tuple):
+                    self.env = wrapper[0](self.env, *args, **wrapper[1])
+                else:
+                    self.env = wrapper(self.env, *args, **env_args)
+
         self.env._max_episode_steps = np.inf  # Hack to ignore gym time limit.
 
         # MDP properties
@@ -66,13 +75,6 @@ class Gym(Environment):
             self._convert_action = lambda a: a
 
         super().__init__(mdp_info)
-
-        if wrappers is not None:
-            for wrapper, args in zip(wrappers, wrappers_args):
-                if isinstance(wrapper, tuple):
-                    self.env = wrapper[0](self.env, *args, **wrapper[1])
-                else:
-                    self.env = wrapper(self.env, *args, **env_args)
 
     def reset(self, state=None):
         if state is None:
