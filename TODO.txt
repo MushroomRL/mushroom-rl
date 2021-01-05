@@ -15,7 +15,6 @@ For Mushroom 1.6:
     * improvements to documentation and tutorials
     * extend support of MushroomRL classes to Serializable interface
         - remove custom save for plotting
-        - make optimizers serializable
     * fix use of Parameters
 
 For Mushroom 2.0:

@@ -1,10 +1,11 @@
 import numpy as np
 import numpy_ml as npml
 
+from mushroom_rl.core import Serializable
 from mushroom_rl.utils.parameters import Parameter
 
 
-class Optimizer(object):
+class Optimizer(Serializable):
     """
     Base class for gradient optimizers.
     These objects take the current parameters and the gradient estimate to compute the new parameters.
@@ -25,6 +26,11 @@ class Optimizer(object):
         else:
             self._lr = lr
         self._maximize = maximize
+
+        self._add_save_attr(
+            _lr='mushroom',
+            _maximize='primitive'
+        )
 
     def __call__(self, *args, **kwargs):
         raise NotImplementedError
@@ -60,6 +66,8 @@ class AdaptiveOptimizer(Optimizer):
         """
         super().__init__(maximize=maximize)
         self._eps = eps
+
+        self._add_save_attr(_eps='primitive')
 
     def __call__(self, params, *args, **kwargs):
         # If two args are passed
@@ -137,6 +145,8 @@ class AdamOptimizer(Optimizer):
             lr_scheduler=None
         )
 
+        self._add_save_attr(_optimizer='pickle')
+
     def __call__(self, params, grads):
         if self._maximize:
             # -1*grads because numpy_ml does gradient descent by default, not ascent
@@ -166,6 +176,8 @@ class AdaGradOptimizer(Optimizer):
             lr=self._lr.initial_value,
             lr_scheduler=None
         )
+
+        self._add_save_attr(_optimizer='pickle')
 
     def __call__(self, params, grads):
         if self._maximize:
@@ -198,6 +210,8 @@ class RMSPropOptimizer(Optimizer):
             decay=decay,
             lr_scheduler=None
         )
+
+        self._add_save_attr(_optimizer='pickle')
 
     def __call__(self, params, grads):
         if self._maximize:
