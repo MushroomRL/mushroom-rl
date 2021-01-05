@@ -2,21 +2,15 @@ Algorithms:
     * Policy gradient:
         - Natural gradient
         - NES
-    * Value-based:
-        - dueling DQN
-
-Various:
-    * Fix get_value() in Parameters such that an exception is raised when the parameter value is returned as slice
-    * Remove print functions in deep_actor_critic
 
 For Mushroom 1.6:
     * drop support of ActionRegressor, simplify Regressor interface
-    * vectorize basis functions and simplify interface
     * improvements to documentation and tutorials
-    * extend support of MushroomRL classes to Serializable interface
-        - remove custom save for plotting
     * fix use of Parameters
 
 For Mushroom 2.0:
     * support multi-objective RL
+    * vectorize basis functions and simplify interface
+    * extend support of MushroomRL classes to Serializable interface
+        - remove custom save for plotting
 
