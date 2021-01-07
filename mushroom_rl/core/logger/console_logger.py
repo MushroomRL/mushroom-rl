@@ -24,6 +24,7 @@ class ConsoleLogger(object):
 
     """
     def __init__(self, log_name, log_dir=None, suffix='',
+                 log_file_name=None,
                  console_log_level=logging.DEBUG,
                  file_log_level=logging.DEBUG):
         """
@@ -35,6 +36,8 @@ class ConsoleLogger(object):
                 the console output is not logged into a file;
             suffix (int, None): optional string to add a suffix to the logger id
                 and to the data file logged;
+            log_file_name (str, None): optional specifier for log file name,
+                id is used by default;
             console_log_level (int, logging.DEBUG): logging level for console;
             file_log_level (int, logging.DEBUG): logging level for file.
 
@@ -53,7 +56,8 @@ class ConsoleLogger(object):
         self._logger.addHandler(ch)
 
         if log_dir is not None:
-            log_file_name = self._log_id + '.log'
+            log_file_name = self._log_id if log_file_name is None else log_file_name
+            log_file_name += '.log'
             log_file_path = log_dir / log_file_name
             fh = logging.FileHandler(log_file_path)
             fh.setLevel(file_log_level)
