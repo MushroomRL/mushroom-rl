@@ -4,13 +4,12 @@ Algorithms:
         - NES
 
 For Mushroom 1.6:
-    * drop support of ActionRegressor, simplify Regressor interface
     * improvements to documentation and tutorials
     * fix use of Parameters
 
 For Mushroom 2.0:
+    * Simplify Regressor interface: drop GenericRegressor, remove facade pattern
+    * vectorize basis functions and simplify interface, simplify facade pattern
+    * remove custom save for plotting, use Serializable
     * support multi-objective RL
-    * vectorize basis functions and simplify interface
-    * extend support of MushroomRL classes to Serializable interface
-        - remove custom save for plotting
 
