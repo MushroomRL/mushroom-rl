@@ -5,7 +5,7 @@ from datetime import datetime
 from helper.utils import TestUtils as tu
 
 from mushroom_rl.algorithms import Agent
-from mushroom_rl.algorithms.value import DoubleFQI, FQI
+from mushroom_rl.algorithms.value import BoostedFQI, DoubleFQI, FQI
 from mushroom_rl.core import Core
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
@@ -71,8 +71,8 @@ def test_fqi_save(tmpdir):
 
 
 def test_fqi_boosted():
-    params = dict(n_iterations=10, boosted=True)
-    _, j = learn(FQI, params)
+    params = dict(n_iterations=10)
+    _, j = learn(BoostedFQI, params)
     j_test = -0.04487241596542538
 
     assert j == j_test
@@ -81,8 +81,8 @@ def test_fqi_boosted():
 def test_fqi_boosted_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
-    params = dict(n_iterations=10, boosted=True)
-    agent_save, _ = learn(FQI, params)
+    params = dict(n_iterations=10)
+    agent_save, _ = learn(BoostedFQI, params)
 
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
