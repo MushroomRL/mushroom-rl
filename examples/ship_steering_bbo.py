@@ -24,7 +24,7 @@ using policy gradient algorithms.
 tqdm.monitor_interval = 0
 
 
-def experiment(alg, params, n_epochs, n_iterations, ep_per_run):
+def experiment(alg, params, n_epochs, fit_per_epoch, ep_per_fit):
     np.random.seed()
 
     # MDP
@@ -59,14 +59,14 @@ def experiment(alg, params, n_epochs, n_iterations, ep_per_run):
     # Train
     print(alg.__name__)
     core = Core(agent, mdp)
-    dataset_eval = core.evaluate(n_episodes=ep_per_run)
+    dataset_eval = core.evaluate(n_episodes=ep_per_fit)
     J = compute_J(dataset_eval, gamma=mdp.info.gamma)
     print('J at start : ' + str(np.mean(J)))
 
     for i in range(n_epochs):
-        core.learn(n_episodes=n_iterations * ep_per_run,
-                   n_episodes_per_fit=ep_per_run)
-        dataset_eval = core.evaluate(n_episodes=ep_per_run)
+        core.learn(n_episodes=fit_per_epoch * ep_per_fit,
+                   n_episodes_per_fit=ep_per_fit)
+        dataset_eval = core.evaluate(n_episodes=ep_per_fit)
         J = compute_J(dataset_eval, gamma=mdp.info.gamma)
         print('J at iteration ' + str(i) + ': ' + str(np.mean(J)))
 
@@ -80,4 +80,4 @@ if __name__ == '__main__':
         ]
 
     for alg, params in algs_params:
-        experiment(alg, params, n_epochs=25, n_iterations=10, ep_per_run=20)
+        experiment(alg, params, n_epochs=25, fit_per_epoch=10, ep_per_fit=20)

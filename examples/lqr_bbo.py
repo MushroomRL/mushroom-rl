@@ -21,7 +21,7 @@ policy search algorithms, also known as Black Box policy search algorithms.
 tqdm.monitor_interval = 0
 
 
-def experiment(alg, params, n_epochs, fit_per_run, ep_per_run):
+def experiment(alg, params, n_epochs, fit_per_epoch, ep_per_fit):
     np.random.seed()
 
     # MDP
@@ -42,15 +42,15 @@ def experiment(alg, params, n_epochs, fit_per_run, ep_per_run):
 
     # Train
     core = Core(agent, mdp)
-    dataset_eval = core.evaluate(n_episodes=ep_per_run)
+    dataset_eval = core.evaluate(n_episodes=ep_per_fit)
     print('distribution parameters: ', distribution.get_parameters())
     J = compute_J(dataset_eval, gamma=mdp.info.gamma)
     print('J at start : ' + str(np.mean(J)))
 
     for i in range(n_epochs):
-        core.learn(n_episodes=fit_per_run * ep_per_run,
-                   n_episodes_per_fit=ep_per_run)
-        dataset_eval = core.evaluate(n_episodes=ep_per_run)
+        core.learn(n_episodes=fit_per_epoch * ep_per_fit,
+                   n_episodes_per_fit=ep_per_fit)
+        dataset_eval = core.evaluate(n_episodes=ep_per_fit)
         print('distribution parameters: ', distribution.get_parameters())
         J = compute_J(dataset_eval, gamma=mdp.info.gamma)
         print('J at iteration ' + str(i) + ': ' + str(np.mean(J)))
@@ -64,4 +64,4 @@ if __name__ == '__main__':
 
     for alg, params in zip(algs, params):
         print(alg.__name__)
-        experiment(alg, params, n_epochs=4, fit_per_run=10, ep_per_run=100)
+        experiment(alg, params, n_epochs=4, fit_per_epoch=10, ep_per_fit=100)
