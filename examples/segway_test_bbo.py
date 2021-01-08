@@ -1,6 +1,6 @@
 import numpy as np
 
-from mushroom_rl.core import Core
+from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments.segway import Segway
 from mushroom_rl.algorithms.policy_search import *
 from mushroom_rl.policy import DeterministicPolicy
@@ -11,12 +11,16 @@ from mushroom_rl.utils.dataset import compute_J
 from mushroom_rl.utils.callbacks import CollectDataset
 from mushroom_rl.utils.optimizers import AdaptiveOptimizer
 
-from tqdm import tqdm
+from tqdm import tqdm, trange
 tqdm.monitor_interval = 0
 
 
 def experiment(alg, params, n_epochs, n_episodes, n_ep_per_fit):
     np.random.seed()
+
+    logger = Logger(alg.__name__, results_dir=None)
+    logger.strong_line()
+    logger.info('Experiment Algorithm: ' + alg.__name__)
 
     # MDP
     mdp = Segway()
@@ -35,11 +39,10 @@ def experiment(alg, params, n_epochs, n_episodes, n_ep_per_fit):
     agent = alg(mdp.info, dist, policy, **params)
 
     # Train
-    print(alg.__name__)
     dataset_callback = CollectDataset()
     core = Core(agent, mdp, callbacks_fit=[dataset_callback])
 
-    for i in range(n_epochs):
+    for i in trange(n_epochs, leave=False):
         core.learn(n_episodes=n_episodes,
                    n_episodes_per_fit=n_ep_per_fit, render=False)
         J = compute_J(dataset_callback.get(), gamma=mdp.info.gamma)
@@ -47,12 +50,9 @@ def experiment(alg, params, n_epochs, n_episodes, n_ep_per_fit):
 
         p = dist.get_parameters()
 
-        print('mu:    ', p[:n_weights])
-        print('sigma: ', p[n_weights:])
-        print('Reward at iteration ' + str(i) + ': ' +
-              str(np.mean(J)))
+        logger.epoch_info(i+1, J=np.mean(J), mu=p[:n_weights], sigma=p[n_weights:])
 
-    print('Press a button to visualize the segway...')
+    logger.info('Press a button to visualize the segway...')
     input()
     core.evaluate(n_episodes=3, render=True)
 

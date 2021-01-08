@@ -28,7 +28,6 @@ def experiment(alg, params, n_epochs, fit_per_epoch, ep_per_fit):
     logger.strong_line()
     logger.info('Experiment Algorithm: ' + alg.__name__)
 
-
     # MDP
     mdp = LQR.generate(dimensions=1)
 
@@ -49,14 +48,14 @@ def experiment(alg, params, n_epochs, fit_per_epoch, ep_per_fit):
     core = Core(agent, mdp)
     dataset_eval = core.evaluate(n_episodes=ep_per_fit)
     J = compute_J(dataset_eval, gamma=mdp.info.gamma)
-    logger.epoch_info(0, J=np.mean(J), distribution_parameters=str(distribution.get_parameters()))
+    logger.epoch_info(0, J=np.mean(J), distribution_parameters=distribution.get_parameters())
 
     for i in trange(n_epochs, leave=False):
         core.learn(n_episodes=fit_per_epoch * ep_per_fit,
                    n_episodes_per_fit=ep_per_fit)
         dataset_eval = core.evaluate(n_episodes=ep_per_fit)
         J = compute_J(dataset_eval, gamma=mdp.info.gamma)
-        logger.epoch_info(i+1, J=np.mean(J), distribution_parameters=str(distribution.get_parameters()))
+        logger.epoch_info(i+1, J=np.mean(J), distribution_parameters=distribution.get_parameters())
 
 
 if __name__ == '__main__':
