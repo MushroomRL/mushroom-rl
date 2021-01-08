@@ -1,10 +1,10 @@
 import numpy as np
-from tqdm import tqdm
+from tqdm import tqdm, trange
 
 from mushroom_rl.algorithms.policy_search import RWR, PGPE, REPS
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.approximators.regressor import Regressor
-from mushroom_rl.core import Core
+from mushroom_rl.core import Core, Logger
 from mushroom_rl.distributions import GaussianCholeskyDistribution
 from mushroom_rl.environments import LQR
 from mushroom_rl.policy import DeterministicPolicy
@@ -23,6 +23,11 @@ tqdm.monitor_interval = 0
 
 def experiment(alg, params, n_epochs, fit_per_epoch, ep_per_fit):
     np.random.seed()
+
+    logger = Logger(alg.__name__, results_dir=None)
+    logger.strong_line()
+    logger.info('Experiment Algorithm: ' + alg.__name__)
+
 
     # MDP
     mdp = LQR.generate(dimensions=1)
@@ -43,17 +48,15 @@ def experiment(alg, params, n_epochs, fit_per_epoch, ep_per_fit):
     # Train
     core = Core(agent, mdp)
     dataset_eval = core.evaluate(n_episodes=ep_per_fit)
-    print('distribution parameters: ', distribution.get_parameters())
     J = compute_J(dataset_eval, gamma=mdp.info.gamma)
-    print('J at start : ' + str(np.mean(J)))
+    logger.epoch_info(0, J=np.mean(J), distribution_parameters=str(distribution.get_parameters()))
 
-    for i in range(n_epochs):
+    for i in trange(n_epochs, leave=False):
         core.learn(n_episodes=fit_per_epoch * ep_per_fit,
                    n_episodes_per_fit=ep_per_fit)
         dataset_eval = core.evaluate(n_episodes=ep_per_fit)
-        print('distribution parameters: ', distribution.get_parameters())
         J = compute_J(dataset_eval, gamma=mdp.info.gamma)
-        print('J at iteration ' + str(i) + ': ' + str(np.mean(J)))
+        logger.epoch_info(i+1, J=np.mean(J), distribution_parameters=str(distribution.get_parameters()))
 
 
 if __name__ == '__main__':
@@ -63,5 +66,4 @@ if __name__ == '__main__':
     params = [{'eps': 0.5}, {'beta': 0.7}, {'optimizer': optimizer}]
 
     for alg, params in zip(algs, params):
-        print(alg.__name__)
         experiment(alg, params, n_epochs=4, fit_per_epoch=10, ep_per_fit=100)
