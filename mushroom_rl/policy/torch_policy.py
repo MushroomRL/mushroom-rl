@@ -7,6 +7,7 @@ from mushroom_rl.policy import Policy
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.torch import to_float_tensor
+from mushroom_rl.utils.parameters import Parameter
 
 from itertools import chain
 
@@ -278,6 +279,8 @@ class BoltzmannTorchPolicy(TorchPolicy):
 
         self._logits = Regressor(TorchApproximator, input_shape, output_shape,
                                  network=network, use_cuda=use_cuda, **params)
+
+        assert isinstance(beta, Parameter)
         self._beta = beta
 
         self._add_save_attr(
@@ -312,3 +315,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
 
     def parameters(self):
         return self._logits.model.network.parameters()
+
+    def set_beta(self, beta):
+        assert isinstance(beta, Parameter)
+        self._beta = beta
