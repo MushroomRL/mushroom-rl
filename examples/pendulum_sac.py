@@ -6,9 +6,11 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from mushroom_rl.algorithms.actor_critic import SAC
-from mushroom_rl.core import Core
+from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments.gym_env import Gym
 from mushroom_rl.utils.dataset import compute_J, parse_dataset
+
+from tqdm import trange
 
 
 class CriticNetwork(nn.Module):
@@ -67,6 +69,10 @@ class ActorNetwork(nn.Module):
 def experiment(alg, n_epochs, n_steps, n_steps_test):
     np.random.seed()
 
+    logger = Logger(alg.__name__, results_dir=None)
+    logger.strong_line()
+    logger.info('Experiment Algorithm: ' + alg.__name__)
+
     # MDP
     horizon = 200
     gamma = 0.99
@@ -118,23 +124,30 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
     # Algorithm
     core = Core(agent, mdp)
 
-    core.learn(n_steps=initial_replay_size, n_steps_per_fit=initial_replay_size)
-
     # RUN
     dataset = core.evaluate(n_steps=n_steps_test, render=False)
-    J = compute_J(dataset, gamma)
     s, *_ = parse_dataset(dataset)
-    print('J:', np.mean(J), 'E:', agent.policy.entropy(s))
 
-    for n in range(n_epochs):
-        print('Epoch: ', n)
+    J = np.mean(compute_J(dataset, mdp.info.gamma))
+    R = np.mean(compute_J(dataset))
+    E = agent.policy.entropy(s)
+
+    logger.epoch_info(0, J=J, R=R, entropy=E)
+
+    core.learn(n_steps=initial_replay_size, n_steps_per_fit=initial_replay_size)
+
+    for n in trange(n_epochs, leave=False):
         core.learn(n_steps=n_steps, n_steps_per_fit=1)
         dataset = core.evaluate(n_steps=n_steps_test, render=False)
-        J = compute_J(dataset, gamma)
         s, *_ = parse_dataset(dataset)
-        print('J:', np.mean(J), 'E:', agent.policy.entropy(s))
 
-    print('Press a button to visualize pendulum')
+        J = np.mean(compute_J(dataset, mdp.info.gamma))
+        R = np.mean(compute_J(dataset))
+        E = agent.policy.entropy(s)
+
+        logger.epoch_info(n+1, J=J, R=R, entropy=E)
+
+    logger.info('Press a button to visualize pendulum')
     input()
     core.evaluate(n_episodes=5, render=True)
 
@@ -145,5 +158,4 @@ if __name__ == '__main__':
     ]
 
     for alg in algs:
-        print('Algorithm: ', alg.__name__)
         experiment(alg=alg, n_epochs=40, n_steps=1000, n_steps_test=2000)
