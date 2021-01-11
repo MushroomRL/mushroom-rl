@@ -313,3 +313,6 @@ class BoltzmannTorchPolicy(TorchPolicy):
 
     def parameters(self):
         return self._logits.model.network.parameters()
+
+    def set_beta(self, beta):
+        self._beta = to_parameter(beta)
