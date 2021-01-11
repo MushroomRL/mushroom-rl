@@ -21,7 +21,7 @@ class DoubleFQI(FQI):
                          approximator_params, fit_params, quiet)
 
     def fit(self, x):
-        for _ in trange(self._n_iterations, dynamic_ncols=True, disable=self._quiet, leave=False):
+        for _ in trange(self._n_iterations(), dynamic_ncols=True, disable=self._quiet, leave=False):
             state = list()
             action = list()
             reward = list()

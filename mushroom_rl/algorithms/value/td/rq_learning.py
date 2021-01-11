@@ -2,6 +2,7 @@ import numpy as np
 
 from mushroom_rl.algorithms.value.td import TD
 from mushroom_rl.utils.table import Table
+from mushroom_rl.utils.parameters import to_parameter
 
 
 class RQLearning(TD):
@@ -19,17 +20,17 @@ class RQLearning(TD):
         Args:
             off_policy (bool, False): whether to use the off policy setting or
                 the online one;
-            beta (Parameter, None): beta coefficient;
-            delta (Parameter, None): delta coefficient.
+            beta ((float, Parameter), None): beta coefficient;
+            delta ((float, Parameter), None): delta coefficient.
 
         """
         self.off_policy = off_policy
         if delta is not None and beta is None:
-            self.delta = delta
+            self.delta = to_parameter(delta)
             self.beta = None
         elif delta is None and beta is not None:
             self.delta = None
-            self.beta = beta
+            self.beta = to_parameter(beta)
         else:
             raise ValueError('delta or beta parameters needed.')
 
@@ -48,7 +49,7 @@ class RQLearning(TD):
         super().__init__(mdp_info, policy, Q, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
-        alpha = self.alpha(state, action, target=reward)
+        alpha = self._alpha(state, action, target=reward)
         self.R_tilde[state, action] += alpha * (reward - self.R_tilde[
             state, action])
 

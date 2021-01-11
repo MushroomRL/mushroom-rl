@@ -3,6 +3,13 @@ from mushroom_rl.utils.table import Table
 import numpy as np
 
 
+def to_parameter(x):
+    if isinstance(x, Parameter):
+        return x
+    else:
+        return Parameter(x)
+
+
 class Parameter(Serializable):
     """
     This class implements function to manage parameters, such as learning rate.

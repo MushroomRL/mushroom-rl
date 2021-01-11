@@ -3,6 +3,7 @@ from tqdm import trange
 
 from mushroom_rl.algorithms.value.batch_td import BatchTD
 from mushroom_rl.utils.dataset import parse_dataset
+from mushroom_rl.utils.parameters import to_parameter
 
 
 class FQI(BatchTD):
@@ -17,16 +18,16 @@ class FQI(BatchTD):
         Constructor.
 
         Args:
-            n_iterations (int): number of iterations to perform for training;
+            n_iterations ((int, Parameter)): number of iterations to perform for training;
             quiet (bool, False): whether to show the progress bar or not.
 
         """
-        self._n_iterations = n_iterations
+        self._n_iterations = to_parameter(n_iterations)
         self._quiet = quiet
         self._target = None
 
         self._add_save_attr(
-            _n_iterations='primitive',
+            _n_iterations='mushroom',
             _quiet='primitive',
             _target='pickle'
         )
@@ -35,7 +36,7 @@ class FQI(BatchTD):
 
     def fit(self, x):
         state, action, reward, next_state, absorbing, _ = parse_dataset(x)
-        for _ in trange(self._n_iterations, dynamic_ncols=True, disable=self._quiet, leave=False):
+        for _ in trange(self._n_iterations(), dynamic_ncols=True, disable=self._quiet, leave=False):
             if self._target is None:
                 self._target = reward
             else:

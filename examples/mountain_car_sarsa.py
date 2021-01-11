@@ -2,7 +2,7 @@ import numpy as np
 from joblib import Parallel, delayed
 
 from mushroom_rl.algorithms.value import TrueOnlineSARSALambda
-from mushroom_rl.core import Core
+from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import Gym
 from mushroom_rl.features import Features
 from mushroom_rl.features.tiles import Tiles
@@ -60,8 +60,12 @@ def experiment(alpha):
 if __name__ == '__main__':
     n_experiment = 1
 
+    logger = Logger(TrueOnlineSARSALambda.__name__, results_dir=None)
+    logger.strong_line()
+    logger.info('Experiment Algorithm: ' + TrueOnlineSARSALambda.__name__)
+
     alpha = .1
     Js = Parallel(
         n_jobs=-1)(delayed(experiment)(alpha) for _ in range(n_experiment))
 
-    print((np.mean(Js)))
+    logger.info('J: %f' % np.mean(Js))

@@ -11,7 +11,7 @@ import torch.nn.functional as F
 from mushroom_rl.algorithms.value import AveragedDQN, CategoricalDQN, DQN,\
     DoubleDQN, MaxminDQN, DuelingDQN
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.core import Core
+from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.utils.dataset import compute_metrics
@@ -96,22 +96,26 @@ class FeatureNetwork(nn.Module):
         return h
 
 
-def print_epoch(epoch):
-    print('################################################################')
-    print('Epoch: ', epoch)
-    print('----------------------------------------------------------------')
+def print_epoch(epoch, logger):
+    logger.info('################################################################')
+    logger.info('Epoch: %d' % epoch)
+    logger.info('----------------------------------------------------------------')
 
 
-def get_stats(dataset):
+def get_stats(dataset, logger):
     score = compute_metrics(dataset)
-    print(('min_reward: %f, max_reward: %f, mean_reward: %f,'
-          ' games_completed: %d' % score))
+    logger.info(('min_reward: %f, max_reward: %f, mean_reward: %f,'
+                ' games_completed: %d' % score))
 
     return score
 
 
 def experiment():
     np.random.seed()
+
+    logger = Logger(DQN.__name__, results_dir=None)
+    logger.strong_line()
+    logger.info('Experiment Algorithm: ' + DQN.__name__)
 
     # Argument parser
     parser = argparse.ArgumentParser()
@@ -368,7 +372,7 @@ def experiment():
         # RUN
 
         # Fill replay memory with random dataset
-        print_epoch(0)
+        print_epoch(0, logger)
         core.learn(n_steps=initial_replay_size,
                    n_steps_per_fit=initial_replay_size, quiet=args.quiet)
 
@@ -380,12 +384,12 @@ def experiment():
         mdp.set_episode_end(False)
         dataset = core.evaluate(n_steps=test_samples, render=args.render,
                                 quiet=args.quiet)
-        scores.append(get_stats(dataset))
+        scores.append(get_stats(dataset, logger))
 
         np.save(folder_name + '/scores.npy', scores)
         for n_epoch in range(1, max_steps // evaluation_frequency + 1):
-            print_epoch(n_epoch)
-            print('- Learning:')
+            print_epoch(n_epoch, logger)
+            logger.info('- Learning:')
             # learning step
             pi.set_epsilon(epsilon)
             mdp.set_episode_end(True)
@@ -395,13 +399,13 @@ def experiment():
             if args.save:
                 agent.save(folder_name + '/agent_' + str(n_epoch) + '.msh')
 
-            print('- Evaluation:')
+            logger.info('- Evaluation:')
             # evaluation step
             pi.set_epsilon(epsilon_test)
             mdp.set_episode_end(False)
             dataset = core.evaluate(n_steps=test_samples, render=args.render,
                                     quiet=args.quiet)
-            scores.append(get_stats(dataset))
+            scores.append(get_stats(dataset, logger))
 
             np.save(folder_name + '/scores.npy', scores)
 

@@ -4,6 +4,7 @@ from mushroom_rl.algorithms.value.td import TD
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.features import get_action_features
+from mushroom_rl.utils.parameters import to_parameter
 
 
 class TrueOnlineSARSALambda(TD):
@@ -18,7 +19,7 @@ class TrueOnlineSARSALambda(TD):
         Constructor.
 
         Args:
-            lambda_coeff (float): eligibility trace coefficient.
+            lambda_coeff ((float, Parameter)): eligibility trace coefficient.
 
         """
         approximator_params = dict() if approximator_params is None else \
@@ -26,12 +27,12 @@ class TrueOnlineSARSALambda(TD):
 
         Q = Regressor(LinearApproximator, **approximator_params)
         self.e = np.zeros(Q.weights_size)
-        self._lambda = lambda_coeff
+        self._lambda = to_parameter(lambda_coeff)
         self._q_old = None
 
         self._add_save_attr(
             _q_old='numpy',
-            _lambda='primitive',
+            _lambda='mushroom',
             e='numpy'
         )
 
@@ -46,11 +47,11 @@ class TrueOnlineSARSALambda(TD):
         if self._q_old is None:
             self._q_old = q_current
 
-        alpha = self.alpha(state, action)
+        alpha = self._alpha(state, action)
 
         e_phi = self.e.dot(phi_state_action)
-        self.e = self.mdp_info.gamma * self._lambda * self.e + alpha * (
-            1. - self.mdp_info.gamma * self._lambda * e_phi) * phi_state_action
+        self.e = self.mdp_info.gamma * self._lambda() * self.e + alpha * (
+            1. - self.mdp_info.gamma * self._lambda.get_value() * e_phi) * phi_state_action
 
         self.next_action = self.draw_action(next_state)
         phi_next_state = self.phi(next_state)

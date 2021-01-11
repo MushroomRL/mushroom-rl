@@ -4,6 +4,8 @@ from mushroom_rl.algorithms.agent import Agent
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 
+from mushroom_rl.utils.parameters import to_parameter
+
 
 class COPDAC_Q(Agent):
     """
@@ -12,7 +14,6 @@ class COPDAC_Q(Agent):
     Silver D. et al.. 2014.
 
     """
-
     def __init__(self, mdp_info, policy, mu, alpha_theta, alpha_omega, alpha_v,
                  value_function_features=None, policy_features=None):
         """
@@ -21,9 +22,9 @@ class COPDAC_Q(Agent):
         Args:
             mu (Regressor): regressor that describe the deterministic policy to be
                 learned i.e., the deterministic mapping between state and action.
-            alpha_theta (Parameter): learning rate for policy update;
-            alpha_omega (Parameter): learning rate for the advantage function;
-            alpha_v (Parameter): learning rate for the value function;
+            alpha_theta ((float, Parameter)): learning rate for policy update;
+            alpha_omega ((float, Parameter)): learning rate for the advantage function;
+            alpha_v ((float, Parameter)): learning rate for the value function;
             value_function_features (Features, None): features used by the value
                 function approximator;
             policy_features (Features, None): features used by the policy.
@@ -32,9 +33,9 @@ class COPDAC_Q(Agent):
         self._mu = mu
         self._psi = value_function_features
 
-        self._alpha_theta = alpha_theta
-        self._alpha_omega = alpha_omega
-        self._alpha_v = alpha_v
+        self._alpha_theta = to_parameter(alpha_theta)
+        self._alpha_omega = to_parameter(alpha_omega)
+        self._alpha_v = to_parameter(alpha_v)
 
         if self._psi is not None:
             input_shape = (self._psi.size,)

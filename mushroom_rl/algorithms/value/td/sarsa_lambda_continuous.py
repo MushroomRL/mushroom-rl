@@ -2,6 +2,7 @@ import numpy as np
 
 from mushroom_rl.algorithms.value.td import TD
 from mushroom_rl.approximators import Regressor
+from mushroom_rl.utils.parameters import to_parameter
 
 
 class SARSALambdaContinuous(TD):
@@ -15,7 +16,7 @@ class SARSALambdaContinuous(TD):
         Constructor.
 
         Args:
-            lambda_coeff (float): eligibility trace coefficient.
+            lambda_coeff ((float, Parameter)): eligibility trace coefficient.
 
         """
         approximator_params = dict() if approximator_params is None else \
@@ -23,7 +24,7 @@ class SARSALambdaContinuous(TD):
 
         Q = Regressor(approximator, **approximator_params)
         self.e = np.zeros(Q.weights_size)
-        self._lambda = lambda_coeff
+        self._lambda = to_parameter(lambda_coeff)
 
         self._add_save_attr(
             _lambda='primitive',
@@ -36,9 +37,9 @@ class SARSALambdaContinuous(TD):
         phi_state = self.phi(state)
         q_current = self.Q.predict(phi_state, action)
 
-        alpha = self.alpha(state, action)
+        alpha = self._alpha(state, action)
 
-        self.e = self.mdp_info.gamma * self._lambda * self.e + self.Q.diff(
+        self.e = self.mdp_info.gamma * self._lambda() * self.e + self.Q.diff(
             phi_state, action)
 
         self.next_action = self.draw_action(next_state)

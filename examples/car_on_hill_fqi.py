@@ -3,7 +3,7 @@ from joblib import Parallel, delayed
 from sklearn.ensemble import ExtraTreesRegressor
 
 from mushroom_rl.algorithms.value import FQI
-from mushroom_rl.core import Core
+from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.utils.dataset import compute_J
@@ -71,5 +71,9 @@ def experiment():
 if __name__ == '__main__':
     n_experiment = 1
 
+    logger = Logger(FQI.__name__, results_dir=None)
+    logger.strong_line()
+    logger.info('Experiment Algorithm: ' + FQI.__name__)
+
     Js = Parallel(n_jobs=-1)(delayed(experiment)() for _ in range(n_experiment))
-    print((np.mean(Js)))
+    logger.info((np.mean(Js)))

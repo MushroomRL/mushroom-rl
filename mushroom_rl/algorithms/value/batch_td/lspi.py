@@ -4,6 +4,7 @@ from mushroom_rl.algorithms.value.batch_td import BatchTD
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.features import get_action_features
 from mushroom_rl.utils.dataset import parse_dataset
+from mushroom_rl.utils.parameters import to_parameter
 
 
 class LSPI(BatchTD):
@@ -18,16 +19,16 @@ class LSPI(BatchTD):
         Constructor.
 
         Args:
-            epsilon (float, 1e-2): termination coefficient.
+            epsilon ((float, Parameter), 1e-2): termination coefficient.
 
         """
-        self._epsilon = epsilon
+        self._epsilon = to_parameter(epsilon)
 
         k = features.size * mdp_info.action_space.n
         self._A = np.zeros((k, k))
         self._b = np.zeros((k, 1))
 
-        self._add_save_attr(_epsilon='primitive', _A='primitive', _b='primitive')
+        self._add_save_attr(_epsilon='mushroom', _A='primitive', _b='primitive')
 
         super().__init__(mdp_info, policy, LinearApproximator,
                          approximator_params, fit_params, features)
@@ -39,7 +40,7 @@ class LSPI(BatchTD):
                                                self.mdp_info.action_space.n)
 
         norm = np.inf
-        while norm > self._epsilon:
+        while norm > self._epsilon():
             q = self.approximator.predict(phi_next_state)
             if np.any(absorbing):
                 q *= 1 - absorbing.reshape(-1, 1)
