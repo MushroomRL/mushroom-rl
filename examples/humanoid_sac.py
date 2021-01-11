@@ -9,12 +9,14 @@ from mushroom_rl.utils.callbacks import PlotDataset
 from mushroom_rl.utils.preprocessors import MinMaxPreprocessor
 
 from mushroom_rl.algorithms.actor_critic import SAC
-from mushroom_rl.core import Core
+from mushroom_rl.core import Core, Logger
 from mushroom_rl.utils.dataset import compute_J, episodes_length
 
 from mushroom_rl.environments.mujoco_envs import HumanoidGait
 from mushroom_rl.environments.mujoco_envs.humanoid_gait import \
     VelocityProfile3D, RandomConstantVelocityProfile, ConstantVelocityProfile
+
+from tqdm import trange
 
 
 class CriticNetwork(nn.Module):
@@ -172,6 +174,10 @@ def create_mdp(gamma, horizon, goal, use_muscles):
 def experiment(goal, use_muscles, n_epochs, n_steps, n_episodes_test):
     np.random.seed(1)
 
+    logger = Logger('SAC', results_dir=None)
+    logger.strong_line()
+    logger.info('Humanoid Experiment, Algorithm: SAC')
+
     # MDP
     gamma = 0.99
     horizon = 2000
@@ -188,17 +194,25 @@ def experiment(goal, use_muscles, n_epochs, n_steps, n_episodes_test):
 
     # Algorithm(with normalization and plotting)
     core = Core(agent, mdp, callback_step=plotter, preprocessors=[normalizer])
+    dataset = core.evaluate(n_episodes=n_episodes_test, render=True)
+
+    J = np.mean(compute_J(dataset, gamma))
+    L = int(np.round(np.mean(episodes_length(dataset))))
+
+    logger.epoch_info(0, J=J, episode_lenght=L)
 
     # training loop
-    for n in range(n_epochs):
+    for n in trange(n_epochs, leave=False):
         core.learn(n_steps=n_steps, n_steps_per_fit=1)
         dataset = core.evaluate(n_episodes=n_episodes_test, render=True)
-        print('Epoch: ', n,
-              '  J: ', np.mean(compute_J(dataset, gamma)),
-              '  Len_ep: ', int(np.round(np.mean(episodes_length(dataset))))
-              )
 
-    print('Press a button to visualize humanoid')
+        J = np.mean(compute_J(dataset, gamma))
+        L = int(np.round(np.mean(episodes_length(dataset))))
+
+
+        logger.epoch_info(n+1, J=J, episode_lenght=L)
+
+    logger.info('Press a button to visualize humanoid')
     input()
     core.evaluate(n_episodes=10, render=True)
 
