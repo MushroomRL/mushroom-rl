@@ -6,6 +6,7 @@ from mushroom_rl.algorithms.agent import Agent
 from mushroom_rl.approximators.parametric.torch_approximator import *
 from mushroom_rl.approximators.regressor import Regressor
 from mushroom_rl.utils.replay_memory import PrioritizedReplayMemory, ReplayMemory
+from mushroom_rl.utils.parameters import to_parameter
 
 
 class AbstractDQN(Agent):
@@ -21,7 +22,7 @@ class AbstractDQN(Agent):
                Q-function;
             approximator_params (dict): parameters of the approximator to
                 build;
-            batch_size (int): the number of samples in a batch;
+            batch_size ((int, Parameter)): the number of samples in a batch;
             target_update_frequency (int): the number of samples collected
                 between each update of the target network;
             replay_memory ([ReplayMemory, PrioritizedReplayMemory], None): the
@@ -38,7 +39,7 @@ class AbstractDQN(Agent):
         """
         self._fit_params = dict() if fit_params is None else fit_params
 
-        self._batch_size = batch_size
+        self._batch_size = to_parameter(batch_size)
         self._clip_reward = clip_reward
         self._target_update_frequency = target_update_frequency
 
@@ -64,7 +65,7 @@ class AbstractDQN(Agent):
 
         self._add_save_attr(
             _fit_params='pickle',
-            _batch_size='primitive',
+            _batch_size='mushroom',
             _n_approximators='primitive',
             _clip_reward='primitive',
             _target_update_frequency='primitive',
@@ -87,7 +88,7 @@ class AbstractDQN(Agent):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
             state, action, reward, next_state, absorbing, _ = \
-                self._replay_memory.get(self._batch_size)
+                self._replay_memory.get(self._batch_size())
 
             if self._clip_reward:
                 reward = np.clip(reward, -1, 1)
@@ -105,7 +106,7 @@ class AbstractDQN(Agent):
             dataset, np.ones(len(dataset)) * self._replay_memory.max_priority)
         if self._replay_memory.initialized:
             state, action, reward, next_state, absorbing, _, idxs, is_weight = \
-                self._replay_memory.get(self._batch_size)
+                self._replay_memory.get(self._batch_size())
 
             if self._clip_reward:
                 reward = np.clip(reward, -1, 1)

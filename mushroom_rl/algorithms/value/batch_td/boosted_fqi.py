@@ -32,7 +32,7 @@ class BoostedFQI(FQI):
 
     def fit(self, x):
         state, action, reward, next_state, absorbing, _ = parse_dataset(x)
-        for _ in trange(self._n_iterations, dynamic_ncols=True, disable=self._quiet, leave=False):
+        for _ in trange(self._n_iterations(), dynamic_ncols=True, disable=self._quiet, leave=False):
             if self._target is None:
                 self._target = reward
             else:
