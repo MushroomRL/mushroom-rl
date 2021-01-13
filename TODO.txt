@@ -5,7 +5,6 @@ Algorithms:
 
 For Mushroom 1.6:
     * improvements to documentation and tutorials
-    * fix use of Parameters
 
 For Mushroom 2.0:
     * Simplify Regressor interface: drop GenericRegressor, remove facade pattern
