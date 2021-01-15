@@ -1,7 +1,10 @@
 Algorithms:
-    * Policy gradient:
+    * Policy Search:
         - Natural gradient
         - NES
+        - Constrained REPS
+        - MORE
+        - PAPI
 
 For Mushroom 1.6:
     * improvements to documentation and tutorials
@@ -12,4 +15,4 @@ For Mushroom 2.0:
     * remove custom save for plotting, use Serializable
     * support multi-objective RL
     * Register environments to build them from string with default parameters
-
+    * Improve replay memory, allowing to store arbitrary information into replay buffer
