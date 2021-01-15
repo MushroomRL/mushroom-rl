@@ -41,11 +41,12 @@ class Gym(Environment):
         """
 
         # MDP creation
-        self._close_at_stop = True
+        self._not_pybullet = True
+        self._first = True
         if pybullet_found and '- ' + name in pybullet_envs.getList():
             import pybullet
             pybullet.connect(pybullet.DIRECT)
-            self._close_at_stop = False
+            self._not_pybullet = False
 
         self.env = gym.make(name, **env_args)
 
@@ -92,11 +93,13 @@ class Gym(Environment):
         return np.atleast_1d(obs), reward, absorbing, info
 
     def render(self, mode='human'):
-        self.env.render(mode=mode)
+        if self._first or self._not_pybullet:
+            self.env.render(mode=mode)
+            self._first = False
 
     def stop(self):
         try:
-            if self._close_at_stop:
+            if self._not_pybullet:
                 self.env.close()
         except:
             pass
