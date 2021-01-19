@@ -308,7 +308,7 @@ def experiment():
 
         # Approximator
         approximator_params = dict(
-            network=Network if args.algorithm != 'cdqn' else FeatureNetwork,
+            network=Network if args.algorithm not in ['dueldqn', 'cdqn'] else FeatureNetwork,
             input_shape=mdp.info.observation_space.shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
