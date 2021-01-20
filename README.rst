@@ -89,6 +89,13 @@ You can also perform a local editable installation by using:
 
     pip install --no-use-pep517 -e .
 
+To install also optional dependencies:
+
+.. code:: shell
+
+    pip install --no-use-pep517 -e .[all]
+
+
 
 How to set and run and experiment
 =================================
