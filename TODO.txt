@@ -8,7 +8,6 @@ Algorithms:
 
 For Mushroom 1.6:
     * improvements to documentation and tutorials
-    * fix features, in particular fix bug in size of tensor_basis
 
 For Mushroom 2.0:
     * Record method in environemnt and record option in the core
