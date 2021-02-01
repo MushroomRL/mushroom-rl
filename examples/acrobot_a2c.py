@@ -9,7 +9,7 @@ from mushroom_rl.policy import BoltzmannTorchPolicy
 from mushroom_rl.approximators.parametric.torch_approximator import *
 from mushroom_rl.utils.dataset import compute_J
 from mushroom_rl.utils.parameters import Parameter
-from tqdm import tqdm, trange
+from tqdm import trange
 
 
 class Network(nn.Module):
@@ -92,15 +92,13 @@ def experiment(n_epochs, n_steps, n_steps_per_fit, n_step_test):
     # RUN
     dataset = core.evaluate(n_steps=n_step_test, render=False)
     J = compute_J(dataset, gamma_eval)
-    logger.info('J: %f' % np.mean(J))
+    logger.epoch_info(0, J=np.mean(J))
 
     for n in trange(n_epochs):
-        tqdm.write('Epoch: ' + str(n))
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit)
         dataset = core.evaluate(n_steps=n_step_test, render=False)
         J = compute_J(dataset, gamma_eval)
-        tqdm.write('J: ' + str(np.mean(J)))
-        # core.evaluate(n_episodes=2, render=True)
+        logger.epoch_info(n+1, J=np.mean(J))
 
     logger.info('Press a button to visualize acrobot')
     input()

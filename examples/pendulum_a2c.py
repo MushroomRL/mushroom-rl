@@ -4,9 +4,9 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 import numpy as np
-from tqdm import tqdm, trange
+from tqdm import trange
 
-from mushroom_rl.core import Core
+from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import Gym
 from mushroom_rl.algorithms.actor_critic import A2C
 
@@ -42,7 +42,9 @@ class Network(nn.Module):
 
 def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit,
                n_step_test, alg_params, policy_params):
-    print(alg.__name__)
+    logger = Logger(A2C.__name__, results_dir=None)
+    logger.strong_line()
+    logger.info('Experiment Algorithm: ' + A2C.__name__)
 
     mdp = Gym(env_id, horizon, gamma)
 
@@ -68,6 +70,14 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit,
 
     core = Core(agent, mdp)
 
+    dataset = core.evaluate(n_steps=n_step_test, render=False)
+
+    J = np.mean(compute_J(dataset, mdp.info.gamma))
+    R = np.mean(compute_J(dataset))
+    E = agent.policy.entropy()
+
+    logger.epoch_info(0, J=J, R=R, entropy=E)
+
     for it in trange(n_epochs):
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit)
         dataset = core.evaluate(n_steps=n_step_test, render=False)
@@ -76,11 +86,9 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit,
         R = np.mean(compute_J(dataset))
         E = agent.policy.entropy()
 
-        tqdm.write('END OF EPOCH ' + str(it))
-        tqdm.write('J: {}, R: {}, entropy: {}'.format(J, R, E))
-        tqdm.write('##################################################################################################')
+        logger.epoch_info(it+1, J=J, R=R, entropy=E)
 
-    print('Press a button to visualize')
+    logger.info('Press a button to visualize')
     input()
     core.evaluate(n_episodes=5, render=True)
 

@@ -10,3 +10,7 @@ class ConstantTensor(nn.Module):
 
     def forward(self, x):
         return torch.ones(x.shape[0], 1)
+
+    @property
+    def size(self):
+        return 1
