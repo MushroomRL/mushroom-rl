@@ -99,16 +99,15 @@ def experiment(n_epochs, n_steps, n_steps_test):
     pi.set_epsilon(epsilon_test)
     dataset = core.evaluate(n_steps=n_steps_test, render=False)
     J = compute_J(dataset, gamma_eval)
-    logger.info('J: %f' % np.mean(J))
+    logger.epoch_info(0, J=np.mean(J))
 
     for n in trange(n_epochs):
-        logger.info('Epoch: ' + str(n))
         pi.set_epsilon(epsilon)
         core.learn(n_steps=n_steps, n_steps_per_fit=train_frequency)
         pi.set_epsilon(epsilon_test)
         dataset = core.evaluate(n_steps=n_steps_test, render=False)
         J = compute_J(dataset, gamma_eval)
-        logger.info('J: ' + str(np.mean(J)))
+        logger.epoch_info(n+1, J=np.mean(J))
 
     logger.info('Press a button to visualize acrobot')
     input()
