@@ -13,16 +13,17 @@ Reinforcement Learning python library
 .. highlight:: python
 
 MushroomRL is a Reinforcement Learning (RL) library that aims to be a simple, yet
-powerful way to make **RL** and **deep RL** experiments. The idea behind Mushroom
-consists in offering the majority of RL algorithms providing a common interface
+powerful way to make **RL** and **deep RL** experiments. The idea behind MushroomRL
+is to offer the majority of RL algorithms providing a common interface
 in order to run them without excessive effort. Moreover, it is designed in such
-a way that new algorithms and other stuff can generally be added transparently
-without the need of editing other parts of the code. MushroomRL makes a large use
-of the environments provided by
+a way that new algorithms and other stuff can be added transparently,
+without the need of editing other parts of the code. MushroomRL is compatible with RL
+libraries like
 `OpenAI Gym <https://gym.openai.com/>`_,
 `DeepMind Control Suite <https://github.com/deepmind/dm_control>`_ and
-`MuJoCo <http://www.mujoco.org/>`_ libraries, and
-the `PyTorch <https://pytorch.org>`_ library for tensor computation.
+`MuJoCo <http://www.mujoco.org/>`_, and
+the `PyTorch <https://pytorch.org>`_ and `Tensorflow <https://www.tensorflow.org/>`_
+libraries for tensor computation.
 
 With MushroomRL you can:
 
@@ -31,8 +32,8 @@ With MushroomRL you can:
 - use all RL environments offered by well-known libraries and build customized
   environments as well;
 - exploit regression models offered by Scikit-Learn or build a customized one
-  with PyTorch;
-- run experiments on GPU.
+  with PyTorch or Tensorflow;
+- seamlessly run experiments on CPU or GPU.
 
 Basic run example
 -----------------
