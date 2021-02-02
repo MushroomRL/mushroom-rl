@@ -6,9 +6,6 @@ Algorithms:
         - MORE
         - PAPI
 
-For Mushroom 1.6:
-    * improvements to documentation and tutorials
-
 For Mushroom 2.0:
     * Record method in environemnt and record option in the core
     * Simplify Regressor interface: drop GenericRegressor, remove facade pattern
