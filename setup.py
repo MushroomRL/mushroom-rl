@@ -72,7 +72,7 @@ extrenal_simulation_package = 'mushroom_rl.environments.mujoco_envs.humanoid_gai
 setup(
     name='mushroom-rl',
     version=__version__,
-    description='A Python toolkit for Reinforcement Learning experiments.',
+    description='A Python library for Reinforcement Learning experiments.',
     long_description=long_description,
     url='https://github.com/MushroomRL/mushroom-rl',
     author="Carlo D'Eramo, Davide Tateo",
