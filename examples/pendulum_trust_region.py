@@ -44,6 +44,7 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
                alg_params, policy_params):
 
     logger = Logger(alg.__name__, results_dir=None)
+    logger.strong_line()
     logger.info('Experiment Algorithm: ' + alg.__name__)
 
     mdp = Gym(env_id, horizon, gamma)
@@ -76,9 +77,8 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
     E = agent.policy.entropy()
 
     logger.epoch_info(0, J=J, R=R, entropy=E)
-    logger.strong_line()
 
-    for it in trange(n_epochs):
+    for it in trange(n_epochs, leave=False):
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit)
         dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
 
@@ -87,9 +87,8 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
         E = agent.policy.entropy()
 
         logger.epoch_info(it+1, J=J, R=R, entropy=E)
-        logger.strong_line()
 
-    print('Press a button to visualize')
+    logger.info('Press a button to visualize')
     input()
     core.evaluate(n_episodes=5, render=True)
 

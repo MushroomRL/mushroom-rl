@@ -7,6 +7,7 @@ class Policy(Serializable):
     A policy is a probability distribution that gives the probability of taking
     an action given a specified state.
     A policy is used by mushroom agents to interact with the environment.
+
     """
     def __call__(self, *args):
         """

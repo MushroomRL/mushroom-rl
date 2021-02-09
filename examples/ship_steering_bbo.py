@@ -3,7 +3,7 @@ import numpy as np
 from mushroom_rl.algorithms.policy_search import REPS, RWR, PGPE
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.approximators.regressor import Regressor
-from mushroom_rl.core import Core
+from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import ShipSteering
 from mushroom_rl.features.tiles import Tiles
 from mushroom_rl.features.features import Features
@@ -24,8 +24,12 @@ using policy gradient algorithms.
 tqdm.monitor_interval = 0
 
 
-def experiment(alg, params, n_epochs, n_iterations, ep_per_run):
+def experiment(alg, params, n_epochs, fit_per_epoch, ep_per_fit):
     np.random.seed()
+
+    logger = Logger(alg.__name__, results_dir=None)
+    logger.strong_line()
+    logger.info('Experiment Algorithm: ' + alg.__name__)
 
     # MDP
     mdp = ShipSteering()
@@ -57,18 +61,17 @@ def experiment(alg, params, n_epochs, n_iterations, ep_per_run):
     agent = alg(mdp.info, distribution, policy, features=phi, **params)
 
     # Train
-    print(alg.__name__)
     core = Core(agent, mdp)
-    dataset_eval = core.evaluate(n_episodes=ep_per_run)
+    dataset_eval = core.evaluate(n_episodes=ep_per_fit)
     J = compute_J(dataset_eval, gamma=mdp.info.gamma)
-    print('J at start : ' + str(np.mean(J)))
+    logger.epoch_info(0, J=np.mean(J))
 
     for i in range(n_epochs):
-        core.learn(n_episodes=n_iterations * ep_per_run,
-                   n_episodes_per_fit=ep_per_run)
-        dataset_eval = core.evaluate(n_episodes=ep_per_run)
+        core.learn(n_episodes=fit_per_epoch * ep_per_fit,
+                   n_episodes_per_fit=ep_per_fit)
+        dataset_eval = core.evaluate(n_episodes=ep_per_fit)
         J = compute_J(dataset_eval, gamma=mdp.info.gamma)
-        print('J at iteration ' + str(i) + ': ' + str(np.mean(J)))
+        logger.epoch_info(i+1, J=np.mean(J))
 
 
 if __name__ == '__main__':
@@ -80,4 +83,4 @@ if __name__ == '__main__':
         ]
 
     for alg, params in algs_params:
-        experiment(alg, params, n_epochs=25, n_iterations=10, ep_per_run=20)
+        experiment(alg, params, n_epochs=25, fit_per_epoch=10, ep_per_fit=20)

@@ -1,6 +1,7 @@
 import numpy as np
 
 from mushroom_rl.algorithms.policy_search.black_box_optimization import BlackBoxOptimization
+from mushroom_rl.utils.parameters import to_parameter
 
 
 class RWR(BlackBoxOptimization):
@@ -15,19 +16,19 @@ class RWR(BlackBoxOptimization):
         Constructor.
 
         Args:
-            beta (float): the temperature for the exponential reward
+            beta ((float, Parameter)): the temperature for the exponential reward
                 transformation.
 
         """
-        self.beta = beta
+        self._beta = to_parameter(beta)
 
-        self._add_save_attr(beta='primitive')
+        self._add_save_attr(_beta='mushroom')
 
         super().__init__(mdp_info, distribution, policy, features)
 
     def _update(self, Jep, theta):
         Jep -= np.max(Jep)
 
-        d = np.exp(self.beta * Jep)
+        d = np.exp(self._beta() * Jep)
 
         self.distribution.mle(theta, d)

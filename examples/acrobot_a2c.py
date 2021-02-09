@@ -3,13 +3,13 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from mushroom_rl.algorithms.actor_critic import A2C
-from mushroom_rl.core import Core
+from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import Gym
 from mushroom_rl.policy import BoltzmannTorchPolicy
 from mushroom_rl.approximators.parametric.torch_approximator import *
 from mushroom_rl.utils.dataset import compute_J
 from mushroom_rl.utils.parameters import Parameter
-from tqdm import tqdm, trange
+from tqdm import trange
 
 
 class Network(nn.Module):
@@ -40,6 +40,10 @@ class Network(nn.Module):
 
 def experiment(n_epochs, n_steps, n_steps_per_fit, n_step_test):
     np.random.seed()
+
+    logger = Logger(A2C.__name__, results_dir=None)
+    logger.strong_line()
+    logger.info('Experiment Algorithm: ' + A2C.__name__)
 
     # MDP
     horizon = 1000
@@ -75,7 +79,6 @@ def experiment(n_epochs, n_steps, n_steps_per_fit, n_step_test):
                                        'params': {'lr': 1e-3,
                                                   'eps': 3e-3}},
                       critic_params=critic_params,
-                      #max_grad_norm=10.0,
                       ent_coeff=0.01
                       )
 
@@ -89,17 +92,15 @@ def experiment(n_epochs, n_steps, n_steps_per_fit, n_step_test):
     # RUN
     dataset = core.evaluate(n_steps=n_step_test, render=False)
     J = compute_J(dataset, gamma_eval)
-    print('J: ', np.mean(J))
+    logger.epoch_info(0, J=np.mean(J))
 
     for n in trange(n_epochs):
-        tqdm.write('Epoch: ' + str(n))
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit)
         dataset = core.evaluate(n_steps=n_step_test, render=False)
         J = compute_J(dataset, gamma_eval)
-        tqdm.write('J: ' + str(np.mean(J)))
-        # core.evaluate(n_episodes=2, render=True)
+        logger.epoch_info(n+1, J=np.mean(J))
 
-    print('Press a button to visualize acrobot')
+    logger.info('Press a button to visualize acrobot')
     input()
     core.evaluate(n_episodes=5, render=True)
 

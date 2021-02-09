@@ -29,7 +29,7 @@ state and action spaces. An agent can be defined this way:
 .. literalinclude:: code/simple_experiment.py
    :lines: 13-27
 
-This piece of code creates the policy followed by the agent (e.g. :math:`\epsilon`-greedy)
+This piece of code creates the policy followed by the agent (e.g. :math:`\varepsilon`-greedy)
 with :math:`\varepsilon = 1`. Then, the policy approximator is created specifying the
 parameters to create it and the class (in this case, the ``ExtraTreesRegressor`` class
 of scikit-learn is used). Eventually, the agent is created calling the algorithm

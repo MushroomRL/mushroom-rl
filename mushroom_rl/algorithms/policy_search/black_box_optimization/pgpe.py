@@ -21,7 +21,7 @@ class PGPE(BlackBoxOptimization):
         """
         self.optimizer = optimizer
 
-        self._add_save_attr(optimizer='pickle')
+        self._add_save_attr(optimizer='mushroom')
 
         super().__init__(mdp_info, distribution, policy, features)
 

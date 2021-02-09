@@ -39,7 +39,6 @@ class GaussianRBFTensor(nn.Module):
         delta = x - self._mu.repeat(x.shape[0], 1, 1)
         return torch.exp(-torch.sum(delta**2 / self._scale, -1)).squeeze(-1)
 
-
     @staticmethod
     def generate(n_centers, low, high,  dimensions=None, use_cuda=False):
         """
@@ -72,3 +71,6 @@ class GaussianRBFTensor(nn.Module):
 
         return tensor_list
 
+    @property
+    def size(self):
+        return self._mu.shape[0]

@@ -102,7 +102,7 @@ class CategoricalDQN(AbstractDQN):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
             state, action, reward, next_state, absorbing, _ =\
-                self._replay_memory.get(self._batch_size)
+                self._replay_memory.get(self._batch_size())
 
             if self._clip_reward:
                 reward = np.clip(reward, -1, 1)
@@ -121,7 +121,7 @@ class CategoricalDQN(AbstractDQN):
             l = np.floor(b).astype(np.int)
             u = np.ceil(b).astype(np.int)
 
-            m = np.zeros((self._batch_size, self._n_atoms))
+            m = np.zeros((self._batch_size.get_value(), self._n_atoms))
             for i in range(self._n_atoms):
                 l[:, i][(u[:, i] > 0) * (l[:, i] == u[:, i])] -= 1
                 u[:, i][(l[:, i] < (self._n_atoms - 1)) * (l[:, i] == u[:, i])] += 1

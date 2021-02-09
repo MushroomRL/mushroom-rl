@@ -24,7 +24,7 @@ class PolicyGradient(Agent):
         self.J_episode = 0
 
         self._add_save_attr(
-            optimizer='pickle',
+            optimizer='mushroom',
             df='numpy',
             J_episode='numpy'
         )

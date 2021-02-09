@@ -5,6 +5,7 @@ from mushroom_rl.policy import Policy
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.replay_memory import ReplayMemory
+from mushroom_rl.utils.parameters import Parameter, to_parameter
 
 from copy import deepcopy
 
@@ -32,13 +33,13 @@ class DDPG(DeepAC):
                 algorithm;
             critic_params (dict): parameters of the critic approximator to
                 build;
-            batch_size (int): the number of samples in a batch;
+            batch_size ((int, Parameter)): the number of samples in a batch;
             initial_replay_size (int): the number of samples to collect before
                 starting the learning;
             max_replay_size (int): the maximum number of samples in the replay
                 memory;
-            tau (float): value of coefficient for soft updates;
-            policy_delay (int, 1): the number of updates of the critic after
+            tau ((float, Parameter)): value of coefficient for soft updates;
+            policy_delay ((int, Parameter), 1): the number of updates of the critic after
                 which an actor update is implemented;
             critic_fit_params (dict, None): parameters of the fitting algorithm
                 of the critic approximator;
@@ -46,9 +47,9 @@ class DDPG(DeepAC):
         """
         self._critic_fit_params = dict() if critic_fit_params is None else critic_fit_params
 
-        self._batch_size = batch_size
-        self._tau = tau
-        self._policy_delay = policy_delay
+        self._batch_size = to_parameter(batch_size)
+        self._tau = to_parameter(tau)
+        self._policy_delay = to_parameter(policy_delay)
         self._fit_count = 0
 
         self._replay_memory = ReplayMemory(initial_replay_size, max_replay_size)
@@ -76,9 +77,9 @@ class DDPG(DeepAC):
 
         self._add_save_attr(
             _critic_fit_params='pickle', 
-            _batch_size='primitive',
-            _tau='primitive',
-            _policy_delay='primitive',
+            _batch_size='mushroom',
+            _tau='mushroom',
+            _policy_delay='mushroom',
             _fit_count='primitive',
             _replay_memory='mushroom',
             _critic_approximator='mushroom',
@@ -92,7 +93,7 @@ class DDPG(DeepAC):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
             state, action, reward, next_state, absorbing, _ =\
-                self._replay_memory.get(self._batch_size)
+                self._replay_memory.get(self._batch_size())
 
             q_next = self._next_q(next_state, absorbing)
             q = reward + self.mdp_info.gamma * q_next
@@ -100,7 +101,7 @@ class DDPG(DeepAC):
             self._critic_approximator.fit(state, action, q,
                                           **self._critic_fit_params)
 
-            if self._fit_count % self._policy_delay == 0:
+            if self._fit_count % self._policy_delay() == 0:
                 loss = self._loss(state)
                 self._optimize_actor_parameters(loss)
 

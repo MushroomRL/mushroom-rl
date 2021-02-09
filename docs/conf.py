@@ -55,7 +55,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'MushroomRL'
-copyright = u'2018, 2019, 2020 Carlo D\'Eramo, Davide Tateo'
+copyright = u'2018, 2019, 2020, 2021 Carlo D\'Eramo, Davide Tateo'
 author = u'Carlo D\'Eramo'
 
 # The version info for the project you're documenting, acts as replacement for

@@ -53,7 +53,7 @@ class WeightedQLearning(TD):
 
         target = reward + self.mdp_info.gamma * q_next
 
-        alpha = self.alpha(state, action)
+        alpha = self._alpha(state, action)
 
         self.Q[state, action] = q_current + alpha * (target - q_current)
         self._Q2[state, action] = q2_current + alpha * (

@@ -2,6 +2,7 @@ import numpy as np
 
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DDPG
 from mushroom_rl.policy import Policy
+from mushroom_rl.utils.parameters import to_parameter
 
 
 class TD3(DDPG):
@@ -27,24 +28,24 @@ class TD3(DDPG):
                 optimizer algorithm;
             critic_params (dict): parameters of the critic approximator to
                 build;
-            batch_size (int): the number of samples in a batch;
+            batch_size ((int, Parameter)): the number of samples in a batch;
             initial_replay_size (int): the number of samples to collect before
                 starting the learning;
             max_replay_size (int): the maximum number of samples in the replay
                 memory;
-            tau (float): value of coefficient for soft updates;
-            policy_delay (int, 2): the number of updates of the critic after
+            tau ((float, Parameter)): value of coefficient for soft updates;
+            policy_delay ((int, Parameter), 2): the number of updates of the critic after
                 which an actor update is implemented;
-            noise_std (float, .2): standard deviation of the noise used for
+            noise_std ((float, Parameter), .2): standard deviation of the noise used for
                 policy smoothing;
-            noise_clip (float, .5): maximum absolute value for policy smoothing
+            noise_clip ((float, Parameter), .5): maximum absolute value for policy smoothing
                 noise;
             critic_fit_params (dict, None): parameters of the fitting algorithm
                 of the critic approximator.
 
         """
-        self._noise_std = noise_std
-        self._noise_clip = noise_clip
+        self._noise_std = to_parameter(noise_std)
+        self._noise_clip = to_parameter(noise_clip)
 
         if 'n_models' in critic_params.keys():
             assert(critic_params['n_models'] >= 2)
@@ -52,8 +53,8 @@ class TD3(DDPG):
             critic_params['n_models'] = 2
 
         self._add_save_attr(
-            _noise_std='primitive',
-            _noise_clip='primitive'
+            _noise_std='mushroom',
+            _noise_clip='mushroom'
         )
 
         super().__init__(mdp_info, policy_class, policy_params,  actor_params,
@@ -84,8 +85,8 @@ class TD3(DDPG):
 
         low = self.mdp_info.action_space.low
         high = self.mdp_info.action_space.high
-        eps = np.random.normal(scale=self._noise_std, size=a.shape)
-        eps_clipped = np.clip(eps, -self._noise_clip, self._noise_clip)
+        eps = np.random.normal(scale=self._noise_std(), size=a.shape)
+        eps_clipped = np.clip(eps, -self._noise_clip(), self._noise_clip.get_value())
         a_smoothed = np.clip(a + eps_clipped, low, high)
 
         q = self._target_critic_approximator.predict(next_state, a_smoothed,

@@ -26,4 +26,4 @@ class TorchFeatures(FeaturesImplementation):
 
     @property
     def size(self):
-        return len(self._phi)
+        return np.sum([phi.size for phi in self._phi])

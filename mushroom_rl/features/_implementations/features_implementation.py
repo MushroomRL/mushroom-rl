@@ -33,4 +33,4 @@ class FeaturesImplementation(object):
              The number of elements in the features vector.
 
         """
-        pass
+        raise NotImplementedError

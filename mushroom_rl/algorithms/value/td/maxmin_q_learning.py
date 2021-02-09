@@ -23,11 +23,11 @@ class MaxminQLearning(TD):
         self._n_tables = n_tables
         Q = EnsembleTable(n_tables, mdp_info.size, prediction='min')
 
-        self._add_save_attr(_n_tables='primitive')
-
         super().__init__(mdp_info, policy, Q, learning_rate)
 
-        self.alpha = [deepcopy(self.alpha) for _ in range(n_tables)]
+        self._alpha_mm = [deepcopy(self._alpha) for _ in range(n_tables)]
+
+        self._add_save_attr(_n_tables='primitive', _alpha_mm='primitive')
 
     def _update(self, state, action, reward, next_state, absorbing):
         approximator_idx = np.random.choice(self._n_tables)
@@ -40,7 +40,7 @@ class MaxminQLearning(TD):
         else:
             q_next = 0.
 
-        q = q_current + self.alpha[approximator_idx](state, action) * (
+        q = q_current + self._alpha_mm[approximator_idx](state, action) * (
             reward + self.mdp_info.gamma * q_next - q_current)
 
         self.Q[approximator_idx][state, action] = q

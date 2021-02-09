@@ -80,3 +80,7 @@ class RandomFourierBasis(nn.Module):
             tensor_list.append(ConstantTensor())
 
         return tensor_list
+
+    @property
+    def size(self):
+        return self._phi.shape[0]

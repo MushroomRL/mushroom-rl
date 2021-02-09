@@ -11,13 +11,14 @@ class Logger(DataLogger, ConsoleLogger):
     automatically a log directory, save numpy data array and the current agent.
 
     """
-    def __init__(self, log_name, results_dir='./logs', log_console=False,
+    def __init__(self, log_name='', results_dir='./logs', log_console=False,
                  use_timestamp=False, append=False, seed=None, **kwargs):
         """
         Constructor.
 
         Args:
-            log_name (string): name of the current experiment directory.
+            log_name (string, ''): name of the current experiment directory if not
+                specified, the current timestamp is used.
             results_dir (string, './logs'): name of the base logging directory.
                 If set to None, no directory is created;
             log_console (bool, False): whether to log or not the console output;
@@ -36,7 +37,9 @@ class Logger(DataLogger, ConsoleLogger):
 
         timestamp = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 
-        if use_timestamp:
+        if not log_name:
+            log_name = timestamp
+        elif use_timestamp:
             log_name += '_' + timestamp
 
         if results_dir:

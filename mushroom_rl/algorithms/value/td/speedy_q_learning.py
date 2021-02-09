@@ -28,7 +28,7 @@ class SpeedyQLearning(TD):
         target_cur = reward + self.mdp_info.gamma * max_q_cur
         target_old = reward + self.mdp_info.gamma * max_q_old
 
-        alpha = self.alpha(state, action)
+        alpha = self._alpha(state, action)
         q_cur = self.Q[state, action]
         self.Q[state, action] = q_cur + alpha * (target_old - q_cur) + (
             1. - alpha) * (target_cur - target_old)

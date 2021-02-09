@@ -7,7 +7,7 @@ from mushroom_rl.policy import Policy
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.torch import to_float_tensor
-from mushroom_rl.utils.parameters import Parameter
+from mushroom_rl.utils.parameters import to_parameter
 
 from itertools import chain
 
@@ -266,7 +266,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
                 regressor;
             input_shape (tuple): the shape of the state space;
             output_shape (tuple): the shape of the action space;
-            beta (Parameter): the inverse of the temperature distribution. As
+            beta ((float, Parameter)): the inverse of the temperature distribution. As
                 the temperature approaches infinity, the policy becomes more and
                 more random. As the temperature approaches 0.0, the policy becomes
                 more and more greedy.
@@ -279,9 +279,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
 
         self._logits = Regressor(TorchApproximator, input_shape, output_shape,
                                  network=network, use_cuda=use_cuda, **params)
-
-        assert isinstance(beta, Parameter)
-        self._beta = beta
+        self._beta = to_parameter(beta)
 
         self._add_save_attr(
             _action_dim='primitive',
@@ -317,5 +315,4 @@ class BoltzmannTorchPolicy(TorchPolicy):
         return self._logits.model.network.parameters()
 
     def set_beta(self, beta):
-        assert isinstance(beta, Parameter)
-        self._beta = beta
+        self._beta = to_parameter(beta)

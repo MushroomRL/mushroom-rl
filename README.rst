@@ -2,8 +2,8 @@
 MushroomRL
 **********
 
-.. image:: https://travis-ci.org/MushroomRL/mushroom-rl.svg?branch=master
-   :target: https://travis-ci.org/MushroomRL/mushroom-rl
+.. image:: https://travis-ci.com/MushroomRL/mushroom-rl.svg?branch=dev
+   :target: https://travis-ci.com/MushroomRL/mushroom-rl
 
 .. image:: https://readthedocs.org/projects/mushroomrl/badge/?version=latest
    :target: https://mushroomrl.readthedocs.io/en/latest/?badge=latest
@@ -88,6 +88,13 @@ You can also perform a local editable installation by using:
 .. code:: shell
 
     pip install --no-use-pep517 -e .
+
+To install also optional dependencies:
+
+.. code:: shell
+
+    pip install --no-use-pep517 -e .[all]
+
 
 
 How to set and run and experiment

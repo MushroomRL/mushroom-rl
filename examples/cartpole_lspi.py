@@ -1,8 +1,7 @@
 import numpy as np
-from joblib import Parallel, delayed
 
 from mushroom_rl.algorithms.value import LSPI
-from mushroom_rl.core import Core
+from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import *
 from mushroom_rl.features import Features
 from mushroom_rl.features.basis import PolynomialBasis, GaussianRBF
@@ -67,5 +66,9 @@ def experiment():
 if __name__ == '__main__':
     n_experiment = 1
 
+    logger = Logger(LSPI.__name__, results_dir=None)
+    logger.strong_line()
+    logger.info('Experiment Algorithm: ' + LSPI.__name__)
+
     steps = experiment()
-    print('Final episode lenght: ', steps)
+    logger.info('Final episode length: %d' % steps)

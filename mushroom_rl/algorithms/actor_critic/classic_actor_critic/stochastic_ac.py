@@ -4,6 +4,8 @@ from mushroom_rl.algorithms.agent import Agent
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 
+from mushroom_rl.utils.parameters import to_parameter
+
 
 class StochasticAC(Agent):
     """
@@ -18,9 +20,9 @@ class StochasticAC(Agent):
         Constructor.
 
         Args:
-            alpha_theta (Parameter): learning rate for policy update;
-            alpha_v (Parameter): learning rate for the value function;
-            lambda_par (float, .9): trace decay parameter;
+            alpha_theta ((float, Parameter)): learning rate for policy update;
+            alpha_v ((float, Parameter)): learning rate for the value function;
+            lambda_par ((float, Parameter), .9): trace decay parameter;
             value_function_features (Features, None): features used by the
                 value function approximator;
             policy_features (Features, None): features used by the policy.
@@ -28,10 +30,10 @@ class StochasticAC(Agent):
         """
         self._psi = value_function_features
 
-        self._alpha_theta = alpha_theta
-        self._alpha_v = alpha_v
+        self._alpha_theta = to_parameter(alpha_theta)
+        self._alpha_v = to_parameter(alpha_v)
 
-        self._lambda = lambda_par
+        self._lambda = to_parameter(lambda_par)
 
         super().__init__(mdp_info, policy, policy_features)
 
@@ -50,7 +52,7 @@ class StochasticAC(Agent):
             _psi='pickle',
             _alpha_theta='mushroom',
             _alpha_v='mushroom',
-            _lambda='primitive',
+            _lambda='mushroom',
             _V='mushroom',
             _e_v='numpy',
             _e_theta='numpy'
@@ -89,8 +91,8 @@ class StochasticAC(Agent):
         delta = r + self.mdp_info.gamma * v_next - self._V(s_psi)
 
         # Update traces
-        self._e_v = self.mdp_info.gamma * self._lambda * self._e_v + s_psi
-        self._e_theta = self.mdp_info.gamma * self._lambda * \
+        self._e_v = self.mdp_info.gamma * self._lambda() * self._e_v + s_psi
+        self._e_theta = self.mdp_info.gamma * self._lambda() * \
             self._e_theta + self.policy.diff_log(s_phi, a)
 
         return delta
@@ -116,7 +118,7 @@ class StochasticAC_AVG(StochasticAC):
         super().__init__(mdp_info, policy, alpha_theta, alpha_v, lambda_par,
                          value_function_features, policy_features)
 
-        self._alpha_r = alpha_r
+        self._alpha_r = to_parameter(alpha_r)
         self._r_bar = 0
 
         self._add_save_attr(_alpha_r='mushroom', _r_bar='primitive')
@@ -127,8 +129,7 @@ class StochasticAC_AVG(StochasticAC):
 
         # Update traces
         self._r_bar += self._alpha_r() * delta
-        self._e_v = self._lambda * self._e_v + s_psi
-        self._e_theta = self._lambda * self._e_theta + \
-                        self.policy.diff_log(s_phi, a)
+        self._e_v = self._lambda() * self._e_v + s_psi
+        self._e_theta = self._lambda() * self._e_theta + self.policy.diff_log(s_phi, a)
 
         return delta
