@@ -57,12 +57,13 @@ class ReplayMemory(Serializable):
                 self._full = True
                 self._idx = 0
 
-    def get(self, n_samples):
+    def get(self, n_samples, n_steps=1):
         """
         Returns the provided number of states from the replay memory.
 
         Args:
             n_samples (int): the number of samples to return.
+            n_steps (int, 1): the number of steps to consider to compute the n-return.
 
         Returns:
             The requested number of samples.
@@ -74,13 +75,24 @@ class ReplayMemory(Serializable):
         ss = list()
         ab = list()
         last = list()
-        for i in np.random.randint(self.size, size=n_samples):
-            s.append(np.array(self._states[i]))
-            a.append(self._actions[i])
-            r.append(self._rewards[i])
-            ss.append(np.array(self._next_states[i]))
-            ab.append(self._absorbing[i])
-            last.append(self._last[i])
+
+        for idx in np.random.randint(self.size - n_steps + 1, size=n_samples):
+            while True:
+                for j in range(1, n_steps):
+                    if self._last[idx + j - 1]:
+                        idx = np.random.randint(self.size - n_steps + 1)
+                        break
+                else:
+                    break
+            s.append(np.array(self._states[idx]))
+            a.append(self._actions[idx])
+            n_step_r = 0.
+            for i in range(n_steps):
+                n_step_r += self._rewards[idx + i]
+            r.append(n_step_r)
+            ss.append(np.array(self._next_states[idx + n_steps - 1]))
+            ab.append(self._absorbing[idx + n_steps - 1])
+            last.append(self._last[idx + n_steps - 1])
 
         return np.array(s), np.array(a), np.array(r), np.array(ss),\
             np.array(ab), np.array(last)
