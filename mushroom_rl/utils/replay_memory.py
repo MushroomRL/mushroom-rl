@@ -86,15 +86,13 @@ class ReplayMemory(Serializable):
                     break
             s.append(np.array(self._states[idx]))
             a.append(self._actions[idx])
-            n_step_r = 0.
-            for i in range(n_steps):
-                n_step_r += self._rewards[idx + i]
+            n_step_r = [self._rewards[idx + i] for i in range(n_steps)]
             r.append(n_step_r)
             ss.append(np.array(self._next_states[idx + n_steps - 1]))
             ab.append(self._absorbing[idx + n_steps - 1])
             last.append(self._last[idx + n_steps - 1])
 
-        return np.array(s), np.array(a), np.array(r), np.array(ss),\
+        return np.array(s), np.array(a), np.array(r).squeeze(), np.array(ss),\
             np.array(ab), np.array(last)
 
     def reset(self):

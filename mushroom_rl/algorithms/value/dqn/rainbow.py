@@ -113,19 +113,17 @@ class Rainbow(AbstractDQN):
         if self._replay_memory.initialized:
             state, action, reward, next_state, absorbing, _ =\
                 self._replay_memory.get(self._batch_size(), self._n_steps_return)
-
             if self._clip_reward:
                 reward = np.clip(reward, -1, 1)
 
             q_next = self.approximator.predict(next_state)
             a_max = np.argmax(q_next, axis=1)
-            gamma = self.mdp_info.gamma * (1 - absorbing)
+            gamma = self.mdp_info.gamma ** np.arange(self._n_steps_return + 1) * (1 - absorbing).reshape(-1, 1)
             p_next = self.target_approximator.predict(next_state, a_max,
                                                       get_distribution=True)
-            gamma_z = gamma.reshape(-1, 1) * np.expand_dims(
-                self._a_values, 0).repeat(len(gamma), 0)
-            bell_a = (reward.reshape(-1, 1) + gamma_z).clip(self._v_min,
-                                                            self._v_max)
+            gamma_r = reward.reshape(self._batch_size.get_value(), -1) * gamma[:, :-1]
+            gamma_z = gamma[:, -1:] * np.expand_dims(self._a_values, 0).repeat(len(gamma), 0)
+            bell_a = (gamma_r.sum(1, keepdims=True) + gamma_z).clip(self._v_min, self._v_max)
 
             b = (bell_a - self._v_min) / self._delta
             l = np.floor(b).astype(np.int)
