@@ -32,7 +32,7 @@ class CategoricalNetwork(nn.Module):
                                     gain=nn.init.calculate_gain('linear'))
 
     def forward(self, state, action=None, get_distribution=False):
-        features = self._phi(state, action)
+        features = self._phi(state)
 
         a_p = [F.softmax(self._p[i](features), -1) for i in range(self._n_output)]
         a_p = torch.stack(a_p, dim=1)
