@@ -57,7 +57,7 @@ class NoisyNetwork(nn.Module):
 
         @staticmethod
         def _noise(x):
-            return torch.sign(torch.sqrt(torch.abs(x)))
+            return torch.sign(x) * torch.sqrt(torch.abs(x))
 
         def extra_repr(self):
             return 'in_features={}, out_features={}, mu_bias={}, sigma_bias={}'.format(
