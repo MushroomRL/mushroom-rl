@@ -4,12 +4,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from mushroom_rl.algorithms.value.dqn import AbstractDQN
+from mushroom_rl.algorithms.value.dqn.noisy_dqn import NoisyNetwork
 from mushroom_rl.approximators.parametric.torch_approximator import *
 
 
 class RainbowNetwork(nn.Module):
     def __init__(self, input_shape, output_shape, features_network, n_atoms,
-                 v_min, v_max, n_features, use_cuda, **kwargs):
+                 v_min, v_max, n_features, use_cuda, sigma_coeff, **kwargs):
         super().__init__()
 
         self._n_output = output_shape[0]
@@ -24,15 +25,9 @@ class RainbowNetwork(nn.Module):
         if use_cuda:
             self._a_values = self._a_values.cuda()
 
-        self._pv = nn.Linear(n_features, n_atoms)
+        self._pv = NoisyNetwork.NoisyLinear(n_features, n_atoms, use_cuda, sigma_coeff)
         self._pa = nn.ModuleList(
-            [nn.Linear(n_features, n_atoms) for _ in range(self._n_output)])
-
-        nn.init.xavier_uniform_(self._pv.weight,
-                                gain=nn.init.calculate_gain('linear'))
-        for i in range(self._n_output):
-            nn.init.xavier_uniform_(self._pa[i].weight,
-                                    gain=nn.init.calculate_gain('linear'))
+            [NoisyNetwork.NoisyLinear(n_features, n_atoms, use_cuda, sigma_coeff) for _ in range(self._n_output)])
 
     def forward(self, state, action=None, get_distribution=False):
         features = self._phi(state)
@@ -71,7 +66,7 @@ class Rainbow(AbstractDQN):
 
     """
     def __init__(self, mdp_info, policy, approximator_params, n_atoms, v_min,
-                 v_max, n_steps_return, **params):
+                 v_max, n_steps_return, sigma_coeff, **params):
         """
         Constructor.
 
@@ -79,7 +74,8 @@ class Rainbow(AbstractDQN):
             n_atoms (int): number of atoms;
             v_min (float): minimum value of value-function;
             v_max (float): maximum value of value-function;
-            n_steps_return (int): the number of steps to consider to compute the n-return.
+            n_steps_return (int): the number of steps to consider to compute the n-return;
+            sigma_coeff (float): sigma0 coefficient for noise initialization in noisy layers.
 
         """
         features_network = approximator_params['network']
@@ -89,6 +85,7 @@ class Rainbow(AbstractDQN):
         params['approximator_params']['n_atoms'] = n_atoms
         params['approximator_params']['v_min'] = v_min
         params['approximator_params']['v_max'] = v_max
+        params['approximator_params']['sigma_coeff'] = sigma_coeff
 
         self._n_atoms = n_atoms
         self._v_min = v_min
@@ -96,37 +93,41 @@ class Rainbow(AbstractDQN):
         self._delta = (v_max - v_min) / (n_atoms - 1)
         self._a_values = np.arange(v_min, v_max + self._delta, self._delta)
         self._n_steps_return = n_steps_return
+        self._sigma_coeff = sigma_coeff
 
         self._add_save_attr(
             _n_atoms='primitive',
             _v_min='primitive',
             _v_max='primitive',
-            _n_steps_return='primitive',
             _delta='primitive',
-            _a_values='numpy'
+            _a_values='numpy',
+            _n_steps_return='primitive',
+            _sigma_coeff='primitive'
         )
 
         super().__init__(mdp_info, policy, TorchApproximator, **params)
 
-        self._gamma_r = self.mdp_info.gamma ** np.arange(self._n_steps_return)
-        self._gamma_z = self.mdp_info.gamma ** self._n_steps_return
+        self._gamma = self.mdp_info.gamma ** self._n_steps_return
 
     def fit(self, dataset):
-        self._replay_memory.add(dataset)
+        self._replay_memory.add(dataset, n_steps_return=self._n_steps_return,
+                                gamma=self.mdp_info.gamma)
         if self._replay_memory.initialized:
             state, action, reward, next_state, absorbing, _ = \
-                self._replay_memory.get(self._batch_size(), self._n_steps_return)
+                self._replay_memory.get(self._batch_size())
+
             if self._clip_reward:
                 reward = np.clip(reward, -1, 1)
 
             q_next = self.approximator.predict(next_state)
             a_max = np.argmax(q_next, axis=1)
-            gamma_z = self._gamma_z * (1 - absorbing.reshape(-1, 1))
+            gamma = self._gamma * (1 - absorbing)
             p_next = self.target_approximator.predict(next_state, a_max,
                                                       get_distribution=True)
-            gamma_r = reward.reshape(len(reward), -1) * self._gamma_r
-            z = gamma_z * np.expand_dims(self._a_values, 0).repeat(len(gamma_z), 0)
-            bell_a = (gamma_r.sum(1, keepdims=True) + z).clip(self._v_min, self._v_max)
+            gamma_z = gamma.reshape(-1, 1) * np.expand_dims(
+                self._a_values, 0).repeat(len(gamma), 0)
+            bell_a = (reward.reshape(-1, 1) + gamma_z).clip(self._v_min,
+                                                            self._v_max)
 
             b = (bell_a - self._v_min) / self._delta
             l = np.floor(b).astype(np.int)
