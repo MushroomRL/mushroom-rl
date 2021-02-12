@@ -194,6 +194,8 @@ def experiment():
     arg_alg.add_argument("--max-no-op-actions", type=int, default=30,
                          help='Maximum number of no-op actions performed at the'
                               'beginning of the episodes.')
+    arg_alg.add_argument("--alpha-coeff", type=float, default=.6,
+                         help='Prioritization exponent for prioritized experience replay.')
     arg_alg.add_argument("--n-atoms", type=int, default=51,
                          help='Number of atoms for Categorical DQN.')
     arg_alg.add_argument("--v-min", type=int, default=-10,
@@ -323,7 +325,7 @@ def experiment():
 
         if args.prioritized:
             replay_memory = PrioritizedReplayMemory(
-                initial_replay_size, max_replay_size, alpha=.6,
+                initial_replay_size, max_replay_size, alpha=args.alpha_coeff,
                 beta=LinearParameter(.4, threshold_value=1,
                                      n=max_steps // train_frequency)
             )
