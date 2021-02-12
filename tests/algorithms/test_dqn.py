@@ -7,7 +7,7 @@ from helper.utils import TestUtils as tu
 
 from mushroom_rl.algorithms import Agent
 from mushroom_rl.algorithms.value import DQN, DoubleDQN, AveragedDQN,\
-    MaxminDQN, DuelingDQN, CategoricalDQN
+    MaxminDQN, DuelingDQN, CategoricalDQN, NoisyDQN, Rainbow
 from mushroom_rl.core import Core
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
@@ -71,10 +71,10 @@ def learn(alg, alg_params):
                                n_features=2, use_cuda=False)
 
     # Agent
-    if alg not in [DuelingDQN, CategoricalDQN]:
+    if alg not in [DuelingDQN, CategoricalDQN, NoisyDQN]:
         agent = alg(mdp.info, pi, TorchApproximator,
                     approximator_params=approximator_params, **alg_params)
-    elif alg is CategoricalDQN:
+    elif alg in [CategoricalDQN, Rainbow]:
         agent = alg(mdp.info, pi, approximator_params=approximator_params,
                     n_atoms=2, v_min=-1, v_max=1, **alg_params)
     else:
@@ -296,6 +296,70 @@ def test_categorical_dqn_save(tmpdir):
     params = dict(batch_size=50, initial_replay_size=50,
                   max_replay_size=5000, target_update_frequency=50)
     agent_save = learn(CategoricalDQN, params)
+
+    agent_save.save(agent_path, full_save=True)
+    agent_load = Agent.load(agent_path)
+
+    for att, method in vars(agent_save).items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+
+        tu.assert_eq(save_attr, load_attr)
+
+
+def test_noisy_dqn():
+    params = dict(batch_size=50, initial_replay_size=50,
+                  max_replay_size=5000, target_update_frequency=50)
+    approximator = learn(NoisyDQN, params).approximator
+
+    w = approximator.get_weights()
+    w_test = np.array([-0.40497383, 0.84384465, 0.32452095, -0.12501216, -0.5956621,
+                       0.5104231, 0.18146504, 0.08488006, 0.24706876, -0.2207022,
+                       -0.10598858, -0.12873393, 0.33889455, 0.4035505, 0.34236684,
+                       0.40841135, 0.29911909, 0.2884784, 0.1753482, 0.07017782,
+                       0.5576421, 0.42641076, 0.42655602, 0.2930662])
+
+    assert np.allclose(w, w_test, rtol=1e-4)
+
+
+def test_noisy_dqn_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
+    params = dict(batch_size=50, initial_replay_size=50,
+                  max_replay_size=5000, target_update_frequency=50)
+    agent_save = learn(NoisyDQN, params)
+
+    agent_save.save(agent_path, full_save=True)
+    agent_load = Agent.load(agent_path)
+
+    for att, method in vars(agent_save).items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+
+        tu.assert_eq(save_attr, load_attr)
+
+
+def test_rainbow_dqn():
+    params = dict(batch_size=50, initial_replay_size=50,
+                  max_replay_size=5000, target_update_frequency=50)
+    approximator = learn(Rainbow, params).approximator
+
+    w = approximator.get_weights()
+    w_test = np.array([-0.40497383, 0.84384465, 0.32452095, -0.12501216, -0.5956621,
+                       0.5104231, 0.18146504, 0.08488006, 0.24706876, -0.2207022,
+                       -0.10598858, -0.12873393, 0.33889455, 0.4035505, 0.34236684,
+                       0.40841135, 0.29911909, 0.2884784, 0.1753482, 0.07017782,
+                       0.5576421, 0.42641076, 0.42655602, 0.2930662])
+
+    assert np.allclose(w, w_test, rtol=1e-4)
+
+
+def test_rainbow_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
+    params = dict(batch_size=50, initial_replay_size=50,
+                  max_replay_size=5000, target_update_frequency=50)
+    agent_save = learn(Rainbow, params)
 
     agent_save.save(agent_path, full_save=True)
     agent_load = Agent.load(agent_path)

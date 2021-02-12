@@ -9,7 +9,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from mushroom_rl.algorithms.value import AveragedDQN, CategoricalDQN, DQN,\
-    DoubleDQN, MaxminDQN, DuelingDQN, Rainbow
+    DoubleDQN, MaxminDQN, DuelingDQN, NoisyDQN, Rainbow
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import *
@@ -154,7 +154,7 @@ def experiment():
 
     arg_alg = parser.add_argument_group('Algorithm')
     arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'adqn', 'mmdqn',
-                                                 'cdqn', 'dueldqn', 'rainbow'],
+                                                 'cdqn', 'dueldqn', 'ndqn', 'rainbow'],
                          default='dqn',
                          help='Name of the algorithm. dqn is for standard'
                               'DQN, ddqn is for Double DQN and adqn is for'
@@ -202,6 +202,9 @@ def experiment():
                          help='Maximum action-value for Categorical DQN.')
     arg_alg.add_argument("--n-steps-return", type=int, default=3,
                          help='Number of steps for n-step return for Rainbow.')
+    arg_alg.add_argument("--sigma-coeff", type=float, default=.5,
+                         help='Sigma0 coefficient for noise initialization in'
+                              'NoisyDQN and Rainbow.')
 
     arg_utils = parser.add_argument_group('Utils')
     arg_utils.add_argument('--use-cuda', action='store_true',
@@ -306,7 +309,7 @@ def experiment():
 
         # Approximator
         approximator_params = dict(
-            network=Network if args.algorithm not in ['dueldqn', 'cdqn', 'rainbow'] else FeatureNetwork,
+            network=Network if args.algorithm not in ['dueldqn', 'cdqn', 'ndqn', 'rainbow'] else FeatureNetwork,
             input_shape=mdp.info.observation_space.shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
@@ -367,12 +370,16 @@ def experiment():
             agent = alg(mdp.info, pi, approximator_params=approximator_params,
                         n_atoms=args.n_atoms, v_min=args.v_min,
                         v_max=args.v_max, **algorithm_params)
+        elif args.algorithm == 'ndqn':
+            alg = NoisyDQN
+            agent = alg(mdp.info, pi, approximator_params=approximator_params,
+                        sigma_coeff=args.sigma_coeff, **algorithm_params)
         elif args.algorithm == 'rainbow':
             alg = Rainbow
             agent = alg(mdp.info, pi, approximator_params=approximator_params,
                         n_atoms=args.n_atoms, v_min=args.v_min,
                         v_max=args.v_max, n_steps_return=args.n_steps_return,
-                        **algorithm_params)
+                        sigma_coeff=args.sigma_coeff, **algorithm_params)
 
         logger = Logger(alg.__name__, results_dir=None)
         logger.strong_line()
