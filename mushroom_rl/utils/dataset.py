@@ -115,7 +115,7 @@ def select_first_episodes(dataset, n_episodes, parse=False):
     if n_episodes == 0:
         return np.array([[]])
 
-    dataset = np.array(dataset)
+    dataset = np.array(dataset, dtype=object)
     last_idxs = np.argwhere(dataset[:, -1] == 1).ravel()
     sub_dataset = dataset[:last_idxs[n_episodes - 1] + 1, :]
 
@@ -142,7 +142,7 @@ def select_random_samples(dataset, n_samples, parse=False):
     if n_samples == 0:
         return np.array([[]])
 
-    dataset = np.array(dataset)
+    dataset = np.array(dataset, dtype=object)
     idxs = np.random.randint(dataset.shape[0], size=n_samples)
     sub_dataset = dataset[idxs, ...]
 
