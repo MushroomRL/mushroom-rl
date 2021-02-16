@@ -280,6 +280,10 @@ def experiment():
                 max_no_op_actions=args.max_no_op_actions)
 
     if args.load_path:
+        logger = Logger(DQN.__name__, results_dir=None)
+        logger.strong_line()
+        logger.info('Experiment Algorithm: ' + DQN.__name__)
+
         # Agent
         agent = DQN.load(args.load_path)
         epsilon_test = Parameter(value=args.test_exploration_rate)
@@ -292,8 +296,7 @@ def experiment():
         dataset = core_test.evaluate(n_steps=args.test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
-        get_stats(dataset)
-
+        get_stats(dataset, logger)
     else:
         # Policy
         epsilon = LinearParameter(value=args.initial_exploration_rate,
@@ -304,10 +307,16 @@ def experiment():
         pi = EpsGreedy(epsilon=epsilon_random)
 
         class CategoricalLoss(nn.Module):
-            def forward(self, input, target):
+            def forward(self, input, target, reduction='sum'):
                 input = input.clamp(1e-5)
 
-                return -torch.sum(target * torch.log(input))
+                if reduction == 'sum':
+                    return -torch.sum(target * torch.log(input))
+                elif reduction == 'none':
+                    return -torch.sum(target * torch.log(input), 1)
+                else:
+                    raise ValueError
+
 
         # Approximator
         approximator_params = dict(
@@ -323,7 +332,7 @@ def experiment():
 
         approximator = TorchApproximator
 
-        if args.prioritized:
+        if args.prioritized or args.algorithm == 'rainbow':
             replay_memory = PrioritizedReplayMemory(
                 initial_replay_size, max_replay_size, alpha=args.alpha_coeff,
                 beta=LinearParameter(.4, threshold_value=1,

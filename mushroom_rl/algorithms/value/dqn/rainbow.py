@@ -110,10 +110,10 @@ class Rainbow(AbstractDQN):
         self._gamma = self.mdp_info.gamma ** self._n_steps_return
 
     def fit(self, dataset):
-        self._replay_memory.add(dataset, n_steps_return=self._n_steps_return,
-                                gamma=self.mdp_info.gamma)
+        self._replay_memory.add(dataset, np.ones(len(dataset)) * self._replay_memory.max_priority,
+                                n_steps_return=self._n_steps_return, gamma=self.mdp_info.gamma)
         if self._replay_memory.initialized:
-            state, action, reward, next_state, absorbing, _ = \
+            state, action, reward, next_state, absorbing, _, idxs, is_weight = \
                 self._replay_memory.get(self._batch_size())
 
             if self._clip_reward:
@@ -141,8 +141,11 @@ class Rainbow(AbstractDQN):
                 m[np.arange(len(m)), l[:, i]] += p_next[:, i] * (u[:, i] - b[:, i])
                 m[np.arange(len(m)), u[:, i]] += p_next[:, i] * (b[:, i] - l[:, i])
 
-            self.approximator.fit(state, action, m, get_distribution=True,
-                                  **self._fit_params)
+            kl = -np.sum(m * np.log(self.approximator.predict(state, action, get_distribution=True).clip(1e-5)), 1)
+            self._replay_memory.update(kl, idxs)
+
+            self.approximator.fit(state, action, m, weights=is_weight,
+                                  get_distribution=True, **self._fit_params)
 
             self._n_updates += 1
 

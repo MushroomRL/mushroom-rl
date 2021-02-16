@@ -164,20 +164,35 @@ class SumTree(object):
         Args:
             dataset (list): list of elements to add to the tree;
             priority (np.ndarray): priority of each sample in the dataset;
-            n_steps_return (int):
-            gamma (float):
+            n_steps_return (int): number of steps to consider for computing n-step return;
+            gamma (float): discount factor for n-step return.
 
         """
-        for d, p in zip(dataset, priority):
-            idx = self._idx + self._max_size - 1
+        i = 0
+        while i < len(dataset) - n_steps_return + 1:
+            reward = dataset[i][2]
 
-            self._data[self._idx] = d
-            self.update([idx], [p])
+            j = 0
+            while j < n_steps_return - 1:
+                if dataset[i + j][5]:
+                    i += j + 1
+                    break
+                j += 1
+                reward += gamma ** j * dataset[i + j][2]
+            else:
+                d = list(dataset[i])
+                d[2] = reward
+                idx = self._idx + self._max_size - 1
 
-            self._idx += 1
-            if self._idx == self._max_size:
-                self._idx = 0
-                self._full = True
+                self._data[self._idx] = d
+                self.update([idx], [priority[i]])
+
+                self._idx += 1
+                if self._idx == self._max_size:
+                    self._idx = 0
+                    self._full = True
+
+                i += 1
 
     def get(self, s):
         """
@@ -310,6 +325,8 @@ class PrioritizedReplayMemory(Serializable):
             gamma (float, 1.): discount factor for n-step return.
 
         """
+        assert n_steps_return > 0
+
         self._tree.add(dataset, p, n_steps_return, gamma)
 
     def get(self, n_samples):
