@@ -1,5 +1,7 @@
 import numpy as np
+
 from mushroom_rl.core import Serializable
+from mushroom_rl.utils.parameters import to_parameter
 
 
 class ReplayMemory(Serializable):
@@ -293,14 +295,14 @@ class PrioritizedReplayMemory(Serializable):
             max_size (int): maximum number of elements that the replay memory
                 can contain;
             alpha (float): prioritization coefficient;
-            beta (float): importance sampling coefficient;
+            beta ([float, Parameter]): importance sampling coefficient;
             epsilon (float, .01): small value to avoid zero probabilities.
 
         """
         self._initial_size = initial_size
         self._max_size = max_size
         self._alpha = alpha
-        self._beta = beta
+        self._beta = to_parameter(beta)
         self._epsilon = epsilon
 
         self._tree = SumTree(max_size)

@@ -15,7 +15,7 @@ class SARSALambda(TD):
         Constructor.
 
         Args:
-            lambda_coeff ((float, Parameter)): eligibility trace coefficient;
+            lambda_coeff ([float, Parameter]): eligibility trace coefficient;
             trace (str, 'replacing'): type of eligibility trace to use.
 
         """

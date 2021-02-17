@@ -33,13 +33,13 @@ class DDPG(DeepAC):
                 algorithm;
             critic_params (dict): parameters of the critic approximator to
                 build;
-            batch_size ((int, Parameter)): the number of samples in a batch;
+            batch_size ([int, Parameter]): the number of samples in a batch;
             initial_replay_size (int): the number of samples to collect before
                 starting the learning;
             max_replay_size (int): the maximum number of samples in the replay
                 memory;
             tau ((float, Parameter)): value of coefficient for soft updates;
-            policy_delay ((int, Parameter), 1): the number of updates of the critic after
+            policy_delay ([int, Parameter], 1): the number of updates of the critic after
                 which an actor update is implemented;
             critic_fit_params (dict, None): parameters of the fitting algorithm
                 of the critic approximator;

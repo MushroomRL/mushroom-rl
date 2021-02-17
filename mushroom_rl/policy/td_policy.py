@@ -44,7 +44,7 @@ class EpsGreedy(TDPolicy):
         Constructor.
 
         Args:
-            epsilon ((float, Parameter)): the exploration coefficient. It indicates
+            epsilon ([float, Parameter]): the exploration coefficient. It indicates
                 the probability of performing a random actions in the current
                 step.
 
@@ -91,7 +91,7 @@ class EpsGreedy(TDPolicy):
         Setter.
 
         Args:
-            epsilon ((float, Parameter)): the exploration coefficient. It indicates the
+            epsilon ([float, Parameter]): the exploration coefficient. It indicates the
             probability of performing a random actions in the current step.
 
         """
@@ -120,7 +120,7 @@ class Boltzmann(TDPolicy):
         Constructor.
 
         Args:
-            beta ((float, Parameter)): the inverse of the temperature distribution. As
+            beta ([float, Parameter]): the inverse of the temperature distribution. As
             the temperature approaches infinity, the policy becomes more and
             more random. As the temperature approaches 0.0, the policy becomes
             more and more greedy.
@@ -178,7 +178,6 @@ class Mellowmax(Boltzmann):
     Littman M.L.. 2017.
 
     """
-
     class MellowmaxParameter(Parameter):
         def __init__(self, outer, omega, beta_min, beta_max):
             self._omega = omega

@@ -22,7 +22,7 @@ class AbstractDQN(Agent):
                Q-function;
             approximator_params (dict): parameters of the approximator to
                 build;
-            batch_size ((int, Parameter)): the number of samples in a batch;
+            batch_size ([int, Parameter]): the number of samples in a batch;
             target_update_frequency (int): the number of samples collected
                 between each update of the target network;
             replay_memory ([ReplayMemory, PrioritizedReplayMemory], None): the

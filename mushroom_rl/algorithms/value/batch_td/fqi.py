@@ -18,7 +18,7 @@ class FQI(BatchTD):
         Constructor.
 
         Args:
-            n_iterations ((int, Parameter)): number of iterations to perform for training;
+            n_iterations ([int, Parameter]): number of iterations to perform for training;
             quiet (bool, False): whether to show the progress bar or not.
 
         """

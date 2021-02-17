@@ -32,18 +32,18 @@ class TRPO(Agent):
             policy (TorchPolicy): torch policy to be learned by the algorithm
             critic_params (dict): parameters of the critic approximator to
                 build;
-            ent_coeff ((float, Parameter), 0): coefficient for the entropy penalty;
-            max_kl ((float, Parameter), .001): maximum kl allowed for every policy
+            ent_coeff ([float, Parameter], 0): coefficient for the entropy penalty;
+            max_kl ([float, Parameter], .001): maximum kl allowed for every policy
                 update;
-            lam float((float, Parameter), 1.): lambda coefficient used by generalized
+            lam float([float, Parameter], 1.): lambda coefficient used by generalized
                 advantage estimation;
-            n_epochs_line_search ((int, Parameter), 10): maximum number of iterations
+            n_epochs_line_search ([int, Parameter], 10): maximum number of iterations
                 of the line search algorithm;
-            n_epochs_cg ((int, Parameter), 10): maximum number of iterations of the
+            n_epochs_cg ([int, Parameter], 10): maximum number of iterations of the
                 conjugate gradient algorithm;
-            cg_damping ((float, Parameter), 1e-2): damping factor for the conjugate
+            cg_damping ([float, Parameter], 1e-2): damping factor for the conjugate
                 gradient algorithm;
-            cg_residual_tol ((float, Parameter), 1e-10): conjugate gradient residual
+            cg_residual_tol ([float, Parameter], 1e-10): conjugate gradient residual
                 tolerance;
             critic_fit_params (dict, None): parameters of the fitting algorithm
                 of the critic approximator.

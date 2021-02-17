@@ -30,7 +30,7 @@ class A2C(DeepAC):
                 algorithm;
             critic_params (dict): parameters of the critic approximator to
                 build;
-            ent_coeff ((float, Parameter), 0): coefficient for the entropy penalty;
+            ent_coeff ([float, Parameter], 0): coefficient for the entropy penalty;
             max_grad_norm (float, None): maximum norm for gradient clipping.
                 If None, no clipping will be performed, unless specified
                 otherwise in actor_optimizer;

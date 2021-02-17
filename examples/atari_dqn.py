@@ -317,7 +317,6 @@ def experiment():
                 else:
                     raise ValueError
 
-
         # Approximator
         approximator_params = dict(
             network=Network if args.algorithm not in ['dueldqn', 'cdqn', 'ndqn', 'rainbow'] else FeatureNetwork,

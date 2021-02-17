@@ -20,9 +20,9 @@ class StochasticAC(Agent):
         Constructor.
 
         Args:
-            alpha_theta ((float, Parameter)): learning rate for policy update;
-            alpha_v ((float, Parameter)): learning rate for the value function;
-            lambda_par ((float, Parameter), .9): trace decay parameter;
+            alpha_theta ([float, Parameter]): learning rate for policy update;
+            alpha_v ([float, Parameter]): learning rate for the value function;
+            lambda_par ([float, Parameter], .9): trace decay parameter;
             value_function_features (Features, None): features used by the
                 value function approximator;
             policy_features (Features, None): features used by the policy.
