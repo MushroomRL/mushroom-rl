@@ -184,6 +184,9 @@ class SumTree(object):
             else:
                 d = list(dataset[i])
                 d[2] = reward
+                d[3] = dataset[i + j][3]
+                d[4] = dataset[i + j][4]
+                d[5] = dataset[i + j][5]
                 idx = self._idx + self._max_size - 1
 
                 self._data[self._idx] = d
