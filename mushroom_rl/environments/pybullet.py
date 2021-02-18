@@ -147,8 +147,9 @@ class PyBullet(Environment):
         if len(observation_spec) == 0:
             raise AttributeError("No Environment observations were specified. "
                                  "Add at least one observation to the observation_spec.")
-        else:
-            self._observation_map = observation_spec
+
+        self._observation_map = observation_spec
+        self._observation_indices_map = dict()
 
         # We can only specify limits for the joint positions, all other
         # information can be potentially unbounded
@@ -204,6 +205,26 @@ class PyBullet(Environment):
 
         return self._state, reward, self.is_absorbing(self._state), {}
 
+    def get_observation_index(self, name, obs_type):
+        return self._observation_indices_map[name][obs_type]
+
+    def get_observation(self, obs, name, obs_type):
+        """
+        Returns a specific observation value
+
+        Args:
+            obs (np.ndarray): the observation vector;
+            name (str): the name of the object to consider;
+            obs_type (PyBulletObservationType): the type of observation to be used.
+
+        Returns:
+            The required elements of the input state vector.
+
+        """
+        indices = self.get_observation_index(name, obs_type)
+
+        return obs[indices]
+
     def _compute_action_limits(self):
         low = list()
         high = list()
@@ -229,6 +250,7 @@ class PyBullet(Environment):
         high = list()
 
         for name, obs_type in self._observation_map:
+            index_count = len(low)
             if obs_type is PyBulletObservationType.BODY_POS \
                or obs_type is PyBulletObservationType.BODY_LIN_VEL \
                or obs_type is PyBulletObservationType.BODY_ANG_VEL:
@@ -236,8 +258,8 @@ class PyBullet(Environment):
                 low += [-np.inf] * n_dim
                 high += [-np.inf] * n_dim
             elif obs_type is PyBulletObservationType.LINK_POS \
-                 or obs_type is PyBulletObservationType.LINK_LIN_VEL \
-                 or obs_type is PyBulletObservationType.LINK_ANG_VEL:
+                    or obs_type is PyBulletObservationType.LINK_LIN_VEL \
+                    or obs_type is PyBulletObservationType.LINK_ANG_VEL:
                 n_dim = 7 if obs_type is PyBulletObservationType.LINK_POS else 3
                 low += [-np.inf] * n_dim
                 high += [-np.inf] * n_dim
@@ -252,7 +274,15 @@ class PyBullet(Environment):
                     low.append(-np.inf)
                     high.append(np.inf)
 
+            self._add_observation_index(name, obs_type, index_count, len(low))
+
         return np.array(low), np.array(high)
+
+    def _add_observation_index(self, name, obs_type, start, end):
+        if name not in self._observation_indices_map:
+            self._observation_indices_map[name] = dict()
+
+        self._observation_indices_map[name][obs_type] = list(range(start, end))
 
     def _create_observation(self):
         data_obs = list()
