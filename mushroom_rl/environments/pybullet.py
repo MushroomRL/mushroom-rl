@@ -1,7 +1,8 @@
-import pybullet
-import pybullet_data
 import numpy as np
 from enum import Enum
+import pybullet
+import pybullet_data
+from pybullet_utils.bullet_client import BulletClient
 from mushroom_rl.environments import Environment, MDPInfo
 from mushroom_rl.utils.spaces import Box
 from mushroom_rl.utils.viewer import ImageViewer
@@ -25,8 +26,9 @@ class PyBulletObservationType(Enum):
 
 
 class PyBulletViewer(ImageViewer):
-    def __init__(self, dt, size=(500, 500), distance=4, origin=(0, 0, 1), angles=(0, -45, 60),
+    def __init__(self, client, dt, size=(500, 500), distance=4, origin=(0, 0, 1), angles=(0, -45, 60),
                  fov=60, aspect=1, near_val=0.01, far_val=100):
+        self._client = client
         self._size = size
         self._distance = distance
         self._origin = origin
@@ -42,15 +44,15 @@ class PyBulletViewer(ImageViewer):
         super().display(img)
 
     def _get_image(self):
-        view_matrix = pybullet.computeViewMatrixFromYawPitchRoll(cameraTargetPosition=self._origin,
+        view_matrix = self._client.computeViewMatrixFromYawPitchRoll(cameraTargetPosition=self._origin,
                                                                  distance=self._distance,
                                                                  roll=self._angles[0],
                                                                  pitch=self._angles[1],
                                                                  yaw=self._angles[2],
                                                                  upAxisIndex=2)
-        proj_matrix = pybullet.computeProjectionMatrixFOV(fov=self._fov, aspect=self._aspect,
+        proj_matrix = self._client.computeProjectionMatrixFOV(fov=self._fov, aspect=self._aspect,
                                                           nearVal=self._near_val, farVal=self._far_val)
-        (_, _, px, _, _) = pybullet.getCameraImage(width=self._size[0],
+        (_, _, px, _, _) = self._client.getCameraImage(width=self._size[0],
                                                    height=self._size[1],
                                                    viewMatrix=view_matrix,
                                                    projectionMatrix=proj_matrix,
@@ -99,29 +101,29 @@ class PyBullet(Environment):
 
         # Create the simulation and viewer
         if debug_gui:
-            pybullet.connect(pybullet.GUI)
+            self._client = BulletClient(connection_mode=pybullet.GUI)
         else:
-            pybullet.connect(pybullet.DIRECT)
-        pybullet.setTimeStep(self._timestep)
-        pybullet.setGravity(0, 0, -9.81)
-        pybullet.setAdditionalSearchPath(pybullet_data.getDataPath())
+            self._client = BulletClient(connection_mode=pybullet.DIRECT)
+        self._client.setTimeStep(self._timestep)
+        self._client.setGravity(0, 0, -9.81)
+        self._client.setAdditionalSearchPath(pybullet_data.getDataPath())
 
-        self._viewer = PyBulletViewer(self._timestep * self._n_intermediate_steps, **viewer_params)
+        self._viewer = PyBulletViewer(self._client, self._timestep * self._n_intermediate_steps, **viewer_params)
         self._state = None
 
         # Load model and create access maps
         self._model_map = dict()
         for file_name, kwargs in files.items():
-            model_id = pybullet.loadURDF(file_name, **kwargs)
-            model_name = pybullet.getBodyInfo(model_id)[1].decode('UTF-8')
+            model_id = self._client.loadURDF(file_name, **kwargs)
+            model_name = self._client.getBodyInfo(model_id)[1].decode('UTF-8')
             self._model_map[model_name] = model_id
         self._model_map.update(self._custom_load_models())
 
         self._joint_map = dict()
         self._link_map = dict()
         for model_id in self._model_map.values():
-            for joint_id in range(pybullet.getNumJoints(model_id)):
-                joint_data = pybullet.getJointInfo(model_id, joint_id)
+            for joint_id in range(self._client.getNumJoints(model_id)):
+                joint_data = self._client.getJointInfo(model_id, joint_id)
                 if joint_data[2] != pybullet.JOINT_FIXED:
                     joint_name = joint_data[1].decode('UTF-8')
                     self._joint_map[joint_name] = (model_id, joint_id)
@@ -159,13 +161,13 @@ class PyBullet(Environment):
         super().__init__(mdp_info)
 
         # Save initial state of the MDP
-        self._initial_state = pybullet.saveState()
+        self._initial_state = self._client.saveState()
 
     def seed(self, seed):
         np.random.seed(seed)
 
     def reset(self, state=None):
-        pybullet.restoreState(self._initial_state)
+        self._client.restoreState(self._initial_state)
         self.setup()
         self._state = self._create_observation()
         return self._state
@@ -190,7 +192,7 @@ class PyBullet(Environment):
 
             self._simulation_pre_step()
 
-            pybullet.stepSimulation()
+            self._client.stepSimulation()
 
             self._simulation_post_step()
 
@@ -207,7 +209,7 @@ class PyBullet(Environment):
         high = list()
 
         for model_id, joint_id, mode in self._action_data:
-            joint_info = pybullet.getJointInfo(model_id, joint_id)
+            joint_info = self._client.getJointInfo(model_id, joint_id)
             if mode is pybullet.POSITION_CONTROL:
                 low.append(joint_info[8])
                 high.append(joint_info[9])
@@ -241,7 +243,7 @@ class PyBullet(Environment):
                 high += [-np.inf] * n_dim
             else:
                 model_id, joint_id = self._joint_map[name]
-                joint_info = pybullet.getJointInfo(model_id, joint_id)
+                joint_info = self._client.getJointInfo(model_id, joint_id)
 
                 if obs_type is PyBulletObservationType.JOINT_POS:
                     low.append(joint_info[8])
@@ -261,10 +263,10 @@ class PyBullet(Environment):
                or obs_type is PyBulletObservationType.BODY_ANG_VEL:
                 model_id = self._model_map[name]
                 if obs_type is PyBulletObservationType.BODY_POS:
-                    t, q = pybullet.getBasePositionAndOrientation(model_id)
+                    t, q = self._client.getBasePositionAndOrientation(model_id)
                     data_obs += t + q
                 else:
-                    v, w = pybullet.getBaseVelocity(model_id)
+                    v, w = self._client.getBaseVelocity(model_id)
                     if obs_type is PyBulletObservationType.BODY_LIN_VEL:
                         data_obs += v
                     else:
@@ -275,17 +277,17 @@ class PyBullet(Environment):
                 model_id, link_id = self._link_map[name]
 
                 if obs_type is PyBulletObservationType.LINK_POS:
-                    link_data = pybullet.getLinkState(model_id, link_id)
+                    link_data = self._client.getLinkState(model_id, link_id)
                     t = link_data[0]
                     q = link_data[1]
                     data_obs += t + q
                 elif obs_type is PyBulletObservationType.LINK_LIN_VEL:
-                    data_obs += pybullet.getLinkState(model_id, link_id, computeLinkVelocity=True)[-2]
+                    data_obs += self._client.getLinkState(model_id, link_id, computeLinkVelocity=True)[-2]
                 elif obs_type is PyBulletObservationType.LINK_ANG_VEL:
-                    data_obs += pybullet.getLinkState(model_id, link_id, computeLinkVelocity=True)[-1]
+                    data_obs += self._client.getLinkState(model_id, link_id, computeLinkVelocity=True)[-1]
             else:
                 model_id, joint_id = self._joint_map[name]
-                pos, vel, _, _ = pybullet.getJointState(model_id, joint_id)
+                pos, vel, _, _ = self._client.getJointState(model_id, joint_id)
                 if obs_type is PyBulletObservationType.JOINT_POS:
                     data_obs.append(pos)
                 elif obs_type is PyBulletObservationType.JOINT_VEL:
@@ -299,15 +301,15 @@ class PyBullet(Environment):
         for model_id, joint_id, mode in self._action_data:
             u = action[i]
             if mode is pybullet.POSITION_CONTROL:
-                kwargs = dict(targetPosition=u, maxVelocity=pybullet.getJointInfo(model_id, joint_id)[11])
+                kwargs = dict(targetPosition=u, maxVelocity=self._client.getJointInfo(model_id, joint_id)[11])
             elif mode is pybullet.VELOCITY_CONTROL:
-                kwargs = dict(targetVelocity=u, maxVelocity=pybullet.getJointInfo(model_id, joint_id)[11])
+                kwargs = dict(targetVelocity=u, maxVelocity=self._client.getJointInfo(model_id, joint_id)[11])
             elif mode is pybullet.TORQUE_CONTROL:
                 kwargs = dict(force=u)
             else:
                 raise NotImplementedError
 
-            pybullet.setJointMotorControl2(model_id, joint_id, mode, **kwargs)
+            self._client.setJointMotorControl2(model_id, joint_id, mode, **kwargs)
             i += 1
 
     def _preprocess_action(self, action):
