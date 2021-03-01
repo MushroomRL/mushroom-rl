@@ -7,6 +7,17 @@ from mushroom_rl.algorithms.value.dqn import AbstractDQN
 from mushroom_rl.approximators.parametric.torch_approximator import *
 
 
+def categorical_loss(input, target, reduction='sum'):
+    input = input.clamp(1e-5)
+
+    if reduction == 'sum':
+        return -torch.sum(target * torch.log(input))
+    elif reduction == 'none':
+        return -torch.sum(target * torch.log(input), 1)
+    else:
+        raise ValueError
+
+
 class CategoricalNetwork(nn.Module):
     def __init__(self, input_shape, output_shape, features_network, n_atoms,
                  v_min, v_max, n_features, use_cuda, **kwargs):
@@ -81,6 +92,7 @@ class CategoricalDQN(AbstractDQN):
         params['approximator_params']['n_atoms'] = n_atoms
         params['approximator_params']['v_min'] = v_min
         params['approximator_params']['v_max'] = v_max
+        params['approximator_params']['loss'] = categorical_loss
 
         self._n_atoms = n_atoms
         self._v_min = v_min

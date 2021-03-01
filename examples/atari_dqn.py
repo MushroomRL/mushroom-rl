@@ -306,17 +306,6 @@ def experiment():
         epsilon_random = Parameter(value=1)
         pi = EpsGreedy(epsilon=epsilon_random)
 
-        class CategoricalLoss(nn.Module):
-            def forward(self, input, target, reduction='sum'):
-                input = input.clamp(1e-5)
-
-                if reduction == 'sum':
-                    return -torch.sum(target * torch.log(input))
-                elif reduction == 'none':
-                    return -torch.sum(target * torch.log(input), 1)
-                else:
-                    raise ValueError
-
         # Approximator
         approximator_params = dict(
             network=Network if args.algorithm not in ['dueldqn', 'cdqn', 'ndqn', 'rainbow'] else FeatureNetwork,
@@ -325,13 +314,14 @@ def experiment():
             n_actions=mdp.info.action_space.n,
             n_features=Network.n_features,
             optimizer=optimizer,
-            loss=F.smooth_l1_loss if args.algorithm not in ['cdqn', 'rainbow'] else CategoricalLoss(),
             use_cuda=args.use_cuda
         )
+        if args.algorithm not in ['cdqn', 'rainbow']:
+            approximator_params['loss'] = F.smooth_l1_loss
 
         approximator = TorchApproximator
 
-        if args.prioritized or args.algorithm == 'rainbow':
+        if args.prioritized:
             replay_memory = PrioritizedReplayMemory(
                 initial_replay_size, max_replay_size, alpha=args.alpha_coeff,
                 beta=LinearParameter(.4, threshold_value=1,
@@ -386,9 +376,11 @@ def experiment():
                         sigma_coeff=args.sigma_coeff, **algorithm_params)
         elif args.algorithm == 'rainbow':
             alg = Rainbow
+            beta = LinearParameter(.4, threshold_value=1, n=max_steps // train_frequency)
             agent = alg(mdp.info, pi, approximator_params=approximator_params,
                         n_atoms=args.n_atoms, v_min=args.v_min,
                         v_max=args.v_max, n_steps_return=args.n_steps_return,
+                        alpha_coeff=args.alpha_coeff, beta=beta,
                         sigma_coeff=args.sigma_coeff, **algorithm_params)
 
         logger = Logger(alg.__name__, results_dir=None)
