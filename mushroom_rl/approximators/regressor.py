@@ -24,7 +24,7 @@ class Regressor(Serializable):
     listed before simply providing a ``n_models`` parameter greater than 1.
 
     """
-    def __init__(self, approximator, input_shape, output_shape=(1,),
+    def __init__(self, approximator, input_shape, output_shape=None,
                  n_actions=None, n_models=1, **params):
         """
         Constructor.
@@ -33,13 +33,19 @@ class Regressor(Serializable):
             approximator (class): the approximator class to use to create
                 the model;
             input_shape (tuple): the shape of the input of the model;
-            output_shape (tuple, (1,)): the shape of the output of the model;
+            output_shape (tuple, None): the shape of the output of the model;
             n_actions (int, None): number of actions considered to create a
                 ``QRegressor`` or an ``ActionRegressor``;
             n_models (int, 1): number of models to create;
             **params: other parameters to create each model.
 
         """
+        if n_actions is None:
+            assert output_shape is not None
+        else:
+            if output_shape is None:
+                output_shape = (1,)
+
         if not approximator.__module__.startswith('sklearn'):
             params['input_shape'] = input_shape
             params['output_shape'] = output_shape

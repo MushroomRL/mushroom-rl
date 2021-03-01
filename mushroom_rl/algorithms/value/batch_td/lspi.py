@@ -19,7 +19,7 @@ class LSPI(BatchTD):
         Constructor.
 
         Args:
-            epsilon ((float, Parameter), 1e-2): termination coefficient.
+            epsilon ([float, Parameter], 1e-2): termination coefficient.
 
         """
         self._epsilon = to_parameter(epsilon)

@@ -28,17 +28,17 @@ class TD3(DDPG):
                 optimizer algorithm;
             critic_params (dict): parameters of the critic approximator to
                 build;
-            batch_size ((int, Parameter)): the number of samples in a batch;
+            batch_size ([int, Parameter]): the number of samples in a batch;
             initial_replay_size (int): the number of samples to collect before
                 starting the learning;
             max_replay_size (int): the maximum number of samples in the replay
                 memory;
-            tau ((float, Parameter)): value of coefficient for soft updates;
-            policy_delay ((int, Parameter), 2): the number of updates of the critic after
+            tau ([float, Parameter]): value of coefficient for soft updates;
+            policy_delay ([int, Parameter], 2): the number of updates of the critic after
                 which an actor update is implemented;
-            noise_std ((float, Parameter), .2): standard deviation of the noise used for
+            noise_std ([float, Parameter], .2): standard deviation of the noise used for
                 policy smoothing;
-            noise_clip ((float, Parameter), .5): maximum absolute value for policy smoothing
+            noise_clip ([float, Parameter], .5): maximum absolute value for policy smoothing
                 noise;
             critic_fit_params (dict, None): parameters of the fitting algorithm
                 of the critic approximator.

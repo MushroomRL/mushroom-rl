@@ -28,7 +28,7 @@ class DeterministicPolicy(ParametricPolicy):
         Getter.
 
         Returns:
-            the regressor that is used to map state to actions.
+            The regressor that is used to map state to actions.
 
         """
         return self._approximator

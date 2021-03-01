@@ -1,5 +1,7 @@
 import numpy as np
+
 from mushroom_rl.core import Serializable
+from mushroom_rl.utils.parameters import to_parameter
 
 
 class ReplayMemory(Serializable):
@@ -36,37 +38,51 @@ class ReplayMemory(Serializable):
             _last='pickle!'
         )
 
-    def add(self, dataset):
+    def add(self, dataset, n_steps_return=1, gamma=1.):
         """
         Add elements to the replay memory.
 
         Args:
-            dataset (list): list of elements to add to the replay memory.
+            dataset (list): list of elements to add to the replay memory;
+            n_steps_return (int, 1): number of steps to consider for computing n-step return;
+            gamma (float, 1.): discount factor for n-step return.
 
         """
-        for i in range(len(dataset)):
-            self._states[self._idx] = dataset[i][0]
-            self._actions[self._idx] = dataset[i][1]
-            self._rewards[self._idx] = dataset[i][2]
-            self._next_states[self._idx] = dataset[i][3]
-            self._absorbing[self._idx] = dataset[i][4]
-            self._last[self._idx] = dataset[i][5]
+        assert n_steps_return > 0
 
-            self._idx += 1
-            if self._idx == self._max_size:
-                self._full = True
-                self._idx = 0
+        i = 0
+        while i < len(dataset) - n_steps_return + 1:
+            reward = dataset[i][2]
+            j = 0
+            while j < n_steps_return - 1:
+                if dataset[i + j][5]:
+                    i += j + 1
+                    break
+                j += 1
+                reward += gamma ** j * dataset[i + j][2]
+            else:
+                self._states[self._idx] = dataset[i][0]
+                self._actions[self._idx] = dataset[i][1]
+                self._rewards[self._idx] = reward
+
+                self._next_states[self._idx] = dataset[i + j][3]
+                self._absorbing[self._idx] = dataset[i + j][4]
+                self._last[self._idx] = dataset[i + j][5]
+
+                self._idx += 1
+                if self._idx == self._max_size:
+                    self._full = True
+                    self._idx = 0
+
+                i += 1
 
     def get(self, n_samples):
         """
         Returns the provided number of states from the replay memory.
-
         Args:
             n_samples (int): the number of samples to return.
-
         Returns:
             The requested number of samples.
-
         """
         s = list()
         a = list()
@@ -143,25 +159,45 @@ class SumTree(object):
         self._idx = 0
         self._full = False
 
-    def add(self, dataset, priority):
+    def add(self, dataset, priority, n_steps_return, gamma):
         """
         Add elements to the tree.
 
         Args:
             dataset (list): list of elements to add to the tree;
-            p (np.ndarray): priority of each sample in the dataset.
+            priority (np.ndarray): priority of each sample in the dataset;
+            n_steps_return (int): number of steps to consider for computing n-step return;
+            gamma (float): discount factor for n-step return.
 
         """
-        for d, p in zip(dataset, priority):
-            idx = self._idx + self._max_size - 1
+        i = 0
+        while i < len(dataset) - n_steps_return + 1:
+            reward = dataset[i][2]
 
-            self._data[self._idx] = d
-            self.update([idx], [p])
+            j = 0
+            while j < n_steps_return - 1:
+                if dataset[i + j][5]:
+                    i += j + 1
+                    break
+                j += 1
+                reward += gamma ** j * dataset[i + j][2]
+            else:
+                d = list(dataset[i])
+                d[2] = reward
+                d[3] = dataset[i + j][3]
+                d[4] = dataset[i + j][4]
+                d[5] = dataset[i + j][5]
+                idx = self._idx + self._max_size - 1
 
-            self._idx += 1
-            if self._idx == self._max_size:
-                self._idx = 0
-                self._full = True
+                self._data[self._idx] = d
+                self.update([idx], [priority[i]])
+
+                self._idx += 1
+                if self._idx == self._max_size:
+                    self._idx = 0
+                    self._full = True
+
+                i += 1
 
     def get(self, s):
         """
@@ -262,14 +298,14 @@ class PrioritizedReplayMemory(Serializable):
             max_size (int): maximum number of elements that the replay memory
                 can contain;
             alpha (float): prioritization coefficient;
-            beta (float): importance sampling coefficient;
+            beta ([float, Parameter]): importance sampling coefficient;
             epsilon (float, .01): small value to avoid zero probabilities.
 
         """
         self._initial_size = initial_size
         self._max_size = max_size
         self._alpha = alpha
-        self._beta = beta
+        self._beta = to_parameter(beta)
         self._epsilon = epsilon
 
         self._tree = SumTree(max_size)
@@ -283,16 +319,20 @@ class PrioritizedReplayMemory(Serializable):
             _tree='pickle!'
         )
 
-    def add(self, dataset, p):
+    def add(self, dataset, p, n_steps_return=1, gamma=1.):
         """
         Add elements to the replay memory.
 
         Args:
             dataset (list): list of elements to add to the replay memory;
             p (np.ndarray): priority of each sample in the dataset.
+            n_steps_return (int, 1): number of steps to consider for computing n-step return;
+            gamma (float, 1.): discount factor for n-step return.
 
         """
-        self._tree.add(dataset, p)
+        assert n_steps_return > 0
+
+        self._tree.add(dataset, p, n_steps_return, gamma)
 
     def get(self, n_samples):
         """

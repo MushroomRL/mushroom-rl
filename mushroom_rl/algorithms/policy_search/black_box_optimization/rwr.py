@@ -16,7 +16,7 @@ class RWR(BlackBoxOptimization):
         Constructor.
 
         Args:
-            beta ((float, Parameter)): the temperature for the exponential reward
+            beta ([float, Parameter]): the temperature for the exponential reward
                 transformation.
 
         """

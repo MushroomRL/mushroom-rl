@@ -20,8 +20,8 @@ class RQLearning(TD):
         Args:
             off_policy (bool, False): whether to use the off policy setting or
                 the online one;
-            beta ((float, Parameter), None): beta coefficient;
-            delta ((float, Parameter), None): delta coefficient.
+            beta ([float, Parameter], None): beta coefficient;
+            delta ([float, Parameter], None): delta coefficient.
 
         """
         self.off_policy = off_policy

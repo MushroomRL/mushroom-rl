@@ -38,8 +38,8 @@ class SACPolicy(Policy):
                 for each component;
             max_a (np.ndarray): a vector specifying the maximum action value
                 for each component.
-            log_std_min ((float, Parameter)): min value for the policy log std;
-            log_std_max ((float, Parameter)): max value for the policy log std.
+            log_std_min ([float, Parameter]): min value for the policy log std;
+            log_std_max ([float, Parameter]): max value for the policy log std.
 
         """
         self._mu_approximator = mu_approximator
@@ -230,12 +230,12 @@ class SAC(DeepAC):
                 starting the learning;
             max_replay_size (int): the maximum number of samples in the replay
                 memory;
-            warmup_transitions ((int, Parameter)): number of samples to accumulate in the
+            warmup_transitions ([int, Parameter]): number of samples to accumulate in the
                 replay memory to start the policy fitting;
-            tau ((float, Parameter)): value of coefficient for soft updates;
-            lr_alpha ((float, Parameter)): Learning rate for the entropy coefficient;
-            log_std_min ((float, Parameter)): Min value for the policy log std;
-            log_std_max ((float, Parameter)): Max value for the policy log std;
+            tau ([float, Parameter]): value of coefficient for soft updates;
+            lr_alpha ([float, Parameter]): Learning rate for the entropy coefficient;
+            log_std_min ([float, Parameter]): Min value for the policy log std;
+            log_std_max ([float, Parameter]): Max value for the policy log std;
             target_entropy (float, None): target entropy for the policy, if
                 None a default value is computed ;
             critic_fit_params (dict, None): parameters of the fitting algorithm

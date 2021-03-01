@@ -18,7 +18,7 @@ class REPS(BlackBoxOptimization):
         Constructor.
 
         Args:
-            eps ((float, Parameter)): the maximum admissible value for the Kullback-Leibler
+            eps ([float, Parameter]): the maximum admissible value for the Kullback-Leibler
                 divergence between the new distribution and the
                 previous one at each update step.
 

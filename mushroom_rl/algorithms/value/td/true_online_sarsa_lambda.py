@@ -19,7 +19,7 @@ class TrueOnlineSARSALambda(TD):
         Constructor.
 
         Args:
-            lambda_coeff ((float, Parameter)): eligibility trace coefficient.
+            lambda_coeff ([float, Parameter]): eligibility trace coefficient.
 
         """
         approximator_params = dict() if approximator_params is None else \

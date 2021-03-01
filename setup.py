@@ -69,12 +69,19 @@ ext_modules = [Extension('mushroom_rl.environments.mujoco_envs.humanoid_gait.'
 mujoco_data_package = 'mushroom_rl.environments.mujoco_envs.data'
 extrenal_simulation_package = 'mushroom_rl.environments.mujoco_envs.humanoid_gait._external_simulation'
 
+project_urls = {
+    'Project repository': 'https://github.com/MushroomRL/mushroom-rl',
+    'Project documentation': 'https://mushroomrl.readthedocs.io/en/latest/',
+    'MushroomRL Benchmarking Suite repository': 'https://github.com/MushroomRL/mushroom-rl-benchmark',
+    'MushroomRL Benchmarking Suite documentation': 'https://mushroom-rl-benchmark.readthedocs.io/en/latest/index.html'
+}
+
 setup(
     name='mushroom-rl',
     version=__version__,
     description='A Python library for Reinforcement Learning experiments.',
     long_description=long_description,
-    url='https://github.com/MushroomRL/mushroom-rl',
+    project_urls=project_urls,
     author="Carlo D'Eramo, Davide Tateo",
     author_email='carlo.deramo@gmail.com',
     license='MIT',

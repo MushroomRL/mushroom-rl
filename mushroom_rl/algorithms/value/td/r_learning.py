@@ -18,7 +18,7 @@ class RLearning(TD):
         Constructor.
 
         Args:
-            beta ((float, Parameter)): beta coefficient.
+            beta ([float, Parameter]): beta coefficient.
 
         """
         Q = Table(mdp_info.size)

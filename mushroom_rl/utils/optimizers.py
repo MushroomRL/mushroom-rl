@@ -11,14 +11,13 @@ class Optimizer(Serializable):
     These objects take the current parameters and the gradient estimate to compute the new parameters.
 
     """
-
     def __init__(self, lr=0.001, maximize=True, *params):
         """
         Constructor
 
         Args:
-            lr (float/Parameter): the learning rate
-            maximize (bool): by default Optimizers do a gradient ascent step. Set to False for gradient descent
+            lr ([float, Parameter]): the learning rate;
+            maximize (bool, True): by default Optimizers do a gradient ascent step. Set to False for gradient descent.
 
         """
         if isinstance(lr, float):
@@ -60,8 +59,8 @@ class AdaptiveOptimizer(Optimizer):
         Constructor.
 
         Args:
-            eps (float): the maximum step defined by the metric
-            maximize (bool): by default Optimizers do a gradient ascent step. Set to False for gradient descent
+            eps (float): the maximum step defined by the metric;
+            maximize (bool, True): by default Optimizers do a gradient ascent step. Set to False for gradient descent.
 
         """
         super().__init__(maximize=maximize)
@@ -108,8 +107,8 @@ class SGDOptimizer(Optimizer):
         Constructor.
 
         Args:
-            lr (float/Parameter): the learning rate
-            maximize (bool): by default Optimizers do a gradient ascent step. Set to False for gradient descent
+            lr ([float, Parameter], 0.001): the learning rate;
+            maximize (bool, True): by default Optimizers do a gradient ascent step. Set to False for gradient descent.
 
         """
         super().__init__(lr, maximize)
@@ -130,10 +129,10 @@ class AdamOptimizer(Optimizer):
         Constructor.
 
         Args:
-            lr (float/Parameter): the learning rate
-            decay1 (float): Adam beta1 parameter
-            decay2 (float): Adam beta2 parameter
-            maximize (bool): by default Optimizers do a gradient ascent step. Set to False for gradient descent
+            lr ([float, Parameter], 0.001): the learning rate;
+            decay1 (float, 0.9): Adam beta1 parameter;
+            decay2 (float, 0.999): Adam beta2 parameter;
+            maximize (bool, True): by default Optimizers do a gradient ascent step. Set to False for gradient descent.
 
         """
         super().__init__(lr, maximize)
@@ -166,8 +165,8 @@ class AdaGradOptimizer(Optimizer):
         Constructor.
 
         Args:
-            lr (float/Parameter): the learning rate
-            maximize (bool): by default Optimizers do a gradient ascent step. Set to False for gradient descent
+            lr ([float, Parameter], 0.001): the learning rate;
+            maximize (bool, True): by default Optimizers do a gradient ascent step. Set to False for gradient descent.
 
         """
         super().__init__(lr, maximize)
@@ -198,9 +197,9 @@ class RMSPropOptimizer(Optimizer):
         Constructor.
 
         Args:
-            lr (float/Parameter): the learning rate
-            decay (float): rate of decay for the moving average
-            maximize (bool): by default Optimizers do a gradient ascent step. Set to False for gradient descent
+            lr ([float, Parameter], 0.001): the learning rate;
+            decay (float, 0.9): rate of decay for the moving average;
+            maximize (bool, True): by default Optimizers do a gradient ascent step. Set to False for gradient descent.
 
         """
         super().__init__(lr, maximize)

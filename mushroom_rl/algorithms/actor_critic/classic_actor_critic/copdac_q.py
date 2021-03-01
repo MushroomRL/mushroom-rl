@@ -22,9 +22,9 @@ class COPDAC_Q(Agent):
         Args:
             mu (Regressor): regressor that describe the deterministic policy to be
                 learned i.e., the deterministic mapping between state and action.
-            alpha_theta ((float, Parameter)): learning rate for policy update;
-            alpha_omega ((float, Parameter)): learning rate for the advantage function;
-            alpha_v ((float, Parameter)): learning rate for the value function;
+            alpha_theta ([float, Parameter]): learning rate for policy update;
+            alpha_omega ([float, Parameter]): learning rate for the advantage function;
+            alpha_v ([float, Parameter]): learning rate for the value function;
             value_function_features (Features, None): features used by the value
                 function approximator;
             policy_features (Features, None): features used by the policy.

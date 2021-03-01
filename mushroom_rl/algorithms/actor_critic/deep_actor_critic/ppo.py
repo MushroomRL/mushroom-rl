@@ -32,10 +32,10 @@ class PPO(Agent):
                 algorithm;
             critic_params (dict): parameters of the critic approximator to
                 build;
-            n_epochs_policy ((int, Parameter)): number of policy updates for every dataset;
-            batch_size ((int, Parameter)): size of minibatches for every optimization step
-            eps_ppo ((float, Parameter)): value for probability ratio clipping;
-            lam ((float, Parameter), 1.): lambda coefficient used by generalized
+            n_epochs_policy ([int, Parameter]): number of policy updates for every dataset;
+            batch_size ([int, Parameter]): size of minibatches for every optimization step
+            eps_ppo ([float, Parameter]): value for probability ratio clipping;
+            lam ([float, Parameter], 1.): lambda coefficient used by generalized
                 advantage estimation;
             critic_fit_params (dict, None): parameters of the fitting algorithm
                 of the critic approximator.
