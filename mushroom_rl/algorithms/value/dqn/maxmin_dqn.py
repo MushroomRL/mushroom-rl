@@ -27,12 +27,9 @@ class MaxminDQN(DQN):
         super().__init__(mdp_info, policy, approximator, **params)
 
     def fit(self, dataset):
-        idx = np.random.randint(self._n_approximators)
-        self._fit(dataset, approximator=self.approximator[idx])
+        self._fit_params['idx'] = np.random.randint(self._n_approximators)
 
-        self._n_updates += 1
-        if self._n_updates % self._target_update_frequency == 0:
-            self._update_target()
+        super().fit(dataset)
 
     def _initialize_regressors(self, approximator, apprx_params_train,
                                apprx_params_target):

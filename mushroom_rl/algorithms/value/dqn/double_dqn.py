@@ -11,10 +11,10 @@ class DoubleDQN(DQN):
 
     """
     def _next_q(self, next_state, absorbing):
-        q = self.approximator.predict(next_state)
+        q = self.approximator.predict(next_state, **self._predict_params)
         max_a = np.argmax(q, axis=1)
 
-        double_q = self.target_approximator.predict(next_state, max_a)
+        double_q = self.target_approximator.predict(next_state, max_a, **self._predict_params)
         if np.any(absorbing):
             double_q *= 1 - absorbing
 

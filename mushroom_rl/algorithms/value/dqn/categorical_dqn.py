@@ -119,11 +119,11 @@ class CategoricalDQN(AbstractDQN):
             if self._clip_reward:
                 reward = np.clip(reward, -1, 1)
 
-            q_next = self.target_approximator.predict(next_state)
+            q_next = self.target_approximator.predict(next_state, **self._predict_params)
             a_max = np.argmax(q_next, 1)
             gamma = self.mdp_info.gamma * (1 - absorbing)
             p_next = self.target_approximator.predict(next_state, a_max,
-                                                      get_distribution=True)
+                                                      get_distribution=True, **self._predict_params)
             gamma_z = gamma.reshape(-1, 1) * np.expand_dims(
                 self._a_values, 0).repeat(len(gamma), 0)
             bell_a = (reward.reshape(-1, 1) + gamma_z).clip(self._v_min,
