@@ -224,9 +224,7 @@ class Regressor(Serializable):
         return 1 if self._n_models is None else len(self._impl)
 
     def __getitem__(self, item):
-        if len(self) == 1:
-            assert item == 0
-
+        if self._n_models is None:
             return self.model
         else:
             return self.model[item]
