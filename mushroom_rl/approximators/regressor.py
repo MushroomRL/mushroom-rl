@@ -25,7 +25,7 @@ class Regressor(Serializable):
 
     """
     def __init__(self, approximator, input_shape, output_shape=None,
-                 n_actions=None, n_models=1, **params):
+                 n_actions=None, n_models=None, **params):
         """
         Constructor.
 
@@ -54,11 +54,10 @@ class Regressor(Serializable):
         self._output_shape = output_shape
 
         self.n_actions = n_actions
-
-        assert n_models >= 1
         self._n_models = n_models
 
-        if self._n_models > 1:
+        if self._n_models is not None:
+            assert self._n_models >= 1
             params['model'] = approximator
             params['n_models'] = n_models
             approximator = Ensemble
@@ -222,7 +221,7 @@ class Regressor(Serializable):
                                       ' non-differentiable regressor.')
 
     def __len__(self):
-        return 1 if self._n_models == 1 else len(self._impl)
+        return 1 if self._n_models is None else len(self._impl)
 
     def __getitem__(self, item):
         if len(self) == 1:
