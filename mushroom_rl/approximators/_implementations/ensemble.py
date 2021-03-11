@@ -91,7 +91,6 @@ class Ensemble(Serializable):
 
             prediction = self._prediction if prediction is None else prediction
 
-            print(np.array(predictions).shape)
             if prediction == 'mean':
                 results = np.mean(predictions, axis=0)
             elif prediction == 'sum':
