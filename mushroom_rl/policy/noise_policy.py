@@ -27,6 +27,7 @@ class OrnsteinUhlenbeckPolicy(ParametricPolicy):
 
         """
         self._approximator = mu
+        self._predict_params = dict()
         self._sigma = sigma
         self._theta = theta
         self._dt = dt
@@ -48,7 +49,7 @@ class OrnsteinUhlenbeckPolicy(ParametricPolicy):
         raise NotImplementedError
 
     def draw_action(self, state):
-        mu = self._approximator.predict(state)
+        mu = self._approximator.predict(state, **self._predict_params)
 
         x = self._x_prev - self._theta * self._x_prev * self._dt +\
             self._sigma * np.sqrt(self._dt) * np.random.normal(

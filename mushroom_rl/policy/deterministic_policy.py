@@ -20,6 +20,7 @@ class DeterministicPolicy(ParametricPolicy):
 
         """
         self._approximator = mu
+        self._predict_params = dict()
 
         self._add_save_attr(_approximator='mushroom')
 
@@ -34,12 +35,12 @@ class DeterministicPolicy(ParametricPolicy):
         return self._approximator
 
     def __call__(self, state, action):
-        policy_action = self._approximator.predict(state)
+        policy_action = self._approximator.predict(state, **self._predict_params)
 
         return 1. if np.array_equal(action, policy_action) else 0.
 
     def draw_action(self, state):
-        return self._approximator.predict(state)
+        return self._approximator.predict(state, **self._predict_params)
 
     def set_weights(self, weights):
         self._approximator.set_weights(weights)

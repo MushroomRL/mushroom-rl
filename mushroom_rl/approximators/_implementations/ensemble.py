@@ -84,10 +84,7 @@ class Ensemble(Serializable):
                 try:
                     predictions.append(self[i].predict(*z, **predict_params))
                 except NotFittedError:
-                    pass
-
-            if len(predictions) == 0:
-                raise NotFittedError
+                    raise NotFittedError
 
             prediction = self._prediction if prediction is None else prediction
 
