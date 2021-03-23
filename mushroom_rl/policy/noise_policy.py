@@ -71,3 +71,65 @@ class OrnsteinUhlenbeckPolicy(ParametricPolicy):
 
     def reset(self):
         self._x_prev = self._x0 if self._x0 is not None else np.zeros(self._approximator.output_shape)
+
+
+class ClippedGaussianPolicy(ParametricPolicy):
+    """
+    Clipped Gaussian policy, as used in:
+
+    "Addressing Function Approximation Error in Actor-Critic Methods".
+    Fujimoto S. et al.. 2018.
+
+    This is a non-differentiable policy for continuous action spaces.
+    The policy samples an action in every state following a gaussian
+    distribution, where the mean is computed in the state and the covariance
+    matrix is fixed. The action is then clipped using the given action range.
+    This policy is not a truncated Gaussian, as it simply clips the action
+    if the value is bigger than the boundaries. Thus, the non-differentiability.
+
+    """
+    def __init__(self, mu, sigma, low, high):
+        """
+        Constructor.
+
+        Args:
+            mu (Regressor): the regressor representing the mean w.r.t. the
+                state;
+            sigma (np.ndarray): a square positive definite matrix representing
+                the covariance matrix. The size of this matrix must be n x n,
+                where n is the action dimensionality;
+            low (np.ndarray): a vector containing the minimum action for each
+                component;
+            high (np.ndarray): a vector containing the maximum action for each
+                component.
+
+        """
+        self._approximator = mu
+        self._predict_params = dict()
+        self._sigma = sigma
+        self._low = low
+        self._high = high
+
+        self._add_save_attr(
+            _approximator='mushroom',
+            _inv_sigma='numpy',
+            _sigma='numpy'
+        )
+
+    def __call__(self, state, action):
+        raise NotImplementedError
+
+    def draw_action(self, state):
+        mu = np.reshape(self._approximator.predict(np.expand_dims(state, axis=0), **self._predict_params), -1)
+
+        return np.random.multivariate_normal(mu, self._sigma)
+
+    def set_weights(self, weights):
+        self._approximator.set_weights(weights)
+
+    def get_weights(self):
+        return self._approximator.get_weights()
+
+    @property
+    def weights_size(self):
+        return self._approximator.weights_size
