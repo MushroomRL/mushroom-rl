@@ -13,7 +13,7 @@ class AbstractDQN(Agent):
     def __init__(self, mdp_info, policy, approximator, approximator_params,
                  batch_size, target_update_frequency,
                  replay_memory=None, initial_replay_size=500,
-                 max_replay_size=5000, fit_params=None, clip_reward=False):
+                 max_replay_size=5000, fit_params=None, predict_params=None, clip_reward=False):
         """
         Constructor.
 
@@ -34,10 +34,13 @@ class AbstractDQN(Agent):
                 memory;
             fit_params (dict, None): parameters of the fitting algorithm of the
                 approximator;
+            predict_params (dict, None): parameters for the prediction with the
+                approximator;
             clip_reward (bool, False): whether to clip the reward or not.
 
         """
         self._fit_params = dict() if fit_params is None else fit_params
+        self._predict_params = dict() if predict_params is None else predict_params
 
         self._batch_size = to_parameter(batch_size)
         self._clip_reward = clip_reward
@@ -65,6 +68,7 @@ class AbstractDQN(Agent):
 
         self._add_save_attr(
             _fit_params='pickle',
+            _predict_params='pickle',
             _batch_size='mushroom',
             _n_approximators='primitive',
             _clip_reward='primitive',
@@ -84,7 +88,7 @@ class AbstractDQN(Agent):
         if self._n_updates % self._target_update_frequency == 0:
             self._update_target()
 
-    def _fit_standard(self, dataset, approximator=None):
+    def _fit_standard(self, dataset):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
             state, action, reward, next_state, absorbing, _ = \
@@ -96,12 +100,9 @@ class AbstractDQN(Agent):
             q_next = self._next_q(next_state, absorbing)
             q = reward + self.mdp_info.gamma * q_next
 
-            if approximator is None:
-                self.approximator.fit(state, action, q, **self._fit_params)
-            else:
-                approximator.fit(state, action, q, **self._fit_params)
+            self.approximator.fit(state, action, q, **self._fit_params)
 
-    def _fit_prioritized(self, dataset, approximator=None):
+    def _fit_prioritized(self, dataset):
         self._replay_memory.add(
             dataset, np.ones(len(dataset)) * self._replay_memory.max_priority)
         if self._replay_memory.initialized:
@@ -113,16 +114,12 @@ class AbstractDQN(Agent):
 
             q_next = self._next_q(next_state, absorbing)
             q = reward + self.mdp_info.gamma * q_next
-            td_error = q - self.approximator.predict(state, action)
+            td_error = q - self.approximator.predict(state, action, **self._predict_params)
 
             self._replay_memory.update(td_error, idxs)
 
-            if approximator is None:
-                self.approximator.fit(state, action, q, weights=is_weight,
-                                      **self._fit_params)
-            else:
-                approximator.fit(state, action, q, weights=is_weight,
-                                 **self._fit_params)
+            self.approximator.fit(state, action, q, weights=is_weight,
+                                  **self._fit_params)
 
     def draw_action(self, state):
         action = super().draw_action(np.array(state))
