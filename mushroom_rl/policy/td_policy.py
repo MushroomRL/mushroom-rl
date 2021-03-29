@@ -15,7 +15,8 @@ class TDPolicy(Policy):
         self._approximator = None
         self._predict_params = dict()
 
-        self._add_save_attr(_approximator='mushroom!')
+        self._add_save_attr(_approximator='mushroom!',
+                            _predict_params='pickle')
 
     def set_q(self, approximator):
         """

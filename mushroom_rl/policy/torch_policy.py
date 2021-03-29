@@ -216,6 +216,7 @@ class GaussianTorchPolicy(TorchPolicy):
         self._add_save_attr(
             _action_dim='primitive',
             _mu='mushroom',
+            _predict_params='pickle',
             _log_sigma='torch'
         )
 
@@ -277,14 +278,15 @@ class BoltzmannTorchPolicy(TorchPolicy):
         super().__init__(use_cuda)
 
         self._action_dim = output_shape[0]
+        self._predict_params = dict()
 
         self._logits = Regressor(TorchApproximator, input_shape, output_shape,
                                  network=network, use_cuda=use_cuda, **params)
-        self._predict_params = dict()
         self._beta = to_parameter(beta)
 
         self._add_save_attr(
             _action_dim='primitive',
+            _predict_params='pickle',
             _beta='mushroom',
             _logits='mushroom'
         )
