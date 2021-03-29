@@ -71,15 +71,20 @@ class Ensemble(Serializable):
 
         """
         if idx is None:
+            idx = [x for x in range(len(self))]
+
+        if isinstance(idx, int):
+            try:
+                results = self[idx].predict(*z, **predict_params)
+            except NotFittedError:
+                raise NotFittedError
+        else:
             predictions = list()
-            for i in range(len(self._model)):
+            for i in idx:
                 try:
                     predictions.append(self[i].predict(*z, **predict_params))
                 except NotFittedError:
-                    pass
-
-            if len(predictions) == 0:
-                raise NotFittedError
+                    raise NotFittedError
 
             prediction = self._prediction if prediction is None else prediction
 
@@ -95,11 +100,6 @@ class Ensemble(Serializable):
                 raise ValueError
             if compute_variance:
                 results = [results, np.var(predictions, ddof=1, axis=0)]
-        else:
-            try:
-                results = self[idx].predict(*z, **predict_params)
-            except NotFittedError:
-                raise NotFittedError
 
         return results
 

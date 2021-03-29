@@ -42,11 +42,13 @@ class GaussianPolicy(AbstractGaussianPolicy):
 
         """
         self._approximator = mu
+        self._predict_params = dict()
         self._inv_sigma = np.linalg.inv(sigma)
         self._sigma = sigma
 
         self._add_save_attr(
             _approximator='mushroom',
+            _predict_params='pickle',
             _inv_sigma='numpy',
             _sigma='numpy'
         )
@@ -64,7 +66,6 @@ class GaussianPolicy(AbstractGaussianPolicy):
         self._inv_sigma = np.linalg.inv(sigma)
 
     def diff_log(self, state, action):
-
         mu, _, inv_sigma = self._compute_multivariate_gaussian(state)
 
         delta = action - mu
@@ -89,8 +90,7 @@ class GaussianPolicy(AbstractGaussianPolicy):
         return self._approximator.weights_size
 
     def _compute_multivariate_gaussian(self, state):
-        mu = np.reshape(self._approximator.predict(np.expand_dims(state,
-                                                                  axis=0)), -1)
+        mu = np.reshape(self._approximator.predict(np.expand_dims(state, axis=0), **self._predict_params), -1)
 
         return mu, self._sigma, self._inv_sigma
 
@@ -118,10 +118,12 @@ class DiagonalGaussianPolicy(AbstractGaussianPolicy):
 
         """
         self._approximator = mu
+        self._predict_params = dict()
         self._std = std
 
         self._add_save_attr(
             _approximator='mushroom',
+            _predict_params='pickle',
             _std='numpy'
         )
 
@@ -168,8 +170,7 @@ class DiagonalGaussianPolicy(AbstractGaussianPolicy):
         return self._approximator.weights_size + self._std.size
 
     def _compute_multivariate_gaussian(self, state):
-        mu = np.reshape(self._approximator.predict(np.expand_dims(state,
-                                                                  axis=0)), -1)
+        mu = np.reshape(self._approximator.predict(np.expand_dims(state, axis=0), **self._predict_params), -1)
 
         sigma = self._std**2
 
@@ -206,16 +207,17 @@ class StateStdGaussianPolicy(AbstractGaussianPolicy):
 
         self._mu_approximator = mu
         self._std_approximator = std
+        self._predict_params = dict()
         self._eps = eps
 
         self._add_save_attr(
             _mu_approximator='mushroom',
             _std_approximator='mushroom',
+            _predict_params='pickle',
             _eps='primitive'
         )
 
     def diff_log(self, state, action):
-
         mu, sigma, std = self._compute_multivariate_gaussian(state)
         diag_sigma = np.diag(sigma)
 
@@ -258,10 +260,10 @@ class StateStdGaussianPolicy(AbstractGaussianPolicy):
 
     def _compute_multivariate_gaussian(self, state):
         mu = np.reshape(self._mu_approximator.predict(
-            np.expand_dims(state, axis=0)), -1)
+            np.expand_dims(state, axis=0), **self._predict_params), -1)
 
         std = np.reshape(self._std_approximator.predict(
-            np.expand_dims(state, axis=0)), -1)
+            np.expand_dims(state, axis=0), **self._predict_params), -1)
 
         sigma = std**2 + self._eps
 
@@ -294,10 +296,12 @@ class StateLogStdGaussianPolicy(AbstractGaussianPolicy):
         """
         self._mu_approximator = mu
         self._log_std_approximator = log_std
+        self._predict_params = dict()
 
         self._add_save_attr(
             _mu_approximator='mushroom',
-            _log_std_approximator='mushroom'
+            _log_std_approximator='mushroom',
+            _predict_params='pickle'
         )
 
     def diff_log(self, state, action):
@@ -344,10 +348,10 @@ class StateLogStdGaussianPolicy(AbstractGaussianPolicy):
 
     def _compute_multivariate_gaussian(self, state):
         mu = np.reshape(self._mu_approximator.predict(
-            np.expand_dims(state, axis=0)), -1)
+            np.expand_dims(state, axis=0), **self._predict_params), -1)
 
         log_std = np.reshape(self._log_std_approximator.predict(
-            np.expand_dims(state, axis=0)), -1)
+            np.expand_dims(state, axis=0), **self._predict_params), -1)
 
         sigma = np.exp(log_std)**2
 

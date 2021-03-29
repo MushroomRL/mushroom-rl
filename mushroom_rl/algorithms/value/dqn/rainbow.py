@@ -4,8 +4,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from mushroom_rl.algorithms.value.dqn import AbstractDQN
+from mushroom_rl.algorithms.value.dqn.categorical_dqn import categorical_loss
 from mushroom_rl.algorithms.value.dqn.noisy_dqn import NoisyNetwork
 from mushroom_rl.approximators.parametric.torch_approximator import *
+from mushroom_rl.utils.replay_memory import PrioritizedReplayMemory
 
 
 class RainbowNetwork(nn.Module):
@@ -66,7 +68,8 @@ class Rainbow(AbstractDQN):
 
     """
     def __init__(self, mdp_info, policy, approximator_params, n_atoms, v_min,
-                 v_max, n_steps_return, sigma_coeff, **params):
+                 v_max, n_steps_return, alpha_coeff, beta, sigma_coeff=.5,
+                 **params):
         """
         Constructor.
 
@@ -75,7 +78,9 @@ class Rainbow(AbstractDQN):
             v_min (float): minimum value of value-function;
             v_max (float): maximum value of value-function;
             n_steps_return (int): the number of steps to consider to compute the n-return;
-            sigma_coeff (float): sigma0 coefficient for noise initialization in noisy layers.
+            alpha_coeff (float): prioritization exponent for prioritized experience replay;
+            beta (Parameter): importance sampling coefficient for prioritized experience replay;
+            sigma_coeff (float, .5): sigma0 coefficient for noise initialization in noisy layers.
 
         """
         features_network = approximator_params['network']
@@ -86,6 +91,7 @@ class Rainbow(AbstractDQN):
         params['approximator_params']['v_min'] = v_min
         params['approximator_params']['v_max'] = v_max
         params['approximator_params']['sigma_coeff'] = sigma_coeff
+        params['approximator_params']['loss'] = categorical_loss
 
         self._n_atoms = n_atoms
         self._v_min = v_min
@@ -94,6 +100,11 @@ class Rainbow(AbstractDQN):
         self._a_values = np.arange(v_min, v_max + self._delta, self._delta)
         self._n_steps_return = n_steps_return
         self._sigma_coeff = sigma_coeff
+
+        params['replay_memory'] = PrioritizedReplayMemory(
+            params['initial_replay_size'], params['max_replay_size'], alpha=alpha_coeff,
+            beta=beta
+        )
 
         self._add_save_attr(
             _n_atoms='primitive',
@@ -107,8 +118,6 @@ class Rainbow(AbstractDQN):
 
         super().__init__(mdp_info, policy, TorchApproximator, **params)
 
-        self._gamma = self.mdp_info.gamma ** self._n_steps_return
-
     def fit(self, dataset):
         self._replay_memory.add(dataset, np.ones(len(dataset)) * self._replay_memory.max_priority,
                                 n_steps_return=self._n_steps_return, gamma=self.mdp_info.gamma)
@@ -119,11 +128,11 @@ class Rainbow(AbstractDQN):
             if self._clip_reward:
                 reward = np.clip(reward, -1, 1)
 
-            q_next = self.approximator.predict(next_state)
+            q_next = self.approximator.predict(next_state, **self._predict_params)
             a_max = np.argmax(q_next, axis=1)
-            gamma = self._gamma * (1 - absorbing)
+            gamma = self.mdp_info.gamma ** self._n_steps_return * (1 - absorbing)
             p_next = self.target_approximator.predict(next_state, a_max,
-                                                      get_distribution=True)
+                                                      get_distribution=True, **self._predict_params)
             gamma_z = gamma.reshape(-1, 1) * np.expand_dims(
                 self._a_values, 0).repeat(len(gamma), 0)
             bell_a = (reward.reshape(-1, 1) + gamma_z).clip(self._v_min,
@@ -141,7 +150,8 @@ class Rainbow(AbstractDQN):
                 m[np.arange(len(m)), l[:, i]] += p_next[:, i] * (u[:, i] - b[:, i])
                 m[np.arange(len(m)), u[:, i]] += p_next[:, i] * (b[:, i] - l[:, i])
 
-            kl = -np.sum(m * np.log(self.approximator.predict(state, action, get_distribution=True).clip(1e-5)), 1)
+            kl = -np.sum(m * np.log(self.approximator.predict(state, action, get_distribution=True,
+                                                              **self._predict_params).clip(1e-5)), 1)
             self._replay_memory.update(kl, idxs)
 
             self.approximator.fit(state, action, m, weights=is_weight,

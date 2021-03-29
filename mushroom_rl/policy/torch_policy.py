@@ -204,6 +204,7 @@ class GaussianTorchPolicy(TorchPolicy):
 
         self._mu = Regressor(TorchApproximator, input_shape, output_shape,
                              network=network, use_cuda=use_cuda, **params)
+        self._predict_params = dict()
 
         log_sigma_init = (torch.ones(self._action_dim) * np.log(std_0)).float()
 
@@ -215,6 +216,7 @@ class GaussianTorchPolicy(TorchPolicy):
         self._add_save_attr(
             _action_dim='primitive',
             _mu='mushroom',
+            _predict_params='pickle',
             _log_sigma='torch'
         )
 
@@ -232,7 +234,7 @@ class GaussianTorchPolicy(TorchPolicy):
         return torch.distributions.MultivariateNormal(loc=mu, covariance_matrix=sigma)
 
     def get_mean_and_covariance(self, state):
-        return self._mu(state, output_tensor=True), torch.diag(torch.exp(2 * self._log_sigma))
+        return self._mu(state, **self._predict_params, output_tensor=True), torch.diag(torch.exp(2 * self._log_sigma))
 
     def set_weights(self, weights):
         log_sigma_data = torch.from_numpy(weights[-self._action_dim:])
@@ -276,6 +278,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
         super().__init__(use_cuda)
 
         self._action_dim = output_shape[0]
+        self._predict_params = dict()
 
         self._logits = Regressor(TorchApproximator, input_shape, output_shape,
                                  network=network, use_cuda=use_cuda, **params)
@@ -283,6 +286,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
 
         self._add_save_attr(
             _action_dim='primitive',
+            _predict_params='pickle',
             _beta='mushroom',
             _logits='mushroom'
         )
@@ -302,7 +306,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
         return torch.mean(self.distribution_t(state).entropy())
 
     def distribution_t(self, state):
-        logits = self._logits(state, output_tensor=True) * self._beta(state.numpy())
+        logits = self._logits(state, **self._predict_params, output_tensor=True) * self._beta(state.numpy())
         return torch.distributions.Categorical(logits=logits)
 
     def set_weights(self, weights):

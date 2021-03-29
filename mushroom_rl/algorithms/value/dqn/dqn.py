@@ -11,7 +11,7 @@ class DQN(AbstractDQN):
 
     """
     def _next_q(self, next_state, absorbing):
-        q = self.target_approximator.predict(next_state)
+        q = self.target_approximator.predict(next_state, **self._predict_params)
         if np.any(absorbing):
             q *= 1 - absorbing.reshape(-1, 1)
 

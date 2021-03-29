@@ -13,9 +13,10 @@ class TDPolicy(Policy):
 
         """
         self._approximator = None
+        self._predict_params = dict()
 
-        self._add_save_attr(_approximator='mushroom!')
-
+        self._add_save_attr(_approximator='mushroom!',
+                            _predict_params='pickle')
 
     def set_q(self, approximator):
         """
@@ -57,7 +58,7 @@ class EpsGreedy(TDPolicy):
 
     def __call__(self, *args):
         state = args[0]
-        q = self._approximator.predict(np.expand_dims(state, axis=0)).ravel()
+        q = self._approximator.predict(np.expand_dims(state, axis=0), **self._predict_params).ravel()
         max_a = np.argwhere(q == np.max(q)).ravel()
 
         p = self._epsilon.get_value(state) / self._approximator.n_actions
@@ -76,7 +77,7 @@ class EpsGreedy(TDPolicy):
 
     def draw_action(self, state):
         if not np.random.uniform() < self._epsilon(state):
-            q = self._approximator.predict(state)
+            q = self._approximator.predict(state, **self._predict_params)
             max_a = np.argwhere(q == np.max(q)).ravel()
 
             if len(max_a) > 1:
@@ -133,7 +134,7 @@ class Boltzmann(TDPolicy):
 
     def __call__(self, *args):
         state = args[0]
-        q_beta = self._approximator.predict(state) * self._beta(state)
+        q_beta = self._approximator.predict(state, **self._predict_params) * self._beta(state)
         q_beta -= q_beta.max()
         qs = np.exp(q_beta)
 
@@ -193,7 +194,7 @@ class Mellowmax(Boltzmann):
             )
 
         def __call__(self, state):
-            q = self._outer._approximator.predict(state)
+            q = self._outer._approximator.predict(state, **self._outer._predict_params)
             mm = (logsumexp(q * self._omega(state)) - np.log(
                 q.size)) / self._omega(state)
 
