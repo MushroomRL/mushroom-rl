@@ -139,6 +139,11 @@ class PyBullet(Environment):
                 data = self._joint_map[name] + (mode,)
                 self._action_data.append(data)
 
+                if mode == pybullet.TORQUE_CONTROL:
+                    self._client.setJointMotorControl2(data[0], data[1],
+                                                       controlMode=pybullet.VELOCITY_CONTROL,
+                                                       force=0)
+
         low, high = self._compute_action_limits()
         action_space = Box(np.array(low), np.array(high))
 
