@@ -69,11 +69,11 @@ class VoronoiTiles:
             n_tilings = int(m**2)
 
         if uniform:
-            low = np.array(low, dtype=np.float)
-            high = np.array(high, dtype=np.float)
+            low = np.array(low, dtype=float)
+            high = np.array(high, dtype=float)
         else:
-            mu = np.array(mu, dtype=np.float)
-            sigma = np.array(sigma, dtype=np.float)
+            mu = np.array(mu, dtype=float)
+            sigma = np.array(sigma, dtype=float)
 
         # Generate the list of tilings
         tilings = list()
