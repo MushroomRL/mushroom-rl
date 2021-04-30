@@ -41,7 +41,7 @@ def experiment():
     # Initial policy Evaluation
     dataset = core.evaluate(n_steps=1000)
     J = np.mean(compute_J(dataset, mdp.info.gamma))
-    logger.info('J start:', J)
+    logger.info(f'J start: {J}')
 
     # Train
     core.learn(n_steps=10000, n_steps_per_fit=1)
@@ -49,7 +49,7 @@ def experiment():
     # Final Policy Evaluation
     dataset = core.evaluate(n_steps=1000)
     J = np.mean(compute_J(dataset, mdp.info.gamma))
-    logger.info('J final:', J)
+    logger.info(f'J final: {J}')
 
 
 if __name__ == '__main__':
