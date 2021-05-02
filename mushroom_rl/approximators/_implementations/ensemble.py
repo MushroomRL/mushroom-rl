@@ -29,7 +29,8 @@ class Ensemble(Serializable):
             self._model.append(model(**params))
 
         self._add_save_attr(
-            _model=self._get_serialization_method(model)
+            _model=self._get_serialization_method(model),
+            _prediction='primitive'
         )
 
     def fit(self, *z, idx=None, **fit_params):

@@ -23,6 +23,7 @@ class DeterministicPolicy(ParametricPolicy):
         self._predict_params = dict()
 
         self._add_save_attr(_approximator='mushroom')
+        self._add_save_attr(_predict_params='pickle')
 
     def get_regressor(self):
         """

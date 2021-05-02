@@ -21,21 +21,21 @@ class Gym(Environment):
     are managed in a separate class.
 
     """
-    def __init__(self, name, horizon, gamma, wrappers=None, wrappers_args=None,
+    def __init__(self, name, horizon=None, gamma=0.99, wrappers=None, wrappers_args=None,
                  **env_args):
         """
         Constructor.
 
         Args:
              name (str): gym id of the environment;
-             horizon (int): the horizon;
-             gamma (float): the discount factor;
-             wrappers (list): list of wrappers to apply over the environment. It
+             horizon (int): the horizon. If None, use the one from Gym;
+             gamma (float, 0.99): the discount factor;
+             wrappers (list, None): list of wrappers to apply over the environment. It
                 is possible to pass arguments to the wrappers by providing
                 a tuple with two elements: the gym wrapper class and a
                 dictionary containing the parameters needed by the wrapper
                 constructor;
-            wrappers_args (list): list of list of arguments for each wrapper;
+            wrappers_args (list, None): list of list of arguments for each wrapper;
             ** env_args: other gym environment parameters.
 
         """
@@ -59,6 +59,8 @@ class Gym(Environment):
                 else:
                     self.env = wrapper(self.env, *args, **env_args)
 
+        if horizon is None:
+            horizon = self.env._max_episode_steps
         self.env._max_episode_steps = np.inf  # Hack to ignore gym time limit.
 
         # MDP properties

@@ -48,6 +48,7 @@ class GaussianPolicy(AbstractGaussianPolicy):
 
         self._add_save_attr(
             _approximator='mushroom',
+            _predict_params='pickle',
             _inv_sigma='numpy',
             _sigma='numpy'
         )
@@ -122,6 +123,7 @@ class DiagonalGaussianPolicy(AbstractGaussianPolicy):
 
         self._add_save_attr(
             _approximator='mushroom',
+            _predict_params='pickle',
             _std='numpy'
         )
 
@@ -211,6 +213,7 @@ class StateStdGaussianPolicy(AbstractGaussianPolicy):
         self._add_save_attr(
             _mu_approximator='mushroom',
             _std_approximator='mushroom',
+            _predict_params='pickle',
             _eps='primitive'
         )
 
@@ -297,7 +300,8 @@ class StateLogStdGaussianPolicy(AbstractGaussianPolicy):
 
         self._add_save_attr(
             _mu_approximator='mushroom',
-            _log_std_approximator='mushroom'
+            _log_std_approximator='mushroom',
+            _predict_params='pickle'
         )
 
     def diff_log(self, state, action):
