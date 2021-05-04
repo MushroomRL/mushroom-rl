@@ -1,4 +1,4 @@
-How to use the Serialization interface
+How to use the Serializable interface
 ======================================
 
 In this tutorial, we will explain in detail the ``Serializable`` interface. We will first explain how to use classes
