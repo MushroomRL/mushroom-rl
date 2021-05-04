@@ -1,5 +1,5 @@
-How to use the Mushroom Logger
-==============================
+How to use the Logger
+=====================
 
 Here we explain in a bit of detail the usage of the MushroomRL Logger class.
 This class can be used as a standardized console logger and can also log on disk

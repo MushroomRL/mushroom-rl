@@ -1,5 +1,5 @@
-How to use the MushroomRL Environment interface
-===============================================
+How to use the Environment interface
+====================================
 
 Here we explain in a bit of detail the usage of the MushroomRL Environment interface.
 First, we will explain how to use the registration interface. The registration enables the construction of environments

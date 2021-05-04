@@ -1,5 +1,5 @@
-How to use the Mushroom Serialization
-=====================================
+How to use the Serialization Interface
+======================================
 
 In this tutorial, we will explain in detail the ``Serializable`` interface. We will first explain how to use classes
 implementing the ``Serializable`` interface, and then we will provide a small example of how to implement the
