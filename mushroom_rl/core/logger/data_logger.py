@@ -91,6 +91,14 @@ class DataLogger(object):
             path = self._results_dir / filename
             agent.save(path, full_save=full_save)
 
+    @property
+    def path(self):
+        """
+        Property to return the path to the current logging directory
+
+        """
+        return self._results_dir
+
     def _load_numpy(self):
         for file in self._results_dir.iterdir():
             if file.is_file() and file.suffix == '.npy':
