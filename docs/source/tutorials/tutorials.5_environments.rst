@@ -2,8 +2,8 @@ How to use the Environment interface
 ====================================
 
 Here we explain in a bit of detail the usage of the MushroomRL Environment interface.
-First, we will explain how to use the registration interface. The registration enables the construction of environments
-from string specification. Then we will construct a toy environment to show how it is possible to add new MushroomRL
+First, we explain how to use the registration interface. The registration enables the construction of environments
+from string specification. Then we construct a toy environment to show how it is possible to add new MushroomRL
 environments.
 
 
@@ -93,8 +93,8 @@ not saved on disk, thus, you need to register the environment every time the pyt
 Creating a new environment
 --------------------------
 
-We will show you an example of how to construct a MushroomRL environment.
-We will create a simple room environment, with discrete actions, continuous state space, and mildly stochastic dynamics.
+We show you an example of how to construct a MushroomRL environment.
+We create a simple room environment, with discrete actions, continuous state space, and mildly stochastic dynamics.
 The objective is to move the agent from any point of the room towards the goal point. The agent takes a penalty at every
 step equal to the distance to the objective. When the agent reaches the goal the episode ends. The agent can move in the
 room by using one of the 4 discrete actions, North, South, West, East.
@@ -102,7 +102,7 @@ room by using one of the 4 discrete actions, North, South, West, East.
 First of all, we import all the required classes: NumPy for working with the array, the Environment interface and
 the MDPInfo structure, which contains the basic information about the Environment.
 
-Given that we will implement a simple visualization, we will import also the viewer class, which is a Pygame
+Given that we are implementing a simple visualization function, we import also the viewer class, which is a Pygame
 wrapper, that can be used to render easily RL environments.
 
 
@@ -143,7 +143,7 @@ is needed.
 
 Finally, we implement the render function using our ``Viewer`` class. This class wraps Pygame to provide an easy
 visualization tool for 2D Reinforcement Learning algorithms. The viewer class has many functionalities, but here we
-will simply draw two circles representing the agent and the goal area:
+simply draw two circles representing the agent and the goal area:
 
 .. literalinclude:: code/room_env.py
    :lines: 89-97
@@ -159,8 +159,8 @@ To conclude our environment, it's also possible to register it as specified in t
 Learning in the toy environment
 -------------------------------
 
-Now that we have created our environment, we will try to solve it using Reinforcement Learning. The following code will
-use the True Online SARSA-Lambda algorithm, exploiting a tiles approximator.
+Now that we have created our environment, we try to solve it using Reinforcement Learning. The following code uses the
+True Online SARSA-Lambda algorithm, exploiting a tiles approximator.
 
 We first import all necessary classes and utilities, then we construct the environment (we set the seed for
 reproducibility).
@@ -168,7 +168,7 @@ reproducibility).
 .. literalinclude:: code/room_env.py
    :lines: 103-116
 
-We now proceed then to create the agent policy, which will be a linear policy using tiles features, similar
+We now proceed then to create the agent policy, which is a linear policy using tiles features, similar
 to the one used by the Mountain Car experiment from R. Sutton book.
 
 .. literalinclude:: code/room_env.py
