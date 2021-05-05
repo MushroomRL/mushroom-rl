@@ -241,7 +241,5 @@ class Regressor(Serializable):
 
         """
         if isinstance(self._impl.model, Ensemble):
-            for i in range(len(self._impl.model)):
-                self._impl.model[i]._logger = logger
-        else:
-            self._impl.model._logger = logger
+            raise NotImplementedError
+        self._impl.model._logger = logger
