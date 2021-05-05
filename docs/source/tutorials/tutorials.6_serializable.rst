@@ -1,12 +1,12 @@
 How to use the Serializable interface
 ======================================
 
-In this tutorial, we will explain in detail the ``Serializable`` interface. We will first explain how to use classes
-implementing the ``Serializable`` interface, and then we will provide a small example of how to implement the
+In this tutorial, we explain in detail the ``Serializable`` interface. We first explain how to use classes
+implementing the ``Serializable`` interface, and then we provide a small example of how to implement the
 ``Serializable`` interface on a custom class to serialize the object properly on disk.
 
 The Mushroom RL save format (extension ``.msh``) is nothing else than a zip file, containing some information (stored into
-the ``config`` file) to load the system. This information can be accessed easily and you can try to recover the information
+the ``config`` file) to load the object. This information can be accessed easily and you can try to recover the information
 by hand from corrupted files.
 
 Note that it is always possible to serialize Python objects with the pickle library. However, the MushroomRL
@@ -17,11 +17,12 @@ such as shared objects or big arrays, e.g. replay memories.
 Save and load from disk
 -----------------------
 
-Many mushroom objects implement the serialization interface. All the algorithms, policies, approximators, and parameters
+Many MushroomRL objects implement the serialization interface. All the algorithms, policies, approximators, and parameters
 implemented in MushroomRL use the ``Serializable`` interface.
 
-As an example, we will save a MushroomRL ``Parameter`` on disk. We create the parameter and then we serialize it to disk
+As an example, we save a MushroomRL ``Parameter`` on disk. We create the parameter and then we serialize it to disk
 using the ``save`` method of the serializable class:
+
 .. code-block:: python
 
     from mushroom_rl.utils.parameters import Parameter
@@ -33,6 +34,7 @@ using the ``save`` method of the serializable class:
 This code creates a ``parameters.msh`` file in the working directory.
 
 You can also specify a directory:
+
 .. code-block:: python
 
     from pathlib import Path
@@ -40,22 +42,25 @@ You can also specify a directory:
     file_name = base_dir / 'parameter.msh'
     parameter.save(file_name)
 
-This will create a ``tmp`` folder (if it doesn't exist) in the working directory and save the ``parameters.msh`` file
+This create a ``tmp`` folder (if it doesn't exist) in the working directory and save the ``parameters.msh`` file
 inside it.
 
 Now, we can set another value for our parameter variable:
+
 .. code-block:: python
 
     parameter = Parameter(0.5)
     print('Modified parameter value: ', parameter())
 
 Finally, we load the previously stored parameter to go back to the previous state using the ``load`` method:
+
 .. code-block:: python
 
     parameter = Parameter.load('parameter.msh')
     print('Loaded parameter value: ', parameter())
 
 You can also call the load directly from the Serializable class:
+
 .. code-block:: python
 
     from mushroom_rl.core import Serializable
@@ -68,8 +73,8 @@ Full Save
 ---------
 
 The ``save`` method has an optional ``full_save`` flag, which by default is set to False. In the previous parameter
-example, this flag will not affect. However, when saving a Reinforcement Learning algorithm or other complex
-objects, setting this flag to true will force the agent to save data structures that are normally excluded from a save
+example, this flag does not affect. However, when saving a Reinforcement Learning algorithm or other complex
+objects, setting this flag to true forces the agent to save data structures that are normally excluded from a save
 file, such as the replay memory in DQN.
 
 This implementation choice avoids large save files for agents with huge data structures, and allows to avoid storing
@@ -79,9 +84,9 @@ The ``full_save`` instead, enforces a complete serialization of the agent, retai
 Implementing the Serializable interface
 ---------------------------------------
 
-We will give a simple example of how to implement the ``Serializable`` interface in MushroomRL for a custom class.
+We give a simple example of how to implement the ``Serializable`` interface in MushroomRL for a custom class.
+We use almost all possible data persistence types implemented.
 
-We will try to use almost all possible data persistence types implemented.
 We start the example by importing the serializable interface, the torch library, the NumPy library, and the MushroomRL
 ``Parameter class``.
 
@@ -89,12 +94,12 @@ We start the example by importing the serializable interface, the torch library,
    :lines: 1-5
 
 While it is required to import the ``Serializable`` interface, the other three imports are only required by this example, as
-they will be used to create variables of such type.
+they are used to create variables of such type.
 
 Now we define a class implementing the ``Serializable`` interface. In this case, we call it ``TestClass``.
 The constructor can be divided into two parts: first, we build a set of variables of different types.
 Then, we call the superclass constructor, i.e. the constructor of ``Serializable``. Finally, we specify which variables
-we want to be saved in the mushroom file passing keywords to the ``self._add_save_attr`` method.
+we want to be saved in the MushroomRL file passing keywords to the ``self._add_save_attr`` method.
 
 .. literalinclude:: code/serialization.py
    :lines: 8-45
