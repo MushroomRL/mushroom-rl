@@ -1,4 +1,5 @@
 import re
+import pickle
 import numpy as np
 
 from pathlib import Path
@@ -90,6 +91,15 @@ class DataLogger(object):
             filename = 'agent' + self._suffix + '-best.msh'
             path = self._results_dir / filename
             agent.save(path, full_save=full_save)
+
+    def log_dataset(self, dataset):
+        filename = 'dataset' + self._suffix + '.pkl'
+        path = self._results_dir / filename
+
+        with path.open(mode='wb') as f:
+            print(type(f))
+            print('filename')
+            pickle.dump(dataset, f)
 
     @property
     def path(self):

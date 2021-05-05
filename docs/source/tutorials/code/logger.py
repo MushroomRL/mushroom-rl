@@ -89,8 +89,10 @@ for i in trange(epochs):
 # Logging the last agent
 logger.log_agent(agent)
 
-logger.info('Experiment terminated')
+# Log the last dataset
+logger.log_dataset(dataset)
 
+logger.info('Experiment terminated')
 
 # Loggers can also continue from previous logs results
 del logger  # Delete previous logger
@@ -100,9 +102,3 @@ new_logger = Logger('tutorial', results_dir='/tmp/logs',
 # add infinite at the end of J.npy
 new_logger.log_numpy(J=np.inf)
 new_logger.info('Tutorial ends here')
-
-
-
-
-
-

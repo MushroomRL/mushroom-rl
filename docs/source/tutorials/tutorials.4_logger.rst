@@ -81,11 +81,11 @@ a postfix with the seed. This is useful when multiple runs of the same experimen
 The ``log_best_agent`` save the current agent, into the 'agent-best.msh' file. However, the current agent will
 be stored on disk only if it improves w.r.t. the previously logged one.
 
-We conclude the learning experiment by logging the final agent:
+We conclude the learning experiment by logging the final agent and the last dataset:
 
 
 .. literalinclude:: code/logger.py
-   :lines: 89-92
+   :lines: 89-95
 
 
 Advanced Logger topics
@@ -95,7 +95,7 @@ The logger can be also used to continue the learning from a previously existing 
 stored results values. This can be done by specifying the ``append`` flag in the logger's constructor.
 
 .. literalinclude:: code/logger.py
-   :lines: 89-92
+   :lines: 97-
 
 Finally, another functionality of the logger is to activate some specific text output from some algorithms.
 This can be done by calling the agent's ``set_logger`` method:
