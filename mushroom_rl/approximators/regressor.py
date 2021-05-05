@@ -73,12 +73,15 @@ class Regressor(Serializable):
                                           len(self.input_shape),
                                           **params)
 
+        self._logger = None
+
         self._add_save_attr(
             _input_shape='primitive',
             _output_shape='primitive',
             n_actions='primitive',
             _n_models='primitive',
-            _impl='mushroom'
+            _impl='mushroom',
+            _logger='none'
         )
 
     def __call__(self, *z, **predict_params):
@@ -228,3 +231,17 @@ class Regressor(Serializable):
             return self.model
         else:
             return self.model[item]
+
+    def set_logger(self, logger):
+        """
+        Setter that can be used to pass a logger to the regressor.
+
+        Args:
+            logger (Logger): the logger to be used by the regressor.
+
+        """
+        if isinstance(self._impl.model, Ensemble):
+            for i in range(len(self._impl.model)):
+                self._impl.model[i]._logger = logger
+        else:
+            self._impl.model._logger = logger

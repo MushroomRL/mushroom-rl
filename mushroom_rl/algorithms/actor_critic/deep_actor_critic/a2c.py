@@ -59,15 +59,15 @@ class A2C(DeepAC):
         super().__init__(mdp_info, policy, actor_optimizer, policy.parameters())
 
     def fit(self, dataset):
-            state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
+        state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
 
-            v, adv = compute_advantage_montecarlo(self._V, state, next_state,
-                                                  reward, absorbing,
-                                                  self.mdp_info.gamma)
-            self._V.fit(state, v, **self._critic_fit_params)
+        v, adv = compute_advantage_montecarlo(self._V, state, next_state,
+                                              reward, absorbing,
+                                              self.mdp_info.gamma)
+        self._V.fit(state, v, **self._critic_fit_params)
 
-            loss = self._loss(state, action, adv)
-            self._optimize_actor_parameters(loss)
+        loss = self._loss(state, action, adv)
+        self._optimize_actor_parameters(loss)
 
     def _loss(self, state, action, adv):
         use_cuda = self.policy.use_cuda

@@ -65,6 +65,8 @@ class TorchApproximator(Serializable):
                                                  **optimizer['params'])
         self._loss = loss
 
+        self._logger = None
+
         self._add_save_attr(
             _batch_size='primitive',
             _reinitialize='primitive',
@@ -74,7 +76,8 @@ class TorchApproximator(Serializable):
             _n_fit_targets='primitive',
             network='torch',
             _optimizer='torch',
-            _loss='pickle'
+            _loss='pickle',
+            _logger='none'
         )
 
     def predict(self, *args, output_tensor=False, **kwargs):
@@ -183,6 +186,9 @@ class TorchApproximator(Serializable):
                         )
 
                         loss = mean_val_loss_current.item()
+
+                        if self._logger:
+                            self._logger.log_numpy(val_loss=mean_val_loss_current)
                     else:
                         loss = mean_loss_current
 
@@ -219,7 +225,12 @@ class TorchApproximator(Serializable):
         for batch in batches:
             loss_current.append(self._fit_batch(batch, use_weights, kwargs))
 
-        return np.mean(loss_current)
+        mean_loss_current = np.mean(loss_current)
+
+        if self._logger:
+            self._logger.log_numpy(loss=mean_loss_current)
+
+        return mean_loss_current
 
     def _fit_batch(self, batch, use_weights, kwargs):
         loss = self._compute_batch_loss(batch, use_weights, kwargs)
