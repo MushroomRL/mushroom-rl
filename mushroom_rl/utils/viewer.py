@@ -227,7 +227,7 @@ class Viewer:
             delta = e - c
 
             pygame.draw.line(self.screen, color, c, e, width)
-            self.arrow_head(end, max_length / 4, np.arctan2(delta[1], delta[0]),
+            self.arrow_head(end, length / 4, -np.arctan2(delta[1], delta[0]),
                             color)
 
     def torque_arrow(self, center, torque, max_torque,
