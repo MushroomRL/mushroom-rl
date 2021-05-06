@@ -46,7 +46,7 @@ class DDPG(DeepAC):
             actor_predict_params (dict, None): parameters for the prediction with the
                 actor approximator;
             critic_predict_params (dict, None): parameters for the prediction with the
-                critic approximator;
+                critic approximator.
 
         """
         self._critic_fit_params = dict() if critic_fit_params is None else critic_fit_params
@@ -82,7 +82,9 @@ class DDPG(DeepAC):
         policy_parameters = self._actor_approximator.model.network.parameters()
 
         self._add_save_attr(
-            _critic_fit_params='pickle', 
+            _critic_fit_params='pickle',
+            _critic_predict_params='pickle',
+            _actor_predict_params='pickle',
             _batch_size='mushroom',
             _tau='mushroom',
             _policy_delay='mushroom',
