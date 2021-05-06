@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from sklearn.exceptions import NotFittedError
 
 from mushroom_rl.core import Serializable
@@ -88,19 +89,23 @@ class Ensemble(Serializable):
                     raise NotFittedError
 
             prediction = self._prediction if prediction is None else prediction
+            if isinstance(predictions[0], np.ndarray):
+                predictions = np.array(predictions)
+            else:
+                predictions = torch.cat(predictions)
 
             if prediction == 'mean':
-                results = np.mean(predictions, axis=0)
+                results = predictions.mean(0)
             elif prediction == 'sum':
-                results = np.sum(predictions, axis=0)
+                results = predictions.sum(0)
             elif prediction == 'min':
-                results = np.min(predictions, axis=0)
+                results = predictions.min(0)
             elif prediction == 'max':
-                results = np.max(predictions, axis=0)
+                results = predictions.max(0)
             else:
                 raise ValueError
             if compute_variance:
-                results = [results, np.var(predictions, ddof=1, axis=0)]
+                results = [results, predictions.var(0)]
 
         return results
 

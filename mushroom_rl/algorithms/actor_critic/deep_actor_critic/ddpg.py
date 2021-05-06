@@ -20,7 +20,7 @@ class DDPG(DeepAC):
     def __init__(self, mdp_info, policy_class, policy_params,
                  actor_params, actor_optimizer, critic_params, batch_size,
                  initial_replay_size, max_replay_size, tau, policy_delay=1,
-                 critic_fit_params=None):
+                 critic_fit_params=None, actor_predict_params=None, critic_predict_params=None):
         """
         Constructor.
 
@@ -43,9 +43,15 @@ class DDPG(DeepAC):
                 which an actor update is implemented;
             critic_fit_params (dict, None): parameters of the fitting algorithm
                 of the critic approximator;
+            actor_predict_params (dict, None): parameters for the prediction with the
+                actor approximator;
+            critic_predict_params (dict, None): parameters for the prediction with the
+                critic approximator;
 
         """
         self._critic_fit_params = dict() if critic_fit_params is None else critic_fit_params
+        self._actor_predict_params = dict() if actor_predict_params is None else actor_predict_params
+        self._critic_predict_params = dict() if critic_predict_params is None else critic_predict_params
 
         self._batch_size = to_parameter(batch_size)
         self._tau = to_parameter(tau)
@@ -113,8 +119,8 @@ class DDPG(DeepAC):
             self._fit_count += 1
 
     def _loss(self, state):
-        action = self._actor_approximator(state, output_tensor=True)
-        q = self._critic_approximator(state, action, output_tensor=True)
+        action = self._actor_approximator(state, output_tensor=True, **self._actor_predict_params)
+        q = self._critic_approximator(state, action, output_tensor=True, **self._critic_predict_params)
 
         return -q.mean()
 
@@ -131,9 +137,9 @@ class DDPG(DeepAC):
             action returned by the actor.
 
         """
-        a = self._target_actor_approximator(next_state)
+        a = self._target_actor_approximator.predict(next_state, **self._actor_predict_params)
 
-        q = self._target_critic_approximator.predict(next_state, a)
+        q = self._target_critic_approximator.predict(next_state, a, **self._critic_predict_params)
         q *= 1 - absorbing
 
         return q

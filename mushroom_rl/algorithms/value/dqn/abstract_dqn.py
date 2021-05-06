@@ -161,3 +161,13 @@ class AbstractDQN(Agent):
             self._fit = self._fit_standard
 
         self.policy.set_q(self.approximator)
+
+    def set_logger(self, logger):
+        """
+        Setter that can be used to pass a logger to the algorithm
+
+        Args:
+            logger (Logger): the logger to be used by the algorithm.
+
+        """
+        self.approximator.set_logger = logger
