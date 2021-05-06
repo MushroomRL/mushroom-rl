@@ -102,8 +102,9 @@ class CartPole(Environment):
         self._viewer.square(start, 0,  self._l / 10)
         self._viewer.circle(end, self._l / 20)
 
-        direction = np.array([1, 0])
-        self._viewer.force_arrow(start, direction, -self._last_u,
+        direction = -np.sign(self._last_u) * np.array([1, 0])
+        value = np.abs(self._last_u)
+        self._viewer.force_arrow(start, direction, value,
                                  self._max_u, self._l / 5)
 
         self._viewer.display(self._dt)
