@@ -229,6 +229,8 @@ class Viewer:
             pygame.draw.line(self.screen, color, c, e, width)
             self.arrow_head(end, length / 4, -np.arctan2(delta[1], delta[0]),
                             color)
+        else:
+            self.screen
 
     def torque_arrow(self, center, torque, max_torque,
                      max_radius, color=(255, 255, 255), width=1):
@@ -260,6 +262,8 @@ class Viewer:
             arrow_center[1] -= radius * np.sign(torque)
             arrow_scale = radius / 4
             self.arrow_head(arrow_center, arrow_scale, 0, color)
+        else:
+            self.screen
 
     def background_image(self, img):
         """
