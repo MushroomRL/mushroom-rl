@@ -71,7 +71,8 @@ class HexapodBullet(PyBullet):
 
         files = {
             self.robot_path: dict(basePosition=[0.0, 0, 0.12],
-                                  baseOrientation=[0, 0, 0.0, 1.0])
+                                  baseOrientation=[0, 0, 0.0, 1.0]),
+            'plane.urdf': {}
         }
 
         super().__init__(files, action_spec, observation_spec, gamma, horizon, debug_gui=debug_gui,
@@ -94,17 +95,6 @@ class HexapodBullet(PyBullet):
 
         self._client.resetDebugVisualizerCamera(cameraDistance=3, cameraYaw=0.0, cameraPitch=-45,
                                                 cameraTargetPosition=[0., 0., 0.])
-    #     self.collision_filter()
-    #
-    # def collision_filter(self):
-    #     # disable the collision with left and right rim Because of the inproper collision shape
-    #     robot_links = ['F_link_1', 'F_link_2', 'F_link_3', 'F_link_striker_hand', 'F_link_striker_ee',
-    #                    'B_link_1', 'B_link_2', 'B_link_3', 'B_link_striker_hand', 'B_link_striker_ee']
-    #     table_rims = ['t_down_rim_l', 't_down_rim_r', 't_up_rim_l', 't_up_rim_l', 't_base']
-    #     for link in robot_links:
-    #         for table_r in table_rims:
-    #             self._client.setCollisionFilterPair(self._link_map[link][0], self._link_map[table_r][0],
-    #                                             self._link_map[link][1], self._link_map[table_r][1], 0)
 
     def reward(self, state, action, next_state):
         return 0.
@@ -112,11 +102,6 @@ class HexapodBullet(PyBullet):
     def is_absorbing(self, state):
         return False
 
-    def _custom_load_models(self):
-
-        plane = self._client.loadURDF('plane.urdf')
-
-        return dict(plane=plane)
 
     @property
     def client(self):
