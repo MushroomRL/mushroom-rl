@@ -62,6 +62,7 @@ class PPO(Agent):
             _n_epochs_policy='mushroom',
             _batch_size='mushroom',
             _eps_ppo='mushroom',
+            _ent_coeff='mushroom',
             _optimizer='torch',
             _lambda='mushroom',
             _V='mushroom',
