@@ -21,7 +21,7 @@ class PPO(Agent):
 
     """
     def __init__(self, mdp_info, policy, actor_optimizer, critic_params,
-                 n_epochs_policy, batch_size, eps_ppo, lam,
+                 n_epochs_policy, batch_size, eps_ppo, lam, ent_coeff=0.0,
                  critic_fit_params=None):
         """
         Constructor.
@@ -37,6 +37,7 @@ class PPO(Agent):
             eps_ppo ([float, Parameter]): value for probability ratio clipping;
             lam ([float, Parameter], 1.): lambda coefficient used by generalized
                 advantage estimation;
+            ent_coeff ([float, Parameter], 1.): coefficient for the entropy regularization term;
             critic_fit_params (dict, None): parameters of the fitting algorithm
                 of the critic approximator.
 
@@ -50,6 +51,7 @@ class PPO(Agent):
         self._optimizer = actor_optimizer['class'](policy.parameters(), **actor_optimizer['params'])
 
         self._lambda = to_parameter(lam)
+        self._ent_coeff = to_parameter(ent_coeff)
 
         self._V = Regressor(TorchApproximator, **critic_params)
 
@@ -104,6 +106,7 @@ class PPO(Agent):
                                             1 + self._eps_ppo.get_value())
                 loss = -torch.mean(torch.min(prob_ratio * adv_i,
                                              clipped_ratio * adv_i))
+                loss -= self._ent_coeff()*self.policy.entropy_t(obs_i)
                 loss.backward()
                 self._optimizer.step()
 
