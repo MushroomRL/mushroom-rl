@@ -10,7 +10,7 @@ from mushroom_rl.environments.pybullet_envs import __file__ as path_robots
 
 class HexapodBullet(PyBullet):
     def __init__(self, control_front=True, control_back=False, observe_opponent=False,
-                 gamma=0.99, horizon=500, debug_gui=False):
+                 gamma=0.99, horizon=1000, debug_gui=False):
         hexapod_path = Path(path_robots).absolute().parent / 'data' / 'hexapod'/ 'hexapod.urdf'
         self.robot_path = str(hexapod_path)
 

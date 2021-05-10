@@ -9,13 +9,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/base.stl"/>
+        <mesh filename="meshes/visual/base.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/base.stl"/>
+        <mesh filename="meshes/collision/base.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -32,13 +32,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/motor.stl"/>
+        <mesh filename="meshes/visual/motor.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/motor.stl"/>
+        <mesh filename="meshes/collision/motor.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -56,13 +56,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/motor.stl"/>
+        <mesh filename="meshes/visual/motor.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/motor.stl"/>
+        <mesh filename="meshes/collision/motor.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -80,13 +80,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/motor.stl"/>
+        <mesh filename="meshes/visual/motor.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/motor.stl"/>
+        <mesh filename="meshes/collision/motor.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -104,13 +104,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/motor.stl"/>
+        <mesh filename="meshes/visual/motor.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/motor.stl"/>
+        <mesh filename="meshes/collision/motor.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -128,13 +128,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/motor.stl"/>
+        <mesh filename="meshes/visual/motor.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/motor.stl"/>
+        <mesh filename="meshes/collision/motor.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -152,13 +152,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/motor.stl"/>
+        <mesh filename="meshes/visual/motor.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/motor.stl"/>
+        <mesh filename="meshes/collision/motor.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -183,13 +183,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/leg_0_left.stl"/>
+        <mesh filename="meshes/visual/leg_0_left.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/leg_0_left.stl"/>
+        <mesh filename="meshes/collision/leg_0_left.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -204,13 +204,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/motor.stl"/>
+        <mesh filename="meshes/visual/motor.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/motor.stl"/>
+        <mesh filename="meshes/collision/motor.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -235,13 +235,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/leg_1.stl"/>
+        <mesh filename="meshes/visual/leg_1.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/leg_1.stl"/>
+        <mesh filename="meshes/collision/leg_1.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -256,13 +256,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/motor.stl"/>
+        <mesh filename="meshes/visual/motor.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/motor.stl"/>
+        <mesh filename="meshes/collision/motor.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -287,13 +287,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/leg_2_left.stl"/>
+        <mesh filename="meshes/visual/leg_2_left.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/leg_2_left.stl"/>
+        <mesh filename="meshes/collision/leg_2_left.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -315,13 +315,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/leg_0_right.stl"/>
+        <mesh filename="meshes/visual/leg_0_right.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/leg_0_right.stl"/>
+        <mesh filename="meshes/collision/leg_0_right.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -336,13 +336,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/motor.stl"/>
+        <mesh filename="meshes/visual/motor.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/motor.stl"/>
+        <mesh filename="meshes/collision/motor.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -367,13 +367,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/leg_1.stl"/>
+        <mesh filename="meshes/visual/leg_1.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/leg_1.stl"/>
+        <mesh filename="meshes/collision/leg_1.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -388,13 +388,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/motor.stl"/>
+        <mesh filename="meshes/visual/motor.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/motor.stl"/>
+        <mesh filename="meshes/collision/motor.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -419,13 +419,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/leg_2_right.stl"/>
+        <mesh filename="meshes/visual/leg_2_right.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/leg_2_right.stl"/>
+        <mesh filename="meshes/collision/leg_2_right.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -447,13 +447,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/leg_0_left.stl"/>
+        <mesh filename="meshes/visual/leg_0_left.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/leg_0_left.stl"/>
+        <mesh filename="meshes/collision/leg_0_left.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -468,13 +468,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/motor.stl"/>
+        <mesh filename="meshes/visual/motor.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/motor.stl"/>
+        <mesh filename="meshes/collision/motor.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -499,13 +499,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/leg_1.stl"/>
+        <mesh filename="meshes/visual/leg_1.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/leg_1.stl"/>
+        <mesh filename="meshes/collision/leg_1.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -520,13 +520,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/motor.stl"/>
+        <mesh filename="meshes/visual/motor.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/motor.stl"/>
+        <mesh filename="meshes/collision/motor.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -551,13 +551,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/leg_2_left.stl"/>
+        <mesh filename="meshes/visual/leg_2_left.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/leg_2_left.stl"/>
+        <mesh filename="meshes/collision/leg_2_left.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -579,13 +579,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/leg_0_right.stl"/>
+        <mesh filename="meshes/visual/leg_0_right.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/leg_0_right.stl"/>
+        <mesh filename="meshes/collision/leg_0_right.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -600,13 +600,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/motor.stl"/>
+        <mesh filename="meshes/visual/motor.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/motor.stl"/>
+        <mesh filename="meshes/collision/motor.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -631,13 +631,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/leg_1.stl"/>
+        <mesh filename="meshes/visual/leg_1.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/leg_1.stl"/>
+        <mesh filename="meshes/collision/leg_1.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -652,13 +652,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/motor.stl"/>
+        <mesh filename="meshes/visual/motor.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/motor.stl"/>
+        <mesh filename="meshes/collision/motor.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -683,13 +683,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/leg_2_right.stl"/>
+        <mesh filename="meshes/visual/leg_2_right.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/leg_2_right.stl"/>
+        <mesh filename="meshes/collision/leg_2_right.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -711,13 +711,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/leg_0_left.stl"/>
+        <mesh filename="meshes/visual/leg_0_left.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/leg_0_left.stl"/>
+        <mesh filename="meshes/collision/leg_0_left.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -732,13 +732,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/motor.stl"/>
+        <mesh filename="meshes/visual/motor.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/motor.stl"/>
+        <mesh filename="meshes/collision/motor.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -763,13 +763,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/leg_1.stl"/>
+        <mesh filename="meshes/visual/leg_1.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/leg_1.stl"/>
+        <mesh filename="meshes/collision/leg_1.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -784,13 +784,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/motor.stl"/>
+        <mesh filename="meshes/visual/motor.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/motor.stl"/>
+        <mesh filename="meshes/collision/motor.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -815,13 +815,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/leg_2_left.stl"/>
+        <mesh filename="meshes/visual/leg_2_left.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/leg_2_left.stl"/>
+        <mesh filename="meshes/collision/leg_2_left.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -843,13 +843,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/leg_0_right.stl"/>
+        <mesh filename="meshes/visual/leg_0_right.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/leg_0_right.stl"/>
+        <mesh filename="meshes/collision/leg_0_right.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -864,13 +864,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/motor.stl"/>
+        <mesh filename="meshes/visual/motor.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/motor.stl"/>
+        <mesh filename="meshes/collision/motor.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -895,13 +895,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/leg_1.stl"/>
+        <mesh filename="meshes/visual/leg_1.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/leg_1.stl"/>
+        <mesh filename="meshes/collision/leg_1.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -916,13 +916,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/motor.stl"/>
+        <mesh filename="meshes/visual/motor.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/motor.stl"/>
+        <mesh filename="meshes/collision/motor.stl"/>
       </geometry>
     </collision>
     <inertial>
@@ -947,13 +947,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/visual/leg_2_right.stl"/>
+        <mesh filename="meshes/visual/leg_2_right.stl"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="./meshes/collision/leg_2_right.stl"/>
+        <mesh filename="meshes/collision/leg_2_right.stl"/>
       </geometry>
     </collision>
     <inertial>
