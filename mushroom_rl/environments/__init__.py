@@ -1,10 +1,7 @@
-__extras__ = []
-
 from .environment import Environment, MDPInfo
 try:
     Atari = None
     from .atari import Atari
-    __extras__.append('Atari')
     Atari.register()
 except ImportError:
     pass
@@ -12,7 +9,6 @@ except ImportError:
 try:
     Gym = None
     from .gym_env import Gym
-    __extras__.append('Gym')
     Gym.register()
 except ImportError:
     pass
@@ -20,7 +16,6 @@ except ImportError:
 try:
     DMControl = None
     from .dm_control_env import DMControl
-    __extras__.append('DMControl')
     DMControl.register()
 except ImportError:
     pass
@@ -28,7 +23,7 @@ except ImportError:
 try:
     MuJoCo = None
     from .mujoco import MuJoCo
-    __extras__.append('MuJoCo')
+    from .mujoco_envs import *
 except ImportError:
     pass
 
@@ -36,7 +31,7 @@ except ImportError:
 try:
     PyBullet = None
     from .pybullet import PyBullet
-    __extras__.append('PyBullet')
+    from .pybullet_envs import *
 except ImportError:
     pass
 
@@ -70,9 +65,3 @@ Segway.register()
 from .ship_steering import ShipSteering
 ShipSteering.register()
 
-
-__all__ = ['Environment', 'MDPInfo',  'generate_simple_chain',
-           'CarOnHill',  'CartPole', 'FiniteMDP',
-           'GridWorld', 'GridWorldVanHasselt', 'InvertedPendulum',
-           'LQR', 'PuddleWorld', 'Segway',
-           'ShipSteering' ] + __extras__

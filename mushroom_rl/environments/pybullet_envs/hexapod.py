@@ -9,8 +9,7 @@ from mushroom_rl.environments.pybullet_envs import __file__ as path_robots
 
 
 class HexapodBullet(PyBullet):
-    def __init__(self, control_front=True, control_back=False, observe_opponent=False,
-                 gamma=0.99, horizon=1000, debug_gui=False):
+    def __init__(self, gamma=0.99, horizon=1000, goal=None, debug_gui=False):
         hexapod_path = Path(path_robots).absolute().parent / 'data' / 'hexapod'/ 'hexapod.urdf'
         self.robot_path = str(hexapod_path)
 
@@ -65,8 +64,8 @@ class HexapodBullet(PyBullet):
             ("hexapod/leg_5/joint_1", PyBulletObservationType.JOINT_POS),
             ("hexapod/leg_5/joint_2", PyBulletObservationType.JOINT_POS),
 
-            ("hexapod/body", PyBulletObservationType.LINK_POS),
-            ("hexapod/body", PyBulletObservationType.LINK_LIN_VEL)
+            ("hexapod", PyBulletObservationType.BODY_POS),
+            ("hexapod", PyBulletObservationType.BODY_LIN_VEL)
         ]
 
         files = {
@@ -89,6 +88,8 @@ class HexapodBullet(PyBullet):
              -0.66, -0.66, 1.45]
         )
 
+        self._goal = np.array([2.0, 2.0]) if goal is None else goal
+
     def setup(self):
         for i, (model_id, joint_id, _) in enumerate(self._action_data):
             self._client.resetJointState(model_id, joint_id, self.hexapod_initial_state[i])
@@ -97,10 +98,23 @@ class HexapodBullet(PyBullet):
                                                 cameraTargetPosition=[0., 0., 0.])
 
     def reward(self, state, action, next_state):
-        return 0.
+
+        pose = self.get_observation(next_state, "hexapod", PyBulletObservationType.BODY_POS)
+
+        goal_distance = np.linalg.norm(pose[:2] - self._goal)
+
+        goal_reward = np.exp(-goal_distance)
+
+        action_penalty = np.linalg.norm(action)
+
+        return goal_reward - 1e-3*action_penalty
 
     def is_absorbing(self, state):
-        return False
+        pose = self.get_observation(state, "hexapod", PyBulletObservationType.BODY_POS)
+
+        euler = pybullet.getEulerFromQuaternion(pose[3:])
+
+        return pose[2] > 0.5 or abs(euler[0]) > np.pi/2 or abs(euler[1]) > np.pi/2
 
 
     @property
