@@ -75,7 +75,7 @@ class HexapodBullet(PyBullet):
             'plane.urdf': {}
         }
 
-        super().__init__(files, action_spec, observation_spec, gamma, horizon, debug_gui=debug_gui,
+        super().__init__(files, action_spec, observation_spec, gamma, horizon, n_intermediate_steps=8, debug_gui=debug_gui,
                          distance=3, origin=[0., 0., 0.], angles=[0., -45., 0.])
 
         self._client.setGravity(0, 0, -9.81)
@@ -122,7 +122,7 @@ class HexapodBullet(PyBullet):
 
         euler = pybullet.getEulerFromQuaternion(pose[3:])
 
-        return pose[2] > 0.5 or abs(euler[0]) > np.pi/2 or abs(euler[1]) > np.pi/2
+        return pose[2] > 0.5 or abs(euler[0]) > np.pi/2 or abs(euler[1]) > np.pi/2 or self._count_self_collisions() >= 2
 
     def _count_self_collisions(self):
         hexapod_id = self._model_map['hexapod']
