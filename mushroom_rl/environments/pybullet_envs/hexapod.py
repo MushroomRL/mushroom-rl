@@ -70,7 +70,8 @@ class HexapodBullet(PyBullet):
 
         files = {
             self.robot_path: dict(basePosition=[0.0, 0, 0.12],
-                                  baseOrientation=[0, 0, 0.0, 1.0]),
+                                  baseOrientation=[0, 0, 0.0, 1.0],
+                                  flags=pybullet.URDF_USE_SELF_COLLISION),
             'plane.urdf': {}
         }
 
@@ -97,17 +98,24 @@ class HexapodBullet(PyBullet):
         self._client.resetDebugVisualizerCamera(cameraDistance=3, cameraYaw=0.0, cameraPitch=-45,
                                                 cameraTargetPosition=[0., 0., 0.])
 
+        self._filter_collisions()
+
     def reward(self, state, action, next_state):
 
         pose = self.get_observation(next_state, "hexapod", PyBulletObservationType.BODY_POS)
+        euler = pybullet.getEulerFromQuaternion(pose[3:])
 
         goal_distance = np.linalg.norm(pose[:2] - self._goal)
-
         goal_reward = np.exp(-goal_distance)
+
+        attitude_distance = np.linalg.norm(euler[:2])
+        attitude_reward = np.exp(-attitude_distance)
 
         action_penalty = np.linalg.norm(action)
 
-        return goal_reward - 1e-3*action_penalty
+        self_collisions_penalty = 1.0*self._count_self_collisions()
+
+        return goal_reward + 1e-2*attitude_reward - 1e-3*action_penalty - self_collisions_penalty
 
     def is_absorbing(self, state):
         pose = self.get_observation(state, "hexapod", PyBulletObservationType.BODY_POS)
@@ -116,6 +124,27 @@ class HexapodBullet(PyBullet):
 
         return pose[2] > 0.5 or abs(euler[0]) > np.pi/2 or abs(euler[1]) > np.pi/2
 
+    def _count_self_collisions(self):
+        hexapod_id = self._model_map['hexapod']
+
+        collision_count = 0
+        collisions = self._client.getContactPoints(hexapod_id)
+
+        for collision in collisions:
+            body_2 = collision[2]
+            if body_2 == hexapod_id:
+                collision_count += 1
+
+        return collision_count
+
+    def _filter_collisions(self):
+        # Disable fixed links collisions
+        for leg_n in range(6):
+            for link_n in range(3):
+                motor_name = f'hexapod/leg_{leg_n}/motor_{link_n}'
+                link_name = f'hexapod/leg_{leg_n}/link_{link_n}'
+                self._client.setCollisionFilterPair(self._link_map[motor_name][0], self._link_map[link_name][0],
+                                                    self._link_map[motor_name][1], self._link_map[link_name][1], 0)
 
     @property
     def client(self):
@@ -134,6 +163,7 @@ if __name__ == '__main__':
 
         def draw_action(self, state):
             time.sleep(0.01)
+
             return np.random.randn(self._n_actions)
 
         def episode_start(self):
@@ -153,4 +183,6 @@ if __name__ == '__main__':
     print("actual state shape", dataset[0][0].shape)
     print("mdp_info action shape", mdp.info.action_space.shape)
     print("actual action shape", dataset[0][1].shape)
- 
+
+    print("action low", mdp.info.action_space.low)
+    print("action high", mdp.info.action_space.high)
