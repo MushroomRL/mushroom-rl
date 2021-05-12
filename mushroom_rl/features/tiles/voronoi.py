@@ -1,7 +1,5 @@
 import numpy as np
 
-from sklearn.neighbors import KDTree
-
 
 class VoronoiTiles:
     """
@@ -17,11 +15,12 @@ class VoronoiTiles:
             prototypes (list): list of prototypes to compute the partition.
 
         """
-        self._size = len(prototypes)
-        self._tree = KDTree(prototypes, leaf_size=1)
+        self._prototypes = prototypes
 
     def __call__(self, x):
-        return self._tree.query(np.atleast_2d(x), return_distance=False).item()
+        dist = np.linalg.norm(self._prototypes - x, axis=1)
+
+        return np.argmin(dist)
 
     @staticmethod
     def generate(n_tilings, n_prototypes, low=None, high=None, mu=None, sigma=None):
@@ -89,4 +88,4 @@ class VoronoiTiles:
 
     @property
     def size(self):
-        return self._size
+        return len(self._prototypes)
