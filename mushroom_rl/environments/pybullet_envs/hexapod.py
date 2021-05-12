@@ -146,10 +146,6 @@ class HexapodBullet(PyBullet):
                 self._client.setCollisionFilterPair(self._link_map[motor_name][0], self._link_map[link_name][0],
                                                     self._link_map[motor_name][1], self._link_map[link_name][1], 0)
 
-    @property
-    def client(self):
-        return self._client
-
 
 if __name__ == '__main__':
     from mushroom_rl.core import Core

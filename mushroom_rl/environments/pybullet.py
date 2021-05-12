@@ -449,3 +449,8 @@ class PyBullet(Environment):
 
         """
         pass
+
+    @property
+    def client(self):
+        return self._client
+
