@@ -56,7 +56,7 @@ For example, to create the SheepSteering environment you can use:
 
 .. code-block:: python
 
-    env = Environment.create('ShipSteering')
+    env = Environment.make('ShipSteering')
 
 To build environments, you may need to pass additional parameters.
 An example of this is the ``Gym`` environment which wraps most OpenAI Gym environments, except the Atari ones, which
@@ -66,11 +66,12 @@ If you want to build the ``Pendulum-v0`` gym environment you need to pass the en
 
 .. code-block:: python
 
-    env = Environment.create('Gym', 'Pendulum-v0')
+    env = Environment.make('Gym', 'Pendulum-v0')
 
 
-It's also possible to call the generate method of an environment to get a higher-level interface to the environment
-constructor.
+
+If an environment implements the generate method, it will be used to build the environment instead of the constructor.
+As the generate method is higher-level interface w.r.t. the constructor, it will require less parameters.
 
 To generate the 3-dimensional LQR problem mentioned in the previous section you can use:
 

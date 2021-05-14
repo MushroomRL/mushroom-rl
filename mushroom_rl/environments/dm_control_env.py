@@ -16,7 +16,7 @@ class DMControl(Environment):
     information.
 
     """
-    def __init__(self, domain_name, task_name, horizon, gamma, task_kwargs=None,
+    def __init__(self, domain_name, task_name, horizon, gamma=0.99, task_kwargs=None,
                  dt=.01, width_screen=480, height_screen=480, camera_id=0):
         """
         Constructor.

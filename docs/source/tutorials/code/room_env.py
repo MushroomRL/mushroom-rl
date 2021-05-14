@@ -113,7 +113,7 @@ if __name__ == '__main__':
     np.random.seed(1)
 
     # Create the toy environment with default parameters
-    env = Environment.create('RoomToyEnv')
+    env = Environment.make('RoomToyEnv')
 
     # Using an epsilon-greedy policy
     epsilon = Parameter(value=0.1)

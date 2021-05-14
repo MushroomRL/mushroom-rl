@@ -81,30 +81,12 @@ class Environment(object):
         return list(Environment._registered_envs.keys())
 
     @staticmethod
-    def create(env_name, *args, **kwargs):
+    def make(env_name, *args, **kwargs):
         """
-        Construct an environment given an environment name and parameters.
-
-        Args:
-            env_name (str): Name of the environment,
-            *args: positional arguments to be provided to the environment constructor
-            **kwargs: keyword arguments to be provided to the environment constructor.
-
-        Returns:
-            An instance of the constructed environment.
-
-        """
-        env = Environment._registered_envs[env_name]
-
-        return env(*args, **kwargs)
-
-    @staticmethod
-    def generate(env_name, *args, **kwargs):
-        """
-        Generate an environment given an environment name and parameters. Differently from
-        the create method, it creates the environment calling the generate method, not the init.
-        The generate method has simpler interface than the constructor, making easier to generate
-        standard verison of the environment.
+        Generate an environment given an environment name and parameters.
+        The environment is created using the generate method, if available. Otherwise, the constructor is used.
+        The generate method has a simpler interface than the constructor, making it easier to generate
+        a standard version of the environment.
 
         Args:
             env_name (str): Name of the environment,
@@ -117,9 +99,10 @@ class Environment(object):
         """
         env = Environment._registered_envs[env_name]
 
-        assert hasattr(env, 'generate')
-
-        return env.generate(*args, **kwargs)
+        if hasattr(env, 'generate'):
+            return env.generate(*args, **kwargs)
+        else:
+            return env(*args, **kwargs)
 
     def __init__(self, mdp_info):
         """
