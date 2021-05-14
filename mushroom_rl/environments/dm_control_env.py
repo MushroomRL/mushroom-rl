@@ -4,7 +4,7 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     from dm_control import suite
 
-from mushroom_rl.environments import Environment, MDPInfo
+from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.utils.spaces import *
 from mushroom_rl.utils.viewer import ImageViewer
 

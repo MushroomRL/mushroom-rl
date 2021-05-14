@@ -2,7 +2,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from mushroom_rl.algorithms.agent import Agent
+from mushroom_rl.core import Agent
 from mushroom_rl.approximators.parametric.torch_approximator import *
 from mushroom_rl.approximators.regressor import Regressor
 from mushroom_rl.utils.replay_memory import PrioritizedReplayMemory, ReplayMemory

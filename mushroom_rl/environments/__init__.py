@@ -1,4 +1,3 @@
-from .environment import Environment, MDPInfo
 try:
     Atari = None
     from .atari import Atari

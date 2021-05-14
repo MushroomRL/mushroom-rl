@@ -9,7 +9,7 @@ from sklearn.ensemble import ExtraTreesRegressor
 import itertools
 
 import mushroom_rl
-from mushroom_rl.environments.environment import MDPInfo
+from mushroom_rl.core import MDPInfo
 from mushroom_rl.policy.td_policy import TDPolicy
 from mushroom_rl.policy.torch_policy import TorchPolicy
 from mushroom_rl.policy.policy import ParametricPolicy

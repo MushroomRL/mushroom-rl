@@ -68,7 +68,7 @@ Learn:
 
 ::
 
-    from mushroom_rl.core.core import Core
+    from mushroom_rl.core import Core
 
     core = Core(agent, mdp)
     core.learn(n_steps=10000, n_steps_per_fit=1)
