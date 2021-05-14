@@ -24,7 +24,7 @@ categories of RL:
 One can easily implement customized algorithms following the structure of the
 already available ones, by extending the following interface:
 
-.. automodule:: mushroom_rl.algorithms.agent
+.. automodule:: mushroom_rl.core.agent
     :members:
     :private-members:
     :inherited-members:
@@ -38,7 +38,7 @@ continuous and discrete action spaces.
 
 To implement a new environment, it is mandatory to use the following interface:
 
-.. automodule:: mushroom_rl.environments.environment
+.. automodule:: mushroom_rl.core.environment
     :members:
     :private-members:
     :inherited-members:
