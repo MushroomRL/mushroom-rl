@@ -1,0 +1,61 @@
+<?xml version="1.0" ?>
+<robot name="manipulator">
+  <link name="world"/>
+
+  <link name="manipulator/link_0">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.025" length="0.2"/>
+      </geometry>
+    </visual>
+    <collision>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+        <cylinder radius="0.025" length="0.2"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.1"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <inertia ixx="1e-3" ixy="0" ixz="0" iyy="1e-3" iyz="0" izz="1e-3"/>
+    </inertial>
+  </link>
+
+   <joint name="manipulator/joint_fixed" type="fixed">
+    <parent link="world"/>
+    <child link="manipulator/link_0"/>
+    <origin rpy="1.57079632679 0 0" xyz="0 0 0.25"/>
+  </joint>
+
+
+  <link name="manipulator/link_1">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.025" length="0.2"/>
+      </geometry>
+    </visual>
+    <collision>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+        <cylinder radius="0.025" length="0.2"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.1"/>
+      <origin rpy="0 0 0" xyz="0.00372 0 0.001"/>
+      <inertia ixx="0.01109" ixy="0" ixz="0" iyy="0.00244" iyz="0" izz="0.00355"/>
+    </inertial>
+  </link>
+
+  <joint name="manipulator/joint_0" type="revolute">
+    <parent link="manipulator/link_0"/>
+    <child link="manipulator/link_1"/>
+    <origin rpy="0 1.57079632679 0" xyz="0. 0. 0."/>
+    <axis xyz="0 0 1"/>
+    <limit effort="100" lower="-0.78539816339" upper="0.78539816339" velocity="1.0"/>
+  </joint>
+
+</robot>
+
