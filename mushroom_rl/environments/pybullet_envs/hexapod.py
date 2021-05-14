@@ -98,6 +98,12 @@ class HexapodBullet(PyBullet):
         self._client.resetDebugVisualizerCamera(cameraDistance=3, cameraYaw=0.0, cameraPitch=-45,
                                                 cameraTargetPosition=[0., 0., 0.])
 
+        for model_id, link_id in self._link_map.values():
+            self._client.changeDynamics(model_id, link_id, lateralFriction=1.0, spinningFriction=1.0)
+
+        for model_id in self._model_map.values():
+            self._client.changeDynamics(model_id, -1, lateralFriction=1.0, spinningFriction=1.0)
+
         self._filter_collisions()
 
     def reward(self, state, action, next_state):
@@ -115,14 +121,14 @@ class HexapodBullet(PyBullet):
 
         self_collisions_penalty = 1.0*self._count_self_collisions()
 
-        return goal_reward + 1e-2*attitude_reward - 1e-3*action_penalty - self_collisions_penalty
+        return 1 + goal_reward + 1e-1*attitude_reward - 1e-3*action_penalty - self_collisions_penalty
 
     def is_absorbing(self, state):
         pose = self.get_observation(state, "hexapod", PyBulletObservationType.BODY_POS)
 
         euler = pybullet.getEulerFromQuaternion(pose[3:])
 
-        return pose[2] > 0.5 or abs(euler[0]) > np.pi/2 or abs(euler[1]) > np.pi/2 or self._count_self_collisions() >= 2
+        return pose[2] > 0.2 or abs(euler[0]) > np.pi/4 or abs(euler[1]) > np.pi/4 or self._count_self_collisions() >= 2
 
     def _count_self_collisions(self):
         hexapod_id = self._model_map['hexapod']
