@@ -4,7 +4,7 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     from dm_control import suite
 
-from mushroom_rl.environments import Environment, MDPInfo
+from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.utils.spaces import *
 from mushroom_rl.utils.viewer import ImageViewer
 
@@ -16,7 +16,7 @@ class DMControl(Environment):
     information.
 
     """
-    def __init__(self, domain_name, task_name, horizon, gamma=0.99, task_kwargs=None,
+    def __init__(self, domain_name, task_name, horizon=None, gamma=0.99, task_kwargs=None,
                  dt=.01, width_screen=480, height_screen=480, camera_id=0):
         """
         Constructor.
@@ -34,11 +34,14 @@ class DMControl(Environment):
 
         """
         # MDP creation
-        if task_kwargs is None:
-            task_kwargs = dict()
-        task_kwargs['time_limit'] = np.inf  # Hack to ignore dm_control time limit.
-
         self.env = suite.load(domain_name, task_name, task_kwargs=task_kwargs)
+
+        # get the default horizon
+        if horizon is None:
+            horizon = self.env._step_limit
+
+        # Hack to ignore dm_control time limit.
+        self.env._step_limit = np.inf
 
         # MDP properties
         action_space = self._convert_action_space(self.env.action_spec())
@@ -49,6 +52,8 @@ class DMControl(Environment):
         self._camera_id = camera_id
 
         super().__init__(mdp_info)
+
+        self._state = None
 
     def reset(self, state=None):
         if state is None:

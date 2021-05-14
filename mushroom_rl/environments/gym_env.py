@@ -8,7 +8,7 @@ try:
 except ImportError:
     pybullet_found = False
 
-from mushroom_rl.environments import Environment, MDPInfo
+from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.utils.spaces import *
 
 gym.logger.set_level(40)

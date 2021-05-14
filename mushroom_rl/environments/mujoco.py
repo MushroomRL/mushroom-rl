@@ -2,7 +2,7 @@ import mujoco_py
 from mujoco_py import functions as mj_fun
 import numpy as np
 from enum import Enum
-from mushroom_rl.environments import Environment, MDPInfo
+from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.utils.spaces import Box
 import glfw
 

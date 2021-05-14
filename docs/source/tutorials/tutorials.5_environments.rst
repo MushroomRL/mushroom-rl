@@ -46,7 +46,7 @@ You can list the registered environments as follows:
 
 .. code-block:: python
 
-    from mushroom_rl.environments import Environment
+    from mushroom_rl.core import Environment
 
     env_list = Environment.list_registered()
     print(env_list)
