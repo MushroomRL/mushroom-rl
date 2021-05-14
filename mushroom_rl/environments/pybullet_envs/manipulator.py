@@ -16,6 +16,10 @@ class ManipulatorBullet(PyBullet):
 
         action_spec = [
             ("manipulator/joint_0", pybullet.VELOCITY_CONTROL),
+            ("manipulator/finger_0_joint", pybullet.VELOCITY_CONTROL),
+            ("manipulator/finger_1_joint", pybullet.VELOCITY_CONTROL),
+            ("manipulator/finger_2_joint", pybullet.VELOCITY_CONTROL),
+            ("manipulator/finger_3_joint", pybullet.VELOCITY_CONTROL)
         ]
 
         observation_spec = [
@@ -24,8 +28,7 @@ class ManipulatorBullet(PyBullet):
 
         files = {
             self.robot_path: dict(basePosition=[0.0, 0, 0.12],
-                                  baseOrientation=[0, 0, 0.0, 1.0],
-                                  flags=pybullet.URDF_USE_SELF_COLLISION),
+                                  baseOrientation=[0, 0, 0.0, 1.0]),
             'plane.urdf': {}
         }
 
@@ -38,7 +41,7 @@ class ManipulatorBullet(PyBullet):
         # for i, (model_id, joint_id, _) in enumerate(self._action_data):
         #     self._client.resetJointState(model_id, joint_id, self.hexapod_initial_state[i])
 
-        self._client.resetDebugVisualizerCamera(cameraDistance=3, cameraYaw=0.0, cameraPitch=-45,
+        self._client.resetDebugVisualizerCamera(cameraDistance=3, cameraYaw=45.0, cameraPitch=-45,
                                                 cameraTargetPosition=[0., 0., 0.])
 
         # for model_id, link_id in self._link_map.values():
@@ -46,7 +49,6 @@ class ManipulatorBullet(PyBullet):
         #
         # for model_id in self._model_map.values():
         #     self._client.changeDynamics(model_id, -1, lateralFriction=1.0, spinningFriction=1.0)
-
 
     def reward(self, state, action, next_state):
         return 0.
@@ -56,8 +58,7 @@ class ManipulatorBullet(PyBullet):
 
 
 if __name__ == '__main__':
-    from mushroom_rl.core import Core
-    from mushroom_rl.algorithms import Agent
+    from mushroom_rl.core import Core, Agent
     from mushroom_rl.utils.dataset import compute_J
 
 
@@ -68,6 +69,7 @@ if __name__ == '__main__':
         def draw_action(self, state):
             time.sleep(0.01)
 
+            #return np.ones(self._n_actions)*0.1
             return np.random.randn(self._n_actions)
 
         def episode_start(self):
