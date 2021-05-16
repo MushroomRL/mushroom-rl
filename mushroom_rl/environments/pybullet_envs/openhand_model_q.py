@@ -8,22 +8,42 @@ from pathlib import Path
 from mushroom_rl.environments.pybullet_envs import __file__ as path_robots
 
 
-class ManipulatorBullet(PyBullet):
+class OpenHandModelQ(PyBullet):
+    """
+    The Yale OpenHand Model Q hand in a manipulation task.
+    Open source hand available here:
+    https://www.eng.yale.edu/grablab/openhand/
+
+    This environment replicates in simulation the experiment described in:
+    "Model Predictive Actor-Critic: Accelerating Robot Skill Acquisition with Deep Reinforcement Learning".
+    Morgan A. S. et Al.. 2021.
+
+    """
     def __init__(self, gamma=0.99, horizon=1000, debug_gui=False):
-        manipulator_path = Path(path_robots).absolute().parent / 'data' / 'manipulator' / 'manipulator.urdf'
+        manipulator_path = Path(path_robots).absolute().parent / 'data' / 'openhand_model_q' / 'model_q.urdf'
         self.robot_path = str(manipulator_path)
         print(self.robot_path)
 
         action_spec = [
-            ("manipulator/joint_0", pybullet.VELOCITY_CONTROL),
-            ("manipulator/finger_0_joint", pybullet.VELOCITY_CONTROL),
-            ("manipulator/finger_1_joint", pybullet.VELOCITY_CONTROL),
-            ("manipulator/finger_2_joint", pybullet.VELOCITY_CONTROL),
-            ("manipulator/finger_3_joint", pybullet.VELOCITY_CONTROL)
+            ("prox_to_distal_r", pybullet.TORQUE_CONTROL),
+            ("base_to_prox_r", pybullet.TORQUE_CONTROL),
+            ("prox_to_distal_l", pybullet.TORQUE_CONTROL),
+            ("base_to_prox_r", pybullet.TORQUE_CONTROL),
+            ("prox_to_distal_l", pybullet.TORQUE_CONTROL),
+            ("base_to_prox_l", pybullet.TORQUE_CONTROL),
+            ("prox_to_distal_cl", pybullet.TORQUE_CONTROL),
+            ("base_to_prox_cl", pybullet.TORQUE_CONTROL),
+            ("prox_to_distal_cr", pybullet.TORQUE_CONTROL),
+            ("base_to_prox_cr", pybullet.TORQUE_CONTROL),
+            ("base_to_prox_l", pybullet.TORQUE_CONTROL),
+            ("prox_to_distal_cl", pybullet.TORQUE_CONTROL),
+            ("base_to_prox_cl", pybullet.TORQUE_CONTROL),
+            ("prox_to_distal_cr", pybullet.TORQUE_CONTROL),
+            ("base_to_prox_cr", pybullet.TORQUE_CONTROL)
         ]
 
         observation_spec = [
-            ("manipulator/joint_0", PyBulletObservationType.JOINT_POS),
+            ("prox_to_distal_r", PyBulletObservationType.JOINT_POS),
         ]
 
         files = {
@@ -32,8 +52,8 @@ class ManipulatorBullet(PyBullet):
             'plane.urdf': {}
         }
 
-        super().__init__(files, action_spec, observation_spec, gamma, horizon, n_intermediate_steps=8, debug_gui=debug_gui,
-                         distance=3, origin=[0., 0., 0.], angles=[0., -45., 0.])
+        super().__init__(files, action_spec, observation_spec, gamma, horizon, n_intermediate_steps=8,
+                         debug_gui=debug_gui, distance=0.5, origin=[0., 0., 0.2], angles=[0., -45., 0.])
 
         self._client.setGravity(0, 0, -9.81)
 
@@ -41,8 +61,8 @@ class ManipulatorBullet(PyBullet):
         # for i, (model_id, joint_id, _) in enumerate(self._action_data):
         #     self._client.resetJointState(model_id, joint_id, self.hexapod_initial_state[i])
 
-        self._client.resetDebugVisualizerCamera(cameraDistance=3, cameraYaw=45.0, cameraPitch=-45,
-                                                cameraTargetPosition=[0., 0., 0.])
+        self._client.resetDebugVisualizerCamera(cameraDistance=0.5, cameraYaw=45.0, cameraPitch=-45,
+                                                cameraTargetPosition=[0., 0., 0.2])
 
         # for model_id, link_id in self._link_map.values():
         #     self._client.changeDynamics(model_id, link_id, lateralFriction=1.0, spinningFriction=1.0)
@@ -67,9 +87,7 @@ if __name__ == '__main__':
             self._n_actions = n_actions
 
         def draw_action(self, state):
-            time.sleep(0.01)
-
-            #return np.ones(self._n_actions)*0.1
+            time.sleep(1/240)
             return np.random.randn(self._n_actions)
 
         def episode_start(self):
@@ -79,7 +97,7 @@ if __name__ == '__main__':
             pass
 
 
-    mdp = ManipulatorBullet(debug_gui=True)
+    mdp = OpenHandModelQ(debug_gui=True)
     agent = DummyAgent(mdp.info.action_space.shape[0])
 
     core = Core(agent, mdp)
