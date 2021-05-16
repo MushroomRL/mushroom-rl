@@ -25,25 +25,35 @@ class OpenHandModelQ(PyBullet):
         print(self.robot_path)
 
         action_spec = [
-            ("prox_to_distal_r", pybullet.TORQUE_CONTROL),
-            ("base_to_prox_r", pybullet.TORQUE_CONTROL),
-            ("prox_to_distal_l", pybullet.TORQUE_CONTROL),
-            ("base_to_prox_r", pybullet.TORQUE_CONTROL),
-            ("prox_to_distal_l", pybullet.TORQUE_CONTROL),
-            ("base_to_prox_l", pybullet.TORQUE_CONTROL),
-            ("prox_to_distal_cl", pybullet.TORQUE_CONTROL),
-            ("base_to_prox_cl", pybullet.TORQUE_CONTROL),
-            ("prox_to_distal_cr", pybullet.TORQUE_CONTROL),
-            ("base_to_prox_cr", pybullet.TORQUE_CONTROL),
-            ("base_to_prox_l", pybullet.TORQUE_CONTROL),
-            ("prox_to_distal_cl", pybullet.TORQUE_CONTROL),
-            ("base_to_prox_cl", pybullet.TORQUE_CONTROL),
-            ("prox_to_distal_cr", pybullet.TORQUE_CONTROL),
-            ("base_to_prox_cr", pybullet.TORQUE_CONTROL)
+            ("base_rot_joint", pybullet.VELOCITY_CONTROL),
+            # Left finger
+            ("base_to_prox_l", pybullet.VELOCITY_CONTROL),
+            ("prox_to_distal_l", pybullet.VELOCITY_CONTROL),
+            # Right finger
+            ("base_to_prox_r", pybullet.VELOCITY_CONTROL),
+            ("prox_to_distal_r", pybullet.VELOCITY_CONTROL),
+            # Connected finger left
+            ("base_to_prox_cl", pybullet.VELOCITY_CONTROL),
+            ("prox_to_distal_cl", pybullet.VELOCITY_CONTROL),
+            # Connected finger right
+            ("base_to_prox_cr", pybullet.VELOCITY_CONTROL),
+            ("prox_to_distal_cr", pybullet.VELOCITY_CONTROL)
         ]
 
         observation_spec = [
+            ("base_rot_joint", PyBulletObservationType.JOINT_POS),
+            # Left finger
+            ("base_to_prox_l", PyBulletObservationType.JOINT_POS),
+            ("prox_to_distal_l", PyBulletObservationType.JOINT_POS),
+            # Right finger
+            ("base_to_prox_r", PyBulletObservationType.JOINT_POS),
             ("prox_to_distal_r", PyBulletObservationType.JOINT_POS),
+            # Connected finger left
+            ("base_to_prox_cl", PyBulletObservationType.JOINT_POS),
+            ("prox_to_distal_cl", PyBulletObservationType.JOINT_POS),
+            # Connected finger right
+            ("base_to_prox_cr", PyBulletObservationType.JOINT_POS),
+            ("prox_to_distal_cr", PyBulletObservationType.JOINT_POS)
         ]
 
         files = {
