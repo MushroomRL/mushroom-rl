@@ -86,7 +86,9 @@ class Environment(object):
         Generate an environment given an environment name and parameters.
         The environment is created using the generate method, if available. Otherwise, the constructor is used.
         The generate method has a simpler interface than the constructor, making it easier to generate
-        a standard version of the environment.
+        a standard version of the environment. If the environment name contains a '.' separator, the string
+        is splitted, the first element is used to select the environment and the other elements are passed as
+        positional parameters.
 
         Args:
             env_name (str): Name of the environment,
@@ -97,6 +99,12 @@ class Environment(object):
             An instance of the constructed environment.
 
         """
+
+        if '.' in env_name:
+            env_data = env_name.split('.')
+            env_name = env_data[0]
+            args = env_data[1:] + list(args)
+
         env = Environment._registered_envs[env_name]
 
         if hasattr(env, 'generate'):

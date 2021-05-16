@@ -68,6 +68,18 @@ If you want to build the ``Pendulum-v0`` gym environment you need to pass the en
 
     env = Environment.make('Gym', 'Pendulum-v0')
 
+However, for environments that are interfaces to other libraries such as ``Gym``, ``Atari`` or ``DMControl`` a notation
+with a dot separator is supported. For example to create the pendulum you can also use:
+
+.. code-block:: python
+
+    env = Environment.make('Gym.Pendulum-v0')
+
+Or, to create the ``hopper`` environment with ``hop`` task from DeepMind control suite you can use:
+
+.. code-block:: python
+
+    env = Environment.make('DMControl.hopper.hop')
 
 
 If an environment implements the generate method, it will be used to build the environment instead of the constructor.
