@@ -330,7 +330,7 @@
 		<origin rpy="0 0 0" xyz="0 0.0 0.014" />
 		<parent link="palm" />
 		<child link="base_rot" />
-		<limit effort="10000" lower="0.0" upper="3.0" velocity="200" />
+		<limit effort="10000" lower="-0.26179938779" upper="0.26179938779" velocity="200" />
 		<axis xyz="0 0 1" />
 		<dynamics damping="160" friction="0.0" />
 	</joint>
