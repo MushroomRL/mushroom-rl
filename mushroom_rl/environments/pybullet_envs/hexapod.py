@@ -108,7 +108,7 @@ class HexapodBullet(PyBullet):
 
     def reward(self, state, action, next_state):
 
-        pose = self.get_observation(next_state, "hexapod", PyBulletObservationType.BODY_POS)
+        pose = self.get_sim_state(next_state, "hexapod", PyBulletObservationType.BODY_POS)
         euler = pybullet.getEulerFromQuaternion(pose[3:])
 
         goal_distance = np.linalg.norm(pose[:2] - self._goal)
@@ -124,7 +124,7 @@ class HexapodBullet(PyBullet):
         return 1 + goal_reward + 1e-1*attitude_reward - 1e-3*action_penalty - self_collisions_penalty
 
     def is_absorbing(self, state):
-        pose = self.get_observation(state, "hexapod", PyBulletObservationType.BODY_POS)
+        pose = self.get_sim_state(state, "hexapod", PyBulletObservationType.BODY_POS)
 
         euler = pybullet.getEulerFromQuaternion(pose[3:])
 

@@ -114,7 +114,8 @@ class PyBullet(Environment):
         # Load model and create access maps
         self._model_map = dict()
         for file_name, kwargs in files.items():
-            model_id = self._client.loadURDF(file_name, **kwargs)
+            model_id = self._load_model(file_name, kwargs)
+            print(model_id)
             model_name = self._client.getBodyInfo(model_id)[1].decode('UTF-8')
             self._model_map[model_name] = model_id
         self._model_map.update(self._custom_load_models())
@@ -164,6 +165,11 @@ class PyBullet(Environment):
         # Finally, we create the MDP information and call the constructor of
         # the parent class
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+
+        # Let the child class modify the mdp_info data structure
+        mdp_info = self._modify_mdp_info(mdp_info)
+
+        # Provide the structure to the superclass
         super().__init__(mdp_info)
 
         # Save initial state of the MDP
@@ -175,7 +181,7 @@ class PyBullet(Environment):
     def reset(self, state=None):
         self._client.restoreState(self._initial_state)
         self.setup()
-        self._state = self._create_observation()
+        self._state = self._create_sim_state()
         return self._state
 
     def render(self):
@@ -202,18 +208,20 @@ class PyBullet(Environment):
 
             self._simulation_post_step()
 
-        self._state = self._create_observation()
+        self._state = self._create_sim_state()
 
         self._step_finalize()
 
         reward = self.reward(cur_obs, action, self._state)
 
-        return self._state, reward, self.is_absorbing(self._state), {}
+        observation = self._create_observation(self._state)
 
-    def get_observation_index(self, name, obs_type):
+        return observation, reward, self.is_absorbing(self._state), {}
+
+    def get_sim_state_index(self, name, obs_type):
         return self._observation_indices_map[name][obs_type]
 
-    def get_observation(self, obs, name, obs_type):
+    def get_sim_state(self, obs, name, obs_type):
         """
         Returns a specific observation value
 
@@ -226,9 +234,47 @@ class PyBullet(Environment):
             The required elements of the input state vector.
 
         """
-        indices = self.get_observation_index(name, obs_type)
+        indices = self.get_sim_state_index(name, obs_type)
 
         return obs[indices]
+
+    def _modify_mdp_info(self, mdp_info):
+        """
+        This method can be overridden to modify the automatically generated MDPInfo data structure.
+        By default, returns the given mdp_info structure unchanged.
+
+        Args:
+            mdp_info (MDPInfo): the MDPInfo structure automatically computed by the environment.
+
+        Returns:
+            The modified MDPInfo data structure.
+
+        """
+        return mdp_info
+
+    def _create_observation(self, state):
+        """
+        This method can be overridden to ctreate an observation vector from the simulator state vector.
+        By default, returns the simulator state vector unchanged.
+
+        Args:
+            state (np.ndarray): the simulator state vector.
+
+        Returns:
+            The environment observation.
+
+        """
+        return state
+
+    def _load_model(self, file_name, kwargs):
+        if file_name.endswith('.urdf'):
+            model_id = self._client.loadURDF(file_name, **kwargs)
+        elif file_name.endswith('.sdf'):
+            model_id = self._client.loadSDF(file_name, **kwargs)[0]
+        else:
+            model_id = self._client.loadMJCF(file_name, **kwargs)[0]
+
+        return model_id
 
     def _compute_action_limits(self):
         low = list()
@@ -289,7 +335,7 @@ class PyBullet(Environment):
 
         self._observation_indices_map[name][obs_type] = list(range(start, end))
 
-    def _create_observation(self):
+    def _create_sim_state(self):
         data_obs = list()
 
         for name, obs_type in self._observation_map:
