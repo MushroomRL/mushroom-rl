@@ -1,0 +1,61 @@
+<?xml version="1.0" ?>
+<robot name="round_valve">
+	<link name="world" />
+	<link name="base">
+		<inertial>
+			<origin xyz="0 0 0" />
+			<mass value="0.1" />
+			<inertia ixx="1e-3" ixy="0.0" ixz="0.0" iyy="1e-3" iyz="0.0"
+				izz="1e-3" />
+		</inertial>
+		<visual>
+			<origin xyz="0 0 0.0125" />
+			<geometry>
+				<cylinder length="0.025" radius="0.02" />
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="0 0 0.0125" />
+			<geometry>
+				<cylinder length="0.025" radius="0.02" />
+			</geometry>
+		</collision>
+	</link>
+
+	<link name="head">
+		<inertial>
+			<origin xyz="0 0 0" />
+			<mass value="0.1" />
+			<inertia ixx="1e-3" ixy="0.0" ixz="0.0" iyy="1e-3" iyz="0.0"
+				izz="1e-3" />
+		</inertial>
+		<visual>
+			<origin xyz="0 0 0" />
+			<geometry>
+				<mesh filename="meshes/valves/round_valve.stl" />
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="0 0 0" />
+			<geometry>
+				<mesh filename="meshes/valves/round_valve.stl" />
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="fixed_palm" type="fixed">
+		<origin rpy="0. 0. 0." xyz="0. 0. 0." />
+		<parent link="world" />
+		<child link="base" />
+	</joint>
+
+	<joint name="valve_joint" type="revolute">
+		<origin rpy="0 0 0" xyz="0 0.0 0.025" />
+		<parent link="base" />
+		<child link="head" />
+		<limit effort="100000" lower="-31" upper="31" velocity="1000" />
+			<axis xyz="0 0 1" />
+			<dynamics damping="160" friction="0.0" />
+	</joint>
+
+</robot>

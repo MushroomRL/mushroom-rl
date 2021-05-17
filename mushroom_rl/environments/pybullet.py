@@ -63,14 +63,12 @@ class PyBullet(Environment):
 
         # Load model and create access maps
         self._model_map = dict()
-        self._load_all_models(files, enforce_joint_velocity_limits)
-
-        # Build utils
-        self._indexer = IndexMap(self._client, self._model_map, actuation_spec, observation_spec)
-        self.joints = JointsHelper(self._client, self._indexer, observation_spec)
-
-        # Finally, we create the MDP information and call the constructor of the parent class
-        action_space = Box(*self._indexer.action_limits)
+        for file_name, kwargs in files.items():
+            model_id = self._load_model(file_name, kwargs)
+            print(model_id)
+            model_name = self._client.getBodyInfo(model_id)[1].decode('UTF-8')
+            self._model_map[model_name] = model_id
+        self._model_map.update(self._custom_load_models())
 
         observation_space = Box(*self._indexer.observation_limits)
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
@@ -89,11 +87,9 @@ class PyBullet(Environment):
 
     def reset(self, state=None):
         self._client.restoreState(self._initial_state)
-        self.setup(state)
-        self._state = self._indexer.create_sim_state()
-        observation = self._create_observation(self._state)
-
-        return observation
+        self.setup()
+        self._state = self._create_sim_state()
+        return self._state
 
     def render(self):
         self._viewer.display()
@@ -119,21 +115,19 @@ class PyBullet(Environment):
 
             self._simulation_post_step()
 
-            curr_state = self._indexer.create_sim_state()
+        self._state = self._create_sim_state()
 
         self._step_finalize()
 
         absorbing = self.is_absorbing(curr_state)
         reward = self.reward(self._state, action, curr_state, absorbing)
 
-        observation = self._create_observation(curr_state)
+        observation = self._create_observation(self._state)
 
-        self._state = curr_state
-
-        return observation, reward, absorbing, {}
+        return observation, reward, self.is_absorbing(self._state), {}
 
     def get_sim_state_index(self, name, obs_type):
-        return self._indexer.get_index(name, obs_type)
+        return self._observation_indices_map[name][obs_type]
 
     def get_sim_state(self, obs, name, obs_type):
         """
@@ -188,24 +182,124 @@ class PyBullet(Environment):
         else:
             model_id = self._client.loadMJCF(file_name, **kwargs)[0]
 
-        for j in range(self._client.getNumJoints(model_id)):
-            self._client.setJointMotorControl2(model_id, j, pybullet.POSITION_CONTROL, force=0)
-
         return model_id
 
-    def _load_all_models(self, files, enforce_joint_velocity_limits):
-        for file_name, kwargs in files.items():
-            model_id = self._load_model(file_name, kwargs)
-            model_name = self._client.getBodyInfo(model_id)[1].decode('UTF-8')
-            self._model_map[model_name] = model_id
-        self._model_map.update(self._custom_load_models())
+    def _compute_action_limits(self):
+        low = list()
+        high = list()
 
-        # Enforce velocity limits on every joint
-        if enforce_joint_velocity_limits:
-            for model_id in self._model_map.values():
-                for joint_id in range(self._client.getNumJoints(model_id)):
-                    joint_data = self._client.getJointInfo(model_id, joint_id)
-                    self._client.changeDynamics(model_id, joint_id, maxJointVelocity=joint_data[11])
+        for model_id, joint_id, mode in self._action_data:
+            joint_info = self._client.getJointInfo(model_id, joint_id)
+            if mode is pybullet.POSITION_CONTROL:
+                low.append(joint_info[8])
+                high.append(joint_info[9])
+            elif mode is pybullet.VELOCITY_CONTROL:
+                low.append(-joint_info[11])
+                high.append(joint_info[11])
+            elif mode is pybullet.TORQUE_CONTROL:
+                low.append(-joint_info[10])
+                high.append(joint_info[10])
+            else:
+                raise NotImplementedError
+
+        return np.array(low), np.array(high)
+
+    def _compute_observation_limits(self):
+        low = list()
+        high = list()
+
+        for name, obs_type in self._observation_map:
+            index_count = len(low)
+            if obs_type is PyBulletObservationType.BODY_POS \
+               or obs_type is PyBulletObservationType.BODY_LIN_VEL \
+               or obs_type is PyBulletObservationType.BODY_ANG_VEL:
+                n_dim = 7 if obs_type is PyBulletObservationType.BODY_POS else 3
+                low += [-np.inf] * n_dim
+                high += [-np.inf] * n_dim
+            elif obs_type is PyBulletObservationType.LINK_POS \
+                    or obs_type is PyBulletObservationType.LINK_LIN_VEL \
+                    or obs_type is PyBulletObservationType.LINK_ANG_VEL:
+                n_dim = 7 if obs_type is PyBulletObservationType.LINK_POS else 3
+                low += [-np.inf] * n_dim
+                high += [-np.inf] * n_dim
+            else:
+                model_id, joint_id = self._joint_map[name]
+                joint_info = self._client.getJointInfo(model_id, joint_id)
+
+                if obs_type is PyBulletObservationType.JOINT_POS:
+                    low.append(joint_info[8])
+                    high.append(joint_info[9])
+                else:
+                    low.append(-np.inf)
+                    high.append(np.inf)
+
+            self._add_observation_index(name, obs_type, index_count, len(low))
+
+        return np.array(low), np.array(high)
+
+    def _add_observation_index(self, name, obs_type, start, end):
+        if name not in self._observation_indices_map:
+            self._observation_indices_map[name] = dict()
+
+        self._observation_indices_map[name][obs_type] = list(range(start, end))
+
+    def _create_sim_state(self):
+        data_obs = list()
+
+        for name, obs_type in self._observation_map:
+            if obs_type is PyBulletObservationType.BODY_POS \
+               or obs_type is PyBulletObservationType.BODY_LIN_VEL \
+               or obs_type is PyBulletObservationType.BODY_ANG_VEL:
+                model_id = self._model_map[name]
+                if obs_type is PyBulletObservationType.BODY_POS:
+                    t, q = self._client.getBasePositionAndOrientation(model_id)
+                    data_obs += t + q
+                else:
+                    v, w = self._client.getBaseVelocity(model_id)
+                    if obs_type is PyBulletObservationType.BODY_LIN_VEL:
+                        data_obs += v
+                    else:
+                        data_obs += w
+            elif obs_type is PyBulletObservationType.LINK_POS \
+                    or obs_type is PyBulletObservationType.LINK_LIN_VEL \
+                    or obs_type is PyBulletObservationType.LINK_ANG_VEL:
+                model_id, link_id = self._link_map[name]
+
+                if obs_type is PyBulletObservationType.LINK_POS:
+                    link_data = self._client.getLinkState(model_id, link_id)
+                    t = link_data[0]
+                    q = link_data[1]
+                    data_obs += t + q
+                elif obs_type is PyBulletObservationType.LINK_LIN_VEL:
+                    data_obs += self._client.getLinkState(model_id, link_id, computeLinkVelocity=True)[-2]
+                elif obs_type is PyBulletObservationType.LINK_ANG_VEL:
+                    data_obs += self._client.getLinkState(model_id, link_id, computeLinkVelocity=True)[-1]
+            else:
+                model_id, joint_id = self._joint_map[name]
+                pos, vel, _, _ = self._client.getJointState(model_id, joint_id)
+                if obs_type is PyBulletObservationType.JOINT_POS:
+                    data_obs.append(pos)
+                elif obs_type is PyBulletObservationType.JOINT_VEL:
+                    data_obs.append(vel)
+
+        return np.array(data_obs)
+
+    def _apply_control(self, action):
+
+        i = 0
+        for model_id, joint_id, mode in self._action_data:
+            u = action[i]
+            if mode is pybullet.POSITION_CONTROL:
+                kwargs = dict(targetPosition=u, maxVelocity=self._client.getJointInfo(model_id, joint_id)[11])
+            elif mode is pybullet.VELOCITY_CONTROL:
+                kwargs = dict(targetVelocity=u, maxVelocity=self._client.getJointInfo(model_id, joint_id)[11])
+            elif mode is pybullet.TORQUE_CONTROL:
+                kwargs = dict(force=u)
+            else:
+                raise NotImplementedError
+
+            self._client.setJointMotorControl2(model_id, joint_id, mode, **kwargs)
+            i += 1
 
     def _preprocess_action(self, action):
         """
