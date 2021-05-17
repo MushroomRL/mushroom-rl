@@ -21,6 +21,17 @@ class OpenHandModelQ(PyBullet):
 
     """
     def __init__(self, gamma=0.99, horizon=1000, valve_type='tri', debug_gui=False):
+        """
+        Constructor
+
+        Args:
+            gamma (float, 0.99): discount factor;
+            horizon (int, 100): environment horizon;
+            valve_type (str, 'tri'): type of valve to manipulate ('tri, 'quad', 'round');
+            debug_gui (bool, False): flag to activate the debug visualizer.
+
+        """
+        assert valve_type in ['tri', 'quad', 'round']
         manipulator_path = Path(path_robots).absolute().parent / 'data' / 'openhand_model_q' / 'model_q.urdf'
         self.robot_path = str(manipulator_path)
         print(self.robot_path)
@@ -141,7 +152,7 @@ if __name__ == '__main__':
             pass
 
 
-    mdp = OpenHandModelQ(valve_type='round', debug_gui=True)
+    mdp = OpenHandModelQ(valve_type='tri', debug_gui=True)
     agent = DummyAgent(mdp.info.action_space.shape[0])
 
     core = Core(agent, mdp)
