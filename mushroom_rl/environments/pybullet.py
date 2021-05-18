@@ -86,7 +86,7 @@ class PyBullet(Environment):
 
     def reset(self, state=None):
         self._client.restoreState(self._initial_state)
-        self.setup()
+        self.setup(state)
         self._state = self._create_sim_state()
         return self._state
 

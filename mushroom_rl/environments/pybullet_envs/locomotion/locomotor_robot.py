@@ -33,7 +33,7 @@ class LocomotorRobot(PyBullet):
             elif obs_type == PyBulletObservationType.JOINT_POS:
                 self._joint_pos_indexes.append(joint_idx)
 
-    def setup(self):
+    def setup(self, state):
         self._client.resetDebugVisualizerCamera(cameraDistance=3, cameraYaw=0.0, cameraPitch=-45,
                                                 cameraTargetPosition=[0., 0., 0.])
 

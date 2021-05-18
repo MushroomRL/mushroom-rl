@@ -1,1 +1,1 @@
-from .hopper import HopperBullet
+from .hopper import HopperRobot
