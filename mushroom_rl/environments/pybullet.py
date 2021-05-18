@@ -212,11 +212,12 @@ class PyBullet(Environment):
 
         self._step_finalize()
 
-        reward = self.reward(cur_obs, action, self._state)
+        absorbing = self.is_absorbing(self._state)
+        reward = self.reward(cur_obs, action, self._state, absorbing)
 
         observation = self._create_observation(self._state)
 
-        return observation, reward, self.is_absorbing(self._state), {}
+        return observation, reward, absorbing, {}
 
     def get_sim_state_index(self, name, obs_type):
         return self._observation_indices_map[name][obs_type]
@@ -459,15 +460,15 @@ class PyBullet(Environment):
         """
         return list()
 
-    def reward(self, state, action, next_state):
+    def reward(self, state, action, next_state, absorbing):
         """
         Compute the reward based on the given transition.
 
         Args:
             state (np.array): the current state of the system;
             action (np.array): the action that is applied in the current state;
-            next_state (np.array): the state reached after applying the given
-                action.
+            next_state (np.array): the state reached after applying the given action;
+            absorbing (bool): whether next_state is an absorbing state or not.
 
         Returns:
             The reward as a floating point scalar value.

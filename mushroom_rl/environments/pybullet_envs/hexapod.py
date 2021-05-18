@@ -106,8 +106,7 @@ class HexapodBullet(PyBullet):
 
         self._filter_collisions()
 
-    def reward(self, state, action, next_state):
-
+    def reward(self, state, action, next_state, absorbing):
         pose = self.get_sim_state(next_state, "hexapod", PyBulletObservationType.BODY_POS)
         euler = pybullet.getEulerFromQuaternion(pose[3:])
 
@@ -120,8 +119,9 @@ class HexapodBullet(PyBullet):
         action_penalty = np.linalg.norm(action)
 
         self_collisions_penalty = 1.0*self._count_self_collisions()
+        alive_bonus = -1 if absorbing else 1
 
-        return 1 + goal_reward + 1e-1*attitude_reward - 1e-3*action_penalty - self_collisions_penalty
+        return alive_bonus + goal_reward + 1e-1*attitude_reward - 1e-3*action_penalty - self_collisions_penalty
 
     def is_absorbing(self, state):
         pose = self.get_sim_state(state, "hexapod", PyBulletObservationType.BODY_POS)
