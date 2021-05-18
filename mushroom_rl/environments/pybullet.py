@@ -229,8 +229,9 @@ class PyBullet(Environment):
                     low.append(joint_info[8])
                     high.append(joint_info[9])
                 else:
-                    low.append(-np.inf)
-                    high.append(np.inf)
+                    max_joint_vel = joint_info[11]
+                    low.append(-max_joint_vel)
+                    high.append(max_joint_vel)
 
             self._add_observation_index(name, obs_type, index_count, len(low))
 
