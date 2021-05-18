@@ -115,7 +115,7 @@ class OpenHandModelQ(PyBullet):
 
         return action_full
 
-    def setup(self):
+    def setup(self, state):
         for i, (model_id, joint_id, _) in enumerate(self._action_data):
             self._client.resetJointState(model_id, joint_id, self.gripper_initial_state[i])
 

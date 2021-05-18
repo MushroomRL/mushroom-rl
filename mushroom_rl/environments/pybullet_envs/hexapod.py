@@ -91,7 +91,7 @@ class HexapodBullet(PyBullet):
 
         self._goal = np.array([2.0, 2.0]) if goal is None else goal
 
-    def setup(self):
+    def setup(self, state):
         for i, (model_id, joint_id, _) in enumerate(self._action_data):
             self._client.resetJointState(model_id, joint_id, self.hexapod_initial_state[i])
 
