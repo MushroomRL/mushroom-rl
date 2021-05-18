@@ -119,12 +119,12 @@ class PyBullet(Environment):
 
         self._step_finalize()
 
-        absorbing = self.is_absorbing(curr_state)
-        reward = self.reward(self._state, action, curr_state, absorbing)
+        absorbing = self.is_absorbing(self._state)
+        reward = self.reward(cur_obs, action, self._state, absorbing)
 
         observation = self._create_observation(self._state)
 
-        return observation, reward, self.is_absorbing(self._state), {}
+        return observation, reward, absorbing, {}
 
     def get_sim_state_index(self, name, obs_type):
         return self._observation_indices_map[name][obs_type]

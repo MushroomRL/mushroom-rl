@@ -122,7 +122,7 @@ class OpenHandModelQ(PyBullet):
         self._client.resetDebugVisualizerCamera(cameraDistance=0.25, cameraYaw=45.0, cameraPitch=-15,
                                                 cameraTargetPosition=[0., 0., 0.1])
 
-    def reward(self, state, action, next_state):
+    def reward(self, state, action, next_state, absorbing):
         angular_velocity = self.get_sim_state(next_state, 'valve_joint', PyBulletObservationType.JOINT_VEL)
 
         return angular_velocity
