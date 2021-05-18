@@ -31,7 +31,6 @@ class HopperRobot(LocomotorRobot):
 
         super().__init__(hopper_path, action_spec, observation_spec, gamma, horizon, debug_gui)
 
-
     def is_absorbing(self, state):
         return False
 

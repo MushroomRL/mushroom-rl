@@ -179,7 +179,7 @@ class PyBullet(Environment):
 
     def reset(self, state=None):
         self._client.restoreState(self._initial_state)
-        self.setup()
+        self.setup(state)
         self._state = self._create_sim_state()
         return self._state
 
@@ -489,10 +489,15 @@ class PyBullet(Environment):
         """
         raise NotImplementedError
 
-    def setup(self):
+    def setup(self, state):
         """
         A function that allows to execute setup code after an environment
         reset.
+
+        Args:
+            state (np.ndarray): the state to be restored. If the state should be
+            chosen by the environment, state is None. Environments can ignore this
+            value if the initial state cannot be set programmatically.
 
         """
         pass
