@@ -115,7 +115,6 @@ class PyBullet(Environment):
         self._model_map = dict()
         for file_name, kwargs in files.items():
             model_id = self._load_model(file_name, kwargs)
-            print(model_id)
             model_name = self._client.getBodyInfo(model_id)[1].decode('UTF-8')
             self._model_map[model_name] = model_id
         self._model_map.update(self._custom_load_models())
