@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from datetime import datetime
 from helper.utils import TestUtils as tu
 
-from mushroom_rl.core import Agent
+from mushroom_rl.core import Agent, Logger
 from mushroom_rl.algorithms.value import DQN, DoubleDQN, AveragedDQN,\
     MaxminDQN, DuelingDQN, CategoricalDQN, NoisyDQN, Rainbow
 from mushroom_rl.core import Core
@@ -48,7 +48,7 @@ class FeatureNetwork(nn.Module):
         return torch.squeeze(state, 1).float()
 
 
-def learn(alg, alg_params):
+def learn(alg, alg_params, logger=None):
     # MDP
     mdp = CartPole()
     np.random.seed(1)
@@ -80,6 +80,9 @@ def learn(alg, alg_params):
     else:
         agent = alg(mdp.info, pi, approximator_params=approximator_params,
                     **alg_params)
+
+    if logger is not None:
+        agent.set_logger(logger)
 
     # Algorithm
     core = Core(agent, mdp)
@@ -116,6 +119,19 @@ def test_dqn_save(tmpdir):
         load_attr = getattr(agent_load, att)
 
         tu.assert_eq(save_attr, load_attr)
+
+
+def test_dqn_logger(tmpdir):
+    logger = Logger('dqn_logger', results_dir=tmpdir, use_timestamp=True)
+
+    params = dict(batch_size=50, initial_replay_size=50,
+                  max_replay_size=500, target_update_frequency=50)
+    learn(DQN, params, logger)
+
+    loss_file = np.load(logger.path / 'loss_Q.npy')
+
+    assert loss_file.shape == (90,)
+    assert loss_file[0] == 0.9765409231185913 and loss_file[-1] == 0.6936992406845093
 
 
 def test_prioritized_dqn():
