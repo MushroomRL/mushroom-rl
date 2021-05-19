@@ -108,13 +108,17 @@ class PyBullet(Environment):
         self._client.setGravity(0, 0, -9.81)
         self._client.setAdditionalSearchPath(pybullet_data.getDataPath())
 
-        self._viewer = PyBulletViewer(self._client, self._timestep * self._n_intermediate_steps, **viewer_params)
+        self._viewer = PyBulletViewer(self._client, self.dt, **viewer_params)
         self._state = None
 
         # Load model and create access maps
         self._model_map = dict()
         for file_name, kwargs in files.items():
             model_id = self._load_model(file_name, kwargs)
+
+            for j in range(self._client.getNumJoints(model_id)):
+                self._client.setJointMotorControl2(model_id, j, pybullet.POSITION_CONTROL, force=0)
+
             model_name = self._client.getBodyInfo(model_id)[1].decode('UTF-8')
             self._model_map[model_name] = model_id
         self._model_map.update(self._custom_load_models())
@@ -139,11 +143,6 @@ class PyBullet(Environment):
                 data = self._joint_map[name] + (mode,)
                 self._action_data.append(data)
 
-                if mode == pybullet.TORQUE_CONTROL:
-                    self._client.setJointMotorControl2(data[0], data[1],
-                                                       controlMode=pybullet.VELOCITY_CONTROL,
-                                                       force=0)
-
         low, high = self._compute_action_limits()
         action_space = Box(np.array(low), np.array(high))
 
@@ -164,6 +163,26 @@ class PyBullet(Environment):
         # Finally, we create the MDP information and call the constructor of
         # the parent class
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+
+        # Utils for joint calculations
+        self._joint_pos_indexes = list()
+        self._joint_velocity_indexes = list()
+        joint_limits_low = list()
+        joint_limits_high = list()
+        for joint_name, obs_type in observation_spec:
+            joint_idx = self.get_sim_state_index(joint_name, obs_type)
+            if obs_type == PyBulletObservationType.JOINT_VEL:
+                self._joint_velocity_indexes.append(joint_idx[0])
+            elif obs_type == PyBulletObservationType.JOINT_POS:
+                self._joint_pos_indexes.append(joint_idx[0])
+
+                model_id, joint_id = self._joint_map[joint_name]
+                joint_info = self._client.getJointInfo(model_id, joint_id)
+                joint_limits_low.append(joint_info[8])
+                joint_limits_high.append(joint_info[9])
+
+        self._joint_limits_low = np.array(joint_limits_low)
+        self._joint_limits_high = np.array(joint_limits_high)
 
         # Let the child class modify the mdp_info data structure
         mdp_info = self._modify_mdp_info(mdp_info)
@@ -237,6 +256,15 @@ class PyBullet(Environment):
         indices = self.get_sim_state_index(name, obs_type)
 
         return obs[indices]
+
+    def get_joint_positions(self, state):
+        return state[self._joint_pos_indexes]
+
+    def get_joint_velocities(self, state):
+        return state[self._joint_velocity_indexes]
+
+    def get_joint_limits(self):
+        return self._joint_limits_low, self._joint_limits_high
 
     def _modify_mdp_info(self, mdp_info):
         """
@@ -505,4 +533,8 @@ class PyBullet(Environment):
     @property
     def client(self):
         return self._client
+
+    @property
+    def dt(self):
+        return self._timestep * self._n_intermediate_steps
 
