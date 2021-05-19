@@ -70,8 +70,7 @@ if __name__ == '__main__':
     env = AirHockeyPlanarHit(debug_gui=True, env_noise=False, obs_noise=False, obs_delay=False)
 
     while True:
-        # action = np.random.randn(3) * 10
-        action = -np.ones(3) * 10
+        action = np.random.randn(3) * 10
         observation, reward, done, info = env.step(action)
         if done:
             env.reset()

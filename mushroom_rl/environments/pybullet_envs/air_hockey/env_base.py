@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pybullet
 import pybullet_utils.transformations as transformations
+
 from mushroom_rl.environments.pybullet import PyBullet, PyBulletObservationType
 from mushroom_rl.environments.pybullet_envs import __file__ as path_robots
 
@@ -120,6 +121,12 @@ class AirHockeyPlanarBase(PyBullet):
         puck_pos = self.get_sim_state(state, "puck", PyBulletObservationType.BODY_POS)[:3]
         if np.any(np.abs(puck_pos[:2]) > boundary) or abs(puck_pos[2] - self.env_spec['table']['height']) > 0.05:
             return True
+
+        boundary_mallet = boundary - self.env_spec['mallet']['radius']
+        for agent in self.agents:
+            mallet_pose = self.get_sim_state(state, agent['name'] + "/link_striker_ee", PyBulletObservationType.LINK_POS)
+            if np.any(np.abs(mallet_pose[:2]) - boundary_mallet > 1e-3):
+                return True
         return False
 
     def forward_kinematics(self, joint_state):
