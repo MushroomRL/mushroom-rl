@@ -102,6 +102,7 @@ class PyBullet(Environment):
         # Create the simulation and viewer
         if debug_gui:
             self._client = BulletClient(connection_mode=pybullet.GUI)
+            self._client.configureDebugVisualizer(pybullet.COV_ENABLE_GUI, 0)
         else:
             self._client = BulletClient(connection_mode=pybullet.DIRECT)
         self._client.setTimeStep(self._timestep)
