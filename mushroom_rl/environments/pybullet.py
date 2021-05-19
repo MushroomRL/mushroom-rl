@@ -65,12 +65,74 @@ class PyBullet(Environment):
         self._model_map = dict()
         for file_name, kwargs in files.items():
             model_id = self._load_model(file_name, kwargs)
+
+            for j in range(self._client.getNumJoints(model_id)):
+                self._client.setJointMotorControl2(model_id, j, pybullet.POSITION_CONTROL, force=0)
+
             model_name = self._client.getBodyInfo(model_id)[1].decode('UTF-8')
             self._model_map[model_name] = model_id
         self._model_map.update(self._custom_load_models())
 
-        observation_space = Box(*self._indexer.observation_limits)
+        self._joint_map = dict()
+        self._link_map = dict()
+        for model_id in self._model_map.values():
+            for joint_id in range(self._client.getNumJoints(model_id)):
+                joint_data = self._client.getJointInfo(model_id, joint_id)
+                if joint_data[2] != pybullet.JOINT_FIXED:
+                    joint_name = joint_data[1].decode('UTF-8')
+                    self._joint_map[joint_name] = (model_id, joint_id)
+                link_name = joint_data[12].decode('UTF-8')
+                self._link_map[link_name] = (model_id, joint_id)
+
+        # Read the actuation spec and build the mapping between actions and ids
+        # as well as their limits
+        assert(len(actuation_spec) > 0)
+        self._action_data = list()
+        for name, mode in actuation_spec:
+            if name in self._joint_map:
+                data = self._joint_map[name] + (mode,)
+                self._action_data.append(data)
+
+        low, high = self._compute_action_limits()
+        action_space = Box(np.array(low), np.array(high))
+
+        # Read the observation spec to build a mapping at every step. It is
+        # ensured that the values appear in the order they are specified.
+        if len(observation_spec) == 0:
+            raise AttributeError("No Environment observations were specified. "
+                                 "Add at least one observation to the observation_spec.")
+
+        self._observation_map = observation_spec
+        self._observation_indices_map = dict()
+
+        # We can only specify limits for the joint positions, all other
+        # information can be potentially unbounded
+        low, high = self._compute_observation_limits()
+        observation_space = Box(low, high)
+
+        # Finally, we create the MDP information and call the constructor of
+        # the parent class
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+
+        # Utils for joint calculations
+        self._joint_pos_indexes = list()
+        self._joint_velocity_indexes = list()
+        joint_limits_low = list()
+        joint_limits_high = list()
+        for joint_name, obs_type in observation_spec:
+            joint_idx = self.get_sim_state_index(joint_name, obs_type)
+            if obs_type == PyBulletObservationType.JOINT_VEL:
+                self._joint_velocity_indexes.append(joint_idx[0])
+            elif obs_type == PyBulletObservationType.JOINT_POS:
+                self._joint_pos_indexes.append(joint_idx[0])
+
+                model_id, joint_id = self._joint_map[joint_name]
+                joint_info = self._client.getJointInfo(model_id, joint_id)
+                joint_limits_low.append(joint_info[8])
+                joint_limits_high.append(joint_info[9])
+
+        self._joint_limits_low = np.array(joint_limits_low)
+        self._joint_limits_high = np.array(joint_limits_high)
 
         # Let the child class modify the mdp_info data structure
         mdp_info = self._modify_mdp_info(mdp_info)
@@ -144,6 +206,15 @@ class PyBullet(Environment):
         indices = self.get_sim_state_index(name, obs_type)
 
         return obs[indices]
+
+    def get_joint_positions(self, state):
+        return state[self._joint_pos_indexes]
+
+    def get_joint_velocities(self, state):
+        return state[self._joint_velocity_indexes]
+
+    def get_joint_limits(self):
+        return self._joint_limits_low, self._joint_limits_high
 
     def _modify_mdp_info(self, mdp_info):
         """
