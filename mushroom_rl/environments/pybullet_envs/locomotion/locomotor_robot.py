@@ -60,8 +60,14 @@ class LocomotorRobot(PyBullet):
         action_high = np.ones(n_actions)
         action_space = Box(action_low, action_high)
 
-        observation_low = np. concatenate([np.array([0, -1, -1, -3, -3, -3, -np.pi, -np.pi]), self._joint_limits_low])
-        observation_high = np. concatenate([np.array([2, 1, 1, 3, 3, 3, np.pi, np.pi]), self._joint_limits_high])
+        joints_low, joints_high = self.get_joint_limits()
+        velocity_limits = self.get_joint_velocity_limits()
+
+        observation_low = np.concatenate([np.array([0, -1, -1, -3, -3, -3, -np.pi, -np.pi]),
+                                          joints_low, -velocity_limits])
+        observation_high = np.concatenate([np.array([2, 1, 1, 3, 3, 3, np.pi, np.pi]),
+                                           joints_high, velocity_limits])
+
         observation_space = Box(observation_low, observation_high)
 
         return MDPInfo(observation_space, action_space, mdp_info.gamma, mdp_info.horizon)
@@ -111,16 +117,9 @@ class LocomotorRobot(PyBullet):
                               [0, 0, 1]])
         vx, vy, vz = np.dot(rot_speed, velocity)  # rotate speed back to body point of view
 
-        body_info = [z, np.sin(angle_to_target), np.cos(angle_to_target), vx, vy, vz, roll, pitch]
+        body_info = np.array([z, np.sin(angle_to_target), np.cos(angle_to_target), vx, vy, vz, roll, pitch])
 
         joint_pos = self.get_joint_positions(state)
         joint_vel = self.get_joint_velocities(state)
 
-        joints = []
-        for pos, vel in zip(joint_pos, joint_vel):
-            joints += [pos, vel]
-
-        return np.array(body_info + joints)
-
-
-
+        return np.concatenate([body_info, joint_pos, joint_vel])
