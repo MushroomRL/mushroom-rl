@@ -335,13 +335,13 @@ class PyBullet(Environment):
                or obs_type is PyBulletObservationType.BODY_ANG_VEL:
                 n_dim = 7 if obs_type is PyBulletObservationType.BODY_POS else 3
                 low += [-np.inf] * n_dim
-                high += [-np.inf] * n_dim
+                high += [np.inf] * n_dim
             elif obs_type is PyBulletObservationType.LINK_POS \
                     or obs_type is PyBulletObservationType.LINK_LIN_VEL \
                     or obs_type is PyBulletObservationType.LINK_ANG_VEL:
                 n_dim = 7 if obs_type is PyBulletObservationType.LINK_POS else 3
                 low += [-np.inf] * n_dim
-                high += [-np.inf] * n_dim
+                high += [np.inf] * n_dim
             else:
                 model_id, joint_id = self._joint_map[name]
                 joint_info = self._client.getJointInfo(model_id, joint_id)
