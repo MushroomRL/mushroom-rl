@@ -119,10 +119,16 @@ class PyBullet(Environment):
         self._joint_velocity_indexes = list()
         joint_limits_low = list()
         joint_limits_high = list()
+        joint_velocity_limits = list()
         for joint_name, obs_type in observation_spec:
             joint_idx = self.get_sim_state_index(joint_name, obs_type)
             if obs_type == PyBulletObservationType.JOINT_VEL:
                 self._joint_velocity_indexes.append(joint_idx[0])
+
+                model_id, joint_id = self._joint_map[joint_name]
+                joint_info = self._client.getJointInfo(model_id, joint_id)
+                joint_velocity_limits.append(joint_info[11])
+
             elif obs_type == PyBulletObservationType.JOINT_POS:
                 self._joint_pos_indexes.append(joint_idx[0])
 
@@ -133,6 +139,7 @@ class PyBullet(Environment):
 
         self._joint_limits_low = np.array(joint_limits_low)
         self._joint_limits_high = np.array(joint_limits_high)
+        self._joint_velocity_limits = np.array(joint_velocity_limits)
 
         # Let the child class modify the mdp_info data structure
         mdp_info = self._modify_mdp_info(mdp_info)
@@ -150,7 +157,9 @@ class PyBullet(Environment):
         self._client.restoreState(self._initial_state)
         self.setup(state)
         self._state = self._create_sim_state()
-        return self._state
+        observation = self._create_observation(self._state)
+
+        return observation
 
     def render(self):
         self._viewer.display()
@@ -215,6 +224,9 @@ class PyBullet(Environment):
 
     def get_joint_limits(self):
         return self._joint_limits_low, self._joint_limits_high
+
+    def get_joint_velocity_limits(self):
+        return self._joint_velocity_limits
 
     def _modify_mdp_info(self, mdp_info):
         """
