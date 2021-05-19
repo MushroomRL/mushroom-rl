@@ -1,1 +1,1 @@
-from .hopper import *
+from .hopper import HopperRobot

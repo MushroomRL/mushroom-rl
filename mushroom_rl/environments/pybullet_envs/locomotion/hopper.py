@@ -1,17 +1,15 @@
 import time
 import numpy as np
 import pybullet
+import pybullet_data
+from pathlib import Path
 from mushroom_rl.environments.pybullet import PyBulletObservationType
 from mushroom_rl.environments.pybullet_envs.locomotion.locomotor_robot import LocomotorRobot
-
-from pathlib import Path
-
-from mushroom_rl.environments.pybullet_envs import __file__ as path_robots
 
 
 class HopperRobot(LocomotorRobot):
     def __init__(self, gamma=0.99, horizon=1000, debug_gui=False):
-        hopper_path = Path(path_robots).absolute().parent / 'data' / 'hopper' / 'hopper.xml'
+        hopper_path = Path(pybullet_data.getDataPath()) / "mjcf" / 'hopper.xml'
         hopper_path = str(hopper_path)
 
         action_spec = [
@@ -27,19 +25,23 @@ class HopperRobot(LocomotorRobot):
             ("leg_joint", PyBulletObservationType.JOINT_VEL),
             ("foot_joint", PyBulletObservationType.JOINT_POS),
             ("foot_joint", PyBulletObservationType.JOINT_VEL),
+            ("torso", PyBulletObservationType.LINK_POS),
+            ("torso", PyBulletObservationType.LINK_LIN_VEL)
         ]
 
-        super().__init__(hopper_path, action_spec, observation_spec, gamma, horizon, debug_gui)
+        super().__init__(hopper_path, action_spec, observation_spec, gamma, horizon, debug_gui, power=0.75)
 
     def is_absorbing(self, state):
-        return False
+        pose = self.get_sim_state(state, 'torso', PyBulletObservationType.LINK_POS)
+        euler = pybullet.getEulerFromQuaternion(pose[3:])
+        z = pose[2]
+        pitch = euler[1]
+        return z <= 0.8 or abs(pitch) >= 1.0
 
 
 if __name__ == '__main__':
-    from mushroom_rl.core import Core
-    from mushroom_rl.core import Agent
+    from mushroom_rl.core import Core, Agent, Environment
     from mushroom_rl.utils.dataset import compute_J
-
 
     class DummyAgent(Agent):
         def __init__(self, n_actions):
@@ -56,8 +58,9 @@ if __name__ == '__main__':
         def fit(self, dataset):
             pass
 
-
     mdp = HopperRobot(debug_gui=True)
+    # mdp = Environment.make('Gym.HopperBulletEnv-v0', render=True)
+
     agent = DummyAgent(mdp.info.action_space.shape[0])
 
     core = Core(agent, mdp)
