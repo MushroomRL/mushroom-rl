@@ -3,7 +3,6 @@ import numpy as np
 import pybullet
 import pybullet_data
 from pathlib import Path
-from mushroom_rl.environments.pybullet import PyBulletObservationType
 from mushroom_rl.environments.pybullet_envs.locomotion.locomotor_robot import LocomotorRobot
 
 
@@ -12,27 +11,14 @@ class HopperRobot(LocomotorRobot):
         hopper_path = Path(pybullet_data.getDataPath()) / "mjcf" / 'hopper.xml'
         hopper_path = str(hopper_path)
 
-        action_spec = [
-            ("thigh_joint", pybullet.TORQUE_CONTROL),
-            ("leg_joint", pybullet.TORQUE_CONTROL),
-            ("foot_joint", pybullet.TORQUE_CONTROL),
-        ]
+        joints = ['thigh_joint', 'leg_joint', 'foot_joint']
+        power = 0.75
+        joint_power = np.array([100.0, 100.0, 100.0])
 
-        observation_spec = [
-            ("thigh_joint", PyBulletObservationType.JOINT_POS),
-            ("thigh_joint", PyBulletObservationType.JOINT_VEL),
-            ("leg_joint", PyBulletObservationType.JOINT_POS),
-            ("leg_joint", PyBulletObservationType.JOINT_VEL),
-            ("foot_joint", PyBulletObservationType.JOINT_POS),
-            ("foot_joint", PyBulletObservationType.JOINT_VEL),
-            ("torso", PyBulletObservationType.LINK_POS),
-            ("torso", PyBulletObservationType.LINK_LIN_VEL)
-        ]
-
-        super().__init__(hopper_path, action_spec, observation_spec, gamma, horizon, debug_gui, power=0.75)
+        super().__init__(hopper_path, joints, gamma, horizon, debug_gui, power, joint_power)
 
     def is_absorbing(self, state):
-        pose = self.get_sim_state(state, 'torso', PyBulletObservationType.LINK_POS)
+        pose = self._get_torso_pos(state)
         euler = pybullet.getEulerFromQuaternion(pose[3:])
         z = pose[2]
         pitch = euler[1]
