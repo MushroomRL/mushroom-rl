@@ -3,40 +3,27 @@ import numpy as np
 import pybullet
 import pybullet_data
 from pathlib import Path
-from mushroom_rl.environments.pybullet import PyBulletObservationType
 from mushroom_rl.environments.pybullet_envs.locomotion.locomotor_robot import LocomotorRobot
 
 
 class HalfCheetahRobot(LocomotorRobot):
     def __init__(self, gamma=0.99, horizon=1000, debug_gui=False):
-        hopper_path = Path(pybullet_data.getDataPath()) / "mjcf" / 'half_cheetah.xml'
-        hopper_path = str(hopper_path)
+        cheetah_path = Path(pybullet_data.getDataPath()) / "mjcf" / 'half_cheetah.xml'
+        cheetah_path = str(cheetah_path)
 
-        action_spec = [
-            ("thigh_joint", pybullet.TORQUE_CONTROL),
-            ("leg_joint", pybullet.TORQUE_CONTROL),
-            ("foot_joint", pybullet.TORQUE_CONTROL),
-        ]
+        joints = ['bthigh', 'bshin', 'bfoot', 'fthigh', 'fshin', 'ffoot']
+        power = 0.9
+        joint_power = np.array([120.0, 90.0, 60.0, 140.0, 60.0, 30.0])
 
-        observation_spec = [
-            ("thigh_joint", PyBulletObservationType.JOINT_POS),
-            ("thigh_joint", PyBulletObservationType.JOINT_VEL),
-            ("leg_joint", PyBulletObservationType.JOINT_POS),
-            ("leg_joint", PyBulletObservationType.JOINT_VEL),
-            ("foot_joint", PyBulletObservationType.JOINT_POS),
-            ("foot_joint", PyBulletObservationType.JOINT_VEL),
-            ("torso", PyBulletObservationType.LINK_POS),
-            ("torso", PyBulletObservationType.LINK_LIN_VEL)
-        ]
-
-        super().__init__(hopper_path, action_spec, observation_spec, gamma, horizon, debug_gui, power=0.75)
+        super().__init__(cheetah_path, joints, gamma, horizon, debug_gui, power, joint_power)
 
     def is_absorbing(self, state):
-        pose = self.get_sim_state(state, 'torso', PyBulletObservationType.LINK_POS)
+        pose = self._get_torso_pos(state)
         euler = pybullet.getEulerFromQuaternion(pose[3:])
-        z = pose[2]
         pitch = euler[1]
-        return z <= 0.8 or abs(pitch) >= 1.0
+
+        # TODO terminate when touching the ground with other than feets
+        return np.abs(pitch) >= 1.0
 
 
 if __name__ == '__main__':
