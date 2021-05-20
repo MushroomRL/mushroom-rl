@@ -33,9 +33,6 @@ class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
         for i, (model_id, joint_id, _) in enumerate(self._action_data):
             self._client.resetJointState(model_id, joint_id, self.init_state[i])
 
-        # Construct the initial observation
-        self._init_observation()
-
     def reward(self, state, action, next_state, absorbing):
         puck_vel = state[3:6]
         return np.clip(1 - abs(puck_vel[0]), 0, 1)

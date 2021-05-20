@@ -110,6 +110,9 @@ class AirHockeyPlanarBase(PyBullet):
         self.env_spec['joint_vel_threshold'] = 0.1
         self.reset()
 
+    def _preprocess_action(self, action):
+        return np.clip(action, self.info.action_space.low, self.info.action_space.high)
+
     def _simulation_pre_step(self):
         if self.env_noise:
             force = np.concatenate([np.random.randn(2), [0]]) * 0.0005

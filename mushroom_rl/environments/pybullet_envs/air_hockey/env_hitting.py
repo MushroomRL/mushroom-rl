@@ -29,9 +29,6 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
 
         self.has_hit = False
 
-        # Construct the initial observation
-        # self._init_observation()
-
     def _modify_mdp_info(self, mdp_info):
         obs_idx = [0, 1, 2, 7, 8, 9, 13, 14, 15, 16, 17, 18]
         obs_low = mdp_info.observation_space.low[obs_idx]
@@ -70,7 +67,7 @@ if __name__ == '__main__':
     env = AirHockeyPlanarHit(debug_gui=True, env_noise=False, obs_noise=False, obs_delay=False)
 
     while True:
-        action = np.random.randn(3) * 10
+        action = np.random.randn(3) * 5
         observation, reward, done, info = env.step(action)
         if done:
             env.reset()
