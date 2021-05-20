@@ -5,11 +5,14 @@ from mushroom_rl.core import MDPInfo
 from mushroom_rl.environments.pybullet import PyBullet, PyBulletObservationType
 from mushroom_rl.utils.spaces import Box
 
+from itertools import product
+
 
 class LocomotorRobot(PyBullet):
-    def __init__(self, robot_path, action_spec, observation_spec, gamma, horizon,
-                 debug_gui, power, joint_power=None, goal=None, c_electricity=-2.0, c_stall=-0.1, c_joints=-0.1):
+    def __init__(self, robot_path, joints, gamma, horizon, debug_gui, power, joint_power, robot_name=None, goal=None,
+                 c_electricity=-2.0, c_stall=-0.1, c_joints=-0.1):
 
+        self._robot_name = robot_name
         self._goal = np.array([1e3, 0]) if goal is None else goal
         self._c_electricity = c_electricity
         self._c_stall = c_stall
@@ -22,9 +25,26 @@ class LocomotorRobot(PyBullet):
             'plane.urdf': {}
         }
 
+        # Build observation and action spec
+        action_spec = [(j, pybullet.TORQUE_CONTROL) for j in joints]
+
+        observation_types = [PyBulletObservationType.JOINT_POS, PyBulletObservationType.JOINT_VEL]
+        observation_spec = [obs for obs in product(joints, observation_types)]
+
+        if self._robot_name:
+            observation_spec += [
+                (robot_name, PyBulletObservationType.BODY_POS),
+                (robot_name, PyBulletObservationType.BODY_LIN_VEL)
+            ]
+        else:
+            observation_spec += [
+                ("torso", PyBulletObservationType.LINK_POS),
+                ("torso", PyBulletObservationType.LINK_LIN_VEL)
+            ]
+
         # Scaling terms for robot actions
         self._power = power
-        self._joint_power = 100 * np.ones(len(action_spec)) if joint_power is None else joint_power
+        self._joint_power = joint_power
 
         # Superclass constructor
         super().__init__(files, action_spec, observation_spec, gamma, horizon,
@@ -60,15 +80,21 @@ class LocomotorRobot(PyBullet):
         action_high = np.ones(n_actions)
         action_space = Box(action_low, action_high)
 
-        observation_low = np. concatenate([np.array([0, -1, -1, -3, -3, -3, -np.pi, -np.pi]), self._joint_limits_low])
-        observation_high = np. concatenate([np.array([2, 1, 1, 3, 3, 3, np.pi, np.pi]), self._joint_limits_high])
+        joints_low, joints_high = self.get_joint_limits()
+        velocity_limits = self.get_joint_velocity_limits()
+
+        observation_low = np.concatenate([np.array([0, -1, -1, -3, -3, -3, -np.pi, -np.pi]),
+                                          joints_low, -velocity_limits])
+        observation_high = np.concatenate([np.array([2, 1, 1, 3, 3, 3, np.pi, np.pi]),
+                                           joints_high, velocity_limits])
+
         observation_space = Box(observation_low, observation_high)
 
         return MDPInfo(observation_space, action_space, mdp_info.gamma, mdp_info.horizon)
 
     def _compute_progress(self, state, next_state):
-        pose_old = self.get_sim_state(state, 'torso', PyBulletObservationType.LINK_POS)
-        pose_new = self.get_sim_state(next_state, 'torso', PyBulletObservationType.LINK_POS)
+        pose_old = self._get_torso_pos(state)
+        pose_new = self._get_torso_pos(next_state)
 
         old_distance = np.linalg.norm(pose_old[:2] - self._goal)
         new_distance = np.linalg.norm(pose_new[:2] - self._goal)
@@ -92,9 +118,21 @@ class LocomotorRobot(PyBullet):
         scaled_action = self._power * self._joint_power * np.clip(action, -1, 1)
         return scaled_action
 
+    def _get_torso_pos(self, state):
+        if self._robot_name:
+            return self.get_sim_state(state, self._robot_name, PyBulletObservationType.BODY_POS)
+        else:
+            return self.get_sim_state(state, 'torso', PyBulletObservationType.LINK_POS)
+
+    def _get_torso_vel(self, state):
+        if self._robot_name:
+            return self.get_sim_state(state, self._robot_name, PyBulletObservationType.BODY_LIN_VEL)
+        else:
+            return self.get_sim_state(state, 'torso', PyBulletObservationType.LINK_LIN_VEL)
+
     def _create_observation(self, state):
-        pose = self.get_sim_state(state, 'torso', PyBulletObservationType.LINK_POS)
-        velocity = self.get_sim_state(state, 'torso', PyBulletObservationType.LINK_LIN_VEL)
+        pose = self._get_torso_pos(state)
+        velocity = self._get_torso_vel(state)
 
         euler = pybullet.getEulerFromQuaternion(pose[3:])
         z = pose[2]
@@ -111,16 +149,9 @@ class LocomotorRobot(PyBullet):
                               [0, 0, 1]])
         vx, vy, vz = np.dot(rot_speed, velocity)  # rotate speed back to body point of view
 
-        body_info = [z, np.sin(angle_to_target), np.cos(angle_to_target), vx, vy, vz, roll, pitch]
+        body_info = np.array([z, np.sin(angle_to_target), np.cos(angle_to_target), vx, vy, vz, roll, pitch])
 
         joint_pos = self.get_joint_positions(state)
         joint_vel = self.get_joint_velocities(state)
 
-        joints = []
-        for pos, vel in zip(joint_pos, joint_vel):
-            joints += [pos, vel]
-
-        return np.array(body_info + joints)
-
-
-
+        return np.concatenate([body_info, joint_pos, joint_vel])

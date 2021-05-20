@@ -6,16 +6,16 @@ from pathlib import Path
 from mushroom_rl.environments.pybullet_envs.locomotion.locomotor_robot import LocomotorRobot
 
 
-class HopperRobot(LocomotorRobot):
+class WalkerRobot(LocomotorRobot):
     def __init__(self, gamma=0.99, horizon=1000, debug_gui=False):
-        hopper_path = Path(pybullet_data.getDataPath()) / "mjcf" / 'hopper.xml'
-        hopper_path = str(hopper_path)
+        walker_path = Path(pybullet_data.getDataPath()) / "mjcf" / 'walker2d.xml'
+        walker_path = str(walker_path)
 
-        joints = ['thigh_joint', 'leg_joint', 'foot_joint']
-        power = 0.75
-        joint_power = np.array([100.0, 100.0, 100.0])
+        joints = ['thigh_joint', 'leg_joint', 'foot_joint', 'thigh_left_joint', 'leg_left_joint', 'foot_left_joint']
+        power = 0.4
+        joint_power = np.array([100., 100., 30., 100., 100., 30.])
 
-        super().__init__(hopper_path, joints, gamma, horizon, debug_gui, power, joint_power)
+        super().__init__(walker_path, joints, gamma, horizon, debug_gui, power, joint_power)
 
     def is_absorbing(self, state):
         pose = self._get_torso_pos(state)
@@ -44,7 +44,7 @@ if __name__ == '__main__':
         def fit(self, dataset):
             pass
 
-    mdp = HopperRobot(debug_gui=True)
+    mdp = WalkerRobot(debug_gui=True)
     # mdp = Environment.make('Gym.HopperBulletEnv-v0', render=True)
 
     agent = DummyAgent(mdp.info.action_space.shape[0])

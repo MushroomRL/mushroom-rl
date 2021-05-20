@@ -1,28 +1,26 @@
 import time
 import numpy as np
-import pybullet
 import pybullet_data
 from pathlib import Path
 from mushroom_rl.environments.pybullet_envs.locomotion.locomotor_robot import LocomotorRobot
 
 
-class HopperRobot(LocomotorRobot):
+class AntRobot(LocomotorRobot):
     def __init__(self, gamma=0.99, horizon=1000, debug_gui=False):
-        hopper_path = Path(pybullet_data.getDataPath()) / "mjcf" / 'hopper.xml'
-        hopper_path = str(hopper_path)
+        ant_path = Path(pybullet_data.getDataPath()) / 'mjcf' / 'ant.xml'
+        ant_path = str(ant_path)
 
-        joints = ['thigh_joint', 'leg_joint', 'foot_joint']
-        power = 0.75
-        joint_power = np.array([100.0, 100.0, 100.0])
+        joints = ['hip_1', 'ankle_1', 'hip_2', 'ankle_2', 'hip_3', 'ankle_3', 'hip_4', 'ankle_4']
+        power = 2.5
+        joint_power = np.array([100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0])
 
-        super().__init__(hopper_path, joints, gamma, horizon, debug_gui, power, joint_power)
+        super().__init__(ant_path, joints, gamma, horizon, debug_gui, power, joint_power, robot_name='ant')
 
     def is_absorbing(self, state):
         pose = self._get_torso_pos(state)
-        euler = pybullet.getEulerFromQuaternion(pose[3:])
         z = pose[2]
-        pitch = euler[1]
-        return z <= 0.8 or abs(pitch) >= 1.0
+
+        return z <= 0.26
 
 
 if __name__ == '__main__':
@@ -44,7 +42,7 @@ if __name__ == '__main__':
         def fit(self, dataset):
             pass
 
-    mdp = HopperRobot(debug_gui=True)
+    mdp = AntRobot(debug_gui=True)
     # mdp = Environment.make('Gym.HopperBulletEnv-v0', render=True)
 
     agent = DummyAgent(mdp.info.action_space.shape[0])
