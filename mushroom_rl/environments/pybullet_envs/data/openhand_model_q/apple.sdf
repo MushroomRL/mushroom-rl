@@ -1,0 +1,42 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="apple">
+    <static>false</static>
+    <link name="link">
+      <inertial>       
+        <pose>0.0013105802251075094 -0.003861242636253375 0.03633673271131293 1.286588016581226 -0.49579231968013265 -1.5779571819367095</pose> 
+        <mass>0.0002465953911687125</mass>
+        <inertia>
+          <ixx>1.5346617709147597e-07</ixx>
+          <ixy>-1.944574775393758e-23</ixy>
+          <ixz>1.3580856376717886e-24</ixz>
+          <iyy>1.5237248423959713e-07</iyy>
+          <iyz>6.007441597418955e-24</iyz>
+          <izz>1.5058285191115322e-07</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <uri>meshes/apple/nontextured.stl</uri>
+	        </mesh>
+        </geometry>
+        <surface>
+        <!--<friction>
+          <ode>
+            <mu>0.8</mu>
+            <mu2>0.6</mu2>
+          </ode>
+        </friction>-->
+      </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>/meshes/apple/nontextured.stl</uri>
+	        </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

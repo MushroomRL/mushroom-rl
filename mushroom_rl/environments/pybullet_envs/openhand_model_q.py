@@ -20,20 +20,22 @@ class OpenHandModelQ(PyBullet):
     Morgan A. S. et Al.. 2021.
 
     """
-    def __init__(self, gamma=0.99, horizon=1000, valve_type='tri', debug_gui=False):
+    def __init__(self, gamma=0.99, horizon=1000, object_type='tri', debug_gui=False):
         """
         Constructor
 
         Args:
             gamma (float, 0.99): discount factor;
             horizon (int, 100): environment horizon;
-            valve_type (str, 'tri'): type of valve to manipulate ('tri, 'quad', 'round');
+            object_type (str, 'tri'): type of object to manipulate ('tri, 'quad', 'round', '');
             debug_gui (bool, False): flag to activate the debug visualizer.
 
         """
-        assert valve_type in ['tri', 'quad', 'round']
+        assert object_type in ['tri', 'quad', 'round', 'apple']
         manipulator_path = Path(path_robots).absolute().parent / 'data' / 'openhand_model_q' / 'model_q.urdf'
         self.robot_path = str(manipulator_path)
+        self._finger_gating = object_type == 'apple'
+
         print(self.robot_path)
 
         action_spec = [
@@ -66,29 +68,44 @@ class OpenHandModelQ(PyBullet):
             # Connected finger right
             ("base_to_prox_cr", PyBulletObservationType.JOINT_POS),
             ("prox_to_distal_cr", PyBulletObservationType.JOINT_POS),
-            ("valve_joint", PyBulletObservationType.JOINT_VEL)
         ]
 
-        valve_path = f'{valve_type}_valve.urdf'
+        if self._finger_gating:
+            observation_spec.append(("apple", PyBulletObservationType.BODY_POS))
+            observation_spec.append(("apple", PyBulletObservationType.BODY_ANG_VEL))
+        else:
+            observation_spec.append(("valve_joint", PyBulletObservationType.JOINT_VEL))
 
-        valve_path = Path(path_robots).absolute().parent / 'data' / 'openhand_model_q' / valve_path
-        valve_path = str(valve_path)
+        files = dict()
 
-        files = {
-            self.robot_path: dict(basePosition=[0., 0., .225],
-                                  baseOrientation=[0, 1, 0, 0],
-                                  flags=pybullet.URDF_USE_SELF_COLLISION
-                                  ),
-            'plane.urdf': {},
-            valve_path: dict(basePosition=[0., 0., 0.])
-        }
+        files[self.robot_path] = dict(basePosition=[0., 0., .225],
+                                      baseOrientation=[0, 1, 0, 0],
+                                      flags=pybullet.URDF_USE_SELF_COLLISION)
+        files['plane.urdf'] = dict()
+
+        if object_type != 'apple':
+            object_path = f'{object_type}_valve.urdf'
+            object_dict = dict(basePosition=[0., 0., 0.])
+        else:
+            object_path = 'apple.sdf'
+            object_dict = dict()
+
+        object_path = Path(path_robots).absolute().parent / 'data' / 'openhand_model_q' / object_path
+        files[str(object_path)] = object_dict
 
         super().__init__(files, action_spec, observation_spec, gamma, horizon, n_intermediate_steps=8,
                          debug_gui=debug_gui, distance=0.5, origin=[0., 0., 0.2], angles=[0., -15., 0.])
 
+        self._load_texture()
+
         self._client.setGravity(0, 0, -9.81)
 
-        self.gripper_initial_state = [0., 0., 0., 0., 0., 0., 0., 0., 0.]
+        if self._finger_gating:
+            self.gripper_initial_state = [0., np.pi/3, np.pi/6, np.pi/3, np.pi/6, np.pi/3, np.pi/6, np.pi/3, np.pi/6]
+        else:
+            self.gripper_initial_state = [0., 0., 0., 0., 0., 0., 0., 0., 0.]
+
+        self.apple_initial_position = [0., 0., 0.07]
 
     def _modify_mdp_info(self, mdp_info):
 
@@ -122,13 +139,35 @@ class OpenHandModelQ(PyBullet):
         self._client.resetDebugVisualizerCamera(cameraDistance=0.25, cameraYaw=45.0, cameraPitch=-15,
                                                 cameraTargetPosition=[0., 0., 0.1])
 
+        if self._finger_gating:
+            _, orientation = self._client.getBasePositionAndOrientation(self._model_map['apple'])
+            self._client.resetBasePositionAndOrientation(self._model_map['apple'], self.apple_initial_position,
+                                                         orientation)
+
     def reward(self, state, action, next_state, absorbing):
-        angular_velocity = self.get_sim_state(next_state, 'valve_joint', PyBulletObservationType.JOINT_VEL)
+        if self._finger_gating:
+            angular_velocity = self.get_sim_state(next_state, 'apple', PyBulletObservationType.BODY_ANG_VEL)[2]
+        else:
+            angular_velocity = self.get_sim_state(next_state, 'valve_joint', PyBulletObservationType.JOINT_VEL)
 
         return angular_velocity
 
     def is_absorbing(self, state):
-        return False
+        if self._finger_gating:
+            collisions = self._client.getContactPoints(self._model_map['plane'], self._model_map['apple'])
+
+            return len(collisions) > 0
+
+        else:
+            return False
+
+    def _load_texture(self):
+        if self._finger_gating:
+            texture_path = Path(path_robots).absolute().parent / 'data' / 'openhand_model_q' /\
+                           'meshes' / 'apple' / 'texture_map.png'
+            texUid = self._client.loadTexture(str(texture_path))
+            self._client.changeVisualShape(self._model_map['apple'], -1, textureUniqueId=texUid)
+
 
 
 if __name__ == '__main__':
@@ -142,7 +181,7 @@ if __name__ == '__main__':
 
         def draw_action(self, state):
             time.sleep(1/240)
-            #return 0.1*np.ones(self._n_actions)
+            #return np.zeros(self._n_actions)
             return np.random.randn(self._n_actions)
 
         def episode_start(self):
@@ -152,11 +191,11 @@ if __name__ == '__main__':
             pass
 
 
-    mdp = OpenHandModelQ(valve_type='tri', debug_gui=True)
+    mdp = OpenHandModelQ(object_type='apple', debug_gui=True)
     agent = DummyAgent(mdp.info.action_space.shape[0])
 
     core = Core(agent, mdp)
-    dataset = core.evaluate(n_episodes=10, render=False)
+    dataset = core.evaluate(n_episodes=10, render=True)
     print('reward: ', compute_J(dataset, mdp.info.gamma))
     print("mdp_info state shape", mdp.info.observation_space.shape)
     print("actual state shape", dataset[0][0].shape)
