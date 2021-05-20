@@ -8,7 +8,7 @@ from mushroom_rl.environments.pybullet_envs.locomotion.locomotor_robot import Lo
 
 class HopperRobot(LocomotorRobot):
     def __init__(self, gamma=0.99, horizon=1000, debug_gui=False):
-        hopper_path = Path(pybullet_data.getDataPath()) / "mjcf" / 'hopper.xml'
+        hopper_path = Path(pybullet_data.getDataPath()) / 'mjcf' / 'hopper.xml'
         hopper_path = str(hopper_path)
 
         joints = ['thigh_joint', 'leg_joint', 'foot_joint']

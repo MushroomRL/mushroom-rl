@@ -8,7 +8,7 @@ from mushroom_rl.environments.pybullet_envs.locomotion.locomotor_robot import Lo
 
 class HalfCheetahRobot(LocomotorRobot):
     def __init__(self, gamma=0.99, horizon=1000, debug_gui=False):
-        cheetah_path = Path(pybullet_data.getDataPath()) / "mjcf" / 'half_cheetah.xml'
+        cheetah_path = Path(pybullet_data.getDataPath()) / 'mjcf' / 'half_cheetah.xml'
         cheetah_path = str(cheetah_path)
 
         joints = ['bthigh', 'bshin', 'bfoot', 'fthigh', 'fshin', 'ffoot']
