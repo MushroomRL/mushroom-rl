@@ -78,6 +78,11 @@ class PyBullet(Environment):
         for model_id in self._model_map.values():
             for joint_id in range(self._client.getNumJoints(model_id)):
                 joint_data = self._client.getJointInfo(model_id, joint_id)
+
+                # Enforce velocity limits on every joint
+                if enforce_joint_velocity_limits:
+                    self._client.changeDynamics(model_id, joint_id, maxJointVelocity=joint_data[11])
+
                 if joint_data[2] != pybullet.JOINT_FIXED:
                     joint_name = joint_data[1].decode('UTF-8')
                     self._joint_map[joint_name] = (model_id, joint_id)
