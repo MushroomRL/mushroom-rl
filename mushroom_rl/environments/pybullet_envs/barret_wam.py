@@ -11,23 +11,28 @@ from mushroom_rl.environments.pybullet_envs import __file__ as path_robots
 class BatBot(PyBullet):
     def __init__(self, gamma=0.99, horizon=1000, debug_gui=False):
         robot_path = Path(path_robots).absolute().parent / 'data' / 'barret_wam'/ 'wam_4dof.urdf'
-        self.robot_path = str(robot_path)
-
-        print(self.robot_path)
+        robot_path = str(robot_path)
 
         action_spec = [
             ("wam_j1_joint", pybullet.VELOCITY_CONTROL),
             ("wam_j2_joint", pybullet.VELOCITY_CONTROL),
             ("wam_j3_joint", pybullet.VELOCITY_CONTROL),
-            ("wam_j4_joint", pybullet.VELOCITY_CONTROL),
+            ("wam_j4_joint", pybullet.VELOCITY_CONTROL)
         ]
 
         observation_spec = [
-            ("wam_j1_joint", PyBulletObservationType.JOINT_POS)
+            ("wam_j1_joint", PyBulletObservationType.JOINT_POS),
+            ("wam_j1_joint", PyBulletObservationType.JOINT_VEL),
+            ("wam_j2_joint", PyBulletObservationType.JOINT_POS),
+            ("wam_j2_joint", PyBulletObservationType.JOINT_VEL),
+            ("wam_j3_joint", PyBulletObservationType.JOINT_POS),
+            ("wam_j3_joint", PyBulletObservationType.JOINT_VEL),
+            ("wam_j4_joint", PyBulletObservationType.JOINT_POS),
+            ("wam_j4_joint", PyBulletObservationType.JOINT_VEL)
         ]
 
         files = {
-            self.robot_path: dict(basePosition=[0.0, 0.0, 0.0],
+            robot_path: dict(basePosition=[0.0, 0.0, 0.0],
                                   baseOrientation=[0, 0, 0.0, 1.0],
                                   flags=pybullet.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT),
             'plane.urdf': {}
@@ -62,8 +67,8 @@ if __name__ == '__main__':
         def draw_action(self, state):
             time.sleep(0.01)
 
-            #return np.random.randn(self._n_actions)
-            return np.zeros(self._n_actions)
+            return np.random.randn(self._n_actions)
+            # return np.zeros(self._n_actions)
 
         def episode_start(self):
             pass

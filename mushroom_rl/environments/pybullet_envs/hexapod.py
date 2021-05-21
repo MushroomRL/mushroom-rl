@@ -10,8 +10,8 @@ from mushroom_rl.environments.pybullet_envs import __file__ as path_robots
 
 class HexapodBullet(PyBullet):
     def __init__(self, gamma=0.99, horizon=1000, goal=None, debug_gui=False):
-        hexapod_path = Path(path_robots).absolute().parent / 'data' / 'hexapod'/ 'hexapod.urdf'
-        self.robot_path = str(hexapod_path)
+        robot_path = Path(path_robots).absolute().parent / 'data' / 'hexapod'/ 'hexapod.urdf'
+        robot_path = str(robot_path)
 
         action_spec = [
             ("hexapod/leg_0/joint_0", pybullet.VELOCITY_CONTROL),
@@ -69,9 +69,9 @@ class HexapodBullet(PyBullet):
         ]
 
         files = {
-            self.robot_path: dict(basePosition=[0.0, 0, 0.12],
-                                  baseOrientation=[0, 0, 0.0, 1.0],
-                                  flags=pybullet.URDF_USE_SELF_COLLISION),
+            robot_path: dict(basePosition=[0.0, 0, 0.12],
+                             baseOrientation=[0, 0, 0.0, 1.0],
+                             flags=pybullet.URDF_USE_SELF_COLLISION),
             'plane.urdf': {}
         }
 
