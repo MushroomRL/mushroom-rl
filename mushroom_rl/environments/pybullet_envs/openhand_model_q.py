@@ -141,6 +141,8 @@ class OpenHandModelQ(PyBullet):
             _, orientation = self._client.getBasePositionAndOrientation(self._model_map['apple'])
             self._client.resetBasePositionAndOrientation(self._model_map['apple'], self.apple_initial_position,
                                                          orientation)
+            self._client.changeDynamics(self._model_map['apple'], -1,
+                                        restitution=0., contactStiffness=1e+09, contactDamping=0.9)
 
     def reward(self, state, action, next_state, absorbing):
         if self._finger_gating:
@@ -177,7 +179,7 @@ if __name__ == '__main__':
             self._n_actions = n_actions
 
         def draw_action(self, state):
-            time.sleep(1/240)
+            time.sleep(8/240)
             #return np.zeros(self._n_actions)
             return np.random.randn(self._n_actions)
 
