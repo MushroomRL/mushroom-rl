@@ -103,7 +103,7 @@ class AirHockeyPlanarBase(PyBullet):
         self._client.resetDebugVisualizerCamera(cameraDistance=2, cameraYaw=0.0, cameraPitch=-89.9,
                                                 cameraTargetPosition=[0., 0., 0.])
         self.env_spec = dict()
-        self.env_spec['table'] = {"length": 1.96, "width": 1.02, "height": -0.189, "urdf": table_file}
+        self.env_spec['table'] = {"length": 1.96, "width": 1.02, "height": -0.189, "goal": 0.25, "urdf": table_file}
         self.env_spec['puck'] = {"radius": 0.03165, "urdf": puck_file}
         self.env_spec['mallet'] = {"radius": 0.05}
         self.env_spec['boundary_threshold'] = 0.02

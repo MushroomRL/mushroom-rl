@@ -39,6 +39,11 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
         return MDPInfo(observation_space, mdp_info.action_space, mdp_info.gamma, mdp_info.horizon)
 
     def reward(self, state, action, next_state, absorbing):
+        if absorbing:
+            puck_pos = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_POS)[:3]
+            if puck_pos[0] - self.env_spec['table']['length'] / 2 > 0 and \
+                    np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
+                return 100
         if not self.has_hit:
             joint_pos = state[6:9]
             ee_pos = self.forward_kinematics(joint_pos)
