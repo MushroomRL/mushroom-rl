@@ -33,10 +33,8 @@ class OpenHandModelQ(PyBullet):
         """
         assert object_type in ['tri', 'quad', 'round', 'apple']
         manipulator_path = Path(path_robots).absolute().parent / 'data' / 'openhand_model_q' / 'model_q.urdf'
-        self.robot_path = str(manipulator_path)
+        robot_path = str(manipulator_path)
         self._finger_gating = object_type == 'apple'
-
-        print(self.robot_path)
 
         action_spec = [
             ("base_rot_joint", pybullet.VELOCITY_CONTROL),
@@ -78,9 +76,9 @@ class OpenHandModelQ(PyBullet):
 
         files = dict()
 
-        files[self.robot_path] = dict(basePosition=[0., 0., .225],
-                                      baseOrientation=[0, 1, 0, 0],
-                                      flags=pybullet.URDF_USE_SELF_COLLISION)
+        files[robot_path] = dict(basePosition=[0., 0., .225],
+                                 baseOrientation=[0, 1, 0, 0],
+                                 flags=pybullet.URDF_USE_SELF_COLLISION)
         files['plane.urdf'] = dict()
 
         if object_type != 'apple':
@@ -169,7 +167,6 @@ class OpenHandModelQ(PyBullet):
             self._client.changeVisualShape(self._model_map['apple'], -1, textureUniqueId=texUid)
 
 
-
 if __name__ == '__main__':
     from mushroom_rl.core import Core, Agent
     from mushroom_rl.utils.dataset import compute_J
@@ -195,7 +192,7 @@ if __name__ == '__main__':
     agent = DummyAgent(mdp.info.action_space.shape[0])
 
     core = Core(agent, mdp)
-    dataset = core.evaluate(n_episodes=10, render=True)
+    dataset = core.evaluate(n_episodes=10, render=False)
     print('reward: ', compute_J(dataset, mdp.info.gamma))
     print("mdp_info state shape", mdp.info.observation_space.shape)
     print("actual state shape", dataset[0][0].shape)
