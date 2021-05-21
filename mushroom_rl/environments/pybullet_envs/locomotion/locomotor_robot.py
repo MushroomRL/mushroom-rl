@@ -57,13 +57,26 @@ class LocomotorRobot(PyBullet):
         self._client.resetDebugVisualizerCamera(cameraDistance=3, cameraYaw=0.0, cameraPitch=-45,
                                                 cameraTargetPosition=[0., 0., 0.])
 
+        model_id = 0
+        for j in range(self._client.getNumJoints(model_id)):
+            joint_pos = np.random.uniform(low=-0.1, high=0.1)
+
+            joint_info = self._client.getJointInfo(model_id, j)
+            low = joint_info[8]
+            high = joint_info[9]
+            joint_pos = np.clip(joint_pos, low, high)
+
+            joint_vel = 0
+
+            self._client.resetJointState(0, j, targetValue=joint_pos, targetVelocity=joint_vel)
+
     def reward(self, state, action, next_state, absorbing):
         alive_bonus = -1 if absorbing else 1
 
         progress = self._compute_progress(state, next_state)
 
         joint_speeds = self.get_joint_velocities(next_state)
-        electricity_cost = self._c_electricity * np.mean(np.abs(action * joint_speeds)) + \
+        electricity_cost = self._c_electricity * np.mean(np.abs(action * 0.1 * joint_speeds)) + \
                            self._c_stall * np.mean(np.square(action))
 
         joints_at_limit_cost = self._c_joints * self._count_joints_at_limit(next_state)
@@ -81,7 +94,7 @@ class LocomotorRobot(PyBullet):
         action_space = Box(action_low, action_high)
 
         joints_low, joints_high = self.get_joint_limits()
-        velocity_limits = self.get_joint_velocity_limits()
+        velocity_limits = 10*np.ones(joints_low.shape[0])
 
         observation_low = np.concatenate([np.array([0, -1, -1, -3, -3, -3, -np.pi, -np.pi]),
                                           joints_low, -velocity_limits])
