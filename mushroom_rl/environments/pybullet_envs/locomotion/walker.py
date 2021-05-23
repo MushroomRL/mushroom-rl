@@ -8,7 +8,7 @@ from mushroom_rl.environments.pybullet_envs.locomotion.locomotor_robot import Lo
 
 class WalkerRobot(LocomotorRobot):
     def __init__(self, gamma=0.99, horizon=1000, debug_gui=False):
-        walker_path = Path(pybullet_data.getDataPath()) / "mjcf" / 'walker2d.xml'
+        walker_path = Path(pybullet_data.getDataPath()) / 'mjcf' / 'walker2d.xml'
         walker_path = str(walker_path)
 
         joints = ['thigh_joint', 'leg_joint', 'foot_joint', 'thigh_left_joint', 'leg_left_joint', 'foot_left_joint']
