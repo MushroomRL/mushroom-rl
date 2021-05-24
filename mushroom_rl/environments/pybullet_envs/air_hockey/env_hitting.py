@@ -43,7 +43,7 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
             puck_pos = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_POS)[:3]
             if puck_pos[0] - self.env_spec['table']['length'] / 2 > 0 and \
                     np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
-                return 100
+                return 500
         if not self.has_hit:
             joint_pos = state[6:9]
             ee_pos = self.forward_kinematics(joint_pos)
