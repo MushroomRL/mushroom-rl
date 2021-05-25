@@ -111,14 +111,14 @@
 			</material>
 			<origin rpy="0 -3.141592 2.4" xyz="-0.00 0.0753 0.008" />
 			<geometry>
-				<mesh filename="meshes/hand/proximal.STL"
+				<mesh filename="meshes/hand/proximal.stl"
 					scale="0.00100 0.00100 0.00100" />
 			</geometry>
 		</visual>
 		<collision>
 			<origin rpy="1.5707 0 0" xyz="0.00 0.032 0.00" />
 			<geometry>
-                <mesh filename="meshes/hand/proximal.STL"
+                <mesh filename="meshes/hand/proximal.stl"
 					scale="0.00100 0.00100 0.00100" />
 			</geometry>
 		</collision>
@@ -163,14 +163,14 @@
 			</material>
 			<origin rpy="0 -3.141592 2.4" xyz="-0.00 0.0753 0.008" />
 			<geometry>
-				<mesh filename="meshes/hand/proximal.STL"
+				<mesh filename="meshes/hand/proximal.stl"
 					scale="0.00100 0.00100 0.00100" />
 			</geometry>
 		</visual>
 		<collision>
 			<origin rpy="1.5707 0 0" xyz="0.00 0.032 0.00" />
 			<geometry>
-				<mesh filename="meshes/hand/proximal.STL"
+				<mesh filename="meshes/hand/proximal.stl"
 					scale="0.00100 0.00100 0.00100" />
 			</geometry>
 		</collision>
@@ -215,14 +215,14 @@
 			</material>
 			<origin rpy="0 -3.141592 2.4" xyz="-0.00 0.0753 0.008" />
 			<geometry>
-				<mesh filename="meshes/hand/proximal.STL"
+				<mesh filename="meshes/hand/proximal.stl"
 					scale="0.00100 0.00100 0.00100" />
 			</geometry>
 		</visual>
 		<collision>
 			<origin rpy="1.5707 0 0" xyz="0.00 0.032 0.00" />
 			<geometry>
-				<mesh filename="meshes/hand/proximal.STL"
+				<mesh filename="meshes/hand/proximal.stl"
 					scale="0.00100 0.00100 0.00100" />
 			</geometry>
 		</collision>
@@ -267,14 +267,14 @@
 			</material>
 			<origin rpy="0 -3.141592 2.4" xyz="-0.00 0.0753 0.008" />
 			<geometry>
-				<mesh filename="meshes/hand/proximal.STL"
+				<mesh filename="meshes/hand/proximal.stl"
 					scale="0.00100 0.00100 0.00100" />
 			</geometry>
 		</visual>
 		<collision>
 			<origin rpy="1.5707 0 0" xyz="0.00 0.032 0.00" />
 			<geometry>
-				<mesh filename="meshes/hand/proximal.STL"
+				<mesh filename="meshes/hand/proximal.stl"
 					scale="0.00100 0.00100 0.00100" />
 			</geometry>
 		</collision>
