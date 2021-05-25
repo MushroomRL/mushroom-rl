@@ -9,14 +9,16 @@ from mushroom_rl.environments.pybullet_envs import __file__ as path_robots
 
 
 class AirHockeyPlanarBase(PyBullet):
-    def __init__(self, seed=None, gamma=0.99, horizon=500, timestep=1 / 240., debug_gui=False,
-                 n_agents=1, env_noise=False, obs_noise=False, obs_delay=False, control_type='torque'):
+    def __init__(self, seed=None, gamma=0.99, horizon=500, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
+                 n_agents=1, env_noise=False, obs_noise=False, obs_delay=False, control_type='torque',
+                 step_action_function=None):
         self.seed(seed)
 
         self.n_agents = n_agents
         self.env_noise = env_noise
         self.obs_noise = obs_noise
         self.obs_delay = obs_delay
+        self.step_action_function = step_action_function
 
         puck_file = os.path.join(os.path.dirname(os.path.abspath(path_robots)),
                                  "data", "air_hockey", "puck.urdf")
@@ -97,7 +99,7 @@ class AirHockeyPlanarBase(PyBullet):
             raise ValueError('n_agents should be 1 or 2')
 
         super().__init__(model_files, actuation_spec, observation_spec, gamma,
-                         horizon, timestep=timestep, n_intermediate_steps=1,
+                         horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
                          debug_gui=debug_gui, size=(500, 500), distance=1.8)
 
         self._client.resetDebugVisualizerCamera(cameraDistance=2, cameraYaw=0.0, cameraPitch=-89.9,
@@ -112,6 +114,12 @@ class AirHockeyPlanarBase(PyBullet):
 
     def _preprocess_action(self, action):
         return np.clip(action, self.info.action_space.low, self.info.action_space.high)
+
+    def _compute_action(self, action):
+        if self.step_action_function is None:
+            return action
+        else:
+            return self.step_action_function(action)
 
     def _simulation_pre_step(self):
         if self.env_noise:

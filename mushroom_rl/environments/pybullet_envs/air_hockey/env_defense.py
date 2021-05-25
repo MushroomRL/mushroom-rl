@@ -6,13 +6,16 @@ from mushroom_rl.environments.pybullet_envs.air_hockey.env_single import AirHock
 
 
 class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
-    def __init__(self, seed=None, gamma=0.99, horizon=500, timestep=1 / 240., debug_gui=False, env_noise=False,
-                 obs_noise=True, obs_delay=False, control_type="torque", random_init=False):
+    def __init__(self, seed=None, gamma=0.99, horizon=500, timestep=1 / 240., n_intermediate_steps=1,
+                 debug_gui=False, env_noise=False, obs_noise=False, obs_delay=False, control_type="torque",
+                 random_init=False, step_action_function=None):
         self.start_range = np.array([[0.2, 0.78], [-0.4, 0.4]])
         self.has_hit = False
         self.random_init = random_init
-        super().__init__(seed=seed, gamma=gamma, horizon=horizon, timestep=timestep, debug_gui=debug_gui,
-                         env_noise=env_noise, obs_noise=obs_noise, obs_delay=obs_delay, control_type=control_type)
+        super().__init__(seed=seed, gamma=gamma, horizon=horizon, timestep=timestep,
+                         n_intermediate_steps=n_intermediate_steps, debug_gui=debug_gui,
+                         env_noise=env_noise, obs_noise=obs_noise, obs_delay=obs_delay, control_type=control_type,
+                         step_action_function=step_action_function)
 
     def setup(self, state=None):
         if self.random_init:
@@ -47,21 +50,15 @@ class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
         return MDPInfo(observation_space, mdp_info.action_space, mdp_info.gamma, mdp_info.horizon)
 
     def reward(self, state, action, next_state, absorbing):
+        puck_pos = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_POS)[:3]
         if absorbing:
-            puck_pos = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_POS)[:3]
             if puck_pos[0] + self.env_spec['table']['length'] / 2 < 0 and \
                     np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
-                return -500
-        if not self.has_hit:
-            # joint_pos = state[6:9]
-            # ee_pos = self.forward_kinematics(joint_pos)
-            # dist_ee_puck = np.linalg.norm(state[:2] - ee_pos[:2])
-            # return np.exp(-5 * dist_ee_puck)
-            return 0
-        else:
-            puck_vel = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]
-            vel_norm = np.abs(puck_vel[0])
-            return np.exp(-vel_norm)
+                return -100
+
+        puck_vel = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]
+        vel_norm = np.abs(puck_vel[0])
+        return np.exp(-5 * vel_norm)
 
     def is_absorbing(self, state):
         if super().is_absorbing(state):

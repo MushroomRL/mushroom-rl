@@ -5,13 +5,14 @@ from mushroom_rl.environments.pybullet_envs.air_hockey.env_base import AirHockey
 
 
 class AirHockeyPlanarSingle(AirHockeyPlanarBase):
-    def __init__(self, seed=None, gamma=0.99, horizon=500, timestep=1 / 240., debug_gui=False, env_noise=False,
-                 obs_noise=False, obs_delay=False, control_type="torque"):
+    def __init__(self, seed=None, gamma=0.99, horizon=500, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
+                 env_noise=False, obs_noise=False, obs_delay=False, control_type="torque", step_action_function=None):
         self.init_state = np.array([-0.9273, 0.9273, np.pi / 2])
         self.obs_prev = None
-        super().__init__(seed=seed, gamma=gamma, horizon=horizon, timestep=timestep, debug_gui=debug_gui,
+        super().__init__(seed=seed, gamma=gamma, horizon=horizon, timestep=timestep,
+                         n_intermediate_steps=n_intermediate_steps, debug_gui=debug_gui,
                          env_noise=env_noise, n_agents=1, obs_noise=obs_noise, obs_delay=obs_delay,
-                         control_type=control_type)
+                         control_type=control_type, step_action_function=step_action_function)
 
     def _create_observation(self, state):
         puck_pose = self.get_sim_state(state, "puck", PyBulletObservationType.BODY_POS)
