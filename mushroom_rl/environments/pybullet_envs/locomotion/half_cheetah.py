@@ -17,13 +17,31 @@ class HalfCheetahRobot(LocomotorRobot):
 
         super().__init__(cheetah_path, joints, gamma, horizon, debug_gui, power, joint_power)
 
+        checked_contacts = ['bthigh', 'bshin', 'fthigh', 'fshin']
+        self._checked_contacts_ids = [self._link_map[link][1] for link in checked_contacts]
+
+        print(self._checked_contacts_ids)
+
     def is_absorbing(self, state):
+        if self._contact_detected():
+            return True
+
         pose = self._get_torso_pos(state)
         euler = pybullet.getEulerFromQuaternion(pose[3:])
         pitch = euler[1]
 
-        # TODO terminate when touching the ground with other than feets
         return np.abs(pitch) >= 1.0
+
+    def _contact_detected(self):
+        contacts = self.client.getContactPoints(0, 1)
+
+        for contact in contacts:
+            print(contact[1], '(', contact[3], ') ->', contact[2])
+            if contact[3] in self._checked_contacts_ids:
+                print(contact[3])
+                return True
+
+        return False
 
 
 if __name__ == '__main__':
