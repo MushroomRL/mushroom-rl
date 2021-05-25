@@ -20,8 +20,6 @@ class HalfCheetahRobot(LocomotorRobot):
         checked_contacts = ['bthigh', 'bshin', 'fthigh', 'fshin']
         self._checked_contacts_ids = [self._link_map[link][1] for link in checked_contacts]
 
-        print(self._checked_contacts_ids)
-
     def is_absorbing(self, state):
         if self._contact_detected():
             return True
@@ -36,9 +34,7 @@ class HalfCheetahRobot(LocomotorRobot):
         contacts = self.client.getContactPoints(0, 1)
 
         for contact in contacts:
-            print(contact[1], '(', contact[3], ') ->', contact[2])
             if contact[3] in self._checked_contacts_ids:
-                print(contact[3])
                 return True
 
         return False
