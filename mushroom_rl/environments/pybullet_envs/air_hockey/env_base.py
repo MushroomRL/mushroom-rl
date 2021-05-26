@@ -115,11 +115,11 @@ class AirHockeyPlanarBase(PyBullet):
     def _preprocess_action(self, action):
         return np.clip(action, self.info.action_space.low, self.info.action_space.high)
 
-    def _compute_action(self, action):
+    def _compute_action(self, state, action):
         if self.step_action_function is None:
             return action
         else:
-            return self.step_action_function(action)
+            return self.step_action_function(state, action)
 
     def _simulation_pre_step(self):
         if self.env_noise:
