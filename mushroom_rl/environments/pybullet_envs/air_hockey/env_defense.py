@@ -56,9 +56,17 @@ class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
                     np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
                 return -100
 
-        puck_vel = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]
-        vel_norm = np.abs(puck_vel[0])
-        return np.exp(-5 * vel_norm)
+        if self.has_hit:
+            puck_vel = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]
+            return np.exp(-10 * np.abs(puck_vel[0])) + 1
+        else:
+            joint_pos = np.zeros(3)
+            joint_pos[0] = self.get_sim_state(next_state, "planar_robot_1/joint_1", PyBulletObservationType.JOINT_POS)
+            joint_pos[1] = self.get_sim_state(next_state, "planar_robot_1/joint_2", PyBulletObservationType.JOINT_POS)
+            joint_pos[2] = self.get_sim_state(next_state, "planar_robot_1/joint_3", PyBulletObservationType.JOINT_POS)
+            ee_pos = self.forward_kinematics(joint_pos)
+            dist_ee_puck = np.linalg.norm(puck_pos[:2] - ee_pos[:2])
+            return 0.5 * np.exp(-10 * dist_ee_puck)
 
     def is_absorbing(self, state):
         if super().is_absorbing(state):
@@ -67,8 +75,12 @@ class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
 
     def _simulation_post_step(self):
         if not self.has_hit:
-            puck_vel = self.get_sim_state(self._state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]
-            self.has_hit = (puck_vel[0] > -0.8)
+            collision_info = self.client.getContactPoints(self._model_map['puck'],
+                                                          self._link_map['planar_robot_1/link_striker_ee'][0],
+                                                          -1,
+                                                          self._link_map['planar_robot_1/link_striker_ee'][1])
+            if len(collision_info) > 0:
+                self.has_hit = True
 
 if __name__ == '__main__':
     env = AirHockeyPlanarDefense(debug_gui=True, obs_noise=False, obs_delay=False)
