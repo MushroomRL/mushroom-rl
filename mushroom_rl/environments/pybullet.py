@@ -173,7 +173,7 @@ class PyBullet(Environment):
         self._viewer.close()
 
     def step(self, action):
-        curr_state = self._state
+        curr_state = self._state.copy()
 
         action = self._preprocess_action(action)
 
