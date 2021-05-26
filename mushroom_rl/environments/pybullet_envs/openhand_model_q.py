@@ -37,19 +37,19 @@ class OpenHandModelQ(PyBullet):
         self._finger_gating = object_type == 'apple'
 
         action_spec = [
-            ("base_rot_joint", pybullet.VELOCITY_CONTROL),
+            ("base_rot_joint", pybullet.TORQUE_CONTROL),
             # Left finger
-            ("base_to_prox_l", pybullet.VELOCITY_CONTROL),
-            ("prox_to_distal_l", pybullet.VELOCITY_CONTROL),
+            ("base_to_prox_l", pybullet.TORQUE_CONTROL),
+            ("prox_to_distal_l", pybullet.TORQUE_CONTROL),
             # Right finger
-            ("base_to_prox_r", pybullet.VELOCITY_CONTROL),
-            ("prox_to_distal_r", pybullet.VELOCITY_CONTROL),
+            ("base_to_prox_r", pybullet.TORQUE_CONTROL),
+            ("prox_to_distal_r", pybullet.TORQUE_CONTROL),
             # Connected finger left
-            ("base_to_prox_cl", pybullet.VELOCITY_CONTROL),
-            ("prox_to_distal_cl", pybullet.VELOCITY_CONTROL),
+            ("base_to_prox_cl", pybullet.TORQUE_CONTROL),
+            ("prox_to_distal_cl", pybullet.TORQUE_CONTROL),
             # Connected finger right
-            ("base_to_prox_cr", pybullet.VELOCITY_CONTROL),
-            ("prox_to_distal_cr", pybullet.VELOCITY_CONTROL)
+            ("base_to_prox_cr", pybullet.TORQUE_CONTROL),
+            ("prox_to_distal_cr", pybullet.TORQUE_CONTROL)
         ]
 
         observation_spec = [
@@ -91,7 +91,7 @@ class OpenHandModelQ(PyBullet):
         object_path = Path(path_robots).absolute().parent / 'data' / 'openhand_model_q' / object_path
         files[str(object_path)] = object_dict
 
-        super().__init__(files, action_spec, observation_spec, gamma, horizon, n_intermediate_steps=8,
+        super().__init__(files, action_spec, observation_spec, gamma, horizon, timestep=1/960, n_intermediate_steps=8,
                          debug_gui=debug_gui, distance=0.5, origin=[0., 0., 0.2], angles=[0., -15., 0.])
 
         self._load_texture()
@@ -105,28 +105,47 @@ class OpenHandModelQ(PyBullet):
 
         self.apple_initial_position = [0., 0., 0.07]
 
-    def _modify_mdp_info(self, mdp_info):
+        r_proximal = 0.01
+        r_distal = 0.008
 
-        low = mdp_info.action_space.low[:7]
-        high = mdp_info.action_space.high[:7]
+        self._R = np.array(
+            [
+                [r_proximal, 0., 0.],
+                [r_distal, 0., 0.],
+                [0., r_proximal, 0.],
+                [0., r_distal, 0.],
+                [0., 0., r_proximal],
+                [0., 0., r_distal],
+                [0., 0., r_proximal],
+                [0., 0., r_distal],
+            ]
+        ).T
+
+        e_proximal = 6.25
+        e_distal = 17.86
+
+        self._E = np.diag([e_proximal, e_distal]*4)
+
+    def _modify_mdp_info(self, mdp_info):
+        rot_joint_low = mdp_info.action_space.low[0]
+        rot_joint_high = mdp_info.action_space.high[0]
+
+        low = np.array([rot_joint_low, -10, -10, -20])
+        high = np.array([rot_joint_high, 10, 10, 20])
         reduced_action_space = Box(low=low, high=high)
         mdp_info.action_space = reduced_action_space
 
         return mdp_info
 
-    def _compute_action(self, action):
+    def _compute_action(self, state, action):
         action_full = np.empty(9)
 
-        action_full[:5] = action[:5]
+        action_full[0] = action[0]
 
-        prox_c = action[5]
-        distal_c = action[6]
+        f = action[1:]
+        q = self.get_joint_positions(state)[1:]
 
-        action_full[5] = prox_c
-        action_full[6] = distal_c
-
-        action_full[7] = prox_c
-        action_full[8] = distal_c
+        action_full[1:] = 100*self._R.T @ f - self._E @ q
 
         return action_full
 
@@ -180,7 +199,7 @@ if __name__ == '__main__':
 
         def draw_action(self, state):
             time.sleep(8/240)
-            #return np.zeros(self._n_actions)
+            #return 10*np.ones(self._n_actions)
             return np.random.randn(self._n_actions)
 
         def episode_start(self):

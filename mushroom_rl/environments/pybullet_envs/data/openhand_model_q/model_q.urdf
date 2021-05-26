@@ -328,6 +328,7 @@
 		<child link="distal_r" />
 		<limit effort="10" lower="0.0" upper="1.24" velocity="10" />
 		<axis xyz="0 0 1" />
+		<dynamics damping="0.1" friction="1e-3"/>
 	</joint>
 
 	<joint name="base_to_prox_r" type="revolute">
@@ -336,6 +337,7 @@
 		<child link="prox_r" />
 		<limit effort="10" lower="0.0" upper="2.0" velocity="10" />
 		<axis xyz="0 0 1" />
+		<dynamics damping="0.1" friction="1e-3"/>
 	</joint>
 
 	<joint name="prox_to_distal_l" type="revolute">
@@ -344,6 +346,7 @@
 		<child link="distal_l" />
 		<limit effort="10" lower="0.0" upper="1.24" velocity="10" />
 		<axis xyz="0 0 1" />
+		<dynamics damping="0.1" friction="1e-3"/>
 	</joint>
 
 	<joint name="base_to_prox_l" type="revolute">
@@ -352,6 +355,7 @@
 		<child link="prox_l" />
 		<limit effort="10" lower="0.0" upper="2.0" velocity="10" />
 		<axis xyz="0 0 1" />
+		<dynamics damping="0.1" friction="1e-3"/>
 	</joint>
 
 	<joint name="prox_to_distal_cl" type="revolute">
@@ -360,6 +364,7 @@
 		<child link="distal_cl" />
 		<limit effort="10" lower="0.0" upper="1.24" velocity="10" />
 		<axis xyz="0 0 1" />
+		<dynamics damping="0.1" friction="1e-3"/>
 	</joint>
 
 	<joint name="base_to_prox_cl" type="revolute">
@@ -368,6 +373,7 @@
 		<child link="prox_cl" />
 		<limit effort="10" lower="0.0" upper="2.0" velocity="10" />
 		<axis xyz="0 0 1" />
+		<dynamics damping="0.1" friction="1e-3"/>
 	</joint>
 
 	<joint name="prox_to_distal_cr" type="revolute">
@@ -376,6 +382,7 @@
 		<child link="distal_cr" />
 		<limit effort="10" lower="0.0" upper="1.24" velocity="10" />
 		<axis xyz="0 0 1" />
+		<dynamics damping="0.1" friction="1e-3"/>
 	</joint>
 
 	<joint name="base_to_prox_cr" type="revolute">
@@ -384,6 +391,7 @@
 		<child link="prox_cr" />
 		<limit effort="10" lower="0.0" upper="2.0" velocity="10" />
 		<axis xyz="0 0 1" />
+		<dynamics damping="0.1" friction="1e-3"/>
 	</joint>
 
 </robot>
