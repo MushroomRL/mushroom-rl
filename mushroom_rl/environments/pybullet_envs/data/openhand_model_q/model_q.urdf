@@ -111,15 +111,13 @@
 			</material>
 			<origin rpy="0 -3.141592 2.4" xyz="-0.00 0.0753 0.008" />
 			<geometry>
-				<mesh filename="meshes/hand/proximal.stl"
-					scale="0.00100 0.00100 0.00100" />
+				<mesh filename="meshes/hand/proximal.stl" />
 			</geometry>
 		</visual>
 		<collision>
-			<origin rpy="1.5707 0 0" xyz="0.00 0.032 0.00" />
+			<origin rpy="0 -3.141592 2.4" xyz="-0.00 0.0753 0.008" />
 			<geometry>
-                <mesh filename="meshes/hand/proximal.stl"
-					scale="0.00100 0.00100 0.00100" />
+                <mesh filename="meshes/hand/proximal.stl" />
 			</geometry>
 		</collision>
 	</link>
@@ -137,15 +135,13 @@
 			</material>
 			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
 			<geometry>
-				<mesh filename="meshes/hand/finger_pp_t_B_round.stl"
-					scale="0.00100 0.00100 0.00100" />
+				<mesh filename="meshes/hand/finger_pp_t_B_round.stl" />
 			</geometry>
 		</visual>
 		<collision>
 			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
 			<geometry>
-				<mesh filename="meshes/hand/finger_pp_t_B_round.stl"
-					scale="0.00100 0.00100 0.00100" />
+				<mesh filename="meshes/hand/finger_pp_t_B_round.stl" />
 			</geometry>
 		</collision>
 	</link>
@@ -163,15 +159,13 @@
 			</material>
 			<origin rpy="0 -3.141592 2.4" xyz="-0.00 0.0753 0.008" />
 			<geometry>
-				<mesh filename="meshes/hand/proximal.stl"
-					scale="0.00100 0.00100 0.00100" />
+				<mesh filename="meshes/hand/proximal.stl" />
 			</geometry>
 		</visual>
 		<collision>
-			<origin rpy="1.5707 0 0" xyz="0.00 0.032 0.00" />
+			<origin rpy="0 -3.141592 2.4" xyz="-0.00 0.0753 0.008" />
 			<geometry>
-				<mesh filename="meshes/hand/proximal.stl"
-					scale="0.00100 0.00100 0.00100" />
+				<mesh filename="meshes/hand/proximal.stl" />
 			</geometry>
 		</collision>
 	</link>
@@ -189,15 +183,13 @@
 			</material>
 			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
 			<geometry>
-				<mesh filename="meshes/hand/finger_pp_t_B_round.stl"
-					scale="0.00100 0.00100 0.00100" />
+				<mesh filename="meshes/hand/finger_pp_t_B_round.stl"  />
 			</geometry>
 		</visual>
 		<collision>
 			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
 			<geometry>
-				<mesh filename="meshes/hand/finger_pp_t_B_round.stl"
-					scale="0.00100 0.00100 0.00100" />
+				<mesh filename="meshes/hand/finger_pp_t_B_round.stl" />
 			</geometry>
 		</collision>
 	</link>
@@ -215,15 +207,13 @@
 			</material>
 			<origin rpy="0 -3.141592 2.4" xyz="-0.00 0.0753 0.008" />
 			<geometry>
-				<mesh filename="meshes/hand/proximal.stl"
-					scale="0.00100 0.00100 0.00100" />
+				<mesh filename="meshes/hand/proximal.stl" />
 			</geometry>
 		</visual>
 		<collision>
-			<origin rpy="1.5707 0 0" xyz="0.00 0.032 0.00" />
+			<origin rpy="0 -3.141592 2.4" xyz="-0.00 0.0753 0.008" />
 			<geometry>
-				<mesh filename="meshes/hand/proximal.stl"
-					scale="0.00100 0.00100 0.00100" />
+				<mesh filename="meshes/hand/proximal.stl" />
 			</geometry>
 		</collision>
 	</link>
@@ -241,15 +231,13 @@
 			</material>
 			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
 			<geometry>
-				<mesh filename="meshes/hand/finger_pp_t_B_round.stl"
-					scale="0.00100 0.00100 0.00100" />
+				<mesh filename="meshes/hand/finger_pp_t_B_round.stl" />
 			</geometry>
 		</visual>
 		<collision>
 			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
 			<geometry>
-				<mesh filename="meshes/hand/finger_pp_t_B_round.stl"
-					scale="0.00100 0.00100 0.00100" />
+				<mesh filename="meshes/hand/finger_pp_t_B_round.stl" />
 			</geometry>
 		</collision>
 	</link>
@@ -267,15 +255,13 @@
 			</material>
 			<origin rpy="0 -3.141592 2.4" xyz="-0.00 0.0753 0.008" />
 			<geometry>
-				<mesh filename="meshes/hand/proximal.stl"
-					scale="0.00100 0.00100 0.00100" />
+				<mesh filename="meshes/hand/proximal.stl" />
 			</geometry>
 		</visual>
 		<collision>
-			<origin rpy="1.5707 0 0" xyz="0.00 0.032 0.00" />
+			<origin rpy="0 -3.141592 2.4" xyz="-0.00 0.0753 0.008" />
 			<geometry>
-				<mesh filename="meshes/hand/proximal.stl"
-					scale="0.00100 0.00100 0.00100" />
+				<mesh filename="meshes/hand/proximal.stl" />
 			</geometry>
 		</collision>
 	</link>
@@ -293,15 +279,13 @@
 			</material>
 			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
 			<geometry>
-				<mesh filename="meshes/hand/finger_pp_t_B_round.stl"
-					scale="0.00100 0.00100 0.00100" />
+				<mesh filename="meshes/hand/finger_pp_t_B_round.stl" />
 			</geometry>
 		</visual>
 		<collision>
 			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
 			<geometry>
-				<mesh filename="meshes/hand/finger_pp_t_B_round.stl"
-					scale="0.00100 0.00100 0.00100" />
+				<mesh filename="meshes/hand/finger_pp_t_B_round.stl" />
 			</geometry>
 		</collision>
 	</link>
