@@ -127,7 +127,7 @@ class LocomotorRobot(PyBullet):
 
         return float(low_saturations + high_saturations)
 
-    def _compute_action(self, action):
+    def _compute_action(self, state, action):
         scaled_action = self._power * self._joint_power * np.clip(action, -1, 1)
         return scaled_action
 

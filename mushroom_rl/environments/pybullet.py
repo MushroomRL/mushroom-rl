@@ -227,15 +227,15 @@ class PyBullet(Environment):
         pass
 
     def step(self, action):
-        cur_obs = self._state
+        curr_state = self._state
 
         action = self._preprocess_action(action)
 
-        self._step_init(cur_obs, action)
+        self._step_init(curr_state, action)
 
         for i in range(self._n_intermediate_steps):
 
-            ctrl_action = self._compute_action(action)
+            ctrl_action = self._compute_action(curr_state, action)
             self._apply_control(ctrl_action)
 
             self._simulation_pre_step()
@@ -244,14 +244,16 @@ class PyBullet(Environment):
 
             self._simulation_post_step()
 
-        self._state = self._create_sim_state()
+            curr_state = self._create_sim_state()
 
         self._step_finalize()
 
-        absorbing = self.is_absorbing(self._state)
-        reward = self.reward(cur_obs, action, self._state, absorbing)
+        absorbing = self.is_absorbing(curr_state)
+        reward = self.reward(self._state, action, curr_state, absorbing)
 
-        observation = self._create_observation(self._state)
+        observation = self._create_observation(curr_state)
+
+        self._state = curr_state
 
         return observation, reward, absorbing, {}
 
@@ -463,14 +465,14 @@ class PyBullet(Environment):
         """
         pass
 
-    def _compute_action(self, action):
+    def _compute_action(self, state, action):
         """
         Compute a transformation of the action at every intermediate step.
         Useful to add control signals simulated directly in python.
 
         Args:
-            action (np.ndarray): numpy array with the actions
-                provided at every step.
+            state (np.ndarray): numpy array with the current state of teh simulation;
+            action (np.ndarray): numpy array with the actions, provided at every step.
 
         Returns:
             The action to be set in the actual pybullet simulation.
