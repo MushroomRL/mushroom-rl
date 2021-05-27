@@ -1,7 +1,6 @@
 import numpy as np
 import pybullet
 from .observation import PyBulletObservationType
-from .contacts import ContactHelper
 
 
 class IndexMap(object):
@@ -12,11 +11,6 @@ class IndexMap(object):
         self.link_map = dict()
 
         self._build_joint_and_link_maps()
-
-        # Contact utils
-        contact_types = [PyBulletObservationType.CONTACT_FLAG]
-        contacts = [obs[0] for obs in observation_spec if obs[1] in contact_types]
-        self._contacts = ContactHelper(client, contacts, self.model_map, self.link_map)
 
         # Read the actuation spec and build the mapping between actions and ids as well as their limits
         self.action_data = list()
@@ -32,8 +26,6 @@ class IndexMap(object):
 
     def create_sim_state(self):
         data_obs = list()
-
-        self._contacts.compute_contacts()
 
         for name, obs_type in self.observation_map:
             if obs_type is PyBulletObservationType.BODY_POS \
@@ -63,18 +55,13 @@ class IndexMap(object):
                     data_obs += self._client.getLinkState(model_id, link_id, computeLinkVelocity=True)[-2]
                 elif obs_type is PyBulletObservationType.LINK_ANG_VEL:
                     data_obs += self._client.getLinkState(model_id, link_id, computeLinkVelocity=True)[-1]
-            elif obs_type is PyBulletObservationType.JOINT_POS \
-                    or obs_type is PyBulletObservationType.JOINT_VEL:
+            else:
                 model_id, joint_id = self.joint_map[name]
                 pos, vel, _, _ = self._client.getJointState(model_id, joint_id)
                 if obs_type is PyBulletObservationType.JOINT_POS:
                     data_obs.append(pos)
                 elif obs_type is PyBulletObservationType.JOINT_VEL:
                     data_obs.append(vel)
-            elif obs_type is PyBulletObservationType.CONTACT_FLAG:
-                contact = self._contacts.get_contact(name)
-                contact_flag = 0 if contact is None else 1
-                data_obs.append(contact_flag)
 
         return np.array(data_obs)
 
@@ -152,8 +139,7 @@ class IndexMap(object):
                 n_dim = 7 if obs_type is PyBulletObservationType.LINK_POS else 3
                 low += [-np.inf] * n_dim
                 high += [np.inf] * n_dim
-            elif obs_type is PyBulletObservationType.JOINT_POS \
-                    or obs_type is PyBulletObservationType.JOINT_VEL:
+            else:
                 model_id, joint_id = self.joint_map[name]
                 joint_info = self._client.getJointInfo(model_id, joint_id)
 
@@ -164,11 +150,6 @@ class IndexMap(object):
                     max_joint_vel = joint_info[11]
                     low.append(-max_joint_vel)
                     high.append(max_joint_vel)
-            elif obs_type is PyBulletObservationType.CONTACT_FLAG:
-                low.append(0.)
-                high.append(1.)
-            else:
-                raise RuntimeError('Unsupported observation type')
 
             self._add_observation_index(name, obs_type, index_count, len(low))
 

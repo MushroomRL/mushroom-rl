@@ -10,7 +10,7 @@ from mushroom_rl.environments.pybullet_envs import __file__ as path_robots
 
 class BatBot(PyBullet):
     def __init__(self, gamma=0.99, horizon=1000, debug_gui=False):
-        robot_path = Path(path_robots).absolute().parent / 'data' / 'barret_wam'/ 'wam_4dof.urdf'
+        robot_path = Path(path_robots).absolute().parent / 'data' / 'barret_wam' / 'wam_4dof.urdf'
         robot_path = str(robot_path)
 
         action_spec = [
