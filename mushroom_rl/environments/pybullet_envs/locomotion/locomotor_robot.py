@@ -75,7 +75,7 @@ class LocomotorRobot(PyBullet):
 
         progress = self._compute_progress(state, next_state)
 
-        joint_speeds = self.get_joint_velocities(next_state)
+        joint_speeds = self.joints.velocities(next_state)
         electricity_cost = self._c_electricity * np.mean(np.abs(action * 0.1 * joint_speeds)) + \
                            self._c_stall * np.mean(np.square(action))
 
@@ -93,7 +93,7 @@ class LocomotorRobot(PyBullet):
         action_high = np.ones(n_actions)
         action_space = Box(action_low, action_high)
 
-        joints_low, joints_high = self.get_joint_limits()
+        joints_low, joints_high = self.joints.limits()
         velocity_limits = 10*np.ones(joints_low.shape[0])
 
         observation_low = np.concatenate([np.array([0, -1, -1, -3, -3, -3, -np.pi, -np.pi]),
@@ -118,9 +118,9 @@ class LocomotorRobot(PyBullet):
         return new_potential - old_potential
 
     def _count_joints_at_limit(self, next_state):
-        pos_joints = self.get_joint_positions(next_state)
+        pos_joints = self.joints.positions(next_state)
 
-        low, high = self.get_joint_limits()
+        low, high = self.joints.limits()
 
         low_saturations = np.sum(pos_joints < low*0.99)
         high_saturations = np.sum(pos_joints > high*0.99)
@@ -164,7 +164,7 @@ class LocomotorRobot(PyBullet):
 
         body_info = np.array([z, np.sin(angle_to_target), np.cos(angle_to_target), vx, vy, vz, roll, pitch])
 
-        joint_pos = self.get_joint_positions(state)
-        joint_vel = self.get_joint_velocities(state)
+        joint_pos = self.joints.positions(state)
+        joint_vel = self.joints.velocities(state)
 
         return np.concatenate([body_info, joint_pos, joint_vel])

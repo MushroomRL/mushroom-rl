@@ -92,13 +92,13 @@ class HexapodBullet(PyBullet):
         self._goal = np.array([2.0, 2.0]) if goal is None else goal
 
     def setup(self, state):
-        for i, (model_id, joint_id, _) in enumerate(self._action_data):
+        for i, (model_id, joint_id, _) in enumerate(self._indexer.action_data):
             self._client.resetJointState(model_id, joint_id, self.hexapod_initial_state[i])
 
         self._client.resetDebugVisualizerCamera(cameraDistance=3, cameraYaw=0.0, cameraPitch=-45,
                                                 cameraTargetPosition=[0., 0., 0.])
 
-        for model_id, link_id in self._link_map.values():
+        for model_id, link_id in self._indexer.link_map.values():
             self._client.changeDynamics(model_id, link_id, lateralFriction=1.0, spinningFriction=1.0)
 
         for model_id in self._model_map.values():
@@ -149,8 +149,9 @@ class HexapodBullet(PyBullet):
             for link_n in range(3):
                 motor_name = f'hexapod/leg_{leg_n}/motor_{link_n}'
                 link_name = f'hexapod/leg_{leg_n}/link_{link_n}'
-                self._client.setCollisionFilterPair(self._link_map[motor_name][0], self._link_map[link_name][0],
-                                                    self._link_map[motor_name][1], self._link_map[link_name][1], 0)
+                motor_model, motor_id = self._indexer.link_map[motor_name]
+                link_model, link_id = self._indexer.link_map[link_name]
+                self._client.setCollisionFilterPair(motor_model, link_model, motor_id, link_id, 0)
 
 
 if __name__ == '__main__':

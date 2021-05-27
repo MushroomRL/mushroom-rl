@@ -143,14 +143,14 @@ class OpenHandModelQ(PyBullet):
         action_full[0] = action[0]
 
         f = action[1:]
-        q = self.get_joint_positions(state)[1:]
+        q = self.joints.positions(state)[1:]
 
         action_full[1:] = 100*self._R.T @ f - self._E @ q
 
         return action_full
 
     def setup(self, state):
-        for i, (model_id, joint_id, _) in enumerate(self._action_data):
+        for i, (model_id, joint_id, _) in enumerate(self._indexer.action_data):
             self._client.resetJointState(model_id, joint_id, self.gripper_initial_state[i])
 
         self._client.resetDebugVisualizerCamera(cameraDistance=0.25, cameraYaw=45.0, cameraPitch=-15,
