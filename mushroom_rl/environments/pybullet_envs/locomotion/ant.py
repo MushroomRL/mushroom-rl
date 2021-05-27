@@ -11,10 +11,12 @@ class AntRobot(LocomotorRobot):
         ant_path = str(ant_path)
 
         joints = ['hip_1', 'ankle_1', 'hip_2', 'ankle_2', 'hip_3', 'ankle_3', 'hip_4', 'ankle_4']
+        contacts = ['front_left_foot', 'front_right_foot', 'left_back_foot', 'right_back_foot']
         power = 2.5
         joint_power = np.array([100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0])
 
-        super().__init__(ant_path, joints, gamma, horizon, debug_gui, power, joint_power, robot_name='ant')
+        super().__init__('ant', ant_path, joints, contacts, gamma, horizon, debug_gui, power, joint_power,
+                         bidimensional=False)
 
     def is_absorbing(self, state):
         pose = self._get_torso_pos(state)

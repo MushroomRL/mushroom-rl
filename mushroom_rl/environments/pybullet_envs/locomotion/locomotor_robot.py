@@ -9,10 +9,11 @@ from itertools import product
 
 
 class LocomotorRobot(PyBullet):
-    def __init__(self, robot_path, joints, gamma, horizon, debug_gui, power, joint_power, robot_name=None, goal=None,
-                 c_electricity=-2.0, c_stall=-0.1, c_joints=-0.1):
+    def __init__(self, robot_name, robot_path, joints, contacts, gamma, horizon, debug_gui, power, joint_power,
+                 bidimensional=True, goal=None, c_electricity=-2.0, c_stall=-0.1, c_joints=-0.1):
 
         self._robot_name = robot_name
+        self._bidimensional = bidimensional
         self._goal = np.array([1e3, 0]) if goal is None else goal
         self._c_electricity = c_electricity
         self._c_stall = c_stall
@@ -31,16 +32,20 @@ class LocomotorRobot(PyBullet):
         observation_types = [PyBulletObservationType.JOINT_POS, PyBulletObservationType.JOINT_VEL]
         observation_spec = [obs for obs in product(joints, observation_types)]
 
-        if self._robot_name:
-            observation_spec += [
-                (robot_name, PyBulletObservationType.BODY_POS),
-                (robot_name, PyBulletObservationType.BODY_LIN_VEL)
-            ]
-        else:
+        if self._bidimensional:
             observation_spec += [
                 ("torso", PyBulletObservationType.LINK_POS),
                 ("torso", PyBulletObservationType.LINK_LIN_VEL)
             ]
+        else:
+            observation_spec += [
+                (robot_name, PyBulletObservationType.BODY_POS),
+                (robot_name, PyBulletObservationType.BODY_LIN_VEL)
+            ]
+
+        self._contacts = contacts
+        observation_spec += [(f'{contact}<->plane', PyBulletObservationType.CONTACT_FLAG)
+                             for contact in self._contacts]
 
         # Scaling terms for robot actions
         self._power = power
@@ -97,9 +102,9 @@ class LocomotorRobot(PyBullet):
         velocity_limits = 10*np.ones(joints_low.shape[0])
 
         observation_low = np.concatenate([np.array([0, -1, -1, -3, -3, -3, -np.pi, -np.pi]),
-                                          joints_low, -velocity_limits])
+                                          joints_low, -velocity_limits, np.zeros(len(self._contacts))])
         observation_high = np.concatenate([np.array([2, 1, 1, 3, 3, 3, np.pi, np.pi]),
-                                           joints_high, velocity_limits])
+                                           joints_high, velocity_limits, np.ones(len(self._contacts))])
 
         observation_space = Box(observation_low, observation_high)
 
@@ -132,16 +137,16 @@ class LocomotorRobot(PyBullet):
         return scaled_action
 
     def _get_torso_pos(self, state):
-        if self._robot_name:
-            return self.get_sim_state(state, self._robot_name, PyBulletObservationType.BODY_POS)
-        else:
+        if self._bidimensional:
             return self.get_sim_state(state, 'torso', PyBulletObservationType.LINK_POS)
+        else:
+            return self.get_sim_state(state, self._robot_name, PyBulletObservationType.BODY_POS)
 
     def _get_torso_vel(self, state):
-        if self._robot_name:
-            return self.get_sim_state(state, self._robot_name, PyBulletObservationType.BODY_LIN_VEL)
-        else:
+        if self._bidimensional:
             return self.get_sim_state(state, 'torso', PyBulletObservationType.LINK_LIN_VEL)
+        else:
+            return self.get_sim_state(state, self._robot_name, PyBulletObservationType.BODY_LIN_VEL)
 
     def _create_observation(self, state):
         pose = self._get_torso_pos(state)
@@ -166,5 +171,6 @@ class LocomotorRobot(PyBullet):
 
         joint_pos = self.joints.positions(state)
         joint_vel = self.joints.velocities(state)
+        contacts = state[-len(self._contacts):]
 
-        return np.concatenate([body_info, joint_pos, joint_vel])
+        return np.concatenate([body_info, joint_pos, joint_vel, contacts])
