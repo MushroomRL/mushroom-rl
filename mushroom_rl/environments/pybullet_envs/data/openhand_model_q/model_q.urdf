@@ -135,13 +135,13 @@
 			</material>
 			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
 			<geometry>
-				<mesh filename="meshes/hand/finger_pp_t_B_round.stl" />
+				<mesh filename="meshes/hand/distal.stl" />
 			</geometry>
 		</visual>
 		<collision>
 			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
 			<geometry>
-				<mesh filename="meshes/hand/finger_pp_t_B_round.stl" />
+				<mesh filename="meshes/hand/distal.stl" />
 			</geometry>
 		</collision>
 	</link>
@@ -183,13 +183,13 @@
 			</material>
 			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
 			<geometry>
-				<mesh filename="meshes/hand/finger_pp_t_B_round.stl"  />
+				<mesh filename="meshes/hand/distal.stl"  />
 			</geometry>
 		</visual>
 		<collision>
 			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
 			<geometry>
-				<mesh filename="meshes/hand/finger_pp_t_B_round.stl" />
+				<mesh filename="meshes/hand/distal.stl" />
 			</geometry>
 		</collision>
 	</link>
@@ -231,13 +231,13 @@
 			</material>
 			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
 			<geometry>
-				<mesh filename="meshes/hand/finger_pp_t_B_round.stl" />
+				<mesh filename="meshes/hand/distal.stl" />
 			</geometry>
 		</visual>
 		<collision>
 			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
 			<geometry>
-				<mesh filename="meshes/hand/finger_pp_t_B_round.stl" />
+				<mesh filename="meshes/hand/distal.stl" />
 			</geometry>
 		</collision>
 	</link>
@@ -279,13 +279,13 @@
 			</material>
 			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
 			<geometry>
-				<mesh filename="meshes/hand/finger_pp_t_B_round.stl" />
+				<mesh filename="meshes/hand/distal.stl" />
 			</geometry>
 		</visual>
 		<collision>
 			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
 			<geometry>
-				<mesh filename="meshes/hand/finger_pp_t_B_round.stl" />
+				<mesh filename="meshes/hand/distal.stl" />
 			</geometry>
 		</collision>
 	</link>

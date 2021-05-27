@@ -18,7 +18,7 @@ class HalfCheetahRobot(LocomotorRobot):
         super().__init__(cheetah_path, joints, gamma, horizon, debug_gui, power, joint_power)
 
         checked_contacts = ['bthigh', 'bshin', 'fthigh', 'fshin']
-        self._checked_contacts_ids = [self._link_map[link][1] for link in checked_contacts]
+        self._checked_contacts_ids = [self._indexer.link_map[link][1] for link in checked_contacts]
 
     def is_absorbing(self, state):
         if self._contact_detected():
