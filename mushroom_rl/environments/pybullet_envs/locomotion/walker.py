@@ -12,10 +12,11 @@ class WalkerRobot(LocomotorRobot):
         walker_path = str(walker_path)
 
         joints = ['thigh_joint', 'leg_joint', 'foot_joint', 'thigh_left_joint', 'leg_left_joint', 'foot_left_joint']
+        contacts = ['foot', 'foot_left']
         power = 0.4
         joint_power = np.array([100., 100., 30., 100., 100., 30.])
 
-        super().__init__(walker_path, joints, gamma, horizon, debug_gui, power, joint_power)
+        super().__init__('walker2d', walker_path, joints, contacts, gamma, horizon, debug_gui, power, joint_power)
 
     def is_absorbing(self, state):
         pose = self._get_torso_pos(state)

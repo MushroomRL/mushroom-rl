@@ -12,16 +12,15 @@ class HalfCheetahRobot(LocomotorRobot):
         cheetah_path = str(cheetah_path)
 
         joints = ['bthigh', 'bshin', 'bfoot', 'fthigh', 'fshin', 'ffoot']
+        contacts = ['bthigh', 'bshin', 'fthigh', 'fshin', 'bfoot', 'ffoot']
         power = 0.9
         joint_power = np.array([120.0, 90.0, 60.0, 140.0, 60.0, 30.0])
 
-        super().__init__(cheetah_path, joints, gamma, horizon, debug_gui, power, joint_power)
-
-        checked_contacts = ['bthigh', 'bshin', 'fthigh', 'fshin']
-        self._checked_contacts_ids = [self._indexer.link_map[link][1] for link in checked_contacts]
+        super().__init__('cheetah', cheetah_path, joints, contacts, gamma, horizon, debug_gui, power, joint_power)
 
     def is_absorbing(self, state):
-        if self._contact_detected():
+        contacts = state[-6:-2]
+        if np.any(contacts == 1):
             return True
 
         pose = self._get_torso_pos(state)
@@ -29,15 +28,6 @@ class HalfCheetahRobot(LocomotorRobot):
         pitch = euler[1]
 
         return np.abs(pitch) >= 1.0
-
-    def _contact_detected(self):
-        contacts = self.client.getContactPoints(0, 1)
-
-        for contact in contacts:
-            if contact[3] in self._checked_contacts_ids:
-                return True
-
-        return False
 
 
 if __name__ == '__main__':
