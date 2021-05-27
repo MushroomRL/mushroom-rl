@@ -12,10 +12,11 @@ class HopperRobot(LocomotorRobot):
         hopper_path = str(hopper_path)
 
         joints = ['thigh_joint', 'leg_joint', 'foot_joint']
+        contacts = ['foot']
         power = 0.75
         joint_power = np.array([100.0, 100.0, 100.0])
 
-        super().__init__(hopper_path, joints, gamma, horizon, debug_gui, power, joint_power)
+        super().__init__('hopper', hopper_path, joints, contacts, gamma, horizon, debug_gui, power, joint_power)
 
     def is_absorbing(self, state):
         pose = self._get_torso_pos(state)

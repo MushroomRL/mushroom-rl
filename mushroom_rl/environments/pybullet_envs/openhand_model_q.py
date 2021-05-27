@@ -65,14 +65,18 @@ class OpenHandModelQ(PyBullet):
             ("prox_to_distal_cl", PyBulletObservationType.JOINT_POS),
             # Connected finger right
             ("base_to_prox_cr", PyBulletObservationType.JOINT_POS),
-            ("prox_to_distal_cr", PyBulletObservationType.JOINT_POS),
+            ("prox_to_distal_cr", PyBulletObservationType.JOINT_POS)
         ]
 
         if self._finger_gating:
-            observation_spec.append(("apple", PyBulletObservationType.BODY_POS))
-            observation_spec.append(("apple", PyBulletObservationType.BODY_ANG_VEL))
+            observation_spec += [
+                ("apple", PyBulletObservationType.BODY_POS),
+                ("apple", PyBulletObservationType.BODY_ANG_VEL)
+            ]
         else:
-            observation_spec.append(("valve_joint", PyBulletObservationType.JOINT_VEL))
+            observation_spec += [
+                ("valve_joint", PyBulletObservationType.JOINT_VEL)
+            ]
 
         files = dict()
 
