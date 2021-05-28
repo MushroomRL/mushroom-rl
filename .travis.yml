@@ -14,7 +14,7 @@ python:
 install:
   - pip install -e .[all,plots]
   - pip install pytest-cov
-  - wget http://www.atarimania.com/roms/Roms.rar && unrar e Roms.rar && unzip ROMS.zip && python python -m atari_py.import_roms ./ROMS
+  - wget http://www.atarimania.com/roms/Roms.rar && unrar e Roms.rar && unzip ROMS.zip && python -m atari_py.import_roms ./ROMS
 script:
   - pytest --cov=mushroom_rl --cov-report=xml
 after_script:
