@@ -1,12 +1,14 @@
 import time
+
 import numpy as np
+
 from mushroom_rl.core import MDPInfo
-from mushroom_rl.utils.spaces import Box
 from mushroom_rl.environments.pybullet_envs.air_hockey.env_single import AirHockeyPlanarSingle, PyBulletObservationType
+from mushroom_rl.utils.spaces import Box
 
 
 class AirHockeyPlanarHit(AirHockeyPlanarSingle):
-    def __init__(self, seed=None, gamma=0.99, horizon=500, timestep=1 / 240., n_intermediate_steps=1,
+    def __init__(self, seed=None, gamma=0.99, horizon=120, timestep=1 / 240., n_intermediate_steps=1,
                  debug_gui=False, env_noise=False, obs_noise=False, obs_delay=False, control_type="torque",
                  random_init=False, step_action_function=None):
         self.hit_range = np.array([[-0.7, -0.2], [-0.4, 0.4]])
@@ -42,23 +44,20 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
         return MDPInfo(observation_space, mdp_info.action_space, mdp_info.gamma, mdp_info.horizon)
 
     def reward(self, state, action, next_state, absorbing):
-        puck_pos = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_POS)[:3]
+        puck_pos = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_POS)[:2]
+        puck_vel = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]
         if absorbing:
             if puck_pos[0] - self.env_spec['table']['length'] / 2 > 0 and \
                     np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
-                return 300
+                return 80
         if not self.has_hit:
-            joint_pos = np.zeros(3)
-            joint_pos[0] = self.get_sim_state(next_state, "planar_robot_1/joint_1", PyBulletObservationType.JOINT_POS)
-            joint_pos[1] = self.get_sim_state(next_state, "planar_robot_1/joint_2", PyBulletObservationType.JOINT_POS)
-            joint_pos[2] = self.get_sim_state(next_state, "planar_robot_1/joint_3", PyBulletObservationType.JOINT_POS)
-            ee_pos = self.forward_kinematics(joint_pos)
-            dist_ee_puck = np.linalg.norm(puck_pos[:2] - ee_pos[:2])
+            ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee", PyBulletObservationType.LINK_POS)[:2]
+            dist_ee_puck = np.linalg.norm(puck_pos - ee_pos)
             return np.exp(-3.5 * dist_ee_puck)
         else:
-
-            dist = np.linalg.norm(self.goal - puck_pos[:2])
-            return np.exp(-5 * dist) + 1
+            dist = np.linalg.norm(self.goal - puck_pos)
+            angel = np.dot((self.goal - puck_pos) / dist, puck_vel / np.linalg.norm(puck_vel))
+            return np.exp(-5 * dist) * np.clip(angel, 0, 1) + 1
 
     def is_absorbing(self, state):
         if super().is_absorbing(state):
@@ -76,11 +75,24 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
 
 
 if __name__ == '__main__':
-    env = AirHockeyPlanarHit(debug_gui=True, env_noise=False, obs_noise=False, obs_delay=False)
+    env = AirHockeyPlanarHit(debug_gui=True, env_noise=False, obs_noise=False, obs_delay=False, n_intermediate_steps=4)
 
+    R = 0.
+    J = 0.
+    gamma = 1.
+    steps = 0
     while True:
         action = np.random.randn(3) * 5
         observation, reward, done, info = env.step(action)
-        if done:
+        gamma *= env.info.gamma
+        J += gamma * reward
+        R += reward
+        steps += 1
+        if done or steps > env.info.horizon:
+            print("J: ", J, " R: ", R)
+            R = 0.
+            J = 0.
+            gamma = 1.
+            steps = 0
             env.reset()
-        time.sleep(0.01)
+        time.sleep(1/60.)
