@@ -35,7 +35,7 @@ class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
         self.client.resetBasePositionAndOrientation(self._model_map['puck'], puck_pos, [0, 0, 0, 1.0])
         self.client.resetBaseVelocity(self._model_map['puck'], puck_lin_vel, puck_ang_vel)
 
-        for i, (model_id, joint_id, _) in enumerate(self._action_data):
+        for i, (model_id, joint_id, _) in enumerate(self._indexer.action_data):
             self._client.resetJointState(model_id, joint_id, self.init_state[i])
 
         self.has_hit = False
@@ -76,9 +76,9 @@ class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
     def _simulation_post_step(self):
         if not self.has_hit:
             collision_info = self.client.getContactPoints(self._model_map['puck'],
-                                                          self._link_map['planar_robot_1/link_striker_ee'][0],
+                                                          self._indexer.link_map['planar_robot_1/link_striker_ee'][0],
                                                           -1,
-                                                          self._link_map['planar_robot_1/link_striker_ee'][1])
+                                                          self._indexer.link_map['planar_robot_1/link_striker_ee'][1])
             if len(collision_info) > 0:
                 self.has_hit = True
 

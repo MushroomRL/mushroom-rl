@@ -29,7 +29,7 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
         puck_pos = np.concatenate([puck_pos, [-0.189]])
         self.client.resetBasePositionAndOrientation(self._model_map['puck'], puck_pos, [0, 0, 0, 1.0])
 
-        for i, (model_id, joint_id, _) in enumerate(self._action_data):
+        for i, (model_id, joint_id, _) in enumerate(self._indexer.action_data):
             self.client.resetJointState(model_id, joint_id, self.init_state[i])
 
         self.has_hit = False
