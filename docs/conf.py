@@ -143,6 +143,8 @@ latex_elements = {
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',
+    'makeindex': '\\usepackage[columns=1]{idxlayout}\\makeindex',
+    'printindex': '\\def\\twocolumn[#1]{#1}\\footnotesize\\raggedright\\printindex',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
@@ -202,6 +204,7 @@ epub_exclude_files = ['search.html']
 
 autodoc_member_order = 'bysource'
 autodoc_mock_imports = ['torch', 'pybullet', 'dm_control', 'mujoco_py', 'glfw']
+add_module_names = False
 
 def skip(app, what, name, obj, skip, options):
     if name == "__init__" or name == "__call__":
