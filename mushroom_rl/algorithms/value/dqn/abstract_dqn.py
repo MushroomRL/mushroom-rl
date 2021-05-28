@@ -162,12 +162,13 @@ class AbstractDQN(Agent):
 
         self.policy.set_q(self.approximator)
 
-    def set_logger(self, logger):
+    def set_logger(self, logger, loss_filename='loss_Q'):
         """
         Setter that can be used to pass a logger to the algorithm
 
         Args:
-            logger (Logger): the logger to be used by the algorithm.
+            logger (Logger): the logger to be used by the algorithm;
+            loss_filename (str, 'loss_Q'): optional string to specify the loss filename.
 
         """
-        self.approximator.set_logger = logger
+        self.approximator.set_logger(logger, loss_filename)
