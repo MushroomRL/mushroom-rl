@@ -53,7 +53,7 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
         if not self.has_hit:
             ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee", PyBulletObservationType.LINK_POS)[:2]
             dist_ee_puck = np.linalg.norm(puck_pos - ee_pos)
-            return np.exp(-3.5 * dist_ee_puck)
+            return np.exp(-8 * dist_ee_puck)
         else:
             dist = np.linalg.norm(self.goal - puck_pos)
             angel = np.dot((self.goal - puck_pos) / dist, puck_vel / np.linalg.norm(puck_vel))

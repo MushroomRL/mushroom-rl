@@ -112,9 +112,6 @@ class AirHockeyPlanarBase(PyBullet):
         self.env_spec['joint_vel_threshold'] = 0.1
         self.reset()
 
-    def _preprocess_action(self, action):
-        return np.clip(action, self.info.action_space.low, self.info.action_space.high)
-
     def _compute_action(self, state, action):
         if self.step_action_function is None:
             return action
