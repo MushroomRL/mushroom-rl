@@ -14,6 +14,10 @@ class AirHockeyPlanarSingle(AirHockeyPlanarBase):
                          env_noise=env_noise, n_agents=1, obs_noise=obs_noise, obs_delay=obs_delay,
                          control_type=control_type, step_action_function=step_action_function)
 
+        self._client.resetDebugVisualizerCamera(cameraDistance=1.5, cameraYaw=-90.0, cameraPitch=-45.0,
+                                                cameraTargetPosition=[-0.5, 0., 0.])
+
+
     def _create_observation(self, state):
         puck_pose = self.get_sim_state(state, "puck", PyBulletObservationType.BODY_POS)
         puck_pose_2d = self._puck_2d_in_robot_frame(puck_pose, self.agents[0]['frame'], type='pose')

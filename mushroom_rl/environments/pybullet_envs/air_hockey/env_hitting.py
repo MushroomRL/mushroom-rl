@@ -59,8 +59,10 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
                 r = np.exp(-8 * dist_ee_puck)
             else:
                 dist = np.linalg.norm(self.goal - puck_pos)
-                # angle = np.dot((self.goal - puck_pos) / dist, puck_vel / np.linalg.norm(puck_vel))
-                r = np.exp(-10 * dist) * 20 + 1
+                r_vel = 0.
+                if puck_vel[0] > 0:
+                    r_vel = np.linalg.norm(puck_vel)
+                r = np.exp(-10 * dist) + r_vel + 1
 
         r -= self.action_penalty * np.linalg.norm(action)
         return r
