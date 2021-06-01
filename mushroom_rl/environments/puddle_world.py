@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import norm
 
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.utils.spaces import Discrete, Box
+from mushroom_rl.utils.spaces import *
 from mushroom_rl.utils.viewer import Viewer
 
 
