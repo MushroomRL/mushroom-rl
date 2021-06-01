@@ -11,8 +11,8 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
     def __init__(self, seed=None, gamma=0.99, horizon=120, timestep=1 / 240., n_intermediate_steps=1,
                  debug_gui=False, env_noise=False, obs_noise=False, obs_delay=False, control_type="torque",
                  random_init=False, step_action_function=None, action_penalty=1e-3):
-        self.hit_range = np.array([[-0.7, -0.2], [-0.4, 0.4]])
-        self.goal = np.array([2.53, 0])
+        self.hit_range = np.array([[-0.6, -0.2], [-0.4, 0.4]])
+        self.goal = np.array([0.98, 0])
         self.has_hit = False
         self.random_init = random_init
         self.action_penalty = action_penalty
@@ -59,10 +59,9 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
                 r = np.exp(-8 * dist_ee_puck)
             else:
                 dist = np.linalg.norm(self.goal - puck_pos)
-                angel = np.dot((self.goal - puck_pos) / dist, puck_vel / np.linalg.norm(puck_vel))
-                r = np.exp(-5 * dist) * np.clip(angel, 0, 1) + 1
+                # angle = np.dot((self.goal - puck_pos) / dist, puck_vel / np.linalg.norm(puck_vel))
+                r = np.exp(-10 * dist) * 20 + 1
 
-        print(action)
         r -= self.action_penalty * np.linalg.norm(action)
         return r
 
