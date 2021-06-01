@@ -92,7 +92,7 @@ class Ensemble(Serializable):
             if isinstance(predictions[0], np.ndarray):
                 predictions = np.array(predictions)
             else:
-                predictions = torch.cat(predictions)
+                predictions = torch.stack(predictions, axis=0)
 
             if prediction == 'mean':
                 results = predictions.mean(0)

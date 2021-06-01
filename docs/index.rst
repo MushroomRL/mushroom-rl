@@ -7,8 +7,12 @@
 MushroomRL
 ==========
 
-Reinforcement Learning python library
--------------------------------------
+Introduction
+============
+
+
+What is MushroomRL
+------------------
 
 .. highlight:: python
 
@@ -138,18 +142,26 @@ To launch MushroomRL test suite:
 
     pytest
 
+
+
+API Documentation
+=================
+
 .. toctree::
-   :hidden:
-   :maxdepth: 2
    :caption: API:
+   :maxdepth: 2
    :glob:
 
    source/*
 
+
+Tutorials
+=========
+
 .. toctree::
-   :hidden:
-   :maxdepth: 2
    :caption: Tutorials:
+   :maxdepth: 2
    :glob:
 
    source/tutorials/*
+
