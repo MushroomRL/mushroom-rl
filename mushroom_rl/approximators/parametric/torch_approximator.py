@@ -65,8 +65,6 @@ class TorchApproximator(Serializable):
                                                  **optimizer['params'])
         self._loss = loss
 
-        self._logger = None
-
         self._add_save_attr(
             _batch_size='primitive',
             _reinitialize='primitive',
@@ -77,8 +75,10 @@ class TorchApproximator(Serializable):
             network='torch',
             _optimizer='torch',
             _loss='pickle',
-            _logger='none'
+            _last_loss='none'
         )
+
+        self._last_loss = None
 
     def predict(self, *args, output_tensor=False, **kwargs):
         """
@@ -186,9 +186,6 @@ class TorchApproximator(Serializable):
                         )
 
                         loss = mean_val_loss_current.item()
-
-                        if self._logger:
-                            self._logger.log_numpy(val_loss=mean_val_loss_current)
                     else:
                         loss = mean_loss_current
 
@@ -202,6 +199,8 @@ class TorchApproximator(Serializable):
                     else:
                         patience_count += 1
 
+                    self._last_loss = mean_loss_current
+
                     epochs_count += 1
         else:
             with trange(n_epochs, disable=self._quiet) as t_epochs:
@@ -211,6 +210,8 @@ class TorchApproximator(Serializable):
 
                     if not self._quiet:
                         t_epochs.set_postfix(loss=mean_loss_current)
+
+                    self._last_loss = mean_loss_current
 
         if self._dropout:
             self.network.eval()
@@ -226,9 +227,6 @@ class TorchApproximator(Serializable):
             loss_current.append(self._fit_batch(batch, use_weights, kwargs))
 
         mean_loss_current = np.mean(loss_current)
-
-        if self._logger:
-            self._logger.log_numpy(loss=mean_loss_current)
 
         return mean_loss_current
 
@@ -351,6 +349,10 @@ class TorchApproximator(Serializable):
     @property
     def use_cuda(self):
         return self._use_cuda
+
+    @property
+    def loss_fit(self):
+        return self._last_loss
 
     def _post_load(self):
         if self._optimizer is not None:

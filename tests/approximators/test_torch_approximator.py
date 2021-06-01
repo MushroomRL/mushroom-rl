@@ -1,5 +1,6 @@
 import numpy as np
 
+from mushroom_rl.core import Logger
 from mushroom_rl.approximators.regressor import Regressor
 from mushroom_rl.approximators.parametric import *
 
@@ -88,3 +89,31 @@ def test_pytorch_approximator():
 
     assert np.array_equal(random_weights, random_weight_new)
     assert not np.any(np.equal(random_weights, old_weights))
+
+
+def test_torch_ensemble_logger(tmpdir):
+    np.random.seed(1)
+    torch.manual_seed(1)
+
+    logger = Logger('ensemble_logger', results_dir=tmpdir, use_timestamp=True)
+
+    approximator = Regressor(TorchApproximator, input_shape=(4,),
+                             output_shape=(2,), n_models=3,
+                             network=ExampleNet,
+                             optimizer={'class': optim.Adam,
+                                        'params': {}}, loss=F.mse_loss,
+                             batch_size=100, quiet=True)
+
+    approximator.set_logger(logger)
+
+    x = np.random.rand(1000, 4)
+    y = np.random.rand(1000, 2)
+
+    for i in range(50):
+        approximator.fit(x, y)
+
+    loss_file = np.load(logger.path / 'loss.npy')
+
+    assert loss_file.shape == (50, 3)
+    assert np.allclose(loss_file[0], np.array([0.29083753, 0.86829887, 1.0505845])) and \
+           np.allclose(loss_file[-1], np.array([0.09410495, 0.18786799, 0.15016919]))
