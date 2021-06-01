@@ -33,8 +33,8 @@ class BatBot(PyBullet):
 
         files = {
             robot_path: dict(basePosition=[0.0, 0.0, 0.0],
-                                  baseOrientation=[0, 0, 0.0, 1.0],
-                                  flags=pybullet.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT),
+                             baseOrientation=[0, 0, 0.0, 1.0],
+                             flags=pybullet.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT),
             'plane.urdf': {}
         }
 
