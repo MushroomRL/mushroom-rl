@@ -8,10 +8,11 @@ from mushroom_rl.environments.pybullet_envs.air_hockey.env_single import AirHock
 class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
     def __init__(self, seed=None, gamma=0.99, horizon=500, timestep=1 / 240., n_intermediate_steps=1,
                  debug_gui=False, env_noise=False, obs_noise=False, obs_delay=False, control_type="torque",
-                 random_init=False, step_action_function=None):
+                 random_init=False, step_action_function=None, action_penalty=1e-3):
         self.start_range = np.array([[0.2, 0.78], [-0.4, 0.4]])
         self.has_hit = False
         self.random_init = random_init
+        self.action_penalty = action_penalty
         super().__init__(seed=seed, gamma=gamma, horizon=horizon, timestep=timestep,
                          n_intermediate_steps=n_intermediate_steps, debug_gui=debug_gui,
                          env_noise=env_noise, obs_noise=obs_noise, obs_delay=obs_delay, control_type=control_type,
@@ -50,23 +51,27 @@ class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
         return MDPInfo(observation_space, mdp_info.action_space, mdp_info.gamma, mdp_info.horizon)
 
     def reward(self, state, action, next_state, absorbing):
+        r = 0
         puck_pos = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_POS)[:3]
         if absorbing:
             if puck_pos[0] + self.env_spec['table']['length'] / 2 < 0 and \
                     np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
-                return -100
-
-        if self.has_hit:
-            puck_vel = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]
-            return np.exp(-10 * np.abs(puck_vel[0])) + 1
+                r = -100
         else:
-            joint_pos = np.zeros(3)
-            joint_pos[0] = self.get_sim_state(next_state, "planar_robot_1/joint_1", PyBulletObservationType.JOINT_POS)
-            joint_pos[1] = self.get_sim_state(next_state, "planar_robot_1/joint_2", PyBulletObservationType.JOINT_POS)
-            joint_pos[2] = self.get_sim_state(next_state, "planar_robot_1/joint_3", PyBulletObservationType.JOINT_POS)
-            ee_pos = self.forward_kinematics(joint_pos)
-            dist_ee_puck = np.linalg.norm(puck_pos[:2] - ee_pos[:2])
-            return 0.5 * np.exp(-10 * dist_ee_puck)
+            if self.has_hit:
+                puck_vel = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]
+                r = np.exp(-10 * np.abs(puck_vel[0])) + 1
+            else:
+                joint_pos = np.zeros(3)
+                joint_pos[0] = self.get_sim_state(next_state, "planar_robot_1/joint_1", PyBulletObservationType.JOINT_POS)
+                joint_pos[1] = self.get_sim_state(next_state, "planar_robot_1/joint_2", PyBulletObservationType.JOINT_POS)
+                joint_pos[2] = self.get_sim_state(next_state, "planar_robot_1/joint_3", PyBulletObservationType.JOINT_POS)
+                ee_pos = self.forward_kinematics(joint_pos)
+                dist_ee_puck = np.linalg.norm(puck_pos[:2] - ee_pos[:2])
+                r = 0.5 * np.exp(-10 * dist_ee_puck)
+
+        r -= self.action_penalty * np.linalg.norm(action)
+        return r
 
     def is_absorbing(self, state):
         if super().is_absorbing(state):
