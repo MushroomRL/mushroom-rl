@@ -3,7 +3,7 @@ import time
 import numpy as np
 
 from mushroom_rl.core import MDPInfo
-from mushroom_rl.environments.pybullet_envs.air_hockey.env_single import AirHockeyPlanarSingle, PyBulletObservationType
+from mushroom_rl.environments.pybullet_envs.air_hockey.planar.env_single import AirHockeyPlanarSingle, PyBulletObservationType
 from mushroom_rl.utils.spaces import Box
 
 

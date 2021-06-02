@@ -1,7 +1,7 @@
 import numpy as np
 import pybullet_utils.transformations as transformations
 
-from mushroom_rl.environments.pybullet_envs.air_hockey.env_base import AirHockeyPlanarBase, PyBulletObservationType
+from mushroom_rl.environments.pybullet_envs.air_hockey.planar.env_base import AirHockeyPlanarBase, PyBulletObservationType
 
 
 class AirHockeyPlanarSingle(AirHockeyPlanarBase):
