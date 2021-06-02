@@ -60,15 +60,15 @@ class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
         else:
             if self.has_hit:
                 puck_vel = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]
-                r = np.exp(-10 * np.abs(puck_vel[0])) + 1
+                r = np.sqrt(1 - np.clip(puck_vel[0] ** 2, 0., 1.))
             else:
                 joint_pos = np.zeros(3)
                 joint_pos[0] = self.get_sim_state(next_state, "planar_robot_1/joint_1", PyBulletObservationType.JOINT_POS)
                 joint_pos[1] = self.get_sim_state(next_state, "planar_robot_1/joint_2", PyBulletObservationType.JOINT_POS)
                 joint_pos[2] = self.get_sim_state(next_state, "planar_robot_1/joint_3", PyBulletObservationType.JOINT_POS)
-                ee_pos = self.forward_kinematics(joint_pos)
+                ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee", PyBulletObservationType.LINK_POS)[:2]
                 dist_ee_puck = np.linalg.norm(puck_pos[:2] - ee_pos[:2])
-                r = 0.5 * np.exp(-10 * dist_ee_puck)
+                r = np.exp(-8 * dist_ee_puck)
 
         r -= self.action_penalty * np.linalg.norm(action)
         return r
