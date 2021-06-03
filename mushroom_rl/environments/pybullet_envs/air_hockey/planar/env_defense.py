@@ -59,8 +59,10 @@ class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
                 r = -100
         else:
             if self.has_hit:
-                puck_vel = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]
-                r = np.sqrt(1 - np.clip(puck_vel[0] ** 2, 0., 1.))
+                # puck_vel = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]
+                # # r = 1 - np.clip(puck_vel[0] ** 2, 0., 1.)
+                # r = np.exp(-4 * puck_vel[0] ** 2)
+                r = np.exp(-10* np.abs(puck_pos[0]+0.7)) + 0.5
             else:
                 joint_pos = np.zeros(3)
                 joint_pos[0] = self.get_sim_state(next_state, "planar_robot_1/joint_1", PyBulletObservationType.JOINT_POS)
@@ -86,6 +88,7 @@ class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
                                                           self._indexer.link_map['planar_robot_1/link_striker_ee'][1])
             if len(collision_info) > 0:
                 self.has_hit = True
+
 
 if __name__ == '__main__':
     env = AirHockeyPlanarDefense(debug_gui=True, obs_noise=False, obs_delay=False)
