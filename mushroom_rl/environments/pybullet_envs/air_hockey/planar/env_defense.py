@@ -62,7 +62,7 @@ class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
                 # puck_vel = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]
                 # # r = 1 - np.clip(puck_vel[0] ** 2, 0., 1.)
                 # r = np.exp(-4 * puck_vel[0] ** 2)
-                r = np.exp(-10* np.abs(puck_pos[0]+0.7)) + 0.5
+                r = 5 * np.exp(-20 * np.abs(puck_pos[0]+0.6)) + 0.5
             else:
                 joint_pos = np.zeros(3)
                 joint_pos[0] = self.get_sim_state(next_state, "planar_robot_1/joint_1", PyBulletObservationType.JOINT_POS)
