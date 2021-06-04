@@ -56,18 +56,11 @@ class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
         if absorbing:
             if puck_pos[0] + self.env_spec['table']['length'] / 2 < 0 and \
                     np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
-                r = -100
+                r = -30
         else:
             if self.has_hit:
-                # puck_vel = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]
-                # # r = 1 - np.clip(puck_vel[0] ** 2, 0., 1.)
-                # r = np.exp(-4 * puck_vel[0] ** 2)
                 r = 5 * np.exp(-20 * np.abs(puck_pos[0]+0.6)) + 0.5
-            else:
-                joint_pos = np.zeros(3)
-                joint_pos[0] = self.get_sim_state(next_state, "planar_robot_1/joint_1", PyBulletObservationType.JOINT_POS)
-                joint_pos[1] = self.get_sim_state(next_state, "planar_robot_1/joint_2", PyBulletObservationType.JOINT_POS)
-                joint_pos[2] = self.get_sim_state(next_state, "planar_robot_1/joint_3", PyBulletObservationType.JOINT_POS)
+            elif puck_pos[0] < -0.4:
                 ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee", PyBulletObservationType.LINK_POS)[:2]
                 dist_ee_puck = np.linalg.norm(puck_pos[:2] - ee_pos[:2])
                 r = np.exp(-8 * dist_ee_puck)
