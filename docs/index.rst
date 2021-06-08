@@ -111,7 +111,7 @@ where the Q-values of each action of the MDP are stored for each rows
 representing a state of the MDP.
 
 
-Features Matrix
+Features matrix
 ---------------
 
 .. |check| unicode:: U+2705
@@ -126,7 +126,7 @@ Features Matrix
    ============================== ========================= =============================== ========================= ====================== ======================== =========================
    Classic RL algorithms           .. centered:: |check|     .. centered:: |cross|          .. centered:: |cross|     .. centered:: |cross|  .. centered:: |cross|    .. centered:: |cross|
    Deep RL algorithms              .. centered:: |check|     .. centered:: |check|          .. centered:: |check|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |cross|
-   Updated Documentation           .. centered:: |check|     .. centered:: |check|          .. centered:: |check|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |check|
+   Updated documentation           .. centered:: |check|     .. centered:: |check|          .. centered:: |check|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |check|
    Modular                         .. centered:: |check|     .. centered:: |cross|          .. centered:: |cross|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |check|
    Easy to extend                  .. centered:: |check|     .. centered:: |cross|          .. centered:: |cross|     .. centered:: |cross|  .. centered:: |cross|    .. centered:: |cross|
    PEP8 compliant                  .. centered:: |check|     .. centered:: |check|          .. centered:: |check|     .. centered:: |check|  .. centered:: |check|    .. centered:: |check|
@@ -173,7 +173,19 @@ To launch MushroomRL test suite:
 
     pytest
 
+Installation troubleshooting
+---------------------------
+Common problems with the installation of MushroomRL arise in case some of its dependency are
+broken or not installed. In general, we recommend installing MushroomRL with the option ``all`` to install all the Python
+dependencies. The installation time mostly depends on the time to install the dependencies.
+When no dependencies are installed, the installation time is approximately 10 minutes long.
 
+For Atari, ensure that all the dependencies for running the Arcade Learning Environment are installed.
+Opencv should be installed too. For MuJoCo, ensure that the path of your MuJoCo folder is included
+in the environment variable ``LD_LIBRARY_PATH`` and that ``mujoco_py`` is correctly installed.
+
+MushroomRL is well-tested on Linux. If you are using another OS, you may incur in issues that
+we are still not aware of. In that case, please do not hesitate sending us an email at mushroom4rl@gmail.com.
 
 API Documentation
 =================
@@ -195,4 +207,3 @@ Tutorials
    :glob:
 
    source/tutorials/*
-
