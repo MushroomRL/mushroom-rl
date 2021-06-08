@@ -174,7 +174,7 @@ To launch MushroomRL test suite:
     pytest
 
 Installation troubleshooting
----------------------------
+----------------------------
 Common problems with the installation of MushroomRL arise in case some of its dependency are
 broken or not installed. In general, we recommend installing MushroomRL with the option ``all`` to install all the Python
 dependencies. The installation time mostly depends on the time to install the dependencies.
