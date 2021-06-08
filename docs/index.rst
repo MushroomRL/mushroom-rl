@@ -110,38 +110,6 @@ Results in:
 where the Q-values of each action of the MDP are stored for each rows
 representing a state of the MDP.
 
-
-Features matrix
----------------
-
-.. |check| unicode:: U+2705
-
-.. |cross| unicode:: U+274C
-
-
-.. table::
-
-   ============================== ========================= =============================== ========================= ====================== ======================== =========================
-   Features                       .. centered:: MushroomRL  .. centered:: Stable Baselines   .. centered:: RLLib      .. centered:: Keras RL .. centered:: Chainer RL .. centered:: Tensorforce
-   ============================== ========================= =============================== ========================= ====================== ======================== =========================
-   Classic RL algorithms           .. centered:: |check|     .. centered:: |cross|          .. centered:: |cross|     .. centered:: |cross|  .. centered:: |cross|    .. centered:: |cross|
-   Deep RL algorithms              .. centered:: |check|     .. centered:: |check|          .. centered:: |check|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |cross|
-   Updated documentation           .. centered:: |check|     .. centered:: |check|          .. centered:: |check|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |check|
-   Modular                         .. centered:: |check|     .. centered:: |cross|          .. centered:: |cross|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |check|
-   Easy to extend                  .. centered:: |check|     .. centered:: |cross|          .. centered:: |cross|     .. centered:: |cross|  .. centered:: |cross|    .. centered:: |cross|
-   PEP8 compliant                  .. centered:: |check|     .. centered:: |check|          .. centered:: |check|     .. centered:: |check|  .. centered:: |check|    .. centered:: |check|
-   Compatible with RL benchmarks   .. centered:: |check|     .. centered:: |check|          .. centered:: |check|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |check|
-   Benchmarking suite              .. centered:: |check|     .. centered:: |check|          .. centered:: |check|     .. centered:: |check|  .. centered:: |check|    .. centered:: |check|
-   MujoCo integration              .. centered:: |check|     .. centered:: |cross|          .. centered:: |cross|     .. centered:: |cross|  .. centered:: |cross|    .. centered:: |cross|
-   Pybullet integration            .. centered:: |check|     .. centered:: |cross|          .. centered:: |cross|     .. centered:: |cross|  .. centered:: |cross|    .. centered:: |cross|
-   Torch integration               .. centered:: |check|     .. centered:: |cross|          .. centered:: |check|     .. centered:: |check|  .. centered:: |cross|    .. centered:: |cross|
-   Tensorflow integration          .. centered:: |cross|     .. centered:: |check|          .. centered:: |check|     .. centered:: |check|  .. centered:: |cross|    .. centered:: |check|
-   Chainer integration             .. centered:: |cross|     .. centered:: |cross|          .. centered:: |cross|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |cross|
-   Parallel environments           .. centered:: |cross|     .. centered:: |check|          .. centered:: |check|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |check|
-   ============================== ========================= =============================== ========================= ====================== ======================== =========================
-
-
-
 Download and installation
 -------------------------
 
@@ -183,9 +151,46 @@ When no dependencies are installed, the installation time is approximately 10 mi
 For Atari, ensure that all the dependencies for running the Arcade Learning Environment are installed.
 Opencv should be installed too. For MuJoCo, ensure that the path of your MuJoCo folder is included
 in the environment variable ``LD_LIBRARY_PATH`` and that ``mujoco_py`` is correctly installed.
+To quickly check if the issues comes from the creation of the environment, execute the ``make`` function
+of the environment on a Python terminal. Installing MushroomRL in a Conda environment is generally
+safe. However, we are aware that when installing with the option
+``plots``, some errors may arise due to incompatibility issues between
+``pyqtgraph`` and Conda. We recommend not using Conda when installing using ``plots``.
 
-MushroomRL is well-tested on Linux. If you are using another OS, you may incur in issues that
+Finally, ensure that C/C++ compilers and Cython are working as expected. MushroomRL is well-tested on Linux. If you are using another OS, you may incur in issues that
 we are still not aware of. In that case, please do not hesitate sending us an email at mushroom4rl@gmail.com.
+
+MushroomRL vs other libraries
+-----------------------------
+MushroomRL offers the majority of classical and deep RL algorithms, while keeping a modular
+and flexible architecture. It is compatible with Pytorch, and most machine learning and RL
+libraries.
+
+.. |check| unicode:: U+2705
+
+.. |cross| unicode:: U+274C
+
+
+.. table::
+
+   ============================== ========================= =============================== ========================= ====================== ======================== =========================
+   Features                       .. centered:: MushroomRL  .. centered:: Stable Baselines   .. centered:: RLLib      .. centered:: Keras RL .. centered:: Chainer RL .. centered:: Tensorforce
+   ============================== ========================= =============================== ========================= ====================== ======================== =========================
+   Classic RL algorithms           .. centered:: |check|     .. centered:: |cross|          .. centered:: |cross|     .. centered:: |cross|  .. centered:: |cross|    .. centered:: |cross|
+   Deep RL algorithms              .. centered:: |check|     .. centered:: |check|          .. centered:: |check|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |cross|
+   Updated documentation           .. centered:: |check|     .. centered:: |check|          .. centered:: |check|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |check|
+   Modular                         .. centered:: |check|     .. centered:: |cross|          .. centered:: |cross|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |check|
+   Easy to extend                  .. centered:: |check|     .. centered:: |cross|          .. centered:: |cross|     .. centered:: |cross|  .. centered:: |cross|    .. centered:: |cross|
+   PEP8 compliant                  .. centered:: |check|     .. centered:: |check|          .. centered:: |check|     .. centered:: |check|  .. centered:: |check|    .. centered:: |check|
+   Compatible with RL benchmarks   .. centered:: |check|     .. centered:: |check|          .. centered:: |check|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |check|
+   Benchmarking suite              .. centered:: |check|     .. centered:: |check|          .. centered:: |check|     .. centered:: |check|  .. centered:: |check|    .. centered:: |check|
+   MujoCo integration              .. centered:: |check|     .. centered:: |cross|          .. centered:: |cross|     .. centered:: |cross|  .. centered:: |cross|    .. centered:: |cross|
+   Pybullet integration            .. centered:: |check|     .. centered:: |cross|          .. centered:: |cross|     .. centered:: |cross|  .. centered:: |cross|    .. centered:: |cross|
+   Torch integration               .. centered:: |check|     .. centered:: |cross|          .. centered:: |check|     .. centered:: |check|  .. centered:: |cross|    .. centered:: |cross|
+   Tensorflow integration          .. centered:: |cross|     .. centered:: |check|          .. centered:: |check|     .. centered:: |check|  .. centered:: |cross|    .. centered:: |check|
+   Chainer integration             .. centered:: |cross|     .. centered:: |cross|          .. centered:: |cross|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |cross|
+   Parallel environments           .. centered:: |cross|     .. centered:: |check|          .. centered:: |check|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |check|
+   ============================== ========================= =============================== ========================= ====================== ======================== =========================
 
 API Documentation
 =================
