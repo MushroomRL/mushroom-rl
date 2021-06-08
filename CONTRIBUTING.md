@@ -12,8 +12,8 @@ Please use GitHub Issues and use the "bug" tag to label it. It is desirable if y
 where the bug occurs. If the bug is confirmed, you can also provide a pull request to fix it, or wait for the maintainers to
 resolve the issue.
 
-Implementing new algorithms
----------------------------
+Extending MushroomRL
+--------------------
 Although any contribution is welcome, we will only accept high-quality code that will reflect the key ideas
 of modularity and flexibility of MushroomRL. Please keep this in mind before submitting
 a pull request.
@@ -47,7 +47,7 @@ be meaningful to show the performance and properties of the proposed algorithm/e
 
 ### Benchmarks
 Instructions for adding a new benchmark are provided in the [MushroomRL Benchmarking Suite](
-https://github.com/MushroomRL/mushroom-rl-benchmark).
+https://github.com/MushroomRL/mushroom-rl-benchmark/blob/master/CONTRIBUTING.md).
 
 Proposing improvements
 ----------------------
