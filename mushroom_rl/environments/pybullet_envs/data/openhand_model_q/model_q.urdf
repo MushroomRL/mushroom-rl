@@ -101,9 +101,9 @@
 	<link name="prox_l">
 		<inertial>
 			<origin xyz="-0.015875 -0.009000 -0.071550" />
-			<mass value="0.1" />
-			<inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0"
-				izz="1.0" />
+			<mass value="0.03" />
+			<inertia ixx="1.0e-3" ixy="0.0" ixz="0.0" iyy="1.0e-3" iyz="0.0"
+				izz="1.0e-3" />
 		</inertial>
 		<visual>
 			<material name="white">
@@ -125,9 +125,9 @@
 	<link name="distal_l">
 		<inertial>
 			<origin xyz="-0.015875 -0.009000 -0.071550" />
-			<mass value="0.1" />
-			<inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0"
-				izz="1.0" />
+			<mass value="0.015" />
+			<inertia ixx="1.0e-3" ixy="0.0" ixz="0.0" iyy="1.0e-3" iyz="0.0"
+				izz="1.0e-3" />
 		</inertial>
 		<visual>
 			<material name="green">
@@ -149,9 +149,9 @@
 	<link name="prox_r">
 		<inertial>
 			<origin xyz="-0.015875 -0.009000 -0.071550" />
-			<mass value="0.1" />
-			<inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0"
-				izz="1.0" />
+			<mass value="0.03" />
+			<inertia ixx="1.0e-3" ixy="0.0" ixz="0.0" iyy="1.0e-3" iyz="0.0"
+				izz="1.0e-3" />
 		</inertial>
 		<visual>
 			<material name="white">
@@ -173,9 +173,9 @@
 	<link name="distal_r">
 		<inertial>
 			<origin xyz="-0.015875 -0.009000 -0.071550" />
-			<mass value="0.1" />
-			<inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0"
-				izz="1.0" />
+			<mass value="0.015" />
+			<inertia ixx="1.0e-3" ixy="0.0" ixz="0.0" iyy="1.0e-3" iyz="0.0"
+				izz="1.0e-3" />
 		</inertial>
 		<visual>
 			<material name="red">
@@ -197,9 +197,9 @@
 	<link name="prox_cl">
 		<inertial>
 			<origin xyz="-0.015875 -0.009000 -0.071550" />
-			<mass value="0.1" />
-			<inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0"
-				izz="1.0" />
+			<mass value="0.03" />
+			<inertia ixx="1.0e-3" ixy="0.0" ixz="0.0" iyy="1.0e-3" iyz="0.0"
+				izz="1.0e-3" />
 		</inertial>
 		<visual>
 			<material name="white">
@@ -221,9 +221,9 @@
 	<link name="distal_cl">
 		<inertial>
 			<origin xyz="-0.015875 -0.009000 -0.071550" />
-			<mass value="0.1" />
-			<inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0"
-				izz="1.0" />
+			<mass value="0.015" />
+			<inertia ixx="1.0e-3" ixy="0.0" ixz="0.0" iyy="1.0e-3" iyz="0.0"
+				izz="1.0e-3" />
 		</inertial>
 		<visual>
 			<material name="blue">
@@ -245,9 +245,9 @@
 	<link name="prox_cr">
 		<inertial>
 			<origin xyz="-0.015875 -0.009000 -0.071550" />
-			<mass value="0.1" />
-			<inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0"
-				izz="1.0" />
+			<mass value="0.03" />
+			<inertia ixx="1.0e-3" ixy="0.0" ixz="0.0" iyy="1.0e-3" iyz="0.0"
+				izz="1.0e-3" />
 		</inertial>
 		<visual>
 			<material name="white">
@@ -269,9 +269,9 @@
 	<link name="distal_cr">
 		<inertial>
 			<origin xyz="-0.015875 -0.009000 -0.071550" />
-			<mass value="0.1" />
-			<inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0"
-				izz="1.0" />
+			<mass value="0.015" />
+			<inertia ixx="1.0e-3" ixy="0.0" ixz="0.0" iyy="1.0e-3" iyz="0.0"
+				izz="1.0e-3" />
 		</inertial>
 		<visual>
 			<material name="blue">
@@ -318,7 +318,7 @@
 		<origin rpy="0 0 0" xyz="0 0.0 0.014" />
 		<parent link="palm" />
 		<child link="base_rot" />
-		<limit effort="10" lower="-0.26179938779" upper="0.26179938779" velocity="10" />
+		<limit effort="10" lower="-0.26179938779" upper="0.26179938779" velocity="50" />
 		<axis xyz="0 0 1" />
 	</joint>
 
@@ -326,72 +326,72 @@
 		<origin rpy="0 0 0" xyz="0.000800 0.062 0" />
 		<parent link="prox_r" />
 		<child link="distal_r" />
-		<limit effort="10" lower="0.0" upper="1.24" velocity="10" />
+		<limit effort="10" lower="0.0" upper="1.24" velocity="50" />
 		<axis xyz="0 0 1" />
-		<dynamics damping="0.1" friction="1e-3"/>
+		<dynamics damping="0.05" friction="0."/>
 	</joint>
 
 	<joint name="base_to_prox_r" type="revolute">
 		<origin rpy="0 1.57079632679 3.141592" xyz="0 -0.038 0.014" />
 		<parent link="palm" />
 		<child link="prox_r" />
-		<limit effort="10" lower="0.0" upper="2.0" velocity="10" />
+		<limit effort="10" lower="0.0" upper="2.0" velocity="50" />
 		<axis xyz="0 0 1" />
-		<dynamics damping="0.1" friction="1e-3"/>
+		<dynamics damping="0.05" friction="0."/>
 	</joint>
 
 	<joint name="prox_to_distal_l" type="revolute">
 		<origin rpy="0 0 0" xyz="0.000800 0.062 0" />
 		<parent link="prox_l" />
 		<child link="distal_l" />
-		<limit effort="10" lower="0.0" upper="1.24" velocity="10" />
+		<limit effort="10" lower="0.0" upper="1.24" velocity="50" />
 		<axis xyz="0 0 1" />
-		<dynamics damping="0.1" friction="1e-3"/>
+		<dynamics damping="0.05" friction="0."/>
 	</joint>
 
 	<joint name="base_to_prox_l" type="revolute">
 		<origin rpy="0 1.57079632679 0" xyz="0 0.038 0.014" />
 		<parent link="palm" />
 		<child link="prox_l" />
-		<limit effort="10" lower="0.0" upper="2.0" velocity="10" />
+		<limit effort="10" lower="0.0" upper="2.0" velocity="50" />
 		<axis xyz="0 0 1" />
-		<dynamics damping="0.1" friction="1e-3"/>
+		<dynamics damping="0.05" friction="0."/>
 	</joint>
 
 	<joint name="prox_to_distal_cl" type="revolute">
 		<origin rpy="0 0 0" xyz="0.000800 0.062 0" />
 		<parent link="prox_cl" />
 		<child link="distal_cl" />
-		<limit effort="10" lower="0.0" upper="1.24" velocity="10" />
+		<limit effort="10" lower="0.0" upper="1.24" velocity="50" />
 		<axis xyz="0 0 1" />
-		<dynamics damping="0.1" friction="1e-3"/>
+		<dynamics damping="0.05" friction="0."/>
 	</joint>
 
 	<joint name="base_to_prox_cl" type="revolute">
 		<origin rpy="-1.57079632679 1.57079632679 0" xyz="-.022 0. 0.0" />
 		<parent link="base_rot" />
 		<child link="prox_cl" />
-		<limit effort="10" lower="0.0" upper="2.0" velocity="10" />
+		<limit effort="10" lower="0.0" upper="2.0" velocity="50" />
 		<axis xyz="0 0 1" />
-		<dynamics damping="0.1" friction="1e-3"/>
+		<dynamics damping="0.05" friction="0."/>
 	</joint>
 
 	<joint name="prox_to_distal_cr" type="revolute">
 		<origin rpy="0 0 0" xyz="0.000800 0.062 0" />
 		<parent link="prox_cr" />
 		<child link="distal_cr" />
-		<limit effort="10" lower="0.0" upper="1.24" velocity="10" />
+		<limit effort="10" lower="0.0" upper="1.24" velocity="50" />
 		<axis xyz="0 0 1" />
-		<dynamics damping="0.1" friction="1e-3"/>
+		<dynamics damping="0.05" friction="0."/>
 	</joint>
 
 	<joint name="base_to_prox_cr" type="revolute">
 		<origin rpy="1.57079632679 1.57079632679 0" xyz=".022 0. 0.0" />
 		<parent link="base_rot" />
 		<child link="prox_cr" />
-		<limit effort="10" lower="0.0" upper="2.0" velocity="10" />
+		<limit effort="10" lower="0.0" upper="2.0" velocity="50" />
 		<axis xyz="0 0 1" />
-		<dynamics damping="0.1" friction="1e-3"/>
+		<dynamics damping="0.05" friction="0."/>
 	</joint>
 
 </robot>
