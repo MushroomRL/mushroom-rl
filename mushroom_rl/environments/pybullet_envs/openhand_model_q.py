@@ -82,7 +82,7 @@ class OpenHandModelQ(PyBullet):
 
         files[robot_path] = dict(basePosition=[0., 0., .225],
                                  baseOrientation=[0, 1, 0, 0],
-                                 flags=pybullet.URDF_USE_SELF_COLLISION)
+                                 flags=pybullet.URDF_USE_SELF_COLLISION | pybullet.URDF_USE_INERTIA_FROM_FILE)
         files['plane.urdf'] = dict()
 
         if object_type != 'apple':
@@ -109,8 +109,9 @@ class OpenHandModelQ(PyBullet):
 
         self.apple_initial_position = [0., 0., 0.07]
 
-        r_proximal = 0.01
-        r_distal = 0.008
+        r_actuator = 1.39e-2
+        r_proximal = 1e-2
+        r_distal = 8e-3
 
         self._R = np.array(
             [
@@ -134,8 +135,8 @@ class OpenHandModelQ(PyBullet):
         rot_joint_low = mdp_info.action_space.low[0]
         rot_joint_high = mdp_info.action_space.high[0]
 
-        low = np.array([rot_joint_low, -10, -10, -20])
-        high = np.array([rot_joint_high, 10, 10, 20])
+        low = np.array([rot_joint_low, 0., 0., 0.])
+        high = np.array([rot_joint_high, 10., 10., 20.])
         reduced_action_space = Box(low=low, high=high)
         mdp_info.action_space = reduced_action_space
 
@@ -149,8 +150,9 @@ class OpenHandModelQ(PyBullet):
         f = action[1:]
         q = self.joints.positions(state)[1:]
 
-        action_full[1:] = 100*self._R.T @ f - self._E @ q
+        action_full[1:] = self._R.T @ f - self._E @ q
 
+        print(action_full)
         return action_full
 
     def setup(self, state):
@@ -198,13 +200,19 @@ if __name__ == '__main__':
 
 
     class DummyAgent(Agent):
-        def __init__(self, n_actions):
+        def __init__(self, n_actions, dt):
             self._n_actions = n_actions
+            self.dt = dt
 
         def draw_action(self, state):
-            time.sleep(8/240)
-            #return 10*np.ones(self._n_actions)
-            return np.random.randn(self._n_actions)
+            time.sleep(self.dt)
+
+            action = 10*np.ones(self._n_actions)
+            #action[0] = 1e-6
+            #action[-1] = 0
+            # action = np.random.randn(self._n_actions)
+            #action = np.zeros(self._n_actions)
+            return action
 
         def episode_start(self):
             pass
@@ -214,7 +222,7 @@ if __name__ == '__main__':
 
 
     mdp = OpenHandModelQ(object_type='apple', debug_gui=True)
-    agent = DummyAgent(mdp.info.action_space.shape[0])
+    agent = DummyAgent(mdp.info.action_space.shape[0], mdp.dt)
 
     core = Core(agent, mdp)
     dataset = core.evaluate(n_episodes=10, render=False)
