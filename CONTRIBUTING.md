@@ -47,7 +47,7 @@ be meaningful to show the performance and properties of the proposed algorithm/e
 
 ### Benchmarks
 Instructions for adding a new benchmark are provided in the [MushroomRL Benchmarking Suite](
-https://github.com/MushroomRL/mushroom-rl-benchmark).
+https://github.com/MushroomRL/mushroom-rl-benchmark/blob/master/CONTRIBUTING.md).
 
 Proposing improvements
 ----------------------
