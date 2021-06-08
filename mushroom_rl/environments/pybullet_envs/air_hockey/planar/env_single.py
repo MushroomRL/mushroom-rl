@@ -16,7 +16,8 @@ class AirHockeyPlanarSingle(AirHockeyPlanarBase):
 
         self._client.resetDebugVisualizerCamera(cameraDistance=1.5, cameraYaw=-90.0, cameraPitch=-45.0,
                                                 cameraTargetPosition=[-0.5, 0., 0.])
-
+        self.obs_norm_scale = np.concatenate([[1.0, 0.5, np.pi, 1., 1., np.pi * 2],
+                                              self.joints.limits()[1], self.joints.velocity_limits()])
 
     def _create_observation(self, state):
         puck_pose = self.get_sim_state(state, "puck", PyBulletObservationType.BODY_POS)
@@ -49,6 +50,8 @@ class AirHockeyPlanarSingle(AirHockeyPlanarBase):
             robot_vel = alpha * robot_vel + (1 - alpha) * self.obs_prev[9:12]
 
         self.obs_prev = np.concatenate([puck_pose_2d, puck_vel_2d, robot_pos, robot_vel])
+
+        self.obs_prev = self.obs_prev / self.obs_norm_scale
         return self.obs_prev
 
     def _puck_2d_in_robot_frame(self, puck_in, robot_frame, type='pose'):

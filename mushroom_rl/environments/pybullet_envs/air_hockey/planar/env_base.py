@@ -109,7 +109,6 @@ class AirHockeyPlanarBase(PyBullet):
         self.env_spec['puck'] = {"radius": 0.03165, "urdf": puck_file}
         self.env_spec['mallet'] = {"radius": 0.05}
         self.env_spec['joint_vel_threshold'] = 0.1
-        self.reset()
 
     def _compute_action(self, state, action):
         if self.step_action_function is None:
