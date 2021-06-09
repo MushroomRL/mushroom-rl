@@ -131,7 +131,7 @@ class AirHockeyPlanarBase(PyBullet):
         boundary_mallet = boundary
         for agent in self.agents:
             mallet_pose = self.get_sim_state(state, agent['name'] + "/link_striker_ee", PyBulletObservationType.LINK_POS)
-            if np.any(np.abs(mallet_pose[:2]) - boundary_mallet > 1e-3):
+            if np.any(np.abs(mallet_pose[:2]) - boundary_mallet > 0.02):
                 return True
         return False
 

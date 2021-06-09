@@ -63,7 +63,7 @@ class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
         if absorbing:
             if puck_pos[0] + self.env_spec['table']['length'] / 2 < 0 and \
                     np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
-                r = -50
+                r = -10
         else:
             if self.has_bounce:
                 r = 0
@@ -74,8 +74,8 @@ class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
                     ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
                                                 PyBulletObservationType.LINK_POS)[:2]
                     dist_ee_puck = np.linalg.norm(puck_pos[:2] - ee_pos[:2])
-                    r = np.exp(-5 * dist_ee_puck)
-            else:
+                    r = np.exp(-2 * dist_ee_puck)
+            elif puck_vel[1] > 0.5:
                 r = -5
 
         r -= self.action_penalty * np.linalg.norm(action)
@@ -107,6 +107,14 @@ class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
                                                                 self._indexer.link_map['t_up_rim_r'][0],
                                                                 -1,
                                                                 self._indexer.link_map['t_up_rim_r'][1]))
+            collision_count += len(self.client.getContactPoints(self._model_map['puck'],
+                                                                self._indexer.link_map['t_down_rim_r'][0],
+                                                                -1,
+                                                                self._indexer.link_map['t_down_rim_r'][1]))
+            collision_count += len(self.client.getContactPoints(self._model_map['puck'],
+                                                                self._indexer.link_map['t_down_rim_r'][0],
+                                                                -1,
+                                                                self._indexer.link_map['t_down_rim_r'][1]))
             if collision_count > 0:
                 self.has_bounce = True
 
