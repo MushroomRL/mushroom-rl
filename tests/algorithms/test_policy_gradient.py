@@ -72,7 +72,7 @@ def test_REINFORCE_save(tmpdir):
 def test_GPOMDP():
     params = dict(optimizer=AdaptiveOptimizer(eps=.01))
     policy = learn(GPOMDP, params).policy
-    w = np.array([-0.07623939,  2.05232858])
+    w = np.array([-0.11457566, 1.99784316])
 
     assert np.allclose(w, policy.get_weights())
 
