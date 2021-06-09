@@ -28,7 +28,7 @@ to include the citation to the paper describing the algorithm in the docstring o
 
 ### Function approximators
 MushroomRL supports the use of third-party function approximators (e.g. Scikit-learn, Keras),
-or customized ones, as long as they implement the ``fit`` and ``predict`` methods.
+or customized ones, given that they implement the ``fit`` and ``predict`` methods.
 
 ### Environments
 The environment template of MushroomRL follows the style of the one introduced in OpenAI Gym.

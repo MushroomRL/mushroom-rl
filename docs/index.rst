@@ -10,13 +10,12 @@ MushroomRL
 Introduction
 ============
 
-
 What is MushroomRL
 ------------------
 
 .. highlight:: python
 
-MushroomRL is a Reinforcement Learning (RL) library that aims to be a simple, yet
+MushroomRL is a Reinforcement Learning (RL) library developed to be a simple, yet
 powerful way to make **RL** and **deep RL** experiments. The idea behind MushroomRL
 is to offer the majority of RL algorithms providing a common interface
 in order to run them without excessive effort. Moreover, it is designed in such
@@ -24,19 +23,19 @@ a way that new algorithms and other stuff can be added transparently,
 without the need of editing other parts of the code. MushroomRL is compatible with RL
 libraries like
 `OpenAI Gym <https://gym.openai.com/>`_,
-`DeepMind Control Suite <https://github.com/deepmind/dm_control>`_ and
+`DeepMind Control Suite <https://github.com/deepmind/dm_control>`_,
+`Pybullet <https://pybullet.org/wordpress/>`_, and
 `MuJoCo <http://www.mujoco.org/>`_, and
-the `PyTorch <https://pytorch.org>`_ and `Tensorflow <https://www.tensorflow.org/>`_
-libraries for tensor computation.
+the `PyTorch <https://pytorch.org>`_ library for tensor computation.
 
 With MushroomRL you can:
 
 - solve RL problems simply writing a single small script;
-- add custom algorithms and other stuff transparently;
+- add custom algorithms, policies, and so on, transparently;
 - use all RL environments offered by well-known libraries and build customized
   environments as well;
-- exploit regression models offered by Scikit-Learn or build a customized one
-  with PyTorch or Tensorflow;
+- exploit regression models offered by third-party libraries (e.g., scikit-learn) or
+  build a customized one with PyTorch;
 - seamlessly run experiments on CPU or GPU.
 
 Basic run example
@@ -143,7 +142,7 @@ To launch MushroomRL test suite:
 
 Installation troubleshooting
 ---------------------------
-Common problems with the installation of MushroomRL arise in case some of its dependency are
+Common problems with the installation of MushroomRL arise in case some of its dependencies are
 broken or not installed. In general, we recommend installing MushroomRL with the option ``all`` to install all the Python
 dependencies. The installation time mostly depends on the time to install the dependencies.
 When no dependencies are installed, the installation time is approximately 10 minutes long.
@@ -156,8 +155,9 @@ of the environment on a Python terminal. Installing MushroomRL in a Conda enviro
 safe. However, we are aware that when installing with the option
 ``plots``, some errors may arise due to incompatibility issues between
 ``pyqtgraph`` and Conda. We recommend not using Conda when installing using ``plots``.
+Finally, ensure that C/C++ compilers and Cython are working as expected.
 
-Finally, ensure that C/C++ compilers and Cython are working as expected. MushroomRL is well-tested on Linux. If you are using another OS, you may incur in issues that
+MushroomRL is well-tested on Linux. If you are using another OS, you may incur in issues that
 we are still not aware of. In that case, please do not hesitate sending us an email at mushroom4rl@gmail.com.
 
 MushroomRL vs other libraries
