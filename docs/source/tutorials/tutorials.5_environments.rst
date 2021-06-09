@@ -1,7 +1,7 @@
 How to use the Environment interface
 ====================================
 
-Here we explain in a bit of detail the usage of the MushroomRL Environment interface.
+Here we explain in detail the usage of the MushroomRL Environment interface.
 First, we explain how to use the registration interface. The registration enables the construction of environments
 from string specification. Then we construct a toy environment to show how it is possible to add new MushroomRL
 environments.
@@ -23,7 +23,7 @@ You can build the Segway environment as follows:
 Some environments may have a constructor which is too low level, and you may want to generate a vanilla version of it
 using as few parameters as possible.
 An example is the Linear Quadratic Regulator (LQR) environment, which requires a set of matrices to define the linear
-dynamics and the quadratic cost function. To provide an easier interface, the ``generate`` class method is exposed.To
+dynamics and the quadratic cost function. To provide an easier interface, the ``generate`` class method is exposed. To
 generate a simple 3-dimensional LQR problem, with Identity transition and action matrices, and a trivial
 quadratic cost function, you can use:
 
@@ -52,7 +52,7 @@ You can list the registered environments as follows:
     print(env_list)
 
 Every registered environment can be build using the name.
-For example, to create the SheepSteering environment you can use:
+For example, to create the ShipSteering environment you can use:
 
 .. code-block:: python
 
@@ -101,7 +101,7 @@ extends the base ``Environment`` class. You can register the environment as foll
 
 You can put this line of code after the class declaration, or in the ``__init__.py`` file of your library.
 If you do so, the first time you import the file, you will register the environment. Notice that this registration is
-not saved on disk, thus, you need to register the environment every time the python interpreter is executed.
+not saved on disk, thus, you need to register the environment every time the Python interpreter is executed.
 
 Creating a new environment
 --------------------------
