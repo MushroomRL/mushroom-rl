@@ -143,6 +143,11 @@ latex_elements = {
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',
+    'inputenc': '\\usepackage[utf8x]{inputenc}',
+    'preamble': r'''
+\DeclareUnicodeCharacter{9989}{\checkmark}
+\DeclareUnicodeCharacter{10060}{X}
+''',
     'makeindex': '\\usepackage[columns=1]{idxlayout}\\makeindex',
     'printindex': '\\def\\twocolumn[#1]{#1}\\footnotesize\\raggedright\\printindex',
 }
@@ -213,5 +218,6 @@ def skip(app, what, name, obj, skip, options):
 
 def setup(app):
     app.connect("autodoc-skip-member", skip)
+    app.add_css_file('theme_overrides.css')
 
 

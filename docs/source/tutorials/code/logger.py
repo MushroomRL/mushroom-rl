@@ -23,7 +23,7 @@ logger.warning('This is a warning message')
 logger.error('This is an error message')
 
 # Print a critical error message
-logger.critical('This is a warning')
+logger.critical('This is a critical error')
 
 # Print a line of dashes, to be used as a (weak) separator
 logger.weak_line()

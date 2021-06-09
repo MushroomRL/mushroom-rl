@@ -40,24 +40,26 @@ class GPOMDP(PolicyGradient):
         np.seterr(divide='ignore', invalid='ignore')
 
     def _compute_gradient(self, J):
-        gradient = np.zeros(self.policy.weights_size)
-
         n_episodes = len(self.list_sum_d_log_pi_ep)
-
+        grad_J_episode = list()
         for i in range(n_episodes):
             list_sum_d_log_pi = self.list_sum_d_log_pi_ep[i]
             list_reward = self.list_reward_ep[i]
 
             n_steps = len(list_sum_d_log_pi)
 
+            gradient = np.zeros(self.policy.weights_size)
+
             for t in range(n_steps):
                 step_grad = list_sum_d_log_pi[t]
                 step_reward = list_reward[t]
-                baseline = self.baseline_num[t] / self.baseline_den[t]
+                baseline = np.mean(self.baseline_num[t], axis=0) / np.mean(self.baseline_den[t], axis=0)
                 baseline[np.logical_not(np.isfinite(baseline))] = 0.
-                gradient += (step_reward - baseline) * step_grad
+                gradient += step_grad * (step_reward - baseline)
 
-        gradient /= n_episodes
+            grad_J_episode.append(gradient)
+
+        gradJ = np.mean(grad_J_episode, axis=0)
 
         self.list_reward_ep = list()
         self.list_sum_d_log_pi_ep = list()
@@ -65,7 +67,7 @@ class GPOMDP(PolicyGradient):
         self.baseline_num = list()
         self.baseline_den = list()
 
-        return gradient,
+        return gradJ
 
     def _step_update(self, x, u, r):
         discounted_reward = self.df * r
@@ -74,17 +76,16 @@ class GPOMDP(PolicyGradient):
         d_log_pi = self.policy.diff_log(x, u)
         self.sum_d_log_pi += d_log_pi
 
-        self.list_sum_d_log_pi.append(self.sum_d_log_pi)
+        self.list_sum_d_log_pi.append(self.sum_d_log_pi.copy())
 
         squared_sum_d_log_pi = np.square(self.sum_d_log_pi)
 
-        if self.step_count < len(self.baseline_num):
-            self.baseline_num[
-                self.step_count] += discounted_reward * squared_sum_d_log_pi
-            self.baseline_den[self.step_count] += squared_sum_d_log_pi
-        else:
-            self.baseline_num.append(discounted_reward * squared_sum_d_log_pi)
-            self.baseline_den.append(squared_sum_d_log_pi)
+        if self.step_count >= len(self.baseline_num):
+            self.baseline_num.append(list())
+            self.baseline_den.append(list())
+
+        self.baseline_num[self.step_count].append(discounted_reward * squared_sum_d_log_pi)
+        self.baseline_den[self.step_count].append(squared_sum_d_log_pi)
 
         self.step_count += 1
 
