@@ -141,13 +141,8 @@ To launch MushroomRL test suite:
     pytest
 
 Installation troubleshooting
-<<<<<<< HEAD
----------------------------
-Common problems with the installation of MushroomRL arise in case some of its dependencies are
-=======
 ----------------------------
 Common problems with the installation of MushroomRL arise in case some of its dependency are
->>>>>>> 657b58531ec1ce7562f2d2e4a45b6a877b04100d
 broken or not installed. In general, we recommend installing MushroomRL with the option ``all`` to install all the Python
 dependencies. The installation time mostly depends on the time to install the dependencies.
 When no dependencies are installed, the installation time is approximately 10 minutes long.
