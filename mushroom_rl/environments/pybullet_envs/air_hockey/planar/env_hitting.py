@@ -12,6 +12,8 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
         self.hit_range = np.array([[-0.6, -0.2], [-0.4, 0.4]])
         self.goal = np.array([0.98, 0])
         self.has_hit = False
+        self.vel_hit_x = 0.
+        self.r_hit = 0.
         self.random_init = random_init
         self.action_penalty = action_penalty
         super().__init__(seed=seed, gamma=gamma, horizon=horizon, timestep=timestep,
@@ -32,6 +34,8 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
             self.client.resetJointState(model_id, joint_id, self.init_state[i])
 
         self.has_hit = False
+        self.vel_hit_x = 0.
+        self.r_hit = 0.
 
     def reward(self, state, action, next_state, absorbing):
         r = 0
@@ -45,12 +49,20 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
             if not self.has_hit:
                 ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee", PyBulletObservationType.LINK_POS)[:2]
                 dist_ee_puck = np.linalg.norm(puck_pos - ee_pos)
-                r = np.exp(-8 * dist_ee_puck)
+                # r = np.exp(-8 * (dist_ee_puck - 0.08))
+
+                vec_ee_puck = (puck_pos - ee_pos) / dist_ee_puck
+                vec_puck_goal = (self.goal - puck_pos) / np.linalg.norm(self.goal - puck_pos)
+                cos_ang = np.clip(vec_puck_goal @ vec_ee_puck, 0, 1)
+                r = np.exp(-20 * (dist_ee_puck - 0.08)) * cos_ang
+                self.r_hit = r
             else:
-                dist = np.linalg.norm(self.goal - puck_pos)
-                if puck_vel[0] > 0:
-                    r_vel = np.abs(puck_vel[0])
-                    r = 0.5 * (np.exp(-10 * dist) + r_vel) + 0.5
+                # dist = np.linalg.norm(self.goal - puck_pos)
+                # if puck_vel[0] > 0:
+                #     r_vel = np.abs(puck_vel[0])
+                #     r = 0.5 * (np.exp(-10 * dist) + r_vel) + 0.5
+
+                r = 1 + self.r_hit + self.vel_hit_x * 0.1
 
         r -= self.action_penalty * np.linalg.norm(action)
         return r
@@ -67,7 +79,9 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
     def _simulation_post_step(self):
         if not self.has_hit:
             puck_vel = self.get_sim_state(self._state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]
-            self.has_hit = (np.linalg.norm(puck_vel) > 0.1)
+            if np.linalg.norm(puck_vel) > 0.1:
+                self.has_hit = True
+                self.vel_hit_x = puck_vel[0]
 
 
 if __name__ == '__main__':
