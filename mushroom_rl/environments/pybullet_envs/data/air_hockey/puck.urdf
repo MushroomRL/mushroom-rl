@@ -27,9 +27,9 @@
       <material name="Red"/>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0 0 0.0"/>
+      <origin rpy="0 0 0" xyz="0 0 0.00755"/>
       <geometry>
-        <cylinder length="0.0049" radius="0.03165"/>
+        <cylinder length="0.02" radius="0.03165"/>
       </geometry>
     </collision>
     <contact>
