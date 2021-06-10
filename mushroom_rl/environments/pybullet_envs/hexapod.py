@@ -156,7 +156,7 @@ class HexapodBullet(PyBullet):
 
 if __name__ == '__main__':
     from mushroom_rl.core import Core
-    from mushroom_rl.algorithms import Agent
+    from mushroom_rl.core import Agent
     from mushroom_rl.utils.dataset import compute_J
 
 
