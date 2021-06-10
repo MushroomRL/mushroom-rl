@@ -2,10 +2,8 @@ import time
 
 import numpy as np
 
-from mushroom_rl.core import MDPInfo
 from mushroom_rl.environments.pybullet_envs.air_hockey.planar.env_single import AirHockeyPlanarSingle, \
     PyBulletObservationType
-from mushroom_rl.utils.spaces import Box
 
 
 class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
@@ -46,15 +44,6 @@ class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
 
         self.has_hit = False
         self.has_bounce = False
-
-    def _modify_mdp_info(self, mdp_info):
-        obs_idx = [0, 1, 2, 7, 8, 9, 13, 14, 15, 16, 17, 18]
-        obs_low = mdp_info.observation_space.low[obs_idx]
-        obs_high = mdp_info.observation_space.high[obs_idx]
-        obs_low[2] = - np.pi
-        obs_high[2] = np.pi
-        observation_space = Box(low=obs_low, high=obs_high)
-        return MDPInfo(observation_space, mdp_info.action_space, mdp_info.gamma, mdp_info.horizon)
 
     def reward(self, state, action, next_state, absorbing):
         r = 0

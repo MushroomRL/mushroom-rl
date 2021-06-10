@@ -2,9 +2,7 @@ import time
 
 import numpy as np
 
-from mushroom_rl.core import MDPInfo
 from mushroom_rl.environments.pybullet_envs.air_hockey.planar.env_single import AirHockeyPlanarSingle, PyBulletObservationType
-from mushroom_rl.utils.spaces import Box
 
 
 class AirHockeyPlanarHit(AirHockeyPlanarSingle):
@@ -35,15 +33,6 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
 
         self.has_hit = False
 
-    def _modify_mdp_info(self, mdp_info):
-        obs_idx = [0, 1, 2, 7, 8, 9, 13, 14, 15, 16, 17, 18]
-        obs_low = mdp_info.observation_space.low[obs_idx]
-        obs_high = mdp_info.observation_space.high[obs_idx]
-        obs_low[2] = - np.pi
-        obs_high[2] = np.pi
-        observation_space = Box(low=obs_low, high=obs_high)
-        return MDPInfo(observation_space, mdp_info.action_space, mdp_info.gamma, mdp_info.horizon)
-
     def reward(self, state, action, next_state, absorbing):
         r = 0
         puck_pos = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_POS)[:2]
@@ -51,7 +40,7 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
         if absorbing:
             if puck_pos[0] - self.env_spec['table']['length'] / 2 > 0 and \
                     np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
-                r = 10
+                r = 80
         else:
             if not self.has_hit:
                 ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee", PyBulletObservationType.LINK_POS)[:2]
@@ -59,9 +48,8 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
                 r = np.exp(-8 * dist_ee_puck)
             else:
                 dist = np.linalg.norm(self.goal - puck_pos)
-                r_vel = 0.
                 if puck_vel[0] > 0:
-                    r_vel = np.linalg.norm(puck_vel)
+                    r_vel = np.abs(puck_vel[0])
                     r = 0.5 * (np.exp(-10 * dist) + r_vel) + 0.5
 
         r -= self.action_penalty * np.linalg.norm(action)
