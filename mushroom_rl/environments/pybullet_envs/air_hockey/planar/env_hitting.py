@@ -54,7 +54,7 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
                 vec_ee_puck = (puck_pos - ee_pos) / dist_ee_puck
                 vec_puck_goal = (self.goal - puck_pos) / np.linalg.norm(self.goal - puck_pos)
                 cos_ang = np.clip(vec_puck_goal @ vec_ee_puck, 0, 1)
-                r = np.exp(-20 * (dist_ee_puck - 0.08)) * cos_ang
+                r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang
                 self.r_hit = r
             else:
                 # dist = np.linalg.norm(self.goal - puck_pos)
@@ -91,6 +91,7 @@ if __name__ == '__main__':
     J = 0.
     gamma = 1.
     steps = 0
+    env.reset()
     while True:
         action = np.random.randn(3) * 5
         observation, reward, done, info = env.step(action)
