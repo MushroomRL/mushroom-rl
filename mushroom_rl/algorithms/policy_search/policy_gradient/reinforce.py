@@ -28,8 +28,7 @@ class REINFORCE(PolicyGradient):
         np.seterr(divide='ignore', invalid='ignore')
 
     def _compute_gradient(self, J):
-        baseline = np.mean(self.baseline_num, axis=0) / np.mean(
-            self.baseline_den, axis=0)
+        baseline = np.mean(self.baseline_num, axis=0) / np.mean(self.baseline_den, axis=0)
         baseline[np.logical_not(np.isfinite(baseline))] = 0.
         grad_J_episode = list()
         for i, J_episode in enumerate(J):
@@ -41,7 +40,7 @@ class REINFORCE(PolicyGradient):
         self.baseline_den = list()
         self.baseline_num = list()
 
-        return grad_J,
+        return grad_J
 
     def _step_update(self, x, u, r):
         d_log_pi = self.policy.diff_log(x, u)
