@@ -98,7 +98,7 @@ class MinMaxPreprocessor(StandardizationPreprocessor):
                              mdp_info.observation_space.high.copy())
 
         self._obs_mask = np.where(
-            np.logical_and(np.abs(obs_low) < 1e20, np.abs(obs_low) < 1e20)
+            np.logical_and(np.abs(obs_low) < 1e20, np.abs(obs_high) < 1e20)
         )
 
         assert np.squeeze(self._obs_mask).size > 0, \
