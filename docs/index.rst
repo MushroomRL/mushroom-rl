@@ -10,13 +10,12 @@ MushroomRL
 Introduction
 ============
 
-
 What is MushroomRL
 ------------------
 
 .. highlight:: python
 
-MushroomRL is a Reinforcement Learning (RL) library that aims to be a simple, yet
+MushroomRL is a Reinforcement Learning (RL) library developed to be a simple, yet
 powerful way to make **RL** and **deep RL** experiments. The idea behind MushroomRL
 is to offer the majority of RL algorithms providing a common interface
 in order to run them without excessive effort. Moreover, it is designed in such
@@ -24,19 +23,19 @@ a way that new algorithms and other stuff can be added transparently,
 without the need of editing other parts of the code. MushroomRL is compatible with RL
 libraries like
 `OpenAI Gym <https://gym.openai.com/>`_,
-`DeepMind Control Suite <https://github.com/deepmind/dm_control>`_ and
+`DeepMind Control Suite <https://github.com/deepmind/dm_control>`_,
+`Pybullet <https://pybullet.org/wordpress/>`_, and
 `MuJoCo <http://www.mujoco.org/>`_, and
-the `PyTorch <https://pytorch.org>`_ and `Tensorflow <https://www.tensorflow.org/>`_
-libraries for tensor computation.
+the `PyTorch <https://pytorch.org>`_ library for tensor computation.
 
 With MushroomRL you can:
 
 - solve RL problems simply writing a single small script;
-- add custom algorithms and other stuff transparently;
+- add custom algorithms, policies, and so on, transparently;
 - use all RL environments offered by well-known libraries and build customized
   environments as well;
-- exploit regression models offered by Scikit-Learn or build a customized one
-  with PyTorch or Tensorflow;
+- exploit regression models offered by third-party libraries (e.g., scikit-learn) or
+  build a customized one with PyTorch;
 - seamlessly run experiments on CPU or GPU.
 
 Basic run example
@@ -110,7 +109,6 @@ Results in:
 where the Q-values of each action of the MDP are stored for each rows
 representing a state of the MDP.
 
-
 Download and installation
 -------------------------
 
@@ -142,7 +140,61 @@ To launch MushroomRL test suite:
 
     pytest
 
+Installation troubleshooting
+----------------------------
+Common problems with the installation of MushroomRL arise in case some of its dependency are
+broken or not installed. In general, we recommend installing MushroomRL with the option ``all`` to install all the Python
+dependencies. The installation time mostly depends on the time to install the dependencies.
+A simple installation takes approximately 1 minute with a fast internet connection.
+Installing with all the dependencies takes approximately 5 minutes using a fast internet connection. A slower
+internet connection may increase the installation time significantly.
 
+If installing all the dependencies, ensure that the swig library is installed, as it is used
+by some Gym environments and the installation may fail otherwise. For Atari, you might need to install the ROM separately, otherwise
+the creation of Atari environments may fail. Opencv should be installed too. For MuJoCo, ensure that the path of your MuJoCo folder is included
+in the environment variable ``LD_LIBRARY_PATH`` and that ``mujoco_py`` is correctly installed.
+Installing MushroomRL in a Conda environment is generally
+safe. However, we are aware that when installing with the option
+``plots``, some errors may arise due to incompatibility issues between
+``pyqtgraph`` and Conda. We recommend not using Conda when installing using ``plots``.
+Finally, ensure that C/C++ compilers and Cython are working as expected.
+
+To check if the installation has been successful, you can try to run the basic example above.
+
+MushroomRL is well-tested on Linux. If you are using another OS, you may incur in issues that
+we are still not aware of. In that case, please do not hesitate sending us an email at mushroom4rl@gmail.com.
+
+MushroomRL vs other libraries
+-----------------------------
+MushroomRL offers the majority of classical and deep RL algorithms, while keeping a modular
+and flexible architecture. It is compatible with Pytorch, and most machine learning and RL
+libraries.
+
+.. |check| unicode:: U+2705
+
+.. |cross| unicode:: U+274C
+
+
+.. table::
+
+   ============================== ========================= =============================== ========================= ====================== ======================== =========================
+   Features                       .. centered:: MushroomRL  .. centered:: Stable Baselines   .. centered:: RLLib      .. centered:: Keras RL .. centered:: Chainer RL .. centered:: Tensorforce
+   ============================== ========================= =============================== ========================= ====================== ======================== =========================
+   Classic RL algorithms           .. centered:: |check|     .. centered:: |cross|          .. centered:: |cross|     .. centered:: |cross|  .. centered:: |cross|    .. centered:: |cross|
+   Deep RL algorithms              .. centered:: |check|     .. centered:: |check|          .. centered:: |check|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |cross|
+   Updated documentation           .. centered:: |check|     .. centered:: |check|          .. centered:: |check|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |check|
+   Modular                         .. centered:: |check|     .. centered:: |cross|          .. centered:: |cross|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |check|
+   Easy to extend                  .. centered:: |check|     .. centered:: |cross|          .. centered:: |cross|     .. centered:: |cross|  .. centered:: |cross|    .. centered:: |cross|
+   PEP8 compliant                  .. centered:: |check|     .. centered:: |check|          .. centered:: |check|     .. centered:: |check|  .. centered:: |check|    .. centered:: |check|
+   Compatible with RL benchmarks   .. centered:: |check|     .. centered:: |check|          .. centered:: |check|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |check|
+   Benchmarking suite              .. centered:: |check|     .. centered:: |check|          .. centered:: |check|     .. centered:: |check|  .. centered:: |check|    .. centered:: |check|
+   MujoCo integration              .. centered:: |check|     .. centered:: |cross|          .. centered:: |cross|     .. centered:: |cross|  .. centered:: |cross|    .. centered:: |cross|
+   Pybullet integration            .. centered:: |check|     .. centered:: |cross|          .. centered:: |cross|     .. centered:: |cross|  .. centered:: |cross|    .. centered:: |cross|
+   Torch integration               .. centered:: |check|     .. centered:: |cross|          .. centered:: |check|     .. centered:: |check|  .. centered:: |cross|    .. centered:: |cross|
+   Tensorflow integration          .. centered:: |cross|     .. centered:: |check|          .. centered:: |check|     .. centered:: |check|  .. centered:: |cross|    .. centered:: |check|
+   Chainer integration             .. centered:: |cross|     .. centered:: |cross|          .. centered:: |cross|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |cross|
+   Parallel environments           .. centered:: |cross|     .. centered:: |check|          .. centered:: |check|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |check|
+   ============================== ========================= =============================== ========================= ====================== ======================== =========================
 
 API Documentation
 =================
@@ -164,4 +216,3 @@ Tutorials
    :glob:
 
    source/tutorials/*
-

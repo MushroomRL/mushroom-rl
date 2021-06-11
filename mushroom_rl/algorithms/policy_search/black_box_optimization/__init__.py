@@ -4,4 +4,4 @@ from .reps import REPS
 from .pgpe import PGPE
 from .constrained_reps import ConstrainedREPS
 
-__all__ = ['RWR', 'PGPE', 'REPS', ['ConstrainedREPS']]
+__all__ = ['RWR', 'PGPE', 'REPS', 'ConstrainedREPS']
