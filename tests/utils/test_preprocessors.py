@@ -1,4 +1,3 @@
-import os
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -88,3 +87,7 @@ def test_normalizing_preprocessor(tmpdir):
     assert ((state_dict1["mean"] == state_dict2["mean"]).all()
             and (state_dict1["var"] == state_dict2["var"]).all()
             and state_dict1["count"] == state_dict2["count"])
+
+    core = Core(agent, mdp, preprocessors=[norm_box])
+    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+
