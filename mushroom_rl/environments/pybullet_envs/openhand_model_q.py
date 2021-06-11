@@ -109,9 +109,8 @@ class OpenHandModelQ(PyBullet):
 
         self.apple_initial_position = [0., 0., 0.07]
 
-        r_actuator = 1.39e-2
-        r_proximal = 1e-2
-        r_distal = 8e-3
+        r_proximal = 1.0
+        r_distal = 2.0
 
         self._R = np.array(
             [
@@ -152,7 +151,6 @@ class OpenHandModelQ(PyBullet):
 
         action_full[1:] = self._R.T @ f - self._E @ q
 
-        print(action_full)
         return action_full
 
     def setup(self, state):
@@ -178,6 +176,7 @@ class OpenHandModelQ(PyBullet):
         return angular_velocity
 
     def is_absorbing(self, state):
+        return False
         if self._finger_gating:
             collisions = self._client.getContactPoints(self._model_map['plane'], self._model_map['apple'])
 
@@ -207,11 +206,11 @@ if __name__ == '__main__':
         def draw_action(self, state):
             time.sleep(self.dt)
 
-            action = 10*np.ones(self._n_actions)
-            #action[0] = 1e-6
-            #action[-1] = 0
-            # action = np.random.randn(self._n_actions)
-            #action = np.zeros(self._n_actions)
+            action = 8*np.ones(self._n_actions)
+            #action = 10*np.random.rand(self._n_actions)
+            action = np.zeros(self._n_actions)
+            action[0] = 0.0001
+
             return action
 
         def episode_start(self):
@@ -223,6 +222,8 @@ if __name__ == '__main__':
 
     mdp = OpenHandModelQ(object_type='apple', debug_gui=True)
     agent = DummyAgent(mdp.info.action_space.shape[0], mdp.dt)
+
+    print('Rot joint limits', mdp.info.action_space.low[0], mdp.info.action_space.high[0])
 
     core = Core(agent, mdp)
     dataset = core.evaluate(n_episodes=10, render=False)
