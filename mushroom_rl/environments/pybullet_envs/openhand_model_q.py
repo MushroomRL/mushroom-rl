@@ -176,7 +176,6 @@ class OpenHandModelQ(PyBullet):
         return angular_velocity
 
     def is_absorbing(self, state):
-        return False
         if self._finger_gating:
             collisions = self._client.getContactPoints(self._model_map['plane'], self._model_map['apple'])
 
