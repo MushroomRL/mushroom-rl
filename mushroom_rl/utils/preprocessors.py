@@ -113,6 +113,7 @@ class MinMaxPreprocessor(StandardizationPreprocessor):
         self._obs_delta[self._obs_mask] = (obs_high[self._obs_mask] - obs_low[self._obs_mask]) / 2.
 
         self._add_save_attr(
+            _run_norm_obs='primitive',
             _obs_mask='numpy',
             _obs_mean='numpy',
             _obs_delta='numpy'
