@@ -52,20 +52,18 @@ class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
         if absorbing:
             if puck_pos[0] + self.env_spec['table']['length'] / 2 < 0 and \
                     np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
-                r = -10
+                r = -50
         else:
             if self.has_bounce:
                 r = 0
             elif puck_pos[0] > -0.8:
                 if self.has_hit:
-                    r = 5 * (np.exp(-20 * np.abs(puck_pos[0] + 0.6)) + np.exp(-20 * np.abs(puck_vel[0])))
+                    r = 5 * (np.exp(-20 * np.abs(puck_pos[0] + 0.6)) + np.exp(-3 * np.linalg.norm(puck_vel))) + 1
                 else:
                     ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
                                                 PyBulletObservationType.LINK_POS)[:2]
-                    dist_ee_puck = np.linalg.norm(puck_pos[:2] - ee_pos[:2])
-                    r = np.exp(-2 * dist_ee_puck)
-            elif puck_vel[1] > 0.5:
-                r = -5
+                    dist_ee_puck = np.linalg.norm(puck_pos[:2] - ee_pos[:2]) - 0.08
+                    r = np.exp(-3 * dist_ee_puck)
 
         r -= self.action_penalty * np.linalg.norm(action)
         return r
@@ -110,7 +108,7 @@ class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
 
 if __name__ == '__main__':
     env = AirHockeyPlanarDefense(debug_gui=True, obs_noise=False, obs_delay=False)
-
+    env.reset()
     while True:
         action = np.random.randn(3) * 10
         observation, reward, done, info = env.step(action)
