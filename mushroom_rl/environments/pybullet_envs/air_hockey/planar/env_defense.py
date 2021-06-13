@@ -58,11 +58,12 @@ class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
                 r = 0
             elif puck_pos[0] > -0.8:
                 if self.has_hit:
-                    r = 5 * (np.exp(-20 * np.abs(puck_pos[0] + 0.6)) + np.exp(-3 * np.linalg.norm(puck_vel))) + 1
+                    r = np.exp(-5 * np.abs(puck_pos[0] + 0.6)) + 5 * np.exp(-5 * np.linalg.norm(puck_vel)) + 1
                 else:
                     ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
                                                 PyBulletObservationType.LINK_POS)[:2]
-                    dist_ee_puck = np.linalg.norm(puck_pos[:2] - ee_pos[:2]) - 0.08
+                    ee_des = np.array([-0.6, puck_pos[1]])
+                    dist_ee_puck = np.linalg.norm(ee_des - ee_pos[:2]) - 0.08
                     r = np.exp(-3 * dist_ee_puck)
 
         r -= self.action_penalty * np.linalg.norm(action)
