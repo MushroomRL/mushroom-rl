@@ -1,4 +1,5 @@
 import numpy as np
+import pybullet
 import pybullet_utils.transformations as transformations
 from mushroom_rl.core import MDPInfo
 from mushroom_rl.utils.spaces import Box
@@ -17,6 +18,8 @@ class AirHockeyPlanarSingle(AirHockeyPlanarBase):
 
         self._client.resetDebugVisualizerCamera(cameraDistance=1.5, cameraYaw=-90.0, cameraPitch=-45.0,
                                                 cameraTargetPosition=[-0.5, 0., 0.])
+        self._change_dynamics()
+        self._disable_collision()
 
     def _modify_mdp_info(self, mdp_info):
         obs_idx = [0, 1, 2, 7, 8, 9, 13, 14, 15, 16, 17, 18]
@@ -26,7 +29,6 @@ class AirHockeyPlanarSingle(AirHockeyPlanarBase):
         obs_high[0:3] = [1, 0.5, np.pi]
         observation_space = Box(low=obs_low, high=obs_high)
         return MDPInfo(observation_space, mdp_info.action_space, mdp_info.gamma, mdp_info.horizon)
-
 
     def _create_observation(self, state):
         puck_pose = self.get_sim_state(state, "puck", PyBulletObservationType.BODY_POS)
@@ -75,3 +77,24 @@ class AirHockeyPlanarSingle(AirHockeyPlanarBase):
             rot_mat = robot_frame[:3, :3]
             vec_lin = rot_mat.T @ puck_in[:3]
             return np.concatenate([vec_lin[:2], puck_in[5:6]])
+
+    def _change_dynamics(self):
+        for i in range(5):
+            self.client.changeDynamics(self._model_map['planar_robot_1'], i, linearDamping=0., angularDamping=0.)
+
+    def _disable_collision(self):
+        iiwa_links = ['planar_robot_1/link_1', 'planar_robot_1/link_2', 'planar_robot_1/link_3',
+                      'planar_robot_1/link_striker_hand', 'planar_robot_1/link_striker_ee']
+        table_rims = ['t_down_rim_l', 't_down_rim_r', 't_up_rim_r', 't_up_rim_l',
+                      't_left_rim', 't_right_rim', 't_base', 't_up_rim_top', 't_down_rim_top', 't_base']
+        for iiwa_l in iiwa_links:
+            for table_r in table_rims:
+                self.client.setCollisionFilterPair(self._indexer.link_map[iiwa_l][0],
+                                                   self._indexer.link_map[table_r][0],
+                                                   self._indexer.link_map[iiwa_l][1],
+                                                   self._indexer.link_map[table_r][1], 0)
+
+        self.client.setCollisionFilterPair(self._model_map['puck'], self._indexer.link_map['t_down_rim_top'][0],
+                                           -1, self._indexer.link_map['t_down_rim_top'][1], 0)
+        self.client.setCollisionFilterPair(self._model_map['puck'], self._indexer.link_map['t_up_rim_top'][0],
+                                           -1, self._indexer.link_map['t_up_rim_top'][1], 0)

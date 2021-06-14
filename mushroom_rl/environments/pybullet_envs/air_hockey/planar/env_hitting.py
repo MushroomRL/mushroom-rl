@@ -40,16 +40,15 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
     def reward(self, state, action, next_state, absorbing):
         r = 0
         puck_pos = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_POS)[:2]
-        puck_vel = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]
         if absorbing:
             if puck_pos[0] - self.env_spec['table']['length'] / 2 > 0 and \
                     np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
                 r = 150
         else:
             if not self.has_hit:
-                ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee", PyBulletObservationType.LINK_POS)[:2]
+                ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
+                                            PyBulletObservationType.LINK_POS)[:2]
                 dist_ee_puck = np.linalg.norm(puck_pos - ee_pos)
-                # r = np.exp(-8 * (dist_ee_puck - 0.08))
 
                 vec_ee_puck = (puck_pos - ee_pos) / dist_ee_puck
                 vec_puck_goal = (self.goal - puck_pos) / np.linalg.norm(self.goal - puck_pos)
@@ -57,11 +56,6 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
                 r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang
                 self.r_hit = r
             else:
-                # dist = np.linalg.norm(self.goal - puck_pos)
-                # if puck_vel[0] > 0:
-                #     r_vel = np.abs(puck_vel[0])
-                #     r = 0.5 * (np.exp(-10 * dist) + r_vel) + 0.5
-
                 r = 1 + self.r_hit + self.vel_hit_x * 0.1
 
         r -= self.action_penalty * np.linalg.norm(action)
