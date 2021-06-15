@@ -10,10 +10,9 @@ from itertools import product
 
 class LocomotorRobot(PyBullet):
     def __init__(self, robot_name, robot_path, joints, contacts, gamma, horizon, debug_gui, power, joint_power,
-                 bidimensional=True, goal=None, c_electricity=-2.0, c_stall=-0.1, c_joints=-0.1):
+                 goal=None, c_electricity=-2.0, c_stall=-0.1, c_joints=-0.1):
 
         self._robot_name = robot_name
-        self._bidimensional = bidimensional
         self._goal = np.array([1e3, 0]) if goal is None else goal
         self._c_electricity = c_electricity
         self._c_stall = c_stall
@@ -32,16 +31,7 @@ class LocomotorRobot(PyBullet):
         observation_types = [PyBulletObservationType.JOINT_POS, PyBulletObservationType.JOINT_VEL]
         observation_spec = [obs for obs in product(joints, observation_types)]
 
-        if self._bidimensional:
-            observation_spec += [
-                ("torso", PyBulletObservationType.LINK_POS),
-                ("torso", PyBulletObservationType.LINK_LIN_VEL)
-            ]
-        else:
-            observation_spec += [
-                (robot_name, PyBulletObservationType.BODY_POS),
-                (robot_name, PyBulletObservationType.BODY_LIN_VEL)
-            ]
+        observation_spec += self._get_torso_obs_spec()
 
         self._contacts = contacts
         observation_spec += [(f'{contact}<->plane', PyBulletObservationType.CONTACT_FLAG)
@@ -101,10 +91,10 @@ class LocomotorRobot(PyBullet):
         joints_low, joints_high = self.joints.limits()
         velocity_limits = 10*np.ones(joints_low.shape[0])
 
-        observation_low = np.concatenate([np.array([0, -1, -1, -3, -3, -3, -np.pi, -np.pi]),
-                                          joints_low, -velocity_limits, np.zeros(len(self._contacts))])
-        observation_high = np.concatenate([np.array([2, 1, 1, 3, 3, 3, np.pi, np.pi]),
-                                           joints_high, velocity_limits, np.ones(len(self._contacts))])
+        observation_low = np.concatenate([self._get_body_info_low(), joints_low, -velocity_limits,
+                                          np.zeros(len(self._contacts))])
+        observation_high = np.concatenate([self._get_body_info_high(), joints_high, velocity_limits,
+                                           np.ones(len(self._contacts))])
 
         observation_space = Box(observation_low, observation_high)
 
@@ -127,28 +117,97 @@ class LocomotorRobot(PyBullet):
 
         low, high = self.joints.limits()
 
-        low_saturations = np.sum(pos_joints < low*0.99)
-        high_saturations = np.sum(pos_joints > high*0.99)
+        center = (high + low) / 2
 
-        return float(low_saturations + high_saturations)
+        relative_pos_joints = 2. * (pos_joints - center)/(high - low)
+
+        return np.count_nonzero(np.abs(relative_pos_joints) > 0.99)
 
     def _compute_action(self, state, action):
         scaled_action = self._power * self._joint_power * np.clip(action, -1, 1)
         return scaled_action
 
+    def _create_observation(self, state):
+        body_info = self._get_body_info(state)
+
+        joint_pos = self.joints.positions(state)
+        joint_vel = self.joints.velocities(state)
+        contacts = state[-len(self._contacts):]
+
+        return np.concatenate([body_info, joint_pos, joint_vel, contacts])
+
+    def _get_body_info(self, state):
+        raise NotImplementedError
+
+    def _get_body_info_low(self):
+        raise NotImplementedError
+
+    def _get_body_info_high(self):
+        raise NotImplementedError
+
+    def _get_torso_obs_spec(self):
+        raise NotImplementedError
+
     def _get_torso_pos(self, state):
-        if self._bidimensional:
-            return self.get_sim_state(state, 'torso', PyBulletObservationType.LINK_POS)
-        else:
-            return self.get_sim_state(state, self._robot_name, PyBulletObservationType.BODY_POS)
+        raise NotImplementedError
 
     def _get_torso_vel(self, state):
-        if self._bidimensional:
-            return self.get_sim_state(state, 'torso', PyBulletObservationType.LINK_LIN_VEL)
-        else:
-            return self.get_sim_state(state, self._robot_name, PyBulletObservationType.BODY_LIN_VEL)
+        raise NotImplementedError
 
-    def _create_observation(self, state):
+
+class BidimensionalLocomotorRobot(LocomotorRobot):
+    def __init__(self, robot_name, robot_path, joints, contacts, gamma, horizon, debug_gui, power, joint_power,
+                 goal=None, c_electricity=-2.0, c_stall=-0.1, c_joints=-0.1):
+        super().__init__(robot_name, robot_path, joints, contacts, gamma, horizon, debug_gui, power, joint_power,
+                         goal=goal, c_electricity=c_electricity, c_stall=c_stall, c_joints=c_joints)
+
+    def _get_body_info(self, state):
+        pose = self._get_torso_pos(state)
+        velocity = self._get_torso_vel(state)
+
+        euler = pybullet.getEulerFromQuaternion(pose[3:])
+        z = pose[2]
+        pitch = euler[1]
+
+        vx, _, vz = velocity
+
+        body_info = np.array([z, vx, vz, pitch])
+
+        return body_info
+
+    def _get_body_info_low(self):
+        max_linear_vel = 10.0/3
+        return np.array([0, -max_linear_vel, -max_linear_vel,  -np.pi])
+
+    def _get_body_info_high(self):
+        max_linear_vel = 10.0/3
+        return np.array([2, max_linear_vel, max_linear_vel,  np.pi])
+
+    def _get_torso_obs_spec(self):
+        torso_obs_spec = [
+            ("torso", PyBulletObservationType.LINK_POS),
+            ("torso", PyBulletObservationType.LINK_LIN_VEL)
+        ]
+
+        return torso_obs_spec
+
+    def _get_torso_pos(self, state):
+        return self.get_sim_state(state, 'torso', PyBulletObservationType.LINK_POS)
+
+    def _get_torso_vel(self, state):
+        return self.get_sim_state(state, 'torso', PyBulletObservationType.LINK_LIN_VEL)
+
+    def is_absorbing(self, state):
+        raise NotImplementedError
+
+
+class TridimensionalLocomotorRobot(LocomotorRobot):
+    def __init__(self, robot_name, robot_path, joints, contacts, gamma, horizon, debug_gui, power, joint_power,
+                 goal=None, c_electricity=-2.0, c_stall=-0.1, c_joints=-0.1):
+        super().__init__(robot_name, robot_path, joints, contacts, gamma, horizon, debug_gui, power, joint_power,
+                         goal=goal, c_electricity=c_electricity, c_stall=c_stall, c_joints=c_joints)
+
+    def _get_body_info(self, state):
         pose = self._get_torso_pos(state)
         velocity = self._get_torso_vel(state)
 
@@ -163,14 +222,35 @@ class LocomotorRobot(PyBullet):
         angle_to_target = goal_angle - yaw
 
         rot_speed = np.array([[np.cos(-yaw), -np.sin(-yaw), 0],
-                              [np.sin(-yaw),  np.cos(-yaw), 0],
+                              [np.sin(-yaw), np.cos(-yaw), 0],
                               [0, 0, 1]])
-        vx, vy, vz = np.dot(rot_speed, velocity)  # rotate speed back to body point of view
+        vx, vy, vz = rot_speed @ velocity  # rotate speed back to body point of view
 
         body_info = np.array([z, np.sin(angle_to_target), np.cos(angle_to_target), vx, vy, vz, roll, pitch])
 
-        joint_pos = self.joints.positions(state)
-        joint_vel = self.joints.velocities(state)
-        contacts = state[-len(self._contacts):]
+        return body_info
 
-        return np.concatenate([body_info, joint_pos, joint_vel, contacts])
+    def _get_body_info_low(self):
+        max_linear_vel = 10.0/3
+        return np.array([0, -1, -1, -max_linear_vel, -max_linear_vel, -max_linear_vel, -np.pi, -np.pi])
+
+    def _get_body_info_high(self):
+        max_linear_vel = 10.0/3
+        return np.array([2, 1, 1, max_linear_vel, max_linear_vel, max_linear_vel, np.pi, np.pi])
+
+    def _get_torso_obs_spec(self):
+        torso_obs_spec = [
+            (self._robot_name, PyBulletObservationType.BODY_POS),
+            (self._robot_name, PyBulletObservationType.BODY_LIN_VEL)
+        ]
+
+        return torso_obs_spec
+
+    def _get_torso_pos(self, state):
+        return self.get_sim_state(state, self._robot_name, PyBulletObservationType.BODY_POS)
+
+    def _get_torso_vel(self, state):
+        return self.get_sim_state(state, self._robot_name, PyBulletObservationType.BODY_LIN_VEL)
+
+    def is_absorbing(self, state):
+        raise NotImplementedError

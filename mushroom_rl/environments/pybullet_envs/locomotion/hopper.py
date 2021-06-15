@@ -3,10 +3,10 @@ import numpy as np
 import pybullet
 import pybullet_data
 from pathlib import Path
-from mushroom_rl.environments.pybullet_envs.locomotion.locomotor_robot import LocomotorRobot
+from mushroom_rl.environments.pybullet_envs.locomotion.locomotor_robot import BidimensionalLocomotorRobot
 
 
-class HopperRobot(LocomotorRobot):
+class HopperRobot(BidimensionalLocomotorRobot):
     def __init__(self, gamma=0.99, horizon=1000, debug_gui=False):
         hopper_path = Path(pybullet_data.getDataPath()) / 'mjcf' / 'hopper.xml'
         hopper_path = str(hopper_path)
@@ -32,18 +32,6 @@ if __name__ == '__main__':
 
     np.random.seed(1)
 
-    def step_callback(dataset):
-        step = dataset[0]
-        action = step[1]
-        reward = step[2]
-        state = step[3]
-        last = step[-1]
-
-        print('action ', action)
-        print('state ', state)
-        print('reward ', reward)
-        print(last)
-
     class DummyAgent(Agent):
         def __init__(self, n_actions):
             self._n_actions = n_actions
@@ -64,7 +52,7 @@ if __name__ == '__main__':
 
     agent = DummyAgent(mdp.info.action_space.shape[0])
 
-    core = Core(agent, mdp, callback_step=step_callback)
+    core = Core(agent, mdp)
     dataset = core.evaluate(n_episodes=10, render=False, quiet=True)
     print('reward: ', compute_J(dataset, mdp.info.gamma))
     print("mdp_info state shape", mdp.info.observation_space.shape)

@@ -3,10 +3,10 @@ import numpy as np
 import pybullet
 import pybullet_data
 from pathlib import Path
-from mushroom_rl.environments.pybullet_envs.locomotion.locomotor_robot import LocomotorRobot
+from mushroom_rl.environments.pybullet_envs.locomotion.locomotor_robot import BidimensionalLocomotorRobot
 
 
-class WalkerRobot(LocomotorRobot):
+class WalkerRobot(BidimensionalLocomotorRobot):
     def __init__(self, gamma=0.99, horizon=1000, debug_gui=False):
         walker_path = Path(pybullet_data.getDataPath()) / 'mjcf' / 'walker2d.xml'
         walker_path = str(walker_path)

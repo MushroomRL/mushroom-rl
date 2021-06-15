@@ -2,10 +2,10 @@ import time
 import numpy as np
 import pybullet_data
 from pathlib import Path
-from mushroom_rl.environments.pybullet_envs.locomotion.locomotor_robot import LocomotorRobot
+from mushroom_rl.environments.pybullet_envs.locomotion.locomotor_robot import TridimensionalLocomotorRobot
 
 
-class AntRobot(LocomotorRobot):
+class AntRobot(TridimensionalLocomotorRobot):
     def __init__(self, gamma=0.99, horizon=1000, debug_gui=False):
         ant_path = Path(pybullet_data.getDataPath()) / 'mjcf' / 'ant.xml'
         ant_path = str(ant_path)
@@ -15,8 +15,7 @@ class AntRobot(LocomotorRobot):
         power = 2.5
         joint_power = np.array([100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0])
 
-        super().__init__('ant', ant_path, joints, contacts, gamma, horizon, debug_gui, power, joint_power,
-                         bidimensional=False)
+        super().__init__('ant', ant_path, joints, contacts, gamma, horizon, debug_gui, power, joint_power)
 
     def is_absorbing(self, state):
         pose = self._get_torso_pos(state)
@@ -36,7 +35,11 @@ if __name__ == '__main__':
         def draw_action(self, state):
             time.sleep(1/60)
 
-            return np.random.randn(self._n_actions)
+            action = np.random.randn(self._n_actions)
+            #action = -0.1*np.ones(self._n_actions)
+            #action = np.zeros(self._n_actions)
+
+            return action
 
         def episode_start(self):
             pass
