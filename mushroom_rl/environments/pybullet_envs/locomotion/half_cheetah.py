@@ -3,10 +3,10 @@ import numpy as np
 import pybullet
 import pybullet_data
 from pathlib import Path
-from mushroom_rl.environments.pybullet_envs.locomotion.locomotor_robot import LocomotorRobot
+from mushroom_rl.environments.pybullet_envs.locomotion.locomotor_robot import BidimensionalLocomotorRobot
 
 
-class HalfCheetahRobot(LocomotorRobot):
+class HalfCheetahRobot(BidimensionalLocomotorRobot):
     def __init__(self, gamma=0.99, horizon=1000, debug_gui=False):
         cheetah_path = Path(pybullet_data.getDataPath()) / 'mjcf' / 'half_cheetah.xml'
         cheetah_path = str(cheetah_path)
@@ -50,7 +50,6 @@ if __name__ == '__main__':
             pass
 
     mdp = HalfCheetahRobot(debug_gui=True)
-    # mdp = Environment.make('Gym.HopperBulletEnv-v0', render=True)
 
     agent = DummyAgent(mdp.info.action_space.shape[0])
 
