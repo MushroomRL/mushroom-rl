@@ -95,8 +95,8 @@ class Tiles:
             n_tilings = int(m**2)
 
         # Min, max coord., side length of the state-space
-        low = np.array(low, dtype=np.float)
-        high = np.array(high, dtype=np.float)
+        low = np.array(low, dtype=float)
+        high = np.array(high, dtype=float)
         L = high - low
 
         # Unit shift displacement vector
