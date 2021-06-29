@@ -1,20 +1,22 @@
 import numpy as np
-import pybullet
 import pybullet_utils.transformations as transformations
 from mushroom_rl.core import MDPInfo
 from mushroom_rl.utils.spaces import Box
-from mushroom_rl.environments.pybullet_envs.air_hockey.planar.env_base import AirHockeyPlanarBase, PyBulletObservationType
+from mushroom_rl.environments.pybullet_envs.air_hockey.base import AirHockeyBase, PyBulletObservationType
 
 
-class AirHockeyPlanarSingle(AirHockeyPlanarBase):
-    def __init__(self, seed=None, gamma=0.99, horizon=500, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
-                 env_noise=False, obs_noise=False, obs_delay=False, control_type="torque", step_action_function=None):
+class AirHockeySingle(AirHockeyBase):
+    """
+    Base class for single agent air hockey tasks.
+    """
+    def __init__(self, gamma=0.99, horizon=120, env_noise=False, obs_noise=False, obs_delay=False,
+                 torque_control=True, step_action_function=None, timestep=1 / 240., n_intermediate_steps=1,
+                 debug_gui=False):
         self.init_state = np.array([-0.9273, 0.9273, np.pi / 2])
         self.obs_prev = None
-        super().__init__(seed=seed, gamma=gamma, horizon=horizon, timestep=timestep,
-                         n_intermediate_steps=n_intermediate_steps, debug_gui=debug_gui,
-                         env_noise=env_noise, n_agents=1, obs_noise=obs_noise, obs_delay=obs_delay,
-                         control_type=control_type, step_action_function=step_action_function)
+        super().__init__(gamma=gamma, horizon=horizon, env_noise=env_noise, n_agents=1, obs_noise=obs_noise,
+                         obs_delay=obs_delay, torque_control=torque_control, step_action_function=step_action_function,
+                         timestep=timestep, n_intermediate_steps=n_intermediate_steps, debug_gui=debug_gui)
 
         self._client.resetDebugVisualizerCamera(cameraDistance=1.5, cameraYaw=-90.0, cameraPitch=-45.0,
                                                 cameraTargetPosition=[-0.5, 0., 0.])

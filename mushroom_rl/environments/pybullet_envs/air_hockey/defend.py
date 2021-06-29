@@ -2,23 +2,34 @@ import time
 
 import numpy as np
 
-from mushroom_rl.environments.pybullet_envs.air_hockey.planar.env_single import AirHockeyPlanarSingle, \
+from mushroom_rl.environments.pybullet_envs.air_hockey.single import AirHockeySingle, \
     PyBulletObservationType
 
 
-class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
-    def __init__(self, seed=None, gamma=0.99, horizon=500, timestep=1 / 240., n_intermediate_steps=1,
-                 debug_gui=False, env_noise=False, obs_noise=False, obs_delay=False, control_type="torque",
-                 random_init=False, step_action_function=None, action_penalty=1e-3):
+class AirHockeyDefend(AirHockeySingle):
+    """
+    Class for the air hockey defending task.
+    The agent tries to stop the puck at the line x=-0.6.
+    If the puck get into the goal, it will get a punishment.
+    """
+    def __init__(self, gamma=0.99, horizon=500, env_noise=False, obs_noise=False, obs_delay=False, torque_control=True,
+                 step_action_function=None, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
+                 random_init=False, action_penalty=1e-3):
+        """
+        Constructor
+
+        Args:
+            random_init(bool, False): If true, initialize the puck at random position .
+            action_penalty(float, 1e-3): The penalty of the action on the reward at each time step
+        """
         self.start_range = np.array([[0.2, 0.78], [-0.4, 0.4]])
         self.has_hit = False
         self.has_bounce = False
         self.random_init = random_init
         self.action_penalty = action_penalty
-        super().__init__(seed=seed, gamma=gamma, horizon=horizon, timestep=timestep,
-                         n_intermediate_steps=n_intermediate_steps, debug_gui=debug_gui,
-                         env_noise=env_noise, obs_noise=obs_noise, obs_delay=obs_delay, control_type=control_type,
-                         step_action_function=step_action_function)
+        super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
+                         debug_gui=debug_gui, env_noise=env_noise, obs_noise=obs_noise, obs_delay=obs_delay,
+                         torque_control=torque_control, step_action_function=step_action_function)
         self.init_state = np.array([-1.1, 0.8, np.pi/2])
 
     def setup(self, state=None):
@@ -108,7 +119,7 @@ class AirHockeyPlanarDefense(AirHockeyPlanarSingle):
 
 
 if __name__ == '__main__':
-    env = AirHockeyPlanarDefense(debug_gui=True, obs_noise=False, obs_delay=False)
+    env = AirHockeyDefend(debug_gui=True, obs_noise=False, obs_delay=False)
     env.reset()
     while True:
         action = np.random.randn(3) * 10

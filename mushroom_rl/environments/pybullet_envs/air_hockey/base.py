@@ -1,4 +1,5 @@
 import os
+import time
 
 import numpy as np
 import pybullet
@@ -8,11 +9,27 @@ from mushroom_rl.environments.pybullet import PyBullet, PyBulletObservationType
 from mushroom_rl.environments.pybullet_envs import __file__ as path_robots
 
 
-class AirHockeyPlanarBase(PyBullet):
-    def __init__(self, seed=None, gamma=0.99, horizon=500, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
-                 n_agents=1, env_noise=False, obs_noise=False, obs_delay=False, control_type='torque',
-                 step_action_function=None):
-        self.seed(seed)
+class AirHockeyBase(PyBullet):
+    """
+    Base class for air hockey environment.
+    The environment is designed for 3 joints planar robot playing Air-Hockey
+    """
+    def __init__(self, gamma=0.99, horizon=500, n_agents=1, env_noise=False, obs_noise=False, obs_delay=False,
+                 torque_control=True, step_action_function=None, timestep=1 / 240., n_intermediate_steps=1,
+                 debug_gui=False):
+        """
+        Constructor.
+
+        Args:
+            gamma (float, 0.99): discount factor;
+            horizon (int, 500): horizon of the task;
+            n_agents (int, 1): number of agents;
+            env_noise(bool, False): If true, the puck's movement is affected by the air-flow noise;
+            obs_noise(bool, False): If true, the noise is added in the observation;
+            obs_delay(bool, False): If true, velocity is observed by the low-pass filter;
+            control(bool, True): If false, the robot in position control mode;
+            step_action_function(object, None): A callable function to warp-up the policy action to environment command.
+        """
 
         self.n_agents = n_agents
         self.env_noise = env_noise
@@ -41,7 +58,7 @@ class AirHockeyPlanarBase(PyBullet):
                             ("puck", PyBulletObservationType.BODY_ANG_VEL)]
         self.agents = []
 
-        if control_type == "torque":
+        if torque_control:
             control = pybullet.TORQUE_CONTROL
         else:
             control = pybullet.POSITION_CONTROL
@@ -101,7 +118,6 @@ class AirHockeyPlanarBase(PyBullet):
         super().__init__(model_files, actuation_spec, observation_spec, gamma,
                          horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
                          debug_gui=debug_gui, size=(500, 500), distance=1.8)
-
         self._client.resetDebugVisualizerCamera(cameraDistance=2, cameraYaw=0.0, cameraPitch=-89.9,
                                                 cameraTargetPosition=[0., 0., 0.])
         self.env_spec = dict()

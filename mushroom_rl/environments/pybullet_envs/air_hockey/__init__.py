@@ -1,5 +1,5 @@
-from mushroom_rl.environments.pybullet_envs.air_hockey.planar.env_hitting import AirHockeyPlanarHit
-from mushroom_rl.environments.pybullet_envs.air_hockey.planar.env_defense import AirHockeyPlanarDefense
+from mushroom_rl.environments.pybullet_envs.air_hockey.hit import AirHockeyHit
+from mushroom_rl.environments.pybullet_envs.air_hockey.defend import AirHockeyDefend
 
-AirHockeyPlanarHit.register()
-AirHockeyPlanarDefense.register()
+AirHockeyHit.register()
+AirHockeyDefend.register()

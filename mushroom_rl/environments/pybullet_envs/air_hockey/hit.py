@@ -2,13 +2,25 @@ import time
 
 import numpy as np
 
-from mushroom_rl.environments.pybullet_envs.air_hockey.planar.env_single import AirHockeyPlanarSingle, PyBulletObservationType
+from mushroom_rl.environments.pybullet_envs.air_hockey.single import AirHockeySingle, PyBulletObservationType
 
 
-class AirHockeyPlanarHit(AirHockeyPlanarSingle):
-    def __init__(self, seed=None, gamma=0.99, horizon=120, timestep=1 / 240., n_intermediate_steps=1,
-                 debug_gui=False, env_noise=False, obs_noise=False, obs_delay=False, control_type="torque",
-                 random_init=False, step_action_function=None, action_penalty=1e-3):
+class AirHockeyHit(AirHockeySingle):
+    """
+    Class for the air hockey hitting task.
+    The agent tries to get close to the puck if the hitting does not happen.
+    And will get bonus reward if the robot scores a goal.
+    """
+    def __init__(self, gamma=0.99, horizon=120, env_noise=False, obs_noise=False, obs_delay=False, torque_control=True,
+                 step_action_function=None, timestep=1 / 240.,  n_intermediate_steps=1, debug_gui=False,
+                 random_init=False, action_penalty=1e-3):
+        """
+        Constructor
+
+        Args:
+            random_init(bool, False): If true, initialize the puck at random position.
+            action_penalty(float, 1e-3): The penalty of the action on the reward at each time step
+        """
         self.hit_range = np.array([[-0.6, -0.2], [-0.4, 0.4]])
         self.goal = np.array([0.98, 0])
         self.has_hit = False
@@ -16,10 +28,9 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
         self.r_hit = 0.
         self.random_init = random_init
         self.action_penalty = action_penalty
-        super().__init__(seed=seed, gamma=gamma, horizon=horizon, timestep=timestep,
-                         n_intermediate_steps=n_intermediate_steps, debug_gui=debug_gui,
-                         env_noise=env_noise, obs_noise=obs_noise, obs_delay=obs_delay, control_type=control_type,
-                         step_action_function=step_action_function)
+        super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
+                         debug_gui=debug_gui, env_noise=env_noise, obs_noise=obs_noise, obs_delay=obs_delay,
+                         torque_control=torque_control, step_action_function=step_action_function)
 
     def setup(self, state):
         if self.random_init:
@@ -79,7 +90,7 @@ class AirHockeyPlanarHit(AirHockeyPlanarSingle):
 
 
 if __name__ == '__main__':
-    env = AirHockeyPlanarHit(debug_gui=True, env_noise=False, obs_noise=False, obs_delay=False, n_intermediate_steps=4)
+    env = AirHockeyHit(debug_gui=True, env_noise=False, obs_noise=False, obs_delay=False, n_intermediate_steps=4)
 
     R = 0.
     J = 0.
