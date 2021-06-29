@@ -143,12 +143,6 @@ class AirHockeyBase(PyBullet):
         puck_pos = self.get_sim_state(state, "puck", PyBulletObservationType.BODY_POS)[:3]
         if np.any(np.abs(puck_pos[:2]) > boundary) or abs(puck_pos[2] - self.env_spec['table']['height']) > 0.05:
             return True
-
-        # boundary_mallet = boundary
-        # for agent in self.agents:
-        #     mallet_pose = self.get_sim_state(state, agent['name'] + "/link_striker_ee", PyBulletObservationType.LINK_POS)
-        #     if np.any(np.abs(mallet_pose[:2]) - boundary_mallet > 0.02):
-        #         return True
         return False
 
     def forward_kinematics(self, joint_state):
