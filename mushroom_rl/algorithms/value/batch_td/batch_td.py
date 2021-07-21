@@ -1,4 +1,4 @@
-from mushroom_rl.algorithms.agent import Agent
+from mushroom_rl.core import Agent
 from mushroom_rl.approximators import Regressor
 
 

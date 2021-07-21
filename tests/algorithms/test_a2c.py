@@ -7,7 +7,7 @@ import numpy as np
 from datetime import datetime
 from helper.utils import TestUtils as tu
 
-from mushroom_rl.algorithms import Agent
+from mushroom_rl.core import Agent
 from mushroom_rl.core import Core
 from mushroom_rl.environments import Gym
 from mushroom_rl.algorithms.actor_critic import A2C

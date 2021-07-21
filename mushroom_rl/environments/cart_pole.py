@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.integrate import odeint
 
-from mushroom_rl.environments import Environment, MDPInfo
+from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.utils import spaces
 from mushroom_rl.utils.angles import normalize_angle
 from mushroom_rl.utils.viewer import Viewer
@@ -102,8 +102,9 @@ class CartPole(Environment):
         self._viewer.square(start, 0,  self._l / 10)
         self._viewer.circle(end, self._l / 20)
 
-        direction = np.array([1, 0])
-        self._viewer.force_arrow(start, direction, -self._last_u,
+        direction = -np.sign(self._last_u) * np.array([1, 0])
+        value = np.abs(self._last_u)
+        self._viewer.force_arrow(start, direction, value,
                                  self._max_u, self._l / 5)
 
         self._viewer.display(self._dt)

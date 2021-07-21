@@ -1,4 +1,4 @@
-from mushroom_rl.algorithms import Agent
+from mushroom_rl.core import Agent
 from mushroom_rl.utils.torch import update_optimizer_parameters
 
 

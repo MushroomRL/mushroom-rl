@@ -3,7 +3,7 @@ import numpy as np
 from datetime import datetime
 from helper.utils import TestUtils as tu
 
-from mushroom_rl.algorithms import Agent
+from mushroom_rl.core import Agent
 from mushroom_rl.algorithms.value import LSPI
 from mushroom_rl.core import Core
 from mushroom_rl.environments import *

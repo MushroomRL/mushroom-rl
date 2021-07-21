@@ -42,7 +42,7 @@ class eNAC(PolicyGradient):
 
         self.sum_grad_log_list = list()
 
-        return nat_grad,
+        return nat_grad
 
     def _step_update(self, x, u, r):
         self.sum_grad_log += self.policy.diff_log(x, u)

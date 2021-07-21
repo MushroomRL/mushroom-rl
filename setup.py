@@ -21,9 +21,10 @@ def glob_data_files(data_package, data_type=None):
     for directory in directories:
         subdir = directory[len(data_dir)+1:]
         if subdir != "":
-            files = subdir  + data_type
+            files = subdir + data_type
             data_files.append(files)
     return data_files
+
 
 here = path.abspath(path.dirname(__file__))
 
@@ -67,6 +68,7 @@ ext_modules = [Extension('mushroom_rl.environments.mujoco_envs.humanoid_gait.'
                          include_dirs=[numpy.get_include()])]
 
 mujoco_data_package = 'mushroom_rl.environments.mujoco_envs.data'
+pybullet_data_package = 'mushroom_rl.environments.pybullet_envs.data'
 external_simulation_package = 'mushroom_rl.environments.mujoco_envs.humanoid_gait._external_simulation'
 
 setup(
@@ -90,6 +92,7 @@ setup(
     cmdclass={'build_ext': build_ext},
     package_data={
         mujoco_data_package: glob_data_files(mujoco_data_package),
+        pybullet_data_package: glob_data_files(pybullet_data_package),
         external_simulation_package: ["*.pyx"]},
     ext_modules=cythonize(ext_modules)
 )

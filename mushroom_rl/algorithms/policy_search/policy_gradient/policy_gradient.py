@@ -1,6 +1,6 @@
 import numpy as np
 
-from mushroom_rl.algorithms.agent import Agent
+from mushroom_rl.core import Agent
 
 
 class PolicyGradient(Agent):
@@ -60,16 +60,11 @@ class PolicyGradient(Agent):
                 episode in the dataset.
 
         """
-        res = self._compute_gradient(J)
+        grad = self._compute_gradient(J)
 
         theta_old = self.policy.get_weights()
 
-        if len(res) == 1:
-            grad = res[0]
-            theta_new = self.optimizer(theta_old, grad)
-        else:
-            grad, nat_grad = res
-            theta_new = self.optimizer(theta_old, grad, nat_grad)
+        theta_new = self.optimizer(theta_old, grad)
 
         self.policy.set_weights(theta_new)
 
@@ -110,6 +105,9 @@ class PolicyGradient(Agent):
         Args:
              J (list): list of the cumulative discounted rewards for each
                 episode in the dataset.
+
+        Returns:
+            The gradient computed by the algorithm.
 
         """
         raise NotImplementedError('PolicyGradient is an abstract class')

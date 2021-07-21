@@ -3,7 +3,7 @@ import torch
 from datetime import datetime
 from helper.utils import TestUtils as tu
 
-from mushroom_rl.algorithms import Agent
+from mushroom_rl.core import Agent
 from mushroom_rl.algorithms.actor_critic import COPDAC_Q
 from mushroom_rl.core import Core
 from mushroom_rl.environments import *

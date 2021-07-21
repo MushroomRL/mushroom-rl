@@ -98,7 +98,7 @@ class MinMaxPreprocessor(StandardizationPreprocessor):
                              mdp_info.observation_space.high.copy())
 
         self._obs_mask = np.where(
-            np.logical_and(np.abs(obs_low) < 1e20, np.abs(obs_low) < 1e20)
+            np.logical_and(np.abs(obs_low) < 1e20, np.abs(obs_high) < 1e20)
         )
 
         assert np.squeeze(self._obs_mask).size > 0, \
@@ -113,6 +113,7 @@ class MinMaxPreprocessor(StandardizationPreprocessor):
         self._obs_delta[self._obs_mask] = (obs_high[self._obs_mask] - obs_low[self._obs_mask]) / 2.
 
         self._add_save_attr(
+            _run_norm_obs='primitive',
             _obs_mask='numpy',
             _obs_mean='numpy',
             _obs_delta='numpy'

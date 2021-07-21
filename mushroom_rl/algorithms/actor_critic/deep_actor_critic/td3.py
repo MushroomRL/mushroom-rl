@@ -63,8 +63,8 @@ class TD3(DDPG):
                          policy_delay, critic_fit_params)
 
     def _loss(self, state):
-        action = self._actor_approximator(state, output_tensor=True)
-        q = self._critic_approximator(state, action, idx=0, output_tensor=True)
+        action = self._actor_approximator(state, output_tensor=True, **self._actor_predict_params)
+        q = self._critic_approximator(state, action, idx=0, output_tensor=True, **self._critic_predict_params)
 
         return -q.mean()
 
@@ -81,7 +81,7 @@ class TD3(DDPG):
             action returned by the actor.
 
         """
-        a = self._target_actor_approximator(next_state)
+        a = self._target_actor_approximator(next_state, **self._actor_predict_params)
 
         low = self.mdp_info.action_space.low
         high = self.mdp_info.action_space.high
@@ -90,7 +90,7 @@ class TD3(DDPG):
         a_smoothed = np.clip(a + eps_clipped, low, high)
 
         q = self._target_critic_approximator.predict(next_state, a_smoothed,
-                                                     prediction='min')
+                                                     prediction='min', **self._critic_predict_params)
         q *= 1 - absorbing
 
         return q

@@ -1,7 +1,7 @@
 import numpy as np
 from tqdm import tqdm, trange
 
-from mushroom_rl.algorithms.policy_search import RWR, PGPE, REPS
+from mushroom_rl.algorithms.policy_search import RWR, PGPE, REPS, ConstrainedREPS
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.approximators.regressor import Regressor
 from mushroom_rl.core import Core, Logger
@@ -61,8 +61,8 @@ def experiment(alg, params, n_epochs, fit_per_epoch, ep_per_fit):
 if __name__ == '__main__':
     optimizer = AdaptiveOptimizer(eps=0.05)
 
-    algs = [REPS, RWR, PGPE]
-    params = [{'eps': 0.5}, {'beta': 0.7}, {'optimizer': optimizer}]
+    algs = [REPS, RWR, PGPE, ConstrainedREPS]
+    params = [{'eps': 0.5}, {'beta': 0.7}, {'optimizer': optimizer}, {'eps':0.5, 'kappa':5}]
 
     for alg, params in zip(algs, params):
         experiment(alg, params, n_epochs=4, fit_per_epoch=10, ep_per_fit=100)

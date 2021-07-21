@@ -2,7 +2,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from mushroom_rl.algorithms.agent import Agent
+from mushroom_rl.core import Agent
 from mushroom_rl.approximators.parametric.torch_approximator import *
 from mushroom_rl.approximators.regressor import Regressor
 from mushroom_rl.utils.replay_memory import PrioritizedReplayMemory, ReplayMemory
@@ -161,3 +161,14 @@ class AbstractDQN(Agent):
             self._fit = self._fit_standard
 
         self.policy.set_q(self.approximator)
+
+    def set_logger(self, logger, loss_filename='loss_Q'):
+        """
+        Setter that can be used to pass a logger to the algorithm
+
+        Args:
+            logger (Logger): the logger to be used by the algorithm;
+            loss_filename (str, 'loss_Q'): optional string to specify the loss filename.
+
+        """
+        self.approximator.set_logger(logger, loss_filename)

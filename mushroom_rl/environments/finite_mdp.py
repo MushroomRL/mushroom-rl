@@ -1,6 +1,6 @@
 import numpy as np
 
-from .environment import Environment, MDPInfo
+from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.utils import spaces
 
 
