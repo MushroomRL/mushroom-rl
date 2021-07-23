@@ -33,7 +33,7 @@ class HabitatWrapper(gym.Wrapper):
 
     def reset(self):
         return np.asarray(self.env.reset()['rgb'])
-    
+
     def get_position(self):
         return self.env._env._sim.get_agent_state().position
 
@@ -127,4 +127,3 @@ class HabitatNavRL(Gym):
 
     def stop(self):
         pass
-
