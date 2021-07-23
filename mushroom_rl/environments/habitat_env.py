@@ -7,6 +7,7 @@ with warnings.catch_warnings():
     from habitat_baselines.common.environments import NavRLEnv
 
 import gym
+import numpy as np
 
 from copy import deepcopy
 from collections import deque
@@ -41,7 +42,6 @@ class HabitatWrapper(gym.Wrapper):
         obs = np.asarray(obs['rgb'])
         info.update({'position': self.get_position()})
         return obs, rwd, done, info
-
 
 
 class TransposeObsWrapper(gym.ObservationWrapper):
@@ -95,15 +95,13 @@ class HabitatNavRL(Gym):
         config = get_config(config_paths='pointnav_nomap.yaml')
         config.defrost()
 
-        print(config.TASK_CONFIG.DATASET.SCENES_DIR)
-
         if horizon is None:
             horizon = config.ENVIRONMENT.MAX_EPISODE_STEPS # Get the default horizon
         config.ENVIRONMENT.MAX_EPISODE_STEPS = horizon + 1 # Hack to ignore gym time limit
 
         config.SIMULATOR.RGB_SENSOR.HFOV = 79.0
         config.SIMULATOR.RGB_SENSOR.POSITION = [0, 0.88, 0]
-        config.TASK_CONFIG.DATASET.DATA_PATH = '~/habitat-baselines/ride-baselines/replica-start.json.gz'
+        config.TASK_CONFIG.DATASET.DATA_PATH = 'replica-start.json.gz'
         config.TASK_CONFIG.DATASET.SCENES_DIR += 'apartment_0'
 
         config.freeze()
@@ -117,7 +115,6 @@ class HabitatNavRL(Gym):
 
         self._img_size = env.observation_space.shape[0:2]
 
-
         # MDP properties
         action_space = Discrete(self.env.action_space.n)
         observation_space = Box(
@@ -126,10 +123,3 @@ class HabitatNavRL(Gym):
 
         Environment.__init__(self, mdp_info)
 
-    def step(self, action):
-        obs, reward, absorbing, info = self.env.step(action)
-        reward *= 1. # Int to float
-        if reward > 0:
-            reward = 1. # MiniGrid discounts rewards based on timesteps, but we need raw rewards
-
-        return obs, reward, absorbing, info

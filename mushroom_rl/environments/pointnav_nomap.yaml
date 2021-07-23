@@ -39,6 +39,6 @@ TASK:
 DATASET:
   CONTENT_SCENES: ['*']
   DATA_PATH: "replica-{split}.json.gz"
-  SCENES_DIR: "~/habitat-baselines/Replica-Dataset/replica-path/"
+  SCENES_DIR: "Replica-Dataset/replica-path/"
   TYPE: PointNav-v1
   SPLIT: val
