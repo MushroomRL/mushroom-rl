@@ -57,14 +57,14 @@ class CarOnHill(Environment):
 
         if self._state[0] < -self.max_pos or \
                 np.abs(self._state[1]) > self.max_velocity:
-            reward = -1
+            reward = -1.
             absorbing = True
         elif self._state[0] > self.max_pos and \
                 np.abs(self._state[1]) <= self.max_velocity:
-            reward = 1
+            reward = 1.
             absorbing = True
         else:
-            reward = 0
+            reward = 0.
             absorbing = False
 
         return self._state, reward, absorbing, {}
