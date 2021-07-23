@@ -44,15 +44,15 @@ class Network(nn.Module):
             nn.init.calculate_gain('relu'))
 
         self.feat_extract = nn.Sequential(
-            init_(nn.Conv2d(n_input, 32, kernel_size=(3, 3), stride=2, padding=1)),
+            init_(nn.Conv2d(n_input, 32, kernel_size=(3,3), stride=2, padding=1)),
             nn.ELU(),
-            init_(nn.Conv2d(32, 32, kernel_size=(3, 3), stride=2, padding=1)),
+            init_(nn.Conv2d(32, 32, kernel_size=(3,3), stride=2, padding=1)),
             nn.ELU(),
-            init_(nn.Conv2d(32, 32, kernel_size=(3, 3), stride=2, padding=1)),
+            init_(nn.Conv2d(32, 32, kernel_size=(3,3), stride=2, padding=1)),
             nn.ELU(),
-            init_(nn.Conv2d(32, 32, kernel_size=(3, 3), stride=2, padding=1)),
+            init_(nn.Conv2d(32, 32, kernel_size=(3,3), stride=2, padding=1)),
             nn.ELU(),
-            init_(nn.Conv2d(32, 32, kernel_size=(3, 3), stride=2, padding=1)),
+            init_(nn.Conv2d(32, 32, kernel_size=(3,3), stride=2, padding=1)),
             nn.ELU(),
         )
 
@@ -63,51 +63,25 @@ class Network(nn.Module):
             init_(nn.Linear(conv_out_size, self.n_features)),
             nn.ReLU(),
             init_(nn.Linear(self.n_features, self.n_features)),
-            nn.ReLU(),
-            init_(nn.Linear(self.n_features, n_output))
+            nn.ReLU()
         )
+
+        init_ = lambda m: init(m, nn.init.orthogonal_,
+            lambda x: nn.init.constant_(x, 0))
+
+        self.output_layer = init_(nn.Linear(self.n_features, n_output))
 
     def forward(self, state, action=None):
         q = self.feat_extract(state.float() / 255.)
-        q = self.fully_connect(q)
+        q = self.fully_connect(q.view(state.shape[0], -1))
+        q = self.output_layer(q)
 
         if action is None:
             return q
         else:
             q_acted = torch.squeeze(q.gather(1, action.long()))
-
             return q_acted
 
-
-class FeatureNetwork(nn.Module):
-    def __init__(self, input_shape, output_shape, **kwargs):
-        super().__init__()
-
-        n_input = input_shape[0]
-
-        self._h1 = nn.Conv2d(n_input, 32, kernel_size=3, stride=2, padding=1)
-        self._h2 = nn.Conv2d(32, 32, kernel_size=3, stride=2, padding=1)
-        self._h3 = nn.Conv2d(32, 32, kernel_size=3, stride=2, padding=1)
-        dummy_obs = torch.zeros(1, *input_shape)
-        conv_out_size = np.prod(self._h3(self._h2(self._h1(dummy_obs))).shape)
-        self._h4 = nn.Linear(conv_out_size, self.n_features)
-
-        nn.init.xavier_uniform_(self._h1.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h2.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h3.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h4.weight,
-                                gain=nn.init.calculate_gain('relu'))
-
-    def forward(self, state, action=None):
-        h = F.relu(self._h1(state.float() / 255.))
-        h = F.relu(self._h2(h))
-        h = F.relu(self._h3(h))
-        h = F.relu(self._h4(h.view(state.shape[0], -1)))
-
-        return h
 
 
 def print_epoch(epoch, logger):
