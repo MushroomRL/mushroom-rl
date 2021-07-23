@@ -17,24 +17,6 @@ from mushroom_rl.utils.spaces import Discrete, Box
 from mushroom_rl.utils.frames import LazyFrames, preprocess_frame
 
 
-def _get_habitat_demo():#replica_scene, replica_json, config_path):
-    config = get_config(config_paths='pointnav_nomap.yaml')
-    config.defrost()
-
-    print(config.TASK_CONFIG.DATASET.SCENES_DIR)
-
-    config.SIMULATOR.RGB_SENSOR.HFOV = 79.0
-    config.SIMULATOR.RGB_SENSOR.POSITION = [0, 0.88, 0]
-    config.TASK_CONFIG.DATASET.DATA_PATH = '~/habitat-baselines/ride-baselines/replica-start.json.gz'
-    config.TASK_CONFIG.DATASET.SCENES_DIR += 'apartment_0'
-
-    config.freeze()
-    dataset = make_dataset(id_dataset=config.TASK_CONFIG.DATASET.TYPE,
-                           config=config.TASK_CONFIG.DATASET)
-
-    return config, dataset
-
-
 class HabitatWrapper(gym.Wrapper):
     """
     - By default, action 0 resets the environment, so we do not want to use it
@@ -74,18 +56,25 @@ class TransposeObsWrapper(gym.ObservationWrapper):
 class HabitatNavRL(Gym):
     """
     Interface for Habitat NavRLEnv with Replica scenes.
-    You need both habitat-lab and habitat-sim to use it.
-    https://github.com/facebookresearch/habitat-lab/
-    https://github.com/facebookresearch/habitat-sim/
-    https://github.com/facebookresearch/Replica-Dataset
+    You need to install the following repositories / datasets:
+     - https://github.com/facebookresearch/habitat-lab/
+     - https://github.com/facebookresearch/habitat-sim/
+     - https://github.com/facebookresearch/Replica-Dataset
 
-
-    How to use it:
-     -
-
-    Observations are egocentric views (pixel images of what the agent sees in front of itself).
+    The agent has to navigate from point A to point B in realistic scenes.
+    Observations are pixel images of what the agent sees in front of itself.
+    Image resolution is specified in the config file.
     Actions are 1 (move forward), 2 (turn left), and 3 (turn right). The amount
     of distance / degrees the agent moves / turns is specified in the config file.
+
+    Scene details, such as the agent's initial position and orientation, are
+    defined in the replica json file. If you want to try new positions, you can
+    sample some from the set of the scene's navigable points, accessible by
+    NavRLEnv._env._sim.sample_navigable_point().
+
+    If you want to suppress Habitat messages run:
+    export GLOG_minloglevel=2
+    export MAGNUM_LOG=quiet
 
     """
     def __init__(self, horizon=None, gamma=0.99):
@@ -103,8 +92,23 @@ class HabitatNavRL(Gym):
         self._not_pybullet = True
         self._first = True
 
-        seed = 1
-        config, dataset = _get_habitat_demo()
+        config = get_config(config_paths='pointnav_nomap.yaml')
+        config.defrost()
+
+        print(config.TASK_CONFIG.DATASET.SCENES_DIR)
+
+        if horizon is None:
+            horizon = config.ENVIRONMENT.MAX_EPISODE_STEPS # Get the default horizon
+        config.ENVIRONMENT.MAX_EPISODE_STEPS = horizon + 1 # Hack to ignore gym time limit
+
+        config.SIMULATOR.RGB_SENSOR.HFOV = 79.0
+        config.SIMULATOR.RGB_SENSOR.POSITION = [0, 0.88, 0]
+        config.TASK_CONFIG.DATASET.DATA_PATH = '~/habitat-baselines/ride-baselines/replica-start.json.gz'
+        config.TASK_CONFIG.DATASET.SCENES_DIR += 'apartment_0'
+
+        config.freeze()
+        dataset = make_dataset(id_dataset=config.TASK_CONFIG.DATASET.TYPE,
+                               config=config.TASK_CONFIG.DATASET)
 
         env = NavRLEnv(config=config, dataset=dataset)
         env = HabitatWrapper(env)
@@ -113,15 +117,11 @@ class HabitatNavRL(Gym):
 
         self._img_size = env.observation_space.shape[0:2]
 
-        # Get the default horizon
-        if horizon is None:
-            horizon = self.env.max_steps
 
         # MDP properties
         action_space = Discrete(self.env.action_space.n)
         observation_space = Box(
             low=0., high=255., shape=(3, self._img_size[1], self._img_size[0]))
-        self.env.max_steps += 1 # Hack to ignore gym time limit
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
         Environment.__init__(self, mdp_info)
