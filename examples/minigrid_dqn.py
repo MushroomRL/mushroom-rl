@@ -188,7 +188,7 @@ def experiment():
                               'reaches this values, it stays constant.')
     arg_alg.add_argument("--test-exploration-rate", type=float, default=.05,
                          help='Exploration rate used during evaluation.')
-    arg_alg.add_argument("--test-episodes", type=int, default=100,
+    arg_alg.add_argument("--test-episodes", type=int, default=10,
                          help='Number of episodes for each evaluation.')
     arg_alg.add_argument("--alpha-coeff", type=float, default=.6,
                          help='Prioritization exponent for prioritized experience replay.')
