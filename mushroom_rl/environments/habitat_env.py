@@ -33,7 +33,7 @@ class HabitatWrapper(gym.Wrapper):
 
     def reset(self):
         return np.asarray(self.env.reset()['rgb'])
-
+    
     def get_position(self):
         return self.env._env._sim.get_agent_state().position
 
@@ -121,5 +121,10 @@ class HabitatNavRL(Gym):
             low=0., high=255., shape=(3, self._img_size[1], self._img_size[0]))
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
+        self._convert_action = lambda a: a[0]
+
         Environment.__init__(self, mdp_info)
+
+    def stop(self):
+        pass
 

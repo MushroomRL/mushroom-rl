@@ -271,7 +271,7 @@ def experiment():
         max_steps = args.max_steps
 
     # MDP
-    mdp = Habitat()#history_length=args.history_length)
+    mdp = HabitatNavRL()#history_length=args.history_length)
 
     if args.load_path:
         logger = Logger(DQN.__name__, results_dir=None)
