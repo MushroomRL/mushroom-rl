@@ -17,43 +17,22 @@ from mushroom_rl.utils.spaces import Discrete, Box
 from mushroom_rl.utils.frames import LazyFrames, preprocess_frame
 
 
-def make_habitat_config(seed, env):
-    scene = env[len('Habitat-'):]
-    assert len(scene) > 0, 'Undefined scene.'
-
-    # Dictionary with scene names as keys and lists of valid points as values
-    scene_locations = {}
-    with open('scene_locations.txt', 'r') as f:
-        for line in f:
-            if '#' in line:
-                scene_name = line[1:-1] # cut out the # at the beginning of line and newline at end
-                scene_locations[scene_name] = []
-            else:
-                locations = [float(val) for val in line.strip('][\n').split(', ')]
-                scene_locations[scene_name].append(locations)
-
-    config = get_config(config_paths="pointnav_nomap.yaml")
+def _get_habitat_demo():#replica_scene, replica_json, config_path):
+    config = get_config(config_paths='pointnav_nomap.yaml')
     config.defrost()
+
+    print(config.TASK_CONFIG.DATASET.SCENES_DIR)
 
     config.SIMULATOR.RGB_SENSOR.HFOV = 79.0
     config.SIMULATOR.RGB_SENSOR.POSITION = [0, 0.88, 0]
-    config.SIMULATOR.TURN_ANGLE = 90
-    config.TASK_CONFIG.DATASET.DATA_PATH = 'replica-start.json.gz'
-    config.TASK_CONFIG.DATASET.SCENES_DIR += scene
+    config.TASK_CONFIG.DATASET.DATA_PATH = '~/habitat-baselines/ride-baselines/replica-start.json.gz'
+    config.TASK_CONFIG.DATASET.SCENES_DIR += 'apartment_0'
 
     config.freeze()
     dataset = make_dataset(id_dataset=config.TASK_CONFIG.DATASET.TYPE,
                            config=config.TASK_CONFIG.DATASET)
 
-    # Start and goal positions are different for each seed
-    dataset.episodes[0].start_position = scene_locations[scene][seed]
-    if scene != 'apartment_0': # apartment_0 has some pre-defined goal positions
-        dataset.episodes[0].goals[0].position = scene_locations[scene][seed+1]
-    else:
-        # TODO: have fixed goal also for other scenes
-        dataset.episodes[0].goals[0].position = [-2.61, -1.54, 4.18]
-
-    return config, dataset, seed
+    return config, dataset
 
 
 class HabitatWrapper(gym.Wrapper):
@@ -109,12 +88,13 @@ class HabitatNavRL(Gym):
     of distance / degrees the agent moves / turns is specified in the config file.
 
     """
-    def __init__(self, scene_name, horizon=None, gamma=0.99):
+    def __init__(self, horizon=None, gamma=0.99):
         """
         Constructor.
 
         Args:
              scene_name (str): name of the Replica scene where the agent is placed;
+             config_path (str): path to the .yaml file specifying the task (see habitat-lab/configs/tasks/);
              horizon (int, None): the horizon;
              gamma (float, 0.99): the discount factor;
 
@@ -124,7 +104,7 @@ class HabitatNavRL(Gym):
         self._first = True
 
         seed = 1
-        config, dataset, seed = make_habitat_config(seed, env_id)
+        config, dataset = _get_habitat_demo()
 
         env = NavRLEnv(config=config, dataset=dataset)
         env = HabitatWrapper(env)
