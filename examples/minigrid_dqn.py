@@ -396,7 +396,7 @@ def experiment():
 
         # Evaluate initial policy
         pi.set_epsilon(epsilon_test)
-        dataset = core.evaluate(n_steps=test_episodes, render=args.render,
+        dataset = core.evaluate(n_episodes=test_episodes, render=args.render,
                                 quiet=args.quiet)
         scores.append(get_stats(dataset, logger))
 
@@ -415,7 +415,7 @@ def experiment():
             logger.info('- Evaluation:')
             # evaluation step
             pi.set_epsilon(epsilon_test)
-            dataset = core.evaluate(n_steps=test_episodes, render=args.render,
+            dataset = core.evaluate(n_episodes=test_episodes, render=args.render,
                                     quiet=args.quiet)
             scores.append(get_stats(dataset, logger))
 
