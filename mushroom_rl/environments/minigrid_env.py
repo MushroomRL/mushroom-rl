@@ -67,7 +67,7 @@ class MiniGrid(Gym):
         action_space = Discrete(self.env.action_space.n)
         observation_space = Box(
             low=0., high=obs_high, shape=(history_length, self._img_size[1], self._img_size[0]))
-        self.env.max_steps += 1 # Hack to ignore gym time limit (do not use np.inf, since MiniGrid returns r(t) = 1 - 0.9t/T)
+        self.env.max_steps = horizon + 1 # Hack to ignore gym time limit (do not use np.inf, since MiniGrid returns r(t) = 1 - 0.9t/T)
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
         Environment.__init__(self, mdp_info)
