@@ -27,6 +27,13 @@ except ImportError:
     pass
 
 try:
+    HabitatNavRL = None
+    from .habitat_env import HabitatNavRL
+    HabitatNavRL.register()
+except ImportError:
+    pass
+
+try:
     MuJoCo = None
     from .mujoco import MuJoCo
     from .mujoco_envs import *
