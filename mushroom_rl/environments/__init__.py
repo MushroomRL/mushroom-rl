@@ -27,6 +27,13 @@ except ImportError:
     pass
 
 try:
+    Gibson = None
+    from .gibson_env import Gibson
+    Gibson.register()
+except ImportError:
+    pass
+
+try:
     HabitatNavRL = None
     from .habitat_env import HabitatNavRL
     HabitatNavRL.register()
