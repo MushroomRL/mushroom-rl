@@ -232,7 +232,7 @@ def experiment():
         raise ValueError
 
     # Summary folder
-    folder_name = './logs/habitat_' + args.algorithm + '_' + args.name +\
+    folder_name = './logs/gibson_' + args.algorithm + '_' + args.name +\
         '_' + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     pathlib.Path(folder_name).mkdir(parents=True)
 
@@ -255,7 +255,7 @@ def experiment():
         max_steps = args.max_steps
 
     # MDP
-    mdp = HabitatNavRL()#history_length=args.history_length)
+    mdp = Gibson()#history_length=args.history_length)
 
     if args.load_path:
         logger = Logger(DQN.__name__, results_dir=None)
