@@ -2,9 +2,9 @@ import warnings
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
-    from habitat.datasets import make_dataset
-    from habitat_baselines.config.default import get_config
-    from habitat_baselines.common.environments import NavRLEnv
+    from gibson2.envs.parallel_env import ParallelNavEnv
+    import gibson2
+    from gibson2.envs.igibson_env import iGibsonEnv
 
 import gym
 import numpy as np
@@ -15,30 +15,13 @@ from mushroom_rl.utils.spaces import Discrete, Box
 from mushroom_rl.utils.frames import LazyFrames, preprocess_frame
 
 
-class HabitatWrapper(gym.Wrapper):
-    """
-    - By default, action 0 resets the environment, so we do not want to use it
-    (we reset the environment by calling env.reset()).
-    - We take only RGB view as observation.
-    - We add agent's true position in the info dictionary.
-
-    """
+class GibsonWrapper(gym.ObservationWrapper):
     def __init__(self, env):
-        gym.Wrapper.__init__(self, env)
-        self.action_space = gym.spaces.Discrete(env.action_space.n - 1)
-        self.observation_space = self.env.observation_space['rgb']
+        gym.ObservationWrapper.__init__(self, env)
+        self.observation_space = env.observation_space.spaces['rgb']
 
-    def reset(self):
-        return np.asarray(self.env.reset()['rgb'])
-
-    def get_position(self):
-        return self.env._env._sim.get_agent_state().position
-
-    def step(self, action):
-        obs, rwd, done, info = self.env.step(**{'action': action + 1})
-        obs = np.asarray(obs['rgb'])
-        info.update({'position': self.get_position()})
-        return obs, rwd, done, info
+    def observation(self, observation):
+        return observation['rgb']
 
 
 class TransposeObsWrapper(gym.ObservationWrapper):
@@ -50,7 +33,7 @@ class TransposeObsWrapper(gym.ObservationWrapper):
         return observation.transpose((2, 0, 1))
 
 
-class HabitatNavRL(Gym):
+class Gibson(Gym):
     """
     Interface for Habitat NavRLEnv with Replica scenes.
     You need to install the following repositories / datasets:
@@ -89,24 +72,10 @@ class HabitatNavRL(Gym):
         self._not_pybullet = True
         self._first = True
 
-        config = get_config(config_paths='pointnav_nomap.yaml')
-        config.defrost()
-
-        if horizon is None:
-            horizon = config.ENVIRONMENT.MAX_EPISODE_STEPS # Get the default horizon
-        config.ENVIRONMENT.MAX_EPISODE_STEPS = horizon + 1 # Hack to ignore gym time limit
-
-        config.SIMULATOR.RGB_SENSOR.HFOV = 79.0
-        config.SIMULATOR.RGB_SENSOR.POSITION = [0, 0.88, 0]
-        config.TASK_CONFIG.DATASET.DATA_PATH = 'replica-start.json.gz'
-        config.TASK_CONFIG.DATASET.SCENES_DIR += 'apartment_0'
-
-        config.freeze()
-        dataset = make_dataset(id_dataset=config.TASK_CONFIG.DATASET.TYPE,
-                               config=config.TASK_CONFIG.DATASET)
-
-        env = NavRLEnv(config=config, dataset=dataset)
-        env = HabitatWrapper(env)
+        config = os.path.join(gibson2.example_config_path, 'test_house.yaml')
+        env = iGibsonEnv(config_file=config, mode='headless')
+        # env.seed(seed)
+        env = GibsonWrapper(env)
         env = TransposeObsWrapper(env)
         self.env = env
 
