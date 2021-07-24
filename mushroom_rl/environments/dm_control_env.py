@@ -17,7 +17,7 @@ class DMControl(Environment):
 
     """
     def __init__(self, domain_name, task_name, horizon=None, gamma=0.99, task_kwargs=None,
-                 dt=.01, width_screen=480, height_screen=480, camera_id=0):
+                 dt=.01, width_screen=480, height_screen=480, camera_id=0, use_pixels=False):
         """
         Constructor.
 
@@ -31,10 +31,14 @@ class DMControl(Environment):
              width_screen (int, 480): width of the screen;
              height_screen (int, 480): height of the screen;
              camera_id (int, 0): position of camera to render the environment;
+             use_pixels (bool, False): is True pixel observations are used
+                rather than the state vector.
 
         """
         # MDP creation
         self.env = suite.load(domain_name, task_name, task_kwargs=task_kwargs)
+        if use_pixels:
+            self.env = suite.wrappers.pixels(self.env)
 
         # get the default horizon
         if horizon is None:
