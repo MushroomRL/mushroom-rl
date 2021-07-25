@@ -3,6 +3,8 @@ import warnings
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     from dm_control import suite
+    from dm_control.suite.wrappers import pixels
+
 
 from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.utils.spaces import *
@@ -17,7 +19,8 @@ class DMControl(Environment):
 
     """
     def __init__(self, domain_name, task_name, horizon=None, gamma=0.99, task_kwargs=None,
-                 dt=.01, width_screen=480, height_screen=480, camera_id=0, use_pixels=False):
+                 dt=.01, width_screen=480, height_screen=480, camera_id=0, 
+                 use_pixels=False, pixels_width=64, pixels_height=64):
         """
         Constructor.
 
@@ -31,14 +34,16 @@ class DMControl(Environment):
              width_screen (int, 480): width of the screen;
              height_screen (int, 480): height of the screen;
              camera_id (int, 0): position of camera to render the environment;
-             use_pixels (bool, False): is True pixel observations are used
-                rather than the state vector.
+             use_pixels (bool, False): if True, pixel observations are used
+                rather than the state vector;
+             pixels_width (int, 64): width of the pixel observation;
+             pixels_height (int, 464): height of the pixel observation;
 
         """
         # MDP creation
         self.env = suite.load(domain_name, task_name, task_kwargs=task_kwargs)
         if use_pixels:
-            self.env = suite.wrappers.pixels(self.env)
+            self.env = pixels.Wrapper(self.env, render_kwargs={'width': pixels_width, 'height': pixels_height})
 
         # get the default horizon
         if horizon is None:
@@ -49,6 +54,7 @@ class DMControl(Environment):
 
         # MDP properties
         action_space = self._convert_action_space(self.env.action_spec())
+        print(self.env.observation_spec())
         observation_space = self._convert_observation_space(self.env.observation_spec())
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
