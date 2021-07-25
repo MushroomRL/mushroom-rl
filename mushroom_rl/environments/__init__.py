@@ -27,9 +27,9 @@ except ImportError:
     pass
 
 try:
-    Gibson = None
-    from .gibson_env import Gibson
-    Gibson.register()
+    iGibson = None
+    from .gibson_env import iGibson
+    iGibson.register()
 except ImportError:
     pass
 
