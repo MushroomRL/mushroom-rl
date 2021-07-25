@@ -35,7 +35,7 @@ class HabitatWrapper(gym.Wrapper):
         return self.env._env._sim.get_agent_state().position
 
     def step(self, action):
-        obs, rwd, done, info = self.env.step(**{'action': action + 1})
+        obs, rwd, done, info = self.env.step(**{'action': action[0] + 1})
         obs = np.asarray(obs['rgb'])
         info.update({'position': self.get_position()})
         return obs, rwd, done, info
@@ -65,7 +65,7 @@ class HabitatNav(Gym):
     export MAGNUM_LOG=quiet
 
     """
-    def __init__(self, horizon=None, gamma=0.99):
+    def __init__(self, horizon=None, gamma=0.99, width=None, height=None):
         """
         Constructor.
 
@@ -87,11 +87,16 @@ class HabitatNav(Gym):
             horizon = config.ENVIRONMENT.MAX_EPISODE_STEPS # Get the default horizon
         config.ENVIRONMENT.MAX_EPISODE_STEPS = horizon + 1 # Hack to ignore gym time limit
 
+        if width is not None:
+            config.SIMULATOR.RGB_SENSOR.WIDTH = width
+        if height is not None:
+            config.SIMULATOR.RGB_SENSOR.HEIGHT = height
+
         config.SIMULATOR.RGB_SENSOR.HFOV = 79.0
         config.SIMULATOR.RGB_SENSOR.POSITION = [0, 0.88, 0]
         config.TASK_CONFIG.DATASET.DATA_PATH = 'replica-start.json.gz'
         config.TASK_CONFIG.DATASET.SCENES_DIR += 'apartment_0'
-
+   
         config.freeze()
         dataset = make_dataset(id_dataset=config.TASK_CONFIG.DATASET.TYPE,
                                config=config.TASK_CONFIG.DATASET)
