@@ -108,7 +108,10 @@ class HabitatNav(Gym):
             low=0., high=255., shape=(3, self._img_size[1], self._img_size[0]))
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
-        self._convert_action = lambda a: a[0]
+        if isinstance(action_space, Discrete):
+            self._convert_action = lambda a: a[0]
+        else:
+            self._convert_action = lambda a: a
 
         Environment.__init__(self, mdp_info)
 
