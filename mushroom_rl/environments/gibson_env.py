@@ -22,7 +22,7 @@ class iGibsonWrapper(gym.ObservationWrapper):
         self.observation_space = env.observation_space.spaces['rgb']
 
     def observation(self, observation):
-        return observation['rgb']
+        return observation['rgb'] * 255.
 
 
 class iGibson(Gym):
@@ -49,7 +49,7 @@ class iGibson(Gym):
     export MAGNUM_LOG=quiet
 
     """
-    def __init__(self, horizon=None, gamma=0.99, is_discrete=True):
+    def __init__(self, horizon=None, gamma=0.99, is_discrete=True, width=None, height=None):
         """
         Constructor.
 
@@ -64,19 +64,27 @@ class iGibson(Gym):
         self._not_pybullet = True
         self._first = True
 
-        config = os.path.join(igibson.root_path, 'test', 'test_house.yaml')
+        config_file = os.path.join(igibson.root_path, 'test', 'test_house.yaml')
 
-        env = iGibsonEnv(config_file=config, mode='headless')
+        env = iGibsonEnv(config_file=config_file, mode='headless')
+        config = parse_config(config_file)
+        if horizon is not None:
+            config['max_step'] = horizon
+        else:
+            horizon = config['max-step']
+            config['max_step'] = horizon + 1 # Hack to ignore gym time limit
 
-        for c in env.task.termination_conditions:
-            try:
-                horizon = c.max_step
-                break
-            except:
-                pass
+        if width is not None:
+            config['image_width'] = width
+        if height is not None:
+            config['image_height'] = height
 
-        # env.seed(seed)
+        env.config = config
+        env.simulator.reload()
+        env.load()
+
         env = iGibsonWrapper(env)
+
         self.env = env
 
         self._img_size = env.observation_space.shape[0:2]
@@ -101,7 +109,6 @@ class iGibson(Gym):
     def step(self, action):
         action = self._convert_action(action)
         obs, reward, absorbing, info = self.env.step(action)
-        print(self._convert_observation(np.atleast_1d(obs)).shape)
         return self._convert_observation(np.atleast_1d(obs)), reward, absorbing, info
 
     def stop(self):
