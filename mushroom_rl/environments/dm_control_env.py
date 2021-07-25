@@ -133,4 +133,4 @@ class DMControl(Environment):
 
     @staticmethod
     def _convert_observation_pixels(observation):
-        return observation.transpose((2, 0, 1))
+        return observation['pixels'].transpose((2, 0, 1))
