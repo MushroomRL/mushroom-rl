@@ -15,7 +15,7 @@ from mushroom_rl.utils.spaces import Discrete, Box
 from mushroom_rl.utils.frames import LazyFrames, preprocess_frame
 
 
-class GibsonWrapper(gym.ObservationWrapper):
+class iGibsonWrapper(gym.ObservationWrapper):
     def __init__(self, env):
         gym.ObservationWrapper.__init__(self, env)
         self.observation_space = env.observation_space.spaces['rgb']
@@ -33,7 +33,7 @@ class TransposeObsWrapper(gym.ObservationWrapper):
         return observation.transpose((2, 0, 1))
 
 
-class Gibson(Gym):
+class iGibson(Gym):
     """
     Interface for Habitat NavRLEnv with Replica scenes.
     You need to install the following repositories / datasets:
@@ -72,10 +72,10 @@ class Gibson(Gym):
         self._not_pybullet = True
         self._first = True
 
-        config = os.path.join(gibson2.example_config_path, 'test_house.yaml')
+        config = os.path.join(igibson.root_path, 'test', 'test_house.yaml')
         env = iGibsonEnv(config_file=config, mode='headless')
         # env.seed(seed)
-        env = GibsonWrapper(env)
+        env = iGibsonWrapper(env)
         env = TransposeObsWrapper(env)
         self.env = env
 
