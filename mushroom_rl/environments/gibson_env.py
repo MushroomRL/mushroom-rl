@@ -25,15 +25,6 @@ class iGibsonWrapper(gym.ObservationWrapper):
         return observation['rgb']
 
 
-class TransposeObsWrapper(gym.ObservationWrapper):
-    """
-    Transposes WxHxN image observations to NxWxH.
-
-    """
-    def observation(self, observation):
-        return observation.transpose((2, 0, 1))
-
-
 class iGibson(Gym):
     """
     Interface for Habitat NavRLEnv with Replica scenes.
@@ -86,7 +77,6 @@ class iGibson(Gym):
 
         # env.seed(seed)
         env = iGibsonWrapper(env)
-        env = TransposeObsWrapper(env)
         self.env = env
 
         self._img_size = env.observation_space.shape[0:2]
@@ -101,8 +91,22 @@ class iGibson(Gym):
             self._convert_action = lambda a: a[0]
         else:
             self._convert_action = lambda a: a
-                                                
+
         Environment.__init__(self, mdp_info)
+
+    def reset(self, state=None):
+        assert state is None, 'Cannot set iGibson state'
+        return self._convert_observation(np.atleast_1d(self.env.reset()))
+
+    def step(self, action):
+        action = self._convert_action(action)
+        obs, reward, absorbing, info = self.env.step(action)
+        print(self._convert_observation(np.atleast_1d(obs)).shape)
+        return self._convert_observation(np.atleast_1d(obs)), reward, absorbing, info
 
     def stop(self):
         pass
+
+    @staticmethod
+    def _convert_observation(observation):
+        return observation.transpose((2, 0, 1))
