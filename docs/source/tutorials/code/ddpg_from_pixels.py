@@ -13,19 +13,19 @@ from mushroom_rl.utils.dataset import compute_J
 
 
 class CriticNetwork(nn.Module):
-    def __init__(self, input_shape, output_shape, n_features, **kwargs):
+    def __init__(self, obs_shape, action_shape, n_features, **kwargs):
         super().__init__()
 
-        n_input = input_shape[-1]
-        n_output = output_shape[0]
+        n_input = obs_shape[0]
+        n_output = action_shape[0]
 
         self._h1 = nn.Conv2d(n_input, 32, kernel_size=8, stride=3)
         self._h2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self._h3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
-        dummy_obs = torch.zeros(1, *input_shape)
-        conv_out_size = np.prod(self.feat_extract(dummy_obs).shape)
-        self._h4 = nn.Linear(conv_out_size, self.n_features)
-        self._h5 = nn.Linear(self.n_features, n_output)
+        dummy_obs = torch.zeros(1, *obs_shape)
+        conv_out_size = np.prod(self._h3(self._h2(self._h1(dummy_obs))).shape)
+        self._h4 = nn.Linear(conv_out_size + n_output, self.n_features)
+        self._h5 = nn.Linear(self.n_features, 1)
 
         nn.init.xavier_uniform_(self._h1.weight,
                                 gain=nn.init.calculate_gain('relu'))
@@ -54,17 +54,17 @@ class CriticNetwork(nn.Module):
 
 
 class ActorNetwork(nn.Module):
-    def __init__(self, input_shape, output_shape, n_features, **kwargs):
+    def __init__(self, obs_shape, action_shape, n_features, **kwargs):
         super(ActorNetwork, self).__init__()
 
-        n_input = input_shape[-1]
-        n_output = output_shape[0]
+        n_input = obs_shape[0]
+        n_output = action_shape[0]
 
         self._h1 = nn.Conv2d(n_input, 32, kernel_size=8, stride=3)
         self._h2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self._h3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
-        dummy_obs = torch.zeros(1, *input_shape)
-        conv_out_size = np.prod(self.feat_extract(dummy_obs).shape)
+        dummy_obs = torch.zeros(1, *obs_shape)
+        conv_out_size = np.prod(self._h3(self._h2(self._h1(dummy_obs))).shape)
         self._h4 = nn.Linear(conv_out_size, self.n_features)
         self._h5 = nn.Linear(self.n_features, n_output)
 
@@ -81,11 +81,11 @@ class ActorNetwork(nn.Module):
 
 
     def forward(self, state):
-        state_action = torch.cat((state.float(), action.float()), dim=1)
-        h = F.relu(self._h1(state_action.float() / 255.))
+        h = F.relu(self._h1(state.float() / 255.))
         h = F.relu(self._h2(h))
         h = F.relu(self._h3(h))
-        h = F.relu(self._h4(h.view(state_action.shape[0], -1)))
+        h = torch.cat((h.view(state.shape[0], -1), action.float()), dim=1)
+        h = F.relu(self._h4(h.view(state.shape[0], -1)))
         q = self._h5(h)
 
         return q
@@ -109,23 +109,24 @@ n_features = 80
 tau = .001
 
 # Approximator
-actor_input_shape = mdp.info.observation_space.shape
+obs_shape = mdp.info.observation_space.shape
+act_shape = mdp.info.action_space.shape
+
 actor_params = dict(network=ActorNetwork,
                     n_features=n_features,
-                    input_shape=actor_input_shape,
-                    output_shape=mdp.info.action_space.shape)
+                    input_shape=obs_shape,
+                    output_shape=act_shape)
 
 actor_optimizer = {'class': optim.Adam,
                    'params': {'lr': 1e-5}}
 
-critic_input_shape = (actor_input_shape[0] + mdp.info.action_space.shape[0],)
 critic_params = dict(network=CriticNetwork,
                      optimizer={'class': optim.Adam,
                                 'params': {'lr': 1e-3}},
                      loss=F.mse_loss,
                      n_features=n_features,
-                     input_shape=critic_input_shape,
-                     output_shape=(1,))
+                     obs_shape=obs_shape,
+                     act_shape=act_shape)
 
 # Agent
 agent = DDPG(mdp.info, policy_class, policy_params,
