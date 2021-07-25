@@ -112,9 +112,9 @@ class DMControl(Environment):
 
     @staticmethod
     def _convert_observation_space_pixels(observation_space):
-        return Box(
-            low=0., high=255.,
-            shape=(3, observation_space['pixels'][0], observation_space['pixels'][1]))
+        img_size = observation_space['pixels'].shape
+        return Box(low=0., high=255.,
+            shape=(3, img_size[0], img_size[1]))
 
     @staticmethod
     def _convert_action_space(action_space):
