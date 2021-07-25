@@ -1,10 +1,10 @@
+import os
 import warnings
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
-    from gibson2.envs.parallel_env import ParallelNavEnv
-    import gibson2
-    from gibson2.envs.igibson_env import iGibsonEnv
+    import igibson
+    from igibson.envs.igibson_env import iGibsonEnv
 
 import gym
 import numpy as np
