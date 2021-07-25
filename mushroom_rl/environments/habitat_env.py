@@ -17,10 +17,10 @@ from mushroom_rl.utils.frames import LazyFrames, preprocess_frame
 
 class HabitatWrapper(gym.Wrapper):
     """
-    - By default, action 0 resets the environment, so we do not want to use it
-    (we reset the environment by calling env.reset()).
-    - We take only RGB view as observation.
-    - We add agent's true position in the info dictionary.
+    This wrapper removes action 0, that by default resets the environment
+    (we reset the environment only by calling env.reset()).
+    It also gets only the RGB agent's view as observation, and adds the agent's
+    true position in the info dictionary.
 
     """
     def __init__(self, env):
@@ -41,16 +41,7 @@ class HabitatWrapper(gym.Wrapper):
         return obs, rwd, done, info
 
 
-class TransposeObsWrapper(gym.ObservationWrapper):
-    """
-    Transposes WxHxN image observations to NxWxH.
-
-    """
-    def observation(self, observation):
-        return observation.transpose((2, 0, 1))
-
-
-class HabitatNavRL(Gym):
+class HabitatNav(Gym):
     """
     Interface for Habitat NavRLEnv with Replica scenes.
     You need to install the following repositories / datasets:
@@ -107,13 +98,12 @@ class HabitatNavRL(Gym):
 
         env = NavRLEnv(config=config, dataset=dataset)
         env = HabitatWrapper(env)
-        env = TransposeObsWrapper(env)
         self.env = env
 
         self._img_size = env.observation_space.shape[0:2]
 
         # MDP properties
-        action_space = Discrete(self.env.action_space.n)
+        action_space = self.env.action_space
         observation_space = Box(
             low=0., high=255., shape=(3, self._img_size[1], self._img_size[0]))
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
@@ -122,5 +112,18 @@ class HabitatNavRL(Gym):
 
         Environment.__init__(self, mdp_info)
 
+    def reset(self, state=None):
+        assert state is not None, 'Cannot set Habitat state'
+        return self._convert_observation(np.atleast_1d(self.env.reset()))
+
+    def step(self, action):
+        action = self._convert_action(action)
+        obs, reward, absorbing, info = self.env.step(action)
+        return self._convert_observation(np.atleast_1d(obs)), reward, absorbing, info
+
     def stop(self):
         pass
+
+    @staticmethod
+    def _convert_observation(observation):
+        return observation.transpose((2, 0, 1))
