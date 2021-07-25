@@ -113,7 +113,7 @@ class HabitatNav(Gym):
         Environment.__init__(self, mdp_info)
 
     def reset(self, state=None):
-        assert state is not None, 'Cannot set Habitat state'
+        assert state is None, 'Cannot set Habitat state'
         return self._convert_observation(np.atleast_1d(self.env.reset()))
 
     def step(self, action):
