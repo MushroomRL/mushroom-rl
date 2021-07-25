@@ -34,9 +34,9 @@ except ImportError:
     pass
 
 try:
-    HabitatNavRL = None
-    from .habitat_env import HabitatNavRL
-    HabitatNavRL.register()
+    HabitatNav = None
+    from .habitat_env import HabitatNav
+    HabitatNav.register()
 except ImportError:
     pass
 
