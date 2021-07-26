@@ -103,15 +103,16 @@ def get_stats(dataset, logger):
 
 def experiment():
     np.random.seed()
+    default_config = os.path.join(igibson.root_path, 'test', 'test_house.yaml')
 
     # Argument parser
     parser = argparse.ArgumentParser()
 
     arg_env = parser.add_argument_group('Environment')
-    arg_env.add_argument("--name",
+    arg_env.add_argument("--config-file",
                           type=str,
-                          default='MiniGrid-Unlock-v0',
-                          help='Gym ID of the MiniGrid environment.')
+                          default=default_config,
+                          help='yaml config file.')
 
     arg_mem = parser.add_argument_group('Replay Memory')
     arg_mem.add_argument("--initial-replay-size", type=int, default=50000,
@@ -235,7 +236,7 @@ def experiment():
         raise ValueError
 
     # Summary folder
-    folder_name = './logs/gibson_' + args.algorithm + '_' + args.name +\
+    folder_name = './logs/gibson_' + args.algorithm +\
         '_' + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     pathlib.Path(folder_name).mkdir(parents=True)
 
@@ -258,8 +259,7 @@ def experiment():
         max_steps = args.max_steps
 
     # MDP
-    config_file = os.path.join(igibson.root_path, 'test', 'test_house.yaml')
-    mdp = iGibson(config_file=config_file, is_discrete=True)
+    mdp = iGibson(config_file=args.config_file, is_discrete=True)
 
     if args.load_path:
         logger = Logger(DQN.__name__, results_dir=None)
