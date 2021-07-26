@@ -28,7 +28,7 @@ except ImportError:
 
 try:
     iGibson = None
-    from .gibson_env import iGibson
+    from .igibson_env import iGibson
     iGibson.register()
 except ImportError:
     pass
