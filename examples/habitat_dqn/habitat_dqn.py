@@ -139,6 +139,7 @@ def get_stats(dataset, logger):
 
 def experiment():
     np.random.seed()
+    default_config = os.path.join(igibson.root_path, 'test', 'test_house.yaml')
 
     # Argument parser
     parser = argparse.ArgumentParser()
@@ -146,16 +147,8 @@ def experiment():
     arg_env = parser.add_argument_group('Environment')
     arg_env.add_argument("--config-file",
                           type=str,
-                          default=os.path.join(path_example, 'pointnav_nomap.yaml'),
+                          default=default_config),
                           help='yaml config file.')
-    arg_env.add_argument("--scene-name",
-                          type=str,
-                          default='apartment_0',
-                          help='Replica scene name.')
-    arg_env.add_argument("--replica-json",
-                          type=str,
-                          default=os.path.join(path_example, 'replica-start.json.gz'),
-                          help='.')
 
     arg_mem = parser.add_argument_group('Replay Memory')
     arg_mem.add_argument("--initial-replay-size", type=int, default=50000,
