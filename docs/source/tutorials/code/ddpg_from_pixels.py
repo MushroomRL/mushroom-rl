@@ -1,5 +1,4 @@
 import numpy as np
-import os
 
 import torch
 import torch.nn as nn
@@ -13,7 +12,6 @@ from mushroom_rl.environments.igibson_env import iGibson
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy
 from mushroom_rl.utils.dataset import compute_J
 
-import igibson
 
 class CriticNetwork(nn.Module):
     def __init__(self, input_shape, output_shape, n_features, **kwargs):
@@ -93,9 +91,7 @@ class ActorNetwork(nn.Module):
 horizon = 500
 gamma = 0.99
 gamma_eval = 1.
-#mdp = DMControl('walker', 'stand', horizon, gamma, use_pixels=True)
-config_file = os.path.join(igibson.root_path, 'test', 'test_house.yaml')
-mdp = iGibson(config_file=config_file, is_discrete=False)
+mdp = DMControl('walker', 'stand', horizon, gamma, use_pixels=True)
 
 # Policy
 policy_class = OrnsteinUhlenbeckPolicy
