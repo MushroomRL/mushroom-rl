@@ -98,11 +98,6 @@ class HabitatNav(Gym):
         if height is not None:
             config.SIMULATOR.RGB_SENSOR.HEIGHT = height
 
-        print(config.SIMULATOR.RGB_SENSOR.HFOV)
-        print(config.SIMULATOR.RGB_SENSOR.POSITION)
-        print(config.TASK_CONFIG.DATASET.DATA_PATH)
-        print(config.TASK_CONFIG.DATASET.SCENES_DIR)
-
         config.freeze()
 
         dataset = make_dataset(id_dataset=config.TASK_CONFIG.DATASET.TYPE,
