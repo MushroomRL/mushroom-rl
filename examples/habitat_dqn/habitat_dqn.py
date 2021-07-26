@@ -1,7 +1,7 @@
 import argparse
 import datetime
 import pathlib
-import os 
+import os
 import igibson
 
 import numpy as np
@@ -272,7 +272,8 @@ def experiment():
         raise ValueError
 
     # Summary folder
-    folder_name = './logs/habitat_' + args.algorithm + '_' + args.scene_name +\
+    folder_name = './logs/habitat_' + args.algorithm +\
+        '_' + args.config_file.split(os.sep)[-1].split('.yaml')[0] +\
         '_' + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     pathlib.Path(folder_name).mkdir(parents=True)
 
