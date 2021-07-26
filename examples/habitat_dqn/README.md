@@ -12,9 +12,12 @@ Follow the official guide [here](https://github.com/StanfordVL/iGibson).
 
 ## Scene Datasets
 Habitat and iGibson support many realistic scenes as environment for the agent.
-iGibson has its own dataset, that can be downloaded and used right away.
-Alternatively, you can use third party datasets. Please see the
-[official documentation](http://svl.stanford.edu/igibson/) for more details.
+
+iGibson has its own dataset that can be downloaded and used right away.
+Alternatively, you can use third party datasets. The scene is defined a yaml
+file, that needs to be passed to the agent. See `igibson/test/test_house.yaml`
+for an example. For more details, please see the
+[official documentation](http://svl.stanford.edu/igibson/).
 
 For Habitat, you need to download scenes separately. For more details, please
 see [here](https://github.com/facebookresearch/habitat-lab#task-datasets).
