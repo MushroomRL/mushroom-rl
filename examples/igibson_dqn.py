@@ -3,6 +3,8 @@ import datetime
 import pathlib
 import os
 
+import igibson
+
 import numpy as np
 import torch
 import torch.nn as nn
