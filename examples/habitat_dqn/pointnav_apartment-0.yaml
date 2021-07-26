@@ -1,8 +1,10 @@
 ENVIRONMENT:
   MAX_EPISODE_STEPS: 500
+
 SIMULATOR:
   HABITAT_SIM_V0:
     GPU_DEVICE_ID: 0
+
   RGB_SENSOR:
     WIDTH: 64
     HEIGHT: 64
@@ -24,6 +26,7 @@ TASK:
   GOAL_SENSOR_UUID: pointgoal_with_gps_compass
 
   MEASUREMENTS: ['DISTANCE_TO_GOAL', 'SUCCESS', 'SPL', 'TOP_DOWN_MAP']
+
   SPL:
     TYPE: SPL
     SUCCESS_DISTANCE: 0.2
@@ -40,7 +43,7 @@ TASK:
 
 DATASET:
   CONTENT_SCENES: ['*']
-  DATA_PATH: "replica-{split}.json.gz"
-  SCENES_DIR: "Replica-Dataset/replica-path/apartment_0"
+  DATA_PATH: "replica_{split}_apartment-0.json.gz"
+  SCENES_DIR: "Replica-Dataset/replica-path/"
   TYPE: PointNav-v1
-  SPLIT: val
+  SPLIT: train
