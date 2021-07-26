@@ -27,26 +27,15 @@ class iGibsonWrapper(gym.ObservationWrapper):
 
 class iGibson(Gym):
     """
-    Interface for Habitat NavRLEnv with Replica scenes.
-    You need to install the following repositories / datasets:
-     - https://github.com/facebookresearch/habitat-lab/
-     - https://github.com/facebookresearch/habitat-sim/
-     - https://github.com/facebookresearch/Replica-Dataset
+    Interface for iGibson https://github.com/StanfordVL/iGibson
 
-    The agent has to navigate from point A to point B in realistic scenes.
+    There are both navigation and interaction tasks.
     Observations are pixel images of what the agent sees in front of itself.
     Image resolution is specified in the config file.
-    Actions are 1 (move forward), 2 (turn left), and 3 (turn right). The amount
-    of distance / degrees the agent moves / turns is specified in the config file.
+    By default, actions are continuous, but can be discretized automatically
+    using a flag.
 
-    Scene details, such as the agent's initial position and orientation, are
-    defined in the replica json file. If you want to try new positions, you can
-    sample some from the set of the scene's navigable points, accessible by
-    NavRLEnv._env._sim.sample_navigable_point().
-
-    If you want to suppress Habitat messages run:
-    export GLOG_minloglevel=2
-    export MAGNUM_LOG=quiet
+    Scene and task details, are defined in the config yaml file.
 
     """
     def __init__(self, horizon=None, gamma=0.99, is_discrete=True, width=None, height=None):
