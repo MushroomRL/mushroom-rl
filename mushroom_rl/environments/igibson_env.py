@@ -32,21 +32,25 @@ class iGibson(Gym):
     Observations are pixel images of what the agent sees in front of itself.
     Image resolution is specified in the config file.
     By default, actions are continuous, but can be discretized automatically
-    using a flag.
+    using a flag. Note that not all robots support discrete actions.
 
-    Scene and task details are defined in the config yaml file.
+    Scene and task details are defined in the yaml config file.
 
     """
-    def __init__(self, config_file, horizon=None, gamma=0.99, is_discrete=False, width=None, height=None):
+    def __init__(self, config_file, horizon=None, gamma=0.99, is_discrete=False,
+                 width=None, height=None):
         """
         Constructor.
 
         Args:
-             config_file (str): path to the .yaml file specifying the task
+             config_file (str): path to the yaml file specifying the task
                 (see igibson/examples/configs/ and igibson/test/);
              horizon (int, None): the horizon;
              gamma (float, 0.99): the discount factor;
-             width (int, None): width of the pixel observation. If None, the 
+             is_discrete (bool, False): if True, actions are automatically
+                discretized by iGibson's `set_up_discrete_action_space`.
+                Please note that not all robots support discrete actions.
+             width (int, None): width of the pixel observation. If None, the
                 value specified in the config file is used.
              height (int, None): height of the pixel observation. If None, the
                 value specified in the config file is used.
