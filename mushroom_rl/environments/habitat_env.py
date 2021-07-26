@@ -105,14 +105,8 @@ class HabitatNav(Gym):
 
         config.freeze()
 
-        try:
-            dataset = make_dataset(id_dataset=config.TASK_CONFIG.DATASET.TYPE,
-                                   config=config.TASK_CONFIG.DATASET)
-        except:
-            print('No dataset specified for the given task.')
-            dataset = None
-            pass
-
+        dataset = make_dataset(id_dataset=config.TASK_CONFIG.DATASET.TYPE,
+                               config=config.TASK_CONFIG.DATASET)
         env = NavRLEnv(config=config, dataset=dataset)
         env = HabitatWrapper(env)
         self.env = env
