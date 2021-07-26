@@ -75,16 +75,17 @@ class HabitatNav(Gym):
              horizon (int, None): the horizon;
              gamma (float, 0.99): the discount factor;
              width (int, None): width of the pixel observation. If None, the
-                one specified in the config file is used.
+                value specified in the config file is used.
              height (int, None): height of the pixel observation. If None, the
-                one specified in the config file is used.
+                value specified in the config file is used.
 
         """
         # MDP creation
         self._not_pybullet = False
         self._first = True
 
-        config = get_config(config_paths=config_file)
+        config = get_config(config_paths=config_file, 
+                            opts=['BASE_TASK_CONFIG_PATH', config_file])
         config.defrost()
 
         if horizon is None:

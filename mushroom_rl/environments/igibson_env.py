@@ -47,9 +47,9 @@ class iGibson(Gym):
              horizon (int, None): the horizon;
              gamma (float, 0.99): the discount factor;
              width (int, None): width of the pixel observation. If None, the 
-                one specified in the config file is used.
+                value specified in the config file is used.
              height (int, None): height of the pixel observation. If None, the
-                one specified in the config file is used.
+                value specified in the config file is used.
 
         """
         # MDP creation
