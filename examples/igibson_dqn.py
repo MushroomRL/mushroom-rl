@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import pathlib
+import os
 
 import numpy as np
 import torch
@@ -255,7 +256,8 @@ def experiment():
         max_steps = args.max_steps
 
     # MDP
-    mdp = iGibson(is_discrete=True)
+    config_file = os.path.join(igibson.root_path, 'test', 'test_house.yaml')
+    mdp = iGibson(config_file=config_file, is_discrete=True)
 
     if args.load_path:
         logger = Logger(DQN.__name__, results_dir=None)

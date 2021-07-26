@@ -43,8 +43,3 @@ Now you are all set!
 Scene details, such as the agent's initial position and orientation, are defined in `replica-start.json`.
 The agent's initial position, though, depends on the random seed passed to the run, and it is read from `scene_locations.txt`.
 The n-th seed reads the n-th initial position defined in the file. These positions have been randomly chosen from the set of each scene navigable points, accessible by `HabitatWrapper.env._env._sim.sample_navigable_point()`.
-
-
-
-# iGibson Installation
-Follow [the official guide](http://svl.stanford.edu/igibson/).

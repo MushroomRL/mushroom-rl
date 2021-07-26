@@ -13,7 +13,6 @@ import numpy as np
 from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.environments import Gym
 from mushroom_rl.utils.spaces import Discrete, Box
-from mushroom_rl.utils.frames import LazyFrames, preprocess_frame
 
 
 class iGibsonWrapper(gym.ObservationWrapper):
@@ -35,29 +34,33 @@ class iGibson(Gym):
     By default, actions are continuous, but can be discretized automatically
     using a flag.
 
-    Scene and task details, are defined in the config yaml file.
+    Scene and task details are defined in the config yaml file.
 
     """
-    def __init__(self, horizon=None, gamma=0.99, is_discrete=False, width=None, height=None):
+    def __init__(self, config_file, horizon=None, gamma=0.99, is_discrete=False, width=None, height=None):
         """
         Constructor.
 
         Args:
-             scene_name (str): name of the Replica scene where the agent is placed;
-             config_path (str): path to the .yaml file specifying the task (see habitat-lab/configs/tasks/);
+             config_file (str): path to the .yaml file specifying the task
+                (see igibson/examples/configs/ and igibson/test/);
              horizon (int, None): the horizon;
              gamma (float, 0.99): the discount factor;
+             width (int, None): width of the pixel observation. If None, the 
+                one specified in the config file is used.
+             height (int, None): height of the pixel observation. If None, the
+                one specified in the config file is used.
 
         """
         # MDP creation
-        self._not_pybullet = True
+        self._not_pybullet = False
         self._first = True
 
-        config_file = os.path.join(igibson.root_path, 'test', 'test_house.yaml')
-
         env = iGibsonEnv(config_file=config_file, mode='headless')
+
         config = parse_config(config_file)
         config['is_discrete'] = is_discrete
+
         if horizon is not None:
             config['max_step'] = horizon
         else:
