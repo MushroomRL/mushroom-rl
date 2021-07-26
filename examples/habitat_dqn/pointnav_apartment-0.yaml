@@ -6,7 +6,7 @@ SIMULATOR:
   RGB_SENSOR:
     WIDTH: 64
     HEIGHT: 64
-    HFOV: 79.0
+    HFOV: 79
     POSITION: [0, 0.88, 0]
 
   ACTION_SPACE_CONFIG: "v0"
