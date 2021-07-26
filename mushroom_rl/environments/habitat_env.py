@@ -65,12 +65,13 @@ class HabitatNav(Gym):
     export MAGNUM_LOG=quiet
 
     """
-    def __init__(self, config_file, horizon=None, gamma=0.99, width=None, height=None):
+    def __init__(self, config_file, horizon=None, gamma=0.99,
+                 width=None, height=None):
         """
         Constructor.
 
         Args:
-             config_file (str): path to the .yaml file specifying the task (see
+             config_file (str): path to the yaml file specifying the task (see
                 habitat-lab/configs/tasks/ or mushroom_rl/examples/habitat_dqn);
              horizon (int, None): the horizon;
              gamma (float, 0.99): the discount factor;
@@ -84,7 +85,7 @@ class HabitatNav(Gym):
         self._not_pybullet = False
         self._first = True
 
-        config = get_config(config_paths=config_file, 
+        config = get_config(config_paths=config_file,
                             opts=['BASE_TASK_CONFIG_PATH', config_file])
         config.defrost()
 
