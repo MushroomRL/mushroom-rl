@@ -255,7 +255,7 @@ def experiment():
         max_steps = args.max_steps
 
     # MDP
-    mdp = iGibson()#history_length=args.history_length)
+    mdp = iGibson(is_discrete=True)
 
     if args.load_path:
         logger = Logger(DQN.__name__, results_dir=None)

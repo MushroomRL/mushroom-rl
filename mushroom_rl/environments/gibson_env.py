@@ -38,7 +38,7 @@ class iGibson(Gym):
     Scene and task details, are defined in the config yaml file.
 
     """
-    def __init__(self, horizon=None, gamma=0.99, is_discrete=True, width=None, height=None):
+    def __init__(self, horizon=None, gamma=0.99, is_discrete=False, width=None, height=None):
         """
         Constructor.
 
@@ -57,10 +57,11 @@ class iGibson(Gym):
 
         env = iGibsonEnv(config_file=config_file, mode='headless')
         config = parse_config(config_file)
+        config['is_discrete'] = is_discrete
         if horizon is not None:
             config['max_step'] = horizon
         else:
-            horizon = config['max-step']
+            horizon = config['max_step']
             config['max_step'] = horizon + 1 # Hack to ignore gym time limit
 
         if width is not None:
