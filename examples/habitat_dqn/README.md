@@ -1,10 +1,8 @@
 ## Habitat Installation
-
-1. [Install habitat-sim](https://github.com/facebookresearch/habitat-sim/).
+* [Install habitat-sim](https://github.com/facebookresearch/habitat-sim/).
 It is recommended to install [the nightly build with conda](https://anaconda.org/aihabitat-nightly/habitat-sim).
 Otherwise, [install it from souce](https://github.com/facebookresearch/habitat-sim/blob/master/BUILD_FROM_SOURCE.md).
-
-2. [Install habitat-lab](https://github.com/facebookresearch/habitat-lab).
+* [Install habitat-lab](https://github.com/facebookresearch/habitat-lab).
 The full installation including `habitat_baselines` is required.
 
 
@@ -26,10 +24,9 @@ Below, we explain how to use Replica scenes.
 * [Download Replica scenes](https://github.com/facebookresearch/Replica-Dataset).
 When you run `./download.sh /path/to/replica_v1`, this path will have to be
 set in the yaml file under `DATASET.SCENES_DIR`.
-See for instance `example/habitat_dqn/pointnav_apartment-0.yaml`.
 * Scene details, such as the agent's initial position and orientation, are defined
-in `replica-start.json`.
-To change the agent's initial position, you can sample one with `NavRLEnv._env._sim.sample_navigable_point()`.
+in a json file. This file is usually named `replica-{split}.json`, where `split`
+is defined in the yaml file under `DATASET.SPLIT`. You need to pass the json file
+to the yaml file under `DATASET.DATA_PATH`.
 
-
-In both Habitat and iGibson, The scene is defined in the yaml file of the task.
+See `example/habitat_dqn` for an example.
