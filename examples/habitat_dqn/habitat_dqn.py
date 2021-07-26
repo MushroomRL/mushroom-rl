@@ -296,7 +296,7 @@ def experiment():
         max_steps = args.max_steps
 
     # MDP
-    mdp = HabitatNav(args.scene_name, args.config_file, args.replica_json)
+    mdp = HabitatNav(args.config_file)
 
     if args.load_path:
         logger = Logger(DQN.__name__, results_dir=None)
