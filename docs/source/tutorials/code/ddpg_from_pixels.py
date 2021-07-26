@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from mushroom_rl.algorithms.actor_critic import DDPG
 from mushroom_rl.core import Core
 from mushroom_rl.environments.dm_control_env import DMControl
-from mushroom_rl.environments.gibson_env import iGibson
+from mushroom_rl.environments.igibson_env import iGibson
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy
 from mushroom_rl.utils.dataset import compute_J
 
