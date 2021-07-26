@@ -18,6 +18,9 @@ from mushroom_rl.utils.dataset import compute_metrics
 from mushroom_rl.utils.parameters import LinearParameter, Parameter
 from mushroom_rl.utils.replay_memory import PrioritizedReplayMemory
 
+from mushroom_rl.environments.realistic_envs import __file__ as path_robots
+
+
 """
 This script runs Atari experiments with DQN, and some of its variants, as
 presented in:
@@ -141,10 +144,21 @@ def experiment():
     parser = argparse.ArgumentParser()
 
     arg_env = parser.add_argument_group('Environment')
-    arg_env.add_argument("--name",
+    arg_env.add_argument("--config-path",
                           type=str,
-                          default='MiniGrid-Unlock-v0',
-                          help='Gym ID of the MiniGrid environment.')
+                          default=os.path.join(mushroom_rl.root_path, 'environments', 'realistic_envs', 'pointnav_nomap.yaml'),
+                          help='yaml config file.')
+
+    arg_env.add_argument("--scene-name",
+                          type=str,
+                          default='apartment_0',
+                          help='Replica scene name.')
+
+    arg_env.add_argument("--replica-json",
+                          type=str,
+                          default=os.path.join(mushroom_rl.root_path, 'environments', 'realistic_envs', 'replica-start.json.gz'),
+                          help='.')
+
 
     arg_mem = parser.add_argument_group('Replay Memory')
     arg_mem.add_argument("--initial-replay-size", type=int, default=50000,
@@ -268,7 +282,7 @@ def experiment():
         raise ValueError
 
     # Summary folder
-    folder_name = './logs/habitat_' + args.algorithm + '_' + args.name +\
+    folder_name = './logs/habitat_' + args.algorithm + '_' + args.scene_name +\
         '_' + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     pathlib.Path(folder_name).mkdir(parents=True)
 
@@ -291,7 +305,8 @@ def experiment():
         max_steps = args.max_steps
 
     # MDP
-    mdp = HabitatNav()#history_length=args.history_length)
+    print(args.config_path)
+    mdp = HabitatNav(args.scene_name, args.config_path, args.replica_json)
 
     if args.load_path:
         logger = Logger(DQN.__name__, results_dir=None)
