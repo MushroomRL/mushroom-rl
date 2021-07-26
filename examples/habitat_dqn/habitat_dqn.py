@@ -1,6 +1,8 @@
 import argparse
 import datetime
 import pathlib
+import os 
+import igibson
 
 import numpy as np
 import torch
@@ -17,8 +19,6 @@ from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.utils.dataset import compute_metrics
 from mushroom_rl.utils.parameters import LinearParameter, Parameter
 from mushroom_rl.utils.replay_memory import PrioritizedReplayMemory
-
-from mushroom_rl.examples.habitat_dqn import __file__ as path_example
 
 
 """
@@ -147,7 +147,7 @@ def experiment():
     arg_env = parser.add_argument_group('Environment')
     arg_env.add_argument("--config-file",
                           type=str,
-                          default=default_config),
+                          default=default_config,
                           help='yaml config file.')
 
     arg_mem = parser.add_argument_group('Replay Memory')
