@@ -1,45 +1,39 @@
-# Habitat Installation
+## Habitat Installation
 
-### 1. Install Replica scenes
-```
-sudo apt-get install pigz
-git clone https://github.com/facebookresearch/Replica-Dataset.git
-cd Replica-Dataset
-./download.sh replica-path
-```
-Be sure that Replica path is the same defined in `pointnav_nomap.yaml`.
-By default, this is `Replica-Dataset/replica-path`.
+1. [Install habitat-sim](https://github.com/facebookresearch/habitat-sim/blob/master/BUILD_FROM_SOURCE.md).
+You can also [install with conda](https://github.com/facebookresearch/habitat-sim#installation),
+but be sure to install `stable` branch.
 
-### 2. Install habitat-sim
-```
-git clone --branch stable https://github.com/facebookresearch/habitat-sim.git
-cd habitat-sim
-# We require python>=3.6 and cmake>=3.10
-conda create -n habitat python=3.6 cmake=3.14.0
-conda activate habitat
-pip install -r requirements.txt
-python setup.py install --headless --with-cuda
-```
-More detailed instructions [here](https://github.com/facebookresearch/habitat-sim/blob/master/BUILD_FROM_SOURCE.md).
-You can also [install with conda](https://github.com/facebookresearch/habitat-sim#installation), but be sure to install `stable` branch.
+2. [Install habitat-lab](https://github.com/facebookresearch/habitat-lab).
+The full installation including `habitat_baselines` is required.
 
-### 3. Install habitat-lab
-The full install including `habitat_baselines` is required.
-```
-git clone --branch stable https://github.com/facebookresearch/habitat-lab.git
-cd habitat-lab
-pip install -r requirements.txt
-python setup.py develop --all # install habitat and habitat_baselines
-```
 
-### 4. Test
-You can test your Habitat install by running
-```
-python examples/example.py --scene=/path/to/Replica-Dataset/replica-path/apartment_0/habitat/mesh_semantic.ply
-```
-Now you are all set!
+## iGibson Installation
+Follow the official guide [here](https://github.com/StanfordVL/iGibson).
 
-### 5. Scene configuration
-Scene details, such as the agent's initial position and orientation, are defined in `replica-start.json`.
-The agent's initial position, though, depends on the random seed passed to the run, and it is read from `scene_locations.txt`.
-The n-th seed reads the n-th initial position defined in the file. These positions have been randomly chosen from the set of each scene navigable points, accessible by `HabitatWrapper.env._env._sim.sample_navigable_point()`.
+
+## Scene Datasets
+Habitat and iGibson support many realistic scenes as environment for the agent.
+iGibson has also its own dataset, that can be downloaded and used right away.
+Please see the [official documentation](http://svl.stanford.edu/igibson/) for
+more details.
+
+For Habitat, you need to download scenes separately. For more details, please
+see [here](https://github.com/facebookresearch/habitat-lab#task-datasets).
+Here, we explain how to use Replica scenes.
+
+### Replica Scenes Installation
+[Download Replica scenes](https://github.com/facebookresearch/Replica-Dataset).
+When you run `./download.sh /path/to/replica_v1`, this path will have to be
+passed to `HabitatNav`, together with the desired scene to use. Alternatively,
+it can be directly set in the yaml file under `DATASET.SCENES_DIR`.
+
+
+
+In both Habitat and iGibson, The scene is defined in the yaml file of the task.
+
+
+## Scene configuration
+Scene details, such as the agent's initial position and orientation, are defined
+in `replica-start.json`.
+To change the agent's initial position, you can sample one with `NavRLEnv._env._sim.sample_navigable_point()`.

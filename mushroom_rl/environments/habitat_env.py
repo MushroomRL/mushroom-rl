@@ -65,16 +65,13 @@ class HabitatNav(Gym):
     export MAGNUM_LOG=quiet
 
     """
-    def __init__(self, scene_name, config_file, replica_json,
-            horizon=None, gamma=0.99, width=None, height=None):
+    def __init__(self, config_file, horizon=None, gamma=0.99, width=None, height=None):
         """
         Constructor.
 
         Args:
-             scene_name (str): name of the Replica scene where the agent is placed;
              config_file (str): path to the .yaml file specifying the task (see
                 habitat-lab/configs/tasks/ or mushroom_rl/examples/habitat_dqn);
-             replica_json (str):
              horizon (int, None): the horizon;
              gamma (float, 0.99): the discount factor;
              width (int, None): width of the pixel observation. If None, the
@@ -99,14 +96,20 @@ class HabitatNav(Gym):
         if height is not None:
             config.SIMULATOR.RGB_SENSOR.HEIGHT = height
 
-        config.SIMULATOR.RGB_SENSOR.HFOV = 79.0
-        config.SIMULATOR.RGB_SENSOR.POSITION = [0, 0.88, 0]
-        config.TASK_CONFIG.DATASET.DATA_PATH = replica_json
-        config.TASK_CONFIG.DATASET.SCENES_DIR += scene_name
+        print(config.SIMULATOR.RGB_SENSOR.HFOV)
+        print(config.SIMULATOR.RGB_SENSOR.POSITION)
+        print(config.TASK_CONFIG.DATASET.DATA_PATH)
+        print(config.TASK_CONFIG.DATASET.SCENES_DIR)
 
         config.freeze()
-        dataset = make_dataset(id_dataset=config.TASK_CONFIG.DATASET.TYPE,
-                               config=config.TASK_CONFIG.DATASET)
+
+        try:
+            dataset = make_dataset(id_dataset=config.TASK_CONFIG.DATASET.TYPE,
+                                   config=config.TASK_CONFIG.DATASET)
+        except:
+            print('No dataset specified for the given task.')
+            dataset = None
+            pass
 
         env = NavRLEnv(config=config, dataset=dataset)
         env = HabitatWrapper(env)
