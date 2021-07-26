@@ -28,14 +28,14 @@ except ImportError:
 
 try:
     iGibson = None
-    from .realistic_envs.igibson_env import iGibson
+    from .igibson_env import iGibson
     iGibson.register()
 except ImportError:
     pass
 
 try:
     HabitatNav = None
-    from .realistic_envs.habitat_env import HabitatNav
+    from .habitat_env import HabitatNav
     HabitatNav.register()
 except ImportError:
     pass

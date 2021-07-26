@@ -13,7 +13,6 @@ import numpy as np
 from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.environments import Gym
 from mushroom_rl.utils.spaces import Discrete, Box
-from mushroom_rl.utils.frames import LazyFrames, preprocess_frame
 
 
 class HabitatWrapper(gym.Wrapper):
@@ -66,26 +65,29 @@ class HabitatNav(Gym):
     export MAGNUM_LOG=quiet
 
     """
-    def __init__(self, scene_name, config_path, replica_json, 
+    def __init__(self, scene_name, config_file, replica_json,
             horizon=None, gamma=0.99, width=None, height=None):
         """
         Constructor.
 
         Args:
              scene_name (str): name of the Replica scene where the agent is placed;
-             config_path (str): path to the .yaml file specifying the task 
-                (examples in habitat-lab/configs/tasks/ and mushroom_rl/mushroom_rl/realistic_envs);
-             replica_json (str): 
+             config_file (str): path to the .yaml file specifying the task (see
+                habitat-lab/configs/tasks/ or mushroom_rl/examples/habitat_dqn);
+             replica_json (str):
              horizon (int, None): the horizon;
              gamma (float, 0.99): the discount factor;
+             width (int, None): width of the pixel observation. If None, the
+                one specified in the config file is used.
+             height (int, None): height of the pixel observation. If None, the
+                one specified in the config file is used.
 
         """
         # MDP creation
-        self._not_pybullet = True
+        self._not_pybullet = False
         self._first = True
 
-        print(config_path)
-        config = get_config(config_paths=config_path)
+        config = get_config(config_paths=config_file)
         config.defrost()
 
         if horizon is None:
@@ -101,7 +103,7 @@ class HabitatNav(Gym):
         config.SIMULATOR.RGB_SENSOR.POSITION = [0, 0.88, 0]
         config.TASK_CONFIG.DATASET.DATA_PATH = replica_json
         config.TASK_CONFIG.DATASET.SCENES_DIR += scene_name
-   
+
         config.freeze()
         dataset = make_dataset(id_dataset=config.TASK_CONFIG.DATASET.TYPE,
                                config=config.TASK_CONFIG.DATASET)
