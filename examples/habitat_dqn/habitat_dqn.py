@@ -21,9 +21,9 @@ from mushroom_rl.utils.replay_memory import PrioritizedReplayMemory
 
 
 """
-This script runs Atari experiments with DQN, and some of its variants, as
-presented in:
-"Human-Level Control Through Deep Reinforcement Learning". Mnih V. et al.. 2015.
+This script runs the Habitat navigation task in a Replica scene with DQN.
+By default, the scene is apartment_0 and start / goal location are defined in
+`replica_train_apartment-0.json`.
 
 """
 
@@ -138,7 +138,7 @@ def get_stats(dataset, logger):
 
 def experiment():
     np.random.seed()
-    default_config = os.path.join(pathlib.Path(__file__).parent.resolve(), 
+    default_config = os.path.join(pathlib.Path(__file__).parent.resolve(),
                                   'pointnav_apartment-0.yaml')
 
     # Argument parser
