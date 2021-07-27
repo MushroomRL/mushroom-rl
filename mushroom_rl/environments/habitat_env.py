@@ -3,9 +3,9 @@ import os
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
-    from habitat.datasets import make_dataset
     from habitat_baselines.config.default import get_config
-    from habitat_baselines.common.environments import NavRLEnv
+    from habitat_baselines.common.environments import get_env_class
+    from habitat_baselines.utils.env_utils import make_env_fn
 
 import gym
 import numpy as np
@@ -41,9 +41,9 @@ class HabitatWrapper(gym.Wrapper):
         return obs, rwd, done, info
 
 
-class HabitatNav(Gym):
+class Habitat(Gym):
     """
-    Interface for Habitat NavRLEnv with Replica scenes.
+    Interface for Habitat RL environments with Replica scenes.
     You need to install the following repositories / datasets:
      - https://github.com/facebookresearch/habitat-lab/
      - https://github.com/facebookresearch/habitat-sim/
@@ -100,9 +100,8 @@ class HabitatNav(Gym):
 
         config.freeze()
 
-        dataset = make_dataset(id_dataset=config.TASK_CONFIG.DATASET.TYPE,
-                               config=config.TASK_CONFIG.DATASET)
-        env = NavRLEnv(config=config, dataset=dataset)
+        env_class = get_env_class(config.ENV_NAME)
+        env = make_env_fn(env_class=env_class, config=config)
         env = HabitatWrapper(env)
         self.env = env
 
