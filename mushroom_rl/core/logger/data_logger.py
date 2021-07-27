@@ -97,8 +97,6 @@ class DataLogger(object):
         path = self._results_dir / filename
 
         with path.open(mode='wb') as f:
-            print(type(f))
-            print('filename')
             pickle.dump(dataset, f)
 
     @property
