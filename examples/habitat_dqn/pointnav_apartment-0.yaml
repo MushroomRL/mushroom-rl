@@ -44,6 +44,6 @@ TASK:
 DATASET:
   CONTENT_SCENES: ['*']
   DATA_PATH: "replica_{split}_apartment-0.json.gz"
-  SCENES_DIR: "Replica-Dataset/replica-path/apartment_0"
+  SCENES_DIR: "Replica-Dataset/path/to/replica_v1/apartment_0"
   TYPE: PointNav-v1
   SPLIT: train

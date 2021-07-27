@@ -19,9 +19,7 @@ from mushroom_rl.utils.parameters import LinearParameter, Parameter
 from mushroom_rl.utils.replay_memory import PrioritizedReplayMemory
 
 """
-This script runs Atari experiments with DQN, and some of its variants, as
-presented in:
-"Human-Level Control Through Deep Reinforcement Learning". Mnih V. et al.. 2015.
+This script runs MiniGrid tasks with DQN.
 
 """
 
