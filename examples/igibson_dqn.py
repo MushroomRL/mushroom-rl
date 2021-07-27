@@ -85,6 +85,46 @@ class Network(nn.Module):
             return q_acted
 
 
+class FeatureNetwork(nn.Module):
+    n_features = 512
+
+    def __init__(self, input_shape, output_shape, **kwargs):
+        super().__init__()
+
+        n_input = input_shape[0]
+
+        init_ = lambda m: init(m, nn.init.orthogonal_,
+            lambda x: nn.init.constant_(x, 0),
+            nn.init.calculate_gain('relu'))
+
+        self.feat_extract = nn.Sequential(
+            init_(nn.Conv2d(n_input, 32, kernel_size=(3,3), stride=2, padding=1)),
+            nn.ELU(),
+            init_(nn.Conv2d(32, 32, kernel_size=(3,3), stride=2, padding=1)),
+            nn.ELU(),
+            init_(nn.Conv2d(32, 32, kernel_size=(3,3), stride=2, padding=1)),
+            nn.ELU(),
+            init_(nn.Conv2d(32, 32, kernel_size=(3,3), stride=2, padding=1)),
+            nn.ELU(),
+            init_(nn.Conv2d(32, 32, kernel_size=(3,3), stride=2, padding=1)),
+            nn.ELU(),
+        )
+
+        dummy_obs = torch.zeros(1, *input_shape)
+        conv_out_size = np.prod(self.feat_extract(dummy_obs).shape)
+
+        init_ = lambda m: init(m, nn.init.orthogonal_,
+            lambda x: nn.init.constant_(x, 0))
+
+        self.output_layer = init_(nn.Linear(conv_out_size, self.n_features))
+
+    def forward(self, state, action=None):
+        h = self.feat_extract(state.float() / 255.)
+        h = self.output_layer(h.view(state.shape[0], -1))
+
+        return h
+
+
 
 def print_epoch(epoch, logger):
     logger.info('################################################################')
