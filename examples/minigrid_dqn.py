@@ -68,6 +68,8 @@ class Network(nn.Module):
 
 
 class FeatureNetwork(nn.Module):
+    n_features = 512
+    
     def __init__(self, input_shape, output_shape, **kwargs):
         super().__init__()
 
