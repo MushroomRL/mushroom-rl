@@ -87,6 +87,8 @@ class Network(nn.Module):
 
 
 class FeatureNetwork(nn.Module):
+    n_features = 512
+
     def __init__(self, input_shape, output_shape, **kwargs):
         super().__init__()
 
@@ -109,10 +111,13 @@ class FeatureNetwork(nn.Module):
             nn.ELU(),
         )
 
+        dummy_obs = torch.zeros(1, *input_shape)
+        conv_out_size = np.prod(self.feat_extract(dummy_obs).shape)
+
         init_ = lambda m: init(m, nn.init.orthogonal_,
             lambda x: nn.init.constant_(x, 0))
 
-        self.output_layer = init_(nn.Linear(self.n_features, n_output))
+        self.output_layer = init_(nn.Linear(conv_out_size, self.n_features))
 
     def forward(self, state, action=None):
         h = self.feat_extract(state.float() / 255.)
