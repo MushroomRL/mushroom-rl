@@ -90,13 +90,13 @@ class HabitatNav(Gym):
         config.defrost()
 
         if horizon is None:
-            horizon = config.ENVIRONMENT.MAX_EPISODE_STEPS # Get the default horizon
-        config.ENVIRONMENT.MAX_EPISODE_STEPS = horizon + 1 # Hack to ignore gym time limit
+            horizon = config.TASK_CONFIG.ENVIRONMENT.MAX_EPISODE_STEPS # Get the default horizon
+        config.TASK_CONFIG.ENVIRONMENT.MAX_EPISODE_STEPS = horizon + 1 # Hack to ignore gym time limit
 
         if width is not None:
-            config.SIMULATOR.RGB_SENSOR.WIDTH = width
+            config.TASK_CONFIG.SIMULATOR.RGB_SENSOR.WIDTH = width
         if height is not None:
-            config.SIMULATOR.RGB_SENSOR.HEIGHT = height
+            config.TASK_CONFIG.SIMULATOR.RGB_SENSOR.HEIGHT = height
 
         config.freeze()
 
