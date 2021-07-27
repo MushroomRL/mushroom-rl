@@ -20,7 +20,11 @@ for an example. For more details, please see the
 [official documentation](http://svl.stanford.edu/igibson/).
 
 For Habitat, you need to download scenes separately. For more details, please
-see [here](https://github.com/facebookresearch/habitat-lab#task-datasets).
+see [here](https://github.com/facebookresearch/habitat-lab#data) and
+[here](https://github.com/facebookresearch/habitat-lab#task-datasets).
+In `examples/habitat` we use Replica and ReplicaCAD for navigation and
+interaction tasks, respectively. For ReplicaCAD, follow
+[this](https://github.com/facebookresearch/habitat-lab#replicacad).
 Below, we explain how to use Replica scenes.
 
 ### How to Use Replica Scenes
