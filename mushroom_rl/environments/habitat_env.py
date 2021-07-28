@@ -23,8 +23,8 @@ class HabitatWrapper(gym.Wrapper):
     to the 'info' dictionary (e.g., the agent's true position).
 
     """
-    def __init__(self, env):
-        gym.Wrapper.__init__(self, env, obs_key)
+    def __init__(self, env, obs_key):
+        gym.Wrapper.__init__(self, env)
         self.obs_key = obs_key
         self.action_space = gym.spaces.Discrete(env.action_space.n - 1)
         self.observation_space = self.env.observation_space[self.obs_key]
