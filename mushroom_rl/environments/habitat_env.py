@@ -35,21 +35,25 @@ class HabitatWrapper(gym.Wrapper):
     def get_position(self):
         return self.env._env._sim.get_agent_state().position
 
+    def get_ee_position(self):
+        return self.env._env._sim.robot.ee_transform.translation
+
     def step(self, action):
         obs, rwd, done, info = self.env.step(**{'action': action[0] + 1})
         obs = np.asarray(obs[self.obs_key])
         info.update({'position': self.get_position()})
+        try: # Not all robots have an end-effector
+            info.update({'ee_position': self.get_ee_position()})
+        except:
+            pass
         return obs, rwd, done, info
 
 
 class Habitat(Gym):
     """
-    Interface for Habitat RL environments with Replica scenes.
-    You need to install the following repositories / datasets:
-     - https://github.com/facebookresearch/habitat-lab/
-     - https://github.com/facebookresearch/habitat-sim/
-     - https://github.com/facebookresearch/Replica-Dataset
+        See <MUSHROOM_RL PATH>/examples/habitat/ for more details.
 
+    Interface for Habitat RL environments.
     The agent has to navigate from point A to point B in realistic scenes.
     Observations are pixel images of what the agent sees in front of itself.
     Image resolution is specified in the config file.

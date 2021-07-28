@@ -1,27 +1,50 @@
-## Habitat Installation
-* [Install habitat-sim](https://github.com/facebookresearch/habitat-sim/).
-It is recommended to install [the nightly build with conda](https://anaconda.org/aihabitat-nightly/habitat-sim).
-Otherwise, [install it from souce](https://github.com/facebookresearch/habitat-sim/blob/master/BUILD_FROM_SOURCE.md).
-* [Install habitat-lab](https://github.com/facebookresearch/habitat-lab).
-The full installation including `habitat_baselines` is required.
+Habitat and iGibson support many realistic scenes as environment for the agent.
+By default the agent's observations are RGB images, but RGBD, sensory data, and
+other information can also be used.
 
+>> If you have previous version of iGibson or Habitat already installed, we
+recommend to remove them and do clean installs.
 
 ## iGibson Installation
-Follow the official guide [here](https://github.com/StanfordVL/iGibson).
+Follow the [official guide](https://github.com/StanfordVL/iGibson).
 
-
-## Scene Datasets
-Habitat and iGibson support many realistic scenes as environment for the agent.
-
-iGibson has its own dataset that can be downloaded and used right away.
+iGibson has its own scene dataset that can be downloaded and used right away.
 Alternatively, you can use third party datasets. The scene is defined a yaml
-file, that needs to be passed to the agent. See `<IGIBSON PATH>/igibson/test/test_house.yaml`
-for an example. For more details, please see the
-[official documentation](http://svl.stanford.edu/igibson/).
+file, that needs to be passed to the agent.
+See `<IGIBSON PATH>/igibson/test/test_house.yaml` for an example.
+For more details, please see the
+[official documentation](http://svl.stanford.edu/igibson/#download_dataset/).
+
+
+## Habitat Installation
+Follow the [official guide](https://github.com/facebookresearch/habitat-lab/#installation)
+and do a **full install** with `habitat_baselines`.
 
 For Habitat, you need to download scenes separately. For more details, please
 see [here](https://github.com/facebookresearch/habitat-lab#data) and
 [here](https://github.com/facebookresearch/habitat-lab#task-datasets).
+If you have followed the instructions and ran `python examples/example.py`,
+you should have already downloaded all interactive datasets.
+If you need to download other datasets, you can use
+[this utility](https://github.com/facebookresearch/habitat-sim/blob/master/habitat_sim/utils/datasets_download.py).
+
+For our example, we need to run
+```
+python -m habitat_sim.utils.datasets_download --uids habitat_test_pointnav_dataset --data-path data
+python -m habitat_sim.utils.datasets_download --uids habitat_test_scenes --data-path data
+```
+
+Unfortunately, Habitat looks for dataset...
+
+```
+ln -s /private/home/sparisi/habitat-baselines/habitat-lab/data/ /private/home/sparisi/mushroom-rl/examples/habitat
+```
+
+If you want to suppress Habitat messages run:
+export GLOG_minloglevel=2
+export MAGNUM_LOG=quiet
+
+
 In `<MUSHROOM_RL PATH>/examples/habitat` we use Replica and ReplicaCAD for
 navigation and interaction tasks, respectively. For ReplicaCAD, follow
 [this](https://github.com/facebookresearch/habitat-lab#replicacad).
