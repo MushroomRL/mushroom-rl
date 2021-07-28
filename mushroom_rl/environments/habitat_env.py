@@ -15,7 +15,7 @@ from mushroom_rl.environments import Gym
 from mushroom_rl.utils.spaces import Discrete, Box
 
 
-class HabitatWrapper(gym.Wrapper):
+class HabitatNavigationWrapper(gym.Wrapper):
     """
     This wrapper removes action 0, that by default resets the environment
     (we reset the environment only by calling env.reset()).
@@ -23,29 +23,50 @@ class HabitatWrapper(gym.Wrapper):
     to the 'info' dictionary (e.g., the agent's true position).
 
     """
-    def __init__(self, env, obs_key):
+    def __init__(self, env):
         gym.Wrapper.__init__(self, env)
-        self.obs_key = obs_key
         self.action_space = gym.spaces.Discrete(env.action_space.n - 1)
-        self.observation_space = self.env.observation_space[self.obs_key]
+        self.observation_space = self.env.observation_space['rgb']
 
     def reset(self):
-        return np.asarray(self.env.reset()[self.obs_key])
+        return np.asarray(self.env.reset()['rgb'])
 
     def get_position(self):
         return self.env._env._sim.get_agent_state().position
+
+    def step(self, action):
+        obs, rwd, done, info = self.env.step(**{'action': action[0] + 1})
+        obs = np.asarray(obs['rgb'])
+        info.update({'position': self.get_position()})
+        return obs, rwd, done, info
+
+
+class HabitatRearrangeWrapper(gym.Wrapper):
+    """
+    This wrapper removes action 0, that by default resets the environment
+    (we reset the environment only by calling env.reset()).
+    It also gets only the RGB agent's view as observation, and adds data
+    to the 'info' dictionary (e.g., the agent's true position).
+
+    """
+    def __init__(self, env):
+        gym.Wrapper.__init__(self, env)
+        self.action_space = Box(low=0., high=1., shape=(8,))
+        self.observation_space = self.env.observation_space['robot_head_rgb']
+
+    def reset(self):
+        return np.asarray(self.env.reset()['robot_head_rgb'])
 
     def get_ee_position(self):
         return self.env._env._sim.robot.ee_transform.translation
 
     def step(self, action):
-        obs, rwd, done, info = self.env.step(**{'action': action[0] + 1})
-        obs = np.asarray(obs[self.obs_key])
-        info.update({'position': self.get_position()})
-        try: # Not all robots have an end-effector
-            info.update({'ee_position': self.get_ee_position()})
-        except:
-            pass
+        action = {'action': 'ARM_ACTION', 'action_args': {'arm_ac': action[:-1], 'grip_ac': action[-1]}}
+        obs, rwd, done, info = self.env.step(**{'action': action})
+        ee_pos = np.asarray(obs['ee_pos'])
+        obs = np.asarray(obs['robot_head_rgb'])
+        info.update({'ee_position': self.get_ee_position()})
+        info.update({'ee_position_x': ee_pos})
         return obs, rwd, done, info
 
 
@@ -106,7 +127,8 @@ class Habitat(Gym):
 
         env_class = get_env_class(config.ENV_NAME)
         env = make_env_fn(env_class=env_class, config=config)
-        env = HabitatWrapper(env, config.OBS_KEY)
+        # env = HabitatNavigationWrapper(env)
+        env = HabitatRearrangeWrapper(env)
         self.env = env
 
         self._img_size = env.observation_space.shape[0:2]
