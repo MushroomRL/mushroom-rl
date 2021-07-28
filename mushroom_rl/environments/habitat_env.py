@@ -25,7 +25,8 @@ class HabitatWrapper(gym.Wrapper):
     """
     def __init__(self, env):
         gym.Wrapper.__init__(self, env)
-        self.action_space = gym.spaces.Discrete(env.action_space.n - 1)
+        if isinstance(env.action_space, Discrete):
+            self.action_space = gym.spaces.Discrete(env.action_space.n - 1)
         self.observation_space = self.env.observation_space['rgb']
 
     def reset(self):
