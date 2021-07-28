@@ -1,9 +1,13 @@
+>> If you already have old versions of Habitat or iGibson installed,
+we recommend to do a clean install.
+
+
 ## Habitat Installation
-* [Install habitat-sim](https://github.com/facebookresearch/habitat-sim/).
-It is recommended to install [the nightly build with conda](https://anaconda.org/aihabitat-nightly/habitat-sim).
-Otherwise, [install it from souce](https://github.com/facebookresearch/habitat-sim/blob/master/BUILD_FROM_SOURCE.md).
-* [Install habitat-lab](https://github.com/facebookresearch/habitat-lab).
-The full installation including `habitat_baselines` is required.
+Follow the [official guide](https://github.com/facebookresearch/habitat-lab#installation).
+You have to install *the full version* (that incudes `habitat_baselines`) and
+[habitat-sim](https://github.com/facebookresearch/habitat-sim/).
+Then follow the instructions to run the example, and you will download all
+interactive datasets.
 
 
 ## iGibson Installation
@@ -22,9 +26,9 @@ for an example. For more details, please see the
 For Habitat, you need to download scenes separately. For more details, please
 see [here](https://github.com/facebookresearch/habitat-lab#data) and
 [here](https://github.com/facebookresearch/habitat-lab#task-datasets).
-In `examples/habitat` we use Replica and ReplicaCAD for navigation and
-interaction tasks, respectively. For ReplicaCAD, follow
-[this](https://github.com/facebookresearch/habitat-lab#replicacad).
+In `examples/habitat` we use Replica and ReplicaCAD for a navigation and
+an interaction demo, respectively. If you have followed `habitat-lab` instructions
+and ran its example, you should have all the interactive datasets already installed.
 Below, we explain how to use Replica scenes.
 
 ### How to Use Replica Scenes
