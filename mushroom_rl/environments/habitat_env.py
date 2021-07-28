@@ -19,24 +19,25 @@ class HabitatWrapper(gym.Wrapper):
     """
     This wrapper removes action 0, that by default resets the environment
     (we reset the environment only by calling env.reset()).
-    It also gets only the RGB agent's view as observation, and adds the agent's
-    true position in the info dictionary.
+    It also gets only the RGB agent's view as observation, and adds data
+    to the 'info' dictionary (e.g., the agent's true position).
 
     """
     def __init__(self, env):
-        gym.Wrapper.__init__(self, env)
+        gym.Wrapper.__init__(self, env, obs_key)
+        self.obs_key = obs_key
         self.action_space = gym.spaces.Discrete(env.action_space.n - 1)
-        self.observation_space = self.env.observation_space['rgb']
+        self.observation_space = self.env.observation_space[self.obs_key]
 
     def reset(self):
-        return np.asarray(self.env.reset()['rgb'])
+        return np.asarray(self.env.reset()[self.obs_key])
 
     def get_position(self):
         return self.env._env._sim.get_agent_state().position
 
     def step(self, action):
         obs, rwd, done, info = self.env.step(**{'action': action[0] + 1})
-        obs = np.asarray(obs['rgb'])
+        obs = np.asarray(obs[self.obs_key])
         info.update({'position': self.get_position()})
         return obs, rwd, done, info
 
@@ -86,7 +87,6 @@ class Habitat(Gym):
         self._first = True
 
         config = get_config(config_paths=config_file)
-       #                     opts=['BASE_TASK_CONFIG_PATH', config_file])
         config.defrost()
 
         if horizon is None:
@@ -102,7 +102,7 @@ class Habitat(Gym):
 
         env_class = get_env_class(config.ENV_NAME)
         env = make_env_fn(env_class=env_class, config=config)
-        env = HabitatWrapper(env)
+        env = HabitatWrapper(env, config.OBS_KEY)
         self.env = env
 
         self._img_size = env.observation_space.shape[0:2]

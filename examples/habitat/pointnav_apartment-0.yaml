@@ -1,3 +1,8 @@
+BASE_TASK_CONFIG_PATH: pointnav_apartment-0.yaml
+
+OBS_KEY: 'rgb' # this is a custom key for telling the wrapper which part of the observation dictionary we need
+INFO_KEYS: 'position' # another custom key, for telling the wrapper what data we want in the 'info' variable returned by step()
+
 ENV_NAME: "NavRLEnv"
 
 ENVIRONMENT:
