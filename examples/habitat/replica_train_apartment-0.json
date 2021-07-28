@@ -1,0 +1,1 @@
+{"episodes": [{"episode_id": "0", "scene_id": "habitat/mesh_semantic.ply", "start_position": [2.89, -1.54, -1.32], "start_rotation": [0.0, 0.0, 0.0, 1.0], "info": {"geodesic_distance": 5.897794723510742, "difficulty": "easy"}, "goals": [{"position": [-2.61, -1.54, 4.18], "radius": null}], "shortest_paths": null, "start_room": null}]}
