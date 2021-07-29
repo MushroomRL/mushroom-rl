@@ -12,6 +12,11 @@ from mushroom_rl.environments.igibson_env import iGibson
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy
 from mushroom_rl.utils.dataset import compute_J
 
+"""
+Simple script to run DMControl walker stand-up task from pixels with DDPG.
+
+"""
+
 
 class CriticNetwork(nn.Module):
     def __init__(self, input_shape, output_shape, n_features, **kwargs):
@@ -87,67 +92,72 @@ class ActorNetwork(nn.Module):
         return a
 
 
-# MDP
-horizon = 500
-gamma = 0.99
-gamma_eval = 1.
-mdp = DMControl('walker', 'stand', horizon, gamma, use_pixels=True)
+def experiment():
+    # MDP
+    horizon = 500
+    gamma = 0.99
+    gamma_eval = 1.
+    mdp = DMControl('walker', 'stand', horizon, gamma, use_pixels=True)
 
-# Policy
-policy_class = OrnsteinUhlenbeckPolicy
-policy_params = dict(sigma=np.ones(1) * .2, theta=.15, dt=1e-2)
+    # Policy
+    policy_class = OrnsteinUhlenbeckPolicy
+    policy_params = dict(sigma=np.ones(1) * .2, theta=.15, dt=1e-2)
 
-# Settings
-initial_replay_size = 500
-max_replay_size = 5000
-batch_size = 200
-n_features = 80
-tau = .001
+    # Settings
+    initial_replay_size = 500
+    max_replay_size = 5000
+    batch_size = 200
+    n_features = 80
+    tau = .001
 
-# Approximator
-actor_input_shape = mdp.info.observation_space.shape
-actor_params = dict(network=ActorNetwork,
-                    n_features=n_features,
-                    input_shape=actor_input_shape,
-                    output_shape=mdp.info.action_space.shape)
+    # Approximator
+    actor_input_shape = mdp.info.observation_space.shape
+    actor_params = dict(network=ActorNetwork,
+                        n_features=n_features,
+                        input_shape=actor_input_shape,
+                        output_shape=mdp.info.action_space.shape)
 
-actor_optimizer = {'class': optim.Adam,
-                   'params': {'lr': 1e-5}}
+    actor_optimizer = {'class': optim.Adam,
+                       'params': {'lr': 1e-5}}
 
-critic_input_shape = actor_input_shape + mdp.info.action_space.shape
-critic_params = dict(network=CriticNetwork,
-                     optimizer={'class': optim.Adam,
-                                'params': {'lr': 1e-3}},
-                     loss=F.mse_loss,
-                     n_features=n_features,
-                     input_shape=critic_input_shape,
-                     output_shape=(1,))
+    critic_input_shape = actor_input_shape + mdp.info.action_space.shape
+    critic_params = dict(network=CriticNetwork,
+                         optimizer={'class': optim.Adam,
+                                    'params': {'lr': 1e-3}},
+                         loss=F.mse_loss,
+                         n_features=n_features,
+                         input_shape=critic_input_shape,
+                         output_shape=(1,))
 
-# Agent
-agent = DDPG(mdp.info, policy_class, policy_params,
-             actor_params, actor_optimizer, critic_params,
-             batch_size, initial_replay_size, max_replay_size,
-             tau)
+    # Agent
+    agent = DDPG(mdp.info, policy_class, policy_params,
+                 actor_params, actor_optimizer, critic_params,
+                 batch_size, initial_replay_size, max_replay_size,
+                 tau)
 
-# Algorithm
-core = Core(agent, mdp)
+    # Algorithm
+    core = Core(agent, mdp)
 
-# Fill the replay memory with random samples
-core.learn(n_steps=initial_replay_size, n_steps_per_fit=initial_replay_size)
+    # Fill the replay memory with random samples
+    core.learn(n_steps=initial_replay_size, n_steps_per_fit=initial_replay_size)
 
-# RUN
-n_epochs = 40
-n_steps = 1000
-n_steps_test = 2000
+    # RUN
+    n_epochs = 40
+    n_steps = 1000
+    n_steps_test = 2000
 
-dataset = core.evaluate(n_steps=n_steps_test, render=False)
-J = compute_J(dataset, gamma_eval)
-print('Epoch: 0')
-print('J: ', np.mean(J))
-
-for n in range(n_epochs):
-    print('Epoch: ', n+1)
-    core.learn(n_steps=n_steps, n_steps_per_fit=1)
     dataset = core.evaluate(n_steps=n_steps_test, render=False)
     J = compute_J(dataset, gamma_eval)
+    print('Epoch: 0')
     print('J: ', np.mean(J))
+
+    for n in range(n_epochs):
+        print('Epoch: ', n+1)
+        core.learn(n_steps=n_steps, n_steps_per_fit=1)
+        dataset = core.evaluate(n_steps=n_steps_test, render=False)
+        J = compute_J(dataset, gamma_eval)
+        print('J: ', np.mean(J))
+
+
+if __name__ == '__main__':
+    experiment()
