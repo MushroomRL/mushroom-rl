@@ -82,9 +82,9 @@ class ActorNetwork(nn.Module):
         h = F.relu(self._h2(h))
         h = F.relu(self._h3(h))
         h = F.relu(self._h4(h.view(state.shape[0], -1)))
-        q = self._h5(h)
+        a = self._h5(h)
 
-        return q
+        return a
 
 
 # MDP
@@ -114,7 +114,7 @@ actor_params = dict(network=ActorNetwork,
 actor_optimizer = {'class': optim.Adam,
                    'params': {'lr': 1e-5}}
 
-critic_input_shape = actor_input_shape + mdp.info.action_space.shape
+critic_input_shape = (actor_input_shape[0] + mdp.info.action_space.shape[0],)
 critic_params = dict(network=CriticNetwork,
                      optimizer={'class': optim.Adam,
                                 'params': {'lr': 1e-3}},
