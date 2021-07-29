@@ -8,6 +8,7 @@ with warnings.catch_warnings():
         os.environ['GLOG_minloglevel'] = '2'
 
     warnings.filterwarnings("ignore", category=DeprecationWarning)
+    import habitat
     from habitat_baselines.config.default import get_config
     from habitat_baselines.common.environments import get_env_class
     from habitat_baselines.utils.env_utils import make_env_fn
