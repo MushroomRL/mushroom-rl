@@ -117,7 +117,8 @@ class Habitat(Gym):
                 configuration (see <HABITAT_RL PATH>/habitat_baselines/configs/);
              base_config_file (str): path to the yaml file specifying the
                 base configuration (see <HABITAT_RL PATH>/configs/);
-             wrapper (HabitatWrapper): one of the above wrapper classes;
+             wrapper (str): wrapper for converting observations and actions
+                (e.g., HabitatRearrangeWrapper);
              horizon (int, None): the horizon;
              gamma (float, 0.99): the discount factor;
              width (int, None): width of the pixel observation. If None, the
@@ -147,7 +148,7 @@ class Habitat(Gym):
 
         env_class = get_env_class(config.ENV_NAME)
         env = make_env_fn(env_class=env_class, config=config)
-        env = wrapper(env)
+        env = globals()[wrapper](env)
         self.env = env
 
         self._img_size = env.observation_space.shape[0:2]

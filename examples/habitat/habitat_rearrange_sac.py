@@ -96,13 +96,12 @@ def experiment(alg, n_epochs, n_steps, n_episodes_test):
 
     # MDP
     gamma = 0.99
-    import habitat
-    habitat_root_path = os.path.dirname(os.path.dirname(habitat.__file__))
+    habitat_root_path = Habitat.root_path()
     config_file = os.path.join(habitat_root_path,
         'habitat_baselines/config/rearrange/ddppo_rearrangepick.yaml')
     base_config_file = os.path.join(habitat_root_path,
         'configs/tasks/rearrangepick_replica_cad.yaml')
-    wrapper = HabitatRearrangeWrapper
+    wrapper = 'HabitatRearrangeWrapper'
     mdp = Habitat(config_file, base_config_file, HabitatRearrangeWrapper, gamma)
 
     # Settings

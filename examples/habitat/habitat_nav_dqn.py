@@ -297,7 +297,7 @@ def experiment():
         'pointnav_apartment-0.yaml') # Custom task for Replica scenes
     base_config_file = os.path.join(habitat_root_path,
         'configs/tasks/pointnav.yaml') # Default navigation simulator config
-    wrapper = HabitatNavigationWrapper
+    wrapper = 'HabitatNavigationWrapper'
     mdp = Habitat(config_file, base_config_file, wrapper)
 
     if args.load_path:
