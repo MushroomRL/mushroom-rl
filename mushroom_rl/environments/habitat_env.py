@@ -2,6 +2,11 @@ import warnings
 import os
 
 with warnings.catch_warnings():
+
+    if 'VERBOSE_HABITAT' not in os.environ: # To suppress Habitat messages
+        os.environ['MAGNUM_LOG'] = 'quiet'
+        os.environ['GLOG_minloglevel'] = '2'
+
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     from habitat_baselines.config.default import get_config
     from habitat_baselines.common.environments import get_env_class
