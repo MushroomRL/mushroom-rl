@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 from mushroom_rl.algorithms.actor_critic import SAC
 from mushroom_rl.core import Core, Logger
-from mushroom_rl.environments.gym_env import Gym
+from mushroom_rl.environments.habitat_env import Habitat
 from mushroom_rl.utils.dataset import compute_J, parse_dataset
 
 from tqdm import trange
@@ -127,7 +127,8 @@ def experiment(alg, n_epochs, n_steps, n_episodes_test):
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': 3e-4}}
 
-    critic_input_shape = (actor_input_shape[0] + mdp.info.action_space.shape[0],)
+    
+    critic_input_shape = actor_input_shape + mdp.info.action_space.shape
     critic_params = dict(network=CriticNetwork,
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': 3e-4}},
