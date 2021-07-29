@@ -17,10 +17,13 @@ from mushroom_rl.utils.spaces import Discrete, Box
 
 class HabitatNavigationWrapper(gym.Wrapper):
     """
-    This wrapper removes action 0, that by default resets the environment
-    (we reset the environment only by calling env.reset()).
-    It also gets only the RGB agent's view as observation, and adds data
-    to the 'info' dictionary (e.g., the agent's true position).
+    Use it for navigation tasks, where the agent has to go from point A to B.
+    Action is discrete: turn left, turn right, move forward. The amount of
+    degrees / distance the agent turns / moves is defined in the yaml file.
+    This wrapper also removes Habitat's default action 0, that resets the
+    environment (we reset the environment only by calling env.reset()).
+    The observation is the RGB agent's view of what it sees in front of itself.
+    We also add the agent's true (x,y) position to the 'info' dictionary.
 
     """
     def __init__(self, env):
@@ -43,15 +46,32 @@ class HabitatNavigationWrapper(gym.Wrapper):
 
 class HabitatRearrangeWrapper(gym.Wrapper):
     """
-    This wrapper removes action 0, that by default resets the environment
-    (we reset the environment only by calling env.reset()).
-    It also gets only the RGB agent's view as observation, and adds data
-    to the 'info' dictionary (e.g., the agent's true position).
+    Use it for the rearrange task, where the robot is fixed at one location and
+    needs to move its arm to pick and place objects. The goal is to place all
+    target objects within 15cm of their goal positions (object orientation is
+    not considered).
+    The observation is the RGB image returned by the sensor mounted on the head
+    of the robot. We also return the end-effector position in the 'info'
+    dictionary. The action is mixed.
+    The first elements of the action vector are continuous values for velocity
+    control of the arm's joint. The last element is a scalar value for picking /
+    placing an object: if this scalar is positive and the gripper is not
+    currently holding an object and the end-effector is within 15cm of an object,
+    then the object closest to the end-effector is grasped; if the scalar is
+    negative and the gripper is carrying an object, the object is let go.
+
+    For reward details and other task details we refer to
+    https://arxiv.org/pdf/2106.14405.pdf
 
     """
     def __init__(self, env):
         gym.Wrapper.__init__(self, env)
-        self.action_space = Box(low=0., high=1., shape=(8,))
+        self.arm_ac_size = env.action_space['ARM_ACTION']['arm_ac'].shape
+        self.grip_ac_size = env.action_space['ARM_ACTION']['grip_ac'].n
+        self.n_actions = self.arm_ac_size + self.grip_ac_size
+        low = np.array([0.] * self.arm_ac_size + [-1.] * self.grip_ac_size)
+        high = np.ones((self.arm_ac_size + self.grip_ac_size))
+        self.action_space = Box(low=low, high=high, shape=(self.n_actions,))
         self.observation_space = self.env.observation_space['robot_head_rgb']
 
     def reset(self):
@@ -61,44 +81,39 @@ class HabitatRearrangeWrapper(gym.Wrapper):
         return self.env._env._sim.robot.ee_transform.translation
 
     def step(self, action):
-        action = {'action': 'ARM_ACTION', 'action_args': {'arm_ac': action[:-1], 'grip_ac': action[-1]}}
+        action = {'action': 'ARM_ACTION', 'action_args':
+            {'arm_ac': action[:-self.grip_ac_size], 'grip_ac': action[-self.grip_ac_size:]}}
         obs, rwd, done, info = self.env.step(**{'action': action})
         ee_pos = np.asarray(obs['ee_pos'])
         obs = np.asarray(obs['robot_head_rgb'])
-        info.update({'ee_position': self.get_ee_position()})
+        info.update({'ee_position': self.get_ee_position()}) # TODO: check difference
         info.update({'ee_position_x': ee_pos})
         return obs, rwd, done, info
 
 
 class Habitat(Gym):
     """
-        See <MUSHROOM_RL PATH>/examples/habitat/ for more details.
-
     Interface for Habitat RL environments.
-    The agent has to navigate from point A to point B in realistic scenes.
-    Observations are pixel images of what the agent sees in front of itself.
-    Image resolution is specified in the config file.
-    Actions are 1 (move forward), 2 (turn left), and 3 (turn right). The amount
-    of distance / degrees the agent moves / turns is specified in the config file.
+    This class is very generic and can be used for many Habitat task. Depending
+    on the robot / task, you have to use different wrappers, since observation
+    and action spaces may vary.
 
-    Scene details, such as the agent's initial position and orientation, are
-    defined in the replica json file. If you want to try new positions, you can
-    sample some from the set of the scene's navigable points, accessible by
-    NavRLEnv._env._sim.sample_navigable_point().
+    See <MUSHROOM_RL PATH>/examples/habitat/ for more details.
 
     If you want to suppress Habitat messages run:
     export GLOG_minloglevel=2
     export MAGNUM_LOG=quiet
 
     """
-    def __init__(self, config_file, horizon=None, gamma=0.99,
+    def __init__(self, config_file, wrapper, horizon=None, gamma=0.99,
                  width=None, height=None):
         """
         Constructor.
 
         Args:
              config_file (str): path to the yaml file specifying the task (see
-                habitat-lab/configs/tasks/ or mushroom_rl/examples/habitat_dqn);
+                <HABITAT_RL PATH>/configs/tasks/ or <MUSHROOM_RL PATH>/examples/habitat_dqn);
+             wrapper (HabitatWrapper): one of the above wrapper classes;
              horizon (int, None): the horizon;
              gamma (float, 0.99): the discount factor;
              width (int, None): width of the pixel observation. If None, the
@@ -127,8 +142,7 @@ class Habitat(Gym):
 
         env_class = get_env_class(config.ENV_NAME)
         env = make_env_fn(env_class=env_class, config=config)
-        # env = HabitatNavigationWrapper(env)
-        env = HabitatRearrangeWrapper(env)
+        env = wrapper(env)
         self.env = env
 
         self._img_size = env.observation_space.shape[0:2]
@@ -157,6 +171,12 @@ class Habitat(Gym):
 
     def stop(self):
         pass
+
+    def render(self, mode='human'):
+        if self._first:
+            self.env.render(mode=mode)
+            self._first = False
+
 
     @staticmethod
     def _convert_observation(observation):

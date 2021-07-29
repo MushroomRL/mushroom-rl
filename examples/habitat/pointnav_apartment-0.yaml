@@ -1,7 +1,5 @@
 BASE_TASK_CONFIG_PATH: pointnav_apartment-0.yaml
 
-OBS_KEY: 'rgb' # this is a custom key for telling the wrapper which part of the observation dictionary we need
-
 ENV_NAME: "NavRLEnv"
 
 ENVIRONMENT:

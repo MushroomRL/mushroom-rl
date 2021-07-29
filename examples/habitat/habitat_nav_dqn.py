@@ -13,7 +13,7 @@ from mushroom_rl.algorithms.value import AveragedDQN, CategoricalDQN, DQN,\
     DoubleDQN, MaxminDQN, DuelingDQN, NoisyDQN, Rainbow
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.core import Core, Logger
-from mushroom_rl.environments import *
+from mushroom_rl.environments.habitat_env import *
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.utils.dataset import compute_metrics
 from mushroom_rl.utils.parameters import LinearParameter, Parameter
@@ -301,7 +301,8 @@ def experiment():
         max_steps = args.max_steps
 
     # MDP
-    mdp = Habitat(args.config_file)
+    wrapper = HabitatNavigationWrapper
+    mdp = Habitat(args.config_file, wrapper)
 
     if args.load_path:
         logger = Logger(DQN.__name__, results_dir=None)

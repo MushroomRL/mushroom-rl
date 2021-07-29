@@ -1,8 +1,6 @@
 # BASE_TASK_CONFIG_PATH: configs/tasks/rearrangepick_replica_cad.yaml
 BASE_TASK_CONFIG_PATH: /private/home/sparisi/habitat-baselines/habitat-lab/configs/tasks/rearrangepick_replica_cad.yaml
 
-OBS_KEY: 'robot_head_rgb'
-
 RL:
     REWARD_MEASURE: "rearrangepick_reward"
     SUCCESS_MEASURE: "rearrangepick_success"

@@ -67,3 +67,8 @@ Scene details, such as the agent's initial position and orientation, are defined
 in a json file. This file is usually named `replica-{split}.json`, where `split`
 is defined in the yaml file under `DATASET.SPLIT`. You need to pass the json file
 to the yaml file under `DATASET.DATA_PATH`.
+
+Scene details, such as the agent's initial position and orientation, are
+defined in the replica json file. If you want to try new positions, you can
+sample some from the set of the scene's navigable points, accessible by
+NavRLEnv._env._sim.sample_navigable_point().

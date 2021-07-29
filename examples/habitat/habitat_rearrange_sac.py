@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 from mushroom_rl.algorithms.actor_critic import SAC
 from mushroom_rl.core import Core, Logger
-from mushroom_rl.environments.habitat_env import Habitat
+from mushroom_rl.environments.habitat_env import *
 from mushroom_rl.utils.dataset import compute_J, parse_dataset
 
 from tqdm import trange
@@ -95,10 +95,10 @@ def experiment(alg, n_epochs, n_steps, n_episodes_test):
     logger.info('Experiment Algorithm: ' + alg.__name__)
 
     # MDP
-    horizon = 200
     gamma = 0.99
     config_file = '/private/home/sparisi/mushroom-rl/examples/habitat/ddppo_rearrangepick.yaml'
-    mdp = Habitat(config_file, horizon, gamma)
+    wrapper = HabitatRearrangeWrapper
+    mdp = Habitat(config_file, HabitatRearrangeWrapper, gamma)
 
     # Settings
     initial_replay_size = 64
@@ -127,7 +127,7 @@ def experiment(alg, n_epochs, n_steps, n_episodes_test):
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': 3e-4}}
 
-    
+
     critic_input_shape = actor_input_shape + mdp.info.action_space.shape
     critic_params = dict(network=CriticNetwork,
                          optimizer={'class': optim.Adam,
@@ -170,7 +170,7 @@ def experiment(alg, n_epochs, n_steps, n_episodes_test):
 
         logger.epoch_info(n+1, J=J, R=R, entropy=E)
 
-    logger.info('Press a button to visualize pendulum')
+    logger.info('Press a button to visualize the robot')
     input()
     core.evaluate(n_episodes=5, render=True)
 
@@ -181,4 +181,4 @@ if __name__ == '__main__':
     ]
 
     for alg in algs:
-        experiment(alg=alg, n_epochs=40, n_steps=1000, n_episodes_test=2000)
+        experiment(alg=alg, n_epochs=50, n_steps=1000, n_episodes_test=5)
