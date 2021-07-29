@@ -105,14 +105,17 @@ class Habitat(Gym):
     export MAGNUM_LOG=quiet
 
     """
-    def __init__(self, config_file, wrapper, horizon=None, gamma=0.99,
+    def __init__(self, config_file, base_config_file, wrapper, horizon=None, gamma=0.99,
                  width=None, height=None):
         """
-        Constructor.
+        Constructor. For more details on how to pass yaml configuration files,
+        please see <MUSHROOM_RL PATH>/examples/habitat/README.md
 
         Args:
-             config_file (str): path to the yaml file specifying the task (see
-                <HABITAT_RL PATH>/configs/tasks/ or <MUSHROOM_RL PATH>/examples/habitat_dqn);
+             config_file (str): path to the yaml file specifying the RL task
+                configuration (see <HABITAT_RL PATH>/habitat_baselines/configs/);
+             base_config_file (str): path to the yaml file specifying the
+                base configuration (see <HABITAT_RL PATH>/configs/);
              wrapper (HabitatWrapper): one of the above wrapper classes;
              horizon (int, None): the horizon;
              gamma (float, 0.99): the discount factor;
@@ -126,7 +129,8 @@ class Habitat(Gym):
         self._not_pybullet = False
         self._first = True
 
-        config = get_config(config_paths=config_file)
+        config = get_config(config_paths=config_file,
+                    opts=['BASE_TASK_CONFIG_PATH', base_config_file])
         config.defrost()
 
         if horizon is None:

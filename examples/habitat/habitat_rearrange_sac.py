@@ -96,9 +96,14 @@ def experiment(alg, n_epochs, n_steps, n_episodes_test):
 
     # MDP
     gamma = 0.99
-    config_file = '/private/home/sparisi/mushroom-rl/examples/habitat/ddppo_rearrangepick.yaml'
+    import habitat
+    habitat_root_path = os.path.dirname(os.path.dirname(habitat.__file__))
+    config_file = os.path.join(habitat_root_path,
+        'habitat_baselines/config/rearrange/ddppo_rearrangepick.yaml')
+    base_config_file = os.path.join(habitat_root_path,
+        'configs/tasks/rearrangepick_replica_cad.yaml')
     wrapper = HabitatRearrangeWrapper
-    mdp = Habitat(config_file, HabitatRearrangeWrapper, gamma)
+    mdp = Habitat(config_file, base_config_file, HabitatRearrangeWrapper, gamma)
 
     # Settings
     initial_replay_size = 64
