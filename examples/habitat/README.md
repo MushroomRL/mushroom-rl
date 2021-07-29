@@ -6,14 +6,20 @@ other information can also be used.
 recommend to remove them and do clean installs.
 
 ## iGibson Installation
-Follow the [official guide](https://github.com/StanfordVL/iGibson).
-
-iGibson has its own scene dataset that can be downloaded and used right away.
-Alternatively, you can use third party datasets. The scene is defined a yaml
-file, that needs to be passed to the agent.
+Follow the [official guide](http://svl.stanford.edu/igibson/#install_env) and
+install its [assets](http://svl.stanford.edu/igibson/docs/assets.html) and
+[datasets](http://svl.stanford.edu/igibson/docs/dataset.html).
+For the example you need to run
+```
+python -m igibson.utils.assets_utils --download_assets
+python -m igibson.utils.assets_utils --download_demo_data
+```
+You can also use [third party datasets](https://github.com/StanfordVL/iGibson/tree/master/igibson/utils/data_utils/ext_scene).
+The scene details are defined in a yaml file, that needs to be passed to the agent.
 See `<IGIBSON PATH>/igibson/test/test_house.yaml` for an example.
-For more details, please see the
-[official documentation](http://svl.stanford.edu/igibson/#download_dataset/).
+
+
+logging.getLogger().setLevel(logging.INFO)
 
 
 ## Habitat Installation
