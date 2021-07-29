@@ -3,9 +3,15 @@ import warnings
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+    import logging
+    logging.disable(logging.CRITICAL + 1) # Disable iGibson import log messages
+
     import igibson
     from igibson.envs.igibson_env import iGibsonEnv
     from igibson.utils.utils import parse_config
+
+    logging.disable(logging.NOTSET) # Re-enable logging
 
 import gym
 import numpy as np
