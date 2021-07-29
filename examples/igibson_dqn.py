@@ -3,8 +3,6 @@ import datetime
 import pathlib
 import os
 
-import igibson
-
 import numpy as np
 import torch
 import torch.nn as nn
@@ -142,7 +140,7 @@ def get_stats(dataset, logger):
 
 def experiment():
     np.random.seed()
-    default_config = os.path.join(igibson.root_path, 'test', 'test_house.yaml')
+    default_config = os.path.join(iGibson.root_path(), 'test', 'test_house.yaml')
 
     # Argument parser
     parser = argparse.ArgumentParser()

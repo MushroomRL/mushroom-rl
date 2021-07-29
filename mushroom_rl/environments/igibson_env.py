@@ -44,7 +44,7 @@ class iGibson(Gym):
 
     """
     def __init__(self, config_file, horizon=None, gamma=0.99, is_discrete=False,
-                 width=None, height=None):
+                 width=None, height=None, verbose=False):
         """
         Constructor.
 
@@ -57,11 +57,16 @@ class iGibson(Gym):
                 discretized by iGibson's `set_up_discrete_action_space`.
                 Please note that not all robots support discrete actions.
              width (int, None): width of the pixel observation. If None, the
-                value specified in the config file is used.
+                value specified in the config file is used;
              height (int, None): height of the pixel observation. If None, the
-                value specified in the config file is used.
+                value specified in the config file is used;
+             verbose (bool, False): if False, it disable iGibson default messages.
 
         """
+
+        if not verbose:
+            logging.disable(logging.CRITICAL + 1) # Disable iGibson log messages
+        
         # MDP creation
         self._not_pybullet = False
         self._first = True
@@ -120,3 +125,8 @@ class iGibson(Gym):
     @staticmethod
     def _convert_observation(observation):
         return observation.transpose((2, 0, 1))
+
+    @staticmethod
+    def root_path():
+        return igibson.root_path
+
