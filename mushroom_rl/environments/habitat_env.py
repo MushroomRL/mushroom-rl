@@ -105,10 +105,6 @@ class Habitat(Gym):
 
     See <MUSHROOM_RL PATH>/examples/habitat/ for more details.
 
-    If you want to suppress Habitat messages run:
-    export GLOG_minloglevel=2
-    export MAGNUM_LOG=quiet
-
     """
     def __init__(self, config_file, base_config_file, wrapper, horizon=None, gamma=0.99,
                  width=None, height=None):
@@ -182,11 +178,12 @@ class Habitat(Gym):
         pass
 
     def render(self, mode='human'):
-        if self._first:
-            self.env.render(mode=mode)
-            self._first = False
-
+        pass
 
     @staticmethod
     def _convert_observation(observation):
         return observation.transpose((2, 0, 1))
+
+    @staticmethod
+    def root_path():
+        return os.path.dirname(os.path.dirname(habitat.__file__))

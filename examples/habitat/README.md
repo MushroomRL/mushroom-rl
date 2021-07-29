@@ -39,12 +39,6 @@ If you need to download other datasets, you can use
 [this utility](https://github.com/facebookresearch/habitat-sim/blob/master/habitat_sim/utils/datasets_download.py).
 
 
-If you want to suppress Habitat messages run
-```
-export GLOG_minloglevel=2
-export MAGNUM_LOG=quiet
-```
-
 
 ### How to Use Replica Scenes
 Download Replica scenes

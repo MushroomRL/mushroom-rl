@@ -66,7 +66,7 @@ class iGibson(Gym):
 
         if not verbose:
             logging.disable(logging.CRITICAL + 1) # Disable iGibson log messages
-        
+
         # MDP creation
         self._not_pybullet = False
         self._first = True
@@ -122,6 +122,9 @@ class iGibson(Gym):
     def stop(self):
         pass
 
+    def render(self, mode='human'):
+        pass
+
     @staticmethod
     def _convert_observation(observation):
         return observation.transpose((2, 0, 1))
@@ -129,4 +132,3 @@ class iGibson(Gym):
     @staticmethod
     def root_path():
         return igibson.root_path
-
