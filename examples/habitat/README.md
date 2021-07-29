@@ -2,21 +2,20 @@ Habitat and iGibson support many realistic scenes as environment for the agent.
 By default the agent's observations are RGB images, but RGBD, sensory data, and
 other information can also be used.
 
->> If you have previous version of iGibson or Habitat already installed, we
+> If you have previous versions of iGibson or Habitat already installed, we
 recommend to remove them and do clean installs.
 
 ## iGibson Installation
 Follow the [official guide](http://svl.stanford.edu/igibson/#install_env) and
 install its [assets](http://svl.stanford.edu/igibson/docs/assets.html) and
 [datasets](http://svl.stanford.edu/igibson/docs/dataset.html).
-
 For our example you need to run
 ```
 python -m igibson.utils.assets_utils --download_assets
 python -m igibson.utils.assets_utils --download_demo_data
 ```
-
 You can also use [third party datasets](https://github.com/StanfordVL/iGibson/tree/master/igibson/utils/data_utils/ext_scene).
+
 The scene details are defined in a yaml file, that needs to be passed to the agent.
 See `<IGIBSON PATH>/igibson/test/test_house.yaml` for an example.
 
@@ -24,7 +23,7 @@ See `<IGIBSON PATH>/igibson/test/test_house.yaml` for an example.
 ## Habitat Installation
 Follow the [official guide](https://github.com/facebookresearch/habitat-lab/#installation)
 and do a **full install** with `habitat_baselines`.
-Then you can install interactive datasets following
+Then you can download interactive datasets following
 [this](https://github.com/facebookresearch/habitat-lab#data) and
 [this](https://github.com/facebookresearch/habitat-lab#task-datasets).
 
