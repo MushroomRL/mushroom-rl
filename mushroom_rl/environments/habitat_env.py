@@ -66,7 +66,7 @@ class HabitatRearrangeWrapper(gym.Wrapper):
     """
     def __init__(self, env):
         gym.Wrapper.__init__(self, env)
-        self.arm_ac_size = env.action_space['ARM_ACTION']['arm_ac'].shape
+        self.arm_ac_size = env.action_space['ARM_ACTION']['arm_ac'].shape[0]
         self.grip_ac_size = env.action_space['ARM_ACTION']['grip_ac'].n
         self.n_actions = self.arm_ac_size + self.grip_ac_size
         low = np.array([0.] * self.arm_ac_size + [-1.] * self.grip_ac_size)
