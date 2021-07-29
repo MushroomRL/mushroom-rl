@@ -143,17 +143,9 @@ def get_stats(dataset, logger):
 
 def experiment():
     np.random.seed()
-    default_config = os.path.join(pathlib.Path(__file__).parent.resolve(),
-                                  'pointnav_apartment-0.yaml')
 
     # Argument parser
     parser = argparse.ArgumentParser()
-
-    arg_env = parser.add_argument_group('Environment')
-    arg_env.add_argument("--config-file",
-                          type=str,
-                          default=default_config,
-                          help='yaml config file.')
 
     arg_mem = parser.add_argument_group('Replay Memory')
     arg_mem.add_argument("--initial-replay-size", type=int, default=50000,
@@ -277,8 +269,7 @@ def experiment():
         raise ValueError
 
     # Summary folder
-    folder_name = './logs/habitat_' + args.algorithm +\
-        '_' + args.config_file.split(os.sep)[-1].split('.yaml')[0] +\
+    folder_name = './logs/habitat_nav_' + args.algorithm +\
         '_' + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     pathlib.Path(folder_name).mkdir(parents=True)
 
@@ -301,8 +292,14 @@ def experiment():
         max_steps = args.max_steps
 
     # MDP
+    import habitat
+    habitat_root_path = os.path.dirname(os.path.dirname(habitat.__file__))
+    config_file = os.path.join(pathlib.Path(__file__).parent.resolve(),
+        'pointnav_apartment-0.yaml') # Custom task for Replica scenes
+    base_config_file = os.path.join(habitat_root_path,
+        'configs/tasks/pointnav.yaml') # Default navigation simulator config
     wrapper = HabitatNavigationWrapper
-    mdp = Habitat(args.config_file, wrapper)
+    mdp = Habitat(config_file, base_config_file, wrapper)
 
     if args.load_path:
         logger = Logger(DQN.__name__, results_dir=None)

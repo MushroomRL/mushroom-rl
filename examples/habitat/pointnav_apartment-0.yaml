@@ -1,41 +1,26 @@
-BASE_TASK_CONFIG_PATH: pointnav_apartment-0.yaml
-
 ENV_NAME: "NavRLEnv"
 
-ENVIRONMENT:
-  MAX_EPISODE_STEPS: 500
-
 SIMULATOR:
-  HABITAT_SIM_V0:
-    GPU_DEVICE_ID: 0
-
-  RGB_SENSOR:
+  RGB_SENSOR: # Used for observations
     WIDTH: 64
     HEIGHT: 64
     HFOV: 79
     POSITION: [0, 0.88, 0]
+  DEPTH_SENSOR: # Used for rendering
+    WIDTH: 256
+    HEIGHT: 256
 
   ACTION_SPACE_CONFIG: "v0"
-  FORWARD_STEP_SIZE: 1.0
-  TURN_ANGLE: 90
+  FORWARD_STEP_SIZE: 1.0 # How much the agent moves with 'forward'
+  TURN_ANGLE: 90 # How much the agent turns with 'left' / 'right' actions
 
-TASK:
-  TYPE: Nav-v0
-  SUCCESS_DISTANCE: 0.2
-
-  SENSORS: ['POINTGOAL_WITH_GPS_COMPASS_SENSOR']
-  POINTGOAL_WITH_GPS_COMPASS_SENSOR:
-    GOAL_FORMAT: "POLAR"
-    DIMENSIONALITY: 2
-  GOAL_SENSOR_UUID: pointgoal_with_gps_compass
-
-  MEASUREMENTS: ['DISTANCE_TO_GOAL', 'SUCCESS', 'SPL', 'TOP_DOWN_MAP']
+  MEASUREMENTS: ['DISTANCE_TO_GOAL', 'SUCCESS', 'SPL', 'TOP_DOWN_MAP'] # Add top-down map to default measurements
 
   SPL:
     TYPE: SPL
     SUCCESS_DISTANCE: 0.2
 
-  TOP_DOWN_MAP:
+  TOP_DOWN_MAP: # Top-down map specifications, used for heatmaps
     MAP_RESOLUTION: 590
     DRAW_SOURCE: False
     DRAW_SHORTEST_PATH: False
@@ -45,7 +30,7 @@ TASK:
     DRAW_GOAL_POSITIONS: False
     DRAW_GOAL_AABBS: False
 
-DATASET:
+DATASET: # Replica scene
   CONTENT_SCENES: ['*']
   DATA_PATH: "replica_{split}_apartment-0.json.gz"
   SCENES_DIR: "Replica-Dataset/replica-path/apartment_0"
