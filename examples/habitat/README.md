@@ -40,9 +40,9 @@ requires it, you may need to define new wrappers.
 sensors available to the robot, the rewards, the action discretization, and any
 additional information you may need. The second YAML file is optional, and
 overwrites whatever was already defined in the first YAML.
-> If you use YAMLs from 'habitat-lab', check if they define a YAML for
+> If you use YAMLs from `habitat-lab`, check if they define a YAML for
 BASE_TASK_CONFIG_PATH. If they do, you need to pass it as `base_config_file` to
-`Habitat()`. 'habitat-lab' YAMLs, in fact, use relative paths, and calling them
+`Habitat()`. `habitat-lab` YAMLs, in fact, use relative paths, and calling them
 from outside its root folder will cause errors.
 
 * If you use a dataset, be sure that the path defined in the YAML file is correct,
