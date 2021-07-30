@@ -40,7 +40,7 @@ class iGibson(Gym):
     By default, actions are continuous, but can be discretized automatically
     using a flag. Note that not all robots support discrete actions.
 
-    Scene and task details are defined in the yaml config file.
+    Scene and task details are defined in the YAML config file.
 
     """
     def __init__(self, config_file, horizon=None, gamma=0.99, is_discrete=False,
@@ -49,7 +49,7 @@ class iGibson(Gym):
         Constructor.
 
         Args:
-             config_file (str): path to the yaml file specifying the task
+             config_file (str): path to the YAML file specifying the task
                 (see igibson/examples/configs/ and igibson/test/);
              horizon (int, None): the horizon;
              gamma (float, 0.99): the discount factor;

@@ -25,7 +25,7 @@ class HabitatNavigationWrapper(gym.Wrapper):
     """
     Use it for navigation tasks, where the agent has to go from point A to B.
     Action is discrete: turn left, turn right, move forward. The amount of
-    degrees / distance the agent turns / moves is defined in the yaml file.
+    degrees / distance the agent turns / moves is defined in the YAML file.
     This wrapper also removes Habitat's default action 0, that resets the
     environment (we reset the environment only by calling env.reset()).
     The observation is the RGB agent's view of what it sees in front of itself.
@@ -107,19 +107,20 @@ class Habitat(Gym):
     See <MUSHROOM_RL PATH>/examples/habitat/ for more details.
 
     """
-    def __init__(self, config_file, base_config_file, wrapper, horizon=None, gamma=0.99,
+    def __init__(self, wrapper, config_file, base_config_file=None, horizon=None, gamma=0.99,
                  width=None, height=None):
         """
-        Constructor. For more details on how to pass yaml configuration files,
+        Constructor. For more details on how to pass YAML configuration files,
         please see <MUSHROOM_RL PATH>/examples/habitat/README.md
 
         Args:
-             config_file (str): path to the yaml file specifying the RL task
-                configuration (see <HABITAT_RL PATH>/habitat_baselines/configs/);
-             base_config_file (str): path to the yaml file specifying the
-                base configuration (see <HABITAT_RL PATH>/configs/);
              wrapper (str): wrapper for converting observations and actions
                 (e.g., HabitatRearrangeWrapper);
+             config_file (str): path to the YAML file specifying the RL task
+                configuration (see <HABITAT_LAB PATH>/habitat_baselines/configs/);
+             base_config_file (str, None): path to an optional YAML file, used
+                as 'BASE_TASK_CONFIG_PATH' in the first YAML
+                (see <HABITAT_LAB PATH>/configs/);
              horizon (int, None): the horizon;
              gamma (float, 0.99): the discount factor;
              width (int, None): width of the pixel observation. If None, the
@@ -132,8 +133,10 @@ class Habitat(Gym):
         self._not_pybullet = False
         self._first = True
 
-        config = get_config(config_paths=config_file,
-                    opts=['BASE_TASK_CONFIG_PATH', base_config_file])
+        opts = None
+        if base_config_file:
+            opts = ['BASE_TASK_CONFIG_PATH', base_config_file]
+        config = get_config(config_paths=config_file, opts=opts)
         config.defrost()
 
         if horizon is None:
