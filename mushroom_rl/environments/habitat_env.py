@@ -12,7 +12,7 @@ with warnings.catch_warnings():
     from habitat_baselines.config.default import get_config
     from habitat_baselines.common.environments import get_env_class
     from habitat_baselines.utils.env_utils import make_env_fn
-    from habitat_baselines.utils.gym_adapter import HabGymWrapper
+    from habitat.utils.visualizations.utils import observations_to_image
 
 import gym
 import numpy as np
@@ -158,7 +158,6 @@ class Habitat(Gym):
 
         env_class = get_env_class(config.ENV_NAME)
         env = make_env_fn(env_class=env_class, config=config)
-        env = HabGymWrapper(env)
         env = globals()[wrapper](env)
         self.env = env
 
@@ -175,22 +174,32 @@ class Habitat(Gym):
         else:
             self._convert_action = lambda a: a
 
+        self._last_obs = None # For rendering
+
         Environment.__init__(self, mdp_info)
 
     def reset(self, state=None):
         assert state is None, 'Cannot set Habitat state'
-        return self._convert_observation(np.atleast_1d(self.env.reset()))
+        obs = self._convert_observation(np.atleast_1d(self.env.reset()))
+        self._last_obs = obs
+        return obs
 
     def step(self, action):
         action = self._convert_action(action)
         obs, reward, absorbing, info = self.env.step(action)
+        self._last_obs = obs
         return self._convert_observation(np.atleast_1d(obs)), reward, absorbing, info
 
     def stop(self):
         pass
 
-    def render(self, mode='human'):
-        self.env.render()
+    def render(self, mode='rgb_array'):
+        if mode == "rgb_array":
+            frame = observations_to_image(
+                self._last_obs, self.env.unwrapped._env.get_metrics()
+            )
+        else:
+            raise ValueError(f"Render mode {mode} not currently supported.")
 
     @staticmethod
     def _convert_observation(observation):
