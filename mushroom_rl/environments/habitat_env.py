@@ -133,10 +133,11 @@ class Habitat(Gym):
         self._not_pybullet = False
         self._first = True
 
-        opts = None
-        if base_config_file:
-            opts = ['BASE_TASK_CONFIG_PATH', base_config_file]
-        config = get_config(config_paths=config_file, opts=opts)
+        if base_config_file is None:
+            base_config_file = config_file
+
+        config = get_config(config_paths=config_file, 
+                opts=['BASE_TASK_CONFIG_PATH', base_config_file])
         config.defrost()
 
         if horizon is None:
