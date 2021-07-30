@@ -40,18 +40,18 @@ requires it, you may need to define new wrappers.
 sensors available to the robot, the rewards, the action discretization, and any
 additional information you may need. The second YAML file is optional, and
 overwrites whatever was already defined in the first YAML.
-> If you use YAMLs from habitat-lab, check if they define a YAML for
+> If you use YAMLs from 'habitat-lab', check if they define a YAML for
 BASE_TASK_CONFIG_PATH. If they do, you need to pass it as `base_config_file` to
-`Habitat()`. Habitat-lab YAMLs, in fact, use relative paths, and calling them
+`Habitat()`. 'habitat-lab' YAMLs, in fact, use relative paths, and calling them
 from outside its root folder will cause errors.
 
-* If you use dataset, be sure that the path defined in the YAML file is correct,
-especially if you use relative paths. Habitat-lab YAMLs use relative paths, so
+* If you use a dataset, be sure that the path defined in the YAML file is correct,
+especially if you use relative paths. `habitat-lab` YAMLs use relative paths, so
 be careful with that. By default, the path defined in the YAML file will be
 relative to where you launched the python code. See the navigation example below
 for more details.
 
-#### Rearrange Task Example
+### Rearrange Task Example
 * Download assets and the ReplicaCAD datasets
 ```
 python -m habitat_sim.utils.datasets_download --uids habitat_test_pointnav_dataset --data-path data
@@ -70,7 +70,7 @@ ln -s <HABITAT_LAB PATH>/data/ <MUSHROOM_RL PATH>/mushroom-rl/examples/habitat
 ```
 * Finally, you can launch `python habitat_rearrange_sac.py`.
 
-#### Navigation Task Example
+### Navigation Task Example
 * Download and extract Replica scenes
 > WARNING! The dataset is very large!
 
@@ -80,17 +80,18 @@ git clone https://github.com/facebookresearch/Replica-Dataset.git
 cd Replica-Dataset
 ./download.sh replica-path
 ```
-* For this task we only use a custom YAML file `pointnav_apartment-0.yaml`.
+* For this task we only use the custom YAML file `pointnav_apartment-0.yaml`.
 * `DATA_PATH: "replica_{split}_apartment-0.json.gz"` defines the JSON file with
 some scene details, such as the agent's initial position and orientation.
 The `{split}` value is defined in the `SPLIT` key.
-> If you want to try new positions, you can sample some from the set of the 
-scene's navigable points. This is accessible by Habitat.env._env._sim.sample_navigable_point().
+> If you want to try new positions, you can sample some from the set of the
+scene's navigable points. After initializing a `habitat` environment, for example
+`mdp = Habitat(...)`, run `mdp.env._env._sim.sample_navigable_point()`.
 
 * `SCENES_DIR: "Replica-Dataset/replica-path/apartment_0"` defines the scene.
 As said before, this path is relative to where you launch the script, thus we
-need to link it. If you launch `habitat_nav_dqn.py` from its example folder, run
+need to link the Replica folder. If you launch `habitat_nav_dqn.py` from its example folder, run
 ```
-ln -s <YOUR_PATH>/Replica-Dataset/ <MUSHROOM_RL PATH>/mushroom-rl/examples/habitat
+ln -s <PATH TO>/Replica-Dataset/ <MUSHROOM_RL PATH>/mushroom-rl/examples/habitat
 ```
 * Finally, you can launch `python habitat_nav_dqn.py`.
