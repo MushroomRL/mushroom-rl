@@ -292,7 +292,6 @@ def experiment():
         max_steps = args.max_steps
 
     # MDP
-    habitat_root_path = Habitat.root_path()
     config_file = os.path.join(pathlib.Path(__file__).parent.resolve(),
         'pointnav_apartment-0.yaml') # Custom task for Replica scenes
     wrapper = 'HabitatNavigationWrapper'
