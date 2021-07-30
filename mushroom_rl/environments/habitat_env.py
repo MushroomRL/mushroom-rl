@@ -12,6 +12,7 @@ with warnings.catch_warnings():
     from habitat_baselines.config.default import get_config
     from habitat_baselines.common.environments import get_env_class
     from habitat_baselines.utils.env_utils import make_env_fn
+    from habitat_baselines.utils.gym_adapter import HabGymWrapper
 
 import gym
 import numpy as np
@@ -136,7 +137,7 @@ class Habitat(Gym):
         if base_config_file is None:
             base_config_file = config_file
 
-        config = get_config(config_paths=config_file, 
+        config = get_config(config_paths=config_file,
                 opts=['BASE_TASK_CONFIG_PATH', base_config_file])
 
         config.defrost()
@@ -157,6 +158,7 @@ class Habitat(Gym):
 
         env_class = get_env_class(config.ENV_NAME)
         env = make_env_fn(env_class=env_class, config=config)
+        env = HabGymWrapper(env)
         env = globals()[wrapper](env)
         self.env = env
 
@@ -188,7 +190,7 @@ class Habitat(Gym):
         pass
 
     def render(self, mode='human'):
-        pass
+        self.env.render()
 
     @staticmethod
     def _convert_observation(observation):
