@@ -102,7 +102,7 @@ def experiment(alg, n_epochs, n_steps, n_episodes_test):
     base_config_file = os.path.join(habitat_root_path,
         'configs/tasks/rearrangepick_replica_cad.yaml')
     wrapper = 'HabitatRearrangeWrapper'
-    mdp = Habitat(wrapper, config_file, base_config_file, gamma)
+    mdp = Habitat(wrapper, config_file, base_config_file, gamma=gamma)
 
     # Settings
     initial_replay_size = 64

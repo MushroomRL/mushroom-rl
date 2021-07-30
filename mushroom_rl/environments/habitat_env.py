@@ -64,7 +64,7 @@ class HabitatRearrangeWrapper(gym.Wrapper):
     placing an object: if this scalar is positive and the gripper is not
     currently holding an object and the end-effector is within 15cm of an object,
     then the object closest to the end-effector is grasped; if the scalar is
-    negative and the gripper is carrying an object, the object is let go.
+    negative and the gripper is carrying an object, the object is released.
 
     For reward details and other task details we refer to
     https://arxiv.org/pdf/2106.14405.pdf
@@ -138,16 +138,20 @@ class Habitat(Gym):
 
         config = get_config(config_paths=config_file, 
                 opts=['BASE_TASK_CONFIG_PATH', base_config_file])
+
         config.defrost()
 
         if horizon is None:
             horizon = config.TASK_CONFIG.ENVIRONMENT.MAX_EPISODE_STEPS # Get the default horizon
         config.TASK_CONFIG.ENVIRONMENT.MAX_EPISODE_STEPS = horizon + 1 # Hack to ignore gym time limit
 
-        if width is not None:
-            config.TASK_CONFIG.SIMULATOR.RGB_SENSOR.WIDTH = width
-        if height is not None:
-            config.TASK_CONFIG.SIMULATOR.RGB_SENSOR.HEIGHT = height
+        # Overwrite all RGB width / height used for the TASK (not SIMULATOR)
+        for k in config['TASK_CONFIG']['SIMULATOR']:
+            if 'rgb' in k.lower():
+                if height is not None:
+                    config['TASK_CONFIG']['SIMULATOR'][k]['HEIGHT'] = height
+                if width is not None:
+                    config['TASK_CONFIG']['SIMULATOR'][k]['HEIGHT'] = width
 
         config.freeze()
 
