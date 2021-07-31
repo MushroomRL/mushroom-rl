@@ -37,7 +37,7 @@ class HabitatNavigationWrapper(gym.Wrapper):
         gym.Wrapper.__init__(self, env)
         self.action_space = gym.spaces.Discrete(env.action_space.n - 1)
         self.observation_space = self.env.observation_space['rgb']
-        self._last_full_obs = None
+        self._last_full_obs = None # For rendering
 
     def reset(self):
         return np.asarray(self.env.reset()['rgb'])
@@ -176,20 +176,16 @@ class Habitat(Gym):
         else:
             self._convert_action = lambda a: a
 
-        self._last_obs = None # For rendering
-
         Environment.__init__(self, mdp_info)
 
     def reset(self, state=None):
         assert state is None, 'Cannot set Habitat state'
         obs = self._convert_observation(np.atleast_1d(self.env.reset()))
-        self._last_obs = obs
         return obs
 
     def step(self, action):
         action = self._convert_action(action)
         obs, reward, absorbing, info = self.env.step(action)
-        self._last_obs = obs
         return self._convert_observation(np.atleast_1d(obs)), reward, absorbing, info
 
     def stop(self):
