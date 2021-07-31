@@ -12,9 +12,6 @@ SIMULATOR:
     HEIGHT: 64
     HFOV: 79
     POSITION: [0, 0.88, 0]
-  DEPTH_SENSOR: # Used for rendering
-    WIDTH: 256
-    HEIGHT: 256
 
   ACTION_SPACE_CONFIG: "v0"
   FORWARD_STEP_SIZE: 1.0 # How much the agent moves with 'forward'

@@ -190,10 +190,13 @@ class Habitat(Gym):
         obs, reward, absorbing, info = self.env.step(action)
         return self._convert_observation(np.atleast_1d(obs)), reward, absorbing, info
 
-    def stop(self):
+    def close(self):
         self.env.close()
         if self._viewer is not None:
             self._viewer.close()
+
+    def stop(self):
+        pass
 
     def render(self, mode='rgb_array', dt=10):
         if mode == "rgb_array":

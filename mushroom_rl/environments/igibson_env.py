@@ -119,8 +119,11 @@ class iGibson(Gym):
         obs, reward, absorbing, info = self.env.step(action)
         return self._convert_observation(np.atleast_1d(obs)), reward, absorbing, info
 
-    def stop(self):
+    def close(self):
         self.env.close()
+
+    def stop(self):
+        pass
 
     def render(self, mode='human'):
         pass
