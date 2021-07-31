@@ -73,8 +73,8 @@ class HabitatRearrangeWrapper(gym.Wrapper):
     """
     def __init__(self, env):
         gym.Wrapper.__init__(self, env)
-        self.arm_ac_size = env.action_space['ARM_ACTION']['arm_ac'].shape[0]
-        self.grip_ac_size = env.action_space['ARM_ACTION']['grip_ac'].n
+        self.arm_ac_size = env.action_space['ARM_ACTION']['arm_action'].shape[0]
+        self.grip_ac_size = env.action_space['ARM_ACTION']['grip_action'].shape[0]
         self.n_actions = self.arm_ac_size + self.grip_ac_size
         low = np.array([0.] * self.arm_ac_size + [-1.] * self.grip_ac_size)
         high = np.ones((self.arm_ac_size + self.grip_ac_size))
@@ -89,7 +89,7 @@ class HabitatRearrangeWrapper(gym.Wrapper):
 
     def step(self, action):
         action = {'action': 'ARM_ACTION', 'action_args':
-            {'arm_ac': action[:-self.grip_ac_size], 'grip_ac': action[-self.grip_ac_size:]}}
+            {'arm_action': action[:-self.grip_ac_size], 'grip_action': action[-self.grip_ac_size:]}}
         obs, rwd, done, info = self.env.step(**{'action': action})
         ee_pos = np.asarray(obs['ee_pos'])
         obs = np.asarray(obs['robot_head_rgb'])
