@@ -191,9 +191,11 @@ class Habitat(Gym):
         return self._convert_observation(np.atleast_1d(obs)), reward, absorbing, info
 
     def stop(self):
-        pass
+        self.env.close()
+        if self._viewer is not None:
+            self._viewer.close()
 
-    def render(self, mode='rgb_array'):
+    def render(self, mode='rgb_array', dt=10):
         if mode == "rgb_array":
             frame = observations_to_image(
                 self.env._last_full_obs, self.env.unwrapped._env.get_metrics()
@@ -201,7 +203,7 @@ class Habitat(Gym):
         else:
             raise ValueError(f"Render mode {mode} not currently supported.")
         if self._viewer is None:
-            self._viewer = ImageViewer((64, 64), 10)
+            self._viewer = ImageViewer(self._img_size, dt)
         self._viewer.display(frame)
 
     @staticmethod
