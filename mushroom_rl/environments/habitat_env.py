@@ -20,6 +20,7 @@ import numpy as np
 from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.environments import Gym
 from mushroom_rl.utils.spaces import Discrete, Box
+from mushroom_rl.utils.viewer import ImageViewer
 
 
 class HabitatNavigationWrapper(gym.Wrapper):
@@ -135,6 +136,7 @@ class Habitat(Gym):
         # MDP creation
         self._not_pybullet = False
         self._first = True
+        self._viewer = None
 
         if base_config_file is None:
             base_config_file = config_file
@@ -198,6 +200,9 @@ class Habitat(Gym):
             )
         else:
             raise ValueError(f"Render mode {mode} not currently supported.")
+        if self._viewer is None:
+            self._viewer = ImageViewer((64, 64), 10)
+        self._viewer.display(frame)
 
     @staticmethod
     def _convert_observation(observation):
