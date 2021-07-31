@@ -37,6 +37,7 @@ class HabitatNavigationWrapper(gym.Wrapper):
         gym.Wrapper.__init__(self, env)
         self.action_space = gym.spaces.Discrete(env.action_space.n - 1)
         self.observation_space = self.env.observation_space['rgb']
+        self._last_full_obs = None
 
     def reset(self):
         return np.asarray(self.env.reset()['rgb'])
@@ -46,6 +47,7 @@ class HabitatNavigationWrapper(gym.Wrapper):
 
     def step(self, action):
         obs, rwd, done, info = self.env.step(**{'action': action[0] + 1})
+        self._last_full_obs = obs
         obs = np.asarray(obs['rgb'])
         info.update({'position': self.get_position()})
         return obs, rwd, done, info
@@ -196,7 +198,7 @@ class Habitat(Gym):
     def render(self, mode='rgb_array'):
         if mode == "rgb_array":
             frame = observations_to_image(
-                self._last_obs, self.env.unwrapped._env.get_metrics()
+                self.env._last_full_obs, self.env.unwrapped._env.get_metrics()
             )
         else:
             raise ValueError(f"Render mode {mode} not currently supported.")
