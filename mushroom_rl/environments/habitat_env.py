@@ -152,7 +152,7 @@ class Habitat(Gym):
                 if height is not None:
                     config['TASK_CONFIG']['SIMULATOR'][k]['HEIGHT'] = height
                 if width is not None:
-                    config['TASK_CONFIG']['SIMULATOR'][k]['HEIGHT'] = width
+                    config['TASK_CONFIG']['SIMULATOR'][k]['WIDTH'] = width
 
         config.freeze()
 
