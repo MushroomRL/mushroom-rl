@@ -6,6 +6,10 @@ with warnings.catch_warnings():
     if 'VERBOSE_HABITAT' not in os.environ: # To suppress Habitat messages
         os.environ['MAGNUM_LOG'] = 'quiet'
         os.environ['GLOG_minloglevel'] = '2'
+    else:
+        os.environ['GLOG_minloglevel']='0'
+        os.environ['MAGNUM_LOG'] = 'verbose'
+        os.environ['MAGNUM_GPU_VALIDATION'] = 'ON'
 
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     import habitat
