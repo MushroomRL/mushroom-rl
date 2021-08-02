@@ -22,7 +22,7 @@ class HMSHammer(mujoco_env.MujocoEnv, utils.EzPickle):
         self.depth = False
         self.camera_id = camera_id
         curr_dir = os.path.dirname(os.path.abspath(__file__))
-        mujoco_env.MujocoEnv.__init__(self, curr_dir+'/assets/DAPG_hammer.xml', frame_skip=frame_skip)
+        mujoco_env.MujocoEnv.__init__(self, curr_dir+'/assets/hammer.xml', frame_skip=frame_skip)
         utils.EzPickle.__init__(self)
 
         # change actuator sensitivity
