@@ -19,7 +19,7 @@ class HMSRelocate(mujoco_env.MujocoEnv, utils.EzPickle):
         self.depth = False
         self.camera_id = camera_id
         curr_dir = os.path.dirname(os.path.abspath(__file__))
-        mujoco_env.MujocoEnv.__init__(self, curr_dir+'/assets/relocate.xml', frame_skip=frame_skip)
+        mujoco_env.MujocoEnv.__init__(self, curr_dir+'/assets/DAPG_relocate.xml', frame_skip=frame_skip)
 
         # change actuator sensitivity
         self.sim.model.actuator_gainprm[self.sim.model.actuator_name2id('A_WRJ1'):self.sim.model.actuator_name2id('A_WRJ0')+1,:3] = np.array([10, 0, 0])
