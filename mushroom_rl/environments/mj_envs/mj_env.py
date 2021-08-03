@@ -6,14 +6,15 @@ with warnings.catch_warnings():
 
 from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.utils.spaces import *
-from mushroom_rl.utils.viewer import ImageViewer
+# from mushroom_rl.utils.viewer import ImageViewer
 
 
 class MJEnv(Environment):
     """
 
     """
-    def __init__(self, env_name, gamma, horizon, **kwargs):
+    def __init__(self, env_name, horizon=None, gamma=0.99,
+        camera_id=0, use_pixels=False, pixels_width=64, pixels_height=64):
         """
         Constructor.
 
@@ -22,12 +23,16 @@ class MJEnv(Environment):
 
         """
 
-        if env_name == 'HSM-Door-v0':
-            self.env = DoorEnvV0(kwargs)
-        elif env_name == 'HSM-Hammer-v0':
-            self.env = HammerEnvV0(kwargs)
-        else:
-            raise NotImplementedError
+        assert('MJ' in env_name), 'Wrong environment name.'
+        task_name = env_name[len('MJ-'):]
+        assert(len(task_name) > 0), 'Missing task name.'
+
+        self.env = gym.make(task_name)
+
+        self._camera_id = camera_id
+        self._width = pixels_width
+        self._height = pixels_height
+        self._use_pixels = use_pixels
 
         # # get the default horizon
         # if horizon is None:
@@ -56,6 +61,10 @@ class MJEnv(Environment):
 
     def step(self, action):
         return self.env.step(action)
+
+    def pixels(self):
+        img = self.env.sim.render(width=width, height=height, camera_name='vil_camera', depth=depth)
+        return img[::-1,:,:]
 
     def render(self):
         pass

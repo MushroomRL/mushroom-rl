@@ -1,9 +1,7 @@
-This wrapper is designed for Mujoco environments from the
-[`mj_envs` repository](https://github.com/vikashplus/mj_envs), such as the
+The `MJEnv` wrapper is designed for MuJoCo tasks from the
+[`mj_envs` repository](https://github.com/vikashplus/mj_envs) and the
+[`mjrl` repository](https://github.com/aravindr93/mjrl), such as the
 [hand manipulation suite](https://sites.google.com/view/deeprl-dexterous-manipulation).
-Note that `mj_envs` has many branches and it is also included in other
-repositories. Each branch / repository has modified versions of the environments.
-Our wrapper is compatible with any `mj_envs` environment.
 
 
 ## Install mujoco-py
@@ -24,26 +22,18 @@ Before installing with `pip`, edit `mujoco_py/builder.py` [this line](https://gi
 it from CPU to GPU.
 
 
-## Install Original Environments
-```
-git clone --recursive https://github.com/vikashplus/mj_envs.git
-cd mj_envs  
-git submodule update --remote
-pip install -e .
-```
-
-### Version with pixel observations
-This will replace the original installation.
-```
-git clone git@github.com:vikashplus/latentRL.git
-cd latentRL/resnet
-pip install -e mj_envs/.
-```
-
-## Install MJRL
+## Install mjrl
 ```
 https://github.com/aravindr93/mjrl
 git clone git@github.com:aravindr93/mjrl.git
 cd mjrl
+pip install -e .
+```
+
+## Install mj_envs
+```
+git clone --recursive https://github.com/vikashplus/mj_envs.git
+cd mj_envs  
+git submodule update --remote
 pip install -e .
 ```
