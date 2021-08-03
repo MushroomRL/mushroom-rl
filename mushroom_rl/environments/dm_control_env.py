@@ -79,7 +79,7 @@ class DMControl(Environment):
         self._viewer.display(img)
 
     def stop(self):
-        pass
+        self._viewer.close()
 
     @staticmethod
     def _convert_observation_space(observation_space):

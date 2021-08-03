@@ -99,7 +99,7 @@ class PyBullet(Environment):
         self._viewer.display()
 
     def stop(self):
-        pass
+        self._viewer.close()
 
     def step(self, action):
         curr_state = self._state.copy()
