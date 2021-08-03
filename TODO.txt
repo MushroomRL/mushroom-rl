@@ -1,16 +1,22 @@
 Algorithms:
+    * Conservative Q-Learning
     * Policy Search:
         - Natural gradient
         - NES
-        - Constrained REPS
         - MORE
         - PAPI
 
+Approximator:
+    * support for LSTM
+    * Generalize LazyFrame to LazyState
+    * add neural network generator
+
 For Mushroom 2.0:
-    * Record method in environemnt and record option in the core
+    * Record method in environment and record option in the core
     * Simplify Regressor interface: drop GenericRegressor, remove facade pattern
     * vectorize basis functions and simplify interface, simplify facade pattern
     * remove custom save for plotting, use Serializable
     * support multi-objective RL
+    * support model-based RL
     * Register environments to build them from string with default parameters
     * Improve replay memory, allowing to store arbitrary information into replay buffer
