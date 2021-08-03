@@ -4,6 +4,7 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     from mj_envs.hand_manipulation_suite import *
 
+import gym
 from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.utils.spaces import *
 # from mushroom_rl.utils.viewer import ImageViewer
@@ -13,19 +14,22 @@ class MJEnv(Environment):
     """
 
     """
-    def __init__(self, env_name, horizon=None, gamma=0.99,
+    def __init__(self, task_name, horizon=None, gamma=0.99,
         camera_id=0, use_pixels=False, pixels_width=64, pixels_height=64):
         """
         Constructor.
 
         Args:
-             domain_name (str): name of the environment;
+             task_name (str): name of the task;
+             horizon (int): the horizon;
+             gamma (float): the discount factor;
+             camera_id (int, 0): position of camera to render the environment;
+             use_pixels (bool, False): if True, pixel observations are used
+                rather than the state vector;
+             pixels_width (int, 64): width of the pixel observation;
+             pixels_height (int, 64): height of the pixel observation;
 
         """
-
-        assert('MJ' in env_name), 'Wrong environment name.'
-        task_name = env_name[len('MJ-'):]
-        assert(len(task_name) > 0), 'Missing task name.'
 
         self.env = gym.make(task_name)
 
