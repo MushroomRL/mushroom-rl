@@ -47,6 +47,12 @@ try:
 except ImportError:
     pass
 
+try:
+    MJEnv = None
+    from .mj_envs import MJEnv
+except ImportError:
+    pass
+
 
 try:
     PyBullet = None
