@@ -37,7 +37,7 @@ class DMControl(Environment):
              use_pixels (bool, False): if True, pixel observations are used
                 rather than the state vector;
              pixels_width (int, 64): width of the pixel observation;
-             pixels_height (int, 464): height of the pixel observation;
+             pixels_height (int, 64): height of the pixel observation;
 
         """
         # MDP creation
