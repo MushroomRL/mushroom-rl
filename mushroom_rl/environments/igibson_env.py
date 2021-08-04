@@ -71,8 +71,6 @@ class iGibson(Gym):
         self._not_pybullet = False
         self._first = True
 
-        env = iGibsonEnv(config_file=config_file, mode='headless')
-
         config = parse_config(config_file)
         config['is_discrete'] = is_discrete
 
@@ -87,10 +85,7 @@ class iGibson(Gym):
         if height is not None:
             config['image_height'] = height
 
-        env.config = config
-        env.simulator.reload()
-        env.load()
-
+        env = iGibsonEnv(config_file=config_file, mode='headless')
         env = iGibsonWrapper(env)
 
         self.env = env
