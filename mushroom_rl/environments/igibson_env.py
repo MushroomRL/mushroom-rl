@@ -85,7 +85,7 @@ class iGibson(Gym):
         if height is not None:
             config['image_height'] = height
 
-        env = iGibsonEnv(config_file=config_file, mode='headless')
+        env = iGibsonEnv(config_file=config, mode='headless')
         env = iGibsonWrapper(env)
 
         self.env = env
