@@ -140,16 +140,9 @@ def get_stats(dataset, logger):
 
 def experiment():
     np.random.seed()
-    default_config = os.path.join(iGibson.root_path(), 'test', 'test_house.yaml')
 
     # Argument parser
     parser = argparse.ArgumentParser()
-
-    arg_env = parser.add_argument_group('Environment')
-    arg_env.add_argument("--config-file",
-                          type=str,
-                          default=default_config,
-                          help='yaml config file.')
 
     arg_mem = parser.add_argument_group('Replay Memory')
     arg_mem.add_argument("--initial-replay-size", type=int, default=50000,
@@ -297,7 +290,8 @@ def experiment():
         max_steps = args.max_steps
 
     # MDP
-    mdp = iGibson(config_file=args.config_file, is_discrete=True)
+    default_config = os.path.join(iGibson.root_path(), 'test', 'test_house.yaml')
+    mdp = iGibson(config_file=default_config, is_discrete=True)
 
     if args.load_path:
         logger = Logger(DQN.__name__, results_dir=None)
