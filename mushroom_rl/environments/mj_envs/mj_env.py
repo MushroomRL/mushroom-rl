@@ -12,8 +12,8 @@ from mushroom_rl.utils.spaces import *
 
 
 class MuJoCoPixelObs(gym.ObservationWrapper):
-    def __init__(self, env):
-        gym.ObservationWrapper.__init__(self, env, width, height, camera_name, camera_id=0, depth=False)
+    def __init__(self, env, width, height, camera_name, camera_id=0, depth=False):
+        gym.ObservationWrapper.__init__(self, env)
         self.observation_space = Box(low=0., high=255., shape=(3, width, height))
         self.width = width
         self.height = height
@@ -22,7 +22,7 @@ class MuJoCoPixelObs(gym.ObservationWrapper):
         self.camera_id = camera_id
 
     def observation(self, observation):
-        img = self.sim.render(width=self.width, height=self.height, depth=self.depth
+        img = self.sim.render(width=self.width, height=self.height, depth=self.depth,
                               camera_name=self.camera_name, camera_id=self.camera_id)
         img = img[::-1,:,:]
         return img.transpose((2, 0, 1))
@@ -50,7 +50,7 @@ class MJEnv(Environment):
         """
 
         self.env = gym.make(task_name)
-        if self.use_pixels:
+        if use_pixels:
             self.env = MuJoCoPixelObs(self.env, width=pixels_width,
                                                 height=pixels_height,
                                                 camera_name='vil_camera',
@@ -92,3 +92,16 @@ class MJEnv(Environment):
 
     def stop(self):
         pass
+
+    # def render(self):
+    #     if self._viewer is None:
+    #         self._viewer = mujoco_py.MjViewer(self._sim)
+    #
+    #     self._viewer.render()
+    #
+    # def stop(self):
+    #     if self._viewer is not None:
+    #         v = self._viewer
+    #         self._viewer = None
+    #         glfw.destroy_window(v.window)
+    #         del v
