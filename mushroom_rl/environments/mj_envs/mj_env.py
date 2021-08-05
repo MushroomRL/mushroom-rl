@@ -23,7 +23,7 @@ class MuJoCoPixelObs(gym.ObservationWrapper):
 
     def observation(self, observation):
         img = self.sim.render(width=self.width, height=self.height, depth=self.depth,
-                              camera_name=self.camera_name, camera_id=self.camera_id)
+                              camera_name=self.camera_name, device_id=self.camera_id)
         img = img[::-1,:,:]
         return img.transpose((2, 0, 1))
 
