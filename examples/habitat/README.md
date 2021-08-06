@@ -13,6 +13,7 @@ For our example you need to run
 ```
 python -m igibson.utils.assets_utils --download_assets
 python -m igibson.utils.assets_utils --download_demo_data
+python -m igibson.utils.assets_utils --download_ig_dataset
 ```
 You can also use [third party datasets](https://github.com/StanfordVL/iGibson/tree/master/igibson/utils/data_utils/ext_scene).
 
