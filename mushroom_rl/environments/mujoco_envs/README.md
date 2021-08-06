@@ -1,4 +1,5 @@
-The `MJEnv` wrapper is designed for MuJoCo tasks from the
+This folder contains some specific environments build on the `MuJoCo` class, as
+well as the special wrapper `MJEnv` designed for MuJoCo tasks from the
 [`mj_envs` repository](https://github.com/vikashplus/mj_envs) and the
 [`mjrl` repository](https://github.com/aravindr93/mjrl), such as the
 [hand manipulation suite](https://sites.google.com/view/deeprl-dexterous-manipulation).
@@ -29,6 +30,8 @@ git clone git@github.com:aravindr93/mjrl.git
 cd mjrl
 pip install -e .
 ```
+For a list of the available environments, see
+[here](https://github.com/aravindr93/mjrl/blob/master/mjrl/envs/__init__.py).
 
 ## Install mj_envs
 ```
@@ -37,3 +40,5 @@ cd mj_envs
 git submodule update --remote
 pip install -e .
 ```
+For a list of the available environments, see
+[here](https://github.com/vikashplus/mj_envs/blob/master/mj_envs/hand_manipulation_suite/__init__.py).

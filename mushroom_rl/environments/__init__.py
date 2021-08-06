@@ -42,17 +42,11 @@ except ImportError:
 
 try:
     MuJoCo = None
+    MJEnv = None
     from .mujoco import MuJoCo
     from .mujoco_envs import *
 except ImportError:
     pass
-
-try:
-    MJEnv = None
-    from .mj_envs import MJEnv
-except ImportError:
-    pass
-
 
 try:
     PyBullet = None
