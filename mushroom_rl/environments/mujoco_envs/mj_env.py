@@ -32,7 +32,7 @@ class MJEnv(Environment):
     """
 
     """
-    def __init__(self, task_name, horizon=None, gamma=0.99,
+    def __init__(self, task_name, horizon, gamma=0.99,
         use_pixels=False, camera_id=0, pixels_width=64, pixels_height=64):
         """
         Constructor.
@@ -56,13 +56,6 @@ class MJEnv(Environment):
                                                 camera_name='vil_camera',
                                                 camera_id=camera_id)
 
-        # # get the default horizon
-        # if horizon is None:
-        #     horizon = self.env._step_limit
-        #
-        # # Hack to ignore dm_control time limit.
-        # self.env._step_limit = np.inf
-
         # MDP properties
         action_space = self.env.action_space
         observation_space = self.env.observation_space
@@ -85,23 +78,6 @@ class MJEnv(Environment):
 
     def render(self):
         pass
-        # img = self.env.physics.render(self._viewer.size[1],
-        #                               self._viewer.size[0],
-        #                               self._camera_id)
-        # self._viewer.display(img)
 
     def stop(self):
         pass
-
-    # def render(self):
-    #     if self._viewer is None:
-    #         self._viewer = mujoco_py.MjViewer(self._sim)
-    #
-    #     self._viewer.render()
-    #
-    # def stop(self):
-    #     if self._viewer is not None:
-    #         v = self._viewer
-    #         self._viewer = None
-    #         glfw.destroy_window(v.window)
-    #         del v
