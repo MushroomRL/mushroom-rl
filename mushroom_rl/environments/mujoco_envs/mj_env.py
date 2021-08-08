@@ -8,7 +8,32 @@ with warnings.catch_warnings():
 import gym
 from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.utils.spaces import *
-# from mushroom_rl.utils.viewer import ImageViewer
+
+import torch
+import torchvision.models as models
+
+
+class StateEmbedding(gym.ObservationWrapper):
+    def __init__(self, env, network=None, train=False):
+        gym.ObservationWrapper.__init__(self, env)
+        original_obs_space = env.observation_space
+
+        if network is None:
+            network = models.resnet18()
+        dummy_obs = torch.zeros(1, *original_obs_space)
+        embedding_space_shape = np.prod(network(dummy_obs).shape)
+
+        self.network = network
+        self.train = train
+        self.observation_space = Box(
+                    low=-np.inf, high=np.inf, shape=(embedding_space_shape,))
+
+    def observation(self, observation):
+        if self.train:
+            return self.network(observation).view(1, -1)
+        else:
+            with torch.no_grad():
+                return self.network(observation).view(1, -1)
 
 
 class MuJoCoPixelObs(gym.ObservationWrapper):
@@ -55,6 +80,7 @@ class MJEnv(Environment):
                                                 height=pixels_height,
                                                 camera_name='vil_camera',
                                                 camera_id=camera_id)
+            self.env = StateEmbedding(self.env)
 
         # MDP properties
         action_space = self.env.action_space
