@@ -20,7 +20,7 @@ class StateEmbedding(gym.ObservationWrapper):
 
         if network is None:
             network = models.resnet18()
-        dummy_obs = torch.zeros(1, *original_obs_space)
+        dummy_obs = torch.zeros(1, *original_obs_space.shape)
         embedding_space_shape = np.prod(network(dummy_obs).shape)
 
         self.network = network
@@ -57,7 +57,7 @@ class MJEnv(Environment):
     """
 
     """
-    def __init__(self, task_name, horizon, gamma=0.99,
+    def __init__(self, task_name, horizon=1000, gamma=0.99,
         use_pixels=False, camera_id=0, pixels_width=64, pixels_height=64):
         """
         Constructor.
