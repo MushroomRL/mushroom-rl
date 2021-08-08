@@ -29,11 +29,14 @@ class StateEmbedding(gym.ObservationWrapper):
                     low=-np.inf, high=np.inf, shape=(embedding_space_shape,))
 
     def observation(self, observation):
+        observation = torch.from_numpy(np.ascontiguousarray(observation[None,:,:,:], dtype=np.float32))
         if self.train:
+            raise NotImplementedError
+            # msh does not support tensors in the replay memory
             return self.network(observation).view(1, -1)
         else:
             with torch.no_grad():
-                return self.network(observation).view(1, -1)
+                return self.network(observation).view(1, -1).numpy().squeeze()
 
 
 class MuJoCoPixelObs(gym.ObservationWrapper):
