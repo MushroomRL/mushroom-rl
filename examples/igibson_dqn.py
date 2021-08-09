@@ -267,7 +267,6 @@ def experiment():
 
     # Summary folder
     folder_name = './logs/gibson_' + args.algorithm +\
-        '_' + default_config.split(os.sep)[-1].split('.yaml')[0] +\
         '_' + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     pathlib.Path(folder_name).mkdir(parents=True)
 
