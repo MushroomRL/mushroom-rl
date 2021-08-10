@@ -137,7 +137,7 @@ def create_SAC_agent(mdp, use_cuda=None):
 
 def experiment(n_epochs, n_steps, n_episodes_test):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--resnet', action='store_true')
+    parser.add_argument('--embedding', type=str, default='baseline')
     args = parser.parse_args()
 
     np.random.seed(1)
@@ -149,7 +149,7 @@ def experiment(n_epochs, n_steps, n_episodes_test):
     # MDP
     gamma = 0.99
     horizon = 2000
-    mdp = MJEnv('door-v0', use_pixels=True, use_pretrained_embedding=args.resnet)
+    mdp = MJEnv('door-v0', use_pixels=True, embedding=args.embedding)
 
     # Agent
     agent = create_SAC_agent(mdp)

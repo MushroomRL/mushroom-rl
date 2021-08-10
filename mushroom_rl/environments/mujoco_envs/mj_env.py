@@ -15,18 +15,41 @@ import torchvision.models as models
 import torchvision.transforms as T
 
 
+def _get_embedding(obs_size=3, embedding_name='baseline', train=False):
+    if embedding_name == 'baseline':
+        init_ = lambda m: init(m, nn.init.orthogonal_,
+            lambda x: nn.init.constant_(x, 0),
+            nn.init.calculate_gain('relu'))
+        return = nn.Sequential(
+            init_(nn.Conv2d(obs_size, 32, kernel_size=(3,3), stride=2, padding=1)),
+            nn.ELU(),
+            init_(nn.Conv2d(32, 32, kernel_size=(3,3), stride=2, padding=1)),
+            nn.ELU(),
+            init_(nn.Conv2d(32, 32, kernel_size=(3,3), stride=2, padding=1)),
+            nn.ELU(),
+            init_(nn.Conv2d(32, 32, kernel_size=(3,3), stride=2, padding=1)),
+            nn.ELU(),
+            init_(nn.Conv2d(32, 32, kernel_size=(3,3), stride=2, padding=1)),
+            nn.ELU(),
+        )
+    elif embedding_name == 'resnet34':
+        model = models.resnet34(pretrained=not train)
+        layers = list(model.children())[:-1]
+        return nn.Sequential(*layers)
+    else:
+        raise NotImplementedError
+
+
 class StateEmbedding(gym.ObservationWrapper):
-    def __init__(self, env, embedding=None, train=False):
+    def __init__(self, env, embedding_name='baseline', train=False):
         gym.ObservationWrapper.__init__(self, env)
         original_obs_space = env.observation_space
 
-        if embedding is None:
-            model = models.resnet34(pretrained=not train)
-            layers = list(model.children())[:-1]
-            embedding = nn.Sequential(*layers)
-            if not train:
-                for p in embedding.parameters():
-                    p.requires_grad = False
+        embedding = _get_embedding(embedding_name)
+
+        if not train:
+            for p in embedding.parameters():
+                p.requires_grad = False
 
         dummy_obs = torch.zeros(1, *original_obs_space.shape)
         embedding_space_shape = np.prod(embedding(dummy_obs).shape)
@@ -77,7 +100,7 @@ class MJEnv(Environment):
     """
     def __init__(self, task_name, horizon=1000, gamma=0.99,
         use_pixels=False, camera_id=0, pixels_width=64, pixels_height=64,
-        use_pretrained_embedding=False):
+        embedding='baseline'):
         """
         Constructor.
 
@@ -99,8 +122,7 @@ class MJEnv(Environment):
                                                 height=pixels_height,
                                                 camera_name='vil_camera',
                                                 camera_id=camera_id)
-            if use_pretrained_embedding:
-                self.env = StateEmbedding(self.env)
+            self.env = StateEmbedding(self.env, embedding)
 
         # MDP properties
         action_space = self.env.action_space
