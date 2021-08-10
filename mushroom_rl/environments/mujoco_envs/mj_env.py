@@ -130,7 +130,7 @@ class MJEnv(Environment):
                                                 height=pixels_height,
                                                 camera_name='vil_camera',
                                                 camera_id=camera_id)
-            self.env = StateEmbedding(self.env, embedding, train=True)
+            self.env = StateEmbedding(self.env, embedding)
 
         # MDP properties
         action_space = self.env.action_space
