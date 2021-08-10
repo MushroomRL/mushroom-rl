@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 
 import torch
@@ -135,6 +136,10 @@ def create_SAC_agent(mdp, use_cuda=None):
 
 
 def experiment(n_epochs, n_steps, n_episodes_test):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--resnet', action='store_true')
+    args = parser.parse_args()
+
     np.random.seed(1)
 
     logger = Logger('SAC', results_dir=None)
@@ -144,7 +149,7 @@ def experiment(n_epochs, n_steps, n_episodes_test):
     # MDP
     gamma = 0.99
     horizon = 2000
-    mdp = MJEnv('door-v0', use_pixels=True)
+    mdp = MJEnv('door-v0', use_pixels=True, use_pretrained_embedding=args.resnet)
 
     # Agent
     agent = create_SAC_agent(mdp)

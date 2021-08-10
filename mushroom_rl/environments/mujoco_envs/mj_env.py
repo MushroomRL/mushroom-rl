@@ -10,6 +10,7 @@ from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.utils.spaces import *
 
 import torch
+import torch.nn as nn
 import torchvision.models as models
 import torchvision.transforms as T
 
@@ -19,7 +20,7 @@ class StateEmbedding(gym.ObservationWrapper):
         gym.ObservationWrapper.__init__(self, env)
         original_obs_space = env.observation_space
 
-        if network is None:
+        if embedding is None:
             model = models.resnet34(pretrained=not train)
             layers = list(model.children())[:-1]
             embedding = nn.Sequential(*layers)
