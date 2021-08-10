@@ -61,7 +61,7 @@ class MJEnv(Environment):
 
     """
     def __init__(self, task_name, horizon=1000, gamma=0.99,
-        use_pixels=False, camera_id=0, pixels_width=64, pixels_height=64):
+        use_pixels=False, camera_id=0, pixels_width=64, pixels_height=64, use_pretrained_embedding=False):
         """
         Constructor.
 
@@ -83,7 +83,8 @@ class MJEnv(Environment):
                                                 height=pixels_height,
                                                 camera_name='vil_camera',
                                                 camera_id=camera_id)
-            self.env = StateEmbedding(self.env)
+            if use_pretrained_embedding:
+                self.env = StateEmbedding(self.env)
 
         # MDP properties
         action_space = self.env.action_space

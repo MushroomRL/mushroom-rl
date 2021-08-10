@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 
 import torch
@@ -7,7 +8,8 @@ import torch.nn.functional as F
 
 from mushroom_rl.algorithms.actor_critic import DDPG
 from mushroom_rl.core import Core
-from mushroom_rl.environments.dm_control_env import DMControl
+#from mushroom_rl.environments.dm_control_env import DMControl
+from mushroom_rl.core import Environment
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy
 from mushroom_rl.utils.dataset import compute_J
 
@@ -106,11 +108,17 @@ def get_stats(dataset, logger):
 
 
 def experiment():
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--resnet', action='store_true')
+    args = parser.parse_args()
+
     # MDP
     horizon = 500
     gamma = 0.99
     gamma_eval = 1.
-    mdp = DMControl('walker', 'stand', horizon, gamma, use_pixels=True)
+#    mdp = DMControl('walker', 'stand', horizon, gamma, use_pixels=True, use_pretrained_embedding=args.resnet)
+    mdp = Environment.make('MJEnv', 'door-v0', horizon=1000, use_pixels=True, use_pretrained_embedding=args.resnet)
 
     # Policy
     policy_class = OrnsteinUhlenbeckPolicy
@@ -156,7 +164,7 @@ def experiment():
     core.learn(n_steps=initial_replay_size, n_steps_per_fit=initial_replay_size)
 
     # RUN
-    n_epochs = 40
+    n_epochs = 1000
     n_steps = 1000
     n_steps_test = 2000
 
