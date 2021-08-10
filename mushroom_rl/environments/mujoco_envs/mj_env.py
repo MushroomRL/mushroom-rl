@@ -11,32 +11,46 @@ from mushroom_rl.utils.spaces import *
 
 import torch
 import torchvision.models as models
+import torchvision.transforms as T
 
 
 class StateEmbedding(gym.ObservationWrapper):
-    def __init__(self, env, network=None, train=False):
+    def __init__(self, env, embedding=None, train=False):
         gym.ObservationWrapper.__init__(self, env)
         original_obs_space = env.observation_space
 
         if network is None:
-            network = models.resnet34(pretrained=not train)
-        dummy_obs = torch.zeros(1, *original_obs_space.shape)
-        embedding_space_shape = np.prod(network(dummy_obs).shape)
+            model = models.resnet34(pretrained=not train)
+            layers = list(model.children())[:-1]
+            embedding = nn.Sequential(*layers)
+            if not train:
+                for p in embedding.parameters():
+                    p.requires_grad = False
 
-        self.network = network
+        dummy_obs = torch.zeros(1, *original_obs_space.shape)
+        embedding_space_shape = np.prod(embedding(dummy_obs).shape)
+
+        self.embedding = embedding
         self.train = train
         self.observation_space = Box(
                     low=-np.inf, high=np.inf, shape=(embedding_space_shape,))
 
     def observation(self, observation):
+        # From https://pytorch.org/vision/stable/models.html
+        # All pre-trained models expect input images normalized in the same way,
+        # i.e. mini-batches of 3-channel RGB images of shape (3 x H x W),
+        # where H and W are expected to be at least 224.
+        # The images have to be loaded in to a range of [0, 1] and then
+        # normalized using mean = [0.485, 0.456, 0.406] and std = [0.229, 0.224, 0.225].
         observation = torch.from_numpy(np.ascontiguousarray(observation[None,:,:,:], dtype=np.float32))
+        observation /= 255.
+        # transform = T.Compose([T.Resize(256), T.CenterCrop(224), T.ToTensor()])
+        # observation = transforms
         if self.train:
             raise NotImplementedError
-            # msh does not support tensors in the replay memory
-            return self.network(observation).view(1, -1)
         else:
             with torch.no_grad():
-                return self.network(observation).view(1, -1).numpy().squeeze()
+                return self.embedding(observation).view(1, -1).numpy().squeeze()
 
 
 class MuJoCoPixelObs(gym.ObservationWrapper):
@@ -61,7 +75,8 @@ class MJEnv(Environment):
 
     """
     def __init__(self, task_name, horizon=1000, gamma=0.99,
-        use_pixels=False, camera_id=0, pixels_width=64, pixels_height=64, use_pretrained_embedding=False):
+        use_pixels=False, camera_id=0, pixels_width=64, pixels_height=64,
+        use_pretrained_embedding=False):
         """
         Constructor.
 
