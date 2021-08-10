@@ -26,6 +26,7 @@ def _get_embedding(obs_size=3, embedding_name='baseline', train=False):
         init_ = lambda m: init(m, nn.init.orthogonal_,
             lambda x: nn.init.constant_(x, 0),
             nn.init.calculate_gain('relu'))
+
         return nn.Sequential(
             init_(nn.Conv2d(obs_size, 32, kernel_size=(3,3), stride=2, padding=1)),
             nn.ELU(),
@@ -51,7 +52,7 @@ class StateEmbedding(gym.ObservationWrapper):
         gym.ObservationWrapper.__init__(self, env)
         original_obs_space = env.observation_space
 
-        embedding = _get_embedding(embedding_name)
+        embedding = _get_embedding(embedding_name=embedding_name)
 
         if not train:
             for p in embedding.parameters():
@@ -77,6 +78,7 @@ class StateEmbedding(gym.ObservationWrapper):
         # transform = T.Compose([T.Resize(256), T.CenterCrop(224), T.ToTensor()])
         # observation = transforms
         if self.train:
+            return self.embedding(observation).view(1, -1).squeeze()
             raise NotImplementedError
         else:
             with torch.no_grad():
@@ -128,7 +130,7 @@ class MJEnv(Environment):
                                                 height=pixels_height,
                                                 camera_name='vil_camera',
                                                 camera_id=camera_id)
-            self.env = StateEmbedding(self.env, embedding)
+            self.env = StateEmbedding(self.env, embedding, train=True)
 
         # MDP properties
         action_space = self.env.action_space
