@@ -19,7 +19,7 @@ class StateEmbedding(gym.ObservationWrapper):
         original_obs_space = env.observation_space
 
         if network is None:
-            network = models.resnet34()
+            network = models.resnet34(pretrained=not train)
         dummy_obs = torch.zeros(1, *original_obs_space.shape)
         embedding_space_shape = np.prod(network(dummy_obs).shape)
 

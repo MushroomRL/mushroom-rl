@@ -8,7 +8,6 @@ import torch.nn.functional as F
 from mushroom_rl.algorithms.actor_critic import DDPG
 from mushroom_rl.core import Core
 from mushroom_rl.environments.dm_control_env import DMControl
-from mushroom_rl.environments.igibson_env import iGibson
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy
 from mushroom_rl.utils.dataset import compute_J
 
@@ -92,6 +91,20 @@ class ActorNetwork(nn.Module):
         return a
 
 
+def print_epoch(epoch, logger):
+    logger.info('################################################################')
+    logger.info('Epoch: %d' % epoch)
+    logger.info('----------------------------------------------------------------')
+
+
+def get_stats(dataset, logger):
+    score = compute_metrics(dataset)
+    logger.info(('min_reward: %f, max_reward: %f, mean_reward: %f,'
+                ' episodes_completed: %d' % score))
+
+    return score
+
+
 def experiment():
     # MDP
     horizon = 500
@@ -134,6 +147,7 @@ def experiment():
                  actor_params, actor_optimizer, critic_params,
                  batch_size, initial_replay_size, max_replay_size,
                  tau)
+
 
     # Algorithm
     core = Core(agent, mdp)
