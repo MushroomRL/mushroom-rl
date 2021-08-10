@@ -15,12 +15,18 @@ import torchvision.models as models
 import torchvision.transforms as T
 
 
+def init(module, weight_init, bias_init, gain=1):
+    weight_init(module.weight.data, gain=gain)
+    bias_init(module.bias.data)
+    return module
+
+
 def _get_embedding(obs_size=3, embedding_name='baseline', train=False):
     if embedding_name == 'baseline':
         init_ = lambda m: init(m, nn.init.orthogonal_,
             lambda x: nn.init.constant_(x, 0),
             nn.init.calculate_gain('relu'))
-        return = nn.Sequential(
+        return nn.Sequential(
             init_(nn.Conv2d(obs_size, 32, kernel_size=(3,3), stride=2, padding=1)),
             nn.ELU(),
             init_(nn.Conv2d(32, 32, kernel_size=(3,3), stride=2, padding=1)),
