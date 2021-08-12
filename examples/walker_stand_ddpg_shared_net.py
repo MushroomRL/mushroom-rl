@@ -52,7 +52,6 @@ class CriticNetwork(nn.Module):
         super().__init__()
 
         self._state_embedding = kwargs['embedding']
-        self._input_shape = self._state_embedding._output_shape
 
         n_input = input_shape[-1]
         n_output = output_shape[0]
@@ -67,7 +66,7 @@ class CriticNetwork(nn.Module):
 
     def forward(self, state, action):
         h = self._state_embedding(state)
-        h = h.view(-1, *self._input_shape)
+        h = h.view(-1, *self._state_embedding._output_shape)
         h = torch.cat((h, action.float()), dim=1)
         h = F.relu(self._h1(h))
         q = self._h2(h)
@@ -79,7 +78,6 @@ class ActorNetwork(nn.Module):
         super(ActorNetwork, self).__init__()
 
         self._state_embedding = kwargs['embedding']
-        self._input_shape = self._state_embedding._output_shape
 
         n_input = input_shape[-1]
         n_output = output_shape[0]
@@ -94,7 +92,7 @@ class ActorNetwork(nn.Module):
 
     def forward(self, state):
         h = self._state_embedding(state)
-        h = h.view(-1, *self._input_shape)
+        h = h.view(-1, *self._state_embedding._output_shape)
         h = F.relu(self._h1(h))
         a = self._h2(h)
         return a.squeeze()
@@ -118,11 +116,9 @@ def experiment():
     n_features = 80
     tau = .001
 
-    # State embedding
-    obs_shape = mdp.info.observation_space.shape
-    embedding = StateEmbedding(obs_shape)
-
     # Approximator
+    embedding = StateEmbedding(mdp.info.observation_space.shape)
+
     actor_input_shape = embedding._output_shape
     actor_params = dict(network=ActorNetwork,
                         n_features=n_features,
