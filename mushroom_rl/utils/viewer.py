@@ -49,7 +49,22 @@ class ImageViewer:
 
     @property
     def size(self):
+        """
+        Property.
+
+        Returns:
+            The size of the screen.
+
+        """
         return self._size
+
+    def close(self):
+        """
+        Close the viewer, destroy the window.
+
+        """
+        self._screen = None
+        pygame.display.quit()
 
 
 class Viewer:
