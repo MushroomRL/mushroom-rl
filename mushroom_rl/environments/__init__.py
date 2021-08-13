@@ -20,6 +20,27 @@ except ImportError:
     pass
 
 try:
+    MiniGrid = None
+    from .minigrid_env import MiniGrid
+    MiniGrid.register()
+except ImportError:
+    pass
+
+try:
+    iGibson = None
+    from .igibson_env import iGibson
+    iGibson.register()
+except ImportError:
+    pass
+
+try:
+    Habitat = None
+    from .habitat_env import Habitat
+    Habitat.register()
+except ImportError:
+    pass
+
+try:
     MuJoCo = None
     from .mujoco import MuJoCo
     from .mujoco_envs import *
@@ -62,4 +83,3 @@ Segway.register()
 
 from .ship_steering import ShipSteering
 ShipSteering.register()
-
