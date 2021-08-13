@@ -19,7 +19,7 @@ import numpy as np
 from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.environments import Gym
 from mushroom_rl.utils.spaces import Discrete, Box
-
+from mushroom_rl.utils.viewer import ImageViewer
 
 class iGibsonWrapper(gym.ObservationWrapper):
     def __init__(self, env):
@@ -44,7 +44,7 @@ class iGibson(Gym):
 
     """
     def __init__(self, config_file, horizon=None, gamma=0.99, is_discrete=False,
-                 width=None, height=None, verbose=False):
+                 width=None, height=None, debug_gui=False, verbose=False):
         """
         Constructor.
 
@@ -60,6 +60,8 @@ class iGibson(Gym):
                 value specified in the config file is used;
              height (int, None): height of the pixel observation. If None, the
                 value specified in the config file is used;
+             debug_gui (bool, False): if True, activate the iGibson in GUI mode,
+                showing the pybullet rendering and the robot camera.
              verbose (bool, False): if False, it disable iGibson default messages.
 
         """
@@ -85,7 +87,7 @@ class iGibson(Gym):
         if height is not None:
             config['image_height'] = height
 
-        env = iGibsonEnv(config_file=config, mode='headless')
+        env = iGibsonEnv(config_file=config, mode='gui' if debug_gui else 'headless')
         env = iGibsonWrapper(env)
 
         self.env = env
@@ -103,6 +105,9 @@ class iGibson(Gym):
         else:
             self._convert_action = lambda a: a
 
+        self._viewer = ImageViewer((self._img_size[1], self._img_size[0]), 1/60)
+        self._image = None
+
         Environment.__init__(self, mdp_info)
 
     def reset(self, state=None):
@@ -112,16 +117,17 @@ class iGibson(Gym):
     def step(self, action):
         action = self._convert_action(action)
         obs, reward, absorbing, info = self.env.step(action)
+        self._image = obs.copy()
         return self._convert_observation(np.atleast_1d(obs)), reward, absorbing, info
 
     def close(self):
         self.env.close()
 
     def stop(self):
-        pass
+        self._viewer.close()
 
     def render(self, mode='human'):
-        pass
+        self._viewer.display(self._image)
 
     @staticmethod
     def _convert_observation(observation):

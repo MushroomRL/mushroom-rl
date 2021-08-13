@@ -140,7 +140,6 @@ class Habitat(Gym):
         # MDP creation
         self._not_pybullet = False
         self._first = True
-        self._viewer = None
 
         if base_config_file is None:
             base_config_file = config_file
@@ -182,6 +181,8 @@ class Habitat(Gym):
         else:
             self._convert_action = lambda a: a
 
+        self._viewer = ImageViewer((self._img_size[1], self._img_size[0]), 1/10)
+
         Environment.__init__(self, mdp_info)
 
     def reset(self, state=None):
@@ -194,23 +195,17 @@ class Habitat(Gym):
         obs, reward, absorbing, info = self.env.step(action)
         return self._convert_observation(np.atleast_1d(obs)), reward, absorbing, info
 
-    def close(self):
-        self.env.close()
-        if self._viewer is not None:
-            self._viewer.close()
-
     def stop(self):
-        pass
+        self._viewer.close()
 
-    def render(self, mode='rgb_array', dt=10):
+    def render(self, mode='rgb_array'):
         if mode == "rgb_array":
             frame = observations_to_image(
                 self.env._last_full_obs, self.env.unwrapped._env.get_metrics()
             )
         else:
             raise ValueError(f"Render mode {mode} not currently supported.")
-        if self._viewer is None:
-            self._viewer = ImageViewer(self._img_size, dt)
+
         self._viewer.display(frame)
 
     @staticmethod

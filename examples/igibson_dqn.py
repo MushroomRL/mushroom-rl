@@ -225,6 +225,8 @@ def experiment():
     arg_utils = parser.add_argument_group('Utils')
     arg_utils.add_argument('--use-cuda', action='store_true',
                            help='Flag specifying whether to use the GPU.')
+    arg_utils.add_argument('--debug-gui', action='store_true',
+                           help='Flag specifying whether to use the debug visualization of iGibson')
     arg_utils.add_argument('--save', action='store_true',
                            help='Flag specifying whether to save the model.')
     arg_utils.add_argument('--load-path', type=str,
@@ -290,7 +292,7 @@ def experiment():
 
     # MDP
     default_config = os.path.join(iGibson.root_path(), 'test', 'test_house.yaml')
-    mdp = iGibson(config_file=default_config, is_discrete=True)
+    mdp = iGibson(config_file=default_config, is_discrete=True, debug_gui=args.debug_gui)
 
     if args.load_path:
         logger = Logger(DQN.__name__, results_dir=None)

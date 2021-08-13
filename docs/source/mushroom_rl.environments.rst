@@ -69,6 +69,31 @@ Gym
     :inherited-members:
     :show-inheritance:
 
+Habitat
+~~~~~~~
+
+.. autoclass:: mushroom_rl.environments.habitat_env.Habitat
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. autoclass:: mushroom_rl.environments.habitat_env.HabitatNavigationWrapper
+    :members:
+
+.. autoclass:: mushroom_rl.environments.habitat_env.HabitatRearrangeWrapper
+    :members:
+
+
+iGibson
+~~~~~~~
+
+.. autoclass:: mushroom_rl.environments.igibson_env.iGibson
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
 Inverted pendulum
 ~~~~~~~~~~~~~~~~~
 
@@ -95,6 +120,16 @@ LQR
     :private-members:
     :inherited-members:
     :show-inheritance:
+
+Minigrid
+~~~~~~~~
+
+.. automodule:: mushroom_rl.environments.minigrid_env
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
 
 Mujoco
 ~~~~~~
