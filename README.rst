@@ -238,13 +238,16 @@ If you are using mushroom for your scientific publications, please cite:
 
 .. code:: bibtex
 
-   @misc{deramo2020mushroomrl,
-         title={MushroomRL: Simplifying Reinforcement Learning Research},
-         author={D'Eramo, Carlo and Tateo, Davide and Bonarini, Andrea and Restelli, Marcello and Peters, Jan},
-         journal={arXiv preprint arXiv:2001.01102},
-         year={2020},
-         howpublished={\url{https://github.com/MushroomRL/mushroom-rl}}
-   }
+    @article{JMLR:v22:18-056,
+        author  = {Carlo D'Eramo and Davide Tateo and Andrea Bonarini and Marcello Restelli and Jan Peters},
+        title   = {MushroomRL: Simplifying Reinforcement Learning Research},
+        journal = {Journal of Machine Learning Research},
+        year    = {2021},
+        volume  = {22},
+        number  = {131},
+        pages   = {1-5},
+        url     = {http://jmlr.org/papers/v22/18-056.html}
+    }
 
 How to contact us
 =================
