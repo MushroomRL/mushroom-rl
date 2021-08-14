@@ -82,7 +82,7 @@ be found `here <https://github.com/deepmind/dm_control>`_
 Using Habitat and iGibson with MushroomRL
 -----------------------------------------
 
-`Habitat <https://aihabitat.org/>`__ and `iGibson <http://svl.stanford.edu/igibson/`>__
+`Habitat <https://aihabitat.org/>`__ and `iGibson <http://svl.stanford.edu/igibson/>`__
 are simulation platforms providing realistic and sensory-rich learning environments.
 In MushroomRL, the agent's default observations are RGB images, but RGBD,
 agent sensory data, and other information can also be used.
