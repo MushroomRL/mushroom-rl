@@ -82,9 +82,10 @@ be found `here <https://github.com/deepmind/dm_control>`_
 Using Habitat and iGibson with MushroomRL
 -----------------------------------------
 
-Habitat and iGibson support many realistic scenes as environment for the agent.
-By default the agent's observations are RGB images, but RGBD, sensory data, and
-other information can also be used.
+`Habitat <https://aihabitat.org/>`__ and `iGibson <http://svl.stanford.edu/igibson/`__
+are simulation platforms providing realistic and sensory-rich learning environments.
+In MushroomRL, the agent's default observations are RGB images, but RGBD,
+agent sensory data, and other information can also be used.
 
     If you have previous versions of iGibson or Habitat already installed, we recommend to remove them and do clean installs.
 
@@ -94,7 +95,7 @@ Follow the `official guide <http://svl.stanford.edu/igibson/#install_env>`__ and
 `assets <http://svl.stanford.edu/igibson/docs/assets.html>`__ and
 `datasets <http://svl.stanford.edu/igibson/docs/dataset.html>`__.
 
-For our example you need to run
+For ``<MUSHROOM_RL PATH>/mushroom-rl/examples/igibson_dqn.py`` you need to run
 
 .. code:: shell
 
@@ -105,7 +106,7 @@ For our example you need to run
 You can also use `third party datasets <https://github.com/StanfordVL/iGibson/tree/master/igibson/utils/data_utils/ext_scene>`__.
 
 The scene details are defined in a YAML file, that needs to be passed to the agent.
-See `<IGIBSON PATH>/igibson/test/test_house.YAML` for an example.
+See ``<IGIBSON PATH>/igibson/test/test_house.YAML`` for an example.
 
 
 Habitat Installation
@@ -120,10 +121,10 @@ If you need to download other datasets, you can use
 
 Basic Usage of Habitat
 ^^^^^^^^^^^^^^^^^^^^^^
-When you create a `Habitat` environment, you need to pass a wrapper name and two
-YAML files: `Habitat(wrapper, config_file, base_config_file)`.
+When you create a ``Habitat`` environment, you need to pass a wrapper name and two
+YAML files: ``Habitat(wrapper, config_file, base_config_file)``.
 
-* The wrapper has to be among the ones defined in `<MUSHROOM_RL PATH>/mushroom-rl/environments/habitat_env.py`,
+* The wrapper has to be among the ones defined in ``<MUSHROOM_RL PATH>/mushroom-rl/environments/habitat_env.py``,
   and takes care of converting actions and observations in a gym-like format. If your task / robot requires it,
   you may need to define new wrappers.
 
@@ -132,13 +133,13 @@ YAML files: `Habitat(wrapper, config_file, base_config_file)`.
   additional information you may need. The second YAML file is optional, and
   overwrites whatever was already defined in the first YAML.
 
-    If you use YAMLs from `habitat-lab`, check if they define a YAML for
-    BASE_TASK_CONFIG_PATH. If they do, you need to pass it as `base_config_file` to
-    `Habitat()`. `habitat-lab` YAMLs, in fact, use relative paths, and calling them
+    If you use YAMLs from ``habitat-lab``, check if they define a YAML for
+    ``BASE_TASK_CONFIG_PATH``. If they do, you need to pass it as ``base_config_file`` to
+    ``Habitat()``. ``habitat-lab`` YAMLs, in fact, use relative paths, and calling them
     from outside its root folder will cause errors.
 
 * If you use a dataset, be sure that the path defined in the YAML file is correct,
-  especially if you use relative paths. `habitat-lab` YAMLs use relative paths, so
+  especially if you use relative paths. ``habitat-lab`` YAMLs use relative paths, so
   be careful with that. By default, the path defined in the YAML file will be
   relative to where you launched the python code. See the navigation example below
   for more details.
@@ -152,21 +153,21 @@ Rearrange Task Example
     python -m habitat_sim.utils.datasets_download --uids habitat_test_pointnav_dataset --data-path data
     python -m habitat_sim.utils.datasets_download --uids habitat_test_scenes --data-path data
 
-* For this task we use `<HABITAT_LAB PATH>/habitat_baselines/config/rearrange/ddppo_rearrangepick.yaml`.
-  This YAML defines `BASE_TASK_CONFIG_PATH: configs/tasks/rearrangepick_replica_cad.yaml`,
+* For this task we use ``<HABITAT_LAB PATH>/habitat_baselines/config/rearrange/ddppo_rearrangepick.yaml``.
+  This YAML defines ``BASE_TASK_CONFIG_PATH: configs/tasks/rearrangepick_replica_cad.yaml``,
   and since this is a relative path we need to overwrite it by passing its absolute path
-  as `base_config_file` argument to `Habitat()`.
+  as ``base_config_file`` argument to ``Habitat()``.
 
-* Then, `rearrangepick_replica_cad.yaml` defines the dataset to be used, and
-  this is in `<HABITAT_LAB PATH>`. However, since the path defined is relative
+* Then, ``rearrangepick_replica_cad.yaml`` defines the dataset to be used, and
+  this is in ``<HABITAT_LAB PATH>``. However, since the path defined is relative
   to where we launch our code, we need to make a link to the data folder. If you
-  launch `habitat_rearrange_sac.py` from its example folder, run
+  launch ``habitat_rearrange_sac.py`` from its example folder, run
 
 .. code:: shell
 
     ln -s <HABITAT_LAB PATH>/data/ <MUSHROOM_RL PATH>/mushroom-rl/examples/habitat
 
-* Finally, you can launch `python habitat_rearrange_sac.py`.
+* Finally, you can launch ``python habitat_rearrange_sac.py``.
 
 Navigation Task Example
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -181,25 +182,25 @@ Navigation Task Example
     cd Replica-Dataset
     ./download.sh replica-path
 
-* For this task we only use the custom YAML file `pointnav_apartment-0.yaml`.
+* For this task we only use the custom YAML file ``pointnav_apartment-0.yaml``.
 
-* `DATA_PATH: "replica_{split}_apartment-0.json.gz"` defines the JSON file with
+* ``DATA_PATH: "replica_{split}_apartment-0.json.gz"`` defines the JSON file with
   some scene details, such as the agent's initial position and orientation.
-  The `{split}` value is defined in the `SPLIT` key.
+  The ``{split}`` value is defined in the ``SPLIT`` key.
 
     If you want to try new positions, you can sample some from the set of the scene's navigable points.
-    After initializing a `habitat` environment, for example `mdp = Habitat(...)`,
-    run `mdp.env._env._sim.sample_navigable_point()`.
+    After initializing a ``habitat`` environment, for example ``mdp = Habitat(...)``,
+    run ``mdp.env._env._sim.sample_navigable_point()``.
 
-* `SCENES_DIR: "Replica-Dataset/replica-path/apartment_0"` defines the scene.
+* ``SCENES_DIR: "Replica-Dataset/replica-path/apartment_0"`` defines the scene.
   As said before, this path is relative to where you launch the script, thus we need to link the Replica folder.
-  If you launch `habitat_nav_dqn.py` from its example folder, run
+  If you launch ``habitat_nav_dqn.py`` from its example folder, run
 
 .. code:: shell
 
     ln -s <PATH TO>/Replica-Dataset/ <MUSHROOM_RL PATH>/mushroom-rl/examples/habitat
 
-* Finally, you can launch `python habitat_nav_dqn.py`.
+* Finally, you can launch ``python habitat_nav_dqn.py``.
 
 
 
