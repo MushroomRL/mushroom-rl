@@ -233,9 +233,9 @@ For instance, to run a quick experiment with one of the provided example scripts
 
     python3 examples/car_on_hill_fqi.py
    
-Cite Mushroom
-=============
-If you are using mushroom for your scientific publications, please cite:
+Cite MushroomRL
+===============
+If you are using MushroomRL for your scientific publications, please cite:
 
 .. code:: bibtex
 
