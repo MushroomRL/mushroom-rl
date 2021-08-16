@@ -114,6 +114,42 @@ Puddle World
     :inherited-members:
     :show-inheritance:
 
+Pybullet
+~~~~~~~~
+
+.. automodule:: mushroom_rl.environments.pybullet
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+Air Hockey
+^^^^^^^^^^
+
+.. automodule:: mushroom_rl.environments.pybullet_envs.air_hockey.base
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.pybullet_envs.air_hockey.single
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.pybullet_envs.air_hockey.hit
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.pybullet_envs.air_hockey.defend
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
 Segway
 ~~~~~~~~~~~~~
 
