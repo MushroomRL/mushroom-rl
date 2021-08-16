@@ -51,6 +51,7 @@ except ImportError:
 try:
     PyBullet = None
     from .pybullet import PyBullet
+    from .pybullet_envs import *
 except ImportError:
     pass
 

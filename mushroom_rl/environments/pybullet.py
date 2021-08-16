@@ -22,7 +22,7 @@ class PyBullet(Environment):
             files (dict): dictionary of the URDF/MJCF/SDF files to load (key) and parameters dictionary (value);
             actuation_spec (list): A list of tuples specifying the names of the
                 joints which should be controllable by the agent and tehir control mode.
-                 Can be left empty when all actuators should be used in position control;
+                Can be left empty when all actuators should be used in position control;
             observation_spec (list): A list containing the names of data that
                 should be made available to the agent as an observation and
                 their type (ObservationType). An entry in the list is given by:
@@ -245,16 +245,16 @@ class PyBullet(Environment):
     def _simulation_pre_step(self):
         """
         Allows information to be accesed and changed at every intermediate step
-            before taking a step in the pybullet simulation.
-            Can be usefull to apply an external force/torque to the specified bodies.
+        before taking a step in the pybullet simulation.
+        Can be usefull to apply an external force/torque to the specified bodies.
         """
         pass
 
     def _simulation_post_step(self):
         """
         Allows information to be accesed at every intermediate step
-            after taking a step in the pybullet simulation.
-            Can be usefull to average forces over all intermediate steps.
+        after taking a step in the pybullet simulation.
+        Can be usefull to average forces over all intermediate steps.
         """
         pass
 
