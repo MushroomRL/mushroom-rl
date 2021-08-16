@@ -6,6 +6,7 @@ with warnings.catch_warnings():
     if 'VERBOSE_HABITAT' not in os.environ: # To suppress Habitat messages
         os.environ['MAGNUM_LOG'] = 'quiet'
         os.environ['GLOG_minloglevel'] = '2'
+        os.environ['HABITAT_SIM_LOG'] = 'quiet'
     else:
         os.environ['GLOG_minloglevel']='0'
         os.environ['MAGNUM_LOG'] = 'verbose'
