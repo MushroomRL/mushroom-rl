@@ -2,6 +2,7 @@
 build/
 dist/
 examples/habitat/Replica-Dataset 
+examples/habitat/data
 mushroom_rl.egg-info/
 .idea/
 *.pyc
