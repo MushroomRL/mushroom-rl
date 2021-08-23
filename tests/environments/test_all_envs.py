@@ -90,7 +90,7 @@ def test_grid_world():
         ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
     mdp.render()
 
-    assert ns == 0
+    assert ns == 5
 
     np.random.seed(1)
     mdp = GridWorldVanHasselt()
@@ -98,7 +98,7 @@ def test_grid_world():
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
 
-    assert ns == 6
+    assert ns == 2
 
     np.random.seed(5)
     mdp = generate_grid_world('tests/environments/grid.txt', .9, 1, -1)

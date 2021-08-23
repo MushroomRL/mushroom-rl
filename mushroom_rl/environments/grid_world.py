@@ -82,6 +82,7 @@ class AbstractGridWorld(Environment):
         raise NotImplementedError('AbstractGridWorld is an abstract class.')
 
     def _grid_step(self, state, action):
+        action = action[0]
         if action == 0:
             if state[0] > 0:
                 state[0] -= 1
