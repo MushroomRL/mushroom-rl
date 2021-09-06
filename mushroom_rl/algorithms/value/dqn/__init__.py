@@ -6,8 +6,9 @@ from .maxmin_dqn import MaxminDQN
 from .dueling_dqn import DuelingDQN
 from .categorical_dqn import CategoricalDQN
 from .noisy_dqn import NoisyDQN
+from .quantile_dqn import QuantileDQN
 from .rainbow import Rainbow
 
 
 __all__ = ['AbstractDQN', 'DQN', 'DoubleDQN', 'AveragedDQN', 'MaxminDQN',
-           'DuelingDQN', 'CategoricalDQN', 'NoisyDQN', 'Rainbow']
+           'DuelingDQN', 'CategoricalDQN', 'NoisyDQN', 'QuantileDQN', 'Rainbow']

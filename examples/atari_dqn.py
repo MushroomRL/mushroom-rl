@@ -9,7 +9,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from mushroom_rl.algorithms.value import AveragedDQN, CategoricalDQN, DQN,\
-    DoubleDQN, MaxminDQN, DuelingDQN, NoisyDQN, Rainbow
+    DoubleDQN, MaxminDQN, DuelingDQN, NoisyDQN, QuantileDQN, Rainbow
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import *
@@ -154,7 +154,7 @@ def experiment():
 
     arg_alg = parser.add_argument_group('Algorithm')
     arg_alg.add_argument("--algorithm", choices=['dqn', 'ddqn', 'adqn', 'mmdqn',
-                                                 'cdqn', 'dueldqn', 'ndqn', 'rainbow'],
+                                                 'cdqn', 'dueldqn', 'ndqn', 'qdqn', 'rainbow'],
                          default='dqn',
                          help='Name of the algorithm. dqn is for standard'
                               'DQN, ddqn is for Double DQN and adqn is for'
@@ -202,6 +202,8 @@ def experiment():
                          help='Minimum action-value for Categorical DQN.')
     arg_alg.add_argument("--v-max", type=int, default=10,
                          help='Maximum action-value for Categorical DQN.')
+    arg_alg.add_argument("--n-quantiles", type=int, default=200,
+                         help='Number of quantiles for Quantile Regression DQN.')
     arg_alg.add_argument("--n-steps-return", type=int, default=3,
                          help='Number of steps for n-step return for Rainbow.')
     arg_alg.add_argument("--sigma-coeff", type=float, default=.5,
@@ -308,7 +310,7 @@ def experiment():
 
         # Approximator
         approximator_params = dict(
-            network=Network if args.algorithm not in ['dueldqn', 'cdqn', 'ndqn', 'rainbow'] else FeatureNetwork,
+            network=Network if args.algorithm not in ['dueldqn', 'cdqn', 'ndqn', 'qdqn', 'rainbow'] else FeatureNetwork,
             input_shape=mdp.info.observation_space.shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
@@ -316,7 +318,7 @@ def experiment():
             optimizer=optimizer,
             use_cuda=args.use_cuda
         )
-        if args.algorithm not in ['cdqn', 'rainbow']:
+        if args.algorithm not in ['cdqn', 'qdqn', 'rainbow']:
             approximator_params['loss'] = F.smooth_l1_loss
 
         approximator = TorchApproximator
@@ -374,6 +376,10 @@ def experiment():
             alg = NoisyDQN
             agent = alg(mdp.info, pi, approximator_params=approximator_params,
                         sigma_coeff=args.sigma_coeff, **algorithm_params)
+        elif args.algorithm == 'qdqn':
+            alg = QuantileDQN
+            agent = alg(mdp.info, pi, approximator_params=approximator_params,
+                        n_quantiles=args.n_quantiles, **algorithm_params)
         elif args.algorithm == 'rainbow':
             alg = Rainbow
             beta = LinearParameter(.4, threshold_value=1, n=max_steps // train_frequency)

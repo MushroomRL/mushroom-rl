@@ -7,7 +7,7 @@ from helper.utils import TestUtils as tu
 
 from mushroom_rl.core import Agent, Logger
 from mushroom_rl.algorithms.value import DQN, DoubleDQN, AveragedDQN,\
-    MaxminDQN, DuelingDQN, CategoricalDQN, NoisyDQN, Rainbow
+    MaxminDQN, DuelingDQN, CategoricalDQN, QuantileDQN, NoisyDQN, Rainbow
 from mushroom_rl.core import Core
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
@@ -71,12 +71,15 @@ def learn(alg, alg_params, logger=None):
                                n_features=2, use_cuda=False)
 
     # Agent
-    if alg not in [DuelingDQN, CategoricalDQN, NoisyDQN, Rainbow]:
+    if alg not in [DuelingDQN, QuantileDQN, CategoricalDQN, NoisyDQN, Rainbow]:
         agent = alg(mdp.info, pi, TorchApproximator,
                     approximator_params=approximator_params, **alg_params)
     elif alg in [CategoricalDQN, Rainbow]:
         agent = alg(mdp.info, pi, approximator_params=approximator_params,
                     n_atoms=2, v_min=-1, v_max=1, **alg_params)
+    elif alg in [QuantileDQN]:
+        agent = alg(mdp.info, pi, approximator_params=approximator_params,
+                    n_quantiles=2, **alg_params)
     else:
         agent = alg(mdp.info, pi, approximator_params=approximator_params,
                     **alg_params)
@@ -311,6 +314,38 @@ def test_categorical_dqn_save(tmpdir):
     params = dict(batch_size=50, initial_replay_size=50,
                   max_replay_size=5000, target_update_frequency=50)
     agent_save = learn(CategoricalDQN, params)
+
+    agent_save.save(agent_path, full_save=True)
+    agent_load = Agent.load(agent_path)
+
+    for att, method in vars(agent_save).items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+
+        tu.assert_eq(save_attr, load_attr)
+
+
+def test_quantile_dqn():
+    params = dict(batch_size=50, initial_replay_size=50,
+                  max_replay_size=5000, target_update_frequency=50)
+    approximator = learn(QuantileDQN, params).approximator
+
+    w = approximator.get_weights()
+    w_test = np.array([-0.445598, 0.7921833, 0.3127064, -0.13804975, -0.7560823,
+                       0.35417593, -1.1218646, 0.7265262, 0.40201563, 1.2316055,
+                       0.02598637, 0.02116407, 0.76916, -1.0395582, -1.0759451,
+                       -0.5113829, -0.18624172, -0.33754084, 1.005778, -0.2562586,
+                       0.5079987, -0.5034418, 0.3462327, 0.45655805])
+
+    assert np.allclose(w, w_test, rtol=1e-4)
+
+
+def test_quantile_dqn_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
+    params = dict(batch_size=50, initial_replay_size=50,
+                  max_replay_size=5000, target_update_frequency=50)
+    agent_save = learn(QuantileDQN, params)
 
     agent_save.save(agent_path, full_save=True)
     agent_load = Agent.load(agent_path)

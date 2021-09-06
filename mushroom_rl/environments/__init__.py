@@ -31,7 +31,8 @@ try:
     from .igibson_env import iGibson
     iGibson.register()
 except ImportError:
-    pass
+    import logging
+    logging.disable(logging.NOTSET)
 
 try:
     Habitat = None

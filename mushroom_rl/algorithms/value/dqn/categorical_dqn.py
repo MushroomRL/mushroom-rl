@@ -10,10 +10,12 @@ from mushroom_rl.approximators.parametric.torch_approximator import *
 def categorical_loss(input, target, reduction='sum'):
     input = input.clamp(1e-5)
 
+    loss = -torch.sum(target * torch.log(input), 1)
+
     if reduction == 'sum':
-        return -torch.sum(target * torch.log(input))
+        return loss.mean()
     elif reduction == 'none':
-        return -torch.sum(target * torch.log(input), 1)
+        return loss
     else:
         raise ValueError
 
