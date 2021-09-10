@@ -18,6 +18,8 @@ with warnings.catch_warnings():
     from habitat_baselines.common.environments import get_env_class
     from habitat_baselines.utils.env_utils import make_env_fn
     from habitat.utils.visualizations.utils import observations_to_image
+    from habitat.datasets.utils import get_action_shortest_path
+    from habitat_sim.errors import GreedyFollowerError
 
 import gym
 import numpy as np
@@ -57,6 +59,41 @@ class HabitatNavigationWrapper(gym.Wrapper):
         obs = np.asarray(obs['rgb'])
         info.update({'position': self.get_position()})
         return obs, rwd, done, info
+
+    def get_shortest_path(self):
+        '''
+        Return obs and actions corresponding to the shortest path.
+        Can be used for imitation learning or to see what the expected return
+        of the optimal policy should be.
+        '''
+        try:
+            shortest_path = [
+                get_action_shortest_path(
+                    self.unwrapped._env._sim,
+                    source_position=self.unwrapped._env._dataset.episodes[0].start_position,
+                    source_rotation=self.unwrapped._env._dataset.episodes[0].start_rotation,
+                    goal_position=self.unwrapped._env._dataset.episodes[0].goals[0].position,
+                    success_distance=0.2,
+                    max_episode_steps=self.unwrapped._env._max_episode_steps-1,
+                )
+            ][0]
+            actions = [p.action for p in shortest_path]
+            obs = [self.unwrapped._env.sim.get_observations_at(p.position, p.rotation)['rgb'] for p in shortest_path]
+            return obs, actions
+        except GreedyFollowerError:
+            print('WARNING: Cannot find shortest path.')
+            return None, None
+
+    def get_optimal_policy_return(self):
+        '''
+        Returns the undiscounted sum of rewards of the optimal policy.
+        '''
+        _, actions = self.get_shortest_path()
+        env.reset()
+        reward = 0.
+        for a in actions:
+            reward += self.step(a)[1]
+        return reward
 
 
 class HabitatRearrangeWrapper(gym.Wrapper):
