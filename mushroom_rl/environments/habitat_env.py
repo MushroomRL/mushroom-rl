@@ -62,10 +62,11 @@ class HabitatNavigationWrapper(gym.Wrapper):
 
     def get_shortest_path(self):
         '''
-        Return obs and actions corresponding to the shortest path.
-        Can be used for imitation learning or to see what the expected return
-        of the optimal policy should be.
+        Return observations and actions corresponding to the shortest path to the goal.
+        If the goal cannot be reached within the episode steps limit, the best
+        path (closest to the goal) will be returned.
         '''
+        max_steps = self.unwrapped._env._max_episode_steps - 1
         try:
             shortest_path = [
                 get_action_shortest_path(
@@ -74,14 +75,21 @@ class HabitatNavigationWrapper(gym.Wrapper):
                     source_rotation=self.unwrapped._env._dataset.episodes[0].start_rotation,
                     goal_position=self.unwrapped._env._dataset.episodes[0].goals[0].position,
                     success_distance=0.2,
-                    max_episode_steps=self.unwrapped._env._max_episode_steps-1,
+                    max_episode_steps=max_steps,
                 )
             ][0]
             actions = [p.action for p in shortest_path]
             obs = [self.unwrapped._env.sim.get_observations_at(p.position, p.rotation)['rgb'] for p in shortest_path]
+
+            shortest_steps = len(actions)
+            if shortest_steps == max_steps:
+                print('WARNING! Shortest path not found with the given steps limit ({steps}).'.format(steps=max_steps),
+                        'Returning best path.')
+            else:
+                print('Shortest path found: {steps} steps.'.format(steps=shortest_steps))
             return obs, actions
         except GreedyFollowerError:
-            print('WARNING: Cannot find shortest path.')
+            print('WARNING! Cannot find shortest path (GreedyFollowerError).')
             return None, None
 
     def get_optimal_policy_return(self):
@@ -89,11 +97,14 @@ class HabitatNavigationWrapper(gym.Wrapper):
         Returns the undiscounted sum of rewards of the optimal policy.
         '''
         _, actions = self.get_shortest_path()
-        env.reset()
-        reward = 0.
+        self.reset()
+        rwd_sum = 0.
         for a in actions:
-            reward += self.step(a)[1]
-        return reward
+            _, rwd, done, _ = self.step([a-1])
+            rwd_sum += rwd
+            if done:
+                break
+        return rwd_sum
 
 
 class HabitatRearrangeWrapper(gym.Wrapper):
