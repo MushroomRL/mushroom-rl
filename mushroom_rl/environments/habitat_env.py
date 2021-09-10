@@ -62,7 +62,7 @@ class HabitatNavigationWrapper(gym.Wrapper):
 
     def get_shortest_path(self):
         '''
-        Return observations and actions corresponding to the shortest path to the goal.
+        Returns observations and actions corresponding to the shortest path to the goal.
         If the goal cannot be reached within the episode steps limit, the best
         path (closest to the goal) will be returned.
         '''
