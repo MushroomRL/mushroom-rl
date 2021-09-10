@@ -74,7 +74,7 @@ class HabitatNavigationWrapper(gym.Wrapper):
                     source_position=self.unwrapped._env._dataset.episodes[0].start_position,
                     source_rotation=self.unwrapped._env._dataset.episodes[0].start_rotation,
                     goal_position=self.unwrapped._env._dataset.episodes[0].goals[0].position,
-                    success_distance=0.2,
+                    success_distance=self.unwrapped._core_env_config.TASK.SUCCESS_DISTANCE,
                     max_episode_steps=max_steps,
                 )
             ][0]
