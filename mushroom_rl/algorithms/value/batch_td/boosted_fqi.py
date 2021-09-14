@@ -17,7 +17,6 @@ class BoostedFQI(FQI):
         self._prediction = 0.
         self._next_q = 0.
         self._idx = 0
-        approximator_params['n_models'] = n_iterations
 
         self._add_save_attr(
             _n_iterations='primitive',
