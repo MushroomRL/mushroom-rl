@@ -26,6 +26,12 @@ jobs:
         pip install flake8 pytest pytest-cov
         pip install ale-py
         pip install -e .[all]
+    - name: Install Atari ROMs
+      run: |
+        wget http://www.atarimania.com/roms/Roms.rar 
+        unrar e Roms.rar 
+        unzip ROMS.zip 
+        python -m atari_py.import_roms ./ROMS
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
