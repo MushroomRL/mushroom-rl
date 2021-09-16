@@ -14,8 +14,8 @@ SIMULATOR:
     POSITION: [0, 0.88, 0]
 
   ACTION_SPACE_CONFIG: "v0"
-  FORWARD_STEP_SIZE: 1.0 # How much the agent moves with 'forward'
-  TURN_ANGLE: 90 # How much the agent turns with 'left' / 'right' actions
+  FORWARD_STEP_SIZE: 0.25 # How much the agent moves with 'forward'
+  TURN_ANGLE: 10 # How much the agent turns with 'left' / 'right' actions
 
 TASK:
   TYPE: Nav-v0
