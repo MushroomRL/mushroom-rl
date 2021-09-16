@@ -18,6 +18,8 @@ with warnings.catch_warnings():
     from habitat_baselines.common.environments import get_env_class
     from habitat_baselines.utils.env_utils import make_env_fn
     from habitat.utils.visualizations.utils import observations_to_image
+    from habitat.datasets.utils import get_action_shortest_path
+    from habitat_sim.errors import GreedyFollowerError
 
 import gym
 import numpy as np
@@ -57,6 +59,52 @@ class HabitatNavigationWrapper(gym.Wrapper):
         obs = np.asarray(obs['rgb'])
         info.update({'position': self.get_position()})
         return obs, rwd, done, info
+
+    def get_shortest_path(self):
+        '''
+        Returns observations and actions corresponding to the shortest path to the goal.
+        If the goal cannot be reached within the episode steps limit, the best
+        path (closest to the goal) will be returned.
+        '''
+        max_steps = self.unwrapped._env._max_episode_steps - 1
+        try:
+            shortest_path = [
+                get_action_shortest_path(
+                    self.unwrapped._env._sim,
+                    source_position=self.unwrapped._env._dataset.episodes[0].start_position,
+                    source_rotation=self.unwrapped._env._dataset.episodes[0].start_rotation,
+                    goal_position=self.unwrapped._env._dataset.episodes[0].goals[0].position,
+                    success_distance=self.unwrapped._core_env_config.TASK.SUCCESS_DISTANCE,
+                    max_episode_steps=max_steps,
+                )
+            ][0]
+            actions = [p.action for p in shortest_path]
+            obs = [self.unwrapped._env.sim.get_observations_at(p.position, p.rotation)['rgb'] for p in shortest_path]
+
+            shortest_steps = len(actions)
+            if shortest_steps == max_steps:
+                print('WARNING! Shortest path not found with the given steps limit ({steps}).'.format(steps=max_steps),
+                        'Returning best path.')
+            else:
+                print('Shortest path found: {steps} steps.'.format(steps=shortest_steps))
+            return obs, actions
+        except GreedyFollowerError:
+            print('WARNING! Cannot find shortest path (GreedyFollowerError).')
+            return None, None
+
+    def get_optimal_policy_return(self):
+        '''
+        Returns the undiscounted sum of rewards of the optimal policy.
+        '''
+        _, actions = self.get_shortest_path()
+        self.reset()
+        rwd_sum = 0.
+        for a in actions:
+            _, rwd, done, _ = self.step([a-1])
+            rwd_sum += rwd
+            if done:
+                break
+        return rwd_sum
 
 
 class HabitatRearrangeWrapper(gym.Wrapper):
