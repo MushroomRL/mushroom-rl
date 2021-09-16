@@ -296,7 +296,7 @@ def experiment():
         'pointnav_apartment-0.yaml') # Custom task for Replica scenes
     wrapper = 'HabitatNavigationWrapper'
     mdp = Habitat(wrapper, config_file)
-    print('Optimal policy undiscounted return:', mdp.env.get_optimal_policy_return())
+    logger.info('Optimal policy undiscounted return: ' + str(mdp.env.get_optimal_policy_return()))
 
     if args.load_path:
         logger = Logger(DQN.__name__, results_dir=None)
