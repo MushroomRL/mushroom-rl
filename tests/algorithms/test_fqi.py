@@ -24,6 +24,7 @@ def learn(alg, alg_params):
     # Approximator
     approximator_params = dict(input_shape=mdp.info.observation_space.shape,
                                n_actions=mdp.info.action_space.n,
+                               n_models=1 if alg is not BoostedFQI else alg_params['n_iterations'],
                                n_estimators=50,
                                min_samples_split=5,
                                min_samples_leaf=2)
