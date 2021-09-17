@@ -1,5 +1,5 @@
 {
-  "episodes": [{"episode_id": "0",
+  "episodes": [{"episode_id": "0", 
                "scene_id": "habitat/mesh_semantic.ply",
                "start_position": [-0.716670036315918, -1.374765157699585, 0.7762265205383301],
                "start_rotation": [0.0, 0.0, 0.0, 1.0],
