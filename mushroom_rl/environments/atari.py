@@ -111,6 +111,8 @@ class Atari(Environment):
         return LazyFrames(list(self._state), self._history_length)
 
     def step(self, action):
+        action = action[0]
+
         # Force FIRE action to start episodes in games with lives
         if self._force_fire:
             obs, _, _, _ = self.env.env.step(1)
@@ -121,10 +123,11 @@ class Atari(Environment):
 
         obs, reward, absorbing, info = self.env.step(action)
         self._real_reset = absorbing
-        if info['ale.lives'] != self._lives:
+        
+        if info['lives'] != self._lives:
             if self._episode_ends_at_life:
                 absorbing = True
-            self._lives = info['ale.lives']
+            self._lives = info['lives']
             self._force_fire = self.env.unwrapped.get_action_meanings()[
                 1] == 'FIRE'
 
