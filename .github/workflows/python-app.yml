@@ -31,7 +31,7 @@ jobs:
         wget http://www.atarimania.com/roms/Roms.rar 
         unrar e Roms.rar 
         unzip ROMS.zip 
-        python -m atari_py.import_roms ./ROMS
+        ale-import-roms ./ROMS
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
