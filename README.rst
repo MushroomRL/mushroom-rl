@@ -2,8 +2,9 @@
 MushroomRL
 **********
 
-.. image:: https://travis-ci.com/MushroomRL/mushroom-rl.svg?branch=dev
-   :target: https://travis-ci.com/MushroomRL/mushroom-rl
+.. image:: https://github.com/MushroomRL/mushroom-rl/actions/workflows/continuous_integration.yml/badge.svg?branch=dev
+   :target: https://github.com/MushroomRL/mushroom-rl/actions/workflows/continuous_integration.yml
+   :alt: Continuous Integration
 
 .. image:: https://readthedocs.org/projects/mushroomrl/badge/?version=latest
    :target: https://mushroomrl.readthedocs.io/en/latest/?badge=latest
