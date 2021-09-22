@@ -7,6 +7,7 @@ from mushroom_rl.features.tensors import GaussianRBFTensor, RandomFourierBasis
 
 
 def test_tiles():
+    np.random.seed(1)
     tilings = Tiles.generate(3, [3, 3],
                              np.array([0., -.5]),
                              np.array([1., .5]))
@@ -30,6 +31,7 @@ def test_tiles():
 
 
 def test_tiles_voronoi():
+    np.random.seed(1)
     tilings_list = [
         VoronoiTiles.generate(3, 10,
                               low=np.array([0., -.5]),
@@ -60,6 +62,7 @@ def test_tiles_voronoi():
 
 
 def test_basis():
+    np.random.seed(1)
     low = np.array([0., -.5])
     high = np.array([1., .5])
     rbf = GaussianRBF.generate([3, 3], high, low)
@@ -83,6 +86,7 @@ def test_basis():
 
 
 def test_tensor():
+    np.random.seed(1)
     low = np.array([0., -.5])
     high = np.array([1., .5])
     rbf = GaussianRBFTensor.generate([3, 3], low, high)
@@ -112,6 +116,7 @@ def test_tensor():
 
 
 def test_basis_and_tensors():
+    np.random.seed(1)
     low = np.array([0., -.5])
     high = np.array([1., .5])
     basis_rbf = GaussianRBF.generate([3, 3], low, high)
