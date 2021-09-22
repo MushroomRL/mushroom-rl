@@ -34,18 +34,17 @@ class LSPI(BatchTD):
                          approximator_params, fit_params, features)
 
     def fit(self, dataset):
-        phi_state, action, reward, phi_next_state, absorbing, _ = parse_dataset(
-            dataset, self.phi)
+        state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
+        phi_state = self.phi(state)
+        phi_next_state = self.phi(next_state)
         phi_state_action = get_action_features(phi_state, action,
                                                self.mdp_info.action_space.n)
 
         norm = np.inf
         while norm > self._epsilon():
-            q = self.approximator.predict(phi_next_state)
-            if np.any(absorbing):
-                q *= 1 - absorbing.reshape(-1, 1)
-
-            next_action = np.argmax(q, axis=1).reshape(-1, 1)
+            next_action = np.zeros((len(next_state), 1))
+            for i, ns in enumerate(next_state):
+                next_action[i] = self.draw_action(ns)
             phi_next_state_next_action = get_action_features(
                 phi_next_state,
                 next_action,
