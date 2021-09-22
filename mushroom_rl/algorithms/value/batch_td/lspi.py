@@ -37,6 +37,7 @@ class LSPI(BatchTD):
         state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
         phi_state = self.phi(state)
         phi_next_state = self.phi(next_state)
+        absorbing = absorbing.reshape(-1, 1)
         phi_state_action = get_action_features(phi_state, action,
                                                self.mdp_info.action_space.n)
 
@@ -50,6 +51,7 @@ class LSPI(BatchTD):
                 next_action,
                 self.mdp_info.action_space.n
             )
+            phi_next_state_next_action *= 1 - absorbing
 
             tmp = phi_state_action - self.mdp_info.gamma *\
                 phi_next_state_next_action
