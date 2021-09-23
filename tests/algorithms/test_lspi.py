@@ -46,7 +46,7 @@ def learn_lspi():
 def test_lspi():
 
     w = learn_lspi().approximator.get_weights()
-    w_test = np.array([-0.83475051, -0.79388825, -0.82878598])
+    w_test = np.array([-1.67115903, -1.43755615, -1.67115903])
 
     assert np.allclose(w, w_test)
 

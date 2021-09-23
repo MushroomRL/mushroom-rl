@@ -34,29 +34,28 @@ class LSPI(BatchTD):
                          approximator_params, fit_params, features)
 
     def fit(self, dataset):
-        state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
-        phi_state = self.phi(state)
-        phi_next_state = self.phi(next_state)
-        absorbing = absorbing.reshape(-1, 1)
+        phi_state, action, reward, phi_next_state, absorbing, _ = parse_dataset(
+            dataset, self.phi)
         phi_state_action = get_action_features(phi_state, action,
                                                self.mdp_info.action_space.n)
 
         norm = np.inf
         while norm > self._epsilon():
-            next_action = np.zeros((len(next_state), 1))
-            for i, ns in enumerate(next_state):
-                next_action[i] = self.draw_action(ns)
+            q = self.approximator.predict(phi_next_state)
+            if np.any(absorbing):
+                q *= 1 - absorbing.reshape(-1, 1)
+
+            next_action = np.argmax(q, axis=1).reshape(-1, 1)
             phi_next_state_next_action = get_action_features(
                 phi_next_state,
                 next_action,
                 self.mdp_info.action_space.n
             )
-            phi_next_state_next_action *= 1 - absorbing
 
             tmp = phi_state_action - self.mdp_info.gamma *\
                 phi_next_state_next_action
-            self._A += phi_state_action.T.dot(tmp)
-            self._b += (phi_state_action.T.dot(reward)).reshape(-1, 1)
+            self._A = phi_state_action.T.dot(tmp)
+            self._b = (phi_state_action.T.dot(reward)).reshape(-1, 1)
 
             old_w = self.approximator.get_weights()
             if np.linalg.matrix_rank(self._A) == self._A.shape[1]:
