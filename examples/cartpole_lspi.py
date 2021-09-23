@@ -50,7 +50,7 @@ def experiment():
     core.evaluate(n_episodes=3, render=True)
 
     # Train
-    core.learn(n_episodes=100, n_episodes_per_fit=100)
+    core.learn(n_episodes=500, n_episodes_per_fit=500)
 
     # Test
     test_epsilon = Parameter(0.)

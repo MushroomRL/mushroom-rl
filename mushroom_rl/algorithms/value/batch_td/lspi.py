@@ -24,11 +24,7 @@ class LSPI(BatchTD):
         """
         self._epsilon = to_parameter(epsilon)
 
-        k = features.size * mdp_info.action_space.n
-        self._A = np.zeros((k, k))
-        self._b = np.zeros((k, 1))
-
-        self._add_save_attr(_epsilon='mushroom', _A='primitive', _b='primitive')
+        self._add_save_attr(_epsilon='mushroom')
 
         super().__init__(mdp_info, policy, LinearApproximator,
                          approximator_params, fit_params, features)
@@ -54,14 +50,14 @@ class LSPI(BatchTD):
 
             tmp = phi_state_action - self.mdp_info.gamma *\
                 phi_next_state_next_action
-            self._A = phi_state_action.T.dot(tmp)
-            self._b = (phi_state_action.T.dot(reward)).reshape(-1, 1)
+            A = phi_state_action.T.dot(tmp)
+            b = (phi_state_action.T.dot(reward)).reshape(-1, 1)
 
             old_w = self.approximator.get_weights()
-            if np.linalg.matrix_rank(self._A) == self._A.shape[1]:
-                w = np.linalg.solve(self._A, self._b).ravel()
+            if np.linalg.matrix_rank(A) == A.shape[1]:
+                w = np.linalg.solve(A, b).ravel()
             else:
-                w = np.linalg.pinv(self._A).dot(self._b).ravel()
+                w = np.linalg.pinv(A).dot(b).ravel()
             self.approximator.set_weights(w)
 
             norm = np.linalg.norm(w - old_w)
