@@ -144,9 +144,9 @@ class HabitatRearrangeWrapper(gym.Wrapper):
         gym.Wrapper.__init__(self, env)
         self.arm_ac_size = env.action_space['ARM_ACTION']['arm_action'].shape[0]
         self.grip_ac_size = env.action_space['ARM_ACTION']['grip_action'].shape[0]
-        self.n_actions = self.arm_ac_size + self.grip_ac_size + 1
-        low = np.array([0.] * self.arm_ac_size + [-1.] * (self.grip_ac_size + 1))
-        high = np.ones((self.arm_ac_size + self.grip_ac_size + 1))
+        self.n_actions = self.arm_ac_size + self.grip_ac_size
+        low = np.array([0.] * self.arm_ac_size + [-1.] * self.grip_ac_size)
+        high = np.ones((self.arm_ac_size + self.grip_ac_size))
         self.action_space = Box(low=low, high=high, shape=(self.n_actions,))
         self.observation_space = self.env.observation_space['robot_head_rgb']
         self._last_full_obs = None # For rendering
@@ -158,11 +158,8 @@ class HabitatRearrangeWrapper(gym.Wrapper):
         return self.env._env._sim.robot.ee_transform.translation
 
     def step(self, action):
-        if action[-1] > 0.:
-            action = 'STOP'
-        else:
-            action = {'action': 'ARM_ACTION', 'action_args':
-                {'arm_action': action[:-self.grip_ac_size], 'grip_action': action[-self.grip_ac_size:]}}
+        action = {'action': 'ARM_ACTION', 'action_args':
+            {'arm_action': action[:-self.grip_ac_size], 'grip_action': action[-self.grip_ac_size:]}}
         obs, rwd, done, info = self.env.step(**{'action': action})
         info.update({'ee_position': np.asarray(obs['ee_pos'])})
         obs = np.asarray(obs['robot_head_rgb'])
