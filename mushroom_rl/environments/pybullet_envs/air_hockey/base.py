@@ -16,7 +16,7 @@ class AirHockeyBase(PyBullet):
     """
     def __init__(self, gamma=0.99, horizon=500, n_agents=1, env_noise=False, obs_noise=False, obs_delay=False,
                  torque_control=True, step_action_function=None, timestep=1 / 240., n_intermediate_steps=1,
-                 debug_gui=False):
+                 debug_gui=False, table_boundary_terminate=False):
         """
         Constructor.
 
@@ -29,6 +29,7 @@ class AirHockeyBase(PyBullet):
             obs_delay(bool, False): If true, velocity is observed by the low-pass filter;
             control(bool, True): If false, the robot in position control mode;
             step_action_function(object, None): A callable function to warp-up the policy action to environment command.
+            table_boundary_terminate(bool, False): Episode terminates if the mallet is outside the boundary
         """
 
         self.n_agents = n_agents
@@ -36,6 +37,7 @@ class AirHockeyBase(PyBullet):
         self.obs_noise = obs_noise
         self.obs_delay = obs_delay
         self.step_action_function = step_action_function
+        self.table_boundary_terminate = table_boundary_terminate
 
         puck_file = os.path.join(os.path.dirname(os.path.abspath(path_robots)),
                                  "data", "air_hockey", "puck.urdf")
@@ -143,6 +145,20 @@ class AirHockeyBase(PyBullet):
         puck_pos = self.get_sim_state(state, "puck", PyBulletObservationType.BODY_POS)[:3]
         if np.any(np.abs(puck_pos[:2]) > boundary) or abs(puck_pos[2] - self.env_spec['table']['height']) > 0.05:
             return True
+
+        if self.table_boundary_terminate:
+            if self.n_agents >= 1:
+                ee_pos = self.get_sim_state(state, "planar_robot_1/link_striker_ee",
+                                            PyBulletObservationType.LINK_POS)[:3]
+                if abs(ee_pos[0]) > self.env_spec['table']['length'] / 2 or \
+                        abs(ee_pos[1]) > self.env_spec['table']['width'] / 2:
+                    return True
+            if self.n_agents == 2:
+                ee_pos = self.get_sim_state(state, "planar_robot_2/link_striker_ee",
+                                            PyBulletObservationType.LINK_POS)[:3]
+                if abs(ee_pos[0]) > self.env_spec['table']['length'] / 2 or \
+                        abs(ee_pos[1]) > self.env_spec['table']['width'] / 2:
+                    return True
         return False
 
     def forward_kinematics(self, joint_state):

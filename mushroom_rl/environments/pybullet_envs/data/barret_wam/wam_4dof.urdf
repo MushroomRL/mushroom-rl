@@ -1,0 +1,190 @@
+<?xml version="1.0" ?>
+<robot name="wam_4dof">
+        
+  <!-- Fictional Footprint - for integration -->
+  <link name="world"/>
+
+  <link name="wam_footprint">
+    <inertial>
+      <mass value="0.0001" />
+      <origin rpy="0.0 0 0" xyz="0.0 0.0 0.84"/>
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+    <visual>
+      <origin rpy="1.57 0.0 0.0" xyz="0.0 0.0 0.84"/>
+        <geometry>
+           <box size="0.001 0.001 0.001" />
+        </geometry>
+    </visual>
+    <collision>
+      <origin rpy="1.57 0 0.0" xyz="0.0 0.0 0.84"/>
+       <geometry>
+         <box size="0.001 0.001 0.001" />
+       </geometry>
+    </collision>  
+  </link>
+  
+  <!-- WAM BASE -->
+  <link name="wam_base"> 
+  	<inertial>
+  	<mass value="9.97059584"/>
+	  <origin xyz="-0.02017671 -0.26604706 -0.14071720" />
+	  <inertia ixx="1.01232865" ixy="0.05992441" ixz="0.05388736" iyy="0.38443311" iyz="0.37488748" izz="0.82739198"/>
+	</inertial>
+	<visual> 
+      <origin rpy="0 0 0" xyz="0 0 0" />
+      <geometry name="wam_base_visual">
+        <mesh filename="meshes/wamBase.stl" />
+      </geometry>
+      <material name="LightGrey">
+        <color rgba="0.9 0.9 0.9 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry name="wam_base_collision">
+        <mesh filename="meshes/wamBase.stl" />
+      </geometry>
+      <contact_coefficients kd="1000.0" kp="1000.0" mu="0"/>
+    </collision>
+  </link>
+  
+  <!-- LINK J1  -->
+  <link name="j1">
+    <inertial>
+  	  <mass value="10.76768767"/>
+	  <origin xyz="-0.00443422 0.12189039 -0.00066489"/>  
+	  <inertia ixx="0.29486350" ixy="-0.00795023" ixz="-0.00009311" iyy="0.11350017" iyz="-0.00018711" izz="0.25065343"/>
+	</inertial>
+	<visual>
+      <origin rpy="1.57 0 0" xyz="0 0 0"/>
+      <geometry name="link_j1_visual">
+        <mesh filename="meshes/wam1.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="1.57 0 0" xyz="0 0 0"/>
+      <geometry name="link_j1_collision">
+        <mesh filename="meshes/wam1.stl" />
+      </geometry>
+      <contact_coefficients kd="1000.0" kp="1000.0" mu="0"/>
+    </collision>
+  </link>
+  
+  <!-- LINK J2  -->
+  <link name="j2">
+    <inertial>
+  	  <mass value="3.87493756"/>
+	  <origin xyz="-0.00236983 0.03105614 0.01542114"/>  
+	  <inertia ixx="0.02606840" ixy="-0.00001346" ixz="-0.00011701" iyy="0.01472202" iyz="0.00003659" izz="0.01934814"/>
+	</inertial>
+	<visual>
+      <origin rpy="1.57 0 0" xyz="0 0 0"/>
+      <geometry name="link_j2_visual">
+        <mesh filename="meshes/wam2.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="1.57 0 0" xyz="0 0 0"/>
+      <geometry name="link_j2_collision">
+        <mesh filename="meshes/wam2.stl" />
+      </geometry>
+      <contact_coefficients kd="1000.0" kp="1000.0" mu="0"/>
+    </collision>
+  </link>
+  
+  <!-- LINK J3  -->
+  <link name="j3">
+    <inertial>
+  	  <mass value="1.80228141"/>
+	  <origin xyz="-0.03825858 0.20750770 0.00003309"/>  
+	  <inertia ixx="0.13671601" ixy="-0.01680434" ixz="0.00000510" iyy="0.00588354" iyz="-0.00000530" izz="0.13951371"/>
+	</inertial>
+	<visual>
+      <origin rpy="1.57 0 0" xyz="0 0 0"/>
+      <geometry name="link_j3_visual">
+        <mesh filename="meshes/wam3.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="01.57 0 0" xyz="0 0 0"/>
+      <geometry name="link_j3_collision">
+        <mesh filename="meshes/wam3.stl" />
+      </geometry>
+      <contact_coefficients kd="1000.0" kp="1000.0" mu="0"/>
+    </collision>
+  </link>
+  
+  <!-- LINK J4  -->
+  <link name="j4">
+    <inertial>
+  	  <mass value="1.06513649"/>
+	  <origin xyz="0.01095471 -0.00002567 0.14053900"/>  
+	  <inertia ixx="0.03952350" ixy="0.00000189" ixz="0.00003117" iyy="0.04008214" iyz="0.00000131" izz="0.00210299"/>
+	</inertial>
+	<visual>
+      <origin rpy="1.57 3.14 3.14" xyz="0 0 0"/>
+      <geometry name="link_j4_visual">
+        <mesh filename="meshes/wam4.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="1.57 3.14 3.14" xyz="0 0 0"/>
+      <geometry name="link_j4_collision">
+        <mesh filename="meshes/wam4.stl" />
+      </geometry>
+      <contact_coefficients kd="1000.0" kp="1000.0" mu="0"/>
+    </collision>
+  </link>  
+    
+    
+  <!-- Joint Descriptions -->
+  <joint name="fix_world" type="fixed">
+    <parent link="world"/>
+    <child link="wam_footprint"/>
+  </joint>
+  
+  <joint name="wam_basejoint" type="fixed">
+    <parent link="wam_footprint"/>
+    <child link="wam_base" />
+    <origin xyz="0 0 0.0" rpy="0 0 0" />
+  </joint>
+    
+  <joint name="wam_j1_joint" type="revolute">
+     <!-- <origin xyz="0.22 0.14 0.346" rpy="-1.57079633 0 0" />  -->
+     <origin xyz="0.0 0.0 0.346" rpy="-1.57079633 0 0" />
+     <parent link="wam_base"/>
+     <child link="j1" />
+     <axis xyz="0 1 0"/>
+     <limit effort="30" velocity="0.5" lower="-2.6" upper="2.6" />
+     <dynamics damping="1000"/>
+  </joint >
+   
+  <joint name="wam_j2_joint" type="revolute">
+     <origin xyz="0.0 0.0 0.0" rpy="0 0 0" /> 
+     <parent link="j1"/>
+     <child link="j2" />
+     <axis xyz="0 0 1"/>
+     <limit effort="30" velocity="0.5" lower="-2.0" upper="2.0" />
+     <dynamics damping="1000"/>
+  </joint >
+  
+  <joint name="wam_j3_joint" type="revolute">
+     <origin xyz="0.0 0.0 0.0" rpy="0 0 0" /> 
+     <parent link="j2"/>
+     <child link="j3" />
+     <axis xyz="0 1 0"/>
+     <limit effort="30" velocity="0.5" lower="-2.8" upper="2.8" />
+     <dynamics damping="1000"/>
+  </joint >
+  
+  <joint name="wam_j4_joint" type="revolute">
+     <origin xyz="0.045 -0.55 0.0" rpy="1.57079633 0.0 0" /> 
+     <parent link="j3"/>
+     <child link="j4" />
+     <axis xyz="0 1 0"/>
+     <limit effort="30" velocity="0.5" lower="-0.9" upper="3.1" />
+     <dynamics damping="1000"/>
+  </joint >
+  
+</robot>

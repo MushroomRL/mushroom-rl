@@ -14,7 +14,7 @@ class AirHockeyDefend(AirHockeySingle):
     """
     def __init__(self, gamma=0.99, horizon=500, env_noise=False, obs_noise=False, obs_delay=False, torque_control=True,
                  step_action_function=None, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
-                 random_init=False, action_penalty=1e-3):
+                 random_init=False, action_penalty=1e-3, table_boundary_terminate=False):
         """
         Constructor
 
@@ -29,7 +29,8 @@ class AirHockeyDefend(AirHockeySingle):
         self.action_penalty = action_penalty
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
                          debug_gui=debug_gui, env_noise=env_noise, obs_noise=obs_noise, obs_delay=obs_delay,
-                         torque_control=torque_control, step_action_function=step_action_function)
+                         torque_control=torque_control, step_action_function=step_action_function,
+                         table_boundary_terminate=table_boundary_terminate)
         self.init_state = np.array([-1.1, 0.8, np.pi/2])
 
     def setup(self, state=None):
@@ -64,6 +65,13 @@ class AirHockeyDefend(AirHockeySingle):
             if puck_pos[0] + self.env_spec['table']['length'] / 2 < 0 and \
                     np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
                 r = -50
+
+            if self.table_boundary_terminate:
+                ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
+                                            PyBulletObservationType.LINK_POS)[:3]
+                if abs(ee_pos[0]) > self.env_spec['table']['length'] / 2 or \
+                        abs(ee_pos[1]) > self.env_spec['table']['width'] / 2:
+                    r = -10
         else:
             if self.has_bounce:
                 r = 0
@@ -119,7 +127,7 @@ class AirHockeyDefend(AirHockeySingle):
 
 
 if __name__ == '__main__':
-    env = AirHockeyDefend(debug_gui=True, obs_noise=False, obs_delay=False)
+    env = AirHockeyDefend(debug_gui=True, obs_noise=False, obs_delay=False, table_boundary_terminate=True)
     env.reset()
     while True:
         action = np.random.randn(3) * 10

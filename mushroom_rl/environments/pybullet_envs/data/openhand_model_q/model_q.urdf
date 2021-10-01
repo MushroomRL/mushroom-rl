@@ -1,0 +1,397 @@
+<?xml version="1.0" ?>
+<robot name="model_q">
+
+	<link name="world" />
+	<link name="palm">
+		<inertial>
+			<origin xyz="0.000000 0.000000 0.0" />
+			<mass value="0.0" />
+			<inertia ixx="0." ixy="0.0" ixz="0.0" iyy="0.0"
+				iyz="0.0" izz="0.0" />
+		</inertial>
+	</link>
+
+	<link name="base_rot">
+		<inertial>
+			<origin xyz="0.000000 0.000000 0.0" />
+			<mass value="0.0" />
+			<inertia ixx="0." ixy="0.0" ixz="0.0" iyy="0.0"
+				iyz="0.0" izz="0.0" />
+		</inertial>
+	</link>
+
+	<link name="hand_coupler">
+		<inertial>
+			<origin xyz="0.000000 0.000000 0.025400" />
+			<mass value="1.0" />
+			<inertia ixx="1000.0" ixy="0.0" ixz="0.0" iyy="1000.0"
+				iyz="0.0" izz="1000.0" />
+		</inertial>
+		<visual>
+			<material name="lightlue">
+				<color rgba="0. 0.3 1.0 1.0" />
+			</material>
+			<origin rpy="0 1.57079632679 0"
+				xyz="0.000000 0.000000 0.000000" />
+			<geometry>
+				<cylinder length="0.01862" radius="0.0552" />
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="0 1.57079632679 0"
+				xyz="0.000000 0.000000 0.000000" />
+			<geometry>
+				<cylinder length="0.01862" radius="0.0552" />
+			</geometry>
+		</collision>
+	</link>
+	
+	<link name="motor_space">
+		<inertial>
+			<origin xyz="0.000000 0.000000 0.025400" />
+			<mass value="1.0" />
+			<inertia ixx="1000.0" ixy="0.0" ixz="0.0" iyy="1000.0"
+				iyz="0.0" izz="1000.0" />
+		</inertial>
+		<visual>
+			<material name="black">
+				<color rgba="0. 0. 0. 1.0" />
+			</material>
+			<origin rpy="0 1.57079632679 0"
+				xyz="0.000000 0.000000 0.000000" />
+			<geometry>
+				<cylinder length="0.05762" radius="0.05" />
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="0 1.57079632679 0"
+				xyz="0.000000 0.000000 0.000000" />
+			<geometry>
+				<cylinder length="0.05762" radius="0.05" />
+			</geometry>
+		</collision>
+	</link>
+	
+	<link name="simple_base">
+		<inertial>
+			<origin xyz="0.000000 0.000000 0.025400" />
+			<mass value="1.0" />
+			<inertia ixx="1000.0" ixy="0.0" ixz="0.0" iyy="1000.0"
+				iyz="0.0" izz="1000.0" />
+		</inertial>
+		<visual>
+			<material name="lightlue">
+				<color rgba="0. 0.3 1.0 1.0" />
+			</material>
+			<origin rpy="0 1.57079632679 0"
+				xyz="0.000000 0.000000 0.000000" />
+			<geometry>
+				<cylinder length="0.01312" radius="0.0552" />
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="0 1.57079632679 0"
+				xyz="0.000000 0.000000 0.000000" />
+			<geometry>
+				<cylinder length="0.01312" radius="0.0552" />
+			</geometry>
+		</collision>
+	</link>
+
+	<link name="prox_l">
+		<inertial>
+			<origin xyz="-0.015875 -0.009000 -0.071550" />
+			<mass value="0.03" />
+			<inertia ixx="1.0e-3" ixy="0.0" ixz="0.0" iyy="1.0e-3" iyz="0.0"
+				izz="1.0e-3" />
+		</inertial>
+		<visual>
+			<material name="white">
+				<color rgba="1.0 1.0 1.0 1.0" />
+			</material>
+			<origin rpy="0 -3.141592 2.4" xyz="-0.00 0.0753 0.008" />
+			<geometry>
+				<mesh filename="meshes/hand/proximal.stl" />
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="0 -3.141592 2.4" xyz="-0.00 0.0753 0.008" />
+			<geometry>
+                <mesh filename="meshes/hand/proximal.stl" />
+			</geometry>
+		</collision>
+	</link>
+
+	<link name="distal_l">
+		<inertial>
+			<origin xyz="-0.015875 -0.009000 -0.071550" />
+			<mass value="0.015" />
+			<inertia ixx="1.0e-3" ixy="0.0" ixz="0.0" iyy="1.0e-3" iyz="0.0"
+				izz="1.0e-3" />
+		</inertial>
+		<visual>
+			<material name="green">
+				<color rgba=".0 1.0 .0 1.0" />
+			</material>
+			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
+			<geometry>
+				<mesh filename="meshes/hand/distal.stl" />
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
+			<geometry>
+				<mesh filename="meshes/hand/distal.stl" />
+			</geometry>
+		</collision>
+	</link>
+
+	<link name="prox_r">
+		<inertial>
+			<origin xyz="-0.015875 -0.009000 -0.071550" />
+			<mass value="0.03" />
+			<inertia ixx="1.0e-3" ixy="0.0" ixz="0.0" iyy="1.0e-3" iyz="0.0"
+				izz="1.0e-3" />
+		</inertial>
+		<visual>
+			<material name="white">
+				<color rgba="1.0 1.0 1.0 1.0" />
+			</material>
+			<origin rpy="0 -3.141592 2.4" xyz="-0.00 0.0753 0.008" />
+			<geometry>
+				<mesh filename="meshes/hand/proximal.stl" />
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="0 -3.141592 2.4" xyz="-0.00 0.0753 0.008" />
+			<geometry>
+				<mesh filename="meshes/hand/proximal.stl" />
+			</geometry>
+		</collision>
+	</link>
+
+	<link name="distal_r">
+		<inertial>
+			<origin xyz="-0.015875 -0.009000 -0.071550" />
+			<mass value="0.015" />
+			<inertia ixx="1.0e-3" ixy="0.0" ixz="0.0" iyy="1.0e-3" iyz="0.0"
+				izz="1.0e-3" />
+		</inertial>
+		<visual>
+			<material name="red">
+				<color rgba="1.0 .0 .0 1.0" />
+			</material>
+			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
+			<geometry>
+				<mesh filename="meshes/hand/distal.stl"  />
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
+			<geometry>
+				<mesh filename="meshes/hand/distal.stl" />
+			</geometry>
+		</collision>
+	</link>
+
+	<link name="prox_cl">
+		<inertial>
+			<origin xyz="-0.015875 -0.009000 -0.071550" />
+			<mass value="0.03" />
+			<inertia ixx="1.0e-3" ixy="0.0" ixz="0.0" iyy="1.0e-3" iyz="0.0"
+				izz="1.0e-3" />
+		</inertial>
+		<visual>
+			<material name="white">
+				<color rgba="1.0 1.0 1.0 1.0" />
+			</material>
+			<origin rpy="0 -3.141592 2.4" xyz="-0.00 0.0753 0.008" />
+			<geometry>
+				<mesh filename="meshes/hand/proximal.stl" />
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="0 -3.141592 2.4" xyz="-0.00 0.0753 0.008" />
+			<geometry>
+				<mesh filename="meshes/hand/proximal.stl" />
+			</geometry>
+		</collision>
+	</link>
+
+	<link name="distal_cl">
+		<inertial>
+			<origin xyz="-0.015875 -0.009000 -0.071550" />
+			<mass value="0.015" />
+			<inertia ixx="1.0e-3" ixy="0.0" ixz="0.0" iyy="1.0e-3" iyz="0.0"
+				izz="1.0e-3" />
+		</inertial>
+		<visual>
+			<material name="blue">
+				<color rgba=".0 .0 1.0 1.0" />
+			</material>
+			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
+			<geometry>
+				<mesh filename="meshes/hand/distal.stl" />
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
+			<geometry>
+				<mesh filename="meshes/hand/distal.stl" />
+			</geometry>
+		</collision>
+	</link>
+
+	<link name="prox_cr">
+		<inertial>
+			<origin xyz="-0.015875 -0.009000 -0.071550" />
+			<mass value="0.03" />
+			<inertia ixx="1.0e-3" ixy="0.0" ixz="0.0" iyy="1.0e-3" iyz="0.0"
+				izz="1.0e-3" />
+		</inertial>
+		<visual>
+			<material name="white">
+				<color rgba="1.0 1.0 1.0 1.0" />
+			</material>
+			<origin rpy="0 -3.141592 2.4" xyz="-0.00 0.0753 0.008" />
+			<geometry>
+				<mesh filename="meshes/hand/proximal.stl" />
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="0 -3.141592 2.4" xyz="-0.00 0.0753 0.008" />
+			<geometry>
+				<mesh filename="meshes/hand/proximal.stl" />
+			</geometry>
+		</collision>
+	</link>
+
+	<link name="distal_cr">
+		<inertial>
+			<origin xyz="-0.015875 -0.009000 -0.071550" />
+			<mass value="0.015" />
+			<inertia ixx="1.0e-3" ixy="0.0" ixz="0.0" iyy="1.0e-3" iyz="0.0"
+				izz="1.0e-3" />
+		</inertial>
+		<visual>
+			<material name="blue">
+				<color rgba=".0 .0 1.0 1.0" />
+			</material>
+			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
+			<geometry>
+				<mesh filename="meshes/hand/distal.stl" />
+			</geometry>
+		</visual>
+		<collision>
+			<origin rpy="1.5707963267948966 -1.5707963267948966 0.2" />
+			<geometry>
+				<mesh filename="meshes/hand/distal.stl" />
+			</geometry>
+		</collision>
+	</link>
+
+	<joint name="fixed1" type="fixed">
+		<origin rpy="0 1.57079632679 0" xyz="0. 0. 0." />
+		<parent link="world" />
+		<child link="hand_coupler" />
+	</joint>
+
+	<joint name="fixed2" type="fixed">
+		<origin rpy="0 0 0" xyz="-0.03381 0.000000 0.000000" />
+		<parent link="hand_coupler" />
+		<child link="motor_space" />
+	</joint>
+
+	<joint name="fixed3" type="fixed">
+		<origin rpy="0 0 0" xyz="-0.0315 -0.00 0.000000" />
+		<parent link="motor_space" />
+		<child link="simple_base" />
+	</joint>
+
+	<joint name="fixed_palm" type="fixed">
+		<origin rpy="0 -1.57079632679 0" xyz="-0.007 0.00 0.000000" />
+		<parent link="simple_base" />
+		<child link="palm" />
+	</joint>
+
+	<joint name="base_rot_joint" type="revolute">
+		<origin rpy="0 0 0" xyz="0 0.0 0.014" />
+		<parent link="palm" />
+		<child link="base_rot" />
+		<limit effort="10" lower="-0.26179938779" upper="0.26179938779" velocity="50" />
+		<axis xyz="0 0 1" />
+	</joint>
+
+	<joint name="prox_to_distal_r" type="revolute">
+		<origin rpy="0 0 0" xyz="0.000800 0.062 0" />
+		<parent link="prox_r" />
+		<child link="distal_r" />
+		<limit effort="10" lower="0.0" upper="1.24" velocity="50" />
+		<axis xyz="0 0 1" />
+		<dynamics damping="0.05" friction="0."/>
+	</joint>
+
+	<joint name="base_to_prox_r" type="revolute">
+		<origin rpy="0 1.57079632679 3.141592" xyz="0 -0.038 0.014" />
+		<parent link="palm" />
+		<child link="prox_r" />
+		<limit effort="10" lower="0.0" upper="2.0" velocity="50" />
+		<axis xyz="0 0 1" />
+		<dynamics damping="0.05" friction="0."/>
+	</joint>
+
+	<joint name="prox_to_distal_l" type="revolute">
+		<origin rpy="0 0 0" xyz="0.000800 0.062 0" />
+		<parent link="prox_l" />
+		<child link="distal_l" />
+		<limit effort="10" lower="0.0" upper="1.24" velocity="50" />
+		<axis xyz="0 0 1" />
+		<dynamics damping="0.05" friction="0."/>
+	</joint>
+
+	<joint name="base_to_prox_l" type="revolute">
+		<origin rpy="0 1.57079632679 0" xyz="0 0.038 0.014" />
+		<parent link="palm" />
+		<child link="prox_l" />
+		<limit effort="10" lower="0.0" upper="2.0" velocity="50" />
+		<axis xyz="0 0 1" />
+		<dynamics damping="0.05" friction="0."/>
+	</joint>
+
+	<joint name="prox_to_distal_cl" type="revolute">
+		<origin rpy="0 0 0" xyz="0.000800 0.062 0" />
+		<parent link="prox_cl" />
+		<child link="distal_cl" />
+		<limit effort="10" lower="0.0" upper="1.24" velocity="50" />
+		<axis xyz="0 0 1" />
+		<dynamics damping="0.05" friction="0."/>
+	</joint>
+
+	<joint name="base_to_prox_cl" type="revolute">
+		<origin rpy="-1.57079632679 1.57079632679 0" xyz="-.022 0. 0.0" />
+		<parent link="base_rot" />
+		<child link="prox_cl" />
+		<limit effort="10" lower="0.0" upper="2.0" velocity="50" />
+		<axis xyz="0 0 1" />
+		<dynamics damping="0.05" friction="0."/>
+	</joint>
+
+	<joint name="prox_to_distal_cr" type="revolute">
+		<origin rpy="0 0 0" xyz="0.000800 0.062 0" />
+		<parent link="prox_cr" />
+		<child link="distal_cr" />
+		<limit effort="10" lower="0.0" upper="1.24" velocity="50" />
+		<axis xyz="0 0 1" />
+		<dynamics damping="0.05" friction="0."/>
+	</joint>
+
+	<joint name="base_to_prox_cr" type="revolute">
+		<origin rpy="1.57079632679 1.57079632679 0" xyz=".022 0. 0.0" />
+		<parent link="base_rot" />
+		<child link="prox_cr" />
+		<limit effort="10" lower="0.0" upper="2.0" velocity="50" />
+		<axis xyz="0 0 1" />
+		<dynamics damping="0.05" friction="0."/>
+	</joint>
+
+</robot>
