@@ -11,12 +11,13 @@ class AirHockeySingle(AirHockeyBase):
     """
     def __init__(self, gamma=0.99, horizon=120, env_noise=False, obs_noise=False, obs_delay=False,
                  torque_control=True, step_action_function=None, timestep=1 / 240., n_intermediate_steps=1,
-                 debug_gui=False):
+                 debug_gui=False, table_boundary_terminate=False):
         self.init_state = np.array([-0.9273, 0.9273, np.pi / 2])
         self.obs_prev = None
         super().__init__(gamma=gamma, horizon=horizon, env_noise=env_noise, n_agents=1, obs_noise=obs_noise,
                          obs_delay=obs_delay, torque_control=torque_control, step_action_function=step_action_function,
-                         timestep=timestep, n_intermediate_steps=n_intermediate_steps, debug_gui=debug_gui)
+                         timestep=timestep, n_intermediate_steps=n_intermediate_steps, debug_gui=debug_gui,
+                         table_boundary_terminate=table_boundary_terminate)
 
         self._client.resetDebugVisualizerCamera(cameraDistance=1.5, cameraYaw=-90.0, cameraPitch=-45.0,
                                                 cameraTargetPosition=[-0.5, 0., 0.])
