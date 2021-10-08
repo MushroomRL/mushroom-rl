@@ -32,7 +32,7 @@ class Network(nn.Module):
 
 
 def learn(alg, alg_params):
-    mdp = Gym('Pendulum-v0', 200, .99)
+    mdp = Gym('Pendulum-v1', 200, .99)
     mdp.seed(1)
     np.random.seed(1)
     torch.manual_seed(1)

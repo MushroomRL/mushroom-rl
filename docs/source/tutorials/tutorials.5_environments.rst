@@ -62,18 +62,18 @@ To build environments, you may need to pass additional parameters.
 An example of this is the ``Gym`` environment which wraps most OpenAI Gym environments, except the Atari ones, which
 uses the ``Atari`` environment to implement proper preprocessing.
 
-If you want to build the ``Pendulum-v0`` gym environment you need to pass the environment name as a parameter:
+If you want to build the ``Pendulum-v1`` gym environment you need to pass the environment name as a parameter:
 
 .. code-block:: python
 
-    env = Environment.make('Gym', 'Pendulum-v0')
+    env = Environment.make('Gym', 'Pendulum-v1')
 
 However, for environments that are interfaces to other libraries such as ``Gym``, ``Atari`` or ``DMControl`` a notation
 with a dot separator is supported. For example to create the pendulum you can also use:
 
 .. code-block:: python
 
-    env = Environment.make('Gym.Pendulum-v0')
+    env = Environment.make('Gym.Pendulum-v1')
 
 Or, to create the ``hopper`` environment with ``hop`` task from DeepMind control suite you can use:
 

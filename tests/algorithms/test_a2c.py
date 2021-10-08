@@ -32,7 +32,7 @@ class Network(nn.Module):
 
 
 def learn_a2c():
-    mdp = Gym(name='Pendulum-v0', horizon=200, gamma=.99)
+    mdp = Gym(name='Pendulum-v1', horizon=200, gamma=.99)
     mdp.seed(1)
     np.random.seed(1)
     torch.manual_seed(1)

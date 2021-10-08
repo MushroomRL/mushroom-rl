@@ -124,7 +124,7 @@ if __name__ == '__main__':
      ]
 
     for alg, alg_name, alg_params in algs_params:
-        experiment(alg=alg, env_id='Pendulum-v0', horizon=200, gamma=.99,
+        experiment(alg=alg, env_id='Pendulum-v1', horizon=200, gamma=.99,
                    n_epochs=40, n_steps=30000, n_steps_per_fit=3000,
                    n_episodes_test=25, alg_params=alg_params,
                    policy_params=policy_params)

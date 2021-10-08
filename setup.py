@@ -36,7 +36,7 @@ if sys.version_info < (3, 7):
     requires_list.append('zipfile37')
 
 extras = {
-    'gym': ['gym'],
+    'gym': ['gym>=0.21'],
     'atari': ['ale-py', 'Pillow', 'opencv-python'],
     'box2d': ['box2d-py~=2.3.5'],
     'bullet': ['pybullet'],

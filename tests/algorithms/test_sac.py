@@ -53,7 +53,7 @@ def learn_sac():
     # MDP
     horizon = 200
     gamma = 0.99
-    mdp = Gym('Pendulum-v0', horizon, gamma)
+    mdp = Gym('Pendulum-v1', horizon, gamma)
     mdp.seed(1)
     np.random.seed(1)
     torch.manual_seed(1)
