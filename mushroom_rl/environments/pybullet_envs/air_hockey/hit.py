@@ -1,7 +1,6 @@
 import time
 
 import numpy as np
-
 from mushroom_rl.environments.pybullet_envs.air_hockey.single import AirHockeySingle, PyBulletObservationType
 
 
@@ -11,9 +10,10 @@ class AirHockeyHit(AirHockeySingle):
     The agent tries to get close to the puck if the hitting does not happen.
     And will get bonus reward if the robot scores a goal.
     """
+
     def __init__(self, gamma=0.99, horizon=120, env_noise=False, obs_noise=False, obs_delay=False, torque_control=True,
-                 step_action_function=None, timestep=1 / 240.,  n_intermediate_steps=1, debug_gui=False,
-                 random_init=False, action_penalty=1e-3):
+                 step_action_function=None, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
+                 random_init=False, action_penalty=1e-3, table_boundary_terminate=False):
         """
         Constructor
 
@@ -30,7 +30,8 @@ class AirHockeyHit(AirHockeySingle):
         self.action_penalty = action_penalty
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
                          debug_gui=debug_gui, env_noise=env_noise, obs_noise=obs_noise, obs_delay=obs_delay,
-                         torque_control=torque_control, step_action_function=step_action_function)
+                         torque_control=torque_control, step_action_function=step_action_function,
+                         table_boundary_terminate=table_boundary_terminate)
 
     def setup(self, state):
         if self.random_init:
@@ -55,6 +56,12 @@ class AirHockeyHit(AirHockeySingle):
             if puck_pos[0] - self.env_spec['table']['length'] / 2 > 0 and \
                     np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
                 r = 150
+            if self.table_boundary_terminate:
+                ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
+                                            PyBulletObservationType.LINK_POS)[:3]
+                if abs(ee_pos[0]) > self.env_spec['table']['length'] / 2 or \
+                        abs(ee_pos[1]) > self.env_spec['table']['width'] / 2:
+                    r = -10
         else:
             if not self.has_hit:
                 ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
@@ -90,7 +97,8 @@ class AirHockeyHit(AirHockeySingle):
 
 
 if __name__ == '__main__':
-    env = AirHockeyHit(debug_gui=True, env_noise=False, obs_noise=False, obs_delay=False, n_intermediate_steps=4)
+    env = AirHockeyHit(debug_gui=True, env_noise=False, obs_noise=False, obs_delay=False, n_intermediate_steps=4,
+                       table_boundary_terminate=True)
 
     R = 0.
     J = 0.
@@ -111,4 +119,4 @@ if __name__ == '__main__':
             gamma = 1.
             steps = 0
             env.reset()
-        time.sleep(1/60.)
+        time.sleep(1 / 60.)
