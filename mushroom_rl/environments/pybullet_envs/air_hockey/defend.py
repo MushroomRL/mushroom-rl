@@ -44,9 +44,9 @@ class AirHockeyDefend(AirHockeySingle):
             puck_ang_vel = np.random.uniform(-1, 1, 3)
             puck_ang_vel[:2] = 0.0
         else:
-            puck_pos = np.array([self.start_range[0].mean(), 0.12])
+            puck_pos = np.array([self.start_range[0].mean(), 0])
             puck_pos = np.concatenate([puck_pos, [-0.189]])
-            puck_lin_vel = np.array([1., 0., 0.])
+            puck_lin_vel = np.array([-1., 0., 0.])
             puck_ang_vel = np.zeros(3)
 
         self.client.resetBasePositionAndOrientation(self._model_map['puck'], puck_pos, [0, 0, 0, 1.0])
@@ -83,9 +83,17 @@ class AirHockeyDefend(AirHockeySingle):
                     ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
                                                 PyBulletObservationType.LINK_POS)[:2]
                     ee_des = np.array([-0.6, puck_pos[1]])
-                    # Maybe only consider y axis
-                    dist_ee_puck = np.linalg.norm(ee_des - ee_pos[:2]) - 0.08
-                    r = np.exp(-3 * dist_ee_puck)
+
+                    # dist_ee_puck = np.linalg.norm(ee_des - ee_pos[:2]) - 0.08
+                    # r = np.exp(-3 * dist_ee_puck)
+                    dist_ee_puck = np.abs(ee_des - ee_pos[:2])
+
+                    r_x = np.exp(-3 * dist_ee_puck[0])
+
+                    sig = 0.2
+                    r_y = 1./(np.sqrt(2.*np.pi)*sig)*np.exp(-np.power((dist_ee_puck[1] - 0.08)/sig, 2.)/2)
+                    r = 0.3 * r_x + 0.7 * r_y
+
 
         # penalizes the amount of torque used
         r -= self.action_penalty * np.linalg.norm(action)
@@ -122,9 +130,9 @@ class AirHockeyDefend(AirHockeySingle):
 
             # Two time the same thing? Copy paste Error?
             collision_count += len(self.client.getContactPoints(self._model_map['puck'],
-                                                                self._indexer.link_map['t_down_rim_r'][0],
+                                                                self._indexer.link_map['t_down_rim_l'][0],
                                                                 -1,
-                                                                self._indexer.link_map['t_down_rim_r'][1]))
+                                                                self._indexer.link_map['t_down_rim_l'][1]))
             collision_count += len(self.client.getContactPoints(self._model_map['puck'],
                                                                 self._indexer.link_map['t_down_rim_r'][0],
                                                                 -1,
@@ -143,11 +151,25 @@ class AirHockeyDefend(AirHockeySingle):
 
 
 if __name__ == '__main__':
-    env = AirHockeyDefend(debug_gui=True, obs_noise=False, obs_delay=False)
+    env = AirHockeyDefend(debug_gui=True, obs_noise=False, obs_delay=False, n_intermediate_steps=4)
+
+    R = 0.
+    J = 0.
+    gamma = 1.
+    steps = 0
     env.reset()
     while True:
-        action = np.random.randn(3) * 10
+        action = np.random.randn(3) * 5
         observation, reward, done, info = env.step(action)
-        if done:
+        gamma *= env.info.gamma
+        J += gamma * reward
+        R += reward
+        steps += 1
+        if done or steps > env.info.horizon:
+            print("J: ", J, " R: ", R)
+            R = 0.
+            J = 0.
+            gamma = 1.
+            steps = 0
             env.reset()
-        time.sleep(0.01)
+        time.sleep(1 / 60.)
