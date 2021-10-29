@@ -138,14 +138,6 @@ class AirHockeyDefend(AirHockeySingle):
                                                                 -1,
                                                                 self._indexer.link_map['t_down_rim_r'][1]))
 
-            for el in ['t_up_rim_l', 't_up_rim_r', 't_down_rim_r', 't_down_rim_l']:
-                if len(self.client.getContactPoints(self._model_map['puck'],
-                                                                self._indexer.link_map[el][0],
-                                                                -1,
-                                                                self._indexer.link_map[el][1])) > 0:
-                    print(el)
-
-
             if collision_count > 0:
                 self.has_bounce = True
 
