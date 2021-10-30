@@ -84,8 +84,10 @@ class AirHockeyDefend(AirHockeySingle):
                                                 PyBulletObservationType.LINK_POS)[:2]
                     ee_des = np.array([-0.6, puck_pos[1]])
 
-                    # dist_ee_puck = np.linalg.norm(ee_des - ee_pos[:2]) - 0.08
-                    # r = np.exp(-3 * dist_ee_puck)
+                    # """
+                    dist_ee_puck = np.linalg.norm(ee_des - ee_pos[:2]) - 0.08
+                    r = np.exp(-3 * dist_ee_puck)
+                    """
                     dist_ee_puck = np.abs(ee_des - ee_pos[:2])
 
                     r_x = np.exp(-3 * dist_ee_puck[0])
@@ -93,7 +95,7 @@ class AirHockeyDefend(AirHockeySingle):
                     sig = 0.2
                     r_y = 1./(np.sqrt(2.*np.pi)*sig)*np.exp(-np.power((dist_ee_puck[1] - 0.08)/sig, 2.)/2)
                     r = 0.3 * r_x + 0.7 * r_y
-
+                    """
 
         # penalizes the amount of torque used
         r -= self.action_penalty * np.linalg.norm(action)
