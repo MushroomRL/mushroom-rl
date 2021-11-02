@@ -56,7 +56,7 @@ class AirHockeyHit(AirHockeySingle):
         if absorbing:
             # If puck is in the enemy goal
             if puck_pos[0] - self.env_spec['table']['length'] / 2 > 0 and \
-                    np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0: # Why not self.env_spec['table']['goal'] / 2???
+                    np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
                 r = 150
 
             # If its fucked up somewhere else, not used with new algo
