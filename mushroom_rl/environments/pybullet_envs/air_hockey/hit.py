@@ -24,6 +24,7 @@ class AirHockeyHit(AirHockeySingle):
         self.hit_range = np.array([[-0.6, -0.2], [-0.4, 0.4]])
         self.goal = np.array([0.98, 0])
         self.has_hit = False
+        self.has_bounce = False
         self.vel_hit_x = 0.
         self.r_hit = 0.
         self.random_init = random_init
@@ -46,6 +47,7 @@ class AirHockeyHit(AirHockeySingle):
             self.client.resetJointState(model_id, joint_id, self.init_state[i])
 
         self.has_hit = False
+        self.has_bounce = False
         self.vel_hit_x = 0.
         self.r_hit = 0.
 
@@ -67,7 +69,10 @@ class AirHockeyHit(AirHockeySingle):
                         abs(ee_pos[1]) > self.env_spec['table']['width'] / 2:
                     r = -10
         else:
-            if not self.has_hit:
+            # Don't give more reward if the goal was missed
+            if self.has_bounce:
+                r = 0
+            elif not self.has_hit:
                 ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
                                             PyBulletObservationType.LINK_POS)[:2]
                 dist_ee_puck = np.linalg.norm(puck_pos - ee_pos)
@@ -101,6 +106,21 @@ class AirHockeyHit(AirHockeySingle):
             if np.linalg.norm(puck_vel) > 0.1:
                 self.has_hit = True
                 self.vel_hit_x = puck_vel[0]
+
+        if not self.has_bounce:
+            # check if bounced beside the goal
+            collision_count = 0
+            collision_count += len(self.client.getContactPoints(self._model_map['puck'],
+                                                                self._indexer.link_map['t_down_rim_l'][0],
+                                                                -1,
+                                                                self._indexer.link_map['t_down_rim_l'][1]))
+            collision_count += len(self.client.getContactPoints(self._model_map['puck'],
+                                                                self._indexer.link_map['t_down_rim_r'][0],
+                                                                -1,
+                                                                self._indexer.link_map['t_down_rim_r'][1]))
+
+            if collision_count > 0:
+                self.has_bounce = True
 
 
 if __name__ == '__main__':
