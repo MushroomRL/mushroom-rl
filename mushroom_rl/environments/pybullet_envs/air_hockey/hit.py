@@ -85,7 +85,8 @@ class AirHockeyHit(AirHockeySingle):
                 self.r_hit = r
             else:
                 # If hit give same reward
-                r = 1 + self.r_hit + self.vel_hit_x * 0.1
+                r = self.r_hit + 0.1 * self.vel_hit_x**3
+
 
         r -= self.action_penalty * np.linalg.norm(action)
         return r
