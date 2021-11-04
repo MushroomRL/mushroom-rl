@@ -87,6 +87,11 @@ class AirHockeyHit(AirHockeySingle):
                 # If hit give same reward
                 r = self.r_hit + 0.1 * self.vel_hit_x**3
 
+                if puck_pos[0] > 0.6:
+                    sig = 0.13
+                    r_goal = 1./(np.sqrt(2.*np.pi)*sig)*np.exp(-np.power((puck_pos[1] - 0)/sig, 2.)/2)
+                    print(r_goal)
+
 
         r -= self.action_penalty * np.linalg.norm(action)
         return r
@@ -134,7 +139,8 @@ if __name__ == '__main__':
     steps = 0
     env.reset()
     while True:
-        action = np.random.randn(3) * 5
+        # action = np.random.randn(3) * 5
+        action = np.array([0] * 3)
         observation, reward, done, info = env.step(action)
         gamma *= env.info.gamma
         J += gamma * reward
