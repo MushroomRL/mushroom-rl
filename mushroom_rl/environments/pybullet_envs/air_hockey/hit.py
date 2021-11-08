@@ -25,6 +25,7 @@ class AirHockeyHit(AirHockeySingle):
         self.goal = np.array([0.98, 0])
         self.has_hit = False
         self.has_bounce = False
+        self.got_reward = False
         self.vel_hit_x = 0.
         self.r_hit = 0.
         self.random_init = random_init
@@ -48,6 +49,7 @@ class AirHockeyHit(AirHockeySingle):
 
         self.has_hit = False
         self.has_bounce = False
+        self.got_reward = False
         self.vel_hit_x = 0.
         self.r_hit = 0.
 
@@ -59,9 +61,9 @@ class AirHockeyHit(AirHockeySingle):
             # If puck is in the enemy goal
             if puck_pos[0] - self.env_spec['table']['length'] / 2 > 0 and \
                     np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
-                r = 150
+                r = 20
 
-            # If its fucked up somewhere else, not used with new algo
+            # If stricker hits barrier, not used with safe exploration
             if self.table_boundary_terminate:
                 ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
                                             PyBulletObservationType.LINK_POS)[:3]
@@ -70,9 +72,7 @@ class AirHockeyHit(AirHockeySingle):
                     r = -10
         else:
             # Don't give more reward if the goal was missed
-            if self.has_bounce:
-                r = 0
-            elif not self.has_hit:
+            if not self.has_hit:
                 ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
                                             PyBulletObservationType.LINK_POS)[:2]
                 dist_ee_puck = np.linalg.norm(puck_pos - ee_pos)
@@ -81,15 +81,13 @@ class AirHockeyHit(AirHockeySingle):
                 vec_puck_goal = (self.goal - puck_pos) / np.linalg.norm(self.goal - puck_pos)
                 # Reward if vec_ee_puck and vec_puck_goal have the same direction
                 cos_ang = np.clip(vec_puck_goal @ vec_ee_puck, 0, 1)
-                r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang
+                r = np.exp(-8 * (dist_ee_puck - 0.08)) #* cos_ang
                 self.r_hit = r
             else:
-                # If hit give same reward
-                r = self.r_hit + 0.1 * self.vel_hit_x**3
-
-                if puck_pos[0] > 0.6:
-                    sig = 0.13
-                    r_goal = 1./(np.sqrt(2.*np.pi)*sig)*np.exp(-np.power((puck_pos[1] - 0)/sig, 2.)/2)
+                if puck_pos[0] > 0.9 and not self.got_reward:
+                    sig = 0.25
+                    r = 1./(np.sqrt(2.*np.pi)*sig)*np.exp(-np.power((puck_pos[1] - 0)/sig, 2.)/2) * 100
+                    self.got_reward = True
 
         r -= self.action_penalty * np.linalg.norm(action)
         return r
