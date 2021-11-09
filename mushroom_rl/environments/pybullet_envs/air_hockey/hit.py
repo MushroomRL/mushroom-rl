@@ -81,7 +81,7 @@ class AirHockeyHit(AirHockeySingle):
                 vec_puck_goal = (self.goal - puck_pos) / np.linalg.norm(self.goal - puck_pos)
                 # Reward if vec_ee_puck and vec_puck_goal have the same direction
                 cos_ang = np.clip(vec_puck_goal @ vec_ee_puck, 0, 1)
-                r = np.exp(-8 * (dist_ee_puck - 0.08)) #* cos_ang
+                r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang
                 self.r_hit = r
             else:
                 if puck_pos[0] > 0.9 and not self.got_reward:
