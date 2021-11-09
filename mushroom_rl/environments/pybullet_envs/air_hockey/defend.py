@@ -94,7 +94,7 @@ class AirHockeyDefend(AirHockeySingle):
                     r_x = np.exp(-3 * dist_ee_puck[0])
 
                     sig = 0.2
-                    r_y = 1./(np.sqrt(2.*np.pi)*sig)*np.exp(-np.power((dist_ee_puck[1])/sig, 2.)/2)
+                    r_y = 1./(np.sqrt(2.*np.pi)*sig)*np.exp(-np.power((dist_ee_puck[1] - 0.08)/sig, 2.)/2)
                     r = 0.3 * r_x + 0.7 * (r_y/2)
                     # """
 
