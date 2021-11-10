@@ -34,6 +34,8 @@ class AirHockeyPrepare(AirHockeySingle):
         for i, (model_id, joint_id, _) in enumerate(self._indexer.action_data):
             self.client.resetJointState(model_id, joint_id, self.init_state[i])
 
+        self.inital_dist_puck_des = np.linalg.norm(puck_pos[:2] - self.desired_point)
+
         self.has_hit = False
 
     def reward(self, state, action, next_state, absorbing):
@@ -42,13 +44,19 @@ class AirHockeyPrepare(AirHockeySingle):
         puck_vel = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]
 
         if self.has_hit:
-            r = 5 * np.exp(-7 * np.linalg.norm(puck_pos - self.desired_point)) + 5 * np.exp(-3 * np.linalg.norm(puck_vel))
+            dist_puck_des = np.linalg.norm(puck_pos - self.desired_point)
+
+            dist_ratio = (self.inital_dist_puck_des / dist_puck_des) - 1
+            r = np.exp(-3 * np.linalg.norm(puck_vel)) + dist_ratio * 2
         else:
             ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
                                         PyBulletObservationType.LINK_POS)[:2]
 
-            dist_ee_puck = np.linalg.norm(puck_pos - ee_pos[:2]) - 0.08
-            r = np.exp(-3 * dist_ee_puck)
+            dist_ee_puck = np.linalg.norm(puck_pos - ee_pos[:2])
+            vec_ee_puck = (puck_pos - ee_pos) / dist_ee_puck
+
+            cos_ang = np.max([np.clip([0, 1] @ vec_ee_puck, 0, 1), np.clip([0, -1] @ vec_ee_puck, 0, 1)])
+            r = np.exp(-3 * (dist_ee_puck - 0.08)) * cos_ang
 
         r -= self.action_penalty * np.linalg.norm(action)
         return r
