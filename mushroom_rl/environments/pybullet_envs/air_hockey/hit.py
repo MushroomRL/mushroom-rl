@@ -25,7 +25,7 @@ class AirHockeyHit(AirHockeySingle):
         self.goal = np.array([0.98, 0])
         self.has_hit = False
         self.has_bounce = False
-        self.got_reward = False
+        self.got_reward = [False] * 4
         self.vel_hit_x = 0.
         self.r_hit = 0.
         self.random_init = random_init
@@ -49,7 +49,7 @@ class AirHockeyHit(AirHockeySingle):
 
         self.has_hit = False
         self.has_bounce = False
-        self.got_reward = False
+        self.got_reward = [False] * 4
         self.vel_hit_x = 0.
         self.r_hit = 0.
 
@@ -84,10 +84,15 @@ class AirHockeyHit(AirHockeySingle):
                 r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang
                 self.r_hit = r
             else:
-                if puck_pos[0] > 0.9 and not self.got_reward:
+                if puck_pos[0] > 0.9 and not self.got_reward[3]:
                     sig = 0.25
-                    r = 1./(np.sqrt(2.*np.pi)*sig)*np.exp(-np.power((puck_pos[1] - 0)/sig, 2.)/2) * 100
-                    self.got_reward = True
+                    r = 1./(np.sqrt(2.*np.pi)*sig)*np.exp(-np.power((puck_pos[1] - 0)/sig, 2.)/2) * 200
+                    self.got_reward[3] = True
+
+                for i in range(3):
+                    if puck_pos[0] > i * 0.3 and not self.got_reward[i]:
+                        r = 20 * (i + 1)
+                        self.got_reward[i] = True
 
         r -= self.action_penalty * np.linalg.norm(action)
         return r
