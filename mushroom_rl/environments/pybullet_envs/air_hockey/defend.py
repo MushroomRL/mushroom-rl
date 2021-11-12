@@ -72,7 +72,7 @@ class AirHockeyDefend(AirHockeySingle):
         else:
             # If the puck bounced off the head walls, there is no reward.
             if self.has_bounce:
-                r = 0
+                r = -1
             elif puck_pos[0] > -0.8:
                 if self.has_hit:
                     # Reward if the puck slows down on the defending side
@@ -131,7 +131,6 @@ class AirHockeyDefend(AirHockeySingle):
                                                                 -1,
                                                                 self._indexer.link_map['t_up_rim_r'][1]))
 
-            # Two time the same thing? Copy paste Error?
             collision_count += len(self.client.getContactPoints(self._model_map['puck'],
                                                                 self._indexer.link_map['t_down_rim_l'][0],
                                                                 -1,
