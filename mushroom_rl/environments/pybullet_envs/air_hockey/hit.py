@@ -1,4 +1,5 @@
 import time
+import math
 
 import numpy as np
 from mushroom_rl.environments.pybullet_envs.air_hockey.single import AirHockeySingle, PyBulletObservationType
@@ -79,9 +80,18 @@ class AirHockeyHit(AirHockeySingle):
 
                 vec_ee_puck = (puck_pos - ee_pos) / dist_ee_puck
                 vec_puck_goal = (self.goal - puck_pos) / np.linalg.norm(self.goal - puck_pos)
+
+                side_point = np.array([puck_pos[0] + (0.76 - puck_pos[0] - abs(puck_pos[1]))/2,
+                                       math.copysign(0.5, puck_pos[1])])
+                # print(side_point)
+                vec_puck_side = (side_point - puck_pos) / np.linalg.norm(side_point - puck_pos)
+
+                cos_ang_side = np.clip(vec_puck_side @ vec_ee_puck, 0, 1)
+
                 # Reward if vec_ee_puck and vec_puck_goal have the same direction
-                cos_ang = np.clip(vec_puck_goal @ vec_ee_puck, 0, 1)
-                r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang
+                cos_ang_goal = np.clip(vec_puck_goal @ vec_ee_puck, 0, 1)
+                cos_ang = np.max([cos_ang_goal, cos_ang_side])
+                r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang**3
                 self.r_hit = r
             else:
                 if puck_pos[0] > 0.9 and not self.got_reward[3]:
@@ -132,7 +142,7 @@ class AirHockeyHit(AirHockeySingle):
 
 if __name__ == '__main__':
     env = AirHockeyHit(debug_gui=True, env_noise=False, obs_noise=False, obs_delay=False, n_intermediate_steps=4,
-                       table_boundary_terminate=True)
+                       table_boundary_terminate=True, random_init=True)
 
     R = 0.
     J = 0.
@@ -147,7 +157,7 @@ if __name__ == '__main__':
         J += gamma * reward
         R += reward
         steps += 1
-        if done or steps > env.info.horizon:
+        if done or steps > env.info.horizon * 3:
             print("J: ", J, " R: ", R)
             R = 0.
             J = 0.
