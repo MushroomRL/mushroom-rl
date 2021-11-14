@@ -81,9 +81,15 @@ class AirHockeyHit(AirHockeySingle):
                 vec_ee_puck = (puck_pos - ee_pos) / dist_ee_puck
                 vec_puck_goal = (self.goal - puck_pos) / np.linalg.norm(self.goal - puck_pos)
 
-                side_point = np.array([puck_pos[0] + (0.76 - puck_pos[0] - abs(puck_pos[1]))/2,
-                                       math.copysign(0.5, puck_pos[1])])
-                # print(side_point)
+                # width of table minus radius of puck
+                height = 0.51 - 0.03165
+
+                # get to point
+                w = (abs(puck_pos[1]) * self.goal[0] + self.goal[1] * puck_pos[0] - height * puck_pos[0] - height *
+                     self.goal[0]) / (abs(puck_pos[1]) + self.goal[1] - 2 * height)
+
+                side_point = np.array([w, np.copysign(height, puck_pos[1])])
+
                 vec_puck_side = (side_point - puck_pos) / np.linalg.norm(side_point - puck_pos)
 
                 cos_ang_side = np.clip(vec_puck_side @ vec_ee_puck, 0, 1)
@@ -91,6 +97,7 @@ class AirHockeyHit(AirHockeySingle):
                 # Reward if vec_ee_puck and vec_puck_goal have the same direction
                 cos_ang_goal = np.clip(vec_puck_goal @ vec_ee_puck, 0, 1)
                 cos_ang = np.max([cos_ang_goal, cos_ang_side])
+                print(cos_ang**3)
                 r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang**3
                 self.r_hit = r
             else:
