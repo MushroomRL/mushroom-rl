@@ -62,7 +62,7 @@ class AirHockeyHit(AirHockeySingle):
             # If puck is in the enemy goal
             if puck_pos[0] - self.env_spec['table']['length'] / 2 > 0 and \
                     np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
-                r = 20
+                r = 150
 
             # If stricker hits barrier, not used with safe exploration
             if self.table_boundary_terminate:
@@ -97,19 +97,16 @@ class AirHockeyHit(AirHockeySingle):
                 # Reward if vec_ee_puck and vec_puck_goal have the same direction
                 cos_ang_goal = np.clip(vec_puck_goal @ vec_ee_puck, 0, 1)
                 cos_ang = np.max([cos_ang_goal, cos_ang_side])
-                print(cos_ang**3)
-                r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang**3
+                # print(cos_ang**3)
+                r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang
                 self.r_hit = r
             else:
-                if puck_pos[0] > 0.9 and not self.got_reward[3]:
-                    sig = 0.25
-                    r = 1./(np.sqrt(2.*np.pi)*sig)*np.exp(-np.power((puck_pos[1] - 0)/sig, 2.)/2) * 200
-                    self.got_reward[3] = True
+                r = self.r_hit + 0.1 * self.vel_hit_x ** 2
 
-                for i in range(3):
-                    if puck_pos[0] > i * 0.3 and not self.got_reward[i]:
-                        r = 20 * (i + 1)
-                        self.got_reward[i] = True
+                if puck_pos[0] > 0.7:
+                    sig = 0.1
+                    r_goal = 1. / (np.sqrt(2. * np.pi) * sig) * np.exp(-np.power((puck_pos[1] - 0) / sig, 2.) / 2)
+                    r += r_goal
 
         r -= self.action_penalty * np.linalg.norm(action)
         return r
@@ -164,7 +161,7 @@ if __name__ == '__main__':
         J += gamma * reward
         R += reward
         steps += 1
-        if done or steps > env.info.horizon * 3:
+        if done or steps > env.info.horizon:
             print("J: ", J, " R: ", R)
             R = 0.
             J = 0.
