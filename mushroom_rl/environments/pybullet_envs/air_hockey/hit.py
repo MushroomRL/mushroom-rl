@@ -102,12 +102,12 @@ class AirHockeyHit(AirHockeySingle):
                 self.r_hit = r
             else:
                 r = self.r_hit + 0.1 * self.vel_hit_x ** 2
-
+                """
                 if puck_pos[0] > 0.7:
                     sig = 0.1
                     r_goal = 1. / (np.sqrt(2. * np.pi) * sig) * np.exp(-np.power((puck_pos[1] - 0) / sig, 2.) / 2)
                     r += r_goal
-
+                """
         r -= self.action_penalty * np.linalg.norm(action)
         return r
 
