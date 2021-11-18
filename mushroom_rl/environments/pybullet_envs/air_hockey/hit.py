@@ -101,7 +101,6 @@ class AirHockeyHit(AirHockeySingle):
                 cos_ang = np.max([cos_ang_goal, cos_ang_side])
                 # print(cos_ang**3)
                 r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang ** 2
-                print(cos_ang ** 2)
                 self.r_hit = r
             else:
                 r = self.r_hit + 0.1 * self.vel_hit_x ** 2
