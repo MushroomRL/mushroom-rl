@@ -71,6 +71,8 @@ class AirHockeyHit(AirHockeySingle):
                 if abs(ee_pos[0]) > self.env_spec['table']['length'] / 2 or \
                         abs(ee_pos[1]) > self.env_spec['table']['width'] / 2:
                     r = -10
+        elif self.has_bounce:
+            r = 0
         else:
             # Don't give more reward if the goal was missed
             if not self.has_hit:
@@ -99,6 +101,7 @@ class AirHockeyHit(AirHockeySingle):
                 cos_ang = np.max([cos_ang_goal, cos_ang_side])
                 # print(cos_ang**3)
                 r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang ** 2
+                print(cos_ang ** 2)
                 self.r_hit = r
             else:
                 r = self.r_hit + 0.1 * self.vel_hit_x ** 2
