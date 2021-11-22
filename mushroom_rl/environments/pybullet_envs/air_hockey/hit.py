@@ -26,11 +26,15 @@ class AirHockeyHit(AirHockeySingle):
         self.goal = np.array([0.98, 0])
         self.has_hit = False
         self.has_bounce = False
-        self.got_reward = [False] * 4
         self.vel_hit_x = 0.
         self.r_hit = 0.
         self.random_init = random_init
         self.action_penalty = action_penalty
+        self.vec_puck_goal = None
+        self.vec_puck_side = None
+        self.vec_side_goal = None
+        self.side_point = None
+        self.puck_pos = None
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
                          debug_gui=debug_gui, env_noise=env_noise, obs_noise=obs_noise, obs_delay=obs_delay,
                          torque_control=torque_control, step_action_function=step_action_function,
@@ -38,19 +42,33 @@ class AirHockeyHit(AirHockeySingle):
 
     def setup(self, state):
         if self.random_init:
-            puck_pos = np.random.rand(2) * (self.hit_range[:, 1] - self.hit_range[:, 0]) + self.hit_range[:, 0]
+            self.puck_pos = np.random.rand(2) * (self.hit_range[:, 1] - self.hit_range[:, 0]) + self.hit_range[:, 0]
         else:
-            puck_pos = np.mean(self.hit_range, axis=1)
+            self.puck_pos = np.mean(self.hit_range, axis=1)
 
-        puck_pos = np.concatenate([puck_pos, [-0.189]])
+        puck_pos = np.concatenate([self.puck_pos, [-0.189]])
         self.client.resetBasePositionAndOrientation(self._model_map['puck'], puck_pos, [0, 0, 0, 1.0])
+
+        self.vec_puck_goal = (self.goal - self.puck_pos) / np.linalg.norm(self.goal - self.puck_pos)
+
+        # width of table minus radius of puck
+        height = 0.51 - 0.03165
+
+        # get to point
+        w = (abs(puck_pos[1]) * self.goal[0] + self.goal[1] * puck_pos[0] - height * puck_pos[0] - height *
+             self.goal[0]) / (abs(puck_pos[1]) + self.goal[1] - 2 * height)
+
+        self.side_point = np.array([w, np.copysign(height, puck_pos[1])])
+
+        self.vec_puck_side = (self.side_point - self.puck_pos) / np.linalg.norm(self.side_point - self.puck_pos)
+
+        self.vec_side_goal = (self.goal - self.side_point) / np.linalg.norm(self.goal - self.side_point)
 
         for i, (model_id, joint_id, _) in enumerate(self._indexer.action_data):
             self.client.resetJointState(model_id, joint_id, self.init_state[i])
 
         self.has_hit = False
         self.has_bounce = False
-        self.got_reward = [False] * 4
         self.vel_hit_x = 0.
         self.r_hit = 0.
 
@@ -81,29 +99,29 @@ class AirHockeyHit(AirHockeySingle):
                 dist_ee_puck = np.linalg.norm(puck_pos - ee_pos)
 
                 vec_ee_puck = (puck_pos - ee_pos) / dist_ee_puck
-                vec_puck_goal = (self.goal - puck_pos) / np.linalg.norm(self.goal - puck_pos)
 
-                # width of table minus radius of puck
-                height = 0.51 - 0.03165
-
-                # get to point
-                w = (abs(puck_pos[1]) * self.goal[0] + self.goal[1] * puck_pos[0] - height * puck_pos[0] - height *
-                     self.goal[0]) / (abs(puck_pos[1]) + self.goal[1] - 2 * height)
-
-                side_point = np.array([w, np.copysign(height, puck_pos[1])])
-
-                vec_puck_side = (side_point - puck_pos) / np.linalg.norm(side_point - puck_pos)
-
-                cos_ang_side = np.clip(vec_puck_side @ vec_ee_puck, 0, 1)
+                cos_ang_side = np.clip(self.vec_puck_side @ vec_ee_puck, 0, 1)
 
                 # Reward if vec_ee_puck and vec_puck_goal have the same direction
-                cos_ang_goal = np.clip(vec_puck_goal @ vec_ee_puck, 0, 1)
+                cos_ang_goal = np.clip(self.vec_puck_goal @ vec_ee_puck, 0, 1)
                 cos_ang = np.max([cos_ang_goal, cos_ang_side])
                 # print(cos_ang**3)
                 r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang ** 2
                 self.r_hit = r
             else:
-                r = self.r_hit + 0.1 * self.vel_hit_x ** 2
+                r_hit = self.r_hit + 0.3 * self.vel_hit_x ** 2
+
+                # Distance to the 3 lines which the puck could feasibly take
+                dist_puck_goal = np.linalg.norm(np.cross((puck_pos - self.puck_pos), self.vec_puck_goal))
+
+                dist_puck_side = np.linalg.norm(np.cross((puck_pos - self.puck_pos), self.vec_puck_side))
+                dist_side_goal = np.linalg.norm(np.cross((puck_pos - self.side_point), self.vec_side_goal))
+
+                min_dist = min([dist_puck_side, dist_puck_goal, dist_side_goal])
+
+                r_line = np.exp(-5 * min_dist)
+                r = 0.5 * r_line + 0.5 * r_hit
+
                 """
                 if puck_pos[0] > 0.7:
                     sig = 0.1
