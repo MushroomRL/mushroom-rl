@@ -56,8 +56,8 @@ class AirHockeyRepelle(AirHockeySingle):
         if absorbing:
             if puck_pos[0] - self.env_spec['table']['length'] / 2 > 0 and \
                     np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
-                r = 1
-        """
+                r = 150
+
         else:
             if not self.has_hit:
                 ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
@@ -73,7 +73,6 @@ class AirHockeyRepelle(AirHockeySingle):
                 r = 1 + self.r_hit + self.vel_hit_x * 0.1
 
         r -= self.action_penalty * np.linalg.norm(action)
-        """
         return r
 
     def is_absorbing(self, state):
