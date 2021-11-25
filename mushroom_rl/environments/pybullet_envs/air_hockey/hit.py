@@ -80,7 +80,7 @@ class AirHockeyHit(AirHockeySingle):
             # If puck is in the enemy goal
             if puck_pos[0] - self.env_spec['table']['length'] / 2 > 0 and \
                     np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
-                r = 150
+                r = 300
 
             # If stricker hits barrier, not used with safe exploration
             if self.table_boundary_terminate:
@@ -104,13 +104,14 @@ class AirHockeyHit(AirHockeySingle):
 
                 # Reward if vec_ee_puck and vec_puck_goal have the same direction
                 cos_ang_goal = np.clip(self.vec_puck_goal @ vec_ee_puck, 0, 1)
-                cos_ang = np.max([cos_ang_goal, cos_ang_side])
+                # cos_ang = np.max([cos_ang_goal, cos_ang_side])
+                cos_ang = cos_ang_goal
                 # print(cos_ang**3)
                 r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang ** 2
                 self.r_hit = r
             else:
-                r_hit = self.r_hit + 0.3 * self.vel_hit_x ** 2
-
+                r_hit = 0.25 + self.r_hit * min([1, (0.25 * self.vel_hit_x ** 4)])
+                """
                 # Distance to the 3 lines which the puck could feasibly take
                 dist_puck_goal = np.linalg.norm(np.cross((puck_pos - self.puck_pos), self.vec_puck_goal))
 
@@ -121,13 +122,15 @@ class AirHockeyHit(AirHockeySingle):
 
                 r_line = np.exp(-5 * min_dist)
                 r = 0.5 * r_line + 0.5 * r_hit
-
                 """
+
+                r_goal = 0
                 if puck_pos[0] > 0.7:
                     sig = 0.1
                     r_goal = 1. / (np.sqrt(2. * np.pi) * sig) * np.exp(-np.power((puck_pos[1] - 0) / sig, 2.) / 2)
-                    r += r_goal
-                """
+
+                r = 2 * r_hit + 10 * r_goal
+
         r -= self.action_penalty * np.linalg.norm(action)
         return r
 
@@ -138,7 +141,7 @@ class AirHockeyHit(AirHockeySingle):
             puck_vel = self.get_sim_state(self._state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]
             if np.linalg.norm(puck_vel) < 0.01:
                 return True
-        return False
+        return self.has_bounce
 
     def _simulation_post_step(self):
         if not self.has_hit:
@@ -182,6 +185,7 @@ if __name__ == '__main__':
         R += reward
         steps += 1
         if done or steps > env.info.horizon:
+            print(done)
             print("J: ", J, " R: ", R)
             R = 0.
             J = 0.
