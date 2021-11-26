@@ -40,11 +40,14 @@ class AirHockeyHit(AirHockeySingle):
                          torque_control=torque_control, step_action_function=step_action_function,
                          table_boundary_terminate=table_boundary_terminate)
 
+
     def setup(self, state):
         if self.random_init:
             self.puck_pos = np.random.rand(2) * (self.hit_range[:, 1] - self.hit_range[:, 0]) + self.hit_range[:, 0]
         else:
             self.puck_pos = np.mean(self.hit_range, axis=1)
+
+        self.init_state = -1 * np.array([-0.9273, 0.9273, np.pi / 2])
 
         puck_pos = np.concatenate([self.puck_pos, [-0.189]])
         self.client.resetBasePositionAndOrientation(self._model_map['puck'], puck_pos, [0, 0, 0, 1.0])
@@ -104,25 +107,12 @@ class AirHockeyHit(AirHockeySingle):
 
                 # Reward if vec_ee_puck and vec_puck_goal have the same direction
                 cos_ang_goal = np.clip(self.vec_puck_goal @ vec_ee_puck, 0, 1)
-                # cos_ang = np.max([cos_ang_goal, cos_ang_side])
-                cos_ang = cos_ang_goal
-                # print(cos_ang**3)
+                cos_ang = np.max([cos_ang_goal, cos_ang_side])
+
                 r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang ** 2
                 self.r_hit = r
             else:
                 r_hit = 0.25 + self.r_hit * min([1, (0.25 * self.vel_hit_x ** 4)])
-                """
-                # Distance to the 3 lines which the puck could feasibly take
-                dist_puck_goal = np.linalg.norm(np.cross((puck_pos - self.puck_pos), self.vec_puck_goal))
-
-                dist_puck_side = np.linalg.norm(np.cross((puck_pos - self.puck_pos), self.vec_puck_side))
-                dist_side_goal = np.linalg.norm(np.cross((puck_pos - self.side_point), self.vec_side_goal))
-
-                min_dist = min([dist_puck_side, dist_puck_goal, dist_side_goal])
-
-                r_line = np.exp(-5 * min_dist)
-                r = 0.5 * r_line + 0.5 * r_hit
-                """
 
                 r_goal = 0
                 if puck_pos[0] > 0.7:
