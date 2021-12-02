@@ -14,7 +14,7 @@ class AirHockeyHit(AirHockeySingle):
 
     def __init__(self, gamma=0.99, horizon=120, env_noise=False, obs_noise=False, obs_delay=False, torque_control=True,
                  step_action_function=None, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
-                 random_init=False, action_penalty=1e-3, table_boundary_terminate=False):
+                 random_init=False, action_penalty=1e-3, table_boundary_terminate=False, init_state="right"):
         """
         Constructor
 
@@ -30,6 +30,7 @@ class AirHockeyHit(AirHockeySingle):
         self.r_hit = 0.
         self.random_init = random_init
         self.action_penalty = action_penalty
+        self.init_strat = init_state
         self.vec_puck_goal = None
         self.vec_puck_side = None
         self.vec_side_goal = None
@@ -47,7 +48,14 @@ class AirHockeyHit(AirHockeySingle):
         else:
             self.puck_pos = np.mean(self.hit_range, axis=1)
 
-        self.init_state = -1 * np.array([-0.9273, 0.9273, np.pi / 2])
+        if self.init_strat == 'right':
+            self.init_state = np.array([-0.9273, 0.9273, np.pi / 2])
+        elif self.init_strat == 'left':
+            self.init_state = -1 * np.array([-0.9273, 0.9273, np.pi / 2])
+        elif self.init_strat == 'random':
+            robot_id, joint_id = self._indexer.link_map['planar_robot_1/link_striker_ee']
+            striker_pos_y = np.random.rand() * 0.8 - 0.4
+            self.init_state = self.client.calculateInverseKinematics(robot_id, joint_id, [-0.81, striker_pos_y, -0.179])
 
         puck_pos = np.concatenate([self.puck_pos, [-0.189]])
         self.client.resetBasePositionAndOrientation(self._model_map['puck'], puck_pos, [0, 0, 0, 1.0])
@@ -159,7 +167,7 @@ class AirHockeyHit(AirHockeySingle):
 
 if __name__ == '__main__':
     env = AirHockeyHit(debug_gui=True, env_noise=False, obs_noise=False, obs_delay=False, n_intermediate_steps=4,
-                       table_boundary_terminate=True, random_init=True)
+                       table_boundary_terminate=True, random_init=True, init_state="random")
 
     R = 0.
     J = 0.
@@ -181,5 +189,5 @@ if __name__ == '__main__':
             J = 0.
             gamma = 1.
             steps = 0
-            env.reset()
+            #env.reset()
         time.sleep(1 / 60.)
