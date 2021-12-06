@@ -1,6 +1,8 @@
 import gym
 from gym import spaces as gym_spaces
 
+import numpy as np
+
 try:
     import pybullet_envs
     import time
