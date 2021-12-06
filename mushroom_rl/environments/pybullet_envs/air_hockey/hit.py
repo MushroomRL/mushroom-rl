@@ -1,6 +1,7 @@
 import time
 import math
-
+import pybullet as p
+from matplotlib import image
 import numpy as np
 from mushroom_rl.environments.pybullet_envs.air_hockey.single import AirHockeySingle, PyBulletObservationType
 
@@ -22,7 +23,7 @@ class AirHockeyHit(AirHockeySingle):
             random_init(bool, False): If true, initialize the puck at random position.
             action_penalty(float, 1e-3): The penalty of the action on the reward at each time step
         """
-        self.hit_range = np.array([[-0.6, -0.3], [-0.4, 0.4]])
+        self.hit_range = np.array([[-0.7, -0.2], [-0.4, 0.4]])
         self.goal = np.array([0.98, 0])
         self.has_hit = False
         self.has_bounce = False
@@ -167,13 +168,13 @@ class AirHockeyHit(AirHockeySingle):
 
 if __name__ == '__main__':
     env = AirHockeyHit(debug_gui=True, env_noise=False, obs_noise=False, obs_delay=False, n_intermediate_steps=4,
-                       table_boundary_terminate=True, random_init=True, init_state="random")
+                       table_boundary_terminate=True, random_init=True, init_state="right")
 
+    env.reset()
     R = 0.
     J = 0.
     gamma = 1.
     steps = 0
-    env.reset()
     while True:
         # action = np.random.randn(3) * 5
         action = np.array([0] * 3)
@@ -183,11 +184,10 @@ if __name__ == '__main__':
         R += reward
         steps += 1
         if done or steps > env.info.horizon:
-            print(done)
             print("J: ", J, " R: ", R)
             R = 0.
             J = 0.
             gamma = 1.
             steps = 0
-            #env.reset()
+            env.reset()
         time.sleep(1 / 60.)
