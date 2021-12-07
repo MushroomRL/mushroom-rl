@@ -92,7 +92,7 @@ class AirHockeyHit(AirHockeySingle):
             # If puck is in the enemy goal
             if puck_pos[0] - self.env_spec['table']['length'] / 2 > 0 and \
                     np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
-                r = 300
+                r = 200
 
             # If stricker hits barrier, not used with safe exploration
             if self.table_boundary_terminate:
