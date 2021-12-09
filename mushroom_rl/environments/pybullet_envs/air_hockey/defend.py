@@ -27,6 +27,7 @@ class AirHockeyDefend(AirHockeySingle):
         self.has_bounce = False
         self.random_init = random_init
         self.action_penalty = action_penalty
+        self.puck_pos = None
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
                          debug_gui=debug_gui, env_noise=env_noise, obs_noise=obs_noise, obs_delay=obs_delay,
                          torque_control=torque_control, step_action_function=step_action_function)
@@ -43,6 +44,7 @@ class AirHockeyDefend(AirHockeySingle):
             puck_lin_vel[2] = 0.0
             puck_ang_vel = np.random.uniform(-1, 1, 3)
             puck_ang_vel[:2] = 0.0
+            self.puck_pos = [puck_pos, puck_lin_vel, puck_ang_vel]
         else:
             puck_pos = np.array([self.start_range[0].mean(), 0])
             puck_pos = np.concatenate([puck_pos, [-0.189]])
@@ -145,7 +147,7 @@ class AirHockeyDefend(AirHockeySingle):
 
 
 if __name__ == '__main__':
-    env = AirHockeyDefend(debug_gui=True, obs_noise=False, obs_delay=False, n_intermediate_steps=4)
+    env = AirHockeyDefend(debug_gui=True, obs_noise=False, obs_delay=False, n_intermediate_steps=4, random_init=True)
 
     R = 0.
     J = 0.
@@ -153,7 +155,7 @@ if __name__ == '__main__':
     steps = 0
     env.reset()
     while True:
-        action = np.random.randn(3) * 5
+        action = np.zeros(3)
         observation, reward, done, info = env.step(action)
         gamma *= env.info.gamma
         J += gamma * reward
