@@ -14,13 +14,14 @@ class AirHockeyPrepare(AirHockeySingle):
 
         self.desired_point = np.array([-0.6, 0])
 
-        self.start_range = np.array([[-0.9, -0.4], [0.25, 0.48]])
+        self.start_range = np.array([[-0.8, -0.4], [0.25, 0.48]])
 
         self.r_hit = None
 
         self.got_reward = None
         self.has_hit = False
         self.has_bounce = False
+        self.puck_pos = None
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
                          debug_gui=debug_gui, env_noise=env_noise, obs_noise=obs_noise, obs_delay=obs_delay,
                          torque_control=torque_control, step_action_function=step_action_function)
@@ -29,6 +30,8 @@ class AirHockeyPrepare(AirHockeySingle):
         if self.random_init:
             puck_pos = np.random.rand(2) * (self.start_range[:, 1] - self.start_range[:, 0]) + self.start_range[:, 0]
             puck_pos *= [1, [1, -1][np.random.randint(2)]]
+            # Used for data logging in eval
+            self.puck_pos = puck_pos
         else:
             puck_pos = np.mean(self.start_range, axis=1)
 

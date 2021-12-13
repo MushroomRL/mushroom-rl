@@ -44,6 +44,8 @@ class AirHockeyDefend(AirHockeySingle):
             puck_lin_vel[2] = 0.0
             puck_ang_vel = np.random.uniform(-1, 1, 3)
             puck_ang_vel[:2] = 0.0
+
+            # Used for data logging in eval, HAS to be puck_pos
             self.puck_pos = [puck_pos, puck_lin_vel, puck_ang_vel]
         else:
             puck_pos = np.array([self.start_range[0].mean(), 0])
@@ -161,6 +163,9 @@ if __name__ == '__main__':
         J += gamma * reward
         R += reward
         steps += 1
+
+        puck_pos = env.get_sim_state(observation, "puck", PyBulletObservationType.BODY_POS)[:2]
+        print(puck_pos)
         if done or steps > env.info.horizon:
             print("J: ", J, " R: ", R)
             R = 0.
