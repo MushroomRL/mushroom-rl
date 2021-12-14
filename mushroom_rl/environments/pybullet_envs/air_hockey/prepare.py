@@ -48,16 +48,26 @@ class AirHockeyPrepare(AirHockeySingle):
 
     def reward(self, state, action, next_state, absorbing):
         puck_pos = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_POS)[:2]
-
+        ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
+                                    PyBulletObservationType.LINK_POS)[:2]
         if self.has_hit:
             # After hit
             dist_puck_des = np.linalg.norm(puck_pos - self.desired_point)
-            r = 2 * np.exp(-3 * dist_puck_des) + self.r_hit
+            r_puck = 2 * np.exp(-3 * dist_puck_des) + self.r_hit
+
+            dist_ee_puck = np.abs(np.array([puck_pos[0], 0]) - ee_pos[:2])
+
+
+
+            r_x = np.exp(-3 * dist_ee_puck[0])
+            r_y = np.exp(-3 * dist_ee_puck[1])
+
+            r_ee = 0.7 * r_x + 0.3 * r_y
+
+            r = r_puck + r_ee
 
         else:
             # Before hit
-            ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
-                                        PyBulletObservationType.LINK_POS)[:2]
 
             dist_ee_puck = np.linalg.norm(puck_pos - ee_pos)
             vec_ee_puck = (puck_pos - ee_pos) / dist_ee_puck
@@ -68,6 +78,7 @@ class AirHockeyPrepare(AirHockeySingle):
             self.r_hit = r
 
         r -= self.action_penalty * np.linalg.norm(action)
+        print(r)
         return r
 
     def is_absorbing(self, state):
