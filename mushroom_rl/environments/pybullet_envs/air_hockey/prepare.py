@@ -78,7 +78,6 @@ class AirHockeyPrepare(AirHockeySingle):
             self.r_hit = r
 
         r -= self.action_penalty * np.linalg.norm(action)
-        print(r)
         return r
 
     def is_absorbing(self, state):
