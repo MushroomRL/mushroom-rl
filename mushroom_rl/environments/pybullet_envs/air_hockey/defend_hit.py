@@ -2,11 +2,11 @@ import time
 
 import numpy as np
 
-from mushroom_rl.environments.pybullet_envs.air_hockey.single import AirHockeySingle, \
+from mushroom_rl.environments.pybullet_envs.air_hockey.double import AirHockeyDouble, \
     PyBulletObservationType
 
 
-class AirHockeyDefend(AirHockeySingle):
+class AirHockeyDefendHit(AirHockeyDouble):
     """
     Class for the air hockey defending task.
     The agent tries to stop the puck at the line x=-0.6.
@@ -14,7 +14,7 @@ class AirHockeyDefend(AirHockeySingle):
     """
     def __init__(self, gamma=0.99, horizon=500, env_noise=False, obs_noise=False, obs_delay=False, torque_control=True,
                  step_action_function=None, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
-                 random_init=False, action_penalty=1e-3):
+                 random_init=False, action_penalty=1e-3, hit_agent=None):
         """
         Constructor
 
@@ -22,7 +22,7 @@ class AirHockeyDefend(AirHockeySingle):
             random_init(bool, False): If true, initialize the puck at random position .
             action_penalty(float, 1e-3): The penalty of the action on the reward at each time step
         """
-        self.start_range = np.array([[0.2, 0.78], [-0.4, 0.4]])
+        self.hit_range = np.array([[-0.65, -0.25], [-0.4, 0.4]])
         self.has_hit = False
         self.has_bounce = False
         self.random_init = random_init
@@ -32,29 +32,19 @@ class AirHockeyDefend(AirHockeySingle):
                          debug_gui=debug_gui, env_noise=env_noise, obs_noise=obs_noise, obs_delay=obs_delay,
                          torque_control=torque_control, step_action_function=step_action_function)
 
-        # Why special init state?? Whats wrong with the one from AirHockeySingle
-        self.init_state = np.array([-1.1, 0.8, np.pi/2])
+        self.init_state = np.array([-0.9273, 0.9273, np.pi / 2, -0.9273, 0.9273, np.pi / 2])
+
+        self.hit_agent = hit_agent
+
 
     def setup(self, state=None):
         if self.random_init:
-            puck_pos = np.random.rand(2) * (self.start_range[:, 1] - self.start_range[:, 0]) + self.start_range[:, 0]
-            puck_pos = np.concatenate([puck_pos, [-0.189]])
-            puck_lin_vel = np.random.uniform(-1, 1, 3) * 0.5
-            puck_lin_vel[0] = -1.0
-            puck_lin_vel[2] = 0.0
-            puck_ang_vel = np.random.uniform(-1, 1, 3)
-            puck_ang_vel[:2] = 0.0
-
-            # Used for data logging in eval, HAS to be puck_pos
-            self.puck_pos = [puck_pos, puck_lin_vel, puck_ang_vel]
+            self.puck_pos = np.random.rand(2) * (self.hit_range[:, 1] - self.hit_range[:, 0]) + self.hit_range[:, 0]
         else:
-            puck_pos = np.array([self.start_range[0].mean(), 0])
-            puck_pos = np.concatenate([puck_pos, [-0.189]])
-            puck_lin_vel = np.array([-1., 0., 0.])
-            puck_ang_vel = np.zeros(3)
+            self.puck_pos = np.mean(self.hit_range, axis=1)
+        puck_pos = np.concatenate([self.puck_pos, [-0.189]])
 
         self.client.resetBasePositionAndOrientation(self._model_map['puck'], puck_pos, [0, 0, 0, 1.0])
-        self.client.resetBaseVelocity(self._model_map['puck'], puck_lin_vel, puck_ang_vel)
 
         for i, (model_id, joint_id, _) in enumerate(self._indexer.action_data):
             self._client.resetJointState(model_id, joint_id, self.init_state[i])
@@ -113,6 +103,26 @@ class AirHockeyDefend(AirHockeySingle):
             return True
         return False
 
+    def _compute_action(self, state, action):
+        """
+        Compute a transformation of the action at every intermediate step.
+        Useful to add control signals simulated directly in python.
+
+        Args:
+            state (np.ndarray): numpy array with the current state of teh simulation;
+            action (np.ndarray): numpy array with the actions, provided at every step.
+
+        Returns:
+            The action to be set in the actual pybullet simulation.
+
+        """
+        print(state)
+        new_action = np.zeros(6)
+        new_action[0:3] = action
+        if self.hit_agent:
+            new_action[3:] = self.hit_agent.draw_action(state)
+        return new_action
+
     def _simulation_post_step(self):
         if not self.has_hit:
             collision_count = len(self.client.getContactPoints(self._model_map['puck'],
@@ -149,8 +159,7 @@ class AirHockeyDefend(AirHockeySingle):
 
 
 if __name__ == '__main__':
-    env = AirHockeyDefend(debug_gui=True, obs_noise=False, obs_delay=False, n_intermediate_steps=4, random_init=True)
-
+    env = AirHockeyDefendHit(debug_gui=True)
     R = 0.
     J = 0.
     gamma = 1.
@@ -164,8 +173,6 @@ if __name__ == '__main__':
         R += reward
         steps += 1
 
-        puck_pos = env.get_sim_state(observation, "puck", PyBulletObservationType.BODY_POS)[:2]
-        print(puck_pos)
         if done or steps > env.info.horizon:
             print("J: ", J, " R: ", R)
             R = 0.
