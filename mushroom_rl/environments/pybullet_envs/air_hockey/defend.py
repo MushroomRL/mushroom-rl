@@ -39,8 +39,13 @@ class AirHockeyDefend(AirHockeySingle):
         if self.random_init:
             puck_pos = np.random.rand(2) * (self.start_range[:, 1] - self.start_range[:, 0]) + self.start_range[:, 0]
             puck_pos = np.concatenate([puck_pos, [-0.189]])
-            puck_lin_vel = np.random.uniform(-1, 1, 3) * 0.5
-            puck_lin_vel[0] = -1.0
+
+            lin_vel = 1
+            angle = np.random.uniform(-0.5, 0.5)
+
+            puck_lin_vel = np.zeros(3)
+            puck_lin_vel[0] = -np.cos(angle) * lin_vel
+            puck_lin_vel[1] = np.sin(angle) * lin_vel
             puck_lin_vel[2] = 0.0
             puck_ang_vel = np.random.uniform(-1, 1, 3)
             puck_ang_vel[:2] = 0.0
@@ -77,11 +82,13 @@ class AirHockeyDefend(AirHockeySingle):
             # If the puck bounced off the head walls, there is no reward.
             if self.has_bounce:
                 r = -1
-            elif puck_pos[0] > -0.8:
+            elif puck_pos[0] > -0.8 and np.abs(puck_pos[1]) < 0.47:
                 if self.has_hit:
                     # Reward if the puck slows down on the defending side
                     if puck_pos[0] < -0.4:
-                        r = np.exp(-5 * np.abs(puck_pos[0] + 0.6)) + 5 * np.exp(-(5 * np.linalg.norm(puck_vel))**2) + 1
+                        r_x = np.exp(-5 * np.abs(puck_pos[0] + 0.6))
+                        r_vel = 5 * np.exp(-(5 * np.linalg.norm(puck_vel))**2)
+                        r = 0.5 * r_x + r_vel + 1
                 # If we did not yet hit the puck, reward is controlled by the distance between end effector and puck
                 # on the x axis
                 else:
@@ -104,12 +111,17 @@ class AirHockeyDefend(AirHockeySingle):
 
         # penalizes the amount of torque used
         r -= self.action_penalty * np.linalg.norm(action)
+
+        print(r)
         return r
 
     # If the Puck is out of Bounds of the table this returns True
     # This function is not needed???
     def is_absorbing(self, state):
+        puck_pos_y = self.get_sim_state(state, "puck", PyBulletObservationType.BODY_POS)[0]
         if super().is_absorbing(state):
+            return True
+        if (self.has_hit or self.has_bounce) and puck_pos_y > -0.3:
             return True
         return False
 
@@ -164,8 +176,7 @@ if __name__ == '__main__':
         R += reward
         steps += 1
 
-        puck_pos = env.get_sim_state(observation, "puck", PyBulletObservationType.BODY_POS)[:2]
-        print(puck_pos)
+
         if done or steps > env.info.horizon:
             print("J: ", J, " R: ", R)
             R = 0.
