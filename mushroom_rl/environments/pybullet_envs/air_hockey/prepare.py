@@ -35,6 +35,8 @@ class AirHockeyPrepare(AirHockeySingle):
         else:
             puck_pos = np.mean(self.start_range, axis=1)
 
+        self.desired_point = [puck_pos[0], 0]
+
         puck_pos = np.concatenate([puck_pos, [-0.189]])
         self.client.resetBasePositionAndOrientation(
             self._model_map['puck'], puck_pos, [0, 0, 0, 1.0])
@@ -53,15 +55,13 @@ class AirHockeyPrepare(AirHockeySingle):
                                     PyBulletObservationType.LINK_POS)[:2]
 
         if absorbing and abs(puck_pos[1]) < 0.47:
-            r = 50 * np.exp(-2 * np.linalg.norm(puck_vel))
-            print(r)
+            r = 100 * np.exp(-2 * np.linalg.norm(puck_vel))
             return r
 
         if self.has_hit and puck_pos[0] < -0.35 and abs(puck_pos[1]) < 0.47:
             # After hit
             dist_puck_des = np.linalg.norm(puck_pos - self.desired_point)
             r_puck = 2 * np.exp(-3 * dist_puck_des ** 2)
-            print("puck", r_puck, "hit", self.r_hit)
             r = r_puck + self.r_hit + 1
 
         else:
