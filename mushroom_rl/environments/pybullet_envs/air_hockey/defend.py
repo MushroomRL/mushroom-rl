@@ -85,7 +85,7 @@ class AirHockeyDefend(AirHockeySingle):
             elif self.has_hit:
                 # Reward if the puck slows down on the defending side
                 if -0.8 < puck_pos[0] < -0.4:
-                    r_y = np.exp(-3 * np.abs(puck_pos[1]))
+                    r_y = 3 * np.exp(-3 * np.abs(puck_pos[1]))
                     r_x = np.exp(-5 * np.abs(puck_pos[0] + 0.6))
                     r_vel = 5 * np.exp(-(5 * np.linalg.norm(puck_vel))**2)
                     r = r_x + r_y + r_vel + 1
