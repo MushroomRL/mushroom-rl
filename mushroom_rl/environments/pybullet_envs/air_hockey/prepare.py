@@ -7,14 +7,20 @@ from mushroom_rl.environments.pybullet_envs.air_hockey.single import AirHockeySi
 class AirHockeyPrepare(AirHockeySingle):
     def __init__(self, gamma=0.99, horizon=500, env_noise=False, obs_noise=False, obs_delay=False, torque_control=True,
                  step_action_function=None, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
-                 random_init=False, action_penalty=1e-3):
+                 random_init=False, action_penalty=1e-3, init_state="side"):
 
         self.random_init = random_init
         self.action_penalty = action_penalty
+        self.init_state = init_state
 
         self.desired_point = np.array([-0.6, 0])
 
-        self.start_range = np.array([[-0.8, -0.4], [0.25, 0.46]])
+        if init_state == "side":
+            self.start_range = np.array([[-0.8, -0.4], [0.25, 0.46]])
+        elif init_state == "bottom":
+            self.start_range = np.array([[-0.9, -0.8], [0.125, 0.46]])
+        else:
+            self.start_range = None
 
         self.ee_end_pos = [-8.10001913e-01, -1.43459494e-06]
 
@@ -55,7 +61,6 @@ class AirHockeyPrepare(AirHockeySingle):
         puck_vel = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]
         ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
                                     PyBulletObservationType.LINK_POS)[:2]
-
 
         if absorbing and abs(puck_pos[1]) < 0.47:
             r = 100 * np.exp(-2 * np.linalg.norm(puck_vel))
@@ -135,7 +140,7 @@ class AirHockeyPrepare(AirHockeySingle):
 
 
 if __name__ == '__main__':
-    env = AirHockeyPrepare(debug_gui=True, obs_noise=False, obs_delay=False, n_intermediate_steps=4, random_init=True)
+    env = AirHockeyPrepare(debug_gui=True, obs_noise=False, obs_delay=False, n_intermediate_steps=4, random_init=True, init_state="bottom")
 
     R = 0.
     J = 0.
