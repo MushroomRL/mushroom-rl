@@ -62,35 +62,65 @@ class AirHockeyPrepare(AirHockeySingle):
         ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
                                     PyBulletObservationType.LINK_POS)[:2]
 
-        if absorbing and abs(puck_pos[1]) < 0.47:
-            r = 100 * np.exp(-2 * np.linalg.norm(puck_vel))
-            return r
+        if self.init_state == "side":
+            if absorbing and abs(puck_pos[1]) < 0.47:
+                r = 100 * np.exp(-2 * np.linalg.norm(puck_vel))
+                return r
 
-        if self.has_hit:
-            if puck_pos[0] < -0.35 and abs(puck_pos[1]) < 0.47:
-                # After hit
-                dist_puck_des = np.linalg.norm(puck_pos - self.desired_point)
-                r_puck = 2 * np.exp(-3 * dist_puck_des ** 2)
+            if self.has_hit:
+                if puck_pos[0] < -0.35 and abs(puck_pos[1]) < 0.47:
+                    # After hit
+                    dist_puck_des = np.linalg.norm(puck_pos - self.desired_point)
+                    r_puck = 2 * np.exp(-3 * dist_puck_des ** 2)
 
-                r_vel_x = max([0, 1 - (10 * (np.exp(abs(puck_vel[0])) - 1))])
+                    r_vel_x = max([0, 1 - (10 * (np.exp(abs(puck_vel[0])) - 1))])
 
-                dist_ee_des = np.linalg.norm(ee_pos - self.ee_end_pos)
-                r_ee = 0.5 * np.exp(-3 * dist_ee_des)
+                    dist_ee_des = np.linalg.norm(ee_pos - self.ee_end_pos)
+                    r_ee = 0.5 * np.exp(-3 * dist_ee_des)
 
-                r = r_puck + self.r_hit + r_vel_x * r_ee
+                    r = r_puck + self.r_hit + r_vel_x + r_ee
+                else:
+                    r = 0
+
             else:
-                r = 0
+                # Before hit
+
+                dist_ee_puck = np.linalg.norm(puck_pos - ee_pos)
+                vec_ee_puck = (puck_pos - ee_pos) / dist_ee_puck
+
+                cos_ang = np.clip(vec_ee_puck @ np.array([0, np.copysign(1, puck_pos[1])]), 0, 1)
+
+                r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang ** 2
+                self.r_hit = r
 
         else:
-            # Before hit
+            if absorbing and puck_pos[0] >= -0.6:
+                r = 100 * np.exp(-2 * np.linalg.norm(puck_vel))
+                return r
 
-            dist_ee_puck = np.linalg.norm(puck_pos - ee_pos)
-            vec_ee_puck = (puck_pos - ee_pos) / dist_ee_puck
+            if self.has_hit:
+                if puck_pos[0] > -0.9:
+                    # After hit
+                    dist_puck_des = np.linalg.norm(puck_pos - self.desired_point)
+                    r_puck = 2 * np.exp(-3 * dist_puck_des ** 2)
 
-            cos_ang = np.clip(vec_ee_puck @ np.array([0, np.copysign(1, puck_pos[1])]), 0, 1)
+                    dist_ee_des = np.linalg.norm(ee_pos - self.ee_end_pos)
+                    r_ee = 0.5 * np.exp(-3 * dist_ee_des)
 
-            r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang ** 2
-            self.r_hit = r
+                    r = r_puck + self.r_hit + r_ee
+                else:
+                    r = 0
+
+            else:
+                # Before hit
+
+                dist_ee_puck = np.linalg.norm(puck_pos - ee_pos)
+                vec_ee_puck = (puck_pos - ee_pos) / dist_ee_puck
+
+                cos_ang = np.clip(vec_ee_puck @ np.array([-1, 0]), 0, 1)
+
+                r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang ** 2
+                self.r_hit = r
 
         r -= self.action_penalty * np.linalg.norm(action)
         return r
@@ -98,11 +128,18 @@ class AirHockeyPrepare(AirHockeySingle):
     def is_absorbing(self, state):
         if super().is_absorbing(state):
             return True
-        if self.has_hit:
-            puck_pos = self.get_sim_state(self._state, "puck", PyBulletObservationType.BODY_POS)[:2]
-            if puck_pos[0] > 0 or abs(puck_pos[1]) < 0.01:
-                return True
-        return self.has_bounce
+        if self.init_state == "side":
+            if self.has_hit:
+                puck_pos = self.get_sim_state(self._state, "puck", PyBulletObservationType.BODY_POS)[:2]
+                if puck_pos[0] > 0 or abs(puck_pos[1]) < 0.01:
+                    return True
+            return self.has_bounce
+        else:
+            if self.has_hit:
+                puck_pos = self.get_sim_state(self._state, "puck", PyBulletObservationType.BODY_POS)[:2]
+                if puck_pos[0] >= -0.6:
+                    return True
+            return False
 
     def _simulation_post_step(self):
         if not self.has_hit:
