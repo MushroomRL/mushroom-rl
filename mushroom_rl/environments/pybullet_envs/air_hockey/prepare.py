@@ -75,9 +75,9 @@ class AirHockeyPrepare(AirHockeySingle):
                     r_vel_x = max([0, 1 - (10 * (np.exp(abs(puck_vel[0])) - 1))])
 
                     dist_ee_des = np.linalg.norm(ee_pos - self.ee_end_pos)
-                    r_ee = 0.5 * np.exp(-3 * dist_ee_des)
+                    r_ee = np.exp(-1 * dist_ee_des)
 
-                    r = r_puck + self.r_hit + r_vel_x + r_ee
+                    r = r_vel_x + r_ee + 1
                 else:
                     r = 0
 
