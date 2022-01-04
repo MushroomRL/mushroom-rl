@@ -103,8 +103,9 @@ class AirHockeyPrepare(AirHockeySingle):
                     dist_puck_des = np.linalg.norm(puck_pos - self.desired_point)
                     sig = 0.2
 
-                    x_ratio = puck_vel[0] / abs(puck_vel[1])
-                    r_puck = 1. / (np.sqrt(2. * np.pi) * sig) * np.exp(-np.power((x_ratio - 0.15) / sig, 2.) / 2)
+                    # x_ratio = puck_vel[0] / abs(puck_vel[1])
+                    # r_puck = 1. / (np.sqrt(2. * np.pi) * sig) * np.exp(-np.power((x_ratio - 0.15) / sig, 2.) / 2)
+                    r_puck = 0
 
                     dist_ee_des = np.linalg.norm(ee_pos - self.ee_end_pos)
                     r_ee = 0.5 * np.exp(-3 * dist_ee_des)
@@ -119,7 +120,10 @@ class AirHockeyPrepare(AirHockeySingle):
                 dist_ee_puck = np.linalg.norm(puck_pos - ee_pos)
                 vec_ee_puck = (puck_pos - ee_pos) / dist_ee_puck
 
-                cos_ang = np.clip(vec_ee_puck @ np.array([0.5, np.copysign(0.95, puck_pos[1])]), 0, 1)
+                cos_ang_side = np.clip(vec_ee_puck @ np.array([0.05, np.copysign(0.95, puck_pos[1])]), 0, 1)
+                cos_ang_bottom = np.clip(vec_ee_puck @ np.array([-1, 0]), 0, 1)
+                cos_ang = max([cos_ang_side, cos_ang_bottom])
+
                 r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang ** 2
                 self.r_hit = r
 

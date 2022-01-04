@@ -77,12 +77,13 @@ class AirHockeyRepelle(AirHockeySingle):
                 # Reward if the puck slows down on the defending side
 
                 r_x = puck_pos[0] + 0.98
-                r_vel = min([np.linalg.norm(puck_vel) ** 3, 5])
+                r_vel = min([puck_vel[0] ** 3, 5])
 
                 r = r_x + r_vel + 1
 
                 if puck_pos[0] > 0.9:
-                    r += 100 * np.exp(-1 * abs(puck_pos[1]))
+                    r += 100 * np.exp(-3 * abs(puck_pos[1]))
+                    print("hi", r)
                 # If we did not yet hit the puck, reward is controlled by the distance between end effector and puck
                 # on the x axis
             else:
