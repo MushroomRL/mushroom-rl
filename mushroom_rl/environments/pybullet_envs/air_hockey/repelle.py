@@ -31,7 +31,7 @@ class AirHockeyRepelle(AirHockeySingle):
             puck_pos = np.random.rand(2) * (self.start_range[:, 1] - self.start_range[:, 0]) + self.start_range[:, 0]
             puck_pos = np.concatenate([puck_pos, [-0.189]])
 
-            lin_vel = 1
+            lin_vel = np.random.uniform(0.5, 1.5)
             angle = np.random.uniform(-0.5, 0.5)
 
             puck_lin_vel = np.zeros(3)
@@ -83,7 +83,6 @@ class AirHockeyRepelle(AirHockeySingle):
 
                 if puck_pos[0] > 0.9:
                     r += 100 * np.exp(-3 * abs(puck_pos[1]))
-                    print("hi", r)
                 # If we did not yet hit the puck, reward is controlled by the distance between end effector and puck
                 # on the x axis
             else:
