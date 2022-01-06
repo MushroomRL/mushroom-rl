@@ -98,10 +98,10 @@ class AirHockeyPrepare(AirHockeySingle):
                 return r
 
             if self.has_hit:
-                if puck_pos[0] > -0.9 and abs(puck_pos[1]) < 0.47:
+                if -0.6 > puck_pos[0] > -0.85 and abs(puck_pos[1]) < 0.47:
                     # After hit
                     dist_puck_des = np.linalg.norm(puck_pos - self.desired_point)
-                    sig = 0.2
+                    sig = 0.1
 
                     # x_ratio = puck_vel[0] / abs(puck_vel[1])
                     # r_puck = 1. / (np.sqrt(2. * np.pi) * sig) * np.exp(-np.power((x_ratio - 0.15) / sig, 2.) / 2)
@@ -109,8 +109,7 @@ class AirHockeyPrepare(AirHockeySingle):
 
                     dist_ee_des = np.linalg.norm(ee_pos - self.ee_end_pos)
                     r_ee = 0.5 * np.exp(-3 * dist_ee_des)
-
-                    r = r_puck + self.r_hit + r_ee + 1
+                    r = r_puck + r_ee + 1
                 else:
                     r = 0
 
