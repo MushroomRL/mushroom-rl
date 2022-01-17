@@ -36,6 +36,10 @@ class AirHockeyDefendHit(AirHockeyDouble):
                          torque_control=torque_control, step_action_function=step_action_function,
                          table_boundary_terminate=table_boundary_terminate)
 
+        self.has_defend = False
+        self.has_hit = False
+        self.has_bounce = False
+
 
     def setup(self, state):
         if self.random_init:
@@ -50,16 +54,108 @@ class AirHockeyDefendHit(AirHockeyDouble):
         for i, (model_id, joint_id, _) in enumerate(self._indexer.action_data):
             self.client.resetJointState(model_id, joint_id, self.init_state[i])
 
+        self.has_defend = False
+        self.has_hit = False
+        self.has_bounce = False
+
 
     def reward(self, state, action, next_state, absorbing):
         r = 0
+        puck_pos = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_POS)[:3]
+        puck_vel = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:3]
+        # This checks weather the puck is in our goal, heavy penalty if it is.
+        # If absorbing the puck is out of bounds of the table.
+        if absorbing:
+            # puck position is behind table going to the negative side
+            if puck_pos[0] + self.env_spec['table']['length'] / 2 < 0 and \
+                    np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
+                r = -50
+        else:
+            # If the puck bounced off the head walls, there is no reward.
+            if self.has_bounce:
+                r = -1
+            elif self.has_defend:
+                # Reward if the puck slows down on the defending side
+                if -0.8 < puck_pos[0] < -0.4:
+                    r_y = 3 * np.exp(-3 * np.abs(puck_pos[1]))
+                    r_x = np.exp(-5 * np.abs(puck_pos[0] + 0.6))
+                    r_vel = 5 * np.exp(-(5 * np.linalg.norm(puck_vel)) ** 2)
+                    r = r_x + r_y + r_vel + 1
+
+                # If we did not yet hit the puck, reward is controlled by the distance between end effector and puck
+                # on the x axis
+            else:
+                ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
+                                            PyBulletObservationType.LINK_POS)[:2]
+                ee_des = np.array([-0.6, puck_pos[1]])
+                dist_ee_puck = np.abs(ee_des - ee_pos[:2])
+
+                r_x = np.exp(-3 * dist_ee_puck[0])
+
+                sig = 0.2
+                r_y = 1. / (np.sqrt(2. * np.pi) * sig) * np.exp(-np.power((dist_ee_puck[1] - 0.08) / sig, 2.) / 2)
+                r = 0.3 * r_x + 0.7 * (r_y / 2)
+
+        # penalizes the amount of torque used
+        r -= self.action_penalty * np.linalg.norm(action)
         return r
 
+    def _preprocess_action(self, action):
+        if self.has_hit:
+            action[3:] = 0
+        return action
 
     def is_absorbing(self, state):
+        puck_pos_x = self.get_sim_state(state, "puck", PyBulletObservationType.BODY_POS)[0]
         if super().is_absorbing(state):
             return True
+        if (self.has_defend or self.has_bounce) and puck_pos_x > -0.3:
+            return True
         return False
+
+    def _simulation_post_step(self):
+        if not self.has_defend:
+            collision_count = len(self.client.getContactPoints(self._model_map['puck'],
+                                                               self._indexer.link_map['planar_robot_1/'
+                                                                                      'link_striker_ee'][0],
+                                                               -1,
+                                                               self._indexer.link_map['planar_robot_1/'
+                                                                                      'link_striker_ee'][1]))
+            if collision_count > 0:
+                self.has_defend = True
+
+        if not self.has_hit:
+            collision_count = len(self.client.getContactPoints(self._model_map['puck'],
+                                                               self._indexer.link_map['planar_robot_2/'
+                                                                                      'link_striker_ee'][0],
+                                                               -1,
+                                                               self._indexer.link_map['planar_robot_2/'
+                                                                                      'link_striker_ee'][1]))
+            if collision_count > 0:
+                self.has_hit = True
+
+        if not self.has_bounce:
+            collision_count = 0
+            collision_count += len(self.client.getContactPoints(self._model_map['puck'],
+                                                                self._indexer.link_map['t_up_rim_l'][0],
+                                                                -1,
+                                                                self._indexer.link_map['t_up_rim_l'][1]))
+            collision_count += len(self.client.getContactPoints(self._model_map['puck'],
+                                                                self._indexer.link_map['t_up_rim_r'][0],
+                                                                -1,
+                                                                self._indexer.link_map['t_up_rim_r'][1]))
+
+            collision_count += len(self.client.getContactPoints(self._model_map['puck'],
+                                                                self._indexer.link_map['t_down_rim_l'][0],
+                                                                -1,
+                                                                self._indexer.link_map['t_down_rim_l'][1]))
+            collision_count += len(self.client.getContactPoints(self._model_map['puck'],
+                                                                self._indexer.link_map['t_down_rim_r'][0],
+                                                                -1,
+                                                                self._indexer.link_map['t_down_rim_r'][1]))
+
+            if collision_count > 0:
+                self.has_bounce = True
 
 
 if __name__ == '__main__':
