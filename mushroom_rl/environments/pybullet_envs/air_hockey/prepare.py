@@ -46,8 +46,7 @@ class AirHockeyPrepare(AirHockeySingle):
         self.desired_point = [puck_pos[0], 0]
 
         puck_pos = np.concatenate([puck_pos, [-0.189]])
-        self.client.resetBasePositionAndOrientation(
-            self._model_map['puck'], puck_pos, [0, 0, 0, 1.0])
+        self.client.resetBasePositionAndOrientation(self._model_map['puck'], puck_pos, [0, 0, 0, 1.0])
 
         for i, (model_id, joint_id, _) in enumerate(self._indexer.action_data):
             self.client.resetJointState(model_id, joint_id, self.init_state[i])
@@ -99,13 +98,13 @@ class AirHockeyPrepare(AirHockeySingle):
                 return r
 
             if self.has_hit:
-                if -0.6 > puck_pos[0] > -0.85 and abs(puck_pos[1]) < 0.47:
+                if -0.6 > puck_pos[0] > -0.9 and abs(puck_pos[1]) < 0.47:
                     sig = 0.1
 
                     r_x = 1. / (np.sqrt(2. * np.pi) * sig) * np.exp(-np.power((puck_pos[0] + 0.75) / sig, 2.) / 2)
 
-                    r_y = 0.5 - abs(puck_vel[1])
-
+                    r_y = 2 - abs(puck_vel[1])
+                    print(r_y)
                     dist_ee_des = np.linalg.norm(ee_pos - self.ee_end_pos)
                     r_ee = 0.5 * np.exp(-3 * dist_ee_des)
                     r = r_x + r_y + r_ee + 1
