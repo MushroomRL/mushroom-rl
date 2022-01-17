@@ -104,7 +104,6 @@ class AirHockeyPrepare(AirHockeySingle):
                     r_x = 1. / (np.sqrt(2. * np.pi) * sig) * np.exp(-np.power((puck_pos[0] + 0.75) / sig, 2.) / 2)
 
                     r_y = 2 - abs(puck_vel[1])
-                    print(r_y)
                     dist_ee_des = np.linalg.norm(ee_pos - self.ee_end_pos)
                     r_ee = 0.5 * np.exp(-3 * dist_ee_des)
                     r = r_x + r_y + r_ee + 1
