@@ -83,8 +83,6 @@ class AirHockeyDouble(AirHockeyBase):
         for i in range(2):
             puck_pose_2d = self._puck_2d_in_robot_frame(puck_pose, self.agents[i]['frame'], type='pose')
 
-            print(i, puck_pose_2d[-1])
-
             robot_pos = np.zeros(3)
             robot_pos[0] = self.get_sim_state(state, self.agents[i]['name'] + "/joint_1", PyBulletObservationType.JOINT_POS)
             robot_pos[1] = self.get_sim_state(state, self.agents[i]['name'] + "/joint_2", PyBulletObservationType.JOINT_POS)
