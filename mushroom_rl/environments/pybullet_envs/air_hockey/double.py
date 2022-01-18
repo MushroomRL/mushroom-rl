@@ -61,13 +61,13 @@ class AirHockeyDouble(AirHockeyBase):
                   <PyBulletObservationType.BODY_LIN_VEL: 1>: [7, 8, 9],
                   <PyBulletObservationType.BODY_ANG_VEL: 2>: [10, 11, 12]}}
         """
-        obs_idx = [0, 1, 2, 7, 8, 9, 13, 14, 15, 16, 17, 18, 0, 1, 2, 7, 8, 9, 29, 30, 31, 32, 33, 34]
+        obs_idx = [0, 1, 2, 7, 8, 9, 13, 14, 15, 16, 17, 18] # 0, 1, 2, 7, 8, 9, 29, 30, 31, 32, 33, 34]
         obs_low = mdp_info.observation_space.low[obs_idx]
         obs_high = mdp_info.observation_space.high[obs_idx]
         obs_low[0:3] = [-1, -0.5, -np.pi]
         obs_high[0:3] = [1, 0.5, np.pi]
-        obs_low[12:15] = [-1, -0.5, -np.pi]
-        obs_high[12:15] = [1, 0.5, np.pi]
+        # obs_low[12:15] = [-1, -0.5, -np.pi]
+        # obs_high[12:15] = [1, 0.5, np.pi]
         observation_space = Box(low=obs_low, high=obs_high)
 
         return MDPInfo(observation_space, mdp_info.action_space, mdp_info.gamma, mdp_info.horizon)
@@ -78,6 +78,8 @@ class AirHockeyDouble(AirHockeyBase):
         obs = np.zeros(24)
         for i in range(2):
             puck_pose_2d = self._puck_2d_in_robot_frame(puck_pose, self.agents[i]['frame'], type='pose')
+
+            print(i, puck_pose_2d[-1])
 
             robot_pos = np.zeros(3)
             robot_pos[0] = self.get_sim_state(state, self.agents[i]['name'] + "/joint_1", PyBulletObservationType.JOINT_POS)
