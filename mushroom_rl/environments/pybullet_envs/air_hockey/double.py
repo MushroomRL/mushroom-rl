@@ -70,7 +70,11 @@ class AirHockeyDouble(AirHockeyBase):
         # obs_high[12:15] = [1, 0.5, np.pi]
         observation_space = Box(low=obs_low, high=obs_high)
 
-        return MDPInfo(observation_space, mdp_info.action_space, mdp_info.gamma, mdp_info.horizon)
+        action_low = mdp_info.action_space.low[:3]
+        action_high = mdp_info.action_space.high[:3]
+        action_space = Box(low=action_low, high=action_high)
+
+        return MDPInfo(observation_space, action_space, mdp_info.gamma, mdp_info.horizon)
 
 
     def _create_observation(self, state):
