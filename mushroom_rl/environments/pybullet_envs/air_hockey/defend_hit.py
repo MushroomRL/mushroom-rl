@@ -100,10 +100,56 @@ class AirHockeyDefendHit(AirHockeyDouble):
         r -= self.action_penalty * np.linalg.norm(action)
         return r
 
-    def _preprocess_action(self, action):
-        if self.has_hit:
-            action[3:] = 0
-        return action
+    def _modify_mdp_info(self, mdp_info):
+        """
+        {'planar_robot_1/joint_1': {<PyBulletObservationType.JOINT_POS: 3>: [13],
+                                    <PyBulletObservationType.JOINT_VEL: 4>: [16]},
+         'planar_robot_1/joint_2': {<PyBulletObservationType.JOINT_POS: 3>: [14],
+                                    <PyBulletObservationType.JOINT_VEL: 4>: [17]},
+         'planar_robot_1/joint_3': {<PyBulletObservationType.JOINT_POS: 3>: [15],
+                                    <PyBulletObservationType.JOINT_VEL: 4>: [18]},
+         'planar_robot_1/link_striker_ee': {<PyBulletObservationType.LINK_POS: 5>: [19,
+                                                                                    20,
+                                                                                    21,
+                                                                                    22,
+                                                                                    23,
+                                                                                    24,
+                                                                                    25],
+                                            <PyBulletObservationType.LINK_LIN_VEL: 6>: [26,
+                                                                                        27,
+                                                                                        28]},
+         'planar_robot_2/joint_1': {<PyBulletObservationType.JOINT_POS: 3>: [29],
+                                    <PyBulletObservationType.JOINT_VEL: 4>: [32]},
+         'planar_robot_2/joint_2': {<PyBulletObservationType.JOINT_POS: 3>: [30],
+                                    <PyBulletObservationType.JOINT_VEL: 4>: [33]},
+         'planar_robot_2/joint_3': {<PyBulletObservationType.JOINT_POS: 3>: [31],
+                                    <PyBulletObservationType.JOINT_VEL: 4>: [34]},
+         'planar_robot_2/link_striker_ee': {<PyBulletObservationType.LINK_POS: 5>: [35,
+                                                                                    36,
+                                                                                    37,
+                                                                                    38,
+                                                                                    39,
+                                                                                    40,
+                                                                                    41],
+                                            <PyBulletObservationType.LINK_LIN_VEL: 6>: [42,
+                                                                                        43,
+                                                                                        44]},
+         'puck': {<PyBulletObservationType.BODY_POS: 0>: [0, 1, 2, 3, 4, 5, 6],
+                  <PyBulletObservationType.BODY_LIN_VEL: 1>: [7, 8, 9],
+                  <PyBulletObservationType.BODY_ANG_VEL: 2>: [10, 11, 12]}}
+        """
+        obs_idx = [0, 1, 2, 7, 8, 9, 13, 14, 15, 16, 17, 18]
+        obs_low = mdp_info.observation_space.low[obs_idx]
+        obs_high = mdp_info.observation_space.high[obs_idx]
+        obs_low[0:3] = [-1, -0.5, -np.pi]
+        obs_high[0:3] = [1, 0.5, np.pi]
+        observation_space = Box(low=obs_low, high=obs_high)
+
+        action_low = mdp_info.action_space.low[:3]
+        action_high = mdp_info.action_space.high[:3]
+        action_space = Box(low=action_low, high=action_high)
+
+        return MDPInfo(observation_space, action_space, mdp_info.gamma, mdp_info.horizon)
 
     def is_absorbing(self, state):
         puck_pos_x = self.get_sim_state(state, "puck", PyBulletObservationType.BODY_POS)[0]
