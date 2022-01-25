@@ -22,6 +22,7 @@ class AirHockeyDouble(AirHockeyBase):
         self._client.resetDebugVisualizerCamera(cameraDistance=1.5, cameraYaw=-90.0, cameraPitch=-45.0,
                                                 cameraTargetPosition=[-0.5, 0., 0.])
         self._change_dynamics()
+        self._disable_collision()
 
     def _modify_mdp_info(self, mdp_info):
         """
@@ -61,13 +62,13 @@ class AirHockeyDouble(AirHockeyBase):
                   <PyBulletObservationType.BODY_LIN_VEL: 1>: [7, 8, 9],
                   <PyBulletObservationType.BODY_ANG_VEL: 2>: [10, 11, 12]}}
         """
-        obs_idx = [0, 1, 2, 7, 8, 9, 13, 14, 15, 16, 17, 18, 0, 1, 2, 7, 8, 9, 29, 30, 31, 32, 33, 34]
+        obs_idx = [0, 1, 7, 8, 9, 13, 14, 15, 16, 17, 18, 0, 1, 7, 8, 9, 29, 30, 31, 32, 33, 34]
         obs_low = mdp_info.observation_space.low[obs_idx]
         obs_high = mdp_info.observation_space.high[obs_idx]
-        obs_low[0:3] = [-1, -0.5, -np.pi]
-        obs_high[0:3] = [1, 0.5, np.pi]
-        obs_low[12:15] = [-1, -0.5, -np.pi]
-        obs_high[12:15] = [1, 0.5, np.pi]
+        obs_low[0:2] = [-1, -0.5]
+        obs_high[0:2] = [1, 0.5]
+        obs_low[11:13] = [-1, -0.5]
+        obs_high[11:13] = [1, 0.5]
         observation_space = Box(low=obs_low, high=obs_high)
 
         return MDPInfo(observation_space, mdp_info.action_space, mdp_info.gamma, mdp_info.horizon)
@@ -75,7 +76,7 @@ class AirHockeyDouble(AirHockeyBase):
 
     def _create_observation(self, state):
         puck_pose = self.get_sim_state(state, "puck", PyBulletObservationType.BODY_POS)
-        obs = np.zeros(24)
+        obs = np.zeros(22)
         for i in range(2):
             puck_pose_2d = self._puck_2d_in_robot_frame(puck_pose, self.agents[i]['frame'], type='pose')
 
@@ -105,7 +106,7 @@ class AirHockeyDouble(AirHockeyBase):
                 puck_vel_2d = alpha * puck_vel_2d + (1 - alpha) * self.obs_prev[i][3:6]
                 robot_vel = alpha * robot_vel + (1 - alpha) * self.obs_prev[i][9:12]
 
-            obs[i * 12:(i+1) * 12] = np.concatenate([puck_pose_2d, puck_vel_2d, robot_pos, robot_vel])
+            obs[i * 11:(i+1) * 11] = np.concatenate([puck_pose_2d, puck_vel_2d, robot_pos, robot_vel])
         self.obs_prev = obs
         return self.obs_prev
 
@@ -118,7 +119,7 @@ class AirHockeyDouble(AirHockeyBase):
             puck_translate = transformations.translation_from_matrix(frame_target)
             _, _, puck_euler_yaw = transformations.euler_from_matrix(frame_target)
 
-            return np.concatenate([puck_translate[:2], [puck_euler_yaw]])
+            return puck_translate[:2]
         if type == 'vel':
             rot_mat = robot_frame[:3, :3]
             vec_lin = rot_mat.T @ puck_in[:3]
@@ -128,3 +129,23 @@ class AirHockeyDouble(AirHockeyBase):
         for i in range(5):
             self.client.changeDynamics(self._model_map['planar_robot_1'], i, linearDamping=0., angularDamping=0.)
             self.client.changeDynamics(self._model_map['planar_robot_2'], i, linearDamping=0., angularDamping=0.)
+
+    def _disable_collision(self):
+        iiwa_links = ['planar_robot_1/link_1', 'planar_robot_1/link_2', 'planar_robot_1/link_3',
+                      'planar_robot_1/link_striker_hand', 'planar_robot_1/link_striker_ee',
+                      'planar_robot_2/link_1', 'planar_robot_2/link_2', 'planar_robot_2/link_3',
+                      'planar_robot_2/link_striker_hand', 'planar_robot_2/link_striker_ee'
+                      ]
+        table_rims = ['t_down_rim_l', 't_down_rim_r', 't_up_rim_r', 't_up_rim_l',
+                      't_left_rim', 't_right_rim', 't_base', 't_up_rim_top', 't_down_rim_top', 't_base']
+        for iiwa_l in iiwa_links:
+            for table_r in table_rims:
+                self.client.setCollisionFilterPair(self._indexer.link_map[iiwa_l][0],
+                                                   self._indexer.link_map[table_r][0],
+                                                   self._indexer.link_map[iiwa_l][1],
+                                                   self._indexer.link_map[table_r][1], 0)
+
+        self.client.setCollisionFilterPair(self._model_map['puck'], self._indexer.link_map['t_down_rim_top'][0],
+                                           -1, self._indexer.link_map['t_down_rim_top'][1], 0)
+        self.client.setCollisionFilterPair(self._model_map['puck'], self._indexer.link_map['t_up_rim_top'][0],
+                                           -1, self._indexer.link_map['t_up_rim_top'][1], 0)
