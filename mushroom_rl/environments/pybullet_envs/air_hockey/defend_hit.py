@@ -138,11 +138,11 @@ class AirHockeyDefendHit(AirHockeyDouble):
                   <PyBulletObservationType.BODY_LIN_VEL: 1>: [7, 8, 9],
                   <PyBulletObservationType.BODY_ANG_VEL: 2>: [10, 11, 12]}}
         """
-        obs_idx = [0, 1, 2, 7, 8, 9, 13, 14, 15, 16, 17, 18]
+        obs_idx = [0, 1, 7, 8, 9, 13, 14, 15, 16, 17, 18]
         obs_low = mdp_info.observation_space.low[obs_idx]
         obs_high = mdp_info.observation_space.high[obs_idx]
-        obs_low[0:3] = [-1, -0.5, -np.pi]
-        obs_high[0:3] = [1, 0.5, np.pi]
+        obs_low[0:2] = [-1, -0.5]
+        obs_high[0:2] = [1, 0.5]
         observation_space = Box(low=obs_low, high=obs_high)
 
         action_low = mdp_info.action_space.low[:3]
