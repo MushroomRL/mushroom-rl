@@ -31,7 +31,7 @@ class AirHockeyRepelle(AirHockeySingle):
             puck_pos = np.random.rand(2) * (self.start_range[:, 1] - self.start_range[:, 0]) + self.start_range[:, 0]
             puck_pos = np.concatenate([puck_pos, [-0.189]])
 
-            lin_vel = np.random.uniform(0.5, 1.5)
+            lin_vel = np.random.uniform(1, 2)
             angle = np.random.uniform(-0.5, 0.5)
 
             puck_lin_vel = np.zeros(3)
