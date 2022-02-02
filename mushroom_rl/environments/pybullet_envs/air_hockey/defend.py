@@ -22,7 +22,7 @@ class AirHockeyDefend(AirHockeySingle):
             random_init(bool, False): If true, initialize the puck at random position .
             action_penalty(float, 1e-3): The penalty of the action on the reward at each time step
         """
-        self.start_range = np.array([[0.2, 0.78], [-0.4, 0.4]])
+        self.start_range = np.array([[0.25, 0.65], [-0.4, 0.4]])
         self.has_hit = False
         self.has_bounce = False
         self.random_init = random_init

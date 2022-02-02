@@ -13,7 +13,7 @@ class AirHockeyRepelle(AirHockeySingle):
         self.random_init = random_init
         self.action_penalty = action_penalty
 
-        self.start_range = np.array([[0.2, 0.78], [-0.4, 0.4]])
+        self.start_range = np.array([[0.25, 0.65], [-0.4, 0.4]])
         self.goal = np.array([0.98, 0])
 
         self.has_hit = False
