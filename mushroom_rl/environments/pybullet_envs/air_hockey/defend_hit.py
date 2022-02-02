@@ -155,9 +155,7 @@ class AirHockeyDefendHit(AirHockeyDouble):
         puck_pos_x = self.get_sim_state(state, "puck", PyBulletObservationType.BODY_POS)[0]
         if super().is_absorbing(state):
             return True
-        if (self.has_defend or self.has_bounce) and puck_pos_x > -0.3:
-            return True
-        return False
+        return self.has_bounce
 
     def _simulation_post_step(self):
         if not self.has_defend:
@@ -215,13 +213,13 @@ if __name__ == '__main__':
     steps = 0
     while True:
         # action = np.random.randn(3) * 5
-        action = np.array([0] * 3)
+        action = np.array([0] * 6)
         observation, reward, done, info = env.step(action)
         gamma *= env.info.gamma
         J += gamma * reward
         R += reward
         steps += 1
-        if done or steps > env.info.horizon:
+        if done or steps > env.info.horizon * 5:
             print("J: ", J, " R: ", R)
             R = 0.
             J = 0.
