@@ -33,7 +33,7 @@ class AirHockeyDefend(AirHockeySingle):
                          torque_control=torque_control, step_action_function=step_action_function)
 
         # Why special init state?? Whats wrong with the one from AirHockeySingle
-        self.init_state = np.array([-1.1, 0.8, np.pi/2])
+        # self.init_state = np.array([-1.1, 0.8, np.pi/2])
 
     def setup(self, state=None):
         if self.random_init:
