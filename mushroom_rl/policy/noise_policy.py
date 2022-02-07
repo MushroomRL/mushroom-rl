@@ -115,7 +115,9 @@ class ClippedGaussianPolicy(ParametricPolicy):
             _approximator='mushroom',
             _predict_params='pickle',
             _inv_sigma='numpy',
-            _sigma='numpy'
+            _sigma='numpy',
+            _low='numpy',
+            _high='numpy'
         )
 
     def __call__(self, state, action):
@@ -124,7 +126,9 @@ class ClippedGaussianPolicy(ParametricPolicy):
     def draw_action(self, state):
         mu = np.reshape(self._approximator.predict(np.expand_dims(state, axis=0), **self._predict_params), -1)
 
-        return np.random.multivariate_normal(mu, self._sigma)
+        action_raw = np.random.multivariate_normal(mu, self._sigma)
+
+        return np.clip(action_raw, self._low, self._high)
 
     def set_weights(self, weights):
         self._approximator.set_weights(weights)
