@@ -14,7 +14,7 @@ class AirHockeyDefend(AirHockeySingle):
     """
     def __init__(self, gamma=0.99, horizon=500, env_noise=False, obs_noise=False, obs_delay=False, torque_control=True,
                  step_action_function=None, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
-                 random_init=False, action_penalty=1e-3):
+                 random_init=False, action_penalty=1e-3, init_state=(1, 2.2)):
         """
         Constructor
 
@@ -28,6 +28,7 @@ class AirHockeyDefend(AirHockeySingle):
         self.random_init = random_init
         self.action_penalty = action_penalty
         self.puck_pos = None
+        self.init_strat = init_state
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
                          debug_gui=debug_gui, env_noise=env_noise, obs_noise=obs_noise, obs_delay=obs_delay,
                          torque_control=torque_control, step_action_function=step_action_function)
@@ -40,7 +41,7 @@ class AirHockeyDefend(AirHockeySingle):
             puck_pos = np.random.rand(2) * (self.start_range[:, 1] - self.start_range[:, 0]) + self.start_range[:, 0]
             puck_pos = np.concatenate([puck_pos, [-0.189]])
 
-            lin_vel = np.random.uniform(1, 2.2)
+            lin_vel = np.random.uniform(self.init_strat[0], self.init_strat[1])
             angle = np.random.uniform(-0.5, 0.5)
 
             puck_lin_vel = np.zeros(3)
