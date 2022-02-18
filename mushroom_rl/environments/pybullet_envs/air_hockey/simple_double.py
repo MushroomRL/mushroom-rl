@@ -35,10 +35,8 @@ class AirHockeySimpleDouble(AirHockeyDouble):
                          torque_control=torque_control, step_action_function=step_action_function,
                          table_boundary_terminate=table_boundary_terminate)
 
-        self.has_defend = False
-        self.has_hit = False
-        self.has_bounce = False
-
+        self.collision_flags = np.zeros((n_intermediate_steps, 2))
+        self.current_index = 0
 
     def setup(self, state):
         if self.random_init:
@@ -53,10 +51,8 @@ class AirHockeySimpleDouble(AirHockeyDouble):
         for i, (model_id, joint_id, _) in enumerate(self._indexer.action_data):
             self.client.resetJointState(model_id, joint_id, self.init_state[i])
 
-        self.has_defend = False
-        self.has_hit = False
-        self.has_bounce = False
-
+        self.collision_flags.fill(0)
+        self.current_index = 0
 
     def reward(self, state, action, next_state, absorbing):
         r = 0
@@ -114,48 +110,42 @@ class AirHockeySimpleDouble(AirHockeyDouble):
         return MDPInfo(observation_space, action_space, mdp_info.gamma, mdp_info.horizon)
 
     def _simulation_post_step(self):
-        if not self.has_defend:
+        for i in range(1, 3):
             collision_count = len(self.client.getContactPoints(self._model_map['puck'],
-                                                               self._indexer.link_map['planar_robot_1/'
+                                                               self._indexer.link_map['planar_robot_' + str(i) + '/'
                                                                                       'link_striker_ee'][0],
                                                                -1,
-                                                               self._indexer.link_map['planar_robot_1/'
+                                                               self._indexer.link_map['planar_robot_' + str(i) + '/'
                                                                                       'link_striker_ee'][1]))
-            if collision_count > 0:
-                self.has_defend = True
 
-        if not self.has_hit:
-            collision_count = len(self.client.getContactPoints(self._model_map['puck'],
-                                                               self._indexer.link_map['planar_robot_2/'
-                                                                                      'link_striker_ee'][0],
-                                                               -1,
-                                                               self._indexer.link_map['planar_robot_2/'
-                                                                                      'link_striker_ee'][1]))
-            if collision_count > 0:
-                self.has_hit = True
+            self.collision_flags[self.current_index, i - 1] = int(collision_count > 0)
+            if self.collision_flags[self.current_index, i - 1]:
+                print(self.collision_flags)
+            # print(self.current_index)
+            self.current_index = (self.current_index + 1) % len(self.collision_flags)
 
-        if not self.has_bounce:
-            collision_count = 0
-            collision_count += len(self.client.getContactPoints(self._model_map['puck'],
-                                                                self._indexer.link_map['t_up_rim_l'][0],
-                                                                -1,
-                                                                self._indexer.link_map['t_up_rim_l'][1]))
-            collision_count += len(self.client.getContactPoints(self._model_map['puck'],
-                                                                self._indexer.link_map['t_up_rim_r'][0],
-                                                                -1,
-                                                                self._indexer.link_map['t_up_rim_r'][1]))
 
-            collision_count += len(self.client.getContactPoints(self._model_map['puck'],
-                                                                self._indexer.link_map['t_down_rim_l'][0],
-                                                                -1,
-                                                                self._indexer.link_map['t_down_rim_l'][1]))
-            collision_count += len(self.client.getContactPoints(self._model_map['puck'],
-                                                                self._indexer.link_map['t_down_rim_r'][0],
-                                                                -1,
-                                                                self._indexer.link_map['t_down_rim_r'][1]))
-
-            if collision_count > 0:
-                self.has_bounce = True
+            # collision_count = 0
+            # collision_count += len(self.client.getContactPoints(self._model_map['puck'],
+            #                                                     self._indexer.link_map['t_up_rim_l'][0],
+            #                                                     -1,
+            #                                                     self._indexer.link_map['t_up_rim_l'][1]))
+            # collision_count += len(self.client.getContactPoints(self._model_map['puck'],
+            #                                                     self._indexer.link_map['t_up_rim_r'][0],
+            #                                                     -1,
+            #                                                     self._indexer.link_map['t_up_rim_r'][1]))
+            #
+            # collision_count += len(self.client.getContactPoints(self._model_map['puck'],
+            #                                                     self._indexer.link_map['t_down_rim_l'][0],
+            #                                                     -1,
+            #                                                     self._indexer.link_map['t_down_rim_l'][1]))
+            # collision_count += len(self.client.getContactPoints(self._model_map['puck'],
+            #                                                     self._indexer.link_map['t_down_rim_r'][0],
+            #                                                     -1,
+            #                                                     self._indexer.link_map['t_down_rim_r'][1]))
+            #
+            # if collision_count > 0:
+            #     self.has_bounce = True
 
 
 if __name__ == '__main__':
