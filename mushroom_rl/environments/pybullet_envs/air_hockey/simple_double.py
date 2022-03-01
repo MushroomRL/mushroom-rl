@@ -35,10 +35,12 @@ class AirHockeySimpleDouble(AirHockeyDouble):
                          torque_control=torque_control, step_action_function=step_action_function,
                          table_boundary_terminate=table_boundary_terminate)
 
-        self.collision_flags = np.zeros((n_intermediate_steps, 2))
-        self.current_index = 0
+        self.collision_flags = [False, False]
+        self.n_intermediate_steps = n_intermediate_steps
+        self.current_intermediate_step = 0
 
     def setup(self, state):
+        print("SETUP")
         if self.random_init:
             self.puck_pos = np.random.rand(2) * (self.hit_range[:, 1] - self.hit_range[:, 0]) + self.hit_range[:, 0]
         else:
@@ -51,8 +53,10 @@ class AirHockeySimpleDouble(AirHockeyDouble):
         for i, (model_id, joint_id, _) in enumerate(self._indexer.action_data):
             self.client.resetJointState(model_id, joint_id, self.init_state[i])
 
-        self.collision_flags.fill(0)
-        self.current_index = 0
+        self.collision_flags = [False, False]
+        self.current_intermediate_step = 0
+
+        self.debug_list = []
 
     def reward(self, state, action, next_state, absorbing):
         r = 0
@@ -110,6 +114,8 @@ class AirHockeySimpleDouble(AirHockeyDouble):
         return MDPInfo(observation_space, action_space, mdp_info.gamma, mdp_info.horizon)
 
     def _simulation_post_step(self):
+        if self.current_intermediate_step == 0:
+            self.collision_flags = [False, False]
         for i in range(1, 3):
             collision_count = len(self.client.getContactPoints(self._model_map['puck'],
                                                                self._indexer.link_map['planar_robot_' + str(i) + '/'
@@ -118,12 +124,8 @@ class AirHockeySimpleDouble(AirHockeyDouble):
                                                                self._indexer.link_map['planar_robot_' + str(i) + '/'
                                                                                       'link_striker_ee'][1]))
 
-            self.collision_flags[self.current_index, i - 1] = int(collision_count > 0)
-            if self.collision_flags[self.current_index, i - 1]:
-                print(self.collision_flags)
-            # print(self.current_index)
-            self.current_index = (self.current_index + 1) % len(self.collision_flags)
-
+            if i == 2:
+                self.debug_list.append(int(collision_count > 0))
 
             # collision_count = 0
             # collision_count += len(self.client.getContactPoints(self._model_map['puck'],
@@ -146,6 +148,8 @@ class AirHockeySimpleDouble(AirHockeyDouble):
             #
             # if collision_count > 0:
             #     self.has_bounce = True
+        # if np.any(self.collision_flags):
+
 
 
 if __name__ == '__main__':
