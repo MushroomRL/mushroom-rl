@@ -53,10 +53,7 @@ class AirHockeySimpleDouble(AirHockeyDouble):
         for i, (model_id, joint_id, _) in enumerate(self._indexer.action_data):
             self.client.resetJointState(model_id, joint_id, self.init_state[i])
 
-        self.collision_flags = [False, False]
-        self.current_intermediate_step = 0
-
-        self.debug_list = []
+        self.collision_list = [[], []]
 
     def reward(self, state, action, next_state, absorbing):
         r = 0
@@ -114,8 +111,6 @@ class AirHockeySimpleDouble(AirHockeyDouble):
         return MDPInfo(observation_space, action_space, mdp_info.gamma, mdp_info.horizon)
 
     def _simulation_post_step(self):
-        if self.current_intermediate_step == 0:
-            self.collision_flags = [False, False]
         for i in range(1, 3):
             collision_count = len(self.client.getContactPoints(self._model_map['puck'],
                                                                self._indexer.link_map['planar_robot_' + str(i) + '/'
@@ -124,8 +119,7 @@ class AirHockeySimpleDouble(AirHockeyDouble):
                                                                self._indexer.link_map['planar_robot_' + str(i) + '/'
                                                                                       'link_striker_ee'][1]))
 
-            if i == 2:
-                self.debug_list.append(int(collision_count > 0))
+            self.collision_list[i-1].append(int(collision_count > 0))
 
             # collision_count = 0
             # collision_count += len(self.client.getContactPoints(self._model_map['puck'],
