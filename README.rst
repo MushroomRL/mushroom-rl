@@ -9,11 +9,11 @@ MushroomRL
 .. image:: https://readthedocs.org/projects/mushroomrl/badge/?version=latest
    :target: https://mushroomrl.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
-    
+
 .. image:: https://api.codeclimate.com/v1/badges/3b0e7167358a661ed882/maintainability
    :target: https://codeclimate.com/github/MushroomRL/mushroom-rl/maintainability
    :alt: Maintainability
-   
+
 .. image:: https://api.codeclimate.com/v1/badges/3b0e7167358a661ed882/test_coverage
    :target: https://codeclimate.com/github/MushroomRL/mushroom-rl/test_coverage
    :alt: Test Coverage
@@ -149,27 +149,27 @@ YAML files: ``Habitat(wrapper, config_file, base_config_file)``.
 * If you use a dataset, be sure that the path defined in the YAML file is correct,
   especially if you use relative paths. ``habitat-lab`` YAMLs use relative paths, so
   be careful with that. By default, the path defined in the YAML file will be
-  relative to where you launched the python code. See the navigation example below
-  for more details.
+  relative to where you launched the python code. If your `data` folder is
+  somewhere else, you may also create a symbolic link.
 
 Rearrange Task Example
 ^^^^^^^^^^^^^^^^^^^^^^
-* Download assets and the ReplicaCAD datasets
+* Download the ReplicaCAD datasets (``--data-path data`` downloads them in the folder
+  from where you are launching your code)
 
 .. code:: shell
 
-    python -m habitat_sim.utils.datasets_download --uids habitat_test_pointnav_dataset --data-path data
-    python -m habitat_sim.utils.datasets_download --uids habitat_test_scenes --data-path data
+    python -m habitat_sim.utils.datasets_download --uids replica_cad_dataset --data-path data
 
-* For this task we use ``<HABITAT_LAB PATH>/habitat_baselines/config/rearrange/ddppo_rearrangepick.yaml``.
-  This YAML defines ``BASE_TASK_CONFIG_PATH: configs/tasks/rearrangepick_replica_cad.yaml``,
+* For this task we use ``<HABITAT_LAB PATH>/habitat_baselines/config/rearrange/rl_pick.yaml``.
+  This YAML defines ``BASE_TASK_CONFIG_PATH: configs/tasks/rearrange/pick.yaml``,
   and since this is a relative path we need to overwrite it by passing its absolute path
   as ``base_config_file`` argument to ``Habitat()``.
 
-* Then, ``rearrangepick_replica_cad.yaml`` defines the dataset to be used, and
-  this is in ``<HABITAT_LAB PATH>``. However, since the path defined is relative
-  to where we launch our code, we need to make a link to the data folder. If you
-  launch ``habitat_rearrange_sac.py`` from its example folder, run
+* Then, ``pick.yaml`` defines the dataset to be used with respect to ``<HABITAT_LAB PATH>``.
+  If you have not used ``--data-path`` argument with the previous download command,
+  the ReplicaCAD datasets is now in ``<HABITAT_LAB PATH>/data`` and you need to
+  make a link to it
 
 .. code:: shell
 
@@ -240,7 +240,7 @@ For instance, to run a quick experiment with one of the provided example scripts
 .. code:: shell
 
     python3 examples/car_on_hill_fqi.py
-   
+
 Cite MushroomRL
 ===============
 If you are using MushroomRL for your scientific publications, please cite:

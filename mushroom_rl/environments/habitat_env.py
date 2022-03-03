@@ -8,7 +8,7 @@ with warnings.catch_warnings():
         os.environ['GLOG_minloglevel'] = '2'
         os.environ['HABITAT_SIM_LOG'] = 'quiet'
     else:
-        os.environ['GLOG_minloglevel']='0'
+        os.environ['GLOG_minloglevel'] = '0'
         os.environ['MAGNUM_LOG'] = 'verbose'
         os.environ['MAGNUM_GPU_VALIDATION'] = 'ON'
 
@@ -33,17 +33,18 @@ from mushroom_rl.utils.viewer import ImageViewer
 class HabitatNavigationWrapper(gym.Wrapper):
     """
     Use it for navigation tasks, where the agent has to go from point A to B.
-    Action is discrete: turn left, turn right, move forward. The amount of
-    degrees / distance the agent turns / moves is defined in the YAML file.
-    This wrapper also removes Habitat's default action 0, that resets the
-    environment (we reset the environment only by calling env.reset()).
+    Action is discrete: stop, turn left, turn right, move forward.
+    The amount of degrees / distance the agent turns / moves is defined in the YAML file.
+    'STOP' ends the episode and the agent must do it to get success rewards.
+    For example, if the agent successfully completes the task but does not do
+    'STOP' it will not get the success reward.
     The observation is the RGB agent's view of what it sees in front of itself.
     We also add the agent's true (x,y) position to the 'info' dictionary.
 
     """
     def __init__(self, env):
         gym.Wrapper.__init__(self, env)
-        self.action_space = gym.spaces.Discrete(env.action_space.n - 1)
+        self.action_space = self.env.action_space
         self.observation_space = self.env.observation_space['rgb']
         self._last_full_obs = None # For rendering
 
@@ -54,10 +55,10 @@ class HabitatNavigationWrapper(gym.Wrapper):
         return self.env._env._sim.get_agent_state().position
 
     def step(self, action):
-        obs, rwd, done, info = self.env.step(**{'action': action[0] + 1})
-        self._last_full_obs = obs
-        obs = np.asarray(obs['rgb'])
+        obs, rwd, done, info = self.env.step(**{'action': action[0]})
         info.update({'position': self.get_position()})
+        obs = np.asarray(obs['rgb'])
+        self._last_full_obs = obs
         return obs, rwd, done, info
 
     def get_shortest_path(self):
@@ -78,6 +79,9 @@ class HabitatNavigationWrapper(gym.Wrapper):
                     max_episode_steps=max_steps,
                 )
             ][0]
+
+            self.reset() # get_action_shortest_path changes the agent state
+
             actions = [p.action for p in shortest_path]
             obs = [self.unwrapped._env.sim.get_observations_at(p.position, p.rotation)['rgb'] for p in shortest_path]
 
@@ -104,27 +108,34 @@ class HabitatNavigationWrapper(gym.Wrapper):
             rwd_sum += rwd
             if done:
                 break
+        self.reset()
         return rwd_sum
 
 
 class HabitatRearrangeWrapper(gym.Wrapper):
     """
-    Use it for the rearrange task, where the robot is fixed at one location and
-    needs to move its arm to pick and place objects. The goal is to place all
-    target objects within 15cm of their goal positions (object orientation is
-    not considered).
+    Use it for the rearrange task, where the robot has to interact with objects.
+    There are several 'rearrange' tasks, such as 'pick', 'place', 'open X',
+    'close X', where X can be a door, the fridge, ...
+
+    Each task has its own actions, observations, rewards, and terminal conditions.
+    Please check Habitat 2.0 paper for more details
+    https://arxiv.org/pdf/2106.14405.pdf
+
+    This wrapper, instead, uses a common observation / action space.
+
     The observation is the RGB image returned by the sensor mounted on the head
     of the robot. We also return the end-effector position in the 'info'
-    dictionary. The action is mixed.
-    The first elements of the action vector are continuous values for velocity
-    control of the arm's joint. The last element is a scalar value for picking /
-    placing an object: if this scalar is positive and the gripper is not
+    dictionary.
+
+    The action is mixed.
+    - The first elements of the action vector are continuous values for velocity
+    control of the arm's joint.
+    - The last element is a scalar value for
+    picking / placing an object: if this scalar is positive and the gripper is not
     currently holding an object and the end-effector is within 15cm of an object,
     then the object closest to the end-effector is grasped; if the scalar is
     negative and the gripper is carrying an object, the object is released.
-
-    For reward details and other task details we refer to
-    https://arxiv.org/pdf/2106.14405.pdf
 
     """
     def __init__(self, env):
@@ -136,6 +147,7 @@ class HabitatRearrangeWrapper(gym.Wrapper):
         high = np.ones((self.arm_ac_size + self.grip_ac_size))
         self.action_space = Box(low=low, high=high, shape=(self.n_actions,))
         self.observation_space = self.env.observation_space['robot_head_rgb']
+        self._last_full_obs = None # For rendering
 
     def reset(self):
         return np.asarray(self.env.reset()['robot_head_rgb'])
@@ -147,10 +159,9 @@ class HabitatRearrangeWrapper(gym.Wrapper):
         action = {'action': 'ARM_ACTION', 'action_args':
             {'arm_action': action[:-self.grip_ac_size], 'grip_action': action[-self.grip_ac_size:]}}
         obs, rwd, done, info = self.env.step(**{'action': action})
-        ee_pos = np.asarray(obs['ee_pos'])
+        info.update({'ee_position': np.asarray(obs['ee_pos'])})
         obs = np.asarray(obs['robot_head_rgb'])
-        info.update({'ee_position': self.get_ee_position()}) # TODO: check difference
-        info.update({'ee_position_x': ee_pos})
+        self._last_full_obs = obs
         return obs, rwd, done, info
 
 
