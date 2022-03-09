@@ -5,6 +5,7 @@ from mushroom_rl.environments.pybullet_envs.air_hockey.repelle import AirHockeyR
 from mushroom_rl.environments.pybullet_envs.air_hockey.defend_hit import AirHockeyDefendHit
 from mushroom_rl.environments.pybullet_envs.air_hockey.double import AirHockeyDouble
 from mushroom_rl.environments.pybullet_envs.air_hockey.simple_double import AirHockeySimpleDouble
+from mushroom_rl.environments.pybullet_envs.air_hockey.return_init import AirHockeyReturn
 
 
 
@@ -14,3 +15,4 @@ AirHockeyPrepare.register()
 AirHockeyRepelle.register()
 AirHockeyDefendHit.register()
 AirHockeyDouble.register()
+AirHockeyReturn.register()
