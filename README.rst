@@ -77,6 +77,14 @@ Below is the code that you need to run to install the Plots dependencies:
 You might need to install external dependencies first. For more information about mujoco-py
 installation follow the instructions on the `project page <https://github.com/openai/mujoco-py>`_
 
+   WARNING! when using conda, there may be issues with QT. You can fix them by adding the following lines to the code:
+   
+.. code:: python
+   import os
+   os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = '<conda_base_path>/envs/<env_name>/bin/platforms'
+
+Replace ``<conda_base_path>`` with the path to your conda distribution and ``<env_name>`` with the name of the conda environment you are using.
+
 To use dm_control MushroomRL interface, install ``dm_control`` following the instruction that can
 be found `here <https://github.com/deepmind/dm_control>`_
 
