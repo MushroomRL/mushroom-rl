@@ -199,7 +199,7 @@ def experiment():
                               'the neural network.')
     arg_alg.add_argument("--max-steps", type=int, default=5000000,
                          help='Total number of collected samples.')
-    arg_alg.add_argument("--final-exploration-frame", type=int, default=1000000,
+    arg_alg.add_argument("--final-exploration-frame", type=int, default=10000000,
                          help='Number of collected samples until the exploration'
                               'rate stops decreasing.')
     arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.,
@@ -296,11 +296,12 @@ def experiment():
         'pointnav_apartment-0.yaml') # Custom task for Replica scenes
     wrapper = 'HabitatNavigationWrapper'
     mdp = Habitat(wrapper, config_file)
-    logger.info('Optimal policy undiscounted return: ' + str(mdp.env.get_optimal_policy_return()))
+    opt_return = mdp.env.get_optimal_policy_return()
 
     if args.load_path:
         logger = Logger(DQN.__name__, results_dir=None)
         logger.strong_line()
+        logger.info('Optimal Policy Undiscounted Return: ' + str(opt_return))
         logger.info('Experiment Algorithm: ' + DQN.__name__)
 
         # Agent
@@ -404,6 +405,7 @@ def experiment():
 
         logger = Logger(alg.__name__, results_dir=None)
         logger.strong_line()
+        logger.info('Optimal Policy Undiscounted Return: ' + str(opt_return))
         logger.info('Experiment Algorithm: ' + alg.__name__)
 
         # Algorithm
