@@ -35,12 +35,15 @@ class AirHockeySimpleDouble(AirHockeyDouble):
                          torque_control=torque_control, step_action_function=step_action_function,
                          table_boundary_terminate=table_boundary_terminate)
 
+        self.client.resetDebugVisualizerCamera(cameraDistance=2, cameraYaw=0.0, cameraPitch=-40,
+                                                cameraTargetPosition=[0., 0., 0.])
+
         self.collision_flags = [False, False]
         self.n_intermediate_steps = n_intermediate_steps
         self.current_intermediate_step = 0
+        self.reset_countdown = 100
 
     def setup(self, state):
-        print("SETUP")
         if self.random_init:
             self.puck_pos = np.random.rand(2) * (self.hit_range[:, 1] - self.hit_range[:, 0]) + self.hit_range[:, 0]
         else:
@@ -53,11 +56,23 @@ class AirHockeySimpleDouble(AirHockeyDouble):
         for i, (model_id, joint_id, _) in enumerate(self._indexer.action_data):
             self.client.resetJointState(model_id, joint_id, self.init_state[i])
 
-        self.collision_list = [[], []]
+        self.collision_list = [[], [], [], []]
+        self.reset_countdown = 100
 
     def reward(self, state, action, next_state, absorbing):
         r = 0
         return r
+
+    def is_absorbing(self, state):
+        puck_vel = self.get_sim_state(self._state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]
+        if np.linalg.norm(puck_vel) < 0.01:
+            self.reset_countdown -= 1
+        else:
+            self.reset_countdown = 100
+
+        if self.reset_countdown == 0:
+            return True
+        return super(AirHockeySimpleDouble, self).is_absorbing(state)
 
     def _modify_mdp_info(self, mdp_info):
         """
@@ -121,28 +136,31 @@ class AirHockeySimpleDouble(AirHockeyDouble):
 
             self.collision_list[i-1].append(int(collision_count > 0))
 
-            # collision_count = 0
-            # collision_count += len(self.client.getContactPoints(self._model_map['puck'],
-            #                                                     self._indexer.link_map['t_up_rim_l'][0],
-            #                                                     -1,
-            #                                                     self._indexer.link_map['t_up_rim_l'][1]))
-            # collision_count += len(self.client.getContactPoints(self._model_map['puck'],
-            #                                                     self._indexer.link_map['t_up_rim_r'][0],
-            #                                                     -1,
-            #                                                     self._indexer.link_map['t_up_rim_r'][1]))
-            #
-            # collision_count += len(self.client.getContactPoints(self._model_map['puck'],
-            #                                                     self._indexer.link_map['t_down_rim_l'][0],
-            #                                                     -1,
-            #                                                     self._indexer.link_map['t_down_rim_l'][1]))
-            # collision_count += len(self.client.getContactPoints(self._model_map['puck'],
-            #                                                     self._indexer.link_map['t_down_rim_r'][0],
-            #                                                     -1,
-            #                                                     self._indexer.link_map['t_down_rim_r'][1]))
-            #
-            # if collision_count > 0:
-            #     self.has_bounce = True
-        # if np.any(self.collision_flags):
+            collision_count_top = 0
+            collision_count_top += len(self.client.getContactPoints(self._model_map['puck'],
+                                                                self._indexer.link_map['t_up_rim_l'][0],
+                                                                -1,
+                                                                self._indexer.link_map['t_up_rim_l'][1]))
+            collision_count_top += len(self.client.getContactPoints(self._model_map['puck'],
+                                                                self._indexer.link_map['t_up_rim_r'][0],
+                                                                -1,
+                                                                self._indexer.link_map['t_up_rim_r'][1]))
+
+            self.collision_list[2].append(int(collision_count_top > 0))
+
+            collision_count_bottom = 0
+            collision_count_bottom += len(self.client.getContactPoints(self._model_map['puck'],
+                                                                       self._indexer.link_map['t_down_rim_l'][0],
+                                                                       -1,
+                                                                       self._indexer.link_map['t_down_rim_l'][1]))
+            collision_count_bottom += len(self.client.getContactPoints(self._model_map['puck'],
+                                                                       self._indexer.link_map['t_down_rim_r'][0],
+                                                                       -1,
+                                                                       self._indexer.link_map['t_down_rim_r'][1]))
+
+            self.collision_list[3].append(int(collision_count_bottom > 0))
+
+
 
 
 
