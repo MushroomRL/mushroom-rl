@@ -54,7 +54,7 @@ class AirHockeySimpleDouble(AirHockeyDouble):
         self.client.resetBasePositionAndOrientation(self._model_map['puck'], puck_pos, [0, 0, 1, 0])
 
         for i, (model_id, joint_id, _) in enumerate(self._indexer.action_data):
-            self.client.resetJointState(model_id, joint_id, self.init_state[i])
+            self.client.resetJointState(model_id, joint_id, self.init_state[i] + 0.2)
 
         self.collision_list = [[], [], [], []]
         self.reset_countdown = 100
