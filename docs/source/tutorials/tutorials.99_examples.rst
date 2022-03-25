@@ -1,7 +1,8 @@
-MushroomRL Examples
-===================
+Usage Examples
+==============
 
-In the following, we collect the links to MushroomRL scripts showing different usages.
+In the following, we collect the links to MushroomRL scripts showing examples for most approaches available in
+MushroomRL.
 
 The examples can be all found in the `examples <https://github.com/MushroomRL/mushroom-rl/tree/dev/examples>`_ folder
 in the MushroomRL `repository <https://github.com/MushroomRL/mushroom-rl>`_.
