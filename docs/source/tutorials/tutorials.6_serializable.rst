@@ -1,9 +1,9 @@
-How to use the Serializable interface
-======================================
+How to Save and Load (Serializable interface)
+=============================================
 
-In this tutorial, we explain in detail the ``Serializable`` interface. We first explain how to use classes
-implementing the ``Serializable`` interface, and then we provide a small example of how to implement the
-``Serializable`` interface on a custom class to serialize the object properly on disk.
+In this tutorial, we explain in detail the ``Serializable`` interface, i.e. the interface to save and load classes from
+disk. We first explain how to use classes implementing the ``Serializable`` interface, and then we provide a small
+example of how to implement the ``Serializable`` interface on a custom class to serialize the object properly on disk.
 
 The Mushroom RL save format (extension ``.msh``) is nothing else than a zip file, containing some information (stored into
 the ``config`` file) to load the object. This information can be accessed easily and you can try to recover the information
