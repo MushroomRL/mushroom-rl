@@ -3,13 +3,18 @@ Algorithms:
     * Policy Search:
         - Natural gradient
         - NES
-        - MORE
         - PAPI
-
+        
+Policy:
+    * Add Boltzmann from logits for traditional policy gradient methods
+    
 Approximator:
     * support for LSTM
     * Generalize LazyFrame to LazyState
     * add neural network generator
+
+Documentation:
+    * Link examples in doc
 
 For Mushroom 2.0:
     * Record method in environment and record option in the core
@@ -18,5 +23,4 @@ For Mushroom 2.0:
     * remove custom save for plotting, use Serializable
     * support multi-objective RL
     * support model-based RL
-    * Register environments to build them from string with default parameters
     * Improve replay memory, allowing to store arbitrary information into replay buffer

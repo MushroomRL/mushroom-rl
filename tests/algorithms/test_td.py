@@ -381,9 +381,9 @@ def test_sarsa_lambda_continuous_linear():
     # Train
     core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
 
-    test_w = np.array([-16.38428419, 0., -14.31250136, 0.,
-                       -15.68571525, 0., -10.15663821, 0.,
-                       -15.0545445,  0., -8.3683605, 0.])
+    test_w = np.array([-16.62627886, 0., -13.03033079, 0.,
+                       -15.93237930, 0.,  -9.72299176, 0.,
+                       -13.78884631, 0.,  -9.92157645, 0.])
 
     assert np.allclose(agent.Q.get_weights(), test_w)
 
@@ -446,9 +446,8 @@ def test_sarsa_lambda_continuous_nn():
     # Train
     core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
 
-    test_w = np.array([-0.18968964, 0.4296857, 0.52967095, 0.5674884,
-                       -0.12784956, -0.10572472, -0.14546978, -0.67001086,
-                       -0.93925357])
+    test_w = np.array([-0.18968967, 0.42968568, 0.5897674, 0.5670382, -0.07158992,
+                       -0.10791285, -0.14546975, -0.6693571, -0.9424093])
 
     assert np.allclose(agent.Q.get_weights(), test_w)
 
@@ -549,9 +548,9 @@ def test_true_online_sarsa_lambda():
     # Train
     core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
 
-    test_w = np.array([-17.27410736, 0., -15.04386343, 0.,
-                       -16.6551805, 0., -11.31383707, 0.,
-                       -16.11782002, 0., -9.6927357, 0.])
+    test_w = np.array([-17.30427303, 0., -13.54157504, 0.,
+                       -16.82373134, 0., -10.29613337, 0.,
+                       -14.79470382, 0., -10.50654665, 0.])
 
     assert np.allclose(agent.Q.get_weights(), test_w)
 

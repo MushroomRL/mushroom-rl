@@ -116,8 +116,7 @@ def test_gym():
     mdp.reset()
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
-    ns_test = np.array([0.99989477, 0.01450661, 0.97517825, -0.22142128,
-                        -0.02323116, 0.40630765])
+    ns_test = np.array([0.9996687, -0.02573896,  0.9839331, -0.17853762, -0.17821608, 0.5534913])
 
     assert np.allclose(ns, ns_test)
 
