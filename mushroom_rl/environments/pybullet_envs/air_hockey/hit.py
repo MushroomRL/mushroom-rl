@@ -4,6 +4,9 @@ import pybullet as p
 from matplotlib import image
 import numpy as np
 from mushroom_rl.environments.pybullet_envs.air_hockey.single import AirHockeySingle, PyBulletObservationType
+from mushroom_rl.utils.spaces import Box
+from mushroom_rl.core import MDPInfo
+
 
 
 class AirHockeyHit(AirHockeySingle):
@@ -94,17 +97,14 @@ class AirHockeyHit(AirHockeySingle):
                     np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
                 r = 200
 
-            # If stricker hits barrier, not used with safe exploration
+            # If mallet hits walls, not used with safe exploration
             if self.table_boundary_terminate:
                 ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
                                             PyBulletObservationType.LINK_POS)[:3]
                 if abs(ee_pos[0]) > self.env_spec['table']['length'] / 2 or \
                         abs(ee_pos[1]) > self.env_spec['table']['width'] / 2:
                     r = -10
-        elif self.has_bounce:
-            r = 0
         else:
-            # Don't give more reward if the goal was missed
             if not self.has_hit:
                 ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
                                             PyBulletObservationType.LINK_POS)[:2]
@@ -119,7 +119,8 @@ class AirHockeyHit(AirHockeySingle):
                 cos_ang = np.max([cos_ang_goal, cos_ang_side])
 
                 r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang ** 2
-                self.r_hit = r
+                # self.r_hit = r
+                self.r_hit = 1
             else:
                 r_hit = 0.25 + self.r_hit * min([1, (0.25 * self.vel_hit_x ** 4)])
 
@@ -164,6 +165,17 @@ class AirHockeyHit(AirHockeySingle):
 
             if collision_count > 0:
                 self.has_bounce = True
+
+    def _modify_mdp_info(self, mdp_info):
+        info = super(AirHockeyHit, self)._modify_mdp_info(mdp_info)
+        obs_low = np.append(mdp_info.observation_space.low, [0])
+        obs_high = np.append(mdp_info.observation_space.high, [1])
+        observation_space = Box(low=obs_low, high=obs_high)
+        return MDPInfo(observation_space, info.action_space, info.gamma, info.horizon)
+
+    def _create_observation(self, state):
+        obs = super(AirHockeyHit, self)._create_observation(state)
+        return np.append(obs, [self.has_hit])
 
 
 if __name__ == '__main__':

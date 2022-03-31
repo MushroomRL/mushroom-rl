@@ -6,7 +6,7 @@ from mushroom_rl.environments.pybullet_envs.air_hockey.single import AirHockeySi
 
 
 
-class AirHockeyRepelle(AirHockeySingle):
+class AirHockeyRepel(AirHockeySingle):
     def __init__(self, gamma=0.99, horizon=500, env_noise=False, obs_noise=False, obs_delay=False, torque_control=True,
                  step_action_function=None, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
                  random_init=False, action_penalty=1e-3):
@@ -145,8 +145,8 @@ class AirHockeyRepelle(AirHockeySingle):
 
 
 if __name__ == "__main__":
-    env = AirHockeyRepelle(debug_gui=True, env_noise=False, obs_noise=False, obs_delay=False, n_intermediate_steps=4,
-                           random_init=True)
+    env = AirHockeyRepel(debug_gui=True, env_noise=False, obs_noise=False, obs_delay=False, n_intermediate_steps=4,
+                         random_init=True)
 
     R = 0.
     J = 0.
