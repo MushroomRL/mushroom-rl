@@ -168,8 +168,8 @@ class AirHockeyHit(AirHockeySingle):
 
     def _modify_mdp_info(self, mdp_info):
         info = super(AirHockeyHit, self)._modify_mdp_info(mdp_info)
-        obs_low = np.append(mdp_info.observation_space.low, [0])
-        obs_high = np.append(mdp_info.observation_space.high, [1])
+        obs_low = np.append(info.observation_space.low, [0])
+        obs_high = np.append(info.observation_space.high, [1])
         observation_space = Box(low=obs_low, high=obs_high)
         return MDPInfo(observation_space, info.action_space, info.gamma, info.horizon)
 
