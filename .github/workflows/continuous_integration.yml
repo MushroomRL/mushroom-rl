@@ -26,8 +26,7 @@ jobs:
     - name: Install Atari ROMs
       run: |
         wget http://www.atarimania.com/roms/Roms.rar 
-        unrar e Roms.rar 
-        unzip -o ROMS.zip 
+        unrar x  -o+  Roms.rar
         ale-import-roms ./ROMS
     - name: Lint with flake8
       run: |
