@@ -25,12 +25,10 @@ jobs:
         sudo apt install unrar
     - name: Install Atari ROMs
       run: |
-        pip install autorom[accept-rom-license]
-        AutoROM
-        #wget http://www.atarimania.com/roms/Roms.rar 
-        #unrar e Roms.rar 
-        #unzip ROMS.zip 
-        #ale-import-roms ./ROMS
+        wget http://www.atarimania.com/roms/Roms.rar 
+        unrar e Roms.rar 
+        unzip -o ROMS.zip 
+        ale-import-roms ./ROMS
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
