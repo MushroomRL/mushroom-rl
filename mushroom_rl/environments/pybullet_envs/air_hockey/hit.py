@@ -90,6 +90,9 @@ class AirHockeyHit(AirHockeySingle):
     def reward(self, state, action, next_state, absorbing):
         r = 0
         puck_pos = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_POS)[:2]
+
+        puck_vel = self.get_sim_state(self._state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]
+
         # If puck is out of bounds
         if absorbing:
             # If puck is in the enemy goal
@@ -122,7 +125,7 @@ class AirHockeyHit(AirHockeySingle):
                 # self.r_hit = r
                 self.r_hit = 1
             else:
-                r_hit = 0.25 + self.r_hit * min([1, (0.25 * self.vel_hit_x ** 4)])
+                r_hit = 0.25 + self.r_hit * min([1, (0.25 * puck_vel[0] ** 4)])
 
                 r_goal = 0
                 if puck_pos[0] > 0.7:
