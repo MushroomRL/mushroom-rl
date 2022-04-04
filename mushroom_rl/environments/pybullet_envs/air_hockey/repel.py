@@ -3,7 +3,8 @@ import time
 
 from mushroom_rl.environments.pybullet_envs.air_hockey.single import AirHockeySingle, \
     PyBulletObservationType
-
+from mushroom_rl.utils.spaces import Box
+from mushroom_rl.core import MDPInfo
 
 
 class AirHockeyRepel(AirHockeySingle):
@@ -64,17 +65,15 @@ class AirHockeyRepel(AirHockeySingle):
         r = 0
         puck_pos = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_POS)[:3]
         puck_vel = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:3]
-        # This checks weather the puck is in our goal, heavy penalty if it is.
+
         # If absorbing the puck is out of bounds of the table.
         if absorbing:
-            # puck position is behind table going to the negative side
+            # big penalty if we coincide a goal
             if puck_pos[0] + self.env_spec['table']['length'] / 2 < 0 and \
                     np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
                 r = -50
         else:
-            # If the puck bounced off the head walls, there is no reward.
             if self.has_hit:
-                # Reward if the puck slows down on the defending side
 
                 r_x = puck_pos[0] + 0.98
                 r_vel = min([puck_vel[0] ** 3, 5])
@@ -142,6 +141,18 @@ class AirHockeyRepel(AirHockeySingle):
 
             if collision_count > 0:
                 self.has_bounce = True
+
+    # Add flag to observation space
+    def _modify_mdp_info(self, mdp_info):
+        info = super(AirHockeyRepel, self)._modify_mdp_info(mdp_info)
+        obs_low = np.append(info.observation_space.low, [0])
+        obs_high = np.append(info.observation_space.high, [1])
+        observation_space = Box(low=obs_low, high=obs_high)
+        return MDPInfo(observation_space, info.action_space, info.gamma, info.horizon)
+
+    def _create_observation(self, state):
+        obs = super(AirHockeyRepel, self)._create_observation(state)
+        return np.append(obs, [self.has_hit])
 
 
 if __name__ == "__main__":

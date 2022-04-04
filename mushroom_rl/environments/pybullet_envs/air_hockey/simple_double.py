@@ -10,22 +10,10 @@ from mushroom_rl.environments.pybullet_envs.air_hockey.double import AirHockeyDo
 
 
 class AirHockeySimpleDouble(AirHockeyDouble):
-    """
-        Class for the air hockey hitting task.
-        The agent tries to get close to the puck if the hitting does not happen.
-        And will get bonus reward if the robot scores a goal.
-        """
-
     def __init__(self, gamma=0.99, horizon=120, env_noise=False, obs_noise=False, obs_delay=False, torque_control=True,
                  step_action_function=None, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
                  random_init=False, action_penalty=1e-3, table_boundary_terminate=False):
-        """
-        Constructor
 
-        Args:
-            random_init(bool, False): If true, initialize the puck at random position.
-            action_penalty(float, 1e-3): The penalty of the action on the reward at each time step
-        """
         self.hit_range = np.array([[0.25, 0.6], [-0.37, 0.37]])
 
         self.random_init = random_init

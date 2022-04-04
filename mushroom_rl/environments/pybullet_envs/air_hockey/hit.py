@@ -45,13 +45,14 @@ class AirHockeyHit(AirHockeySingle):
                          torque_control=torque_control, step_action_function=step_action_function,
                          table_boundary_terminate=table_boundary_terminate)
 
-
     def setup(self, state):
+        # Initial position of the puck
         if self.random_init:
             self.puck_pos = np.random.rand(2) * (self.hit_range[:, 1] - self.hit_range[:, 0]) + self.hit_range[:, 0]
         else:
             self.puck_pos = np.mean(self.hit_range, axis=1)
 
+        # Initial configuration of the robot arm
         if self.init_strat == 'right':
             self.init_state = np.array([-0.9273, 0.9273, np.pi / 2])
         elif self.init_strat == 'left':
@@ -67,13 +68,13 @@ class AirHockeyHit(AirHockeySingle):
         self.vec_puck_goal = (self.goal - self.puck_pos) / np.linalg.norm(self.goal - self.puck_pos)
 
         # width of table minus radius of puck
-        height = 0.51 - 0.03165
+        effective_width = 0.51 - 0.03165
 
-        # get to point
-        w = (abs(puck_pos[1]) * self.goal[0] + self.goal[1] * puck_pos[0] - height * puck_pos[0] - height *
-             self.goal[0]) / (abs(puck_pos[1]) + self.goal[1] - 2 * height)
+        # Calculate bounce point by assuming incomming angle = outgoing angle
+        w = (abs(puck_pos[1]) * self.goal[0] + self.goal[1] * puck_pos[0] - effective_width * puck_pos[0] - effective_width *
+             self.goal[0]) / (abs(puck_pos[1]) + self.goal[1] - 2 * effective_width)
 
-        self.side_point = np.array([w, np.copysign(height, puck_pos[1])])
+        self.side_point = np.array([w, np.copysign(effective_width, puck_pos[1])])
 
         self.vec_puck_side = (self.side_point - self.puck_pos) / np.linalg.norm(self.side_point - self.puck_pos)
 
@@ -84,8 +85,6 @@ class AirHockeyHit(AirHockeySingle):
 
         self.has_hit = False
         self.has_bounce = False
-        self.vel_hit_x = 0.
-        self.r_hit = 0.
 
     def reward(self, state, action, next_state, absorbing):
         r = 0
@@ -100,7 +99,7 @@ class AirHockeyHit(AirHockeySingle):
                     np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
                 r = 200
 
-            # If mallet hits walls, not used with safe exploration
+            # If mallet violates constraints, not used with safe exploration
             if self.table_boundary_terminate:
                 ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
                                             PyBulletObservationType.LINK_POS)[:3]
@@ -122,10 +121,8 @@ class AirHockeyHit(AirHockeySingle):
                 cos_ang = np.max([cos_ang_goal, cos_ang_side])
 
                 r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang ** 2
-                # self.r_hit = r
-                self.r_hit = 1
             else:
-                r_hit = 0.25 + self.r_hit * min([1, (0.25 * puck_vel[0] ** 4)])
+                r_hit = 0.25 + min([1, (0.25 * puck_vel[0] ** 4)])
 
                 r_goal = 0
                 if puck_pos[0] > 0.7:
@@ -169,6 +166,7 @@ class AirHockeyHit(AirHockeySingle):
             if collision_count > 0:
                 self.has_bounce = True
 
+    # Add flags to observation space
     def _modify_mdp_info(self, mdp_info):
         info = super(AirHockeyHit, self)._modify_mdp_info(mdp_info)
         obs_low = np.append(info.observation_space.low, [0])

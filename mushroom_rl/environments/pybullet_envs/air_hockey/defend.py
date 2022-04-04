@@ -4,7 +4,8 @@ import numpy as np
 
 from mushroom_rl.environments.pybullet_envs.air_hockey.single import AirHockeySingle, \
     PyBulletObservationType
-
+from mushroom_rl.utils.spaces import Box
+from mushroom_rl.core import MDPInfo
 
 class AirHockeyDefend(AirHockeySingle):
     """
@@ -33,10 +34,8 @@ class AirHockeyDefend(AirHockeySingle):
                          debug_gui=debug_gui, env_noise=env_noise, obs_noise=obs_noise, obs_delay=obs_delay,
                          torque_control=torque_control, step_action_function=step_action_function)
 
-        # Why special init state?? Whats wrong with the one from AirHockeySingle
-        # self.init_state = np.array([-1.1, 0.8, np.pi/2])
-
     def setup(self, state=None):
+        # Set initial puck parameters
         if self.random_init:
             puck_pos = np.random.rand(2) * (self.start_range[:, 1] - self.start_range[:, 0]) + self.start_range[:, 0]
             puck_pos = np.concatenate([puck_pos, [-0.189]])
@@ -72,10 +71,10 @@ class AirHockeyDefend(AirHockeySingle):
         r = 0
         puck_pos = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_POS)[:3]
         puck_vel = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:3]
-        # This checks weather the puck is in our goal, heavy penalty if it is.
+
         # If absorbing the puck is out of bounds of the table.
         if absorbing:
-            # puck position is behind table going to the negative side
+            # large penalty if agent coincides a goal
             if puck_pos[0] + self.env_spec['table']['length'] / 2 < 0 and \
                     np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
                 r = -50
@@ -96,6 +95,9 @@ class AirHockeyDefend(AirHockeySingle):
             else:
                 ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
                                                 PyBulletObservationType.LINK_POS)[:2]
+
+                # Maybe change -0.6 to -0.4 so the puck is stopped a bit higher, could improve performance because
+                # we don't run into the constraints at the bottom
                 ee_des = np.array([-0.6, puck_pos[1]])
                 dist_ee_puck = np.abs(ee_des - ee_pos[:2])
 
@@ -109,8 +111,6 @@ class AirHockeyDefend(AirHockeySingle):
         r -= self.action_penalty * np.linalg.norm(action)
         return r
 
-    # If the Puck is out of Bounds of the table this returns True
-    # This function is not needed???
     def is_absorbing(self, state):
         puck_pos_y = self.get_sim_state(state, "puck", PyBulletObservationType.BODY_POS)[0]
         if super().is_absorbing(state):
@@ -152,6 +152,18 @@ class AirHockeyDefend(AirHockeySingle):
 
             if collision_count > 0:
                 self.has_bounce = True
+
+    # Add flags to observation space
+    def _modify_mdp_info(self, mdp_info):
+        info = super(AirHockeyDefend, self)._modify_mdp_info(mdp_info)
+        obs_low = np.append(info.observation_space.low, [0, 0])
+        obs_high = np.append(info.observation_space.high, [1, 1])
+        observation_space = Box(low=obs_low, high=obs_high)
+        return MDPInfo(observation_space, info.action_space, info.gamma, info.horizon)
+
+    def _create_observation(self, state):
+        obs = super(AirHockeyDefend, self)._create_observation(state)
+        return np.append(obs, [self.has_hit, self.has_bounce])
 
 
 if __name__ == '__main__':

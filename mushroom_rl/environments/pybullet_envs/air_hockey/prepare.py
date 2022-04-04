@@ -2,6 +2,8 @@ import time
 
 import numpy as np
 from mushroom_rl.environments.pybullet_envs.air_hockey.single import AirHockeySingle, PyBulletObservationType
+from mushroom_rl.utils.spaces import Box
+from mushroom_rl.core import MDPInfo
 
 
 class AirHockeyPrepare(AirHockeySingle):
@@ -15,18 +17,14 @@ class AirHockeyPrepare(AirHockeySingle):
 
         self.desired_point = np.array([-0.6, 0])
 
+        self.start_range = None
         if init_state == "side":
             self.start_range = np.array([[-0.8, -0.4], [0.25, 0.46]])
         elif init_state == "bottom":
             self.start_range = np.array([[-0.9, -0.8], [0.125, 0.46]])
-        else:
-            self.start_range = None
 
         self.ee_end_pos = [-8.10001913e-01, -1.43459494e-06]
 
-        self.r_hit = None
-
-        self.got_reward = None
         self.has_hit = False
         self.has_bounce = False
         self.puck_pos = None
@@ -62,17 +60,15 @@ class AirHockeyPrepare(AirHockeySingle):
                                     PyBulletObservationType.LINK_POS)[:2]
 
         if self.init_strat == "side":
+            # Large bonus for being slow at the end
             if absorbing and abs(puck_pos[1]) < 0.47:
                 r = 100 * np.exp(-2 * np.linalg.norm(puck_vel))
                 return r
 
+            # After hit
             if self.has_hit:
                 if puck_pos[0] < -0.35 and abs(puck_pos[1]) < 0.47:
-                    # After hit
-                    dist_puck_des = np.linalg.norm(puck_pos - self.desired_point)
                     r_vel_x = max([0, 1 - (10 * (np.exp(abs(puck_vel[0])) - 1))])
-
-                    r_vel_y = 0.5 - abs(puck_vel[1])
 
                     dist_ee_des = np.linalg.norm(ee_pos - self.ee_end_pos)
                     r_ee = 0.5 - dist_ee_des
@@ -80,18 +76,16 @@ class AirHockeyPrepare(AirHockeySingle):
                     r = r_vel_x + r_ee + 1
                 else:
                     r = 0
-
+            # Before hit
             else:
-                # Before hit
-
                 dist_ee_puck = np.linalg.norm(puck_pos - ee_pos)
                 vec_ee_puck = (puck_pos - ee_pos) / dist_ee_puck
 
                 cos_ang = np.clip(vec_ee_puck @ np.array([0, np.copysign(1, puck_pos[1])]), 0, 1)
 
                 r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang ** 2
-                self.r_hit = r
 
+        # If init_strat is "bottom"
         else:
             if absorbing and puck_pos[0] >= -0.6:
                 r = 100 * np.exp(-2 * np.linalg.norm(puck_vel))
@@ -121,7 +115,6 @@ class AirHockeyPrepare(AirHockeySingle):
                 cos_ang = max([cos_ang_side, cos_ang_bottom])
 
                 r = np.exp(-8 * (dist_ee_puck - 0.08)) * cos_ang ** 2
-                self.r_hit = r
 
         r -= self.action_penalty * np.linalg.norm(action)
         return r
@@ -175,6 +168,18 @@ class AirHockeyPrepare(AirHockeySingle):
 
             if collision_count > 0:
                 self.has_bounce = True
+
+    # Add flags to observation space
+    def _modify_mdp_info(self, mdp_info):
+        info = super(AirHockeyPrepare, self)._modify_mdp_info(mdp_info)
+        obs_low = np.append(info.observation_space.low, [0])
+        obs_high = np.append(info.observation_space.high, [1])
+        observation_space = Box(low=obs_low, high=obs_high)
+        return MDPInfo(observation_space, info.action_space, info.gamma, info.horizon)
+
+    def _create_observation(self, state):
+        obs = super(AirHockeyPrepare, self)._create_observation(state)
+        return np.append(obs, [self.has_hit])
 
 
 if __name__ == '__main__':
