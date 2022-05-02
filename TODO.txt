@@ -13,9 +13,6 @@ Approximator:
     * Generalize LazyFrame to LazyState
     * add neural network generator
 
-Documentation:
-    * Link examples in doc
-
 For Mushroom 2.0:
     * Record method in environment and record option in the core
     * Simplify Regressor interface: drop GenericRegressor, remove facade pattern
