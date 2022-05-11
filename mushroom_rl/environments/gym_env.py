@@ -52,6 +52,8 @@ class Gym(Environment):
 
         self.env = gym.make(name, **env_args)
 
+        self._render_dt = self.env.unwrapped.dt if hasattr(self.env.unwrapped, "dt") else 0.0
+
         if wrappers is not None:
             if wrappers_args is None:
                 wrappers_args = [dict()] * len(wrappers)
@@ -100,6 +102,7 @@ class Gym(Environment):
         if self._first or self._not_pybullet:
             self.env.render(mode=mode)
             self._first = False
+            time.sleep(self._render_dt)
 
     def stop(self):
         try:
