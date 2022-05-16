@@ -162,8 +162,7 @@ class TorchApproximator(Serializable):
             use_weights = False
 
         if 0 < validation_split <= 1:
-            train_len = np.ceil(len(args[0]) * validation_split).astype(
-                np.int)
+            train_len = np.ceil(len(args[0]) * validation_split).astype(int)
             train_args = [a[:train_len] for a in args]
             val_args = [a[train_len:] for a in args]
         else:

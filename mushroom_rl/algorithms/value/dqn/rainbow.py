@@ -139,8 +139,8 @@ class Rainbow(AbstractDQN):
                                                             self._v_max)
 
             b = (bell_a - self._v_min) / self._delta
-            l = np.floor(b).astype(np.int)
-            u = np.ceil(b).astype(np.int)
+            l = np.floor(b).astype(int)
+            u = np.ceil(b).astype(int)
 
             m = np.zeros((self._batch_size.get_value(), self._n_atoms))
             for i in range(self._n_atoms):
