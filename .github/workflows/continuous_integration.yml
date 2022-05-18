@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-
+    if: github.repository == MushroomRL/mushroom-rl
     runs-on: ubuntu-latest
 
     steps:
