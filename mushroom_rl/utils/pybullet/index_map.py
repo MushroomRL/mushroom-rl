@@ -84,9 +84,11 @@ class IndexMap(object):
         for model_id, joint_id, mode in self.action_data:
             u = action[i]
             if mode is pybullet.POSITION_CONTROL:
-                kwargs = dict(targetPosition=u, maxVelocity=self._client.getJointInfo(model_id, joint_id)[11])
+                kwargs = dict(targetPosition=u, maxVelocity=self._client.getJointInfo(model_id, joint_id)[11],
+                              force=self._client.getJointInfo(model_id, joint_id)[10])
             elif mode is pybullet.VELOCITY_CONTROL:
-                kwargs = dict(targetVelocity=u, maxVelocity=self._client.getJointInfo(model_id, joint_id)[11])
+                kwargs = dict(targetVelocity=u, maxVelocity=self._client.getJointInfo(model_id, joint_id)[11],
+                              force=self._client.getJointInfo(model_id, joint_id)[10])
             elif mode is pybullet.TORQUE_CONTROL:
                 kwargs = dict(force=u)
             else:
