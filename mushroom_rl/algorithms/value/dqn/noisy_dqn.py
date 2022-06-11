@@ -47,8 +47,8 @@ class NoisyNetwork(nn.Module):
             if self._use_cuda:
                 eps_output = eps_output.cuda()
                 eps_input = eps_input.cuda()
-            eps_dot = torch.matmul(eps_output, eps_input)
-            weight = self.mu_weight + self.sigma_weight * self._noise(eps_dot)
+            eps_dot = torch.matmul(self._noise(eps_output), self._noise(eps_input))
+            weight = self.mu_weight + self.sigma_weight * eps_dot
 
             if hasattr(self, 'mu_bias'):
                 self.bias = self.mu_bias + self.sigma_bias * self._noise(eps_output[:, 0])

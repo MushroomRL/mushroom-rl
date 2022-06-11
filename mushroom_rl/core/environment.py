@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 
 from mushroom_rl.core.serialization import Serializable
@@ -131,10 +132,12 @@ class Environment(object):
             seed (float): the value of the seed.
 
         """
-        if hasattr(self, 'env'):
+        if hasattr(self, 'env') and hasattr(self.env, 'seed'):
             self.env.seed(seed)
         else:
-            raise NotImplementedError
+            warnings.warn('This environment has no custom seed. '
+                          'The call will have no effect. '
+                          'You can set the seed manually by setting numpy/torch seed')
 
     def reset(self, state=None):
         """

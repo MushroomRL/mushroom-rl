@@ -57,7 +57,7 @@ class Trajectory(object):
             )
 
             self.split_points = np.round(
-                self.split_points * new_traj_sampling_factor).astype(np.int32)
+                self.split_points * new_traj_sampling_factor).astype(int)
 
     def _interpolate_trajectory(self, traj, factor):
         x = np.arange(traj.shape[1])

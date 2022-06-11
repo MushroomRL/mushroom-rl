@@ -352,7 +352,7 @@ class PrioritizedReplayMemory(Serializable):
         absorbing = [None for _ in range(n_samples)]
         last = [None for _ in range(n_samples)]
 
-        idxs = np.zeros(n_samples, dtype=np.int)
+        idxs = np.zeros(n_samples, dtype=int)
         priorities = np.zeros(n_samples)
 
         total_p = self._tree.total_p

@@ -19,7 +19,11 @@ SIMULATOR:
 
 TASK:
   TYPE: Nav-v0
+
+  # Set both to the same value
   SUCCESS_DISTANCE: 0.2
+  SUCCESS:
+    SUCCESS_DISTANCE: 0.2
 
   SENSORS: ['POINTGOAL_WITH_GPS_COMPASS_SENSOR']
   POINTGOAL_WITH_GPS_COMPASS_SENSOR:
@@ -27,21 +31,7 @@ TASK:
     DIMENSIONALITY: 2
   GOAL_SENSOR_UUID: pointgoal_with_gps_compass
 
-  MEASUREMENTS: ['DISTANCE_TO_GOAL', 'SUCCESS', 'SPL', 'TOP_DOWN_MAP'] # Add top-down map to default measurements
-
-  SPL:
-    TYPE: SPL # Success weighted by Path Length
-    SUCCESS_DISTANCE: 0.2
-
-  TOP_DOWN_MAP: # Top-down map specifications, used for heatmaps
-    MAP_RESOLUTION: 590
-    DRAW_SOURCE: False
-    DRAW_SHORTEST_PATH: False
-    FOG_OF_WAR:
-      DRAW: False
-    DRAW_VIEW_POINTS: False
-    DRAW_GOAL_POSITIONS: False
-    DRAW_GOAL_AABBS: False
+  MEASUREMENTS: ['DISTANCE_TO_GOAL', 'SUCCESS', 'SPL']
 
 DATASET: # Replica scene
   CONTENT_SCENES: ['*']

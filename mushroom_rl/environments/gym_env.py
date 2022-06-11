@@ -1,6 +1,8 @@
 import gym
 from gym import spaces as gym_spaces
 
+import numpy as np
+
 try:
     import pybullet_envs
     import time
@@ -50,6 +52,8 @@ class Gym(Environment):
 
         self.env = gym.make(name, **env_args)
 
+        self._render_dt = self.env.unwrapped.dt if hasattr(self.env.unwrapped, "dt") else 0.0
+
         if wrappers is not None:
             if wrappers_args is None:
                 wrappers_args = [dict()] * len(wrappers)
@@ -59,9 +63,7 @@ class Gym(Environment):
                 else:
                     self.env = wrapper(self.env, *args, **env_args)
 
-        if horizon is None:
-            horizon = self.env._max_episode_steps
-        self.env._max_episode_steps = np.inf  # Hack to ignore gym time limit.
+        horizon = self._set_horizon(self.env, horizon)
 
         # MDP properties
         assert not isinstance(self.env.observation_space,
@@ -98,6 +100,7 @@ class Gym(Environment):
         if self._first or self._not_pybullet:
             self.env.render(mode=mode)
             self._first = False
+            time.sleep(self._render_dt)
 
     def stop(self):
         try:
@@ -107,6 +110,22 @@ class Gym(Environment):
             pass
 
     @staticmethod
+    def _set_horizon(env, horizon):
+
+        while not hasattr(env, '_max_episode_steps') and env.env != env.unwrapped:
+                env = env.env
+
+        if horizon is None:
+            if not hasattr(env, '_max_episode_steps'):
+                raise RuntimeError('This gym environment has no specified time limit!')
+            horizon = env._max_episode_steps
+
+        if hasattr(env, '_max_episode_steps'):
+            env._max_episode_steps = np.inf  # Hack to ignore gym time limit.
+
+        return horizon
+
+    @staticmethod
     def _convert_gym_space(space):
         if isinstance(space, gym_spaces.Discrete):
             return Discrete(space.n)
@@ -114,3 +133,4 @@ class Gym(Environment):
             return Box(low=space.low, high=space.high, shape=space.shape)
         else:
             raise ValueError
+

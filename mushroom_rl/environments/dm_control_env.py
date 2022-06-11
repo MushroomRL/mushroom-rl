@@ -102,10 +102,10 @@ class DMControl(Environment):
         observation_shape = 0
         for i in observation_space:
             shape = observation_space[i].shape
-            if len(shape) > 0:
-                observation_shape += shape[0]
-            else:
-                observation_shape += 1
+            observation_var = 1
+            for dim in shape:
+                observation_var *= dim
+            observation_shape += observation_var
 
         return Box(low=-np.inf, high=np.inf, shape=(observation_shape,))
 
@@ -127,7 +127,7 @@ class DMControl(Environment):
     def _convert_observation_vector(observation):
         obs = list()
         for i in observation:
-            obs.append(np.atleast_1d(observation[i]))
+            obs.append(np.atleast_1d(observation[i]).flatten())
 
         return np.concatenate(obs)
 

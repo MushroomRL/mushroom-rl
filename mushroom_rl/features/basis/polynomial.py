@@ -66,7 +66,7 @@ class PolynomialBasis:
             The current exponent of the polynomial.
 
         """
-        pattern = np.zeros(n_variables, dtype=np.int32)
+        pattern = np.zeros(n_variables, dtype=int)
         for current_sum in range(1, order + 1):
             pattern[0] = current_sum
             yield pattern

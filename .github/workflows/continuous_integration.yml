@@ -5,12 +5,10 @@ name: Continuous Integration
 on:
   push:
     branches: [ dev, master ]
-  pull_request:
-    branches: [ dev ]
 
 jobs:
   build:
-
+    if: github.repository == 'MushroomRL/mushroom-rl'
     runs-on: ubuntu-latest
 
     steps:
@@ -28,8 +26,7 @@ jobs:
     - name: Install Atari ROMs
       run: |
         wget http://www.atarimania.com/roms/Roms.rar 
-        unrar e Roms.rar 
-        unzip ROMS.zip 
+        unrar x  -o+  Roms.rar
         ale-import-roms ./ROMS
     - name: Lint with flake8
       run: |

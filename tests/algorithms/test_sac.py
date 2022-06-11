@@ -112,8 +112,8 @@ def learn_sac():
 def test_sac():
     policy = learn_sac().policy
     w = policy.get_weights()
-    w_test = np.array([ 1.6998193, -0.732528, 1.2986078, -0.26860124,
-                        0.5094043, -0.5001421, -0.18989229, -0.30646914])
+    w_test = np.array([1.6992193, -0.73312795,  1.2986077, -0.26860124,  0.50940424,
+                       -0.50014216, -0.18989235, -0.30646914])
 
     assert np.allclose(w, w_test)
 

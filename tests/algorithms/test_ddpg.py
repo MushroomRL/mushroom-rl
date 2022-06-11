@@ -104,7 +104,7 @@ def learn(alg):
 def test_ddpg():
     policy = learn(DDPG).policy
     w = policy.get_weights()
-    w_test = np.array([-0.28865, -0.7487735, -0.5533644, -0.34702766])
+    w_test = np.array([-0.28864878, -0.74877405, -0.55670303, -0.3470272])
 
     assert np.allclose(w, w_test)
 

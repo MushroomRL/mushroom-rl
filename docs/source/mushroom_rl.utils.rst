@@ -88,6 +88,16 @@ Parameters
     :inherited-members:
     :show-inheritance:
 
+Plots
+-----
+
+.. automodule:: mushroom_rl.utils.plots
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+
 Replay memory
 -------------
 

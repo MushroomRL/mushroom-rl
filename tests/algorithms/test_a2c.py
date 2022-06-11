@@ -77,8 +77,7 @@ def test_a2c():
     agent = learn_a2c()
 
     w = agent.policy.get_weights()
-    w_test = np.array([-1.6298926, 1.0359657, -0.34826356, 0.26997435,
-                       -0.00908627])
+    w_test = np.array([-1.6191487, 1.030197, -0.3465481, 0.26064992, -0.0089475])
 
     assert np.allclose(w, w_test)
 
