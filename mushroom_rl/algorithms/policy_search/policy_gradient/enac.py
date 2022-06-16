@@ -45,7 +45,7 @@ class eNAC(PolicyGradient):
         return nat_grad
 
     def _step_update(self, x, u, r):
-        self.sum_grad_log += self.policy.diff_log(x, u)
+        self.sum_grad_log += self.df*self.policy.diff_log(x, u)
 
         if self.psi_ext is None:
             if self.phi_c is None:

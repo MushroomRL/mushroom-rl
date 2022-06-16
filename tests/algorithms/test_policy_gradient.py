@@ -97,7 +97,7 @@ def test_GPOMDP_save(tmpdir):
 def test_eNAC():
     params = dict(optimizer=AdaptiveOptimizer(eps=.01))
     policy = learn(eNAC, params).policy
-    w = np.array([-0.03668018,  2.05112355])
+    w = np.array([-0.16169364,  2.00594995])
 
     assert np.allclose(w, policy.get_weights())
 
