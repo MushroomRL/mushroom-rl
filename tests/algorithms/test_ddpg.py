@@ -10,7 +10,7 @@ from helper.utils import TestUtils as tu
 from mushroom_rl.core import Agent
 from mushroom_rl.algorithms.actor_critic import DDPG, TD3
 from mushroom_rl.core import Core
-from mushroom_rl.environments.gym_env import Gym
+from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy
 
 
@@ -50,8 +50,7 @@ class ActorNetwork(nn.Module):
 
 
 def learn(alg):
-    mdp = Gym('Pendulum-v1', 200, .99)
-    mdp.seed(1)
+    mdp = InvertedPendulum(horizon=50)
     np.random.seed(1)
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
@@ -104,7 +103,7 @@ def learn(alg):
 def test_ddpg():
     policy = learn(DDPG).policy
     w = policy.get_weights()
-    w_test = np.array([-0.28864878, -0.74877405, -0.55670303, -0.3470272])
+    w_test = np.array([-0.00798965,  1.7483335 ,  0.10249085])
 
     assert np.allclose(w, w_test)
 
@@ -127,7 +126,7 @@ def test_ddpg_save(tmpdir):
 def test_td3():
     policy = learn(TD3).policy
     w = policy.get_weights()
-    w_test = np.array([1.7005192, -0.73382795, 1.2999079, -0.26730126])
+    w_test = np.array([1.8971109 , 1.3201196 , 0.19754009])
 
     assert np.allclose(w, w_test)
 

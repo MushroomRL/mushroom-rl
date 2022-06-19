@@ -9,7 +9,7 @@ from helper.utils import TestUtils as tu
 
 from mushroom_rl.core import Agent
 from mushroom_rl.core import Core
-from mushroom_rl.environments import Gym
+from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.algorithms.actor_critic import A2C
 
 from mushroom_rl.policy import GaussianTorchPolicy
@@ -32,8 +32,7 @@ class Network(nn.Module):
 
 
 def learn_a2c():
-    mdp = Gym(name='Pendulum-v1', horizon=200, gamma=.99)
-    mdp.seed(1)
+    mdp = InvertedPendulum(horizon=50)
     np.random.seed(1)
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
@@ -77,7 +76,7 @@ def test_a2c():
     agent = learn_a2c()
 
     w = agent.policy.get_weights()
-    w_test = np.array([-1.6191487, 1.030197, -0.3465481, 0.26064992, -0.0089475])
+    w_test = np.array([0.9382279 , -1.8847059 , -0.13790752, -0.00786441])
 
     assert np.allclose(w, w_test)
 

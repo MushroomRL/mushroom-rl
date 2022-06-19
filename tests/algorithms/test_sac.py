@@ -11,7 +11,7 @@ from helper.utils import TestUtils as tu
 from mushroom_rl.core import Agent
 from mushroom_rl.algorithms.actor_critic import SAC
 from mushroom_rl.core import Core
-from mushroom_rl.environments.gym_env import Gym
+from mushroom_rl.environments import InvertedPendulum
 
 
 class CriticNetwork(nn.Module):
@@ -53,8 +53,7 @@ def learn_sac():
     # MDP
     horizon = 200
     gamma = 0.99
-    mdp = Gym('Pendulum-v1', horizon, gamma)
-    mdp.seed(1)
+    mdp = InvertedPendulum(horizon=50)
     np.random.seed(1)
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
@@ -112,8 +111,7 @@ def learn_sac():
 def test_sac():
     policy = learn_sac().policy
     w = policy.get_weights()
-    w_test = np.array([1.6992193, -0.73312795,  1.2986077, -0.26860124,  0.50940424,
-                       -0.50014216, -0.18989235, -0.30646914])
+    w_test = np.array([1.8968109,  1.3198196,  0.19724008,  1.7562234, -0.333138, -0.3410603])
 
     assert np.allclose(w, w_test)
 
