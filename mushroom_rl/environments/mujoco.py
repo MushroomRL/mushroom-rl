@@ -113,8 +113,8 @@ class MuJoCo(Environment):
                     low.append(joint_range[0])
                     high.append(joint_range[1])
                 else:
-                    low.extend(-np.inf)
-                    high.extend(np.inf)
+                    low.append(-np.inf)
+                    high.append(np.inf)
             else:
                 low.extend([-np.inf] * obs_count)
                 high.extend([np.inf] * obs_count)
