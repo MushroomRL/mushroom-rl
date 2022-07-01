@@ -19,7 +19,10 @@ class AirHockeyHit(AirHockeySingle):
         Args:
             random_init(bool, False): If true, initialize the puck at random position.
             action_penalty(float, 1e-3): The penalty of the action on the reward at each time step
+            init_robot_state(string, "right"): The configuration in which the robot is initialized. "right", "left",
+                                                "random" available
         """
+
         self.random_init = random_init
         self.action_penalty = action_penalty
         self.init_robot_state = init_robot_state

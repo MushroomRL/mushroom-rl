@@ -4,9 +4,23 @@ from mushroom_rl.environments.pybullet_envs.air_hockey.single import AirHockeySi
 
 
 class AirHockeyPrepare(AirHockeySingle):
+    """
+    Class for the air hockey preparation task.
+    The agent tries to improve the puck position to y = 0.
+    If the agent looses control of the puck, it will get a punishment.
+    """
     def __init__(self, gamma=0.99, horizon=500, env_noise=False, obs_noise=False, obs_delay=False, torque_control=True,
                  step_action_function=None, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
-                 random_init=False, action_penalty=1e-3, sub_problem="side"):
+                 random_init=False, action_penalty=1e-3, table_boundary_terminate=False, sub_problem="side"):
+        """
+        Constructor
+
+        Args:
+            random_init(bool, False): If true, initialize the puck at random position .
+            action_penalty(float, 1e-3): The penalty of the action on the reward at each time step
+            sub_problem(string, "side"): determines which area is considered for the initial puck position.
+                                        Currently "side" and "bottom" are available
+        """
 
         self.random_init = random_init
         self.action_penalty = action_penalty
@@ -27,7 +41,8 @@ class AirHockeyPrepare(AirHockeySingle):
 
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
                          debug_gui=debug_gui, env_noise=env_noise, obs_noise=obs_noise, obs_delay=obs_delay,
-                         torque_control=torque_control, step_action_function=step_action_function, number_flags=1)
+                         torque_control=torque_control, step_action_function=step_action_function,
+                         table_boundary_terminate=table_boundary_terminate, number_flags=1)
 
     def setup(self, state):
         if self.random_init:

@@ -12,6 +12,13 @@ class AirHockeySingle(AirHockeyBase):
     def __init__(self, gamma=0.99, horizon=120, env_noise=False, obs_noise=False, obs_delay=False,
                  torque_control=True, step_action_function=None, timestep=1 / 240., n_intermediate_steps=1,
                  debug_gui=False, table_boundary_terminate=False, number_flags=0):
+
+        """
+        Constructor.
+
+        Args:
+            number_flags(int, 0): Amount of flags which are added to the observation space
+        """
         self.init_state = np.array([-0.9273, 0.9273, np.pi / 2])
         self.number_flags = number_flags
         self.obs_prev = None
@@ -27,15 +34,15 @@ class AirHockeySingle(AirHockeyBase):
 
     def _modify_mdp_info(self, mdp_info):
         """
-        {'planar_robot_1/joint_1': {<PyBulletObservationType.JOINT_POS: 3>: [13],
+        'planar_robot_1/joint_1':  {<PyBulletObservationType.JOINT_POS: 3>: [13],
                                     <PyBulletObservationType.JOINT_VEL: 4>: [16]},
-         'planar_robot_1/joint_2': {<PyBulletObservationType.JOINT_POS: 3>: [14],
+        'planar_robot_1/joint_2':  {<PyBulletObservationType.JOINT_POS: 3>: [14],
                                     <PyBulletObservationType.JOINT_VEL: 4>: [17]},
-         'planar_robot_1/joint_3': {<PyBulletObservationType.JOINT_POS: 3>: [15],
+        'planar_robot_1/joint_3':  {<PyBulletObservationType.JOINT_POS: 3>: [15],
                                     <PyBulletObservationType.JOINT_VEL: 4>: [18]},
-         'planar_robot_1/link_striker_ee': {<PyBulletObservationType.LINK_POS: 5>: [19, 20, 21, 22, 23, 24, 25],
+        'planar_robot_1/link_striker_ee':  {<PyBulletObservationType.LINK_POS: 5>: [19, 20, 21, 22, 23, 24, 25],
                                             <PyBulletObservationType.LINK_LIN_VEL: 6>: [26, 27, 28]},
-         'puck': {<PyBulletObservationType.BODY_POS: 0>: [0, 1, 2, 3, 4, 5, 6],
+        'puck':  {<PyBulletObservationType.BODY_POS: 0>: [0, 1, 2, 3, 4, 5, 6],
                   <PyBulletObservationType.BODY_LIN_VEL: 1>: [7, 8, 9],
                   <PyBulletObservationType.BODY_ANG_VEL: 2>: [10, 11, 12]}}
         """

@@ -12,14 +12,16 @@ class AirHockeyDefend(AirHockeySingle):
     """
     def __init__(self, gamma=0.99, horizon=500, env_noise=False, obs_noise=False, obs_delay=False, torque_control=True,
                  step_action_function=None, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
-                 random_init=False, action_penalty=1e-3, init_velocity_range=(1, 2.2)):
+                 random_init=False, action_penalty=1e-3, table_boundary_terminate=False, init_velocity_range=(1, 2.2)):
         """
         Constructor
 
         Args:
             random_init(bool, False): If true, initialize the puck at random position .
             action_penalty(float, 1e-3): The penalty of the action on the reward at each time step
+            init_velocity_range((float, float), (1, 2.2)): The range in which the initial velocity is initialized
         """
+
         self.random_init = random_init
         self.action_penalty = action_penalty
         self.init_velocity_range = init_velocity_range
@@ -31,7 +33,8 @@ class AirHockeyDefend(AirHockeySingle):
 
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
                          debug_gui=debug_gui, env_noise=env_noise, obs_noise=obs_noise, obs_delay=obs_delay,
-                         torque_control=torque_control, step_action_function=step_action_function, number_flags=2)
+                         torque_control=torque_control, step_action_function=step_action_function,
+                         table_boundary_terminate=table_boundary_terminate, number_flags=2)
 
     def setup(self, state=None):
         # Set initial puck parameters
