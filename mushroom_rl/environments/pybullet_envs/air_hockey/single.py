@@ -11,8 +11,9 @@ class AirHockeySingle(AirHockeyBase):
     """
     def __init__(self, gamma=0.99, horizon=120, env_noise=False, obs_noise=False, obs_delay=False,
                  torque_control=True, step_action_function=None, timestep=1 / 240., n_intermediate_steps=1,
-                 debug_gui=False, table_boundary_terminate=False):
+                 debug_gui=False, table_boundary_terminate=False, number_flags=0):
         self.init_state = np.array([-0.9273, 0.9273, np.pi / 2])
+        self.number_flags = number_flags
         self.obs_prev = None
         super().__init__(gamma=gamma, horizon=horizon, env_noise=env_noise, n_agents=1, obs_noise=obs_noise,
                          obs_delay=obs_delay, torque_control=torque_control, step_action_function=step_action_function,
@@ -25,9 +26,22 @@ class AirHockeySingle(AirHockeyBase):
         self._disable_collision()
 
     def _modify_mdp_info(self, mdp_info):
+        """
+        {'planar_robot_1/joint_1': {<PyBulletObservationType.JOINT_POS: 3>: [13],
+                                    <PyBulletObservationType.JOINT_VEL: 4>: [16]},
+         'planar_robot_1/joint_2': {<PyBulletObservationType.JOINT_POS: 3>: [14],
+                                    <PyBulletObservationType.JOINT_VEL: 4>: [17]},
+         'planar_robot_1/joint_3': {<PyBulletObservationType.JOINT_POS: 3>: [15],
+                                    <PyBulletObservationType.JOINT_VEL: 4>: [18]},
+         'planar_robot_1/link_striker_ee': {<PyBulletObservationType.LINK_POS: 5>: [19, 20, 21, 22, 23, 24, 25],
+                                            <PyBulletObservationType.LINK_LIN_VEL: 6>: [26, 27, 28]},
+         'puck': {<PyBulletObservationType.BODY_POS: 0>: [0, 1, 2, 3, 4, 5, 6],
+                  <PyBulletObservationType.BODY_LIN_VEL: 1>: [7, 8, 9],
+                  <PyBulletObservationType.BODY_ANG_VEL: 2>: [10, 11, 12]}}
+        """
         obs_idx = [0, 1, 7, 8, 9, 13, 14, 15, 16, 17, 18]
-        obs_low = mdp_info.observation_space.low[obs_idx]
-        obs_high = mdp_info.observation_space.high[obs_idx]
+        obs_low = np.append(mdp_info.observation_space.low[obs_idx], [0] * self.number_flags)
+        obs_high = np.append(mdp_info.observation_space.high[obs_idx], [1] * self.number_flags)
         obs_low[0:2] = [-1, -0.5]
         obs_high[0:2] = [1, 0.5]
         observation_space = Box(low=obs_low, high=obs_high)

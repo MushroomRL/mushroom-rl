@@ -1,12 +1,6 @@
-import time
-import math
-import pybullet as p
-from matplotlib import image
 import numpy as np
-from mushroom_rl.environments.pybullet_envs.air_hockey.single import AirHockeySingle, PyBulletObservationType
-from mushroom_rl.utils.spaces import Box
-from mushroom_rl.core import MDPInfo
 
+from mushroom_rl.environments.pybullet_envs.air_hockey.single import AirHockeySingle, PyBulletObservationType
 
 
 class AirHockeyHit(AirHockeySingle):
@@ -18,7 +12,7 @@ class AirHockeyHit(AirHockeySingle):
 
     def __init__(self, gamma=0.99, horizon=120, env_noise=False, obs_noise=False, obs_delay=False, torque_control=True,
                  step_action_function=None, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
-                 random_init=False, action_penalty=1e-3, table_boundary_terminate=False, init_state="right"):
+                 random_init=False, action_penalty=1e-3, table_boundary_terminate=False, init_robot_state="right"):
         """
         Constructor
 
@@ -26,24 +20,21 @@ class AirHockeyHit(AirHockeySingle):
             random_init(bool, False): If true, initialize the puck at random position.
             action_penalty(float, 1e-3): The penalty of the action on the reward at each time step
         """
+        self.random_init = random_init
+        self.action_penalty = action_penalty
+        self.init_robot_state = init_robot_state
+
         self.hit_range = np.array([[-0.65, -0.25], [-0.4, 0.4]])
         self.goal = np.array([0.98, 0])
         self.has_hit = False
         self.has_bounce = False
-        self.vel_hit_x = 0.
-        self.r_hit = 0.
-        self.random_init = random_init
-        self.action_penalty = action_penalty
-        self.init_strat = init_state
         self.vec_puck_goal = None
         self.vec_puck_side = None
-        self.vec_side_goal = None
-        self.side_point = None
         self.puck_pos = None
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
                          debug_gui=debug_gui, env_noise=env_noise, obs_noise=obs_noise, obs_delay=obs_delay,
                          torque_control=torque_control, step_action_function=step_action_function,
-                         table_boundary_terminate=table_boundary_terminate)
+                         table_boundary_terminate=table_boundary_terminate, number_flags=1)
 
     def setup(self, state):
         # Initial position of the puck
@@ -53,11 +44,11 @@ class AirHockeyHit(AirHockeySingle):
             self.puck_pos = np.mean(self.hit_range, axis=1)
 
         # Initial configuration of the robot arm
-        if self.init_strat == 'right':
+        if self.init_robot_state == 'right':
             self.init_state = np.array([-0.9273, 0.9273, np.pi / 2])
-        elif self.init_strat == 'left':
+        elif self.init_robot_state == 'left':
             self.init_state = -1 * np.array([-0.9273, 0.9273, np.pi / 2])
-        elif self.init_strat == 'random':
+        elif self.init_robot_state == 'random':
             robot_id, joint_id = self._indexer.link_map['planar_robot_1/link_striker_ee']
             striker_pos_y = np.random.rand() * 0.8 - 0.4
             self.init_state = self.client.calculateInverseKinematics(robot_id, joint_id, [-0.81, striker_pos_y, -0.179])
@@ -74,11 +65,9 @@ class AirHockeyHit(AirHockeySingle):
         w = (abs(puck_pos[1]) * self.goal[0] + self.goal[1] * puck_pos[0] - effective_width * puck_pos[0] - effective_width *
              self.goal[0]) / (abs(puck_pos[1]) + self.goal[1] - 2 * effective_width)
 
-        self.side_point = np.array([w, np.copysign(effective_width, puck_pos[1])])
+        side_point = np.array([w, np.copysign(effective_width, puck_pos[1])])
 
-        self.vec_puck_side = (self.side_point - self.puck_pos) / np.linalg.norm(self.side_point - self.puck_pos)
-
-        self.vec_side_goal = (self.goal - self.side_point) / np.linalg.norm(self.goal - self.side_point)
+        self.vec_puck_side = (side_point - self.puck_pos) / np.linalg.norm(side_point - self.puck_pos)
 
         for i, (model_id, joint_id, _) in enumerate(self._indexer.action_data):
             self.client.resetJointState(model_id, joint_id, self.init_state[i])
@@ -149,7 +138,6 @@ class AirHockeyHit(AirHockeySingle):
             puck_vel = self.get_sim_state(self._state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]
             if np.linalg.norm(puck_vel) > 0.1:
                 self.has_hit = True
-                self.vel_hit_x = puck_vel[0]
 
         if not self.has_bounce:
             # check if bounced beside the goal
@@ -166,28 +154,23 @@ class AirHockeyHit(AirHockeySingle):
             if collision_count > 0:
                 self.has_bounce = True
 
-    # Add flags to observation space
-    def _modify_mdp_info(self, mdp_info):
-        info = super(AirHockeyHit, self)._modify_mdp_info(mdp_info)
-        obs_low = np.append(info.observation_space.low, [0])
-        obs_high = np.append(info.observation_space.high, [1])
-        observation_space = Box(low=obs_low, high=obs_high)
-        return MDPInfo(observation_space, info.action_space, info.gamma, info.horizon)
-
     def _create_observation(self, state):
         obs = super(AirHockeyHit, self)._create_observation(state)
         return np.append(obs, [self.has_hit])
 
 
 if __name__ == '__main__':
+    import time
+
     env = AirHockeyHit(debug_gui=True, env_noise=False, obs_noise=False, obs_delay=False, n_intermediate_steps=4,
-                       table_boundary_terminate=True, random_init=True, init_state="right")
+                       table_boundary_terminate=True, random_init=True, init_robot_state="right")
 
     env.reset()
     R = 0.
     J = 0.
     gamma = 1.
     steps = 0
+
     while True:
         # action = np.random.randn(3) * 5
         action = np.array([0] * 3)

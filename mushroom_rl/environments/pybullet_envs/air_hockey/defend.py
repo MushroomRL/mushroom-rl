@@ -1,11 +1,8 @@
-import time
-
 import numpy as np
 
 from mushroom_rl.environments.pybullet_envs.air_hockey.single import AirHockeySingle, \
     PyBulletObservationType
-from mushroom_rl.utils.spaces import Box
-from mushroom_rl.core import MDPInfo
+
 
 class AirHockeyDefend(AirHockeySingle):
     """
@@ -15,7 +12,7 @@ class AirHockeyDefend(AirHockeySingle):
     """
     def __init__(self, gamma=0.99, horizon=500, env_noise=False, obs_noise=False, obs_delay=False, torque_control=True,
                  step_action_function=None, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
-                 random_init=False, action_penalty=1e-3, init_state=(1, 2.2)):
+                 random_init=False, action_penalty=1e-3, init_velocity_range=(1, 2.2)):
         """
         Constructor
 
@@ -23,16 +20,18 @@ class AirHockeyDefend(AirHockeySingle):
             random_init(bool, False): If true, initialize the puck at random position .
             action_penalty(float, 1e-3): The penalty of the action on the reward at each time step
         """
+        self.random_init = random_init
+        self.action_penalty = action_penalty
+        self.init_velocity_range = init_velocity_range
+
         self.start_range = np.array([[0.25, 0.65], [-0.4, 0.4]])
         self.has_hit = False
         self.has_bounce = False
-        self.random_init = random_init
-        self.action_penalty = action_penalty
         self.puck_pos = None
-        self.init_strat = init_state
+
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
                          debug_gui=debug_gui, env_noise=env_noise, obs_noise=obs_noise, obs_delay=obs_delay,
-                         torque_control=torque_control, step_action_function=step_action_function)
+                         torque_control=torque_control, step_action_function=step_action_function, number_flags=2)
 
     def setup(self, state=None):
         # Set initial puck parameters
@@ -40,7 +39,7 @@ class AirHockeyDefend(AirHockeySingle):
             puck_pos = np.random.rand(2) * (self.start_range[:, 1] - self.start_range[:, 0]) + self.start_range[:, 0]
             puck_pos = np.concatenate([puck_pos, [-0.189]])
 
-            lin_vel = np.random.uniform(1, 2.2)
+            lin_vel = np.random.uniform(self.init_velocity_range[0], self.init_velocity_range[1])
             angle = np.random.uniform(-0.5, 0.5)
 
             puck_lin_vel = np.zeros(3)
@@ -153,20 +152,14 @@ class AirHockeyDefend(AirHockeySingle):
             if collision_count > 0:
                 self.has_bounce = True
 
-    # Add flags to observation space
-    def _modify_mdp_info(self, mdp_info):
-        info = super(AirHockeyDefend, self)._modify_mdp_info(mdp_info)
-        obs_low = np.append(info.observation_space.low, [0, 0])
-        obs_high = np.append(info.observation_space.high, [1, 1])
-        observation_space = Box(low=obs_low, high=obs_high)
-        return MDPInfo(observation_space, info.action_space, info.gamma, info.horizon)
-
     def _create_observation(self, state):
         obs = super(AirHockeyDefend, self)._create_observation(state)
         return np.append(obs, [self.has_hit, self.has_bounce])
 
 
 if __name__ == '__main__':
+    import time
+
     env = AirHockeyDefend(debug_gui=True, obs_noise=False, obs_delay=False, n_intermediate_steps=4, random_init=True)
 
     R = 0.
