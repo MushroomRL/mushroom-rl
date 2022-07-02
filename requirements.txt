@@ -10,3 +10,4 @@ opencv-python
 torch
 pytest
 Cython
+gym
