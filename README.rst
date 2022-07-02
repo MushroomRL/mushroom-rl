@@ -45,6 +45,11 @@ You can do a minimal installation of ``MushroomRL`` with:
 
 Installing everything
 ---------------------
+``MushroomRL`` contains also some optional components e.g., support for ``OpenAI Gym`` 
+environments, Atari 2600 games from the ``Arcade Learning Environment``, and the support
+for physics simulators such as ``Pybullet`` and ``MuJoCo``. 
+Support for these classes is not enabled by default.
+
 To install the whole set of features, you will need additional packages installed.
 You can install everything by running:
 
