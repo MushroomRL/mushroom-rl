@@ -34,17 +34,10 @@ class AirHockeySingle(AirHockeyBase):
 
     def _modify_mdp_info(self, mdp_info):
         """
-        'planar_robot_1/joint_1':  {<PyBulletObservationType.JOINT_POS: 3>: [13],
-                                    <PyBulletObservationType.JOINT_VEL: 4>: [16]},
-        'planar_robot_1/joint_2':  {<PyBulletObservationType.JOINT_POS: 3>: [14],
-                                    <PyBulletObservationType.JOINT_VEL: 4>: [17]},
-        'planar_robot_1/joint_3':  {<PyBulletObservationType.JOINT_POS: 3>: [15],
-                                    <PyBulletObservationType.JOINT_VEL: 4>: [18]},
-        'planar_robot_1/link_striker_ee':  {<PyBulletObservationType.LINK_POS: 5>: [19, 20, 21, 22, 23, 24, 25],
-                                            <PyBulletObservationType.LINK_LIN_VEL: 6>: [26, 27, 28]},
-        'puck':  {<PyBulletObservationType.BODY_POS: 0>: [0, 1, 2, 3, 4, 5, 6],
-                  <PyBulletObservationType.BODY_LIN_VEL: 1>: [7, 8, 9],
-                  <PyBulletObservationType.BODY_ANG_VEL: 2>: [10, 11, 12]}}
+        puck position indexes: [0, 1]
+        puck velocity indexes: [7, 8, 9]
+        joint position indexes: [13, 14, 15]
+        joint velocity indexes: [16, 17, 18]
         """
         obs_idx = [0, 1, 7, 8, 9, 13, 14, 15, 16, 17, 18]
         obs_low = np.append(mdp_info.observation_space.low[obs_idx], [0] * self.number_flags)

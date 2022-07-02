@@ -26,25 +26,18 @@ class AirHockeyDouble(AirHockeyBase):
 
     def _modify_mdp_info(self, mdp_info):
         """
-        {'planar_robot_1/joint_1': {<PyBulletObservationType.JOINT_POS: 3>: [13],
-                                    <PyBulletObservationType.JOINT_VEL: 4>: [16]},
-         'planar_robot_1/joint_2': {<PyBulletObservationType.JOINT_POS: 3>: [14],
-                                    <PyBulletObservationType.JOINT_VEL: 4>: [17]},
-         'planar_robot_1/joint_3': {<PyBulletObservationType.JOINT_POS: 3>: [15],
-                                    <PyBulletObservationType.JOINT_VEL: 4>: [18]},
-         'planar_robot_1/link_striker_ee': {<PyBulletObservationType.LINK_POS: 5>: [19, 20, 21, 22, 23, 24, 25],
-                                            <PyBulletObservationType.LINK_LIN_VEL: 6>: [26, 27, 28]},
-         'planar_robot_2/joint_1': {<PyBulletObservationType.JOINT_POS: 3>: [29],
-                                    <PyBulletObservationType.JOINT_VEL: 4>: [32]},
-         'planar_robot_2/joint_2': {<PyBulletObservationType.JOINT_POS: 3>: [30],
-                                    <PyBulletObservationType.JOINT_VEL: 4>: [33]},
-         'planar_robot_2/joint_3': {<PyBulletObservationType.JOINT_POS: 3>: [31],
-                                    <PyBulletObservationType.JOINT_VEL: 4>: [34]},
-         'planar_robot_2/link_striker_ee': {<PyBulletObservationType.LINK_POS: 5>: [35, 36, 37, 38, 39, 40, 41],
-                                            <PyBulletObservationType.LINK_LIN_VEL: 6>: [42, 43, 44]},
-         'puck': {<PyBulletObservationType.BODY_POS: 0>: [0, 1, 2, 3, 4, 5, 6],
-                  <PyBulletObservationType.BODY_LIN_VEL: 1>: [7, 8, 9],
-                  <PyBulletObservationType.BODY_ANG_VEL: 2>: [10, 11, 12]}}
+        Robot 1:
+            puck position indexes: [0, 1]
+            puck velocity indexes: [7, 8, 9]
+            joint position indexes: [13, 14, 15]
+            joint velocity indexes: [16, 17, 18]
+        Robot 2:
+            puck position indexes: [0, 1]
+            puck velocity indexes: [7, 8, 9]
+            joint position indexes: [29, 30, 31]
+            joint velocity indexes: [32, 33, 34]
+
+        puck position / velocity appear twice because are transformed into each robots reference frame
         """
         obs_idx = [0, 1, 7, 8, 9, 13, 14, 15, 16, 17, 18, 0, 1, 7, 8, 9, 29, 30, 31, 32, 33, 34]
         obs_low = mdp_info.observation_space.low[obs_idx]
