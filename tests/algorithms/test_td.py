@@ -359,7 +359,7 @@ def test_sarsa_lambda_discrete_save(tmpdir):
 
 def test_sarsa_lambda_continuous_linear():
     pi, _, mdp_continuous = initialize()
-    
+
     n_tilings = 1
     tilings = Tiles.generate(n_tilings, [2, 2],
                              mdp_continuous.info.observation_space.low,
