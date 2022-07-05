@@ -20,6 +20,7 @@ Finite MDPs with Temporal Difference
 TD with function approximation
 ------------------------------
 - `Mountain Car with SARSA <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/mountain_car_sarsa.py>`_
+- `Puddle World with SARSA <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/puddle_world_sarsa.py>`_
 - `CarOnHill with FQI <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/car_on_hill_fqi.py>`_
 - `CartPole with LSPI <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/cartpole_lspi.py>`_
 

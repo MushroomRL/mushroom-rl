@@ -11,8 +11,7 @@ from mushroom_rl.core import Agent
 from mushroom_rl.algorithms.value import *
 from mushroom_rl.approximators.parametric import LinearApproximator, TorchApproximator
 from mushroom_rl.core import Core
-from mushroom_rl.environments.grid_world import GridWorld
-from mushroom_rl.environments.gym_env import Gym
+from mushroom_rl.environments import GridWorld, PuddleWorld
 from mushroom_rl.features import Features
 from mushroom_rl.features.tiles import Tiles
 from mushroom_rl.policy.td_policy import EpsGreedy
@@ -47,7 +46,7 @@ def initialize():
     np.random.seed(1)
     torch.manual_seed(1)
     return EpsGreedy(Parameter(1)), GridWorld(2, 2, start=(0, 0), goal=(1, 1)),\
-           Gym(name='MountainCar-v0', horizon=np.inf, gamma=1.)
+           PuddleWorld(horizon=1000)
 
 
 def test_q_learning():
@@ -381,9 +380,10 @@ def test_sarsa_lambda_continuous_linear():
     # Train
     core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
 
-    test_w = np.array([-16.62627886, 0., -13.03033079, 0.,
-                       -15.93237930, 0.,  -9.72299176, 0.,
-                       -13.78884631, 0.,  -9.92157645, 0.])
+    test_w = np.array([-82.31759493, 0., -82.67048958, 0., -107.74658538,
+                        0., -105.56482617, 0., -72.24653201, 0.,
+                        -73.05283658, 0., -116.89230496, 0., -106.48877521,
+                        0., -99.50640198,  0., -92.73162587, 0.])
 
     assert np.allclose(agent.Q.get_weights(), test_w)
 
@@ -446,8 +446,9 @@ def test_sarsa_lambda_continuous_nn():
     # Train
     core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
 
-    test_w = np.array([-0.18968967, 0.42968568, 0.5897674, 0.5670382, -0.07158992,
-                       -0.10791285, -0.14546975, -0.6693571, -0.9424093])
+    test_w = np.array([-1.8319136, -1.5731438, -2.9321826, -3.5566466, -1.282013,
+                       -2.7563045, -0.790771, -0.2194604, -0.5647575, -0.4195656,
+                       -4.46288, -11.742587, -5.3095326, -0.27556023, -0.05155428])
 
     assert np.allclose(agent.Q.get_weights(), test_w)
 
@@ -548,9 +549,12 @@ def test_true_online_sarsa_lambda():
     # Train
     core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
 
-    test_w = np.array([-17.30427303, 0., -13.54157504, 0.,
-                       -16.82373134, 0., -10.29613337, 0.,
-                       -14.79470382, 0., -10.50654665, 0.])
+    test_w = np.array([-75.40322828, 0., -82.05694011, 0., -102.60400109,
+                       0., -104.14404304, 0., -67.59137525, 0.,
+                       -72.77565331, 0., -111.60368847, 0., -108.15358127,
+                       0., -95.09502145, 0., -93.86466772, 0.])
+
+    print(agent.Q.get_weights())
 
     assert np.allclose(agent.Q.get_weights(), test_w)
 
