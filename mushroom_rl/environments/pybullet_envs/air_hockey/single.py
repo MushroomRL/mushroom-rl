@@ -11,8 +11,16 @@ class AirHockeySingle(AirHockeyBase):
     """
     def __init__(self, gamma=0.99, horizon=120, env_noise=False, obs_noise=False, obs_delay=False,
                  torque_control=True, step_action_function=None, timestep=1 / 240., n_intermediate_steps=1,
-                 debug_gui=False, table_boundary_terminate=False):
+                 debug_gui=False, table_boundary_terminate=False, number_flags=0):
+
+        """
+        Constructor.
+
+        Args:
+            number_flags(int, 0): Amount of flags which are added to the observation space
+        """
         self.init_state = np.array([-0.9273, 0.9273, np.pi / 2])
+        self.number_flags = number_flags
         self.obs_prev = None
         super().__init__(gamma=gamma, horizon=horizon, env_noise=env_noise, n_agents=1, obs_noise=obs_noise,
                          obs_delay=obs_delay, torque_control=torque_control, step_action_function=step_action_function,
@@ -25,11 +33,17 @@ class AirHockeySingle(AirHockeyBase):
         self._disable_collision()
 
     def _modify_mdp_info(self, mdp_info):
-        obs_idx = [0, 1, 2, 7, 8, 9, 13, 14, 15, 16, 17, 18]
-        obs_low = mdp_info.observation_space.low[obs_idx]
-        obs_high = mdp_info.observation_space.high[obs_idx]
-        obs_low[0:3] = [-1, -0.5, -np.pi]
-        obs_high[0:3] = [1, 0.5, np.pi]
+        """
+        puck position indexes: [0, 1]
+        puck velocity indexes: [7, 8, 9]
+        joint position indexes: [13, 14, 15]
+        joint velocity indexes: [16, 17, 18]
+        """
+        obs_idx = [0, 1, 7, 8, 9, 13, 14, 15, 16, 17, 18]
+        obs_low = np.append(mdp_info.observation_space.low[obs_idx], [0] * self.number_flags)
+        obs_high = np.append(mdp_info.observation_space.high[obs_idx], [1] * self.number_flags)
+        obs_low[0:2] = [-1, -0.5]
+        obs_high[0:2] = [1, 0.5]
         observation_space = Box(low=obs_low, high=obs_high)
         return MDPInfo(observation_space, mdp_info.action_space, mdp_info.gamma, mdp_info.horizon)
 
@@ -60,8 +74,8 @@ class AirHockeySingle(AirHockeyBase):
 
         if self.obs_delay:
             alpha = 0.5
-            puck_vel_2d = alpha * puck_vel_2d + (1 - alpha) * self.obs_prev[3:6]
-            robot_vel = alpha * robot_vel + (1 - alpha) * self.obs_prev[9:12]
+            puck_vel_2d = alpha * puck_vel_2d + (1 - alpha) * self.obs_prev[2:6]
+            robot_vel = alpha * robot_vel + (1 - alpha) * self.obs_prev[8:11]
 
         self.obs_prev = np.concatenate([puck_pose_2d, puck_vel_2d, robot_pos, robot_vel])
         return self.obs_prev
@@ -73,9 +87,8 @@ class AirHockeySingle(AirHockeyBase):
 
             frame_target = transformations.inverse_matrix(robot_frame) @ puck_frame
             puck_translate = transformations.translation_from_matrix(frame_target)
-            _, _, puck_euler_yaw = transformations.euler_from_matrix(frame_target)
 
-            return np.concatenate([puck_translate[:2], [puck_euler_yaw]])
+            return puck_translate[:2]
         if type == 'vel':
             rot_mat = robot_frame[:3, :3]
             vec_lin = rot_mat.T @ puck_in[:3]
