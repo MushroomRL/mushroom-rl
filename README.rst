@@ -66,6 +66,8 @@ For ubuntu>20.04, you may need to install pygame and gym dependencies:
                      libsdl1.2-dev libsmpeg-dev libportmidi-dev ffmpeg libswscale-dev \
                      libavformat-dev libavcodec-dev swig
 
+Notice that you still need to install some of these dependencies for different operating systems, e.g. swig for macOS 
+
 To use the ``mujoco-py`` MushroomRL interface you can run the command:
 
 .. code:: shell
