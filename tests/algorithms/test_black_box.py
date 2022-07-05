@@ -4,7 +4,7 @@ from datetime import datetime
 from helper.utils import TestUtils as tu
 
 from mushroom_rl.core import Agent
-from mushroom_rl.algorithms.policy_search import PGPE, REPS, RWR
+from mushroom_rl.algorithms.policy_search import PGPE, REPS, ConstrainedREPS, RWR
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.core import Core
 from mushroom_rl.approximators.parametric import LinearApproximator
@@ -76,6 +76,30 @@ def test_REPS_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
     agent_save = learn(REPS, eps=.7)
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    for att, method in vars(agent_save).items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+
+        tu.assert_eq(save_attr, load_attr)
+
+
+def test_ConstrainedREPS():
+    distribution = learn(ConstrainedREPS, eps=.7, kappa=0.1).distribution
+    w = distribution.get_parameters()
+    w_test = np.array([0.00026583, -0.00092814,  0.00068238, -0.00026865,
+                       0.00081971, 0.00124566,  0.00107135,  0.00085804])
+
+    assert np.allclose(w, w_test)
+
+
+def test_ConstrainedREPS_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
+    agent_save = learn(ConstrainedREPS, eps=.7, kappa=0.1)
 
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
