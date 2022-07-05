@@ -359,7 +359,7 @@ def test_sarsa_lambda_discrete_save(tmpdir):
 
 def test_sarsa_lambda_continuous_linear():
     pi, _, mdp_continuous = initialize()
-    mdp_continuous.seed(1)
+    
     n_tilings = 1
     tilings = Tiles.generate(n_tilings, [2, 2],
                              mdp_continuous.info.observation_space.low,
@@ -457,7 +457,6 @@ def test_sarsa_lambda_continuous_nn_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
     pi, _, mdp_continuous = initialize()
-    mdp_continuous.seed(1)
 
     features = Features(
         n_outputs=mdp_continuous.info.observation_space.shape[0]
@@ -528,7 +527,7 @@ def test_expected_sarsa_save(tmpdir):
 
 def test_true_online_sarsa_lambda():
     pi, _, mdp_continuous = initialize()
-    mdp_continuous.seed(1)
+
     n_tilings = 1
     tilings = Tiles.generate(n_tilings, [2, 2],
                              mdp_continuous.info.observation_space.low,
@@ -563,7 +562,7 @@ def test_true_online_sarsa_lambda_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
     pi, _, mdp_continuous = initialize()
-    mdp_continuous.seed(1)
+
     n_tilings = 1
     tilings = Tiles.generate(n_tilings, [2, 2],
                              mdp_continuous.info.observation_space.low,
