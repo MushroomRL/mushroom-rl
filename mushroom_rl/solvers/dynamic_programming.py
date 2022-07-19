@@ -73,7 +73,7 @@ def policy_iteration(prob, reward, gamma):
             p_pi[state, :] = p_pi_s.T
             r_pi[state] = p_pi_s.T.dot(r_pi_s)
 
-        value = np.linalg.inv(i - gamma * p_pi).dot(r_pi)
+        value = np.linalg.solve(i - gamma * p_pi, r_pi)
 
         changed = False
 
