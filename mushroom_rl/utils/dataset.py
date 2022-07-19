@@ -153,10 +153,13 @@ def select_random_samples(dataset, n_samples, parse=False):
 
 def get_init_states(dataset):
     """
-    Get the initial states of a MushroomRL dataset
+    Get the initial states of a dataset
 
     Args:
-        dataset (Dataset): a MushroomRL dataset.
+        dataset (list): the dataset to consider.
+
+    Returns:
+        An array of initial states of the considered dataset.
 
     """
     pick = True
