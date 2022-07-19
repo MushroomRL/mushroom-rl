@@ -1,5 +1,7 @@
 import numpy as np
 
+from mushroom_rl.utils.frames import LazyFrames
+
 
 def parse_dataset(dataset, features=None):
     """
@@ -147,6 +149,26 @@ def select_random_samples(dataset, n_samples, parse=False):
     sub_dataset = dataset[idxs, ...]
 
     return sub_dataset if not parse else parse_dataset(sub_dataset)
+
+
+def get_init_states(dataset):
+    """
+    Get the initial states of a MushroomRL dataset
+
+    Args:
+        dataset (Dataset): a MushroomRL dataset.
+
+    """
+    pick = True
+    x_0 = list()
+    for d in dataset:
+        if pick:
+            if isinstance(d[0], LazyFrames):
+                x_0.append(np.array(d[0]))
+            else:
+                x_0.append(d[0])
+        pick = d[-1]
+    return np.array(x_0)
 
 
 def compute_J(dataset, gamma=1.):
