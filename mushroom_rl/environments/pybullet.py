@@ -21,7 +21,7 @@ class PyBullet(Environment):
         Args:
             files (dict): dictionary of the URDF/MJCF/SDF files to load (key) and parameters dictionary (value);
             actuation_spec (list): A list of tuples specifying the names of the
-                joints which should be controllable by the agent and tehir control mode.
+                joints which should be controllable by the agent and their control mode.
                 Can be left empty when all actuators should be used in position control;
             observation_spec (list): A list containing the names of data that
                 should be made available to the agent as an observation and

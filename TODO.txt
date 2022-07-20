@@ -1,3 +1,6 @@
+Environments:
+    * implement Multirobot PyBullet Interface to solve issues with joint name clash
+
 Algorithms:
     * Conservative Q-Learning
     * Policy Search:
@@ -21,3 +24,4 @@ For Mushroom 2.0:
     * support multi-objective RL
     * support model-based RL
     * Improve replay memory, allowing to store arbitrary information into replay buffer
+
