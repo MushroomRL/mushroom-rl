@@ -9,6 +9,7 @@ from mushroom_rl.algorithms.value.dqn.noisy_dqn import NoisyNetwork
 from mushroom_rl.approximators.parametric.torch_approximator import *
 from mushroom_rl.utils.replay_memory import PrioritizedReplayMemory
 
+eps = torch.finfo(torch.float32).eps
 
 class RainbowNetwork(nn.Module):
     def __init__(self, input_shape, output_shape, features_network, n_atoms,
@@ -23,7 +24,7 @@ class RainbowNetwork(nn.Module):
         self._v_max = v_max
 
         delta = (self._v_max - self._v_min) / (self._n_atoms - 1)
-        self._a_values = torch.arange(self._v_min, self._v_max + delta, delta)
+        self._a_values = torch.arange(self._v_min, self._v_max + eps, delta)
         if use_cuda:
             self._a_values = self._a_values.cuda()
 
@@ -97,7 +98,7 @@ class Rainbow(AbstractDQN):
         self._v_min = v_min
         self._v_max = v_max
         self._delta = (v_max - v_min) / (n_atoms - 1)
-        self._a_values = np.arange(v_min, v_max + self._delta, self._delta)
+        self._a_values = np.arange(v_min, v_max + eps, self._delta)
         self._n_steps_return = n_steps_return
         self._sigma_coeff = sigma_coeff
 

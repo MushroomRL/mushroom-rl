@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from mushroom_rl.algorithms.value.dqn import AbstractDQN
 from mushroom_rl.approximators.parametric.torch_approximator import *
 
+eps = torch.finfo(torch.float32).eps
 
 def categorical_loss(input, target, reduction='sum'):
     input = input.clamp(1e-5)
@@ -33,7 +34,7 @@ class CategoricalNetwork(nn.Module):
         self._v_max = v_max
 
         delta = (self._v_max - self._v_min) / (self._n_atoms - 1)
-        self._a_values = torch.arange(self._v_min, self._v_max + delta, delta)
+        self._a_values = torch.arange(self._v_min, self._v_max + eps, delta)
         if use_cuda:
             self._a_values = self._a_values.cuda()
 
@@ -100,7 +101,7 @@ class CategoricalDQN(AbstractDQN):
         self._v_min = v_min
         self._v_max = v_max
         self._delta = (v_max - v_min) / (n_atoms - 1)
-        self._a_values = np.arange(v_min, v_max + self._delta, self._delta)
+        self._a_values = np.arange(v_min, v_max + eps, self._delta)
 
         self._add_save_attr(
             _n_atoms='primitive',
