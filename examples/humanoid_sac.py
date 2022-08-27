@@ -188,12 +188,13 @@ def experiment(goal, use_muscles, n_epochs, n_steps, n_episodes_test):
 
     # normalization callback
     normalizer = MinMaxPreprocessor(mdp_info=mdp.info)
+    agent.add_preprocessor(normalizer)
 
     # plotting callback
     plotter = PlotDataset(mdp.info)
 
     # Algorithm(with normalization and plotting)
-    core = Core(agent, mdp, callback_step=plotter, preprocessors=[normalizer])
+    core = Core(agent, mdp, callback_step=plotter)
     dataset = core.evaluate(n_episodes=n_episodes_test, render=True)
 
     J = np.mean(compute_J(dataset, gamma))

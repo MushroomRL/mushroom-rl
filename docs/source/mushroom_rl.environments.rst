@@ -18,7 +18,7 @@ Environments
 Atari
 ~~~~~
 
-.. automodule:: mushroom_rl.environments.atari
+.. autoclass:: mushroom_rl.environments.atari.Atari
     :members:
     :private-members:
     :inherited-members:
