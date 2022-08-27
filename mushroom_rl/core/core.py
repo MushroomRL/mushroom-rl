@@ -72,10 +72,10 @@ class Core(object):
             fit_condition = lambda: self._current_episodes_counter\
                                      >= self._n_episodes_per_fit
 
-        self._run(n_steps, n_episodes, fit_condition, render, quiet)
+        self._run(n_steps, n_episodes, fit_condition, render, quiet, get_info=False)
 
     def evaluate(self, initial_states=None, n_steps=None, n_episodes=None,
-                 render=False, quiet=False):
+                 render=False, quiet=False, get_info=False):
         """
         This function moves the agent in the environment using its policy.
         The agent is moved for a provided number of steps, episodes, or from
@@ -88,15 +88,16 @@ class Core(object):
             n_steps (int, None): number of steps to move the agent;
             n_episodes (int, None): number of episodes to move the agent;
             render (bool, False): whether to render the environment or not;
-            quiet (bool, False): whether to show the progress bar or not.
+            quiet (bool, False): whether to show the progress bar or not;
+            get_info (bool, False): whether to return the info list or not.
 
         """
         fit_condition = lambda: False
 
-        return self._run(n_steps, n_episodes, fit_condition, render, quiet,
+        return self._run(n_steps, n_episodes, fit_condition, render, quiet, get_info,
                          initial_states)
 
-    def _run(self, n_steps, n_episodes, fit_condition, render, quiet,
+    def _run(self, n_steps, n_episodes, fit_condition, render, quiet, get_info,
              initial_states=None):
         assert n_episodes is not None and n_steps is None and initial_states is None\
             or n_episodes is None and n_steps is not None and initial_states is None\
@@ -122,8 +123,13 @@ class Core(object):
                                          dynamic_ncols=True, disable=quiet,
                                          leave=False)
 
-        return self._run_impl(move_condition, fit_condition, steps_progress_bar,
-                              episodes_progress_bar, render, initial_states)
+        dataset, dataset_info = self._run_impl(move_condition, fit_condition, steps_progress_bar,
+                                                episodes_progress_bar, render, initial_states)
+
+        if get_info:
+            return dataset, dataset_info
+        else:
+            return dataset
 
     def _run_impl(self, move_condition, fit_condition, steps_progress_bar,
                   episodes_progress_bar, render, initial_states):
@@ -133,12 +139,14 @@ class Core(object):
         self._current_steps_counter = 0
 
         dataset = list()
+        dataset_info = list()
+
         last = True
         while move_condition():
             if last:
                 self.reset(initial_states)
 
-            sample = self._step(render)
+            sample, step_info = self._step(render)
 
             self.callback_step([sample])
 
@@ -152,6 +160,8 @@ class Core(object):
                 episodes_progress_bar.update(1)
 
             dataset.append(sample)
+            dataset_info.append(step_info)
+
             if fit_condition():
                 self.agent.fit(dataset)
                 self._current_episodes_counter = 0
@@ -161,6 +171,7 @@ class Core(object):
                     c(dataset)
 
                 dataset = list()
+                dataset_info = list()
 
             last = sample[-1]
 
@@ -170,7 +181,7 @@ class Core(object):
         steps_progress_bar.close()
         episodes_progress_bar.close()
 
-        return dataset
+        return dataset, dataset_info
 
     def _step(self, render):
         """
@@ -186,7 +197,7 @@ class Core(object):
 
         """
         action = self.agent.draw_action(self._state)
-        next_state, reward, absorbing, _ = self.mdp.step(action)
+        next_state, reward, absorbing, step_info = self.mdp.step(action)
 
         self._episode_steps += 1
 
@@ -200,7 +211,7 @@ class Core(object):
         next_state = self._preprocess(next_state.copy())
         self._state = next_state
 
-        return state, action, reward, next_state, absorbing, last
+        return (state, action, reward, next_state, absorbing, last), step_info
 
     def reset(self, initial_states=None):
         """
