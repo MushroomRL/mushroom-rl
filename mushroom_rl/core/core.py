@@ -72,10 +72,10 @@ class Core(object):
             fit_condition = lambda: self._current_episodes_counter\
                                      >= self._n_episodes_per_fit
 
-        self._run(n_steps, n_episodes, fit_condition, render, quiet, get_info=False)
+        self._run(n_steps, n_episodes, fit_condition, render, quiet, get_env_info=False)
 
     def evaluate(self, initial_states=None, n_steps=None, n_episodes=None,
-                 render=False, quiet=False, get_info=False):
+                 render=False, quiet=False, get_env_info=False):
         """
         This function moves the agent in the environment using its policy.
         The agent is moved for a provided number of steps, episodes, or from
@@ -89,15 +89,20 @@ class Core(object):
             n_episodes (int, None): number of episodes to move the agent;
             render (bool, False): whether to render the environment or not;
             quiet (bool, False): whether to show the progress bar or not;
-            get_info (bool, False): whether to return the info list or not.
+            get_env_info (bool, False): whether to return the environment
+                info list or not.
+
+        Returns:
+            The collected dataset and, optionally, an extra dataset of
+            environment info, collected at each step.
 
         """
         fit_condition = lambda: False
 
-        return self._run(n_steps, n_episodes, fit_condition, render, quiet, get_info,
+        return self._run(n_steps, n_episodes, fit_condition, render, quiet, get_env_info,
                          initial_states)
 
-    def _run(self, n_steps, n_episodes, fit_condition, render, quiet, get_info,
+    def _run(self, n_steps, n_episodes, fit_condition, render, quiet, get_env_info,
              initial_states=None):
         assert n_episodes is not None and n_steps is None and initial_states is None\
             or n_episodes is None and n_steps is not None and initial_states is None\
@@ -126,7 +131,7 @@ class Core(object):
         dataset, dataset_info = self._run_impl(move_condition, fit_condition, steps_progress_bar,
                                                 episodes_progress_bar, render, initial_states)
 
-        if get_info:
+        if get_env_info:
             return dataset, dataset_info
         else:
             return dataset

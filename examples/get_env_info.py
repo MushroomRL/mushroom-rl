@@ -1,22 +1,14 @@
-import argparse
-import datetime
-import pathlib
-
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-from mushroom_rl.algorithms.value import AveragedDQN, CategoricalDQN, DQN,\
-    DoubleDQN, MaxminDQN, DuelingDQN, NoisyDQN, QuantileDQN, Rainbow
+from mushroom_rl.algorithms.value import DQN
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.utils.dataset import compute_metrics
-from mushroom_rl.utils.parameters import LinearParameter, Parameter
-from mushroom_rl.utils.replay_memory import PrioritizedReplayMemory
+from mushroom_rl.utils.parameters import Parameter
 
 
 class Network(nn.Module):
@@ -61,6 +53,8 @@ class Network(nn.Module):
 
 
 def experiment():
+
+    logger = Logger(log_name='get_env_info', results_dir=None)
     optimizer = {'class': optim.Adam,
                  'params': dict(lr=1e-4, eps=1e-8)
     }
@@ -71,8 +65,6 @@ def experiment():
     train_frequency = 5
     target_update_frequency = 10
     test_samples = 20
-    evaluation_frequency = 50
-    max_steps = 1000
 
     # MDP
     mdp = Atari('BreakoutDeterministic-v4', 84, 84,
@@ -115,21 +107,25 @@ def experiment():
     # RUN
 
     # Fill replay memory with random dataset
+    logger.info('Running a learn run')
     core.learn(n_steps=initial_replay_size, n_steps_per_fit=initial_replay_size, quiet=True)
 
     # Evaluate initial policy
     pi.set_epsilon(epsilon_test)
     mdp.set_episode_end(False)
-    dataset = core.evaluate(n_steps=test_samples, render=False, quiet=True, get_info=False)
+    logger.info('Evaluate, without getting the env info dictionary')
+    dataset = core.evaluate(n_steps=test_samples, render=False, quiet=True, get_env_info=False)
 
-    print(len(dataset))
+    logger.info(f'Dataset length {len(dataset)}')
 
-    dataset, dataset_info = core.evaluate(n_steps=test_samples, render=False, quiet=True, get_info=True)
+    logger.info('Evaluate, returning also the env info dictionary')
+    dataset, dataset_info = core.evaluate(n_steps=test_samples, render=False, quiet=True, get_env_info=True)
 
-    print(len(dataset))
-    print(len(dataset_info))
+    logger.info(f'Dataset length {len(dataset)}')
+    logger.info(f'Dataset length {len(dataset_info)}')
 
-    print(dataset_info)
+    for i, step_info in enumerate(dataset_info):
+        logger.epoch_info(i, **step_info)
 
 
 if __name__ == '__main__':
