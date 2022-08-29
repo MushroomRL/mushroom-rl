@@ -137,7 +137,7 @@ def compute_reward(grid_map, cell_list, pos_rew, neg_rew):
 
             for a in range(len(directions)):
                 prev_state = x - directions[a]
-                if prev_state in c:
+                if prev_state.tolist() in c.tolist():
                     i = np.where((c == prev_state).all(axis=1))[0]
                     r[i, a, j] = rew
 

@@ -199,7 +199,7 @@ def compute_reward(grid_map, cell_list, passenger_list, rew):
     for goal in np.argwhere(g == 'G'):
         for a in range(len(directions)):
             prev_state = goal - directions[a]
-            if prev_state in c:
+            if prev_state.tolist() in c.tolist():
                 for i in range(len(passenger_states)):
                     i_idx = np.where((c == prev_state).all(axis=1))[0] + len(
                         cell_list) * i
