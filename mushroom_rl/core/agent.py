@@ -25,6 +25,7 @@ class Agent(Serializable):
 
         self.next_action = None
 
+        self._preprocessors = list()
         self._logger = None
 
         self._add_save_attr(
@@ -32,6 +33,7 @@ class Agent(Serializable):
             policy='mushroom',
             phi='pickle',
             next_action='numpy',
+            _preprocessors='mushroom',
             _logger='none'
         )
 
@@ -94,3 +96,23 @@ class Agent(Serializable):
 
         """
         self._logger = logger
+
+    def add_preprocessor(self, preprocessor):
+        """
+        Add preprocessor to the preprocessor list.
+        The preprocessors are applied in order.
+
+        Args:
+            preprocessor (object): state preprocessors to be applied
+                to state variables before feeding them to the agent.
+
+        """
+        self._preprocessors.append(preprocessor)
+
+    @property
+    def preprocessors(self):
+        """
+        Access to state preprocessors stored in the agent.
+
+        """
+        return self._preprocessors

@@ -58,23 +58,6 @@ class RunningStandardization(Serializable):
         new_s = self._s + (value - self._m) * (value - new_m)
         self._m, self._s = new_m, new_s
 
-    def get_state(self):
-        """
-        Returns:
-            A dictionary containing the state of the filter.
-
-        """
-        return dict(mean=self._m, var=self._s, count=self._n)
-
-    def set_state(self, state):
-        """
-        Set the state of the filter.
-
-        """
-        self._m = state["mean"]
-        self._s = state["var"]
-        self._n = state["count"]
-
     @property
     def mean(self):
         """

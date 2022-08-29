@@ -208,7 +208,9 @@ epub_exclude_files = ['search.html']
 # -- Options for autodoc ---------------------------------------------------
 
 autodoc_member_order = 'bysource'
-autodoc_mock_imports = ['torch', 'pybullet', 'dm_control', 'mujoco_py', 'glfw']
+autodoc_mock_imports = ['torch', 'pybullet', 'dm_control', 'mujoco_py', 'glfw',
+                        'habitat', 'habitat_baselines', 'habitat_sim', 'igibson',
+                        'gym_minigrid']
 add_module_names = False
 
 def skip(app, what, name, obj, skip, options):

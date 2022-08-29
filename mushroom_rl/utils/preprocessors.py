@@ -1,4 +1,3 @@
-import pickle
 import numpy as np
 
 from mushroom_rl.core import Serializable
@@ -56,21 +55,6 @@ class StandardizationPreprocessor(Serializable):
         )
 
         return norm_obs
-
-    def get_state(self):
-        """
-        Returns:
-            A dictionary with the normalization state.
-
-        """
-        return self._obs_runstand.get_state()
-
-    def set_state(self, data):
-        """
-        Set the current normalization state from the data dict.
-
-        """
-        self._obs_runstand.set_state(data)
 
 
 class MinMaxPreprocessor(StandardizationPreprocessor):

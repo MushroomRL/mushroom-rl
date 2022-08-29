@@ -55,12 +55,13 @@ def experiment(n_epochs, n_iterations, ep_per_run, save_states_to_disk):
 
     # normalization callback
     prepro = MinMaxPreprocessor(mdp_info=mdp.info)
+    agent.add_preprocessor(prepro)
 
     # plotting callback
     plotter = PlotDataset(mdp.info, obs_normalized=True)
 
     # Train
-    core = Core(agent, mdp, callback_step=plotter, preprocessors=[prepro])
+    core = Core(agent, mdp, callback_step=plotter)
 
     # training loop
     for n in range(n_epochs):

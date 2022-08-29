@@ -15,30 +15,33 @@ from torch import optim, nn
 from mushroom_rl.environments import Gym
 from mushroom_rl.utils.preprocessors import MinMaxPreprocessor
 
+from copy import deepcopy
+
+
+class LinearNetwork(nn.Module):
+    def __init__(self, input_shape, output_shape, **kwargs):
+        super().__init__()
+
+        n_input = input_shape[-1]
+        n_output = output_shape[0]
+
+        self._h1 = nn.Linear(n_input, n_output)
+
+        nn.init.xavier_uniform_(self._h1.weight,
+                                gain=nn.init.calculate_gain('relu'))
+
+    def forward(self, state, action=None):
+        q = F.relu(self._h1(torch.squeeze(state, 1).float()))
+        if action is None:
+            return q
+        else:
+            action = action.long()
+            q_acted = torch.squeeze(q.gather(1, action))
+            return q_acted
+
 
 def test_normalizing_preprocessor(tmpdir):
     np.random.seed(88)
-
-    class Network(nn.Module):
-        def __init__(self, input_shape, output_shape, **kwargs):
-            super().__init__()
-
-            n_input = input_shape[-1]
-            n_output = output_shape[0]
-
-            self._h1 = nn.Linear(n_input, n_output)
-
-            nn.init.xavier_uniform_(self._h1.weight,
-                                    gain=nn.init.calculate_gain('relu'))
-
-        def forward(self, state, action=None):
-            q = F.relu(self._h1(torch.squeeze(state, 1).float()))
-            if action is None:
-                return q
-            else:
-                action = action.long()
-                q_acted = torch.squeeze(q.gather(1, action))
-                return q_acted
 
     mdp = Gym('CartPole-v0', horizon=500, gamma=.99)
 
@@ -49,7 +52,7 @@ def test_normalizing_preprocessor(tmpdir):
     # Approximator
     input_shape = mdp.info.observation_space.shape
 
-    approximator_params = dict(network=Network,
+    approximator_params = dict(network=LinearNetwork,
                                optimizer={'class':  optim.Adam,
                                           'params': {'lr': .001}},
                                loss=F.smooth_l1_loss,
@@ -66,8 +69,9 @@ def test_normalizing_preprocessor(tmpdir):
 
     norm_box = MinMaxPreprocessor(mdp_info=mdp.info,
                                   clip_obs=5.0, alpha=0.001)
+    agent.add_preprocessor(norm_box)
 
-    core = Core(agent, mdp, preprocessors=[norm_box])
+    core = Core(agent, mdp)
 
     core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
 
@@ -75,19 +79,28 @@ def test_normalizing_preprocessor(tmpdir):
     assert (core._state.min() >= -norm_box._clip_obs
             and core._state.max() <= norm_box._clip_obs)
 
-    # loading and setting data correctly
-    state_dict1 = norm_box.get_state()
+    # save current dict
+    state_dict1 = deepcopy(norm_box.__dict__)
+
+    # save preprocessor and agent
     norm_box.save(tmpdir / 'norm_box.msh')
+    agent.save(tmpdir / 'agent.msh')
 
     core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
 
-    norm_box = MinMaxPreprocessor.load(tmpdir / 'norm_box.msh')
-    state_dict2 = norm_box.get_state()
+    norm_box_new = MinMaxPreprocessor.load(tmpdir / 'norm_box.msh')
 
-    assert ((state_dict1["mean"] == state_dict2["mean"]).all()
-            and (state_dict1["var"] == state_dict2["var"]).all()
-            and state_dict1["count"] == state_dict2["count"])
+    agent_new = DQN.load(tmpdir / 'agent.msh')
 
-    core = Core(agent, mdp, preprocessors=[norm_box])
-    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+    assert len(agent_new.preprocessors) == 1
 
+    norm_box_agent = agent_new.preprocessors[0]
+
+    state_dict2 = norm_box_new.__dict__
+    state_dict3 = norm_box_agent.__dict__
+
+    assert (state_dict1["_obs_runstand"].mean == state_dict2["_obs_runstand"].mean).all() \
+            and (state_dict1["_obs_runstand"].std == state_dict2["_obs_runstand"].std).all()
+
+    assert (state_dict1["_obs_runstand"].mean == state_dict3["_obs_runstand"].mean).all() \
+           and (state_dict1["_obs_runstand"].std == state_dict3["_obs_runstand"].std).all()
