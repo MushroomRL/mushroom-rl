@@ -98,7 +98,7 @@ class TorchApproximator(Serializable):
         if not self._use_cuda:
             torch_args = [torch.from_numpy(x) if isinstance(x, np.ndarray) else x
                           for x in args]
-            val = self.network.forward(*torch_args, **kwargs)
+            val = self.network(*torch_args, **kwargs)
 
             if output_tensor:
                 return val
@@ -109,8 +109,7 @@ class TorchApproximator(Serializable):
         else:
             torch_args = [torch.from_numpy(x).cuda()
                           if isinstance(x, np.ndarray) else x.cuda() for x in args]
-            val = self.network.forward(*torch_args,
-                                       **kwargs)
+            val = self.network(*torch_args, **kwargs)
 
             if output_tensor:
                 return val
@@ -259,7 +258,7 @@ class TorchApproximator(Serializable):
         else:
             output_type = y_hat.dtype
 
-        y = [y_i.clone().detach().requires_grad_(False).type(output_type) for y_i
+        y = [y_i.clone().detach().type(output_type) for y_i
              in torch_args[-self._n_fit_targets:]]
 
         if self._use_cuda:
