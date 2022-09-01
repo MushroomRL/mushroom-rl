@@ -5,7 +5,7 @@ from mushroom_rl.utils.callbacks.collect_dataset import CollectDataset
 from mushroom_rl.utils.plots import DataBuffer, Window, Actions,\
     LenOfEpisodeTraining, Observations, RewardPerEpisode, RewardPerStep
 from mushroom_rl.utils.spaces import Box
-from mushroom_rl.utils.dataset import episodes_length, compute_J
+from mushroom_rl.utils.dataset import compute_episodes_length, compute_J
 
 
 class PlotDataset(CollectDataset):
@@ -126,7 +126,7 @@ class PlotDataset(CollectDataset):
 
             self.instant_reward_buffer.update([reward])
 
-        lengths_of_episodes = episodes_length(self._data_list)
+        lengths_of_episodes = compute_episodes_length(self._data_list)
 
         start_index = 0
         for length_of_episode in lengths_of_episodes:

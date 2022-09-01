@@ -26,7 +26,7 @@ def test_dataset_utils():
                        2.28767925e+00, 4.23911583e-01])
     assert np.allclose(J, J_test)
 
-    L = episodes_length(dataset)
+    L = compute_episodes_length(dataset)
     L_test = np.array([87, 35, 18, 34, 43, 23, 66, 16, 15, 31])
     assert np.array_equal(L, L_test)
 
@@ -34,7 +34,7 @@ def test_dataset_utils():
     J = compute_J(dataset_ep, mdp.info.gamma)
     assert np.allclose(J, J_test[:3])
 
-    L = episodes_length(dataset_ep)
+    L = compute_episodes_length(dataset_ep)
     assert np.allclose(L, L_test[:3])
 
     samples = select_random_samples(dataset, 2)

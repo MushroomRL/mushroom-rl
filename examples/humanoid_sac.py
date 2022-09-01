@@ -10,7 +10,7 @@ from mushroom_rl.utils.preprocessors import MinMaxPreprocessor
 
 from mushroom_rl.algorithms.actor_critic import SAC
 from mushroom_rl.core import Core, Logger
-from mushroom_rl.utils.dataset import compute_J, episodes_length
+from mushroom_rl.utils.dataset import compute_J, compute_episodes_length
 
 from mushroom_rl.environments.mujoco_envs import HumanoidGait
 from mushroom_rl.environments.mujoco_envs.humanoid_gait import \
@@ -198,7 +198,7 @@ def experiment(goal, use_muscles, n_epochs, n_steps, n_episodes_test):
     dataset = core.evaluate(n_episodes=n_episodes_test, render=True)
 
     J = np.mean(compute_J(dataset, gamma))
-    L = int(np.round(np.mean(episodes_length(dataset))))
+    L = int(np.round(np.mean(compute_episodes_length(dataset))))
 
     logger.epoch_info(0, J=J, episode_lenght=L)
 
@@ -208,7 +208,7 @@ def experiment(goal, use_muscles, n_epochs, n_steps, n_episodes_test):
         dataset = core.evaluate(n_episodes=n_episodes_test, render=True)
 
         J = np.mean(compute_J(dataset, gamma))
-        L = int(np.round(np.mean(episodes_length(dataset))))
+        L = int(np.round(np.mean(compute_episodes_length(dataset))))
 
 
         logger.epoch_info(n+1, J=J, episode_lenght=L)

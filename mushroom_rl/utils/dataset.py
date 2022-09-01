@@ -77,7 +77,7 @@ def arrays_as_dataset(states, actions, rewards, next_states, absorbings, lasts):
     return dataset
 
 
-def episodes_length(dataset):
+def compute_episodes_length(dataset):
     """
     Compute the length of each episode in the dataset.
 

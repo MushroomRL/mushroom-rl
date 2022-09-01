@@ -6,7 +6,7 @@ from mushroom_rl.environments import *
 from mushroom_rl.features import Features
 from mushroom_rl.features.basis import PolynomialBasis, GaussianRBF
 from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.utils.dataset import episodes_length
+from mushroom_rl.utils.dataset import compute_episodes_length
 from mushroom_rl.utils.parameters import Parameter
 
 
@@ -60,7 +60,7 @@ def experiment():
 
     core.evaluate(n_steps=100, render=True)
 
-    return np.mean(episodes_length(dataset))
+    return np.mean(compute_episodes_length(dataset))
 
 
 if __name__ == '__main__':
