@@ -63,7 +63,7 @@ def print_epoch(epoch):
 def get_stats(dataset):
     score = compute_metrics(dataset)
     print(('min_reward: %f, max_reward: %f, mean_reward: %f,'
-          ' games_completed: %d' % score))
+          ' median_reward: %f, games_completed: %d' % score))
 
     return score
 

@@ -215,9 +215,10 @@ def compute_metrics(dataset, gamma=1.):
         The minimum score reached in an episode,
         the maximum score reached in an episode,
         the mean score reached,
-        the number of completed games.
+        the median score reached,
+        the number of completed episodes.
 
-        If episode has not been completed, it returns 0 for all values.
+        If no episode has been completed, it returns 0 for all values.
 
     """
     for i in reversed(range(len(dataset))):
@@ -229,6 +230,6 @@ def compute_metrics(dataset, gamma=1.):
 
     if len(dataset) > 0:
         J = compute_J(dataset, gamma)
-        return np.min(J), np.max(J), np.mean(J), len(J)
+        return np.min(J), np.max(J), np.mean(J), np.median(J), len(J)
     else:
-        return 0, 0, 0, 0
+        return 0, 0, 0, 0, 0

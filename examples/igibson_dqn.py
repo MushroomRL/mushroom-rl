@@ -133,7 +133,7 @@ def print_epoch(epoch, logger):
 def get_stats(dataset, logger):
     score = compute_metrics(dataset)
     logger.info(('min_reward: %f, max_reward: %f, mean_reward: %f,'
-                ' episodes_completed: %d' % score))
+                ' median_reward: %f, episodes_completed: %d' % score))
 
     return score
 
