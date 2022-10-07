@@ -170,7 +170,7 @@ class HumanoidGait(MuJoCo):
             self._viewer._render_every_frame = True
         self._viewer.render()
 
-    def _setup(self):
+    def setup(self):
         self.goal_reward.reset_state()
         start_obs = self._reset_model(qpos_noise=0.0, qvel_noise=0.0)
         start_vel = (
@@ -183,7 +183,7 @@ class HumanoidGait(MuJoCo):
         self.mean_act.reset()
         self.external_actuator.reset()
 
-    def _reward(self, state, action, next_state):
+    def reward(self, state, action, next_state):
         live_reward = 1.0
 
         goal_reward = self.goal_reward(state, action, next_state)
@@ -208,7 +208,7 @@ class HumanoidGait(MuJoCo):
 
         return total_reward
 
-    def _is_absorbing(self, state):
+    def is_absorbing(self, state):
         return (self._has_fallen(state)
                 or self.goal_reward.is_absorbing(state)
                 or self.external_actuator.is_absorbing(state)
@@ -294,7 +294,7 @@ class HumanoidGait(MuJoCo):
     def _step_init(self, state, action):
         self.external_actuator.initialize_internal_states(state, action)
 
-    def _compute_action(self, action):
+    def _compute_action(self, state, action):
         action = self.external_actuator.external_stimulus_to_joint_torques(
             action
         )
