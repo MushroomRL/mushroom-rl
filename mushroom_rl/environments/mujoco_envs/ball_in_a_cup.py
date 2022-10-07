@@ -55,15 +55,15 @@ class BallInACup(MuJoCo):
         self.p_gains = np.array([200, 300, 100, 100, 10, 10, 2.5])
         self.d_gains = np.array([7, 15, 5, 2.5, 0.3, 0.3, 0.05])
 
-    def _reward(self, state, action, next_state):
+    def reward(self, state, action, next_state):
         dist = self._read_data("goal_pos") - self._read_data("ball_pos")
         return 1. if np.linalg.norm(dist) < 0.05 else 0.
 
-    def _is_absorbing(self, state):
+    def is_absorbing(self, state):
         dist = self._read_data("goal_pos") - self._read_data("ball_pos")
         return np.linalg.norm(dist) < 0.05 or self._check_collision("ball", "robot")
 
-    def _setup(self):
+    def setup(self):
         # Copy the initial position after the reset
         init_pos = self._sim.data.qpos.copy()
         init_vel = np.zeros_like(init_pos)
