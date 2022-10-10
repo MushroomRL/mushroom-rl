@@ -96,9 +96,6 @@ class MujocoGlfwViewer:
 
             self.frames += 1
 
-            if self.frames % 100 == 0:
-                print(self.frames / (time.time() - self.start_time))
-
             if glfw.window_should_close(self._window):
                 glfw.destroy_window(self._window)
                 exit(0)

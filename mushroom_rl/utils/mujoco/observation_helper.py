@@ -37,7 +37,7 @@ class ObservationHelper:
         for name, ot in observation_spec:
             obs_count = len(self.get_state(data, name, ot))
             self.obs_idx_map[(name, ot)] = list(range(current_idx, current_idx + obs_count))
-            if ot == ObservationType.JOINT_POS:
+            if obs_count == 1 and ot == ObservationType.JOINT_POS:
                 self.joint_pos_idx.append(current_idx)
                 if model.joint(name).limited:
                     self.obs_low.append(model.joint(name).range[0])
@@ -46,7 +46,7 @@ class ObservationHelper:
                     self.obs_low.append(-np.inf)
                     self.obs_high.append(np.inf)
 
-            elif ot == ObservationType.JOINT_VEL:
+            elif obs_count == 1 and ot == ObservationType.JOINT_VEL:
                 self.joint_vel_idx.append(current_idx)
                 self.obs_low.append(-max_joint_velocity)
                 self.obs_high.append(max_joint_velocity)
@@ -84,7 +84,7 @@ class ObservationHelper:
         if o_type == ObservationType.BODY_POS:
             obs = data.body(name).xpos
         elif o_type == ObservationType.BODY_VEL:
-            obs = data.body(name).xvelp
+            obs = data.body(name).cvel
         elif o_type == ObservationType.JOINT_POS:
             obs = data.joint(name).qpos
         elif o_type == ObservationType.JOINT_VEL:
@@ -92,7 +92,7 @@ class ObservationHelper:
         elif o_type == ObservationType.SITE_POS:
             obs = data.site(name).xpos
         elif o_type == ObservationType.SITE_VEL:
-            obs = data.site(name).xvelp
+            obs = data.site(name).cvel
         else:
             raise ValueError('Invalid observation type')
 
