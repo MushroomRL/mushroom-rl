@@ -113,7 +113,7 @@ class MuJoCo(Environment):
     def seed(self, seed):
         np.random.seed(seed)
 
-    def reset(self, state=None):
+    def reset(self, obs=None):
         mujoco.mj_resetData(self._model, self._data)
         self.setup()
 
@@ -139,14 +139,15 @@ class MuJoCo(Environment):
 
             self._simulation_post_step()
 
-        obs = self.obs_helper.build_obs(self._data)
-        self._obs = self._edit_observation(obs)
+        obs = self._create_observation(self.obs_helper.build_obs(self._data))
 
         self._step_finalize()
 
-        reward = self.reward(cur_obs, action, self._obs)
+        reward = self.reward(cur_obs, action, obs)
+        absorbing = self.is_absorbing(obs)
 
-        return self._obs, reward, self.is_absorbing(self._obs), {}
+        self._obs = self._modify_observation(obs)
+        return self._obs, reward, absorbing, {}
 
     def render(self):
         if self._viewer is None:
@@ -173,10 +174,25 @@ class MuJoCo(Environment):
         """
         return mdp_info
 
-    def _edit_observation(self, obs):
+    def _create_observation(self, obs):
         """
-        This method can be overridden to edit the created observation. If the original observation is not preserved,
-        the helper functions in ObervationHelper might break
+        This method can be overridden to create a custom observation. Should be used to append observation which have
+        been registered via obs_help.add_obs(self, name, o_type, length, min_value, max_value)
+
+        Args:
+            obs (np.ndarray): the generated observation
+
+        Returns:
+            The environment observation.
+
+        """
+        return obs
+
+    def _modify_observation(self, obs):
+        """
+        This method can be overridden to edit the created observation. This is done after the reward and absorbing
+        functions are evaluated. Especially useful to transform the observation into different frames. If the original
+        observation order is not preserved, the helper functions in ObervationHelper breaks.
 
         Args:
             obs (np.ndarray): the generated observation
@@ -201,19 +217,19 @@ class MuJoCo(Environment):
         """
         return action
 
-    def _step_init(self, state, action):
+    def _step_init(self, obs, action):
         """
         Allows information to be initialized at the start of a step.
         """
         pass
 
-    def _compute_action(self, state, action):
+    def _compute_action(self, obs, action):
         """
         Compute a transformation of the action at every intermediate step.
         Useful to add control signals simulated directly in python.
 
         Args:
-            state (np.ndarray): numpy array with the current state of teh simulation;
+            obs (np.ndarray): numpy array with the current state of teh simulation;
             action (np.ndarray): numpy array with the actions, provided at every step.
 
         Returns:
@@ -347,14 +363,14 @@ class MuJoCo(Environment):
 
         return c_array
 
-    def reward(self, state, action, next_state):
+    def reward(self, obs, action, next_obs):
         """
         Compute the reward based on the given transition.
 
         Args:
-            state (np.array): the current state of the system;
+            obs (np.array): the current state of the system;
             action (np.array): the action that is applied in the current state;
-            next_state (np.array): the state reached after applying the given
+            next_obs (np.array): the state reached after applying the given
                 action.
 
         Returns:
@@ -363,12 +379,12 @@ class MuJoCo(Environment):
         """
         raise NotImplementedError
 
-    def is_absorbing(self, state):
+    def is_absorbing(self, obs):
         """
         Check whether the given state is an absorbing state or not.
 
         Args:
-            state (np.array): the state of the system.
+            obs (np.array): the state of the system.
 
         Returns:
             A boolean flag indicating whether this state is absorbing or not.

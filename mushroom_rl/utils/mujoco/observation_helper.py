@@ -34,7 +34,6 @@ class ObservationHelper:
 
         self.build_omit_idx = {}
 
-
         self.observation_spec = observation_spec
         current_idx = 0
         for name, ot in observation_spec:
