@@ -24,8 +24,9 @@ class MuJoCo(Environment):
                 when all actuators should be used;
             observation_spec (list): A list containing the names of data that
                 should be made available to the agent as an observation and
-                their type (ObservationType). An entry in the list is given by:
-                (name, type);
+                their type (ObservationType). They are combined with a key,
+                 with which the data can be accessed. An entry in the list
+                 is given by: (key, name, type);
             gamma (float): The discounting factor of the environment;
             horizon (int): The maximum horizon for the environment;
             timestep (float, 0.00416666666): The timestep used by the MuJoCo
@@ -117,8 +118,8 @@ class MuJoCo(Environment):
         mujoco.mj_resetData(self._model, self._data)
         self.setup()
 
-        obs = self.obs_helper.build_obs(self._data)
-        self._obs = self._edit_observation(obs)
+        obs = self._create_observation(self.obs_helper.build_obs(self._data))
+        self._obs = self._modify_observation(obs)
         return self._obs
 
     def step(self, action):

@@ -36,10 +36,10 @@ class ObservationHelper:
 
         self.observation_spec = observation_spec
         current_idx = 0
-        for name, ot in observation_spec:
+        for key, name, ot in observation_spec:
             obs_count = len(self.get_state(data, name, ot))
-            self.obs_idx_map[(name, ot)] = list(range(current_idx, current_idx + obs_count))
-            self.build_omit_idx[(name, ot)] = []
+            self.obs_idx_map[key] = list(range(current_idx, current_idx + obs_count))
+            self.build_omit_idx[key] = []
             if obs_count == 1 and ot == ObservationType.JOINT_POS:
                 self.joint_pos_idx.append(current_idx)
                 if model.joint(name).limited:
@@ -62,15 +62,15 @@ class ObservationHelper:
         self.obs_low = np.array(self.obs_low)
         self.obs_high = np.array(self.obs_high)
 
-    def remove_obs(self, name, o_type, index):
+    def remove_obs(self, key, index):
         """
         Remove an index from the observation. Cannot remove a whole observation, to achieve this just move the
         observation to additional data.
         Helpful for example to remove the z-coordinate from positions if it's not needed
         The index is always of the original observation!
         """
-        indices = self.obs_idx_map[(name, o_type)]
-        adjusted_index = index - sum([0 if el < index else 1 for el in self.build_omit_idx[(name, o_type)]])
+        indices = self.obs_idx_map[key]
+        adjusted_index = index - sum([0 if el < index else 1 for el in self.build_omit_idx[key]])
 
         self.obs_low = np.delete(self.obs_low, indices[adjusted_index])
         self.obs_high = np.delete(self.obs_high, indices[adjusted_index])
@@ -81,15 +81,15 @@ class ObservationHelper:
                 if obs_list[idx] > cutoff:
                     obs_list[idx] -= 1
 
-        self.build_omit_idx[(name, o_type)].append(index)
+        self.build_omit_idx[key].append(index)
 
-    def add_obs(self, name, o_type, length, min_value=-np.inf, max_value=np.inf):
+    def add_obs(self, key, length, min_value=-np.inf, max_value=np.inf):
         """
         Adds an observation entry to the handling logic of the Helper. The observation still has to be manually
         appended to the original observation via _create_observation(self, state), but can get be accessed via
         get_from_obs(self, obs, name, o_type) and is in obs_low / obs_high
         """
-        self.obs_idx_map[(name, o_type)] = list(range(len(self.obs_low), len(self.obs_low) + length))
+        self.obs_idx_map[key] = list(range(len(self.obs_low), len(self.obs_low) + length))
 
         if hasattr(min_value, "__len__"):
             self.obs_low = np.append(self.obs_low, min_value)
@@ -101,8 +101,8 @@ class ObservationHelper:
         else:
             self.obs_high = np.append(self.obs_high, [max_value] * length)
 
-    def get_from_obs(self, obs, name, o_type):
-        return obs[self.obs_idx_map[(name, o_type)]]
+    def get_from_obs(self, obs, key):
+        return obs[self.obs_idx_map[key]]
 
     def get_joint_pos_from_obs(self, obs):
         return obs[self.joint_pos_idx]
@@ -121,8 +121,8 @@ class ObservationHelper:
 
     def build_obs(self, data):
         observations = []
-        for name, o_type in self.observation_spec:
-            omit = np.array(self.build_omit_idx[(name, o_type)])
+        for key, name, o_type in self.observation_spec:
+            omit = np.array(self.build_omit_idx[key])
             obs = self.get_state(data, name, o_type)
             if len(omit) != 0:
                 obs = np.delete(obs, omit)
