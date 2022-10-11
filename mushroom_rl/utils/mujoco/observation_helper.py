@@ -70,7 +70,7 @@ class ObservationHelper:
         The index is always of the original observation!
         """
         indices = self.obs_idx_map[key]
-        adjusted_index = index - sum([0 if el < index else 1 for el in self.build_omit_idx[key]])
+        adjusted_index = index - len(self.build_omit_idx[key])
 
         self.obs_low = np.delete(self.obs_low, indices[adjusted_index])
         self.obs_high = np.delete(self.obs_high, indices[adjusted_index])
