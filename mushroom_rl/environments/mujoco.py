@@ -105,6 +105,9 @@ class MuJoCo(Environment):
         # Finally, we create the MDP information and call the constructor of
         # the parent class
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+
+        mdp_info = self._modify_mdp_info(mdp_info)
+
         super().__init__(mdp_info)
 
     def seed(self, seed):
@@ -155,6 +158,20 @@ class MuJoCo(Environment):
         if self._viewer is not None:
             del self._viewer
             self._viewer = None
+
+    def _modify_mdp_info(self, mdp_info):
+        """
+        This method can be overridden to modify the automatically generated MDPInfo data structure.
+        By default, returns the given mdp_info structure unchanged.
+
+        Args:
+            mdp_info (MDPInfo): the MDPInfo structure automatically computed by the environment.
+
+        Returns:
+            The modified MDPInfo data structure.
+
+        """
+        return mdp_info
 
     def _edit_observation(self, obs):
         """
