@@ -144,8 +144,8 @@ class MuJoCo(Environment):
 
         self._step_finalize()
 
-        reward = self.reward(cur_obs, action, obs)
         absorbing = self.is_absorbing(obs)
+        reward = self.reward(cur_obs, action, obs, absorbing)
 
         self._obs = self._modify_observation(obs)
         return self._obs, reward, absorbing, {}
@@ -364,7 +364,7 @@ class MuJoCo(Environment):
 
         return c_array
 
-    def reward(self, obs, action, next_obs):
+    def reward(self, obs, action, next_obs, absorbing):
         """
         Compute the reward based on the given transition.
 
@@ -373,6 +373,7 @@ class MuJoCo(Environment):
             action (np.array): the action that is applied in the current state;
             next_obs (np.array): the state reached after applying the given
                 action.
+            absorbing (bool): whether next_state is an absorbing state or not.
 
         Returns:
             The reward as a floating point scalar value.

@@ -7,16 +7,17 @@ from enum import Enum
 class ObservationType(Enum):
     """
     An enum indicating the type of data that should be added to the observation
-    of the environment, can be Joint-/Body-/Site- positions and velocities.
+    of the environment, can be Joint-/Body-/Site- positions, rotations, and velocities.
 
     """
-    __order__ = "BODY_POS BODY_VEL JOINT_POS JOINT_VEL SITE_POS SITE_VEL"
+    __order__ = "BODY_POS BODY_ROT BODY_VEL JOINT_POS JOINT_VEL SITE_POS SITE_ROT"
     BODY_POS = 0
-    BODY_VEL = 1
-    JOINT_POS = 2
-    JOINT_VEL = 3
-    SITE_POS = 4
-    SITE_VEL = 5
+    BODY_ROT = 1
+    BODY_VEL = 2
+    JOINT_POS = 3
+    JOINT_VEL = 4
+    SITE_POS = 5
+    SITE_ROT = 6
 
 
 class ObservationHelper:
@@ -102,7 +103,9 @@ class ObservationHelper:
             self.obs_high = np.append(self.obs_high, [max_value] * length)
 
     def get_from_obs(self, obs, key):
-        return obs[self.obs_idx_map[key]]
+        # Cannot use advanced indexing because it returns a copy.....
+        # We want this data to be writeable
+        return obs[self.obs_idx_map[key][0]:self.obs_idx_map[key][-1] + 1]
 
     def get_joint_pos_from_obs(self, obs):
         return obs[self.joint_pos_idx]
@@ -132,6 +135,8 @@ class ObservationHelper:
     def get_state(self, data, name, o_type):
         if o_type == ObservationType.BODY_POS:
             obs = data.body(name).xpos
+        elif o_type == ObservationType.BODY_ROT:
+            obs = data.body(name).xquat
         elif o_type == ObservationType.BODY_VEL:
             obs = data.body(name).cvel
         elif o_type == ObservationType.JOINT_POS:
@@ -139,9 +144,11 @@ class ObservationHelper:
         elif o_type == ObservationType.JOINT_VEL:
             obs = data.joint(name).qvel
         elif o_type == ObservationType.SITE_POS:
-            obs = data.site(name).xpos
-        elif o_type == ObservationType.SITE_VEL:
-            obs = data.site(name).cvel
+            obs = data.site(name).site_xpos
+        elif o_type == ObservationType.SITE_ROT:
+            # Sites don't have rotation quaternion for some reason...
+            # x_mat is rotation matrix with shape (9,)
+            obs = data.site(name).site_xmat
         else:
             raise ValueError('Invalid observation type')
 
