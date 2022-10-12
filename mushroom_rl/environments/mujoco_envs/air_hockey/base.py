@@ -45,24 +45,29 @@ class AirHockeyBase(MuJoCo):
 
             collision_spec += [("robot_1/ee", ["planar_robot_1/ee"])]
 
-        elif self.n_agents == 2:
-            robot_file = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey",
-                                      "double.xml")
+            if self.n_agents == 2:
+                robot_file = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey",
+                                          "double.xml")
 
-            action_spec += ["planar_robot_2/joint_1", "planar_robot_2/joint_2", "planar_robot_2/joint_3"]
-            observation_spec += [("planar_robot_2/joint_1", ObservationType.JOINT_POS),
-                                 ("planar_robot_2/joint_2", ObservationType.JOINT_POS),
-                                 ("planar_robot_2/joint_3", ObservationType.JOINT_POS),
-                                 ("planar_robot_2/joint_1", ObservationType.JOINT_VEL),
-                                 ("planar_robot_2/joint_2", ObservationType.JOINT_VEL),
-                                 ("planar_robot_2/joint_3", ObservationType.JOINT_VEL)]
+                action_spec += ["planar_robot_2/joint_1", "planar_robot_2/joint_2", "planar_robot_2/joint_3"]
+                # Add puck pos/vel again to transform into second agents frame
+                observation_spec += [("robot_2/puck_pos", "puck", ObservationType.BODY_POS),
+                                     ("robot_2/puck_vel", "puck", ObservationType.BODY_VEL),
+                                     ("robot_2/joint_1", "planar_robot_2/joint_1", ObservationType.JOINT_POS),
+                                     ("robot_2/joint_2", "planar_robot_2/joint_2", ObservationType.JOINT_POS),
+                                     ("robot_2/joint_3", "planar_robot_2/joint_3", ObservationType.JOINT_POS),
+                                     ("robot_2/joint_4", "planar_robot_2/joint_1", ObservationType.JOINT_VEL),
+                                     ("robot_2/joint_5", "planar_robot_2/joint_2", ObservationType.JOINT_VEL),
+                                     ("robot_2/joint_6", "planar_robot_2/joint_3", ObservationType.JOINT_VEL)]
 
-            additional_data += [("planar_robot_2/ee_pos", "planar_robot_2/body_ee", ObservationType.BODY_POS),
-                                ("planar_robot_2/ee_vel", "planar_robot_2/body_ee", ObservationType.BODY_POS)]
+                additional_data += [("planar_robot_2/ee_pos", "planar_robot_2/body_ee", ObservationType.BODY_POS),
+                                    ("planar_robot_2/ee_vel", "planar_robot_2/body_ee", ObservationType.BODY_POS)]
 
-            collision_spec += [("planar_robot_2/ee", ["planar_robot_2/ee"])]
+                collision_spec += [("planar_robot_2/ee", ["planar_robot_2/ee"])]
         else:
             raise ValueError('n_agents should be 1 or 2')
+
+        print(robot_file)
 
         super(AirHockeyBase, self).__init__(robot_file, action_spec, observation_spec, gamma, horizon, timestep,
                                             n_intermediate_steps, additional_data, collision_spec)
@@ -112,5 +117,22 @@ class AirHockeyBase(MuJoCo):
 
         if np.any(np.abs(puck_pos[:2]) > boundary):
             return True
-
         return False
+
+    def _puck_2d_in_robot_frame(self, puck_in, robot_frame, type='pose'):
+        if type == 'pose':
+            puck_frame = np.eye(4)
+            puck_frame[:2, 3] = puck_in
+
+            frame_target = np.linalg.inv(robot_frame) @ puck_frame
+            puck_in[:] = frame_target[:2, 3]
+
+        if type == 'vel':
+            rot_mat = robot_frame[:3, :3]
+
+            vel_lin = np.zeros(3)
+            vel_lin[:2] = puck_in[1:]
+
+            vel_target = rot_mat.T @ vel_lin
+
+            puck_in[1:] = vel_target[:2]

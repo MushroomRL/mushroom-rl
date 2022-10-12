@@ -28,7 +28,8 @@ class AirHockeySingle(AirHockeyBase):
         self.obs_helper.remove_obs("puck_vel", 1)
         self.obs_helper.remove_obs("puck_vel", 5)
 
-        self.obs_helper.add_obs("flags", 2, 0, 1)
+        self.obs_helper.add_obs("collision_robot_1_puck", 1, 0, 1)
+        self.obs_helper.add_obs("collision_short_sides_rim_puck", 1, 0, 1)
 
         self._mdp_info.observation_space = Box(*self.obs_helper.get_obs_limits())
 
@@ -58,24 +59,6 @@ class AirHockeySingle(AirHockeyBase):
 
         return obs
 
-    def _puck_2d_in_robot_frame(self, puck_in, robot_frame, type='pose'):
-        if type == 'pose':
-            puck_frame = np.eye(4)
-            puck_frame[:2, 3] = puck_in
-
-            frame_target = np.linalg.inv(robot_frame) @ puck_frame
-            puck_in[:] = frame_target[:2, 3]
-
-        if type == 'vel':
-            rot_mat = robot_frame[:3, :3]
-
-            vel_lin = np.zeros(3)
-            vel_lin[:2] = puck_in[1:]
-
-            vel_target = rot_mat.T @ vel_lin
-
-            puck_in[1:] = vel_target[:2]
-
     def reward(self, state, action, next_state, absorbing):
         return 0
 
@@ -86,23 +69,12 @@ class AirHockeySingle(AirHockeyBase):
         for i in range(3):
             self._data.joint("planar_robot_1/joint_" + str(i+1)).qpos = self.init_state[i]
 
-    def is_absorbing(self, state):
-        if super().is_absorbing(state):
-            return True
-        if self.has_hit:
-            _, puck_vel, _ = self.get_puck(state)
-            if np.linalg.norm(puck_vel) < 0.01:
-                return True
-        return self.has_bounce
-
     def _simulation_post_step(self):
         if not self.has_hit:
-            if self._check_collision("puck", "robot_1/ee"):
-                self.has_hit = True
+            self.has_hit = self._check_collision("puck", "robot_1/ee")
 
         if not self.has_bounce:
-            if self._check_collision("puck", "rim_short_sides"):
-                self.has_bounce = True
+            self.has_bounce = self._check_collision("puck", "rim_short_sides")
 
     def _create_observation(self, state):
         obs = super(AirHockeySingle, self)._create_observation(state)
