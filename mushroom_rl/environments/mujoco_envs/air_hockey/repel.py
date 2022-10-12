@@ -1,0 +1,150 @@
+import numpy as np
+
+from mushroom_rl.environments.mujoco_envs.air_hockey import AirHockeySingle
+
+
+class AirHockeyRepel(AirHockeySingle):
+    """
+    Class for the air hockey repel task.
+    The agent tries repel the puck to the opponent.
+    If the puck get into the goal, it will get a punishment.
+    """
+    def __init__(self, gamma=0.99, horizon=500, env_noise=False, obs_noise=False, torque_control=True,
+                 step_action_function=None, timestep=1 / 240., n_intermediate_steps=1, random_init=False,
+                 action_penalty=1e-3, init_velocity_range=(1, 2.2)):
+        """
+        Constructor
+        Args:
+            random_init(bool, False): If true, initialize the puck at random position .
+            action_penalty(float, 1e-3): The penalty of the action on the reward at each time step
+            init_velocity_range((float, float), (1, 2.2)): The range in which the initial velocity is initialized
+        """
+
+        self.random_init = random_init
+        self.action_penalty = action_penalty
+        self.init_velocity_range = init_velocity_range
+
+        self.start_range = np.array([[0.25, 0.65], [-0.4, 0.4]])
+        self.goal = np.array([0.98, 0])
+
+        self.has_hit = False
+        self.has_bounce = False
+
+        super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
+                         env_noise=env_noise, obs_noise=obs_noise, torque_control=torque_control,
+                         step_action_function=step_action_function, number_flags=1)
+
+    def setup(self, state=None):
+        # Set initial puck parameters
+        if self.random_init:
+            puck_pos = np.random.rand(2) * (self.start_range[:, 1] - self.start_range[:, 0]) + self.start_range[:, 0]
+
+            lin_vel = np.random.uniform(self.init_velocity_range[0], self.init_velocity_range[1])
+            angle = np.random.uniform(-0.5, 0.5)
+
+            puck_lin_vel = np.zeros(3)
+            puck_lin_vel[0] = -np.cos(angle) * lin_vel
+            puck_lin_vel[1] = np.sin(angle) * lin_vel
+
+            puck_ang_vel = np.random.uniform(-1, 1, 3)
+            puck_ang_vel[:2] = 0.0
+
+        else:
+            puck_pos = np.array([self.start_range[0].mean(), 0])
+            puck_lin_vel = np.array([-1., 0., 0.])
+            puck_ang_vel = np.zeros(3)
+
+        self._data.joint("puck").qpos = np.concatenate([puck_pos, [0, 0, 0, 0, 1]])
+        self._data.joint("puck").qvel = np.concatenate([puck_lin_vel, puck_ang_vel])
+
+        self.has_hit = False
+        self.has_bounce = False
+        
+        super(AirHockeyRepel, self).setup()
+
+    # Very flawed needs a lot of tuning
+    def reward(self, state, action, next_state, absorbing):
+        r = 0
+        puck_pos, puck_vel, _ = self.get_puck(next_state)
+
+        # If absorbing the puck is out of bounds of the table.
+        if absorbing:
+            # big penalty if we coincide a goal
+            if puck_pos[0] + self.env_spec['table']['length'] / 2 < 0 and \
+                    np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
+                r = -50
+        else:
+            if self.has_hit:
+
+                r_x = puck_pos[0] + 0.98
+                r_vel = min([puck_vel[0] ** 3, 5])
+
+                r = r_x + r_vel + 1
+
+                if puck_pos[0] > 0.9:
+                    r += 100 * np.exp(-3 * abs(puck_pos[1]))
+                # If we did not yet hit the puck, reward is controlled by the distance between end effector and puck
+                # on the x axis
+            else:
+                ee_pos = self.get_ee()[0][:2]
+
+                ee_des = np.array([-0.6, puck_pos[1]])
+                dist_ee_puck = np.abs(ee_des - ee_pos)
+
+                r_x = np.exp(-3 * dist_ee_puck[0])
+
+                sig = 0.2
+                r_y = 1. / (np.sqrt(2. * np.pi) * sig) * np.exp(-np.power((dist_ee_puck[1] - 0.08) / sig, 2.) / 2)
+                r = 0.3 * r_x + 0.7 * (r_y / 2)
+
+        # penalizes the amount of torque used
+        r -= self.action_penalty * np.linalg.norm(action)
+        return r
+
+    # If the Puck is out of Bounds of the table this returns True
+    def is_absorbing(self, state):
+        if super().is_absorbing(state):
+            return True
+        return self.has_bounce
+
+    def _simulation_post_step(self):
+        if not self.has_hit:
+            if self._check_collision("puck", "robot_1/ee"):
+                self.has_hit = True
+
+        if not self.has_bounce:
+            if self._check_collision("puck", "rim_short_sides"):
+                self.has_bounce = True
+
+    def _create_observation(self, state):
+        obs = super(AirHockeyRepel, self)._create_observation(state)
+        return np.append(obs, [self.has_hit])
+
+
+if __name__ == "__main__":
+    import time
+
+    env = AirHockeyRepel(env_noise=False, obs_noise=False, n_intermediate_steps=4,
+                         random_init=True)
+
+    R = 0.
+    J = 0.
+    gamma = 1.
+    steps = 0
+    env.reset()
+    while True:
+        action = np.zeros(3)
+        observation, reward, done, info = env.step(action)
+        env.render()
+        gamma *= env.info.gamma
+        J += gamma * reward
+        R += reward
+        steps += 1
+        if done or steps > env.info.horizon:
+            print("J: ", J, " R: ", R)
+            R = 0.
+            J = 0.
+            gamma = 1.
+            steps = 0
+            env.reset()
+        time.sleep(1 / 60.)

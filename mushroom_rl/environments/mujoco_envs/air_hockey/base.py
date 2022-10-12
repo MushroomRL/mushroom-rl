@@ -26,8 +26,7 @@ class AirHockeyBase(MuJoCo):
         additional_data = []
         collision_spec = [("puck", ["puck"]),
                           ("rim", ["rim_home_l", "rim_home_r", "rim_away_l", "rim_away_l", "rim_left", "rim_right"]),
-                          ("rim_home", ["rim_home_l", "rim_home_r"]),
-                          ("rim_away", ["rim_away_l", "rim_away_r"])]
+                          ("rim_short_sides", ["rim_home_l", "rim_home_r", "rim_away_l", "rim_away_r"])]
 
         if 1 <= self.n_agents <= 2:
             robot_file = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey",

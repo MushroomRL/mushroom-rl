@@ -43,16 +43,11 @@ class AirHockeyHit(AirHockeySingle):
             puck_pos = np.mean(self.hit_range, axis=1)
 
         # Initial configuration of the robot arm
-        """
+
         if self.init_robot_state == 'right':
             self.init_state = np.array([-0.9273, 0.9273, np.pi / 2])
         elif self.init_robot_state == 'left':
             self.init_state = -1 * np.array([-0.9273, 0.9273, np.pi / 2])
-        elif self.init_robot_state == 'random':
-            robot_id, joint_id = self._indexer.link_map['planar_robot_1/link_striker_ee']
-            striker_pos_y = np.random.rand() * 0.8 - 0.4
-            self.init_state = self.client.calculateInverseKinematics(robot_id, joint_id, [-0.81, striker_pos_y, -0.179])
-        """
 
         self._data.joint("puck").qpos = np.concatenate([puck_pos, [0, 0, 0, 0, 1]])
 
@@ -129,7 +124,7 @@ class AirHockeyHit(AirHockeySingle):
                 self.has_hit = True
 
         if not self.has_bounce:
-            if self._check_collision("puck", "rim_away"):
+            if self._check_collision("puck", "rim_short_sides"):
                 self.has_bounce = True
 
     def _create_observation(self, state):
