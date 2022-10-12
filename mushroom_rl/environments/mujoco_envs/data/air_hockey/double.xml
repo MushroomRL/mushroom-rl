@@ -17,7 +17,18 @@
 
     <contact>
         <exclude body1="planar_robot_1/body_ee" body2="table"/>
+        <exclude body1="planar_robot_1/body_hand" body2="table"/>
+        <exclude body1="planar_robot_1/body_3" body2="table"/>
+        <exclude body1="planar_robot_1/body_2" body2="table"/>
+        <exclude body1="planar_robot_1/body_1" body2="table"/>
+        <exclude body1="planar_robot_1/base" body2="table"/>
+
         <exclude body1="planar_robot_2/body_ee" body2="table"/>
+        <exclude body1="planar_robot_2/body_hand" body2="table"/>
+        <exclude body1="planar_robot_2/body_3" body2="table"/>
+        <exclude body1="planar_robot_2/body_2" body2="table"/>
+        <exclude body1="planar_robot_2/body_1" body2="table"/>
+        <exclude body1="planar_robot_2/base" body2="table"/>
     </contact>
 
     <worldbody>
