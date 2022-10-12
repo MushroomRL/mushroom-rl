@@ -24,12 +24,10 @@ class AirHockeyDefend(AirHockeySingle):
         self.init_velocity_range = init_velocity_range
 
         self.start_range = np.array([[0.25, 0.65], [-0.4, 0.4]])
-        self.has_hit = False
-        self.has_bounce = False
 
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
                          env_noise=env_noise, obs_noise=obs_noise, torque_control=torque_control,
-                         step_action_function=step_action_function, number_flags=2)
+                         step_action_function=step_action_function)
 
     def setup(self, state=None):
         # Set initial puck parameters
@@ -53,9 +51,6 @@ class AirHockeyDefend(AirHockeySingle):
 
         self._data.joint("puck").qpos = np.concatenate([puck_pos, [0, 0, 0, 0, 1]])
         self._data.joint("puck").qvel = np.concatenate([puck_lin_vel, puck_ang_vel])
-
-        self.has_hit = False
-        self.has_bounce = False
         
         super(AirHockeyDefend, self).setup()
 
@@ -106,19 +101,6 @@ class AirHockeyDefend(AirHockeySingle):
         if (self.has_hit or self.has_bounce) and puck_pos_x > 0:
             return True
         return super().is_absorbing(state)
-
-    def _simulation_post_step(self):
-        if not self.has_hit:
-            if self._check_collision("puck", "robot_1/ee"):
-                self.has_hit = True
-
-        if not self.has_bounce:
-            if self._check_collision("puck", "rim_short_sides"):
-                self.has_bounce = True
-
-    def _create_observation(self, state):
-        obs = super(AirHockeyDefend, self)._create_observation(state)
-        return np.append(obs, [self.has_hit, self.has_bounce])
 
 
 if __name__ == '__main__':

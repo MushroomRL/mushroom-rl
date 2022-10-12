@@ -11,8 +11,7 @@ class AirHockeySingle(AirHockeyBase):
     Base class for single agent air hockey tasks.
     """
     def __init__(self, gamma=0.99, horizon=120, env_noise=False, obs_noise=False, obs_delay=False,
-                 torque_control=True, step_action_function=None, timestep=1 / 240., n_intermediate_steps=1,
-                 number_flags=0):
+                 torque_control=True, step_action_function=None, timestep=1 / 240., n_intermediate_steps=1):
 
         """
         Constructor.
@@ -20,7 +19,6 @@ class AirHockeySingle(AirHockeyBase):
             number_flags(int, 0): Amount of flags which are added to the observation space
         """
         self.init_state = np.array([-0.9273, 0.9273, np.pi / 2])
-        self.number_flags = number_flags
         super().__init__(gamma=gamma, horizon=horizon, env_noise=env_noise, n_agents=1, obs_noise=obs_noise,
                          torque_control=torque_control, step_action_function=step_action_function,
                          timestep=timestep, n_intermediate_steps=n_intermediate_steps)
@@ -30,9 +28,12 @@ class AirHockeySingle(AirHockeyBase):
         self.obs_helper.remove_obs("puck_vel", 1)
         self.obs_helper.remove_obs("puck_vel", 5)
 
-        self.obs_helper.add_obs("flags", number_flags, 0, 1)
+        self.obs_helper.add_obs("flags", 2, 0, 1)
 
         self._mdp_info.observation_space = Box(*self.obs_helper.get_obs_limits())
+
+        self.has_hit = False
+        self.has_bounce = False
 
     def get_puck(self, obs):
         puck_pos = self.obs_helper.get_from_obs(obs, "puck_pos")
@@ -79,8 +80,33 @@ class AirHockeySingle(AirHockeyBase):
         return 0
 
     def setup(self):
+        self.has_hit = False
+        self.has_bounce = False
+
         for i in range(3):
             self._data.joint("planar_robot_1/joint_" + str(i+1)).qpos = self.init_state[i]
+
+    def is_absorbing(self, state):
+        if super().is_absorbing(state):
+            return True
+        if self.has_hit:
+            _, puck_vel, _ = self.get_puck(state)
+            if np.linalg.norm(puck_vel) < 0.01:
+                return True
+        return self.has_bounce
+
+    def _simulation_post_step(self):
+        if not self.has_hit:
+            if self._check_collision("puck", "robot_1/ee"):
+                self.has_hit = True
+
+        if not self.has_bounce:
+            if self._check_collision("puck", "rim_short_sides"):
+                self.has_bounce = True
+
+    def _create_observation(self, state):
+        obs = super(AirHockeySingle, self)._create_observation(state)
+        return np.append(obs, [self.has_hit, self.has_bounce])
 
 if __name__ == "__main__":
     import time

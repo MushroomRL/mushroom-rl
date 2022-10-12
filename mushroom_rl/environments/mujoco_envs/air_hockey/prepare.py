@@ -33,12 +33,9 @@ class AirHockeyPrepare(AirHockeySingle):
         self.desired_point = np.array([-0.6, 0])
         self.ee_end_pos = [-8.10001913e-01, -1.43459494e-06]
 
-        self.has_hit = False
-        self.has_bounce = False
-
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
                          env_noise=env_noise, obs_noise=obs_noise, torque_control=torque_control,
-                         step_action_function=step_action_function, number_flags=1)
+                         step_action_function=step_action_function)
 
     def setup(self):
         if self.random_init:
@@ -50,9 +47,6 @@ class AirHockeyPrepare(AirHockeySingle):
         self.desired_point = [puck_pos[0], 0]
 
         self._data.joint("puck").qpos = np.concatenate([puck_pos, [0, 0, 0, 0, 1]])
-
-        self.has_hit = False
-        self.has_bounce = False
         
         super(AirHockeyPrepare, self).setup()
 
@@ -138,19 +132,6 @@ class AirHockeyPrepare(AirHockeySingle):
                 if puck_pos[0] > 0 or abs(puck_pos[1]) < 0.01:
                     return True
             return False
-
-    def _simulation_post_step(self):
-        if not self.has_hit:
-            if self._check_collision("puck", "robot_1/ee"):
-                self.has_hit = True
-
-        if not self.has_bounce:
-            if self._check_collision("puck", "rim_short_sides"):
-                self.has_bounce = True
-
-    def _create_observation(self, state):
-        obs = super(AirHockeyPrepare, self)._create_observation(state)
-        return np.append(obs, [self.has_hit])
 
 
 if __name__ == '__main__':

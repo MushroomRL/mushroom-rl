@@ -45,8 +45,8 @@
     </worldbody>
 
     <actuator>
-        <position name="planar_robot_1/joint_1" joint="planar_robot_1/joint_1" ctrlrange="-2.9670597283903604 2.9670597283903604" forcerange="-40 40" kp="2"/>
-        <position name="planar_robot_1/joint_2" joint="planar_robot_1/joint_2" ctrlrange="-2.0943951023931953 2.0943951023931953" forcerange="-15 15" kp="2"/>
-        <position name="planar_robot_1/joint_3" joint="planar_robot_1/joint_3" ctrlrange="-2.0943951023931953 2.0943951023931953" forcerange="-5 5" kp="2"/>
+        <position name="planar_robot_1/joint_1" joint="planar_robot_1/joint_1" ctrlrange="-2.9670597283903604 2.9670597283903604" forcerange="-150 150" kp="10"/>
+        <position name="planar_robot_1/joint_2" joint="planar_robot_1/joint_2" ctrlrange="-2.0943951023931953 2.0943951023931953" forcerange="-150 150" kp="10"/>
+        <position name="planar_robot_1/joint_3" joint="planar_robot_1/joint_3" ctrlrange="-2.0943951023931953 2.0943951023931953" forcerange="-150 150" kp="10"/>
     </actuator>
 </mujoco>
