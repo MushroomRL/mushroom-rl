@@ -37,15 +37,27 @@ class AirHockeySingle(AirHockeyBase):
         self.has_bounce = False
 
     def get_puck(self, obs):
+        """
+        Getting the puck properties from the observations
+        Args:
+            obs: The current observation
+
+        Returns: ([pos_x, pos_y], [lin_vel_x, lin_vel_y], ang_vel_z)
+        """
         puck_pos = self.obs_helper.get_from_obs(obs, "puck_pos")
         puck_lin_vel = self.obs_helper.get_from_obs(obs, "puck_vel")[1:]
         puck_ang_vel = self.obs_helper.get_from_obs(obs, "puck_vel")[0]
         return puck_pos, puck_lin_vel, puck_ang_vel
 
     def get_ee(self):
-        ee_pos = self._read_data("planar_robot_1/ee_pos")
+        """
+        Getting the ee properties from the current internal state
 
-        ee_vel = self._read_data("planar_robot_1/ee_vel")
+        Returns: ([pos_x, pos_y, pos_z], [ang_vel_x, ang_vel_y, ang_vel_z, lin_vel_x, lin_vel_y, lin_vel_z])
+        """
+        ee_pos = self._read_data("robot_1/ee_pos")
+
+        ee_vel = self._read_data("robot_1/ee_vel")
 
         return ee_pos, ee_vel
 
@@ -58,9 +70,6 @@ class AirHockeySingle(AirHockeyBase):
             self.obs_helper.get_from_obs(obs, "puck_pos")[:] += np.random.randn(2) * 0.001
 
         return obs
-
-    def reward(self, state, action, next_state, absorbing):
-        return 0
 
     def setup(self):
         self.has_hit = False
@@ -79,27 +88,3 @@ class AirHockeySingle(AirHockeyBase):
     def _create_observation(self, state):
         obs = super(AirHockeySingle, self)._create_observation(state)
         return np.append(obs, [self.has_hit, self.has_bounce])
-
-if __name__ == "__main__":
-    import time
-    env = AirHockeySingle()
-    state = env.reset()
-
-    env.render()
-    #time.sleep(5)
-    steps = 0
-    while True:
-        # time.sleep(5)
-        # print(state)
-        # state, reward, done, info = env.step(np.array([-1.5708, -1.5708,  1.5708, -1.5708, -1.5708,  0.]))
-        state, reward, done, info = env.step(np.array([0, 0, 0]))
-
-        # print(env._get_collision_force("puck", "rim"))
-        env.render()
-        steps += 1
-
-        if steps > 560:
-            env.reset()
-            steps = 0
-        #print(env.dt)
-        time.sleep(env.dt)

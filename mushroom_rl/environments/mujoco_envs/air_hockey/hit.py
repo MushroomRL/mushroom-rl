@@ -118,16 +118,14 @@ if __name__ == '__main__':
     steps = 0
 
     while True:
-        # action = np.random.randn(3) * 5
-        action = np.array([0] * 3)
+        action = np.random.randn(3) * 5
+        # action = np.array([0] * 3)
         observation, reward, done, info = env.step(action)
         env.render()
         gamma *= env.info.gamma
         J += gamma * reward
         R += reward
         steps += 1
-        #print(observation)
-        #print(env.info.observation_space.low)
         if done or steps > env.info.horizon:
             print("J: ", J, " R: ", R)
             R = 0.

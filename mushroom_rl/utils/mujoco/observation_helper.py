@@ -8,7 +8,14 @@ class ObservationType(Enum):
     """
     An enum indicating the type of data that should be added to the observation
     of the environment, can be Joint-/Body-/Site- positions, rotations, and velocities.
-
+    The Observation have the following returns:
+        BODY_POS: (3,) x, y, z position of the body
+        BODY_POS: (4,) quaternion of the body
+        BODY_VEL: (6,) first angular velocity around x, y, z. Then linear velocity for x, y, z
+        JOINT_POS: (1,) rotation of the joint OR (7,) position, quaternion of a free joint
+        JOINT_VEL: (1,) velocity of the joint OR (6,) FIRST linear then angular velocity !different to BODY_VEL!
+        SITE_POS: (3,) x, y, z position of the body
+        SITE_ROT: (9,) rotation matrix of the site
     """
     __order__ = "BODY_POS BODY_ROT BODY_VEL JOINT_POS JOINT_VEL SITE_POS SITE_ROT"
     BODY_POS = 0
@@ -123,6 +130,14 @@ class ObservationHelper:
         return self.obs_low[self.joint_vel_idx], self.obs_high[self.joint_vel_idx]
 
     def build_obs(self, data):
+        """
+        Builds the observation given the true state of the simulation. The ObservationType documentation
+        describes the different returns in detail
+        Args:
+            data: The data of the mujoco sim
+
+        Returns: np.array with all the observations defined by observation_spec
+        """
         observations = []
         for key, name, o_type in self.observation_spec:
             omit = np.array(self.build_omit_idx[key])
@@ -133,6 +148,10 @@ class ObservationHelper:
         return np.concatenate(observations)
 
     def get_state(self, data, name, o_type):
+        """
+        Get a single observation from data, given it's name and observation type. The ObservationType documentation
+        describes the different returns in detail
+        """
         if o_type == ObservationType.BODY_POS:
             obs = data.body(name).xpos
         elif o_type == ObservationType.BODY_ROT:
