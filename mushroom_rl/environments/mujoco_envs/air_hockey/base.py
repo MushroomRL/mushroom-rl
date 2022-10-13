@@ -80,8 +80,9 @@ class AirHockeyBase(MuJoCo):
         agent_spec = dict()
         agent_spec['name'] = "planar_robot_1"
         agent_spec.update({'link_length': [0.5, 0.4, 0.4]})
-        agent_spec['frame'] = np.eye(4)
+        agent_spec["xml"] = robot_file
 
+        agent_spec['frame'] = np.eye(4)
         temp = np.zeros((9, 1))
         mujoco.mju_quat2Mat(temp, self._model.body("planar_robot_1/base").quat)
         agent_spec['frame'][:3, :3] = temp.reshape(3, 3)
@@ -92,8 +93,9 @@ class AirHockeyBase(MuJoCo):
             agent_spec = dict()
             agent_spec['name'] = "planar_robot_2"
             agent_spec.update({'link_length': [0.5, 0.4, 0.4]})
-            agent_spec['frame'] = np.eye(4)
+            agent_spec["xml"] = robot_file
 
+            agent_spec['frame'] = np.eye(4)
             temp = np.zeros((9, 1))
             mujoco.mju_quat2Mat(temp, self._model.body("planar_robot_2/base").quat)
             agent_spec['frame'][:3, :3] = temp.reshape(3, 3)
