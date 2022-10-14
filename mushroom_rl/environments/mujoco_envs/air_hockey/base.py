@@ -33,12 +33,12 @@ class AirHockeyBase(MuJoCo):
                                       "single.xml")
 
             action_spec += ["planar_robot_1/joint_1", "planar_robot_1/joint_2", "planar_robot_1/joint_3"]
-            observation_spec += [("robot_1/joint_1", "planar_robot_1/joint_1", ObservationType.JOINT_POS),
-                                 ("robot_1/joint_2", "planar_robot_1/joint_2", ObservationType.JOINT_POS),
-                                 ("robot_1/joint_3", "planar_robot_1/joint_3", ObservationType.JOINT_POS),
-                                 ("robot_1/joint_4", "planar_robot_1/joint_1", ObservationType.JOINT_VEL),
-                                 ("robot_1/joint_5", "planar_robot_1/joint_2", ObservationType.JOINT_VEL),
-                                 ("robot_1/joint_6", "planar_robot_1/joint_3", ObservationType.JOINT_VEL)]
+            observation_spec += [("robot_1/joint_1_pos", "planar_robot_1/joint_1", ObservationType.JOINT_POS),
+                                 ("robot_1/joint_2_pos", "planar_robot_1/joint_2", ObservationType.JOINT_POS),
+                                 ("robot_1/joint_3_pos", "planar_robot_1/joint_3", ObservationType.JOINT_POS),
+                                 ("robot_1/joint_1_vel", "planar_robot_1/joint_1", ObservationType.JOINT_VEL),
+                                 ("robot_1/joint_2_vel", "planar_robot_1/joint_2", ObservationType.JOINT_VEL),
+                                 ("robot_1/joint_3_vel", "planar_robot_1/joint_3", ObservationType.JOINT_VEL)]
 
             additional_data += [("robot_1/ee_pos", "planar_robot_1/body_ee", ObservationType.BODY_POS),
                                 ("robot_1/ee_vel", "planar_robot_1/body_ee", ObservationType.BODY_VEL)]
@@ -53,12 +53,12 @@ class AirHockeyBase(MuJoCo):
                 # Add puck pos/vel again to transform into second agents frame
                 observation_spec += [("robot_2/puck_pos", "puck", ObservationType.BODY_POS),
                                      ("robot_2/puck_vel", "puck", ObservationType.BODY_VEL),
-                                     ("robot_2/joint_1", "planar_robot_2/joint_1", ObservationType.JOINT_POS),
-                                     ("robot_2/joint_2", "planar_robot_2/joint_2", ObservationType.JOINT_POS),
-                                     ("robot_2/joint_3", "planar_robot_2/joint_3", ObservationType.JOINT_POS),
-                                     ("robot_2/joint_4", "planar_robot_2/joint_1", ObservationType.JOINT_VEL),
-                                     ("robot_2/joint_5", "planar_robot_2/joint_2", ObservationType.JOINT_VEL),
-                                     ("robot_2/joint_6", "planar_robot_2/joint_3", ObservationType.JOINT_VEL)]
+                                     ("robot_2/joint_1_pos", "planar_robot_2/joint_1", ObservationType.JOINT_POS),
+                                     ("robot_2/joint_2_pos", "planar_robot_2/joint_2", ObservationType.JOINT_POS),
+                                     ("robot_2/joint_3_pos", "planar_robot_2/joint_3", ObservationType.JOINT_POS),
+                                     ("robot_2/joint_1_vel", "planar_robot_2/joint_1", ObservationType.JOINT_VEL),
+                                     ("robot_2/joint_2_vel", "planar_robot_2/joint_2", ObservationType.JOINT_VEL),
+                                     ("robot_2/joint_3_vel", "planar_robot_2/joint_3", ObservationType.JOINT_VEL)]
 
                 additional_data += [("robot_2/ee_pos", "planar_robot_2/body_ee", ObservationType.BODY_POS),
                                     ("robot_2/ee_vel", "planar_robot_2/body_ee", ObservationType.BODY_VEL)]
