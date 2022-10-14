@@ -1,0 +1,221 @@
+<?xml version="1.0"?>
+<robot name="planar_robot_1">
+  <link name="world"/>
+
+  <joint name="planar_robot_1/base_joint" type="fixed">
+    <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+    <parent link="world"/>
+    <child link="planar_robot_1/base_link"/>
+  </joint>
+
+  <link name="planar_robot_1/base_link">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <mass value="1"/>
+      <inertia ixx="0.05" ixy="0" ixz="0" iyy="0.018" iyz="0" izz="0.044"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <cylinder radius="0.075" length="0.4"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.075" length="0.4"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="planar_robot_1/joint_1" type="revolute">
+    <axis xyz="0 0 1"/>
+    <parent link="planar_robot_1/base_link"/>
+    <child link="planar_robot_1/link_1"/>
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <limit effort="40.0" lower="-2.9670597283903604" upper="2.9670597283903604" velocity="2.35619449019"/>
+  </joint>
+
+  <link name="planar_robot_1/link_1">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.25 0.0 0.0"/>
+      <mass value="3"/>
+      <inertia ixx="0.064375" ixy="0" ixz="0" iyy="0.064375" iyz="0" izz="0.00375"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 1.57079632679 0" xyz="0.25 0.0 0.0"/>
+      <geometry>
+        <cylinder radius="0.04" length="0.5"/>
+      </geometry>
+      <material name="red">
+        <color rgba="0.8 0 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 1.57079632679 0" xyz="0.25 0.0 0.0"/>
+      <geometry>
+        <cylinder radius="0.04" length="0.5"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="planar_robot_1/joint_2" type="revolute">
+    <axis xyz="0 0 1"/>
+    <parent link="planar_robot_1/link_1"/>
+    <child link="planar_robot_1/link_2"/>
+    <origin xyz="0.5 0 0"/>
+    <limit effort="15.0" lower="-2.0943951023931953" upper="2.0943951023931953" velocity="2.35619449019"/>
+  </joint>
+
+  <link name="planar_robot_1/link_2">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.2 0.0 0.0"/>
+      <mass value="2.4"/>
+      <inertia ixx="0.0335" ixy="0" ixz="0" iyy="0.0335" iyz="0" izz="0.003"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <cylinder radius="0.04" length="0.4"/>
+      </geometry>
+      <origin rpy="0.0 1.57079632679 0" xyz="0.2 0.0 0.0"/>
+      <material name="green">
+        <color rgba="0 0.8 0.0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.04" length="0.4"/>
+      </geometry>
+       <origin rpy="0 1.57079632679 0" xyz="0.2 0.0 0.0"/>
+    </collision>
+  </link>
+
+  <joint name="planar_robot_1/joint_3" type="revolute">
+    <axis xyz="0 0 1"/>
+    <parent link="planar_robot_1/link_2"/>
+    <child link="planar_robot_1/link_3"/>
+    <origin xyz="0.4 0 0"/>
+    <limit effort="2.0" lower="-2.0943951023931953" upper="2.0943951023931953" velocity="2.35619449019"/>
+  </joint>
+
+  <link name="planar_robot_1/link_3">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.2 0.0 0.0"/>
+      <mass value="2.4"/>
+      <inertia ixx="0.0335" ixy="0" ixz="0" iyy="0.0335" iyz="0" izz="0.003"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <cylinder radius="0.04" length="0.4"/>
+      </geometry>
+      <origin rpy="0 1.57079632679 0" xyz="0.2 0 0"/>
+      <material name="blue">
+        <color rgba="0 0 .8 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.04" length="0.4"/>
+      </geometry>
+      <origin rpy="0 1.57079632679 0" xyz="0.2 0.0 0.0"/>
+    </collision>
+  </link>
+
+  <joint name="planar_robot_1/joint_striker" type="fixed">
+      <axis xyz="1 0 0"/>
+      <parent link="planar_robot_1/link_3"/>
+      <child link="planar_robot_1/link_striker_hand"/>
+      <origin xyz="0.4 0 0.0"/>
+  </joint>
+
+  <link name="planar_robot_1/link_striker_hand">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <mass value="0.1"/>
+      <inertia ixx="0.0008" ixy="0" ixz="0" iyy="0.0023" iyz="0" izz="0.0023"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <cylinder radius="0.01" length="0.189"/>
+      </geometry>
+      <origin rpy="0 0 0" xyz="0.0 0 -0.0945"/>
+      <material name="grey">
+        <color rgba="0.8 0.8 .8 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.01" length="0.189"/>
+      </geometry>
+      <origin rpy="0 0 0" xyz="0.0 0 -0.0945"/>
+      <surface>
+        <bounce>
+          <restitution_coefficient>0.8</restitution_coefficient>
+        </bounce>
+        <contact>
+          <ode>
+            <soft_cfm>0.1</soft_cfm>
+            <soft_erp>0.1</soft_erp>
+            <max_vel>1</max_vel>
+          </ode>
+        </contact>
+      </surface>
+    </collision>
+    <contact>
+      <restitution value="1.0"/>
+      <lateral_friction value="1.0"/>
+      <rolling_friction value="0.0"/>
+      <spinning_friction value="0.0"/>
+    </contact>
+  </link>
+
+  <joint name="planar_robot_1/joint_striker_ee" type="fixed">
+      <axis xyz="1 0 0"/>
+      <parent link="planar_robot_1/link_striker_hand"/>
+      <child link="planar_robot_1/link_striker_ee"/>
+      <origin xyz="0.0 0 -0.189"/>
+  </joint>
+
+  <link name="planar_robot_1/link_striker_ee">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.01"/>
+      <mass value="0.1"/>
+      <inertia ixx="0.0008" ixy="0" ixz="0" iyy="0.0023" iyz="0" izz="0.0023"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <cylinder radius="0.05" length="0.02"/>
+      </geometry>
+      <origin rpy="0 0 0" xyz="0.0 0 0.01"/>
+      <material name="grey">
+        <color rgba="0.8 0.8 .8 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.05" length="0.1"/>
+      </geometry>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.01"/>
+      <surface>
+        <bounce>
+          <restitution_coefficient>0.8</restitution_coefficient>
+        </bounce>
+        <contact>
+          <ode>
+            <soft_cfm>0.1</soft_cfm>
+            <soft_erp>0.1</soft_erp>
+            <max_vel>1</max_vel>
+          </ode>
+        </contact>
+      </surface>
+    </collision>
+    <contact>
+      <restitution value="1.0"/>
+      <lateral_friction value="1.0"/>
+      <rolling_friction value="0.0"/>
+      <spinning_friction value="0.0"/>
+    </contact>
+  </link>
+
+</robot>
