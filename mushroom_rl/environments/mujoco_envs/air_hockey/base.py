@@ -29,7 +29,7 @@ class AirHockeyBase(MuJoCo):
                           ("rim_short_sides", ["rim_home_l", "rim_home_r", "rim_away_l", "rim_away_r"])]
 
         if 1 <= self.n_agents <= 2:
-            robot_file = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey",
+            scene = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey",
                                       "single.xml")
 
             action_spec += ["planar_robot_1/joint_1", "planar_robot_1/joint_2", "planar_robot_1/joint_3"]
@@ -46,7 +46,7 @@ class AirHockeyBase(MuJoCo):
             collision_spec += [("robot_1/ee", ["planar_robot_1/ee"])]
 
             if self.n_agents == 2:
-                robot_file = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey",
+                scene = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey",
                                           "double.xml")
 
                 action_spec += ["planar_robot_2/joint_1", "planar_robot_2/joint_2", "planar_robot_2/joint_3"]
@@ -67,10 +67,12 @@ class AirHockeyBase(MuJoCo):
         else:
             raise ValueError('n_agents should be 1 or 2')
 
-        print(robot_file)
-
-        super(AirHockeyBase, self).__init__(robot_file, action_spec, observation_spec, gamma, horizon, timestep,
+        super(AirHockeyBase, self).__init__(scene, action_spec, observation_spec, gamma, horizon, timestep,
                                             n_intermediate_steps, additional_data, collision_spec)
+
+        # URDF fot pinoccio
+        robot_urdf = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey",
+                                  "planar_robot.urdf")
 
         self.env_spec = dict()
         self.env_spec['table'] = {"length": 1.96, "width": 1.02, "height": -0.189, "goal": 0.25}
@@ -80,7 +82,7 @@ class AirHockeyBase(MuJoCo):
         agent_spec = dict()
         agent_spec['name'] = "planar_robot_1"
         agent_spec.update({'link_length': [0.5, 0.4, 0.4]})
-        agent_spec["xml"] = robot_file
+        agent_spec["urdf"] = robot_urdf
 
         agent_spec['frame'] = np.eye(4)
         temp = np.zeros((9, 1))
@@ -93,7 +95,7 @@ class AirHockeyBase(MuJoCo):
             agent_spec = dict()
             agent_spec['name'] = "planar_robot_2"
             agent_spec.update({'link_length': [0.5, 0.4, 0.4]})
-            agent_spec["xml"] = robot_file
+            agent_spec["urdf"] = robot_urdf
 
             agent_spec['frame'] = np.eye(4)
             temp = np.zeros((9, 1))

@@ -47,10 +47,10 @@ class AirHockeyDouble(AirHockeyBase):
         puck_ang_vel = self.obs_helper.get_from_obs(obs, "puck_vel")[0]
         return puck_pos, puck_lin_vel, puck_ang_vel
 
-    def get_ee(self):
-        ee_pos = self._read_data("planar_robot_1/ee_pos")
+    def get_ee(self, robot=1):
+        ee_pos = self._read_data("planar_robot_" + str(robot) + "/ee_pos")
 
-        ee_vel = self._read_data("planar_robot_1/ee_vel")
+        ee_vel = self._read_data("planar_robot_" + str(robot) + "/ee_vel")
 
         return ee_pos, ee_vel
 
