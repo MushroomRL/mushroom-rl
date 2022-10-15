@@ -32,8 +32,7 @@ class MuJoCo(Environment):
             timestep (float, 0.00416666666): The timestep used by the MuJoCo
                 simulator;
             n_intermediate_steps (int): The number of steps between every action
-                taken by the agent. Similar to n_substeps but allows the user
-                to modify, control and access intermediate states.
+                taken by the agent.
             additional_data_spec (list): A list containing the data fields of
                 interest, which should be read from or written to during
                 simulation. The entries are given as the following tuples:

@@ -40,14 +40,14 @@ extras = {
     'atari': ['ale-py', 'Pillow', 'opencv-python'],
     'box2d': ['box2d-py~=2.3.5'],
     'bullet': ['pybullet'],
-    'mujoco': ['mujoco_py'],
+    'mujoco': ['mujoco'],
     'plots': ['pyqtgraph'],
     'minigrid': ['gym-minigrid']
 }
 
 all_deps = []
 for group_name in extras:
-    if group_name not in ['mujoco', 'plots']:
+    if group_name not in ['mujoco', 'bullet' 'plots']:
         all_deps += extras[group_name]
 extras['all'] = all_deps
 

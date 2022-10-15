@@ -163,11 +163,11 @@ class ObservationHelper:
         elif o_type == ObservationType.JOINT_VEL:
             obs = data.joint(name).qvel
         elif o_type == ObservationType.SITE_POS:
-            obs = data.site(name).site_xpos
+            obs = data.site(name).xpos
         elif o_type == ObservationType.SITE_ROT:
             # Sites don't have rotation quaternion for some reason...
             # x_mat is rotation matrix with shape (9,)
-            obs = data.site(name).site_xmat
+            obs = data.site(name).xmat
         else:
             raise ValueError('Invalid observation type')
 

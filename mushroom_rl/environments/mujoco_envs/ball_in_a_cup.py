@@ -2,6 +2,8 @@ from mushroom_rl.environments.mujoco import MuJoCo, ObservationType
 import numpy as np
 from pathlib import Path
 
+import mujoco
+
 
 class BallInACup(MuJoCo):
     """
@@ -48,14 +50,14 @@ class BallInACup(MuJoCo):
                                        "forearm_link_convex_decomposition_p1_geom",
                                        "forearm_link_convex_decomposition_p2_geom"])]
 
-        super().__init__(xml_path, action_spec, observation_spec, 0.9999, 2000, n_substeps=4,
+        super().__init__(xml_path, action_spec, observation_spec, 0.9999, 2000, n_intermediate_steps=4,
                          additional_data_spec=additional_data_spec, collision_groups=collision_groups)
 
         self.init_robot_pos = np.array([0.0, 0.58760536, 0.0, 1.36004913, 0.0, -0.32072943, -1.57])
         self.p_gains = np.array([200, 300, 100, 100, 10, 10, 2.5])
         self.d_gains = np.array([7, 15, 5, 2.5, 0.3, 0.3, 0.05])
 
-    def reward(self, state, action, next_state):
+    def reward(self, cur_obs, action, obs, absorbing):
         dist = self._read_data("goal_pos") - self._read_data("ball_pos")
         return 1. if np.linalg.norm(dist) < 0.05 else 0.
 
@@ -65,39 +67,39 @@ class BallInACup(MuJoCo):
 
     def setup(self):
         # Copy the initial position after the reset
-        init_pos = self._sim.data.qpos.copy()
+        init_pos = self._data.qpos.copy()
         init_vel = np.zeros_like(init_pos)
 
         # Reset the system and the set the intial robot position
-        self._sim.data.qpos[:] = init_pos
-        self._sim.data.qvel[:] = init_vel
-        self._sim.data.qpos[0:7] = self.init_robot_pos
+        self._data.qpos[:] = init_pos
+        self._data.qvel[:] = init_vel
+        self._data.qpos[0:7] = self.init_robot_pos
 
         # Do one simulation step to compute the new position of the goal_site
-        self._sim.step()
+        mujoco.mj_step(self._model, self._data)
 
-        self._sim.data.qpos[:] = init_pos
-        self._sim.data.qvel[:] = init_vel
-        self._sim.data.qpos[0:7] = self.init_robot_pos
+        self._data.qpos[:] = init_pos
+        self._data.qvel[:] = init_vel
+        self._data.qpos[0:7] = self.init_robot_pos
         self._write_data("ball_pos", self._read_data("goal_pos") - np.array([0., 0., 0.329]))
 
         # Stabilize the system around the initial position using a PD-Controller
         for i in range(0, 500):
-            self._sim.data.qpos[7:] = 0.
-            self._sim.data.qvel[7:] = 0.
-            self._sim.data.qpos[7] = -0.2
-            cur_pos = self._sim.data.qpos[0:7].copy()
-            cur_vel = self._sim.data.qvel[0:7].copy()
+            self._data.qpos[7:] = 0.
+            self._data.qvel[7:] = 0.
+            self._data.qpos[7] = -0.2
+            cur_pos = self._data.qpos[0:7].copy()
+            cur_vel = self._data.qvel[0:7].copy()
             trq = self.p_gains * (self.init_robot_pos - cur_pos) + self.d_gains * (
                     np.zeros_like(self.init_robot_pos) - cur_vel)
-            self._sim.data.qfrc_applied[0:7] = trq
-            self._sim.step()
+            self._data.qfrc_applied[0:7] = trq
+            mujoco.mj_step(self._model, self._data)
 
         # Now simulate for more time-steps without resetting the position of the first link of the rope
         for i in range(0, 500):
-            cur_pos = self._sim.data.qpos[0:7].copy()
-            cur_vel = self._sim.data.qvel[0:7].copy()
+            cur_pos = self._data.qpos[0:7].copy()
+            cur_vel = self._data.qvel[0:7].copy()
             trq = self.p_gains * (self.init_robot_pos - cur_pos) + self.d_gains * (
                     np.zeros_like(self.init_robot_pos) - cur_vel)
-            self._sim.data.qfrc_applied[0:7] = trq
-            self._sim.step()
+            self._data.qfrc_applied[0:7] = trq
+            mujoco.mj_step(self._model, self._data)
