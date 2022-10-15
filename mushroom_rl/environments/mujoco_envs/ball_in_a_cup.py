@@ -18,22 +18,22 @@ class BallInACup(MuJoCo):
                        "act/wam/elbow_pitch_joint", "act/wam/wrist_yaw_joint", "act/wam/wrist_pitch_joint",
                        "act/wam/palm_yaw_joint"]
 
-        observation_spec = [("wam/base_yaw_joint", ObservationType.JOINT_POS),
-                            ("wam/base_yaw_joint", ObservationType.JOINT_VEL),
-                            ("wam/shoulder_pitch_joint", ObservationType.JOINT_POS),
-                            ("wam/shoulder_pitch_joint", ObservationType.JOINT_VEL),
-                            ("wam/shoulder_yaw_joint", ObservationType.JOINT_POS),
-                            ("wam/shoulder_yaw_joint", ObservationType.JOINT_VEL),
-                            ("wam/elbow_pitch_joint", ObservationType.JOINT_POS),
-                            ("wam/elbow_pitch_joint", ObservationType.JOINT_VEL),
-                            ("wam/wrist_yaw_joint", ObservationType.JOINT_POS),
-                            ("wam/wrist_yaw_joint", ObservationType.JOINT_VEL),
-                            ("wam/wrist_pitch_joint", ObservationType.JOINT_POS),
-                            ("wam/wrist_pitch_joint", ObservationType.JOINT_VEL),
-                            ("wam/palm_yaw_joint", ObservationType.JOINT_POS),
-                            ("wam/palm_yaw_joint", ObservationType.JOINT_VEL),
-                            ("ball", ObservationType.BODY_POS),
-                            ("ball", ObservationType.BODY_VEL)]
+        observation_spec = [("base_yaw_pos", "wam/base_yaw_joint", ObservationType.JOINT_POS),
+                            ("base_yaw_vel", "wam/base_yaw_joint", ObservationType.JOINT_VEL),
+                            ("shoulder_pitch_pos", "wam/shoulder_pitch_joint", ObservationType.JOINT_POS),
+                            ("shoulder_pitch_vel", "wam/shoulder_pitch_joint", ObservationType.JOINT_VEL),
+                            ("shoulder_yaw_pos", "wam/shoulder_yaw_joint", ObservationType.JOINT_POS),
+                            ("shoulder_yaw_vel", "wam/shoulder_yaw_joint", ObservationType.JOINT_VEL),
+                            ("elbow_pitch_pos", "wam/elbow_pitch_joint", ObservationType.JOINT_POS),
+                            ("elbow_pitch_vel", "wam/elbow_pitch_joint", ObservationType.JOINT_VEL),
+                            ("wrist_yaw_pos", "wam/wrist_yaw_joint", ObservationType.JOINT_POS),
+                            ("wrist_yaw_vel", "wam/wrist_yaw_joint", ObservationType.JOINT_VEL),
+                            ("wrist_pitch_pos", "wam/wrist_pitch_joint", ObservationType.JOINT_POS),
+                            ("wrist_pitch_vel", "wam/wrist_pitch_joint", ObservationType.JOINT_VEL),
+                            ("palm_yaw_pos", "wam/palm_yaw_joint", ObservationType.JOINT_POS),
+                            ("palm_yaw_vel", "wam/palm_yaw_joint", ObservationType.JOINT_VEL),
+                            ("ball_pos", "ball", ObservationType.BODY_POS),
+                            ("ball_vel", "ball", ObservationType.BODY_VEL)]
 
         additional_data_spec = [("ball_pos", "ball", ObservationType.BODY_POS),
                                 ("goal_pos", "cup_goal_final", ObservationType.SITE_POS)]
