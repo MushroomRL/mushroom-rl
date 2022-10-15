@@ -1,0 +1,52 @@
+<mujoco model="planar_robot_1">
+    <compiler autolimits="true" angle="radian"/>
+    <asset>
+        <material name="dark_red" rgba="0.58 0.03 0.25 1"/>
+        <material name="black" rgba="0.1 0.1 0.11 1"/>
+    </asset>
+
+    <default>
+        <default class="visual">
+            <geom contype="0" conaffinity="0"/>
+        </default>
+    </default>
+
+    <worldbody>
+        <body name="planar_robot_1/base" pos="-1.51 0 -0.1">
+            <geom type="cylinder" material="black" size="0.075 0.2" pos="0 0 0.2" class="visual"/>
+            <inertial pos="0 0 0" mass="1" diaginertia="0.05 0.018 0.044"/>
+            <body name="planar_robot_1/body_1" pos="0 0 0.25">
+                <joint name="planar_robot_1/joint_1" axis="0 0 1" range="-2.9670597283903604 2.9670597283903604"/>
+                <inertial pos="0.25 0 0" mass="3" diaginertia="0.064375 0.064375 0.00375"/>
+                <geom type="cylinder" material="dark_red" size="0.04 0.25" euler="0 1.57079632679 0" pos="0.25 0 0"/>
+                <body name="planar_robot_1/body_2" pos="0.5 0 0" >
+                    <joint name="planar_robot_1/joint_2" axis="0 0 1" range="-2.0943951023931953 2.0943951023931953"/>
+                    <inertial pos="0.2 0 0" mass="2" diaginertia="0.0335 0.0335 0.003"/>
+                    <geom type="cylinder" material="dark_red" size="0.04 0.2" euler="0 1.57079632679 0" pos="0.2 0 0"/>
+                    <geom type="sphere" material="dark_red" size="0.05"/>
+                    <body name="planar_robot_1/body_3" pos="0.4 0 0" >
+                        <joint name="planar_robot_1/joint_3" axis="0 0 1" range="-2.0943951023931953 2.0943951023931953"/>
+                        <inertial pos="0.2 0 0" mass="2" diaginertia="0.0335 0.0335 0.003"/>
+                        <geom type="cylinder" material="dark_red" size="0.04 0.2" euler="0 1.57079632679 0" pos="0.2 0 0"/>
+                        <geom type="sphere" material="dark_red" size="0.05"/>
+                        <body name="planar_robot_1/body_hand" pos="0.4 0 0">
+                            <inertial pos="0 0 0" mass="0.1" diaginertia="0.0008 0.0023 0.0023"/>
+                            <geom type="sphere" material="dark_red" size="0.05"/>
+                            <geom type="cylinder" material="black" size="0.01 0.075" pos="0 0 -0.075"/>
+                            <body name="planar_robot_1/body_ee" pos="0 0 -0.15">
+                                <inertial pos="0 0 0" mass="0.1" diaginertia="0.0008 0.0023 0.0023"/>
+                                <geom name="planar_robot_1/ee" type="cylinder" material="black" size="0.05 0.01" pos="0 0 0.01" friction="0 0 0"/>
+                            </body>
+                        </body>
+                    </body>
+                </body>
+            </body>
+        </body>
+    </worldbody>
+
+    <actuator>
+        <motor name="planar_robot_1/joint_1" joint="planar_robot_1/joint_1" ctrlrange="-40 40"/>
+        <motor name="planar_robot_1/joint_2" joint="planar_robot_1/joint_2" ctrlrange="-15 15"/>
+        <motor name="planar_robot_1/joint_3" joint="planar_robot_1/joint_3" ctrlrange="-5 5"/>
+    </actuator>
+</mujoco>

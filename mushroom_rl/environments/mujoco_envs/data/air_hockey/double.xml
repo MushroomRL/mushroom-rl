@@ -1,0 +1,39 @@
+<mujoco model="AirHockeySingle">
+
+    <include file="table.xml"/>
+
+    <include file="planar_robot_1.xml"/>
+
+    <include file="planar_robot_2.xml"/>
+
+    <asset>
+        <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512"
+            height="3072"/>
+        <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4"
+            rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300"/>
+        <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5"
+            reflectance="0"/>
+    </asset>
+
+    <contact>
+        <exclude body1="planar_robot_1/body_ee" body2="table"/>
+        <exclude body1="planar_robot_1/body_hand" body2="table"/>
+        <exclude body1="planar_robot_1/body_3" body2="table"/>
+        <exclude body1="planar_robot_1/body_2" body2="table"/>
+        <exclude body1="planar_robot_1/body_1" body2="table"/>
+        <exclude body1="planar_robot_1/base" body2="table"/>
+
+        <exclude body1="planar_robot_2/body_ee" body2="table"/>
+        <exclude body1="planar_robot_2/body_hand" body2="table"/>
+        <exclude body1="planar_robot_2/body_3" body2="table"/>
+        <exclude body1="planar_robot_2/body_2" body2="table"/>
+        <exclude body1="planar_robot_2/body_1" body2="table"/>
+        <exclude body1="planar_robot_2/base" body2="table"/>
+    </contact>
+
+    <worldbody>
+        <light pos="0 0 3" dir="0 0 -1" directional="true"/>
+        <geom pos="0 0 -0.1" name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
+    </worldbody>
+
+</mujoco>

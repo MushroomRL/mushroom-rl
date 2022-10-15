@@ -24,8 +24,9 @@ class MuJoCo(Environment):
                 when all actuators should be used;
             observation_spec (list): A list containing the names of data that
                 should be made available to the agent as an observation and
-                their type (ObservationType). An entry in the list is given by:
-                (name, type);
+                their type (ObservationType). They are combined with a key,
+                 with which the data can be accessed. An entry in the list
+                 is given by: (key, name, type);
             gamma (float): The discounting factor of the environment;
             horizon (int): The maximum horizon for the environment;
             timestep (float, 0.00416666666): The timestep used by the MuJoCo
@@ -50,10 +51,10 @@ class MuJoCo(Environment):
                 See MujocoGlfwViewer documentation for the available options.
         """
         # Create the simulation
-        self.model = mujoco.MjModel.from_xml_path(file_name)
-        self.model.opt.timestep = timestep
+        self._model = mujoco.MjModel.from_xml_path(file_name)
+        self._model.opt.timestep = timestep
 
-        self.data = mujoco.MjData(self.model)
+        self._data = mujoco.MjData(self._model)
 
         self._n_intermediate_steps = n_intermediate_steps
         self._timestep = timestep
@@ -64,19 +65,19 @@ class MuJoCo(Environment):
         # Read the actuation spec and build the mapping between actions and ids
         # as well as their limits
         if len(actuation_spec) == 0:
-            self._action_indices = [i for i in range(0, len(self.data.actuator_force))]
+            self._action_indices = [i for i in range(0, len(self._data.actuator_force))]
         else:
             self._action_indices = []
             for name in actuation_spec:
-                self._action_indices.append(mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_ACTUATOR, name))
+                self._action_indices.append(mujoco.mj_name2id(self._model, mujoco.mjtObj.mjOBJ_ACTUATOR, name))
                 # self._action_indices.append(self.model.actuator(name).id) Will work in future release of mujoco...
 
         low = []
         high = []
         for index in self._action_indices:
-            if self.model.actuator_ctrllimited[index]:
-                low.append(self.model.actuator_ctrlrange[index][0])
-                high.append(self.model.actuator_ctrlrange[index][1])
+            if self._model.actuator_ctrllimited[index]:
+                low.append(self._model.actuator_ctrlrange[index][0])
+                high.append(self._model.actuator_ctrlrange[index][1])
             else:
                 low.append(-np.inf)
                 high.append(np.inf)
@@ -84,7 +85,7 @@ class MuJoCo(Environment):
 
         # Read the observation spec to build a mapping at every step. It is
         # ensured that the values appear in the order they are specified.
-        self.obs_helper = ObservationHelper(observation_spec, self.model, self.data, max_joint_velocity=3)
+        self.obs_helper = ObservationHelper(observation_spec, self._model, self._data, max_joint_velocity=3)
 
         observation_space = Box(*self.obs_helper.get_obs_limits())
 
@@ -99,22 +100,26 @@ class MuJoCo(Environment):
         self.collision_groups = {}
         if collision_groups is not None:
             for name, geom_names in collision_groups:
-                self.collision_groups[name] = {mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, geom_name)
+                self.collision_groups[name] = {mujoco.mj_name2id(self._model, mujoco.mjtObj.mjOBJ_GEOM, geom_name)
                                                for geom_name in geom_names}
 
         # Finally, we create the MDP information and call the constructor of
         # the parent class
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+
+        mdp_info = self._modify_mdp_info(mdp_info)
+
         super().__init__(mdp_info)
 
     def seed(self, seed):
         np.random.seed(seed)
 
-    def reset(self, state=None):
-        mujoco.mj_resetData(self.model, self.data)
+    def reset(self, obs=None):
+        mujoco.mj_resetData(self._model, self._data)
         self.setup()
 
-        self._obs = self.obs_helper.build_obs(self.data)
+        obs = self._create_observation(self.obs_helper.build_obs(self._data))
+        self._obs = self._modify_observation(obs)
         return self._obs
 
     def step(self, action):
@@ -127,33 +132,77 @@ class MuJoCo(Environment):
         for i in range(self._n_intermediate_steps):
 
             ctrl_action = self._compute_action(cur_obs, action)
-            self.data.ctrl[self._action_indices] = ctrl_action
+            self._data.ctrl[self._action_indices] = ctrl_action
 
             self._simulation_pre_step()
 
-            mujoco.mj_step(self.model, self.data)
+            mujoco.mj_step(self._model, self._data)
 
             self._simulation_post_step()
 
-        self._obs = self._obs = self.obs_helper.build_obs(self.data)
+        obs = self._create_observation(self.obs_helper.build_obs(self._data))
 
         self._step_finalize()
 
-        reward = self.reward(cur_obs, action, self._obs)
+        absorbing = self.is_absorbing(obs)
+        reward = self.reward(cur_obs, action, obs, absorbing)
 
-        return self._obs, reward, self.is_absorbing(self._obs), {}
+        self._obs = self._modify_observation(obs)
+        return self._obs, reward, absorbing, {}
 
     def render(self):
         if self._viewer is None:
-            self._viewer = MujocoGlfwViewer(self.model, **self._viewer_params)
+            self._viewer = MujocoGlfwViewer(self._model, self.dt, **self._viewer_params)
 
-        self._viewer.render(self.data)
+        self._viewer.render(self._data)
 
     def stop(self):
         if self._viewer is not None:
-            v = self._viewer
+            del self._viewer
             self._viewer = None
-            del v
+
+    def _modify_mdp_info(self, mdp_info):
+        """
+        This method can be overridden to modify the automatically generated MDPInfo data structure.
+        By default, returns the given mdp_info structure unchanged.
+
+        Args:
+            mdp_info (MDPInfo): the MDPInfo structure automatically computed by the environment.
+
+        Returns:
+            The modified MDPInfo data structure.
+
+        """
+        return mdp_info
+
+    def _create_observation(self, obs):
+        """
+        This method can be overridden to create a custom observation. Should be used to append observation which have
+        been registered via obs_help.add_obs(self, name, o_type, length, min_value, max_value)
+
+        Args:
+            obs (np.ndarray): the generated observation
+
+        Returns:
+            The environment observation.
+
+        """
+        return obs
+
+    def _modify_observation(self, obs):
+        """
+        This method can be overridden to edit the created observation. This is done after the reward and absorbing
+        functions are evaluated. Especially useful to transform the observation into different frames. If the original
+        observation order is not preserved, the helper functions in ObervationHelper breaks.
+
+        Args:
+            obs (np.ndarray): the generated observation
+
+        Returns:
+            The environment observation.
+
+        """
+        return obs
 
     def _preprocess_action(self, action):
         """
@@ -169,19 +218,19 @@ class MuJoCo(Environment):
         """
         return action
 
-    def _step_init(self, state, action):
+    def _step_init(self, obs, action):
         """
         Allows information to be initialized at the start of a step.
         """
         pass
 
-    def _compute_action(self, state, action):
+    def _compute_action(self, obs, action):
         """
         Compute a transformation of the action at every intermediate step.
         Useful to add control signals simulated directly in python.
 
         Args:
-            state (np.ndarray): numpy array with the current state of teh simulation;
+            obs (np.ndarray): numpy array with the current state of teh simulation;
             action (np.ndarray): numpy array with the actions, provided at every step.
 
         Returns:
@@ -230,7 +279,7 @@ class MuJoCo(Environment):
 
         """
         data_id, otype = self.additional_data[name]
-        return np.array(self.obs_helper.get_state(self.data, data_id, otype))
+        return np.array(self.obs_helper.get_state(self._data, data_id, otype))
 
     def _write_data(self, name, value):
         """
@@ -245,11 +294,11 @@ class MuJoCo(Environment):
 
         data_id, otype = self.additional_data[name]
         if otype == ObservationType.JOINT_POS:
-            self.data.joint(data_id).qpos = value
+            self._data.joint(data_id).qpos = value
         elif otype == ObservationType.JOINT_VEL:
-            self.data.joint(data_id).qvel = value
+            self._data.joint(data_id).qvel = value
         else:
-            data_buffer = self.obs_helper.get_state(self.data, data_id, otype)
+            data_buffer = self.obs_helper.get_state(self._data, data_id, otype)
             data_buffer[:] = value
 
     def _check_collision(self, group1, group2):
@@ -271,8 +320,8 @@ class MuJoCo(Environment):
         ids1 = self.collision_groups[group1]
         ids2 = self.collision_groups[group2]
 
-        for coni in range(0, self.data.ncon):
-            con = self.data.contact[coni]
+        for coni in range(0, self._data.ncon):
+            con = self._data.contact[coni]
 
             collision = con.geom1 in ids1 and con.geom2 in ids2
             collision_trans = con.geom1 in ids2 and con.geom2 in ids1
@@ -303,27 +352,28 @@ class MuJoCo(Environment):
         ids2 = self.collision_groups[group2]
 
         c_array = np.zeros(6, dtype=np.float64)
-        for con_i in range(0, self.data.ncon):
-            con = self.data.contact[con_i]
+        for con_i in range(0, self._data.ncon):
+            con = self._data.contact[con_i]
 
             if (con.geom1 in ids1 and con.geom2 in ids2 or
                con.geom1 in ids2 and con.geom2 in ids1):
 
-                mujoco.mj_contactForce(self.model, self.data,
-                                                    con_i, c_array)
+                mujoco.mj_contactForce(self._model, self._data,
+                                       con_i, c_array)
                 return c_array
 
         return c_array
 
-    def reward(self, state, action, next_state):
+    def reward(self, obs, action, next_obs, absorbing):
         """
         Compute the reward based on the given transition.
 
         Args:
-            state (np.array): the current state of the system;
+            obs (np.array): the current state of the system;
             action (np.array): the action that is applied in the current state;
-            next_state (np.array): the state reached after applying the given
+            next_obs (np.array): the state reached after applying the given
                 action.
+            absorbing (bool): whether next_state is an absorbing state or not.
 
         Returns:
             The reward as a floating point scalar value.
@@ -331,12 +381,12 @@ class MuJoCo(Environment):
         """
         raise NotImplementedError
 
-    def is_absorbing(self, state):
+    def is_absorbing(self, obs):
         """
         Check whether the given state is an absorbing state or not.
 
         Args:
-            state (np.array): the state of the system.
+            obs (np.array): the state of the system.
 
         Returns:
             A boolean flag indicating whether this state is absorbing or not.

@@ -1,24 +1,31 @@
 import glfw
 import mujoco
+import time
 
 import numpy as np
 
 
 class MujocoGlfwViewer:
-    def __init__(self, model, width=1920, height=1080):
+    def __init__(self, model, dt, width=1920, height=1080):
         self.button_left = False
         self.button_right = False
         self.button_middle = False
         self.last_x = 0
         self.last_y = 0
+        self.dt = dt
 
+        self.frames = 0
+        self.start_time = time.time()
         glfw.init()
+
+        self._loop_count = 0
+        self._time_per_render = 1 / 60.
 
         self._window = glfw.create_window(width=width, height=height, title="MuJoCo", monitor=None, share=None)
         glfw.make_context_current(self._window)
 
         # Disable v_sync, so swap_buffers does not block
-        glfw.swap_interval(0)
+        # glfw.swap_interval(0)
 
         glfw.set_mouse_button_callback(self._window, self.mouse_button)
         glfw.set_cursor_pos_callback(self._window, self.mouse_move)
@@ -74,19 +81,33 @@ class MujocoGlfwViewer:
         mujoco.mjv_moveCamera(self._model, mujoco.mjtMouse.mjMOUSE_ZOOM, 0, 0.05 * y_offset, self._scene, self._camera)
 
     def render(self, data, return_img=False):
-        mujoco.mjv_updateScene(self._model, data, self._scene_option, None, self._camera, mujoco.mjtCatBit.mjCAT_ALL,
-                               self._scene)
 
-        self._viewport.width, self._viewport.height = glfw.get_window_size(self._window)
-        mujoco.mjr_render(self._viewport, self._scene, self._context)
+        def render_inner_loop(self):
+            render_start = time.time()
 
-        glfw.swap_buffers(self._window)
-        glfw.poll_events()
+            mujoco.mjv_updateScene(self._model, data, self._scene_option, None, self._camera, mujoco.mjtCatBit.mjCAT_ALL,
+                                   self._scene)
 
-        if glfw.window_should_close(self._window):
-            glfw.destroy_window(self._window)
-            exit()
+            self._viewport.width, self._viewport.height = glfw.get_window_size(self._window)
+            mujoco.mjr_render(self._viewport, self._scene, self._context)
 
-        if return_img:
-            mujoco.mjr_readPixels(self.rgb_buffer, None, self._viewport, self._context)
-            return self.rgb_buffer
+            glfw.swap_buffers(self._window)
+            glfw.poll_events()
+
+            self.frames += 1
+
+            if glfw.window_should_close(self._window):
+                glfw.destroy_window(self._window)
+                exit(0)
+
+            self._time_per_render = 0.9 * self._time_per_render + 0.1 * (time.time() - render_start)
+            """
+            if return_img:
+                mujoco.mjr_readPixels(self.rgb_buffer, None, self._viewport, self._context)
+                return self.rgb_buffer
+            """
+        self._loop_count += self.dt / self._time_per_render
+
+        while self._loop_count > 0:
+            render_inner_loop(self)
+            self._loop_count -= 1
