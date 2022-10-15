@@ -4,12 +4,6 @@ from os import path
 import sys
 import glob
 
-
-from setuptools import Extension
-from Cython.Build import cythonize
-from Cython.Distutils import build_ext
-import numpy
-
 from mushroom_rl import __version__
 
 
@@ -61,16 +55,8 @@ long_description = 'MushroomRL is a Python Reinforcement Learning (RL) library' 
                    ' (e.g. DQN, DDPG, SAC, TD3, TRPO, PPO). Full documentation' \
                    ' available at http://mushroomrl.readthedocs.io/en/latest/.'
 
-
-ext_modules = [Extension('mushroom_rl.environments.mujoco_envs.humanoid_gait.'
-                         '_external_simulation.muscle_simulation_stepupdate',
-                        ['mushroom_rl/environments/mujoco_envs/humanoid_gait/'
-                         '_external_simulation/muscle_simulation_stepupdate.pyx'],
-                         include_dirs=[numpy.get_include()])]
-
 mujoco_data_package = 'mushroom_rl.environments.mujoco_envs.data'
 pybullet_data_package = 'mushroom_rl.environments.pybullet_envs.data'
-external_simulation_package = 'mushroom_rl.environments.mujoco_envs.humanoid_gait._external_simulation'
 
 setup(
     name='mushroom-rl',
@@ -90,10 +76,8 @@ setup(
                  "License :: OSI Approved :: MIT License",
                  "Operating System :: OS Independent",
                  ],
-    cmdclass={'build_ext': build_ext},
     package_data={
         mujoco_data_package: glob_data_files(mujoco_data_package),
-        pybullet_data_package: glob_data_files(pybullet_data_package),
-        external_simulation_package: ["*.pyx"]},
-    ext_modules=cythonize(ext_modules)
+        pybullet_data_package: glob_data_files(pybullet_data_package)
+    }
 )
