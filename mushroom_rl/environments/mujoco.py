@@ -10,44 +10,45 @@ class MuJoCo(Environment):
     Class to create a Mushroom environment using the MuJoCo simulator.
 
     """
-    def __init__(self, file_name, actuation_spec, observation_spec, gamma,
-                 horizon, timestep=1 / 240., n_intermediate_steps=1, additional_data_spec=None,
-                 collision_groups=None, **viewer_params):
+
+    def __init__(self, file_name, actuation_spec, observation_spec, gamma,horizon, timestep=1/240.,
+                 n_intermediate_steps=1, additional_data_spec=None, collision_groups=None, **viewer_params):
         """
         Constructor.
 
         Args:
-            file_name (string): The path to the XML file with which the
+             file_name (string): The path to the XML file with which the
                 environment should be created;
-            actuation_spec (list): A list specifying the names of the joints
+             actuation_spec (list): A list specifying the names of the joints
                 which should be controllable by the agent. Can be left empty
                 when all actuators should be used;
-            observation_spec (list): A list containing the names of data that
+             observation_spec (list): A list containing the names of data that
                 should be made available to the agent as an observation and
                 their type (ObservationType). They are combined with a key,
-                 which is used to access the data. An entry in the list
-                 is given by: (key, name, type);
-            gamma (float): The discounting factor of the environment;
-            horizon (int): The maximum horizon for the environment;
-            timestep (float, 0.00416666666): The timestep used by the MuJoCo
+                which is used to access the data. An entry in the list
+                is given by: (key, name, type);
+             gamma (float): The discounting factor of the environment;
+             horizon (int): The maximum horizon for the environment;
+             timestep (float, 1/240): The timestep used by the MuJoCo
                 simulator;
-            n_intermediate_steps (int): The number of steps between every action
+             n_intermediate_steps (int): The number of steps between every action
                 taken by the agent.
-            additional_data_spec (list): A list containing the data fields of
+             additional_data_spec (list): A list containing the data fields of
                 interest, which should be read from or written to during
                 simulation. The entries are given as the following tuples:
                 (key, name, type) key is a string for later referencing in the
                 "read_data" and "write_data" methods. The name is the name of
                 the object in the XML specification and the type is the
                 ObservationType;
-            collision_groups (list): A list containing groups of geoms for
+             collision_groups (list): A list containing groups of geoms for
                 which collisions should be checked during simulation via
                 ``check_collision``. The entries are given as:
                 ``(key, geom_names)``, where key is a string for later
                 referencing in the "check_collision" method, and geom_names is
                 a list of geom names in the XML specification.
-            **viewer_params: other parameters to be passed to the viewer.
+             **viewer_params: other parameters to be passed to the viewer.
                 See MujocoGlfwViewer documentation for the available options.
+
         """
         # Create the simulation
         self._model = mujoco.MjModel.from_xml_path(file_name)
@@ -220,6 +221,7 @@ class MuJoCo(Environment):
     def _step_init(self, obs, action):
         """
         Allows information to be initialized at the start of a step.
+
         """
         pass
 
@@ -256,6 +258,7 @@ class MuJoCo(Environment):
         Allows information to be accesed at every intermediate step
             after taking a step in the mujoco simulation.
             Can be usefull to average forces over all intermediate steps.
+
         """
         pass
 

@@ -2,7 +2,7 @@ __all__ = []
 
 try:
     from .plot_item_buffer import PlotItemBuffer
-    __all__.append('PlotItemWBuffer')
+    __all__.append('PlotItemBuffer')
 
     from .databuffer import DataBuffer
     __all__.append('DataBuffer')
