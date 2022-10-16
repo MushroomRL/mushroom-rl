@@ -1,9 +1,9 @@
 import numpy as np
 
-from mushroom_rl.environments.pybullet_envs.air_hockey.single import AirHockeySingle, PyBulletObservationType
+from mushroom_rl.environments.pybullet_envs.air_hockey.single import AirHockeySingleBullet, PyBulletObservationType
 
 
-class AirHockeyPrepare(AirHockeySingle):
+class AirHockeyPrepareBullet(AirHockeySingleBullet):
     """
     Class for the air hockey preparation task.
     The agent tries to improve the puck position to y = 0.
@@ -182,15 +182,15 @@ class AirHockeyPrepare(AirHockeySingle):
                 self.has_bounce = True
 
     def _create_observation(self, state):
-        obs = super(AirHockeyPrepare, self)._create_observation(state)
+        obs = super(AirHockeyPrepareBullet, self)._create_observation(state)
         return np.append(obs, [self.has_hit])
 
 
 if __name__ == '__main__':
     import time
 
-    env = AirHockeyPrepare(debug_gui=True, obs_noise=False, obs_delay=False, n_intermediate_steps=4, random_init=True,
-                           init_state="bottom")
+    env = AirHockeyPrepareBullet(debug_gui=True, obs_noise=False, obs_delay=False, n_intermediate_steps=4, random_init=True,
+                                 init_state="bottom")
 
     R = 0.
     J = 0.

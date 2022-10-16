@@ -1,11 +1,11 @@
 try:
-    from mushroom_rl.environments import AirHockeyDefend, AirHockeyHit, AirHockeyPrepare, AirHockeyRepel
+    from mushroom_rl.environments import AirHockeyDefendBullet, AirHockeyHitBullet, AirHockeyPrepareBullet, AirHockeyRepelBullet
     import numpy as np
 
 
     def test_defend():
         obs = []
-        mdp = AirHockeyDefend()
+        mdp = AirHockeyDefendBullet()
         mdp.reset()
         action = np.array([1] * 3)
 
@@ -22,7 +22,7 @@ try:
 
     def test_hit():
         obs = []
-        mdp = AirHockeyHit()
+        mdp = AirHockeyHitBullet()
         mdp.reset()
         action = np.array([1] * 3)
 
@@ -39,7 +39,7 @@ try:
 
     def test_prepare():
         obs = []
-        mdp = AirHockeyPrepare()
+        mdp = AirHockeyPrepareBullet()
         mdp.reset()
         action = np.array([1] * 3)
 
@@ -56,7 +56,7 @@ try:
 
     def test_repel():
         obs = []
-        mdp = AirHockeyRepel()
+        mdp = AirHockeyRepelBullet()
         mdp.reset()
         action = np.array([1] * 3)
 

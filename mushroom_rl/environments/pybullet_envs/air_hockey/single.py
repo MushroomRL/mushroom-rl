@@ -2,10 +2,10 @@ import numpy as np
 import pybullet_utils.transformations as transformations
 from mushroom_rl.core import MDPInfo
 from mushroom_rl.utils.spaces import Box
-from mushroom_rl.environments.pybullet_envs.air_hockey.base import AirHockeyBase, PyBulletObservationType
+from mushroom_rl.environments.pybullet_envs.air_hockey.base import AirHockeyBaseBullet, PyBulletObservationType
 
 
-class AirHockeySingle(AirHockeyBase):
+class AirHockeySingleBullet(AirHockeyBaseBullet):
     """
     Base class for single agent air hockey tasks.
     """

@@ -9,7 +9,7 @@ from mushroom_rl.environments.pybullet import PyBullet, PyBulletObservationType
 from mushroom_rl.environments.pybullet_envs import __file__ as path_robots
 
 
-class AirHockeyBase(PyBullet):
+class AirHockeyBaseBullet(PyBullet):
     """
     Base class for air hockey environment.
     The environment is designed for 3 joints planar robot playing Air-Hockey
