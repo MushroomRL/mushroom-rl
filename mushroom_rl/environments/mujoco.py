@@ -25,7 +25,7 @@ class MuJoCo(Environment):
             observation_spec (list): A list containing the names of data that
                 should be made available to the agent as an observation and
                 their type (ObservationType). They are combined with a key,
-                 with which the data can be accessed. An entry in the list
+                 which is used to access the data. An entry in the list
                  is given by: (key, name, type);
             gamma (float): The discounting factor of the environment;
             horizon (int): The maximum horizon for the environment;
