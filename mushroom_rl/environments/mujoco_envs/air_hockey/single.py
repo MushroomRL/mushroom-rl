@@ -1,9 +1,7 @@
 import numpy as np
 
-from mushroom_rl.core import MDPInfo
 from mushroom_rl.utils.spaces import Box
 from mushroom_rl.environments.mujoco_envs.air_hockey import AirHockeyBase
-from mushroom_rl.utils.mujoco import ObservationType
 
 
 class AirHockeySingle(AirHockeyBase):

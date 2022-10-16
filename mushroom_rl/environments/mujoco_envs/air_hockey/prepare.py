@@ -2,6 +2,7 @@ import numpy as np
 
 from mushroom_rl.environments.mujoco_envs.air_hockey import AirHockeySingle
 
+
 class AirHockeyPrepare(AirHockeySingle):
     """
     Class for the air hockey preparation task.
