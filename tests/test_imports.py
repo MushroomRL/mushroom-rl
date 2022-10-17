@@ -27,7 +27,7 @@ def test_imports():
     import mushroom_rl.environments.generators
 
     try:
-        import mujoco_py
+        import mujoco
     except ImportError:
         pass
     else:

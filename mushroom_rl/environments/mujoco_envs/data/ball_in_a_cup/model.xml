@@ -154,7 +154,7 @@
     </worldbody>
 
     <equality>
-        <weld body1="B29" body2="ball" anchor="0 0 0" active="true" solref="-10000 -100"/>
+        <weld body1="B29" body2="ball" active="true" solref="-10000 -100"/>
     </equality>
 
 
