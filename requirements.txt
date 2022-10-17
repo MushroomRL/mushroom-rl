@@ -9,4 +9,3 @@ pygame
 opencv-python
 torch
 pytest
-Cython

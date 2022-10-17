@@ -57,7 +57,7 @@ You can install everything by running:
 
     pip3 install mushroom_rl[all]
 
-This will install every dependency of MushroomRL, except MuJoCo and Plots dependencies.
+This will install every dependency of MushroomRL, except MuJoCo, PyBullet and Plots dependencies.
 For ubuntu>20.04, you may need to install pygame and gym dependencies:
 
 .. code:: shell
@@ -68,11 +68,17 @@ For ubuntu>20.04, you may need to install pygame and gym dependencies:
 
 Notice that you still need to install some of these dependencies for different operating systems, e.g. swig for macOS 
 
-To use the ``mujoco-py`` MushroomRL interface you can run the command:
+To use the MuJoCo MushroomRL interface you can run the command:
 
 .. code:: shell
 
     pip3 install mushroom_rl[mujoco]
+
+To use the PyBullet MushroomRL interface you can run the command:
+
+.. code:: shell
+
+    pip3 install mushroom_rl[bullet]
 
 Below is the code that you need to run to install the Plots dependencies:
 
