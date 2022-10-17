@@ -31,7 +31,7 @@ if sys.version_info < (3, 7):
 
 extras = {
     'gym': ['gym==0.24.1'],
-    'atari': ['ale-py', 'Pillow', 'opencv-python'],
+    'atari': ['ale-py==0.7.5', 'Pillow', 'opencv-python'],
     'box2d': ['box2d-py~=2.3.5'],
     'bullet': ['pybullet'],
     'mujoco': ['mujoco'],
