@@ -2,7 +2,6 @@ opencv-python
 numpy
 scipy
 gym
-gym[atari]
 scikit-learn
 matplotlib
 joblib
