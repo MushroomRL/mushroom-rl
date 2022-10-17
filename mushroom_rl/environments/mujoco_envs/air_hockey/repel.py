@@ -1,6 +1,6 @@
 import numpy as np
 
-from mushroom_rl.environments.mujoco_envs.air_hockey import AirHockeySingle
+from mushroom_rl.environments.mujoco_envs.air_hockey.single import AirHockeySingle
 
 
 class AirHockeyRepel(AirHockeySingle):
