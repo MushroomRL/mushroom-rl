@@ -10,7 +10,7 @@ class ObservationType(Enum):
     of the environment, can be Joint-/Body-/Site- positions, rotations, and velocities.
     The Observation have the following returns:
         BODY_POS: (3,) x, y, z position of the body
-        BODY_POS: (4,) quaternion of the body
+        BODY_ROT: (4,) quaternion of the body
         BODY_VEL: (6,) first angular velocity around x, y, z. Then linear velocity for x, y, z
         JOINT_POS: (1,) rotation of the joint OR (7,) position, quaternion of a free joint
         JOINT_VEL: (1,) velocity of the joint OR (6,) FIRST linear then angular velocity !different to BODY_VEL!

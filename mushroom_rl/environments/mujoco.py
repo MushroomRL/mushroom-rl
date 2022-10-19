@@ -11,8 +11,8 @@ class MuJoCo(Environment):
 
     """
 
-    def __init__(self, file_name, actuation_spec, observation_spec, gamma,horizon, timestep=1/240.,
-                 n_intermediate_steps=1, additional_data_spec=None, collision_groups=None, **viewer_params):
+    def __init__(self, file_name, actuation_spec, observation_spec, gamma, horizon, timestep=1/240.,
+                 n_substeps=1, n_intermediate_steps=1, additional_data_spec=None, collision_groups=None, **viewer_params):
         """
         Constructor.
 
@@ -31,16 +31,21 @@ class MuJoCo(Environment):
              horizon (int): The maximum horizon for the environment;
              timestep (float, 1/240): The timestep used by the MuJoCo
                 simulator;
-             n_intermediate_steps (int): The number of steps between every action
-                taken by the agent.
-             additional_data_spec (list): A list containing the data fields of
+             n_substeps (int, 1): The number of substeps to use by the MuJoCo
+                simulator. An action given by the agent will be applied for
+                n_substeps before the agent receives the next observation and
+                can act accordingly;
+             n_intermediate_steps (int, 1): The number of steps between every action
+                taken by the agent. Similar to n_substeps but allows the user
+                to modify, control and access intermediate states.
+             additional_data_spec (list, None): A list containing the data fields of
                 interest, which should be read from or written to during
                 simulation. The entries are given as the following tuples:
                 (key, name, type) key is a string for later referencing in the
                 "read_data" and "write_data" methods. The name is the name of
                 the object in the XML specification and the type is the
                 ObservationType;
-             collision_groups (list): A list containing groups of geoms for
+             collision_groups (list, None): A list containing groups of geoms for
                 which collisions should be checked during simulation via
                 ``check_collision``. The entries are given as:
                 ``(key, geom_names)``, where key is a string for later
@@ -57,6 +62,7 @@ class MuJoCo(Environment):
         self._data = mujoco.MjData(self._model)
 
         self._n_intermediate_steps = n_intermediate_steps
+        self._n_substeps = n_substeps
         self._timestep = timestep
         self._viewer_params = viewer_params
         self._viewer = None
@@ -136,7 +142,7 @@ class MuJoCo(Environment):
 
             self._simulation_pre_step()
 
-            mujoco.mj_step(self._model, self._data)
+            mujoco.mj_step(self._model, self._data, self._n_substeps)
 
             self._simulation_post_step()
 
@@ -406,4 +412,4 @@ class MuJoCo(Environment):
 
     @property
     def dt(self):
-        return self._timestep * self._n_intermediate_steps
+        return self._timestep * self._n_intermediate_steps * self._n_substeps
