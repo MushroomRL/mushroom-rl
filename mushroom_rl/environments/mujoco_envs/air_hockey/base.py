@@ -68,7 +68,7 @@ class AirHockeyBase(MuJoCo):
             raise ValueError('n_agents should be 1 or 2')
 
         super(AirHockeyBase, self).__init__(scene, action_spec, observation_spec, gamma, horizon, timestep,
-                                            n_intermediate_steps, additional_data, collision_spec)
+                                            1, n_intermediate_steps, additional_data, collision_spec)
 
         # URDF fot pinoccio
         robot_urdf = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey",
