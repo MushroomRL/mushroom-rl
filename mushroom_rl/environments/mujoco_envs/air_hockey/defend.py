@@ -9,15 +9,15 @@ class AirHockeyDefend(AirHockeySingle):
     The agent tries to stop the puck at the line x=-0.6.
     If the puck get into the goal, it will get a punishment.
     """
-    def __init__(self, gamma=0.99, horizon=500, env_noise=False, obs_noise=False, torque_control=True,
-                 step_action_function=None, timestep=1 / 240., n_intermediate_steps=1,
-                 random_init=False, action_penalty=1e-3, init_velocity_range=(1, 2.2)):
+    def __init__(self, random_init=False, action_penalty=1e-3, init_velocity_range=(1, 2.2), gamma=0.99, horizon=500,
+                 env_noise=False, obs_noise=False, timestep=1 / 240., n_intermediate_steps=1):
         """
         Constructor
         Args:
             random_init(bool, False): If true, initialize the puck at random position .
             action_penalty(float, 1e-3): The penalty of the action on the reward at each time step
             init_velocity_range((float, float), (1, 2.2)): The range in which the initial velocity is initialized
+
         """
 
         self.random_init = random_init
@@ -27,8 +27,7 @@ class AirHockeyDefend(AirHockeySingle):
         self.start_range = np.array([[0.25, 0.65], [-0.4, 0.4]])
 
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
-                         env_noise=env_noise, obs_noise=obs_noise, torque_control=torque_control,
-                         step_action_function=step_action_function)
+                         env_noise=env_noise, obs_noise=obs_noise)
 
     def setup(self, state=None):
         # Set initial puck parameters
@@ -122,7 +121,6 @@ if __name__ == '__main__':
         J += gamma * reward
         R += reward
         steps += 1
-
 
         if done or steps > env.info.horizon:
             print("J: ", J, " R: ", R)

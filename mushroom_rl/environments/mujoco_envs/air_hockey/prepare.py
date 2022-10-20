@@ -9,16 +9,15 @@ class AirHockeyPrepare(AirHockeySingle):
     The agent tries to improve the puck position to y = 0.
     If the agent looses control of the puck, it will get a punishment.
     """
-    def __init__(self, gamma=0.99, horizon=500, env_noise=False, obs_noise=False, torque_control=True,
-                 step_action_function=None, timestep=1 / 240., n_intermediate_steps=1, random_init=False,
-                 action_penalty=1e-3, sub_problem="side"):
+    def __init__(self, random_init=False, action_penalty=1e-3, sub_problem="side", gamma=0.99, horizon=500,
+                 env_noise=False, obs_noise=False, timestep=1 / 240., n_intermediate_steps=1):
         """
         Constructor
         Args:
             random_init(bool, False): If true, initialize the puck at random position .
             action_penalty(float, 1e-3): The penalty of the action on the reward at each time step
             sub_problem(string, "side"): determines which area is considered for the initial puck position.
-                                        Currently "side" and "bottom" are available
+                Currently "side" and "bottom" are available
         """
 
         self.random_init = random_init
@@ -35,8 +34,7 @@ class AirHockeyPrepare(AirHockeySingle):
         self.ee_end_pos = [-8.10001913e-01, -1.43459494e-06]
 
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
-                         env_noise=env_noise, obs_noise=obs_noise, torque_control=torque_control,
-                         step_action_function=step_action_function)
+                         env_noise=env_noise, obs_noise=obs_noise)
 
     def setup(self):
         if self.random_init:

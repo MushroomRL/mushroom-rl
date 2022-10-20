@@ -7,18 +7,17 @@ from mushroom_rl.environments.mujoco_envs.air_hockey.base import AirHockeyBase
 class AirHockeySingle(AirHockeyBase):
     """
     Base class for single agent air hockey tasks.
+
     """
-    def __init__(self, gamma=0.99, horizon=120, env_noise=False, obs_noise=False, obs_delay=False,
-                 torque_control=True, step_action_function=None, timestep=1 / 240., n_intermediate_steps=1):
+    def __init__(self, gamma=0.99, horizon=120, env_noise=False, obs_noise=False, timestep=1 / 240.,
+                 n_intermediate_steps=1):
 
         """
         Constructor.
-        Args:
-            number_flags(int, 0): Amount of flags which are added to the observation space
+
         """
         self.init_state = np.array([-0.9273, 0.9273, np.pi / 2])
         super().__init__(gamma=gamma, horizon=horizon, env_noise=env_noise, n_agents=1, obs_noise=obs_noise,
-                         torque_control=torque_control, step_action_function=step_action_function,
                          timestep=timestep, n_intermediate_steps=n_intermediate_steps)
 
         self.obs_helper.remove_obs("puck_pos", 2)
@@ -40,7 +39,9 @@ class AirHockeySingle(AirHockeyBase):
         Args:
             obs: The current observation
 
-        Returns: ([pos_x, pos_y], [lin_vel_x, lin_vel_y], ang_vel_z)
+        Returns:
+            ([pos_x, pos_y], [lin_vel_x, lin_vel_y], ang_vel_z)
+
         """
         puck_pos = self.obs_helper.get_from_obs(obs, "puck_pos")
         puck_lin_vel = self.obs_helper.get_from_obs(obs, "puck_vel")[1:]
@@ -51,7 +52,9 @@ class AirHockeySingle(AirHockeyBase):
         """
         Getting the ee properties from the current internal state
 
-        Returns: ([pos_x, pos_y, pos_z], [ang_vel_x, ang_vel_y, ang_vel_z, lin_vel_x, lin_vel_y, lin_vel_z])
+        Returns:
+            ([pos_x, pos_y, pos_z], [ang_vel_x, ang_vel_y, ang_vel_z, lin_vel_x, lin_vel_y, lin_vel_z])
+
         """
         ee_pos = self._read_data("robot_1/ee_pos")
 

@@ -10,13 +10,25 @@ from mushroom_rl.environments.mujoco_envs import __file__ as path_robots
 
 
 class AirHockeyBase(MuJoCo):
-    def __init__(self, gamma=0.99, horizon=500, n_agents=1, env_noise=False, obs_noise=False, torque_control=True,
-                 step_action_function=None, timestep=1 / 240., n_intermediate_steps=1):
+    """
+    Abstract class for all AirHockey Environments.
+
+    """
+    def __init__(self, n_agents=1, env_noise=False, obs_noise=False, gamma=0.99, horizon=500,
+                 timestep=1 / 240., n_substeps=1, n_intermediate_steps=1):
+        """
+        Constructor.
+
+        Args:
+            n_agents (int, 1): number of agent to be used in the environment (one or two)
+            env_noise (bool, False): if True, the environment uses noisy dynamics.
+            obs_noise (bool, False): if True, the environment uses noisy observations.
+
+        """
 
         self.n_agents = n_agents
         self.env_noise = env_noise
         self.obs_noise = obs_noise
-        self.step_action_function = step_action_function
 
         self.agents = []
 
@@ -46,8 +58,7 @@ class AirHockeyBase(MuJoCo):
             collision_spec += [("robot_1/ee", ["planar_robot_1/ee"])]
 
             if self.n_agents == 2:
-                scene = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey",
-                                          "double.xml")
+                scene = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey", "double.xml")
 
                 action_spec += ["planar_robot_2/joint_1", "planar_robot_2/joint_2", "planar_robot_2/joint_3"]
                 # Add puck pos/vel again to transform into second agents frame
@@ -67,10 +78,10 @@ class AirHockeyBase(MuJoCo):
         else:
             raise ValueError('n_agents should be 1 or 2')
 
-        super(AirHockeyBase, self).__init__(scene, action_spec, observation_spec, gamma, horizon, timestep,
-                                            n_intermediate_steps, additional_data, collision_spec)
+        super().__init__(scene, action_spec, observation_spec, gamma, horizon, timestep, n_substeps,
+                         n_intermediate_steps, additional_data, collision_spec)
 
-        # URDF fot pinoccio
+        # Robot URDF
         robot_urdf = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey",
                                   "planar_robot.urdf")
 
@@ -104,12 +115,6 @@ class AirHockeyBase(MuJoCo):
             agent_spec['frame'][:3, 3] = self._model.body("planar_robot_2/base").pos
             self.agents.append(agent_spec)
 
-    def _compute_action(self, obs, action):
-        if self.step_action_function is None:
-            return action
-        else:
-            return self.step_action_function(obs, action)
-
     def _simulation_pre_step(self):
         if self.env_noise:
             force = np.random.randn(2) * 0.0005
@@ -123,7 +128,8 @@ class AirHockeyBase(MuJoCo):
             return True
         return False
 
-    def _puck_2d_in_robot_frame(self, puck_in, robot_frame, type='pose'):
+    @staticmethod
+    def _puck_2d_in_robot_frame(puck_in, robot_frame, type='pose'):
         if type == 'pose':
             puck_frame = np.eye(4)
             puck_frame[:2, 3] = puck_in

@@ -9,9 +9,8 @@ class AirHockeyHit(AirHockeySingle):
     And will get bonus reward if the robot scores a goal.
     """
 
-    def __init__(self, gamma=0.99, horizon=120, env_noise=False, obs_noise=False, torque_control=True,
-                 step_action_function=None, timestep=1 / 240., n_intermediate_steps=1, random_init=False,
-                 action_penalty=1e-3, init_robot_state="right"):
+    def __init__(self, random_init=False, action_penalty=1e-3, init_robot_state="right", gamma=0.99, horizon=120,
+                 env_noise=False, obs_noise=False, timestep=1 / 240., n_intermediate_steps=1):
         """
         Constructor
         Args:
@@ -30,8 +29,7 @@ class AirHockeyHit(AirHockeySingle):
         self.vec_puck_goal = None
         self.vec_puck_side = None
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
-                         env_noise=env_noise, obs_noise=obs_noise, torque_control=torque_control,
-                         step_action_function=step_action_function)
+                         env_noise=env_noise, obs_noise=obs_noise)
 
     def setup(self):
         # Initial position of the puck
@@ -71,9 +69,9 @@ class AirHockeyHit(AirHockeySingle):
 
         # If puck is out of bounds
         if absorbing:
-            # If puck is in the enemy goal
-            if puck_pos[0] - self.env_spec['table']['length'] / 2 > 0 and \
-                    np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
+            # If puck is in the opponent goal
+            if (puck_pos[0] - self.env_spec['table']['length'] / 2) > 0 and \
+                    (np.abs(puck_pos[1]) - self.env_spec['table']['goal']) < 0:
                 r = 200
 
         else:
