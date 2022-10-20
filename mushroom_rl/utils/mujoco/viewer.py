@@ -80,7 +80,7 @@ class MujocoGlfwViewer:
     def scroll(self, window, x_offset, y_offset):
         mujoco.mjv_moveCamera(self._model, mujoco.mjtMouse.mjMOUSE_ZOOM, 0, 0.05 * y_offset, self._scene, self._camera)
 
-    def render(self, data, return_img=False):
+    def render(self, data):
 
         def render_inner_loop(self):
             render_start = time.time()
@@ -97,7 +97,7 @@ class MujocoGlfwViewer:
             self.frames += 1
 
             if glfw.window_should_close(self._window):
-                glfw.destroy_window(self._window)
+                self.stop()
                 exit(0)
 
             self._time_per_render = 0.9 * self._time_per_render + 0.1 * (time.time() - render_start)
@@ -107,7 +107,9 @@ class MujocoGlfwViewer:
                 return self.rgb_buffer
             """
         self._loop_count += self.dt / self._time_per_render
-
         while self._loop_count > 0:
             render_inner_loop(self)
             self._loop_count -= 1
+
+    def stop(self):
+        glfw.destroy_window(self._window)
