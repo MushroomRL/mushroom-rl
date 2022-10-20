@@ -15,7 +15,7 @@ try:
             assert len(observation) == len(mdp._mdp_info.observation_space.high)
             obs.append(observation)
 
-        obs_test = np.load("tests/environments/pybullet_envs/air_hockey_defend_data.npy")
+        obs_test = np.load("tests/environments/mujoco_envs/air_hockey_defend_data.npy")
 
         assert np.allclose(obs, obs_test)
 
@@ -32,7 +32,7 @@ try:
             assert len(observation) == len(mdp._mdp_info.observation_space.high)
             obs.append(observation)
 
-        obs_test = np.load("tests/environments/pybullet_envs/air_hockey_hit_data.npy")
+        obs_test = np.load("tests/environments/mujoco_envs/air_hockey_hit_data.npy")
 
         assert np.allclose(obs, obs_test)
 
@@ -49,7 +49,7 @@ try:
             assert len(observation) == len(mdp._mdp_info.observation_space.high)
             obs.append(observation)
 
-        obs_test = np.load("tests/environments/pybullet_envs/air_hockey_prepare_data.npy")
+        obs_test = np.load("tests/environments/mujoco_envs/air_hockey_prepare_data.npy")
 
         assert np.allclose(obs, obs_test)
 
@@ -66,7 +66,7 @@ try:
             assert len(observation) == len(mdp._mdp_info.observation_space.high)
             obs.append(observation)
 
-        obs_test = np.load("tests/environments/pybullet_envs/air_hockey_repel_data.npy")
+        obs_test = np.load("tests/environments/mujoco_envs/air_hockey_repel_data.npy")
 
         assert np.allclose(obs, obs_test)
 
