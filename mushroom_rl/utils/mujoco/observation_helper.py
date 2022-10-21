@@ -173,4 +173,5 @@ class ObservationHelper:
 
         return np.atleast_1d(obs)
 
-
+    def get_all_observation_keys(self):
+        return list(self.obs_idx_map.keys())
