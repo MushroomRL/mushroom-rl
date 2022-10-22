@@ -10,7 +10,7 @@ class AirHockeySingle(AirHockeyBase):
 
     """
     def __init__(self, gamma=0.99, horizon=120, env_noise=False, obs_noise=False, timestep=1 / 240.,
-                 n_intermediate_steps=1):
+                 n_intermediate_steps=1, **viewer_params):
 
         """
         Constructor.
@@ -18,7 +18,7 @@ class AirHockeySingle(AirHockeyBase):
         """
         self.init_state = np.array([-0.9273, 0.9273, np.pi / 2])
         super().__init__(gamma=gamma, horizon=horizon, env_noise=env_noise, n_agents=1, obs_noise=obs_noise,
-                         timestep=timestep, n_intermediate_steps=n_intermediate_steps)
+                         timestep=timestep, n_intermediate_steps=n_intermediate_steps, **viewer_params)
 
         self.obs_helper.remove_obs("puck_pos", 2)
         self.obs_helper.remove_obs("puck_vel", 0)

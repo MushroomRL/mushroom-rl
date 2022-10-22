@@ -11,7 +11,7 @@ class AirHockeyRepel(AirHockeySingle):
 
     """
     def __init__(self, random_init=False, action_penalty=1e-3, init_velocity_range=(1, 2.2), gamma=0.99, horizon=500,
-                 env_noise=False, obs_noise=False, timestep=1 / 240., n_intermediate_steps=1):
+                 env_noise=False, obs_noise=False, timestep=1 / 240., n_intermediate_steps=1, **viewer_params):
         """
         Constructor
         Args:
@@ -29,7 +29,7 @@ class AirHockeyRepel(AirHockeySingle):
         self.goal = np.array([0.98, 0])
 
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
-                         env_noise=env_noise, obs_noise=obs_noise)
+                         env_noise=env_noise, obs_noise=obs_noise, **viewer_params)
 
     def setup(self, state=None):
         # Set initial puck parameters
