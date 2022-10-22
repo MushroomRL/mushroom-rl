@@ -118,6 +118,9 @@ class MuJoCo(Environment):
 
         mdp_info = self._modify_mdp_info(mdp_info)
 
+        # set the warning callback to stop the simulation when a mujoco warning occurs
+        mujoco.set_mju_user_warning(self.user_warning_raise_exception)
+
         super().__init__(mdp_info)
 
     def seed(self, seed):
@@ -427,3 +430,21 @@ class MuJoCo(Environment):
     @property
     def dt(self):
         return self._timestep * self._n_intermediate_steps * self._n_substeps
+
+    @staticmethod
+    def user_warning_raise_exception(warning):
+        """
+        Detects warnings in Mujoco and raises the respective exception.
+
+        Args:
+            warning: Mujoco warning.
+
+        """
+        if 'Pre-allocated constraint buffer is full' in warning:
+            raise RuntimeError(warning + 'Increase njmax in mujoco XML')
+        elif 'Pre-allocated contact buffer is full' in warning:
+            raise RuntimeError(warning + 'Increase njconmax in mujoco XML')
+        elif 'Unknown warning type' in warning:
+            raise RuntimeError(warning + 'Check for NaN in simulation.')
+        else:
+            raise RuntimeError('Got MuJoCo Warning: ' + warning)
