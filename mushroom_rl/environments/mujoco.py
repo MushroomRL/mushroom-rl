@@ -75,8 +75,7 @@ class MuJoCo(Environment):
         else:
             self._action_indices = []
             for name in actuation_spec:
-                self._action_indices.append(mujoco.mj_name2id(self._model, mujoco.mjtObj.mjOBJ_ACTUATOR, name))
-                # self._action_indices.append(self.model.actuator(name).id) Will work in future release of mujoco...
+                self._action_indices.append(self._model.actuator(name).id)
 
         low = []
         high = []
