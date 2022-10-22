@@ -89,6 +89,14 @@ class ObservationHelper:
                 if obs_list[idx] > cutoff:
                     obs_list[idx] -= 1
 
+        for i in range(len(self.joint_pos_idx)):
+            if self.joint_pos_idx[i] > cutoff:
+                self.joint_pos_idx[i] -= 1
+
+        for i in range(len(self.joint_vel_idx)):
+            if self.joint_vel_idx[i] > cutoff:
+                self.joint_vel_idx[i] -= 1
+
         self.build_omit_idx[key].append(index)
 
     def add_obs(self, key, length, min_value=-np.inf, max_value=np.inf):
