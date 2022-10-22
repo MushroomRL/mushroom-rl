@@ -15,7 +15,7 @@ class AirHockeyBase(MuJoCo):
 
     """
     def __init__(self, n_agents=1, env_noise=False, obs_noise=False, gamma=0.99, horizon=500,
-                 timestep=1 / 240., n_substeps=1, n_intermediate_steps=1):
+                 timestep=1 / 240., n_substeps=1, n_intermediate_steps=1, **viewer_params):
         """
         Constructor.
 
@@ -79,7 +79,7 @@ class AirHockeyBase(MuJoCo):
             raise ValueError('n_agents should be 1 or 2')
 
         super().__init__(scene, action_spec, observation_spec, gamma, horizon, timestep, n_substeps,
-                         n_intermediate_steps, additional_data, collision_spec)
+                         n_intermediate_steps, additional_data, collision_spec, **viewer_params)
 
         # Robot URDF
         robot_urdf = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey",

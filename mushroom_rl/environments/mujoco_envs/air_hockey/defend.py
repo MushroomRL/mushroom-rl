@@ -10,7 +10,7 @@ class AirHockeyDefend(AirHockeySingle):
     If the puck get into the goal, it will get a punishment.
     """
     def __init__(self, random_init=False, action_penalty=1e-3, init_velocity_range=(1, 2.2), gamma=0.99, horizon=500,
-                 env_noise=False, obs_noise=False, timestep=1 / 240., n_intermediate_steps=1):
+                 env_noise=False, obs_noise=False, timestep=1 / 240., n_intermediate_steps=1, **viewer_params):
         """
         Constructor
         Args:
@@ -27,7 +27,7 @@ class AirHockeyDefend(AirHockeySingle):
         self.start_range = np.array([[0.25, 0.65], [-0.4, 0.4]])
 
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
-                         env_noise=env_noise, obs_noise=obs_noise)
+                         env_noise=env_noise, obs_noise=obs_noise, **viewer_params)
 
     def setup(self, state=None):
         # Set initial puck parameters
