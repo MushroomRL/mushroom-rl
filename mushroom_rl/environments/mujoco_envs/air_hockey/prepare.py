@@ -45,7 +45,7 @@ class AirHockeyPrepare(AirHockeySingle):
 
         self.desired_point = [puck_pos[0], 0]
 
-        self._data.joint("puck").qpos = np.concatenate([puck_pos, [0, 0, 0, 0, 1]])
+        self._write_data("puck_pos", np.concatenate([puck_pos, [0, 0, 0, 0, 1]]))
         
         super(AirHockeyPrepare, self).setup()
 

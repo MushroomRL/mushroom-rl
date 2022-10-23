@@ -35,7 +35,10 @@ class AirHockeyBase(MuJoCo):
         action_spec = []
         observation_spec = [("puck_pos", "puck", ObservationType.BODY_POS),
                             ("puck_vel", "puck", ObservationType.BODY_VEL)]
-        additional_data = []
+
+        additional_data = [("puck_pos", "puck", ObservationType.JOINT_POS),
+                           ("puck_vel", "puck", ObservationType.JOINT_VEL)]
+
         collision_spec = [("puck", ["puck"]),
                           ("rim", ["rim_home_l", "rim_home_r", "rim_away_l", "rim_away_l", "rim_left", "rim_right"]),
                           ("rim_short_sides", ["rim_home_l", "rim_home_r", "rim_away_l", "rim_away_r"])]
