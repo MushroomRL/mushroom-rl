@@ -45,7 +45,7 @@ class AirHockeyHit(AirHockeySingle):
         elif self.init_robot_state == 'left':
             self.init_state = -1 * np.array([-0.9273, 0.9273, np.pi / 2])
 
-        self._data.joint("puck").qpos = np.concatenate([puck_pos, [0, 0, 0, 0, 1]])
+        self._write_data("puck_pos", np.concatenate([puck_pos, [0, 0, 0, 0, 1]]))
 
         self.vec_puck_goal = (self.goal - puck_pos) / np.linalg.norm(self.goal - puck_pos)
 
@@ -106,7 +106,7 @@ class AirHockeyHit(AirHockeySingle):
 if __name__ == '__main__':
     import time
 
-    env = AirHockeyHit(env_noise=False, obs_noise=False, n_intermediate_steps=4, random_init=False,
+    env = AirHockeyHit(env_noise=False, obs_noise=False, n_intermediate_steps=4, random_init=True,
                        init_robot_state="right", start_paused=True)
 
     env.reset()

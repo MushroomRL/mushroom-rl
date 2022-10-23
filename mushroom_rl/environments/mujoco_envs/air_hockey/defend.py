@@ -49,8 +49,8 @@ class AirHockeyDefend(AirHockeySingle):
             puck_lin_vel = np.array([-1., 0., 0.])
             puck_ang_vel = np.zeros(3)
 
-        self._data.joint("puck").qpos = np.concatenate([puck_pos, [0, 0, 0, 0, 1]])
-        self._data.joint("puck").qvel = np.concatenate([puck_lin_vel, puck_ang_vel])
+        self._write_data("puck_pos", np.concatenate([puck_pos, [0, 0, 0, 0, 1]]))
+        self._write_data("puck_vel", np.concatenate([puck_lin_vel, puck_ang_vel]))
         
         super(AirHockeyDefend, self).setup()
 
