@@ -38,12 +38,6 @@ class MujocoGlfwViewer:
         self._scene = mujoco.MjvScene(model, 1000)
         self._scene_option = mujoco.MjvOption()
 
-        self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONTACTFORCE] = 1
-        # self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_INERTIA] = 1
-        # self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_COM] = 1
-        self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONSTRAINT] = 1
-        #self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_TRANSPARENT] = 1
-
         self._camera = mujoco.MjvCamera()
         mujoco.mjv_defaultFreeCamera(model, self._camera)
 
@@ -86,8 +80,14 @@ class MujocoGlfwViewer:
             return
 
         if key == glfw.KEY_SPACE:
-            print("Paused")
             self._paused = not self._paused
+
+        if key == glfw.KEY_C:
+            self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONTACTFORCE] = not self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONTACTFORCE]
+            self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONSTRAINT] = not self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONSTRAINT]
+
+        if key == glfw.KEY_T:
+            self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_TRANSPARENT] = not self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_TRANSPARENT]
 
     def scroll(self, window, x_offset, y_offset):
         mujoco.mjv_moveCamera(self._model, mujoco.mjtMouse.mjMOUSE_ZOOM, 0, 0.05 * y_offset, self._scene, self._camera)

@@ -107,14 +107,13 @@ if __name__ == '__main__':
     import time
 
     env = AirHockeyHit(env_noise=False, obs_noise=False, n_intermediate_steps=4, random_init=True,
-                       init_robot_state="right", start_paused=True)
+                       init_robot_state="right")
 
     env.reset()
     R = 0.
     J = 0.
     gamma = 1.
     steps = 0
-    #env.render()
     while True:
         action = np.random.randn(3) * 5
         # action = np.array([0] * 3)
