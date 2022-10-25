@@ -16,7 +16,7 @@
     <worldbody>
         <body name="puck" pos="0 0 0">
             <freejoint name="puck"/>
-            <geom name="puck" type="cylinder" material="red" size="0.03165 0.00245" friction="0.0 0.002104678089464182 0"/>
+            <geom pos="0 0 0" name="puck" type="cylinder" material="red" size="0.03165 0.00245" friction="0.0 0.002104678089464182 0"/>
             <inertial pos="0 0 0" mass="0.01" diaginertia="0.01 0.01 5e-6"/>
         </body>
 

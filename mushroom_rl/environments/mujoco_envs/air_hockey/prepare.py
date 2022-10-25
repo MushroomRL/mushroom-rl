@@ -10,7 +10,7 @@ class AirHockeyPrepare(AirHockeySingle):
     If the agent looses control of the puck, it will get a punishment.
     """
     def __init__(self, random_init=False, action_penalty=1e-3, sub_problem="side", gamma=0.99, horizon=500,
-                 env_noise=False, obs_noise=False, timestep=1 / 240., n_intermediate_steps=1):
+                 env_noise=False, obs_noise=False, timestep=1 / 240., n_intermediate_steps=1, **viewer_params):
         """
         Constructor
         Args:
@@ -34,7 +34,7 @@ class AirHockeyPrepare(AirHockeySingle):
         self.ee_end_pos = [-8.10001913e-01, -1.43459494e-06]
 
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
-                         env_noise=env_noise, obs_noise=obs_noise)
+                         env_noise=env_noise, obs_noise=obs_noise, **viewer_params)
 
     def setup(self):
         if self.random_init:
@@ -45,7 +45,7 @@ class AirHockeyPrepare(AirHockeySingle):
 
         self.desired_point = [puck_pos[0], 0]
 
-        self._data.joint("puck").qpos = np.concatenate([puck_pos, [0, 0, 0, 0, 1]])
+        self._write_data("puck_pos", np.concatenate([puck_pos, [0, 0, 0, 0, 1]]))
         
         super(AirHockeyPrepare, self).setup()
 
