@@ -151,14 +151,14 @@ class MuJoCo(Environment):
 
             self._simulation_post_step()
 
-        obs = self._create_observation(self.obs_helper.build_obs(self._data))
+            cur_obs = self._create_observation(self.obs_helper.build_obs(self._data))
 
         self._step_finalize()
 
-        absorbing = self.is_absorbing(obs)
-        reward = self.reward(cur_obs, action, obs, absorbing)
+        absorbing = self.is_absorbing(cur_obs)
+        reward = self.reward(cur_obs, action, cur_obs, absorbing)
 
-        self._obs = self._modify_observation(obs)
+        self._obs = self._modify_observation(cur_obs)
         return self._obs, reward, absorbing, {}
 
     def render(self):

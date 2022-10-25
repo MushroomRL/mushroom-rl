@@ -41,8 +41,8 @@ class MujocoGlfwViewer:
         self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONTACTFORCE] = 1
         # self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_INERTIA] = 1
         # self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_COM] = 1
-        # self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONSTRAINT] = 1
-        # self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_TRANSPARENT] = 1
+        self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONSTRAINT] = 1
+        #self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_TRANSPARENT] = 1
 
         self._camera = mujoco.MjvCamera()
         mujoco.mjv_defaultFreeCamera(model, self._camera)
