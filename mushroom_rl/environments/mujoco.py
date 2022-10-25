@@ -11,7 +11,7 @@ class MuJoCo(Environment):
 
     """
 
-    def __init__(self, file_name, actuation_spec, observation_spec, gamma, horizon, timestep=1/240.,
+    def __init__(self, file_name, actuation_spec, observation_spec, gamma, horizon, timestep=None,
                  n_substeps=1, n_intermediate_steps=1, additional_data_spec=None, collision_groups=None, **viewer_params):
         """
         Constructor.
@@ -29,8 +29,8 @@ class MuJoCo(Environment):
                 is given by: (key, name, type);
              gamma (float): The discounting factor of the environment;
              horizon (int): The maximum horizon for the environment;
-             timestep (float, 1/240): The timestep used by the MuJoCo
-                simulator;
+             timestep (float): The timestep used by the MuJoCo
+                simulator. If None, the default timestep specified in the XML will be used;
              n_substeps (int, 1): The number of substeps to use by the MuJoCo
                 simulator. An action given by the agent will be applied for
                 n_substeps before the agent receives the next observation and
@@ -57,13 +57,16 @@ class MuJoCo(Environment):
         """
         # Create the simulation
         self._model = mujoco.MjModel.from_xml_path(file_name)
-        self._model.opt.timestep = timestep
+        if timestep is not None:
+            self._model.opt.timestep = timestep
+            self._timestep = timestep
+        else:
+            self._timestep = self._model.opt.timestep
 
         self._data = mujoco.MjData(self._model)
 
         self._n_intermediate_steps = n_intermediate_steps
         self._n_substeps = n_substeps
-        self._timestep = timestep
         self._viewer_params = viewer_params
         self._viewer = None
         self._obs = None
@@ -113,6 +116,9 @@ class MuJoCo(Environment):
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
         mdp_info = self._modify_mdp_info(mdp_info)
+
+        # set the warning callback to stop the simulation when a mujoco warning occurs
+        mujoco.set_mju_user_warning(self.user_warning_raise_exception)
 
         super().__init__(mdp_info)
 
@@ -410,6 +416,34 @@ class MuJoCo(Environment):
         """
         pass
 
+    def get_all_observation_keys(self):
+        """
+        A function that returns all observation keys defined in the observation specification.
+
+        Returns:
+            A list of observation keys.
+
+        """
+        return self.obs_helper.get_all_observation_keys()
+
     @property
     def dt(self):
         return self._timestep * self._n_intermediate_steps * self._n_substeps
+
+    @staticmethod
+    def user_warning_raise_exception(warning):
+        """
+        Detects warnings in Mujoco and raises the respective exception.
+
+        Args:
+            warning: Mujoco warning.
+
+        """
+        if 'Pre-allocated constraint buffer is full' in warning:
+            raise RuntimeError(warning + 'Increase njmax in mujoco XML')
+        elif 'Pre-allocated contact buffer is full' in warning:
+            raise RuntimeError(warning + 'Increase njconmax in mujoco XML')
+        elif 'Unknown warning type' in warning:
+            raise RuntimeError(warning + 'Check for NaN in simulation.')
+        else:
+            raise RuntimeError('Got MuJoCo Warning: ' + warning)

@@ -6,7 +6,7 @@ import numpy as np
 
 
 class MujocoGlfwViewer:
-    def __init__(self, model, dt, width=1920, height=1080, start_paused=False):
+    def __init__(self, model, dt, width=1920, height=1080):
         self.button_left = False
         self.button_right = False
         self.button_middle = False
@@ -20,7 +20,6 @@ class MujocoGlfwViewer:
 
         self._loop_count = 0
         self._time_per_render = 1 / 60.
-        self._paused = start_paused
 
         self._window = glfw.create_window(width=width, height=height, title="MuJoCo", monitor=None, share=None)
         glfw.make_context_current(self._window)
@@ -37,12 +36,6 @@ class MujocoGlfwViewer:
 
         self._scene = mujoco.MjvScene(model, 1000)
         self._scene_option = mujoco.MjvOption()
-
-        self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONTACTFORCE] = 1
-        # self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_INERTIA] = 1
-        # self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_COM] = 1
-        # self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONSTRAINT] = 1
-        # self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_TRANSPARENT] = 1
 
         self._camera = mujoco.MjvCamera()
         mujoco.mjv_defaultFreeCamera(model, self._camera)
@@ -82,12 +75,7 @@ class MujocoGlfwViewer:
         mujoco.mjv_moveCamera(self._model, action, dx/width, dy/height, self._scene, self._camera)
 
     def keyboard(self, window, key, scancode, act, mods):
-        if act != glfw.RELEASE:
-            return
-
-        if key == glfw.KEY_SPACE:
-            print("Paused")
-            self._paused = not self._paused
+        ...
 
     def scroll(self, window, x_offset, y_offset):
         mujoco.mjv_moveCamera(self._model, mujoco.mjtMouse.mjMOUSE_ZOOM, 0, 0.05 * y_offset, self._scene, self._camera)
@@ -118,11 +106,6 @@ class MujocoGlfwViewer:
                 mujoco.mjr_readPixels(self.rgb_buffer, None, self._viewport, self._context)
                 return self.rgb_buffer
             """
-
-        if self._paused:
-            while self._paused:
-                render_inner_loop(self)
-
         self._loop_count += self.dt / self._time_per_render
         while self._loop_count > 0:
             render_inner_loop(self)
