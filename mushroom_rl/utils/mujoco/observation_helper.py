@@ -45,6 +45,7 @@ class ObservationHelper:
         self.observation_spec = observation_spec
         current_idx = 0
         for key, name, ot in observation_spec:
+            assert key not in self.obs_idx_map.keys(), "Found duplicate key in observation specification: \"%s\"" % key
             obs_count = len(self.get_state(data, name, ot))
             self.obs_idx_map[key] = list(range(current_idx, current_idx + obs_count))
             self.build_omit_idx[key] = []
