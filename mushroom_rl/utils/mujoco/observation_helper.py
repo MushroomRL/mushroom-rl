@@ -1,5 +1,3 @@
-import mujoco
-import copy
 import numpy as np
 from enum import Enum
 
@@ -37,6 +35,7 @@ class ObservationHelper:
         self.obs_high = []
         self.joint_pos_idx = []
         self.joint_vel_idx = []
+        self.joint_mujoco_idx = []
 
         self.obs_idx_map = {}
 
@@ -50,6 +49,7 @@ class ObservationHelper:
             self.build_omit_idx[key] = []
             if obs_count == 1 and ot == ObservationType.JOINT_POS:
                 self.joint_pos_idx.append(current_idx)
+                self.joint_mujoco_idx.append(model.joint(name).id)
                 if model.joint(name).limited:
                     self.obs_low.append(model.joint(name).range[0])
                     self.obs_high.append(model.joint(name).range[1])
