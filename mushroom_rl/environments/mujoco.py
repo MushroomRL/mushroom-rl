@@ -78,10 +78,7 @@ class MuJoCo(Environment):
         else:
             self._action_indices = []
             for name in actuation_spec:
-                action_idx = mujoco.mj_name2id(self._model, mujoco.mjtObj.mjOBJ_ACTUATOR, name)
-                assert action_idx != -1, "Unknown actuator name %s" % name
-                self._action_indices.append(action_idx)
-                # self._action_indices.append(self.model.actuator(name).id) Will work in future release of mujoco...
+                self._action_indices.append(self._model.actuator(name).id)
 
         low = []
         high = []
