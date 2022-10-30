@@ -2,7 +2,7 @@
     <compiler autolimits="true" angle="radian"/>
 
     <worldbody>
-        <body name="planar_robot_2/base" pos="1.51 0 -0.1" euler="0 0 180">
+        <body name="planar_robot_2/base" pos="1.51 0 -0.1" quat="0 0 0 1">
             <geom type="cylinder" material="black" size="0.075 0.2" pos="0 0 0.2" class="visual"/>
             <inertial pos="0 0 0" mass="1" diaginertia="0.05 0.018 0.044"/>
             <body name="planar_robot_2/body_1" pos="0 0 0.25">

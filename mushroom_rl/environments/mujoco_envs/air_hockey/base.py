@@ -127,8 +127,9 @@ class AirHockeyBase(MuJoCo):
     def is_absorbing(self, obs):
         boundary = np.array([self.env_spec['table']['length'], self.env_spec['table']['width']]) / 2
         puck_pos = self.obs_helper.get_from_obs(obs, "puck_pos")
+        puck_vel = self.obs_helper.get_from_obs(obs, "puck_vel")
 
-        if np.any(np.abs(puck_pos[:2]) > boundary):
+        if np.any(np.abs(puck_pos[:2]) > boundary) or np.linalg.norm(puck_vel) > 100:
             return True
         return False
 
