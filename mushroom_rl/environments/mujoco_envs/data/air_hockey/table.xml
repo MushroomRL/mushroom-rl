@@ -11,7 +11,7 @@
     </asset>
 
     <default>
-        <geom condim="6" solref="0.02 0.3"/>
+        <geom condim="4" solref="0.02 0.3"/>
         <default class="rim">
             <geom type="box" material="grey" friction="0.12931021481683416 0.0 0.0"/>
         </default>
