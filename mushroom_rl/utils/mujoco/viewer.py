@@ -1,8 +1,10 @@
 import glfw
 import mujoco
 import time
+import imageio
 
 import numpy as np
+from multiprocessing import Queue, Process
 
 
 class MujocoGlfwViewer:
@@ -21,6 +23,12 @@ class MujocoGlfwViewer:
         self._loop_count = 0
         self._time_per_render = 1 / 60.
         self._paused = start_paused
+
+        # Vars for recording video
+        self._record_video = False
+        self._video_queue = Queue()
+        self._video_idx = 0
+        self._video_path = "video_%07d.mp4"
 
         self._window = glfw.create_window(width=width, height=height, title="MuJoCo", monitor=None, share=None)
         glfw.make_context_current(self._window)
@@ -82,12 +90,25 @@ class MujocoGlfwViewer:
         if key == glfw.KEY_SPACE:
             self._paused = not self._paused
 
-        if key == glfw.KEY_C:
+        elif key == glfw.KEY_C:
             self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONTACTFORCE] = not self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONTACTFORCE]
             self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONSTRAINT] = not self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONSTRAINT]
 
-        if key == glfw.KEY_T:
+        elif key == glfw.KEY_T:
             self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_TRANSPARENT] = not self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_TRANSPARENT]
+
+        elif key == glfw.KEY_V or \
+                (key == glfw.KEY_ESCAPE and self._record_video):  # Records video. Trigers with V or if in progress by ESC.
+            self._record_video = not self._record_video
+            if self._record_video:
+                fps = (1 / self._time_per_render)
+                self._video_process = Process(target=save_video,
+                                              args=(self._video_queue, self._video_path % self._video_idx, fps))
+                self._video_process.start()
+            if not self._record_video:
+                self._video_queue.put(None)
+                self._video_process.join()
+                self._video_idx += 1
 
     def scroll(self, window, x_offset, y_offset):
         mujoco.mjv_moveCamera(self._model, mujoco.mjtMouse.mjMOUSE_ZOOM, 0, 0.05 * y_offset, self._scene, self._camera)
@@ -112,7 +133,11 @@ class MujocoGlfwViewer:
                 self.stop()
                 exit(0)
 
-            self._time_per_render = 0.9 * self._time_per_render + 0.1 * (time.time() - render_start)
+            if self._record_video:
+                mujoco.mjr_readPixels(self.rgb_buffer, None, self._viewport, self._context)
+                self._video_queue.put(self.rgb_buffer.copy())
+            else:
+                self._time_per_render = 0.9 * self._time_per_render + 0.1 * (time.time() - render_start)
             """
             if return_img:
                 mujoco.mjr_readPixels(self.rgb_buffer, None, self._viewport, self._context)
@@ -130,3 +155,13 @@ class MujocoGlfwViewer:
 
     def stop(self):
         glfw.destroy_window(self._window)
+
+
+def save_video(queue, filename, fps):
+    writer = imageio.get_writer(filename, fps=fps)
+    while True:
+        frame = queue.get()
+        if frame is None:
+            break
+        writer.append_data(frame)
+    writer.close()
