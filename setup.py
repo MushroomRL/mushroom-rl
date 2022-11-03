@@ -34,7 +34,7 @@ extras = {
     'atari': ['ale-py==0.7.5', 'Pillow', 'opencv-python'],
     'box2d': ['box2d-py~=2.3.5'],
     'bullet': ['pybullet'],
-    'mujoco': ['mujoco'],
+    'mujoco': ['mujoco>=2.3'],
     'plots': ['pyqtgraph'],
     'minigrid': ['gym-minigrid']
 }
