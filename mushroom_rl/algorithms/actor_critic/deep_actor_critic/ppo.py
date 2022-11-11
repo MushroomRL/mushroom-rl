@@ -71,7 +71,7 @@ class PPO(Agent):
 
         super().__init__(mdp_info, policy, None)
 
-    def fit(self, dataset):
+    def fit(self, dataset, **info):
         x, u, r, xn, absorbing, last = parse_dataset(dataset)
         x = x.astype(np.float32)
         u = u.astype(np.float32)

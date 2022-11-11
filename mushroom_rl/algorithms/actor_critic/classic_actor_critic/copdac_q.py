@@ -61,7 +61,7 @@ class COPDAC_Q(Agent):
 
         super().__init__(mdp_info, policy, policy_features)
 
-    def fit(self, dataset):
+    def fit(self, dataset, **info):
         for step in dataset:
             s, a, r, ss, absorbing, _ = step
 

@@ -31,8 +31,8 @@ class BoostedFQI(FQI):
 
         super().__init__(mdp_info, policy, approximator, n_iterations, approximator_params, fit_params, quiet)
 
-    def fit(self, x):
-        state, action, reward, next_state, absorbing, _ = parse_dataset(x)
+    def fit(self, dataset, **info):
+        state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
         for _ in trange(self._n_iterations(), dynamic_ncols=True, disable=self._quiet, leave=False):
             if self._target is None:
                 self._target = reward

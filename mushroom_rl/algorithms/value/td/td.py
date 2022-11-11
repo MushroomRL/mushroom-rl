@@ -28,7 +28,7 @@ class TD(Agent):
 
         super().__init__(mdp_info, policy, features)
 
-    def fit(self, dataset):
+    def fit(self, dataset, **info):
         assert len(dataset) == 1
 
         state, action, reward, next_state, absorbing = self._parse(dataset)

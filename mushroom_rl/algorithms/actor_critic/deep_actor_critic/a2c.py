@@ -58,7 +58,7 @@ class A2C(DeepAC):
 
         super().__init__(mdp_info, policy, actor_optimizer, policy.parameters())
 
-    def fit(self, dataset):
+    def fit(self, dataset, **info):
         state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
 
         v, adv = compute_advantage_montecarlo(self._V, state, next_state,

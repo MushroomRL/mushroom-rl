@@ -20,7 +20,7 @@ class DoubleFQI(FQI):
         super().__init__(mdp_info, policy, approximator, n_iterations,
                          approximator_params, fit_params, quiet)
 
-    def fit(self, x):
+    def fit(self, dataset, **info):
         for _ in trange(self._n_iterations(), dynamic_ncols=True, disable=self._quiet, leave=False):
             state = list()
             action = list()
@@ -28,9 +28,9 @@ class DoubleFQI(FQI):
             next_state = list()
             absorbing = list()
 
-            half = len(x) // 2
+            half = len(dataset) // 2
             for i in range(2):
-                s, a, r, ss, ab, _ = parse_dataset(x[i * half:(i + 1) * half])
+                s, a, r, ss, ab, _ = parse_dataset(dataset[i * half:(i + 1) * half])
                 state.append(s)
                 action.append(a)
                 reward.append(r)

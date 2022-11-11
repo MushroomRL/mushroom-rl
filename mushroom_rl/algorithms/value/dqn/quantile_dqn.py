@@ -97,7 +97,7 @@ class QuantileDQN(AbstractDQN):
 
         super().__init__(mdp_info, policy, TorchApproximator, **params)
 
-    def fit(self, dataset):
+    def fit(self, dataset, **info):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
             state, action, reward, next_state, absorbing, _ =\

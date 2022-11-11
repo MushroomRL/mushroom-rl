@@ -64,7 +64,7 @@ class StochasticAC(Agent):
 
         super().episode_start()
 
-    def fit(self, dataset):
+    def fit(self, dataset, **info):
         for step in dataset:
             s, a, r, ss, absorbing, _ = step
 

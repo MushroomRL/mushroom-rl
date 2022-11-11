@@ -34,7 +34,7 @@ class BlackBoxOptimization(Agent):
 
         super().episode_start()
 
-    def fit(self, dataset):
+    def fit(self, dataset, **info):
         Jep = compute_J(dataset, self.mdp_info.gamma)
 
         Jep = np.array(Jep)

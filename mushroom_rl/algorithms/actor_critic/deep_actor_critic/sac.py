@@ -308,7 +308,7 @@ class SAC(DeepAC):
 
         super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
 
-    def fit(self, dataset):
+    def fit(self, dataset, **info):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
             state, action, reward, next_state, absorbing, _ = \

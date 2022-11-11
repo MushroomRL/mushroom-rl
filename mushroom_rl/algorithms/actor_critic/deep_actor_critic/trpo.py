@@ -82,7 +82,7 @@ class TRPO(Agent):
 
         super().__init__(mdp_info, policy, None)
 
-    def fit(self, dataset):
+    def fit(self, dataset, **info):
         state, action, reward, next_state, absorbing, last = parse_dataset(dataset)
         x = state.astype(np.float32)
         u = action.astype(np.float32)

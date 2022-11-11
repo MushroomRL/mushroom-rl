@@ -31,7 +31,7 @@ class PolicyGradient(Agent):
 
         super().__init__(mdp_info, policy, features)
 
-    def fit(self, dataset):
+    def fit(self, dataset, **info):
         J = list()
         self.df = 1.
         self.J_episode = 0.

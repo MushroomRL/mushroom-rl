@@ -119,7 +119,7 @@ class Rainbow(AbstractDQN):
 
         super().__init__(mdp_info, policy, TorchApproximator, **params)
 
-    def fit(self, dataset):
+    def fit(self, dataset, **info):
         self._replay_memory.add(dataset, np.ones(len(dataset)) * self._replay_memory.max_priority,
                                 n_steps_return=self._n_steps_return, gamma=self.mdp_info.gamma)
         if self._replay_memory.initialized:

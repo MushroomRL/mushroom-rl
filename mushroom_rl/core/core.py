@@ -1,5 +1,7 @@
 from tqdm import tqdm
 
+from collections import defaultdict
+
 
 class Core(object):
     """
@@ -139,7 +141,7 @@ class Core(object):
         self._current_steps_counter = 0
 
         dataset = list()
-        dataset_info = list()
+        dataset_info = defaultdict(list)
 
         last = True
         while move_condition():
@@ -160,10 +162,12 @@ class Core(object):
                 episodes_progress_bar.update(1)
 
             dataset.append(sample)
-            dataset_info.append(step_info)
+
+            for key, value in step_info.items():
+                dataset_info[key].append(value)
 
             if fit_condition():
-                self.agent.fit(dataset)
+                self.agent.fit(dataset, **dataset_info)
                 self._current_episodes_counter = 0
                 self._current_steps_counter = 0
 
@@ -171,7 +175,7 @@ class Core(object):
                     c(dataset)
 
                 dataset = list()
-                dataset_info = list()
+                dataset_info = defaultdict(list)
 
             last = sample[-1]
 

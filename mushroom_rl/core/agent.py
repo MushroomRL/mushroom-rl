@@ -37,7 +37,7 @@ class Agent(Serializable):
             _logger='none'
         )
 
-    def fit(self, dataset):
+    def fit(self, dataset, **info):
         """
         Fit step.
 

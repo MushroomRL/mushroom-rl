@@ -34,8 +34,8 @@ class FQI(BatchTD):
 
         super().__init__(mdp_info, policy, approximator, approximator_params, fit_params)
 
-    def fit(self, x):
-        state, action, reward, next_state, absorbing, _ = parse_dataset(x)
+    def fit(self, dataset, **info):
+        state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
         for _ in trange(self._n_iterations(), dynamic_ncols=True, disable=self._quiet, leave=False):
             if self._target is None:
                 self._target = reward
