@@ -1,10 +1,14 @@
 import glfw
 import mujoco
 import time
-import imageio
 
 import numpy as np
 from multiprocessing import Queue, Process
+
+try:
+    import imageio
+except ImportError:
+    pass
 
 
 class MujocoGlfwViewer:
@@ -157,6 +161,7 @@ class MujocoGlfwViewer:
         glfw.destroy_window(self._window)
 
 
+# From MjViewer
 def save_video(queue, filename, fps):
     writer = imageio.get_writer(filename, fps=fps)
     while True:
