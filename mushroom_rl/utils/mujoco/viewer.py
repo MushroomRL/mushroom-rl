@@ -64,7 +64,8 @@ class MujocoGlfwViewer:
 
         width, height = glfw.get_window_size(self._window)
 
-        mod_shift = glfw.get_key(self._window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS or glfw.get_key(self._window, glfw.KEY_RIGHT_SHIFT) == glfw.PRESS
+        mod_shift = glfw.get_key(self._window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS or glfw.get_key(self._window,
+                                                                                                  glfw.KEY_RIGHT_SHIFT) == glfw.PRESS
 
         if self.button_right:
             action = mujoco.mjtMouse.mjMOUSE_MOVE_H if mod_shift else mujoco.mjtMouse.mjMOUSE_MOVE_V
@@ -73,7 +74,7 @@ class MujocoGlfwViewer:
         else:
             action = mujoco.mjtMouse.mjMOUSE_ZOOM
 
-        mujoco.mjv_moveCamera(self._model, action, dx/width, dy/height, self._scene, self._camera)
+        mujoco.mjv_moveCamera(self._model, action, dx / width, dy / height, self._scene, self._camera)
 
     def keyboard(self, window, key, scancode, act, mods):
         if act != glfw.RELEASE:
@@ -83,11 +84,14 @@ class MujocoGlfwViewer:
             self._paused = not self._paused
 
         if key == glfw.KEY_C:
-            self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONTACTFORCE] = not self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONTACTFORCE]
-            self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONSTRAINT] = not self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONSTRAINT]
+            self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONTACTFORCE] = not self._scene_option.flags[
+                mujoco.mjtVisFlag.mjVIS_CONTACTFORCE]
+            self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONSTRAINT] = not self._scene_option.flags[
+                mujoco.mjtVisFlag.mjVIS_CONSTRAINT]
 
         if key == glfw.KEY_T:
-            self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_TRANSPARENT] = not self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_TRANSPARENT]
+            self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_TRANSPARENT] = not self._scene_option.flags[
+                mujoco.mjtVisFlag.mjVIS_TRANSPARENT]
 
     def scroll(self, window, x_offset, y_offset):
         mujoco.mjv_moveCamera(self._model, mujoco.mjtMouse.mjMOUSE_ZOOM, 0, 0.05 * y_offset, self._scene, self._camera)
@@ -97,7 +101,8 @@ class MujocoGlfwViewer:
         def render_inner_loop(self):
             render_start = time.time()
 
-            mujoco.mjv_updateScene(self._model, data, self._scene_option, None, self._camera, mujoco.mjtCatBit.mjCAT_ALL,
+            mujoco.mjv_updateScene(self._model, data, self._scene_option, None, self._camera,
+                                   mujoco.mjtCatBit.mjCAT_ALL,
                                    self._scene)
 
             self._viewport.width, self._viewport.height = glfw.get_window_size(self._window)
@@ -130,3 +135,5 @@ class MujocoGlfwViewer:
 
     def stop(self):
         glfw.destroy_window(self._window)
+
+

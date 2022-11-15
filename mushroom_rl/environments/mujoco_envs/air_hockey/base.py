@@ -84,19 +84,21 @@ class AirHockeyBase(MuJoCo):
         super().__init__(scene, action_spec, observation_spec, gamma, horizon, timestep, n_substeps,
                          n_intermediate_steps, additional_data, collision_spec, **viewer_params)
 
-        # Robot URDF
-        robot_urdf = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey",
-                                  "planar_robot.urdf")
-
         self.env_spec = dict()
         self.env_spec['table'] = {"length": 1.96, "width": 1.02, "height": -0.189, "goal": 0.25}
         self.env_spec['puck'] = {"radius": 0.03165}
         self.env_spec['mallet'] = {"radius": 0.05}
 
+        robot_path = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey", "planar_robot_1.xml")
+
+        self.robot_model = mujoco.MjModel.from_xml_path(robot_path)
+        # Move robot to zero pos
+        self.robot_model.body("planar_robot_1/base").pos = np.zeros(3)
+        self.robot_data = mujoco.MjData(self.robot_model)
+
         agent_spec = dict()
         agent_spec['name'] = "planar_robot_1"
         agent_spec.update({'link_length': [0.5, 0.4, 0.4]})
-        agent_spec["urdf"] = robot_urdf
 
         agent_spec['frame'] = np.eye(4)
         temp = np.zeros((9, 1))
@@ -109,7 +111,6 @@ class AirHockeyBase(MuJoCo):
             agent_spec = dict()
             agent_spec['name'] = "planar_robot_2"
             agent_spec.update({'link_length': [0.5, 0.4, 0.4]})
-            agent_spec["urdf"] = robot_urdf
 
             agent_spec['frame'] = np.eye(4)
             temp = np.zeros((9, 1))
@@ -126,8 +127,9 @@ class AirHockeyBase(MuJoCo):
     def is_absorbing(self, obs):
         boundary = np.array([self.env_spec['table']['length'], self.env_spec['table']['width']]) / 2
         puck_pos = self.obs_helper.get_from_obs(obs, "puck_pos")
+        puck_vel = self.obs_helper.get_from_obs(obs, "puck_vel")
 
-        if np.any(np.abs(puck_pos[:2]) > boundary):
+        if np.any(np.abs(puck_pos[:2]) > boundary) or np.linalg.norm(puck_vel) > 100:
             return True
         return False
 

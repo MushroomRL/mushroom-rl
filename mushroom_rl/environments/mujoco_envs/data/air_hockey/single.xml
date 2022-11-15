@@ -1,8 +1,9 @@
 <mujoco model="AirHockeySingle">
 
-    <include file="table.xml"/>
 
     <include file="planar_robot_1.xml"/>
+
+    <include file="table.xml"/>
 
     <asset>
         <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512"
