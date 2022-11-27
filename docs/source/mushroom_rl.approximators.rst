@@ -26,6 +26,15 @@ Linear
     :private-members:
     :inherited-members:
     :show-inheritance:
+    
+CMAC
+~~~~
+
+.. automodule:: mushroom_rl.approximators.parametric.cmac
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
 
 Torch Approximator
 ~~~~~~~~~~~~~~~~~~
