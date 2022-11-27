@@ -350,6 +350,11 @@ class TorchApproximator(Serializable):
 
     @property
     def loss_fit(self):
+        """
+        Returns:
+            The average loss of the last epoch of the last fit call.
+            
+        """
         return self._last_loss
 
     def _post_load(self):
