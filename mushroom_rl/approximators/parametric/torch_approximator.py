@@ -34,9 +34,9 @@ class TorchApproximator(Serializable):
                 method of the network;
             use_cuda (bool, False): if True, runs the network on the GPU;
             reinitialize (bool, False): if True, the approximator is re
-            initialized at every fit call. To perform the initialization, the
-            weights_init method must be defined properly for the selected
-            model network.
+                initialized at every fit call. To perform the initialization, 
+                the weights_init method must be defined properly for the 
+                selected model network.
             dropout (bool, False): if True, dropout is applied only during
                 train;
             quiet (bool, True): if False, shows two progress bars, one for
