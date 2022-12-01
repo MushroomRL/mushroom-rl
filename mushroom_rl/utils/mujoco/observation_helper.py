@@ -26,7 +26,7 @@ class ObservationType(Enum):
 
 
 class ObservationHelper:
-    def __init__(self, observation_spec, model, data, max_joint_velocity=3):
+    def __init__(self, observation_spec, model, data, max_joint_velocity):
         if len(observation_spec) == 0:
             raise AttributeError("No Environment observations were specified. "
                                  "Add at least one observation to the observation_spec.")
@@ -42,6 +42,10 @@ class ObservationHelper:
         self.build_omit_idx = {}
 
         self.observation_spec = observation_spec
+
+        if max_joint_velocity is not None:
+            max_joint_velocity = iter(max_joint_velocity)
+
         current_idx = 0
         for key, name, ot in observation_spec:
             assert key not in self.obs_idx_map.keys(), "Found duplicate key in observation specification: \"%s\"" % key
@@ -60,8 +64,13 @@ class ObservationHelper:
 
             elif obs_count == 1 and ot == ObservationType.JOINT_VEL:
                 self.joint_vel_idx.append(current_idx)
-                self.obs_low.append(-max_joint_velocity)
-                self.obs_high.append(max_joint_velocity)
+                if max_joint_velocity is None:
+                    max_vel = np.inf
+                else:
+                    max_vel = next(max_joint_velocity)
+
+                self.obs_low.append(-max_vel)
+                self.obs_high.append(max_vel)
             else:
                 self.obs_low.extend([-np.inf] * obs_count)
                 self.obs_high.extend([np.inf] * obs_count)
