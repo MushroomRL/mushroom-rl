@@ -11,8 +11,9 @@ class MuJoCo(Environment):
 
     """
 
-    def __init__(self, file_name, actuation_spec, observation_spec, gamma, horizon, timestep=None,
-                 n_substeps=1, n_intermediate_steps=1, additional_data_spec=None, collision_groups=None, **viewer_params):
+    def __init__(self, file_name, actuation_spec, observation_spec, gamma, horizon, timestep=None, n_substeps=1,
+                 n_intermediate_steps=1, additional_data_spec=None, collision_groups=None, max_joint_vel=None,
+                 **viewer_params):
         """
         Constructor.
 
@@ -51,6 +52,9 @@ class MuJoCo(Environment):
                 ``(key, geom_names)``, where key is a string for later
                 referencing in the "check_collision" method, and geom_names is
                 a list of geom names in the XML specification.
+             max_joint_vel (list, None): A list with the maximum joint velocities which are provided in the mdp_info.
+                The list has to define a maximum velocity for every occurrence of JOINT_VEL in the observation_spec. The
+                velocity will not be limited in mujoco
              **viewer_params: other parameters to be passed to the viewer.
                 See MujocoGlfwViewer documentation for the available options.
 
@@ -93,7 +97,7 @@ class MuJoCo(Environment):
 
         # Read the observation spec to build a mapping at every step. It is
         # ensured that the values appear in the order they are specified.
-        self.obs_helper = ObservationHelper(observation_spec, self._model, self._data, max_joint_velocity=3)
+        self.obs_helper = ObservationHelper(observation_spec, self._model, self._data, max_joint_velocity=max_joint_vel)
 
         observation_space = Box(*self.obs_helper.get_obs_limits())
 
