@@ -44,8 +44,6 @@ class Logger(DataLogger, ConsoleLogger):
 
         if results_dir:
             results_dir = Path(results_dir) / log_name
-
-            print('Logging in folder: ' + str(results_dir))
             results_dir.mkdir(parents=True, exist_ok=True)
 
         suffix = '' if seed is None else '-' + str(seed)
