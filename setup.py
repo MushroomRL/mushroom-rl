@@ -34,9 +34,8 @@ extras = {
     'atari': ['ale-py==0.7.5', 'Pillow', 'opencv-python'],
     'box2d': ['box2d-py~=2.3.5'],
     'bullet': ['pybullet'],
-    'mujoco': ['mujoco>=2.3'],
-    'plots': ['pyqtgraph'],
-    'minigrid': ['gym-minigrid']
+    'mujoco': ['mujoco>=2.3', 'dm_control>=1.0.9'],
+    'plots': ['pyqtgraph']
 }
 
 all_deps = []

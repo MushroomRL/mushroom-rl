@@ -45,8 +45,7 @@ class InvertedPendulum(Environment):
 
         # MDP properties
         observation_space = spaces.Box(low=-high, high=high)
-        action_space = spaces.Box(low=np.array([-max_u]),
-                                  high=np.array([max_u]))
+        action_space = spaces.Box(low=np.array([-max_u]), high=np.array([max_u]))
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
 
         # Visualization
@@ -74,13 +73,11 @@ class InvertedPendulum(Environment):
 
     def step(self, action):
         u = self._bound(action[0], -self._max_u, self._max_u)
-        new_state = odeint(self._dynamics, self._state, [0, self._dt],
-                           (u,))
+        new_state = odeint(self._dynamics, self._state, [0, self._dt], args=(u.item(),))
 
         self._state = np.array(new_state[-1])
         self._state[0] = normalize_angle(self._state[0])
-        self._state[1] = self._bound(self._state[1], -self._max_omega,
-                                     self._max_omega)
+        self._state[1] = self._bound(self._state[1], -self._max_omega, self._max_omega)
 
         reward = np.cos(self._state[0])
 
@@ -98,8 +95,7 @@ class InvertedPendulum(Environment):
         self._viewer.line(start, end)
         self._viewer.circle(start, self._l / 40)
         self._viewer.circle(end, self._l / 20)
-        self._viewer.torque_arrow(start, -self._last_u, self._max_u,
-                                  self._l / 5)
+        self._viewer.torque_arrow(start, -self._last_u, self._max_u, self._l / 5)
 
         self._viewer.display(self._dt)
 
@@ -107,11 +103,13 @@ class InvertedPendulum(Environment):
         self._viewer.close()
 
     def _dynamics(self, state, t, u):
+        print(t)
         theta = state[0]
         omega = self._bound(state[1], -self._max_omega, self._max_omega)
 
         d_theta = omega
-        d_omega = (-self._mu * omega + self._m * self._g * self._l * np.sin(
-            theta) + u) / (self._m * self._l**2)
+        d_omega = (-self._mu * omega + self._m * self._g * self._l * np.sin(theta) + u) / (self._m * self._l**2)
 
-        return d_theta, d_omega
+        ds = [d_theta, d_omega]
+
+        return ds

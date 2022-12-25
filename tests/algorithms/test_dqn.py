@@ -134,7 +134,7 @@ def test_dqn_logger(tmpdir):
     loss_file = np.load(logger.path / 'loss_Q.npy')
 
     assert loss_file.shape == (90,)
-    assert loss_file[0] == 0.9765409231185913 and loss_file[-1] == 0.6936992406845093
+    assert loss_file[0] == 0.976540744304657 and loss_file[-1] == 0.6936991810798645
 
 
 def test_prioritized_dqn():
