@@ -8,7 +8,6 @@ from mushroom_rl.utils.mujoco import *
 class MuJoCo(Environment):
     """
     Class to create a Mushroom environment using the MuJoCo simulator.
-
     """
 
     def __init__(self, file_name, actuation_spec, observation_spec, gamma, horizon, timestep=None, n_substeps=1,
@@ -27,7 +26,8 @@ class MuJoCo(Environment):
                 should be made available to the agent as an observation and
                 their type (ObservationType). They are combined with a key,
                 which is used to access the data. An entry in the list
-                is given by: (key, name, type);
+                is given by: (key, name, type). The name can later be used
+                to retrieve specific observations;
              gamma (float): The discounting factor of the environment;
              horizon (int): The maximum horizon for the environment;
              timestep (float): The timestep used by the MuJoCo

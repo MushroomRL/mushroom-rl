@@ -6,6 +6,13 @@ import numpy as np
 
 
 class MujocoGlfwViewer:
+    """
+    Class that creates a Glfw viewer for mujoco environments.
+    Controls:
+        Space: Pause / Unpause simulation
+        c: Turn contact force and constraint visualisation on / off
+        t: Make models transparent
+    """
     def __init__(self, model, dt, width=1920, height=1080, start_paused=False):
         self.button_left = False
         self.button_right = False
