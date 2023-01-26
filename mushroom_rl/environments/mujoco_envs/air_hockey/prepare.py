@@ -13,11 +13,13 @@ class AirHockeyPrepare(AirHockeySingle):
                  env_noise=False, obs_noise=False, timestep=1 / 240., n_intermediate_steps=1, **viewer_params):
         """
         Constructor
+
         Args:
             random_init(bool, False): If true, initialize the puck at random position .
             action_penalty(float, 1e-3): The penalty of the action on the reward at each time step
             sub_problem(string, "side"): determines which area is considered for the initial puck position.
-                Currently "side" and "bottom" are available
+                Currently "side" and "bottom" are available.
+
         """
 
         self.random_init = random_init

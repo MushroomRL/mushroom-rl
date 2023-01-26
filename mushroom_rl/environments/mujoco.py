@@ -258,21 +258,22 @@ class MuJoCo(Environment):
     def _simulation_pre_step(self):
         """
         Allows information to be accesed and changed at every intermediate step
-            before taking a step in the mujoco simulation.
-            Can be usefull to apply an external force/torque to the specified bodies.
+        before taking a step in the mujoco simulation.
+        Can be usefull to apply an external force/torque to the specified bodies.
 
         ex: apply a force over X to the torso:
-            force = [200, 0, 0]
-            torque = [0, 0, 0]
-            self.sim.data.xfrc_applied[self.sim.model._body_name2id["torso"],:] = force + torque
+        force = [200, 0, 0]
+        torque = [0, 0, 0]
+        self.sim.data.xfrc_applied[self.sim.model._body_name2id["torso"],:] = force + torque
+
         """
         pass
 
     def _simulation_post_step(self):
         """
         Allows information to be accesed at every intermediate step
-            after taking a step in the mujoco simulation.
-            Can be usefull to average forces over all intermediate steps.
+        after taking a step in the mujoco simulation.
+        Can be usefull to average forces over all intermediate steps.
 
         """
         pass

@@ -140,6 +140,61 @@ Mujoco
     :inherited-members:
     :show-inheritance:
 
+Air Hockey
+^^^^^^^^^^
+
+.. automodule:: mushroom_rl.environments.mujoco_envs.air_hockey.base
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.mujoco_envs.air_hockey.single
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.mujoco_envs.air_hockey.double
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.mujoco_envs.air_hockey.hit
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.mujoco_envs.air_hockey.defend
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.mujoco_envs.air_hockey.prepare
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.mujoco_envs.air_hockey.repel
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+Ball In A Cup
+^^^^^^^^^^^^^
+
+.. automodule:: mushroom_rl.environments.mujoco_envs.ball_in_a_cup
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+
 Puddle World
 ~~~~~~~~~~~~
 

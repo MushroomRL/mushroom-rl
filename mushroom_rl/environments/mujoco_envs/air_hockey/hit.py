@@ -13,11 +13,13 @@ class AirHockeyHit(AirHockeySingle):
                  env_noise=False, obs_noise=False, timestep=1 / 240., n_intermediate_steps=1, **viewer_params):
         """
         Constructor
+
         Args:
             random_init(bool, False): If true, initialize the puck at random position.
             action_penalty(float, 1e-3): The penalty of the action on the reward at each time step
             init_robot_state(string, "right"): The configuration in which the robot is initialized. "right", "left",
-                                                "random" available
+                "random" available.
+
         """
 
         self.random_init = random_init
