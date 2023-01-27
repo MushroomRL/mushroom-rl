@@ -160,9 +160,11 @@ class MuJoCo(Environment):
 
         absorbing = self.is_absorbing(cur_obs)
         reward = self.reward(self._obs, action, cur_obs, absorbing)
+        info = self._create_info_dictionary(cur_obs)
 
         self._obs = cur_obs
-        return self._modify_observation(cur_obs), reward, absorbing, {}
+
+        return self._modify_observation(cur_obs), reward, absorbing, info
 
     def render(self):
         if self._viewer is None:
@@ -203,6 +205,19 @@ class MuJoCo(Environment):
 
         """
         return obs
+
+    def _create_info_dictionary(self, obs):
+        """
+        This method can be overridden to create a custom info dictionary.
+
+        Args:
+            obs (np.ndarray): the generated observation
+
+        Returns:
+            The information dictionary.
+
+        """
+        return {}
 
     def _modify_observation(self, obs):
         """
