@@ -2,6 +2,7 @@ import numpy as np
 
 from mushroom_rl.utils.spaces import Box
 from mushroom_rl.environments.mujoco_envs.air_hockey.base import AirHockeyBase
+from mushroom_rl.utils.mujoco import forward_kinematics
 
 
 class AirHockeySingle(AirHockeyBase):
@@ -89,3 +90,36 @@ class AirHockeySingle(AirHockeyBase):
     def _create_observation(self, state):
         obs = super(AirHockeySingle, self)._create_observation(state)
         return np.append(obs, [self.has_hit, self.has_bounce])
+
+    def _create_info_dictionary(self, obs):
+        constraints = {}
+        q_pos = self.obs_helper.get_joint_pos_from_obs(obs)
+        q_vel = self.obs_helper.get_joint_vel_from_obs(obs)
+
+        x_pos, _ = forward_kinematics(self.robot_model, self.robot_data, q_pos, "planar_robot_1/body_ee")
+
+        # Translate to table space
+        ee_pos = x_pos + self.agents[0]["frame"][:3, 3]
+
+        # ee_constraint: force the ee to stay within the bounds of the table
+        # 1 Dimension on x direction: x > x_lb
+        # 2 Dimension on y direction: y > y_lb, y < y_ub
+        x_lb = - (self.env_spec['table']['length'] / 2 + self.env_spec['mallet']['radius'])
+        y_lb = - (self.env_spec['table']['width'] / 2 - self.env_spec['mallet']['radius'])
+        y_ub = (self.env_spec['table']['width'] / 2 - self.env_spec['mallet']['radius'])
+
+        constraints["ee_constraints"] = np.array([-ee_pos[0] + x_lb,
+                                                  -ee_pos[1] + y_lb, ee_pos[1] - y_ub])
+
+        # joint_pos_constraint: stay within the robots joint position limits
+        constraints["joint_pos_constraints"] = np.zeros(6)
+        constraints["joint_pos_constraints"][:3] = q_vel - self.obs_helper.get_joint_pos_limits()[1]
+        constraints["joint_pos_constraints"][3:] = self.obs_helper.get_joint_pos_limits()[0] - q_vel
+
+        # joint_vel_constraint: stay within the robots joint velocity limits
+        constraints["joint_vel_constraints"] = np.zeros(6)
+        constraints["joint_vel_constraints"][:3] = q_vel - self.obs_helper.get_joint_vel_limits()[1]
+        constraints["joint_vel_constraints"][3:] = self.obs_helper.get_joint_vel_limits()[0] - q_vel
+
+        return constraints
+

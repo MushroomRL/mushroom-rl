@@ -136,8 +136,6 @@ class AirHockeyPrepare(AirHockeySingle):
 
 
 if __name__ == '__main__':
-    import time
-
     env = AirHockeyPrepare(obs_noise=False, n_intermediate_steps=4, random_init=True,
                            sub_problem="bottom")
 
@@ -147,9 +145,7 @@ if __name__ == '__main__':
     steps = 0
     env.reset()
     while True:
-
-        # action = np.random.randn(3) * 5
-        action = np.array([0, 0, 0])
+        action = np.random.randn(3) * 5
         observation, reward, done, info = env.step(action)
         env.render()
         gamma *= env.info.gamma
@@ -163,4 +159,3 @@ if __name__ == '__main__':
             gamma = 1.
             steps = 0
             env.reset()
-        time.sleep(1 / 60.)
