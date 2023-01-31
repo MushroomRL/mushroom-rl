@@ -81,14 +81,13 @@ class AirHockeyBase(MuJoCo):
         else:
             raise ValueError('n_agents should be 1 or 2')
 
-        super().__init__(scene, action_spec, observation_spec, gamma, horizon, timestep, n_substeps,
-                         n_intermediate_steps, additional_data, collision_spec, **viewer_params)
 
         self.env_spec = dict()
         self.env_spec['table'] = {"length": 1.96, "width": 1.02, "height": -0.189, "goal": 0.25}
         self.env_spec['puck'] = {"radius": 0.03165}
         self.env_spec['mallet'] = {"radius": 0.05}
 
+        # Load just the robot model for to use for kinematics
         robot_path = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey", "planar_robot_1.xml")
 
         self.robot_model = mujoco.MjModel.from_xml_path(robot_path)
@@ -96,28 +95,33 @@ class AirHockeyBase(MuJoCo):
         self.robot_model.body("planar_robot_1/base").pos = np.zeros(3)
         self.robot_data = mujoco.MjData(self.robot_model)
 
+        # Properties of the robots
         agent_spec = dict()
         agent_spec['name'] = "planar_robot_1"
-        agent_spec.update({'link_length': [0.5, 0.4, 0.4]})
+        agent_spec.update({'link_length': [0.5, 0.4, 0.4],
+                           'max_joint_vel': np.array([np.pi / 2, np.pi / 2, np.pi * 2 / 3])})
 
-        agent_spec['frame'] = np.eye(4)
-        temp = np.zeros((9, 1))
-        mujoco.mju_quat2Mat(temp, self._model.body("planar_robot_1/base").quat)
-        agent_spec['frame'][:3, :3] = temp.reshape(3, 3)
-        agent_spec['frame'][:3, 3] = self._model.body("planar_robot_1/base").pos
         self.agents.append(agent_spec)
-
         if self.n_agents == 2:
             agent_spec = dict()
             agent_spec['name'] = "planar_robot_2"
-            agent_spec.update({'link_length': [0.5, 0.4, 0.4]})
+            agent_spec.update({'link_length': [0.5, 0.4, 0.4],
+                               'max_joint_vel': np.array([np.pi / 2, np.pi / 2, np.pi * 2 / 3])})
 
+            self.agents.append(agent_spec)
+
+        max_joint_vel = np.concatenate([spec['max_joint_vel'] for spec in self.agents])
+        super().__init__(scene, action_spec, observation_spec, gamma, horizon, timestep, n_substeps,
+                         n_intermediate_steps, additional_data, collision_spec, max_joint_vel,
+                         **viewer_params)
+
+        # Get the transformations from table to robot coordinate system
+        for i, agent_spec in enumerate(self.agents):
             agent_spec['frame'] = np.eye(4)
             temp = np.zeros((9, 1))
-            mujoco.mju_quat2Mat(temp, self._model.body("planar_robot_2/base").quat)
+            mujoco.mju_quat2Mat(temp, self._model.body("planar_robot_" + str(i+1) + "/base").quat)
             agent_spec['frame'][:3, :3] = temp.reshape(3, 3)
-            agent_spec['frame'][:3, 3] = self._model.body("planar_robot_2/base").pos
-            self.agents.append(agent_spec)
+            agent_spec['frame'][:3, 3] = self._model.body("planar_robot_" + str(i+1) + "/base").pos
 
     def _simulation_pre_step(self):
         if self.env_noise:

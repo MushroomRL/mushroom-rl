@@ -105,8 +105,6 @@ class AirHockeyDefend(AirHockeySingle):
 
 
 if __name__ == '__main__':
-    import time
-
     env = AirHockeyDefend(obs_noise=False, n_intermediate_steps=4, random_init=True)
 
     R = 0.
@@ -130,4 +128,3 @@ if __name__ == '__main__':
             gamma = 1.
             steps = 0
             env.reset()
-        time.sleep(1 / 60.)

@@ -2,7 +2,7 @@ import numpy as np
 
 from mushroom_rl.utils.spaces import Box
 from mushroom_rl.environments.mujoco_envs.air_hockey.base import AirHockeyBase
-
+from mushroom_rl.utils.mujoco import forward_kinematics
 
 class AirHockeyDouble(AirHockeyBase):
     """
@@ -97,3 +97,64 @@ class AirHockeyDouble(AirHockeyBase):
     def _create_observation(self, state):
         obs = super(AirHockeyDouble, self)._create_observation(state)
         return np.append(obs, [self.robot_1_hit, self.robot_2_hit, self.has_bounce])
+
+
+    def _create_info_dictionary(self, obs):
+        constraints = {"agent-1": {}, "agent-2":{}}
+
+        for i, key in enumerate(constraints.keys()):
+
+            q_pos = self.obs_helper.get_joint_pos_from_obs(obs)[i * 3: (i+1) * 3]
+            q_vel = self.obs_helper.get_joint_vel_from_obs(obs)[i * 3: (i+1) * 3]
+
+            x_pos, _ = forward_kinematics(self.robot_model, self.robot_data, q_pos, "planar_robot_1/body_ee")
+
+            # Translate to table space
+            ee_pos = x_pos + self.agents[0]["frame"][:3, 3]
+
+            # ee_constraint: force the ee to stay within the bounds of the table
+            # 1 Dimension on x direction: x > x_lb
+            # 2 Dimension on y direction: y > y_lb, y < y_ub
+            x_lb = - (self.env_spec['table']['length'] / 2 + self.env_spec['mallet']['radius'])
+            y_lb = - (self.env_spec['table']['width'] / 2 - self.env_spec['mallet']['radius'])
+            y_ub = (self.env_spec['table']['width'] / 2 - self.env_spec['mallet']['radius'])
+
+            constraints[key]["ee_constraints"] = np.array([-ee_pos[0] + x_lb,
+                                                           -ee_pos[1] + y_lb, ee_pos[1] - y_ub])
+
+            # joint_pos_constraint: stay within the robots joint position limits
+            constraints[key]["joint_pos_constraints"] = np.zeros(6)
+            constraints[key]["joint_pos_constraints"][:3] = q_vel - self.obs_helper.get_joint_pos_limits()[1][i * 3: (i+1) * 3]
+            constraints[key]["joint_pos_constraints"][3:] = self.obs_helper.get_joint_pos_limits()[0][i * 3: (i+1) * 3] - q_vel
+
+            # joint_vel_constraint: stay within the robots joint velocity limits
+            constraints[key]["joint_vel_constraints"] = np.zeros(6)
+            constraints[key]["joint_vel_constraints"][:3] = q_vel - self.obs_helper.get_joint_vel_limits()[1][i * 3: (i+1) * 3]
+            constraints[key]["joint_vel_constraints"][3:] = self.obs_helper.get_joint_vel_limits()[0][i * 3: (i+1) * 3] - q_vel
+
+        return constraints
+
+
+if __name__ == '__main__':
+    env = AirHockeyDouble(env_noise=False, obs_noise=False, n_intermediate_steps=4)
+
+    env.reset()
+    R = 0.
+    J = 0.
+    gamma = 1.
+    steps = 0
+    while True:
+        action = np.random.randn(6) * 5
+        observation, reward, done, info = env.step(action)
+        env.render()
+        gamma *= env.info.gamma
+        J += gamma * reward
+        R += reward
+        steps += 1
+        if done or steps > env.info.horizon:
+            print("J: ", J, " R: ", R)
+            R = 0.
+            J = 0.
+            gamma = 1.
+            steps = 0
+            env.reset()
