@@ -15,10 +15,6 @@ def forward_kinematics(mj_model, mj_data, q, body_name):
         Position and Orientation of the body with the name body_name
     """
 
-    return _mujoco_body_fk(q, body_name, mj_model, mj_data)
-
-
-def _mujoco_body_fk(q, name, model, data):
-    data.qpos[:len(q)] = q
-    mujoco.mj_fwdPosition(model, data)
-    return data.body(name).xpos.copy(), data.body(name).xmat.reshape(3, 3).copy()
+    mj_data.qpos[:len(q)] = q
+    mujoco.mj_fwdPosition(mj_model, mj_data)
+    return mj_data.body(body_name).xpos.copy(), mj_data.body(body_name).xmat.reshape(3, 3).copy()

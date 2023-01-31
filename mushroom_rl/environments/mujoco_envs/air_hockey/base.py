@@ -115,7 +115,7 @@ class AirHockeyBase(MuJoCo):
                          n_intermediate_steps, additional_data, collision_spec, max_joint_vel,
                          **viewer_params)
 
-        # Fet the transformations from table to robot coordinate
+        # Get the transformations from table to robot coordinate system
         for i, agent_spec in enumerate(self.agents):
             agent_spec['frame'] = np.eye(4)
             temp = np.zeros((9, 1))
