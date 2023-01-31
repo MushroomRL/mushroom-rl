@@ -54,7 +54,6 @@ Deep Actor-Critic
 - `Pendulum with Trust Region approaches <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/pendulum_trust_region.py>`_
 - `Pendulum with Deterministic Gradient <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/pendulum_ddpg.py>`_
 - `Pendulum with SAC <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/pendulum_sac.py>`_
-- `Humanoid (custom model) with SAC <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/humanoid_sac.py>`_
 
 
 Continuos Control From Pixels
