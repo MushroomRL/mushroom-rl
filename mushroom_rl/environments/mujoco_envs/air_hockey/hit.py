@@ -33,7 +33,7 @@ class AirHockeyHit(AirHockeySingle):
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
                          env_noise=env_noise, obs_noise=obs_noise, **viewer_params)
 
-    def setup(self, obs=None):
+    def setup(self, obs):
         # Initial position of the puck
         if self.random_init:
             puck_pos = np.random.rand(2) * (self.hit_range[:, 1] - self.hit_range[:, 0]) + self.hit_range[:, 0]

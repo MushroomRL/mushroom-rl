@@ -87,7 +87,7 @@ class AirHockeyDouble(AirHockeyBase):
     def reward(self, state, action, next_state, absorbing):
         return 0
 
-    def setup(self, obs=None):
+    def setup(self, obs):
         self.robot_1_hit = False
         self.robot_2_hit = False
         self.has_bounce = False

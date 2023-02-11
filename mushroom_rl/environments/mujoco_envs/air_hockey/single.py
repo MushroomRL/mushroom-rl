@@ -82,7 +82,7 @@ class AirHockeySingle(AirHockeyBase):
 
         return new_obs
 
-    def setup(self, obs=None):
+    def setup(self, obs):
         self.has_hit = False
         self.has_bounce = False
 

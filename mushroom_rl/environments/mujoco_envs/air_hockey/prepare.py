@@ -38,7 +38,7 @@ class AirHockeyPrepare(AirHockeySingle):
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
                          env_noise=env_noise, obs_noise=obs_noise, **viewer_params)
 
-    def setup(self, obs=None):
+    def setup(self, obs):
         if self.random_init:
             puck_pos = np.random.rand(2) * (self.start_range[:, 1] - self.start_range[:, 0]) + self.start_range[:, 0]
             puck_pos *= [1, [1, -1][np.random.randint(2)]]
@@ -48,7 +48,7 @@ class AirHockeyPrepare(AirHockeySingle):
         self.desired_point = [puck_pos[0], 0]
 
         self._write_data("puck_pos", np.concatenate([puck_pos, [0, 0, 0, 0, 1]]))
-        
+
         super(AirHockeyPrepare, self).setup(obs)
 
 

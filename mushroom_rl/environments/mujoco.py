@@ -427,7 +427,7 @@ class MuJoCo(Environment):
         """
         raise NotImplementedError
 
-    def setup(self, obs=None):
+    def setup(self, obs):
         """
         A function that allows to execute setup code after an environment
         reset.
