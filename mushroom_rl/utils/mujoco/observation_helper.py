@@ -165,6 +165,20 @@ class ObservationHelper:
             observations.append(obs)
         return np.concatenate(observations)
 
+    def modify_data(self, data, obs):
+        """
+        Write the values of the observation into the provided mujoco data object. ONLY joint_pos / joint_vel
+        observations will have an effect on the simulation when overwritten. Everything else is just discarded by mujoco
+        """
+        current_idx = 0
+        for key, name, o_type in self.observation_spec:
+            omit = np.array(self.build_omit_idx[key])
+            current_obs = self.get_state(data, name, o_type)
+            for i in range(len(current_obs)):
+                if i not in omit:
+                    current_obs[i] = obs[current_idx]
+                    current_idx += 1
+
     def get_state(self, data, name, o_type):
         """
         Get a single observation from data, given it's name and observation type. The ObservationType documentation

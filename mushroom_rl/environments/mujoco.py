@@ -131,7 +131,10 @@ class MuJoCo(Environment):
 
     def reset(self, obs=None):
         mujoco.mj_resetData(self._model, self._data)
-        self.setup()
+        if obs is None:
+            self.setup()
+        else:
+            self.obs_helper.modify_data(self._data, obs)
 
         self._obs = self._create_observation(self.obs_helper.build_obs(self._data))
         return self._modify_observation(self._obs)

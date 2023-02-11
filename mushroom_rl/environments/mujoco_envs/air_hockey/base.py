@@ -33,8 +33,8 @@ class AirHockeyBase(MuJoCo):
         self.agents = []
 
         action_spec = []
-        observation_spec = [("puck_pos", "puck", ObservationType.BODY_POS),
-                            ("puck_vel", "puck", ObservationType.BODY_VEL)]
+        observation_spec = [("puck_pos", "puck", ObservationType.JOINT_POS),
+                            ("puck_vel", "puck", ObservationType.JOINT_VEL)]
 
         additional_data = [("puck_pos", "puck", ObservationType.JOINT_POS),
                            ("puck_vel", "puck", ObservationType.JOINT_VEL)]
@@ -65,8 +65,8 @@ class AirHockeyBase(MuJoCo):
 
                 action_spec += ["planar_robot_2/joint_1", "planar_robot_2/joint_2", "planar_robot_2/joint_3"]
                 # Add puck pos/vel again to transform into second agents frame
-                observation_spec += [("robot_2/puck_pos", "puck", ObservationType.BODY_POS),
-                                     ("robot_2/puck_vel", "puck", ObservationType.BODY_VEL),
+                observation_spec += [("robot_2/puck_pos", "puck", ObservationType.JOINT_POS),
+                                     ("robot_2/puck_vel", "puck", ObservationType.JOINT_VEL),
                                      ("robot_2/joint_1_pos", "planar_robot_2/joint_1", ObservationType.JOINT_POS),
                                      ("robot_2/joint_2_pos", "planar_robot_2/joint_2", ObservationType.JOINT_POS),
                                      ("robot_2/joint_3_pos", "planar_robot_2/joint_3", ObservationType.JOINT_POS),
