@@ -133,9 +133,9 @@
                                             <site name="cup_goal_final" pos="0 -0.025 0.1165" />
 
                                             <body name="B0" pos="0 -0.045 0.1165" quat="0.707388 0 0 -0.706825">
-                                                <composite type="rope" count="30 1 1" spacing="0.0101" offset="0 0 0">
+                                                <composite type="cable" count="50 1 1" curve="s" size="0.30" offset="0 0 0">
                                                     <joint kind="main" damping="0.001" armature="0.0001"/>
-                                                    <geom type="capsule" size="0.001 0.00427" rgba="0.8 0.2 0.1 1" mass="7.4927e-05"/>
+                                                    <geom type="capsule" size="0.002 0.00427" rgba="0.8 0.2 0.1 1" mass="7.4927e-05"/>
                                                 </composite>
                                             </body>
                                         </body>
@@ -154,7 +154,7 @@
     </worldbody>
 
     <equality>
-        <weld body1="B29" body2="ball" active="true" solref="-10000 -100"/>
+        <weld body1="B_last" body2="ball" active="true" solref="-10000 -100"/>
     </equality>
 
 
