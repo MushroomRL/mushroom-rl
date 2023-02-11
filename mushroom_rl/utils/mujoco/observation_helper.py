@@ -147,7 +147,7 @@ class ObservationHelper:
     def get_joint_vel_limits(self):
         return self.obs_low[self.joint_vel_idx], self.obs_high[self.joint_vel_idx]
 
-    def build_obs(self, data):
+    def _build_obs(self, data):
         """
         Builds the observation given the true state of the simulation. The ObservationType documentation
         describes the different returns in detail
@@ -165,7 +165,7 @@ class ObservationHelper:
             observations.append(obs)
         return np.concatenate(observations)
 
-    def modify_data(self, data, obs):
+    def _modify_data(self, data, obs):
         """
         Write the values of the observation into the provided mujoco data object. ONLY joint_pos / joint_vel
         observations will have an effect on the simulation when overwritten. Everything else is just discarded by mujoco

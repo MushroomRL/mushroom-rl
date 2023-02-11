@@ -87,7 +87,7 @@ class AirHockeyDouble(AirHockeyBase):
     def reward(self, state, action, next_state, absorbing):
         return 0
 
-    def setup(self):
+    def setup(self, obs=None):
         self.robot_1_hit = False
         self.robot_2_hit = False
         self.has_bounce = False
@@ -98,6 +98,7 @@ class AirHockeyDouble(AirHockeyBase):
         for i in range(3):
             self._data.joint("planar_robot_2/joint_" + str(i+1)).qpos = self.init_state[i]
 
+        super().setup(obs)
         mujoco.mj_fwdPosition(self._model, self._data)
 
     def _simulation_post_step(self):
@@ -113,7 +114,6 @@ class AirHockeyDouble(AirHockeyBase):
     def _create_observation(self, state):
         obs = super(AirHockeyDouble, self)._create_observation(state)
         return np.append(obs, [self.robot_1_hit, self.robot_2_hit, self.has_bounce])
-
 
     def _create_info_dictionary(self, obs):
         constraints = {"agent-1": {}, "agent-2":{}}

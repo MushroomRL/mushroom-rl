@@ -82,13 +82,14 @@ class AirHockeySingle(AirHockeyBase):
 
         return new_obs
 
-    def setup(self):
+    def setup(self, obs=None):
         self.has_hit = False
         self.has_bounce = False
 
         for i in range(3):
             self._data.joint("planar_robot_1/joint_" + str(i+1)).qpos = self.init_state[i]
 
+        super().setup(obs)
         mujoco.mj_fwdPosition(self._model, self._data)
 
     def _simulation_post_step(self):
