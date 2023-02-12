@@ -32,7 +32,7 @@ class AirHockeyRepel(AirHockeySingle):
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
                          env_noise=env_noise, obs_noise=obs_noise, **viewer_params)
 
-    def setup(self, state=None):
+    def setup(self, obs):
         # Set initial puck parameters
         if self.random_init:
             puck_pos = np.random.rand(2) * (self.start_range[:, 1] - self.start_range[:, 0]) + self.start_range[:, 0]
@@ -54,8 +54,8 @@ class AirHockeyRepel(AirHockeySingle):
 
         self._write_data("puck_pos", np.concatenate([puck_pos, [0, 0, 0, 0, 1]]))
         self._write_data("puck_vel", np.concatenate([puck_lin_vel, puck_ang_vel]))
-        
-        super(AirHockeyRepel, self).setup()
+
+        super(AirHockeyRepel, self).setup(obs)
 
     # Very flawed needs a lot of tuning
     def reward(self, state, action, next_state, absorbing):

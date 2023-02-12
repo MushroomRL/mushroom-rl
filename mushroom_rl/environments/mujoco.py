@@ -131,9 +131,9 @@ class MuJoCo(Environment):
 
     def reset(self, obs=None):
         mujoco.mj_resetData(self._model, self._data)
-        self.setup()
+        self.setup(obs)
 
-        self._obs = self._create_observation(self.obs_helper.build_obs(self._data))
+        self._obs = self._create_observation(self.obs_helper._build_obs(self._data))
         return self._modify_observation(self._obs)
 
     def step(self, action):
@@ -154,7 +154,7 @@ class MuJoCo(Environment):
 
             self._simulation_post_step()
 
-            cur_obs = self._create_observation(self.obs_helper.build_obs(self._data))
+            cur_obs = self._create_observation(self.obs_helper._build_obs(self._data))
 
         self._step_finalize()
 
@@ -427,13 +427,15 @@ class MuJoCo(Environment):
         """
         raise NotImplementedError
 
-    def setup(self):
+    def setup(self, obs):
         """
         A function that allows to execute setup code after an environment
         reset.
 
         """
-        pass
+        if obs is not None:
+            self.obs_helper._modify_data(self._data, obs)
+
 
     def get_all_observation_keys(self):
         """

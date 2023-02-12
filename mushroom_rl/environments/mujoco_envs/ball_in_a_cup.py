@@ -68,7 +68,7 @@ class BallInACup(MuJoCo):
         dist = self._read_data("goal_pos") - self._read_data("ball_pos")
         return np.linalg.norm(dist) < 0.05 or self._check_collision("ball", "robot")
 
-    def setup(self):
+    def setup(self, obs):
         if self._reset_state is None:
             # Copy the initial position after the reset
             init_pos = self._data.qpos[0:7].copy()

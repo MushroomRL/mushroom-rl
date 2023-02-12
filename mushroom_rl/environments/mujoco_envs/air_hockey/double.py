@@ -1,4 +1,5 @@
 import numpy as np
+import mujoco
 
 from mushroom_rl.utils.spaces import Box
 from mushroom_rl.environments.mujoco_envs.air_hockey.base import AirHockeyBase
@@ -20,15 +21,27 @@ class AirHockeyDouble(AirHockeyBase):
         super().__init__(gamma=gamma, horizon=horizon, env_noise=env_noise, n_agents=2, obs_noise=obs_noise,
                          timestep=timestep, n_intermediate_steps=n_intermediate_steps, **viewer_params)
 
+        # Remove z position and quaternion from puck pos
         self.obs_helper.remove_obs("puck_pos", 2)
-        self.obs_helper.remove_obs("puck_vel", 0)
-        self.obs_helper.remove_obs("puck_vel", 1)
-        self.obs_helper.remove_obs("puck_vel", 5)
+        self.obs_helper.remove_obs("puck_pos", 3)
+        self.obs_helper.remove_obs("puck_pos", 4)
+        self.obs_helper.remove_obs("puck_pos", 5)
+        self.obs_helper.remove_obs("puck_pos", 6)
 
         self.obs_helper.remove_obs("robot_2/puck_pos", 2)
-        self.obs_helper.remove_obs("robot_2/puck_vel", 0)
-        self.obs_helper.remove_obs("robot_2/puck_vel", 1)
-        self.obs_helper.remove_obs("robot_2/puck_vel", 5)
+        self.obs_helper.remove_obs("robot_2/puck_pos", 3)
+        self.obs_helper.remove_obs("robot_2/puck_pos", 4)
+        self.obs_helper.remove_obs("robot_2/puck_pos", 5)
+        self.obs_helper.remove_obs("robot_2/puck_pos", 6)
+
+        # Remove linear z velocity and angular velocity around x and y
+        self.obs_helper.remove_obs("puck_vel", 2)
+        self.obs_helper.remove_obs("puck_vel", 3)
+        self.obs_helper.remove_obs("puck_vel", 4)
+
+        self.obs_helper.remove_obs("robot_2/puck_vel", 2)
+        self.obs_helper.remove_obs("robot_2/puck_vel", 3)
+        self.obs_helper.remove_obs("robot_2/puck_vel", 4)
 
         self.obs_helper.add_obs("collision_robot_1_puck", 1, 0, 1)
         self.obs_helper.add_obs("collision_robot_2_puck", 1, 0, 1)
@@ -54,26 +67,27 @@ class AirHockeyDouble(AirHockeyBase):
         return ee_pos, ee_vel
 
     def _modify_observation(self, obs):
-        self._puck_2d_in_robot_frame(self.obs_helper.get_from_obs(obs, "puck_pos"), self.agents[0]["frame"])
+        new_obs = obs.copy()
+        self._puck_2d_in_robot_frame(self.obs_helper.get_from_obs(new_obs, "puck_pos"), self.agents[0]["frame"])
 
-        self._puck_2d_in_robot_frame(self.obs_helper.get_from_obs(obs, "puck_vel"), self.agents[0]["frame"], type='vel')
+        self._puck_2d_in_robot_frame(self.obs_helper.get_from_obs(new_obs, "puck_vel"), self.agents[0]["frame"], type='vel')
 
-        self._puck_2d_in_robot_frame(self.obs_helper.get_from_obs(obs, "robot_2/puck_pos"), self.agents[1]["frame"])
+        self._puck_2d_in_robot_frame(self.obs_helper.get_from_obs(new_obs, "robot_2/puck_pos"), self.agents[1]["frame"])
 
-        self._puck_2d_in_robot_frame(self.obs_helper.get_from_obs(obs, "robot_2/puck_vel"), self.agents[1]["frame"],
+        self._puck_2d_in_robot_frame(self.obs_helper.get_from_obs(new_obs, "robot_2/puck_vel"), self.agents[1]["frame"],
                                      type='vel')
 
         if self.obs_noise:
             noise = np.random.randn(2) * 0.001
-            self.obs_helper.get_from_obs(obs, "puck_pos")[:] += noise
-            self.obs_helper.get_from_obs(obs, "robot_2/puck_pos")[:] += noise
+            self.obs_helper.get_from_obs(new_obs, "puck_pos")[:] += noise
+            self.obs_helper.get_from_obs(new_obs, "robot_2/puck_pos")[:] += noise
 
-        return obs
+        return new_obs
 
     def reward(self, state, action, next_state, absorbing):
         return 0
 
-    def setup(self):
+    def setup(self, obs):
         self.robot_1_hit = False
         self.robot_2_hit = False
         self.has_bounce = False
@@ -83,6 +97,9 @@ class AirHockeyDouble(AirHockeyBase):
 
         for i in range(3):
             self._data.joint("planar_robot_2/joint_" + str(i+1)).qpos = self.init_state[i]
+
+        super().setup(obs)
+        mujoco.mj_fwdPosition(self._model, self._data)
 
     def _simulation_post_step(self):
         if not self.robot_1_hit:
@@ -97,7 +114,6 @@ class AirHockeyDouble(AirHockeyBase):
     def _create_observation(self, state):
         obs = super(AirHockeyDouble, self)._create_observation(state)
         return np.append(obs, [self.robot_1_hit, self.robot_2_hit, self.has_bounce])
-
 
     def _create_info_dictionary(self, obs):
         constraints = {"agent-1": {}, "agent-2":{}}

@@ -1,4 +1,5 @@
 import numpy as np
+import mujoco
 
 from mushroom_rl.utils.spaces import Box
 from mushroom_rl.environments.mujoco_envs.air_hockey.base import AirHockeyBase
@@ -21,10 +22,17 @@ class AirHockeySingle(AirHockeyBase):
         super().__init__(gamma=gamma, horizon=horizon, env_noise=env_noise, n_agents=1, obs_noise=obs_noise,
                          timestep=timestep, n_intermediate_steps=n_intermediate_steps, **viewer_params)
 
+        # Remove z position and quaternion from puck pos
         self.obs_helper.remove_obs("puck_pos", 2)
-        self.obs_helper.remove_obs("puck_vel", 0)
-        self.obs_helper.remove_obs("puck_vel", 1)
-        self.obs_helper.remove_obs("puck_vel", 5)
+        self.obs_helper.remove_obs("puck_pos", 3)
+        self.obs_helper.remove_obs("puck_pos", 4)
+        self.obs_helper.remove_obs("puck_pos", 5)
+        self.obs_helper.remove_obs("puck_pos", 6)
+
+        # Remove linear z velocity and angular velocity around x and y
+        self.obs_helper.remove_obs("puck_vel", 2)
+        self.obs_helper.remove_obs("puck_vel", 3)
+        self.obs_helper.remove_obs("puck_vel", 4)
 
         self.obs_helper.add_obs("collision_robot_1_puck", 1, 0, 1)
         self.obs_helper.add_obs("collision_short_sides_rim_puck", 1, 0, 1)
@@ -64,21 +72,25 @@ class AirHockeySingle(AirHockeyBase):
         return ee_pos, ee_vel
 
     def _modify_observation(self, obs):
-        self._puck_2d_in_robot_frame(self.obs_helper.get_from_obs(obs, "puck_pos"), self.agents[0]["frame"])
+        new_obs = obs.copy()
+        self._puck_2d_in_robot_frame(self.obs_helper.get_from_obs(new_obs, "puck_pos"), self.agents[0]["frame"])
 
-        self._puck_2d_in_robot_frame(self.obs_helper.get_from_obs(obs, "puck_vel"), self.agents[0]["frame"], type='vel')
+        self._puck_2d_in_robot_frame(self.obs_helper.get_from_obs(new_obs, "puck_vel"), self.agents[0]["frame"], type='vel')
 
         if self.obs_noise:
-            self.obs_helper.get_from_obs(obs, "puck_pos")[:] += np.random.randn(2) * 0.001
+            self.obs_helper.get_from_obs(new_obs, "puck_pos")[:] += np.random.randn(2) * 0.001
 
-        return obs
+        return new_obs
 
-    def setup(self):
+    def setup(self, obs):
         self.has_hit = False
         self.has_bounce = False
 
         for i in range(3):
             self._data.joint("planar_robot_1/joint_" + str(i+1)).qpos = self.init_state[i]
+
+        super().setup(obs)
+        mujoco.mj_fwdPosition(self._model, self._data)
 
     def _simulation_post_step(self):
         if not self.has_hit:
