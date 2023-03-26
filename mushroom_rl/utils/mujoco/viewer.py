@@ -24,6 +24,7 @@ class MujocoGlfwViewer:
         self.frames = 0
         self.start_time = time.time()
         glfw.init()
+        glfw.window_hint(glfw.COCOA_RETINA_FRAMEBUFFER, 0)
 
         self._loop_count = 0
         self._time_per_render = 1 / 60.
