@@ -12,23 +12,31 @@ class PolynomialBasis:
     where X is the input and d is the vector of the exponents of the polynomial.
 
     """
-    def __init__(self, dimensions=None, degrees=None):
+    def __init__(self, dimensions=None, degrees=None, low=None, high=None):
         """
         Constructor. If both parameters are None, the constant feature is built.
 
         Args:
-            dimensions (list, None): list of the dimensions of the input to be
-                considered by the feature;
-            degrees (list, None): list of the degrees of each dimension to be
-                considered by the feature. It must match the number of elements
-                of ``dimensions``.
+            dimensions (list, None): list of the dimensions of the input to be considered by the feature;
+            degrees (list, None): list of the degrees of each dimension to be considered by the feature.
+                It must match the number of elements of ``dimensions``;
+            low (np.ndarray, None): array specifying the lower bound of the action space, used to normalize the
+                state between -1 and 1;
+            high (np.ndarray, None): array specifying the lower bound of the action space, used to normalize the
+                state between -1 and 1;
 
         """
+        assert (dimensions is None and degrees is None) or (
+                len(dimensions) == len(degrees))
+
+        assert (low is None and high is None) or (low is not None and high is not None)
+
         self._dim = dimensions
         self._deg = degrees
 
-        assert (self._dim is None and self._deg is None) or (
-            len(self._dim) == len(self._deg))
+        if low is not None:
+            self._mean = (low + high) / 2
+            self._delta = (high - low) / 2
 
     def __call__(self, x):
 
@@ -36,10 +44,15 @@ class PolynomialBasis:
             return 1
 
         out = 1
+        x_n = self._normalize(x)
         for i, d in zip(self._dim, self._deg):
-            out *= x[i]**d
+            out *= x_n[i]**d
 
         return out
+
+    def _normalize(self, x):
+        if self._mean is not None:
+            return (x - self._mean) / self._delta
 
     def __str__(self):
         if self._deg is None:
@@ -84,14 +97,18 @@ class PolynomialBasis:
             pattern[-1] = 0
 
     @staticmethod
-    def generate(max_degree, input_size):
+    def generate(max_degree, input_size, low=None, high=None):
         """
         Factory method to build a polynomial of order ``max_degree`` based on
         the first ``input_size`` dimensions of the input.
 
         Args:
             max_degree (int): maximum degree of the polynomial;
-            input_size (int): size of the input.
+            input_size (int): size of the input;
+            low (np.ndarray, None): array specifying the lower bound of the action space, used to normalize the
+                state between -1 and 1;
+            high (np.ndarray, None): array specifying the lower bound of the action space, used to normalize the
+                state between -1 and 1;
 
         Returns:
             The list of the generated polynomial basis functions.
@@ -106,6 +123,6 @@ class PolynomialBasis:
             dims = np.reshape(np.argwhere(e != 0), -1)
             degs = e[e != 0]
 
-            basis_list.append(PolynomialBasis(dims, degs))
+            basis_list.append(PolynomialBasis(dims, degs, low, high))
 
         return basis_list

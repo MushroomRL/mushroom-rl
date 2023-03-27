@@ -2,7 +2,7 @@ import numpy as np
 
 from mushroom_rl.features import Features
 from mushroom_rl.features.tiles import Tiles, VoronoiTiles
-from mushroom_rl.features.basis import GaussianRBF, FourierBasis
+from mushroom_rl.features.basis import GaussianRBF, FourierBasis, PolynomialBasis
 from mushroom_rl.features.tensors import GaussianRBFTensor, RandomFourierBasis
 
 
@@ -59,6 +59,29 @@ def test_tiles_voronoi():
         for i, x_i in enumerate(zip(x_1, x_2)):
             assert np.all(features(x_i[0], x_i[1]) == y[i])
             assert features.size == y[i].size
+
+
+def test_polynomials():
+    np.random.seed(1)
+    low = np.array([0., -.5])
+    high = np.array([1., .5])
+    pol = PolynomialBasis.generate(3, 2, low, high)
+    features = Features(basis_list=pol)
+
+    x = np.random.rand(3, 2) + [0., -.5]
+
+    y = features(x)
+    print(y)
+
+    y_test = np.array([[ 1., -0.16595599, 0.44064899, 0.02754139, -0.07312834, 0.19417153, -0.00457066, 0.01213609,
+                         -0.03222393,  0.08556149],
+                        [ 1., -0.99977125, -0.39533485, 0.99954255, 0.39524442, 0.15628965, -0.99931391, -0.39515401,
+                          -0.1562539,  -0.06178675],
+                        [ 1., -0.70648822, -0.81532281, 0.4991256, 0.57601596, 0.66475129, -0.35262636, -0.40694849,
+                          -0.46963895, -0.54198689]
+                       ])
+
+    assert np.allclose(y, y_test)
 
 
 def test_basis():
