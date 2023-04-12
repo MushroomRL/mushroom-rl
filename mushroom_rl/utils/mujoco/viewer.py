@@ -114,7 +114,10 @@ class MujocoGlfwViewer:
                                    self._scene)
 
             self._viewport.width, self._viewport.height = glfw.get_window_size(self._window)
+
             mujoco.mjr_render(self._viewport, self._scene, self._context)
+
+            self.custom_render_callback(self._viewport, self._context)
 
             glfw.swap_buffers(self._window)
             glfw.poll_events()
@@ -144,4 +147,6 @@ class MujocoGlfwViewer:
     def stop(self):
         glfw.destroy_window(self._window)
 
+    def custom_render_callback(self, viewport, context):
+        pass
 
