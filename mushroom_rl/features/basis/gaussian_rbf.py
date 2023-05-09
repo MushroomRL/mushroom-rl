@@ -4,14 +4,12 @@ from mushroom_rl.utils.features import uniform_grid
 
 class GaussianRBF:
     r"""
-    Class implementing Gaussian radial basis functions. The value of the feature
-    is computed using the formula:
+    Class implementing Gaussian radial basis functions. The value of the feature is computed using the formula:
     
     .. math::
         \sum \dfrac{(X_i - \mu_i)^2}{\sigma_i}
 
-    where X is the input, \mu is the mean vector and \sigma is the scale
-    parameter vector.
+    where X is the input, \mu is the mean vector and \sigma is the scale parameter vector.
 
     """
     def __init__(self, mean, scale, dimensions=None):
@@ -21,9 +19,8 @@ class GaussianRBF:
         Args:
             mean (np.ndarray): the mean vector of the feature;
             scale (np.ndarray): the scale vector of the feature;
-            dimensions (list, None): list of the dimensions of the input to be
-                considered by the feature. The number of dimensions must match
-                the dimensionality of ``mean`` and ``scale``.
+            dimensions (list, None): list of the dimensions of the input to be considered by the feature. The number of
+                dimensions must match the dimensionality of ``mean`` and ``scale``.
 
         """
         self._mean = mean
@@ -43,19 +40,17 @@ class GaussianRBF:
         return name
 
     @staticmethod
-    def generate(n_centers, low, high, dimensions=None):
+    def generate(n_centers, low, high, dimensions=None, eta=0.25):
         r"""
-        Factory method to build uniformly spaced gaussian radial basis functions
-        with a 25\% overlap.
+        Factory method to build uniformly spaced gaussian radial basis functions with `eta` overlap.
 
         Args:
-            n_centers (list): list of the number of radial basis functions to be
-                used for each dimension.
+            n_centers (list): list of the number of radial basis functions to be used for each dimension.
             low (np.ndarray): lowest value for each dimension;
             high (np.ndarray): highest value for each dimension;
-            dimensions (list, None): list of the dimensions of the input to be
-                considered by the feature. The number of dimensions must match
-                the number of elements in ``n_centers`` and ``low``.
+            dimensions (list, None): list of the dimensions of the input to be considered by the feature. The number of
+                dimensions must match the number of elements in ``n_centers`` and ``low``;
+            eta (float, 0.25): percentage of overlap between the features.
 
         Returns:
             The list of the generated radial basis functions.
@@ -66,7 +61,9 @@ class GaussianRBF:
         assert len(low) == len(high)
         assert dimensions is None or n_features == len(dimensions)
 
-        grid, b = uniform_grid(n_centers, low, high)
+        grid, w = uniform_grid(n_centers, low, high, eta)
+
+        b = 2*(w/3)**2
 
         basis = list()
         for i in range(len(grid)):

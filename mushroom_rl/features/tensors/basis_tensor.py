@@ -22,7 +22,7 @@ class GenericBasisTensor(nn.Module):
             dim (np.ndarray, None): list of dimension to be considered for the computation of the features. If None, all
                 dimension are used to compute the features;
             use_cuda (bool, False): whether to use cuda for the computation or not;
-            normalized (bool, False): whether the features need to be normalized to sum to one or not.
+            normalized (bool, False): whether the features need to be normalized to sum to one or not;
 
         """
         self._mu = to_float_tensor(mu, use_cuda)
@@ -55,6 +55,20 @@ class GenericBasisTensor(nn.Module):
         raise NotImplementedError
 
     @staticmethod
+    def _convert_to_scale(w):
+        """
+        Converts width of a basis function to scale
+
+        Args:
+            w (np.ndarray): array of widths of basis function for every dimension
+
+        Returns:
+            The array of scales for each basis function in any given dimension
+
+        """
+        raise NotImplementedError
+
+    @staticmethod
     def _normalize(raw_phi):
         if len(raw_phi.shape) == 1:
             return raw_phi / torch.sum(raw_phi, -1)
@@ -62,10 +76,20 @@ class GenericBasisTensor(nn.Module):
             return raw_phi / torch.sum(raw_phi, -1).unsqueeze(1)
 
     @classmethod
-    def generate(cls, n_centers, low, high,  dimensions=None, use_cuda=False, normalized=False):
+    def is_cyclic(cls):
+        """
+        Method used to change the basis generation in case of cyclic features.
+        Returns:
+            Whether the space we consider is cyclic or not.
+
+        """
+        return False
+
+    @classmethod
+    def generate(cls, n_centers, low, high, dimensions=None, use_cuda=False, eta=0.25, normalized=False):
         """
         Factory method that generates the list of dictionaries to build the tensors representing a set of uniformly
-        spaced radial basis functions with a 25% overlap.
+        spaced radial basis functions with `eta` overlap.
 
         Args:
             n_centers (list): list of the number of radial basis functions to be used for each dimension;
@@ -74,6 +98,7 @@ class GenericBasisTensor(nn.Module):
             dimensions (list, None): list of the dimensions of the input to be considered by the feature. The number of
                 dimensions must match the number of elements in ``high`` and ``low``;
             use_cuda (bool): whether to use cuda for the computation or not;
+            eta (float, 0.25): percentage of overlap between the features;
             normalized (bool, False): whether the features need to be normalized to sum to one or not.
 
         Returns:
@@ -85,7 +110,8 @@ class GenericBasisTensor(nn.Module):
         assert len(low) == len(high)
         assert dimensions is None or n_features == len(dimensions)
 
-        mu, scale = uniform_grid(n_centers, low, high)
+        mu, w = uniform_grid(n_centers, low, high, eta, cls.is_cyclic())
+        scale = cls._convert_to_scale(w)
 
         tensor_list = [cls(mu, scale, dimensions, use_cuda, normalized)]
 
@@ -100,8 +126,19 @@ class GaussianRBFTensor(GenericBasisTensor):
     def _basis_function(self, delta, scale):
         return torch.exp(-torch.sum(delta ** 2 / scale, -1))
 
+    @staticmethod
+    def _convert_to_scale(w):
+        return 2 * (w/3) ** 2
+
 
 class VonMisesBFTensor(GenericBasisTensor):
     def _basis_function(self, delta, scale):
         return torch.exp(torch.sum(torch.cos(2*np.pi*delta)/scale, -1) - torch.sum(1/scale))
 
+    @classmethod
+    def is_cyclic(cls):
+        return True
+
+    @staticmethod
+    def _convert_to_scale(w):
+        return w

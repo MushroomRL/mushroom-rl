@@ -5,12 +5,13 @@ from .gaussian_policy import GaussianPolicy, DiagonalGaussianPolicy, \
      StateStdGaussianPolicy, StateLogStdGaussianPolicy
 from .deterministic_policy import DeterministicPolicy
 from .torch_policy import TorchPolicy, GaussianTorchPolicy, BoltzmannTorchPolicy
+from .promps import ProMP
 
 
 __all_td__ = ['TDPolicy', 'Boltzmann', 'EpsGreedy', 'Mellowmax']
 __all_parametric__ = ['ParametricPolicy', 'GaussianPolicy',
                       'DiagonalGaussianPolicy', 'StateStdGaussianPolicy',
-                      'StateLogStdGaussianPolicy']
+                      'StateLogStdGaussianPolicy', 'ProMP']
 __all_torch__ = ['TorchPolicy', 'GaussianTorchPolicy', 'BoltzmannTorchPolicy']
 
 __all__ = ['Policy',  'DeterministicPolicy', 'OrnsteinUhlenbeckPolicy', 'ClippedGaussianPolicy'] \
