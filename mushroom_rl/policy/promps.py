@@ -52,7 +52,7 @@ class ProMP(ParametricPolicy):
         if self._sigma is None:
             return 1.0 if mu == action else 0.0
         else:
-            return multivariate_normal.pdf(action, mu, sigma)
+            return multivariate_normal.pdf(action, mu, self._sigma)
 
     def draw_action(self, state):
         z = self._compute_phase(state)
