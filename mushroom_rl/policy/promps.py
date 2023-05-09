@@ -6,7 +6,7 @@ from .policy import ParametricPolicy
 
 class ProMP(ParametricPolicy):
     """
-    Class representing a probabilistic Movement Primitive (ProMP). Specifically, this class represents the low-level
+    Class representing a Probabilistic Movement Primitive (ProMP). Specifically, this class represents the low-level
     gaussian time-dependant policy.
 
     Differently from the original implementation of ProMPs, an arbitrary regressor can be used to compute the mean from
@@ -39,10 +39,12 @@ class ProMP(ParametricPolicy):
         self._step = 0
 
         self._add_save_attr(
-            _step='primitive',
-            _basis='mushroom',
             _approximator='mushroom',
-            _sigma='numpy'
+            _phi='mushroom',
+            _duration='primitive',
+            _sigma='numpy',
+            _periodic='primitive',
+            _step='primitive'
         )
 
     def __call__(self, state, action):
