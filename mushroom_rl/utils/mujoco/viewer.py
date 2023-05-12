@@ -13,7 +13,7 @@ class MujocoGlfwViewer:
         c: Turn contact force and constraint visualisation on / off
         t: Make models transparent
     """
-    def __init__(self, model, dt, width=1920, height=1080, start_paused=False):
+    def __init__(self, model, dt, width=1920, height=1080, start_paused=False, custom_render_callback=None):
         self.button_left = False
         self.button_right = False
         self.button_middle = False
@@ -53,6 +53,8 @@ class MujocoGlfwViewer:
         self._context = mujoco.MjrContext(model, mujoco.mjtFontScale(100))
 
         self.rgb_buffer = np.empty((width, height, 3), dtype=np.uint8)
+
+        self.custom_render_callback = custom_render_callback
 
     def mouse_button(self, window, button, act, mods):
         self.button_left = glfw.get_mouse_button(self._window, glfw.MOUSE_BUTTON_LEFT) == glfw.PRESS
@@ -117,7 +119,8 @@ class MujocoGlfwViewer:
 
             mujoco.mjr_render(self._viewport, self._scene, self._context)
 
-            self.custom_render_callback(self._viewport, self._context)
+            if self.custom_render_callback is not None:
+                self.custom_render_callback(self._viewport, self._context)
 
             glfw.swap_buffers(self._window)
             glfw.poll_events()
@@ -146,7 +149,4 @@ class MujocoGlfwViewer:
 
     def stop(self):
         glfw.destroy_window(self._window)
-
-    def custom_render_callback(self, viewport, context):
-        pass
 
