@@ -259,6 +259,13 @@ class BoltzmannTorchPolicy(TorchPolicy):
     Torch policy implementing a Boltzmann policy.
 
     """
+    class CategoricalWrapper(torch.distributions.Categorical):
+        def __init__(self, logits):
+            super().__init__(logits=logits)
+
+        def log_prob(self, value):
+            return super().log_prob(value.squeeze())
+
     def __init__(self, network, input_shape, output_shape, beta, use_cuda=False, **params):
         """
         Constructor.
@@ -300,14 +307,14 @@ class BoltzmannTorchPolicy(TorchPolicy):
             return action.unsqueeze(0)
 
     def log_prob_t(self, state, action):
-        return self.distribution_t(state).log_prob(action.squeeze())[:, None]
+        return self.distribution_t(state).log_prob(action)[:, None]
 
     def entropy_t(self, state):
         return torch.mean(self.distribution_t(state).entropy())
 
     def distribution_t(self, state):
         logits = self._logits(state, **self._predict_params, output_tensor=True) * self._beta(state.numpy())
-        return torch.distributions.Categorical(logits=logits)
+        return BoltzmannTorchPolicy.CategoricalWrapper(logits)
 
     def set_weights(self, weights):
         self._logits.set_weights(weights)
