@@ -71,9 +71,9 @@ class GenericBasisTensor(nn.Module):
     @staticmethod
     def _normalize(raw_phi):
         if len(raw_phi.shape) == 1:
-            return raw_phi / torch.sum(raw_phi, -1)
+            return torch.nan_to_num(raw_phi / torch.sum(raw_phi, -1), 0.)
         else:
-            return raw_phi / torch.sum(raw_phi, -1).unsqueeze(1)
+            return torch.nan_to_num(raw_phi / torch.sum(raw_phi, -1).unsqueeze(1))
 
     @classmethod
     def is_cyclic(cls):
