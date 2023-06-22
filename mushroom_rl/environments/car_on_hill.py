@@ -69,7 +69,7 @@ class CarOnHill(Environment):
 
         return self._state, reward, absorbing, {}
 
-    def render(self, record):
+    def render(self, record=False):
         # Slope
         self._viewer.function(0, 1, self._height)
 

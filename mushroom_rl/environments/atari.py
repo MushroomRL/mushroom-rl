@@ -136,7 +136,7 @@ class Atari(Environment):
         return LazyFrames(list(self._state),
                           self._history_length), reward, absorbing, info
 
-    def render(self, record):
+    def render(self, record=False):
         self.env.render(mode='human')
 
         if record:

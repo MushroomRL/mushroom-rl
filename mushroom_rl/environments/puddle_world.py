@@ -86,7 +86,7 @@ class PuddleWorld(Environment):
 
         return self._state, reward, absorbing, {}
 
-    def render(self, record):
+    def render(self, record=False):
         if self._pixels is None:
             img_size = 100
             pixels = np.zeros((img_size, img_size, 3))

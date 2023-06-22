@@ -91,7 +91,7 @@ class CartPole(Environment):
 
         return self._state, reward, absorbing, {}
 
-    def render(self, record):
+    def render(self, record=False):
         start = 1.25 * self._l * np.ones(2)
         end = 1.25 * self._l * np.ones(2)
 

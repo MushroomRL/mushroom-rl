@@ -260,7 +260,7 @@ class Habitat(Gym):
     def stop(self):
         self._viewer.close()
 
-    def render(self, record):
+    def render(self, record=False):
         frame = observations_to_image(
             self.env._last_full_obs, self.env.unwrapped._env.get_metrics()
         )

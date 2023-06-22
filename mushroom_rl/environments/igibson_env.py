@@ -126,7 +126,7 @@ class iGibson(Gym):
     def stop(self):
         self._viewer.close()
 
-    def render(self, record):
+    def render(self, record=False):
         self._viewer.display(self._image)
 
         if record:

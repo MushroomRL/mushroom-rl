@@ -97,7 +97,7 @@ class Gym(Environment):
 
         return np.atleast_1d(obs), reward, absorbing, info
 
-    def render(self, record):
+    def render(self, record=False):
         if self._first or self._not_pybullet:
             self.env.render(mode='human')
 

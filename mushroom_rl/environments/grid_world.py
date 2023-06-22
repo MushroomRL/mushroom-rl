@@ -53,7 +53,7 @@ class AbstractGridWorld(Environment):
 
         return self._state, reward, absorbing, info
 
-    def render(self, record):
+    def render(self, record=False):
         for row in range(1, self._height):
             for col in range(1, self._width):
                 self._viewer.line(np.array([col, 0]),

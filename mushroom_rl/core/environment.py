@@ -162,10 +162,10 @@ class Environment(object):
         """
         raise NotImplementedError
 
-    def render(self, record):
+    def render(self, record=False):
         """
         Args:
-            record (bool): whether the visualized image should be returned or not.
+            record (bool, False): whether the visualized image should be returned or not.
 
         Returns:
             The visualized image, or None if the record flag is set to false.
