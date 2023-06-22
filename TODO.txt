@@ -17,7 +17,6 @@ Approximator:
     * add neural network generator
 
 For Mushroom 2.0:
-    * Record method in environment and record option in the core
     * Simplify Regressor interface: drop GenericRegressor, remove facade pattern
     * vectorize basis functions and simplify interface, simplify facade pattern
     * remove custom save for plotting, use Serializable
