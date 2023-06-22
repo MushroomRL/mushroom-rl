@@ -57,11 +57,14 @@ class Core(object):
                 of the policy;
             render (bool, False): whether to render the environment or not;
             quiet (bool, False): whether to show the progress bar or not;
-            record (bool, False): whether to record a video of the environment or not.
+            record (bool, False): whether to record a video of the environment or not. If True, also the render flag
+                should be set to True.
 
         """
         assert (n_episodes_per_fit is not None and n_steps_per_fit is None)\
             or (n_episodes_per_fit is None and n_steps_per_fit is not None)
+
+        assert (render and record) or (not record), "To record, the render flag must be set to true"
 
         self._n_steps_per_fit = n_steps_per_fit
         self._n_episodes_per_fit = n_episodes_per_fit
@@ -86,7 +89,8 @@ class Core(object):
             n_episodes (int, None): number of episodes to move the agent;
             render (bool, False): whether to render the environment or not;
             quiet (bool, False): whether to show the progress bar or not;
-            record (bool, False): whether to record a video of the environment or not;
+            record (bool, False): whether to record a video of the environment or not. If True, also the render flag
+                should be set to True;
             get_env_info (bool, False): whether to return the environment info list or not.
 
         Returns:
@@ -94,6 +98,8 @@ class Core(object):
             environment info, collected at each step.
 
         """
+        assert (render and record) or (not record), "To record, the render flag must be set to true"
+
         fit_condition = lambda: False
 
         return self._run(n_steps, n_episodes, fit_condition, render, quiet, record, get_env_info, initial_states)
