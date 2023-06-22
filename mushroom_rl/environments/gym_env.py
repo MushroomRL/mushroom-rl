@@ -105,7 +105,7 @@ class Gym(Environment):
             time.sleep(self._render_dt)
 
             if record:
-                self.env.render(mode='rgb_array')
+                return self.env.render(mode='rgb_array')
             else:
                 return None
 
