@@ -314,6 +314,21 @@ class Viewer:
         points = [self._transform([a, b]) for a, b in zip(x,y)]
         pygame.draw.lines(self.screen, color, False, points, width)
 
+    @staticmethod
+    def get_frame():
+        """
+        Getter.
+
+        Returns:
+            The current Pygame surface as an RGB array.
+
+        """
+        surf = pygame.display.get_surface()
+        pygame_frame = pygame.surfarray.array3d(surf)
+        frame = pygame_frame.swapaxes(0, 1)
+
+        return frame
+
     def display(self, s):
         """
         Display current frame and initialize the next frame to the background

@@ -114,9 +114,11 @@ class PuddleWorld(Environment):
         self._viewer.polygon(self._goal, 0, goal_area,
                              color=(255, 0, 0), width=1)
 
+        frame = self._viewer.get_frame() if record else None
+
         self._viewer.display(0.1)
 
-        return None
+        return frame
 
     def stop(self):
         if self._viewer is not None:

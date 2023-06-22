@@ -206,7 +206,9 @@ class Core(object):
 
         if render:
             frame = self.mdp.render(record)
-            self._record(frame)
+
+            if record:
+                self._record(frame)
 
         last = not(
             self._episode_steps < self.mdp.info.horizon and not absorbing)

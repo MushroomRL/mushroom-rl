@@ -139,9 +139,14 @@ class Segway(Environment):
         self._viewer.line(start, end)
         self._viewer.circle(start, self._r)
 
+        frame = self._viewer.get_frame() if record else None
+
         self._viewer.display(self._dt)
 
-        return None
+        return frame
+
+    def stop(self):
+        self._viewer.close()
 
 
 

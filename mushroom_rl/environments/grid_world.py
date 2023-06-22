@@ -75,9 +75,14 @@ class AbstractGridWorld(Environment):
                                  self._height - (.5 + state_grid[0])])
         self._viewer.circle(state_center, .4, (0, 0, 255))
 
+        frame = self._viewer.get_frame() if record else None
+
         self._viewer.display(.1)
 
-        return None
+        return frame
+
+    def stop(self):
+        self._viewer.close()
 
     def _step(self, state, action):
         raise NotImplementedError('AbstractGridWorld is an abstract class.')

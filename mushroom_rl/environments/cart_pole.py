@@ -107,9 +107,11 @@ class CartPole(Environment):
         self._viewer.force_arrow(start, direction, value,
                                  self._max_u, self._l / 5)
 
+        frame = self._viewer.get_frame() if record else None
+
         self._viewer.display(self._dt)
 
-        return None
+        return frame
 
     def stop(self):
         self._viewer.close()

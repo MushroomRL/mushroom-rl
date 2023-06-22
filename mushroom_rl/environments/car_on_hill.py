@@ -91,9 +91,14 @@ class CarOnHill(Environment):
         angle = self._angle(x_car)
         self._viewer.polygon(c_car, angle, car_body, color=(32, 193, 54))
 
+        frame = self._viewer.get_frame() if record else None
+
         self._viewer.display(self._dt)
 
-        return None
+        return frame
+
+    def stop(self):
+        self._viewer.close()
 
     @staticmethod
     def _angle(x):
