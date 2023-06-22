@@ -168,11 +168,9 @@ class MuJoCo(Environment):
 
     def render(self, record):
         if self._viewer is None:
-            self._viewer = MujocoGlfwViewer(self._model, self.dt, **self._viewer_params)
+            self._viewer = MujocoGlfwViewer(self._model, self.dt, record=record, **self._viewer_params)
 
-        self._viewer.render(self._data)
-
-        return None
+        return self._viewer.render(self._data, record)
 
     def stop(self):
         if self._viewer is not None:

@@ -13,7 +13,9 @@ class MujocoGlfwViewer:
         c: Turn contact force and constraint visualisation on / off
         t: Make models transparent
     """
-    def __init__(self, model, dt, width=1920, height=1080, start_paused=False, custom_render_callback=None):
+    def __init__(self, model, dt, width=1920, height=1080, start_paused=False,
+                 custom_render_callback=None, record=False):
+
         self.button_left = False
         self.button_right = False
         self.button_middle = False
@@ -25,6 +27,10 @@ class MujocoGlfwViewer:
         self.start_time = time.time()
         glfw.init()
         glfw.window_hint(glfw.COCOA_RETINA_FRAMEBUFFER, 0)
+
+        if record:
+            # dont allow to change the window size to have equal frame size during recording
+            glfw.window_hint(glfw.RESIZABLE, False)
 
         self._loop_count = 0
         self._time_per_render = 1 / 60.
@@ -51,8 +57,6 @@ class MujocoGlfwViewer:
 
         self._viewport = mujoco.MjrRect(0, 0, width, height)
         self._context = mujoco.MjrContext(model, mujoco.mjtFontScale(100))
-
-        self.rgb_buffer = np.empty((width, height, 3), dtype=np.uint8)
 
         self.custom_render_callback = custom_render_callback
 
@@ -106,7 +110,7 @@ class MujocoGlfwViewer:
     def scroll(self, window, x_offset, y_offset):
         mujoco.mjv_moveCamera(self._model, mujoco.mjtMouse.mjMOUSE_ZOOM, 0, 0.05 * y_offset, self._scene, self._camera)
 
-    def render(self, data):
+    def render(self, data, record):
 
         def render_inner_loop(self):
             render_start = time.time()
@@ -132,20 +136,35 @@ class MujocoGlfwViewer:
                 exit(0)
 
             self._time_per_render = 0.9 * self._time_per_render + 0.1 * (time.time() - render_start)
-            """
-            if return_img:
-                mujoco.mjr_readPixels(self.rgb_buffer, None, self._viewport, self._context)
-                return self.rgb_buffer
-            """
 
         if self._paused:
             while self._paused:
                 render_inner_loop(self)
 
-        self._loop_count += self.dt / self._time_per_render
+        if record:
+            self._loop_count = 1
+        else:
+            self._loop_count += self.dt / self._time_per_render
         while self._loop_count > 0:
             render_inner_loop(self)
             self._loop_count -= 1
+
+        if record:
+            return self.read_pixels()
+
+    def read_pixels(self, depth=False):
+
+        shape = glfw.get_framebuffer_size(self._window)
+
+        if depth:
+            rgb_img = np.zeros((shape[1], shape[0], 3), dtype=np.uint8)
+            depth_img = np.zeros((shape[1], shape[0], 1), dtype=np.float32)
+            mujoco.mjr_readPixels(rgb_img, depth_img, self._viewport, self._context)
+            return (np.flipud(rgb_img), np.flipud(depth_img))
+        else:
+            img = np.zeros((shape[1], shape[0], 3), dtype=np.uint8)
+            mujoco.mjr_readPixels(img, None, self._viewport, self._context)
+            return np.flipud(img)
 
     def stop(self):
         glfw.destroy_window(self._window)
