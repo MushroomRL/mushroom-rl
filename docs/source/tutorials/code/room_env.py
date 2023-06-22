@@ -86,7 +86,7 @@ class RoomToyEnv(Environment):
         # Return all the information + empty dictionary (used to pass additional information)
         return self._state, reward, absorbing, {}
 
-    def render(self, record):
+    def render(self, record=False):
         # Draw a red circle for the agent
         self._viewer.circle(self._state, 0.1, color=(255, 0, 0))
 

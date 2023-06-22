@@ -116,7 +116,7 @@ class Segway(Environment):
 
         return dx
 
-    def render(self, record):
+    def render(self, record=False):
         start = 2.5 * self._l * np.ones(2)
         end = 2.5 * self._l * np.ones(2)
 

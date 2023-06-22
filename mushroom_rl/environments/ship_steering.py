@@ -106,7 +106,7 @@ class ShipSteering(Environment):
 
         return self._state, reward, absorbing, {}
 
-    def render(self, record):
+    def render(self, record=False):
         self._viewer.line(self._gate_s, self._gate_e,
                           width=3)
 
