@@ -166,11 +166,13 @@ class MuJoCo(Environment):
 
         return self._modify_observation(cur_obs), reward, absorbing, info
 
-    def render(self):
+    def render(self, record):
         if self._viewer is None:
             self._viewer = MujocoGlfwViewer(self._model, self.dt, **self._viewer_params)
 
         self._viewer.render(self._data)
+
+        return None
 
     def stop(self):
         if self._viewer is not None:

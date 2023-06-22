@@ -15,6 +15,7 @@ from mushroom_rl.environments import Gym
 from mushroom_rl.utils.spaces import Discrete, Box
 from mushroom_rl.utils.frames import LazyFrames, preprocess_frame
 
+
 class MiniGrid(Gym):
     """
     Interface for gym_minigrid environments. It makes it possible to

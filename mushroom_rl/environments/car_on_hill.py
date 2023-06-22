@@ -69,7 +69,7 @@ class CarOnHill(Environment):
 
         return self._state, reward, absorbing, {}
 
-    def render(self):
+    def render(self, record):
         # Slope
         self._viewer.function(0, 1, self._height)
 
@@ -92,6 +92,8 @@ class CarOnHill(Environment):
         self._viewer.polygon(c_car, angle, car_body, color=(32, 193, 54))
 
         self._viewer.display(self._dt)
+
+        return None
 
     @staticmethod
     def _angle(x):

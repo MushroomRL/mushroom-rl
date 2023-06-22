@@ -36,8 +36,7 @@ class MDPInfo(Serializable):
     def size(self):
         """
         Returns:
-            The sum of the number of discrete states and discrete actions. Only
-            works for discrete spaces.
+            The sum of the number of discrete states and discrete actions. Only works for discrete spaces.
 
         """
         return self.observation_space.size + self.action_space.size
@@ -46,8 +45,7 @@ class MDPInfo(Serializable):
     def shape(self):
         """
         Returns:
-            The concatenation of the shape tuple of the state and action
-            spaces.
+            The concatenation of the shape tuple of the state and action spaces.
 
         """
         return self.observation_space.shape + self.action_space.shape
@@ -86,10 +84,9 @@ class Environment(object):
         """
         Generate an environment given an environment name and parameters.
         The environment is created using the generate method, if available. Otherwise, the constructor is used.
-        The generate method has a simpler interface than the constructor, making it easier to generate
-        a standard version of the environment. If the environment name contains a '.' separator, the string
-        is splitted, the first element is used to select the environment and the other elements are passed as
-        positional parameters.
+        The generate method has a simpler interface than the constructor, making it easier to generate a standard
+        version of the environment. If the environment name contains a '.' separator, the string is splitted, the first
+        element is used to select the environment and the other elements are passed as positional parameters.
 
         Args:
             env_name (str): Name of the environment,
@@ -118,8 +115,7 @@ class Environment(object):
         Constructor.
 
         Args:
-             mdp_info (MDPInfo): an object containing the info of the
-                environment.
+             mdp_info (MDPInfo): an object containing the info of the environment.
 
         """
         self._mdp_info = mdp_info
@@ -135,8 +131,7 @@ class Environment(object):
         if hasattr(self, 'env') and hasattr(self.env, 'seed'):
             self.env.seed(seed)
         else:
-            warnings.warn('This environment has no custom seed. '
-                          'The call will have no effect. '
+            warnings.warn('This environment has no custom seed. The call will have no effect. '
                           'You can set the seed manually by setting numpy/torch seed')
 
     def reset(self, state=None):
@@ -160,21 +155,28 @@ class Environment(object):
             action (np.ndarray): the action to execute.
 
         Returns:
-            The state reached by the agent executing ``action`` in its current
-            state, the reward obtained in the transition and a flag to signal
-            if the next state is absorbing. Also, an additional dictionary is
+            The state reached by the agent executing ``action`` in its current  state, the reward obtained in the
+            transition and a flag to signal if the next state is absorbing. Also, an additional dictionary is
             returned (possibly empty).
 
         """
         raise NotImplementedError
 
-    def render(self):
+    def render(self, record):
+        """
+        Args:
+            record (bool): whether the visualized image should be returned or not.
+
+        Returns:
+            The visualized image, or None if the record flag is set to false.
+
+        """
         raise NotImplementedError
 
     def stop(self):
         """
-        Method used to stop an mdp. Useful when dealing with real world
-        environments, simulators, or when using openai-gym rendering
+        Method used to stop an mdp. Useful when dealing with real world environments, simulators, or when using
+        openai-gym rendering
 
         """
         pass

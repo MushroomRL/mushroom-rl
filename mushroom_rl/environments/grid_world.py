@@ -23,8 +23,7 @@ class AbstractGridWorld(Environment):
         """
         assert not np.array_equal(start, goal)
 
-        assert goal[0] < height and goal[1] < width,\
-            'Goal position not suitable for the grid world dimension.'
+        assert goal[0] < height and goal[1] < width, 'Goal position not suitable for the grid world dimension.'
 
         self._state = None
         self._height = height
@@ -54,7 +53,7 @@ class AbstractGridWorld(Environment):
 
         return self._state, reward, absorbing, info
 
-    def render(self):
+    def render(self, record):
         for row in range(1, self._height):
             for col in range(1, self._width):
                 self._viewer.line(np.array([col, 0]),
@@ -77,6 +76,8 @@ class AbstractGridWorld(Environment):
         self._viewer.circle(state_center, .4, (0, 0, 255))
 
         self._viewer.display(.1)
+
+        return None
 
     def _step(self, state, action):
         raise NotImplementedError('AbstractGridWorld is an abstract class.')

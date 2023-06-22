@@ -116,7 +116,7 @@ class Segway(Environment):
 
         return dx
 
-    def render(self, mode='human'):
+    def render(self, record):
         start = 2.5 * self._l * np.ones(2)
         end = 2.5 * self._l * np.ones(2)
 
@@ -132,8 +132,7 @@ class Segway(Environment):
         end[0] += -2 * self._l * np.sin(self._state[0]) + self._last_x
         end[1] += 2 * self._l * np.cos(self._state[0])
 
-        if (start[0] > 5 * self._l and end[0] > 5 * self._l) \
-                or (start[0] < 0 and end[0] < 0):
+        if (start[0] > 5 * self._l and end[0] > 5 * self._l)  or (start[0] < 0 and end[0] < 0):
             start[0] = start[0] % 5 * self._l
             end[0] = end[0] % 5 * self._l
 
@@ -141,6 +140,8 @@ class Segway(Environment):
         self._viewer.circle(start, self._r)
 
         self._viewer.display(self._dt)
+
+        return None
 
 
 

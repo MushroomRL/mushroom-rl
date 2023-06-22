@@ -9,8 +9,7 @@ from mushroom_rl.utils.viewer import Viewer
 class ShipSteering(Environment):
     """
     The Ship Steering environment as presented in:
-    "Hierarchical Policy Gradient Algorithms". Ghavamzadeh M. and Mahadevan S..
-    2013.
+    "Hierarchical Policy Gradient Algorithms". Ghavamzadeh M. and Mahadevan S.. 2013.
 
     """
     def __init__(self, small=True, n_steps_action=3):
@@ -107,7 +106,7 @@ class ShipSteering(Environment):
 
         return self._state, reward, absorbing, {}
 
-    def render(self, mode='human'):
+    def render(self, record):
         self._viewer.line(self._gate_s, self._gate_e,
                           width=3)
 
@@ -122,6 +121,8 @@ class ShipSteering(Environment):
                              color=(32, 193, 54))
 
         self._viewer.display(self._dt)
+
+        return None
 
     def stop(self):
         self._viewer.close()

@@ -85,7 +85,7 @@ class InvertedPendulum(Environment):
 
         return self._state, reward, False, {}
 
-    def render(self, mode='human'):
+    def render(self, record):
         start = 1.25 * self._l * np.ones(2)
         end = 1.25 * self._l * np.ones(2)
 
@@ -98,6 +98,8 @@ class InvertedPendulum(Environment):
         self._viewer.torque_arrow(start, -self._last_u, self._max_u, self._l / 5)
 
         self._viewer.display(self._dt)
+
+        return None
 
     def stop(self):
         self._viewer.close()

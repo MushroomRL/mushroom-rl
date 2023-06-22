@@ -95,8 +95,13 @@ class PyBullet(Environment):
 
         return observation
 
-    def render(self):
-        self._viewer.display()
+    def render(self, record):
+        frame = self._viewer.display()
+
+        if record:
+            return frame
+        else:
+            return None
 
     def stop(self):
         self._viewer.close()

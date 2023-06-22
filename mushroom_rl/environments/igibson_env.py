@@ -126,8 +126,13 @@ class iGibson(Gym):
     def stop(self):
         self._viewer.close()
 
-    def render(self, mode='human'):
+    def render(self, record):
         self._viewer.display(self._image)
+
+        if record:
+            return self._image
+        else:
+            return None
 
     @staticmethod
     def _convert_observation(observation):

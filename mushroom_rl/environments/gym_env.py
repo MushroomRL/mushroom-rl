@@ -97,11 +97,19 @@ class Gym(Environment):
 
         return np.atleast_1d(obs), reward, absorbing, info
 
-    def render(self, mode='human'):
+    def render(self, record):
         if self._first or self._not_pybullet:
-            self.env.render(mode=mode)
+            self.env.render(mode='human')
+
             self._first = False
             time.sleep(self._render_dt)
+
+            if record:
+                self.env.render(mode='rgb_array')
+            else:
+                return None
+
+        return None
 
     def stop(self):
         try:
