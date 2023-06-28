@@ -660,3 +660,27 @@ class MultiMuJoCo(MuJoCo):
     @property
     def more_than_one_env(self):
         return len(self._models) > 1
+
+    @staticmethod
+    def _get_env_id_map(current_model_idx, n_models):
+        """
+        Retuns a binary vector to identify environment. This can be passed to the observation space.
+
+        Args:
+            current_model_idx (int): index of the current model.
+            n_models (int): total number of models.
+
+        Returns:
+            ndarray containing a binary vector identifying the current environment.
+
+        """
+        bits_needed = 1+int(np.log((n_models-1))/np.log(2))
+        id_mask = np.zeros(bits_needed)
+        bin_rep = np.binary_repr(current_model_idx)[::-1]
+        for i, b in enumerate(bin_rep):
+            idx = bits_needed - 1 - i   # reverse idx
+            if int(b):
+                id_mask[idx] = 1.0
+            else:
+                id_mask[idx] = 0.0
+        return id_mask
