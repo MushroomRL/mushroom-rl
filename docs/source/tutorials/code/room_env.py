@@ -7,7 +7,7 @@ from mushroom_rl.utils.viewer import Viewer
 
 
 class RoomToyEnv(Environment):
-    def __init__(self, size=5., goal=[2.5, 2.5], goal_radius=0.6):
+    def __init__(self, size=5., goal=(2.5, 2.5), goal_radius=0.6):
 
         # Save important environment information
         self._size = size
@@ -23,7 +23,7 @@ class RoomToyEnv(Environment):
         observation_space = Box(0, size, shape)
 
         # Create the MDPInfo structure, needed by the environment interface
-        mdp_info = MDPInfo(observation_space, action_space, gamma=0.99, horizon=100)
+        mdp_info = MDPInfo(observation_space, action_space, gamma=0.99, horizon=100, dt=0.1)
 
         super().__init__(mdp_info)
 
@@ -96,8 +96,8 @@ class RoomToyEnv(Environment):
         # Get the image if the record flag is set to true
         frame = self._viewer.get_frame() if record else None
 
-        # Display the image for 0.1 seconds
-        self._viewer.display(0.1)
+        # Display the image for the control time (0.1 seconds)
+        self._viewer.display(self.info.dt)
 
         return frame
 
