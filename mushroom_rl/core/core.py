@@ -251,8 +251,7 @@ class Core(object):
 
         return state
 
-    @staticmethod
-    def _build_recorder_class(recorder_class=None, **kwargs):
+    def _build_recorder_class(self, recorder_class=None, fps=None, **kwargs):
         """
         Method to create a video recorder class.
 
@@ -268,4 +267,7 @@ class Core(object):
         if not recorder_class:
             recorder_class = VideoRecorder
 
-        return recorder_class(**kwargs)
+        if not fps:
+            fps = int(1 / self.mdp.info.dt)
+
+        return recorder_class(fps=fps, **kwargs)
