@@ -5,6 +5,7 @@ examples/mushroom_rl_recordings/
 examples/habitat/Replica-Dataset 
 examples/habitat/data
 mushroom_rl.egg-info/
+mushroom_rl_recordings/
 .idea/
 *.pyc
 *.pyd
