@@ -51,9 +51,10 @@ class PuddleWorld(Environment):
             self._actions[i][i // 2] = thrust * (i % 2 * 2 - 1)
 
         # MDP properties
+        dt = 0.1
         action_space = Discrete(5)
         observation_space = Box(0., 1., shape=(2,))
-        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
         # Visualization
         self._pixels = None
@@ -116,7 +117,7 @@ class PuddleWorld(Environment):
 
         frame = self._viewer.get_frame() if record else None
 
-        self._viewer.display(0.1)
+        self._viewer.display(self.info.dt)
 
         return frame
 

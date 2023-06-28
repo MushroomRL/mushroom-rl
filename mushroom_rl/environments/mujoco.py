@@ -103,7 +103,7 @@ class MuJoCo(Environment):
 
         # Finally, we create the MDP information and call the constructor of
         # the parent class
-        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, self.dt)
 
         mdp_info = self._modify_mdp_info(mdp_info)
 

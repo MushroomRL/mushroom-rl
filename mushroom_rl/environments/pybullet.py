@@ -73,7 +73,7 @@ class PyBullet(Environment):
         action_space = Box(*self._indexer.action_limits)
 
         observation_space = Box(*self._indexer.observation_limits)
-        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, self.dt)
 
         # Let the child class modify the mdp_info data structure
         mdp_info = self._modify_mdp_info(mdp_info)

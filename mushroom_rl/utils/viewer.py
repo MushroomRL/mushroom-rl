@@ -78,8 +78,8 @@ class Viewer:
         Constructor.
 
         Args:
-            env_width (int): The x dimension limit of the desired environment;
-            env_height (int): The y dimension limit of the desired environment;
+            env_width (float): The x dimension limit of the desired environment;
+            env_height (float): The y dimension limit of the desired environment;
             width (int, 500): width of the environment window;
             height (int, 500): height of the environment window;
             background (tuple, (0, 0, 0)): background color of the screen.

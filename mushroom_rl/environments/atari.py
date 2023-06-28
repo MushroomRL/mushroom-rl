@@ -91,7 +91,8 @@ class Atari(Environment):
             low=0., high=255., shape=(history_length, self._img_size[1], self._img_size[0]))
         horizon = np.inf  # the gym time limit is used.
         gamma = .99
-        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+        dt = 1/60
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
         super().__init__(mdp_info)
 

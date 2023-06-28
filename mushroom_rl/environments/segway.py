@@ -31,7 +31,6 @@ class Segway(Environment):
         self._Ir = 4.54e-4 * 2
         self._l = 13.8e-2
         self._r = 5.5e-2
-        self._dt = 1e-2
         self._g = 9.81
         self._max_u = 5
 
@@ -40,11 +39,12 @@ class Segway(Environment):
         high = np.array([-np.pi / 2, 15, 75])
 
         # MDP properties
+        dt = 1e-2
         observation_space = spaces.Box(low=-high, high=high)
         action_space = spaces.Box(low=np.array([-self._max_u]),
                                   high=np.array([self._max_u]))
         horizon = 300
-        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
         # Visualization
         self._viewer = Viewer(5 * self._l, 5 * self._l)
@@ -70,8 +70,7 @@ class Segway(Environment):
 
     def step(self, action):
         u = self._bound(action[0], -self._max_u, self._max_u)
-        new_state = odeint(self._dynamics, self._state, [0, self._dt],
-                           (u,))
+        new_state = odeint(self._dynamics, self._state, [0, self.info.dt], (u,))
 
         self._state = np.array(new_state[-1])
         self._state[0] = normalize_angle(self._state[0])
@@ -120,7 +119,7 @@ class Segway(Environment):
         start = 2.5 * self._l * np.ones(2)
         end = 2.5 * self._l * np.ones(2)
 
-        dx = -self._state[2] * self._r * self._dt
+        dx = -self._state[2] * self._r * self.info.dt
 
         self._last_x += dx
 
@@ -141,7 +140,7 @@ class Segway(Environment):
 
         frame = self._viewer.get_frame() if record else None
 
-        self._viewer.display(self._dt)
+        self._viewer.display(self.info.dt)
 
         return frame
 

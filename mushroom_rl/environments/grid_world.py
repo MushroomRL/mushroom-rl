@@ -116,13 +116,24 @@ class GridWorld(AbstractGridWorld):
     Standard grid world.
 
     """
-    def __init__(self, height, width, goal, start=(0, 0)):
+    def __init__(self, height, width, goal, start=(0, 0), dt=0.1):
+        """
+        Constructor
+
+        Args:
+            height (int): height of the grid;
+            width (int): width of the grid;
+            goal (tuple): 2D coordinates of the goal state;
+            start (tuple, (0, 0)): 2D coordinates of the starting state;
+            dt (float, 0.1): the control timestep of the environment.
+
+        """
         # MDP properties
         observation_space = spaces.Discrete(height * width)
         action_space = spaces.Discrete(4)
         horizon = 100
         gamma = .9
-        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
         super().__init__(mdp_info, height, width, start, goal)
 
@@ -145,13 +156,24 @@ class GridWorldVanHasselt(AbstractGridWorld):
     "Double Q-Learning". Hasselt H. V.. 2010.
 
     """
-    def __init__(self, height=3, width=3, goal=(0, 2), start=(2, 0)):
+    def __init__(self, height=3, width=3, goal=(0, 2), start=(2, 0), dt=0.1):
+        """
+        Constructor
+
+        Args:
+            height (int, 3): height of the grid;
+            width (int, 3): width of the grid;
+            goal (tuple, (0, 2)): 2D coordinates of the goal state;
+            start (tuple, (2, 0)): 2D coordinates of the starting state;
+            dt (float, 0.1): the control timestep of the environment.
+
+        """
         # MDP properties
         observation_space = spaces.Discrete(height * width)
         action_space = spaces.Discrete(4)
         horizon = np.inf
         gamma = .95
-        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
         super().__init__(mdp_info, height, width, start, goal)
 

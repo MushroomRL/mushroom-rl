@@ -62,7 +62,7 @@ class DMControl(Environment):
         # MDP properties
         action_space = self._convert_action_space(self.env.action_spec())
         observation_space = self._convert_observation_space(self.env.observation_spec())
-        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
         self._viewer = ImageViewer((width_screen, height_screen), dt)
         self._camera_id = camera_id

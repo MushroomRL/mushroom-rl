@@ -53,8 +53,6 @@ class Gym(Environment):
 
         self.env = gym.make(name, **env_args)
 
-        self._render_dt = self.env.unwrapped.dt if hasattr(self.env.unwrapped, "dt") else 0.0
-
         if wrappers is not None:
             if wrappers_args is None:
                 wrappers_args = [dict()] * len(wrappers)
@@ -71,9 +69,10 @@ class Gym(Environment):
                               gym_spaces.MultiDiscrete)
         assert not isinstance(self.env.action_space, gym_spaces.MultiDiscrete)
 
+        dt = self.env.unwrapped.dt if hasattr(self.env.unwrapped, "dt") else 0.1
         action_space = self._convert_gym_space(self.env.action_space)
         observation_space = self._convert_gym_space(self.env.observation_space)
-        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
         if isinstance(action_space, Discrete):
             self._convert_action = lambda a: a[0]
@@ -102,7 +101,7 @@ class Gym(Environment):
             self.env.render(mode='human')
 
             self._first = False
-            time.sleep(self._render_dt)
+            time.sleep(self.info.dt)
 
             if record:
                 return self.env.render(mode='rgb_array')
