@@ -649,7 +649,7 @@ class MultiMuJoCo(MuJoCo):
         self._model = self._models[self._current_model_idx]
         self._data = self._datas[self._current_model_idx]
         self.obs_helper = self.obs_helpers[self._current_model_idx]
-        self.setup()
+        self.setup(obs)
 
         if self._viewer is not None:
             self._viewer.load_new_model(self._model)
