@@ -8,7 +8,7 @@ with warnings.catch_warnings():
 
 from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.utils.spaces import *
-from mushroom_rl.utils.viewer import ImageViewer
+from mushroom_rl.utils.viewer import CV2Viewer
 
 
 class DMControl(Environment):
@@ -64,7 +64,9 @@ class DMControl(Environment):
         observation_space = self._convert_observation_space(self.env.observation_spec())
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
-        self._viewer = ImageViewer((width_screen, height_screen), dt)
+        self._height_screen = height_screen
+        self._width_screen = width_screen
+        self._viewer = CV2Viewer("dm_control", dt, self._width_screen, self._height_screen)
         self._camera_id = camera_id
 
         super().__init__(mdp_info)
@@ -89,7 +91,10 @@ class DMControl(Environment):
         return self._state, reward, absorbing, {}
 
     def render(self, record=False):
-        img = self.env.physics.render(self._viewer.size[1], self._viewer.size[0], self._camera_id)
+        img = self.env.physics.render(self._width_screen,
+                                      self._height_screen,
+                                      self._camera_id)
+
         self._viewer.display(img)
 
         if record:
@@ -112,10 +117,10 @@ class DMControl(Environment):
 
         return Box(low=-np.inf, high=np.inf, shape=(observation_shape,))
 
-
     @staticmethod
     def _convert_observation_space_pixels(observation_space):
         img_size = observation_space['pixels'].shape
+
         return Box(low=0., high=255., shape=(3, img_size[0], img_size[1]))
 
     @staticmethod
