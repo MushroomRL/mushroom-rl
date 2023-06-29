@@ -651,7 +651,7 @@ class MultiMuJoCo(MuJoCo):
         self.obs_helper = self.obs_helpers[self._current_model_idx]
         self.setup(obs)
 
-        if self._viewer is not None:
+        if self._viewer is not None and self.more_than_one_env:
             self._viewer.load_new_model(self._model)
 
         self._obs = self._create_observation(self.obs_helper._build_obs(self._data))

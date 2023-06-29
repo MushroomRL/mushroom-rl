@@ -39,6 +39,9 @@ class MujocoGlfwViewer:
         self._window = glfw.create_window(width=width, height=height, title="MuJoCo", monitor=None, share=None)
         glfw.make_context_current(self._window)
 
+        self._width = width
+        self._height = height
+
         # Disable v_sync, so swap_buffers does not block
         # glfw.swap_interval(0)
 
