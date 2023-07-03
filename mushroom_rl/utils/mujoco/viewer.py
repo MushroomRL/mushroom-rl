@@ -1,6 +1,7 @@
 import glfw
 import mujoco
 import time
+from itertools import cycle
 
 import numpy as np
 
@@ -12,9 +13,29 @@ class MujocoGlfwViewer:
         Space: Pause / Unpause simulation
         c: Turn contact force and constraint visualisation on / off
         t: Make models transparent
+
     """
+
     def __init__(self, model, dt, width=1920, height=1080, start_paused=False,
-                 custom_render_callback=None, record=False):
+                 custom_render_callback=None, record=False, camera_params=None,
+                 default_camera_mode="static"):
+        """
+        Constructor.
+
+        Args:
+            model: Mujoco model.
+            dt (float): Timestep of the environment, (not the simulation).
+            width (int): Width of the viewer window.
+            height (int): Height of the viewer window.
+            start_paused (bool): If True, the rendering is paused in the beginning of the simulation.
+            custom_render_callback (func): Custom render callback function, which is supposed to be called
+                during rendering.
+            record (bool): If true, frames are returned during rendering.
+            camera_params (dict): Dictionary of dictionaries including custom parameterization of the three cameras.
+                Checkout the function get_default_camera_params() to know what parameters are expected. Is some camera
+                type specification or parameter is missing, the default one is used.
+
+        """
 
         self.button_left = False
         self.button_right = False
@@ -57,6 +78,18 @@ class MujocoGlfwViewer:
 
         self._camera = mujoco.MjvCamera()
         mujoco.mjv_defaultFreeCamera(model, self._camera)
+        if camera_params is None:
+            self._camera_params = self.get_default_camera_params()
+        else:
+            self._camera_params = self._assert_camera_params(camera_params)
+        self._all_camera_modes = ("static", "follow", "top_static")
+        self._camera_mode_iter = cycle(self._all_camera_modes)
+        self._camera_mode = next(self._camera_mode_iter)
+        self._camera_mode_target = self._camera_mode
+        assert default_camera_mode in self._all_camera_modes
+        while self._camera_mode_target != default_camera_mode:
+            self._camera_mode_target = next(self._camera_mode_iter)
+        self._set_camera()
 
         self._viewport = mujoco.MjrRect(0, 0, width, height)
         self._context = mujoco.MjrContext(model, mujoco.mjtFontScale(100))
@@ -64,7 +97,15 @@ class MujocoGlfwViewer:
         self.custom_render_callback = custom_render_callback
 
     def load_new_model(self, model):
-        """ Loads a new model to the viewer, and resets the scene, camera, viewport, and context. """
+        """
+        Loads a new model to the viewer, and resets the scene, camera, viewport, and context.
+        This is used in MultiMujoco environments.
+
+        Args:
+            model: Mujoco model.
+
+        """
+
         self._model = model
         self._scene = mujoco.MjvScene(model, 1000)
         self._scene_option = mujoco.MjvOption()
@@ -77,6 +118,17 @@ class MujocoGlfwViewer:
         self._context = mujoco.MjrContext(model, mujoco.mjtFontScale(100))
 
     def mouse_button(self, window, button, act, mods):
+        """
+        Mouse button callback for glfw.
+
+        Args:
+            window: glfw window.
+            button: glfw button id.
+            act: glfw action.
+            mods: glfw mods.
+
+        """
+
         self.button_left = glfw.get_mouse_button(self._window, glfw.MOUSE_BUTTON_LEFT) == glfw.PRESS
         self.button_right = glfw.get_mouse_button(self._window, glfw.MOUSE_BUTTON_RIGHT) == glfw.PRESS
         self.button_middle = glfw.get_mouse_button(self._window, glfw.MOUSE_BUTTON_MIDDLE) == glfw.PRESS
@@ -84,6 +136,16 @@ class MujocoGlfwViewer:
         self.last_x, self.last_y = glfw.get_cursor_pos(self._window)
 
     def mouse_move(self, window, x_pos, y_pos):
+        """
+        Mouse mode callback for glfw.
+
+        Args:
+            window:  glfw window.
+            x_pos: Current mouse x position.
+            y_pos: Current mouse y position.
+
+        """
+
         if not self.button_left and not self.button_right and not self.button_middle:
             return
 
@@ -107,6 +169,18 @@ class MujocoGlfwViewer:
         mujoco.mjv_moveCamera(self._model, action, dx / width, dy / height, self._scene, self._camera)
 
     def keyboard(self, window, key, scancode, act, mods):
+        """
+        Keyboard callback for glfw.
+
+        Args:
+            window: glfw window.
+            key: glfw key event.
+            scancode: glfw scancode.
+            act: glfw action.
+            mods: glfw mods.
+
+        """
+
         if act != glfw.RELEASE:
             return
 
@@ -123,10 +197,34 @@ class MujocoGlfwViewer:
             self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_TRANSPARENT] = not self._scene_option.flags[
                 mujoco.mjtVisFlag.mjVIS_TRANSPARENT]
 
+        if key == glfw.KEY_TAB:
+            self._camera_mode_target = next(self._camera_mode_iter)
+
     def scroll(self, window, x_offset, y_offset):
+        """
+        Scrolling callback for glfw.
+
+        Args:
+            window: glfw window.
+            x_offset: x scrolling offset.
+            y_offset: y scrolling offset.
+
+        """
+
         mujoco.mjv_moveCamera(self._model, mujoco.mjtMouse.mjMOUSE_ZOOM, 0, 0.05 * y_offset, self._scene, self._camera)
 
     def render(self, data, record):
+        """
+        Main rendering function.
+
+        Args:
+            data: Mujoco data structure.
+            record (bool): If true, frames are returned during rendering.
+
+        Returns:
+            If record is True, frames are returned during rendering, else None.
+
+        """
 
         def render_inner_loop(self):
             render_start = time.time()
@@ -163,12 +261,24 @@ class MujocoGlfwViewer:
             self._loop_count += self.dt / self._time_per_render
         while self._loop_count > 0:
             render_inner_loop(self)
+            self._set_camera()
             self._loop_count -= 1
 
         if record:
             return self.read_pixels()
 
     def read_pixels(self, depth=False):
+        """
+        Reads the pixels from the glfw viewer.
+
+        Args:
+            depth (bool): If True, depth map is also returned.
+
+        Returns:
+            If depth is True, tuple of np.arrays (rgb and depth), else just a single
+            np.array for the rgb image.
+
+        """
 
         shape = glfw.get_framebuffer_size(self._window)
 
@@ -183,4 +293,104 @@ class MujocoGlfwViewer:
             return np.flipud(img)
 
     def stop(self):
+        """
+        Destroys the glfw image.
+
+        """
+
         glfw.destroy_window(self._window)
+
+    def _set_camera(self):
+        """
+        Sets the camera mode to the current camera mode target. Allowed camera
+        modes are "follow" in which the model is tracked, "static" that is a static
+        camera at the default camera positon, and "top_static" that is a static
+        camera on top of the model.
+
+        """
+
+        if self._camera_mode_target == "follow":
+            if self._camera_mode != "follow":
+                self._camera.fixedcamid = -1
+                self._camera.type = mujoco.mjtCamera.mjCAMERA_TRACKING
+                self._camera.trackbodyid = 0
+                self._set_camera_properties(self._camera_mode_target)
+        elif self._camera_mode_target == "static":
+            if self._camera_mode != "static":
+                self._camera.fixedcamid = 0
+                self._camera.type = mujoco.mjtCamera.mjCAMERA_FREE
+                self._camera.trackbodyid = -1
+                self._set_camera_properties(self._camera_mode_target)
+        elif self._camera_mode_target == "top_static":
+            if self._camera_mode != "top_static":
+                self._camera.fixedcamid = 0
+                self._camera.type = mujoco.mjtCamera.mjCAMERA_FREE
+                self._camera.trackbodyid = -1
+                self._set_camera_properties(self._camera_mode_target)
+
+    def _set_camera_properties(self, mode):
+        """
+        Sets the camera properties "distance", "elevation", and "azimuth"
+        as well as the camera mode based on the provided mode.
+
+        Args:
+            mode (str): Camera mode. (either "follow", "static", or "top_static")
+
+        """
+
+        cam_params = self._camera_params[mode]
+        self._camera.distance = cam_params["distance"]
+        self._camera.elevation = cam_params["elevation"]
+        self._camera.azimuth = cam_params["azimuth"]
+        self._camera_mode = mode
+
+    def _assert_camera_params(self, camera_params):
+        """
+        Asserts if the provided camera parameters are valid or not. Also, if
+        properties of some camera types are not specified, the default parameters
+        are used.
+
+        Args:
+            camera_params (dict): Dictionary of dictionaries containig parameters for each camera type.
+
+        Returns:
+            Dictionary of dictionaries with parameters for each camera type.
+
+        """
+
+        default_camera_params = self.get_default_camera_params()
+
+        # check if the provided camera types and parameters are valid
+        for cam_type in camera_params.keys():
+            assert cam_type in default_camera_params.keys(), f"Camera type \"{cam_type}\" is unknown. Allowed " \
+                                                             f"camera types are {list(default_camera_params.keys())}."
+            for param in camera_params[cam_type].keys():
+                assert param in default_camera_params[cam_type].keys(), f"Parameter \"{param}\" of camera type " \
+                                                                        f"\"{cam_type}\" is unknown. Allowed " \
+                                                                        f"parameters are" \
+                                                                        f" {list(default_camera_params[cam_type].keys())}"
+
+        # add default parameters if not specified
+        for cam_type in default_camera_params.keys():
+            if cam_type not in camera_params.keys():
+                camera_params[cam_type] = default_camera_params[cam_type]
+            else:
+                for param in default_camera_params[cam_type].keys():
+                    if param not in camera_params[cam_type].keys():
+                        camera_params[cam_type][param] = default_camera_params[cam_type][param]
+
+        return camera_params
+
+    @staticmethod
+    def get_default_camera_params():
+        """
+        Getter for default camera paramterization.
+
+        Returns:
+            Dictionary of dictionaries with default parameters for each camera type.
+
+        """
+
+        return dict(static=dict(distance=15.0, elevation=-45.0, azimuth=90.0),
+                    follow=dict(distance=3.5, elevation=0.0, azimuth=90.0),
+                    top_static=dict(distance=5.0, elevation=-90.0, azimuth=90.0))
