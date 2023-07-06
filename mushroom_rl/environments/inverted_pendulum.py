@@ -107,7 +107,6 @@ class InvertedPendulum(Environment):
         self._viewer.close()
 
     def _dynamics(self, state, t, u):
-        print(t)
         theta = state[0]
         omega = self._bound(state[1], -self._max_omega, self._max_omega)
 
