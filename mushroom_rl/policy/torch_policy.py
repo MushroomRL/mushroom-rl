@@ -6,7 +6,7 @@ import torch.nn as nn
 from mushroom_rl.policy import Policy
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.utils.torch import to_float_tensor
+from mushroom_rl.utils.torch import to_float_tensor, CategoricalWrapper
 from mushroom_rl.utils.parameters import to_parameter
 
 from itertools import chain
@@ -259,13 +259,6 @@ class BoltzmannTorchPolicy(TorchPolicy):
     Torch policy implementing a Boltzmann policy.
 
     """
-    class CategoricalWrapper(torch.distributions.Categorical):
-        def __init__(self, logits):
-            super().__init__(logits=logits)
-
-        def log_prob(self, value):
-            return super().log_prob(value.squeeze())
-
     def __init__(self, network, input_shape, output_shape, beta, use_cuda=False, **params):
         """
         Constructor.
@@ -314,7 +307,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
 
     def distribution_t(self, state):
         logits = self._logits(state, **self._predict_params, output_tensor=True) * self._beta(state.numpy())
-        return BoltzmannTorchPolicy.CategoricalWrapper(logits)
+        return CategoricalWrapper(logits)
 
     def set_weights(self, weights):
         self._logits.set_weights(weights)

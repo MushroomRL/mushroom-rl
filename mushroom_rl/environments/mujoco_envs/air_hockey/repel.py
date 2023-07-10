@@ -101,29 +101,3 @@ class AirHockeyRepel(AirHockeySingle):
         if super().is_absorbing(state):
             return True
         return self.has_bounce
-
-
-if __name__ == "__main__":
-    env = AirHockeyRepel(env_noise=False, obs_noise=False, n_intermediate_steps=4,
-                         random_init=True)
-
-    R = 0.
-    J = 0.
-    gamma = 1.
-    steps = 0
-    env.reset()
-    while True:
-        action = np.zeros(3)
-        observation, reward, done, info = env.step(action)
-        env.render()
-        gamma *= env.info.gamma
-        J += gamma * reward
-        R += reward
-        steps += 1
-        if done or steps > env.info.horizon:
-            print("J: ", J, " R: ", R)
-            R = 0.
-            J = 0.
-            gamma = 1.
-            steps = 0
-            env.reset()

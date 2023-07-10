@@ -102,30 +102,6 @@ class AirHockeyHit(AirHockeySingle):
                 r = 2 * r_hit + 10 * r_goal
 
         r -= self.action_penalty * np.linalg.norm(action)
+
         return r
 
-
-if __name__ == '__main__':
-    env = AirHockeyHit(env_noise=False, obs_noise=False, n_intermediate_steps=4, random_init=True,
-                       init_robot_state="right")
-
-    env.reset()
-    R = 0.
-    J = 0.
-    gamma = 1.
-    steps = 0
-    while True:
-        action = np.random.randn(3) * 5
-        observation, reward, done, info = env.step(action)
-        env.render()
-        gamma *= env.info.gamma
-        J += gamma * reward
-        R += reward
-        steps += 1
-        if done or steps > env.info.horizon:
-            print("J: ", J, " R: ", R)
-            R = 0.
-            J = 0.
-            gamma = 1.
-            steps = 0
-            env.reset()
