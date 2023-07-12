@@ -26,7 +26,6 @@ class VideoRecorder(object):
 
         self._path = Path(path)
         self._path = self._path / tag
-        self._path.mkdir(parents=True, exist_ok=True)
 
         self._video_name = video_name if video_name else "recording"
         self._counter = 0
@@ -55,6 +54,8 @@ class VideoRecorder(object):
             name += f"-{self._counter}.mp4"
         else:
             name += ".mp4"
+
+        self._path.mkdir(parents=True, exist_ok=True)
 
         path = self._path / name
 
