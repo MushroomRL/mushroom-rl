@@ -98,7 +98,7 @@ class MujocoGlfwViewer:
 
     def load_new_model(self, model):
         """
-        Loads a new model to the viewer, and resets the scene, camera, viewport, and context.
+        Loads a new model to the viewer, and resets the scene and context.
         This is used in MultiMujoco environments.
 
         Args:
@@ -109,12 +109,6 @@ class MujocoGlfwViewer:
         self._model = model
         self._scene = mujoco.MjvScene(model, 1000)
         self._scene_option = mujoco.MjvOption()
-
-        self._camera = mujoco.MjvCamera()
-        mujoco.mjv_defaultFreeCamera(model, self._camera)
-        self._camera.distance *= 0.3
-
-        self._viewport = mujoco.MjrRect(0, 0, self._width, self._height)
         self._context = mujoco.MjrContext(model, mujoco.mjtFontScale(100))
 
     def mouse_button(self, window, button, act, mods):
