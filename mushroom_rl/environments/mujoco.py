@@ -674,6 +674,7 @@ class MultiMuJoCo(MuJoCo):
             ndarray containing a binary vector identifying the current environment.
 
         """
+        n_models = np.maximum(n_models, 2)
         bits_needed = 1+int(np.log((n_models-1))/np.log(2))
         id_mask = np.zeros(bits_needed)
         bin_rep = np.binary_repr(current_model_idx)[::-1]
