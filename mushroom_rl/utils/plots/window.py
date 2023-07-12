@@ -1,14 +1,13 @@
 import time
 
-from PyQt5.QtGui import QBrush, QColor
-from PyQt5.QtWidgets import QTreeWidgetItem
+from PyQt5.QtGui import QGuiApplication, QBrush, QColor
+from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QSplitter
 from PyQt5 import QtCore
 
 import pyqtgraph as pg
-from pyqtgraph.Qt import QtGui
 
 
-class Window(QtGui.QSplitter):
+class Window(QSplitter):
     """
     This class is used creating windows for plotting.
 
@@ -48,7 +47,7 @@ class Window(QtGui.QSplitter):
 
         super().__init__(QtCore.Qt.Horizontal)
 
-        self._activation_widget = QtGui.QTreeWidget()
+        self._activation_widget = QTreeWidget()
         self._activation_widget.setHeaderLabels(["Plots"])
 
         self._activation_widget.itemClicked.connect(self.clicked)
@@ -75,7 +74,7 @@ class Window(QtGui.QSplitter):
                     plot_instance, plot_instance.plot_data_items_list[i]
                 ]
 
-        self._GraphicsWindow = pg.GraphicsWindow(title=title)
+        self._GraphicsWindow = pg.GraphicsLayoutWidget(title=title)
 
         self.addWidget(self._activation_widget)
         self.addWidget(self._GraphicsWindow)
@@ -120,7 +119,7 @@ class Window(QtGui.QSplitter):
             for plot_instance in self.plot_list:
                 plot_instance.refresh()
 
-            QtGui.QGuiApplication.processEvents()
+            QGuiApplication.processEvents()
 
     def activate(self, item):
         """
