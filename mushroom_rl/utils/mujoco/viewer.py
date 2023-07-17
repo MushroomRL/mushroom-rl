@@ -18,7 +18,7 @@ class MujocoGlfwViewer:
 
     def __init__(self, model, dt, width=1920, height=1080, start_paused=False,
                  custom_render_callback=None, record=False, camera_params=None,
-                 default_camera_mode="static"):
+                 default_camera_mode="static", hide_menue_on_startup=False):
         """
         Constructor.
 
@@ -34,6 +34,7 @@ class MujocoGlfwViewer:
             camera_params (dict): Dictionary of dictionaries including custom parameterization of the three cameras.
                 Checkout the function get_default_camera_params() to know what parameters are expected. Is some camera
                 type specification or parameter is missing, the default one is used.
+            hide_menue_on_startup (bool): If True, the menue is hidden on startup.
 
         """
 
@@ -95,6 +96,9 @@ class MujocoGlfwViewer:
         self._context = mujoco.MjrContext(model, mujoco.mjtFontScale(100))
 
         self.custom_render_callback = custom_render_callback
+
+        self._overlay = {}
+        self._hide_menue = hide_menue_on_startup
 
     def load_new_model(self, model):
         """
@@ -194,6 +198,12 @@ class MujocoGlfwViewer:
         if key == glfw.KEY_TAB:
             self._camera_mode_target = next(self._camera_mode_iter)
 
+        if key == glfw.KEY_H:
+            if self._hide_menue:
+                self._hide_menue = False
+            else:
+                self._hide_menue = True
+
     def scroll(self, window, x_offset, y_offset):
         """
         Scrolling callback for glfw.
@@ -221,6 +231,9 @@ class MujocoGlfwViewer:
         """
 
         def render_inner_loop(self):
+
+            self._create_overlay()
+
             render_start = time.time()
 
             mujoco.mjv_updateScene(self._model, data, self._scene_option, None, self._camera,
@@ -231,6 +244,19 @@ class MujocoGlfwViewer:
 
             mujoco.mjr_render(self._viewport, self._scene, self._context)
 
+            for gridpos, [t1, t2] in self._overlay.items():
+
+                if self._hide_menue:
+                    continue
+
+                mujoco.mjr_overlay(
+                    mujoco.mjtFontScale.mjFONTSCALE_150,    # todo: it seems like the font scale has no effect in MacOS.
+                    gridpos,
+                    self._viewport,
+                    t1,
+                    t2,
+                    self._context)
+
             if self.custom_render_callback is not None:
                 self.custom_render_callback(self._viewport, self._context)
 
@@ -238,6 +264,8 @@ class MujocoGlfwViewer:
             glfw.poll_events()
 
             self.frames += 1
+
+            self._overlay.clear()
 
             if glfw.window_should_close(self._window):
                 self.stop()
@@ -293,6 +321,45 @@ class MujocoGlfwViewer:
         """
 
         glfw.destroy_window(self._window)
+
+    def _create_overlay(self):
+        """
+        This function creates and adds all overlays used in the viewer.
+
+        """
+
+        topleft = mujoco.mjtGridPos.mjGRID_TOPLEFT
+        topright = mujoco.mjtGridPos.mjGRID_TOPRIGHT
+        bottomleft = mujoco.mjtGridPos.mjGRID_BOTTOMLEFT
+        bottomright = mujoco.mjtGridPos.mjGRID_BOTTOMRIGHT
+
+        def add_overlay(gridpos, text1, text2="", make_new_line=True):
+            if gridpos not in self._overlay:
+                self._overlay[gridpos] = ["", ""]
+            if make_new_line:
+                self._overlay[gridpos][0] += text1 + "\n"
+                self._overlay[gridpos][1] += text2 + "\n"
+            else:
+                self._overlay[gridpos][0] += text1
+                self._overlay[gridpos][1] += text2
+
+        add_overlay(
+            bottomright,
+            "Framerate:",
+            str(1/self._time_per_render))
+
+        add_overlay(
+            topleft,
+            "Press H to hide the menue.")
+
+        add_overlay(
+            topleft,
+            "Press TAB to switch cameras.")
+
+        add_overlay(
+            topleft,
+            "Camera mode:",
+            self._camera_mode, make_new_line=False)
 
     def _set_camera(self):
         """
