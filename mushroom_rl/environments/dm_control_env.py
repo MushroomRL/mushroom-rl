@@ -91,8 +91,8 @@ class DMControl(Environment):
         return self._state, reward, absorbing, {}
 
     def render(self, record=False):
-        img = self.env.physics.render(self._width_screen,
-                                      self._height_screen,
+        img = self.env.physics.render(self._height_screen,
+                                      self._width_screen,
                                       self._camera_id)
 
         self._viewer.display(img)
