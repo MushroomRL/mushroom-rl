@@ -18,7 +18,7 @@ class MujocoGlfwViewer:
 
     def __init__(self, model, dt, width=1920, height=1080, start_paused=False,
                  custom_render_callback=None, record=False, camera_params=None,
-                 default_camera_mode="static", hide_menue_on_startup=False):
+                 default_camera_mode="static", hide_menu_on_startup=False):
         """
         Constructor.
 
@@ -34,7 +34,7 @@ class MujocoGlfwViewer:
             camera_params (dict): Dictionary of dictionaries including custom parameterization of the three cameras.
                 Checkout the function get_default_camera_params() to know what parameters are expected. Is some camera
                 type specification or parameter is missing, the default one is used.
-            hide_menue_on_startup (bool): If True, the menue is hidden on startup.
+            hide_menu_on_startup (bool): If True, the menu is hidden on startup.
 
         """
 
@@ -93,12 +93,12 @@ class MujocoGlfwViewer:
         self._set_camera()
 
         self._viewport = mujoco.MjrRect(0, 0, width, height)
-        self._context = mujoco.MjrContext(model, mujoco.mjtFontScale(100))
+        self._context = mujoco.MjrContext(model, mujoco.mjtFontScale(150))
 
         self.custom_render_callback = custom_render_callback
 
         self._overlay = {}
-        self._hide_menue = hide_menue_on_startup
+        self._hide_menu = hide_menu_on_startup
 
     def load_new_model(self, model):
         """
@@ -199,10 +199,10 @@ class MujocoGlfwViewer:
             self._camera_mode_target = next(self._camera_mode_iter)
 
         if key == glfw.KEY_H:
-            if self._hide_menue:
-                self._hide_menue = False
+            if self._hide_menu:
+                self._hide_menu = False
             else:
-                self._hide_menue = True
+                self._hide_menu = True
 
     def scroll(self, window, x_offset, y_offset):
         """
@@ -246,11 +246,11 @@ class MujocoGlfwViewer:
 
             for gridpos, [t1, t2] in self._overlay.items():
 
-                if self._hide_menue:
+                if self._hide_menu:
                     continue
 
                 mujoco.mjr_overlay(
-                    mujoco.mjtFontScale.mjFONTSCALE_150,    # todo: it seems like the font scale has no effect in MacOS.
+                    mujoco.mjtFont.mjFONT_SHADOW,
                     gridpos,
                     self._viewport,
                     t1,
@@ -346,11 +346,11 @@ class MujocoGlfwViewer:
         add_overlay(
             bottomright,
             "Framerate:",
-            str(1/self._time_per_render))
+            str(int(1/self._time_per_render)), make_new_line=False)
 
         add_overlay(
             topleft,
-            "Press H to hide the menue.")
+            "Press H to hide the menu.")
 
         add_overlay(
             topleft,
