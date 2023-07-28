@@ -9,10 +9,6 @@ import numpy as np
 class MujocoGlfwViewer:
     """
     Class that creates a Glfw viewer for mujoco environments.
-    Controls:
-        Space: Pause / Unpause simulation
-        c: Turn contact force and constraint visualisation on / off
-        t: Make models transparent
 
     """
 
@@ -93,7 +89,8 @@ class MujocoGlfwViewer:
         self._set_camera()
 
         self._viewport = mujoco.MjrRect(0, 0, width, height)
-        self._context = mujoco.MjrContext(model, mujoco.mjtFontScale(150))
+        self._font_scale = 100
+        self._context = mujoco.MjrContext(model, mujoco.mjtFontScale(self._font_scale))
 
         self.custom_render_callback = custom_render_callback
 
@@ -112,8 +109,7 @@ class MujocoGlfwViewer:
 
         self._model = model
         self._scene = mujoco.MjvScene(model, 1000)
-        self._scene_option = mujoco.MjvOption()
-        self._context = mujoco.MjrContext(model, mujoco.mjtFontScale(100))
+        self._context = mujoco.MjrContext(model, mujoco.mjtFontScale(self._font_scale))
 
     def mouse_button(self, window, button, act, mods):
         """
@@ -350,11 +346,24 @@ class MujocoGlfwViewer:
 
         add_overlay(
             topleft,
+            "Press SPACE to pause.")
+
+        add_overlay(
+            topleft,
             "Press H to hide the menu.")
 
         add_overlay(
             topleft,
             "Press TAB to switch cameras.")
+
+        add_overlay(
+            topleft,
+            "Press T to make the model transparent.")
+
+        visualize_contact = "On" if self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONTACTFORCE] else "Off"
+        add_overlay(
+            topleft,
+            "Contact force visualization (Press C):", visualize_contact)
 
         add_overlay(
             topleft,
