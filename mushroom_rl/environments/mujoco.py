@@ -514,7 +514,7 @@ class MultiMuJoCo(MuJoCo):
 
     def __init__(self, file_names, actuation_spec, observation_spec, gamma, horizon, timestep=None,
                  n_substeps=1, n_intermediate_steps=1, additional_data_spec=None, collision_groups=None,
-                 max_joint_vel=None, **viewer_params):
+                 max_joint_vel=None, random_env_reset=True, **viewer_params):
         """
         Constructor.
 
@@ -555,13 +555,16 @@ class MultiMuJoCo(MuJoCo):
                 a list of geom names in the XML specification.
              max_joint_vel (list, None): A list with the maximum joint velocities which are provided in the mdp_info.
                 The list has to define a maximum velocity for every occurrence of JOINT_VEL in the observation_spec. The
-                velocity will not be limited in mujoco
+                velocity will not be limited in mujoco.
+            random_env_reset (bool): If True, a random environment/model is chosen after each episode. If False, it is
+                sequentially iterated through the environment/model list.
              **viewer_params: other parameters to be passed to the viewer.
                 See MujocoGlfwViewer documentation for the available options.
 
         """
         # Create the simulation
         assert type(file_names)
+        self._random_env_reset = random_env_reset
         self._models = [mujoco.MjModel.from_xml_path(f) for f in file_names]
         self._current_model_idx = 0
         self._model = self._models[self._current_model_idx]
@@ -645,7 +648,12 @@ class MultiMuJoCo(MuJoCo):
     def reset(self, obs=None):
         mujoco.mj_resetData(self._model, self._data)
 
-        self._current_model_idx = np.random.randint(0, len(self._models))
+        if self._random_env_reset:
+            self._current_model_idx = np.random.randint(0, len(self._models))
+        else:
+            self._current_model_idx = self._current_model_idx + 1 \
+                if self._current_model_idx < len(self._models) - 1 else 0
+
         self._model = self._models[self._current_model_idx]
         self._data = self._datas[self._current_model_idx]
         self.obs_helper = self.obs_helpers[self._current_model_idx]
