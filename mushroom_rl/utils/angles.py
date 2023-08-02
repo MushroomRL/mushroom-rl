@@ -118,3 +118,31 @@ def euler_to_quat(euler):
         return R.from_euler('xyz', euler).as_quat()[[3, 0, 1, 2]]
     else:
         return R.from_euler('xyz', euler.T).as_quat()[:, [3, 0, 1, 2]].T
+
+
+def mat_to_euler(mat):
+    """
+    Convert a rotation matrix to euler angles.
+
+    Args:
+        mat (np.ndarray):  a 3d rotation matrix.
+
+    Returns:
+        The euler angles [x, y, z] representation of the quaternion
+
+    """
+    return R.from_matrix(mat).as_euler('xyz')
+
+
+def euler_to_mat(euler):
+    """
+    Convert euler angles into a a rotation matrix.
+
+    Args:
+        euler (np.ndarray):  euler angles [x, y, z] to be converted.
+
+    Returns:
+        The rotation matrix representation of the euler angles
+
+    """
+    return R.from_euler('xyz', euler).as_matrix()
