@@ -205,6 +205,9 @@ class MujocoGlfwViewer:
             for i in range(len(self._scene_option.geomgroup)):
                 self._scene_option.geomgroup[i] = not self._scene_option.geomgroup[i]
 
+        if key == glfw.KEY_E:
+            self._scene_option.frame = not self._scene_option.frame
+
         if key == glfw.KEY_H:
             if self._hide_menu:
                 self._hide_menu = False
@@ -386,6 +389,10 @@ class MujocoGlfwViewer:
             "Run speed = %.3f x real time" %
             self._run_speed_factor,
             "[S]lower, [F]aster")
+        
+        add_overlay(
+            topleft,
+            "Press E to toggle reference frames.")
         
         add_overlay(
             topleft,
