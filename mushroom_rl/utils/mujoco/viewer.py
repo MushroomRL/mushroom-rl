@@ -52,6 +52,7 @@ class MujocoGlfwViewer:
 
         self._loop_count = 0
         self._time_per_render = 1 / 60.
+        self._run_speed_factor = 1.0
         self._paused = start_paused
 
         self._window = glfw.create_window(width=width, height=height, title="MuJoCo", monitor=None, share=None)
@@ -194,6 +195,19 @@ class MujocoGlfwViewer:
         if key == glfw.KEY_TAB:
             self._camera_mode_target = next(self._camera_mode_iter)
 
+        if key == glfw.KEY_S:
+            self._run_speed_factor /= 2.0
+
+        if key == glfw.KEY_F:
+            self._run_speed_factor *= 2.0
+
+        if key == glfw.KEY_G:
+            for i in range(len(self._scene_option.geomgroup)):
+                self._scene_option.geomgroup[i] = not self._scene_option.geomgroup[i]
+
+        if key == glfw.KEY_E:
+            self._scene_option.frame = not self._scene_option.frame
+
         if key == glfw.KEY_H:
             if self._hide_menu:
                 self._hide_menu = False
@@ -276,7 +290,7 @@ class MujocoGlfwViewer:
         if record:
             self._loop_count = 1
         else:
-            self._loop_count += self.dt / self._time_per_render
+            self._loop_count += self.dt / (self._time_per_render * self._run_speed_factor)
         while self._loop_count > 0:
             render_inner_loop(self)
             self._set_camera()
@@ -342,7 +356,7 @@ class MujocoGlfwViewer:
         add_overlay(
             bottomright,
             "Framerate:",
-            str(int(1/self._time_per_render)), make_new_line=False)
+            str(int(1/self._time_per_render * self._run_speed_factor)), make_new_line=False)
 
         add_overlay(
             topleft,
@@ -368,7 +382,22 @@ class MujocoGlfwViewer:
         add_overlay(
             topleft,
             "Camera mode:",
-            self._camera_mode, make_new_line=False)
+            self._camera_mode)
+        
+        add_overlay(
+            topleft,
+            "Run speed = %.3f x real time" %
+            self._run_speed_factor,
+            "[S]lower, [F]aster")
+        
+        add_overlay(
+            topleft,
+            "Press E to toggle reference frames.")
+        
+        add_overlay(
+            topleft,
+            "Press G to toggle geom groups.",
+            make_new_line=False)
 
     def _set_camera(self):
         """
