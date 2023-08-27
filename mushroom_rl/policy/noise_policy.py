@@ -34,6 +34,8 @@ class OrnsteinUhlenbeckPolicy(ParametricPolicy):
         self._x0 = x0
         self._x_prev = None
 
+        self._train = True
+
         self.reset()
 
         self._add_save_attr(
@@ -52,13 +54,17 @@ class OrnsteinUhlenbeckPolicy(ParametricPolicy):
     def draw_action(self, state):
         mu = self._approximator.predict(state, **self._predict_params)
 
-        x = self._x_prev - self._theta * self._x_prev * self._dt +\
-            self._sigma * np.sqrt(self._dt) * np.random.normal(
-                size=self._approximator.output_shape
-            )
-        self._x_prev = x
-
-        return mu + x
+        if self._train:
+            x = self._x_prev - self._theta * self._x_prev * self._dt +\
+                self._sigma * np.sqrt(self._dt) * np.random.normal(
+                    size=self._approximator.output_shape
+                )
+            
+            self._x_prev = x
+            return mu + x
+        
+        else:
+            return mu
 
     def set_weights(self, weights):
         self._approximator.set_weights(weights)
@@ -72,6 +78,12 @@ class OrnsteinUhlenbeckPolicy(ParametricPolicy):
 
     def reset(self):
         self._x_prev = self._x0 if self._x0 is not None else np.zeros(self._approximator.output_shape)
+
+    def train(self):
+        self._train = True
+
+    def eval(self):
+        self._train = False
 
 
 class ClippedGaussianPolicy(ParametricPolicy):
@@ -111,6 +123,8 @@ class ClippedGaussianPolicy(ParametricPolicy):
         self._low = low
         self._high = high
 
+        self._train = True
+
         self._add_save_attr(
             _approximator='mushroom',
             _predict_params='pickle',
@@ -125,16 +139,24 @@ class ClippedGaussianPolicy(ParametricPolicy):
 
     def draw_action(self, state):
         mu = np.reshape(self._approximator.predict(np.expand_dims(state, axis=0), **self._predict_params), -1)
-
-        action_raw = np.random.multivariate_normal(mu, self._sigma)
-
-        return np.clip(action_raw, self._low, self._high)
+        
+        if self._train:
+            action_raw = np.random.multivariate_normal(mu, self._sigma)
+            return np.clip(action_raw, self._low, self._high)
+        else:
+            return np.clip(mu, self._low, self._high)
 
     def set_weights(self, weights):
         self._approximator.set_weights(weights)
 
     def get_weights(self):
         return self._approximator.get_weights()
+    
+    def train(self):
+        self._train = True
+    
+    def eval(self):
+        self._train = False
 
     @property
     def weights_size(self):

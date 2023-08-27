@@ -55,6 +55,8 @@ class SACPolicy(Policy):
 
         use_cuda = self._mu_approximator.model.use_cuda
 
+        self._train = True
+
         if use_cuda:
             self._delta_a = self._delta_a.cuda()
             self._central_a = self._central_a.cuda()
@@ -106,8 +108,11 @@ class SACPolicy(Policy):
             tensors.
 
         """
-        dist = self.distribution(state)
-        a_raw = dist.rsample()
+        if self._train:
+            dist = self.distribution(state)
+            a_raw = dist.rsample()
+        else:
+            a_raw = self._mu_approximator.predict(state, output_tensor=True)
         a = torch.tanh(a_raw)
         a_true = a * self._delta_a + self._central_a
 
@@ -180,6 +185,12 @@ class SACPolicy(Policy):
         sigma_weights = self._sigma_approximator.get_weights()
 
         return np.concatenate([mu_weights, sigma_weights])
+    
+    def train(self):
+        self._train = True
+    
+    def eval(self):
+        self._train = False
 
     @property
     def use_cuda(self):
