@@ -3,7 +3,7 @@ import numpy as np
 from mushroom_rl.features import Features
 from mushroom_rl.features.tiles import Tiles, VoronoiTiles
 from mushroom_rl.features.basis import GaussianRBF, FourierBasis, PolynomialBasis
-from mushroom_rl.features.tensors import GaussianRBFTensor, RandomFourierBasis
+from mushroom_rl.features.tensors import GaussianRBFTensor, VonMisesBFTensor, RandomFourierBasis
 
 
 def test_tiles():
@@ -112,14 +112,16 @@ def test_tensor():
     low = np.array([0., -.5])
     high = np.array([1., .5])
     rbf = GaussianRBFTensor.generate([3, 3], low, high)
+    rbf += VonMisesBFTensor.generate([3, 3], low, high, normalized=True)
     rbf += RandomFourierBasis.generate(0.1, 6, 2)
+
     features = Features(tensor_list=rbf)
 
     x = np.random.rand(10, 2) + [0., -.5]
 
     y = features(x)
 
-    assert y.shape == (10, 15)
+    assert y.shape == (10, 24)
 
     for i, x_i in enumerate(x):
         assert np.allclose(features(x_i), y[i])

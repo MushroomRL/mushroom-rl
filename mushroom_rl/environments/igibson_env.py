@@ -95,17 +95,18 @@ class iGibson(Gym):
         self._img_size = env.observation_space.shape[0:2]
 
         # MDP properties
+        dt = 1/60
         action_space = self.env.action_space
         observation_space = Box(
             low=0., high=255., shape=(3, self._img_size[1], self._img_size[0]))
-        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
         if isinstance(action_space, Discrete):
             self._convert_action = lambda a: a[0]
         else:
             self._convert_action = lambda a: a
 
-        self._viewer = ImageViewer((self._img_size[1], self._img_size[0]), 1/60)
+        self._viewer = ImageViewer((self._img_size[1], self._img_size[0]), dt)
         self._image = None
 
         Environment.__init__(self, mdp_info)
@@ -126,8 +127,13 @@ class iGibson(Gym):
     def stop(self):
         self._viewer.close()
 
-    def render(self, mode='human'):
+    def render(self, record=False):
         self._viewer.display(self._image)
+
+        if record:
+            return self._image
+        else:
+            return None
 
     @staticmethod
     def _convert_observation(observation):

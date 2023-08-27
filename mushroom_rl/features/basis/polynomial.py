@@ -37,6 +37,8 @@ class PolynomialBasis:
         if low is not None:
             self._mean = (low + high) / 2
             self._delta = (high - low) / 2
+        else:
+            self._mean = None
 
     def __call__(self, x):
 
@@ -53,6 +55,7 @@ class PolynomialBasis:
     def _normalize(self, x):
         if self._mean is not None:
             return (x - self._mean) / self._delta
+        return x
 
     def __str__(self):
         if self._deg is None:

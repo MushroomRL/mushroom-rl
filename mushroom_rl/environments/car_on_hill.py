@@ -27,13 +27,13 @@ class CarOnHill(Environment):
         high = np.array([self.max_pos, self.max_velocity])
         self._g = 9.81
         self._m = 1.
-        self._dt = .1
         self._discrete_actions = [-4., 4.]
 
         # MDP properties
+        dt = .1
         observation_space = spaces.Box(low=-high, high=high)
         action_space = spaces.Discrete(2)
-        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
         # Visualization
         self._viewer = Viewer(1, 1)
@@ -51,7 +51,7 @@ class CarOnHill(Environment):
     def step(self, action):
         action = self._discrete_actions[action[0]]
         sa = np.append(self._state, action)
-        new_state = odeint(self._dpds, sa, [0, self._dt])
+        new_state = odeint(self._dpds, sa, [0, self.info.dt])
 
         self._state = new_state[-1, :-1]
 
@@ -69,7 +69,7 @@ class CarOnHill(Environment):
 
         return self._state, reward, absorbing, {}
 
-    def render(self):
+    def render(self, record=False):
         # Slope
         self._viewer.function(0, 1, self._height)
 
@@ -91,7 +91,14 @@ class CarOnHill(Environment):
         angle = self._angle(x_car)
         self._viewer.polygon(c_car, angle, car_body, color=(32, 193, 54))
 
-        self._viewer.display(self._dt)
+        frame = self._viewer.get_frame() if record else None
+
+        self._viewer.display(self.info.dt)
+
+        return frame
+
+    def stop(self):
+        self._viewer.close()
 
     @staticmethod
     def _angle(x):

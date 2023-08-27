@@ -128,7 +128,6 @@ class ClippedGaussianPolicy(ParametricPolicy):
         self._add_save_attr(
             _approximator='mushroom',
             _predict_params='pickle',
-            _inv_sigma='numpy',
             _sigma='numpy',
             _low='numpy',
             _high='numpy'

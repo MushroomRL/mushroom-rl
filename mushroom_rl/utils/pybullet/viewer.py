@@ -21,6 +21,8 @@ class PyBulletViewer(ImageViewer):
         img = self._get_image()
         super().display(img)
 
+        return img
+
     def _get_image(self):
         view_matrix = self._client.computeViewMatrixFromYawPitchRoll(cameraTargetPosition=self._origin,
                                                                      distance=self._distance,

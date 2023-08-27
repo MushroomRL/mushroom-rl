@@ -233,17 +233,18 @@ class Habitat(Gym):
         self._img_size = env.observation_space.shape[0:2]
 
         # MDP properties
+        dt = 1/10
         action_space = self.env.action_space
         observation_space = Box(
             low=0., high=255., shape=(3, self._img_size[1], self._img_size[0]))
-        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
         if isinstance(action_space, Discrete):
             self._convert_action = lambda a: a[0]
         else:
             self._convert_action = lambda a: a
 
-        self._viewer = ImageViewer((self._img_size[1], self._img_size[0]), 1/10)
+        self._viewer = ImageViewer((self._img_size[1], self._img_size[0]), dt)
 
         Environment.__init__(self, mdp_info)
 
@@ -260,15 +261,17 @@ class Habitat(Gym):
     def stop(self):
         self._viewer.close()
 
-    def render(self, mode='rgb_array'):
-        if mode == "rgb_array":
-            frame = observations_to_image(
-                self.env._last_full_obs, self.env.unwrapped._env.get_metrics()
-            )
-        else:
-            raise ValueError(f"Render mode {mode} not currently supported.")
+    def render(self, record=False):
+        frame = observations_to_image(
+            self.env._last_full_obs, self.env.unwrapped._env.get_metrics()
+        )
 
         self._viewer.display(frame)
+
+        if record:
+            return frame
+        else:
+            return None
 
     @staticmethod
     def _convert_observation(observation):
