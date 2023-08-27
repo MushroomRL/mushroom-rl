@@ -107,8 +107,8 @@ class DataLogger(object):
             path = self._results_dir / filename
             agent.save(path, full_save=full_save)
 
-    def log_dataset(self, dataset):
-        filename = 'dataset' + self._suffix + '.pkl'
+    def log_dataset(self, dataset, name_addition=""):
+        filename = 'dataset' + self._suffix + name_addition + '.pkl'
         path = self._results_dir / filename
 
         with path.open(mode='wb') as f:
