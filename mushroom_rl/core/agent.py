@@ -26,6 +26,7 @@ class Agent(Serializable):
         self.next_action = None
 
         self._preprocessors = list()
+        self._postprocessors = list()
         self._logger = None
 
         self._add_save_attr(
@@ -116,3 +117,23 @@ class Agent(Serializable):
 
         """
         return self._preprocessors
+    
+    def add_postprocessor(self, postprocessor):
+        """
+        Add postprocessor to the postprocessor list.
+        The postprocessors are applied in order.
+
+        Args:
+            postprocessor (object): action postprocessors to be applied
+                to actions before executing them.
+
+        """
+        self._postprocessors.append(postprocessor)
+
+    @property
+    def postprocessors(self):
+        """
+        Access to action postprocessors stored in the agent.
+
+        """
+        return self._postprocessors
