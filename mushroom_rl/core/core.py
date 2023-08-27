@@ -201,7 +201,8 @@ class Core(object):
 
         """
         action = self.agent.draw_action(self._state)
-        next_state, reward, absorbing, step_info = self.mdp.step(action)
+        action_for_mdp = self._postprocess(action)
+        next_state, reward, absorbing, step_info = self.mdp.step(action_for_mdp)
 
         self._episode_steps += 1
 
@@ -249,3 +250,20 @@ class Core(object):
             state = p(state)
 
         return state
+    
+
+    def _postprocess(self, action):
+        """
+        Method to apply action postprocessors.
+
+        Args:
+            action (np.ndarray): the action to be postprocessed.
+
+        Returns:
+             The postprocessed action.
+
+        """
+        for p in self.agent.postprocessors:
+            action = p(action)
+
+        return action
