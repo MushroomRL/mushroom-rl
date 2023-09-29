@@ -110,6 +110,13 @@ class MuJoCo(Environment):
         # set the warning callback to stop the simulation when a mujoco warning occurs
         mujoco.set_mju_user_warning(self.user_warning_raise_exception)
 
+        # check whether the function compute_action was overridden or not. If yes, we want to compute
+        # the action at simulation frequency, if not we do it at control frequency.
+        if type(self)._compute_action == MuJoCo._compute_action:
+            self._recompute_action_per_step = False
+        else:
+            self._recompute_action_per_step = True
+
         super().__init__(mdp_info)
 
     def seed(self, seed):
@@ -129,10 +136,13 @@ class MuJoCo(Environment):
 
         self._step_init(cur_obs, action)
 
+        ctrl_action = None
+
         for i in range(self._n_intermediate_steps):
 
-            ctrl_action = self._compute_action(cur_obs, action)
-            self._data.ctrl[self._action_indices] = ctrl_action
+            if self._recompute_action_per_step or ctrl_action is None:
+                ctrl_action = self._compute_action(cur_obs, action)
+                self._data.ctrl[self._action_indices] = ctrl_action
 
             self._simulation_pre_step()
 
@@ -140,6 +150,10 @@ class MuJoCo(Environment):
 
             self._simulation_post_step()
 
+            if self._recompute_action_per_step:
+                cur_obs = self._create_observation(self.obs_helper._build_obs(self._data))
+
+        if not self._recompute_action_per_step:
             cur_obs = self._create_observation(self.obs_helper._build_obs(self._data))
 
         self._step_finalize()
@@ -638,9 +652,12 @@ class MultiMuJoCo(MuJoCo):
         # set the warning callback to stop the simulation when a mujoco warning occurs
         mujoco.set_mju_user_warning(self.user_warning_raise_exception)
 
-        # needed for recording
-        self._record_video = False
-        self._video = None
+        # check whether the function compute_action was overridden or not. If yes, we want to compute
+        # the action at simulation frequency, if not we do it at control frequency.
+        if type(self)._compute_action == MuJoCo._compute_action:
+            self._recompute_action_per_step = False
+        else:
+            self._recompute_action_per_step = True
 
         # call grad-parent class, not MuJoCo
         super(MuJoCo, self).__init__(mdp_info)

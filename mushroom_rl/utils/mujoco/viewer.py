@@ -14,7 +14,8 @@ class MujocoGlfwViewer:
 
     def __init__(self, model, dt, width=1920, height=1080, start_paused=False,
                  custom_render_callback=None, record=False, camera_params=None,
-                 default_camera_mode="static", hide_menu_on_startup=False):
+                 default_camera_mode="static", hide_menu_on_startup=False,
+                 geom_group_visualization_on_startup=None):
         """
         Constructor.
 
@@ -31,6 +32,8 @@ class MujocoGlfwViewer:
                 Checkout the function get_default_camera_params() to know what parameters are expected. Is some camera
                 type specification or parameter is missing, the default one is used.
             hide_menu_on_startup (bool): If True, the menu is hidden on startup.
+            geom_group_visualization_on_startup (int/list): int or list defining which geom group_ids should be
+                visualized on startup. If None, all are visualized.
 
         """
 
@@ -97,6 +100,14 @@ class MujocoGlfwViewer:
 
         self._overlay = {}
         self._hide_menu = hide_menu_on_startup
+
+        if geom_group_visualization_on_startup is not None:
+            assert type(geom_group_visualization_on_startup) == list or type(geom_group_visualization_on_startup) == int
+            if type(geom_group_visualization_on_startup) is not list:
+                geom_group_visualization_on_startup = [geom_group_visualization_on_startup]
+            for group_id, _ in enumerate(self._scene_option.geomgroup):
+                if group_id not in geom_group_visualization_on_startup:
+                    self._scene_option.geomgroup[group_id] = False
 
     def load_new_model(self, model):
         """
@@ -192,6 +203,36 @@ class MujocoGlfwViewer:
             self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_TRANSPARENT] = not self._scene_option.flags[
                 mujoco.mjtVisFlag.mjVIS_TRANSPARENT]
 
+        if key == glfw.KEY_0:
+            self._scene_option.geomgroup[0] = not self._scene_option.geomgroup[0]
+
+        if key == glfw.KEY_1:
+            self._scene_option.geomgroup[1] = not self._scene_option.geomgroup[1]
+
+        if key == glfw.KEY_2:
+            self._scene_option.geomgroup[2] = not self._scene_option.geomgroup[2]
+
+        if key == glfw.KEY_3:
+            self._scene_option.geomgroup[3] = not self._scene_option.geomgroup[3]
+
+        if key == glfw.KEY_4:
+            self._scene_option.geomgroup[4] = not self._scene_option.geomgroup[4]
+
+        if key == glfw.KEY_5:
+            self._scene_option.geomgroup[5] = not self._scene_option.geomgroup[5]
+
+        if key == glfw.KEY_6:
+            self._scene_option.geomgroup[6] = not self._scene_option.geomgroup[6]
+
+        if key == glfw.KEY_7:
+            self._scene_option.geomgroup[7] = not self._scene_option.geomgroup[7]
+
+        if key == glfw.KEY_8:
+            self._scene_option.geomgroup[8] = not self._scene_option.geomgroup[8]
+
+        if key == glfw.KEY_9:
+            self._scene_option.geomgroup[9] = not self._scene_option.geomgroup[9]
+
         if key == glfw.KEY_TAB:
             self._camera_mode_target = next(self._camera_mode_iter)
 
@@ -200,10 +241,6 @@ class MujocoGlfwViewer:
 
         if key == glfw.KEY_F:
             self._run_speed_factor *= 2.0
-
-        if key == glfw.KEY_G:
-            for i in range(len(self._scene_option.geomgroup)):
-                self._scene_option.geomgroup[i] = not self._scene_option.geomgroup[i]
 
         if key == glfw.KEY_E:
             self._scene_option.frame = not self._scene_option.frame
@@ -374,6 +411,14 @@ class MujocoGlfwViewer:
             topleft,
             "Press T to make the model transparent.")
 
+        add_overlay(
+            topleft,
+            "Press E to toggle reference frames.")
+
+        add_overlay(
+            topleft,
+            "Press 0-9 to disable/enable geom group visualization.")
+
         visualize_contact = "On" if self._scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONTACTFORCE] else "Off"
         add_overlay(
             topleft,
@@ -388,16 +433,7 @@ class MujocoGlfwViewer:
             topleft,
             "Run speed = %.3f x real time" %
             self._run_speed_factor,
-            "[S]lower, [F]aster")
-        
-        add_overlay(
-            topleft,
-            "Press E to toggle reference frames.")
-        
-        add_overlay(
-            topleft,
-            "Press G to toggle geom groups.",
-            make_new_line=False)
+            "[S]lower, [F]aster", make_new_line=False)
 
     def _set_camera(self):
         """
