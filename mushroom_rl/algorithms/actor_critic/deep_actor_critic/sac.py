@@ -17,27 +17,20 @@ from itertools import chain
 
 class SACPolicy(Policy):
     """
-    Class used to implement the policy used by the Soft Actor-Critic
-    algorithm. The policy is a Gaussian policy squashed by a tanh.
-    This class implements the compute_action_and_log_prob and the
-    compute_action_and_log_prob_t methods, that are fundamental for
-    the internals calculations of the SAC algorithm.
+    Class used to implement the policy used by the Soft Actor-Critic algorithm.
+    The policy is a Gaussian policy squashed by a tanh. This class implements the compute_action_and_log_prob and the
+    compute_action_and_log_prob_t methods, that are fundamental for the internals calculations of the SAC algorithm.
 
     """
-    def __init__(self, mu_approximator, sigma_approximator, min_a, max_a,
-                 log_std_min, log_std_max):
+    def __init__(self, mu_approximator, sigma_approximator, min_a, max_a, log_std_min, log_std_max):
         """
         Constructor.
 
         Args:
-            mu_approximator (Regressor): a regressor computing mean in given a
-                state;
-            sigma_approximator (Regressor): a regressor computing the variance
-                in given a state;
-            min_a (np.ndarray): a vector specifying the minimum action value
-                for each component;
-            max_a (np.ndarray): a vector specifying the maximum action value
-                for each component.
+            mu_approximator (Regressor): a regressor computing mean in given a state;
+            sigma_approximator (Regressor): a regressor computing the variance in given a state;
+            min_a (np.ndarray): a vector specifying the minimum action value for each component;
+            max_a (np.ndarray): a vector specifying the maximum action value for each component.
             log_std_min ([float, Parameter]): min value for the policy log std;
             log_std_max ([float, Parameter]): max value for the policy log std.
 
@@ -78,8 +71,7 @@ class SACPolicy(Policy):
 
     def compute_action_and_log_prob(self, state):
         """
-        Function that samples actions using the reparametrization trick and
-        the log probability for such actions.
+        Function that samples actions using the reparametrization trick and the log probability for such actions.
 
         Args:
             state (np.ndarray): the state in which the action is sampled.
@@ -93,17 +85,15 @@ class SACPolicy(Policy):
 
     def compute_action_and_log_prob_t(self, state, compute_log_prob=True):
         """
-        Function that samples actions using the reparametrization trick and,
-        optionally, the log probability for such actions.
+        Function that samples actions using the reparametrization trick and, optionally, the log probability for such
+        actions.
 
         Args:
             state (np.ndarray): the state in which the action is sampled;
-            compute_log_prob (bool, True): whether to compute the log
-            probability or not.
+            compute_log_prob (bool, True): whether to compute the log  probability or not.
 
         Returns:
-            The actions sampled and, optionally, the log probability as torch
-            tensors.
+            The actions sampled and, optionally, the log probability as torch tensors.
 
         """
         dist = self.distribution(state)
@@ -123,8 +113,7 @@ class SACPolicy(Policy):
         Compute the policy distribution in the given states.
 
         Args:
-            state (np.ndarray): the set of states where the distribution is
-                computed.
+            state (np.ndarray): the set of states where the distribution is computed.
 
         Returns:
             The torch distribution for the provided states.
@@ -147,19 +136,15 @@ class SACPolicy(Policy):
             The value of the entropy of the policy.
 
         """
-
-        return torch.mean(self.distribution(state).entropy()).detach().cpu().numpy().item()
-
-    def reset(self):
-        pass
+        _, log_pi = self.compute_action_and_log_prob(state)
+        return -log_pi.mean()
 
     def set_weights(self, weights):
         """
         Setter.
 
         Args:
-            weights (np.ndarray): the vector of the new weights to be used by
-                the policy.
+            weights (np.ndarray): the vector of the new weights to be used by the policy.
 
         """
         mu_weights = weights[:self._mu_approximator.weights_size]
@@ -190,8 +175,7 @@ class SACPolicy(Policy):
 
     def parameters(self):
         """
-        Returns the trainable policy parameters, as expected by torch
-        optimizers.
+        Returns the trainable policy parameters, as expected by torch optimizers.
 
         Returns:
             List of parameters to be optimized.
@@ -208,38 +192,30 @@ class SAC(DeepAC):
     Haarnoja T. et al.. 2019.
 
     """
-    def __init__(self, mdp_info, actor_mu_params, actor_sigma_params,
-                 actor_optimizer, critic_params, batch_size,
-                 initial_replay_size, max_replay_size, warmup_transitions, tau,
-                 lr_alpha, log_std_min=-20, log_std_max=2, target_entropy=None,
-                 critic_fit_params=None):
+    def __init__(self, mdp_info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params, batch_size,
+                 initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha, use_log_alpha_loss=False,
+                 log_std_min=-20, log_std_max=2, target_entropy=None,critic_fit_params=None):
         """
         Constructor.
 
         Args:
-            actor_mu_params (dict): parameters of the actor mean approximator
-                to build;
-            actor_sigma_params (dict): parameters of the actor sigm
-                approximator to build;
-            actor_optimizer (dict): parameters to specify the actor
-                optimizer algorithm;
-            critic_params (dict): parameters of the critic approximator to
-                build;
+            actor_mu_params (dict): parameters of the actor mean approximator to build;
+            actor_sigma_params (dict): parameters of the actor sigma approximator to build;
+            actor_optimizer (dict): parameters to specify the actor optimizer algorithm;
+            critic_params (dict): parameters of the critic approximator to build;
             batch_size ((int, Parameter)): the number of samples in a batch;
-            initial_replay_size (int): the number of samples to collect before
-                starting the learning;
-            max_replay_size (int): the maximum number of samples in the replay
-                memory;
-            warmup_transitions ([int, Parameter]): number of samples to accumulate in the
-                replay memory to start the policy fitting;
+            initial_replay_size (int): the number of samples to collect before starting the learning;
+            max_replay_size (int): the maximum number of samples in the replay memory;
+            warmup_transitions ([int, Parameter]): number of samples to accumulate in the replay memory to start the
+                policy fitting;
             tau ([float, Parameter]): value of coefficient for soft updates;
             lr_alpha ([float, Parameter]): Learning rate for the entropy coefficient;
+            use_log_alpha_loss (bool, False): whether to use the original implementation loss or the one from the
+                paper;
             log_std_min ([float, Parameter]): Min value for the policy log std;
             log_std_max ([float, Parameter]): Max value for the policy log std;
-            target_entropy (float, None): target entropy for the policy, if
-                None a default value is computed ;
-            critic_fit_params (dict, None): parameters of the fitting algorithm
-                of the critic approximator.
+            target_entropy (float, None): target entropy for the policy, if None a default value is computed;
+            critic_fit_params (dict, None): parameters of the fitting algorithm of the critic approximator.
 
         """
         self._critic_fit_params = dict() if critic_fit_params is None else critic_fit_params
@@ -247,6 +223,8 @@ class SAC(DeepAC):
         self._batch_size = to_parameter(batch_size)
         self._warmup_transitions = to_parameter(warmup_transitions)
         self._tau = to_parameter(tau)
+
+        self._use_log_alpha_loss = use_log_alpha_loss
 
         if target_entropy is None:
             self._target_entropy = -np.prod(mdp_info.action_space.shape).astype(np.float32)
@@ -261,25 +239,16 @@ class SAC(DeepAC):
             critic_params['n_models'] = 2
 
         target_critic_params = deepcopy(critic_params)
-        self._critic_approximator = Regressor(TorchApproximator,
-                                              **critic_params)
-        self._target_critic_approximator = Regressor(TorchApproximator,
-                                                     **target_critic_params)
+        self._critic_approximator = Regressor(TorchApproximator, **critic_params)
+        self._target_critic_approximator = Regressor(TorchApproximator, **target_critic_params)
 
-        actor_mu_approximator = Regressor(TorchApproximator,
-                                          **actor_mu_params)
-        actor_sigma_approximator = Regressor(TorchApproximator,
-                                             **actor_sigma_params)
+        actor_mu_approximator = Regressor(TorchApproximator, **actor_mu_params)
+        actor_sigma_approximator = Regressor(TorchApproximator, **actor_sigma_params)
 
-        policy = SACPolicy(actor_mu_approximator,
-                           actor_sigma_approximator,
-                           mdp_info.action_space.low,
-                           mdp_info.action_space.high,
-                           log_std_min,
-                           log_std_max)
+        policy = SACPolicy(actor_mu_approximator, actor_sigma_approximator,  mdp_info.action_space.low,
+                           mdp_info.action_space.high, log_std_min, log_std_max)
 
-        self._init_target(self._critic_approximator,
-                          self._target_critic_approximator)
+        self._init_target(self._critic_approximator, self._target_critic_approximator)
 
         self._log_alpha = torch.tensor(0., dtype=torch.float32)
 
@@ -302,6 +271,7 @@ class SAC(DeepAC):
             _replay_memory='mushroom',
             _critic_approximator='mushroom',
             _target_critic_approximator='mushroom',
+            _use_log_alpha_loss='primitive',
             _log_alpha='torch',
             _alpha_optim='torch'
         )
@@ -311,8 +281,7 @@ class SAC(DeepAC):
     def fit(self, dataset, **info):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
-            state, action, reward, next_state, absorbing, _ = \
-                self._replay_memory.get(self._batch_size())
+            state, action, reward, next_state, absorbing, _ = self._replay_memory.get(self._batch_size())
 
             if self._replay_memory.size > self._warmup_transitions():
                 action_new, log_prob = self.policy.compute_action_and_log_prob_t(state)
@@ -323,24 +292,23 @@ class SAC(DeepAC):
             q_next = self._next_q(next_state, absorbing)
             q = reward + self.mdp_info.gamma * q_next
 
-            self._critic_approximator.fit(state, action, q,
-                                          **self._critic_fit_params)
+            self._critic_approximator.fit(state, action, q, **self._critic_fit_params)
 
-            self._update_target(self._critic_approximator,
-                                self._target_critic_approximator)
+            self._update_target(self._critic_approximator, self._target_critic_approximator)
 
     def _loss(self, state, action_new, log_prob):
-        q_0 = self._critic_approximator(state, action_new,
-                                        output_tensor=True, idx=0)
-        q_1 = self._critic_approximator(state, action_new,
-                                        output_tensor=True, idx=1)
+        q_0 = self._critic_approximator(state, action_new, output_tensor=True, idx=0)
+        q_1 = self._critic_approximator(state, action_new, output_tensor=True, idx=1)
 
         q = torch.min(q_0, q_1)
 
         return (self._alpha * log_prob - q).mean()
 
     def _update_alpha(self, log_prob):
-        alpha_loss = - (self._log_alpha * (log_prob + self._target_entropy)).mean()
+        if self._use_log_alpha_loss:
+            alpha_loss = - (self._log_alpha * (log_prob + self._target_entropy)).mean()
+        else:
+            alpha_loss = - (self._alpha * (log_prob + self._target_entropy)).mean()
         self._alpha_optim.zero_grad()
         alpha_loss.backward()
         self._alpha_optim.step()
@@ -348,14 +316,11 @@ class SAC(DeepAC):
     def _next_q(self, next_state, absorbing):
         """
         Args:
-            next_state (np.ndarray): the states where next action has to be
-                evaluated;
-            absorbing (np.ndarray): the absorbing flag for the states in
-                ``next_state``.
+            next_state (np.ndarray): the states where next action has to be evaluated;
+            absorbing (np.ndarray): the absorbing flag for the states in ``next_state``.
 
         Returns:
-            Action-values returned by the critic for ``next_state`` and the
-            action returned by the actor.
+            Action-values returned by the critic for ``next_state`` and the action returned by the actor.
 
         """
         a, log_prob_next = self.policy.compute_action_and_log_prob(next_state)
