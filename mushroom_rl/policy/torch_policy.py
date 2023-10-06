@@ -231,9 +231,10 @@ class GaussianTorchPolicy(TorchPolicy):
 
     def distribution_t(self, state):
         mu, chol_sigma = self.get_mean_and_chol(state)
-        return torch.distributions.MultivariateNormal(loc=mu, scale_tril=chol_sigma)
+        return torch.distributions.MultivariateNormal(loc=mu, scale_tril=chol_sigma, validate_args=False)
 
     def get_mean_and_chol(self, state):
+        assert torch.all(torch.exp(self._log_sigma) > 0)
         return self._mu(state, **self._predict_params, output_tensor=True), torch.diag(torch.exp(self._log_sigma))
 
     def set_weights(self, weights):
