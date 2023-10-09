@@ -1,8 +1,6 @@
 import numpy as np
 from tqdm import trange
 
-from mushroom_rl.utils.dataset import parse_dataset
-
 from .fqi import FQI
 
 
@@ -32,7 +30,7 @@ class BoostedFQI(FQI):
         super().__init__(mdp_info, policy, approximator, n_iterations, approximator_params, fit_params, quiet)
 
     def fit(self, dataset, **info):
-        state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
+        state, action, reward, next_state, absorbing, _ = dataset.parse()
         for _ in trange(self._n_iterations(), dynamic_ncols=True, disable=self._quiet, leave=False):
             if self._target is None:
                 self._target = reward

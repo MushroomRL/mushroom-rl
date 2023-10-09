@@ -3,7 +3,6 @@ import numpy as np
 from mushroom_rl.algorithms.value.batch_td import BatchTD
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.features import get_action_features
-from mushroom_rl.utils.dataset import parse_dataset
 from mushroom_rl.utils.parameters import to_parameter
 
 
@@ -30,8 +29,11 @@ class LSPI(BatchTD):
                          approximator_params, fit_params, features)
 
     def fit(self, dataset, **info):
-        phi_state, action, reward, phi_next_state, absorbing, _ = parse_dataset(
-            dataset, self.phi)
+        state, action, reward, next_state, absorbing, _ = dataset.parse()
+
+        phi_state = self.phi(state)
+        phi_next_state = self.phi(next_state)
+
         phi_state_action = get_action_features(phi_state, action,
                                                self.mdp_info.action_space.n)
 

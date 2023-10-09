@@ -1,7 +1,6 @@
 import numpy as np
 
 from mushroom_rl.core import Agent
-from mushroom_rl.utils.dataset import compute_J
 
 
 class BlackBoxOptimization(Agent):
@@ -35,7 +34,7 @@ class BlackBoxOptimization(Agent):
         super().episode_start()
 
     def fit(self, dataset, **info):
-        Jep = compute_J(dataset, self.mdp_info.gamma)
+        Jep = dataset.compute_J(self.mdp_info.gamma)
 
         Jep = np.array(Jep)
         theta = np.array(self._theta_list)
