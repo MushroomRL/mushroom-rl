@@ -50,8 +50,22 @@ class Dataset(Serializable):
         self._info = defaultdict(list)
         self._data.clear()
 
+    def get_view(self, index):
+        dataset = self.copy()
+
+        info_slice = defaultdict(list)
+        for key in self._info.keys():
+            info_slice[key] = self._info[key][index]
+
+        dataset._info = info_slice
+        dataset._data = self._data.get_view(index)
+
+        return dataset
+
     def __getitem__(self, index):
-        if index < len(self._data):
+        if isinstance(index, slice):
+            return self.get_view(self, index)
+        elif isinstance(index, int) and index < len(self._data):
             return self._data[index]
         else:
             raise IndexError
@@ -96,6 +110,10 @@ class Dataset(Serializable):
         return self._data.last
 
     @property
+    def info(self):
+        return self._info
+
+    @property
     def episodes_length(self):
         """
         Compute the length of each episode in the dataset.
@@ -125,73 +143,61 @@ class Dataset(Serializable):
     def discounted_return(self):
         return self.compute_J(self._gamma)
 
-    def parse(self):
+    def parse(self, index=None):
         """
         Return the dataset as set of arrays.
+
+        Args (index, [int, slice]): index or slicee of dataset to be selected
 
         Returns:
             A tuple containing the arrays that define the dataset, i.e. state, action, next state, absorbing and last
 
         """
-        return self.state, self.action, self.reward, self.next_state, self.absorbing, self.last
+        if index is None:
+            return self.state, self.action, self.reward, self.next_state, self.absorbing, self.last
+        else:
+            return self.state[index], self.action[index], self.reward[index], self.next_state[index], \
+                   self.absorbing[index], self.last[index]
 
-    def select_first_episodes(self, n_episodes, parse=False):
+    def select_first_episodes(self, n_episodes):
         """
         Return the first ``n_episodes`` episodes in the provided dataset.
 
         Args:
             dataset (list): the dataset to consider;
             n_episodes (int): the number of episodes to pick from the dataset;
-            parse (bool, False): whether to parse the dataset to return.
 
         Returns:
             A subset of the dataset containing the first ``n_episodes`` episodes.
 
         """
-        raise NotImplementedError
+        assert n_episodes > 0, 'Number of episodes must be greater than zero.'
 
-        # assert n_episodes >= 0, 'Number of episodes must be greater than or equal' \
-        #                         'to zero.'
-        # if n_episodes == 0:
-        #     return np.array([[]])
-        #
-        # dataset = np.array(dataset, dtype=object)
-        # last_idxs = np.argwhere(dataset[:, -1] == 1).ravel()
-        # sub_dataset = dataset[:last_idxs[n_episodes - 1] + 1, :]
-        #
-        # return sub_dataset if not parse else parse_dataset(sub_dataset)
+        last_idxs = np.argwhere(self.last is True).ravel()
+        return self[:last_idxs[n_episodes - 1] + 1]
 
-    def select_random_samples(self, n_samples, parse=False):
+    def select_random_samples(self, n_samples):
         """
         Return the randomly picked desired number of samples in the provided
         dataset.
 
         Args:
             dataset (list): the dataset to consider;
-            n_samples (int): the number of samples to pick from the dataset;
-            parse (bool, False): whether to parse the dataset to return.
+            n_samples (int): the number of samples to pick from the dataset.
 
         Returns:
             A subset of the dataset containing randomly picked ``n_samples``
             samples.
 
         """
-        raise NotImplementedError
+        assert n_samples >= 0, 'Number of samples must be greater than or equal to zero.'
 
-        # assert n_samples >= 0, 'Number of samples must be greater than or equal' \
-        #                        'to zero.'
-        # if n_samples == 0:
-        #     return np.array([[]])
-        #
-        # dataset = np.array(self, dtype=object)
-        # idxs = np.random.randint(dataset.shape[0], size=n_samples)
+        if n_samples == 0:
+            return np.array([[]])
 
-        #sub_dataset = dataset[idxs, ...]
+        idxs = np.random.randint(len(self), size=n_samples)
 
-        #if parse:
-        #    return sub_dataset
-        # else:
-        #     return sub_dataset if not parse else
+        return self[idxs]
 
     def get_init_states(self):
         """
@@ -206,13 +212,10 @@ class Dataset(Serializable):
         """
         pick = True
         x_0 = list()
-        for d in self:
+        for step in self:
             if pick:
-                # if isinstance(d[0], LazyFrames): #FIXME LazyFrames
-                #     x_0.append(np.array(d[0]))
-                # else:
-                x_0.append(d[0])
-            pick = d[-1]
+                x_0.append(step[0])
+            pick = step[-1]
         return np.array(x_0)
 
     def compute_J(self, gamma=1.):

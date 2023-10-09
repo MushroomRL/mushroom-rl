@@ -35,13 +35,13 @@ def test_core():
 
     core.learn(n_steps=100, n_steps_per_fit=1)
 
-    dataset, info = core.evaluate(n_steps=20, get_env_info=True)
+    dataset = core.evaluate(n_steps=20)
 
-    assert 'lives' in info
-    assert 'episode_frame_number' in info
-    assert 'frame_number' in info
+    assert 'lives' in dataset.info
+    assert 'episode_frame_number' in dataset.info
+    assert 'frame_number' in dataset.info
 
-    info_lives = np.array(info['lives'])
+    info_lives = np.array(dataset.info['lives'])
 
     print(info_lives)
     lives_gt = np.array([5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4])

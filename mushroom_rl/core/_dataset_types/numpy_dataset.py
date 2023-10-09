@@ -52,6 +52,19 @@ class NumpyDataset(Serializable):
         self._last = np.empty_like(self._last)
         self._len = 0
 
+    def get_view(self, index):
+        view = self.copy()
+
+        view._states = self._states[index, ...]
+        view._actions = self._actions[index, ...]
+        view._rewards = self._rewards[index, ...]
+        view._next_states = self._next_states[index, ...]
+        view._absorbing = self._absorbing[index, ...]
+        view._last = self._last[index, ...]
+        view._len = self._states.shape[0]
+
+        return view
+
     def __getitem__(self, index):
         return self._states[index], self._actions[index], self._rewards[index], self._next_states[index], \
                self._absorbing[index], self._last[index]

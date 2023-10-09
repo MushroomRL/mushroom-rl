@@ -30,8 +30,7 @@ def learn(alg, alg_params):
     approximator = ExtraTreesRegressor
 
     # Agent
-    agent = alg(mdp.info, pi, approximator,
-                approximator_params=approximator_params, **alg_params)
+    agent = alg(mdp.info, pi, approximator, approximator_params=approximator_params, **alg_params)
 
     # Algorithm
     core = Core(agent, mdp)

@@ -31,11 +31,10 @@ class LSPI(BatchTD):
     def fit(self, dataset, **info):
         state, action, reward, next_state, absorbing, _ = dataset.parse()
 
-        phi_state = self.phi(state)
-        phi_next_state = self.phi(next_state)
+        phi_state = np.array([self.phi(s) for s in state])  # TODO improve with vectorial inputs
+        phi_next_state = np.array([self.phi(ss) for ss in next_state])
 
-        phi_state_action = get_action_features(phi_state, action,
-                                               self.mdp_info.action_space.n)
+        phi_state_action = get_action_features(phi_state, action, self.mdp_info.action_space.n)
 
         norm = np.inf
         while norm > self._epsilon():
@@ -44,14 +43,9 @@ class LSPI(BatchTD):
                 q *= 1 - absorbing.reshape(-1, 1)
 
             next_action = np.argmax(q, axis=1).reshape(-1, 1)
-            phi_next_state_next_action = get_action_features(
-                phi_next_state,
-                next_action,
-                self.mdp_info.action_space.n
-            )
+            phi_next_state_next_action = get_action_features(phi_next_state, next_action, self.mdp_info.action_space.n)
 
-            tmp = phi_state_action - self.mdp_info.gamma *\
-                phi_next_state_next_action
+            tmp = phi_state_action - self.mdp_info.gamma * phi_next_state_next_action
             A = phi_state_action.T.dot(tmp)
             b = (phi_state_action.T.dot(reward)).reshape(-1, 1)
 
