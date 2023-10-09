@@ -1,4 +1,5 @@
 from .core import Core
+from .dataset import Dataset
 from .environment import Environment, MDPInfo
 from .agent import Agent
 from .serialization import Serializable

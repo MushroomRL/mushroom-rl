@@ -9,7 +9,7 @@ class Box(Serializable):
     spaces. It is similar to the ``Box`` class in ``gym.spaces.box``.
 
     """
-    def __init__(self, low, high, shape=None):
+    def __init__(self, low, high, shape=None, data_type=float):
         """
         Constructor.
 
@@ -26,6 +26,7 @@ class Box(Serializable):
                 of the i-th dimension;
             shape (np.ndarray, None): the dimension of the space. Must match
                 the shape of ``low`` and ``high``, if they are np.ndarray.
+            data_type (class, float): the data type to be used.
 
         """
         if shape is None:
@@ -42,9 +43,12 @@ class Box(Serializable):
 
         assert self._low.shape == self._high.shape
 
+        self._data_type = data_type
+
         self._add_save_attr(
             _low='numpy',
-            _high='numpy'
+            _high='numpy',
+            _data_type='primitive'
         )
 
     @property
@@ -73,6 +77,10 @@ class Box(Serializable):
 
         """
         return self._shape
+
+    @property
+    def data_type(self):
+        return self._data_type
 
     def _post_load(self):
         self._shape = self._low.shape
@@ -117,3 +125,7 @@ class Discrete(Serializable):
 
         """
         return 1,
+
+    @property
+    def data_type(self):
+        return int

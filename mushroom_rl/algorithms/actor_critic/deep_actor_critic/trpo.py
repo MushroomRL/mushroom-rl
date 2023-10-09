@@ -9,7 +9,6 @@ from mushroom_rl.core import Agent
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.torch import get_gradient, zero_grad, to_float_tensor
-from mushroom_rl.utils.dataset import parse_dataset, compute_J
 from mushroom_rl.utils.value_functions import compute_gae
 from mushroom_rl.utils.parameters import to_parameter
 
@@ -83,7 +82,7 @@ class TRPO(Agent):
         super().__init__(mdp_info, policy, None)
 
     def fit(self, dataset, **info):
-        state, action, reward, next_state, absorbing, last = parse_dataset(dataset)
+        state, action, reward, next_state, absorbing, last = dataset.parse()
         x = state.astype(np.float32)
         u = action.astype(np.float32)
         r = reward.astype(np.float32)
@@ -214,7 +213,7 @@ class TRPO(Agent):
             logging_kl = torch.mean(
                 torch.distributions.kl.kl_divergence(old_pol_dist, new_pol_dist)
             )
-            avg_rwd = np.mean(compute_J(dataset))
+            avg_rwd = np.mean(dataset.undiscounted_return)
             msg = "Iteration {}:\n\t\t\t\trewards {} vf_loss {}\n\t\t\t\tentropy {}  kl {}".format(
                 self._iter, avg_rwd, logging_verr, logging_ent, logging_kl)
 

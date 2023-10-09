@@ -1,8 +1,6 @@
 import numpy as np
 from tqdm import trange
 
-from mushroom_rl.utils.dataset import parse_dataset
-
 from .fqi import FQI
 
 

@@ -8,7 +8,6 @@ from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.torch import to_float_tensor, update_optimizer_parameters
 from mushroom_rl.utils.minibatches import minibatch_generator
-from mushroom_rl.utils.dataset import parse_dataset, compute_J
 from mushroom_rl.utils.value_functions import compute_gae
 from mushroom_rl.utils.parameters import to_parameter
 
@@ -72,7 +71,7 @@ class PPO(Agent):
         super().__init__(mdp_info, policy, None)
 
     def fit(self, dataset, **info):
-        x, u, r, xn, absorbing, last = parse_dataset(dataset)
+        x, u, r, xn, absorbing, last = dataset.parse()
         x = x.astype(np.float32)
         u = u.astype(np.float32)
         r = r.astype(np.float32)
@@ -124,7 +123,7 @@ class PPO(Agent):
             new_pol_dist = self.policy.distribution(x)
             logging_kl = torch.mean(torch.distributions.kl.kl_divergence(
                 new_pol_dist, old_pol_dist))
-            avg_rwd = np.mean(compute_J(dataset))
+            avg_rwd = np.mean(dataset.undiscounted_return)
             msg = "Iteration {}:\n\t\t\t\trewards {} vf_loss {}\n\t\t\t\tentropy {}  kl {}".format(
                 self._iter, avg_rwd, logging_verr, logging_ent, logging_kl)
 

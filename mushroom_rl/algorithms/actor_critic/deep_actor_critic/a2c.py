@@ -4,7 +4,6 @@ from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DeepAC
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.value_functions import compute_advantage_montecarlo
-from mushroom_rl.utils.dataset import parse_dataset
 from mushroom_rl.utils.parameters import to_parameter
 from mushroom_rl.utils.torch import to_float_tensor
 
@@ -59,7 +58,7 @@ class A2C(DeepAC):
         super().__init__(mdp_info, policy, actor_optimizer, policy.parameters())
 
     def fit(self, dataset, **info):
-        state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
+        state, action, reward, next_state, absorbing, _ = dataset.parse()
 
         v, adv = compute_advantage_montecarlo(self._V, state, next_state,
                                               reward, absorbing,
