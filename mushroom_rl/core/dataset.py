@@ -36,6 +36,33 @@ class Dataset(Serializable):
             _gamma='primitive'
         )
 
+    @classmethod
+    def from_numpy(cls, states, actions, rewards, next_states, absorbings, lasts, gamma=0.99):
+        """
+        Creates a dataset of transitions from the provided arrays.
+
+        Args:
+            states (np.ndarray): array of states;
+            actions (np.ndarray): array of actions;
+            rewards (np.ndarray): array of rewards;
+            next_states (np.ndarray): array of next_states;
+            absorbings (np.ndarray): array of absorbing flags;
+            lasts (np.ndarray): array of last flags.
+
+        Returns:
+            The list of transitions.
+
+        """
+        assert (len(states) == len(actions) == len(rewards)
+                == len(next_states) == len(absorbings) == len(lasts))
+
+        dataset = cls.__new__(cls)
+        dataset._gamma = gamma
+        dataset._info = defaultdict(list)
+        dataset._data = NumpyDataset.from_numpy(states, actions, rewards, next_states, absorbings, lasts, gamma)
+
+        return dataset
+
     def append(self, step, info):
         self._data.append(*step[:6])
         self._append_info(info)
@@ -63,8 +90,8 @@ class Dataset(Serializable):
         return dataset
 
     def __getitem__(self, index):
-        if isinstance(index, slice):
-            return self.get_view(self, index)
+        if isinstance(index, (slice, np.ndarray)):
+            return self.get_view(index)
         elif isinstance(index, int) and index < len(self._data):
             return self._data[index]
         else:
@@ -173,7 +200,7 @@ class Dataset(Serializable):
         """
         assert n_episodes > 0, 'Number of episodes must be greater than zero.'
 
-        last_idxs = np.argwhere(self.last is True).ravel()
+        last_idxs = np.argwhere(self.last==True).ravel()
         return self[:last_idxs[n_episodes - 1] + 1]
 
     def select_random_samples(self, n_samples):
@@ -272,7 +299,7 @@ class Dataset(Serializable):
         dataset = self[:i]
 
         if len(dataset) > 0:
-            J = self.compute_J(gamma)
+            J = dataset.compute_J(gamma)
             return np.min(J), np.max(J), np.mean(J), np.median(J), len(J)
         else:
             return 0, 0, 0, 0, 0

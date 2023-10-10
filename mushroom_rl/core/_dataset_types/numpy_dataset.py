@@ -61,7 +61,7 @@ class NumpyDataset(Serializable):
         view._next_states = self._next_states[index, ...]
         view._absorbing = self._absorbing[index, ...]
         view._last = self._last[index, ...]
-        view._len = self._states.shape[0]
+        view._len = view._states.shape[0]
 
         return view
 

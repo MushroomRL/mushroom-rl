@@ -1,10 +1,10 @@
+import numpy as np
+
 from mushroom_rl.core import Core
 from mushroom_rl.algorithms.value import SARSA
 from mushroom_rl.environments import GridWorld
 from mushroom_rl.utils.parameters import Parameter
 from mushroom_rl.policy import EpsGreedy
-
-from mushroom_rl.utils.dataset import *
 
 
 def test_dataset():
@@ -65,3 +65,5 @@ def test_dataset():
     assert n_episodes == 2
 
 
+if __name__ == '__main__':
+    test_dataset()
