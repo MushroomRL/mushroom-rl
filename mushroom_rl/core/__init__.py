@@ -7,4 +7,4 @@ from .logger import Logger
 
 import mushroom_rl.environments
 
-__all__ = ['Core', 'Environment', 'MDPInfo', 'Agent', 'Serializable', 'Logger']
+__all__ = ['Core', 'Dataset', 'Environment', 'MDPInfo', 'Agent', 'Serializable', 'Logger']

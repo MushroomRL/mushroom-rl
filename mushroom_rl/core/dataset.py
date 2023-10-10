@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from mushroom_rl.core.serialization import Serializable
 
-from mushroom_rl.core._dataset_types import NumpyDataset
+from mushroom_rl.core._dataset_types import *
 
 
 class Dataset(Serializable):
@@ -28,6 +28,7 @@ class Dataset(Serializable):
 
         self._info = defaultdict(list)
         self._data = NumpyDataset(state_type, state_shape, action_type, action_shape, reward_shape)
+
         self._gamma = mdp_info.gamma
 
         self._add_save_attr(
@@ -37,7 +38,7 @@ class Dataset(Serializable):
         )
 
     @classmethod
-    def from_numpy(cls, states, actions, rewards, next_states, absorbings, lasts, gamma=0.99):
+    def from_numpy(cls, states, actions, rewards, next_states, absorbings, lasts, info=None, gamma=0.99):
         """
         Creates a dataset of transitions from the provided arrays.
 
@@ -58,7 +59,10 @@ class Dataset(Serializable):
 
         dataset = cls.__new__()
         dataset._gamma = gamma
-        dataset._info = defaultdict(list)
+        if info is None:
+            dataset._info = defaultdict(list)
+        else:
+            dataset._info = info.copy()
         dataset._data = NumpyDataset.from_numpy(states, actions, rewards, next_states, absorbings, lasts, gamma)
 
         dataset._add_save_attr(
@@ -176,21 +180,15 @@ class Dataset(Serializable):
     def discounted_return(self):
         return self.compute_J(self._gamma)
 
-    def parse(self, index=None):
+    def parse(self):
         """
         Return the dataset as set of arrays.
-
-        Args (index, [int, slice]): index or slicee of dataset to be selected
 
         Returns:
             A tuple containing the arrays that define the dataset, i.e. state, action, next state, absorbing and last
 
         """
-        if index is None:
-            return self.state, self.action, self.reward, self.next_state, self.absorbing, self.last
-        else:
-            return self.state[index], self.action[index], self.reward[index], self.next_state[index], \
-                   self.absorbing[index], self.last[index]
+        return self.state, self.action, self.reward, self.next_state, self.absorbing, self.last
 
     def select_first_episodes(self, n_episodes):
         """
@@ -206,7 +204,7 @@ class Dataset(Serializable):
         """
         assert n_episodes > 0, 'Number of episodes must be greater than zero.'
 
-        last_idxs = np.argwhere(self.last==True).ravel()
+        last_idxs = np.argwhere(self.last).ravel()
         return self[:last_idxs[n_episodes - 1] + 1]
 
     def select_random_samples(self, n_samples):
