@@ -31,8 +31,8 @@ class LSPI(BatchTD):
     def fit(self, dataset, **info):
         state, action, reward, next_state, absorbing, _ = dataset.parse()
 
-        phi_state = np.array([self.phi(s) for s in state])  # TODO improve with vectorial inputs
-        phi_next_state = np.array([self.phi(ss) for ss in next_state])
+        phi_state = self.phi(state)
+        phi_next_state = self.phi(next_state)
 
         phi_state_action = get_action_features(phi_state, action, self.mdp_info.action_space.n)
 
