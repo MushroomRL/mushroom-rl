@@ -63,7 +63,3 @@ def test_dataset():
     assert mean_J == 0.1396447262570234
     assert median_J == 0.1396447262570234
     assert n_episodes == 2
-
-
-if __name__ == '__main__':
-    test_dataset()

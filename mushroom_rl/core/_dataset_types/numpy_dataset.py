@@ -19,6 +19,35 @@ class NumpyDataset(Serializable):
         self._len = 0
 
         self._add_save_attr(
+            _state_type='primitive',
+            _action_type='primitive',
+            _states='numpy',
+            _actions='numpy',
+            _rewards='numpy',
+            _next_states='numpy',
+            _absorbing='numpy',
+            _last='numpy',
+            _len='primitive'
+        )
+
+    @classmethod
+    def from_numpy(cls, states, actions, rewards, next_states, absorbings, lasts):
+        dataset = cls.__new__()
+
+        dataset._state_type = states.dtype
+        dataset._action_type = actions.dtype
+
+        dataset._states = states
+        dataset._actions = actions
+        dataset._rewards = rewards
+        dataset._next_states = next_states
+        dataset._absorbing = absorbings
+        dataset._last = lasts
+        dataset._len = len(lasts)
+
+        dataset._add_save_attr(
+            _state_type='primitive',
+            _action_type='primitive',
             _states='numpy',
             _actions='numpy',
             _rewards='numpy',
@@ -50,6 +79,7 @@ class NumpyDataset(Serializable):
         self._next_states = np.empty_like(self._next_states)
         self._absorbing = np.empty_like(self._absorbing)
         self._last = np.empty_like(self._last)
+
         self._len = 0
 
     def get_view(self, index):
@@ -84,24 +114,24 @@ class NumpyDataset(Serializable):
 
     @property
     def state(self):
-        return self._states
+        return self._states[:len(self)]
 
     @property
     def action(self):
-        return self._actions
+        return self._actions[:len(self)]
 
     @property
     def reward(self):
-        return self._rewards
+        return self._rewards[:len(self)]
 
     @property
     def next_state(self):
-        return self._next_states
+        return self._next_states[:len(self)]
 
     @property
     def absorbing(self):
-        return self._absorbing
+        return self._absorbing[:len(self)]
 
     @property
     def last(self):
-        return self._last
+        return self._last[:len(self)]

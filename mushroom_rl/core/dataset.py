@@ -56,10 +56,16 @@ class Dataset(Serializable):
         assert (len(states) == len(actions) == len(rewards)
                 == len(next_states) == len(absorbings) == len(lasts))
 
-        dataset = cls.__new__(cls)
+        dataset = cls.__new__()
         dataset._gamma = gamma
         dataset._info = defaultdict(list)
         dataset._data = NumpyDataset.from_numpy(states, actions, rewards, next_states, absorbings, lasts, gamma)
+
+        dataset._add_save_attr(
+            _info='mushroom',
+            _data='pickle',
+            _gamma='primitive'
+        )
 
         return dataset
 
