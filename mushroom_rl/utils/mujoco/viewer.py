@@ -85,8 +85,8 @@ class MujocoGlfwViewer:
             self._camera_params = self._assert_camera_params(camera_params)
         self._all_camera_modes = ("static", "follow", "top_static")
         self._camera_mode_iter = cycle(self._all_camera_modes)
-        self._camera_mode = next(self._camera_mode_iter)
-        self._camera_mode_target = self._camera_mode
+        self._camera_mode = None
+        self._camera_mode_target = next(self._camera_mode_iter)
         assert default_camera_mode in self._all_camera_modes
         while self._camera_mode_target != default_camera_mode:
             self._camera_mode_target = next(self._camera_mode_iter)
@@ -477,6 +477,8 @@ class MujocoGlfwViewer:
         self._camera.distance = cam_params["distance"]
         self._camera.elevation = cam_params["elevation"]
         self._camera.azimuth = cam_params["azimuth"]
+        if "lookat" in cam_params:
+            self._camera.lookat = np.array(cam_params["lookat"])
         self._camera_mode = mode
 
     def _assert_camera_params(self, camera_params):
@@ -526,6 +528,6 @@ class MujocoGlfwViewer:
 
         """
 
-        return dict(static=dict(distance=15.0, elevation=-45.0, azimuth=90.0),
+        return dict(static=dict(distance=15.0, elevation=-45.0, azimuth=90.0, lookat=np.array([0.0, 0.0, 0.0])),
                     follow=dict(distance=3.5, elevation=0.0, azimuth=90.0),
-                    top_static=dict(distance=5.0, elevation=-90.0, azimuth=90.0))
+                    top_static=dict(distance=5.0, elevation=-90.0, azimuth=90.0, lookat=np.array([0.0, 0.0, 0.0])))
