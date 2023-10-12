@@ -68,7 +68,7 @@ class Dataset(Serializable):
         assert (len(states) == len(actions) == len(rewards)
                 == len(next_states) == len(absorbings) == len(lasts))
 
-        dataset = cls.__new__()
+        dataset = cls.__new__(cls)
         dataset._gamma = gamma
         if info is None:
             dataset._info = defaultdict(list)
@@ -77,14 +77,18 @@ class Dataset(Serializable):
 
         if backend == 'numpy':
             dataset._data = NumpyDataset.from_array(states, actions, rewards, next_states, absorbings, lasts)
+            dataset._converter = NumpyConversion
         elif backend == 'torch':
             dataset._data = TorchDataset.from_array(states, actions, rewards, next_states, absorbings, lasts)
+            dataset._converter = TorchConversion
         else:
             dataset._data = ListDataset.from_array(states, actions, rewards, next_states, absorbings, lasts)
+            dataset._converter = ListConversion
 
         dataset._add_save_attr(
-            _info='mushroom',
-            _data='pickle',
+            _info='pickle',
+            _data='mushroom',
+            _converter='primitive',
             _gamma='primitive'
         )
 

@@ -32,7 +32,7 @@ class TorchDataset(Serializable):
 
     @classmethod
     def from_array(cls, states, actions, rewards, next_states, absorbings, lasts):
-        dataset = cls.__new__()
+        dataset = cls.__new__(cls)
 
         dataset._state_type = states.dtype
         dataset._action_type = actions.dtype

@@ -1,16 +1,14 @@
 import numpy as np
+import torch
 
-from mushroom_rl.core import Core
+from mushroom_rl.core import Core, Dataset
 from mushroom_rl.algorithms.value import SARSA
 from mushroom_rl.environments import GridWorld
 from mushroom_rl.utils.parameters import Parameter
 from mushroom_rl.policy import EpsGreedy
 
 
-def test_dataset():
-    np.random.seed(88)
-
-    mdp = GridWorld(3, 3, (2,2))
+def generate_dataset(mdp, n_episodes):
     epsilon = Parameter(value=0.)
     alpha = Parameter(value=0.)
     pi = EpsGreedy(epsilon=epsilon)
@@ -18,16 +16,22 @@ def test_dataset():
     agent = SARSA(mdp.info, pi, alpha)
     core = Core(agent, mdp)
 
-    dataset = core.evaluate(n_episodes=10)
+    return core.evaluate(n_episodes=n_episodes)
+
+
+def test_dataset():
+    np.random.seed(42)
+    mdp = GridWorld(3, 3, (2, 2))
+    dataset = generate_dataset(mdp, 10)
 
     J = dataset.compute_J(mdp.info.gamma)
-    J_test = np.array([1.16106307e-03, 2.78128389e-01, 1.66771817e+00, 3.09031544e-01,
-                       1.19725152e-01, 9.84770902e-01, 1.06111661e-02, 2.05891132e+00,
-                       2.28767925e+00, 4.23911583e-01])
+    J_test = np.array([4.304672100000001, 2.287679245496101, 3.138105960900001,  0.13302794647291147,
+                       7.290000000000001,   1.8530201888518416, 1.3508517176729928, 0.011790184577738602,
+                       1.3508517176729928, 7.290000000000001])
     assert np.allclose(J, J_test)
 
     L = dataset.episodes_length
-    L_test = np.array([87, 35, 18, 34, 43, 23, 66, 16, 15, 31])
+    L_test = np.array([9, 15, 12, 42, 4, 17, 20, 65, 20, 4])
     assert np.array_equal(L, L_test)
 
     dataset_ep = dataset.select_first_episodes(3)
@@ -39,10 +43,10 @@ def test_dataset():
 
     samples = dataset.select_random_samples(2)
     s, a, r, ss, ab, last = samples.parse()
-    s_test = np.array([[6.], [1.]])
-    a_test = np.array([[0.], [1.]])
+    s_test = np.array([[5.], [6.]])
+    a_test = np.array([[3.], [0.]])
     r_test = np.zeros(2)
-    ss_test = np.array([[3], [4]])
+    ss_test = np.array([[5], [3]])
     ab_test = np.zeros(2)
     last_test = np.zeros(2)
     assert np.array_equal(s, s_test)
@@ -58,8 +62,62 @@ def test_dataset():
 
     index = np.sum(L_test[:2]) + L_test[2]//2
     min_J, max_J, mean_J, median_J, n_episodes = dataset[:index].compute_metrics(mdp.info.gamma)
-    assert min_J == 0.0011610630703530948
-    assert max_J == 0.2781283894436937
-    assert mean_J == 0.1396447262570234
-    assert median_J == 0.1396447262570234
+    assert min_J == 2.287679245496101
+    assert max_J == 4.304672100000001
+    assert mean_J == 3.296175672748051
+    assert median_J == 3.296175672748051
     assert n_episodes == 2
+
+
+def test_dataset_creation():
+    np.random.seed(42)
+
+    mdp = GridWorld(3, 3, (2, 2))
+    dataset = generate_dataset(mdp, 5)
+
+    parsed = tuple(dataset.parse())
+    parsed_torch = (torch.from_numpy(array) for array in parsed)
+
+    print(len(parsed))
+
+    new_numpy_dataset = Dataset.from_array(*parsed, gamma=mdp.info.gamma)
+    new_list_dataset = Dataset.from_array(*parsed, gamma=mdp.info.gamma, backend='list')
+    new_torch_dataset = Dataset.from_array(*parsed, gamma=mdp.info.gamma, backend='torch')
+
+    assert vars(dataset).keys() == vars(new_numpy_dataset).keys()
+    assert vars(dataset).keys() == vars(new_list_dataset).keys()
+    assert vars(dataset).keys() == vars(new_torch_dataset).keys()
+
+    for array_1, array_2 in zip(parsed, new_numpy_dataset.parse()):
+        assert np.array_equal(array_1, array_2)
+
+    for array_1, array_2 in zip(parsed, new_list_dataset.parse()):
+        assert np.array_equal(array_1, array_2)
+
+    for array_1, array_2 in zip(parsed_torch, new_torch_dataset.parse(to='torch')):
+        assert torch.equal(array_1, array_2)
+
+
+def test_dataset_loading(tmpdir):
+    np.random.seed(42)
+
+    mdp = GridWorld(3, 3, (2, 2))
+    dataset = generate_dataset(mdp, 20)
+
+    path = tmpdir / 'dataset_test.msh'
+    dataset.save(path)
+
+    new_dataset = dataset.load(path)
+
+    assert vars(dataset).keys() == vars(new_dataset).keys()
+
+    assert np.array_equal(dataset.state, new_dataset.state) and \
+            np.array_equal(dataset.action, new_dataset.action) and \
+            np.array_equal(dataset.reward, new_dataset.reward) and \
+            np.array_equal(dataset.next_state, new_dataset.next_state) and \
+            np.array_equal(dataset.absorbing, new_dataset.absorbing) and \
+            np.array_equal(dataset.last, new_dataset.last)
+
+    assert dataset._gamma == new_dataset._gamma
+
+

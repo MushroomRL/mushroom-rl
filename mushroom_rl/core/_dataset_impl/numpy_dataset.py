@@ -40,7 +40,7 @@ class NumpyDataset(Serializable):
             absorbings = absorbings.numpy()
             lasts = lasts.numpy()
 
-        dataset = cls.__new__()
+        dataset = cls.__new__(cls)
 
         dataset._state_type = states.dtype
         dataset._action_type = actions.dtype

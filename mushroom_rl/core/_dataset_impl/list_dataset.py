@@ -20,7 +20,9 @@ class ListDataset(Serializable):
         for s, a, r, ss, ab, last in zip(states, actions, rewards, next_states,
                                          absorbings.astype(bool), lasts.astype(bool)
                                          ):
-            dataset.append((s, a, r.item(), ss, ab.item(), last.item()))
+            dataset.append(s, a, r.item(), ss, ab.item(), last.item())
+
+        return dataset
 
     def __len__(self):
         return len(self._dataset)
