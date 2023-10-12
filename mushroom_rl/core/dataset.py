@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from mushroom_rl.core.serialization import Serializable
 
-from mushroom_rl.core._dataset_types import *
+from ._dataset_impl import *
 
 
 class Dataset(Serializable):
@@ -27,18 +27,29 @@ class Dataset(Serializable):
         action_type = mdp_info.action_space.data_type
 
         self._info = defaultdict(list)
-        self._data = NumpyDataset(state_type, state_shape, action_type, action_shape, reward_shape)
+
+        if mdp_info.backend == 'numpy':
+            self._data = NumpyDataset(state_type, state_shape, action_type, action_shape, reward_shape)
+            self._converter = NumpyConversion
+        elif mdp_info.backend == 'torch':
+            self._data = TorchDataset(state_type, state_shape, action_type, action_shape, reward_shape)
+            self._converter = TorchConversion
+        else:
+            self._data = ListDataset()
+            self._converter = ListConversion
 
         self._gamma = mdp_info.gamma
 
         self._add_save_attr(
-            _info='mushroom',
-            _data='pickle',
+            _info='pickle',
+            _data='mushroom',
+            _converter='primitive',
             _gamma='primitive'
         )
 
     @classmethod
-    def from_numpy(cls, states, actions, rewards, next_states, absorbings, lasts, info=None, gamma=0.99):
+    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts, info=None, gamma=0.99,
+                   backend='numpy'):
         """
         Creates a dataset of transitions from the provided arrays.
 
@@ -63,7 +74,13 @@ class Dataset(Serializable):
             dataset._info = defaultdict(list)
         else:
             dataset._info = info.copy()
-        dataset._data = NumpyDataset.from_numpy(states, actions, rewards, next_states, absorbings, lasts, gamma)
+
+        if backend == 'numpy':
+            dataset._data = NumpyDataset.from_array(states, actions, rewards, next_states, absorbings, lasts)
+        elif backend == 'torch':
+            dataset._data = TorchDataset.from_array(states, actions, rewards, next_states, absorbings, lasts)
+        else:
+            dataset._data = ListDataset.from_array(states, actions, rewards, next_states, absorbings, lasts)
 
         dataset._add_save_attr(
             _info='mushroom',
@@ -180,15 +197,18 @@ class Dataset(Serializable):
     def discounted_return(self):
         return self.compute_J(self._gamma)
 
-    def parse(self):
+    def parse(self, to='numpy'):
         """
         Return the dataset as set of arrays.
+
+        to (str, numpy):  the backend to be used for the returned arrays.
 
         Returns:
             A tuple containing the arrays that define the dataset, i.e. state, action, next state, absorbing and last
 
         """
-        return self.state, self.action, self.reward, self.next_state, self.absorbing, self.last
+        return self._converter.convert(self.state, self.action, self.reward,
+                                       self.next_state, self.absorbing, self.last, to=to)
 
     def select_first_episodes(self, n_episodes):
         """

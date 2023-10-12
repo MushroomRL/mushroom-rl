@@ -1,61 +1,63 @@
-import numpy as np
+import torch
 
 from mushroom_rl.core.serialization import Serializable
 
 
-class NumpyDataset(Serializable):
+class TorchDataset(Serializable):
     def __init__(self, state_type, state_shape, action_type, action_shape, reward_shape):
-        flags_shape = (action_shape[0],)
+        flags_len = action_shape[0]
 
         self._state_type = state_type
         self._action_type = action_type
 
-        self._states = np.empty(state_shape, dtype=self._state_type)
-        self._actions = np.empty(action_shape, dtype=self._action_type)
-        self._rewards = np.empty(reward_shape, dtype=float)
-        self._next_states = np.empty(state_shape, dtype=self._state_type)
-        self._absorbing = np.empty(flags_shape, dtype=bool)
-        self._last = np.empty(flags_shape, dtype=bool)
+        self._states = torch.empty(*state_shape, dtype=self._state_type)
+        self._actions = torch.empty(*action_shape, dtype=self._action_type)
+        self._rewards = torch.empty(*reward_shape, dtype=torch.float)
+        self._next_states = torch.empty(*state_shape, dtype=self._state_type)
+        self._absorbing = torch.empty(flags_len, dtype=torch.bool)
+        self._last = torch.empty(flags_len, dtype=torch.bool)
         self._len = 0
 
         self._add_save_attr(
             _state_type='primitive',
             _action_type='primitive',
-            _states='numpy',
-            _actions='numpy',
-            _rewards='numpy',
-            _next_states='numpy',
-            _absorbing='numpy',
-            _last='numpy',
+            _states='torch',
+            _actions='torch',
+            _rewards='torch',
+            _next_states='torch',
+            _absorbing='torch',
+            _last='torch',
             _len='primitive'
         )
 
     @classmethod
-    def from_numpy(cls, states, actions, rewards, next_states, absorbings, lasts):
+    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts):
         dataset = cls.__new__()
 
         dataset._state_type = states.dtype
         dataset._action_type = actions.dtype
 
-        dataset._states = states
-        dataset._actions = actions
-        dataset._rewards = rewards
-        dataset._next_states = next_states
-        dataset._absorbing = absorbings
-        dataset._last = lasts
+        dataset._states = torch.as_tensor(states)
+        dataset._actions = torch.as_tensor(actions)
+        dataset._rewards = torch.as_tensor(rewards)
+        dataset._next_states = torch.as_tensor(next_states)
+        dataset._absorbing = torch.as_tensor(absorbings, dtype=torch.bool)
+        dataset._last = torch.as_tensor(lasts, dtype=torch.bool)
         dataset._len = len(lasts)
 
         dataset._add_save_attr(
             _state_type='primitive',
             _action_type='primitive',
-            _states='numpy',
-            _actions='numpy',
-            _rewards='numpy',
-            _next_states='numpy',
-            _absorbing='numpy',
-            _last='numpy',
+            _states='torch',
+            _actions='torch',
+            _rewards='torch',
+            _next_states='torch',
+            _absorbing='torch',
+            _last='torch',
             _len='primitive'
         )
+
+        return dataset
 
     def __len__(self):
         return self._len
@@ -73,12 +75,12 @@ class NumpyDataset(Serializable):
         self._len += 1
 
     def clear(self):
-        self._states = np.empty_like(self._states)
-        self._actions = np.empty_like(self._actions)
-        self._rewards = np.empty_like(self._rewards)
-        self._next_states = np.empty_like(self._next_states)
-        self._absorbing = np.empty_like(self._absorbing)
-        self._last = np.empty_like(self._last)
+        self._states = torch.empty_like(self._states)
+        self._actions = torch.empty_like(self._actions)
+        self._rewards = torch.empty_like(self._rewards)
+        self._next_states = torch.empty_like(self._next_states)
+        self._absorbing = torch.empty_like(self._absorbing)
+        self._last = torch.empty_like(self._last)
 
         self._len = 0
 
@@ -102,12 +104,12 @@ class NumpyDataset(Serializable):
     def __add__(self, other):
         result = self.copy()
 
-        result._states = np.concatenate((self.state, other.state))
-        result._actions = np.concatenate((self.action, other.action))
-        result._rewards = np.concatenate((self.reward, other.reward))
-        result._next_states = np.concatenate((self.next_state, other.next_state))
-        result._absorbing = np.concatenate((self.absorbing, other.absorbing))
-        result._last = np.concatenate((self.last, other.last))
+        result._states = torch.concatenate((self.state, other.state))
+        result._actions = torch.concatenate((self.action, other.action))
+        result._rewards = torch.concatenate((self.reward, other.reward))
+        result._next_states = torch.concatenate((self.next_state, other.next_state))
+        result._absorbing = torch.concatenate((self.absorbing, other.absorbing))
+        result._last = torch.concatenate((self.last, other.last))
         result._len = len(self) + len(other)
 
         return result

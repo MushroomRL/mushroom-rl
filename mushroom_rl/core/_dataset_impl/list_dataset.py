@@ -14,13 +14,13 @@ class ListDataset(Serializable):
         )
 
     @classmethod
-    def from_numpy(cls, states, actions, rewards, next_states, absorbings, lasts):
+    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts):
         dataset = cls()
 
         for s, a, r, ss, ab, last in zip(states, actions, rewards, next_states,
                                          absorbings.astype(bool), lasts.astype(bool)
                                          ):
-            dataset.append((s, a, r.item(0), ss, ab.item(0), last.item(0)))
+            dataset.append((s, a, r.item(), ss, ab.item(), last.item()))
 
     def __len__(self):
         return len(self._dataset)
