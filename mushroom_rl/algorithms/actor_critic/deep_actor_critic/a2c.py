@@ -5,7 +5,6 @@ from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.value_functions import compute_advantage_montecarlo
 from mushroom_rl.utils.parameters import to_parameter
-from mushroom_rl.utils.torch import to_float_tensor
 
 from copy import deepcopy
 
@@ -58,7 +57,7 @@ class A2C(DeepAC):
         super().__init__(mdp_info, policy, actor_optimizer, policy.parameters())
 
     def fit(self, dataset, **info):
-        state, action, reward, next_state, absorbing, _ = dataset.parse()
+        state, action, reward, next_state, absorbing, _ = dataset.parse(to='torch')
 
         v, adv = compute_advantage_montecarlo(self._V, state, next_state,
                                               reward, absorbing,
@@ -69,15 +68,8 @@ class A2C(DeepAC):
         self._optimize_actor_parameters(loss)
 
     def _loss(self, state, action, adv):
-        use_cuda = self.policy.use_cuda
-
-        s = to_float_tensor(state, use_cuda)
-        a = to_float_tensor(action, use_cuda)
-
-        adv_t = to_float_tensor(adv, use_cuda)
-
-        gradient_loss = -torch.mean(self.policy.log_prob_t(s, a)*adv_t)
-        entropy_loss = -self.policy.entropy_t(s)
+        gradient_loss = -torch.mean(self.policy.log_prob_t(state, action)*adv)
+        entropy_loss = -self.policy.entropy_t(state)
 
         return gradient_loss + self._entropy_coeff() * entropy_loss
 

@@ -71,27 +71,24 @@ class PPO(Agent):
         super().__init__(mdp_info, policy, None)
 
     def fit(self, dataset, **info):
-        x, u, r, xn, absorbing, last = dataset.parse()
-        x = x.astype(np.float32)
-        u = u.astype(np.float32)
-        r = r.astype(np.float32)
-        xn = xn.astype(np.float32)
+        state, action, reward, next_state, absorbing, last = dataset.parse(to='torch')
 
-        obs = to_float_tensor(x, self.policy.use_cuda)
-        act = to_float_tensor(u, self.policy.use_cuda)
-        v_target, np_adv = compute_gae(self._V, x, xn, r, absorbing, last, self.mdp_info.gamma, self._lambda())
-        np_adv = (np_adv - np.mean(np_adv)) / (np.std(np_adv) + 1e-8)
-        adv = to_float_tensor(np_adv, self.policy.use_cuda)
+        v_target, adv = compute_gae(self._V, state, next_state, reward, absorbing, last,
+                                       self.mdp_info.gamma, self._lambda())
+        adv = (adv - torch.mean(adv)) / (torch.std(adv) + 1e-8)
 
-        old_pol_dist = self.policy.distribution_t(obs)
-        old_log_p = old_pol_dist.log_prob(act)[:, None].detach()
+        adv = adv.detach()
+        v_target = v_target.detach()
 
-        self._V.fit(x, v_target, **self._critic_fit_params)
+        old_pol_dist = self.policy.distribution_t(state)
+        old_log_p = old_pol_dist.log_prob(action)[:, None].detach()
 
-        self._update_policy(obs, act, adv, old_log_p)
+        self._V.fit(state, v_target, **self._critic_fit_params)
+
+        self._update_policy(state, action, adv, old_log_p)
 
         # Print fit information
-        self._log_info(dataset, x, v_target, old_pol_dist)
+        self._log_info(dataset, state, v_target, old_pol_dist)
         self._iter += 1
 
     def _update_policy(self, obs, act, adv, old_log_p):
