@@ -206,7 +206,7 @@ class Core(object):
             self._episode_steps < self.mdp.info.horizon and not absorbing)
 
         state = self._state
-        next_state = self._preprocess(next_state.copy())
+        next_state = self._preprocess(next_state)
         self._state = next_state
 
         return (state, action, reward, next_state, absorbing, last), step_info
@@ -223,7 +223,7 @@ class Core(object):
 
         self.agent.episode_start()
         
-        self._state = self._preprocess(self.mdp.reset(initial_state).copy())
+        self._state = self._preprocess(self.mdp.reset(initial_state))
         self.agent.next_action = None
         self._episode_steps = 0
 

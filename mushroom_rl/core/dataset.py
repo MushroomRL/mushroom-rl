@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from mushroom_rl.core.serialization import Serializable
 
-from ._dataset_impl import *
+from ._impl import *
 
 
 class Dataset(Serializable):
