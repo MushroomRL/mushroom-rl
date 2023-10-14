@@ -79,13 +79,14 @@ class Agent(Serializable):
             action = self.next_action
             self.next_action = None
 
-        return action
+        return self._convert_to_env_backend(action)
 
-        #return self._convert_to_env_backend(action)
-
-    def episode_start(self):
+    def episode_start(self, episode_info):
         """
         Called by the agent when a new episode starts.
+
+         Args:
+            episode_info (dict): a dictionary containing the information at reset, such as context.
 
         """
         self.policy.reset()

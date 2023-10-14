@@ -148,7 +148,7 @@ class Environment(object):
             state (np.ndarray, None): the state to set to the current state.
 
         Returns:
-            The current state.
+            The current state and a dictionary containing the info for the episode.
 
         """
         raise NotImplementedError

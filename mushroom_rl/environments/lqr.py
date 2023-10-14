@@ -124,7 +124,7 @@ class LQR(Environment):
         else:
             self._state = state
 
-        return self._state
+        return self._state, {}
 
     def step(self, action):
         x = self._state

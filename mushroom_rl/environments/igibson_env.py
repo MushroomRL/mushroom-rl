@@ -113,7 +113,7 @@ class iGibson(Gym):
 
     def reset(self, state=None):
         assert state is None, 'Cannot set iGibson state'
-        return self._convert_observation(np.atleast_1d(self.env.reset()))
+        return self._convert_observation(np.atleast_1d(self.env.reset())), {}
 
     def step(self, action):
         action = self._convert_action(action)

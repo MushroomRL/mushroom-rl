@@ -109,7 +109,7 @@ class Atari(Environment):
 
         self._current_no_op = np.random.randint(self._max_no_op_actions + 1)
 
-        return LazyFrames(list(self._state), self._history_length)
+        return LazyFrames(list(self._state), self._history_length), {}
 
     def step(self, action):
         action = action[0]

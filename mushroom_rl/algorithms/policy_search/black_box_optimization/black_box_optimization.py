@@ -26,12 +26,12 @@ class BlackBoxOptimization(Agent):
 
         super().__init__(mdp_info, policy, features)
 
-    def episode_start(self):
+    def episode_start(self, episode_info):
         theta = self.distribution.sample()
         self._theta_list.append(theta)
         self.policy.set_weights(theta)
 
-        super().episode_start()
+        super().episode_start(episode_info)
 
     def fit(self, dataset, **info):
         Jep = dataset.compute_J(self.mdp_info.gamma)

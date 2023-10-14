@@ -127,7 +127,7 @@ class MuJoCo(Environment):
         self.setup(obs)
 
         self._obs = self._create_observation(self.obs_helper._build_obs(self._data))
-        return self._modify_observation(self._obs)
+        return self._modify_observation(self._obs), {}
 
     def step(self, action):
         cur_obs = self._obs.copy()

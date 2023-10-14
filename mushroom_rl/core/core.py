@@ -78,8 +78,7 @@ class Core(object):
 
         self._run(dataset, n_steps, n_episodes, fit_condition, render, quiet, record)
 
-    def evaluate(self, initial_states=None, n_steps=None, n_episodes=None,
-                 render=False, quiet=False, record=False):
+    def evaluate(self, initial_states=None, n_steps=None, n_episodes=None, render=False, quiet=False, record=False):
         """
         This function moves the agent in the environment using its policy.
         The agent is moved for a provided number of steps, episodes, or from a set of initial states for the whole
@@ -221,9 +220,10 @@ class Core(object):
         else:
             initial_state = initial_states[self._total_episodes_counter]
 
-        self.agent.episode_start()
-        
-        self._state = self._preprocess(self.mdp.reset(initial_state))
+        state, episode_info = self.mdp.reset(initial_state)
+        self.agent.episode_start(episode_info)
+
+        self._state = self._preprocess(state)
         self.agent.next_action = None
         self._episode_steps = 0
 

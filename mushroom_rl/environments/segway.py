@@ -66,7 +66,7 @@ class Segway(Environment):
 
         self._last_x = 0
 
-        return self._state
+        return self._state, {}
 
     def step(self, action):
         u = self._bound(action[0], -self._max_u, self._max_u)

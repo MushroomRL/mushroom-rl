@@ -14,12 +14,9 @@ class LinearApproximator(Serializable):
         Constructor.
 
         Args:
-             weights (np.ndarray): array of weights to initialize the weights
-                of the approximator;
-             input_shape (np.ndarray, None): the shape of the input of the
-                model;
-             output_shape (np.ndarray, (1,)): the shape of the output of the
-                model;
+             weights (np.ndarray): array of weights to initialize the weights of the approximator;
+             input_shape (np.ndarray, None): the shape of the input of the model;
+             output_shape (np.ndarray, (1,)): the shape of the output of the model;
              **kwargs: other params of the approximator.
 
         """
@@ -45,8 +42,7 @@ class LinearApproximator(Serializable):
         Args:
             x (np.ndarray): input;
             y (np.ndarray): target;
-            **fit_params: other parameters used by the fit method of the
-                regressor.
+            **fit_params: other parameters used by the fit method of the regressor.
 
         """
         self._w = np.atleast_2d(np.linalg.pinv(x).dot(y).T)
@@ -57,8 +53,7 @@ class LinearApproximator(Serializable):
 
         Args:
             x (np.ndarray): input;
-            **predict_params: other parameters used by the predict method
-                the regressor.
+            **predict_params: other parameters used by the predict method the regressor.
 
         Returns:
             The predictions of the model.
@@ -101,8 +96,7 @@ class LinearApproximator(Serializable):
 
     def diff(self, state, action=None):
         """
-        Compute the derivative of the output w.r.t. ``state``, and ``action``
-        if provided.
+        Compute the derivative of the output w.r.t. ``state``, and ``action`` if provided.
 
         Args:
             state (np.ndarray): the state;

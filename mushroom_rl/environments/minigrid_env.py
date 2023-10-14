@@ -82,7 +82,7 @@ class MiniGrid(Gym):
             self._state) for _ in range(self._history_length)],
             maxlen=self._history_length
         )
-        return LazyFrames(list(self._state), self._history_length)
+        return LazyFrames(list(self._state), self._history_length), {}
 
     def step(self, action):
         obs, reward, absorbing, info = self.env.step(action)

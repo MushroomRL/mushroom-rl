@@ -46,7 +46,7 @@ class CarOnHill(Environment):
         else:
             self._state = state
 
-        return self._state
+        return self._state, {}
 
     def step(self, action):
         action = self._discrete_actions[action[0]]

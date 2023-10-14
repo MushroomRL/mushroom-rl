@@ -93,7 +93,7 @@ class PyBullet(Environment):
         self._state = self._indexer.create_sim_state()
         observation = self._create_observation(self._state)
 
-        return observation
+        return observation, {}
 
     def render(self, record=False):
         frame = self._viewer.display()

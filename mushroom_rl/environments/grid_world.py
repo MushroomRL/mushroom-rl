@@ -42,7 +42,7 @@ class AbstractGridWorld(Environment):
 
         self._state = state
 
-        return self._state
+        return self._state, {}
 
     def step(self, action):
         state = self.convert_to_grid(self._state, self._width)

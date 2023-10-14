@@ -79,7 +79,7 @@ class DMControl(Environment):
         else:
             raise NotImplementedError
 
-        return self._state
+        return self._state, {}
 
     def step(self, action):
         step = self.env.step(action)

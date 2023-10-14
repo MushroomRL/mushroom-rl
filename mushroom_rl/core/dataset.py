@@ -27,6 +27,7 @@ class Dataset(Serializable):
         action_type = mdp_info.action_space.data_type
 
         self._info = defaultdict(list)
+        self._episode_info = defaultdict(list)
 
         if mdp_info.backend == 'numpy':
             self._data = NumpyDataset(state_type, state_shape, action_type, action_shape, reward_shape)
@@ -41,14 +42,15 @@ class Dataset(Serializable):
 
         self._add_save_attr(
             _info='pickle',
+            _episode_info='pickle',
             _data='mushroom',
             _converter='primitive',
             _gamma='primitive'
         )
 
     @classmethod
-    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts, info=None, gamma=0.99,
-                   backend='numpy'):
+    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts, info=None, episode_info=None,
+                   gamma=0.99, backend='numpy'):
         """
         Creates a dataset of transitions from the provided arrays.
 
@@ -74,6 +76,11 @@ class Dataset(Serializable):
         else:
             dataset._info = info.copy()
 
+        if episode_info is None:
+            dataset._episode_info = defaultdict(list)
+        else:
+            dataset._episode_info = episode_info.copy()
+
         if backend == 'numpy':
             dataset._data = NumpyDataset.from_array(states, actions, rewards, next_states, absorbings, lasts)
             dataset._converter = NumpyConversion
@@ -86,6 +93,7 @@ class Dataset(Serializable):
 
         dataset._add_save_attr(
             _info='pickle',
+            _episode_info='pickle',
             _data='mushroom',
             _converter='primitive',
             _gamma='primitive'
@@ -95,7 +103,10 @@ class Dataset(Serializable):
 
     def append(self, step, info):
         self._data.append(*step[:6])
-        self._append_info(info)
+        self._append_info(self._info, info)
+
+    def append_episode_info(self, info):
+        self._append_info(self._episode_info, info)
 
     def get_info(self, field, index=None):
         if index is None:
@@ -115,6 +126,7 @@ class Dataset(Serializable):
             info_slice[key] = self._info[key][index]
 
         dataset._info = info_slice
+        dataset._episode_info = defaultdict(list)
         dataset._data = self._data.get_view(index)
 
         return dataset
@@ -134,11 +146,11 @@ class Dataset(Serializable):
     def __add__(self, other):
         result = self.copy()
 
-        new_info = defaultdict(list)
-        for key in self._info.keys():
-            new_info[key] = self._info[key] + other.info[key]
+        new_info = self._merge_info(result.info, other.info)
+        new_episode_info = self._merge_info(result.episode_info, other.episode_info)
 
         result._info = new_info
+        result._episode_info = new_episode_info
         result._data = self._data + other._data
 
         return result
@@ -173,6 +185,10 @@ class Dataset(Serializable):
     @property
     def info(self):
         return self._info
+
+    @property
+    def episode_info(self):
+        return self._episode_info
 
     @property
     def episodes_length(self):
@@ -335,9 +351,14 @@ class Dataset(Serializable):
         else:
             return 0, 0, 0, 0, 0
 
-    def _append_info(self, step_info):
+    @staticmethod
+    def _append_info(info, step_info):
         for key, value in step_info.items():
-            self._info[key].append(value)
+            info[key].append(value)
 
-
-
+    @staticmethod
+    def _merge_info(info, other_info):
+        new_info = defaultdict(list)
+        for key in info.keys():
+            new_info[key] = info[key] + other_info[key]
+        return new_info

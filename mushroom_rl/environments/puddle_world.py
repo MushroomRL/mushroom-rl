@@ -68,7 +68,7 @@ class PuddleWorld(Environment):
         else:
             self._state = state
 
-        return self._state
+        return self._state, {}
 
     def step(self, action):
         idx = action[0]
