@@ -103,8 +103,7 @@ class CartPole(Environment):
 
         direction = -np.sign(self._last_u) * np.array([1, 0])
         value = np.abs(self._last_u)
-        self._viewer.force_arrow(start, direction, value,
-                                 self._max_u, self._l / 5)
+        self._viewer.force_arrow(start, direction, value, self._max_u, self._l / 5)
 
         frame = self._viewer.get_frame() if record else None
 
@@ -120,9 +119,9 @@ class CartPole(Environment):
         omega = state[1]
 
         d_theta = omega
-        d_omega = (self._g * np.sin(theta) - self._alpha * self._m * self._l * .5 *
-                   d_theta ** 2 * np.sin(2 * theta) * .5 - self._alpha * np.cos(
-                    theta) * u) / (2 / 3 * self._l - self._alpha * self._m *
-                                   self._l * .5 * np.cos(theta) ** 2)
+        d_omega = (self._g * np.sin(theta)
+                   - self._alpha * self._m * self._l * .5 * d_theta ** 2 * np.sin(2 * theta) * .5
+                   - self._alpha * np.cos(theta) * u) / (2 / 3 * self._l -
+                                                         self._alpha * self._m * self._l * .5 * np.cos(theta) ** 2)
 
         return d_theta, d_omega

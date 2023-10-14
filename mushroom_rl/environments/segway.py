@@ -101,12 +101,10 @@ class Segway(Environment):
 
         omegaP = d_alpha
 
-        dOmegaP = -(h2 * self._l * self._Mp * self._r * np.sin(
-            alpha) * omegaP**2 - self._g * h1 * self._l * self._Mp * np.sin(
-            alpha) + (h2 + h1) * u) / (h1 * h3 - h2**2)
-        dOmegaR = (h3 * self._l * self._Mp * self._r * np.sin(
-            alpha) * omegaP**2 - self._g * h2 * self._l * self._Mp * np.sin(
-            alpha) + (h3 + h2) * u) / (h1 * h3 - h2**2)
+        dOmegaP = -(h2 * self._l * self._Mp * self._r * np.sin( alpha) * omegaP**2
+                    - self._g * h1 * self._l * self._Mp * np.sin(alpha) + (h2 + h1) * u) / (h1 * h3 - h2**2)
+        dOmegaR = (h3 * self._l * self._Mp * self._r * np.sin(alpha) * omegaP**2
+                   - self._g * h2 * self._l * self._Mp * np.sin(alpha) + (h3 + h2) * u) / (h1 * h3 - h2**2)
 
         dx = list()
         dx.append(omegaP)
@@ -124,8 +122,7 @@ class Segway(Environment):
         self._last_x += dx
 
         if self._last_x > 2.5 * self._l or self._last_x < -2.5 * self._l:
-            self._last_x = (2.5 * self._l + self._last_x) % (
-                5 * self._l) - 2.5 * self._l
+            self._last_x = (2.5 * self._l + self._last_x) % (5 * self._l) - 2.5 * self._l
 
         start[0] += self._last_x
         end[0] += -2 * self._l * np.sin(self._state[0]) + self._last_x

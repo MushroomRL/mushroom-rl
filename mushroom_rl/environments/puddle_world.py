@@ -72,20 +72,20 @@ class PuddleWorld(Environment):
 
     def step(self, action):
         idx = action[0]
-        self._state += self._actions[idx] + np.random.uniform(
-            low=-self._noise_step, high=self._noise_step, size=(2,))
-        self._state = np.clip(self._state, 0., 1.)
+        noise = np.random.uniform(low=-self._noise_step, high=self._noise_step, size=(2,))
+        next_state = self._state + self._actions[idx] + noise
+        next_state = np.clip(next_state, 0., 1.)
 
-        absorbing = np.linalg.norm((self._state - self._goal),
-                                   ord=1) < self._goal_threshold
+        absorbing = np.linalg.norm((next_state - self._goal), ord=1) < self._goal_threshold
 
         if not absorbing:
-            reward = np.random.randn() * self._noise_reward + self._get_reward(
-                self._state)
+            reward = np.random.randn() * self._noise_reward + self._get_reward(next_state)
         else:
             reward = self._reward_goal
 
-        return self._state, reward, absorbing, {}
+        self._state = next_state
+
+        return next_state, reward, absorbing, {}
 
     def render(self, record=False):
         if self._pixels is None:
@@ -95,16 +95,14 @@ class PuddleWorld(Environment):
                 for j in range(img_size):
                     x = i / img_size
                     y = j / img_size
-                    pixels[i, img_size - 1 - j] = self._get_reward(
-                        np.array([x, y]))
+                    pixels[i, img_size - 1 - j] = self._get_reward(np.array([x, y]))
 
             pixels -= pixels.min()
             pixels *= 255. / pixels.max()
             self._pixels = np.floor(255 - pixels)
 
         self._viewer.background_image(self._pixels)
-        self._viewer.circle(self._state, 0.01,
-                            color=(0, 255, 0))
+        self._viewer.circle(self._state, 0.01, color=(0, 255, 0))
 
         goal_area = [
             [-self._goal_threshold, 0],
@@ -112,8 +110,7 @@ class PuddleWorld(Environment):
             [self._goal_threshold, 0],
             [0, -self._goal_threshold]
         ]
-        self._viewer.polygon(self._goal, 0, goal_area,
-                             color=(255, 0, 0), width=1)
+        self._viewer.polygon(self._goal, 0, goal_area, color=(255, 0, 0), width=1)
 
         frame = self._viewer.get_frame() if record else None
 
@@ -128,7 +125,6 @@ class PuddleWorld(Environment):
     def _get_reward(self, state):
         reward = -1.
         for cen, wid in zip(self._puddle_center, self._puddle_width):
-            reward -= 2. * norm.pdf(state[0], cen[0], wid[0]) * norm.pdf(
-                state[1], cen[1], wid[1])
+            reward -= 2. * norm.pdf(state[0], cen[0], wid[0]) * norm.pdf(state[1], cen[1], wid[1])
 
         return reward

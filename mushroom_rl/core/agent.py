@@ -52,7 +52,7 @@ class Agent(Serializable):
         Fit step.
 
         Args:
-            dataset (list): the dataset.
+            dataset (Dataset): the dataset.
 
         """
         raise NotImplementedError('Agent is an abstract class')

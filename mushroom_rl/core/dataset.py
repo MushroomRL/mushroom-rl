@@ -119,6 +119,10 @@ class Dataset(Serializable):
 
         return dataset
 
+    def item(self):
+        assert len(self) == 1
+        return self[0]
+
     def __getitem__(self, index):
         if isinstance(index, (slice, np.ndarray)):
             return self.get_view(index)

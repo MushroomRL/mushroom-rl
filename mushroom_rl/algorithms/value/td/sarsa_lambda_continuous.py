@@ -10,8 +10,7 @@ class SARSALambdaContinuous(TD):
     Continuous version of SARSA(lambda) algorithm.
 
     """
-    def __init__(self, mdp_info, policy, approximator, learning_rate,
-                 lambda_coeff, features, approximator_params=None):
+    def __init__(self, mdp_info, policy, approximator, learning_rate, lambda_coeff, features, approximator_params=None):
         """
         Constructor.
 
@@ -19,8 +18,7 @@ class SARSALambdaContinuous(TD):
             lambda_coeff ([float, Parameter]): eligibility trace coefficient.
 
         """
-        approximator_params = dict() if approximator_params is None else \
-            approximator_params
+        approximator_params = dict() if approximator_params is None else approximator_params
 
         Q = Regressor(approximator, **approximator_params)
         self.e = np.zeros(Q.weights_size)
@@ -39,13 +37,11 @@ class SARSALambdaContinuous(TD):
 
         alpha = self._alpha(state, action)
 
-        self.e = self.mdp_info.gamma * self._lambda() * self.e + self.Q.diff(
-            phi_state, action)
+        self.e = self.mdp_info.gamma * self._lambda() * self.e + self.Q.diff(phi_state, action)
 
         self.next_action = self.draw_action(next_state)
         phi_next_state = self.phi(next_state)
-        q_next = self.Q.predict(phi_next_state,
-                                self.next_action) if not absorbing else 0.
+        q_next = self.Q.predict(phi_next_state, self.next_action) if not absorbing else 0.
 
         delta = reward + self.mdp_info.gamma * q_next - q_current
 

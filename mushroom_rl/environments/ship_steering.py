@@ -83,10 +83,7 @@ class ShipSteering(Environment):
             new_state[2] = normalize_angle(state[2] + state[3] * self.info.dt)
             new_state[3] = state[3] + (r - state[3]) * self.info.dt / self._T
 
-            if new_state[0] > self.field_size \
-               or new_state[1] > self.field_size \
-               or new_state[0] < 0 or new_state[1] < 0:
-
+            if new_state[0] > self.field_size or new_state[1] > self.field_size or new_state[0] < 0 or new_state[1] < 0:
                 new_state[0] = self._bound(new_state[0], 0, self.field_size)
                 new_state[1] = self._bound(new_state[1], 0, self.field_size)
 

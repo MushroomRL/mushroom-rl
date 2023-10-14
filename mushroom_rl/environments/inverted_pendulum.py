@@ -65,8 +65,7 @@ class InvertedPendulum(Environment):
         else:
             self._state = state
             self._state[0] = normalize_angle(self._state[0])
-            self._state[1] = self._bound(self._state[1], -self._max_omega,
-                                         self._max_omega)
+            self._state[1] = self._bound(self._state[1], -self._max_omega, self._max_omega)
 
         self._last_u = 0.0
         return self._state
