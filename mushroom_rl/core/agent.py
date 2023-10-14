@@ -1,5 +1,7 @@
 from mushroom_rl.core.serialization import Serializable
 
+from ._impl import *
+
 
 class Agent(Serializable):
     """
@@ -8,22 +10,27 @@ class Agent(Serializable):
 
     """
 
-    def __init__(self, mdp_info, policy, features=None):
+    def __init__(self, mdp_info, policy, features=None, backend='numpy'):
         """
         Constructor.
 
         Args:
             mdp_info (MDPInfo): information about the MDP;
             policy (Policy): the policy followed by the agent;
-            features (object, None): features to extract from the state.
+            features (object, None): features to extract from the state;
+            backend (str, 'numpy'): array backend to be used by the algorithm.
 
         """
         self.mdp_info = mdp_info
         self.policy = policy
+        self.backend = backend
 
         self.phi = features
 
         self.next_action = None
+
+        self._agent_converter = DataConversion.get_converter(backend)
+        self._env_converter = DataConversion.get_converter(self.mdp_info.backend)
 
         self._preprocessors = list()
         self._logger = None
@@ -31,8 +38,11 @@ class Agent(Serializable):
         self._add_save_attr(
             mdp_info='pickle',
             policy='mushroom',
+            backend='primitive',
             phi='pickle',
             next_action='numpy',
+            _agent_converter = 'primitive',
+            _env_converter='primitive',
             _preprocessors='mushroom',
             _logger='none'
         )
@@ -64,12 +74,14 @@ class Agent(Serializable):
             state = self.phi(state)
 
         if self.next_action is None:
-            return self.policy.draw_action(state)
+            action = self.policy.draw_action(state)
         else:
             action = self.next_action
             self.next_action = None
 
-            return action
+        return action
+
+        #return self._convert_to_env_backend(action)
 
     def episode_start(self):
         """
@@ -116,3 +128,10 @@ class Agent(Serializable):
 
         """
         return self._preprocessors
+
+    def _convert_to_env_backend(self, array):
+        return self._env_converter.to_backend_array(self._agent_converter, array)
+
+    def _convert_to_agent_backend(self, array):
+        return self._agent_converter.to_backend_array(self._env_converter, array)
+

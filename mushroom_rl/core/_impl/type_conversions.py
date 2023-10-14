@@ -3,6 +3,15 @@ import torch
 
 
 class DataConversion(object):
+    @staticmethod
+    def get_converter(backend):
+        if backend == 'numpy':
+            return NumpyConversion
+        elif backend == 'torch':
+            return TorchConversion
+        else:
+            return ListConversion
+
     @classmethod
     def convert(cls, *arrays, to='numpy'):
         if to == 'numpy':
@@ -28,6 +37,10 @@ class DataConversion(object):
     def to_torch(array):
         raise NotImplementedError
 
+    @staticmethod
+    def to_backend_array(cls, array):
+        raise NotImplementedError
+
 
 class NumpyConversion(DataConversion):
     @staticmethod
@@ -37,6 +50,10 @@ class NumpyConversion(DataConversion):
     @staticmethod
     def to_torch(array):
         return torch.from_numpy(array)
+
+    @staticmethod
+    def to_backend_array(cls, array):
+        return cls.to_numpy(array)
 
 
 class TorchConversion(DataConversion):
@@ -48,6 +65,10 @@ class TorchConversion(DataConversion):
     def to_torch(array):
         return array
 
+    @staticmethod
+    def to_backend_array(cls, array):
+        return cls.to_torch(array)
+
 
 class ListConversion(DataConversion):
     @staticmethod
@@ -57,6 +78,10 @@ class ListConversion(DataConversion):
     @staticmethod
     def to_torch(array):
         return torch.as_tensor(array)
+
+    @staticmethod
+    def to_backend_array(cls, array):
+        return cls.to_numpy(array)
 
 
 

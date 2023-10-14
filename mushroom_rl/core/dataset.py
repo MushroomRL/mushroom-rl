@@ -30,13 +30,12 @@ class Dataset(Serializable):
 
         if mdp_info.backend == 'numpy':
             self._data = NumpyDataset(state_type, state_shape, action_type, action_shape, reward_shape)
-            self._converter = NumpyConversion
         elif mdp_info.backend == 'torch':
             self._data = TorchDataset(state_type, state_shape, action_type, action_shape, reward_shape)
-            self._converter = TorchConversion
         else:
             self._data = ListDataset()
-            self._converter = ListConversion
+
+        self._converter = DataConversion.get_converter(mdp_info.backend)
 
         self._gamma = mdp_info.gamma
 

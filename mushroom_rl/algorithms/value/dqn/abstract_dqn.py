@@ -121,16 +121,9 @@ class AbstractDQN(Agent):
             self.approximator.fit(state, action, q, weights=is_weight,
                                   **self._fit_params)
 
-    def draw_action(self, state):
-        action = super().draw_action(np.array(state))
-
-        return action
-
-    def _initialize_regressors(self, approximator, apprx_params_train,
-                               apprx_params_target):
+    def _initialize_regressors(self, approximator, apprx_params_train, apprx_params_target):
         self.approximator = Regressor(approximator, **apprx_params_train)
-        self.target_approximator = Regressor(approximator,
-                                             **apprx_params_target)
+        self.target_approximator = Regressor(approximator, **apprx_params_target)
         self._update_target()
 
     def _update_target(self):
