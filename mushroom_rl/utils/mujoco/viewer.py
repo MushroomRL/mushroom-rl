@@ -15,7 +15,7 @@ class MujocoGlfwViewer:
     def __init__(self, model, dt, width=1920, height=1080, start_paused=False,
                  custom_render_callback=None, record=False, camera_params=None,
                  default_camera_mode="static", hide_menu_on_startup=False,
-                 geom_group_visualization_on_startup=None):
+                 geom_group_visualization_on_startup=None, offscreen=False):
         """
         Constructor.
 
@@ -49,6 +49,15 @@ class MujocoGlfwViewer:
         glfw.init()
         glfw.window_hint(glfw.COCOA_RETINA_FRAMEBUFFER, 0)
 
+        self.offscreen = offscreen
+        if offscreen:
+            self._width = 640
+            self._height = 480
+            glfw.window_hint(glfw.VISIBLE, False)
+        else:
+            self._width = width
+            self._height = height
+        
         if record:
             # dont allow to change the window size to have equal frame size during recording
             glfw.window_hint(glfw.RESIZABLE, False)
@@ -61,8 +70,6 @@ class MujocoGlfwViewer:
         self._window = glfw.create_window(width=width, height=height, title="MuJoCo", monitor=None, share=None)
         glfw.make_context_current(self._window)
 
-        self._width = width
-        self._height = height
 
         # Disable v_sync, so swap_buffers does not block
         # glfw.swap_interval(0)
@@ -94,7 +101,14 @@ class MujocoGlfwViewer:
 
         self._viewport = mujoco.MjrRect(0, 0, width, height)
         self._font_scale = 100
+        
+        if offscreen:
+            self._camera.distance = 1.5
+            self._opengl_context = mujoco.GLContext(self._width, self._height)
+            self._opengl_context.make_current()
+
         self._context = mujoco.MjrContext(model, mujoco.mjtFontScale(self._font_scale))
+        self._set_mujoco_buffers()
 
         self.custom_render_callback = custom_render_callback
 
@@ -264,6 +278,23 @@ class MujocoGlfwViewer:
 
         mujoco.mjv_moveCamera(self._model, mujoco.mjtMouse.mjMOUSE_ZOOM, 0, 0.05 * y_offset, self._scene, self._camera)
 
+    def _set_mujoco_buffers(self):
+        if self.offscreen:
+            mujoco.mjr_setBuffer(mujoco.mjtFramebuffer.mjFB_OFFSCREEN, self._context)
+            if self._context.currentBuffer != mujoco.mjtFramebuffer.mjFB_OFFSCREEN:
+                raise RuntimeError("Offscreen rendering not supported")
+        else:
+            mujoco.mjr_setBuffer(mujoco.mjtFramebuffer.mjFB_WINDOW, self._context)
+            if self._context.currentBuffer != mujoco.mjtFramebuffer.mjFB_WINDOW:
+                raise RuntimeError("Window rendering not supported")
+
+    def update_offscreen_size(self, width, height):
+        if width != self._context.offWidth or height != self._context.offHeight:
+            self._model.vis.global_.offwidth = width
+            self._model.vis.global_.offheight = height
+            self._context.free()
+            self._set_mujoco_buffers()
+    
     def render(self, data, record):
         """
         Main rendering function.
@@ -279,7 +310,8 @@ class MujocoGlfwViewer:
 
         def render_inner_loop(self):
 
-            self._create_overlay()
+            if not self.offscreen:
+                self._create_overlay()
 
             render_start = time.time()
 
@@ -287,7 +319,14 @@ class MujocoGlfwViewer:
                                    mujoco.mjtCatBit.mjCAT_ALL,
                                    self._scene)
 
-            self._viewport.width, self._viewport.height = glfw.get_window_size(self._window)
+            if self.offscreen:
+                self._viewport.width, self._viewport.height = self._width, self._height
+                if self._width > self._context.offWidth or self._height > self._context.offHeight:
+                    new_width = max(self._width, self._model.vis.global_.offwidth)
+                    new_height = max(self._height, self._model.vis.global_.offheight)
+                    self.update_offscreen_size(new_width, new_height)
+            else:
+                self._viewport.width, self._viewport.height = glfw.get_window_size(self._window)
 
             mujoco.mjr_render(self._viewport, self._scene, self._context)
 
@@ -349,7 +388,10 @@ class MujocoGlfwViewer:
 
         """
 
-        shape = glfw.get_framebuffer_size(self._window)
+        if self.offscreen:
+            shape = [self._width, self._height]
+        else:
+            shape = glfw.get_framebuffer_size(self._window)
 
         if depth:
             rgb_img = np.zeros((shape[1], shape[0], 3), dtype=np.uint8)
