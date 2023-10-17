@@ -73,11 +73,11 @@ class MujocoGlfwViewer:
 
         # Disable v_sync, so swap_buffers does not block
         # glfw.swap_interval(0)
-
-        glfw.set_mouse_button_callback(self._window, self.mouse_button)
-        glfw.set_cursor_pos_callback(self._window, self.mouse_move)
-        glfw.set_key_callback(self._window, self.keyboard)
-        glfw.set_scroll_callback(self._window, self.scroll)
+        if not self.offscreen:
+            glfw.set_mouse_button_callback(self._window, self.mouse_button)
+            glfw.set_cursor_pos_callback(self._window, self.mouse_move)
+            glfw.set_key_callback(self._window, self.keyboard)
+            glfw.set_scroll_callback(self._window, self.scroll)
 
         self._model = model
 
@@ -346,16 +346,18 @@ class MujocoGlfwViewer:
             if self.custom_render_callback is not None:
                 self.custom_render_callback(self._viewport, self._context)
 
-            glfw.swap_buffers(self._window)
-            glfw.poll_events()
+            if not self.offscreen:
+                glfw.swap_buffers(self._window)
+                glfw.poll_events()
 
             self.frames += 1
 
             self._overlay.clear()
 
-            if glfw.window_should_close(self._window):
-                self.stop()
-                exit(0)
+            if not self.offscreen:
+                if glfw.window_should_close(self._window):
+                    self.stop()
+                    exit(0)
 
             self._time_per_render = 0.9 * self._time_per_render + 0.1 * (time.time() - render_start)
 
