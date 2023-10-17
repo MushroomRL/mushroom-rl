@@ -57,9 +57,9 @@ class MujocoGlfwViewer:
             self._width, self._height = self.update_headless_size(width, height)
         else:
             self._width, self._height = width, height
-            self._window = glfw.create_window(width=self._width, height=self._height, title="MuJoCo", monitor=None, share=None)
             glfw.init()
             glfw.window_hint(glfw.COCOA_RETINA_FRAMEBUFFER, 0)
+            self._window = glfw.create_window(width=self._width, height=self._height, title="MuJoCo", monitor=None, share=None)
             glfw.make_context_current(self._window)
             glfw.set_mouse_button_callback(self._window, self.mouse_button)
             glfw.set_cursor_pos_callback(self._window, self.mouse_move)
