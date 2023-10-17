@@ -7,11 +7,13 @@ from mushroom_rl.utils.parameters import Parameter, to_parameter
 
 
 class TDPolicy(Policy):
-    def __init__(self):
+    def __init__(self, policy_state_shape=None):
         """
         Constructor.
 
         """
+        super().__init__(policy_state_shape)
+
         self._approximator = None
         self._predict_params = dict()
 
@@ -40,7 +42,7 @@ class EpsGreedy(TDPolicy):
     Epsilon greedy policy.
 
     """
-    def __init__(self, epsilon):
+    def __init__(self, epsilon, policy_state_shape=None):
         """
         Constructor.
 
@@ -50,7 +52,7 @@ class EpsGreedy(TDPolicy):
                 step.
 
         """
-        super().__init__()
+        super().__init__(policy_state_shape)
 
         self._epsilon = to_parameter(epsilon)
 
@@ -116,7 +118,7 @@ class Boltzmann(TDPolicy):
     Boltzmann softmax policy.
 
     """
-    def __init__(self, beta):
+    def __init__(self, beta, policy_state_shape=None):
         """
         Constructor.
 
@@ -127,7 +129,7 @@ class Boltzmann(TDPolicy):
             more and more greedy.
 
         """
-        super().__init__()
+        super().__init__(policy_state_shape)
         self._beta = to_parameter(beta)
 
         self._add_save_attr(_beta='mushroom')
@@ -213,7 +215,7 @@ class Mellowmax(Boltzmann):
             except ValueError:
                 return 0.
 
-    def __init__(self, omega, beta_min=-10., beta_max=10.):
+    def __init__(self, omega, beta_min=-10., beta_max=10., policy_state_shape=None):
         """
         Constructor.
 
@@ -228,7 +230,7 @@ class Mellowmax(Boltzmann):
         """
         beta_mellow = self.MellowmaxParameter(self, omega, beta_min, beta_max)
 
-        super().__init__(beta_mellow)
+        super().__init__(beta_mellow, policy_state_shape)
 
     def set_beta(self, beta):
         raise RuntimeError('Cannot change the beta parameter of Mellowmax policy')

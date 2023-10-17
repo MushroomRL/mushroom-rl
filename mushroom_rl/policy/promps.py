@@ -30,21 +30,20 @@ class ProMP(ParametricPolicy):
         """
         assert sigma is None or (len(sigma.shape) == 2 and sigma.shape[0] == sigma.shape[1])
 
+        super().__init__(policy_state_shape=(1,))
+
         self._approximator = mu
         self._phi = phi
         self._duration = duration
         self._sigma = sigma
         self._periodic = periodic
 
-        self._step = 0
-
         self._add_save_attr(
             _approximator='mushroom',
             _phi='mushroom',
             _duration='primitive',
             _sigma='numpy',
-            _periodic='primitive',
-            _step='primitive'
+            _periodic='primitive'
         )
 
     def __call__(self, state, action):
@@ -114,3 +113,11 @@ class ProMP(ParametricPolicy):
 
     def reset(self):
         self._step = 0
+
+    @property
+    def _step(self):
+        return self._internal_state
+
+    @_step.setter
+    def _step(self, value):
+        self._internal_state = value

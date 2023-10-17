@@ -74,7 +74,8 @@ class Core(object):
         else:
             fit_condition = lambda: self._current_episodes_counter >= self._n_episodes_per_fit
 
-        dataset = Dataset(self.mdp.info, self._n_steps_per_fit, self._n_episodes_per_fit)
+        dataset = Dataset(self.mdp.info, self.agent.policy.policy_state_shape,
+                          self._n_steps_per_fit, self._n_episodes_per_fit)
 
         self._run(dataset, n_steps, n_episodes, fit_condition, render, quiet, record)
 
@@ -103,7 +104,7 @@ class Core(object):
         fit_condition = lambda: False
 
         n_episodes_dataset = len(initial_states) if initial_states is not None else n_episodes
-        dataset = Dataset(self.mdp.info, n_steps, n_episodes_dataset)
+        dataset = Dataset(self.mdp.info, self.agent.policy.policy_state_shape, n_steps, n_episodes_dataset)
 
         return self._run(dataset, n_steps, n_episodes, fit_condition, render, quiet, record, initial_states)
 
@@ -141,8 +142,14 @@ class Core(object):
         while move_condition():
             if last:
                 self.reset(initial_states)
+                if self.agent.policy.is_stateful:
+                    policy_state = self.agent.policy.get_policy_state()
 
             sample, step_info = self._step(render, record)
+
+            if self.agent.policy.is_stateful:
+                policy_next_state = self.agent.policy.get_policy_state()
+                sample += (policy_state, policy_next_state)
 
             self.callback_step(sample)
 
@@ -150,7 +157,7 @@ class Core(object):
             self._current_steps_counter += 1
             steps_progress_bar.update(1)
 
-            if sample[-1]:
+            if sample[5]:
                 self._total_episodes_counter += 1
                 self._current_episodes_counter += 1
                 episodes_progress_bar.update(1)
@@ -167,7 +174,7 @@ class Core(object):
 
                 dataset.clear()
 
-            last = sample[-1]
+            last = sample[5]
 
         self.agent.stop()
         self.mdp.stop()

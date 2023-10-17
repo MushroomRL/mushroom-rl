@@ -8,6 +8,7 @@ from mushroom_rl.policy import Policy
 
 class RandomDiscretePolicy(Policy):
     def __init__(self, n):
+        super().__init__()
         self._n = n
 
     def draw_action(self, state):

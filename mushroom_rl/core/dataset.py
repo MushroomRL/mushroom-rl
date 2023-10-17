@@ -8,7 +8,7 @@ from ._impl import *
 
 
 class Dataset(Serializable):
-    def __init__(self, mdp_info, n_steps=None, n_episodes=None):
+    def __init__(self, mdp_info, policy_state_shape, n_steps=None, n_episodes=None):
         assert (n_steps is not None and n_episodes is None) or (n_steps is None and n_episodes is not None)
 
         if n_steps is not None:
@@ -23,6 +23,9 @@ class Dataset(Serializable):
         action_shape = (n_samples,) + mdp_info.action_space.shape
         reward_shape = (n_samples,)
 
+        if policy_state_shape is not None:
+            policy_state_shape = (n_samples,) + policy_state_shape
+
         state_type = mdp_info.observation_space.data_type
         action_type = mdp_info.action_space.data_type
 
@@ -30,9 +33,11 @@ class Dataset(Serializable):
         self._episode_info = defaultdict(list)
 
         if mdp_info.backend == 'numpy':
-            self._data = NumpyDataset(state_type, state_shape, action_type, action_shape, reward_shape)
+            self._data = NumpyDataset(state_type, state_shape, action_type, action_shape, reward_shape,
+                                      policy_state_shape)
         elif mdp_info.backend == 'torch':
-            self._data = TorchDataset(state_type, state_shape, action_type, action_shape, reward_shape)
+            self._data = TorchDataset(state_type, state_shape, action_type, action_shape, reward_shape,
+                                      policy_state_shape)
         else:
             self._data = ListDataset()
 
@@ -45,12 +50,12 @@ class Dataset(Serializable):
             _episode_info='pickle',
             _data='mushroom',
             _converter='primitive',
-            _gamma='primitive'
+            _gamma='primitive',
         )
 
     @classmethod
-    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts, info=None, episode_info=None,
-                   gamma=0.99, backend='numpy'):
+    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts, policy_state=None,
+                   policy_next_state=None, info=None, episode_info=None, gamma=0.99, backend='numpy'):
         """
         Creates a dataset of transitions from the provided arrays.
 
@@ -60,17 +65,26 @@ class Dataset(Serializable):
             rewards (np.ndarray): array of rewards;
             next_states (np.ndarray): array of next_states;
             absorbings (np.ndarray): array of absorbing flags;
-            lasts (np.ndarray): array of last flags.
+            lasts (np.ndarray): array of last flags;
+            policy_state (np.ndarray, None): array of policy internal states;
+            policy_next_state (np.ndarray, None): array of next policy internal states;
+            info (dict, None): dictiornay of step info;
+            episode_info (dict, None): dictiornary of episode info
+            gamma (float, 0.99): discount factor;
+            backend (str, 'numpy'): backend to be used by the dataset.
 
         Returns:
             The list of transitions.
 
         """
-        assert (len(states) == len(actions) == len(rewards)
-                == len(next_states) == len(absorbings) == len(lasts))
+        assert len(states) == len(actions) == len(rewards) == len(next_states) == len(absorbings) == len(lasts)
+
+        if policy_state is not None:
+            assert len(states) == len(policy_state) == len(policy_next_state)
 
         dataset = cls.__new__(cls)
         dataset._gamma = gamma
+
         if info is None:
             dataset._info = defaultdict(list)
         else:
@@ -102,7 +116,7 @@ class Dataset(Serializable):
         return dataset
 
     def append(self, step, info):
-        self._data.append(*step[:6])
+        self._data.append(*step)
         self._append_info(self._info, info)
 
     def append_episode_info(self, info):
@@ -183,6 +197,14 @@ class Dataset(Serializable):
         return self._data.last
 
     @property
+    def policy_state(self):
+        return self._data.policy_state
+
+    @property
+    def policy_next_state(self):
+        return self._data.policy_next_state
+
+    @property
     def info(self):
         return self._info
 
@@ -230,8 +252,8 @@ class Dataset(Serializable):
             A tuple containing the arrays that define the dataset, i.e. state, action, next state, absorbing and last
 
         """
-        return self._converter.convert(self.state, self.action, self.reward,
-                                       self.next_state, self.absorbing, self.last, to=to)
+        return self._converter.convert(self.state, self.action, self.reward, self.next_state,
+                                       self.absorbing, self.last, to=to)
 
     def select_first_episodes(self, n_episodes):
         """

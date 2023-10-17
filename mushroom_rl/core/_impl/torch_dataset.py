@@ -4,7 +4,7 @@ from mushroom_rl.core.serialization import Serializable
 
 
 class TorchDataset(Serializable):
-    def __init__(self, state_type, state_shape, action_type, action_shape, reward_shape):
+    def __init__(self, state_type, state_shape, action_type, action_shape, reward_shape, policy_state_shape):
         flags_len = action_shape[0]
 
         self._state_type = state_type
@@ -18,6 +18,13 @@ class TorchDataset(Serializable):
         self._last = torch.empty(flags_len, dtype=torch.bool)
         self._len = 0
 
+        if policy_state_shape is None:
+            self._policy_states = None
+            self._policy_next_states = None
+        else:
+            self._policy_states = torch.empty(policy_state_shape, dtype=torch.float)
+            self._policy_next_states = torch.empty(policy_state_shape, dtype=torch.float)
+
         self._add_save_attr(
             _state_type='primitive',
             _action_type='primitive',
@@ -27,11 +34,22 @@ class TorchDataset(Serializable):
             _next_states='torch',
             _absorbing='torch',
             _last='torch',
+            _policy_states='numpy',
+            _policy_next_states='numpy',
             _len='primitive'
         )
 
     @classmethod
-    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts):
+    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts,
+                   policy_states=None, policy_next_states=None):
+        if not isinstance(states, torch.Tensor):
+            states = torch.as_tensor(states)
+            actions = torch.as_tensor(actions)
+            rewards = torch.as_tensor(rewards)
+            next_states = torch.as_tensor(next_states)
+            absorbings = torch.as_tensor(absorbings)
+            lasts = torch.as_tensor(lasts)
+
         dataset = cls.__new__(cls)
 
         dataset._state_type = states.dtype
@@ -45,6 +63,14 @@ class TorchDataset(Serializable):
         dataset._last = torch.as_tensor(lasts, dtype=torch.bool)
         dataset._len = len(lasts)
 
+        if policy_states is not None and policy_next_states is not None:
+            if not isinstance(policy_states, torch.Tensor):
+                policy_states = torch.as_tensor(policy_states)
+                policy_next_states = torch.as_tensor(policy_next_states)
+
+            dataset._policy_states = policy_states
+            dataset._policy_next_states = policy_next_states
+
         dataset._add_save_attr(
             _state_type='primitive',
             _action_type='primitive',
@@ -54,6 +80,8 @@ class TorchDataset(Serializable):
             _next_states='torch',
             _absorbing='torch',
             _last='torch',
+            _policy_states='numpy',
+            _policy_next_states='numpy',
             _len='primitive'
         )
 
@@ -62,7 +90,7 @@ class TorchDataset(Serializable):
     def __len__(self):
         return self._len
 
-    def append(self, state, action, reward, next_state, absorbing, last):
+    def append(self, state, action, reward, next_state, absorbing, last, policy_state=None, policy_next_state=None):
         i = self._len
 
         self._states[i] = state
@@ -71,6 +99,10 @@ class TorchDataset(Serializable):
         self._next_states[i] = next_state
         self._absorbing[i] = absorbing
         self._last[i] = last
+
+        if policy_state is not None:
+            self._policy_states[i] = policy_state
+            self._policy_next_states[i] = policy_next_state
 
         self._len += 1
 
@@ -81,6 +113,10 @@ class TorchDataset(Serializable):
         self._next_states = torch.empty_like(self._next_states)
         self._absorbing = torch.empty_like(self._absorbing)
         self._last = torch.empty_like(self._last)
+
+        if self._policy_states is not None:
+            self._policy_states = torch.empty_like(self._policy_states)
+            self._policy_next_states = torch.empty_like(self._policy_next_states)
 
         self._len = 0
 
@@ -94,6 +130,10 @@ class TorchDataset(Serializable):
         view._absorbing = self._absorbing[index, ...]
         view._last = self._last[index, ...]
         view._len = view._states.shape[0]
+
+        if self._policy_states is not None:
+            view._policy_states = self._policy_states[index, ...]
+            view._policy_next_states = self._policy_next_states[index, ...]
 
         return view
 
@@ -111,6 +151,10 @@ class TorchDataset(Serializable):
         result._absorbing = torch.concatenate((self.absorbing, other.absorbing))
         result._last = torch.concatenate((self.last, other.last))
         result._len = len(self) + len(other)
+
+        if result._policy_states is not None:
+            result._policy_states = torch.concatenate((self.policy_state, other.policy_state))
+            result._policy_next_states = torch.concatenate((self.policy_next_state, other.policy_next_state))
 
         return result
 
@@ -137,3 +181,11 @@ class TorchDataset(Serializable):
     @property
     def last(self):
         return self._last[:len(self)]
+
+    @property
+    def policy_state(self):
+        return self._policy_states[:len(self)]
+
+    @property
+    def policy_next_state(self):
+        return self._policy_next_states[:len(self)]

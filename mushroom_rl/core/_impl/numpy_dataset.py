@@ -4,8 +4,8 @@ from mushroom_rl.core.serialization import Serializable
 
 
 class NumpyDataset(Serializable):
-    def __init__(self, state_type, state_shape, action_type, action_shape, reward_shape):
-        flags_shape = (action_shape[0],)
+    def __init__(self, state_type, state_shape, action_type, action_shape, reward_shape, policy_state_shape):
+        flags_len = action_shape[0]
 
         self._state_type = state_type
         self._action_type = action_type
@@ -14,9 +14,16 @@ class NumpyDataset(Serializable):
         self._actions = np.empty(action_shape, dtype=self._action_type)
         self._rewards = np.empty(reward_shape, dtype=float)
         self._next_states = np.empty(state_shape, dtype=self._state_type)
-        self._absorbing = np.empty(flags_shape, dtype=bool)
-        self._last = np.empty(flags_shape, dtype=bool)
+        self._absorbing = np.empty(flags_len, dtype=bool)
+        self._last = np.empty(flags_len, dtype=bool)
         self._len = 0
+
+        if policy_state_shape is None:
+            self._policy_states = None
+            self._policy_next_states = None
+        else:
+            self._policy_states = np.empty(policy_state_shape, dtype=float)
+            self._policy_next_states = np.empty(policy_state_shape, dtype=float)
 
         self._add_save_attr(
             _state_type='primitive',
@@ -27,16 +34,19 @@ class NumpyDataset(Serializable):
             _next_states='numpy',
             _absorbing='numpy',
             _last='numpy',
+            _policy_states='numpy',
+            _policy_next_states='numpy',
             _len='primitive'
         )
 
     @classmethod
-    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts):
+    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts,
+                   policy_states=None, policy_next_states=None):
         if not isinstance(states, np.ndarray):
             states = states.numpy()
-            actions = states.numpy()
-            rewards = states.numpy()
-            next_states = states.numpy()
+            actions = actions.numpy()
+            rewards = rewards.numpy()
+            next_states = next_states.numpy()
             absorbings = absorbings.numpy()
             lasts = lasts.numpy()
 
@@ -53,6 +63,14 @@ class NumpyDataset(Serializable):
         dataset._last = lasts
         dataset._len = len(lasts)
 
+        if policy_states is not None and policy_next_states is not None:
+            if not isinstance(policy_states, np.ndarray):
+                policy_states = policy_states.numpy()
+                policy_next_states = policy_next_states.numpy()
+
+            dataset._policy_states = policy_states
+            dataset._policy_next_states = policy_next_states
+
         dataset._add_save_attr(
             _state_type='primitive',
             _action_type='primitive',
@@ -62,6 +80,8 @@ class NumpyDataset(Serializable):
             _next_states='numpy',
             _absorbing='numpy',
             _last='numpy',
+            _policy_states='numpy',
+            _policy_next_states='numpy',
             _len='primitive'
         )
 
@@ -70,7 +90,7 @@ class NumpyDataset(Serializable):
     def __len__(self):
         return self._len
 
-    def append(self, state, action, reward, next_state, absorbing, last):
+    def append(self, state, action, reward, next_state, absorbing, last, policy_state=None, policy_next_state=None):
         i = self._len
 
         self._states[i] = state
@@ -79,6 +99,10 @@ class NumpyDataset(Serializable):
         self._next_states[i] = next_state
         self._absorbing[i] = absorbing
         self._last[i] = last
+
+        if policy_state is not None:
+            self._policy_states[i] = policy_state
+            self._policy_next_states[i] = policy_next_state
 
         self._len += 1
 
@@ -90,18 +114,26 @@ class NumpyDataset(Serializable):
         self._absorbing = np.empty_like(self._absorbing)
         self._last = np.empty_like(self._last)
 
+        if self._policy_states is not None:
+            self._policy_states = np.empty_like(self._policy_states)
+            self._policy_next_states = np.empty_like(self._policy_next_states)
+
         self._len = 0
 
     def get_view(self, index):
         view = self.copy()
 
-        view._states = self._states[index, ...]
-        view._actions = self._actions[index, ...]
-        view._rewards = self._rewards[index, ...]
-        view._next_states = self._next_states[index, ...]
-        view._absorbing = self._absorbing[index, ...]
-        view._last = self._last[index, ...]
+        view._states = self.state[index, ...]
+        view._actions = self.action[index, ...]
+        view._rewards = self.reward[index, ...]
+        view._next_states = self.next_state[index, ...]
+        view._absorbing = self.absorbing[index, ...]
+        view._last = self.last[index, ...]
         view._len = view._states.shape[0]
+
+        if self._policy_states is not None:
+            view._policy_states = self._policy_states[index, ...]
+            view._policy_next_states = self._policy_next_states[index, ...]
 
         return view
 
@@ -119,6 +151,10 @@ class NumpyDataset(Serializable):
         result._absorbing = np.concatenate((self.absorbing, other.absorbing))
         result._last = np.concatenate((self.last, other.last))
         result._len = len(self) + len(other)
+
+        if result._policy_states is not None:
+            result._policy_states = np.concatenate((self.policy_state, other.policy_state))
+            result._policy_next_states = np.concatenate((self.policy_next_state, other.policy_next_state))
 
         return result
 
@@ -145,3 +181,11 @@ class NumpyDataset(Serializable):
     @property
     def last(self):
         return self._last[:len(self)]
+
+    @property
+    def policy_state(self):
+        return self._policy_states[:len(self)]
+
+    @property
+    def policy_next_state(self):
+        return self._policy_next_states[:len(self)]

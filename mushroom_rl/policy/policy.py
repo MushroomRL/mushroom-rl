@@ -9,6 +9,17 @@ class Policy(Serializable):
     A policy is used by mushroom agents to interact with the environment.
 
     """
+    def __init__(self, policy_state_shape=None):
+        """
+        Constructor.
+
+        Args:
+            policy_state_shape (tuple, None): the shape of the internal state of the policy.
+
+        """
+        self.policy_state_shape = policy_state_shape
+        self._internal_state = None
+
     def __call__(self, *args):
         """
         Compute the probability of taking action in a certain state following
@@ -47,6 +58,13 @@ class Policy(Serializable):
         """
         pass
 
+    def get_policy_state(self):
+        return self._internal_state
+
+    @property
+    def is_stateful(self):
+        return self.policy_state_shape is not None
+
 
 class ParametricPolicy(Policy):
     """
@@ -56,6 +74,16 @@ class ParametricPolicy(Policy):
     If the policy is differentiable, the derivative of the probability for a
     specified state-action pair can be provided.
     """
+
+    def __init__(self, policy_state_shape=None):
+        """
+        Constructor.
+
+        Args:
+            policy_state_shape (tuple, None): the shape of the internal state of the policy.
+
+        """
+        super().__init__(policy_state_shape)
 
     def diff_log(self, state, action):
         """

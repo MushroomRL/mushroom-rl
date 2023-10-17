@@ -12,7 +12,7 @@ class OrnsteinUhlenbeckPolicy(ParametricPolicy):
     algorithm.
 
     """
-    def __init__(self, mu, sigma, theta, dt, x0=None):
+    def __init__(self, mu, sigma, theta, dt, x0=None, policy_state_shape=None):
         """
         Constructor.
 
@@ -45,6 +45,8 @@ class OrnsteinUhlenbeckPolicy(ParametricPolicy):
             _x0='numpy',
             _x_prev='numpy'
         )
+
+        super().__init__(policy_state_shape)
 
     def __call__(self, state, action):
         raise NotImplementedError
@@ -89,7 +91,7 @@ class ClippedGaussianPolicy(ParametricPolicy):
     if the value is bigger than the boundaries. Thus, the non-differentiability.
 
     """
-    def __init__(self, mu, sigma, low, high):
+    def __init__(self, mu, sigma, low, high, policy_state_shape=None):
         """
         Constructor.
 
@@ -105,6 +107,8 @@ class ClippedGaussianPolicy(ParametricPolicy):
                 component.
 
         """
+        super().__init__(policy_state_shape)
+
         self._approximator = mu
         self._predict_params = dict()
         self._sigma = sigma

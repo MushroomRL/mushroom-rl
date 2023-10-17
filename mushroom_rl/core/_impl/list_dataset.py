@@ -8,19 +8,26 @@ from mushroom_rl.core.serialization import Serializable
 class ListDataset(Serializable):
     def __init__(self):
         self._dataset = list()
+        self._policy_dataset = list()
 
         self._add_save_attr(
             _dataset='pickle'
         )
 
     @classmethod
-    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts):
+    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts, policy_states=None,
+                   policy_next_states=None):
         dataset = cls()
 
-        for s, a, r, ss, ab, last in zip(states, actions, rewards, next_states,
-                                         absorbings.astype(bool), lasts.astype(bool)
-                                         ):
-            dataset.append(s, a, r.item(), ss, ab.item(), last.item())
+        if policy_states is None:
+            for s, a, r, ss, ab, last in zip(states, actions, rewards, next_states,
+                                             absorbings.astype(bool), lasts.astype(bool)):
+                dataset.append(s, a, r.item(), ss, ab.item(), last.item())
+        else:
+            for s, a, r, ss, ab, last, ps, pss in zip(states, actions, rewards, next_states,
+                                                      absorbings.astype(bool), lasts.astype(bool),
+                                                      policy_states, policy_next_states):
+                dataset.append(s, a, r.item(), ss, ab.item(), last.item(), ps.item(), pss.item())
 
         return dataset
 
@@ -28,9 +35,10 @@ class ListDataset(Serializable):
         return len(self._dataset)
 
     def append(self, *step):
-        assert len(step) == 6
         step_copy = deepcopy(step)
-        self._dataset.append(step_copy)
+        self._dataset.append(step_copy[:6])
+        if len(step_copy) == 8:
+            self._policy_dataset.append(step_copy[6:])
 
     def clear(self):
         self._dataset = list()
@@ -77,3 +85,11 @@ class ListDataset(Serializable):
     @property
     def last(self):
         return [step[5] for step in self._dataset]
+
+    @property
+    def policy_state(self):
+        return [step[6] for step in self._dataset]
+
+    @property
+    def policy_next_state(self):
+        return [step[7] for step in self._dataset]

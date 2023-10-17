@@ -22,7 +22,8 @@ class SACPolicy(Policy):
     compute_action_and_log_prob_t methods, that are fundamental for the internals calculations of the SAC algorithm.
 
     """
-    def __init__(self, mu_approximator, sigma_approximator, min_a, max_a, log_std_min, log_std_max):
+    def __init__(self, mu_approximator, sigma_approximator, min_a, max_a, log_std_min, log_std_max,
+                 policy_state_shape=None):
         """
         Constructor.
 
@@ -35,6 +36,8 @@ class SACPolicy(Policy):
             log_std_max ([float, Parameter]): max value for the policy log std.
 
         """
+        super().__init__(policy_state_shape)
+
         self._mu_approximator = mu_approximator
         self._sigma_approximator = sigma_approximator
 
