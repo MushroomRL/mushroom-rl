@@ -33,7 +33,7 @@ def test_eps_greedy():
     p_sa_test = np.array([0.93333333])
     assert np.allclose(p_sa, p_sa_test)
 
-    a = pi.draw_action(s)
+    a, _ = pi.draw_action(s)
     a_test = 1
     assert a.item() == a_test
 
@@ -70,7 +70,7 @@ def test_boltzmann():
     p_sa_test = np.array([0.36223227])
     assert np.allclose(p_sa, p_sa_test)
 
-    a = pi.draw_action(s)
+    a, _ = pi.draw_action(s)
     a_test = 2
     assert a.item() == a_test
 
@@ -106,7 +106,7 @@ def test_mellowmax():
     p_sa_test = np.array([0.69215916])
     assert np.allclose(p_sa, p_sa_test)
 
-    a = pi.draw_action(s)
+    a, _ = pi.draw_action(s)
     a_test = 2
     assert a.item() == a_test
 

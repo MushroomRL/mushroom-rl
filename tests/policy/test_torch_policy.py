@@ -61,7 +61,7 @@ def test_gaussian_torch_policy():
     pi = GaussianTorchPolicy(Network, (3,), (2,), n_features=50)
 
     state = np.random.rand(3)
-    action = pi.draw_action(state)
+    action, _ = pi.draw_action(state)
     action_test = np.array([-0.21276927,  0.27437747])
     assert np.allclose(action, action_test)
 
@@ -81,7 +81,7 @@ def test_boltzmann_torch_policy():
     pi = BoltzmannTorchPolicy(Network, (3,), (2,), beta, n_features=50)
 
     state = np.random.rand(3, 3)
-    action = pi.draw_action(state)
+    action, _ = pi.draw_action(state)
     action_test = np.array([1, 0, 0])
     assert np.allclose(action, action_test)
 

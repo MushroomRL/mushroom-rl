@@ -55,19 +55,19 @@ class ProMP(ParametricPolicy):
         else:
             return multivariate_normal.pdf(action, mu, self._sigma)
 
-    def draw_action(self, state):
+    def draw_action(self, state, policy_state):
         z = self._compute_phase(state)
-
-        self.update_time(state)
 
         mu = self._approximator(self._phi(z))
 
-        if self._sigma is None:
-            return mu
-        else:
-            return np.random.multivariate_normal(mu, self._sigma)
+        next_policy_state = self.update_time(state, policy_state)
 
-    def update_time(self, state):
+        if self._sigma is None:
+            return mu, next_policy_state
+        else:
+            return np.random.multivariate_normal(mu, self._sigma), next_policy_state
+
+    def update_time(self, state, policy_state):
         """
         Method that updates the time counter. Can be overridden to introduce complex state-dependant behaviors.
 
@@ -75,12 +75,14 @@ class ProMP(ParametricPolicy):
             state (np.ndarray): The current state of the system.
 
         """
-        self._step += 1
+        policy_state += 1
 
-        if not self._periodic and self._step >= self._duration:
-            self._step = self._duration
+        if not self._periodic and policy_state >= self._duration:
+            policy_state = self._duration
 
-    def _compute_phase(self, state):
+        return policy_state
+
+    def _compute_phase(self, state, policy_state):
         """
         Method that updates the state variable. It can be overridden to implement state dependent phase.
 
@@ -91,7 +93,7 @@ class ProMP(ParametricPolicy):
             The current value of the phase variable
 
         """
-        return self._step / self._duration
+        return policy_state / self._duration
 
     def set_weights(self, weights):
         self._approximator.set_weights(weights)
@@ -112,12 +114,4 @@ class ProMP(ParametricPolicy):
         self._duration = duration - 1
 
     def reset(self):
-        self._step = 0
-
-    @property
-    def _step(self):
-        return self._internal_state
-
-    @_step.setter
-    def _step(self, value):
-        self._internal_state = value
+        return 0

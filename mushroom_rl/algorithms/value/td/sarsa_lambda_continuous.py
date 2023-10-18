@@ -39,7 +39,7 @@ class SARSALambdaContinuous(TD):
 
         self.e = self.mdp_info.gamma * self._lambda() * self.e + self.Q.diff(phi_state, action)
 
-        self.next_action = self.draw_action(next_state)
+        self.next_action, _ = self.draw_action(next_state)
         phi_next_state = self.phi(next_state)
         q_next = self.Q.predict(phi_next_state, self.next_action) if not absorbing else 0.
 
@@ -52,4 +52,4 @@ class SARSALambdaContinuous(TD):
     def episode_start(self, episode_info):
         self.e = np.zeros(self.Q.weights_size)
 
-        super().episode_start(episode_info)
+        return super().episode_start(episode_info)

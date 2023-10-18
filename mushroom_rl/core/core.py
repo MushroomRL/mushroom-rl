@@ -26,6 +26,7 @@ class Core(object):
         self.callback_step = callback_step if callback_step is not None else lambda x: None
 
         self._state = None
+        self._policy_state = None
 
         self._total_episodes_counter = 0
         self._total_steps_counter = 0
@@ -142,14 +143,8 @@ class Core(object):
         while move_condition():
             if last:
                 self.reset(initial_states)
-                if self.agent.policy.is_stateful:
-                    policy_state = self.agent.policy.get_policy_state()
 
             sample, step_info = self._step(render, record)
-
-            if self.agent.policy.is_stateful:
-                policy_next_state = self.agent.policy.get_policy_state()
-                sample += (policy_state, policy_next_state)
 
             self.callback_step(sample)
 
@@ -197,7 +192,7 @@ class Core(object):
             state, the absorbing flag of the reached state and the last step flag.
 
         """
-        action = self.agent.draw_action(self._state)
+        action, policy_next_state = self.agent.draw_action(self._state, self._policy_state)
         next_state, reward, absorbing, step_info = self.mdp.step(action)
 
         self._episode_steps += 1
@@ -208,14 +203,15 @@ class Core(object):
             if record:
                 self._record(frame)
 
-        last = not(
-            self._episode_steps < self.mdp.info.horizon and not absorbing)
+        last = not(self._episode_steps < self.mdp.info.horizon and not absorbing)
 
         state = self._state
+        policy_state = self._policy_state
         next_state = self._preprocess(next_state)
         self._state = next_state
+        self._policy_state = policy_next_state
 
-        return (state, action, reward, next_state, absorbing, last), step_info
+        return (state, action, reward, next_state, absorbing, last, policy_state, policy_next_state), step_info
 
     def reset(self, initial_states=None):
         """
@@ -228,7 +224,7 @@ class Core(object):
             initial_state = initial_states[self._total_episodes_counter]
 
         state, episode_info = self.mdp.reset(initial_state)
-        self.agent.episode_start(episode_info)
+        self._policy_state = self.agent.episode_start(episode_info)
 
         self._state = self._preprocess(state)
         self.agent.next_action = None

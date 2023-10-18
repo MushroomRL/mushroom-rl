@@ -47,4 +47,4 @@ class QLambda(TD):
     def episode_start(self, episode_info):
         self.e.reset()
 
-        super().episode_start(episode_info)
+        return super().episode_start(episode_info)

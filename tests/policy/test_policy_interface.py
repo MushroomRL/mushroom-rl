@@ -12,8 +12,8 @@ def abstract_method_tester(f, ex, *args):
 
 def test_policy_interface():
     tmp = Policy()
-    abstract_method_tester(tmp.__call__, NotImplementedError)
-    abstract_method_tester(tmp.draw_action, NotImplementedError, None)
+    abstract_method_tester(tmp.__call__, NotImplementedError, None)
+    abstract_method_tester(tmp.draw_action, NotImplementedError, None, None)
     tmp.reset()
 
 

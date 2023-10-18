@@ -34,18 +34,18 @@ class TorchPolicy(Policy):
 
         self._add_save_attr(_use_cuda='primitive')
 
-    def __call__(self, state, action):
+    def __call__(self, state, action, policy_state=None):
         s = to_float_tensor(np.atleast_2d(state), self._use_cuda)
         a = to_float_tensor(np.atleast_2d(action), self._use_cuda)
 
         return np.exp(self.log_prob_t(s, a).item())
 
-    def draw_action(self, state):
+    def draw_action(self, state, policy_state=None):
         with torch.no_grad():
             s = to_float_tensor(np.atleast_2d(state), self._use_cuda)
             a = self.draw_action_t(s)
 
-        return torch.squeeze(a, dim=0).detach().cpu().numpy()
+        return torch.squeeze(a, dim=0).detach().cpu().numpy(), None
 
     def distribution(self, state):
         """

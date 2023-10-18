@@ -18,34 +18,35 @@ class Policy(Serializable):
 
         """
         self.policy_state_shape = policy_state_shape
-        self._internal_state = None
 
-    def __call__(self, *args):
+    def __call__(self, state, action=None, policy_state=None):
         """
         Compute the probability of taking action in a certain state following
         the policy.
 
         Args:
-            *args (list): list containing a state or a state and an action.
+            state: state where you want to evaluate the policy density;
+            action: action where you want to evaluate the policy density;
+            policy_state: internal_state where you want to evaluate the policy density.
 
         Returns:
-            The probability of all actions following the policy in the given
-            state if the list contains only the state, else the probability
-            of the given action in the given state following the policy. If
-            the action space is continuous, state and action must be provided
+            The probability of all actions following the policy in the given state if the list contains only the state,
+            else the probability of the given action in the given state following the policy. If the action space is
+            continuous, state and action must be provided
 
         """
         raise NotImplementedError
 
-    def draw_action(self, state):
+    def draw_action(self, state, policy_state=None):
         """
         Sample an action in ``state`` using the policy.
 
         Args:
-            state (np.ndarray): the state where the agent is.
+            state: the state where the agent is;
+            policy_state: the internal state of the policy.
 
         Returns:
-            The action sampled from the policy.
+            The action sampled from the policy and optionally the next policy state.
 
         """
         raise NotImplementedError
@@ -55,11 +56,11 @@ class Policy(Serializable):
         Useful when the policy needs a special initialization at the beginning
         of an episode.
 
-        """
-        pass
+        Returns:
+            The initial policy state (by default None).
 
-    def get_policy_state(self):
-        return self._internal_state
+        """
+        return None
 
     @property
     def is_stateful(self):
@@ -69,10 +70,9 @@ class Policy(Serializable):
 class ParametricPolicy(Policy):
     """
     Interface for a generic parametric policy.
-    A parametric policy is a policy that depends on set of parameters,
-    called the policy weights.
-    If the policy is differentiable, the derivative of the probability for a
-    specified state-action pair can be provided.
+    A parametric policy is a policy that depends on set of parameters, called the policy weights.
+    For differentiable policies, the derivative of the probability for a specified state-action pair can be provided.
+
     """
 
     def __init__(self, policy_state_shape=None):
@@ -85,7 +85,7 @@ class ParametricPolicy(Policy):
         """
         super().__init__(policy_state_shape)
 
-    def diff_log(self, state, action):
+    def diff_log(self, state, action, policy_state=None):
         """
         Compute the gradient of the logarithm of the probability density
         function, in the specified state and action pair, i.e.:
@@ -95,15 +95,16 @@ class ParametricPolicy(Policy):
 
 
         Args:
-            state (np.ndarray): the state where the gradient is computed
-            action (np.ndarray): the action where the gradient is computed
+            state: the state where the gradient is computed;
+            action: the action where the gradient is computed;
+            policy_state: the internal state of the policy.
 
         Returns:
             The gradient of the logarithm of the pdf w.r.t. the policy weights
         """
         raise RuntimeError('The policy is not differentiable')
 
-    def diff(self, state, action):
+    def diff(self, state, action, policy_state=None):
         """
         Compute the derivative of the probability density function, in the
         specified state and action pair. Normally it is computed w.r.t. the
@@ -115,13 +116,14 @@ class ParametricPolicy(Policy):
 
 
         Args:
-            state (np.ndarray): the state where the derivative is computed
-            action (np.ndarray): the action where the derivative is computed
+            state: the state where the derivative is computed;
+            action: the action where the derivative is computed;
+            policy_state: the internal state of the policy.
 
         Returns:
             The derivative w.r.t. the  policy weights
         """
-        return self(state, action) * self.diff_log(state, action)
+        return self(state, action, policy_state) * self.diff_log(state, action, policy_state)
 
     def set_weights(self, weights):
         """

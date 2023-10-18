@@ -57,14 +57,15 @@ class Agent(Serializable):
         """
         raise NotImplementedError('Agent is an abstract class')
 
-    def draw_action(self, state):
+    def draw_action(self, state, policy_state=None):
         """
         Return the action to execute in the given state. It is the action
         returned by the policy or the action set by the algorithm (e.g. in the
         case of SARSA).
 
         Args:
-            state (np.ndarray): the state where the agent is.
+            state: the state where the agent is;
+            policy_state: the policy internal state.
 
         Returns:
             The action to be executed.
@@ -74,12 +75,13 @@ class Agent(Serializable):
             state = self.phi(state)
 
         if self.next_action is None:
-            action = self.policy.draw_action(state)
+            action, next_policy_state = self.policy.draw_action(state, policy_state)
         else:
             action = self.next_action
+            next_policy_state = None  # FIXME
             self.next_action = None
 
-        return self._convert_to_env_backend(action)
+        return self._convert_to_env_backend(action), self._convert_to_env_backend(next_policy_state)
 
     def episode_start(self, episode_info):
         """
@@ -89,7 +91,7 @@ class Agent(Serializable):
             episode_info (dict): a dictionary containing the information at reset, such as context.
 
         """
-        self.policy.reset()
+        return self.policy.reset()
 
     def stop(self):
         """

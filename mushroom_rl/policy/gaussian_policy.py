@@ -16,15 +16,15 @@ class AbstractGaussianPolicy(ParametricPolicy):
         """
         super().__init__(policy_state_shape)
 
-    def __call__(self, state, action):
+    def __call__(self, state, action, policy_state=None):
         mu, sigma = self._compute_multivariate_gaussian(state)[:2]
 
         return multivariate_normal.pdf(action, mu, sigma)
 
-    def draw_action(self, state):
+    def draw_action(self, state, policy_state=None):
         mu, sigma = self._compute_multivariate_gaussian(state)[:2]
 
-        return np.random.multivariate_normal(mu, sigma)
+        return np.random.multivariate_normal(mu, sigma), None
 
 
 class GaussianPolicy(AbstractGaussianPolicy):
@@ -74,7 +74,7 @@ class GaussianPolicy(AbstractGaussianPolicy):
         self._sigma = sigma
         self._inv_sigma = np.linalg.inv(sigma)
 
-    def diff_log(self, state, action):
+    def diff_log(self, state, action, policy_state=None):
         mu, _, inv_sigma = self._compute_multivariate_gaussian(state)
 
         delta = action - mu
@@ -145,7 +145,7 @@ class DiagonalGaussianPolicy(AbstractGaussianPolicy):
         """
         self._std = std
 
-    def diff_log(self, state, action):
+    def diff_log(self, state, action, policy_state=None):
         mu, _, inv_sigma = self._compute_multivariate_gaussian(state)
 
         delta = action - mu
@@ -226,7 +226,7 @@ class StateStdGaussianPolicy(AbstractGaussianPolicy):
             _eps='primitive'
         )
 
-    def diff_log(self, state, action):
+    def diff_log(self, state, action, policy_state=None):
         mu, sigma, std = self._compute_multivariate_gaussian(state)
         diag_sigma = np.diag(sigma)
 
@@ -315,7 +315,7 @@ class StateLogStdGaussianPolicy(AbstractGaussianPolicy):
             _predict_params='pickle'
         )
 
-    def diff_log(self, state, action):
+    def diff_log(self, state, action, policy_state=None):
 
         mu, sigma = self._compute_multivariate_gaussian(state)
         diag_sigma = np.diag(sigma)

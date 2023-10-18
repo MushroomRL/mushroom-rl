@@ -22,7 +22,7 @@ def test_univariate_gaussian():
 
     for x_i in x:
         state = np.atleast_1d(x_i)
-        action = pi.draw_action(state)
+        action, _ = pi.draw_action(state)
         exact_diff = pi.diff(state, action)
         numerical_diff = numerical_diff_policy(pi, state, action)
 
@@ -50,7 +50,7 @@ def test_multivariate_gaussian():
 
     for x_i in x:
         state = np.atleast_1d(x_i)
-        action = pi.draw_action(state)
+        action, _ = pi.draw_action(state)
         exact_diff = pi.diff(state, action)
         numerical_diff = numerical_diff_policy(pi, state, action)
 
@@ -76,7 +76,7 @@ def test_multivariate_diagonal_gaussian():
 
     for x_i in x:
         state = np.atleast_1d(x_i)
-        action = pi.draw_action(state)
+        action, _ = pi.draw_action(state)
         exact_diff = pi.diff(state, action)
         numerical_diff = numerical_diff_policy(pi, state, action)
 
@@ -104,7 +104,7 @@ def test_multivariate_state_std_gaussian():
 
     for x_i in x:
         state = np.atleast_1d(x_i)
-        action = pi.draw_action(state)
+        action, _ = pi.draw_action(state)
         exact_diff = pi.diff(state, action)
         numerical_diff = numerical_diff_policy(pi, state, action)
 
@@ -132,7 +132,7 @@ def test_multivariate_state_log_std_gaussian():
 
     for x_i in x:
         state = np.atleast_1d(x_i)
-        action = pi.draw_action(state)
+        action, _ = pi.draw_action(state)
         exact_diff = pi.diff(state, action)
         numerical_diff = numerical_diff_policy(pi, state, action)
 

@@ -77,7 +77,7 @@ class EpsGreedy(TDPolicy):
 
             return probs
 
-    def draw_action(self, state):
+    def draw_action(self, state, policy_state=None):
         if not np.random.uniform() < self._epsilon(state):
             q = self._approximator.predict(state, **self._predict_params)
             max_a = np.argwhere(q == np.max(q)).ravel()
@@ -85,9 +85,9 @@ class EpsGreedy(TDPolicy):
             if len(max_a) > 1:
                 max_a = np.array([np.random.choice(max_a)])
 
-            return max_a
+            return max_a, None
 
-        return np.array([np.random.choice(self._approximator.n_actions)])
+        return np.array([np.random.choice(self._approximator.n_actions)]), None
 
     def set_epsilon(self, epsilon):
         """
@@ -147,9 +147,8 @@ class Boltzmann(TDPolicy):
         else:
             return qs / np.sum(qs)
 
-    def draw_action(self, state):
-        return np.array([np.random.choice(self._approximator.n_actions,
-                                          p=self(state))])
+    def draw_action(self, state, policy_state=None):
+        return np.array([np.random.choice(self._approximator.n_actions, p=self(state))]), None
 
     def set_beta(self, beta):
         """

@@ -31,7 +31,7 @@ class BlackBoxOptimization(Agent):
         self._theta_list.append(theta)
         self.policy.set_weights(theta)
 
-        super().episode_start(episode_info)
+        return super().episode_start(episode_info)
 
     def fit(self, dataset, **info):
         Jep = dataset.compute_J(self.mdp_info.gamma)
