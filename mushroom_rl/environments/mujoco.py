@@ -98,8 +98,12 @@ class MuJoCo(Environment):
         self.collision_groups = {}
         if collision_groups is not None:
             for name, geom_names in collision_groups:
-                self.collision_groups[name] = {mujoco.mj_name2id(self._model, mujoco.mjtObj.mjOBJ_GEOM, geom_name)
-                                               for geom_name in geom_names}
+                col_group = list()
+                for geom_name in geom_names:
+                    mj_id = mujoco.mj_name2id(self._model, mujoco.mjtObj.mjOBJ_GEOM, geom_name)
+                    assert mj_id != -1, f"geom \"{geom_name}\" not found! Can't be used for collision-checking."
+                    col_group.append(mj_id)
+                self.collision_groups[name] = set(col_group)
 
         # Finally, we create the MDP information and call the constructor of
         # the parent class
@@ -663,8 +667,12 @@ class MultiMuJoCo(MuJoCo):
         self.collision_groups = {}
         if collision_groups is not None:
             for name, geom_names in collision_groups:
-                self.collision_groups[name] = {mujoco.mj_name2id(self._model, mujoco.mjtObj.mjOBJ_GEOM, geom_name)
-                                               for geom_name in geom_names}
+                col_group = list()
+                for geom_name in geom_names:
+                    mj_id = mujoco.mj_name2id(self._model, mujoco.mjtObj.mjOBJ_GEOM, geom_name)
+                    assert mj_id != -1, f"geom \"{geom_name}\" not found! Can't be used for collision-checking."
+                    col_group.append(mj_id)
+                self.collision_groups[name] = set(col_group)
 
         # Finally, we create the MDP information and call the constructor of
         # the parent class
