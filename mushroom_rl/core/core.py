@@ -1,7 +1,7 @@
-from tqdm import tqdm
-
 from mushroom_rl.core.dataset import Dataset
 from mushroom_rl.utils.record import VideoRecorder
+
+from ._impl import CoreLogic
 
 
 class Core(object):
@@ -27,15 +27,9 @@ class Core(object):
 
         self._state = None
         self._policy_state = None
-
-        self._total_episodes_counter = 0
-        self._total_steps_counter = 0
-        self._current_episodes_counter = 0
-        self._current_steps_counter = 0
         self._episode_steps = None
-        self._n_episodes = None
-        self._n_steps_per_fit = None
-        self._n_episodes_per_fit = None
+
+        self._core_logic = CoreLogic()
 
         if record_dictionary is None:
             record_dictionary = dict()
@@ -62,23 +56,12 @@ class Core(object):
                 should be set to True.
 
         """
-        assert (n_episodes_per_fit is not None and n_steps_per_fit is None)\
-            or (n_episodes_per_fit is None and n_steps_per_fit is not None)
-
         assert (render and record) or (not record), "To record, the render flag must be set to true"
+        self._core_logic.initialize_fit(n_steps_per_fit, n_episodes_per_fit)
 
-        self._n_steps_per_fit = n_steps_per_fit
-        self._n_episodes_per_fit = n_episodes_per_fit
+        dataset = Dataset(self.mdp.info, self.agent.policy.policy_state_shape, n_steps_per_fit, n_episodes_per_fit)
 
-        if n_steps_per_fit is not None:
-            fit_condition = lambda: self._current_steps_counter >= self._n_steps_per_fit
-        else:
-            fit_condition = lambda: self._current_episodes_counter >= self._n_episodes_per_fit
-
-        dataset = Dataset(self.mdp.info, self.agent.policy.policy_state_shape,
-                          self._n_steps_per_fit, self._n_episodes_per_fit)
-
-        self._run(dataset, n_steps, n_episodes, fit_condition, render, quiet, record)
+        self._run(dataset, n_steps, n_episodes, render, quiet, record)
 
     def evaluate(self, initial_states=None, n_steps=None, n_episodes=None, render=False, quiet=False, record=False):
         """
@@ -96,73 +79,36 @@ class Core(object):
                 should be set to True.
 
         Returns:
-            The collected dataset and, optionally, an extra dataset of
-            environment info, collected at each step.
+            The collected dataset.
 
         """
         assert (render and record) or (not record), "To record, the render flag must be set to true"
 
-        fit_condition = lambda: False
+        self._core_logic.initialize_evaluate()
 
         n_episodes_dataset = len(initial_states) if initial_states is not None else n_episodes
         dataset = Dataset(self.mdp.info, self.agent.policy.policy_state_shape, n_steps, n_episodes_dataset)
 
-        return self._run(dataset, n_steps, n_episodes, fit_condition, render, quiet, record, initial_states)
+        return self._run(dataset, n_steps, n_episodes, render, quiet, record, initial_states)
 
-    def _run(self, dataset, n_steps, n_episodes, fit_condition, render, quiet, record, initial_states=None):
-        assert n_episodes is not None and n_steps is None and initial_states is None\
-            or n_episodes is None and n_steps is not None and initial_states is None\
-            or n_episodes is None and n_steps is None and initial_states is not None
-
-        self._n_episodes = len(initial_states) if initial_states is not None else n_episodes
-
-        if n_steps is not None:
-            move_condition = lambda: self._total_steps_counter < n_steps
-
-            steps_progress_bar = tqdm(total=n_steps,  dynamic_ncols=True, disable=quiet, leave=False)
-            episodes_progress_bar = tqdm(disable=True)
-        else:
-            move_condition = lambda: self._total_episodes_counter < self._n_episodes
-
-            steps_progress_bar = tqdm(disable=True)
-            episodes_progress_bar = tqdm(total=self._n_episodes, dynamic_ncols=True, disable=quiet, leave=False)
-
-        self._run_impl(dataset, move_condition, fit_condition, steps_progress_bar, episodes_progress_bar, render,
-                       record, initial_states)
-
-        return dataset
-
-    def _run_impl(self, dataset, move_condition, fit_condition, steps_progress_bar, episodes_progress_bar, render,
-                  record, initial_states):
-        self._total_episodes_counter = 0
-        self._total_steps_counter = 0
-        self._current_episodes_counter = 0
-        self._current_steps_counter = 0
+    def _run(self, dataset, n_steps, n_episodes, render, quiet, record, initial_states=None):
+        self._core_logic.initialize_run(n_steps, n_episodes, initial_states, quiet)
 
         last = True
-        while move_condition():
+        while self._core_logic.move_required():
             if last:
-                self.reset(initial_states)
+                self._reset(initial_states)
 
             sample, step_info = self._step(render, record)
 
             self.callback_step(sample)
-
-            self._total_steps_counter += 1
-            self._current_steps_counter += 1
-            steps_progress_bar.update(1)
-
-            if sample[5]:
-                self._total_episodes_counter += 1
-                self._current_episodes_counter += 1
-                episodes_progress_bar.update(1)
+            self._core_logic.after_step(sample[5])
 
             dataset.append(sample, step_info)
 
-            if fit_condition():
+            if self._core_logic.fit_required():
                 self.agent.fit(dataset)
-                self._current_episodes_counter = 0
-                self._current_steps_counter = 0
+                self._core_logic.after_fit()
 
                 for c in self.callbacks_fit:
                     c(dataset)
@@ -177,8 +123,9 @@ class Core(object):
         if record:
             self._record.stop()
 
-        steps_progress_bar.close()
-        episodes_progress_bar.close()
+        self._core_logic.terminate_run()
+
+        return dataset
 
     def _step(self, render, record):
         """
@@ -195,13 +142,13 @@ class Core(object):
         action, policy_next_state = self.agent.draw_action(self._state, self._policy_state)
         next_state, reward, absorbing, step_info = self.mdp.step(action)
 
-        self._episode_steps += 1
-
         if render:
             frame = self.mdp.render(record)
 
             if record:
                 self._record(frame)
+
+        self._episode_steps += 1
 
         last = not(self._episode_steps < self.mdp.info.horizon and not absorbing)
 
@@ -213,21 +160,18 @@ class Core(object):
 
         return (state, action, reward, next_state, absorbing, last, policy_state, policy_next_state), step_info
 
-    def reset(self, initial_states=None):
+    def _reset(self, initial_states):
         """
         Reset the state of the agent.
 
         """
-        if initial_states is None or self._total_episodes_counter == self._n_episodes:
-            initial_state = None
-        else:
-            initial_state = initial_states[self._total_episodes_counter]
+        initial_state = self._core_logic.get_initial_state(initial_states)
 
         state, episode_info = self.mdp.reset(initial_state)
         self._policy_state = self.agent.episode_start(episode_info)
-
         self._state = self._preprocess(state)
         self.agent.next_action = None
+
         self._episode_steps = 0
 
     def _preprocess(self, state):

@@ -255,6 +255,18 @@ class Dataset(Serializable):
         return self._converter.convert(self.state, self.action, self.reward, self.next_state,
                                        self.absorbing, self.last, to=to)
 
+    def parse_policy_state(self, to='numpy'):
+        """
+        Return the dataset as set of arrays.
+
+        to (str, numpy):  the backend to be used for the returned arrays.
+
+        Returns:
+            A tuple containing the arrays that define the dataset, i.e. state, action, next state, absorbing and last
+
+        """
+        return self._converter.convert(self.policy_state, self.policy_next_state, to=to)
+
     def select_first_episodes(self, n_episodes):
         """
         Return the first ``n_episodes`` episodes in the provided dataset.

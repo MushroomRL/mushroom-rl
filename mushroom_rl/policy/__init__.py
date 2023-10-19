@@ -5,6 +5,7 @@ from .gaussian_policy import GaussianPolicy, DiagonalGaussianPolicy, \
      StateStdGaussianPolicy, StateLogStdGaussianPolicy
 from .deterministic_policy import DeterministicPolicy
 from .torch_policy import TorchPolicy, GaussianTorchPolicy, BoltzmannTorchPolicy
+from .recurrent_torch_policy import RecurrentGaussianTorchPolicy
 from .promps import ProMP
 
 
