@@ -22,18 +22,19 @@ def compute_advantage_montecarlo(V, s, ss, r, absorbing, gamma):
         The new estimate for the value function of the next state
         and the advantage function.
     """
-    r = r.squeeze()
-    q = torch.zeros(len(r))
-    v = V(s, output_tensor=True).squeeze()
+    with torch.no_grad():
+        r = r.squeeze()
+        q = torch.zeros(len(r))
+        v = V(s, output_tensor=True).squeeze()
 
-    q_next = V(ss[-1]).squeeze().item()
-    for rev_k in range(len(r)):
-        k = len(r) - rev_k - 1
-        q_next = r[k] + gamma * q_next * (1 - absorbing[k].int())
-        q[k] = q_next
+        q_next = V(ss[-1]).squeeze().item()
+        for rev_k in range(len(r)):
+            k = len(r) - rev_k - 1
+            q_next = r[k] + gamma * q_next * (1 - absorbing[k].int())
+            q[k] = q_next
 
-    adv = q - v
-    return q[:, None], adv[:, None]
+        adv = q - v
+        return q[:, None], adv[:, None]
 
 
 def compute_advantage(V, s, ss, r, absorbing, gamma):
@@ -56,12 +57,13 @@ def compute_advantage(V, s, ss, r, absorbing, gamma):
         The new estimate for the value function of the next state
         and the advantage function.
     """
-    v = V(s, output_tensor=True).squeeze()
-    v_next = V(ss).squeeze() * (1 - absorbing.int())
+    with torch.no_grad():
+        v = V(s, output_tensor=True).squeeze()
+        v_next = V(ss).squeeze() * (1 - absorbing.int())
 
-    q = r + gamma * v_next
-    adv = q - v
-    return q[:, None], adv[:, None]
+        q = r + gamma * v_next
+        adv = q - v
+        return q[:, None], adv[:, None]
 
 
 def compute_gae(V, s, ss, r, absorbing, last, gamma, lam):
@@ -92,15 +94,16 @@ def compute_gae(V, s, ss, r, absorbing, last, gamma, lam):
         The new estimate for the value function of the next state
         and the estimated generalized advantage.
     """
-    v = V(s, output_tensor=True)
-    v_next = V(ss, output_tensor=True)
-    gen_adv = torch.empty_like(v)
-    for rev_k in range(len(v)):
-        k = len(v) - rev_k - 1
-        if last[k] or rev_k == 0:
-            gen_adv[k] = r[k] - v[k]
-            if not absorbing[k]:
-                gen_adv[k] += gamma * v_next[k]
-        else:
-            gen_adv[k] = r[k] + gamma * v_next[k] - v[k] + gamma * lam * gen_adv[k + 1]
-    return gen_adv + v, gen_adv
+    with torch.no_grad():
+        v = V(s, output_tensor=True)
+        v_next = V(ss, output_tensor=True)
+        gen_adv = torch.empty_like(v)
+        for rev_k in range(len(v)):
+            k = len(v) - rev_k - 1
+            if last[k] or rev_k == 0:
+                gen_adv[k] = r[k] - v[k]
+                if not absorbing[k]:
+                    gen_adv[k] += gamma * v_next[k]
+            else:
+                gen_adv[k] = r[k] + gamma * v_next[k] - v[k] + gamma * lam * gen_adv[k + 1]
+        return gen_adv + v, gen_adv
