@@ -150,6 +150,7 @@ class NumpyDataset(Serializable):
         result._next_states = np.concatenate((self.next_state, other.next_state))
         result._absorbing = np.concatenate((self.absorbing, other.absorbing))
         result._last = np.concatenate((self.last, other.last))
+        result._last[len(self)-1] = True
         result._len = len(self) + len(other)
 
         if result._policy_states is not None:

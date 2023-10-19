@@ -150,6 +150,7 @@ class TorchDataset(Serializable):
         result._next_states = torch.concatenate((self.next_state, other.next_state))
         result._absorbing = torch.concatenate((self.absorbing, other.absorbing))
         result._last = torch.concatenate((self.last, other.last))
+        result._last[len(self) - 1] = True
         result._len = len(self) + len(other)
 
         if result._policy_states is not None:

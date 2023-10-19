@@ -11,7 +11,8 @@ class ListDataset(Serializable):
         self._policy_dataset = list()
 
         self._add_save_attr(
-            _dataset='pickle'
+            _dataset='pickle',
+            _policy_dataset='pickle'
         )
 
     @classmethod
@@ -58,7 +59,11 @@ class ListDataset(Serializable):
 
     def __add__(self, other):
         result = self.copy()
-        result._dataset = self._dataset + other._dataset
+        last_step = result._dataset[-1]
+        modified_last_step = last_step[:-1] + (True,)
+        result._dataset[-1] = modified_last_step
+        result._dataset = result._dataset + other._dataset
+        result._policy_dataset = result._policy_dataset + other._policy_dataset
 
         return result
 
