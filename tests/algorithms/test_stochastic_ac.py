@@ -40,11 +40,9 @@ def learn(alg):
 
     input_shape = (phi.size,)
 
-    mu = Regressor(LinearApproximator, input_shape=input_shape,
-                   output_shape=mdp.info.action_space.shape)
+    mu = Regressor(LinearApproximator, input_shape=input_shape, output_shape=mdp.info.action_space.shape, phi=phi)
 
-    std = Regressor(LinearApproximator, input_shape=input_shape,
-                    output_shape=mdp.info.action_space.shape)
+    std = Regressor(LinearApproximator, input_shape=input_shape, output_shape=mdp.info.action_space.shape, phi=phi)
 
     std_0 = np.sqrt(1.)
     std.set_weights(np.log(std_0) / n_tilings * np.ones(std.weights_size))
@@ -52,12 +50,11 @@ def learn(alg):
     policy = StateLogStdGaussianPolicy(mu, std)
 
     if alg is StochasticAC:
-        agent = alg(mdp.info, policy, alpha_theta, alpha_v, lambda_par=.5,
-                    value_function_features=psi, policy_features=phi)
+        agent = alg(mdp.info, policy, alpha_theta, alpha_v, lambda_par=.5,  value_function_features=psi)
     elif alg is StochasticAC_AVG:
-        agent = alg(mdp.info, policy, alpha_theta, alpha_v, alpha_r,
-                    lambda_par=.5, value_function_features=psi,
-                    policy_features=phi)
+        agent = alg(mdp.info, policy, alpha_theta, alpha_v, alpha_r, lambda_par=.5, value_function_features=psi)
+    else:
+        assert False
 
     core = Core(agent, mdp)
 

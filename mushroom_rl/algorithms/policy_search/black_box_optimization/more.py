@@ -17,7 +17,7 @@ class MORE(BlackBoxOptimization):
     Peters, Jan R and Lau, Nuno and Pualo Reis, Luis and Neumann, Gerhard. 2015.
 
     """
-    def __init__(self, mdp_info, distribution, policy, eps, h0=-75, kappa=0.99, features=None):
+    def __init__(self, mdp_info, distribution, policy, eps, h0=-75, kappa=0.99):
         """
         Constructor.
 
@@ -53,7 +53,7 @@ class MORE(BlackBoxOptimization):
         self._add_save_attr(h0='primitive')
         self._add_save_attr(kappa='primitive')
 
-        super().__init__(mdp_info, distribution, policy, features)
+        super().__init__(mdp_info, distribution, policy)
 
     def _update(self, Jep, theta):
         

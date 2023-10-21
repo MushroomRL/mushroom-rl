@@ -79,7 +79,7 @@ class TRPO(Agent):
             _iter='primitive'
         )
 
-        super().__init__(mdp_info, policy, None)
+        super().__init__(mdp_info, policy)
 
     def fit(self, dataset, **info):
         state, action, reward, next_state, absorbing, last = dataset.parse(to='torch')

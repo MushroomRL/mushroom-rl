@@ -14,8 +14,7 @@ class COPDAC_Q(Agent):
     Silver D. et al.. 2014.
 
     """
-    def __init__(self, mdp_info, policy, mu, alpha_theta, alpha_omega, alpha_v,
-                 value_function_features=None, policy_features=None):
+    def __init__(self, mdp_info, policy, mu, alpha_theta, alpha_omega, alpha_v, value_function_features=None):
         """
         Constructor.
 
@@ -27,7 +26,6 @@ class COPDAC_Q(Agent):
             alpha_v ([float, Parameter]): learning rate for the value function;
             value_function_features (Features, None): features used by the value
                 function approximator;
-            policy_features (Features, None): features used by the policy.
 
         """
         self._mu = mu
@@ -59,19 +57,18 @@ class COPDAC_Q(Agent):
             _A='mushroom'
         )
 
-        super().__init__(mdp_info, policy, policy_features)
+        super().__init__(mdp_info, policy)
 
     def fit(self, dataset, **info):
         for step in dataset:
             s, a, r, ss, absorbing, _ = step
 
-            s_phi = self.phi(s) if self.phi is not None else s
             s_psi = self._psi(s) if self._psi is not None else s
             ss_psi = self._psi(ss) if self._psi is not None else ss
 
             q_next = self._V(ss_psi).item() if not absorbing else 0
 
-            grad_mu_s = np.atleast_2d(self._mu.diff(s_phi))
+            grad_mu_s = np.atleast_2d(self._mu.diff(s))
             omega = self._A.get_weights()
 
             delta = r + self.mdp_info.gamma * q_next - self._Q(s, a)
@@ -96,8 +93,7 @@ class COPDAC_Q(Agent):
                                                             action)).item()
 
     def _nu(self, state, action):
-        state_phi = self.phi(state) if self.phi is not None else state
-        grad_mu = np.atleast_2d(self._mu.diff(state_phi))
-        delta = action - self._mu(state_phi)
+        grad_mu = np.atleast_2d(self._mu.diff(state))
+        delta = action - self._mu(state)
 
         return delta.dot(grad_mu)

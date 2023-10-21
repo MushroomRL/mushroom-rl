@@ -4,7 +4,7 @@ from sklearn.ensemble import ExtraTreesRegressor
 import itertools
 
 import mushroom_rl
-from mushroom_rl.core import MDPInfo
+from mushroom_rl.core import MDPInfo, AgentInfo
 from mushroom_rl.policy.td_policy import TDPolicy
 from mushroom_rl.policy.torch_policy import TorchPolicy
 from mushroom_rl.policy.policy import ParametricPolicy
@@ -60,6 +60,8 @@ class TestUtils:
             assert cls.eq_chain(this, that)
         elif cls._check_type(this, that, MDPInfo):
             assert cls.eq_mdp_info(this, that)
+        elif cls._check_type(this, that, AgentInfo):
+            assert cls.eq_agent_info(this, that)
         elif cls._check_type(this, that, ReplayMemory):
             assert cls.eq_replay_memory(this, that)
         elif cls._check_type(this, that, PrioritizedReplayMemory):
@@ -168,6 +170,18 @@ class TestUtils:
             
         res &= this.gamma == that.gamma
         res &= this.horizon == that.horizon
+        return res
+
+    @classmethod
+    def eq_agent_info(cls, this, that):
+        """
+                Compare two mdp_info objects for equality
+                """
+        res = this.is_episodic == that.is_episodic
+        res &= this.is_stateful == that.is_stateful
+        res &= this.policy_state_shape == that.policy_state_shape
+        res &= this.backend == that.backend
+
         return res
 
     @classmethod
