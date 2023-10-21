@@ -81,7 +81,7 @@ class TRPO(Agent):
 
         super().__init__(mdp_info, policy)
 
-    def fit(self, dataset, **info):
+    def fit(self, dataset):
         state, action, reward, next_state, absorbing, last = dataset.parse(to='torch')
 
         v_target, adv = compute_gae(self._V, state, next_state, reward, absorbing, last,

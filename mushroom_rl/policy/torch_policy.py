@@ -169,9 +169,6 @@ class TorchPolicy(Policy):
         """
         raise NotImplementedError
 
-    def reset(self):
-        pass
-
     @property
     def use_cuda(self):
         """

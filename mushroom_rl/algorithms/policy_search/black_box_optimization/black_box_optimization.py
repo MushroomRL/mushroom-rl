@@ -20,31 +20,24 @@ class BlackBoxOptimization(Agent):
 
         """
         self.distribution = distribution
-        self._theta_list = list()
 
-        self._add_save_attr(distribution='mushroom', _theta_list='pickle')
+        self._add_save_attr(distribution='mushroom')
 
         super().__init__(mdp_info, policy, is_episodic=True)
 
     def episode_start(self, episode_info):
         theta = self.distribution.sample()
-        self._theta_list.append(theta)
         self.policy.set_weights(theta)
 
-        return super().episode_start(episode_info)
+        policy_state, _ = super().episode_start(episode_info)
 
-    def fit(self, dataset, **info):
-        Jep = dataset.compute_J(self.mdp_info.gamma)
+        return policy_state, theta
 
-        Jep = np.array(Jep)
-        theta = np.array(self._theta_list)
+    def fit(self, dataset):
+        Jep = np.array(dataset.discounted_return)
+        theta = np.array(dataset.theta_list)
 
         self._update(Jep, theta)
-
-        self._theta_list = list()
-
-    def stop(self):
-        self._theta_list = list()
 
     def _update(self, Jep, theta):
         """

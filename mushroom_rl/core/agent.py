@@ -66,7 +66,7 @@ class Agent(Serializable):
             _logger='none'
         )
 
-    def fit(self, dataset, **info):
+    def fit(self, dataset):
         """
         Fit step.
 
@@ -106,7 +106,7 @@ class Agent(Serializable):
             episode_info (dict): a dictionary containing the information at reset, such as context.
 
         """
-        return self.policy.reset()
+        return self.policy.reset(), None
 
     def stop(self):
         """

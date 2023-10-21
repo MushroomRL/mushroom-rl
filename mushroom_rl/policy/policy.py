@@ -19,7 +19,7 @@ class Policy(Serializable):
         """
         self.policy_state_shape = policy_state_shape
 
-    def __call__(self, state, action=None, policy_state=None):
+    def __call__(self, state, action, policy_state):
         """
         Compute the probability of taking action in a certain state following
         the policy.
@@ -37,7 +37,7 @@ class Policy(Serializable):
         """
         raise NotImplementedError
 
-    def draw_action(self, state, policy_state=None):
+    def draw_action(self, state, policy_state):
         """
         Sample an action in ``state`` using the policy.
 
@@ -85,7 +85,7 @@ class ParametricPolicy(Policy):
         """
         super().__init__(policy_state_shape)
 
-    def diff_log(self, state, action, policy_state=None):
+    def diff_log(self, state, action, policy_state):
         """
         Compute the gradient of the logarithm of the probability density
         function, in the specified state and action pair, i.e.:

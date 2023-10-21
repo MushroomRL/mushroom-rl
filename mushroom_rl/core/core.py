@@ -27,6 +27,7 @@ class Core(object):
 
         self._state = None
         self._policy_state = None
+        self._current_theta = None
         self._episode_steps = None
 
         self._core_logic = CoreLogic()
@@ -59,7 +60,7 @@ class Core(object):
         assert (render and record) or (not record), "To record, the render flag must be set to true"
         self._core_logic.initialize_fit(n_steps_per_fit, n_episodes_per_fit)
 
-        dataset = Dataset(self.mdp.info, self.agent.policy.policy_state_shape, n_steps_per_fit, n_episodes_per_fit)
+        dataset = Dataset(self.mdp.info, self.agent.info, n_steps_per_fit, n_episodes_per_fit)
 
         self._run(dataset, n_steps, n_episodes, render, quiet, record)
 
@@ -87,7 +88,7 @@ class Core(object):
         self._core_logic.initialize_evaluate()
 
         n_episodes_dataset = len(initial_states) if initial_states is not None else n_episodes
-        dataset = Dataset(self.mdp.info, self.agent.policy.policy_state_shape, n_steps, n_episodes_dataset)
+        dataset = Dataset(self.mdp.info, self.agent.info, n_steps, n_episodes_dataset)
 
         return self._run(dataset, n_steps, n_episodes, render, quiet, record, initial_states)
 
@@ -98,6 +99,8 @@ class Core(object):
         while self._core_logic.move_required():
             if last:
                 self._reset(initial_states)
+                if self.agent.info.is_episodic:
+                    dataset.append_theta(self._current_theta)
 
             sample, step_info = self._step(render, record)
 
@@ -120,10 +123,7 @@ class Core(object):
         self.agent.stop()
         self.mdp.stop()
 
-        if record:
-            self._record.stop()
-
-        self._core_logic.terminate_run()
+        self._end(record)
 
         return dataset
 
@@ -150,7 +150,7 @@ class Core(object):
 
         self._episode_steps += 1
 
-        last = not(self._episode_steps < self.mdp.info.horizon and not absorbing)
+        last = self._episode_steps >= self.mdp.info.horizon or absorbing
 
         state = self._state
         policy_state = self._policy_state
@@ -168,11 +168,22 @@ class Core(object):
         initial_state = self._core_logic.get_initial_state(initial_states)
 
         state, episode_info = self.mdp.reset(initial_state)
-        self._policy_state = self.agent.episode_start(episode_info)
+        self._policy_state, self._current_theta = self.agent.episode_start(episode_info)
         self._state = self._preprocess(state)
         self.agent.next_action = None
 
         self._episode_steps = 0
+
+    def _end(self, record):
+        self._state = None
+        self._policy_state = None
+        self._current_theta = None
+        self._episode_steps = None
+
+        if record:
+            self._record.stop()
+
+        self._core_logic.terminate_run()
 
     def _preprocess(self, state):
         """

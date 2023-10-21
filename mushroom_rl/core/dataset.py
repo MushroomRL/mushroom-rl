@@ -8,7 +8,7 @@ from ._impl import *
 
 
 class Dataset(Serializable):
-    def __init__(self, mdp_info, policy_state_shape, n_steps=None, n_episodes=None):
+    def __init__(self, mdp_info, agent_info, n_steps=None, n_episodes=None):
         assert (n_steps is not None and n_episodes is None) or (n_steps is None and n_episodes is not None)
 
         if n_steps is not None:
@@ -23,14 +23,17 @@ class Dataset(Serializable):
         action_shape = (n_samples,) + mdp_info.action_space.shape
         reward_shape = (n_samples,)
 
-        if policy_state_shape is not None:
-            policy_state_shape = (n_samples,) + policy_state_shape
+        if agent_info.is_stateful:
+            policy_state_shape = (n_samples,) + agent_info.policy_state_shape
+        else:
+            policy_state_shape = None
 
         state_type = mdp_info.observation_space.data_type
         action_type = mdp_info.action_space.data_type
 
         self._info = defaultdict(list)
         self._episode_info = defaultdict(list)
+        self._theta_list = list()
 
         if mdp_info.backend == 'numpy':
             self._data = NumpyDataset(state_type, state_shape, action_type, action_shape, reward_shape,
@@ -48,14 +51,16 @@ class Dataset(Serializable):
         self._add_save_attr(
             _info='pickle',
             _episode_info='pickle',
+            _theta_list='pickle',
             _data='mushroom',
             _converter='primitive',
             _gamma='primitive',
         )
 
     @classmethod
-    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts, policy_state=None,
-                   policy_next_state=None, info=None, episode_info=None, gamma=0.99, backend='numpy'):
+    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts,
+                   policy_state=None, policy_next_state=None, info=None, episode_info=None, theta_list=None,
+                   gamma=0.99, backend='numpy'):
         """
         Creates a dataset of transitions from the provided arrays.
 
@@ -69,7 +74,8 @@ class Dataset(Serializable):
             policy_state (np.ndarray, None): array of policy internal states;
             policy_next_state (np.ndarray, None): array of next policy internal states;
             info (dict, None): dictiornay of step info;
-            episode_info (dict, None): dictiornary of episode info
+            episode_info (dict, None): dictiornary of episode info;
+            theta_list (list, None): list of policy parameters;
             gamma (float, 0.99): discount factor;
             backend (str, 'numpy'): backend to be used by the dataset.
 
@@ -95,6 +101,11 @@ class Dataset(Serializable):
         else:
             dataset._episode_info = episode_info.copy()
 
+        if theta_list is None:
+            dataset._theta_list = list()
+        else:
+            dataset._theta_list = theta_list
+
         if backend == 'numpy':
             dataset._data = NumpyDataset.from_array(states, actions, rewards, next_states, absorbings, lasts)
             dataset._converter = NumpyConversion
@@ -108,6 +119,7 @@ class Dataset(Serializable):
         dataset._add_save_attr(
             _info='pickle',
             _episode_info='pickle',
+            _theta_list='pickle',
             _data='mushroom',
             _converter='primitive',
             _gamma='primitive'
@@ -121,6 +133,9 @@ class Dataset(Serializable):
 
     def append_episode_info(self, info):
         self._append_info(self._episode_info, info)
+
+    def append_theta(self, theta):
+        self._theta_list.append(theta)
 
     def get_info(self, field, index=None):
         if index is None:
@@ -165,6 +180,7 @@ class Dataset(Serializable):
 
         result._info = new_info
         result._episode_info = new_episode_info
+        result.theta_list = result._theta_list + other._theta_list
         result._data = self._data + other._data
 
         return result
@@ -211,6 +227,10 @@ class Dataset(Serializable):
     @property
     def episode_info(self):
         return self._episode_info
+
+    @property
+    def theta_list(self):
+        return self._theta_list
 
     @property
     def episodes_length(self):
@@ -372,6 +392,7 @@ class Dataset(Serializable):
             If no episode has been completed, it returns 0 for all values.
 
         """
+        i = 0
         for i in reversed(range(len(self))):
             if self.last[i]:
                 i += 1

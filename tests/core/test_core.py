@@ -20,7 +20,7 @@ class DummyAgent(Agent):
         policy = RandomDiscretePolicy(mdp_info.action_space.n)
         super().__init__(mdp_info, policy)
 
-    def fit(self, dataset, **info):
+    def fit(self, dataset):
         pass
 
 
