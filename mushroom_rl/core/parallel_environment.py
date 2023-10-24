@@ -1,124 +1,127 @@
-from .environment import Environment
+from multiprocessing import Pipe
+from multiprocessing import Process
+
+from .vectorized_env import VectorizedEnvironment
 
 
-class ParallelEnvironment(object):
+def _parallel_env_worker(remote, env_class, use_generator, args, kwargs):
+
+    if use_generator:
+        env = env_class.generate(*args, **kwargs)
+    else:
+        env = env_class(*args, **kwargs)
+
+    try:
+        while True:
+            cmd, data = remote.recv()
+            if cmd == 'step':
+                action = data[0]
+                res = env.step(action)
+                remote.send(res)
+            elif cmd == 'reset':
+                init_states = data[0]
+                res = env.reset(init_states)
+                remote.send(res)
+            elif cmd in 'stop':
+                env.stop()
+            elif cmd == 'info':
+                remote.send(env.info)
+            elif cmd == 'seed':
+                env.seed(int(data))
+            else:
+                raise NotImplementedError()
+    finally:
+        remote.close()
+
+
+class ParallelEnvironment(VectorizedEnvironment):
     """
-    Basic interface to generate and collect multiple copies of the same environment.
+    Basic interface to run in parallel multiple copies of the same environment.
     This class assumes that the environments are homogeneus, i.e. have the same type and MDP info.
 
     """
-    def __init__(self, env_list):
+    def __init__(self, env_class, *args, n_envs=-1, use_generator=False, **kwargs):
         """
         Constructor.
 
         Args:
-            env_list: list of the environments to be evaluated in parallel.
+            env_class (class): The environment class to be used;
+            *args: the positional arguments to give to the constructor or to the generator of the class;
+            n_envs (int, -1): number of parallel copies of environment to construct;
+            use_generator (bool, False): wheather to use the generator to build the environment or not;
+            **kwargs: keyword arguments to set to the constructor or to the generator;
 
         """
-        self.envs = env_list
+        assert n_envs > 1
 
-    @property
-    def info(self):
-        """
-        Returns:
-             An object containing the info of all environments.
+        self._remotes, self._work_remotes = zip(*[Pipe() for _ in range(n_envs)])
+        self._processes = [Process(target=_parallel_env_worker,
+                                   args=(work_remote, env_class, use_generator, args, kwargs))
+                           for work_remote in self._work_remotes]
 
-        """
-        return self.envs[0].info
+        for p in self._processes:
+            p.start()
 
-    def __len__(self):
-        return len(self.envs)
+        self._remotes[0].send(('info', None))
+        mdp_info = self._remotes[0].recv()
 
-    def __getitem__(self, item):
-        return self.envs[item]
+        super().__init__(mdp_info, n_envs)
 
-    def seed(self, seeds):
-        """
-        Set the seed of all environments.
+    def step_all(self, env_mask, action):
+        for i, remote in enumerate(self._remotes):
+            if env_mask[i]:
+                remote.send(('step', action[i, :]))
 
-        Args:
-            seeds ([int, list]): the value of the seed or a list of seeds for each environment. The list lenght must be
-                equal to the number of parallel environments.
+        results = []
+        for i, remote in enumerate(self._remotes):
+            if env_mask[i]:
+                results.extend(remote.recv())
 
-        """
-        if isinstance(seeds, list):
-            assert len(seeds) == len(self)
-            for env, seed in zip(self.envs,seeds):
-                env.seed(seed)
-        else:
-            for env in self.envs:
-                env.seed(seeds)
+        return zip(*results)  # FIXME!!!
+
+    def reset_all(self, env_mask, state=None):
+        for i in range(self._n_envs):
+            state_i = state[i, :] if state is not None else None
+            self._remotes[i].send(('reset', state_i))
+
+        results = []
+        for i, remote in enumerate(self._remotes):
+            if env_mask[i]:
+                results.extend(remote.recv())
+
+        return zip(*results)  # FIXME!!!
+
+    def seed(self, seed):
+        for remote in self._remotes:
+            remote.send(('seed', seed))
+
+        for remote in self._remotes:
+            remote.recv()
 
     def stop(self):
-        """
-        Method used to stop an mdp. Useful when dealing with real world environments, simulators, or when using
-        openai-gym rendering
+        for remote in self._remotes:
+            remote.send(('stop', None))
 
-        """
-        for env in self.envs:
-            env.stop()
-
-    @staticmethod
-    def make(env_name, n_envs, use_constructor=False, *args, **kwargs):
-        """
-        Generate multiple copies of a given environment using the specified name and parameters.
-        The environment is created using the generate method, if available. Otherwise, the constructor is used.
-        See the `Environment.make` documentation for more information.
-
-        Args:
-            env_name (str): Name of the environment;
-            n_envs (int): Number of environments in parallel to generate;
-            use_constructor (bool, False): whether to force the method to use the constructor instead of the generate
-                method;
-            *args: positional arguments to be provided to the environment generator/constructor;
-            **kwargs: keyword arguments to be provided to the environment generator/constructor.
-
-        Returns:
-            An instance of the constructed environment.
-
-        """
-        if '.' in env_name:
-            env_data = env_name.split('.')
-            env_name = env_data[0]
-            args = env_data[1:] + list(args)
-
-        env = Environment._registered_envs[env_name]
-
-        if not use_constructor and hasattr(env, 'generate'):
-            return ParallelEnvironment.generate(env, *args, **kwargs)
-        else:
-            return ParallelEnvironment([env(*args, **kwargs) for _ in range(n_envs)])
+    def __del__(self):
+        for remote in self._remotes:
+            remote.send(('close', None))
+        for p in self._processes:
+            p.join()
 
     @staticmethod
-    def init(env, n_envs, *args, **kwargs):
-        """
-        Method to generate an array of multiple copies of the same environment, calling the constructor n_envs times
-
-        Args:
-            env (class): the environment to be constructed;
-            *args: positional arguments to be passed to the constructor;
-            n_envs (int, 1): number of environments to generate;
-            **kwargs: keywords arguments to be passed to the constructor
-
-        Returns:
-            A list containing multiple copies of the environment.
-
-        """
-        return
-
-    @staticmethod
-    def generate(env, n_envs, *args, **kwargs):
+    def generate(env, *args, n_envs=-1, **kwargs):
         """
         Method to generate an array of multiple copies of the same environment, calling the generate method n_envs times
 
         Args:
             env (class): the environment to be constructed;
             *args: positional arguments to be passed to the constructor;
-            n_envs (int, 1): number of environments to generate;
+            n_envs (int, -1): number of environments to generate;
             **kwargs: keywords arguments to be passed to the constructor
 
         Returns:
             A list containing multiple copies of the environment.
 
         """
-        return ParallelEnvironment([env.generate(*args, **kwargs) for _ in range(n_envs)])
+        use_generator = hasattr(env, 'generate')
+        return ParallelEnvironment(env, *args, n_envs=n_envs, use_generator=use_generator, **kwargs)
