@@ -6,29 +6,33 @@ from mushroom_rl.core.serialization import Serializable
 
 
 class ListDataset(Serializable):
-    def __init__(self):
+    def __init__(self, is_stateful):
         self._dataset = list()
         self._policy_dataset = list()
+        self._is_stateful = is_stateful
 
         self._add_save_attr(
             _dataset='pickle',
-            _policy_dataset='pickle'
+            _policy_dataset='pickle',
+            _is_stateful='primitive'
         )
 
     @classmethod
     def from_array(cls, states, actions, rewards, next_states, absorbings, lasts, policy_states=None,
                    policy_next_states=None):
-        dataset = cls()
+        is_stateful = (policy_states is not None) and (policy_next_states is not None)
 
-        if policy_states is None:
-            for s, a, r, ss, ab, last in zip(states, actions, rewards, next_states,
-                                             absorbings.astype(bool), lasts.astype(bool)):
-                dataset.append(s, a, r.item(), ss, ab.item(), last.item())
-        else:
+        dataset = cls(is_stateful)
+
+        if dataset._is_stateful:
             for s, a, r, ss, ab, last, ps, pss in zip(states, actions, rewards, next_states,
                                                       absorbings.astype(bool), lasts.astype(bool),
                                                       policy_states, policy_next_states):
                 dataset.append(s, a, r.item(), ss, ab.item(), last.item(), ps.item(), pss.item())
+        else:
+            for s, a, r, ss, ab, last in zip(states, actions, rewards, next_states,
+                                             absorbings.astype(bool), lasts.astype(bool)):
+                dataset.append(s, a, r.item(), ss, ab.item(), last.item())
 
         return dataset
 
@@ -38,7 +42,7 @@ class ListDataset(Serializable):
     def append(self, *step):
         step_copy = deepcopy(step)
         self._dataset.append(step_copy[:6])
-        if len(step_copy) == 8:
+        if self._is_stateful:
             self._policy_dataset.append(step_copy[6:])
 
     def clear(self):

@@ -18,6 +18,14 @@ from mushroom_rl.policy.td_policy import EpsGreedy
 from mushroom_rl.utils.parameters import Parameter
 
 
+def assert_properly_loaded(agent_save, agent_load):
+    for att, method in vars(agent_save).items():
+        if att != 'next_action':
+            save_attr = getattr(agent_save, att)
+            load_attr = getattr(agent_load, att)
+            tu.assert_eq(save_attr, load_attr)
+
+
 class Network(nn.Module):
     def __init__(self, input_shape, output_shape, **kwargs):
         super().__init__()
@@ -80,10 +88,7 @@ def test_q_learning_save(tmpdir):
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-        tu.assert_eq(save_attr, load_attr)
+    assert_properly_loaded(agent_save, agent_load)
 
 
 def test_double_q_learning():
@@ -122,11 +127,7 @@ def test_double_q_learning_save(tmpdir):
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-
-        tu.assert_eq(save_attr, load_attr)
+    assert_properly_loaded(agent_save, agent_load)
 
 
 def test_weighted_q_learning():
@@ -160,11 +161,7 @@ def test_weighted_q_learning_save(tmpdir):
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-
-        tu.assert_eq(save_attr, load_attr)
+    assert_properly_loaded(agent_save, agent_load)
 
 
 def test_maxmin_q_learning():
@@ -198,11 +195,7 @@ def test_maxmin_q_learning_save(tmpdir):
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-
-        tu.assert_eq(save_attr, load_attr)
+    assert_properly_loaded(agent_save, agent_load)
 
 
 def test_speedy_q_learning():
@@ -236,11 +229,7 @@ def test_speedy_q_learning_save(tmpdir):
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-
-        tu.assert_eq(save_attr, load_attr)
+    assert_properly_loaded(agent_save, agent_load)
 
 
 def test_sarsa():
@@ -274,11 +263,7 @@ def test_sarsa_save(tmpdir):
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-
-        tu.assert_eq(save_attr, load_attr)
+    assert_properly_loaded(agent_save, agent_load)
 
 
 def test_q_lambda():
@@ -312,11 +297,7 @@ def test_q_lambda_save(tmpdir):
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-
-        tu.assert_eq(save_attr, load_attr)
+    assert_properly_loaded(agent_save, agent_load)
 
 
 def test_sarsa_lambda_discrete():
@@ -350,11 +331,7 @@ def test_sarsa_lambda_discrete_save(tmpdir):
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-
-        tu.assert_eq(save_attr, load_attr)
+    assert_properly_loaded(agent_save, agent_load)
 
 
 def test_sarsa_lambda_continuous_linear():
@@ -369,11 +346,11 @@ def test_sarsa_lambda_continuous_linear():
     approximator_params = dict(
         input_shape=(features.size,),
         output_shape=(mdp_continuous.info.action_space.n,),
-        n_actions=mdp_continuous.info.action_space.n
+        n_actions=mdp_continuous.info.action_space.n,
+        phi=features
     )
     agent = SARSALambdaContinuous(mdp_continuous.info, pi, LinearApproximator,
-                                  Parameter(.1), .9, features=features,
-                                  approximator_params=approximator_params)
+                                  Parameter(.1), .9,  approximator_params=approximator_params)
 
     core = Core(agent, mdp_continuous)
 
@@ -402,11 +379,11 @@ def test_sarsa_lambda_continuous_linear_save(tmpdir):
     approximator_params = dict(
         input_shape=(features.size,),
         output_shape=(mdp_continuous.info.action_space.n,),
-        n_actions=mdp_continuous.info.action_space.n
+        n_actions=mdp_continuous.info.action_space.n,
+        phi=features,
     )
-    agent_save = SARSALambdaContinuous(mdp_continuous.info, pi, LinearApproximator,
-                                  Parameter(.1), .9, features=features,
-                                  approximator_params=approximator_params)
+    agent_save = SARSALambdaContinuous(mdp_continuous.info, pi, LinearApproximator, Parameter(.1), .9,
+                                       approximator_params=approximator_params)
 
     core = Core(agent_save, mdp_continuous)
 
@@ -416,28 +393,19 @@ def test_sarsa_lambda_continuous_linear_save(tmpdir):
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-
-        tu.assert_eq(save_attr, load_attr)
+    assert_properly_loaded(agent_save, agent_load)
 
 
 def test_sarsa_lambda_continuous_nn():
     pi, _, mdp_continuous = initialize()
-    
-    features = Features(
-        n_outputs=mdp_continuous.info.observation_space.shape[0]
-    )
 
     approximator_params = dict(
-        input_shape=(features.size,),
+        input_shape=mdp_continuous.info.observation_space.shape,
         output_shape=(mdp_continuous.info.action_space.n,),
         network=Network,
-        n_actions=mdp_continuous.info.action_space.n
+        n_actions=mdp_continuous.info.action_space.n,
     )
-    agent = SARSALambdaContinuous(mdp_continuous.info, pi, TorchApproximator,
-                                  Parameter(.1), .9, features=features,
+    agent = SARSALambdaContinuous(mdp_continuous.info, pi, TorchApproximator, Parameter(.1), .9,
                                   approximator_params=approximator_params)
 
     core = Core(agent, mdp_continuous)
@@ -457,19 +425,14 @@ def test_sarsa_lambda_continuous_nn_save(tmpdir):
 
     pi, _, mdp_continuous = initialize()
 
-    features = Features(
-        n_outputs=mdp_continuous.info.observation_space.shape[0]
-    )
-
     approximator_params = dict(
-        input_shape=(features.size,),
+        input_shape=mdp_continuous.info.observation_space.shape,
         output_shape=(mdp_continuous.info.action_space.n,),
         network=Network,
         n_actions=mdp_continuous.info.action_space.n
     )
-    agent_save = SARSALambdaContinuous(mdp_continuous.info, pi, TorchApproximator,
-                                  Parameter(.1), .9, features=features,
-                                  approximator_params=approximator_params)
+    agent_save = SARSALambdaContinuous(mdp_continuous.info, pi, TorchApproximator, Parameter(.1), .9,
+                                       approximator_params=approximator_params)
 
     core = Core(agent_save, mdp_continuous)
 
@@ -479,11 +442,7 @@ def test_sarsa_lambda_continuous_nn_save(tmpdir):
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-
-        tu.assert_eq(save_attr, load_attr)
+    assert_properly_loaded(agent_save, agent_load)
 
 
 def test_expected_sarsa():
@@ -517,11 +476,7 @@ def test_expected_sarsa_save(tmpdir):
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-
-        tu.assert_eq(save_attr, load_attr)
+    assert_properly_loaded(agent_save, agent_load)
 
 
 def test_true_online_sarsa_lambda():
@@ -536,10 +491,10 @@ def test_true_online_sarsa_lambda():
     approximator_params = dict(
         input_shape=(features.size,),
         output_shape=(mdp_continuous.info.action_space.n,),
-        n_actions=mdp_continuous.info.action_space.n
+        n_actions=mdp_continuous.info.action_space.n,
+        phi=features,
     )
-    agent = TrueOnlineSARSALambda(mdp_continuous.info, pi,
-                                  Parameter(.1), .9, features=features,
+    agent = TrueOnlineSARSALambda(mdp_continuous.info, pi, Parameter(.1), .9,
                                   approximator_params=approximator_params)
 
     core = Core(agent, mdp_continuous)
@@ -571,11 +526,11 @@ def test_true_online_sarsa_lambda_save(tmpdir):
     approximator_params = dict(
         input_shape=(features.size,),
         output_shape=(mdp_continuous.info.action_space.n,),
-        n_actions=mdp_continuous.info.action_space.n
+        n_actions=mdp_continuous.info.action_space.n,
+        phi=features,
     )
-    agent_save = TrueOnlineSARSALambda(mdp_continuous.info, pi,
-                                  Parameter(.1), .9, features=features,
-                                  approximator_params=approximator_params)
+    agent_save = TrueOnlineSARSALambda(mdp_continuous.info, pi, Parameter(.1), .9,
+                                       approximator_params=approximator_params)
 
     core = Core(agent_save, mdp_continuous)
 
@@ -585,11 +540,7 @@ def test_true_online_sarsa_lambda_save(tmpdir):
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-
-        tu.assert_eq(save_attr, load_attr)
+    assert_properly_loaded(agent_save, agent_load)
 
 
 def test_r_learning():
@@ -623,11 +574,7 @@ def test_r_learning_save(tmpdir):
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-
-        tu.assert_eq(save_attr, load_attr)
+    assert_properly_loaded(agent_save, agent_load)
 
 
 def test_rq_learning():
@@ -707,7 +654,4 @@ def test_rq_learning_save(tmpdir):
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-        tu.assert_eq(save_attr, load_attr)
+    assert_properly_loaded(agent_save, agent_load)

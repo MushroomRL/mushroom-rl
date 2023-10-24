@@ -14,8 +14,7 @@ class StochasticAC(Agent):
     Degris T. et al.. 2012.
 
     """
-    def __init__(self, mdp_info, policy, alpha_theta, alpha_v, lambda_par=.9,
-                 value_function_features=None, policy_features=None):
+    def __init__(self, mdp_info, policy, alpha_theta, alpha_v, lambda_par=.9, value_function_features=None):
         """
         Constructor.
 
@@ -23,9 +22,7 @@ class StochasticAC(Agent):
             alpha_theta ([float, Parameter]): learning rate for policy update;
             alpha_v ([float, Parameter]): learning rate for the value function;
             lambda_par ([float, Parameter], .9): trace decay parameter;
-            value_function_features (Features, None): features used by the
-                value function approximator;
-            policy_features (Features, None): features used by the policy.
+            value_function_features (Features, None): features used by the value function approximator.
 
         """
         self._psi = value_function_features
@@ -35,15 +32,14 @@ class StochasticAC(Agent):
 
         self._lambda = to_parameter(lambda_par)
 
-        super().__init__(mdp_info, policy, policy_features)
+        super().__init__(mdp_info, policy)
 
         if self._psi is not None:
             input_shape = (self._psi.size,)
         else:
             input_shape = mdp_info.observation_space.shape
 
-        self._V = Regressor(LinearApproximator, input_shape=input_shape,
-                            output_shape=(1,))
+        self._V = Regressor(LinearApproximator, input_shape=input_shape, output_shape=(1,))
 
         self._e_v = np.zeros(self._V.weights_size)
         self._e_theta = np.zeros(self.policy.weights_size)
@@ -64,17 +60,16 @@ class StochasticAC(Agent):
 
         return super().episode_start(episode_info)
 
-    def fit(self, dataset, **info):
+    def fit(self, dataset):
         for step in dataset:
             s, a, r, ss, absorbing, _ = step
 
-            s_phi = self.phi(s) if self.phi is not None else s
             s_psi = self._psi(s) if self._psi is not None else s
             ss_psi = self._psi(ss) if self._psi is not None else ss
 
             v_next = self._V(ss_psi) if not absorbing else 0
 
-            delta = self._compute_td_n_traces(a, r, v_next, s_psi, s_phi)
+            delta = self._compute_td_n_traces(s, a, r, v_next, s_psi)
 
             # Update value function
             delta_v = self._alpha_v(s, a) * delta * self._e_v
@@ -86,14 +81,13 @@ class StochasticAC(Agent):
             theta_new = self.policy.get_weights() + delta_theta
             self.policy.set_weights(theta_new)
 
-    def _compute_td_n_traces(self, a, r, v_next, s_psi, s_phi):
+    def _compute_td_n_traces(self, s, a, r, v_next, s_psi):
         # Compute TD error
         delta = r + self.mdp_info.gamma * v_next - self._V(s_psi)
 
         # Update traces
         self._e_v = self.mdp_info.gamma * self._lambda() * self._e_v + s_psi
-        self._e_theta = self.mdp_info.gamma * self._lambda() * \
-            self._e_theta + self.policy.diff_log(s_phi, a)
+        self._e_theta = self.mdp_info.gamma * self._lambda() * self._e_theta + self.policy.diff_log(s, a)
 
         return delta
 
@@ -105,9 +99,7 @@ class StochasticAC_AVG(StochasticAC):
     Degris T. et al.. 2012.
 
     """
-    def __init__(self, mdp_info, policy, alpha_theta, alpha_v, alpha_r,
-                 lambda_par=.9, value_function_features=None,
-                 policy_features=None):
+    def __init__(self, mdp_info, policy, alpha_theta, alpha_v, alpha_r, lambda_par=.9, value_function_features=None):
         """
         Constructor.
 
@@ -115,21 +107,20 @@ class StochasticAC_AVG(StochasticAC):
             alpha_r (Parameter): learning rate for the reward trace.
 
         """
-        super().__init__(mdp_info, policy, alpha_theta, alpha_v, lambda_par,
-                         value_function_features, policy_features)
+        super().__init__(mdp_info, policy, alpha_theta, alpha_v, lambda_par,  value_function_features)
 
         self._alpha_r = to_parameter(alpha_r)
         self._r_bar = 0
 
         self._add_save_attr(_alpha_r='mushroom', _r_bar='primitive')
 
-    def _compute_td_n_traces(self, a, r, v_next, s_psi, s_phi):
+    def _compute_td_n_traces(self, s, a, r, v_next, s_psi):
         # Compute TD error
         delta = r - self._r_bar + v_next - self._V(s_psi)
 
         # Update traces
         self._r_bar += self._alpha_r() * delta
         self._e_v = self._lambda() * self._e_v + s_psi
-        self._e_theta = self._lambda() * self._e_theta + self.policy.diff_log(s_phi, a)
+        self._e_theta = self._lambda() * self._e_theta + self.policy.diff_log(s, a)
 
         return delta

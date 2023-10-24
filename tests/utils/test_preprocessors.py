@@ -64,20 +64,18 @@ def test_normalizing_preprocessor(tmpdir):
     alg_params = dict(batch_size=5, initial_replay_size=10,
                       max_replay_size=500, target_update_frequency=50)
 
-    agent = DQN(mdp.info, pi, TorchApproximator,
-                approximator_params=approximator_params, **alg_params)
+    agent = DQN(mdp.info, pi, TorchApproximator, approximator_params=approximator_params, **alg_params)
 
-    norm_box = MinMaxPreprocessor(mdp_info=mdp.info,
-                                  clip_obs=5.0, alpha=0.001)
+    norm_box = MinMaxPreprocessor(mdp_info=mdp.info, clip_obs=5.0, alpha=0.001)
     agent.add_preprocessor(norm_box)
 
     core = Core(agent, mdp)
 
     core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
+    dataset = core.evaluate(n_steps=1000)
 
     # training correctly
-    assert (core._state.min() >= -norm_box._clip_obs
-            and core._state.max() <= norm_box._clip_obs)
+    assert (dataset.state.min() >= -norm_box._clip_obs and dataset.state.max() <= norm_box._clip_obs)
 
     # save current dict
     state_dict1 = deepcopy(norm_box.__dict__)

@@ -42,7 +42,7 @@ class DeepAC(Agent):
 
         super().__init__(mdp_info, policy)
 
-    def fit(self, dataset, **info):
+    def fit(self, dataset):
         """
         Fit step.
 

@@ -113,7 +113,7 @@ class CategoricalDQN(AbstractDQN):
 
         super().__init__(mdp_info, policy, TorchApproximator, **params)
 
-    def fit(self, dataset, **info):
+    def fit(self, dataset):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
             state, action, reward, next_state, absorbing, _ =\

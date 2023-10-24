@@ -22,12 +22,12 @@ class CMAC(LinearApproximator):
             **kwargs: other params of the approximator.
 
         """
-        self._phi = Features(tilings=tilings)
+        phi = Features(tilings=tilings)
         self._n = len(tilings)
 
-        super().__init__(weights=weights, input_shape=(self._phi.size,), output_shape=output_shape)
+        super().__init__(weights=weights, input_shape=(phi.size,), output_shape=output_shape, phi=phi)
 
-        self._add_save_attr(_phi='pickle', _n='primitive')
+        self._add_save_attr(_n='primitive')
 
     def fit(self, x, y, alpha=1.0, **kwargs):
         """

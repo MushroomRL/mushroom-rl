@@ -18,7 +18,7 @@ class DoubleFQI(FQI):
         super().__init__(mdp_info, policy, approximator, n_iterations,
                          approximator_params, fit_params, quiet)
 
-    def fit(self, dataset, **info):
+    def fit(self, dataset):
         for _ in trange(self._n_iterations(), dynamic_ncols=True, disable=self._quiet, leave=False):
             state = list()
             action = list()

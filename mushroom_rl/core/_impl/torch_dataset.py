@@ -100,7 +100,7 @@ class TorchDataset(Serializable):
         self._absorbing[i] = absorbing
         self._last[i] = last
 
-        if policy_state is not None:
+        if self._is_stateful:
             self._policy_states[i] = policy_state
             self._policy_next_states[i] = policy_next_state
 
@@ -114,7 +114,7 @@ class TorchDataset(Serializable):
         self._absorbing = torch.empty_like(self._absorbing)
         self._last = torch.empty_like(self._last)
 
-        if self._policy_states is not None:
+        if self._is_stateful:
             self._policy_states = torch.empty_like(self._policy_states)
             self._policy_next_states = torch.empty_like(self._policy_next_states)
 
@@ -131,7 +131,7 @@ class TorchDataset(Serializable):
         view._last = self._last[index, ...]
         view._len = view._states.shape[0]
 
-        if self._policy_states is not None:
+        if self._is_stateful:
             view._policy_states = self._policy_states[index, ...]
             view._policy_next_states = self._policy_next_states[index, ...]
 
@@ -153,7 +153,7 @@ class TorchDataset(Serializable):
         result._last[len(self) - 1] = True
         result._len = len(self) + len(other)
 
-        if result._policy_states is not None:
+        if self._is_stateful:
             result._policy_states = torch.concatenate((self.policy_state, other.policy_state))
             result._policy_next_states = torch.concatenate((self.policy_next_state, other.policy_next_state))
 
@@ -190,3 +190,7 @@ class TorchDataset(Serializable):
     @property
     def policy_next_state(self):
         return self._policy_next_states[:len(self)]
+
+    @property
+    def _is_stateful(self):
+        return self._policy_states is not None

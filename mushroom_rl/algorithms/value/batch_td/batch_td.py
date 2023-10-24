@@ -7,8 +7,7 @@ class BatchTD(Agent):
     Abstract class to implement a generic Batch TD algorithm.
 
     """
-    def __init__(self, mdp_info, policy, approximator, approximator_params=None,
-                 fit_params=None, features=None):
+    def __init__(self, mdp_info, policy, approximator, approximator_params=None, fit_params=None):
         """
         Constructor.
 
@@ -33,7 +32,7 @@ class BatchTD(Agent):
             _fit_params='pickle'
         )
 
-        super().__init__(mdp_info, policy, features)
+        super().__init__(mdp_info, policy)
 
     def _post_load(self):
         self.policy.set_q(self.approximator)

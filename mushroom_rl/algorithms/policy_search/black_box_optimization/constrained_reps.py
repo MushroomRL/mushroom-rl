@@ -9,7 +9,7 @@ class ConstrainedREPS(BlackBoxOptimization):
     Episodic Relative Entropy Policy Search algorithm with constrained policy update.
 
     """
-    def __init__(self, mdp_info, distribution, policy, eps, kappa, features=None):
+    def __init__(self, mdp_info, distribution, policy, eps, kappa):
         """
         Constructor.
 
@@ -28,7 +28,7 @@ class ConstrainedREPS(BlackBoxOptimization):
         self._add_save_attr(_eps='mushroom')
         self._add_save_attr(_kappa='mushroom')
 
-        super().__init__(mdp_info, distribution, policy, features)
+        super().__init__(mdp_info, distribution, policy)
 
     def _update(self, Jep, theta):
         eta_start = np.ones(1)

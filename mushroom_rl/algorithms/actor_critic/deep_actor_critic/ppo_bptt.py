@@ -78,7 +78,7 @@ class PPO_BPTT(Agent):
         assert len(states.shape) > 1, "This function only divides batches of states."
         return states[:, 0:self._dim_env_state], states[:, self._dim_env_state:]
 
-    def fit(self, dataset, **info):
+    def fit(self, dataset):
         obs, act, r, obs_next, absorbing, last = dataset.parse(to='torch')
         policy_state, policy_next_state = dataset.parse_policy_state(to='torch')
         obs_seq, policy_state_seq, act_seq, obs_next_seq, policy_next_state_seq, lengths = \

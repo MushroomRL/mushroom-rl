@@ -81,7 +81,7 @@ class AbstractDQN(Agent):
 
         super().__init__(mdp_info, policy)
 
-    def fit(self, dataset, **info):
+    def fit(self, dataset):
         self._fit(dataset)
 
         self._n_updates += 1

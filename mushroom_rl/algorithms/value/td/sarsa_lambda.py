@@ -9,8 +9,7 @@ class SARSALambda(TD):
     The SARSA(lambda) algorithm for finite MDPs.
 
     """
-    def __init__(self, mdp_info, policy, learning_rate, lambda_coeff,
-                 trace='replacing'):
+    def __init__(self, mdp_info, policy, learning_rate, lambda_coeff, trace='replacing'):
         """
         Constructor.
 

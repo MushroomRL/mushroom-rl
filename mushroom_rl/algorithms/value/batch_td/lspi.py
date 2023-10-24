@@ -12,8 +12,7 @@ class LSPI(BatchTD):
     "Least-Squares Policy Iteration". Lagoudakis M. G. and Parr R.. 2003.
 
     """
-    def __init__(self, mdp_info, policy, approximator_params=None,
-                 epsilon=1e-2, fit_params=None, features=None):
+    def __init__(self, mdp_info, policy, approximator_params=None, epsilon=1e-2, fit_params=None):
         """
         Constructor.
 
@@ -25,20 +24,19 @@ class LSPI(BatchTD):
 
         self._add_save_attr(_epsilon='mushroom')
 
-        super().__init__(mdp_info, policy, LinearApproximator,
-                         approximator_params, fit_params, features)
+        super().__init__(mdp_info, policy, LinearApproximator, approximator_params, fit_params)
 
-    def fit(self, dataset, **info):
+    def fit(self, dataset):
         state, action, reward, next_state, absorbing, _ = dataset.parse()
 
-        phi_state = self.phi(state)
-        phi_next_state = self.phi(next_state)
+        phi_state = self.approximator.model.phi(state)
+        phi_next_state = self.approximator.model.phi(next_state)
 
         phi_state_action = get_action_features(phi_state, action, self.mdp_info.action_space.n)
 
         norm = np.inf
         while norm > self._epsilon():
-            q = self.approximator.predict(phi_next_state)
+            q = self.approximator.predict(next_state)
             if np.any(absorbing):
                 q *= 1 - absorbing.reshape(-1, 1)
 
