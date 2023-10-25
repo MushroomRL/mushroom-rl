@@ -56,7 +56,7 @@ class MuJoCo(Environment):
                 The list has to define a maximum velocity for every occurrence of JOINT_VEL in the observation_spec. The
                 velocity will not be limited in mujoco
              **viewer_params: other parameters to be passed to the viewer.
-                See MujocoGlfwViewer documentation for the available options.
+                See MujocoViewer documentation for the available options.
 
         """
         # Create the simulation
@@ -172,7 +172,7 @@ class MuJoCo(Environment):
 
     def render(self, record=False):
         if self._viewer is None:
-            self._viewer = MujocoGlfwViewer(self._model, self.dt, record=record, **self._viewer_params)
+            self._viewer = MujocoViewer(self._model, self.dt, record=record, **self._viewer_params)
 
         return self._viewer.render(self._data, record)
 
@@ -600,7 +600,7 @@ class MultiMuJoCo(MuJoCo):
             random_env_reset (bool): If True, a random environment/model is chosen after each episode. If False, it is
                 sequentially iterated through the environment/model list.
              **viewer_params: other parameters to be passed to the viewer.
-                See MujocoGlfwViewer documentation for the available options.
+                See MujocoViewer documentation for the available options.
 
         """
         # Create the simulation
