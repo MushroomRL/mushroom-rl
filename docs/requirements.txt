@@ -7,3 +7,4 @@ matplotlib
 joblib
 tqdm
 pygame
+sphinx-rtd-theme
