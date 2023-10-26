@@ -13,3 +13,5 @@ upload:
 clean:
 	rm -rf dist
 	rm -rf build
+
+.NOTPARALLEL:
