@@ -51,9 +51,10 @@ class PuddleWorld(Environment):
             self._actions[i][i // 2] = thrust * (i % 2 * 2 - 1)
 
         # MDP properties
+        dt = 0.1
         action_space = Discrete(5)
         observation_space = Box(0., 1., shape=(2,))
-        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
         # Visualization
         self._pixels = None
@@ -86,7 +87,7 @@ class PuddleWorld(Environment):
 
         return self._state, reward, absorbing, {}
 
-    def render(self):
+    def render(self, record=False):
         if self._pixels is None:
             img_size = 100
             pixels = np.zeros((img_size, img_size, 3))
@@ -114,7 +115,11 @@ class PuddleWorld(Environment):
         self._viewer.polygon(self._goal, 0, goal_area,
                              color=(255, 0, 0), width=1)
 
-        self._viewer.display(0.1)
+        frame = self._viewer.get_frame() if record else None
+
+        self._viewer.display(self.info.dt)
+
+        return frame
 
     def stop(self):
         if self._viewer is not None:

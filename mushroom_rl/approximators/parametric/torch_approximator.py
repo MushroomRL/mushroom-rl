@@ -96,7 +96,7 @@ class TorchApproximator(Serializable):
 
         """
         if not self._use_cuda:
-            torch_args = [torch.from_numpy(x) if isinstance(x, np.ndarray) else x
+            torch_args = [torch.as_tensor(x) if isinstance(x, np.ndarray) else x
                           for x in args]
             val = self.network(*torch_args, **kwargs)
 
@@ -107,7 +107,7 @@ class TorchApproximator(Serializable):
             else:
                 val = val.detach().numpy()
         else:
-            torch_args = [torch.from_numpy(x).cuda()
+            torch_args = [torch.as_tensor(x).cuda()
                           if isinstance(x, np.ndarray) else x.cuda() for x in args]
             val = self.network(*torch_args, **kwargs)
 
@@ -239,15 +239,15 @@ class TorchApproximator(Serializable):
 
     def _compute_batch_loss(self, batch, use_weights, kwargs):
         if use_weights:
-            weights = torch.from_numpy(batch[-1]).type(torch.float)
+            weights = torch.as_tensor(batch[-1]).type(torch.float)
             if self._use_cuda:
                 weights = weights.cuda()
             batch = batch[:-1]
 
         if not self._use_cuda:
-            torch_args = [torch.from_numpy(x) for x in batch]
+            torch_args = [torch.as_tensor(x) for x in batch]
         else:
-            torch_args = [torch.from_numpy(x).cuda() for x in batch]
+            torch_args = [torch.as_tensor(x).cuda() for x in batch]
 
         x = torch_args[:-self._n_fit_targets]
 
@@ -317,9 +317,9 @@ class TorchApproximator(Serializable):
 
         """
         if not self._use_cuda:
-            torch_args = [torch.from_numpy(np.atleast_2d(x)) for x in args]
+            torch_args = [torch.as_tensor(np.atleast_2d(x)) for x in args]
         else:
-            torch_args = [torch.from_numpy(np.atleast_2d(x)).cuda()
+            torch_args = [torch.as_tensor(np.atleast_2d(x)).cuda()
                           for x in args]
 
         y_hat = self.network(*torch_args, **kwargs)

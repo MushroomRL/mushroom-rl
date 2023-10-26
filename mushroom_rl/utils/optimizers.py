@@ -1,5 +1,4 @@
 import numpy as np
-import numpy_ml as npml
 
 from mushroom_rl.core import Serializable
 from mushroom_rl.utils.parameters import Parameter
@@ -124,98 +123,49 @@ class AdamOptimizer(Optimizer):
     This class implements the Adam optimizer.
 
     """
-    def __init__(self, lr=0.001, decay1=0.9, decay2=0.999, maximize=True):
+    def __init__(self, lr=0.001, beta1=0.9, beta2=0.999, eps=1e-7, maximize=True):
         """
         Constructor.
 
         Args:
             lr ([float, Parameter], 0.001): the learning rate;
-            decay1 (float, 0.9): Adam beta1 parameter;
-            decay2 (float, 0.999): Adam beta2 parameter;
+            beta1 (float, 0.9): Adam beta1 parameter;
+            beta2 (float, 0.999): Adam beta2 parameter;
             maximize (bool, True): by default Optimizers do a gradient ascent step. Set to False for gradient descent.
 
         """
         super().__init__(lr, maximize)
         # lr_scheduler must be set to None, as we have our own scheduler
-        self._optimizer = npml.neural_nets.optimizers.Adam(
-            lr=self._lr.initial_value,
-            decay1=decay1,
-            decay2=decay2,
-            lr_scheduler=None
-        )
+        self._m = None
+        self._v = None
+        self._beta1 = beta1
+        self._beta2 = beta2
+        self._eps = eps
+        self._t = 0
 
-        self._add_save_attr(_optimizer='pickle')
-
-    def __call__(self, params, grads):
-        if self._maximize:
-            # -1*grads because numpy_ml does gradient descent by default, not ascent
-            grads *= -1
-        # Fix the numpy_ml optimizer lr to the one we computed
-        self._optimizer.lr_scheduler.lr = self._lr()
-        return self._optimizer.update(params, grads, 'theta')
-
-
-class AdaGradOptimizer(Optimizer):
-    """
-    This class implements the AdaGrad optimizer.
-
-    """
-    def __init__(self, lr=0.001, maximize=True):
-        """
-        Constructor.
-
-        Args:
-            lr ([float, Parameter], 0.001): the learning rate;
-            maximize (bool, True): by default Optimizers do a gradient ascent step. Set to False for gradient descent.
-
-        """
-        super().__init__(lr, maximize)
-        # lr_scheduler must be set to None, as we have our own scheduler
-        self._optimizer = npml.neural_nets.optimizers.AdaGrad(
-            lr=self._lr.initial_value,
-            lr_scheduler=None
-        )
-
-        self._add_save_attr(_optimizer='pickle')
+        self._add_save_attr(_m='numpy',
+                            _v='numpy',
+                            _beta1='primitive',
+                            _beta2='primitive',
+                            _t='primitive'
+                            )
 
     def __call__(self, params, grads):
-        if self._maximize:
-            # -1*grads because numpy_ml does gradient descent by default, not ascent
+        if not self._maximize:
             grads *= -1
-        # Fix the numpy_ml optimizer lr to the one we computed
-        self._optimizer.lr_scheduler.lr = self._lr()
-        return self._optimizer.update(params, grads, 'theta')
 
+        if self._m is None:
+            self._t = 0
+            self._m = np.zeros_like(params)
+            self._v = np.zeros_like(params)
 
-class RMSPropOptimizer(Optimizer):
-    """
-    This class implements the RMSProp optimizer.
+        self._t += 1
+        self._m = self._beta1 * self._m + (1 - self._beta1) * grads
+        self._v = self._beta2 * self._v + (1 - self._beta2) * grads ** 2
 
-    """
-    def __init__(self, lr=0.001, decay=0.9, maximize=True):
-        """
-        Constructor.
+        m_hat = self._m / (1 - self._beta1 ** self._t)
+        v_hat = self._v / (1 - self._beta2 ** self._t)
 
-        Args:
-            lr ([float, Parameter], 0.001): the learning rate;
-            decay (float, 0.9): rate of decay for the moving average;
-            maximize (bool, True): by default Optimizers do a gradient ascent step. Set to False for gradient descent.
+        update = self._lr() * m_hat / (np.sqrt(v_hat) + self._eps)
 
-        """
-        super().__init__(lr, maximize)
-        # lr_scheduler must be set to None, as we have our own scheduler
-        self._optimizer = npml.neural_nets.optimizers.RMSProp(
-            lr=self._lr.initial_value,
-            decay=decay,
-            lr_scheduler=None
-        )
-
-        self._add_save_attr(_optimizer='pickle')
-
-    def __call__(self, params, grads):
-        if self._maximize:
-            # -1*grads because numpy_ml does gradient descent by default, not ascent
-            grads *= -1
-        # Fix the numpy_ml optimizer lr to the one we computed
-        self._optimizer.lr_scheduler.lr = self._lr()
-        return self._optimizer.update(params, grads, 'theta')
+        return params + update

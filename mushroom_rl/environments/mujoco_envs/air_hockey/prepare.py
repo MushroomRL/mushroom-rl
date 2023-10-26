@@ -133,29 +133,3 @@ class AirHockeyPrepare(AirHockeySingle):
                 if puck_pos[0] > 0 or abs(puck_pos[1]) < 0.01:
                     return True
             return False
-
-
-if __name__ == '__main__':
-    env = AirHockeyPrepare(obs_noise=False, n_intermediate_steps=4, random_init=True,
-                           sub_problem="bottom")
-
-    R = 0.
-    J = 0.
-    gamma = 1.
-    steps = 0
-    env.reset()
-    while True:
-        action = np.random.randn(3) * 5
-        observation, reward, done, info = env.step(action)
-        env.render()
-        gamma *= env.info.gamma
-        J += gamma * reward
-        R += reward
-        steps += 4
-        if done or steps > env.info.horizon * 2:
-            print("J: ", J, " R: ", R)
-            R = 0.
-            J = 0.
-            gamma = 1.
-            steps = 0
-            env.reset()

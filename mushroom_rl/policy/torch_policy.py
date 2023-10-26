@@ -6,7 +6,7 @@ import torch.nn as nn
 from mushroom_rl.policy import Policy
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.utils.torch import to_float_tensor
+from mushroom_rl.utils.torch import to_float_tensor, CategoricalWrapper
 from mushroom_rl.utils.parameters import to_parameter
 
 from itertools import chain
@@ -230,11 +230,12 @@ class GaussianTorchPolicy(TorchPolicy):
         return self._action_dim / 2 * np.log(2 * np.pi * np.e) + torch.sum(self._log_sigma)
 
     def distribution_t(self, state):
-        mu, sigma = self.get_mean_and_covariance(state)
-        return torch.distributions.MultivariateNormal(loc=mu, covariance_matrix=sigma)
+        mu, chol_sigma = self.get_mean_and_chol(state)
+        return torch.distributions.MultivariateNormal(loc=mu, scale_tril=chol_sigma, validate_args=False)
 
-    def get_mean_and_covariance(self, state):
-        return self._mu(state, **self._predict_params, output_tensor=True), torch.diag(torch.exp(2 * self._log_sigma))
+    def get_mean_and_chol(self, state):
+        assert torch.all(torch.exp(self._log_sigma) > 0)
+        return self._mu(state, **self._predict_params, output_tensor=True), torch.diag(torch.exp(self._log_sigma))
 
     def set_weights(self, weights):
         log_sigma_data = torch.from_numpy(weights[-self._action_dim:])
@@ -259,13 +260,6 @@ class BoltzmannTorchPolicy(TorchPolicy):
     Torch policy implementing a Boltzmann policy.
 
     """
-    class CategoricalWrapper(torch.distributions.Categorical):
-        def __init__(self, logits):
-            super().__init__(logits=logits)
-
-        def log_prob(self, value):
-            return super().log_prob(value.squeeze())
-
     def __init__(self, network, input_shape, output_shape, beta, use_cuda=False, **params):
         """
         Constructor.
@@ -314,7 +308,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
 
     def distribution_t(self, state):
         logits = self._logits(state, **self._predict_params, output_tensor=True) * self._beta(state.numpy())
-        return BoltzmannTorchPolicy.CategoricalWrapper(logits)
+        return CategoricalWrapper(logits)
 
     def set_weights(self, weights):
         self._logits.set_weights(weights)

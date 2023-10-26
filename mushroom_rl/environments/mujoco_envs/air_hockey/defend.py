@@ -102,29 +102,3 @@ class AirHockeyDefend(AirHockeySingle):
         if (self.has_hit or self.has_bounce) and puck_pos_x > 0:
             return True
         return super().is_absorbing(state)
-
-
-if __name__ == '__main__':
-    env = AirHockeyDefend(obs_noise=False, n_intermediate_steps=4, random_init=True)
-
-    R = 0.
-    J = 0.
-    gamma = 1.
-    steps = 0
-    env.reset()
-    while True:
-        action = np.zeros(3)
-        observation, reward, done, info = env.step(action)
-        env.render()
-        gamma *= env.info.gamma
-        J += gamma * reward
-        R += reward
-        steps += 1
-
-        if done or steps > env.info.horizon:
-            print("J: ", J, " R: ", R)
-            R = 0.
-            J = 0.
-            gamma = 1.
-            steps = 0
-            env.reset()

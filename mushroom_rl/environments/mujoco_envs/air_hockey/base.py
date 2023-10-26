@@ -15,7 +15,8 @@ class AirHockeyBase(MuJoCo):
 
     """
     def __init__(self, n_agents=1, env_noise=False, obs_noise=False, gamma=0.99, horizon=500,
-                 timestep=1 / 240., n_substeps=1, n_intermediate_steps=1, **viewer_params):
+                 timestep=1 / 240., n_substeps=1, n_intermediate_steps=1, default_camera_mode="top_static",
+                 **viewer_params):
         """
         Constructor.
 
@@ -113,7 +114,7 @@ class AirHockeyBase(MuJoCo):
         max_joint_vel = np.concatenate([spec['max_joint_vel'] for spec in self.agents])
         super().__init__(scene, action_spec, observation_spec, gamma, horizon, timestep, n_substeps,
                          n_intermediate_steps, additional_data, collision_spec, max_joint_vel,
-                         **viewer_params)
+                         default_camera_mode=default_camera_mode, **viewer_params)
 
         # Get the transformations from table to robot coordinate system
         for i, agent_spec in enumerate(self.agents):

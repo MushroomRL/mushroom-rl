@@ -1,8 +1,3 @@
-# Uncomment to run tests locally
-# import sys
-# import os
-# sys.path = [os.getcwd()] + sys.path
-
 import torch
 import numpy as np
 from sklearn.ensemble import ExtraTreesRegressor
@@ -21,13 +16,13 @@ from mushroom_rl.approximators import Regressor
 from mushroom_rl.policy.noise_policy import OrnsteinUhlenbeckPolicy
 from mushroom_rl.features._implementations.tiles_features import TilesFeatures
 from mushroom_rl.utils.parameters import Parameter, LinearParameter
-from mushroom_rl.utils.optimizers import AdaptiveOptimizer, SGDOptimizer, AdamOptimizer, AdaGradOptimizer, \
-    RMSPropOptimizer
+from mushroom_rl.utils.optimizers import AdaptiveOptimizer, SGDOptimizer, AdamOptimizer
 from mushroom_rl.distributions.gaussian import GaussianDiagonalDistribution
 from mushroom_rl.utils.table import Table
 from mushroom_rl.utils.spaces import Discrete
 from mushroom_rl.features._implementations.functional_features import FunctionalFeatures
 from mushroom_rl.features._implementations.basis_features import BasisFeatures
+
 
 class TestUtils:
     
@@ -49,11 +44,13 @@ class TestUtils:
                 this = this.model
                 that = that.model
             for i in range(0, len(this)):
-                if cls._check_type(this[i], that[i], list) or cls._check_type(this[i], that[i], Ensemble) or cls._check_type(this[i], that[i], ExtraTreesRegressor):
+                if cls._check_type(this[i], that[i], list) or cls._check_type(this[i], that[i], Ensemble) \
+                        or cls._check_type(this[i], that[i], ExtraTreesRegressor):
                     cls.assert_eq(this[i], that[i])
                 else:
                     assert cls.eq_weights(this[i], that[i])
-        elif  cls._check_subtype(this, that, TorchPolicy) or cls._check_type(this, that, SACPolicy) or cls._check_subtype(this, that, ParametricPolicy):
+        elif cls._check_subtype(this, that, TorchPolicy) or cls._check_type(this, that, SACPolicy) \
+                or cls._check_subtype(this, that, ParametricPolicy):
             assert cls.eq_weights(this, that)
         elif cls._check_subtype(this, that, TDPolicy):
             cls.assert_eq(this.get_q(), that.get_q())
@@ -81,10 +78,6 @@ class TestUtils:
             assert cls.eq_sgd_optimizer(this, that)
         elif cls._check_type(this, that, AdamOptimizer):
             assert cls.eq_adam_optimizer(this, that)
-        elif cls._check_type(this, that, AdaGradOptimizer):
-            assert cls.eq_adagrad_optimizer(this, that)
-        elif cls._check_type(this, that, RMSPropOptimizer):
-            assert cls.eq_rmsprop_optimizer(this, that)
         elif cls._check_type(this, that, GaussianDiagonalDistribution):
             assert cls.eq_gaussian_diagonal_dist(this, that)
         elif cls._check_type(this, that, Table):
@@ -309,24 +302,6 @@ class TestUtils:
     def eq_adam_optimizer(cls, this, that):
         """
         Compare two AdamOptimizer objects for equality
-        """
-
-        res = cls._eq_numpy(this._eps, that._eps)
-        return res
-
-    @classmethod
-    def eq_adagrad_optimizer(cls, this, that):
-        """
-        Compare two AdagradParameterOptimizer objects for equality
-        """
-
-        res = cls._eq_numpy(this._eps, that._eps)
-        return res
-
-    @classmethod
-    def eq_rmsprop_optimizer(cls, this, that):
-        """
-        Compare two RMSPropParameterOptimizer objects for equality
         """
 
         res = cls._eq_numpy(this._eps, that._eps)

@@ -25,9 +25,8 @@ class LQR(Environment):
     Parisi S., Pirotta M., Smacchia N., Bascetta L., Restelli M.. 2014
 
     """
-    def __init__(self, A, B, Q, R, max_pos=np.inf, max_action=np.inf,
-                 random_init=False, episodic=False, gamma=0.9, horizon=50,
-                 initial_state=None):
+    def __init__(self, A, B, Q, R, max_pos=np.inf, max_action=np.inf,  random_init=False, episodic=False, gamma=0.9,
+                 horizon=50, initial_state=None, dt=0.1):
         """
         Constructor.
 
@@ -42,7 +41,8 @@ class LQR(Environment):
                 episodic (bool, False): end the episode when the state goes over
                 the threshold;
                 gamma (float, 0.9): discount factor;
-                horizon (int, 50): horizon of the mdp.
+                horizon (int, 50): horizon of the mdp;
+                dt (float, 0.1): the control timestep of the environment.
 
         """
         self.A = A
@@ -65,7 +65,9 @@ class LQR(Environment):
 
         observation_space = spaces.Box(low=low_x, high=high_x)
         action_space = spaces.Box(low=low_u, high=high_u)
-        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
+
+        self._state = None
 
         super().__init__(mdp_info)
 
@@ -143,8 +145,7 @@ class LQR(Environment):
                 reward = -self._max_pos ** 2 * 10
                 absorbing = True
             else:
-                self._state = self._bound(self._state,
-                                          self.info.observation_space.low,
+                self._state = self._bound(self._state, self.info.observation_space.low,
                                           self.info.observation_space.high)
 
         return self._state, reward, absorbing, {}

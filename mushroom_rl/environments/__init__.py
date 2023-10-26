@@ -43,7 +43,7 @@ except ImportError:
 
 try:
     MuJoCo = None
-    from .mujoco import MuJoCo
+    from .mujoco import MuJoCo, MultiMuJoCo
     from .mujoco_envs import *
 except ImportError:
     pass

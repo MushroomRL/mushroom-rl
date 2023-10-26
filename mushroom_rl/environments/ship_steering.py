@@ -9,8 +9,7 @@ from mushroom_rl.utils.viewer import Viewer
 class ShipSteering(Environment):
     """
     The Ship Steering environment as presented in:
-    "Hierarchical Policy Gradient Algorithms". Ghavamzadeh M. and Mahadevan S..
-    2013.
+    "Hierarchical Policy Gradient Algorithms". Ghavamzadeh M. and Mahadevan S.. 2013.
 
     """
     def __init__(self, small=True, n_steps_action=3):
@@ -30,7 +29,6 @@ class ShipSteering(Environment):
         self.omega_max = np.array([np.pi / 12.])
         self._v = 3.
         self._T = 5.
-        self._dt = .2
         self._gate_s = np.empty(2)
         self._gate_e = np.empty(2)
         self._gate_s[0] = 100 if small else 350
@@ -44,11 +42,12 @@ class ShipSteering(Environment):
         self.n_steps_action = n_steps_action
 
         # MDP properties
+        dt = .2
         observation_space = spaces.Box(low=low, high=high)
         action_space = spaces.Box(low=-self.omega_max, high=self.omega_max)
         horizon = 5000
         gamma = .99
-        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
         # Visualization
         self._viewer = Viewer(self.field_size, self.field_size,
@@ -79,10 +78,10 @@ class ShipSteering(Environment):
         for _ in range(self.n_steps_action):
             state = new_state
             new_state = np.empty(4)
-            new_state[0] = state[0] + self._v * np.cos(state[2]) * self._dt
-            new_state[1] = state[1] + self._v * np.sin(state[2]) * self._dt
-            new_state[2] = normalize_angle(state[2] + state[3] * self._dt)
-            new_state[3] = state[3] + (r - state[3]) * self._dt / self._T
+            new_state[0] = state[0] + self._v * np.cos(state[2]) * self.info.dt
+            new_state[1] = state[1] + self._v * np.sin(state[2]) * self.info.dt
+            new_state[2] = normalize_angle(state[2] + state[3] * self.info.dt)
+            new_state[3] = state[3] + (r - state[3]) * self.info.dt / self._T
 
             if new_state[0] > self.field_size \
                or new_state[1] > self.field_size \
@@ -107,7 +106,7 @@ class ShipSteering(Environment):
 
         return self._state, reward, absorbing, {}
 
-    def render(self, mode='human'):
+    def render(self, record=False):
         self._viewer.line(self._gate_s, self._gate_e,
                           width=3)
 
@@ -121,7 +120,11 @@ class ShipSteering(Environment):
         self._viewer.polygon(self._state[:2], self._state[2], boat,
                              color=(32, 193, 54))
 
-        self._viewer.display(self._dt)
+        frame = self._viewer.get_frame() if record else None
+
+        self._viewer.display(self.info.dt)
+
+        return frame
 
     def stop(self):
         self._viewer.close()

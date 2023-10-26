@@ -152,31 +152,3 @@ class AirHockeyRepelBullet(AirHockeySingleBullet):
     def _create_observation(self, state):
         obs = super(AirHockeyRepelBullet, self)._create_observation(state)
         return np.append(obs, [self.has_hit])
-
-
-if __name__ == "__main__":
-    import time
-
-    env = AirHockeyRepelBullet(debug_gui=True, env_noise=False, obs_noise=False, obs_delay=False, n_intermediate_steps=4,
-                               random_init=True)
-
-    R = 0.
-    J = 0.
-    gamma = 1.
-    steps = 0
-    env.reset()
-    while True:
-        action = np.zeros(3)
-        observation, reward, done, info = env.step(action)
-        gamma *= env.info.gamma
-        J += gamma * reward
-        R += reward
-        steps += 1
-        if done or steps > env.info.horizon:
-            print("J: ", J, " R: ", R)
-            R = 0.
-            J = 0.
-            gamma = 1.
-            steps = 0
-            env.reset()
-        time.sleep(1 / 60.)

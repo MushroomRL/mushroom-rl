@@ -36,15 +36,15 @@ class CartPole(Environment):
         self._g = g
         self._alpha = 1 / (self._m + self._M)
         self._mu = mu
-        self._dt = .1
         self._max_u = max_u
         self._noise_u = noise_u
         high = np.array([np.inf, np.inf])
 
         # MDP properties
+        dt = .1
         observation_space = spaces.Box(low=-high, high=high)
         action_space = spaces.Discrete(3)
-        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
+        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
         # Visualization
         self._viewer = Viewer(2.5 * l, 2.5 * l)
@@ -76,8 +76,7 @@ class CartPole(Environment):
         self._last_u = u
 
         u += np.random.uniform(-self._noise_u, self._noise_u)
-        new_state = odeint(self._dynamics, self._state, [0, self._dt],
-                           (u,))
+        new_state = odeint(self._dynamics, self._state, [0, self.info.dt], (u,))
 
         self._state = np.array(new_state[-1])
         self._state[0] = normalize_angle(self._state[0])
@@ -91,7 +90,7 @@ class CartPole(Environment):
 
         return self._state, reward, absorbing, {}
 
-    def render(self, mode='human'):
+    def render(self, record=False):
         start = 1.25 * self._l * np.ones(2)
         end = 1.25 * self._l * np.ones(2)
 
@@ -107,7 +106,11 @@ class CartPole(Environment):
         self._viewer.force_arrow(start, direction, value,
                                  self._max_u, self._l / 5)
 
-        self._viewer.display(self._dt)
+        frame = self._viewer.get_frame() if record else None
+
+        self._viewer.display(self.info.dt)
+
+        return frame
 
     def stop(self):
         self._viewer.close()

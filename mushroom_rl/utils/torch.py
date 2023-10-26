@@ -126,9 +126,40 @@ def to_int_tensor(x, use_cuda=False):
 
 
 def update_optimizer_parameters(optimizer, new_parameters):
-    for p_old, p_new in zip(optimizer.param_groups[0]['params'], new_parameters):
-        data = optimizer.state[p_old]
-        del optimizer.state[p_old]
-        optimizer.state[p_new] = data
+    if len(optimizer.state) > 0:
+        for p_old, p_new in zip(optimizer.param_groups[0]['params'], new_parameters):
+            data = optimizer.state[p_old]
+            del optimizer.state[p_old]
+            optimizer.state[p_new] = data
 
     optimizer.param_groups[0]['params'] = new_parameters
+
+
+class CategoricalWrapper(torch.distributions.Categorical):
+    """
+    Wrapper for the Torch Categorical distribution.
+
+    Needed to convert a vector of mushroom discrete action in an input with the proper shape of the original
+    distribution implemented in torch
+
+    """
+    def __init__(self, logits):
+        super().__init__(logits=logits)
+
+    def log_prob(self, value):
+        return super().log_prob(value.squeeze())
+
+
+class DiagonalMultivariateGaussian(torch.distributions.Normal):
+    """
+    Wrapper for the Torch Normal distribution, implementing a diagonal distribution.
+
+    It behaves as the MultivariateNormal distribution, but avoids the computation of the full covariance matrix,
+    optimizing the computation time, particulalrly when a high dimensional vector is sampled.
+
+    """
+    def __init__(self, loc, scale):
+        super().__init__(loc=loc, scale=scale)
+
+    def log_prob(self, value):
+        return torch.sum(super().log_prob(value), -1)
