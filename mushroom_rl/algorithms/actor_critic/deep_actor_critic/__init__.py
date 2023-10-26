@@ -5,5 +5,6 @@ from .td3 import TD3
 from .sac import SAC
 from .trpo import TRPO
 from .ppo import PPO
+from .ppo_bptt import PPO_BPTT
 
-__all__ = ['DeepAC', 'A2C', 'DDPG', 'TD3', 'SAC', 'TRPO', 'PPO']
+__all__ = ['DeepAC', 'A2C', 'DDPG', 'TD3', 'SAC', 'TRPO', 'PPO', 'PPO_BPTT']

@@ -3,7 +3,6 @@ import numpy as np
 from mushroom_rl.algorithms.value.batch_td import BatchTD
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.features import get_action_features
-from mushroom_rl.utils.dataset import parse_dataset
 from mushroom_rl.utils.parameters import to_parameter
 
 
@@ -13,8 +12,7 @@ class LSPI(BatchTD):
     "Least-Squares Policy Iteration". Lagoudakis M. G. and Parr R.. 2003.
 
     """
-    def __init__(self, mdp_info, policy, approximator_params=None,
-                 epsilon=1e-2, fit_params=None, features=None):
+    def __init__(self, mdp_info, policy, approximator_params=None, epsilon=1e-2, fit_params=None):
         """
         Constructor.
 
@@ -26,30 +24,26 @@ class LSPI(BatchTD):
 
         self._add_save_attr(_epsilon='mushroom')
 
-        super().__init__(mdp_info, policy, LinearApproximator,
-                         approximator_params, fit_params, features)
+        super().__init__(mdp_info, policy, LinearApproximator, approximator_params, fit_params)
 
-    def fit(self, dataset, **info):
-        phi_state, action, reward, phi_next_state, absorbing, _ = parse_dataset(
-            dataset, self.phi)
-        phi_state_action = get_action_features(phi_state, action,
-                                               self.mdp_info.action_space.n)
+    def fit(self, dataset):
+        state, action, reward, next_state, absorbing, _ = dataset.parse()
+
+        phi_state = self.approximator.model.phi(state)
+        phi_next_state = self.approximator.model.phi(next_state)
+
+        phi_state_action = get_action_features(phi_state, action, self.mdp_info.action_space.n)
 
         norm = np.inf
         while norm > self._epsilon():
-            q = self.approximator.predict(phi_next_state)
+            q = self.approximator.predict(next_state)
             if np.any(absorbing):
                 q *= 1 - absorbing.reshape(-1, 1)
 
             next_action = np.argmax(q, axis=1).reshape(-1, 1)
-            phi_next_state_next_action = get_action_features(
-                phi_next_state,
-                next_action,
-                self.mdp_info.action_space.n
-            )
+            phi_next_state_next_action = get_action_features(phi_next_state, next_action, self.mdp_info.action_space.n)
 
-            tmp = phi_state_action - self.mdp_info.gamma *\
-                phi_next_state_next_action
+            tmp = phi_state_action - self.mdp_info.gamma * phi_next_state_next_action
             A = phi_state_action.T.dot(tmp)
             b = (phi_state_action.T.dot(reward)).reshape(-1, 1)
 

@@ -10,8 +10,7 @@ class PGPE(BlackBoxOptimization):
     Peters J.. 2013.
 
     """
-    def __init__(self, mdp_info, distribution, policy, optimizer,
-                 features=None):
+    def __init__(self, mdp_info, distribution, policy, optimizer):
         """
         Constructor.
 
@@ -23,7 +22,7 @@ class PGPE(BlackBoxOptimization):
 
         self._add_save_attr(optimizer='mushroom')
 
-        super().__init__(mdp_info, distribution, policy, features)
+        super().__init__(mdp_info, distribution, policy)
 
     def _update(self, Jep, theta):
         baseline_num_list = list()

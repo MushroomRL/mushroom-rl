@@ -82,13 +82,13 @@ class MiniGrid(Gym):
             self._state) for _ in range(self._history_length)],
             maxlen=self._history_length
         )
-        return LazyFrames(list(self._state), self._history_length)
+        return LazyFrames(list(self._state), self._history_length), {}
 
     def step(self, action):
         obs, reward, absorbing, info = self.env.step(action)
-        reward *= 1. # Int to float
+        reward = float(reward)
         if reward > 0:
-            reward = 1. # MiniGrid discounts rewards based on timesteps, but we need raw rewards
+            reward = 1.  # MiniGrid discounts rewards based on timesteps, but we need raw rewards
 
         self._state.append(preprocess_frame(obs, self._img_size))
 

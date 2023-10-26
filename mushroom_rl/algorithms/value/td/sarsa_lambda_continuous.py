@@ -10,8 +10,7 @@ class SARSALambdaContinuous(TD):
     Continuous version of SARSA(lambda) algorithm.
 
     """
-    def __init__(self, mdp_info, policy, approximator, learning_rate,
-                 lambda_coeff, features, approximator_params=None):
+    def __init__(self, mdp_info, policy, approximator, learning_rate, lambda_coeff, approximator_params=None):
         """
         Constructor.
 
@@ -19,8 +18,7 @@ class SARSALambdaContinuous(TD):
             lambda_coeff ([float, Parameter]): eligibility trace coefficient.
 
         """
-        approximator_params = dict() if approximator_params is None else \
-            approximator_params
+        approximator_params = dict() if approximator_params is None else approximator_params
 
         Q = Regressor(approximator, **approximator_params)
         self.e = np.zeros(Q.weights_size)
@@ -31,21 +29,17 @@ class SARSALambdaContinuous(TD):
             e='numpy'
         )
 
-        super().__init__(mdp_info, policy, Q, learning_rate, features)
+        super().__init__(mdp_info, policy, Q, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
-        phi_state = self.phi(state)
-        q_current = self.Q.predict(phi_state, action)
+        q_current = self.Q.predict(state, action)
 
         alpha = self._alpha(state, action)
 
-        self.e = self.mdp_info.gamma * self._lambda() * self.e + self.Q.diff(
-            phi_state, action)
+        self.e = self.mdp_info.gamma * self._lambda() * self.e + self.Q.diff(state, action)
 
-        self.next_action = self.draw_action(next_state)
-        phi_next_state = self.phi(next_state)
-        q_next = self.Q.predict(phi_next_state,
-                                self.next_action) if not absorbing else 0.
+        self.next_action, _ = self.draw_action(next_state)
+        q_next = self.Q.predict(next_state, self.next_action) if not absorbing else 0.
 
         delta = reward + self.mdp_info.gamma * q_next - q_current
 
@@ -53,7 +47,7 @@ class SARSALambdaContinuous(TD):
         theta += alpha * delta * self.e
         self.Q.set_weights(theta)
 
-    def episode_start(self):
+    def episode_start(self, episode_info):
         self.e = np.zeros(self.Q.weights_size)
 
-        super().episode_start()
+        return super().episode_start(episode_info)

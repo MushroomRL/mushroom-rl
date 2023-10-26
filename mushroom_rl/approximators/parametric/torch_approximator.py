@@ -10,9 +10,8 @@ from mushroom_rl.utils.torch import get_weights, set_weights, zero_grad, update_
 class TorchApproximator(Serializable):
     """
     Class to interface a pytorch model to the mushroom Regressor interface.
-    This class implements all is needed to use a generic pytorch model and train
-    it using a specified optimizer and objective function.
-    This class supports also minibatches.
+    This class implements all is needed to use a generic pytorch model and train it using a specified optimizer and
+    objective function. This class supports also minibatches.
 
     """
     def __init__(self, input_shape, output_shape, network, optimizer=None,

@@ -6,7 +6,6 @@ from mushroom_rl.algorithms.value import FQI
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.utils.dataset import compute_J
 from mushroom_rl.utils.parameters import Parameter
 
 """
@@ -65,7 +64,7 @@ def experiment():
     # Render
     core.evaluate(n_episodes=3, render=True)
 
-    return np.mean(compute_J(dataset, mdp.info.gamma))
+    return np.mean(dataset.discounted_return)
 
 
 if __name__ == '__main__':
@@ -75,5 +74,5 @@ if __name__ == '__main__':
     logger.strong_line()
     logger.info('Experiment Algorithm: ' + FQI.__name__)
 
-    Js = Parallel(n_jobs=-1)(delayed(experiment)() for _ in range(n_experiment))
+    Js = Parallel(n_jobs=None)(delayed(experiment)() for _ in range(n_experiment))
     logger.info((np.mean(Js)))

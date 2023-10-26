@@ -9,15 +9,22 @@ class AbstractGaussianPolicy(ParametricPolicy):
     Abstract class of Gaussian policies.
 
     """
-    def __call__(self, state, action):
+    def __init__(self, policy_state_shape=None):
+        """
+        Constructor.
+
+        """
+        super().__init__(policy_state_shape)
+
+    def __call__(self, state, action, policy_state=None):
         mu, sigma = self._compute_multivariate_gaussian(state)[:2]
 
         return multivariate_normal.pdf(action, mu, sigma)
 
-    def draw_action(self, state):
+    def draw_action(self, state, policy_state=None):
         mu, sigma = self._compute_multivariate_gaussian(state)[:2]
 
-        return np.random.multivariate_normal(mu, sigma)
+        return np.random.multivariate_normal(mu, sigma), None
 
 
 class GaussianPolicy(AbstractGaussianPolicy):
@@ -29,7 +36,7 @@ class GaussianPolicy(AbstractGaussianPolicy):
     matrix is fixed.
 
     """
-    def __init__(self, mu, sigma):
+    def __init__(self, mu, sigma, policy_state_shape=None):
         """
         Constructor.
 
@@ -41,6 +48,8 @@ class GaussianPolicy(AbstractGaussianPolicy):
                 where n is the action dimensionality.
 
         """
+        super().__init__(policy_state_shape)
+
         self._approximator = mu
         self._predict_params = dict()
         self._inv_sigma = np.linalg.inv(sigma)
@@ -65,7 +74,7 @@ class GaussianPolicy(AbstractGaussianPolicy):
         self._sigma = sigma
         self._inv_sigma = np.linalg.inv(sigma)
 
-    def diff_log(self, state, action):
+    def diff_log(self, state, action, policy_state=None):
         mu, _, inv_sigma = self._compute_multivariate_gaussian(state)
 
         delta = action - mu
@@ -97,16 +106,12 @@ class GaussianPolicy(AbstractGaussianPolicy):
 
 class DiagonalGaussianPolicy(AbstractGaussianPolicy):
     """
-    Gaussian policy with learnable standard deviation.
-    The Covariance matrix is
-    constrained to be a diagonal matrix, where the diagonal is the squared
-    standard deviation vector.
-    This is a differentiable policy for continuous action spaces.
-    This policy is similar to the gaussian policy, but the weights includes
-    also the standard deviation.
+    Gaussian policy with learnable standard deviation. The Covariance matrix is constrained to be a diagonal matrix,
+    where the diagonal is the squared standard deviation vector. This is a differentiable policy for continuous action
+    spaces. This policy is similar to the gaussian policy, but the weights includes also the standard deviation.
 
     """
-    def __init__(self, mu, std):
+    def __init__(self, mu, std, policy_state_shape=None):
         """
         Constructor.
 
@@ -117,6 +122,8 @@ class DiagonalGaussianPolicy(AbstractGaussianPolicy):
                 this vector must be equal to the action dimensionality.
 
         """
+        super().__init__(policy_state_shape)
+
         self._approximator = mu
         self._predict_params = dict()
         self._std = std
@@ -138,7 +145,7 @@ class DiagonalGaussianPolicy(AbstractGaussianPolicy):
         """
         self._std = std
 
-    def diff_log(self, state, action):
+    def diff_log(self, state, action, policy_state=None):
         mu, _, inv_sigma = self._compute_multivariate_gaussian(state)
 
         delta = action - mu
@@ -189,7 +196,7 @@ class StateStdGaussianPolicy(AbstractGaussianPolicy):
     deviation depends on the current state.
 
     """
-    def __init__(self, mu, std, eps=1e-6):
+    def __init__(self, mu, std, eps=1e-6, policy_state_shape=None):
         """
         Constructor.
 
@@ -205,6 +212,8 @@ class StateStdGaussianPolicy(AbstractGaussianPolicy):
         """
         assert(eps > 0)
 
+        super().__init__(policy_state_shape)
+
         self._mu_approximator = mu
         self._std_approximator = std
         self._predict_params = dict()
@@ -217,7 +226,7 @@ class StateStdGaussianPolicy(AbstractGaussianPolicy):
             _eps='primitive'
         )
 
-    def diff_log(self, state, action):
+    def diff_log(self, state, action, policy_state=None):
         mu, sigma, std = self._compute_multivariate_gaussian(state)
         diag_sigma = np.diag(sigma)
 
@@ -282,7 +291,7 @@ class StateLogStdGaussianPolicy(AbstractGaussianPolicy):
     regressor represents the logarithm of the standard deviation.
 
     """
-    def __init__(self, mu, log_std):
+    def __init__(self, mu, log_std, policy_state_shape=None):
         """
         Constructor.
 
@@ -294,6 +303,8 @@ class StateLogStdGaussianPolicy(AbstractGaussianPolicy):
                 regressor must be equal to the action dimensionality.
 
         """
+        super().__init__(policy_state_shape)
+
         self._mu_approximator = mu
         self._log_std_approximator = log_std
         self._predict_params = dict()
@@ -304,7 +315,7 @@ class StateLogStdGaussianPolicy(AbstractGaussianPolicy):
             _predict_params='pickle'
         )
 
-    def diff_log(self, state, action):
+    def diff_log(self, state, action, policy_state=None):
 
         mu, sigma = self._compute_multivariate_gaussian(state)
         diag_sigma = np.diag(sigma)
@@ -343,8 +354,7 @@ class StateLogStdGaussianPolicy(AbstractGaussianPolicy):
 
     @property
     def weights_size(self):
-        return self._mu_approximator.weights_size + \
-               self._log_std_approximator.weights_size
+        return self._mu_approximator.weights_size + self._log_std_approximator.weights_size
 
     def _compute_multivariate_gaussian(self, state):
         mu = np.reshape(self._mu_approximator.predict(

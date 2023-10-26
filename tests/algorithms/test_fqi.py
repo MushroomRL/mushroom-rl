@@ -9,7 +9,6 @@ from mushroom_rl.algorithms.value import BoostedFQI, DoubleFQI, FQI
 from mushroom_rl.core import Core
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.utils.dataset import compute_J
 from mushroom_rl.utils.parameters import Parameter
 
 
@@ -31,8 +30,7 @@ def learn(alg, alg_params):
     approximator = ExtraTreesRegressor
 
     # Agent
-    agent = alg(mdp.info, pi, approximator,
-                approximator_params=approximator_params, **alg_params)
+    agent = alg(mdp.info, pi, approximator, approximator_params=approximator_params, **alg_params)
 
     # Algorithm
     core = Core(agent, mdp)
@@ -44,7 +42,7 @@ def learn(alg, alg_params):
     agent.policy.set_epsilon(test_epsilon)
     dataset = core.evaluate(n_episodes=2)
 
-    return agent, np.mean(compute_J(dataset, mdp.info.gamma))
+    return agent, np.mean(dataset.compute_J(mdp.info.gamma))
 
 
 def test_fqi():

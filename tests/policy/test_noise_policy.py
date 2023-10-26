@@ -17,12 +17,14 @@ def test_ornstein_uhlenbeck_policy():
 
     state = np.random.randn(5)
 
-    action = pi.draw_action(state)
+    policy_state = pi.reset()
+
+    action, policy_state = pi.draw_action(state, policy_state)
     action_test = np.array([-1.95896171,  1.91292747])
     assert np.allclose(action, action_test)
 
-    pi.reset()
-    action = pi.draw_action(state)
+    policy_state = pi.reset()
+    action, policy_state = pi.draw_action(state, policy_state)
     action_test = np.array([-1.94161061,  1.92233358])
     assert np.allclose(action, action_test)
 

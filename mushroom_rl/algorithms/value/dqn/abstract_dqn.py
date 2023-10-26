@@ -81,7 +81,7 @@ class AbstractDQN(Agent):
 
         super().__init__(mdp_info, policy)
 
-    def fit(self, dataset, **info):
+    def fit(self, dataset):
         self._fit(dataset)
 
         self._n_updates += 1
@@ -121,16 +121,9 @@ class AbstractDQN(Agent):
             self.approximator.fit(state, action, q, weights=is_weight,
                                   **self._fit_params)
 
-    def draw_action(self, state):
-        action = super().draw_action(np.array(state))
-
-        return action
-
-    def _initialize_regressors(self, approximator, apprx_params_train,
-                               apprx_params_target):
+    def _initialize_regressors(self, approximator, apprx_params_train, apprx_params_target):
         self.approximator = Regressor(approximator, **apprx_params_train)
-        self.target_approximator = Regressor(approximator,
-                                             **apprx_params_target)
+        self.target_approximator = Regressor(approximator, **apprx_params_target)
         self._update_target()
 
     def _update_target(self):

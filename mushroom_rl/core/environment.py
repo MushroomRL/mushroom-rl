@@ -9,7 +9,7 @@ class MDPInfo(Serializable):
     This class is used to store the information of the environment.
 
     """
-    def __init__(self, observation_space, action_space, gamma, horizon, dt=1e-1):
+    def __init__(self, observation_space, action_space, gamma, horizon, dt=1e-1, backend='numpy'):
         """
         Constructor.
 
@@ -18,7 +18,8 @@ class MDPInfo(Serializable):
              action_space ([Box, Discrete]): the action space;
              gamma (float): the discount factor;
              horizon (int): the horizon;
-             dt (float, 1e-1): the control timestep of the environment.
+             dt (float, 1e-1): the control timestep of the environment;
+             backend (str, 'numpy'): the type of data library used to generate state and actions.
 
         """
         self.observation_space = observation_space
@@ -26,13 +27,15 @@ class MDPInfo(Serializable):
         self.gamma = gamma
         self.horizon = horizon
         self.dt = dt
+        self.backend = backend
 
         self._add_save_attr(
             observation_space='mushroom',
             action_space='mushroom',
             gamma='primitive',
             horizon='primitive',
-            dt='primitive'
+            dt='primitive',
+            backend='primitive'
         )
 
     @property
@@ -145,7 +148,7 @@ class Environment(object):
             state (np.ndarray, None): the state to set to the current state.
 
         Returns:
-            The current state.
+            The current state and a dictionary containing the info for the episode.
 
         """
         raise NotImplementedError

@@ -14,10 +14,10 @@ try:
         p_gains = np.array([200, 300, 100, 100, 10, 10, 2.5])/5
         d_gains = np.array([7, 15, 5, 2.5, 0.3, 0.3, 0.05])/10
 
-        obs_0 = env.reset()
+        obs_0, _ = env.reset()
 
         for _ in [1,2]:
-            obs = env.reset()
+            obs, _ = env.reset()
 
             assert np.array_equal(obs, obs_0)
             done = False

@@ -8,10 +8,11 @@ from mushroom_rl.policy import Policy
 
 class RandomDiscretePolicy(Policy):
     def __init__(self, n):
+        super().__init__()
         self._n = n
 
-    def draw_action(self, state):
-        return [np.random.randint(self._n)]
+    def draw_action(self, state, policy_state=None):
+        return [np.random.randint(self._n)], None
 
 
 class DummyAgent(Agent):
@@ -19,7 +20,7 @@ class DummyAgent(Agent):
         policy = RandomDiscretePolicy(mdp_info.action_space.n)
         super().__init__(mdp_info, policy)
 
-    def fit(self, dataset, **info):
+    def fit(self, dataset):
         pass
 
 
@@ -35,13 +36,13 @@ def test_core():
 
     core.learn(n_steps=100, n_steps_per_fit=1)
 
-    dataset, info = core.evaluate(n_steps=20, get_env_info=True)
+    dataset = core.evaluate(n_steps=20)
 
-    assert 'lives' in info
-    assert 'episode_frame_number' in info
-    assert 'frame_number' in info
+    assert 'lives' in dataset.info
+    assert 'episode_frame_number' in dataset.info
+    assert 'frame_number' in dataset.info
 
-    info_lives = np.array(info['lives'])
+    info_lives = np.array(dataset.info['lives'])
 
     print(info_lives)
     lives_gt = np.array([5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4])

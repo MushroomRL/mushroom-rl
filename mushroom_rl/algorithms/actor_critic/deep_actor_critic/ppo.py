@@ -8,7 +8,6 @@ from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.torch import to_float_tensor, update_optimizer_parameters
 from mushroom_rl.utils.minibatches import minibatch_generator
-from mushroom_rl.utils.dataset import parse_dataset, compute_J
 from mushroom_rl.utils.value_functions import compute_gae
 from mushroom_rl.utils.parameters import to_parameter
 
@@ -69,30 +68,27 @@ class PPO(Agent):
             _iter='primitive'
         )
 
-        super().__init__(mdp_info, policy, None)
+        super().__init__(mdp_info, policy)
 
-    def fit(self, dataset, **info):
-        x, u, r, xn, absorbing, last = parse_dataset(dataset)
-        x = x.astype(np.float32)
-        u = u.astype(np.float32)
-        r = r.astype(np.float32)
-        xn = xn.astype(np.float32)
+    def fit(self, dataset):
+        state, action, reward, next_state, absorbing, last = dataset.parse(to='torch')
 
-        obs = to_float_tensor(x, self.policy.use_cuda)
-        act = to_float_tensor(u, self.policy.use_cuda)
-        v_target, np_adv = compute_gae(self._V, x, xn, r, absorbing, last, self.mdp_info.gamma, self._lambda())
-        np_adv = (np_adv - np.mean(np_adv)) / (np.std(np_adv) + 1e-8)
-        adv = to_float_tensor(np_adv, self.policy.use_cuda)
+        v_target, adv = compute_gae(self._V, state, next_state, reward, absorbing, last,
+                                       self.mdp_info.gamma, self._lambda())
+        adv = (adv - torch.mean(adv)) / (torch.std(adv) + 1e-8)
 
-        old_pol_dist = self.policy.distribution_t(obs)
-        old_log_p = old_pol_dist.log_prob(act)[:, None].detach()
+        adv = adv.detach()
+        v_target = v_target.detach()
 
-        self._V.fit(x, v_target, **self._critic_fit_params)
+        old_pol_dist = self.policy.distribution_t(state)
+        old_log_p = old_pol_dist.log_prob(action)[:, None].detach()
 
-        self._update_policy(obs, act, adv, old_log_p)
+        self._V.fit(state, v_target, **self._critic_fit_params)
+
+        self._update_policy(state, action, adv, old_log_p)
 
         # Print fit information
-        self._log_info(dataset, x, v_target, old_pol_dist)
+        self._log_info(dataset, state, v_target, old_pol_dist)
         self._iter += 1
 
     def _update_policy(self, obs, act, adv, old_log_p):
@@ -124,7 +120,7 @@ class PPO(Agent):
             new_pol_dist = self.policy.distribution(x)
             logging_kl = torch.mean(torch.distributions.kl.kl_divergence(
                 new_pol_dist, old_pol_dist))
-            avg_rwd = np.mean(compute_J(dataset))
+            avg_rwd = np.mean(dataset.undiscounted_return)
             msg = "Iteration {}:\n\t\t\t\trewards {} vf_loss {}\n\t\t\t\tentropy {}  kl {}".format(
                 self._iter, avg_rwd, logging_verr, logging_ent, logging_kl)
 

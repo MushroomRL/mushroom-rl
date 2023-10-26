@@ -2,7 +2,6 @@ import numpy as np
 from tqdm import trange
 
 from mushroom_rl.algorithms.value.batch_td import BatchTD
-from mushroom_rl.utils.dataset import parse_dataset
 from mushroom_rl.utils.parameters import to_parameter
 
 
@@ -34,8 +33,8 @@ class FQI(BatchTD):
 
         super().__init__(mdp_info, policy, approximator, approximator_params, fit_params)
 
-    def fit(self, dataset, **info):
-        state, action, reward, next_state, absorbing, _ = parse_dataset(dataset)
+    def fit(self, dataset):
+        state, action, reward, next_state, absorbing, _ = dataset.parse()
         for _ in trange(self._n_iterations(), dynamic_ncols=True, disable=self._quiet, leave=False):
             if self._target is None:
                 self._target = reward

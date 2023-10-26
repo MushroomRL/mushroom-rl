@@ -42,23 +42,21 @@ class OrnsteinUhlenbeckPolicy(ParametricPolicy):
             _sigma='numpy',
             _theta='primitive',
             _dt='primitive',
-            _x0='numpy',
-            _x_prev='numpy'
+            _x0='numpy'
         )
 
-    def __call__(self, state, action):
+        super().__init__(self._approximator.output_shape)
+
+    def __call__(self, state, action=None, policy_state=None):
         raise NotImplementedError
 
-    def draw_action(self, state):
+    def draw_action(self, state, policy_state):
         mu = self._approximator.predict(state, **self._predict_params)
 
-        x = self._x_prev - self._theta * self._x_prev * self._dt +\
-            self._sigma * np.sqrt(self._dt) * np.random.normal(
-                size=self._approximator.output_shape
-            )
-        self._x_prev = x
+        x = policy_state - self._theta * policy_state * self._dt +\
+            self._sigma * np.sqrt(self._dt) * np.random.normal(size=self._approximator.output_shape)
 
-        return mu + x
+        return mu + x, x
 
     def set_weights(self, weights):
         self._approximator.set_weights(weights)
@@ -71,7 +69,7 @@ class OrnsteinUhlenbeckPolicy(ParametricPolicy):
         return self._approximator.weights_size
 
     def reset(self):
-        self._x_prev = self._x0 if self._x0 is not None else np.zeros(self._approximator.output_shape)
+        return self._x0 if self._x0 is not None else np.zeros(self._approximator.output_shape)
 
 
 class ClippedGaussianPolicy(ParametricPolicy):
@@ -89,7 +87,7 @@ class ClippedGaussianPolicy(ParametricPolicy):
     if the value is bigger than the boundaries. Thus, the non-differentiability.
 
     """
-    def __init__(self, mu, sigma, low, high):
+    def __init__(self, mu, sigma, low, high, policy_state_shape=None):
         """
         Constructor.
 
@@ -105,6 +103,8 @@ class ClippedGaussianPolicy(ParametricPolicy):
                 component.
 
         """
+        super().__init__(policy_state_shape)
+
         self._approximator = mu
         self._predict_params = dict()
         self._sigma = sigma
@@ -119,15 +119,15 @@ class ClippedGaussianPolicy(ParametricPolicy):
             _high='numpy'
         )
 
-    def __call__(self, state, action):
+    def __call__(self, state, action=None, policy_state=None):
         raise NotImplementedError
 
-    def draw_action(self, state):
+    def draw_action(self, state, policy_state=None):
         mu = np.reshape(self._approximator.predict(np.expand_dims(state, axis=0), **self._predict_params), -1)
 
         action_raw = np.random.multivariate_normal(mu, self._sigma)
 
-        return np.clip(action_raw, self._low, self._high)
+        return np.clip(action_raw, self._low, self._high), None
 
     def set_weights(self, weights):
         self._approximator.set_weights(weights)

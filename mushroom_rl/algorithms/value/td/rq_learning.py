@@ -57,16 +57,13 @@ class RQLearning(TD):
             q_next = self._next_q(next_state)
 
             if self.delta is not None:
-                beta = alpha * self.delta(state, action, target=q_next,
-                                          factor=alpha)
+                beta = alpha * self.delta(state, action, target=q_next, factor=alpha)
             else:
                 beta = self.beta(state, action, target=q_next)
 
-            self.Q_tilde[state, action] += beta * (q_next - self.Q_tilde[
-                state, action])
+            self.Q_tilde[state, action] += beta * (q_next - self.Q_tilde[state, action])
 
-        self.Q[state, action] = self.R_tilde[
-            state, action] + self.mdp_info.gamma * self.Q_tilde[state, action]
+        self.Q[state, action] = self.R_tilde[state, action] + self.mdp_info.gamma * self.Q_tilde[state, action]
 
     def _next_q(self, next_state):
         """
@@ -81,6 +78,6 @@ class RQLearning(TD):
         if self.off_policy:
             return np.max(self.Q[next_state, :])
         else:
-            self.next_action = self.draw_action(next_state)
+            self.next_action, _ = self.draw_action(next_state)
 
             return self.Q[next_state, self.next_action]

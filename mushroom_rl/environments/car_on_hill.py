@@ -46,7 +46,7 @@ class CarOnHill(Environment):
         else:
             self._state = state
 
-        return self._state
+        return self._state, {}
 
     def step(self, action):
         action = self._discrete_actions[action[0]]
@@ -55,12 +55,10 @@ class CarOnHill(Environment):
 
         self._state = new_state[-1, :-1]
 
-        if self._state[0] < -self.max_pos or \
-                np.abs(self._state[1]) > self.max_velocity:
+        if self._state[0] < -self.max_pos or np.abs(self._state[1]) > self.max_velocity:
             reward = -1.
             absorbing = True
-        elif self._state[0] > self.max_pos and \
-                np.abs(self._state[1]) <= self.max_velocity:
+        elif self._state[0] > self.max_pos and np.abs(self._state[1]) <= self.max_velocity:
             reward = 1.
             absorbing = True
         else:

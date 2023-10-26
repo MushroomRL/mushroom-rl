@@ -251,7 +251,7 @@ class Habitat(Gym):
     def reset(self, state=None):
         assert state is None, 'Cannot set Habitat state'
         obs = self._convert_observation(np.atleast_1d(self.env.reset()))
-        return obs
+        return obs, {}
 
     def step(self, action):
         action = self._convert_action(action)

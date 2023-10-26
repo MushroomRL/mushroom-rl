@@ -114,26 +114,21 @@ class LQR(Environment):
     def reset(self, state=None):
         if state is None:
             if self.random_init:
-                self._state = self._bound(
-                    np.random.uniform(-3, 3, size=self.A.shape[0]),
-                    self.info.observation_space.low,
-                    self.info.observation_space.high
-                )
+                rand_state = np.random.uniform(-3, 3, size=self.A.shape[0])
+                self._state = self._bound(rand_state, self.info.observation_space.low, self.info.observation_space.high)
             elif self._initial_state is not None:
                 self._state = self._initial_state
             else:
-                init_value = .9 * self._max_pos if np.isfinite(
-                    self._max_pos) else 10
+                init_value = .9 * self._max_pos if np.isfinite(self._max_pos) else 10
                 self._state = init_value * np.ones(self.A.shape[0])
         else:
             self._state = state
 
-        return self._state
+        return self._state, {}
 
     def step(self, action):
         x = self._state
-        u = self._bound(action, self.info.action_space.low,
-                        self.info.action_space.high)
+        u = self._bound(action, self.info.action_space.low, self.info.action_space.high)
 
         reward = -(x.dot(self.Q).dot(x) + u.dot(self.R).dot(u))
         self._state = self.A.dot(x) + self.B.dot(u)

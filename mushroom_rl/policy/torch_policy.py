@@ -20,7 +20,7 @@ class TorchPolicy(Policy):
     required.
 
     """
-    def __init__(self, use_cuda):
+    def __init__(self, use_cuda, policy_state_shape=None):
         """
         Constructor.
 
@@ -28,22 +28,24 @@ class TorchPolicy(Policy):
             use_cuda (bool): whether to use cuda or not.
 
         """
+        super().__init__(policy_state_shape)
+
         self._use_cuda = use_cuda
 
         self._add_save_attr(_use_cuda='primitive')
 
-    def __call__(self, state, action):
+    def __call__(self, state, action, policy_state=None):
         s = to_float_tensor(np.atleast_2d(state), self._use_cuda)
         a = to_float_tensor(np.atleast_2d(action), self._use_cuda)
 
         return np.exp(self.log_prob_t(s, a).item())
 
-    def draw_action(self, state):
+    def draw_action(self, state, policy_state=None):
         with torch.no_grad():
             s = to_float_tensor(np.atleast_2d(state), self._use_cuda)
             a = self.draw_action_t(s)
 
-        return torch.squeeze(a, dim=0).detach().cpu().numpy()
+        return torch.squeeze(a, dim=0).detach().cpu().numpy(), None
 
     def distribution(self, state):
         """
@@ -167,9 +169,6 @@ class TorchPolicy(Policy):
         """
         raise NotImplementedError
 
-    def reset(self):
-        pass
-
     @property
     def use_cuda(self):
         """
@@ -185,7 +184,7 @@ class GaussianTorchPolicy(TorchPolicy):
 
     """
     def __init__(self, network, input_shape, output_shape, std_0=1.,
-                 use_cuda=False, **params):
+                 use_cuda=False, policy_state_shape=None, **params):
         """
         Constructor.
 
@@ -198,7 +197,7 @@ class GaussianTorchPolicy(TorchPolicy):
             params (dict): parameters used by the network constructor.
 
         """
-        super().__init__(use_cuda)
+        super().__init__(use_cuda, policy_state_shape)
 
         self._action_dim = output_shape[0]
 
@@ -260,7 +259,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
     Torch policy implementing a Boltzmann policy.
 
     """
-    def __init__(self, network, input_shape, output_shape, beta, use_cuda=False, **params):
+    def __init__(self, network, input_shape, output_shape, beta, use_cuda=False, policy_state_shape=None, **params):
         """
         Constructor.
 
@@ -276,13 +275,13 @@ class BoltzmannTorchPolicy(TorchPolicy):
             params (dict): parameters used by the network constructor.
 
         """
-        super().__init__(use_cuda)
+        super().__init__(use_cuda, policy_state_shape)
 
         self._action_dim = output_shape[0]
         self._predict_params = dict()
 
         self._logits = Regressor(TorchApproximator, input_shape, output_shape,
-                                 network=network, use_cuda=use_cuda, **params)
+                                 network=network, use_cuda=use_cuda,  **params)
         self._beta = to_parameter(beta)
 
         self._add_save_attr(

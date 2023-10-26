@@ -11,7 +11,7 @@ class RWR(BlackBoxOptimization):
     Peters J.. 2013.
 
     """
-    def __init__(self, mdp_info, distribution, policy, beta, features=None):
+    def __init__(self, mdp_info, distribution, policy, beta):
         """
         Constructor.
 
@@ -24,7 +24,7 @@ class RWR(BlackBoxOptimization):
 
         self._add_save_attr(_beta='mushroom')
 
-        super().__init__(mdp_info, distribution, policy, features)
+        super().__init__(mdp_info, distribution, policy)
 
     def _update(self, Jep, theta):
         Jep -= np.max(Jep)

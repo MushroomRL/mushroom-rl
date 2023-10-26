@@ -56,14 +56,11 @@ class WeightedQLearning(TD):
         alpha = self._alpha(state, action)
 
         self.Q[state, action] = q_current + alpha * (target - q_current)
-        self._Q2[state, action] = q2_current + alpha * (
-            target ** 2 - q2_current
-        )
+        self._Q2[state, action] = q2_current + alpha * (target ** 2 - q2_current)
 
         self._n_updates[state, action] += 1
 
-        self._w2[state, action] = (1 - alpha) ** 2 * self._w2[
-            state, action] + alpha ** 2
+        self._w2[state, action] = (1 - alpha) ** 2 * self._w2[state, action] + alpha ** 2
         self._w1[state, action] = (1 - alpha) * self._w1[state, action] + alpha
 
         if self._n_updates[state, action] > 1:
@@ -90,8 +87,7 @@ class WeightedQLearning(TD):
             sigmas[a] = self._sigma[next_state, np.array([a])]
 
         if self._sampling:
-            samples = np.random.normal(np.repeat([means], self._precision, 0),
-                                       np.repeat([sigmas], self._precision, 0))
+            samples = np.random.normal(np.repeat([means], self._precision, 0), np.repeat([sigmas], self._precision, 0))
             max_idx = np.argmax(samples, axis=1)
             max_idx, max_count = np.unique(max_idx, return_counts=True)
             count = np.zeros(means.size)
