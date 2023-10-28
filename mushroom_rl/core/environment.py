@@ -59,7 +59,7 @@ class MDPInfo(Serializable):
 
 class Environment(object):
     """
-    Basic interface used by any mushroom environment.
+    Basic interface used by any MushroomRL environment.
 
     """
 
@@ -142,13 +142,13 @@ class Environment(object):
 
     def reset(self, state=None):
         """
-        Reset the current state.
+        Reset the environment to the initial state.
 
         Args:
             state (np.ndarray, None): the state to set to the current state.
 
         Returns:
-            The current state and a dictionary containing the info for the episode.
+            The initial state and a dictionary containing the info for the episode.
 
         """
         raise NotImplementedError
@@ -170,6 +170,8 @@ class Environment(object):
 
     def render(self, record=False):
         """
+        Render the environment to screen.
+
         Args:
             record (bool, False): whether the visualized image should be returned or not.
 
@@ -181,7 +183,7 @@ class Environment(object):
 
     def stop(self):
         """
-        Method used to stop an mdp. Useful when dealing with real world environments, simulators, or when using
+        Method used to stop an env. Useful when dealing with real world environments, simulators, or when using
         openai-gym rendering
 
         """

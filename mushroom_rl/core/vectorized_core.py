@@ -1,21 +1,24 @@
+import numpy as np
+
 from mushroom_rl.core.dataset import Dataset
 from mushroom_rl.utils.record import VideoRecorder
 
-from ._impl import CoreLogic
+from ._impl import VectorizedCoreLogic
 
 
-class Core(object):
+class VectorCore(object):
     """
     Implements the functions to run a generic algorithm.
 
     """
+
     def __init__(self, agent, env, callbacks_fit=None, callback_step=None, record_dictionary=None):
         """
         Constructor.
 
         Args:
             agent (Agent): the agent moving according to a policy;
-            env (Environment): the environment in which the agent moves;
+            env (VectorEnvironment): the environment in which the agent moves;
             callbacks_fit (list): list of callbacks to execute at the end of each fit;
             callback_step (Callback): callback to execute after each step;
             record_dictionary (dict, None): a dictionary of parameters for the recording, must containt the
@@ -33,11 +36,11 @@ class Core(object):
         self._current_theta = None
         self._episode_steps = None
 
-        self._core_logic = CoreLogic()
+        self._core_logic = VectorizedCoreLogic(self.env.number)
 
         if record_dictionary is None:
             record_dictionary = dict()
-        self._record = self._build_recorder_class(**record_dictionary)
+        self._record = [self._build_recorder_class(**record_dictionary) for _ in self.env.number]
 
     def learn(self, n_steps=None, n_episodes=None, n_steps_per_fit=None, n_episodes_per_fit=None,
               render=False, record=False, quiet=False):
@@ -63,9 +66,10 @@ class Core(object):
         assert (render and record) or (not record), "To record, the render flag must be set to true"
         self._core_logic.initialize_learn(n_steps_per_fit, n_episodes_per_fit)
 
-        dataset = Dataset(self.env.info, self.agent.info, n_steps_per_fit, n_episodes_per_fit)
+        datasets = [Dataset(self.env.info, self.agent.info, n_steps_per_fit, n_episodes_per_fit)
+                    for _ in self.env.number]
 
-        self._run(dataset, n_steps, n_episodes, render, quiet, record)
+        self._run(datasets, n_steps, n_episodes, render, quiet, record)
 
     def evaluate(self, initial_states=None, n_steps=None, n_episodes=None, render=False, quiet=False, record=False):
         """
@@ -91,35 +95,41 @@ class Core(object):
         self._core_logic.initialize_evaluate()
 
         n_episodes_dataset = len(initial_states) if initial_states is not None else n_episodes
-        dataset = Dataset(self.env.info, self.agent.info, n_steps, n_episodes_dataset)
+        datasets = [Dataset(self.env.info, self.agent.info, n_steps, n_episodes_dataset) for _ in self.env.number]
 
-        return self._run(dataset, n_steps, n_episodes, render, quiet, record, initial_states)
+        return self._run(datasets, n_steps, n_episodes, render, quiet, record, initial_states)
 
-    def _run(self, dataset, n_steps, n_episodes, render, quiet, record, initial_states=None):
+    def _run(self, datasets, n_steps, n_episodes, render, quiet, record, initial_states=None):
         self._core_logic.initialize_run(n_steps, n_episodes, initial_states, quiet)
 
-        last = True
+        last = None
         while self._core_logic.move_required():
-            if last:
-                self._reset(initial_states)
-                if self.agent.info.is_episodic:
-                    dataset.append_theta(self._current_theta)
+            action_mask = self._core_logic.get_action_mask()
+            last = np.logical_and(last, action_mask)
 
-            sample, step_info = self._step(render, record)
+            if np.any(last):
+                self._reset(initial_states, last)
+            sample, step_info = self._step(render, record, action_mask)
 
             self.callback_step(sample)
-            self._core_logic.after_step(sample[5])
 
-            dataset.append(sample, step_info)
+            self._core_logic.after_step(np.logical_and(sample[5], action_mask))
+
+            samples = list(zip(*sample))
+            for i in range(self.env.number):
+                if action_mask[i]:
+                    datasets[i].append(samples[i])
 
             if self._core_logic.fit_required():
-                self.agent.fit(dataset)
+                fit_dataset = self._aggregate(datasets)
+                self.agent.fit(fit_dataset)
                 self._core_logic.after_fit()
 
                 for c in self.callbacks_fit:
-                    c(dataset)
+                    c(datasets)
 
-                dataset.clear()
+                for dataset in datasets:
+                    dataset.clear()
 
             last = sample[5]
 
@@ -128,9 +138,9 @@ class Core(object):
 
         self._end(record)
 
-        return dataset
+        return self._aggregate(datasets)
 
-    def _step(self, render, record):
+    def _step(self, render, record, action_mask):
         """
         Single step.
 
@@ -138,22 +148,22 @@ class Core(object):
             render (bool): whether to render or not.
 
         Returns:
-            A tuple containing the previous state, the action sampled by the agent, the reward obtained, the reached
-            state, the absorbing flag of the reached state and the last step flag.
+            A tuple containing the previous states, the actions sampled by the
+            agent, the rewards obtained, the reached states, the absorbing flags
+            of the reached states and the last step flags.
 
         """
-        action, policy_next_state = self.agent.draw_action(self._state, self._policy_state)
-        next_state, reward, absorbing, step_info = self.env.step(action)
 
-        if render:
-            frame = self.env.render(record)
+        action, policy_next_state = self.agent.draw_action(self._states[action_mask], self._policy_state[action_mask])
 
-            if record:
-                self._record(frame)
+        next_state, rewards, absorbing, step_info = self.env.step_all(action, action_mask)
 
         self._episode_steps += 1
 
-        last = self._episode_steps >= self.env.info.horizon or absorbing
+        if render:
+            self.env.render_all(action_mask, record=record)
+
+        last = np.logical_or(absorbing, self._episode_steps >= self.env.info.horizon)
 
         state = self._state
         policy_state = self._policy_state
@@ -161,21 +171,20 @@ class Core(object):
         self._state = next_state
         self._policy_state = policy_next_state
 
-        return (state, action, reward, next_state, absorbing, last, policy_state, policy_next_state), step_info
+        return (state, action, rewards, next_state, absorbing, last, policy_state, policy_next_state), step_info
 
-    def _reset(self, initial_states):
+    def _reset(self, initial_states, mask):
         """
-        Reset the state of the agent.
+        Reset the states of the agent.
 
         """
         initial_state = self._core_logic.get_initial_state(initial_states)
+        # self.agent.episode_start(mask) FIXME
+        self.agent.episode_start()
 
-        state, episode_info = self.env.reset(initial_state)
-        self._policy_state, self._current_theta = self.agent.episode_start(episode_info)
-        self._state = self._preprocess(state)
+        self._states = self._preprocess(self.env.reset_all(initial_state, mask))
         self.agent.next_action = None
-
-        self._episode_steps = 0
+        self._episode_steps = np.multiply(self._episode_steps, np.logical_not(mask))
 
     def _end(self, record):
         self._state = None
@@ -184,25 +193,35 @@ class Core(object):
         self._episode_steps = None
 
         if record:
-            self._record.stop()
+            for record in self._record:
+                record.stop()
 
         self._core_logic.terminate_run()
 
-    def _preprocess(self, state):
+    def _preprocess(self, states):
         """
         Method to apply state preprocessors.
 
         Args:
-            state (np.ndarray): the state to be preprocessed.
+            states (Iterable of np.ndarray): the states to be preprocessed.
 
         Returns:
-             The preprocessed state.
+             The preprocessed states.
 
         """
         for p in self.agent.preprocessors:
-            state = p(state)
+            states = p(states)
 
-        return state
+        return states
+
+    @staticmethod
+    def _aggregate(datasets):
+        aggregated_dataset = datasets[0]
+
+        for dataset in datasets[1:]:
+            aggregated_dataset += dataset
+
+        return aggregated_dataset
 
     def _build_recorder_class(self, recorder_class=None, fps=None, **kwargs):
         """

@@ -1,10 +1,12 @@
 from multiprocessing import Pipe
 from multiprocessing import Process
 
+import numpy as np
+
 from .vectorized_env import VectorizedEnvironment
 
 
-def _parallel_env_worker(remote, env_class, use_generator, args, kwargs):
+def _env_worker(remote, env_class, use_generator, args, kwargs):
 
     if use_generator:
         env = env_class.generate(*args, **kwargs)
@@ -24,17 +26,19 @@ def _parallel_env_worker(remote, env_class, use_generator, args, kwargs):
                 remote.send(res)
             elif cmd in 'stop':
                 env.stop()
+                remote.send(None)
             elif cmd == 'info':
                 remote.send(env.info)
             elif cmd == 'seed':
                 env.seed(int(data))
+                remote.send(None)
             else:
                 raise NotImplementedError()
     finally:
         remote.close()
 
 
-class ParallelEnvironment(VectorizedEnvironment):
+class MultiprocessEnvironment(VectorizedEnvironment):
     """
     Basic interface to run in parallel multiple copies of the same environment.
     This class assumes that the environments are homogeneus, i.e. have the same type and MDP info.
@@ -55,9 +59,11 @@ class ParallelEnvironment(VectorizedEnvironment):
         assert n_envs > 1
 
         self._remotes, self._work_remotes = zip(*[Pipe() for _ in range(n_envs)])
-        self._processes = [Process(target=_parallel_env_worker,
-                                   args=(work_remote, env_class, use_generator, args, kwargs))
-                           for work_remote in self._work_remotes]
+        self._processes = list()
+
+        for work_remote in self._work_remotes:
+            worker_process = Process(target=_env_worker, args=(work_remote, env_class, use_generator, args, kwargs))
+            self._processes.append(worker_process)
 
         for p in self._processes:
             p.start()
@@ -72,24 +78,45 @@ class ParallelEnvironment(VectorizedEnvironment):
             if env_mask[i]:
                 remote.send(('step', action[i, :]))
 
-        results = []
+        states = list()
+        step_infos = list()
         for i, remote in enumerate(self._remotes):
             if env_mask[i]:
-                results.extend(remote.recv())
+                state, step_info = remote.recv()
+                states.append(remote.recv())
+                step_infos.append(step_info)
 
-        return zip(*results)  # FIXME!!!
+        return np.array(states), step_infos
 
     def reset_all(self, env_mask, state=None):
-        for i in range(self._n_envs):
-            state_i = state[i, :] if state is not None else None
-            self._remotes[i].send(('reset', state_i))
-
-        results = []
         for i, remote in enumerate(self._remotes):
             if env_mask[i]:
-                results.extend(remote.recv())
+                state_i = state[i, :] if state is not None else None
+                remote.send(('reset', state_i))
 
-        return zip(*results)  # FIXME!!!
+        states = list()
+        episode_infos = list()
+        for i, remote in enumerate(self._remotes):
+            if env_mask[i]:
+                state, episode_info = remote.recv()
+                states.append(state)
+                episode_infos.append(episode_info)
+
+        return np.array(states), episode_infos
+
+    def render_all(self, env_mask, record=False):
+        for i, remote in enumerate(self._remotes):
+            if env_mask[i]:
+                remote.send(('render', record))
+
+        frames = list()
+
+        for i, remote in enumerate(self._remotes):
+            if env_mask[i]:
+                frame = remote.recv()
+                frames.append(frame)
+
+        return np.array(frames)
 
     def seed(self, seed):
         for remote in self._remotes:
@@ -124,4 +151,4 @@ class ParallelEnvironment(VectorizedEnvironment):
 
         """
         use_generator = hasattr(env, 'generate')
-        return ParallelEnvironment(env, *args, n_envs=n_envs, use_generator=use_generator, **kwargs)
+        return MultiprocessEnvironment(env, *args, n_envs=n_envs, use_generator=use_generator, **kwargs)

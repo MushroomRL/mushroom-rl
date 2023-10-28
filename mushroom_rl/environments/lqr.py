@@ -41,7 +41,7 @@ class LQR(Environment):
                 episodic (bool, False): end the episode when the state goes over
                 the threshold;
                 gamma (float, 0.9): discount factor;
-                horizon (int, 50): horizon of the mdp;
+                horizon (int, 50): horizon of the env;
                 dt (float, 0.1): the control timestep of the environment.
 
         """
@@ -92,7 +92,7 @@ class LQR(Environment):
             episodic (bool, False): end the episode when the state goes over the
                 threshold;
             gamma (float, .9): discount factor;
-            horizon (int, 50): horizon of the mdp.
+            horizon (int, 50): horizon of the env.
 
         """
         assert dimensions != None or (s_dim != None and a_dim != None)

@@ -19,7 +19,7 @@ class ShipSteering(Environment):
         Args:
              small (bool, True): whether to use a small state space or not.
              n_steps_action (int, 3): number of integration intervals for each
-                                      step of the mdp.
+                                      step of the env.
 
         """
         # MDP parameters
