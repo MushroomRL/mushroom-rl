@@ -40,7 +40,7 @@ class VectorCore(object):
 
         if record_dictionary is None:
             record_dictionary = dict()
-        self._record = [self._build_recorder_class(**record_dictionary) for _ in self.env.number]
+        self._record = [self._build_recorder_class(**record_dictionary) for _ in range(self.env.number)]
 
     def learn(self, n_steps=None, n_episodes=None, n_steps_per_fit=None, n_episodes_per_fit=None,
               render=False, record=False, quiet=False):
@@ -67,7 +67,7 @@ class VectorCore(object):
         self._core_logic.initialize_learn(n_steps_per_fit, n_episodes_per_fit)
 
         datasets = [Dataset(self.env.info, self.agent.info, n_steps_per_fit, n_episodes_per_fit)
-                    for _ in self.env.number]
+                    for _ in range(self.env.number)]
 
         self._run(datasets, n_steps, n_episodes, render, quiet, record)
 
@@ -95,30 +95,28 @@ class VectorCore(object):
         self._core_logic.initialize_evaluate()
 
         n_episodes_dataset = len(initial_states) if initial_states is not None else n_episodes
-        datasets = [Dataset(self.env.info, self.agent.info, n_steps, n_episodes_dataset) for _ in self.env.number]
+        datasets = [Dataset(self.env.info, self.agent.info, n_steps, n_episodes_dataset)
+                    for _ in range(self.env.number)]
 
         return self._run(datasets, n_steps, n_episodes, render, quiet, record, initial_states)
 
     def _run(self, datasets, n_steps, n_episodes, render, quiet, record, initial_states=None):
         self._core_logic.initialize_run(n_steps, n_episodes, initial_states, quiet)
 
-        last = None
+        last = np.ones(self.env.number, dtype=bool)
         while self._core_logic.move_required():
             action_mask = self._core_logic.get_action_mask()
             last = np.logical_and(last, action_mask)
 
             if np.any(last):
                 self._reset(initial_states, last)
-            sample, step_info = self._step(render, record, action_mask)
+            samples, step_infos = self._step(render, record, action_mask)
 
-            self.callback_step(sample)
+            self.callback_step(samples)
 
-            self._core_logic.after_step(np.logical_and(sample[5], action_mask))
+            self._core_logic.after_step(np.logical_and(samples[5], action_mask))
 
-            samples = list(zip(*sample))
-            for i in range(self.env.number):
-                if action_mask[i]:
-                    datasets[i].append(samples[i])
+            self._add_to_dataset(action_mask, datasets, samples, step_infos)
 
             if self._core_logic.fit_required():
                 fit_dataset = self._aggregate(datasets)
@@ -131,7 +129,7 @@ class VectorCore(object):
                 for dataset in datasets:
                     dataset.clear()
 
-            last = sample[5]
+            last = samples[5]
 
         self.agent.stop()
         self.env.stop()
@@ -139,6 +137,13 @@ class VectorCore(object):
         self._end(record)
 
         return self._aggregate(datasets)
+
+    def _add_to_dataset(self, action_mask, datasets, samples, step_infos):
+        for i in range(self.env.number):
+            if action_mask[i]:
+                sample = (samples[0][i], samples[1][i], samples[2][i], samples[3][i], samples[4][i], samples[5][i])
+                step_info = step_infos[i]
+                datasets[i].append(sample, step_info)
 
     def _step(self, render, record, action_mask):
         """
@@ -153,10 +158,9 @@ class VectorCore(object):
             of the reached states and the last step flags.
 
         """
+        action, policy_next_state = self.agent.draw_action(self._state, self._policy_state)
 
-        action, policy_next_state = self.agent.draw_action(self._states[action_mask], self._policy_state[action_mask])
-
-        next_state, rewards, absorbing, step_info = self.env.step_all(action, action_mask)
+        next_state, rewards, absorbing, step_info = self.env.step_all(action_mask, action)
 
         self._episode_steps += 1
 
@@ -179,12 +183,16 @@ class VectorCore(object):
 
         """
         initial_state = self._core_logic.get_initial_state(initial_states)
-        # self.agent.episode_start(mask) FIXME
-        self.agent.episode_start()
 
-        self._states = self._preprocess(self.env.reset_all(initial_state, mask))
+        state, episode_info = self._preprocess(self.env.reset_all(mask, initial_state))
+        self._policy_state, self._current_theta = self.agent.episode_start(episode_info)  # FIXME add mask support
+        self._state = self._preprocess(state)
         self.agent.next_action = None
-        self._episode_steps = np.multiply(self._episode_steps, np.logical_not(mask))
+
+        if self._episode_steps is None:
+            self._episode_steps = np.zeros(self.env.number, dtype=int)
+        else:
+            self._episode_steps[np.logical_not(mask)] = 0
 
     def _end(self, record):
         self._state = None
@@ -218,10 +226,13 @@ class VectorCore(object):
     def _aggregate(datasets):
         aggregated_dataset = datasets[0]
 
-        for dataset in datasets[1:]:
-            aggregated_dataset += dataset
+        if len(aggregated_dataset) > 0:
+            for dataset in datasets[1:]:
+                aggregated_dataset += dataset
 
-        return aggregated_dataset
+            return aggregated_dataset
+        else:
+            return None
 
     def _build_recorder_class(self, recorder_class=None, fps=None, **kwargs):
         """

@@ -109,23 +109,22 @@ class PPO(Agent):
 
     def _log_info(self, dataset, x, v_target, old_pol_dist):
         if self._logger:
-            logging_verr = []
-            torch_v_targets = torch.tensor(v_target, dtype=torch.float)
-            for idx in range(len(self._V)):
-                v_pred = torch.tensor(self._V(x, idx=idx), dtype=torch.float)
-                v_err = F.mse_loss(v_pred, torch_v_targets)
-                logging_verr.append(v_err.item())
+            with torch.no_grad():
+                logging_verr = []
+                for idx in range(len(self._V)):
+                    v_pred = self._V(x, idx=idx, output_tensor=True)
+                    v_err = F.mse_loss(v_pred, v_target)
+                    logging_verr.append(v_err.item())
 
-            logging_ent = self.policy.entropy(x)
-            new_pol_dist = self.policy.distribution(x)
-            logging_kl = torch.mean(torch.distributions.kl.kl_divergence(
-                new_pol_dist, old_pol_dist))
-            avg_rwd = np.mean(dataset.undiscounted_return)
-            msg = "Iteration {}:\n\t\t\t\trewards {} vf_loss {}\n\t\t\t\tentropy {}  kl {}".format(
-                self._iter, avg_rwd, logging_verr, logging_ent, logging_kl)
+                logging_ent = self.policy.entropy(x)
+                new_pol_dist = self.policy.distribution(x)
+                logging_kl = torch.mean(torch.distributions.kl.kl_divergence(new_pol_dist, old_pol_dist))
+                avg_rwd = np.mean(dataset.undiscounted_return)
+                msg = "Iteration {}:\n\t\t\t\trewards {} vf_loss {}\n\t\t\t\tentropy {}  kl {}".format(
+                    self._iter, avg_rwd, logging_verr, logging_ent, logging_kl)
 
-            self._logger.info(msg)
-            self._logger.weak_line()
+                self._logger.info(msg)
+                self._logger.weak_line()
 
     def _post_load(self):
         if self._optimizer is not None:

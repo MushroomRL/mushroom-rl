@@ -105,7 +105,7 @@ def to_float_tensor(x, use_cuda=False):
         A float tensor build from the values contained in the input array.
 
     """
-    x = torch.tensor(x, dtype=torch.float)
+    x = torch.as_tensor(x, dtype=torch.float)
     return x.cuda() if use_cuda else x
 
 

@@ -1,5 +1,4 @@
-from multiprocessing import Pipe
-from multiprocessing import Process
+from multiprocessing import Pipe, Process, cpu_count
 
 import numpy as np
 
@@ -16,13 +15,24 @@ def _env_worker(remote, env_class, use_generator, args, kwargs):
     try:
         while True:
             cmd, data = remote.recv()
+
+            # if data is None:
+            #     print(f'Executed command {cmd} with None data')
+
             if cmd == 'step':
-                action = data[0]
+                action = data
                 res = env.step(action)
                 remote.send(res)
             elif cmd == 'reset':
-                init_states = data[0]
+                if data is not None:
+                    init_states = data[0]
+                else:
+                    init_states = None
                 res = env.reset(init_states)
+                remote.send(res)
+            elif cmd == 'render':
+                record = data
+                res = env.render(record=record)
                 remote.send(res)
             elif cmd in 'stop':
                 env.stop()
@@ -32,7 +42,10 @@ def _env_worker(remote, env_class, use_generator, args, kwargs):
             elif cmd == 'seed':
                 env.seed(int(data))
                 remote.send(None)
+            elif cmd == 'close':
+                break
             else:
+                print(f'cmd {cmd}')
                 raise NotImplementedError()
     finally:
         remote.close()
@@ -56,7 +69,10 @@ class MultiprocessEnvironment(VectorizedEnvironment):
             **kwargs: keyword arguments to set to the constructor or to the generator;
 
         """
-        assert n_envs > 1
+        assert n_envs > 1 or n_envs == -1
+
+        if n_envs == -1:
+            n_envs = cpu_count()
 
         self._remotes, self._work_remotes = zip(*[Pipe() for _ in range(n_envs)])
         self._processes = list()
@@ -73,20 +89,9 @@ class MultiprocessEnvironment(VectorizedEnvironment):
 
         super().__init__(mdp_info, n_envs)
 
-    def step_all(self, env_mask, action):
-        for i, remote in enumerate(self._remotes):
-            if env_mask[i]:
-                remote.send(('step', action[i, :]))
-
-        states = list()
-        step_infos = list()
-        for i, remote in enumerate(self._remotes):
-            if env_mask[i]:
-                state, step_info = remote.recv()
-                states.append(remote.recv())
-                step_infos.append(step_info)
-
-        return np.array(states), step_infos
+        self._state_shape = (n_envs,) + self.info.observation_space.shape
+        self._reward_shape = (n_envs,)
+        self._absorbing_shape = (n_envs,)
 
     def reset_all(self, env_mask, state=None):
         for i, remote in enumerate(self._remotes):
@@ -94,15 +99,41 @@ class MultiprocessEnvironment(VectorizedEnvironment):
                 state_i = state[i, :] if state is not None else None
                 remote.send(('reset', state_i))
 
-        states = list()
+        states = np.empty(self._state_shape)
         episode_infos = list()
         for i, remote in enumerate(self._remotes):
             if env_mask[i]:
                 state, episode_info = remote.recv()
-                states.append(state)
-                episode_infos.append(episode_info)
 
-        return np.array(states), episode_infos
+                states[i] = state
+                episode_infos.append(episode_info)
+            else:
+                episode_infos.append({})
+
+        return states, episode_infos
+
+    def step_all(self, env_mask, action):
+        for i, remote in enumerate(self._remotes):
+            if env_mask[i]:
+                remote.send(('step', action[i, :]))
+
+        states = np.empty(self._state_shape)
+        rewards = np.empty(self._reward_shape)
+        absorbings = np.empty(self._absorbing_shape, dtype=bool)
+        step_infos = list()
+
+        for i, remote in enumerate(self._remotes):
+            if env_mask[i]:
+                state, reward, absorbing, step_info = remote.recv()
+
+                states[i] = state
+                rewards[i] = reward
+                absorbings[i] = absorbing
+                step_infos.append(step_info)
+            else:
+                step_infos.append({})
+
+        return states, rewards, absorbings, step_infos
 
     def render_all(self, env_mask, record=False):
         for i, remote in enumerate(self._remotes):
@@ -128,12 +159,15 @@ class MultiprocessEnvironment(VectorizedEnvironment):
     def stop(self):
         for remote in self._remotes:
             remote.send(('stop', None))
+            remote.recv()
 
     def __del__(self):
-        for remote in self._remotes:
-            remote.send(('close', None))
-        for p in self._processes:
-            p.join()
+        if hasattr(self, '_remotes'):
+            for remote in self._remotes:
+                remote.send(('close', None))
+        if hasattr(self, '_processes'):
+            for p in self._processes:
+                p.join()
 
     @staticmethod
     def generate(env, *args, n_envs=-1, **kwargs):

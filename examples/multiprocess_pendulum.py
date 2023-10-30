@@ -6,9 +6,9 @@ import torch.optim as optim
 import numpy as np
 from tqdm import trange
 
-from mushroom_rl.core import Core, Logger
+from mushroom_rl.core import VectorCore, Logger, MultiprocessEnvironment
 from mushroom_rl.environments import Gym
-from mushroom_rl.algorithms.actor_critic import TRPO, PPO
+from mushroom_rl.algorithms.actor_critic import PPO
 
 from mushroom_rl.policy import GaussianTorchPolicy
 
@@ -46,7 +46,7 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
     logger.strong_line()
     logger.info('Experiment Algorithm: ' + alg.__name__)
 
-    mdp = Gym(env_id, horizon, gamma)
+    mdp = MultiprocessEnvironment(Gym, env_id, horizon, gamma, n_envs=15)
 
     critic_params = dict(network=Network,
                          optimizer={'class': optim.Adam,
@@ -67,7 +67,7 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
     agent = alg(mdp.info, policy, **alg_params)
     #agent.set_logger(logger)
 
-    core = Core(agent, mdp)
+    core = VectorCore(agent, mdp)
 
     dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
 
@@ -118,9 +118,8 @@ if __name__ == '__main__':
                        cg_residual_tol=1e-10)
 
     algs_params = [
-        #(TRPO, 'trpo', trpo_params),
         (PPO, 'ppo', ppo_params)
-     ]
+    ]
 
     for alg, alg_name, alg_params in algs_params:
         experiment(alg=alg, env_id='Pendulum-v1', horizon=200, gamma=.99,

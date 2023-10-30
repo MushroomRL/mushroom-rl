@@ -180,7 +180,7 @@ class Dataset(Serializable):
 
         result._info = new_info
         result._episode_info = new_episode_info
-        result.theta_list = result._theta_list + other._theta_list
+        result._theta_list = result._theta_list + other._theta_list
         result._data = self._data + other._data
 
         return result
