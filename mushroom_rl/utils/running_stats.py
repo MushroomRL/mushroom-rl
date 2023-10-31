@@ -1,6 +1,6 @@
 import numpy as np
 from collections import deque
-from mushroom_rl.core import Serializable
+from mushroom_rl.core.serialization import Serializable
 
 
 class RunningStandardization(Serializable):

@@ -148,18 +148,3 @@ class CategoricalWrapper(torch.distributions.Categorical):
 
     def log_prob(self, value):
         return super().log_prob(value.squeeze())
-
-
-class DiagonalMultivariateGaussian(torch.distributions.Normal):
-    """
-    Wrapper for the Torch Normal distribution, implementing a diagonal distribution.
-
-    It behaves as the MultivariateNormal distribution, but avoids the computation of the full covariance matrix,
-    optimizing the computation time, particulalrly when a high dimensional vector is sampled.
-
-    """
-    def __init__(self, loc, scale):
-        super().__init__(loc=loc, scale=scale)
-
-    def log_prob(self, value):
-        return torch.sum(super().log_prob(value), -1)

@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from sklearn.exceptions import NotFittedError
 
-from mushroom_rl.core import Serializable
+from mushroom_rl.core.serialization import Serializable
 
 
 class Ensemble(Serializable):

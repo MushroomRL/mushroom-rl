@@ -1,5 +1,5 @@
 import numpy as np
-from mushroom_rl.core import Serializable
+from mushroom_rl.core.serialization import Serializable
 
 
 class QRegressor(Serializable):

@@ -1,7 +1,5 @@
 from copy import deepcopy
 
-import numpy as np
-
 from mushroom_rl.core.serialization import Serializable
 
 
