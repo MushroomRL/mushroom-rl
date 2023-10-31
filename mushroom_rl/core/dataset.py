@@ -255,6 +255,10 @@ class Dataset(Serializable):
         return lengths
 
     @property
+    def n_episodes(self):
+        return self._data.n_episodes
+
+    @property
     def undiscounted_return(self):
         return self.compute_J()
 

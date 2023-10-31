@@ -102,3 +102,15 @@ class ListDataset(Serializable):
     @property
     def policy_next_state(self):
         return [step[7] for step in self._dataset]
+
+    @property
+    def n_episodes(self):
+        n_episodes = 0
+        for sample in self._dataset:
+            if sample[5] is True:
+                n_episodes += 1
+        if self._dataset[-1][5] is not True:
+            n_episodes += 1
+
+        return n_episodes
+

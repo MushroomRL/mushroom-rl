@@ -24,6 +24,8 @@ def test_dataset():
     mdp = GridWorld(3, 3, (2, 2))
     dataset = generate_dataset(mdp, 10)
 
+    assert dataset.n_episodes == 10
+
     J = dataset.compute_J(mdp.info.gamma)
     J_test = np.array([4.304672100000001, 2.287679245496101, 3.138105960900001,  0.13302794647291147,
                        7.290000000000001,   1.8530201888518416, 1.3508517176729928, 0.011790184577738602,
@@ -87,6 +89,10 @@ def test_dataset_creation():
     assert vars(dataset).keys() == vars(new_numpy_dataset).keys()
     assert vars(dataset).keys() == vars(new_list_dataset).keys()
     assert vars(dataset).keys() == vars(new_torch_dataset).keys()
+
+    assert new_numpy_dataset.n_episodes == dataset.n_episodes
+    assert new_list_dataset.n_episodes == dataset.n_episodes
+    assert new_torch_dataset.n_episodes == dataset.n_episodes
 
     for array_1, array_2 in zip(parsed, new_numpy_dataset.parse()):
         assert np.array_equal(array_1, array_2)

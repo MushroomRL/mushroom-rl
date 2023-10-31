@@ -194,3 +194,12 @@ class NumpyDataset(Serializable):
     @property
     def _is_stateful(self):
         return self._policy_states is not None
+
+    @property
+    def n_episodes(self):
+        n_episodes = self.last.sum()
+
+        if not self.last[-1]:
+            n_episodes += 1
+
+        return n_episodes
