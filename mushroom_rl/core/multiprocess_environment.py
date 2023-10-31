@@ -119,7 +119,7 @@ class MultiprocessEnvironment(VectorizedEnvironment):
 
         states = np.empty(self._state_shape)
         rewards = np.empty(self._reward_shape)
-        absorbings = np.empty(self._absorbing_shape, dtype=bool)
+        absorbings = np.zeros(self._absorbing_shape, dtype=bool)
         step_infos = list()
 
         for i, remote in enumerate(self._remotes):
