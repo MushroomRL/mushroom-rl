@@ -2,6 +2,8 @@ from omni.isaac.kit import SimulationApp
 from omni.isaac.core.world import World
 from omni.isaac.core.utils.torch.maths import set_seed
 
+from omniisaacgymenvs.utils.config_utils.sim_config import SimConfig
+
 from mushroom_rl.core import VectorizedEnvironment, MDPInfo
 from mushroom_rl.utils.viewer import ImageViewer
 
@@ -15,13 +17,17 @@ class IsaacEnv(VectorizedEnvironment):
 
     """
 
-    def __init__(self, task, sim_app_cfg_path, sim_params=None, headless=False, backend='torch'):
+    def __init__(self, sim_app_cfg_path, task_class, task_config=None, sim_params=None,
+                 headless=False, backend='torch'):
         """ Initializes RL and task parameters.
 
         Args:
-            task (RLTask): The task to register to the env;
+            sim_app_cfg_path (str): configuration path for simulation sim app;
+            task_class (class): The task to register to the env;
+            task_config (dict): dictionary containing the parameters required to build the task;
             sim_params (dict): Simulation parameters for physics settings. Defaults to None;
-            headless (bool): Whether to run training headless.
+            headless (bool): Whether to run training headless;
+            backend (str, 'torch'): The backend to be used by the environment.
 
         """
         RENDER_WIDTH = 1280  # 1600
@@ -38,7 +44,7 @@ class IsaacEnv(VectorizedEnvironment):
         # TODO check if the next line is needed
         #carb.settings.get_settings().set("/persistent/omnihydra/useSceneGraphInstancing", True)
 
-        self._sim_render = not headless
+        self._render = not headless
 
         self._viewer = ImageViewer([RENDER_WIDTH, RENDER_HEIGHT], RENDER_DT)
 
@@ -54,6 +60,12 @@ class IsaacEnv(VectorizedEnvironment):
             sim_params=sim_params,
             device=self._device
         )
+
+        sim_config = SimConfig(task_config)
+
+        cfg = sim_config.config
+        task = task_class(name=cfg["task_name"], sim_config=sim_config, env=self)
+
         self._world.add_task(task)
         self._task = task
 
@@ -67,7 +79,7 @@ class IsaacEnv(VectorizedEnvironment):
 
     def reset_all(self, env_mask, state=None):
         self._task.reset()
-        # self._world.step(render=self._sim_render) #TODO Check if we can do otherwise
+        # self._world.step(render=self._render) # TODO Check if we can do otherwise
         return self._task.get_observations()
 
     def step_all(self, env_mask, action):
@@ -75,7 +87,7 @@ class IsaacEnv(VectorizedEnvironment):
 
         # allow users to specify the control frequency through config
         for _ in range(self._task.control_frequency_inv):
-            self._world.step(render=self._sim_render)
+            self._world.step(render=self._render)
 
         observation, reward, done, info = self._task.post_physics_step()
 
