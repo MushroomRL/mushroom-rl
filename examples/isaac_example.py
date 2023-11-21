@@ -1,26 +1,26 @@
 import hydra
 from omegaconf import DictConfig
-
-from tqdm import trange
-
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-
-from mushroom_rl.algorithms.value import DQN
-from mushroom_rl.core import VectorCore, Logger
-from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.approximators.parametric.torch_approximator import *
-from mushroom_rl.utils.parameters import Parameter, LinearParameter
-from mushroom_rl.environments import IsaacEnv
-
 from omniisaacgymenvs.utils.hydra_cfg.reformat import omegaconf_to_dict
 from omniisaacgymenvs.utils.hydra_cfg.hydra_utils import *
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+
+import numpy as np
+from tqdm import trange
+
+from mushroom_rl.core import Core, Logger
+from mushroom_rl.algorithms.actor_critic import TRPO, PPO
+
+from mushroom_rl.policy import GaussianTorchPolicy
+from mushroom_rl.environments import IsaacEnv
 
 
 class Network(nn.Module):
     def __init__(self, input_shape, output_shape, n_features, **kwargs):
-        super().__init__()
+        super(Network, self).__init__()
 
         n_input = input_shape[-1]
         n_output = output_shape[0]
@@ -36,84 +36,64 @@ class Network(nn.Module):
         nn.init.xavier_uniform_(self._h3.weight,
                                 gain=nn.init.calculate_gain('linear'))
 
-    def forward(self, state, action=None):
+    def forward(self, state, **kwargs):
         features1 = F.relu(self._h1(torch.squeeze(state, 1).float()))
         features2 = F.relu(self._h2(features1))
-        q = self._h3(features2)
+        a = self._h3(features2)
 
-        if action is None:
-            return q
-        else:
-            action = action.long()
-            q_acted = torch.squeeze(q.gather(1, action))
-
-            return q_acted
+        return a
 
 
-def experiment(env, n_epochs, n_steps, n_steps_test):
-    np.random.seed()
+def experiment(cfg_dict, headless, alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test,
+               alg_params, policy_params):
 
-    logger = Logger(DQN.__name__, results_dir=None)
+    logger = Logger(alg.__name__, results_dir=None)
     logger.strong_line()
-    logger.info('Experiment Algorithm: ' + DQN.__name__)
+    logger.info('Experiment Algorithm: ' + alg.__name__)
 
-    # MDP
-    horizon = 1000
-    gamma = 0.99
-    gamma_eval = 1.
+    mdp = IsaacEnv(cfg_dict, headless=headless)
 
-    # Policy
-    epsilon = LinearParameter(value=1., threshold_value=.01, n=5000)
-    epsilon_test = Parameter(value=0.)
-    epsilon_random = Parameter(value=1.)
-    pi = EpsGreedy(epsilon=epsilon_random)
 
-    # Settings
-    initial_replay_size = 500
-    max_replay_size = 5000
-    target_update_frequency = 100
-    batch_size = 200
-    n_features = 80
-    train_frequency = 1
+    critic_params = dict(network=Network,
+                         optimizer={'class': optim.Adam,
+                                    'params': {'lr': 3e-4}},
+                         loss=F.mse_loss,
+                         n_features=32,
+                         batch_size=64,
+                         input_shape=mdp.info.observation_space.shape,
+                         output_shape=(1,))
 
-    # Approximator
-    input_shape = env.info.observation_space.shape
-    approximator_params = dict(network=Network,
-                               optimizer={'class': optim.Adam,
-                                          'params': {'lr': .001}},
-                               loss=F.smooth_l1_loss,
-                               n_features=n_features,
-                               input_shape=input_shape,
-                               output_shape=env.info.action_space.size,
-                               n_actions=env.info.action_space.n)
+    policy = GaussianTorchPolicy(Network,
+                                 mdp.info.observation_space.shape,
+                                 mdp.info.action_space.shape,
+                                 **policy_params)
 
-    # Agent
-    agent = DQN(env.info, pi, TorchApproximator,
-                approximator_params=approximator_params, batch_size=batch_size,
-                initial_replay_size=initial_replay_size,
-                max_replay_size=max_replay_size,
-                target_update_frequency=target_update_frequency)
+    alg_params['critic_params'] = critic_params
 
-    # Algorithm
-    core = VectorCore(agent, env)
+    agent = alg(mdp.info, policy, **alg_params)
+    #agent.set_logger(logger)
 
-    core.learn(n_steps=initial_replay_size, n_steps_per_fit=initial_replay_size)
+    core = Core(agent, mdp)
 
-    # RUN
-    pi.set_epsilon(epsilon_test)
-    dataset = core.evaluate(n_steps=n_steps_test, render=False)
-    J = dataset.discounted_return
-    logger.epoch_info(0, J=np.mean(J))
+    dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
 
-    for n in trange(n_epochs):
-        pi.set_epsilon(epsilon)
-        core.learn(n_steps=n_steps, n_steps_per_fit=train_frequency)
-        pi.set_epsilon(epsilon_test)
-        dataset = core.evaluate(n_steps=n_steps_test, render=False)
-        J = dataset.discounted_return
-        logger.epoch_info(n+1, J=np.mean(J))
+    J = np.mean(dataset.discounted_return)
+    R = np.mean(dataset.undiscounted_return)
+    E = agent.policy.entropy()
 
-    logger.info('Press a button to visualize acrobot')
+    logger.epoch_info(0, J=J, R=R, entropy=E)
+
+    for it in trange(n_epochs, leave=False):
+        core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit)
+        dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
+
+        J = np.mean(dataset.discounted_return)
+        R = np.mean(dataset.undiscounted_return)
+        E = agent.policy.entropy()
+
+        logger.epoch_info(it+1, J=J, R=R, entropy=E)
+
+    logger.info('Press a button to visualize')
     input()
     core.evaluate(n_episodes=5, render=True)
 
@@ -123,9 +103,41 @@ def parse_hydra_configs(cfg: DictConfig):
     headless = cfg.headless
     cfg_dict = omegaconf_to_dict(cfg)
 
-    env = IsaacEnv(cfg_dict, headless=headless)
-    experiment(env, n_epochs=20, n_steps=1000, n_steps_test=2000)
+    return headless, cfg_dict
 
 
 if __name__ == '__main__':
-    parse_hydra_configs()
+    headless, cfg_dict = parse_hydra_configs()
+
+    max_kl = .015
+
+    policy_params = dict(
+        std_0=1.,
+        n_features=32,
+        use_cuda=False
+
+    )
+
+    ppo_params = dict(actor_optimizer={'class': optim.Adam,
+                                       'params': {'lr': 3e-4}},
+                      n_epochs_policy=4,
+                      batch_size=64,
+                      eps_ppo=.2,
+                      lam=.95)
+
+    trpo_params = dict(ent_coeff=0.0,
+                       max_kl=.01,
+                       lam=.95,
+                       n_epochs_line_search=10,
+                       n_epochs_cg=100,
+                       cg_damping=1e-2,
+                       cg_residual_tol=1e-10)
+
+    algs_params = [
+        (PPO, 'ppo', ppo_params),
+        (TRPO, 'trpo', trpo_params)
+    ]
+
+    for alg, alg_name, alg_params in algs_params:
+        experiment(cfg_dict=cfg_dict, headless=headless, alg=alg, n_epochs=40, n_steps=30000, n_steps_per_fit=3000,
+                   n_episodes_test=25, alg_params=alg_params, policy_params=policy_params)
