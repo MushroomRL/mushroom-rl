@@ -4,6 +4,8 @@ from omniisaacgymenvs.utils.task_util import initialize_task
 
 from mushroom_rl.core import VectorizedEnvironment, MDPInfo
 from mushroom_rl.utils.viewer import ImageViewer
+from mushroom_rl.utils.spaces import *
+from gym import spaces as gym_spaces
 
 # import carb
 
@@ -42,14 +44,16 @@ class IsaacEnv(VectorizedEnvironment):
         self._viewer = ImageViewer([RENDER_WIDTH, RENDER_HEIGHT], RENDER_DT)
 
         initialize_task(cfg, self)
+        action_space = self._convert_gym_space(self._task.action_space)
+        observation_space = self._convert_gym_space(self._task.observation_space)
 
         # Create MDP info for mushroom
-        mdp_info = MDPInfo(self._task.observation_space, self._task.action_space, self._task._gamma,
+        mdp_info = MDPInfo(observation_space, action_space, 0.99,
                            self._task._max_episode_length, dt=RENDER_DT, backend=backend)
 
         super().__init__(mdp_info, self._task.num_envs)
 
-    def set_task(self, task, backend="torch", sim_params=None, init_sim=True):
+    def set_task(self, task, backend="torch", sim_params=None, init_sim=True, rendering_dt = True, **kwargs):
         from omni.isaac.core.world import World
         RENDER_DT = 1.0 / 60.0  # 60 Hz
 
@@ -103,3 +107,13 @@ class IsaacEnv(VectorizedEnvironment):
 
     def __del__(self):
         self._simulation_app.close()
+
+    @staticmethod
+    def _convert_gym_space(space):
+        # import pdb; pdb.set_trace()
+        if isinstance(space, gym_spaces.Discrete):
+            return Discrete(space.n)
+        elif isinstance(space, gym_spaces.Box):
+            return Box(low=space.low, high=space.high, shape=space.shape)
+        else:
+            raise ValueError

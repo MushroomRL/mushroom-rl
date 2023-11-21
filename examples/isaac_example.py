@@ -15,6 +15,7 @@ from mushroom_rl.utils.parameters import Parameter, LinearParameter
 from mushroom_rl.environments import IsaacEnv
 
 from omniisaacgymenvs.utils.hydra_cfg.reformat import omegaconf_to_dict
+from omniisaacgymenvs.utils.hydra_cfg.hydra_utils import *
 
 
 class Network(nn.Module):
@@ -117,7 +118,7 @@ def experiment(env, n_epochs, n_steps, n_steps_test):
     core.evaluate(n_episodes=5, render=True)
 
 
-@hydra.main(config_name="config", config_path="../cfg")
+@hydra.main(config_name="config", config_path="./cfg")
 def parse_hydra_configs(cfg: DictConfig):
     headless = cfg.headless
     cfg_dict = omegaconf_to_dict(cfg)
