@@ -13,7 +13,8 @@ from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.approximators.parametric.torch_approximator import *
 from mushroom_rl.utils.parameters import Parameter, LinearParameter
 from mushroom_rl.environments import IsaacEnv
-from omniisaacgymenvs.tasks.cartpole import CartpoleTask
+
+from omniisaacgymenvs.utils.hydra_cfg.reformat import omegaconf_to_dict
 
 
 class Network(nn.Module):
@@ -116,26 +117,14 @@ def experiment(env, n_epochs, n_steps, n_steps_test):
     core.evaluate(n_episodes=5, render=True)
 
 
-def omegaconf_to_dict(d: DictConfig):
-    ret = {}
-    for k, v in d.items():
-        if isinstance(v, DictConfig):
-            ret[k] = omegaconf_to_dict(v)
-        else:
-            ret[k] = v
-    return ret
-
-
 @hydra.main(config_name="config", config_path="../cfg")
 def parse_hydra_configs(cfg: DictConfig):
     headless = cfg.headless
-    sim_app_cfg_path = cfg.sim_app_cfg_path
     cfg_dict = omegaconf_to_dict(cfg)
 
-    return sim_app_cfg_path, headless, cfg_dict
+    env = IsaacEnv(cfg_dict, headless=headless)
+    experiment(env, n_epochs=20, n_steps=1000, n_steps_test=2000)
 
 
 if __name__ == '__main__':
-    sim_app_cfg_path, headless, cfg_dict = parse_hydra_configs()
-    env = IsaacEnv(sim_app_cfg_path, CartpoleTask, cfg_dict, headless=headless)
-    experiment(env, n_epochs=20, n_steps=1000, n_steps_test=2000)
+    parse_hydra_configs()

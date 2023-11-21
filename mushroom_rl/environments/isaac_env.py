@@ -1,8 +1,6 @@
 from omni.isaac.kit import SimulationApp
-from omni.isaac.core.world import World
-from omni.isaac.core.utils.torch.maths import set_seed
 
-from omniisaacgymenvs.utils.config_utils.sim_config import SimConfig
+from omniisaacgymenvs.utils.task_util import initialize_task
 
 from mushroom_rl.core import VectorizedEnvironment, MDPInfo
 from mushroom_rl.utils.viewer import ImageViewer
@@ -17,15 +15,11 @@ class IsaacEnv(VectorizedEnvironment):
 
     """
 
-    def __init__(self, sim_app_cfg_path, task_class, task_config=None, sim_params=None,
-                 headless=False, backend='torch'):
+    def __init__(self, cfg=None, headless=False, backend='torch'):
         """ Initializes RL and task parameters.
 
         Args:
-            sim_app_cfg_path (str): configuration path for simulation sim app;
-            task_class (class): The task to register to the env;
-            task_config (dict): dictionary containing the parameters required to build the task;
-            sim_params (dict): Simulation parameters for physics settings. Defaults to None;
+            cfg (dict): dictionary containing the parameters required to build the task;
             headless (bool): Whether to run training headless;
             backend (str, 'torch'): The backend to be used by the environment.
 
@@ -34,8 +28,7 @@ class IsaacEnv(VectorizedEnvironment):
         RENDER_HEIGHT = 720  # 900
         RENDER_DT = 1.0 / 60.0  # 60 Hz
 
-        self._simulation_app = SimulationApp({"experience": sim_app_cfg_path,
-                                              "headless": headless,
+        self._simulation_app = SimulationApp({"headless": headless,
                                               "window_width": 1920,
                                               "window_height": 1080,
                                               "width": RENDER_WIDTH,
@@ -47,6 +40,18 @@ class IsaacEnv(VectorizedEnvironment):
         self._render = not headless
 
         self._viewer = ImageViewer([RENDER_WIDTH, RENDER_HEIGHT], RENDER_DT)
+
+        initialize_task(cfg, self)
+
+        # Create MDP info for mushroom
+        mdp_info = MDPInfo(self._task.observation_space, self._task.action_space, self._task._gamma,
+                           self._task._max_episode_length, dt=RENDER_DT, backend=backend)
+
+        super().__init__(mdp_info, self._task.num_envs)
+
+    def set_task(self, task, backend="torch", sim_params=None, init_sim=True):
+        from omni.isaac.core.world import World
+        RENDER_DT = 1.0 / 60.0  # 60 Hz
 
         self._device = "cpu"
         if sim_params and "use_gpu_pipeline" in sim_params:
@@ -61,20 +66,11 @@ class IsaacEnv(VectorizedEnvironment):
             device=self._device
         )
 
-        sim_config = SimConfig(task_config)
-
-        cfg = sim_config.config
-        task = task_class(name=cfg["task_name"], sim_config=sim_config, env=self)
-
-        self._world.add_task(task)
         self._task = task
-
-        # Create MDP info for mushroom
-        mdp_info = MDPInfo(self._task.observation_space, self._task.action_space, self._task._gamma,
-                           self._task._max_episode_length, dt=RENDER_DT, backend=backend)
-        super().__init__(mdp_info, self._task.num_envs)
+        self._world.add_task(task)
 
     def seed(self, seed=-1):
+        from omni.isaac.core.utils.torch.maths import set_seed
         return set_seed(seed)
 
     def reset_all(self, env_mask, state=None):
@@ -102,6 +98,8 @@ class IsaacEnv(VectorizedEnvironment):
         if record:
             return task_render
 
-    def stop(self) -> None:
+    def stop(self):
+        pass
+
+    def __del__(self):
         self._simulation_app.close()
-        return
