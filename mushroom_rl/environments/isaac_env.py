@@ -72,6 +72,7 @@ class IsaacEnv(VectorizedEnvironment):
 
         self._task = task
         self._world.add_task(task)
+        self._world.reset()
 
     def seed(self, seed=-1):
         from omni.isaac.core.utils.torch.maths import set_seed
@@ -103,7 +104,7 @@ class IsaacEnv(VectorizedEnvironment):
             return task_render
 
     def stop(self):
-        pass
+        self._world.reset()
 
     def __del__(self):
         self._simulation_app.close()
