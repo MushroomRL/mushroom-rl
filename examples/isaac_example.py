@@ -103,12 +103,6 @@ def parse_hydra_configs(cfg: DictConfig):
     headless = cfg.headless
     cfg_dict = omegaconf_to_dict(cfg)
 
-    return headless, cfg_dict
-
-
-if __name__ == '__main__':
-    headless, cfg_dict = parse_hydra_configs()
-
     max_kl = .015
 
     policy_params = dict(
@@ -141,3 +135,7 @@ if __name__ == '__main__':
     for alg, alg_name, alg_params in algs_params:
         experiment(cfg_dict=cfg_dict, headless=headless, alg=alg, n_epochs=40, n_steps=30000, n_steps_per_fit=3000,
                    n_episodes_test=25, alg_params=alg_params, policy_params=policy_params)
+
+
+if __name__ == '__main__':
+    parse_hydra_configs()
