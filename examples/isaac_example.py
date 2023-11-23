@@ -11,7 +11,7 @@ import torch.optim as optim
 import numpy as np
 from tqdm import trange
 
-from mushroom_rl.core import Core, Logger
+from mushroom_rl.core import VectorCore, Logger
 from mushroom_rl.algorithms.actor_critic import TRPO, PPO
 
 from mushroom_rl.policy import GaussianTorchPolicy
@@ -60,6 +60,7 @@ def experiment(cfg_dict, headless, alg, n_epochs, n_steps, n_steps_per_fit, n_ep
                          loss=F.mse_loss,
                          n_features=32,
                          batch_size=64,
+                         use_cuda=True,
                          input_shape=mdp.info.observation_space.shape,
                          output_shape=(1,))
 
@@ -73,7 +74,7 @@ def experiment(cfg_dict, headless, alg, n_epochs, n_steps, n_steps_per_fit, n_ep
     agent = alg(mdp.info, policy, **alg_params)
     #agent.set_logger(logger)
 
-    core = Core(agent, mdp)
+    core = VectorCore(agent, mdp)
 
     dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
 
@@ -108,7 +109,7 @@ def parse_hydra_configs(cfg: DictConfig):
     policy_params = dict(
         std_0=1.,
         n_features=32,
-        use_cuda=False
+        use_cuda=True
 
     )
 
@@ -134,7 +135,7 @@ def parse_hydra_configs(cfg: DictConfig):
 
     for alg, alg_name, alg_params in algs_params:
         experiment(cfg_dict=cfg_dict, headless=headless, alg=alg, n_epochs=40, n_steps=30000, n_steps_per_fit=3000,
-                   n_episodes_test=25, alg_params=alg_params, policy_params=policy_params)
+                   n_episodes_test=512, alg_params=alg_params, policy_params=policy_params)
 
 
 if __name__ == '__main__':

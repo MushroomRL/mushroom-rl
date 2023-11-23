@@ -1,5 +1,5 @@
 from omni.isaac.kit import SimulationApp
-
+import torch
 from omniisaacgymenvs.utils.task_util import initialize_task
 
 from mushroom_rl.core import VectorizedEnvironment, MDPInfo
@@ -81,7 +81,7 @@ class IsaacEnv(VectorizedEnvironment):
     def reset_all(self, env_mask, state=None):
         self._task.reset()
         # self._world.step(render=self._render) # TODO Check if we can do otherwise
-        return self._task.get_observations(), {}
+        return self._task.get_observations(), [{}]*self._n_envs
 
     def step_all(self, env_mask, action):
         self._task.pre_physics_step(action)
@@ -92,7 +92,9 @@ class IsaacEnv(VectorizedEnvironment):
 
         observation, reward, done, info = self._task.post_physics_step()
 
-        return observation, reward, done, info
+        env_mask_cuda = torch.as_tensor(env_mask).cuda()
+        
+        return observation, reward, torch.logical_and(done, env_mask_cuda), [info]*self._n_envs
 
     def render_all(self, env_mask, record=False):
         self._world.render()
