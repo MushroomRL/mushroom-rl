@@ -236,8 +236,7 @@ def experiment(
                          num_hidden_layers=num_hidden_layers,
                          dim_env_state=mdp.info.observation_space.shape[0],
                          dim_hidden_state=n_hidden_features,
-                         dim_action=dim_action,
-                         use_cuda=use_cuda,
+                         dim_action=dim_action
                          )
 
     alg_params = dict(actor_optimizer={'class':  optim.Adam,
