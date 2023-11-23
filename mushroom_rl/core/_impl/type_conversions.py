@@ -1,6 +1,8 @@
 import numpy
 import torch
 
+from mushroom_rl.utils.torch import TorchUtils
+
 
 class DataConversion(object):
     @staticmethod
@@ -49,7 +51,7 @@ class NumpyConversion(DataConversion):
 
     @staticmethod
     def to_torch(array):
-        return torch.from_numpy(array)
+        return torch.from_numpy(array).to(TorchUtils.get_device())
 
     @staticmethod
     def to_backend_array(cls, array):
@@ -77,7 +79,7 @@ class ListConversion(DataConversion):
 
     @staticmethod
     def to_torch(array):
-        return torch.as_tensor(array)
+        return torch.as_tensor(array, device=TorchUtils.get_device())
 
     @staticmethod
     def to_backend_array(cls, array):
