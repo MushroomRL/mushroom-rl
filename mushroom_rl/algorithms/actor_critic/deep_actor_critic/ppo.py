@@ -6,10 +6,10 @@ import torch.nn.functional as F
 from mushroom_rl.core import Agent
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.utils.torch import to_float_tensor, update_optimizer_parameters
+from mushroom_rl.utils.torch import TorchUtils
 from mushroom_rl.utils.minibatches import minibatch_generator
-from mushroom_rl.utils.value_functions import compute_gae
-from mushroom_rl.utils.parameters import to_parameter
+from mushroom_rl.rl_utils.value_functions import compute_gae
+from mushroom_rl.rl_utils.parameters import to_parameter
 
 
 class PPO(Agent):
@@ -128,4 +128,4 @@ class PPO(Agent):
 
     def _post_load(self):
         if self._optimizer is not None:
-            update_optimizer_parameters(self._optimizer, list(self.policy.parameters()))
+            TorchUtils.update_optimizer_parameters(self._optimizer, list(self.policy.parameters()))

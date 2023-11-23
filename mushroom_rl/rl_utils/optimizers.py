@@ -1,7 +1,7 @@
 import numpy as np
 
 from mushroom_rl.core.serialization import Serializable
-from mushroom_rl.utils.parameters import Parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class Optimizer(Serializable):

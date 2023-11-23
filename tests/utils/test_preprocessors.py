@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
-from mushroom_rl.utils.parameters import Parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 from mushroom_rl.policy import EpsGreedy
 
@@ -13,7 +13,7 @@ from mushroom_rl.approximators.parametric import TorchApproximator
 from torch import optim, nn
 
 from mushroom_rl.environments import Gym
-from mushroom_rl.utils.preprocessors import MinMaxPreprocessor
+from mushroom_rl.rl_utils.preprocessors import MinMaxPreprocessor
 
 from copy import deepcopy
 
@@ -59,7 +59,8 @@ def test_normalizing_preprocessor(tmpdir):
                                input_shape=input_shape,
                                output_shape=mdp.info.action_space.size,
                                n_actions=mdp.info.action_space.n,
-                               n_features=2, use_cuda=False)
+                               n_features=2
+                               )
 
     alg_params = dict(batch_size=5, initial_replay_size=10,
                       max_replay_size=500, target_update_frequency=50)

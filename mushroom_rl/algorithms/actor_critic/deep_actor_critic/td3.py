@@ -2,7 +2,7 @@ import numpy as np
 
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DDPG
 from mushroom_rl.policy import Policy
-from mushroom_rl.utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import to_parameter
 
 
 class TD3(DDPG):

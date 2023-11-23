@@ -2,7 +2,7 @@ import mujoco
 import numpy as np
 from dm_control import mjcf
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.utils.spaces import Box
+from mushroom_rl.rl_utils.spaces import Box
 from mushroom_rl.utils.mujoco import *
 
 

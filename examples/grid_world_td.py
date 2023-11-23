@@ -12,7 +12,7 @@ from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.utils.callbacks import CollectDataset, CollectMaxQ
 from mushroom_rl.utils.dataset import parse_dataset
-from mushroom_rl.utils.parameters import ExponentialParameter
+from mushroom_rl.rl_utils.parameters import ExponentialParameter
 
 
 """

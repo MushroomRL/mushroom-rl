@@ -8,7 +8,7 @@ from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.utils.parameters import Parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class Network(nn.Module):
@@ -84,7 +84,6 @@ def experiment():
         n_actions=mdp.info.action_space.n,
         n_features=Network.n_features,
         optimizer=optimizer,
-        use_cuda=False,
         loss=F.smooth_l1_loss
     )
     approximator = TorchApproximator

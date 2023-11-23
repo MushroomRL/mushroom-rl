@@ -1,6 +1,6 @@
 from mushroom_rl.policy.td_policy import *
-from mushroom_rl.utils.table import Table
-from mushroom_rl.utils.parameters import Parameter, LinearParameter
+from mushroom_rl.approximators.table import Table
+from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter
 
 
 def test_td_policy():

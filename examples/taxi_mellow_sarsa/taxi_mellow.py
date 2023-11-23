@@ -6,7 +6,7 @@ from mushroom_rl.core import Core
 from mushroom_rl.environments.generators.taxi import generate_taxi
 from mushroom_rl.policy import Boltzmann, EpsGreedy, Mellowmax
 from mushroom_rl.utils.callbacks import CollectDataset
-from mushroom_rl.utils.parameters import Parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 """

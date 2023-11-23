@@ -16,8 +16,8 @@ from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.utils.dataset import compute_metrics
-from mushroom_rl.utils.parameters import LinearParameter, Parameter
-from mushroom_rl.utils.replay_memory import PrioritizedReplayMemory
+from mushroom_rl.rl_utils.parameters import LinearParameter, Parameter
+from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
 
 """
 This script runs the iGibson navigation task.
@@ -328,8 +328,7 @@ def experiment():
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
             n_features=Network.n_features,
-            optimizer=optimizer,
-            use_cuda=args.use_cuda
+            optimizer=optimizer
         )
         if args.algorithm not in ['cdqn', 'rainbow']:
             approximator_params['loss'] = F.smooth_l1_loss

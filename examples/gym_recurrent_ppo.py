@@ -187,7 +187,6 @@ def experiment(
         gae_lambda: float = 0.95,
         seed: int = 0,  # This argument is mandatory
         results_dir: str = './logs',  # This argument is mandatory
-        use_cuda: bool = False,
         std_0: float = 0.5,
         rnn_type: str ="gru",
         n_hidden_features: int = 128,

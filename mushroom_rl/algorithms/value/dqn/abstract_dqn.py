@@ -5,8 +5,8 @@ import numpy as np
 from mushroom_rl.core import Agent
 from mushroom_rl.approximators.parametric.torch_approximator import *
 from mushroom_rl.approximators.regressor import Regressor
-from mushroom_rl.utils.replay_memory import PrioritizedReplayMemory, ReplayMemory
-from mushroom_rl.utils.parameters import to_parameter
+from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory, ReplayMemory
+from mushroom_rl.rl_utils.parameters import to_parameter
 
 
 class AbstractDQN(Agent):

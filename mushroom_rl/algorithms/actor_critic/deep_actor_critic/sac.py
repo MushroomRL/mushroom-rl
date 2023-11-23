@@ -7,9 +7,9 @@ from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DeepAC
 from mushroom_rl.policy import Policy
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.utils.replay_memory import ReplayMemory
-from mushroom_rl.utils.torch import to_float_tensor
-from mushroom_rl.utils.parameters import to_parameter
+from mushroom_rl.rl_utils.replay_memory import ReplayMemory
+from mushroom_rl.utils.torch import TorchUtils
+from mushroom_rl.rl_utils.parameters import to_parameter
 
 from copy import deepcopy
 from itertools import chain
@@ -41,19 +41,13 @@ class SACPolicy(Policy):
         self._mu_approximator = mu_approximator
         self._sigma_approximator = sigma_approximator
 
-        self._delta_a = to_float_tensor(.5 * (max_a - min_a), self.use_cuda)
-        self._central_a = to_float_tensor(.5 * (max_a + min_a), self.use_cuda)
+        self._delta_a = TorchUtils.to_float_tensor(.5 * (max_a - min_a))
+        self._central_a = TorchUtils.to_float_tensor(.5 * (max_a + min_a))
 
         self._log_std_min = to_parameter(log_std_min)
         self._log_std_max = to_parameter(log_std_max)
 
         self._eps_log_prob = 1e-6
-
-        use_cuda = self._mu_approximator.model.use_cuda
-
-        if use_cuda:
-            self._delta_a = self._delta_a.cuda()
-            self._central_a = self._central_a.cuda()
 
         self._add_save_attr(
             _mu_approximator='mushroom',
@@ -168,13 +162,6 @@ class SACPolicy(Policy):
 
         return np.concatenate([mu_weights, sigma_weights])
 
-    @property
-    def use_cuda(self):
-        """
-        True if the policy is using cuda_tensors.
-        """
-        return self._mu_approximator.model.use_cuda
-
     def parameters(self):
         """
         Returns the trainable policy parameters, as expected by torch optimizers.
@@ -252,12 +239,7 @@ class SAC(DeepAC):
 
         self._init_target(self._critic_approximator, self._target_critic_approximator)
 
-        self._log_alpha = torch.tensor(0., dtype=torch.float32)
-
-        if policy.use_cuda:
-            self._log_alpha = self._log_alpha.cuda().requires_grad_()
-        else:
-            self._log_alpha.requires_grad_()
+        self._log_alpha = torch.tensor(0., dtype=torch.float32, requires_grad=True)
 
         self._alpha_optim = optim.Adam([self._log_alpha], lr=lr_alpha)
 

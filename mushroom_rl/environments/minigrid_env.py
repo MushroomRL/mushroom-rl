@@ -2,7 +2,6 @@ import warnings
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
-    import gym_minigrid
     from gym_minigrid.wrappers import RGBImgPartialObsWrapper, ImgObsWrapper
 
 import gym
@@ -12,7 +11,7 @@ from collections import deque
 
 from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.environments import Gym
-from mushroom_rl.utils.spaces import Discrete, Box
+from mushroom_rl.rl_utils.spaces import Discrete, Box
 from mushroom_rl.utils.frames import LazyFrames, preprocess_frame
 
 

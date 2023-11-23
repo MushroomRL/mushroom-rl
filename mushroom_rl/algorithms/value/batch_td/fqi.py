@@ -2,7 +2,7 @@ import numpy as np
 from tqdm import trange
 
 from mushroom_rl.algorithms.value.batch_td import BatchTD
-from mushroom_rl.utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import to_parameter
 
 
 class FQI(BatchTD):

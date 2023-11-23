@@ -95,8 +95,7 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit,
 if __name__ == '__main__':
     policy_params = dict(
         std_0=1.,
-        n_features=64,
-        use_cuda=False
+        n_features=64
     )
 
     a2c_params = dict(actor_optimizer={'class': optim.RMSprop,

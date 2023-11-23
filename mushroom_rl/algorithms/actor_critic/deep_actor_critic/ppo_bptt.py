@@ -3,10 +3,10 @@ import torch
 from mushroom_rl.core import Agent
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.utils.torch import update_optimizer_parameters
+from mushroom_rl.utils.torch import TorchUtils
 from mushroom_rl.utils.minibatches import minibatch_generator
-from mushroom_rl.utils.parameters import to_parameter
-from mushroom_rl.utils.preprocessors import StandardizationPreprocessor
+from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
 
 
 class PPO_BPTT(Agent):
@@ -166,7 +166,7 @@ class PPO_BPTT(Agent):
 
     def _post_load(self):
         if self._optimizer is not None:
-            update_optimizer_parameters(self._optimizer, list(self.policy.parameters()))
+            TorchUtils.update_optimizer_parameters(self._optimizer, list(self.policy.parameters()))
 
     @staticmethod
     def compute_gae(V, s, pi_h, ss, pi_hn, lengths, r, absorbing, last, gamma, lam):

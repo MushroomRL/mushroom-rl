@@ -12,8 +12,8 @@ from mushroom_rl.core import Core
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.approximators.parametric.torch_approximator import *
-from mushroom_rl.utils.parameters import Parameter, LinearParameter
-from mushroom_rl.utils.replay_memory import PrioritizedReplayMemory
+from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter
+from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
 
 
 class Network(nn.Module):
@@ -68,7 +68,8 @@ def learn(alg, alg_params, logger=None):
                                input_shape=input_shape,
                                output_shape=mdp.info.action_space.size,
                                n_actions=mdp.info.action_space.n,
-                               n_features=2, use_cuda=False)
+                               n_features=2
+                               )
 
     # Agent
     if alg not in [DuelingDQN, QuantileDQN, CategoricalDQN, NoisyDQN, Rainbow]:

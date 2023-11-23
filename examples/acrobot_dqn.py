@@ -8,9 +8,9 @@ from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.approximators.parametric.torch_approximator import *
 from mushroom_rl.utils.dataset import compute_J
-from mushroom_rl.utils.parameters import Parameter, LinearParameter
+from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter
 
-from tqdm import tqdm, trange
+from tqdm import trange
 
 
 class Network(nn.Module):

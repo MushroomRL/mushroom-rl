@@ -2,8 +2,8 @@ import torch
 import numpy as np
 
 from mushroom_rl.policy import GaussianTorchPolicy
-from mushroom_rl.utils.torch import to_float_tensor
-from mushroom_rl.utils.parameters import to_parameter
+from mushroom_rl.utils.torch import TorchUtils
+from mushroom_rl.rl_utils.parameters import to_parameter
 
 
 class RecurrentGaussianTorchPolicy(GaussianTorchPolicy):
@@ -19,7 +19,7 @@ class RecurrentGaussianTorchPolicy(GaussianTorchPolicy):
 
     def draw_action(self, state, policy_state):
         with torch.no_grad():
-            state = to_float_tensor(state)
+            state = TorchUtils.to_float_tensor(state)
             policy_state = torch.as_tensor(policy_state)
             a, policy_state = self.draw_action_t(state, policy_state)
         return torch.squeeze(a, dim=0).detach().cpu().numpy(), policy_state
@@ -41,7 +41,7 @@ class RecurrentGaussianTorchPolicy(GaussianTorchPolicy):
         return self._action_dim / 2 * np.log(2 * np.pi * np.e) + torch.sum(self._log_sigma)
 
     def distribution(self, state, policy_state, lengths):
-        s = to_float_tensor(state, self._use_cuda)
+        s = TorchUtils.to_float_tensor(state)
 
         return self.distribution_t(s, policy_state, lengths)
 

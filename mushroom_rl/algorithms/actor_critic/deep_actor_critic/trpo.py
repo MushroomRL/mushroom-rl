@@ -8,9 +8,9 @@ import torch.nn.functional as F
 from mushroom_rl.core import Agent
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.utils.torch import get_gradient, zero_grad, to_float_tensor
-from mushroom_rl.utils.value_functions import compute_gae
-from mushroom_rl.utils.parameters import to_parameter
+from mushroom_rl.utils.torch import TorchUtils
+from mushroom_rl.rl_utils.value_functions import compute_gae
+from mushroom_rl.rl_utils.parameters import to_parameter
 
 
 class TRPO(Agent):
@@ -96,14 +96,14 @@ class TRPO(Agent):
         old_pol_dist = self._old_policy.distribution_t(state)
         old_log_prob = self._old_policy.log_prob_t(state, action).detach()
 
-        zero_grad(self.policy.parameters())
+        TorchUtils.zero_grad(self.policy.parameters())
         loss = self._compute_loss(state, action, adv, old_log_prob)
 
         prev_loss = loss.item()
 
         # Compute Gradient
         loss.backward()
-        g = get_gradient(self.policy.parameters())
+        g = TorchUtils.get_gradient(self.policy.parameters())
 
         # Compute direction through conjugate gradient
         stepdir = self._conjugate_gradient(g, state, old_pol_dist)
@@ -117,13 +117,6 @@ class TRPO(Agent):
         # Print fit information
         self._log_info(dataset, state, v_target, old_pol_dist)
         self._iter += 1
-
-    # def _fisher_vector_product(self, p, obs, old_pol_dist):
-    #     p_tensor = torch.from_numpy(p)
-    #     if self.policy.use_cuda:
-    #         p_tensor = p_tensor.cuda()
-    #
-    #     return self._fisher_vector_product_t(p_tensor, obs, old_pol_dist)
 
     def _fisher_vector_product(self, p, obs, old_pol_dist):
         kl = self._compute_kl(obs, old_pol_dist)

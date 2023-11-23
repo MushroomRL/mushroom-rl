@@ -11,7 +11,7 @@ from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.policy import GaussianPolicy
 from mushroom_rl.utils.dataset import compute_J
-from mushroom_rl.utils.parameters import Parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 from mushroom_rl.utils.callbacks import CollectDataset
 
 from tqdm import tqdm, trange

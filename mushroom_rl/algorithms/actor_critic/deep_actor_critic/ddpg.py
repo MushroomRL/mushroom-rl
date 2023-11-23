@@ -4,8 +4,8 @@ from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DeepAC
 from mushroom_rl.policy import Policy
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.utils.replay_memory import ReplayMemory
-from mushroom_rl.utils.parameters import Parameter, to_parameter
+from mushroom_rl.rl_utils.replay_memory import ReplayMemory
+from mushroom_rl.rl_utils.parameters import Parameter, to_parameter
 
 from copy import deepcopy
 

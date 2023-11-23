@@ -12,7 +12,7 @@ from mushroom_rl.features.tiles import Tiles
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.policy import StateLogStdGaussianPolicy
-from mushroom_rl.utils.parameters import Parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 def learn(alg):

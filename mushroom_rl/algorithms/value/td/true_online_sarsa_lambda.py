@@ -4,7 +4,7 @@ from mushroom_rl.algorithms.value.td import TD
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.features import get_action_features
-from mushroom_rl.utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import to_parameter
 
 
 class TrueOnlineSARSALambda(TD):

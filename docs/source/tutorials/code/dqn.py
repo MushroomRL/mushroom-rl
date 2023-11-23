@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -9,8 +8,7 @@ from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.core import Core
 from mushroom_rl.environments import Atari
 from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.utils.dataset import compute_metrics
-from mushroom_rl.utils.parameters import LinearParameter, Parameter
+from mushroom_rl.rl_utils.parameters import LinearParameter, Parameter
 
 
 class Network(nn.Module):
@@ -61,7 +59,7 @@ def print_epoch(epoch):
 
 
 def get_stats(dataset):
-    score = compute_metrics(dataset)
+    score = dataset.compute_metrics()
     print(('min_reward: %f, max_reward: %f, mean_reward: %f,'
           ' median_reward: %f, games_completed: %d' % score))
 

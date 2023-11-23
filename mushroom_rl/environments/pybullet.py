@@ -3,7 +3,7 @@ import pybullet
 import pybullet_data
 from pybullet_utils.bullet_client import BulletClient
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.utils.spaces import Box
+from mushroom_rl.rl_utils.spaces import Box
 from mushroom_rl.utils.pybullet import *
 
 

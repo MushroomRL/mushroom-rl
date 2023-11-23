@@ -4,7 +4,7 @@ import numpy as np
 from mushroom_rl.utils.callbacks.collect_dataset import CollectDataset
 from mushroom_rl.utils.plots import DataBuffer, Window, Actions,\
     LenOfEpisodeTraining, Observations, RewardPerEpisode, RewardPerStep
-from mushroom_rl.utils.spaces import Box
+from mushroom_rl.rl_utils.spaces import Box
 from mushroom_rl.utils.dataset import compute_episodes_length, compute_J
 
 

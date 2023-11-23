@@ -1,4 +1,3 @@
-import os
 import warnings
 
 with warnings.catch_warnings():
@@ -18,7 +17,7 @@ import numpy as np
 
 from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.environments import Gym
-from mushroom_rl.utils.spaces import Discrete, Box
+from mushroom_rl.rl_utils.spaces import Discrete, Box
 from mushroom_rl.utils.viewer import ImageViewer
 
 class iGibsonWrapper(gym.ObservationWrapper):
