@@ -1,11 +1,12 @@
-from omni.isaac.kit import SimulationApp
 import torch
+from gym import spaces as gym_spaces
+
+from omni.isaac.kit import SimulationApp
 from omniisaacgymenvs.utils.task_util import initialize_task
 
 from mushroom_rl.core import VectorizedEnvironment, MDPInfo
 from mushroom_rl.utils.viewer import ImageViewer
-from mushroom_rl.utils.spaces import *
-from gym import spaces as gym_spaces
+from mushroom_rl.rl_utils.spaces import *
 
 # import carb
 
@@ -79,7 +80,8 @@ class IsaacEnv(VectorizedEnvironment):
         return set_seed(seed)
 
     def reset_all(self, env_mask, state=None):
-        self._task.reset()
+        idxs = torch.argwhere(env_mask).squeeze().cpu().numpy()  # TODO check if torch is just fine
+        self._task.reset_idx(idxs)
         # self._world.step(render=self._render) # TODO Check if we can do otherwise
         return self._task.get_observations(), [{}]*self._n_envs
 

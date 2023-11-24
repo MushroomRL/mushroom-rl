@@ -16,6 +16,7 @@ from mushroom_rl.algorithms.actor_critic import TRPO, PPO
 
 from mushroom_rl.policy import GaussianTorchPolicy
 from mushroom_rl.environments import IsaacEnv
+from mushroom_rl.utils import TorchUtils
 
 
 class Network(nn.Module):
@@ -101,6 +102,7 @@ def experiment(cfg_dict, headless, alg, n_epochs, n_steps, n_steps_per_fit, n_ep
 
 @hydra.main(config_name="config", config_path="./cfg")
 def parse_hydra_configs(cfg: DictConfig):
+    TorchUtils.set_default_device('cuda')
     headless = cfg.headless
     cfg_dict = omegaconf_to_dict(cfg)
 
