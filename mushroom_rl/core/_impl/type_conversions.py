@@ -1,4 +1,3 @@
-import numpy
 import numpy as np
 import torch
 
@@ -52,6 +51,10 @@ class DataConversion(object):
     def ones(*dims, dtype):
         raise NotImplementedError
 
+    @staticmethod
+    def copy(array):
+        raise NotImplementedError
+
 
 class NumpyConversion(DataConversion):
     @staticmethod
@@ -60,7 +63,7 @@ class NumpyConversion(DataConversion):
 
     @staticmethod
     def to_torch(array):
-        return torch.from_numpy(array).to(TorchUtils.get_device())
+        return None if array is None else torch.from_numpy(array).to(TorchUtils.get_device())
 
     @staticmethod
     def to_backend_array(cls, array):
@@ -74,11 +77,15 @@ class NumpyConversion(DataConversion):
     def ones(*dims, dtype=float):
         return np.ones(dims, dtype=dtype)
 
+    @staticmethod
+    def copy(array):
+        return array.copy()
+
 
 class TorchConversion(DataConversion):
     @staticmethod
     def to_numpy(array):
-        return array.detach().cpu().numpy()
+        return None if array is None else array.detach().cpu().numpy()
 
     @staticmethod
     def to_torch(array):
@@ -96,15 +103,19 @@ class TorchConversion(DataConversion):
     def ones(*dims, dtype=torch.float32):
         return torch.ones(*dims, dtype=dtype, device=TorchUtils.get_device())
 
+    @staticmethod
+    def copy(array):
+        return array.clone()
+
 
 class ListConversion(DataConversion):
     @staticmethod
     def to_numpy(array):
-        return numpy.array(array)
+        return np.array(array)
 
     @staticmethod
     def to_torch(array):
-        return torch.as_tensor(array, device=TorchUtils.get_device())
+        return None if array is None else torch.as_tensor(array, device=TorchUtils.get_device())
 
     @staticmethod
     def to_backend_array(cls, array):
@@ -117,6 +128,10 @@ class ListConversion(DataConversion):
     @staticmethod
     def ones(*dims, dtype=float):
         return np.ones(dims, dtype=float)
+
+    @staticmethod
+    def copy(array):
+        return array.copy()
 
 
 

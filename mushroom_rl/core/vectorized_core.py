@@ -101,16 +101,13 @@ class VectorCore(object):
     def _run(self, datasets, n_steps, n_episodes, render, quiet, record, initial_states=None):
         self._core_logic.initialize_run(n_steps, n_episodes, initial_states, quiet)
 
-
-        converter = datasets[0].converter
-
-        last = converter.ones(self.env.number, dtype=bool)
+        last = self._core_logic.converter.ones(self.env.number, dtype=bool)
         mask = None
 
         while self._core_logic.move_required():
             if last.any():
                 mask = self._core_logic.get_mask(last)
-                self._reset(converter, initial_states, last, mask)
+                self._reset(initial_states, last, mask)
 
             samples, step_infos = self._step(render, record, mask)
 
@@ -183,7 +180,7 @@ class VectorCore(object):
 
         return (state, action, rewards, next_state, absorbing, last, policy_state, policy_next_state), step_info
 
-    def _reset(self, converter, initial_states, last, mask):
+    def _reset(self, initial_states, last, mask):
         """
         Reset the states of the agent.
 
@@ -197,7 +194,7 @@ class VectorCore(object):
         self.agent.next_action = None
 
         if self._episode_steps is None:
-            self._episode_steps = converter.zeros(self.env.number, dtype=int)
+            self._episode_steps = self._core_logic.converter.zeros(self.env.number, dtype=int)
         else:
             self._episode_steps[last] = 0
 

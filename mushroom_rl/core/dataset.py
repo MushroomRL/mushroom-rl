@@ -42,7 +42,7 @@ class Dataset(Serializable):
             self._data = TorchDataset(state_type, state_shape, action_type, action_shape, reward_shape,
                                       policy_state_shape)
         else:
-            self._data = ListDataset()
+            self._data = ListDataset(policy_state_shape is not None)
 
         self._converter = DataConversion.get_converter(mdp_info.backend)
 
