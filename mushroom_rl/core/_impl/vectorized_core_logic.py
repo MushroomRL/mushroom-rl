@@ -33,7 +33,7 @@ class VectorizedCoreLogic(CoreLogic):
         new_mask[max_runs:] = False
         mask[last] = new_mask
 
-        self._running_envs = mask.copy()
+        self._running_envs = self._converter.copy(mask)
 
         return mask
 
@@ -46,15 +46,15 @@ class VectorizedCoreLogic(CoreLogic):
         return initial_state
 
     def after_step(self, last):
-        n_active_envs = self._running_envs.sum()
+        n_active_envs = self._running_envs.sum().item()
         self._total_steps_counter += n_active_envs
         self._current_steps_counter += n_active_envs
         self._steps_progress_bar.update(n_active_envs)
 
-        completed = last.sum()
+        completed = last.sum().item()
         self._total_episodes_counter += completed
         self._current_episodes_counter += completed
-        self._episodes_progress_bar.update(last.sum())
+        self._episodes_progress_bar.update(completed)
 
     def after_fit(self):
         super().after_fit()
@@ -64,3 +64,7 @@ class VectorizedCoreLogic(CoreLogic):
     def _reset_counters(self):
         super()._reset_counters()
         self._running_envs = self._converter.zeros(self._n_envs, dtype=bool)
+
+    @property
+    def converter(self):
+        return self._converter
