@@ -15,7 +15,7 @@ from mushroom_rl.environments import GridWorld, PuddleWorld
 from mushroom_rl.features import Features
 from mushroom_rl.features.tiles import Tiles
 from mushroom_rl.policy.td_policy import EpsGreedy
-from mushroom_rl.utils.parameters import Parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 def assert_properly_loaded(agent_save, agent_load):

@@ -9,17 +9,17 @@ from mushroom_rl.policy.td_policy import TDPolicy
 from mushroom_rl.policy.torch_policy import TorchPolicy
 from mushroom_rl.policy.policy import ParametricPolicy
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic.sac import SACPolicy
-from mushroom_rl.utils.replay_memory import ReplayMemory, PrioritizedReplayMemory
+from mushroom_rl.rl_utils.replay_memory import ReplayMemory, PrioritizedReplayMemory
 from mushroom_rl.approximators._implementations.ensemble import Ensemble
 from mushroom_rl.approximators._implementations.action_regressor import ActionRegressor
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.policy.noise_policy import OrnsteinUhlenbeckPolicy
 from mushroom_rl.features._implementations.tiles_features import TilesFeatures
-from mushroom_rl.utils.parameters import Parameter, LinearParameter
-from mushroom_rl.utils.optimizers import AdaptiveOptimizer, SGDOptimizer, AdamOptimizer
+from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter
+from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer, SGDOptimizer, AdamOptimizer
 from mushroom_rl.distributions.gaussian import GaussianDiagonalDistribution
-from mushroom_rl.utils.table import Table
-from mushroom_rl.utils.spaces import Discrete
+from mushroom_rl.approximators.table import Table
+from mushroom_rl.rl_utils.spaces import Discrete
 from mushroom_rl.features._implementations.functional_features import FunctionalFeatures
 from mushroom_rl.features._implementations.basis_features import BasisFeatures
 
@@ -154,16 +154,16 @@ class TestUtils:
         Compare two mdp_info objects for equality
         """
         res = True
-        if isinstance(this.observation_space, mushroom_rl.utils.spaces.Box):
+        if isinstance(this.observation_space, mushroom_rl.rl_utils.spaces.Box):
             res &= cls.eq_box(this.observation_space, that.observation_space)
-        elif isinstance(this.observation_space, mushroom_rl.utils.spaces.Discrete):
+        elif isinstance(this.observation_space, mushroom_rl.rl_utils.spaces.Discrete):
             res = cls.eq_discrete(this.observation_space, that.observation_space)
         else:
             raise TypeError('Type not supported')
 
-        if isinstance(this.action_space, mushroom_rl.utils.spaces.Box):
+        if isinstance(this.action_space, mushroom_rl.rl_utils.spaces.Box):
             res &= cls.eq_box(this.action_space, that.action_space)
-        elif isinstance(this.action_space, mushroom_rl.utils.spaces.Discrete):
+        elif isinstance(this.action_space, mushroom_rl.rl_utils.spaces.Discrete):
             res &= cls.eq_discrete(this.action_space, that.action_space)
         else:
             raise TypeError('Type not supported')

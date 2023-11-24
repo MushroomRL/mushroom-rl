@@ -8,7 +8,7 @@ from mushroom_rl.environments import Gym
 from mushroom_rl.policy import BoltzmannTorchPolicy
 from mushroom_rl.approximators.parametric.torch_approximator import *
 from mushroom_rl.utils.dataset import compute_J
-from mushroom_rl.utils.parameters import Parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 from tqdm import trange
 
 
@@ -53,8 +53,7 @@ def experiment(n_epochs, n_steps, n_steps_per_fit, n_step_test):
 
     # Policy
     policy_params = dict(
-        n_features=32,
-        use_cuda=False
+        n_features=32
     )
 
     beta = Parameter(1e0)

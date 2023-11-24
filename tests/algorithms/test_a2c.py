@@ -39,8 +39,7 @@ def learn_a2c():
 
     policy_params = dict(
         std_0=1.,
-        n_features=64,
-        use_cuda=False
+        n_features=64
     )
 
     critic_params = dict(network=Network,

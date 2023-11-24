@@ -12,7 +12,7 @@ from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.policy import StateLogStdGaussianPolicy
 from mushroom_rl.utils.dataset import compute_J
 from mushroom_rl.utils.callbacks import CollectDataset
-from mushroom_rl.utils.parameters import Parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 from tqdm import tqdm, trange
 tqdm.monitor_interval = 0

@@ -4,7 +4,7 @@ from collections import deque
 import gym
 
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.utils.spaces import *
+from mushroom_rl.rl_utils.spaces import *
 from mushroom_rl.utils.frames import LazyFrames, preprocess_frame
 
 

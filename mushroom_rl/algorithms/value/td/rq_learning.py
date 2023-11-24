@@ -1,8 +1,8 @@
 import numpy as np
 
 from mushroom_rl.algorithms.value.td import TD
-from mushroom_rl.utils.table import Table
-from mushroom_rl.utils.parameters import to_parameter
+from mushroom_rl.approximators.table import Table
+from mushroom_rl.rl_utils.parameters import to_parameter
 
 
 class RQLearning(TD):

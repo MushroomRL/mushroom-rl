@@ -7,7 +7,7 @@ from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import LQR
 from mushroom_rl.policy import StateStdGaussianPolicy
 from mushroom_rl.utils.dataset import compute_J
-from mushroom_rl.utils.optimizers import AdaptiveOptimizer
+from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer
 
 from tqdm import tqdm, trange
 

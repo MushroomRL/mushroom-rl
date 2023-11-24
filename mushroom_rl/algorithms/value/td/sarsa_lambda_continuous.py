@@ -2,7 +2,7 @@ import numpy as np
 
 from mushroom_rl.algorithms.value.td import TD
 from mushroom_rl.approximators import Regressor
-from mushroom_rl.utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import to_parameter
 
 
 class SARSALambdaContinuous(TD):

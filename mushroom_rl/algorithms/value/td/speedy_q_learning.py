@@ -2,7 +2,7 @@ import numpy as np
 from copy import deepcopy
 
 from mushroom_rl.algorithms.value.td import TD
-from mushroom_rl.utils.table import Table
+from mushroom_rl.approximators.table import Table
 
 
 class SpeedyQLearning(TD):

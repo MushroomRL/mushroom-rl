@@ -1,7 +1,7 @@
 import numpy as np
 
 from mushroom_rl.core.serialization import Serializable
-from mushroom_rl.utils.running_stats import RunningStandardization
+from mushroom_rl.rl_utils.running_stats import RunningStandardization
 
 
 class StandardizationPreprocessor(Serializable):

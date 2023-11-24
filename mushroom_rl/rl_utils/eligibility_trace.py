@@ -1,4 +1,4 @@
-from mushroom_rl.utils.table import Table
+from mushroom_rl.approximators.table import Table
 
 
 def EligibilityTrace(shape, name='replacing'):

@@ -1,5 +1,3 @@
-import numpy as np
-
 from mushroom_rl.core.dataset import Dataset
 from mushroom_rl.utils.record import VideoRecorder
 
@@ -36,7 +34,7 @@ class VectorCore(object):
         self._current_theta = None
         self._episode_steps = None
 
-        self._core_logic = VectorizedCoreLogic(self.env.number)
+        self._core_logic = VectorizedCoreLogic(self.env.info.backend, self.env.number)
 
         if record_dictionary is None:
             record_dictionary = dict()
@@ -78,7 +76,7 @@ class VectorCore(object):
         episode. The environment is reset at the beginning of the learning process.
 
         Args:
-            initial_states (np.ndarray, None): the starting states of each episode;
+            initial_states (array, None): the starting states of each episode;
             n_steps (int, None): number of steps to move the agent;
             n_episodes (int, None): number of episodes to move the agent;
             render (bool, False): whether to render the environment or not;
@@ -103,18 +101,21 @@ class VectorCore(object):
     def _run(self, datasets, n_steps, n_episodes, render, quiet, record, initial_states=None):
         self._core_logic.initialize_run(n_steps, n_episodes, initial_states, quiet)
 
-        last = np.ones(self.env.number, dtype=bool)
+
+        converter = datasets[0].converter
+
+        last = converter.ones(self.env.number, dtype=bool)
         mask = None
 
         while self._core_logic.move_required():
-            if np.any(last):
+            if last.any():
                 mask = self._core_logic.get_mask(last)
-                self._reset(initial_states, last, mask)
+                self._reset(converter, initial_states, last, mask)
 
             samples, step_infos = self._step(render, record, mask)
 
             self.callback_step(samples)
-            self._core_logic.after_step(np.logical_and(samples[5], mask))
+            self._core_logic.after_step(samples[5] & mask)
 
             self._add_to_dataset(mask, datasets, samples, step_infos)
 
@@ -172,7 +173,7 @@ class VectorCore(object):
                     if mask[i]:
                         self._record[i](frames[i])
 
-        last = np.logical_or(absorbing, self._episode_steps >= self.env.info.horizon)
+        last = absorbing | self._episode_steps >= self.env.info.horizon
 
         state = self._state
         policy_state = self._policy_state
@@ -182,12 +183,12 @@ class VectorCore(object):
 
         return (state, action, rewards, next_state, absorbing, last, policy_state, policy_next_state), step_info
 
-    def _reset(self, initial_states, last, mask):
+    def _reset(self, converter, initial_states, last, mask):
         """
         Reset the states of the agent.
 
         """
-        reset_mask = np.logical_and(last, mask)
+        reset_mask = last & mask
         initial_state = self._core_logic.get_initial_state(initial_states)
 
         state, episode_info = self._preprocess(self.env.reset_all(reset_mask, initial_state))
@@ -196,7 +197,7 @@ class VectorCore(object):
         self.agent.next_action = None
 
         if self._episode_steps is None:
-            self._episode_steps = np.zeros(self.env.number, dtype=int)
+            self._episode_steps = converter.zeros(self.env.number, dtype=int)
         else:
             self._episode_steps[last] = 0
 
@@ -217,7 +218,7 @@ class VectorCore(object):
         Method to apply state preprocessors.
 
         Args:
-            states (Iterable of np.ndarray): the states to be preprocessed.
+            states (array): the states to be preprocessed.
 
         Returns:
              The preprocessed states.

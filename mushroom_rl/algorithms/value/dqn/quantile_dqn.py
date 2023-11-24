@@ -88,9 +88,6 @@ class QuantileDQN(AbstractDQN):
         tau = torch.arange(n_quantiles + 1) / n_quantiles
         QuantileDQN.tau_hat = torch.Tensor([(tau[i-1] + tau[i]) / 2 for i in range(1, len(tau))])
 
-        if params['approximator_params']['use_cuda']:
-            QuantileDQN.tau_hat = QuantileDQN.tau_hat.cuda()
-
         self._add_save_attr(
             _n_quantiles='primitive'
         )

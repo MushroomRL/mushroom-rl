@@ -44,7 +44,7 @@ def learn(alg, alg_params):
                          input_shape=mdp.info.observation_space.shape,
                          output_shape=(1,))
 
-    policy_params = dict(std_0=1., use_cuda=False)
+    policy_params = dict(std_0=1.)
 
     policy = GaussianTorchPolicy(Network,
                                  mdp.info.observation_space.shape,

@@ -8,7 +8,7 @@ from mushroom_rl.core import Core
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.utils.callbacks import CollectQ
-from mushroom_rl.utils.parameters import Parameter, ExponentialParameter
+from mushroom_rl.rl_utils.parameters import Parameter, ExponentialParameter
 
 
 """

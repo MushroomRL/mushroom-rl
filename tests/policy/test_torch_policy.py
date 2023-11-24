@@ -4,7 +4,7 @@ import torch.nn as nn
 import numpy as np
 
 from mushroom_rl.policy.torch_policy import TorchPolicy, GaussianTorchPolicy, BoltzmannTorchPolicy
-from mushroom_rl.utils.parameters import Parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 def abstract_method_tester(f, *args):
@@ -52,7 +52,6 @@ def test_torch_policy():
     abstract_method_tester(tmp.get_weights)
     abstract_method_tester(tmp.parameters)
     tmp.reset()
-    tmp.use_cuda
 
 
 def test_gaussian_torch_policy():

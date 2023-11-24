@@ -25,7 +25,7 @@ using the ``save`` method of the serializable class:
 
 .. code-block:: python
 
-    from mushroom_rl.utils.parameters import Parameter
+    from mushroom_rl.rl_utils.parameters import Parameter
 
     parameter = Parameter(1.0)
     print('Initial parameter value: ', parameter())

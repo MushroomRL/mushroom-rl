@@ -1,6 +1,7 @@
-from mushroom_rl.core.serialization import Serializable
-from mushroom_rl.utils.table import Table
 import numpy as np
+
+from mushroom_rl.core.serialization import Serializable
+from mushroom_rl.approximators.table import Table
 
 
 def to_parameter(x):

@@ -2,137 +2,144 @@ import torch
 import numpy as np
 
 
-def set_weights(parameters, weights, use_cuda):
-    """
-    Function used to set the value of a set of torch parameters given a
-    vector of values.
+class TorchUtils(object):
+    _default_device = 'cpu'
 
-    Args:
-        parameters (list): list of parameters to be considered;
-        weights (numpy.ndarray): array of the new values for
-            the parameters;
-        use_cuda (bool): whether the parameters are cuda tensors or not;
+    @classmethod
+    def set_default_device(cls, device):
+        cls._default_device = device
 
-    """
-    idx = 0
-    for p in parameters:
-        shape = p.data.shape
+    @classmethod
+    def get_device(cls, device=None):
+        return cls._default_device if device is None else device
 
-        c = 1
-        for s in shape:
-            c *= s
+    @classmethod
+    def set_weights(cls, parameters, weights, device=None):
+        """
+        Function used to set the value of a set of torch parameters given a
+        vector of values.
 
-        w = np.reshape(weights[idx:idx + c], shape)
+        Args:
+            parameters (list): list of parameters to be considered;
+            weights (numpy.ndarray): array of the new values for
+                the parameters;
+            device (str, None): device to use to store the tensor.
 
-        if not use_cuda:
-            w_tensor = torch.from_numpy(w).type(p.data.dtype)
-        else:
-            w_tensor = torch.from_numpy(w).type(p.data.dtype).cuda()
+        """
+        idx = 0
+        for p in parameters:
+            shape = p.data.shape
 
-        p.data = w_tensor
-        idx += c
+            c = 1
+            for s in shape:
+                c *= s
 
-    assert idx == weights.size
+            w = np.reshape(weights[idx:idx + c], shape)
 
+            w_tensor = torch.as_tensor(w, device=cls.get_device(device)).type(p.data.dtype)
 
-def get_weights(parameters):
-    """
-    Function used to get the value of a set of torch parameters as
-    a single vector of values.
+            p.data = w_tensor
+            idx += c
 
-    Args:
-        parameters (list): list of parameters to be considered.
+        assert idx == weights.size
 
-    Returns:
-        A numpy vector consisting of all the values of the vectors.
+    @staticmethod
+    def get_weights(parameters):
+        """
+        Function used to get the value of a set of torch parameters as
+        a single vector of values.
 
-    """
-    weights = list()
+        Args:
+            parameters (list): list of parameters to be considered.
 
-    for p in parameters:
-        w = p.data.detach().cpu().numpy()
-        weights.append(w.flatten())
+        Returns:
+            A numpy vector consisting of all the values of the vectors.
 
-    weights = np.concatenate(weights, 0)
+        """
+        weights = list()
 
-    return weights
+        for p in parameters:
+            w = p.data.detach().cpu().numpy()
+            weights.append(w.flatten())
 
+        weights = np.concatenate(weights, 0)
 
-def zero_grad(parameters):
-    """
-    Function used to set to zero the value of the gradient of a set
-    of torch parameters.
+        return weights
 
-    Args:
-        parameters (list): list of parameters to be considered.
+    @staticmethod
+    def zero_grad(parameters):
+        """
+        Function used to set to zero the value of the gradient of a set
+        of torch parameters.
 
-    """
+        Args:
+            parameters (list): list of parameters to be considered.
 
-    for p in parameters:
-        if p.grad is not None:
-           p.grad.detach_()
-           p.grad.zero_()
+        """
 
+        for p in parameters:
+            if p.grad is not None:
+               p.grad.detach_()
+               p.grad.zero_()
 
-def get_gradient(params):
-    """
-    Function used to get the value of the gradient of a set of
-    torch parameters.
+    @staticmethod
+    def get_gradient(params):
+        """
+        Function used to get the value of the gradient of a set of
+        torch parameters.
 
-    Args:
-        parameters (list): list of parameters to be considered.
+        Args:
+            parameters (list): list of parameters to be considered.
 
-    """
-    views = []
-    for p in params:
-        if p.grad is None:
-            view = p.new(p.numel()).zero_()
-        else:
-            view = p.grad.view(-1)
-        views.append(view)
-    return torch.cat(views, 0)
+        """
+        views = []
+        for p in params:
+            if p.grad is None:
+                view = p.new(p.numel()).zero_()
+            else:
+                view = p.grad.view(-1)
+            views.append(view)
+        return torch.cat(views, 0)
 
+    @classmethod
+    def to_float_tensor(cls, x, device=None):
+        """
+        Function used to convert a numpy array to a float torch tensor.
 
-def to_float_tensor(x, use_cuda=False):
-    """
-    Function used to convert a numpy array to a float torch tensor.
+        Args:
+            x (np.ndarray): numpy array to be converted as torch tensor;
+            device (str, None): device to use to store the tensor.
 
-    Args:
-        x (np.ndarray): numpy array to be converted as torch tensor;
-        use_cuda (bool): whether to build a cuda tensors or not.
+        Returns:
+            A float tensor build from the values contained in the input array.
 
-    Returns:
-        A float tensor build from the values contained in the input array.
+        """
+        return torch.as_tensor(x, device=cls.get_device(device), dtype=torch.float)
 
-    """
-    x = torch.as_tensor(x, dtype=torch.float)
-    return x.cuda() if use_cuda else x
+    @classmethod
+    def to_int_tensor(cls, x, device=None):
+        """
+        Function used to convert a numpy array to a float torch tensor.
 
+        Args:
+            x (np.ndarray): numpy array to be converted as torch tensor;
+            device (str, None): device to use to store the tensor.
 
-def to_int_tensor(x, use_cuda=False):
-    """
-    Function used to convert a numpy array to a float torch tensor.
+        Returns:
+            A float tensor build from the values contained in the input array.
 
-    Args:
-        x (np.ndarray): numpy array to be converted as torch tensor;
-        use_cuda (bool): whether to build a cuda tensors or not.
+        """
+        return torch.as_tensor(x, device=cls.get_device(device), dtype=torch.int)
 
-    Returns:
-        A float tensor build from the values contained in the input array.
+    @staticmethod
+    def update_optimizer_parameters(optimizer, new_parameters):
+        if len(optimizer.state) > 0:
+            for p_old, p_new in zip(optimizer.param_groups[0]['params'], new_parameters):
+                data = optimizer.state[p_old]
+                del optimizer.state[p_old]
+                optimizer.state[p_new] = data
 
-    """
-    x = torch.tensor(x, dtype=torch.int)
-    return x.cuda() if use_cuda else x
-
-
-def update_optimizer_parameters(optimizer, new_parameters):
-    if len(optimizer.state) > 0:
-        for p_old, p_new in zip(optimizer.param_groups[0]['params'], new_parameters):
-            data = optimizer.state[p_old]
-            del optimizer.state[p_old]
-            optimizer.state[p_new] = data
-
-    optimizer.param_groups[0]['params'] = new_parameters
+        optimizer.param_groups[0]['params'] = new_parameters
 
 
 class CategoricalWrapper(torch.distributions.Categorical):

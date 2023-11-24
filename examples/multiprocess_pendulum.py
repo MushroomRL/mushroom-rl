@@ -97,9 +97,7 @@ if __name__ == '__main__':
 
     policy_params = dict(
         std_0=1.,
-        n_features=32,
-        use_cuda=False
-
+        n_features=32
     )
 
     ppo_params = dict(actor_optimizer={'class': optim.Adam,

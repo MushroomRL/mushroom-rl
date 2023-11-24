@@ -187,7 +187,6 @@ def experiment(
         gae_lambda: float = 0.95,
         seed: int = 0,  # This argument is mandatory
         results_dir: str = './logs',  # This argument is mandatory
-        use_cuda: bool = False,
         std_0: float = 0.5,
         rnn_type: str ="gru",
         n_hidden_features: int = 128,
@@ -237,8 +236,7 @@ def experiment(
                          num_hidden_layers=num_hidden_layers,
                          dim_env_state=mdp.info.observation_space.shape[0],
                          dim_hidden_state=n_hidden_features,
-                         dim_action=dim_action,
-                         use_cuda=use_cuda,
+                         dim_action=dim_action
                          )
 
     alg_params = dict(actor_optimizer={'class':  optim.Adam,

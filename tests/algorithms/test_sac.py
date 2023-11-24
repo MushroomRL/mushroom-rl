@@ -72,13 +72,11 @@ def learn_sac():
     actor_mu_params = dict(network=ActorNetwork,
                            n_features=n_features,
                            input_shape=actor_input_shape,
-                           output_shape=mdp.info.action_space.shape,
-                           use_cuda=False)
+                           output_shape=mdp.info.action_space.shape)
     actor_sigma_params = dict(network=ActorNetwork,
                               n_features=n_features,
                               input_shape=actor_input_shape,
-                              output_shape=mdp.info.action_space.shape,
-                              use_cuda=False)
+                              output_shape=mdp.info.action_space.shape)
 
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': 3e-4}}
@@ -91,8 +89,7 @@ def learn_sac():
                          loss=F.mse_loss,
                          n_features=n_features,
                          input_shape=critic_input_shape,
-                         output_shape=(1,),
-                         use_cuda=False)
+                         output_shape=(1,))
 
     # Agent
     agent = SAC(mdp.info, actor_mu_params, actor_sigma_params, actor_optimizer,

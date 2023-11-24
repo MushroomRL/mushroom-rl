@@ -1,6 +1,7 @@
 import torch
 
 from mushroom_rl.core.serialization import Serializable
+from mushroom_rl.utils.torch import TorchUtils
 
 
 class TorchDataset(Serializable):
@@ -10,12 +11,12 @@ class TorchDataset(Serializable):
         self._state_type = state_type
         self._action_type = action_type
 
-        self._states = torch.empty(*state_shape, dtype=self._state_type)
-        self._actions = torch.empty(*action_shape, dtype=self._action_type)
-        self._rewards = torch.empty(*reward_shape, dtype=torch.float)
-        self._next_states = torch.empty(*state_shape, dtype=self._state_type)
-        self._absorbing = torch.empty(flags_len, dtype=torch.bool)
-        self._last = torch.empty(flags_len, dtype=torch.bool)
+        self._states = torch.empty(*state_shape, dtype=self._state_type, device=TorchUtils.get_device())
+        self._actions = torch.empty(*action_shape, dtype=self._action_type, device=TorchUtils.get_device())
+        self._rewards = torch.empty(*reward_shape, dtype=torch.float, device=TorchUtils.get_device())
+        self._next_states = torch.empty(*state_shape, dtype=self._state_type, device=TorchUtils.get_device())
+        self._absorbing = torch.empty(flags_len, dtype=torch.bool, device=TorchUtils.get_device())
+        self._last = torch.empty(flags_len, dtype=torch.bool, device=TorchUtils.get_device())
         self._len = 0
 
         if policy_state_shape is None:
