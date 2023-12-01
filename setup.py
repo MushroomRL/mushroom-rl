@@ -22,12 +22,6 @@ def glob_data_files(data_package, data_type=None):
 
 here = path.abspath(path.dirname(__file__))
 
-#requires_list = []
-#with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
-    #for line in f:
-        #requires_list.append(str(line))
-#if sys.version_info < (3, 7):
-    #requires_list.append('zipfile37')
 
 extras = {
     'gym': ['gym==0.24.1'],
