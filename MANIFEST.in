@@ -1,2 +1,5 @@
 include requirements.txt
 include setup.py
+prune tests
+prune examples
+prune .github

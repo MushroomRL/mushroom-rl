@@ -1,2 +1,41 @@
 [build-system]
 requires = ["setuptools", "wheel", "numpy"]
+
+[project]
+name = "mushroom-rl"
+dependencies = [
+    "numpy",
+    "scipy",
+    "scikit-learn",
+    "matplotlib",
+    "joblib",
+    "tqdm",
+    "pygame",
+    "opencv-python>=4.7",
+    "torch"
+]
+requires-python = ">=3.8"
+authors = [
+    { name="Carlo D'Eramo", email="carlo.deramo@gmail.com"}, 
+    { name = "Davide Tateo", email = "davide@robot-learning.de" }
+]
+maintainers = [
+  {name = "Davide Tateo", email = "davide@robot-learning.de"}
+]
+description = "A Python library for Reinforcement Learning experiments."
+readme = "README.rst"
+license = { file= "LICENSE" }
+keywords = ["Reinforcement Learning", "Machine Learning", "Robotics"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dynamic = ["version", "optional-dependencies"]
+
+[project.urls]
+Homepage = "https://github.com/MushroomRL"
+Documentation = "https://mushroomrl.readthedocs.io/en/latest/"
+Repository = "https://github.com/MushroomRL/mushroom-rl"
+Issues = "https://github.com/MushroomRL/mushroom-rl/issues"
