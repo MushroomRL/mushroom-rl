@@ -49,6 +49,7 @@ class TorchApproximator(Serializable):
         self._n_fit_targets = n_fit_targets
 
         self.network = network(input_shape, output_shape, dropout=dropout, **params)
+        self.network.to(TorchUtils.get_device())
 
         if self._dropout:
             self.network.eval()
