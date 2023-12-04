@@ -1,13 +1,13 @@
 import pickle
 import numpy as np
 
-from mushroom_rl.utils.callbacks.collect_dataset import CollectDataset
+from mushroom_rl.utils.callbacks.callback import Callback
 from mushroom_rl.utils.plots import DataBuffer, Window, Actions,\
     LenOfEpisodeTraining, Observations, RewardPerEpisode, RewardPerStep
 from mushroom_rl.rl_utils.spaces import Box
 
 
-class PlotDataset(CollectDataset):
+class PlotDataset(Callback):
     """
     This callback is used for plotting the values of the actions, observations,
     reward per step, reward per episode, episode length only for the training.
@@ -39,16 +39,13 @@ class PlotDataset(CollectDataset):
 
         self.action_buffers_list = []
         for i in range(mdp_info.action_space.shape[0]):
-            self.action_buffers_list.append(
-                DataBuffer('Action_' + str(i), window_size))
+            self.action_buffers_list.append(DataBuffer('Action_' + str(i), window_size))
 
         self.observation_buffers_list = []
         for i in range(mdp_info.observation_space.shape[0]):
-            self.observation_buffers_list.append(
-                DataBuffer('Observation_' + str(i), window_size))
+            self.observation_buffers_list.append(DataBuffer('Observation_' + str(i), window_size))
 
-        self.instant_reward_buffer = \
-            DataBuffer("Instant_reward", window_size)
+        self.instant_reward_buffer = DataBuffer("Instant_reward", window_size)
 
         self.training_reward_buffer = DataBuffer("Episode_reward")
 
@@ -61,8 +58,7 @@ class PlotDataset(CollectDataset):
             high_actions = None
             low_actions = None
 
-        actions_plot = Actions(self.action_buffers_list, maxs=high_actions,
-                               mins=low_actions)
+        actions_plot = Actions(self.action_buffers_list, maxs=high_actions, mins=low_actions)
 
         dotted_limits = None
         if isinstance(mdp_info.observation_space, Box):
@@ -82,22 +78,14 @@ class PlotDataset(CollectDataset):
             high_mdp = None
             low_mdp = None
 
-        observation_plot = Observations(
-            self.observation_buffers_list, maxs=high_mdp, mins=low_mdp,
-            dotted_limits=dotted_limits
-        )
+        observation_plot = Observations(self.observation_buffers_list, maxs=high_mdp, mins=low_mdp,
+                                        dotted_limits=dotted_limits)
 
-        step_reward_plot = RewardPerStep(
-            self.instant_reward_buffer
-        )
+        step_reward_plot = RewardPerStep(self.instant_reward_buffer)
 
-        training_reward_plot = RewardPerEpisode(
-            self.training_reward_buffer
-        )
+        training_reward_plot = RewardPerEpisode(self.training_reward_buffer)
 
-        episodic_len_training_plot = LenOfEpisodeTraining(
-            self.episodic_len_buffer_training
-        )
+        episodic_len_training_plot = LenOfEpisodeTraining(self.episodic_len_buffer_training)
 
         self.plot_window = Window(
             plot_list=[training_reward_plot, episodic_len_training_plot,
@@ -109,89 +97,30 @@ class PlotDataset(CollectDataset):
         if show:
             self.plot_window.show()
 
-    def __call__(self, dataset):
-        super().__call__(dataset)
+        self._episode_reward = 0.
+        self._episode_lenght = 0
 
-        for sample in dataset:
-            obs = sample[0]
-            action = sample[1]
-            reward = sample[2]
+    def __call__(self, sample):
+        obs = sample[0]
+        action = sample[1]
+        reward = sample[2]
+        last = sample[5]
 
-            for i in range(len(action)):
-                self.action_buffers_list[i].update([action[i]])
+        for i in range(len(action)):
+            self.action_buffers_list[i].update([action[i]])
 
-            for i in range(obs.size):
-                self.observation_buffers_list[i].update([obs[i]])
+        for i in range(obs.size):
+            self.observation_buffers_list[i].update([obs[i]])
 
-            self.instant_reward_buffer.update([reward])
+        self.instant_reward_buffer.update([reward])
 
-        lengths_of_episodes = self._dataset.episodes_length
+        self._episode_reward += reward
+        self._episode_lenght += 1
 
-        start_index = 0
-        for length_of_episode in lengths_of_episodes:
-            sub_dataset = self._data_list[start_index:start_index+length_of_episode]
-
-            episodic_reward = sub_dataset.undiscounted_reward
-            self.training_reward_buffer.update([episodic_reward[0]])
-            self.episodic_len_buffer_training.update([length_of_episode])
-
-            start_index = length_of_episode
-
-        self._dataset = self._data_list[start_index:]
+        if last:
+            self.training_reward_buffer.update([self._episode_reward])
+            self.episodic_len_buffer_training.update([self._episode_lenght])
+            self._episode_reward = 0.
+            self._episode_lenght = 0
 
         self.plot_window.refresh()
-
-    def get_state(self):
-        """
-        Returns:
-             The dictionary of data in each data buffer in tree structure
-             associated with the plot name.
-
-        """
-        data = {plot.name: {buffer.name: buffer.get()}
-                for p_i, plot in enumerate(self.plot_window.plot_list)
-                for buffer in plot.data_buffers
-                if self.plot_window._track_if_deactivated[p_i]}
-
-        return data
-
-    def set_state(self, data):
-        """
-        Set the state of the DataBuffers to resume the plots.
-
-        Args:
-            data (dict): data of each plot and data buffer.
-
-        """
-        for plot_name, buffer_dict in data.items():
-            for plot in self.plot_window.plot_list:
-                if plot.name == plot_name:
-
-                    for buffer_name, buffer_data in buffer_dict.items():
-                        for buffer in plot.data_buffers:
-                            if buffer.name == buffer_name:
-                                buffer.set(buffer_data)
-
-    def save_state(self, path):
-        """
-        Save the data in the plots given a path.
-
-        Args:
-            path (str): path to save the data.
-
-        """
-        data = self.get_state()
-        with open(path, 'wb') as f:
-            pickle.dump(data, f, protocol=3)
-
-    def load_state(self, path):
-        """
-        Load the data to the plots given a path.
-
-        Args:
-            path (str): path to load the data.
-
-        """
-        with open(path, 'rb') as f:
-            data = pickle.load(f)
-            self.set_state(data)
