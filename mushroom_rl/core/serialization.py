@@ -1,4 +1,3 @@
-import sys
 import json
 import torch
 import pickle
@@ -9,10 +8,7 @@ from pathlib import Path
 
 from mushroom_rl.utils.torch import TorchUtils
 
-if sys.version_info >= (3, 7):
-    from zipfile import ZipFile
-else:
-    from zipfile37 import ZipFile
+from zipfile import ZipFile
 
 
 class Serializable(object):

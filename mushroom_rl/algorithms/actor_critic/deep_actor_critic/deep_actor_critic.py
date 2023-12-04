@@ -24,9 +24,7 @@ class DeepAC(Agent):
                 parameters = list(parameters)
             self._parameters = parameters
 
-            self._optimizer = actor_optimizer['class'](
-                parameters, **actor_optimizer['params']
-            )
+            self._optimizer = actor_optimizer['class'](parameters, **actor_optimizer['params'])
 
             self._clipping = None
 
@@ -86,5 +84,4 @@ class DeepAC(Agent):
             TorchUtils.update_optimizer_parameters(self._optimizer, self._parameters)
 
     def _post_load(self):
-        raise NotImplementedError('DeepAC is an abstract class. Subclasses need'
-                                  'to implement the `_post_load` method.')
+        raise NotImplementedError('DeepAC is an abstract class. Subclasses need to implement the `_post_load` method.')

@@ -1,7 +1,5 @@
 from setuptools import setup, find_packages
-from codecs import open
 from os import path
-import sys
 import glob
 
 from mushroom_rl import __version__
@@ -22,12 +20,6 @@ def glob_data_files(data_package, data_type=None):
 
 here = path.abspath(path.dirname(__file__))
 
-requires_list = []
-with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
-    for line in f:
-        requires_list.append(str(line))
-if sys.version_info < (3, 7):
-    requires_list.append('zipfile37')
 
 extras = {
     'gym': ['gym==0.24.1'],
@@ -62,21 +54,10 @@ pybullet_data_package = 'mushroom_rl.environments.pybullet_envs.data'
 setup(
     name='mushroom-rl',
     version=__version__,
-    description='A Python library for Reinforcement Learning experiments.',
     long_description=long_description,
-    url='https://github.com/MushroomRL/mushroom-rl',
-    author="Carlo D'Eramo, Davide Tateo",
-    author_email='carlo.deramo@gmail.com',
-    license='MIT',
     packages=[package for package in find_packages()
               if package.startswith('mushroom_rl')],
-    zip_safe=False,
-    install_requires=requires_list,
     extras_require=extras,
-    classifiers=["Programming Language :: Python :: 3",
-                 "License :: OSI Approved :: MIT License",
-                 "Operating System :: OS Independent",
-                 ],
     package_data={
         mujoco_data_package: glob_data_files(mujoco_data_package),
         pybullet_data_package: glob_data_files(pybullet_data_package)
