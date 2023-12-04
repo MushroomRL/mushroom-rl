@@ -20,7 +20,7 @@ authors = [
     { name = "Davide Tateo", email = "davide@robot-learning.de" }
 ]
 maintainers = [
-  {name = "Davide Tateo", email = "davide@robot-learning.de"}
+  { name = "Davide Tateo", email = "davide@robot-learning.de" }
 ]
 description = "A Python library for Reinforcement Learning experiments."
 readme = "README.rst"
