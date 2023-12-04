@@ -7,5 +7,20 @@ class CollectDataset(Callback):
     agent.
 
     """
+    def __init__(self):
+        """
+        Constructor.
+        """
+        self._dataset = None
+
     def __call__(self, dataset):
-        self._data_list += dataset
+        if self._dataset is None:
+            self._dataset = dataset
+        else:
+            self._dataset += dataset
+
+    def clean(self):
+        self._dataset.clear()
+
+    def get(self):
+        return self._dataset

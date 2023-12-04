@@ -6,7 +6,7 @@ try:
 except ImportError:
     pass
 
-from .callback import Callback
+from .callback import Callback, CallbackList
 from .collect_dataset import CollectDataset
 from .collect_max_q import CollectMaxQ
 from .collect_q import CollectQ
