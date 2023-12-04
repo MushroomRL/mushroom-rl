@@ -6,7 +6,6 @@ from mushroom_rl.environments import *
 from mushroom_rl.features import Features
 from mushroom_rl.features.basis import PolynomialBasis, GaussianRBF
 from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.utils.dataset import compute_episodes_length
 from mushroom_rl.rl_utils.parameters import Parameter
 
 
@@ -41,9 +40,9 @@ def experiment():
     fit_params = dict()
     approximator_params = dict(input_shape=(features.size,),
                                output_shape=(mdp.info.action_space.n,),
-                               n_actions=mdp.info.action_space.n)
-    agent = LSPI(mdp.info, pi, approximator_params=approximator_params,
-                 fit_params=fit_params, features=features)
+                               n_actions=mdp.info.action_space.n,
+                               phi=features)
+    agent = LSPI(mdp.info, pi, approximator_params=approximator_params, fit_params=fit_params)
 
     # Algorithm
     core = Core(agent, mdp)
@@ -60,7 +59,7 @@ def experiment():
 
     core.evaluate(n_steps=100, render=True)
 
-    return np.mean(compute_episodes_length(dataset))
+    return np.mean(dataset.episodes_length)
 
 
 if __name__ == '__main__':

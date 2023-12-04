@@ -8,7 +8,6 @@ from mushroom_rl.core import Core, Logger
 from mushroom_rl.distributions import GaussianCholeskyDistribution
 from mushroom_rl.environments import LQR
 from mushroom_rl.policy import DeterministicPolicy
-from mushroom_rl.utils.dataset import compute_J
 from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer
 
 
@@ -47,15 +46,15 @@ def experiment(alg, params, n_epochs, fit_per_epoch, ep_per_fit):
     # Train
     core = Core(agent, mdp)
     dataset_eval = core.evaluate(n_episodes=ep_per_fit)
-    J = compute_J(dataset_eval, gamma=mdp.info.gamma)
-    logger.epoch_info(0, J=np.mean(J), distribution_parameters=distribution.get_parameters())
+    J = np.mean(dataset_eval.discounted_return)
+    logger.epoch_info(0, J=J, distribution_parameters=distribution.get_parameters())
 
     for i in trange(n_epochs, leave=False):
         core.learn(n_episodes=fit_per_epoch * ep_per_fit,
                    n_episodes_per_fit=ep_per_fit)
         dataset_eval = core.evaluate(n_episodes=ep_per_fit)
-        J = compute_J(dataset_eval, gamma=mdp.info.gamma)
-        logger.epoch_info(i+1, J=np.mean(J), distribution_parameters=distribution.get_parameters())
+        J = np.mean(dataset_eval.discounted_return)
+        logger.epoch_info(i+1, J=J, distribution_parameters=distribution.get_parameters())
 
 
 if __name__ == '__main__':

@@ -11,7 +11,6 @@ from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.utils.callbacks import CollectDataset, CollectMaxQ
-from mushroom_rl.utils.dataset import parse_dataset
 from mushroom_rl.rl_utils.parameters import ExponentialParameter
 
 
@@ -50,7 +49,7 @@ def experiment(algorithm_class, exp):
     # Train
     core.learn(n_steps=10000, n_steps_per_fit=1, quiet=True)
 
-    _, _, reward, _, _, _ = parse_dataset(collect_dataset.get())
+    reward = collect_dataset.get().rewards
     max_Qs = collect_max_Q.get()
 
     return reward, max_Qs
@@ -74,8 +73,7 @@ if __name__ == '__main__':
         for a in [QLearning, DoubleQLearning, WeightedQLearning,
                   SpeedyQLearning, SARSA]:
             logger.info(f'Alg: {names[a]}')
-            out = Parallel(n_jobs=-1)(
-                delayed(experiment)(a, e) for _ in range(n_experiment))
+            out = Parallel(n_jobs=-1)(delayed(experiment)(a, e) for _ in range(n_experiment))
             r = np.array([o[0] for o in out])
             max_Qs = np.array([o[1] for o in out])
 
