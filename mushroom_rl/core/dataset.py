@@ -144,7 +144,10 @@ class Dataset(Serializable):
             return self._info[field][index]
 
     def clear(self):
+        self._episode_info = defaultdict(list)
+        self._theta_list = list()
         self._info = defaultdict(list)
+
         self._data.clear()
 
     def get_view(self, index):
