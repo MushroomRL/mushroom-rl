@@ -9,7 +9,6 @@ from mushroom_rl.algorithms.actor_critic import DDPG, TD3
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments.gym_env import Gym
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy
-from mushroom_rl.utils.dataset import compute_J
 
 from tqdm import trange
 
@@ -121,16 +120,17 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
 
     # RUN
     dataset = core.evaluate(n_steps=n_steps_test, render=False)
-    J = np.mean(compute_J(dataset, gamma))
-    R = np.mean(compute_J(dataset))
+    J = np.mean(dataset.discounted_return)
+    R = np.mean(dataset.undiscounted_return)
 
     logger.epoch_info(0, J=J, R=R)
 
     for n in trange(n_epochs, leave=False):
         core.learn(n_steps=n_steps, n_steps_per_fit=1)
         dataset = core.evaluate(n_steps=n_steps_test, render=False)
-        J = np.mean(compute_J(dataset, gamma))
-        R = np.mean(compute_J(dataset))
+
+        J = np.mean(dataset.discounted_return)
+        R = np.mean(dataset.undiscounted_return)
 
         logger.epoch_info(n+1, J=J, R=R)
 

@@ -10,7 +10,6 @@ from mushroom_rl.features.tiles import Tiles
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.policy import StateLogStdGaussianPolicy
-from mushroom_rl.utils.dataset import compute_J
 from mushroom_rl.utils.callbacks import CollectDataset
 from mushroom_rl.rl_utils.parameters import Parameter
 
@@ -128,11 +127,15 @@ def experiment(n_epochs, n_episodes):
 
     input_shape = (phi.size,)
 
-    mu = Regressor(LinearApproximator, input_shape=input_shape,
-                   output_shape=mdp.info.action_space.shape)
+    mu = Regressor(LinearApproximator,
+                   input_shape=input_shape,
+                   output_shape=mdp.info.action_space.shape,
+                   phi=phi)
 
-    std = Regressor(LinearApproximator, input_shape=input_shape,
-                    output_shape=mdp.info.action_space.shape)
+    std = Regressor(LinearApproximator,
+                    input_shape=input_shape,
+                    output_shape=mdp.info.action_space.shape,
+                    phi=phi)
 
     std_0 = np.sqrt(1.)
     std.set_weights(np.log(std_0) / n_tilings * np.ones(std.weights_size))
@@ -142,8 +145,7 @@ def experiment(n_epochs, n_episodes):
     agent = StochasticAC_AVG(mdp.info, policy,
                              alpha_theta, alpha_v, alpha_r,
                              lambda_par=.5,
-                             value_function_features=psi,
-                             policy_features=phi)
+                             value_function_features=psi)
 
     # Train
     dataset_callback = CollectDataset()
@@ -156,7 +158,7 @@ def experiment(n_epochs, n_episodes):
     for i in trange(n_epochs, leave=False):
         core.learn(n_episodes=n_episodes,
                    n_steps_per_fit=1, render=False)
-        J = compute_J(dataset_callback.get(), gamma=1.)
+        J = dataset_callback.get().undiscounted_return
         dataset_callback.clean()
         display_callback()
         logger.epoch_info(i+1, R_mean=np.sum(J) / n_steps/n_episodes)
