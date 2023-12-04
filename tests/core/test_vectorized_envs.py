@@ -4,6 +4,7 @@ import torch
 from mushroom_rl.core import Agent, VectorCore, VectorizedEnvironment, MDPInfo
 from mushroom_rl.rl_utils import Box
 from mushroom_rl.policy import Policy
+from mushroom_rl.utils import TorchUtils
 
 
 class DummyPolicy(Policy):
@@ -94,3 +95,10 @@ def test_vectorized_env_():
     run_exp(env_backend='torch', agent_backend='numpy')
     run_exp(env_backend='numpy', agent_backend='torch')
     run_exp(env_backend='numpy', agent_backend='numpy')
+
+    if torch.cuda.is_available():
+        print('Testing also cuda')
+        TorchUtils.set_default_device('cuda')
+        run_exp(env_backend='torch', agent_backend='torch')
+        run_exp(env_backend='torch', agent_backend='numpy')
+
