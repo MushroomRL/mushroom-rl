@@ -8,7 +8,6 @@ import torch.nn.functional as F
 from mushroom_rl.algorithms.actor_critic import SAC
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments.habitat_env import *
-from mushroom_rl.utils.dataset import compute_J, parse_dataset
 
 from tqdm import trange
 
@@ -148,11 +147,10 @@ def experiment(alg, n_epochs, n_steps, n_episodes_test):
 
     # RUN
     dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
-    s, *_ = parse_dataset(dataset)
 
-    J = np.mean(compute_J(dataset, mdp.info.gamma))
-    R = np.mean(compute_J(dataset))
-    E = agent.policy.entropy(s)
+    J = np.mean(dataset.discounted_return)
+    R = np.mean(dataset.undiscounted_return)
+    E = agent.policy.entropy(dataset.state)
 
     logger.epoch_info(0, J=J, R=R, entropy=E)
 
@@ -161,11 +159,10 @@ def experiment(alg, n_epochs, n_steps, n_episodes_test):
     for n in trange(n_epochs, leave=False):
         core.learn(n_steps=n_steps, n_steps_per_fit=1)
         dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
-        s, *_ = parse_dataset(dataset)
 
-        J = np.mean(compute_J(dataset, mdp.info.gamma))
-        R = np.mean(compute_J(dataset))
-        E = agent.policy.entropy(s)
+        J = np.mean(dataset.discounted_return)
+        R = np.mean(dataset.undiscounted_return)
+        E = agent.policy.entropy(dataset.state)
 
         logger.epoch_info(n+1, J=J, R=R, entropy=E)
 
