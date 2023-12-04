@@ -66,7 +66,7 @@ class ActorNetwork(nn.Module):
         return a
 
 
-def experiment(alg, n_epochs, n_steps, n_steps_test, save):
+def experiment(alg, n_epochs, n_steps, n_steps_test, save, load):
     np.random.seed()
 
     logger = Logger(alg.__name__, results_dir='./logs' if save else None)
@@ -87,34 +87,37 @@ def experiment(alg, n_epochs, n_steps, n_steps_test, save):
     tau = 0.005
     lr_alpha = 3e-4
 
-    # Approximator
-    actor_input_shape = mdp.info.observation_space.shape
-    actor_mu_params = dict(network=ActorNetwork,
-                           n_features=n_features,
-                           input_shape=actor_input_shape,
-                           output_shape=mdp.info.action_space.shape)
-    actor_sigma_params = dict(network=ActorNetwork,
-                              n_features=n_features,
-                              input_shape=actor_input_shape,
-                              output_shape=mdp.info.action_space.shape)
+    if load:
+        agent = SAC.load('logs/SAC/agent-best.msh')
+    else:
+        # Approximator
+        actor_input_shape = mdp.info.observation_space.shape
+        actor_mu_params = dict(network=ActorNetwork,
+                               n_features=n_features,
+                               input_shape=actor_input_shape,
+                               output_shape=mdp.info.action_space.shape)
+        actor_sigma_params = dict(network=ActorNetwork,
+                                  n_features=n_features,
+                                  input_shape=actor_input_shape,
+                                  output_shape=mdp.info.action_space.shape)
 
-    actor_optimizer = {'class': optim.Adam,
-                       'params': {'lr': 3e-4}}
+        actor_optimizer = {'class': optim.Adam,
+                           'params': {'lr': 3e-4}}
 
-    critic_input_shape = (actor_input_shape[0] + mdp.info.action_space.shape[0],)
-    critic_params = dict(network=CriticNetwork,
-                         optimizer={'class': optim.Adam,
-                                    'params': {'lr': 3e-4}},
-                         loss=F.mse_loss,
-                         n_features=n_features,
-                         input_shape=critic_input_shape,
-                         output_shape=(1,))
+        critic_input_shape = (actor_input_shape[0] + mdp.info.action_space.shape[0],)
+        critic_params = dict(network=CriticNetwork,
+                             optimizer={'class': optim.Adam,
+                                        'params': {'lr': 3e-4}},
+                             loss=F.mse_loss,
+                             n_features=n_features,
+                             input_shape=critic_input_shape,
+                             output_shape=(1,))
 
-    # Agent
-    agent = alg(mdp.info, actor_mu_params, actor_sigma_params,
-                actor_optimizer, critic_params, batch_size, initial_replay_size,
-                max_replay_size, warmup_transitions, tau, lr_alpha,
-                critic_fit_params=None)
+        # Agent
+        agent = alg(mdp.info, actor_mu_params, actor_sigma_params,
+                    actor_optimizer, critic_params, batch_size, initial_replay_size,
+                    max_replay_size, warmup_transitions, tau, lr_alpha,
+                    critic_fit_params=None)
 
     # Algorithm
     core = Core(agent, mdp)
@@ -150,5 +153,6 @@ def experiment(alg, n_epochs, n_steps, n_steps_test, save):
 
 if __name__ == '__main__':
     save = False
+    load = False
     TorchUtils.set_default_device('cpu')
-    experiment(alg=SAC, n_epochs=40, n_steps=1000, n_steps_test=2000, save=save)
+    experiment(alg=SAC, n_epochs=40, n_steps=1000, n_steps_test=2000, save=save, load=load)
