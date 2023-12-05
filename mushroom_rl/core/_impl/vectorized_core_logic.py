@@ -1,17 +1,17 @@
-from .type_conversions import DataConversion
+from .array_backend import ArrayBackend
 from .core_logic import CoreLogic
 
 
 class VectorizedCoreLogic(CoreLogic):
     def __init__(self, backend, n_envs):
-        self._converter = DataConversion.get_converter(backend)
+        self._array_backend = ArrayBackend.get_array_backend(backend)
         self._n_envs = n_envs
-        self._running_envs = self._converter.zeros(n_envs, dtype=bool)
+        self._running_envs = self._array_backend.zeros(n_envs, dtype=bool)
 
         super().__init__()
 
     def get_mask(self, last):
-        mask = self._converter.ones(self._n_envs, dtype=bool)
+        mask = self._array_backend.ones(self._n_envs, dtype=bool)
         terminated_episodes = (last & self._running_envs).sum()
         running_episodes = (~last & self._running_envs).sum()
 
@@ -29,11 +29,11 @@ class VectorizedCoreLogic(CoreLogic):
             missing_episodes_fit = self._n_episodes_per_fit - self._current_episodes_counter - running_episodes
             max_runs = min(missing_episodes_fit, max_runs)
 
-        new_mask = self._converter.ones(terminated_episodes, dtype=bool)
+        new_mask = self._array_backend.ones(terminated_episodes, dtype=bool)
         new_mask[max_runs:] = False
         mask[last] = new_mask
 
-        self._running_envs = self._converter.copy(mask)
+        self._running_envs = self._array_backend.copy(mask)
 
         return mask
 
@@ -59,12 +59,12 @@ class VectorizedCoreLogic(CoreLogic):
     def after_fit(self):
         super().after_fit()
         if self._n_episodes_per_fit is not None:
-            self._running_envs = self._converter.zeros(self._n_envs, dtype=bool)
+            self._running_envs = self._array_backend.zeros(self._n_envs, dtype=bool)
 
     def _reset_counters(self):
         super()._reset_counters()
-        self._running_envs = self._converter.zeros(self._n_envs, dtype=bool)
+        self._running_envs = self._array_backend.zeros(self._n_envs, dtype=bool)
 
     @property
     def converter(self):
-        return self._converter
+        return self._array_backend

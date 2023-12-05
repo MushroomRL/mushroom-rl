@@ -5,9 +5,8 @@ from mushroom_rl.utils.torch import TorchUtils
 
 
 class TorchDataset(Serializable):
-    def __init__(self, state_type, state_shape, action_type, action_shape, reward_shape, policy_state_shape):
-        flags_len = action_shape[0]
-
+    def __init__(self, state_type, state_shape, action_type, action_shape, reward_shape, flag_shape,
+                 policy_state_shape):
         self._state_type = state_type
         self._action_type = action_type
 
@@ -15,8 +14,8 @@ class TorchDataset(Serializable):
         self._actions = torch.empty(*action_shape, dtype=self._action_type, device=TorchUtils.get_device())
         self._rewards = torch.empty(*reward_shape, dtype=torch.float, device=TorchUtils.get_device())
         self._next_states = torch.empty(*state_shape, dtype=self._state_type, device=TorchUtils.get_device())
-        self._absorbing = torch.empty(flags_len, dtype=torch.bool, device=TorchUtils.get_device())
-        self._last = torch.empty(flags_len, dtype=torch.bool, device=TorchUtils.get_device())
+        self._absorbing = torch.empty(flag_shape, dtype=torch.bool, device=TorchUtils.get_device())
+        self._last = torch.empty(flag_shape, dtype=torch.bool, device=TorchUtils.get_device())
         self._len = 0
 
         if policy_state_shape is None:
@@ -101,7 +100,7 @@ class TorchDataset(Serializable):
         self._absorbing[i] = absorbing
         self._last[i] = last
 
-        if self._is_stateful:
+        if self.is_stateful:
             self._policy_states[i] = policy_state
             self._policy_next_states[i] = policy_next_state
 
@@ -115,7 +114,7 @@ class TorchDataset(Serializable):
         self._absorbing = torch.empty_like(self._absorbing)
         self._last = torch.empty_like(self._last)
 
-        if self._is_stateful:
+        if self.is_stateful:
             self._policy_states = torch.empty_like(self._policy_states)
             self._policy_next_states = torch.empty_like(self._policy_next_states)
 
@@ -132,7 +131,7 @@ class TorchDataset(Serializable):
         view._last = self._last[index, ...]
         view._len = view._states.shape[0]
 
-        if self._is_stateful:
+        if self.is_stateful:
             view._policy_states = self._policy_states[index, ...]
             view._policy_next_states = self._policy_next_states[index, ...]
 
@@ -154,11 +153,12 @@ class TorchDataset(Serializable):
         result._last[len(self) - 1] = True
         result._len = len(self) + len(other)
 
-        if self._is_stateful:
+        if self.is_stateful:
             result._policy_states = torch.concatenate((self.policy_state, other.policy_state))
             result._policy_next_states = torch.concatenate((self.policy_next_state, other.policy_next_state))
 
         return result
+
 
     @property
     def state(self):
@@ -193,7 +193,7 @@ class TorchDataset(Serializable):
         return self._policy_next_states[:len(self)]
 
     @property
-    def _is_stateful(self):
+    def is_stateful(self):
         return self._policy_states is not None
 
     @property

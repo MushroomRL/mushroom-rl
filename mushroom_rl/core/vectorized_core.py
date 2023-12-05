@@ -1,4 +1,4 @@
-from mushroom_rl.core.dataset import Dataset
+from mushroom_rl.core.dataset import VectorizedDataset
 from mushroom_rl.utils.record import VideoRecorder
 
 from ._impl import VectorizedCoreLogic
@@ -64,10 +64,10 @@ class VectorCore(object):
         assert (render and record) or (not record), "To record, the render flag must be set to true"
         self._core_logic.initialize_learn(n_steps_per_fit, n_episodes_per_fit)
 
-        datasets = [Dataset(self.env.info, self.agent.info, n_steps_per_fit, n_episodes_per_fit)
-                    for _ in range(self.env.number)]
+        dataset = VectorizedDataset(self.env.info, self.agent.info, self.env.number,
+                                    n_steps_per_fit, n_episodes_per_fit)
 
-        self._run(datasets, n_steps, n_episodes, render, quiet, record)
+        self._run(dataset, n_steps, n_episodes, render, quiet, record)
 
     def evaluate(self, initial_states=None, n_steps=None, n_episodes=None, render=False, quiet=False, record=False):
         """
@@ -93,12 +93,11 @@ class VectorCore(object):
         self._core_logic.initialize_evaluate()
 
         n_episodes_dataset = len(initial_states) if initial_states is not None else n_episodes
-        datasets = [Dataset(self.env.info, self.agent.info, n_steps, n_episodes_dataset)
-                    for _ in range(self.env.number)]
+        dataset = VectorizedDataset(self.env.info, self.agent.info, self.env.number, n_steps, n_episodes_dataset)
 
-        return self._run(datasets, n_steps, n_episodes, render, quiet, record, initial_states)
+        return self._run(dataset, n_steps, n_episodes, render, quiet, record, initial_states)
 
-    def _run(self, datasets, n_steps, n_episodes, render, quiet, record, initial_states=None):
+    def _run(self, dataset, n_steps, n_episodes, render, quiet, record, initial_states=None):
         self._core_logic.initialize_run(n_steps, n_episodes, initial_states, quiet)
 
         last = self._core_logic.converter.ones(self.env.number, dtype=bool)
@@ -114,18 +113,17 @@ class VectorCore(object):
             self.callback_step(samples)
             self._core_logic.after_step(samples[5] & mask)
 
-            self._add_to_dataset(mask, datasets, samples, step_infos)
+            dataset.append_vectorized(samples, step_infos, mask)
 
             if self._core_logic.fit_required():
-                fit_dataset = self._aggregate(datasets)
+                fit_dataset = dataset.flatten()
                 self.agent.fit(fit_dataset)
                 self._core_logic.after_fit()
 
                 for c in self.callbacks_fit:
-                    c(datasets)
+                    c(dataset)
 
-                for dataset in datasets:
-                    dataset.clear()
+                dataset.clear()
 
             last = samples[5]
 
@@ -134,14 +132,7 @@ class VectorCore(object):
 
         self._end(record)
 
-        return self._aggregate(datasets)
-
-    def _add_to_dataset(self, action_mask, datasets, samples, step_infos):
-        for i in range(self.env.number):
-            if action_mask[i]:
-                sample = (samples[0][i], samples[1][i], samples[2][i], samples[3][i], samples[4][i], samples[5][i])
-                step_info = step_infos[i]
-                datasets[i].append(sample, step_info)
+        return dataset.flatten()
 
     def _step(self, render, record, mask):
         """
@@ -225,22 +216,6 @@ class VectorCore(object):
             states = p(states)
 
         return states
-
-    @staticmethod
-    def _aggregate(datasets):
-        aggregated_dataset = None
-        for dataset in datasets:
-            if len(dataset) > 0:
-                aggregated_dataset = dataset
-                break
-
-        if aggregated_dataset is not None and len(aggregated_dataset) > 0:
-            for dataset in datasets[1:]:
-                aggregated_dataset += dataset
-
-            return aggregated_dataset
-        else:
-            return None
 
     def _build_recorder_class(self, recorder_class=None, fps=None, **kwargs):
         """

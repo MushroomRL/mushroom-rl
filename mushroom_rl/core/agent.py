@@ -48,8 +48,8 @@ class Agent(Serializable):
 
         self.policy = policy
         self.next_action = None
-        self._agent_converter = DataConversion.get_converter(backend)
-        self._env_converter = DataConversion.get_converter(self.mdp_info.backend)
+        self._agent_backend = ArrayBackend.get_array_backend(backend)
+        self._env_backend = ArrayBackend.get_array_backend(self.mdp_info.backend)
 
         self._preprocessors = list()
 
@@ -60,8 +60,8 @@ class Agent(Serializable):
             next_action='none',
             mdp_info='mushroom',
             _info='mushroom',
-            _agent_converter='primitive',
-            _env_converter='primitive',
+            _agent_backend='primitive',
+            _env_backend='primitive',
             _preprocessors='mushroom',
             _logger='none'
         )
@@ -146,10 +146,10 @@ class Agent(Serializable):
         return self._preprocessors
 
     def _convert_to_env_backend(self, array):
-        return self._env_converter.to_backend_array(self._agent_converter, array)
+        return self._env_backend.to_backend_array(self._agent_backend, array)
 
     def _convert_to_agent_backend(self, array):
-        return self._agent_converter.to_backend_array(self._env_converter, array)
+        return self._agent_backend.to_backend_array(self._env_backend, array)
 
     @property
     def info(self):

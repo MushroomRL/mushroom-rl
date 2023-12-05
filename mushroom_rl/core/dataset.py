@@ -8,8 +8,10 @@ from ._impl import *
 
 
 class Dataset(Serializable):
-    def __init__(self, mdp_info, agent_info, n_steps=None, n_episodes=None):
+    def __init__(self, mdp_info, agent_info, n_steps=None, n_episodes=None, n_envs=1):
         assert (n_steps is not None and n_episodes is None) or (n_steps is None and n_episodes is not None)
+
+        self._array_backend = ArrayBackend.get_array_backend(mdp_info.backend)
 
         if n_steps is not None:
             n_samples = n_steps
@@ -19,12 +21,17 @@ class Dataset(Serializable):
 
             n_samples = horizon * n_episodes
 
-        state_shape = (n_samples,) + mdp_info.observation_space.shape
-        action_shape = (n_samples,) + mdp_info.action_space.shape
-        reward_shape = (n_samples,)
+        if n_envs == 1:
+            base_shape = (n_samples,)
+        else:
+            base_shape = (n_samples, n_envs)
+
+        state_shape = base_shape + mdp_info.observation_space.shape
+        action_shape = base_shape + mdp_info.action_space.shape
+        reward_shape = base_shape
 
         if agent_info.is_stateful:
-            policy_state_shape = (n_samples,) + agent_info.policy_state_shape
+            policy_state_shape = base_shape + agent_info.policy_state_shape
         else:
             policy_state_shape = None
 
@@ -36,15 +43,13 @@ class Dataset(Serializable):
         self._theta_list = list()
 
         if mdp_info.backend == 'numpy':
-            self._data = NumpyDataset(state_type, state_shape, action_type, action_shape, reward_shape,
+            self._data = NumpyDataset(state_type, state_shape, action_type, action_shape, reward_shape, base_shape,
                                       policy_state_shape)
         elif mdp_info.backend == 'torch':
-            self._data = TorchDataset(state_type, state_shape, action_type, action_shape, reward_shape,
+            self._data = TorchDataset(state_type, state_shape, action_type, action_shape, reward_shape, base_shape,
                                       policy_state_shape)
         else:
             self._data = ListDataset(policy_state_shape is not None)
-
-        self._converter = DataConversion.get_converter(mdp_info.backend)
 
         self._gamma = mdp_info.gamma
 
@@ -53,7 +58,7 @@ class Dataset(Serializable):
             _episode_info='pickle',
             _theta_list='pickle',
             _data='mushroom',
-            _converter='primitive',
+            _array_backend='primitive',
             _gamma='primitive',
         )
 
@@ -108,13 +113,13 @@ class Dataset(Serializable):
 
         if backend == 'numpy':
             dataset._data = NumpyDataset.from_array(states, actions, rewards, next_states, absorbings, lasts)
-            dataset._converter = NumpyConversion
+            dataset._array_backend = NumpyBackend
         elif backend == 'torch':
             dataset._data = TorchDataset.from_array(states, actions, rewards, next_states, absorbings, lasts)
-            dataset._converter = TorchConversion
+            dataset._array_backend = TorchBackend
         else:
             dataset._data = ListDataset.from_array(states, actions, rewards, next_states, absorbings, lasts)
-            dataset._converter = ListConversion
+            dataset._array_backend = ListBackend
 
         dataset._add_save_attr(
             _info='pickle',
@@ -279,8 +284,8 @@ class Dataset(Serializable):
             A tuple containing the arrays that define the dataset, i.e. state, action, next state, absorbing and last
 
         """
-        return self._converter.convert(self.state, self.action, self.reward, self.next_state,
-                                       self.absorbing, self.last, to=to)
+        return self._array_backend.convert(self.state, self.action, self.reward, self.next_state,
+                                           self.absorbing, self.last, to=to)
 
     def parse_policy_state(self, to='numpy'):
         """
@@ -292,7 +297,7 @@ class Dataset(Serializable):
             A tuple containing the arrays that define the dataset, i.e. state, action, next state, absorbing and last
 
         """
-        return self._converter.convert(self.policy_state, self.policy_next_state, to=to)
+        return self._array_backend.convert(self.policy_state, self.policy_next_state, to=to)
 
     def select_first_episodes(self, n_episodes):
         """
@@ -424,3 +429,54 @@ class Dataset(Serializable):
         for key in info.keys():
             new_info[key] = info[key] + other_info[key]
         return new_info
+
+
+class VectorizedDataset(Dataset):
+    def __init__(self, mdp_info, agent_info, n_envs, n_steps=None, n_episodes=None):
+        super().__init__(mdp_info, agent_info, n_steps, n_episodes, n_envs)
+
+        self._length = self._array_backend.zeros(n_envs, dtype=int)
+
+        self._add_save_attr(
+            _length=mdp_info.backend
+        )
+
+    def append_vectorized(self, step, info, mask):
+        self.append(step, {})  # FIXME!!!
+
+        self._length[mask] += 1
+
+    def clear(self):
+        super().clear()
+
+        self._length = self._array_backend.zeros(len(self._length), dtype=int)
+
+    def flatten(self):
+        if len(self) == 0:
+            return None
+
+        states = self._array_backend.pack_padded_sequence(self._data.state, self._length)
+        actions = self._array_backend.pack_padded_sequence(self._data.action, self._length)
+        rewards = self._array_backend.pack_padded_sequence(self._data.reward, self._length)
+        next_states = self._array_backend.pack_padded_sequence(self._data.next_state, self._length)
+        absorbings = self._array_backend.pack_padded_sequence(self._data.absorbing, self._length)
+
+        last_padded = self._data.last
+        last_padded[self._length-1, :] = True
+        lasts = self._array_backend.pack_padded_sequence(last_padded, self._length)
+
+        policy_state = None
+        policy_next_state = None
+
+        if self._data.is_stateful:
+            policy_state = self._array_backend.pack_padded_sequence(self._data.policy_state, self._length)
+            policy_next_state = self._array_backend.pack_padded_sequence(self._data.policy_next_state, self._length)
+
+        return self.from_array(states, actions, rewards, next_states, absorbings, lasts,
+                               policy_state=policy_state, policy_next_state=policy_next_state,
+                               info=None, episode_info=None, theta_list=None,  # FIXME!!!
+                               gamma=self._gamma, backend=self._array_backend.get_backend_name())
+
+
+
+

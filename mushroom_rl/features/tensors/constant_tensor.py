@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+from mushroom_rl.utils.torch import TorchUtils
+
 
 class ConstantTensor(nn.Module):
     """
@@ -9,7 +11,7 @@ class ConstantTensor(nn.Module):
     """
 
     def forward(self, x):
-        return torch.ones(x.shape[0], 1)
+        return torch.ones(x.shape[0], 1).to(TorchUtils.get_device())
 
     @property
     def size(self):

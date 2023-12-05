@@ -33,6 +33,8 @@ class GenericBasisTensor(nn.Module):
 
         self._normalized = normalized
 
+        super().__init__()
+
     def forward(self, x):
         if self._dim is not None:
             x = torch.index_select(x, 1, self._dim)

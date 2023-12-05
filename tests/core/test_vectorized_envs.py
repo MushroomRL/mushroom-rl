@@ -55,7 +55,12 @@ class DummyVecEnv(VectorizedEnvironment):
         super().__init__(mdp_info, n_envs)
 
     def reset_all(self, env_mask, state=None):
-        self._state[env_mask] = torch.randint(size=(env_mask.sum(), self._state.shape[1]), low=2, high=200).float().to(TorchUtils.get_device())
+        if self.info.backend == 'torch':
+            self._state[env_mask] = torch.randint(size=(env_mask.sum(), self._state.shape[1]),
+                                                  low=2, high=200).float().to(TorchUtils.get_device())
+        elif self.info.backend == 'numpy':
+            self._state[env_mask] = np.random.randint(size=(env_mask.sum(), self._state.shape[1]),
+                                                      low=2, high=200).astype(float)
         return self._state, [{}]*self._n_envs
 
     def step_all(self, env_mask, action):
@@ -101,4 +106,5 @@ def test_vectorized_env_():
         TorchUtils.set_default_device('cuda')
         run_exp(env_backend='torch', agent_backend='torch')
         run_exp(env_backend='torch', agent_backend='numpy')
+        TorchUtils.set_default_device('cpu')
 

@@ -4,8 +4,8 @@ from mushroom_rl.core.serialization import Serializable
 
 
 class NumpyDataset(Serializable):
-    def __init__(self, state_type, state_shape, action_type, action_shape, reward_shape, policy_state_shape):
-        flags_len = action_shape[0]
+    def __init__(self, state_type, state_shape, action_type, action_shape, reward_shape, flag_shape,
+                 policy_state_shape):
 
         self._state_type = state_type
         self._action_type = action_type
@@ -14,8 +14,8 @@ class NumpyDataset(Serializable):
         self._actions = np.empty(action_shape, dtype=self._action_type)
         self._rewards = np.empty(reward_shape, dtype=float)
         self._next_states = np.empty(state_shape, dtype=self._state_type)
-        self._absorbing = np.empty(flags_len, dtype=bool)
-        self._last = np.empty(flags_len, dtype=bool)
+        self._absorbing = np.empty(flag_shape, dtype=bool)
+        self._last = np.empty(flag_shape, dtype=bool)
         self._len = 0
 
         if policy_state_shape is None:
@@ -100,7 +100,7 @@ class NumpyDataset(Serializable):
         self._absorbing[i] = absorbing
         self._last[i] = last
 
-        if self._is_stateful:
+        if self.is_stateful:
             self._policy_states[i] = policy_state
             self._policy_next_states[i] = policy_next_state
 
@@ -114,7 +114,7 @@ class NumpyDataset(Serializable):
         self._absorbing = np.empty_like(self._absorbing)
         self._last = np.empty_like(self._last)
 
-        if self._is_stateful:
+        if self.is_stateful:
             self._policy_states = np.empty_like(self._policy_states)
             self._policy_next_states = np.empty_like(self._policy_next_states)
 
@@ -131,7 +131,7 @@ class NumpyDataset(Serializable):
         view._last = self.last[index, ...]
         view._len = view._states.shape[0]
 
-        if self._is_stateful:
+        if self.is_stateful:
             view._policy_states = self._policy_states[index, ...]
             view._policy_next_states = self._policy_next_states[index, ...]
 
@@ -153,7 +153,7 @@ class NumpyDataset(Serializable):
         result._last[len(self)-1] = True
         result._len = len(self) + len(other)
 
-        if self._is_stateful:
+        if self.is_stateful:
             result._policy_states = np.concatenate((self.policy_state, other.policy_state))
             result._policy_next_states = np.concatenate((self.policy_next_state, other.policy_next_state))
 
@@ -192,7 +192,7 @@ class NumpyDataset(Serializable):
         return self._policy_next_states[:len(self)]
 
     @property
-    def _is_stateful(self):
+    def is_stateful(self):
         return self._policy_states is not None
 
     @property

@@ -17,7 +17,7 @@ class TorchFeatures(FeaturesImplementation):
         y_list = [self._phi[i].forward(x) for i in range(len(self._phi))]
         y = torch.cat(y_list, 1).squeeze()
 
-        y = y.detach().numpy()
+        y = y.detach().cpu().numpy()
 
         if y.shape[0] == 1:
             return y[0]

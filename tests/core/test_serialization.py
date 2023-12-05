@@ -77,6 +77,8 @@ def test_serialization_cpu_cuda(tmpdir):
 
         assert a == b
 
+        TorchUtils.set_default_device('cpu')
+
 
         
         
