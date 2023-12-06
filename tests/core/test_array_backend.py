@@ -1,3 +1,4 @@
+import numpy.random
 import torch
 import numpy as np
 from mushroom_rl.core._impl import NumpyBackend, TorchBackend
@@ -33,6 +34,8 @@ def sequence_generator():
 
 
 def test_pack_sequance_numpy():
+    numpy.random.seed(42)
+    
     for array, lengths in sequence_generator():
         print('################################## Numpy')
         print('original')
@@ -53,6 +56,8 @@ def test_pack_sequance_numpy():
 
 
 def test_pack_sequance_torch():
+    numpy.random.seed(42)
+
     for array, lengths in sequence_generator():
         torch_array = torch.as_tensor(array)
         torch_lengths = torch.as_tensor(lengths)
