@@ -98,8 +98,8 @@ class NumpyBackend(ArrayBackend):
         shape = array.shape
 
         new_shape = (shape[0] * shape[1],) + shape[2:]
-        mask = (np.arange(len(array))[:, None] < lengths[None, :]).flatten()
-        return array.reshape(new_shape)[mask]
+        mask = (np.arange(len(array))[:, None] < lengths[None, :]).flatten(order='F')
+        return array.reshape(new_shape, order='F')[mask]
 
 
 class TorchBackend(ArrayBackend):
