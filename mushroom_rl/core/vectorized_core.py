@@ -108,6 +108,9 @@ class VectorCore(object):
                 mask = self._core_logic.get_mask(last)
                 self._reset(initial_states, last, mask)
 
+                if self.agent.info.is_episodic:
+                    dataset.append_theta_vectorized(self._current_theta, mask)
+
             samples, step_infos = self._step(render, record, mask)
 
             self.callback_step(samples)
@@ -180,7 +183,7 @@ class VectorCore(object):
         initial_state = self._core_logic.get_initial_state(initial_states)
 
         state, episode_info = self._preprocess(self.env.reset_all(reset_mask, initial_state))
-        self._policy_state, self._current_theta = self.agent.episode_start(episode_info)  # FIXME add mask support
+        self._policy_state, self._current_theta = self.agent.episode_start_vectorized(episode_info, self.env.number)
         self._state = self._preprocess(state)
         self.agent.next_action = None
 

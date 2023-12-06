@@ -100,13 +100,30 @@ class Agent(Serializable):
 
     def episode_start(self, episode_info):
         """
-        Called by the agent when a new episode starts.
+        Called by the Core when a new episode starts.
 
          Args:
             episode_info (dict): a dictionary containing the information at reset, such as context.
 
+        Returns:
+            A tuple containing the policy initial state and, optionally, the policy parameters
+
         """
         return self.policy.reset(), None
+
+    def episode_start_vectorized(self, episode_info, n_envs):
+        """
+        Called by the VectorCore when a new episode starts.
+
+         Args:
+            episode_info (dict): a dictionary containing the information at reset, such as context;
+            n_envs (int): number of environments in parallel to run.
+
+        Returns:
+            A tuple containing the policy initial state and, optionally, the policy parameters
+
+        """
+        return self.episode_start(episode_info)
 
     def stop(self):
         """

@@ -70,6 +70,9 @@ class NumpyDataset(Serializable):
 
             dataset._policy_states = policy_states
             dataset._policy_next_states = policy_next_states
+        else:
+            dataset._policy_states = None
+            dataset._policy_next_states = None
 
         dataset._add_save_attr(
             _state_type='primitive',

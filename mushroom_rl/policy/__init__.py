@@ -1,4 +1,5 @@
 from .policy import Policy, ParametricPolicy
+from .vector_policy import VectorPolicy
 from .noise_policy import OrnsteinUhlenbeckPolicy, ClippedGaussianPolicy
 from .td_policy import TDPolicy, Boltzmann, EpsGreedy, Mellowmax
 from .gaussian_policy import GaussianPolicy, DiagonalGaussianPolicy, \

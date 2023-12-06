@@ -441,15 +441,24 @@ class VectorizedDataset(Dataset):
             _length=mdp_info.backend
         )
 
+        self._initialize_theta_list(n_envs)
+
     def append_vectorized(self, step, info, mask):
-        self.append(step, {})  # FIXME!!!
+        self.append(step, {})  # FIXME: handle properly info
 
         self._length[mask] += 1
 
+    def append_theta_vectorized(self, theta, mask):
+        for i in range(len(theta)):
+            if mask[i]:
+                self._theta_list[i].append(theta[i])
+
     def clear(self):
+        n_envs = len(self._theta_list)
         super().clear()
 
         self._length = self._array_backend.zeros(len(self._length), dtype=int)
+        self._initialize_theta_list(n_envs)
 
     def flatten(self):
         if len(self) == 0:
@@ -472,10 +481,24 @@ class VectorizedDataset(Dataset):
             policy_state = self._array_backend.pack_padded_sequence(self._data.policy_state, self._length)
             policy_next_state = self._array_backend.pack_padded_sequence(self._data.policy_next_state, self._length)
 
-        return self.from_array(states, actions, rewards, next_states, absorbings, lasts,
-                               policy_state=policy_state, policy_next_state=policy_next_state,
-                               info=None, episode_info=None, theta_list=None,  # FIXME!!!
-                               gamma=self._gamma, backend=self._array_backend.get_backend_name())
+        flat_theta_list = self._flatten_theta_list()
+
+        return Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
+                                  policy_state=policy_state, policy_next_state=policy_next_state,
+                                  info=None, episode_info=None, theta_list=flat_theta_list,  # FIXME: handle properly info
+                                  gamma=self._gamma, backend=self._array_backend.get_backend_name())
+
+    def _flatten_theta_list(self):
+        flat_theta_list = list()
+
+        for env_theta_list in self._theta_list:
+            flat_theta_list += env_theta_list
+
+        return flat_theta_list
+
+    def _initialize_theta_list(self, n_envs):
+        for i in range(n_envs):
+            self._theta_list.append(list())
 
 
 

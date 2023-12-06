@@ -35,7 +35,7 @@ def sequence_generator():
 
 def test_pack_sequance_numpy():
     numpy.random.seed(42)
-    
+
     for array, lengths in sequence_generator():
         print('################################## Numpy')
         print('original')
