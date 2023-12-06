@@ -79,7 +79,7 @@ class DMControl(Environment):
         else:
             raise NotImplementedError
 
-        return self._state, {}
+        return self._state.copy(), {}
 
     def step(self, action):
         step = self.env.step(action)
@@ -88,7 +88,7 @@ class DMControl(Environment):
         self._state = self._convert_observation(step.observation)
         absorbing = step.last()
 
-        return self._state, reward, absorbing, {}
+        return self._state.copy(), reward, absorbing, {}
 
     def render(self, record=False):
         img = self.env.physics.render(self._height_screen,

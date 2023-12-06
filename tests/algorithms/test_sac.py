@@ -105,12 +105,14 @@ def learn_sac():
     
     return agent
 
+
 def test_sac():
     policy = learn_sac().policy
     w = policy.get_weights()
     w_test = np.array([1.8968109,  1.3198196,  0.19724008,  1.7562234, -0.333138, -0.3410603])
 
     assert np.allclose(w, w_test)
+
 
 def test_sac_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))

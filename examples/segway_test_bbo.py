@@ -7,7 +7,6 @@ from mushroom_rl.policy import DeterministicPolicy
 from mushroom_rl.distributions import GaussianDiagonalDistribution
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
-from mushroom_rl.utils.dataset import compute_J
 from mushroom_rl.utils.callbacks import CollectDataset
 from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer
 
@@ -45,7 +44,7 @@ def experiment(alg, params, n_epochs, n_episodes, n_ep_per_fit):
     for i in trange(n_epochs, leave=False):
         core.learn(n_episodes=n_episodes,
                    n_episodes_per_fit=n_ep_per_fit, render=False)
-        J = compute_J(dataset_callback.get(), gamma=mdp.info.gamma)
+        J = dataset_callback.get().discounted_return
         dataset_callback.clean()
 
         p = dist.get_parameters()

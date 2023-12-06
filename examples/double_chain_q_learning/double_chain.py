@@ -51,7 +51,7 @@ def experiment(algorithm_class, exp):
 
 
 if __name__ == '__main__':
-    n_experiment = 500
+    n_experiment = 5
 
     names = {1: '1', .51: '51', QLearning: 'Q', DoubleQLearning: 'DQ',
              WeightedQLearning: 'WQ', SpeedyQLearning: 'SPQ'}
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     for e in [1, .51]:
         for a in [QLearning, DoubleQLearning, WeightedQLearning,
                   SpeedyQLearning]:
-            out = Parallel(n_jobs=-1)(
+            out = Parallel(n_jobs=1)(
                 delayed(experiment)(a, e) for _ in range(n_experiment))
             Qs = np.array([o for o in out])
 

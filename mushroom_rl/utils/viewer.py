@@ -422,4 +422,5 @@ class CV2Viewer:
         return cv2.getWindowProperty(self._window_name, cv2.WND_PROP_VISIBLE) == 0
 
     def close(self):
-        cv2.destroyWindow(self._window_name)
+        if self._created_viewer:
+            cv2.destroyWindow(self._window_name)

@@ -13,7 +13,6 @@ from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments.habitat_env import *
 from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.utils.dataset import compute_metrics
 from mushroom_rl.rl_utils.parameters import LinearParameter, Parameter
 from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
 
@@ -132,7 +131,7 @@ def print_epoch(epoch, logger):
 
 
 def get_stats(dataset, logger):
-    score = compute_metrics(dataset)
+    score = dataset.compute_metrics()
     logger.info(('min_reward: %f, max_reward: %f, mean_reward: %f,'
                 ' median_reward: %f, episodes_completed: %d' % score))
 

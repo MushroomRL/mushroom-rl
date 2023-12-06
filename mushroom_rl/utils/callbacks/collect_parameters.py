@@ -1,8 +1,8 @@
-from mushroom_rl.utils.callbacks.callback import Callback
+from mushroom_rl.utils.callbacks.callback import CallbackList
 import numpy as np
 
 
-class CollectParameters(Callback):
+class CollectParameters(CallbackList):
     """
     This callback can be used to collect the values of a parameter
     (e.g. learning rate) during a run of the agent.

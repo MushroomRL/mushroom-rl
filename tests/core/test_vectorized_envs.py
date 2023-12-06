@@ -4,6 +4,7 @@ import torch
 from mushroom_rl.core import Agent, VectorCore, VectorizedEnvironment, MDPInfo
 from mushroom_rl.rl_utils import Box
 from mushroom_rl.policy import Policy
+from mushroom_rl.utils import TorchUtils
 
 
 class DummyPolicy(Policy):
@@ -45,7 +46,7 @@ class DummyVecEnv(VectorizedEnvironment):
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, backend=backend)
 
         if backend == 'torch':
-            self._state = torch.empty(n_envs, state_dim)
+            self._state = torch.empty(n_envs, state_dim).to(TorchUtils.get_device())
         elif backend == 'numpy':
             self._state = np.empty((n_envs, state_dim))
         else:
@@ -54,16 +55,21 @@ class DummyVecEnv(VectorizedEnvironment):
         super().__init__(mdp_info, n_envs)
 
     def reset_all(self, env_mask, state=None):
-        self._state[env_mask] = torch.randint(size=(env_mask.sum(), self._state.shape[1]), low=2, high=200).float()
+        if self.info.backend == 'torch':
+            self._state[env_mask] = torch.randint(size=(env_mask.sum(), self._state.shape[1]),
+                                                  low=2, high=200).float().to(TorchUtils.get_device())
+        elif self.info.backend == 'numpy':
+            self._state[env_mask] = np.random.randint(size=(env_mask.sum(), self._state.shape[1]),
+                                                      low=2, high=200).astype(float)
         return self._state, [{}]*self._n_envs
 
     def step_all(self, env_mask, action):
         self._state[env_mask] -= 1
 
         if self.info.backend == 'torch':
-            reward = torch.zeros(self._state.shape[0])
+            reward = torch.zeros(self._state.shape[0]).to(TorchUtils.get_device())
         elif self.info.backend == 'numpy':
-            reward = torch.zeros(self._state.shape[0])
+            reward = np.zeros(self._state.shape[0])
         else:
             raise NotImplementedError
 
@@ -94,3 +100,11 @@ def test_vectorized_env_():
     run_exp(env_backend='torch', agent_backend='numpy')
     run_exp(env_backend='numpy', agent_backend='torch')
     run_exp(env_backend='numpy', agent_backend='numpy')
+
+    if torch.cuda.is_available():
+        print('Testing also cuda')
+        TorchUtils.set_default_device('cuda')
+        run_exp(env_backend='torch', agent_backend='torch')
+        run_exp(env_backend='torch', agent_backend='numpy')
+        TorchUtils.set_default_device('cpu')
+

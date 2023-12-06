@@ -5,19 +5,12 @@ class Callback(object):
     callback.
 
     """
-    def __init__(self):
-        """
-        Constructor.
-
-        """
-        self._data_list = list()
-
     def __call__(self, dataset):
         """
         Add samples to the samples list.
 
         Args:
-            dataset (list): the samples to collect.
+            dataset (Dataset): the samples to collect.
 
         """
         raise NotImplementedError
@@ -25,14 +18,39 @@ class Callback(object):
     def get(self):
         """
         Returns:
-             The current collected data as a list.
+             The current collected data.
+
+        """
+        raise NotImplementedError
+
+    def clean(self):
+        """
+        Delete the current stored data
+
+        """
+        raise NotImplementedError
+
+
+class CallbackList(Callback):
+    """
+    Simple interface for callbacks storing a single list for data collection
+
+    """
+    def __init__(self):
+        self._data_list = list()
+
+    def get(self):
+        """
+        Returns:
+             The current collected data.
 
         """
         return self._data_list
 
     def clean(self):
         """
-        Delete the current stored data list
+        Delete the current stored data
 
         """
         self._data_list = list()
+

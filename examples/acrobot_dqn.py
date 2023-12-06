@@ -7,7 +7,6 @@ from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.approximators.parametric.torch_approximator import *
-from mushroom_rl.utils.dataset import compute_J
 from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter
 
 from tqdm import trange
@@ -55,7 +54,6 @@ def experiment(n_epochs, n_steps, n_steps_test):
     # MDP
     horizon = 1000
     gamma = 0.99
-    gamma_eval = 1.
     mdp = Gym('Acrobot-v1', horizon, gamma)
 
     # Policy
@@ -98,16 +96,16 @@ def experiment(n_epochs, n_steps, n_steps_test):
     # RUN
     pi.set_epsilon(epsilon_test)
     dataset = core.evaluate(n_steps=n_steps_test, render=False)
-    J = compute_J(dataset, gamma_eval)
-    logger.epoch_info(0, J=np.mean(J))
+    R = np.mean(dataset.undiscounted_return)
+    logger.epoch_info(0, R=R)
 
     for n in trange(n_epochs):
         pi.set_epsilon(epsilon)
         core.learn(n_steps=n_steps, n_steps_per_fit=train_frequency)
         pi.set_epsilon(epsilon_test)
         dataset = core.evaluate(n_steps=n_steps_test, render=False)
-        J = compute_J(dataset, gamma_eval)
-        logger.epoch_info(n+1, J=np.mean(J))
+        R = np.mean(dataset.undiscounted_return)
+        logger.epoch_info(n + 1, R=R)
 
     logger.info('Press a button to visualize acrobot')
     input()

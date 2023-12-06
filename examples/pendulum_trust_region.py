@@ -116,7 +116,7 @@ if __name__ == '__main__':
                        cg_residual_tol=1e-10)
 
     algs_params = [
-        #(TRPO, 'trpo', trpo_params),
+        (TRPO, 'trpo', trpo_params),
         (PPO, 'ppo', ppo_params)
      ]
 

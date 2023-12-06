@@ -102,6 +102,10 @@ class ListDataset(Serializable):
         return [step[7] for step in self._dataset]
 
     @property
+    def is_stateful(self):
+        return self._is_stateful
+
+    @property
     def n_episodes(self):
         n_episodes = 0
         for sample in self._dataset:

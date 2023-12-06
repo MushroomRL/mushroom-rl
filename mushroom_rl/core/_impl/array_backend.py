@@ -4,15 +4,19 @@ import torch
 from mushroom_rl.utils.torch import TorchUtils
 
 
-class DataConversion(object):
+class ArrayBackend(object):
     @staticmethod
-    def get_converter(backend):
+    def get_backend_name():
+        raise NotImplementedError
+
+    @staticmethod
+    def get_array_backend(backend):
         if backend == 'numpy':
-            return NumpyConversion
+            return NumpyBackend
         elif backend == 'torch':
-            return TorchConversion
+            return TorchBackend
         else:
-            return ListConversion
+            return ListBackend
 
     @classmethod
     def convert(cls, *arrays, to='numpy'):
@@ -55,8 +59,16 @@ class DataConversion(object):
     def copy(array):
         raise NotImplementedError
 
+    @staticmethod
+    def pack_padded_sequence(array, lengths):
+        raise NotImplementedError
 
-class NumpyConversion(DataConversion):
+
+class NumpyBackend(ArrayBackend):
+    @staticmethod
+    def get_backend_name():
+        return 'numpy'
+
     @staticmethod
     def to_numpy(array):
         return array
@@ -81,8 +93,20 @@ class NumpyConversion(DataConversion):
     def copy(array):
         return array.copy()
 
+    @staticmethod
+    def pack_padded_sequence(array, lengths):
+        shape = array.shape
 
-class TorchConversion(DataConversion):
+        new_shape = (shape[0] * shape[1],) + shape[2:]
+        mask = (np.arange(len(array))[:, None] < lengths[None, :]).flatten(order='F')
+        return array.reshape(new_shape, order='F')[mask]
+
+
+class TorchBackend(ArrayBackend):
+    @staticmethod
+    def get_backend_name():
+        return 'torch'
+
     @staticmethod
     def to_numpy(array):
         return None if array is None else array.detach().cpu().numpy()
@@ -107,8 +131,20 @@ class TorchConversion(DataConversion):
     def copy(array):
         return array.clone()
 
+    @staticmethod
+    def pack_padded_sequence(array, lengths):
+        shape = array.shape
 
-class ListConversion(DataConversion):
+        new_shape = (shape[0]*shape[1], ) + shape[2:]
+        mask = (torch.arange(len(array), device=TorchUtils.get_device())[None, :] < lengths[:, None]).flatten()
+        return array.transpose(0,1).reshape(new_shape)[mask]
+
+
+class ListBackend(ArrayBackend):
+    @staticmethod
+    def get_backend_name():
+        return 'list'
+
     @staticmethod
     def to_numpy(array):
         return np.array(array)
@@ -132,6 +168,10 @@ class ListConversion(DataConversion):
     @staticmethod
     def copy(array):
         return array.copy()
+
+    @staticmethod
+    def pack_padded_sequence(array, lengths):
+        return NumpyBackend.pack_padded_sequence(array, lengths)
 
 
 
