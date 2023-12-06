@@ -137,7 +137,7 @@ class TorchBackend(ArrayBackend):
 
         new_shape = (shape[0]*shape[1], ) + shape[2:]
         mask = (torch.arange(len(array), device=TorchUtils.get_device())[None, :] < lengths[:, None]).flatten()
-        return array.reshape(new_shape)[mask]
+        return array.transpose(0,1).reshape(new_shape)[mask]
 
 
 class ListBackend(ArrayBackend):
