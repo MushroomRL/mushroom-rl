@@ -4,10 +4,15 @@ from mushroom_rl.core.serialization import Serializable
 
 
 class ListDataset(Serializable):
-    def __init__(self, is_stateful):
+    def __init__(self, is_stateful, is_vectorized):
         self._dataset = list()
         self._policy_dataset = list()
         self._is_stateful = is_stateful
+
+        if is_vectorized:
+            self._mask = list()
+        else:
+            self._mask = None
 
         self._add_save_attr(
             _dataset='pickle',
@@ -20,7 +25,7 @@ class ListDataset(Serializable):
                    policy_next_states=None):
         is_stateful = (policy_states is not None) and (policy_next_states is not None)
 
-        dataset = cls(is_stateful)
+        dataset = cls(is_stateful, False)
 
         if dataset._is_stateful:
             for s, a, r, ss, ab, last, ps, pss in zip(states, actions, rewards, next_states,
@@ -37,11 +42,14 @@ class ListDataset(Serializable):
     def __len__(self):
         return len(self._dataset)
 
-    def append(self, *step):
+    def append(self, *step, mask=None):
         step_copy = deepcopy(step)
         self._dataset.append(step_copy[:6])
         if self._is_stateful:
             self._policy_dataset.append(step_copy[6:])
+
+        if mask is not None:
+            self._mask.append(mask)
 
     def clear(self):
         self._dataset = list()
@@ -104,6 +112,10 @@ class ListDataset(Serializable):
     @property
     def is_stateful(self):
         return self._is_stateful
+
+    @property
+    def mask(self):
+        return self._mask
 
     @property
     def n_episodes(self):

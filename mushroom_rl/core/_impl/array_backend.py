@@ -60,7 +60,7 @@ class ArrayBackend(object):
         raise NotImplementedError
 
     @staticmethod
-    def pack_padded_sequence(array, lengths):
+    def pack_padded_sequence(array, mask):
         raise NotImplementedError
 
 
@@ -94,12 +94,11 @@ class NumpyBackend(ArrayBackend):
         return array.copy()
 
     @staticmethod
-    def pack_padded_sequence(array, lengths):
+    def pack_padded_sequence(array, mask):
         shape = array.shape
 
         new_shape = (shape[0] * shape[1],) + shape[2:]
-        mask = (np.arange(len(array))[:, None] < lengths[None, :]).flatten(order='F')
-        return array.reshape(new_shape, order='F')[mask]
+        return array.reshape(new_shape, order='F')[mask.flatten(order='F')]
 
 
 class TorchBackend(ArrayBackend):
@@ -132,12 +131,12 @@ class TorchBackend(ArrayBackend):
         return array.clone()
 
     @staticmethod
-    def pack_padded_sequence(array, lengths):
+    def pack_padded_sequence(array, mask):
         shape = array.shape
 
         new_shape = (shape[0]*shape[1], ) + shape[2:]
-        mask = (torch.arange(len(array), device=TorchUtils.get_device())[None, :] < lengths[:, None]).flatten()
-        return array.transpose(0,1).reshape(new_shape)[mask]
+
+        return array.transpose(0, 1).reshape(new_shape)[mask.transpose(0, 1).flatten()]
 
 
 class ListBackend(ArrayBackend):
@@ -170,8 +169,8 @@ class ListBackend(ArrayBackend):
         return array.copy()
 
     @staticmethod
-    def pack_padded_sequence(array, lengths):
-        return NumpyBackend.pack_padded_sequence(array, lengths)
+    def pack_padded_sequence(array, mask):
+        return NumpyBackend.pack_padded_sequence(array, np.array(mask))
 
 
 

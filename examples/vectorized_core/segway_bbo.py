@@ -41,11 +41,14 @@ def experiment(alg, params, n_epochs, n_episodes, n_ep_per_fit):
     dataset_callback = CollectDataset()
     core = VectorCore(agent, mdp, callbacks_fit=[dataset_callback])
 
+    dataset = core.evaluate(n_episodes=n_episodes)
+    J = np.mean(dataset.discounted_return)
+    p = dist.get_parameters()
+    logger.epoch_info(0, J=J, mu=p[:n_weights], sigma=p[n_weights:])
+
     for i in trange(n_epochs, leave=False):
-        core.learn(n_episodes=n_episodes,
-                   n_episodes_per_fit=n_ep_per_fit, render=False)
-        dataset = dataset_callback.get()
-        J = np.mean(dataset.discounted_return)
+        core.learn(n_episodes=n_episodes, n_episodes_per_fit=n_ep_per_fit, render=False)
+        J = np.mean(dataset_callback.get().discounted_return)
         dataset_callback.clean()
 
         p = dist.get_parameters()
