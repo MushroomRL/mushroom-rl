@@ -16,9 +16,6 @@ def _env_worker(remote, env_class, use_generator, args, kwargs):
         while True:
             cmd, data = remote.recv()
 
-            # if data is None:
-            #     print(f'Executed command {cmd} with None data')
-
             if cmd == 'step':
                 action = data
                 res = env.step(action)
