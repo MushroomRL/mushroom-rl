@@ -15,8 +15,19 @@ Regressor
     :show-inheritance:
     
     
-Approximator
+Approximators
 -------------
+
+Tabular
+~~~~~~~
+
+.. automodule:: mushroom_rl.approximators.table
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+
 
 Linear
 ~~~~~~
