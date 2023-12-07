@@ -116,14 +116,14 @@ class Parameter(Serializable):
 
 
 class LinearParameter(Parameter):
-    """
+    r"""
     This class implements a linearly changing parameter according to the number of times it has been used.
     The parameter changes following the formula:
 
     .. math::
-        v_n = \textrm{clip}(v_0 + \dfrac{v_{th} - v_0}}{n}, v_{th})
+        v_n = \textrm{clip}(v_0 + \dfrac{v_{th} - v_0}{n}, v_{th})
 
-    where :math: `v_0` is the initial value of the parameter,  :math: `n` is the number of steps and  :math: `v_{th}` is
+    where :math:`v_0` is the initial value of the parameter,  :math:`n` is the number of steps and  :math:`v_{th}` is
     the upper or lower threshold for the parameter.
 
     """
@@ -153,13 +153,13 @@ class LinearParameter(Parameter):
 
 
 class DecayParameter(Parameter):
-    """
+    r"""
     This class implements a decaying parameter. The decay follows the formula:
 
     .. math::
         v_n = \dfrac{v_0}{n^p}
 
-    where :math: `v_0` is the initial value of the parameter,  :math: `n` is the number of steps and  :math: `p` is an
+    where :math:`v_0` is the initial value of the parameter,  :math:`n` is the number of steps and  :math:`p` is an
     arbitrary exponent.
 
     """

@@ -15,8 +15,8 @@ class RandomFourierBasis(nn.Module):
         \sin{\dfrac{PX}{\nu}+\varphi}
 
 
-    where X is the input, m is the vector of the minimum input values (for each dimensions), :math: `\Delta` is the
-    vector of maximum variations of the input variables, i.e. delta = high - low;
+    where :math:`X` is the input, :math:`P` is a random weights matrix, :math:`\nu` is the bandwidth parameter and
+    :math:`\varphi` is a bias vector.
 
     These features have been presented in:
 

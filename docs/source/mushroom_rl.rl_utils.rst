@@ -1,3 +1,6 @@
+Reinforcement Learning utils
+============================
+
 Eligibility trace
 -----------------
 
