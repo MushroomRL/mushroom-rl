@@ -9,30 +9,28 @@ import numpy as np
 
 class RandomFourierBasis(nn.Module):
     r"""
-    Class implementing Random Fourier basis functions. The value of the feature
-    is computed using the formula:
+    Class implementing Random Fourier basis functions. The value of the feature is computed using the formula:
 
     .. math::
         \sin{\dfrac{PX}{\nu}+\varphi}
 
-    where X is the input, m is the vector of the minumum input values (for each
-    dimensions) , \Delta is the vector of maximum
 
-    This features have been presented in:
+    where X is the input, m is the vector of the minimum input values (for each dimensions), :math: `\Delta` is the
+    vector of maximum variations of the input variables, i.e. delta = high - low;
 
-    "Towards generalization and simplicity in continuous control". Rajeswaran A. et Al..
-    2017.
+    These features have been presented in:
+
+    "Towards generalization and simplicity in continuous control". Rajeswaran A. et Al.. 2017.
 
     """
     def __init__(self, P, phi, nu):
-        r"""
+        """
         Constructor.
 
         Args:
             P (np.ndarray): weights matrix, every weight should be drawn from a normal distribution;
             phi (np.ndarray): bias vector, every weight should be drawn from a uniform distribution in the interval
-                [-\pi, \pi);
-             values of the input variables, i.e. delta = high - low;
+                :math: `[-\pi, \pi)`;
             nu (float):  bandwidth parameter, it should be chosen approximately as the average pairwise distances
                 between different observation vectors.
 

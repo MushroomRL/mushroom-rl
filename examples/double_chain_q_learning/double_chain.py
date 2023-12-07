@@ -8,7 +8,7 @@ from mushroom_rl.core import Core
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.utils.callbacks import CollectQ
-from mushroom_rl.rl_utils.parameters import Parameter, ExponentialParameter
+from mushroom_rl.rl_utils.parameters import Parameter, DecayParameter
 
 
 """
@@ -33,7 +33,7 @@ def experiment(algorithm_class, exp):
     pi = EpsGreedy(epsilon=epsilon)
 
     # Agent
-    learning_rate = ExponentialParameter(value=1., exp=exp, size=mdp.info.size)
+    learning_rate = DecayParameter(value=1., exp=exp, size=mdp.info.size)
     algorithm_params = dict(learning_rate=learning_rate)
     agent = algorithm_class(mdp.info, pi, **algorithm_params)
 

@@ -1,6 +1,6 @@
 from .eligibility_trace import EligibilityTrace, ReplacingTrace, AccumulatingTrace
 from .optimizers import Optimizer, AdamOptimizer, SGDOptimizer, AdaptiveOptimizer
-from .parameters import Parameter, ExponentialParameter, LinearParameter, to_parameter
+from .parameters import Parameter, DecayParameter, LinearParameter, to_parameter
 from .preprocessors import StandardizationPreprocessor, MinMaxPreprocessor
 from .replay_memory import ReplayMemory, PrioritizedReplayMemory
 from .running_stats import RunningStandardization, RunningAveragedWindow, RunningExpWeightedAverage
