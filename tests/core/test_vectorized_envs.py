@@ -28,7 +28,7 @@ class DummyAgent(Agent):
         super().__init__(mdp_info, policy, backend=backend)
 
     def fit(self, dataset):
-
+        print(f'\t* samples={len(dataset)}, episodes={len(dataset.episodes_length)}')
         assert len(dataset.episodes_length) == 20 or len(dataset) == 150
 
 
@@ -97,7 +97,7 @@ def run_exp(env_backend, agent_backend):
     print('- learn n_steps=10000 n_episodes_per_fit=20')
     core.learn(n_steps=10000, n_episodes_per_fit=20)
 
-    # print('- learn n_episode=100 n_episodes_per_fit=150')
+    # print('- learn n_episode=100 n_episodes_per_fit=150') # FIXME add proper support for this configuration
     # core.learn(n_episodes=100, n_steps_per_fit=150)
 
 

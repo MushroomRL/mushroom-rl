@@ -3,6 +3,7 @@ from .distribution import Distribution
 from scipy.stats import multivariate_normal
 from scipy.optimize import minimize
 
+
 class GaussianDistribution(Distribution):
     """
     Gaussian distribution with fixed covariance matrix. The parameters
@@ -118,6 +119,7 @@ class GaussianDistribution(Distribution):
         
         return sum1 + sum2
 
+
 class GaussianDiagonalDistribution(Distribution):
     """
     Gaussian distribution with diagonal covariance matrix. The parameters
@@ -186,7 +188,7 @@ class GaussianDiagonalDistribution(Distribution):
                        args=(weights, theta, mu, sigma, n_dims, eps, kappa),
                        method='SLSQP')
 
-        eta_opt, omg_opt  = res.x[0], res.x[1]
+        eta_opt, omg_opt = res.x[0], res.x[1]
 
         self._mu, self._std = GaussianDiagonalDistribution._compute_mu_sigma_from_lagrangian(weights, theta, mu, sigma, eta_opt, omg_opt)
 
