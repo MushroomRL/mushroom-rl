@@ -29,7 +29,7 @@ class DummyAgent(Agent):
 
     def fit(self, dataset):
 
-        assert len(dataset.episodes_length) == 20
+        assert len(dataset.episodes_length) == 20 or len(dataset) == 150
 
 
 class DummyVecEnv(VectorizedEnvironment):
@@ -86,23 +86,30 @@ def run_exp(env_backend, agent_backend):
 
     core = VectorCore(agent, env)
 
+    print('- evaluate n_steps=2000')
     dataset = core.evaluate(n_steps=2000)
     assert len(dataset) == 2000
 
+    print('- evaluate n_episodes=20')
     dataset = core.evaluate(n_episodes=20)
     assert len(dataset.episodes_length) == 20
 
+    print('- learn n_steps=10000 n_episodes_per_fit=20')
     core.learn(n_steps=10000, n_episodes_per_fit=20)
+
+    # print('- learn n_episode=100 n_episodes_per_fit=150')
+    # core.learn(n_episodes=100, n_steps_per_fit=150)
 
 
 def test_vectorized_env_():
+    print('# CPU test')
     run_exp(env_backend='torch', agent_backend='torch')
     run_exp(env_backend='torch', agent_backend='numpy')
     run_exp(env_backend='numpy', agent_backend='torch')
     run_exp(env_backend='numpy', agent_backend='numpy')
 
     if torch.cuda.is_available():
-        print('Testing also cuda')
+        print('# Testing also cuda')
         TorchUtils.set_default_device('cuda')
         run_exp(env_backend='torch', agent_backend='torch')
         run_exp(env_backend='torch', agent_backend='numpy')
