@@ -11,28 +11,30 @@ class VectorizedCoreLogic(CoreLogic):
         super().__init__()
 
     def get_mask(self, last):
-        mask = self._array_backend.ones(self._n_envs, dtype=bool)
-        terminated_episodes = (last & self._running_envs).sum()
-        running_episodes = (~last & self._running_envs).sum()
+        terminated_episodes = (last & self._running_envs).sum().item()
+        running_episodes = (~last & self._running_envs).sum().item()
 
         first_batch = running_episodes == 0 and terminated_episodes == 0
 
         if first_batch:
+            mask = self._array_backend.ones(self._n_envs, dtype=bool)
             terminated_episodes = self._n_envs
+        else:
+            mask = self._running_envs
 
         max_runs = terminated_episodes
 
         if self._n_episodes is not None:
-            missing_episodes_move = self._n_episodes - self._total_episodes_counter - running_episodes
-
+            missing_episodes_move = max(self._n_episodes - self._total_episodes_counter - running_episodes, 0)
             max_runs = min(missing_episodes_move, max_runs)
 
         if self._n_episodes_per_fit is not None:
-            missing_episodes_fit = self._n_episodes_per_fit - self._current_episodes_counter - running_episodes
+            missing_episodes_fit = max(self._n_episodes_per_fit - self._current_episodes_counter - running_episodes, 0)
             max_runs = min(missing_episodes_fit, max_runs)
 
         new_mask = self._array_backend.ones(terminated_episodes, dtype=bool)
         new_mask[max_runs:] = False
+
         if first_batch:
             mask = new_mask
         else:
