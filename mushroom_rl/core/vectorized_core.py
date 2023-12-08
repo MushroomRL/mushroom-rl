@@ -108,7 +108,7 @@ class VectorCore(object):
                 mask = self._core_logic.get_mask(last)
                 reset_mask = self._reset(initial_states, last, mask)
 
-                if self.agent.info.is_episodic:
+                if self.agent.info.is_episodic and reset_mask.any():
                     dataset.append_theta_vectorized(self._current_theta, reset_mask)
 
             samples, step_infos = self._step(render, record, mask)
@@ -118,17 +118,17 @@ class VectorCore(object):
 
             dataset.append_vectorized(samples, step_infos, mask)
 
+            last = samples[5]
+
             if self._core_logic.fit_required():
                 fit_dataset = dataset.flatten()
                 self.agent.fit(fit_dataset)
-                self._core_logic.after_fit()
+                last = self._core_logic.after_fit_vectorized(last)
 
                 for c in self.callbacks_fit:
                     c(dataset)
 
                 dataset.clear()
-
-            last = samples[5]
 
         self.agent.stop()
         self.env.stop()

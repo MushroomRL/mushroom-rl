@@ -63,10 +63,13 @@ class VectorizedCoreLogic(CoreLogic):
         self._current_episodes_counter += completed
         self._episodes_progress_bar.update(completed)
 
-    def after_fit(self):
+    def after_fit_vectorized(self, last):
         super().after_fit()
         if self._n_episodes_per_fit is not None:
             self._running_envs = self._array_backend.zeros(self._n_envs, dtype=bool)
+            return self._array_backend.ones(self._n_envs, dtype=bool)
+        else:
+            return last
 
     def _reset_counters(self):
         super()._reset_counters()
