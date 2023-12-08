@@ -9,7 +9,7 @@ class PolynomialBasis:
     .. math::
         \prod X_i^{d_i}
 
-    where X is the input and d is the vector of the exponents of the polynomial.
+    where :math:`X~ is the input and :math:`d` is the vector of the exponents of the polynomial.
 
     """
     def __init__(self, dimensions=None, degrees=None, low=None, high=None):

@@ -30,13 +30,38 @@ def sequence_generator():
 
         array = np.stack(array, axis=-1).squeeze()
 
-        yield array, lengths
+        mask = (np.arange(len(array))[:, None] < lengths[None, :])
+
+        yield array, mask, lengths
 
 
-def test_pack_sequance_numpy():
+def test_packed_2d_sequence_numpy():
+    print('testing 2d sequence')
+    array = np.arange(0, 100).reshape(20, 5, order='F')
+    desired = np.concatenate([np.arange(0, 60), np.arange(60, 70), np.arange(80, 90)])
+    mask = np.ones(100, dtype=bool).reshape(20, 5, order='F')
+
+    mask[10:, 3:] = False
+
+    print(mask)
+
+    packed = NumpyBackend.pack_padded_sequence(array, mask)
+
+    print('array')
+    print(array)
+
+    print('packed')
+    print(packed)
+    print('desired')
+    print(desired)
+
+    assert (packed == desired).all()
+
+
+def test_pack_sequence_numpy():
     numpy.random.seed(42)
-    
-    for array, lengths in sequence_generator():
+
+    for array, mask, lengths in sequence_generator():
         print('################################## Numpy')
         print('original')
         print(array)
@@ -44,7 +69,7 @@ def test_pack_sequance_numpy():
         print('lengths')
         print(lengths)
 
-        packed_array = NumpyBackend.pack_padded_sequence(array, lengths)
+        packed_array = NumpyBackend.pack_padded_sequence(array, mask)
         print('packed')
         print(packed_array)
 
@@ -55,24 +80,47 @@ def test_pack_sequance_numpy():
         assert np.array_equal(desired_array, packed_array)
 
 
-def test_pack_sequance_torch():
+def test_packed_2d_sequence_torch():
+    print('testing 2d sequence')
+    array = torch.arange(0, 100).reshape(5, 20).T
+    desired = torch.concatenate([torch.arange(0, 60), torch.arange(60, 70), torch.arange(80, 90)])
+    mask = torch.ones(100, dtype=torch.bool).reshape(20, 5)
+
+    mask[10:, 3:] = False
+    print('mask')
+    print(mask)
+
+    packed = TorchBackend.pack_padded_sequence(array, mask)
+
+    print('array')
+    print(array)
+
+    print('packed')
+    print(packed)
+    print('desired')
+    print(desired)
+
+    assert (packed == desired).all()
+
+
+def test_pack_sequence_torch():
     numpy.random.seed(42)
 
-    for array, lengths in sequence_generator():
+    for array, mask, lengths in sequence_generator():
         torch_array = torch.as_tensor(array)
-        torch_lengths = torch.as_tensor(lengths)
+        mask = torch.as_tensor(mask)
 
         print('original')
         print(torch_array)
 
         print('lengths')
-        print(torch_lengths)
+        print(lengths)
 
-        packed_array = TorchBackend.pack_padded_sequence(torch_array, torch_lengths)
+        packed_array = TorchBackend.pack_padded_sequence(torch_array, mask)
         print('packed')
         print(packed_array)
 
-        desired_array = torch.concatenate([torch_array[:l, i] for i, l in enumerate(torch_lengths)])
+        desired_array = torch.concatenate([torch_array[:l, i] for i, l in enumerate(lengths)])
         print('desired')
         print(desired_array)
 

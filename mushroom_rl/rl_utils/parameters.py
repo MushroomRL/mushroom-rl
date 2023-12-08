@@ -24,13 +24,10 @@ class Parameter(Serializable):
 
         Args:
             value (float): initial value of the parameter;
-            min_value (float, None): minimum value that the parameter can reach
-                when decreasing;
-            max_value (float, None): maximum value that the parameter can reach
-                when increasing;
-            size (tuple, (1,)): shape of the matrix of parameters; this shape
-                can be used to have a single parameter for each state or
-                state-action tuple.
+            min_value (float, None): minimum value that the parameter can reach when decreasing;
+            max_value (float, None): maximum value that the parameter can reach when increasing;
+            size (tuple, (1,)): shape of the matrix of parameters; this shape can be used to have a single parameter for
+                each state or state-action tuple.
 
         """
         self._initial_value = value
@@ -94,8 +91,7 @@ class Parameter(Serializable):
         Updates the number of visit of the parameter in the provided index.
 
         Args:
-            *idx (list): index of the parameter whose number of visits has to be
-                updated.
+            *idx (list): index of the parameter whose number of visits has to be updated.
 
         """
         self._n_updates[idx] += 1
@@ -120,12 +116,29 @@ class Parameter(Serializable):
 
 
 class LinearParameter(Parameter):
-    """
-    This class implements a linearly changing parameter according to the number
-    of times it has been used.
+    r"""
+    This class implements a linearly changing parameter according to the number of times it has been used.
+    The parameter changes following the formula:
+
+    .. math::
+        v_n = \textrm{clip}(v_0 + \dfrac{v_{th} - v_0}{n}, v_{th})
+
+    where :math:`v_0` is the initial value of the parameter,  :math:`n` is the number of steps and  :math:`v_{th}` is
+    the upper or lower threshold for the parameter.
 
     """
     def __init__(self, value, threshold_value, n, size=(1,)):
+        """
+        Constructor.
+
+        Args:
+            value (float): initial value of the parameter;
+            threshold_value (float, None): minimum or maximum value that the parameter can reach;
+            n (int): number of time steps needed to reach the threshold value;
+            size (tuple, (1,)): shape of the matrix of parameters; this shape can be used to have a single parameter for
+                each state or state-action tuple.
+
+        """
         self._coeff = (threshold_value - value) / n
 
         if self._coeff >= 0:
@@ -139,14 +152,30 @@ class LinearParameter(Parameter):
         return self._coeff * self._n_updates[idx] + self._initial_value
 
 
-class ExponentialParameter(Parameter):
-    """
-    This class implements a exponentially changing parameter according to the
-    number of times it has been used.
+class DecayParameter(Parameter):
+    r"""
+    This class implements a decaying parameter. The decay follows the formula:
+
+    .. math::
+        v_n = \dfrac{v_0}{n^p}
+
+    where :math:`v_0` is the initial value of the parameter,  :math:`n` is the number of steps and  :math:`p` is an
+    arbitrary exponent.
 
     """
-    def __init__(self, value, exp=1., min_value=None, max_value=None,
-                 size=(1,)):
+    def __init__(self, value, exp=1., min_value=None, max_value=None, size=(1,)):
+        """
+        Constructor.
+
+        Args:
+            value (float): initial value of the parameter;
+            exp (float, 1.): exponent for the step decay;
+            min_value (float, None): minimum value that the parameter can reach when decreasing;
+            max_value (float, None): maximum value that the parameter can reach when increasing;
+            size (tuple, (1,)): shape of the matrix of parameters; this shape can be used to have a single parameter for
+                each state or state-action tuple.
+
+        """
         self._exp = exp
 
         super().__init__(value, min_value, max_value, size)

@@ -15,7 +15,9 @@ class VectorizedCoreLogic(CoreLogic):
         terminated_episodes = (last & self._running_envs).sum()
         running_episodes = (~last & self._running_envs).sum()
 
-        if running_episodes == 0 and terminated_episodes == 0:
+        first_batch = running_episodes == 0 and terminated_episodes == 0
+
+        if first_batch:
             terminated_episodes = self._n_envs
 
         max_runs = terminated_episodes
@@ -31,7 +33,10 @@ class VectorizedCoreLogic(CoreLogic):
 
         new_mask = self._array_backend.ones(terminated_episodes, dtype=bool)
         new_mask[max_runs:] = False
-        mask[last] = new_mask
+        if first_batch:
+            mask = new_mask
+        else:
+            mask[last] = new_mask
 
         self._running_envs = self._array_backend.copy(mask)
 

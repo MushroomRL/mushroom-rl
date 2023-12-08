@@ -5,7 +5,7 @@ from mushroom_rl.core.serialization import Serializable
 
 class NumpyDataset(Serializable):
     def __init__(self, state_type, state_shape, action_type, action_shape, reward_shape, flag_shape,
-                 policy_state_shape):
+                 policy_state_shape, mask_shape):
 
         self._state_type = state_type
         self._action_type = action_type
@@ -25,6 +25,11 @@ class NumpyDataset(Serializable):
             self._policy_states = np.empty(policy_state_shape, dtype=float)
             self._policy_next_states = np.empty(policy_state_shape, dtype=float)
 
+        if mask_shape is None:
+            self._mask = None
+        else:
+            self._mask = np.empty(mask_shape, dtype=bool)
+
         self._add_save_attr(
             _state_type='primitive',
             _action_type='primitive',
@@ -36,6 +41,7 @@ class NumpyDataset(Serializable):
             _last='numpy',
             _policy_states='numpy',
             _policy_next_states='numpy',
+            _mask='numpy',
             _len='primitive'
         )
 
@@ -70,6 +76,9 @@ class NumpyDataset(Serializable):
 
             dataset._policy_states = policy_states
             dataset._policy_next_states = policy_next_states
+        else:
+            dataset._policy_states = None
+            dataset._policy_next_states = None
 
         dataset._add_save_attr(
             _state_type='primitive',
@@ -90,7 +99,8 @@ class NumpyDataset(Serializable):
     def __len__(self):
         return self._len
 
-    def append(self, state, action, reward, next_state, absorbing, last, policy_state=None, policy_next_state=None):
+    def append(self, state, action, reward, next_state, absorbing, last, policy_state=None, policy_next_state=None,
+               mask=None):
         i = self._len
 
         self._states[i] = state
@@ -103,6 +113,9 @@ class NumpyDataset(Serializable):
         if self.is_stateful:
             self._policy_states[i] = policy_state
             self._policy_next_states[i] = policy_next_state
+
+        if mask is not None:
+            self._mask[i] = mask
 
         self._len += 1
 
@@ -190,6 +203,10 @@ class NumpyDataset(Serializable):
     @property
     def policy_next_state(self):
         return self._policy_next_states[:len(self)]
+
+    @property
+    def mask(self):
+        return self._mask[:len(self)]
 
     @property
     def is_stateful(self):

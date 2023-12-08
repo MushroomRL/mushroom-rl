@@ -17,7 +17,11 @@ class Policy(Serializable):
             policy_state_shape (tuple, None): the shape of the internal state of the policy.
 
         """
+        super().__init__()
+
         self.policy_state_shape = policy_state_shape
+
+        self._add_save_attr(policy_state_shape='primitive')
 
     def __call__(self, state, action, policy_state):
         """

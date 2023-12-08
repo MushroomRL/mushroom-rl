@@ -2,7 +2,7 @@ from mushroom_rl.core import Core
 from mushroom_rl.environments import GridWorld
 from mushroom_rl.algorithms.value import SARSA
 from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.rl_utils.parameters import Parameter, ExponentialParameter
+from mushroom_rl.rl_utils.parameters import Parameter, DecayParameter
 from mushroom_rl.utils.callbacks import *
 import numpy as np
 
@@ -64,8 +64,8 @@ def test_collect_parameter():
     np.random.seed(42)
     mdp = GridWorld(3, 3, (2, 2))
 
-    eps = ExponentialParameter(value=1, exp=.5,
-                               size=mdp.info.observation_space.size)
+    eps = DecayParameter(value=1, exp=.5,
+                         size=mdp.info.observation_space.size)
     pi = EpsGreedy(eps)
     alpha = Parameter(0.1)
     agent = SARSA(mdp.info, pi, alpha)

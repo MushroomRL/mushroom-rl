@@ -9,7 +9,7 @@ class GaussianRBF:
     .. math::
         \sum \dfrac{(X_i - \mu_i)^2}{\sigma_i}
 
-    where X is the input, \mu is the mean vector and \sigma is the scale parameter vector.
+    where :math:`X` is the input, :math:`\mu` is the mean vector and :math:`\sigma` is the scale parameter vector.
 
     """
     def __init__(self, mean, scale, dimensions=None):

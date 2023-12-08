@@ -23,8 +23,10 @@ class Dataset(Serializable):
 
         if n_envs == 1:
             base_shape = (n_samples,)
+            mask_shape = None
         else:
             base_shape = (n_samples, n_envs)
+            mask_shape = base_shape
 
         state_shape = base_shape + mdp_info.observation_space.shape
         action_shape = base_shape + mdp_info.action_space.shape
@@ -44,12 +46,12 @@ class Dataset(Serializable):
 
         if mdp_info.backend == 'numpy':
             self._data = NumpyDataset(state_type, state_shape, action_type, action_shape, reward_shape, base_shape,
-                                      policy_state_shape)
+                                      policy_state_shape, mask_shape)
         elif mdp_info.backend == 'torch':
             self._data = TorchDataset(state_type, state_shape, action_type, action_shape, reward_shape, base_shape,
-                                      policy_state_shape)
+                                      policy_state_shape, mask_shape)
         else:
-            self._data = ListDataset(policy_state_shape is not None)
+            self._data = ListDataset(policy_state_shape is not None, mask_shape is not None)
 
         self._gamma = mdp_info.gamma
 
@@ -435,47 +437,69 @@ class VectorizedDataset(Dataset):
     def __init__(self, mdp_info, agent_info, n_envs, n_steps=None, n_episodes=None):
         super().__init__(mdp_info, agent_info, n_steps, n_episodes, n_envs)
 
-        self._length = self._array_backend.zeros(n_envs, dtype=int)
+        self._initialize_theta_list(n_envs)
 
-        self._add_save_attr(
-            _length=mdp_info.backend
-        )
+    def append(self, step, info):
+        raise RuntimeError("Trying to use append on a vectorized dataset")
 
     def append_vectorized(self, step, info, mask):
-        self.append(step, {})  # FIXME!!!
+        self._data.append(*step, mask=mask)
+        self._append_info(self._info, {})  # FIXME: handle properly info
 
-        self._length[mask] += 1
+    def append_theta_vectorized(self, theta, mask):
+        for i in range(len(theta)):
+            if mask[i]:
+                self._theta_list[i].append(theta[i])
 
     def clear(self):
+        n_envs = len(self._theta_list)
         super().clear()
-
-        self._length = self._array_backend.zeros(len(self._length), dtype=int)
+        self._initialize_theta_list(n_envs)
 
     def flatten(self):
         if len(self) == 0:
             return None
 
-        states = self._array_backend.pack_padded_sequence(self._data.state, self._length)
-        actions = self._array_backend.pack_padded_sequence(self._data.action, self._length)
-        rewards = self._array_backend.pack_padded_sequence(self._data.reward, self._length)
-        next_states = self._array_backend.pack_padded_sequence(self._data.next_state, self._length)
-        absorbings = self._array_backend.pack_padded_sequence(self._data.absorbing, self._length)
+        states = self._array_backend.pack_padded_sequence(self._data.state, self._data.mask)
+        actions = self._array_backend.pack_padded_sequence(self._data.action, self._data.mask)
+        rewards = self._array_backend.pack_padded_sequence(self._data.reward, self._data.mask)
+        next_states = self._array_backend.pack_padded_sequence(self._data.next_state, self._data.mask)
+        absorbings = self._array_backend.pack_padded_sequence(self._data.absorbing, self._data.mask)
 
         last_padded = self._data.last
-        last_padded[self._length-1, :] = True
-        lasts = self._array_backend.pack_padded_sequence(last_padded, self._length)
+        last_padded[-1, :] = True
+        lasts = self._array_backend.pack_padded_sequence(last_padded, self._data.mask)
 
         policy_state = None
         policy_next_state = None
 
         if self._data.is_stateful:
-            policy_state = self._array_backend.pack_padded_sequence(self._data.policy_state, self._length)
-            policy_next_state = self._array_backend.pack_padded_sequence(self._data.policy_next_state, self._length)
+            policy_state = self._array_backend.pack_padded_sequence(self._data.policy_state, self._data.mask)
+            policy_next_state = self._array_backend.pack_padded_sequence(self._data.policy_next_state, self._data.mask)
 
-        return self.from_array(states, actions, rewards, next_states, absorbings, lasts,
-                               policy_state=policy_state, policy_next_state=policy_next_state,
-                               info=None, episode_info=None, theta_list=None,  # FIXME!!!
-                               gamma=self._gamma, backend=self._array_backend.get_backend_name())
+        flat_theta_list = self._flatten_theta_list()
+
+        return Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
+                                  policy_state=policy_state, policy_next_state=policy_next_state,
+                                  info=None, episode_info=None, theta_list=flat_theta_list,  # FIXME: handle properly info
+                                  gamma=self._gamma, backend=self._array_backend.get_backend_name())
+
+    def _flatten_theta_list(self):
+        flat_theta_list = list()
+
+        for env_theta_list in self._theta_list:
+            flat_theta_list += env_theta_list
+
+        return flat_theta_list
+
+    def _initialize_theta_list(self, n_envs):
+        self._theta_list = list()
+        for i in range(n_envs):
+            self._theta_list.append(list())
+
+    @property
+    def mask(self):
+        return self._data.mask
 
 
 

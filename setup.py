@@ -52,8 +52,9 @@ mujoco_data_package = 'mushroom_rl.environments.mujoco_envs.data'
 pybullet_data_package = 'mushroom_rl.environments.pybullet_envs.data'
 
 setup(
-    name='mushroom-rl',
     version=__version__,
+    author="Carlo D'Eramo, Davide Tateo",
+    url="https://github.com/MushroomRL",
     long_description=long_description,
     packages=[package for package in find_packages()
               if package.startswith('mushroom_rl')],

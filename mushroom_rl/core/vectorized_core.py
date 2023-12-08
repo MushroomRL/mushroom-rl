@@ -106,7 +106,10 @@ class VectorCore(object):
         while self._core_logic.move_required():
             if last.any():
                 mask = self._core_logic.get_mask(last)
-                self._reset(initial_states, last, mask)
+                reset_mask = self._reset(initial_states, last, mask)
+
+                if self.agent.info.is_episodic:
+                    dataset.append_theta_vectorized(self._current_theta, reset_mask)
 
             samples, step_infos = self._step(render, record, mask)
 
@@ -161,7 +164,7 @@ class VectorCore(object):
                     if mask[i]:
                         self._record[i](frames[i])
 
-        last = absorbing | self._episode_steps >= self.env.info.horizon
+        last = absorbing | (self._episode_steps >= self.env.info.horizon)
 
         state = self._state
         policy_state = self._policy_state
@@ -180,7 +183,7 @@ class VectorCore(object):
         initial_state = self._core_logic.get_initial_state(initial_states)
 
         state, episode_info = self._preprocess(self.env.reset_all(reset_mask, initial_state))
-        self._policy_state, self._current_theta = self.agent.episode_start(episode_info)  # FIXME add mask support
+        self._policy_state, self._current_theta = self.agent.episode_start_vectorized(episode_info, self.env.number)
         self._state = self._preprocess(state)
         self.agent.next_action = None
 
@@ -188,6 +191,8 @@ class VectorCore(object):
             self._episode_steps = self._core_logic.converter.zeros(self.env.number, dtype=int)
         else:
             self._episode_steps[last] = 0
+
+        return reset_mask
 
     def _end(self, record):
         self._state = None

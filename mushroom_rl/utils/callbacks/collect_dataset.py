@@ -1,4 +1,5 @@
 from mushroom_rl.utils.callbacks.callback import Callback
+from mushroom_rl.core.dataset import VectorizedDataset
 
 
 class CollectDataset(Callback):
@@ -14,6 +15,9 @@ class CollectDataset(Callback):
         self._dataset = None
 
     def __call__(self, dataset):
+        if isinstance(dataset, VectorizedDataset):
+            dataset = dataset.flatten()
+
         if self._dataset is None:
             self._dataset = dataset
         else:

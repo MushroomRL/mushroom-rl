@@ -1,6 +1,7 @@
 import numpy as np
 
 from mushroom_rl.core import Agent
+from mushroom_rl.policy import VectorPolicy
 
 
 class BlackBoxOptimization(Agent):
@@ -26,7 +27,24 @@ class BlackBoxOptimization(Agent):
         super().__init__(mdp_info, policy, is_episodic=True)
 
     def episode_start(self, episode_info):
+        if isinstance(self.policy, VectorPolicy):
+            self.policy = self.policy.get_flat_policy()
+
         theta = self.distribution.sample()
+        self.policy.set_weights(theta)
+
+        policy_state, _ = super().episode_start(episode_info)
+
+        return policy_state, theta
+
+    def episode_start_vectorized(self, episode_info, n_envs):
+        if not isinstance(self.policy, VectorPolicy):
+            self.policy = VectorPolicy(self.policy, n_envs)
+        elif len(self.policy) != n_envs:
+            self.policy.set_n(n_envs)
+
+        theta = [self.distribution.sample() for _ in range(n_envs)]
+
         self.policy.set_weights(theta)
 
         policy_state, _ = super().episode_start(episode_info)
