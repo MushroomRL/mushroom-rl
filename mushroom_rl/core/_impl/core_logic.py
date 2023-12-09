@@ -96,3 +96,11 @@ class CoreLogic(object):
 
     def _fit_episodes_condition(self):
         return self._current_episodes_counter >= self._n_episodes_per_fit
+
+    @property
+    def n_steps_per_fit(self):
+        return self._n_steps_per_fit
+
+    @property
+    def n_episodes_per_fit(self):
+        return self._n_episodes_per_fit

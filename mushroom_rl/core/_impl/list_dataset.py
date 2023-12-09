@@ -62,6 +62,9 @@ class ListDataset(Serializable):
         else:
             view._dataset = [self._dataset[i] for i in index]
 
+        if self._mask is not None:
+            view._mask = self._mask[index, ...]
+
         return view
 
     def __getitem__(self, index):
