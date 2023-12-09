@@ -136,9 +136,7 @@ def run_exp_episodic(env_backend, agent_backend):
 
     print('- learn n_episodes=25 n_episodes_per_fit=5')
     core.learn(n_episodes=25, n_episodes_per_fit=5)
-
-    # print('- learn n_episode=100 n_episodes_per_fit=150') # FIXME add proper support for this configuration
-    # core.learn(n_episodes=100, n_steps_per_fit=150)
+    
 
 def test_vectorized_core():
     print('# CPU test')
