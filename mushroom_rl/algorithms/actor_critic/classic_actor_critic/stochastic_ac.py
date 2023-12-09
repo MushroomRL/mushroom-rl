@@ -54,11 +54,11 @@ class StochasticAC(Agent):
             _e_theta='numpy'
         )
 
-    def episode_start(self, episode_info):
+    def episode_start(self, initial_state, episode_info):
         self._e_v = np.zeros(self._V.weights_size)
         self._e_theta = np.zeros(self.policy.weights_size)
 
-        return super().episode_start(episode_info)
+        return super().episode_start(initial_state, episode_info)
 
     def fit(self, dataset):
         for step in dataset:

@@ -41,7 +41,7 @@ class SARSALambda(TD):
         self.Q.table += self._alpha(state, action) * delta * self.e.table
         self.e.table *= self.mdp_info.gamma * self._lambda()
 
-    def episode_start(self, episode_info):
+    def episode_start(self, initial_state, episode_info):
         self.e.reset()
 
-        return super().episode_start(episode_info)
+        return super().episode_start(initial_state, episode_info)

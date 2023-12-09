@@ -98,11 +98,12 @@ class Agent(Serializable):
 
         return self._convert_to_env_backend(action), self._convert_to_env_backend(next_policy_state)
 
-    def episode_start(self, episode_info):
+    def episode_start(self, initial_state, episode_info):
         """
         Called by the Core when a new episode starts.
 
-         Args:
+        Args:
+            initial_state (array): vector representing the initial state of the environment.
             episode_info (dict): a dictionary containing the information at reset, such as context.
 
         Returns:
@@ -111,11 +112,12 @@ class Agent(Serializable):
         """
         return self.policy.reset(), None
 
-    def episode_start_vectorized(self, episode_info, n_envs):
+    def episode_start_vectorized(self, initial_states, episode_info, n_envs):
         """
         Called by the VectorCore when a new episode starts.
 
-         Args:
+        Args:
+            initial_states (array): the initial states of the environment.
             episode_info (dict): a dictionary containing the information at reset, such as context;
             n_envs (int): number of environments in parallel to run.
 
@@ -123,7 +125,7 @@ class Agent(Serializable):
             A tuple containing the policy initial state and, optionally, the policy parameters
 
         """
-        return self.episode_start(episode_info)
+        return self.episode_start(initial_states, episode_info)
 
     def stop(self):
         """

@@ -183,7 +183,8 @@ class VectorCore(object):
         initial_state = self._core_logic.get_initial_state(initial_states)
 
         state, episode_info = self._preprocess(self.env.reset_all(reset_mask, initial_state))
-        self._policy_state, self._current_theta = self.agent.episode_start_vectorized(episode_info, self.env.number)
+        self._policy_state, self._current_theta = self.agent.episode_start_vectorized(episode_info, state,
+                                                                                      self.env.number)
         self._state = self._preprocess(state)
         self.agent.next_action = None
 

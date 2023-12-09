@@ -171,7 +171,7 @@ class Core(object):
         initial_state = self._core_logic.get_initial_state(initial_states)
 
         state, episode_info = self.env.reset(initial_state)
-        self._policy_state, self._current_theta = self.agent.episode_start(episode_info)
+        self._policy_state, self._current_theta = self.agent.episode_start(state, episode_info)
         self._state = self._preprocess(state)
         self.agent.next_action = None
 

@@ -47,7 +47,7 @@ class SARSALambdaContinuous(TD):
         theta += alpha * delta * self.e
         self.Q.set_weights(theta)
 
-    def episode_start(self, episode_info):
+    def episode_start(self, initial_state, episode_info):
         self.e = np.zeros(self.Q.weights_size)
 
-        return super().episode_start(episode_info)
+        return super().episode_start(initial_state, episode_info)
