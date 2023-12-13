@@ -7,8 +7,17 @@
 MushroomRL
 ==========
 
+
+
+
+
+
+   
+
 Introduction
 ============
+
+
 
 What is MushroomRL
 ------------------
@@ -21,22 +30,25 @@ is to offer the majority of RL algorithms providing a common interface
 in order to run them without excessive effort. Moreover, it is designed in such
 a way that new algorithms and other stuff can be added transparently,
 without the need of editing other parts of the code. MushroomRL is compatible with RL
-libraries like
+libraries like   
 `OpenAI Gym <https://gym.openai.com/>`_,
 `DeepMind Control Suite <https://github.com/deepmind/dm_control>`_,
 `Pybullet <https://pybullet.org/wordpress/>`_, and
 `MuJoCo <http://www.mujoco.org/>`_, and
 the `PyTorch <https://pytorch.org>`_ library for tensor computation.
 
-With MushroomRL you can:
 
-- solve RL problems simply writing a single small script;
+With MushroomRL you can:
+------------------------
+
+- solve RL problems simply writing a single small script  ;  
 - add custom algorithms, policies, and so on, transparently;
 - use all RL environments offered by well-known libraries and build customized
   environments as well;
 - exploit regression models offered by third-party libraries (e.g., scikit-learn) or
   build a customized one with PyTorch;
-- seamlessly run experiments on CPU or GPU.
+- seamlessly run experiments on CPU or GPU. 
+   
 
 Basic run example
 -----------------
@@ -164,6 +176,14 @@ To check if the installation has been successful, you can try to run the basic e
 MushroomRL is well-tested on Linux. If you are using another OS, you may incur in issues that
 we are still not aware of. In that case, please do not hesitate sending us an email at mushroom4rl@gmail.com.
 
+
+
+
+
+
+
+
+
 MushroomRL vs other libraries
 -----------------------------
 MushroomRL offers the majority of classical and deep RL algorithms, while keeping a modular
@@ -196,23 +216,27 @@ libraries.
    Parallel environments           .. centered:: |cross|     .. centered:: |check|          .. centered:: |check|     .. centered:: |cross|  .. centered:: |check|    .. centered:: |check|
    ============================== ========================= =============================== ========================= ====================== ======================== =========================
 
-API Documentation
-=================
+
 
 .. toctree::
    :caption: API:
    :maxdepth: 2
    :glob:
+   :hidden:
 
    source/*
 
 
-Tutorials
-=========
+
+
 
 .. toctree::
    :caption: Tutorials:
    :maxdepth: 2
    :glob:
+   :hidden:
 
    source/tutorials/*
+
+
+ 

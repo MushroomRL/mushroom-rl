@@ -1,0 +1,1234 @@
+@use "sass:color";
+
+// Roboto
+@font-face {
+	font-family: Roboto;
+	font-style: normal;
+	font-weight: 400;
+	src: local("Roboto"), local("Roboto-Regular"), url(fonts/roboto/roboto.woff2) format("woff2");
+}
+@font-face {
+	font-family: Roboto;
+	font-style: italic;
+	font-weight: 400;
+	src: local("Roboto Italic"), local("Roboto-Italic"), url(fonts/roboto/roboto-italic.woff2) format("woff2");
+}
+@font-face {
+	font-family: Roboto;
+	font-style: normal;
+	font-weight: 700;
+	src: local("Roboto Bold"), local("Roboto-Bold"), url(fonts/roboto/roboto-bold.woff2) format("woff2");
+}
+
+// Roboto Mono
+@font-face {
+	font-family: Roboto Mono;
+	font-style: normal;
+	font-weight: 400;
+	src: local("Roboto Mono Regular"), local("RobotoMono-Regular"), url(fonts/roboto-mono/roboto-mono.woff2) format("woff2");
+}
+@font-face {
+	font-family: Roboto Mono;
+	font-style: italic;
+	font-weight: 400;
+	src: local("Roboto Mono Italic"), local("RobotoMono-Italic"), url(fonts/roboto-mono/roboto-mono-italic.woff2) format("woff2");
+}
+@font-face {
+	font-family: Roboto Mono;
+	font-style: normal;
+	font-weight: 700;
+	src: local("Roboto Mono Bold"), local("RobotoMono-Bold"), url(fonts/roboto-mono/roboto-mono-bold.woff2) format("woff2");
+}
+@font-face {
+	font-family: Roboto Mono;
+	font-style: italic;
+	font-weight: 700;
+	src: local("Roboto Mono Bold Italic"), local("RobotoMono-BoldItalic"), url(fonts/roboto-mono/roboto-mono-bold-italic.woff2) format("woff2");
+}
+
+
+
+$toggleSidebarColor: white;
+$codeFont: "Roboto Mono", monospace, Monaco, Consolas, Andale Mono;
+
+$borderRadius: 0.2rem;
+$contentWidth: 45rem;
+$mobileTransition: 50rem;
+$sidebarWidth: 15rem;
+
+/*****************************************************************************/
+/* Typography */
+
+:root {
+  --codeBackgroundColor: #f8f8f8;
+  --inlineCodeBackgroundColor: #f8f8f8;
+  --codeBlue: #0000ff;
+  --codeGreen: #008000;
+  --dividerColor: rgba(0, 0, 0, 0.08);
+  --faintFontColor: rgba(0, 0, 0, 0.6);
+  --fontColor: #252630;
+  --linkColor: #2980b9;
+  --mainBackgroundColor: white;
+  --mainNavColor: #3889ce;
+  --notificationBannerColor: #176bb0;
+  --searchHighlightColor: #fff150;
+  --sidebarColor: white;
+  --navbarHeight: 4rem;
+
+  &[data-mode="darkest"] {
+    --mainBackgroundColor: black;
+    --sidebarColor: black;
+    --codeBackgroundColor: rgba(255, 255, 255, 0.1);
+    --inlineCodeBackgroundColor: rgba(255, 255, 255, 0.1);
+  }
+
+  &[data-mode="dark"] {
+    --mainBackgroundColor: #242429;
+    --sidebarColor: #242429;
+    --codeBackgroundColor: rgba(0, 0, 0, 0.1);
+    --inlineCodeBackgroundColor: rgba(255, 255, 255, 0.06);
+  }
+
+  &[data-mode="dark"],
+  &[data-mode="darkest"] {
+    --codeBlue: #77baff;
+    --codeGreen: #38c038;
+    --dividerColor: rgba(255, 255, 255, 0.1);
+    --faintFontColor: rgba(255, 255, 255, 0.6);
+    --fontColor: white;
+    --linkColor: #319be0;
+    --searchHighlightColor: #fe8e04;
+  }
+}
+
+body {
+  font-family: Roboto, "OpenSans", sans-serif;
+  background-color: var(--mainBackgroundColor);
+  color: var(--fontColor);
+}
+
+h1 {
+  font-size: 2rem;
+}
+
+h2 {
+  font-size: 1.5rem;
+}
+
+h3 {
+  font-size: 1.17rem;
+}
+
+a {
+  color: var(--linkColor);
+  text-decoration: none;
+}
+
+/*****************************************************************************/
+
+html {
+  height: 100%;
+  // So anchor elements aren't hidden behind the main nav bar:
+  scroll-padding-top: var(--navbarHeight);
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+/*****************************************************************************/
+/* Top nav */
+
+div#searchbox {
+  h3#searchlabel {
+    display: none;
+  }
+
+  form.search {
+    display: flex;
+    flex-direction: row;
+
+    input {
+      display: block;
+      box-sizing: border-box;
+      padding: 0.3rem;
+      color: rgba(0, 0, 0, 0.7);
+      border-radius: $borderRadius;
+    }
+
+    input[type="text"] {
+      border: none;
+      background-color: rgba(255, 255, 255, 0.6);
+      flex-grow: 1;
+      margin-right: 0.2rem;
+
+      &::placeholder {
+        color: rgba(0, 0, 0, 0.6);
+      }
+    }
+
+    input[type="submit"] {
+      cursor: pointer;
+      color: var(--mainNavColor);
+      flex-grow: 0;
+      border: none;
+      background-color: white;
+    }
+  }
+}
+
+div#top_nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  color: white;
+  z-index: 100;
+
+  div#notification_banner {
+    background-color: var(--notificationBannerColor);
+    box-sizing: border-box;
+    padding: 0.1rem 1rem;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: right;
+
+    a.close {
+      flex-grow: 0;
+      flex-shrink: 0;
+      color: rgba(255,255,255,0.85);
+      text-align: right;
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      display: block;
+      text-decoration: none;
+      margin-left: 0.5rem;
+
+      &:hover {
+        color: white;
+      }
+    }
+
+    p {
+      flex-grow: 1;
+      margin: 0;
+      text-align: center;
+      font-size: 0.9rem;
+      line-height: 1.2;
+      padding: 0.4rem 0;
+
+      a {
+        color: white;
+        text-decoration: underline;
+      }
+
+    }
+  }
+
+  nav {
+    background-color: var(--mainNavColor);
+    box-sizing: border-box;
+    padding: 1rem;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    h1 {
+      flex-grow: 1;
+      font-size: 1.2rem;
+      margin: 0;
+      padding: 0 0 0 0.8rem;
+      line-height: 1;
+
+      a {
+        color: white;
+      }
+
+      img {
+        height: 1.3rem;
+        width: auto;
+      }
+    }
+
+    // Toggles the left sidebar
+    p#toggle_sidebar {
+      transform: rotate(90deg);
+      letter-spacing: 0.1rem;
+      flex-grow: 0;
+      margin: 0;
+      padding: 0;
+
+      a {
+        color: $toggleSidebarColor;
+        font-weight: bold;
+      }
+    }
+
+    // Toggles light mode / dark mode
+    a#mode_toggle, a#source_link {
+      margin-right: 1rem;
+      display: block;
+      flex-grow: 0;
+
+      svg {
+        height: 1.3rem;
+        width: 1.3rem;
+        vertical-align: middle;
+      }
+    }
+
+    // Displayed on mobile devices instead of the search bar
+    p.mobile_search_link {
+      margin: 0;
+
+      @media (min-width: $mobileTransition) {
+        display: none;
+      }
+
+      a {
+        color: white;
+
+        svg {
+          height: 1rem;
+          vertical-align: middle;
+        }
+      }
+    }
+
+    // Contains the search bar
+    div.searchbox_wrapper {
+      @media (max-width: $mobileTransition) {
+        display: none;
+      }
+
+      div#searchbox {
+        align-items: center;
+        display: flex !important; // important is required, as an inline display: search is added by Sphinx in >= 5.0
+        flex-direction: row-reverse;
+
+        p.highlight-link {
+          margin: 0 0.5rem 0 0;
+
+          a {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.8em;
+            padding-right: 0.5rem;
+            text-decoration: underline;
+
+            &:hover {
+              color: white;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/*****************************************************************************/
+/* Main content */
+
+div.document {
+  flex-grow: 1;
+  margin-top: 2rem;
+  margin-bottom: 5rem;
+  margin-left: $sidebarWidth;
+  margin-right: $sidebarWidth;
+  padding-top: var(--navbarHeight);
+
+  @media (max-width: $mobileTransition) {
+    margin-left: 0px;
+    margin-right: 0px;
+  }
+
+  /***************************************************************************/
+  // Sphinx wraps each heading and its child content in a section tag.
+  // For example:
+  // <section>
+  //     <h1>My Page</h1>
+  //     <section>
+  //         <h2>Sub heading</h2>
+  //         <p>Some content</p>
+  //     </section>
+  // </section>
+  // In some versions Sphinx uses a div instead: <div class="section"></div>
+
+  // Wraps a h1
+  section,
+  div.section {
+    margin: 4rem 0;
+
+    // We don't need extra space at the top of the page.
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+
+  // Wraps a h2
+  // By adding margin to the top and bottom of the section, any dividing lines
+  // (hr tags) the user puts between headings will appear centered.
+  section > section,
+  div.section > div.section {
+    margin: 4rem 0;
+  }
+
+  // Wraps a h3
+  section > section > section,
+  div.section > div.section > div.section {
+    margin: 2rem 0 0 0;
+  }
+
+  // Wraps a h4
+  section > section > section > section,
+  div.section > div.section > div.section > div.section {
+    margin: 1.5rem 0 0 0;
+  }
+
+  h1 + section,
+  h1 + div.section {
+    margin-top: 2.5rem !important;
+  }
+
+  h2 + section,
+  h2 + div.section {
+    margin-top: 1.5rem !important;
+  }
+
+  /***************************************************************************/
+
+  img {
+    max-width: 100%;
+  }
+
+  code {
+    padding: 2px 4px;
+    background-color: var(--inlineCodeBackgroundColor);
+    border-radius: $borderRadius;
+    font-family: $codeFont;
+    font-size: 0.9em;
+  }
+
+  div.documentwrapper {
+    max-width: $contentWidth;
+    margin: 0 auto;
+    flex-grow: 1;
+    box-sizing: border-box;
+    padding: 1rem;
+  }
+
+  div.highlight {
+    color: #252630;
+    box-sizing: border-box;
+    padding: 0.2rem 1rem;
+    margin: 0.5rem 0;
+    border-radius: $borderRadius;
+    font-size: 0.9rem;
+
+    pre {
+      font-family: $codeFont;
+    }
+  }
+
+  // This is a code block:
+  div[class*="highlight"] {
+    overflow-x: auto;
+  }
+
+  a.headerlink {
+    font-size: 0.6em;
+    display: none;
+    padding-left: 0.5rem;
+    vertical-align: middle;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  str,
+  b {
+    font-weight: 700;
+  }
+
+  h1 {
+    margin: 0.8rem 0 0.5rem 0;
+  }
+
+  h2 {
+    margin: 0.8rem 0 0.5rem 0;
+  }
+
+  h3, h4 {
+    margin: 1rem 0 0.5rem 0;
+  }
+
+  h1:hover,
+  h2:hover,
+  h3:hover,
+  h4:hover {
+    a.headerlink {
+      display: inline-block;
+    }
+  }
+
+  p,
+  li {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  li {
+    // Sphinx renders list items in an unusual way, with a nested paragrah
+    // inside.
+    // * my list item
+    // Is rendered as <li><p>My list item</p></li>
+    p {
+      margin: 0 0 0.5rem 0;
+    }
+  }
+
+  ul, ol {
+    padding-left: 2rem;
+  }
+
+  dd {
+    margin-left: 1.5rem;
+  }
+
+  hr {
+    border: none;
+    height: 1px;
+    background-color: var(--dividerColor);
+    margin: 2rem 0;
+  }
+
+  table.docutils {
+    border-collapse: collapse;
+    th, td {
+      border: 1px solid var(--dividerColor);
+      box-sizing: border-box;
+      padding: 0.5rem 1rem;
+
+      p, ul {
+        margin: 0.3rem 0;
+      }
+      ul {
+        padding-left: 1rem;
+      }
+    }
+  }
+
+  form {
+    input {
+      padding: 0.5rem;
+    }
+
+    input[type=submit], button {
+      border: none;
+      background-color: var(--mainNavColor);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 0.2rem;
+    }
+  }
+
+  // Search -------------------------------------------------------------------
+
+  // After clicking on a search result, it highlights any results on the page:
+  span.highlighted {
+    background-color: var(--searchHighlightColor);
+    padding: 0 0.1em;
+  }
+
+  div#search-results {
+    padding-top: 2rem;
+
+    p.search-summary {
+      font-size: 0.8em;
+    }
+
+    ul.search {
+      list-style: none;
+      padding-left: 0;
+
+      li {
+        border-bottom: 1px solid var(--dividerColor);
+        margin: 0;
+        padding: 2rem 0;
+
+        & > a:first-child {
+          font-size: 1.2rem;
+        }
+      }
+    }
+  }
+
+  // Autodoc - py -------------------------------------------------------------
+
+  dd {
+    ul, ol {
+      padding-left: 1rem;
+    }
+  }
+
+  dl.py {
+    margin-bottom: 2rem;
+
+    dt.sig {
+      background-color: var(--codeBackgroundColor);
+      color: var(--fontColor);
+      box-sizing: border-box;
+      font-family: $codeFont;
+      font-size: 0.9rem;
+      padding: 1rem;
+      border-left: 5px solid rgba(0, 0, 0, 0.1);
+      border-radius: $borderRadius;
+    }
+
+    // e.g. `class`, or `def`
+    em.property {
+      color: var(--sidebarColor);
+      font-weight: bold;
+    }
+
+    // e.g. `MyClass`
+    span.sig-name {
+      color: var(--codeBlue);
+      font-weight: bold;
+    }
+
+    // e.g classmethod
+    em.property {
+      color: var(--codeGreen);
+    }
+
+    em.sig-param {
+      margin-left: 2rem;
+
+      span.default_value {
+        color: var(--codeGreen);
+      }
+    }
+
+    span.sig-return {
+      span.sig-return-typehint {
+        color: var(--fontColor);
+
+        pre {
+          color: var(--fontColor);
+        }
+      }
+    }
+
+    // The parameter name:
+    em.sig-param > span:first-child {
+      font-weight: bold;
+    }
+  }
+
+  // Autodoc - c, cpp ----------------------------------------------------------
+
+  dl.cpp, dl.c {
+    margin-bottom: 1rem;
+
+    dt.sig {
+      background-color: var(--codeBackgroundColor);
+      color: var(--fontColor);
+      box-sizing: border-box;
+      font-family: $codeFont;
+      font-size: 0.9rem;
+      padding: 1rem;
+      border-left: 5px solid rgba(0, 0, 0, 0.1);
+      border-radius: $borderRadius;
+      line-height: 1.4;
+    }
+
+    // e.g. `MyClass`
+    span.sig-name {
+      color: var(--codeBlue);
+      font-weight: bold;
+    }
+
+    // e.g classmethod
+    span.sig-indent {
+      margin-left: 2rem;
+    }
+
+    // return type
+    span.target + span {
+      color: var(--codeGreen);
+    }
+
+    // The parameter name:
+    span.sig-param > span:first-child {
+      font-weight: bold;
+    }
+  }
+
+  // Admonitions --------------------------------------------------------------
+
+  div.admonition {
+    box-shadow: 0px 0px 0px 1px var(--dividerColor);
+    border-radius: $borderRadius;
+    margin: 1rem 0;
+    overflow: hidden;
+
+    p {
+      box-sizing: border-box;
+      font-size: 0.9rem;
+      padding: 0.5rem;
+      margin: 0;
+    }
+
+    p:first-child {
+      padding-bottom: 0;
+      margin-bottom: 0;
+    }
+
+    p + p {
+      padding-top: 0.2rem;
+    }
+
+    p.admonition-title {
+      font-weight: bolder;
+      letter-spacing: 0.01rem;
+    }
+
+    &.hint,
+    &.important,
+    &.tip {
+      $color: #56b79c;
+      border-left: 5px solid $color;
+
+      p.admonition-title {
+        color: $color;
+      }
+    }
+
+    &.note {
+      $color: #587f9f;
+      border-left: 5px solid $color;
+
+      p.admonition-title {
+        color: $color;
+      }
+    }
+
+    &.danger,
+    &.error {
+      $color: #e6a39a;
+      border-left: 5px solid $color;
+
+      p.admonition-title {
+        color: $color;
+      }
+    }
+
+    &.attention,
+    &.caution,
+    &.warning {
+      $color: #e7b486;
+      border-left: 5px solid $color;
+
+      p.admonition-title {
+        color: $color;
+      }
+    }
+  }
+}
+
+/*****************************************************************************/
+/* Sidebar */
+
+@mixin sidebar_list {
+  ul {
+    padding-left: 0rem;
+    list-style: none;
+
+    li {
+      font-size: 0.9rem;
+      line-height: 1.2;
+
+      a {
+        display: block;
+        box-sizing: border-box;
+        padding: 0 0.2rem 0.6rem;
+        color: var(--fontColor);
+        text-decoration: none;
+
+        &.current {
+          color: var(--linkColor);
+        }
+
+        &:hover {
+          color: var(--linkColor);
+        }
+      }
+    }
+
+    li > ul {
+      padding-left: 1rem;
+    }
+  }
+}
+
+@mixin sidebar_p {
+  p {
+    color: var(--faintFontColor);
+  }
+}
+
+div.sphinxsidebar {
+  background-color: var(--sidebarColor);
+  border-right: 1px solid var(--dividerColor);
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: $sidebarWidth;
+  box-sizing: border-box;
+  padding: var(--navbarHeight) 1rem 1rem;
+  z-index: 50;
+
+  @media (max-width: $mobileTransition) {
+    display: none;
+  }
+
+  div.sphinxsidebarwrapper {
+    height: 100%;
+    overflow-y: auto;
+  }
+
+  @include sidebar_list;
+  @include sidebar_p;
+}
+
+/*****************************************************************************/
+/* The right sidebar, showing the table of contents for the current page. */
+
+
+@mixin sidebar_span {
+  span {
+    color: var(--faintFontColor);
+    vertical-align: middle;
+
+    &.icon {
+      color: var(--linkColor);
+      font-size: 0.9em;
+      padding-right: 0.2rem;
+    }
+  }
+}
+
+
+div#show_right_sidebar {
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 20;
+  background-color: var(--sidebarColor);
+  border-left: 1px solid var(--dividerColor);
+  border-bottom: 1px solid var(--dividerColor);
+  padding: var(--navbarHeight) 1rem 0rem;
+
+  p {
+    font-size: 0.9em;
+
+    @include sidebar_span;
+  }
+}
+
+div#right_sidebar {
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 50;
+  background-color: var(--sidebarColor);
+  width: $sidebarWidth;
+  border-left: 1px solid var(--dividerColor);
+  box-sizing: border-box;
+  padding: var(--navbarHeight) 1rem 1rem;
+  height: 100%;
+  overflow-y: auto;
+
+  p {
+    @include sidebar_span;
+  }
+
+  @include sidebar_list;
+  @include sidebar_p;
+
+  @media (max-width: $mobileTransition) {
+    display: none;
+  }
+}
+
+/*****************************************************************************/
+/* Footer */
+
+div.footer {
+  box-sizing: border-box;
+  padding-top: 2rem;
+  font-size: 0.7rem;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--faintFontColor);
+}
+
+p#theme_credit {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--faintFontColor);
+}
+
+/*****************************************************************************/
+/* Buttons */
+
+div.button_nav_wrapper {
+  margin-left: $sidebarWidth;
+  margin-right: $sidebarWidth;
+
+  @media (max-width: $mobileTransition) {
+    margin-left: 0px;
+    margin-right: 0px;
+  }
+
+  div.button_nav {
+    max-width: $contentWidth;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+
+    div {
+      box-sizing: border-box;
+      padding: 1rem;
+      flex: 50%;
+
+      a {
+        display: block;
+
+        span {
+          vertical-align: middle;
+        }
+
+        span.icon {
+          font-weight: bold;
+          font-size: 0.8em;
+        }
+      }
+
+      &.left {
+        a {
+          text-align: left;
+
+          span.icon {
+            padding-right: 0.4rem;
+          }
+        }
+      }
+
+      &.right {
+        a {
+          text-align: right;
+
+          span.icon {
+            padding-left: 0.4rem;
+          }
+        }
+      }
+    }
+  }
+}
+
+/*****************************************************************************/
+/* Pygments overrides in dark mode */
+
+// Sphinx and Pygments don't officially support dark mode, so this is a bit
+// of a hack.
+
+:root[data-mode="dark"] body[data-dark_mode_code_blocks="true"],
+:root[data-mode="darkest"] body[data-dark_mode_code_blocks="true"] {
+  .highlight {
+    --black: #000000;
+    --red: #ff9393;
+    --darkBlue: #3a37ff;
+    --grey: #a8a8a8;
+    --pink: #ff99d8;
+    --torquoise: #68e9e9;
+    --brown: #d48a00;
+    --purple: #ce04e9;
+    --paleYellow: #454534;
+
+    background: var(--codeBackgroundColor);
+    color: var(--fontColor);
+
+    pre {
+      line-height: 125%;
+    }
+
+    td.linenos .normal {
+      color: inherit;
+      background-color: transparent;
+      padding-left: 5px;
+      padding-right: 5px;
+    }
+    span.linenos {
+      color: inherit;
+      background-color: transparent;
+      padding-left: 5px;
+      padding-right: 5px;
+    }
+    td.linenos .special {
+      color: var(--black);
+      background-color: var(--paleYellow);
+      padding-left: 5px;
+      padding-right: 5px;
+    }
+    span.linenos.special {
+      color: var(--black);
+      background-color: var(--paleYellow);
+      padding-left: 5px;
+      padding-right: 5px;
+    }
+    .hll {
+      background-color: var(--paleYellow);
+    }
+    .c {
+      color: var(--torquoise);
+      font-style: italic;
+    } /* Comment */
+    .err {
+      border: 1px solid var(--red);
+    } /* Error */
+    .k {
+      color: var(--codeGreen);
+      font-weight: bold;
+    } /* Keyword */
+    .o {
+      color: var(--grey);
+    } /* Operator */
+    .ch {
+      color: var(--torquoise);
+      font-style: italic;
+    } /* Comment.Hashbang */
+    .cm {
+      color: var(--torquoise);
+      font-style: italic;
+    } /* Comment.Multiline */
+    .cp {
+      color: var(--brown);
+    } /* Comment.Preproc */
+    .cpf {
+      color: var(--torquoise);
+      font-style: italic;
+    } /* Comment.PreprocFile */
+    .c1 {
+      color: var(--torquoise);
+      font-style: italic;
+    } /* Comment.Single */
+    .cs {
+      color: var(--torquoise);
+      font-style: italic;
+    } /* Comment.Special */
+    .gd {
+      color: var(--red);
+    } /* Generic.Deleted */
+    .ge {
+      font-style: italic;
+    } /* Generic.Emph */
+    .gr {
+      color: var(--red);
+    } /* Generic.Error */
+    .gh {
+      color: var(--codeBlue);
+      font-weight: bold;
+    } /* Generic.Heading */
+    .gi {
+      color: var(--codeGreen);
+    } /* Generic.Inserted */
+    .go {
+      color: var(--grey);
+    } /* Generic.Output */
+    .gp {
+      color: var(--codeBlue);
+      font-weight: bold;
+    } /* Generic.Prompt */
+    .gs {
+      font-weight: bold;
+    } /* Generic.Strong */
+    .gu {
+      color: var(--purple);
+      font-weight: bold;
+    } /* Generic.Subheading */
+    .gt {
+      color: var(--codeBlue);
+    } /* Generic.Traceback */
+    .kc {
+      color: var(--codeGreen);
+      font-weight: bold;
+    } /* Keyword.Constant */
+    .kd {
+      color: var(--codeGreen);
+      font-weight: bold;
+    } /* Keyword.Declaration */
+    .kn {
+      color: var(--codeGreen);
+      font-weight: bold;
+    } /* Keyword.Namespace */
+    .kp {
+      color: var(--codeGreen);
+    } /* Keyword.Pseudo */
+    .kr {
+      color: var(--codeGreen);
+      font-weight: bold;
+    } /* Keyword.Reserved */
+    .kt {
+      color: var(--red);
+    } /* Keyword.Type */
+    .m {
+      color: var(--grey);
+    } /* Literal.Number */
+    .s {
+      color: var(--red);
+    } /* Literal.String */
+    .na {
+      color: var(--codeGreen);
+    } /* Name.Attribute */
+    .nb {
+      color: var(--codeGreen);
+    } /* Name.Builtin */
+    .nc {
+      color: var(--codeBlue);
+      font-weight: bold;
+    } /* Name.Class */
+    .no {
+      color: var(--red);
+    } /* Name.Constant */
+    .nd {
+      color: var(--purple);
+    } /* Name.Decorator */
+    .ni {
+      color: var(--grey);
+      font-weight: bold;
+    } /* Name.Entity */
+    .ne {
+      color: var(--red);
+      font-weight: bold;
+    } /* Name.Exception */
+    .nf {
+      color: var(--codeBlue);
+    } /* Name.Function */
+    .nl {
+      color: var(--codeGreen);
+    } /* Name.Label */
+    .nn {
+      color: var(--codeBlue);
+      font-weight: bold;
+    } /* Name.Namespace */
+    .nt {
+      color: var(--codeGreen);
+      font-weight: bold;
+    } /* Name.Tag */
+    .nv {
+      color: var(--darkBlue);
+    } /* Name.Variable */
+    .ow {
+      color: var(--pink);
+      font-weight: bold;
+    } /* Operator.Word */
+    .w {
+      color: var(--grey);
+    } /* Text.Whitespace */
+    .mb {
+      color: var(--grey);
+    } /* Literal.Number.Bin */
+    .mf {
+      color: var(--grey);
+    } /* Literal.Number.Float */
+    .mh {
+      color: var(--grey);
+    } /* Literal.Number.Hex */
+    .mi {
+      color: var(--grey);
+    } /* Literal.Number.Integer */
+    .mo {
+      color: var(--grey);
+    } /* Literal.Number.Oct */
+    .sa {
+      color: var(--red);
+    } /* Literal.String.Affix */
+    .sb {
+      color: var(--red);
+    } /* Literal.String.Backtick */
+    .sc {
+      color: var(--red);
+    } /* Literal.String.Char */
+    .dl {
+      color: var(--red);
+    } /* Literal.String.Delimiter */
+    .sd {
+      color: var(--red);
+      font-style: italic;
+    } /* Literal.String.Doc */
+    .s2 {
+      color: var(--red);
+    } /* Literal.String.Double */
+    .se {
+      color: var(--brown);
+      font-weight: bold;
+    } /* Literal.String.Escape */
+    .sh {
+      color: var(--red);
+    } /* Literal.String.Heredoc */
+    .si {
+      color: var(--pink);
+      font-weight: bold;
+    } /* Literal.String.Interpol */
+    .sx {
+      color: var(--codeGreen);
+    } /* Literal.String.Other */
+    .sr {
+      color: var(--pink);
+    } /* Literal.String.Regex */
+    .s1 {
+      color: var(--red);
+    } /* Literal.String.Single */
+    .ss {
+      color: var(--darkBlue);
+    } /* Literal.String.Symbol */
+    .bp {
+      color: var(--codeGreen);
+    } /* Name.Builtin.Pseudo */
+    .fm {
+      color: var(--codeBlue);
+    } /* Name.Function.Magic */
+    .vc {
+      color: var(--darkBlue);
+    } /* Name.Variable.Class */
+    .vg {
+      color: var(--darkBlue);
+    } /* Name.Variable.Global */
+    .vi {
+      color: var(--darkBlue);
+    } /* Name.Variable.Instance */
+    .vm {
+      color: var(--darkBlue);
+    } /* Name.Variable.Magic */
+    .il {
+      color: var(--grey);
+    } /* Literal.Number.Integer.Long */
+  }
+}
