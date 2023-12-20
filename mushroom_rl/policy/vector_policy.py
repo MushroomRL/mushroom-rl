@@ -70,7 +70,7 @@ class VectorPolicy(ParametricPolicy):
             weights_i = policy.get_weights()
             weight_list.append(weights_i)
 
-        return weight_list
+        return np.array(weight_list)
 
     @property
     def weights_size(self):
@@ -83,15 +83,26 @@ class VectorPolicy(ParametricPolicy):
         """
         return len(self), self._policy_vector[0].weights_size
 
-    def reset(self):
-        policy_states = list()
-        for i, policy in enumerate(self._policy_vector):
-            policy_state = policy.reset()
-
-            if policy_state is not None:
-                policy_states.append(policy_state)
-
-        return None if len(policy_states) == 0 else np.array(policy_states)
+    def reset(self, mask=None):
+        policy_states = None
+        if self.policy_state_shape is None:
+            if mask is None:
+                for policy in self._policy_vector:
+                    policy.reset()
+            else:
+                for masked, policy in zip(mask, self._policy_vector):
+                    if masked:
+                        policy.reset()
+        else:
+            policy_states = np.empty((len(self._policy_vector),) + self.policy_state_shape)
+            if mask is None:
+                for i, policy in enumerate(self._policy_vector):
+                    policy_states[i] = policy.reset()
+            else:
+                for i, (masked, policy) in enumerate(zip(mask, self._policy_vector)):
+                    if masked:
+                        policy_states[i] = policy.reset()
+        return policy_states
 
     def __len__(self):
         return len(self._policy_vector)
