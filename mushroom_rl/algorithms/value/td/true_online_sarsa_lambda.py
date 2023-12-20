@@ -61,8 +61,8 @@ class TrueOnlineSARSALambda(TD):
 
         self._q_old = q_next
 
-    def episode_start(self, episode_info):
+    def episode_start(self, initial_state, episode_info):
         self._q_old = None
         self.e = np.zeros(self.Q.weights_size)
 
-        return super().episode_start(episode_info)
+        return super().episode_start(initial_state, episode_info)

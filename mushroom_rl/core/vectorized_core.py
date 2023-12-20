@@ -31,7 +31,6 @@ class VectorCore(object):
 
         self._state = None
         self._policy_state = None
-        self._current_theta = None
         self._episode_steps = None
 
         self._core_logic = VectorizedCoreLogic(self.env.info.backend, self.env.number)
@@ -106,10 +105,10 @@ class VectorCore(object):
         while self._core_logic.move_required():
             if last.any():
                 mask = self._core_logic.get_mask(last)
-                reset_mask = self._reset(initial_states, last, mask)
+                current_theta, reset_mask = self._reset(initial_states, last, mask)
 
                 if self.agent.info.is_episodic and reset_mask.any():
-                    dataset.append_theta_vectorized(self._current_theta, reset_mask)
+                    dataset.append_theta_vectorized(current_theta, reset_mask)
 
             samples, step_infos = self._step(render, record, mask)
 
@@ -180,10 +179,17 @@ class VectorCore(object):
 
         """
         reset_mask = last & mask
+            
         initial_state = self._core_logic.get_initial_state(initial_states)
 
         state, episode_info = self._preprocess(self.env.reset_all(reset_mask, initial_state))
-        self._policy_state, self._current_theta = self.agent.episode_start_vectorized(episode_info, self.env.number)
+
+        policy_state, current_theta = self.agent.episode_start_vectorized(state, episode_info, reset_mask)
+        if self._policy_state is None or policy_state is None:
+            self._policy_state = policy_state
+        elif reset_mask.any():
+            self._policy_state[reset_mask] = policy_state[reset_mask]
+
         self._state = self._preprocess(state)
         self.agent.next_action = None
 
@@ -192,12 +198,11 @@ class VectorCore(object):
         else:
             self._episode_steps[last] = 0
 
-        return reset_mask
+        return current_theta, reset_mask
 
     def _end(self, record):
         self._state = None
         self._policy_state = None
-        self._current_theta = None
         self._episode_steps = None
 
         if record:

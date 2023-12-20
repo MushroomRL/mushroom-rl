@@ -149,6 +149,9 @@ class TorchDataset(Serializable):
             view._policy_states = self._policy_states[index, ...]
             view._policy_next_states = self._policy_next_states[index, ...]
 
+        if self._mask is not None:
+            view._mask = self._mask[index, ...]
+
         return view
 
     def __getitem__(self, index):
