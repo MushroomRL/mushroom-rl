@@ -44,12 +44,13 @@ class BlackBoxOptimization(Agent):
         elif len(self.policy) != n_envs:
             self.policy.set_n(n_envs)
 
-        policy_states = self.policy.reset()
-
         theta = self.policy.get_weights()
         if np.any(start_mask):
             theta[start_mask] = np.array([self.distribution.sample() for _ in range(np.sum(start_mask))])
             self.policy.set_weights(theta)
+
+        policy_states = self.policy.reset()
+
         return policy_states, theta
 
 
