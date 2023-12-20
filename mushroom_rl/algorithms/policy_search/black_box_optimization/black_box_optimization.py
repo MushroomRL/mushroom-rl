@@ -37,19 +37,22 @@ class BlackBoxOptimization(Agent):
 
         return policy_state, theta
 
-    def episode_start_vectorized(self, initial_states, episode_info, n_envs):
+    def episode_start_vectorized(self, initial_states, episode_info, start_mask):
+        n_envs = len(start_mask)
         if not isinstance(self.policy, VectorPolicy):
             self.policy = VectorPolicy(self.policy, n_envs)
         elif len(self.policy) != n_envs:
             self.policy.set_n(n_envs)
 
-        theta = [self.distribution.sample() for _ in range(n_envs)]
+        theta = self.policy.get_weights()
+        if np.any(start_mask):
+            theta[start_mask] = np.array([self.distribution.sample() for _ in range(np.sum(start_mask))])
+            self.policy.set_weights(theta)
 
-        self.policy.set_weights(theta)
+        policy_states = self.policy.reset()
 
-        policy_state, _ = super().episode_start(initial_states, episode_info)
+        return policy_states, theta
 
-        return policy_state, theta
 
     def fit(self, dataset):
         Jep = np.array(dataset.discounted_return)

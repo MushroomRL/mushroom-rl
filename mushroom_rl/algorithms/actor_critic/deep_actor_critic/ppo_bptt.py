@@ -69,7 +69,7 @@ class PPO_BPTT(Agent):
             _dim_env_state='primitive'
         )
 
-        super().__init__(mdp_info, policy, None)
+        super().__init__(mdp_info, policy, is_episodic=False)
 
         # add the standardization preprocessor
         self._preprocessors.append(StandardizationPreprocessor(mdp_info))
