@@ -85,7 +85,9 @@ class IsaacEnv(VectorizedEnvironment):
         if idxs.dim() > 0:  # only resets task for tensor with actual dimension
             self._task.reset_idx(idxs)
         # self._world.step(render=self._render) # TODO Check if we can do otherwise
-        return self._task.get_observations(), [{}]*self._n_envs
+        task_obs = self._task.get_observations()
+        observation = convert_task_observation(task_obs)
+        return observation, [{}]*self._n_envs
 
     def step_all(self, env_mask, action):
         self._task.pre_physics_step(action)
@@ -97,7 +99,7 @@ class IsaacEnv(VectorizedEnvironment):
         observation, reward, done, info = self._task.post_physics_step()
         # converts task obs from dictionary to tensor
         observation = convert_task_observation(observation)
-
+        
         env_mask_cuda = torch.as_tensor(env_mask).cuda()
         
         return observation, reward, torch.logical_and(done, env_mask_cuda), [info]*self._n_envs
