@@ -80,8 +80,9 @@ class IsaacEnv(VectorizedEnvironment):
         return set_seed(seed)
 
     def reset_all(self, env_mask, state=None):
-        idxs = torch.argwhere(env_mask).squeeze().cpu().numpy()  # TODO check if torch is just fine
-        self._task.reset_idx(idxs)
+        idxs = torch.argwhere(env_mask).squeeze()  # .cpu().numpy()  # takes torch datatype 
+        if idxs.dim() > 0:  # only resets task for tensor with actual dimension
+            self._task.reset_idx(idxs)
         # self._world.step(render=self._render) # TODO Check if we can do otherwise
         return self._task.get_observations(), [{}]*self._n_envs
 
