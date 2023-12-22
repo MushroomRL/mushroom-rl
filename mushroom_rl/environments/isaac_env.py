@@ -50,8 +50,12 @@ class IsaacEnv(VectorizedEnvironment):
         observation_space = self._convert_gym_space(self._task.observation_space)
 
         # Create MDP info for mushroom
+        # default episod lenght
+        max_e_lenght = 1000
+        if hasattr(self._task, '_max_episode_length'):
+            max_e_lenght = self._task._max_episode_length
         mdp_info = MDPInfo(observation_space, action_space, 0.99,
-                           self._task._max_episode_length, dt=RENDER_DT, backend=backend)
+                           max_e_lenght, dt=RENDER_DT, backend=backend)
 
         super().__init__(mdp_info, self._task.num_envs)
 
