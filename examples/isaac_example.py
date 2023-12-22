@@ -79,8 +79,8 @@ def experiment(cfg_dict, headless, alg, n_epochs, n_steps, n_steps_per_fit, n_ep
 
     dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
 
-    J = np.mean(dataset.discounted_return)
-    R = np.mean(dataset.undiscounted_return)
+    J = torch.mean(torch.stack(dataset.discounted_return))
+    R = torch.mean(torch.stack(dataset.undiscounted_return))
     E = agent.policy.entropy()
 
     logger.epoch_info(0, J=J, R=R, entropy=E)
@@ -89,8 +89,8 @@ def experiment(cfg_dict, headless, alg, n_epochs, n_steps, n_steps_per_fit, n_ep
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit)
         dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
 
-        J = np.mean(dataset.discounted_return)
-        R = np.mean(dataset.undiscounted_return)
+        J = torch.mean(torch.stack(dataset.discounted_return))
+        R = torch.mean(torch.stack(dataset.undiscounted_return))
         E = agent.policy.entropy()
 
         logger.epoch_info(it+1, J=J, R=R, entropy=E)
