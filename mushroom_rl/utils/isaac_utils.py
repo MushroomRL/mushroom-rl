@@ -1,7 +1,7 @@
 import torch
 
 
-def convert_state_cartpole(observation):
+def convert_task_observation(observation):
     obs_t = observation
     for _ in range(5):
         if torch.is_tensor(obs_t):

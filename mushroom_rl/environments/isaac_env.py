@@ -6,7 +6,7 @@ from omniisaacgymenvs.utils.task_util import initialize_task
 
 from mushroom_rl.core import VectorizedEnvironment, MDPInfo
 from mushroom_rl.utils.viewer import ImageViewer
-from mushroom_rl.utils.isaac_utils import convert_state_cartpole
+from mushroom_rl.utils.isaac_utils import convert_task_observation
 from mushroom_rl.rl_utils.spaces import *
 
 # import carb
@@ -96,7 +96,7 @@ class IsaacEnv(VectorizedEnvironment):
 
         observation, reward, done, info = self._task.post_physics_step()
         # converts task obs from dictionary to tensor
-        observation = convert_state_cartpole(observation)
+        observation = convert_task_observation(observation)
 
         env_mask_cuda = torch.as_tensor(env_mask).cuda()
         
