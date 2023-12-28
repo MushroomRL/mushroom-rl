@@ -111,8 +111,8 @@ class DDPG(DeepAC):
             self._fit_count += 1
 
     def _loss(self, state):
-        action = self._actor_approximator(state, output_tensor=True, **self._actor_predict_params)
-        q = self._critic_approximator(state, action, output_tensor=True, **self._critic_predict_params)
+        action = self._actor_approximator(state, **self._actor_predict_params)
+        q = self._critic_approximator(state, action, **self._critic_predict_params)
 
         return -q.mean()
 

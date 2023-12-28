@@ -198,8 +198,8 @@ class PPO_BPTT(Agent):
             and the estimated generalized advantage.
         """
         with torch.no_grad():
-            v = V(s, pi_h, lengths, output_tensor=True)
-            v_next = V(ss, pi_hn, lengths, output_tensor=True)
+            v = V(s, pi_h, lengths)
+            v_next = V(ss, pi_hn, lengths)
             gen_adv = torch.empty_like(v)
             for rev_k in range(len(v)):
                 k = len(v) - rev_k - 1

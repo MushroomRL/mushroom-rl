@@ -115,8 +115,8 @@ class SACPolicy(Policy):
             The torch distribution for the provided states.
 
         """
-        mu = self._mu_approximator.predict(state, output_tensor=True)
-        log_sigma = self._sigma_approximator.predict(state, output_tensor=True)
+        mu = self._mu_approximator.predict(state)
+        log_sigma = self._sigma_approximator.predict(state)
         # Bound the log_std
         log_sigma = torch.clamp(log_sigma, self._log_std_min(), self._log_std_max())
         return torch.distributions.Normal(mu, log_sigma.exp())
@@ -281,8 +281,8 @@ class SAC(DeepAC):
             self._update_target(self._critic_approximator, self._target_critic_approximator)
 
     def _loss(self, state, action_new, log_prob):
-        q_0 = self._critic_approximator(state, action_new, output_tensor=True, idx=0)
-        q_1 = self._critic_approximator(state, action_new, output_tensor=True, idx=1)
+        q_0 = self._critic_approximator(state, action_new, idx=0)
+        q_1 = self._critic_approximator(state, action_new, idx=1)
 
         q = torch.min(q_0, q_1)
 

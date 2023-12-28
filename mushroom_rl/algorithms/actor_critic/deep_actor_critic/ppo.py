@@ -73,8 +73,8 @@ class PPO(Agent):
     def fit(self, dataset):
         state, action, reward, next_state, absorbing, last = dataset.parse(to='torch')
 
-        v_target, adv = compute_gae(self._V, state, next_state, reward, absorbing, last,
-                                       self.mdp_info.gamma, self._lambda())
+        v_target, adv = compute_gae(self._V, state, next_state, reward, absorbing, last, self.mdp_info.gamma,
+                                    self._lambda())
         adv = (adv - torch.mean(adv)) / (torch.std(adv) + 1e-8)
 
         adv = adv.detach()
@@ -96,14 +96,10 @@ class PPO(Agent):
             for obs_i, act_i, adv_i, old_log_p_i in minibatch_generator(
                     self._batch_size(), obs, act, adv, old_log_p):
                 self._optimizer.zero_grad()
-                prob_ratio = torch.exp(
-                    self.policy.log_prob_t(obs_i, act_i) - old_log_p_i
-                )
-                clipped_ratio = torch.clamp(prob_ratio, 1 - self._eps_ppo(),
-                                            1 + self._eps_ppo.get_value())
-                loss = -torch.mean(torch.min(prob_ratio * adv_i,
-                                             clipped_ratio * adv_i))
-                loss -= self._ent_coeff()*self.policy.entropy_t(obs_i)
+                prob_ratio = torch.exp(self.policy.log_prob_t(obs_i, act_i) - old_log_p_i)
+                clipped_ratio = torch.clamp(prob_ratio, 1 - self._eps_ppo(), 1 + self._eps_ppo.get_value())
+                loss = -torch.mean(torch.min(prob_ratio * adv_i, clipped_ratio * adv_i))
+                loss -= self._ent_coeff() * self.policy.entropy_t(obs_i)
                 loss.backward()
                 self._optimizer.step()
 
@@ -112,7 +108,7 @@ class PPO(Agent):
             with torch.no_grad():
                 logging_verr = []
                 for idx in range(len(self._V)):
-                    v_pred = self._V(x, idx=idx, output_tensor=True)
+                    v_pred = self._V(x, idx=idx)
                     v_err = F.mse_loss(v_pred, v_target)
                     logging_verr.append(v_err.item())
 

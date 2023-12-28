@@ -54,7 +54,7 @@ class RecurrentGaussianTorchPolicy(GaussianTorchPolicy):
         return torch.distributions.MultivariateNormal(loc=mu, covariance_matrix=sigma), policy_state
 
     def get_mean_and_covariance_and_policy_state(self, state, policy_state, lengths):
-        mu, next_hidden_state = self._mu(state, policy_state, lengths, **self._predict_params, output_tensor=True)
+        mu, next_hidden_state = self._mu(state, policy_state, lengths, **self._predict_params)
 
         # Bound the log_std
         log_sigma = torch.clamp(self._log_sigma, self._log_std_min(), self._log_std_max())

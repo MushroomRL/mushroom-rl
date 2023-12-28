@@ -10,10 +10,9 @@ from mushroom_rl.rl_utils.parameters import to_parameter
 
 
 class AbstractDQN(Agent):
-    def __init__(self, mdp_info, policy, approximator, approximator_params,
-                 batch_size, target_update_frequency,
-                 replay_memory=None, initial_replay_size=500,
-                 max_replay_size=5000, fit_params=None, predict_params=None, clip_reward=False):
+    def __init__(self, mdp_info, policy, approximator, approximator_params, batch_size, target_update_frequency,
+                 replay_memory=None, initial_replay_size=500, max_replay_size=5000, fit_params=None,
+                 predict_params=None, clip_reward=False):
         """
         Constructor.
 
@@ -79,7 +78,7 @@ class AbstractDQN(Agent):
             target_approximator='mushroom'
         )
 
-        super().__init__(mdp_info, policy)
+        super().__init__(mdp_info, policy, backend='torch')
 
     def fit(self, dataset):
         self._fit(dataset)
@@ -91,8 +90,7 @@ class AbstractDQN(Agent):
     def _fit_standard(self, dataset):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
-            state, action, reward, next_state, absorbing, _ = \
-                self._replay_memory.get(self._batch_size())
+            state, action, reward, next_state, absorbing, _ = self._replay_memory.get(self._batch_size())
 
             if self._clip_reward:
                 reward = np.clip(reward, -1, 1)

@@ -63,8 +63,8 @@ class TD3(DDPG):
                          policy_delay, critic_fit_params)
 
     def _loss(self, state):
-        action = self._actor_approximator(state, output_tensor=True, **self._actor_predict_params)
-        q = self._critic_approximator(state, action, idx=0, output_tensor=True, **self._critic_predict_params)
+        action = self._actor_approximator(state, **self._actor_predict_params)
+        q = self._critic_approximator(state, action, idx=0, **self._critic_predict_params)
 
         return -q.mean()
 
