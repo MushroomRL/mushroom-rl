@@ -28,6 +28,10 @@ class ArrayBackend(object):
             return NotImplementedError
 
     @classmethod
+    def convert_to_backend(cls, *arrays, to='numpy'):
+        return cls.convert(*arrays, to=cls.get_backend_name())
+
+    @classmethod
     def arrays_to_numpy(cls, *arrays):
         return (cls.to_numpy(array) for array in arrays)
 
@@ -37,7 +41,7 @@ class ArrayBackend(object):
 
     @staticmethod
     def to_numpy(array):
-        return NotImplementedError
+        raise NotImplementedError
 
     @staticmethod
     def to_torch(array):
@@ -57,6 +61,10 @@ class ArrayBackend(object):
 
     @staticmethod
     def copy(array):
+        raise NotImplementedError
+
+    @staticmethod
+    def from_list(array):
         raise NotImplementedError
 
     @staticmethod
@@ -92,6 +100,10 @@ class NumpyBackend(ArrayBackend):
     @staticmethod
     def copy(array):
         return array.copy()
+
+    @staticmethod
+    def from_list(array):
+        return np.array(array)
 
     @staticmethod
     def pack_padded_sequence(array, mask):
@@ -131,6 +143,13 @@ class TorchBackend(ArrayBackend):
         return array.clone()
 
     @staticmethod
+    def from_list(array):
+        if len(array) > 1 and isinstance(array[0], torch.Tensor):
+            return torch.stack(array)
+        else:
+            return torch.tensor(array)
+
+    @staticmethod
     def pack_padded_sequence(array, mask):
         shape = array.shape
 
@@ -167,6 +186,10 @@ class ListBackend(ArrayBackend):
     @staticmethod
     def copy(array):
         return array.copy()
+
+    @staticmethod
+    def from_list(array):
+        return array
 
     @staticmethod
     def pack_padded_sequence(array, mask):

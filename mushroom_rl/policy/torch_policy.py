@@ -38,7 +38,7 @@ class TorchPolicy(Policy):
             s = TorchUtils.to_float_tensor(np.atleast_2d(state))
             a = self.draw_action_t(s)
 
-        return torch.squeeze(a, dim=0).detach().cpu().numpy(), None
+        return torch.squeeze(a, dim=0).detach(), None
 
     def distribution(self, state):
         """
@@ -186,8 +186,7 @@ class GaussianTorchPolicy(TorchPolicy):
 
         self._action_dim = output_shape[0]
 
-        self._mu = Regressor(TorchApproximator, input_shape, output_shape,
-                             network=network, **params)
+        self._mu = Regressor(TorchApproximator, input_shape, output_shape, network=network, **params)
         self._predict_params = dict()
 
         log_sigma_init = TorchUtils.to_float_tensor(torch.ones(self._action_dim) * np.log(std_0))
@@ -216,7 +215,7 @@ class GaussianTorchPolicy(TorchPolicy):
 
     def get_mean_and_chol(self, state):
         assert torch.all(torch.exp(self._log_sigma) > 0)
-        return self._mu(state, **self._predict_params, output_tensor=True), torch.diag(torch.exp(self._log_sigma))
+        return self._mu(state, **self._predict_params), torch.diag(torch.exp(self._log_sigma))
 
     def set_weights(self, weights):
         log_sigma_data = TorchUtils.to_float_tensor(weights[-self._action_dim:])
@@ -286,7 +285,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
         return torch.mean(self.distribution_t(state).entropy())
 
     def distribution_t(self, state):
-        logits = self._logits(state, **self._predict_params, output_tensor=True) * self._beta(state.numpy())
+        logits = self._logits(state, **self._predict_params) * self._beta(state.numpy())
         return CategoricalWrapper(logits)
 
     def set_weights(self, weights):

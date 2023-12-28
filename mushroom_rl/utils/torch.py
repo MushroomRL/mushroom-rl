@@ -34,14 +34,14 @@ class TorchUtils(object):
             for s in shape:
                 c *= s
 
-            w = np.reshape(weights[idx:idx + c], shape)
+            w = weights[idx:idx + c].reshape(shape)
 
             w_tensor = torch.as_tensor(w, device=cls.get_device(device)).type(p.data.dtype)
 
             p.data = w_tensor
             idx += c
 
-        assert idx == weights.size
+        # assert idx == weights.size # TODO check if you can put another guard here
 
     @staticmethod
     def get_weights(parameters):

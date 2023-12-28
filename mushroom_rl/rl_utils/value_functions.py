@@ -25,7 +25,7 @@ def compute_advantage_montecarlo(V, s, ss, r, absorbing, gamma):
     with torch.no_grad():
         r = r.squeeze()
         q = torch.zeros(len(r))
-        v = V(s, output_tensor=True).squeeze()
+        v = V(s).squeeze()
 
         q_next = V(ss[-1]).squeeze().item()
         for rev_k in range(len(r)):
@@ -58,7 +58,7 @@ def compute_advantage(V, s, ss, r, absorbing, gamma):
         and the advantage function.
     """
     with torch.no_grad():
-        v = V(s, output_tensor=True).squeeze()
+        v = V(s).squeeze()
         v_next = V(ss).squeeze() * (1 - absorbing.int())
 
         q = r + gamma * v_next
@@ -95,8 +95,8 @@ def compute_gae(V, s, ss, r, absorbing, last, gamma, lam):
         and the estimated generalized advantage.
     """
     with torch.no_grad():
-        v = V(s, output_tensor=True)
-        v_next = V(ss, output_tensor=True)
+        v = V(s)
+        v_next = V(ss)
         gen_adv = torch.empty_like(v)
         for rev_k in range(len(v)):
             k = len(v) - rev_k - 1

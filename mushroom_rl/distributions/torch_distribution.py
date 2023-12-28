@@ -57,6 +57,9 @@ class AbstractGaussianTorchDistribution(Distribution):
     def _get_mean_and_chol(self, initial_state, **context):
         raise NotImplementedError
 
+    def parameters(self):
+        raise NotImplementedError
+
 
 class DiagonalGaussianTorchDistribution(AbstractGaussianTorchDistribution):
     def __init__(self, mu, sigma):
@@ -87,3 +90,9 @@ class DiagonalGaussianTorchDistribution(AbstractGaussianTorchDistribution):
     @property
     def parameters_size(self):
         return 2 * len(self._mu)
+
+    def parameters(self):
+        return [self._mu, self._log_sigma]
+
+    def _get_mean_and_chol(self, initial_state, **context):
+        return self._mu, torch.diag(torch.exp(self._log_sigma))

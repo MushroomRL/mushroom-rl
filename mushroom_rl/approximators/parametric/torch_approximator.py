@@ -72,14 +72,12 @@ class TorchApproximator(Serializable):
 
         self._last_loss = None
 
-    def predict(self, *args, output_tensor=False, **kwargs):
+    def predict(self, *args, **kwargs):
         """
         Predict.
 
         Args:
             *args: input;
-            output_tensor (bool, False): whether to return the output as tensor
-                or not;
             **kwargs: other parameters used by the predict method
                 the regressor.
 
@@ -89,13 +87,6 @@ class TorchApproximator(Serializable):
         """
         torch_args = [torch.as_tensor(x, device=TorchUtils.get_device()) for x in args]
         val = self.network(*torch_args, **kwargs)
-
-        if output_tensor:
-            return val
-        elif isinstance(val, tuple):
-            val = tuple([x.detach().cpu().numpy() for x in val])
-        else:
-            val = val.detach().cpu().numpy()
 
         return val
 

@@ -11,7 +11,7 @@ class BlackBoxOptimization(Agent):
     do not rely on stochastic and differentiable policies.
 
     """
-    def __init__(self, mdp_info, distribution, policy):
+    def __init__(self, mdp_info, distribution, policy, backend='numpy'):
         """
         Constructor.
 
@@ -24,7 +24,7 @@ class BlackBoxOptimization(Agent):
 
         self._add_save_attr(distribution='mushroom')
 
-        super().__init__(mdp_info, policy, is_episodic=True)
+        super().__init__(mdp_info, policy, is_episodic=True, backend=backend)
 
     def episode_start(self, initial_state, episode_info):
         if isinstance(self.policy, VectorPolicy):
@@ -45,18 +45,18 @@ class BlackBoxOptimization(Agent):
             self.policy.set_n(n_envs)
 
         theta = self.policy.get_weights()
-        if np.any(start_mask):
-            theta[start_mask] = np.array([self.distribution.sample() for _ in range(np.sum(start_mask))])
+        if start_mask.any():
+            theta[start_mask] = self._agent_backend.from_list(
+                [self.distribution.sample() for _ in range(start_mask.sum())])  # TODO change it
             self.policy.set_weights(theta)
 
         policy_states = self.policy.reset()
 
         return policy_states, theta
 
-
     def fit(self, dataset):
-        Jep = np.array(dataset.discounted_return)
-        theta = np.array(dataset.theta_list)
+        Jep = dataset.discounted_return
+        theta = self._agent_backend.from_list(dataset.theta_list)
 
         self._update(Jep, theta)
 

@@ -72,14 +72,14 @@ class Dataset(Serializable):
         Creates a dataset of transitions from the provided arrays.
 
         Args:
-            states (np.ndarray): array of states;
-            actions (np.ndarray): array of actions;
-            rewards (np.ndarray): array of rewards;
-            next_states (np.ndarray): array of next_states;
-            absorbings (np.ndarray): array of absorbing flags;
-            lasts (np.ndarray): array of last flags;
-            policy_state (np.ndarray, None): array of policy internal states;
-            policy_next_state (np.ndarray, None): array of next policy internal states;
+            states (array): array of states;
+            actions (array): array of actions;
+            rewards (array): array of rewards;
+            next_states (array): array of next_states;
+            absorbings (array): array of absorbing flags;
+            lasts (array): array of last flags;
+            policy_state (array, None): array of policy internal states;
+            policy_next_state (array, None): array of next policy internal states;
             info (dict, None): dictiornay of step info;
             episode_info (dict, None): dictiornary of episode info;
             theta_list (list, None): list of policy parameters;
@@ -358,7 +358,7 @@ class Dataset(Serializable):
             if pick:
                 x_0.append(step[0])
             pick = step[-1]
-        return np.array(x_0)
+        return self._array_backend.convert_to_backend(x_0)
 
     def compute_J(self, gamma=1.):
         """
@@ -385,8 +385,9 @@ class Dataset(Serializable):
                 episode_steps = 0
 
         if len(js) == 0:
-            return [0.]
-        return js
+            js = [0.]
+
+        return self._array_backend.from_list(js)
 
     def compute_metrics(self, gamma=1.):
         """
@@ -416,7 +417,7 @@ class Dataset(Serializable):
 
         if len(dataset) > 0:
             J = dataset.compute_J(gamma)
-            return np.min(J), np.max(J), np.mean(J), np.median(J), len(J)
+            return J.min(), J.max(), J.mean(), J.median(), len(J)
         else:
             return 0, 0, 0, 0, 0
 
@@ -500,7 +501,3 @@ class VectorizedDataset(Dataset):
     @property
     def mask(self):
         return self._data.mask
-
-
-
-
