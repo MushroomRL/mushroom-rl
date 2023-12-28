@@ -58,9 +58,16 @@ class BlackBoxOptimization(Agent):
         Jep = dataset.discounted_return
         theta = self._agent_backend.from_list(dataset.theta_list)
 
-        self._update(Jep, theta)
+        if self.distribution.is_contextual:
+            initial_states = dataset.get_init_states()
+            episode_info = dataset.episode_info
+        else:
+            initial_states = None
+            episode_info = {}
 
-    def _update(self, Jep, theta):
+        self._update(Jep, theta, initial_states, episode_info)
+
+    def _update(self, Jep, theta, initial_states, episode_info):
         """
         Function that implements the update routine of distribution parameters.
         Every black box algorithms should implement this function with the

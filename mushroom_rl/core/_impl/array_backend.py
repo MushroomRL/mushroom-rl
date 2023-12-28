@@ -64,6 +64,10 @@ class ArrayBackend(object):
         raise NotImplementedError
 
     @staticmethod
+    def median(array):
+        raise NotImplementedError
+
+    @staticmethod
     def from_list(array):
         raise NotImplementedError
 
@@ -100,6 +104,10 @@ class NumpyBackend(ArrayBackend):
     @staticmethod
     def copy(array):
         return array.copy()
+
+    @staticmethod
+    def median(array):
+        return np.median(array)
 
     @staticmethod
     def from_list(array):
@@ -141,6 +149,10 @@ class TorchBackend(ArrayBackend):
     @staticmethod
     def copy(array):
         return array.clone()
+
+    @staticmethod
+    def median(array):
+        return array.median()
 
     @staticmethod
     def from_list(array):
@@ -188,13 +200,13 @@ class ListBackend(ArrayBackend):
         return array.copy()
 
     @staticmethod
+    def median(array):
+        return np.median(array)
+
+    @staticmethod
     def from_list(array):
         return array
 
     @staticmethod
     def pack_padded_sequence(array, mask):
         return NumpyBackend.pack_padded_sequence(array, np.array(mask))
-
-
-
-

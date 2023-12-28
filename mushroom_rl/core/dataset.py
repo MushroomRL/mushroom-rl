@@ -358,7 +358,7 @@ class Dataset(Serializable):
             if pick:
                 x_0.append(step[0])
             pick = step[-1]
-        return self._array_backend.convert_to_backend(x_0)
+        return self._array_backend.from_list(x_0)
 
     def compute_J(self, gamma=1.):
         """
@@ -417,7 +417,8 @@ class Dataset(Serializable):
 
         if len(dataset) > 0:
             J = dataset.compute_J(gamma)
-            return J.min(), J.max(), J.mean(), J.median(), len(J)
+            median = self._array_backend.median(J)
+            return J.min(), J.max(), J.mean(), median, len(J)
         else:
             return 0, 0, 0, 0, 0
 

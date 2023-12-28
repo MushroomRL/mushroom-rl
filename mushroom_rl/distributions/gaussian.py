@@ -23,6 +23,8 @@ class GaussianDistribution(Distribution):
         self._sigma = sigma
         self._inv_sigma = np.linalg.inv(sigma)
 
+        super().__init__()
+
         self._add_save_attr(
             _mu='numpy',
             _sigma='numpy',
@@ -139,6 +141,8 @@ class GaussianDiagonalDistribution(Distribution):
         assert(len(std.shape) == 1)
         self._mu = mu
         self._std = std
+
+        super().__init__()
 
         self._add_save_attr(
             _mu='numpy',
@@ -291,6 +295,8 @@ class GaussianCholeskyDistribution(Distribution):
         """
         self._mu = mu
         self._chol_sigma = np.linalg.cholesky(sigma)
+
+        super().__init__()
 
         self._add_save_attr(
             _mu='numpy',

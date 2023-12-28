@@ -24,7 +24,7 @@ class PGPE(BlackBoxOptimization):
 
         super().__init__(mdp_info, distribution, policy)
 
-    def _update(self, Jep, theta):
+    def _update(self, Jep, theta, initial_states, episode_info):
         baseline_num_list = list()
         baseline_den_list = list()
         diff_log_dist_list = list()
@@ -34,7 +34,7 @@ class PGPE(BlackBoxOptimization):
             J_i = Jep[i]
             theta_i = theta[i]
 
-            diff_log_dist = self.distribution.diff_log(theta_i)
+            diff_log_dist = self.distribution.diff_log(theta_i, initial_states, **episode_info)
             diff_log_dist2 = diff_log_dist**2
 
             diff_log_dist_list.append(diff_log_dist)
@@ -42,8 +42,7 @@ class PGPE(BlackBoxOptimization):
             baseline_den_list.append(diff_log_dist2)
 
         # Compute baseline
-        baseline = np.mean(baseline_num_list, axis=0) / \
-            np.mean(baseline_den_list, axis=0)
+        baseline = np.mean(baseline_num_list, axis=0) / np.mean(baseline_den_list, axis=0)
         baseline[np.logical_not(np.isfinite(baseline))] = 0.
 
         # Compute gradient

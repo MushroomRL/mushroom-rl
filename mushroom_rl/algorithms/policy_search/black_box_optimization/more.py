@@ -40,14 +40,14 @@ class MORE(BlackBoxOptimization):
         poly_basis_quadratic = PolynomialBasis().generate(2, policy.weights_size)
         self.phi_quadratic_ = Features(basis_list=poly_basis_quadratic)
         self.regressor_quadratic = Regressor(LinearApproximator,
-                      input_shape=(len(poly_basis_quadratic),),
-                      output_shape=(1,))
+                                             input_shape=(len(poly_basis_quadratic),),
+                                             output_shape=(1,))
 
         poly_basis_linear = PolynomialBasis().generate(1, policy.weights_size)
         self.phi_linear_ = Features(basis_list=poly_basis_linear)
         self.regressor_linear = Regressor(LinearApproximator,
-                      input_shape=(len(poly_basis_linear),),
-                      output_shape=(1,))
+                                          input_shape=(len(poly_basis_linear),),
+                                          output_shape=(1,))
         
         self._add_save_attr(eps='primitive')
         self._add_save_attr(h0='primitive')
@@ -55,14 +55,14 @@ class MORE(BlackBoxOptimization):
 
         super().__init__(mdp_info, distribution, policy)
 
-    def _update(self, Jep, theta):
+    def _update(self, Jep, theta, initial_states, episode_info):
         
         beta = self.kappa() * (self.distribution.entropy() - self.h0()) + self.h0()
 
         n = len(self.distribution._mu)
         dist_params = self.distribution.get_parameters()
-        mu_t = dist_params[:n][:,np.newaxis]
-        chol_sig_empty = np.zeros((n,n))
+        mu_t = dist_params[:n][:, np.newaxis]
+        chol_sig_empty = np.zeros((n, n))
         chol_sig_empty[np.tril_indices(n)] = dist_params[n:]
         sig_t = chol_sig_empty.dot(chol_sig_empty.T)
 
@@ -83,7 +83,7 @@ class MORE(BlackBoxOptimization):
     
     def _fit_quadratic_surrogate(self, theta, Jep, n):
 
-        Jep = ( Jep - np.mean(Jep, keepdims=True, axis=0) ) / np.std(Jep, keepdims=True, axis=0)
+        Jep = (Jep - np.mean(Jep, keepdims=True, axis=0)) / np.std(Jep, keepdims=True, axis=0)
         
         features_quadratic = self.phi_quadratic_(theta)
         self.regressor_quadratic.fit(features_quadratic, Jep)        
@@ -105,7 +105,7 @@ class MORE(BlackBoxOptimization):
         beta = self.regressor_linear.get_weights()
 
         r_0 = beta[0]
-        r = beta[1:][:,np.newaxis]
+        r = beta[1:][:, np.newaxis]
 
         return R, r, r_0
     
@@ -134,4 +134,3 @@ class MORE(BlackBoxOptimization):
         f = eta * Q_inv @ b + r
         
         return F, f
-  

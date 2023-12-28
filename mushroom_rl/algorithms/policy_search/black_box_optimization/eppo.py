@@ -38,7 +38,7 @@ class ePPO(BlackBoxOptimization):
 
         super().__init__(mdp_info, distribution, policy, backend='torch')
 
-    def _update(self, Jep, theta):
+    def _update(self, Jep, theta, initial_states, episode_info):
         Jep = torch.tensor(Jep)
         J_mean = torch.mean(Jep)
         J_std = torch.std(Jep)

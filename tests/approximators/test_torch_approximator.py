@@ -53,12 +53,12 @@ def test_pytorch_approximator():
 
     x_s = np.random.rand(2, 4)
     x_a = np.random.randint(n_actions, size=(2, 1))
-    y = approximator.predict(x_s, x_a)
+    y = approximator.predict(x_s, x_a).detach().numpy()
     y_test = np.array([0.37191153, 0.5920861])
 
     assert np.allclose(y, y_test)
 
-    y = approximator.predict(x_s)
+    y = approximator.predict(x_s).detach().numpy()
     y_test = np.array([[0.47908658, 0.37191153],
                        [0.5920861, 0.27575058]])
 

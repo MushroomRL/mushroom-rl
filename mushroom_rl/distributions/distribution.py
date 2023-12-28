@@ -8,6 +8,13 @@ class Distribution(Serializable):
     parameter space. In the literature, they are also known as high level policies.
 
     """
+    def __init__(self, is_contextual=False):
+        self._is_contextual = is_contextual
+
+        super().__init__()
+
+        self._add_save_attr(_is_contextual='primitive')
+
 
     def sample(self, initial_state=None, **context):
         """
@@ -147,3 +154,7 @@ class Distribution(Serializable):
 
         """
         raise NotImplementedError
+
+    @property
+    def is_contextual(self):
+        return self._is_contextual

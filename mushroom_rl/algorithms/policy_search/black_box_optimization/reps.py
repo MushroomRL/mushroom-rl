@@ -23,13 +23,15 @@ class REPS(BlackBoxOptimization):
                 previous one at each update step.
 
         """
+        assert not distribution.is_contextual
+
         self._eps = to_parameter(eps)
 
         self._add_save_attr(_eps='mushroom')
 
         super().__init__(mdp_info, distribution, policy)
 
-    def _update(self, Jep, theta):
+    def _update(self, Jep, theta, initial_states, episode_info):
         eta_start = np.ones(1)
 
         res = minimize(REPS._dual_function, eta_start,

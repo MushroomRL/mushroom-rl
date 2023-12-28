@@ -20,13 +20,15 @@ class RWR(BlackBoxOptimization):
                 transformation.
 
         """
+        assert not distribution.is_contextual
+
         self._beta = to_parameter(beta)
 
         self._add_save_attr(_beta='mushroom')
 
         super().__init__(mdp_info, distribution, policy)
 
-    def _update(self, Jep, theta):
+    def _update(self, Jep, theta, initial_states, episode_info):
         Jep -= np.max(Jep)
 
         d = np.exp(self._beta() * Jep)

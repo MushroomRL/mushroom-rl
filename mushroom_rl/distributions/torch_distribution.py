@@ -10,7 +10,7 @@ class AbstractGaussianTorchDistribution(Distribution):
 
     """
 
-    def __init__(self):
+    def __init__(self, is_contextual=False):
         """
         Constructor.
 
@@ -20,7 +20,7 @@ class AbstractGaussianTorchDistribution(Distribution):
                 variable of the distribution.
 
         """
-        super().__init__()
+        super().__init__(is_contextual)
 
     def distribution(self, initial_state=None, **context):
         mu, chol_sigma = self._get_mean_and_chol(initial_state, **context)
