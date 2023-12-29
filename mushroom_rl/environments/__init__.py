@@ -48,6 +48,11 @@ try:
 except ImportError:
     pass
 
+try:
+    IsaacEnv = None
+    from .isaac_env import IsaacEnv
+except ImportError:
+    pass
 
 try:
     PyBullet = None
