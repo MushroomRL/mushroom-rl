@@ -27,11 +27,11 @@ class REPS(BlackBoxOptimization):
 
         self._eps = to_parameter(eps)
 
-        self._add_save_attr(_eps='mushroom')
-
         super().__init__(mdp_info, distribution, policy)
 
-    def _update(self, Jep, theta, initial_states, episode_info):
+        self._add_save_attr(_eps='mushroom')
+
+    def _update(self, Jep, theta, context):
         eta_start = np.ones(1)
 
         res = minimize(REPS._dual_function, eta_start,

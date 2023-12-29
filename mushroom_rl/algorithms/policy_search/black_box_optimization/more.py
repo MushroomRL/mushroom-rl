@@ -48,14 +48,16 @@ class MORE(BlackBoxOptimization):
         self.regressor_linear = Regressor(LinearApproximator,
                                           input_shape=(len(poly_basis_linear),),
                                           output_shape=(1,))
-        
-        self._add_save_attr(eps='primitive')
-        self._add_save_attr(h0='primitive')
-        self._add_save_attr(kappa='primitive')
 
         super().__init__(mdp_info, distribution, policy)
 
-    def _update(self, Jep, theta, initial_states, episode_info):
+        self._add_save_attr(
+            eps='primitive',
+            h0='primitive',
+            kappa='primitive'
+        )
+
+    def _update(self, Jep, theta, context):
         
         beta = self.kappa() * (self.distribution.entropy() - self.h0()) + self.h0()
 

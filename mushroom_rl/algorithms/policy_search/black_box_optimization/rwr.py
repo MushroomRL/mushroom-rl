@@ -24,11 +24,11 @@ class RWR(BlackBoxOptimization):
 
         self._beta = to_parameter(beta)
 
-        self._add_save_attr(_beta='mushroom')
-
         super().__init__(mdp_info, distribution, policy)
 
-    def _update(self, Jep, theta, initial_states, episode_info):
+        self._add_save_attr(_beta='mushroom')
+
+    def _update(self, Jep, theta, context):
         Jep -= np.max(Jep)
 
         d = np.exp(self._beta() * Jep)

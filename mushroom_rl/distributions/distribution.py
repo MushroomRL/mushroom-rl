@@ -8,21 +8,19 @@ class Distribution(Serializable):
     parameter space. In the literature, they are also known as high level policies.
 
     """
-    def __init__(self, is_contextual=False):
-        self._is_contextual = is_contextual
+    def __init__(self, context_shape=None):
+        self._context_shape = context_shape
 
         super().__init__()
 
-        self._add_save_attr(_is_contextual='primitive')
+        self._add_save_attr(_context_shape='primitive')
 
-
-    def sample(self, initial_state=None, **context):
+    def sample(self, context=None):
         """
         Draw a sample from the distribution.
 
         Args:
-            initial_state (array, None): First state encountered in the environment;
-            **context: context variables to condition the distribution.
+            context (Array, None): context variables to condition the distribution.
 
         Returns:
             A random vector sampled from the distribution.
@@ -30,15 +28,14 @@ class Distribution(Serializable):
         """
         raise NotImplementedError
 
-    def log_pdf(self, theta, initial_state=None, **context):
+    def log_pdf(self, theta, context=None):
         """
         Compute the logarithm of the probability density function in the
         specified point
 
         Args:
             theta (np.ndarray): the point where the log pdf is calculated;
-            initial_state (array, None): First state encountered in the environment;
-            **context: context variables to condition the distribution.
+            context (Array, None): context variables to condition the distribution.
 
         Returns:
             The value of the log pdf in the specified point.
@@ -46,14 +43,13 @@ class Distribution(Serializable):
         """
         raise NotImplementedError
 
-    def __call__(self, theta, initial_state=None, **context):
+    def __call__(self, theta, context=None):
         """
         Compute the probability density function in the specified point
 
         Args:
             theta (np.ndarray): the point where the pdf is calculated;
-            initial_state (array, None): First state encountered in the environment;
-            **context: context variables to condition the distribution.
+            context (Array, None): context variables to condition the distribution.
 
         Returns:
             The value of the pdf in the specified point.
@@ -61,13 +57,12 @@ class Distribution(Serializable):
         """
         raise NotImplementedError
 
-    def entropy(self, initial_state=None, **context):
+    def entropy(self, context=None):
         """
         Compute the entropy of the distribution.
 
         Args:
-            initial_state (array, None): First state encountered in the environment;
-            **context: context variables to condition the distribution.
+            context (Array, None): context variables to condition the distribution.
 
         Returns:
             The value of the entropy of the distribution.
@@ -89,14 +84,13 @@ class Distribution(Serializable):
         """
         raise NotImplementedError
 
-    def diff_log(self, theta, initial_state=None, **context):
+    def diff_log(self, theta, context=None):
         """
         Compute the derivative of the logarithm of the probability density function in the specified point.
 
         Args:
             theta (np.ndarray): the point where the gradient of the log pdf is computed;
-            initial_state (array, None): First state encountered in the environment;
-            **context: context variables to condition the distribution.
+            context (Array, None): context variables to condition the distribution.
 
         Returns:
             The gradient of the log pdf in the specified point.
@@ -104,7 +98,7 @@ class Distribution(Serializable):
         """
         raise NotImplementedError
 
-    def diff(self, theta, initial_state=None, **context):
+    def diff(self, theta, context=None):
         """
         Compute the derivative of the probability density function, in the specified point. Normally it is computed
         w.r.t. the derivative of the logarithm of the probability density function, exploiting the likelihood ratio
@@ -115,14 +109,13 @@ class Distribution(Serializable):
 
         Args:
             theta (np.ndarray): the point where the gradient of the pdf is calculated;
-            initial_state (array, None): First state encountered in the environment;
-            **context: context variables to condition the distribution.
+            context (Array, None): context variables to condition the distribution.
 
         Returns:
             The gradient of the pdf in the specified point.
 
         """
-        return self(theta, initial_state, **context) * self.diff_log(theta, initial_state, **context)
+        return self(theta, context) * self.diff_log(theta, context)
 
     def get_parameters(self):
         """
@@ -157,4 +150,4 @@ class Distribution(Serializable):
 
     @property
     def is_contextual(self):
-        return self._is_contextual
+        return self._context_shape is not None

@@ -20,11 +20,11 @@ class PGPE(BlackBoxOptimization):
         """
         self.optimizer = optimizer
 
-        self._add_save_attr(optimizer='mushroom')
-
         super().__init__(mdp_info, distribution, policy)
 
-    def _update(self, Jep, theta, initial_states, episode_info):
+        self._add_save_attr(optimizer='mushroom')
+
+    def _update(self, Jep, theta, context):
         baseline_num_list = list()
         baseline_den_list = list()
         diff_log_dist_list = list()
@@ -34,7 +34,7 @@ class PGPE(BlackBoxOptimization):
             J_i = Jep[i]
             theta_i = theta[i]
 
-            diff_log_dist = self.distribution.diff_log(theta_i, initial_states, **episode_info)
+            diff_log_dist = self.distribution.diff_log(theta_i, context)
             diff_log_dist2 = diff_log_dist**2
 
             diff_log_dist_list.append(diff_log_dist)

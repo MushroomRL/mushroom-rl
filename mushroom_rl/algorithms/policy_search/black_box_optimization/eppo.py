@@ -28,6 +28,8 @@ class ePPO(BlackBoxOptimization):
         self._eps_ppo = to_parameter(eps_ppo)
         self._ent_coeff = to_parameter(ent_coeff)
 
+        super().__init__(mdp_info, distribution, policy, backend='torch')
+
         self._add_save_attr(
             optimizer='torch',
             _n_epochs_policy='mushroom',
@@ -36,9 +38,7 @@ class ePPO(BlackBoxOptimization):
             _ent_coeff='mushroom',
         )
 
-        super().__init__(mdp_info, distribution, policy, backend='torch')
-
-    def _update(self, Jep, theta, initial_states, episode_info):
+    def _update(self, Jep, theta, context):
         Jep = torch.tensor(Jep)
         J_mean = torch.mean(Jep)
         J_std = torch.std(Jep)
@@ -47,12 +47,29 @@ class ePPO(BlackBoxOptimization):
 
         old_dist = self.distribution.log_pdf(theta).detach()
 
+        if self.distribution.is_contextual:
+            full_batch = (theta, Jep, old_dist, context)
+        else:
+            full_batch = (theta, Jep, old_dist)
+
         for epoch in range(self._n_epochs_policy()):
-            for theta_i, Jep_i, old_dist_i in minibatch_generator(self._batch_size(), theta, Jep, old_dist):
+            for minibatch in minibatch_generator(self._batch_size(), *full_batch):
+
+                theta_i, context_i, Jep_i, old_dist_i = self._unpack(minibatch)
+
                 self._optimizer.zero_grad()
-                prob_ratio = torch.exp(self.distribution.log_pdf(theta_i) - old_dist_i)
+                prob_ratio = torch.exp(self.distribution.log_pdf(theta_i, context_i) - old_dist_i)
                 clipped_ratio = torch.clamp(prob_ratio, 1 - self._eps_ppo(), 1 + self._eps_ppo.get_value())
                 loss = -torch.mean(torch.min(prob_ratio * Jep_i, clipped_ratio * Jep_i))
                 loss -= self._ent_coeff() * self.distribution.entropy(theta_i)
                 loss.backward()
                 self._optimizer.step()
+
+    def _unpack(self, minibatch):
+        if self.distribution.is_contextual:
+            theta_i, Jep_i, old_dist_i, context_i = minibatch
+        else:
+            theta_i, Jep_i, old_dist_i = minibatch
+            context_i = None
+
+        return theta_i, context_i, Jep_i, old_dist_i

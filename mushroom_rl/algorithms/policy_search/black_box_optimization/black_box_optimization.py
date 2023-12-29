@@ -3,6 +3,8 @@ import numpy as np
 from mushroom_rl.core import Agent
 from mushroom_rl.policy import VectorPolicy
 
+from mushroom_rl.algorithms.policy_search.black_box_optimization.context_builder import ContextBuilder
+
 
 class BlackBoxOptimization(Agent):
     """
@@ -11,26 +13,36 @@ class BlackBoxOptimization(Agent):
     do not rely on stochastic and differentiable policies.
 
     """
-    def __init__(self, mdp_info, distribution, policy, backend='numpy'):
+    def __init__(self, mdp_info, distribution, policy, context_builder=None, backend='numpy'):
         """
         Constructor.
 
         Args:
             distribution (Distribution): the distribution of policy parameters;
-            policy (ParametricPolicy): the policy to use.
+            policy (ParametricPolicy): the policy to use;
+            context_builder (ContextBuilder, None): class used to compute the context variables from initial state and
+                the episode_info dictionary;
+            backend (str, 'numpy'): the backend used by the algorithm.
 
         """
+        assert (not distribution.is_contextual and context_builder is None) or \
+               (distribution.is_contextual and context_builder is not None)
         self.distribution = distribution
-
-        self._add_save_attr(distribution='mushroom')
+        self._context_builder = ContextBuilder() if context_builder is None else context_builder
 
         super().__init__(mdp_info, policy, is_episodic=True, backend=backend)
+
+        self._add_save_attr(
+            distribution='mushroom',
+            _context_builder='mushroom'
+        )
 
     def episode_start(self, initial_state, episode_info):
         if isinstance(self.policy, VectorPolicy):
             self.policy = self.policy.get_flat_policy()
 
-        theta = self.distribution.sample()
+        context = self._context_builder(initial_state, **episode_info)
+        theta = self.distribution.sample(context)
         self.policy.set_weights(theta)
 
         policy_state, _ = super().episode_start(initial_state, episode_info)
@@ -46,8 +58,9 @@ class BlackBoxOptimization(Agent):
 
         theta = self.policy.get_weights()
         if start_mask.any():
+            context = self._context_builder(initial_states, **episode_info)[start_mask]
             theta[start_mask] = self._agent_backend.from_list(
-                [self.distribution.sample() for _ in range(start_mask.sum())])  # TODO change it
+                [self.distribution.sample(context[i]) for i in range(start_mask.sum())])  # TODO change it
             self.policy.set_weights(theta)
 
         policy_states = self.policy.reset()
@@ -61,13 +74,14 @@ class BlackBoxOptimization(Agent):
         if self.distribution.is_contextual:
             initial_states = dataset.get_init_states()
             episode_info = dataset.episode_info
+
+            context = self._context_builder(initial_states, **episode_info)
         else:
-            initial_states = None
-            episode_info = {}
+            context = None
 
-        self._update(Jep, theta, initial_states, episode_info)
+        self._update(Jep, theta, context)
 
-    def _update(self, Jep, theta, initial_states, episode_info):
+    def _update(self, Jep, theta, context):
         """
         Function that implements the update routine of distribution parameters.
         Every black box algorithms should implement this function with the

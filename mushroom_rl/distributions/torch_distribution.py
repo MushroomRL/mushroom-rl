@@ -10,39 +10,34 @@ class AbstractGaussianTorchDistribution(Distribution):
 
     """
 
-    def __init__(self, is_contextual=False):
+    def __init__(self, context_shape=None):
         """
         Constructor.
 
         Args:
-            mu (np.ndarray): initial mean of the distribution;
-            std (np.ndarray): initial vector of standard deviations for each
-                variable of the distribution.
+            context_shape (Tuple): shape of the context variable.
 
         """
-        super().__init__(is_contextual)
+        super().__init__(context_shape)
 
-    def distribution(self, initial_state=None, **context):
-        mu, chol_sigma = self._get_mean_and_chol(initial_state, **context)
+    def distribution(self, context=None):
+        mu, chol_sigma = self._get_mean_and_chol(context)
         return torch.distributions.MultivariateNormal(loc=mu, scale_tril=chol_sigma, validate_args=False)
 
-    def sample(self, initial_state=None, **context):
-        dist = self.distribution(initial_state, **context)
+    def sample(self, context=None):
+        dist = self.distribution(context)
 
-        if initial_state is None:
-            return dist.sample()
-        else:
-            return dist.sample(initial_state.shape)
+        return dist.sample()
 
-    def log_pdf(self, theta, initial_state=None, **context):
-        dist = self.distribution(initial_state, **context)
+    def log_pdf(self, theta, context=None):
+        dist = self.distribution(context)
         return dist.log_prob(theta)
 
-    def __call__(self, theta, initial_state=None, **context):
-        return torch.exp(self.log_pdf(theta, initial_state, **context))
+    def __call__(self, theta, context=None):
+        return torch.exp(self.log_pdf(theta, context))
 
-    def entropy(self, initial_state=None, **context):
-        dist = self.distribution(initial_state, **context)
+    def entropy(self, context=None):
+        dist = self.distribution(context)
         return dist.entropy()
 
     def mle(self, theta, weights=None):
@@ -51,10 +46,10 @@ class AbstractGaussianTorchDistribution(Distribution):
     def con_wmle(self, theta, weights, eps, kappa):
         raise NotImplementedError
 
-    def diff_log(self, theta, initial_state=None, **context):
+    def diff_log(self, theta, context=None):
         raise NotImplementedError
 
-    def _get_mean_and_chol(self, initial_state, **context):
+    def _get_mean_and_chol(self, context):
         raise NotImplementedError
 
     def parameters(self):
@@ -94,5 +89,5 @@ class DiagonalGaussianTorchDistribution(AbstractGaussianTorchDistribution):
     def parameters(self):
         return [self._mu, self._log_sigma]
 
-    def _get_mean_and_chol(self, initial_state, **context):
+    def _get_mean_and_chol(self, context):
         return self._mu, torch.diag(torch.exp(self._log_sigma))

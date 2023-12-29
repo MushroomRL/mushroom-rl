@@ -103,7 +103,7 @@ class Agent(Serializable):
         Called by the Core when a new episode starts.
 
         Args:
-            initial_state (array): vector representing the initial state of the environment.
+            initial_state (Array): vector representing the initial state of the environment.
             episode_info (dict): a dictionary containing the information at reset, such as context.
 
         Returns:
@@ -117,9 +117,9 @@ class Agent(Serializable):
         Called by the VectorCore when a new episode starts.
 
         Args:
-            initial_states (array): the initial states of the environment.
+            initial_states (Array): the initial states of the environment.
             episode_info (dict): a dictionary containing the information at reset, such as context;
-            start_mask (array): boolean mask to select the environments that are starting a new episode
+            start_mask (Array): boolean mask to select the environments that are starting a new episode
 
         Returns:
             A tuple containing the policy initial states and, optionally, the policy parameters

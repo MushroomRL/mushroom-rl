@@ -27,12 +27,14 @@ class ConstrainedREPS(BlackBoxOptimization):
         self._eps = to_parameter(eps)
         self._kappa = to_parameter(kappa)
 
-        self._add_save_attr(_eps='mushroom')
-        self._add_save_attr(_kappa='mushroom')
-
         super().__init__(mdp_info, distribution, policy)
 
-    def _update(self, Jep, theta, initial_states, episode_info):
+        self._add_save_attr(
+            _eps='mushroom',
+            _kappa='mushroom'
+        )
+
+    def _update(self, Jep, theta, context):
         eta_start = np.ones(1)
 
         res = minimize(ConstrainedREPS._dual_function, eta_start,
