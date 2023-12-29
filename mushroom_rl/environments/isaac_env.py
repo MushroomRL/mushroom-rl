@@ -6,6 +6,7 @@ from omniisaacgymenvs.utils.task_util import initialize_task
 
 from mushroom_rl.core import VectorizedEnvironment, MDPInfo
 from mushroom_rl.utils.viewer import ImageViewer
+from mushroom_rl.utils.isaac_utils import convert_task_observation
 from mushroom_rl.rl_utils.spaces import *
 
 # import carb
@@ -49,8 +50,12 @@ class IsaacEnv(VectorizedEnvironment):
         observation_space = self._convert_gym_space(self._task.observation_space)
 
         # Create MDP info for mushroom
+        # default episod lenght
+        max_e_lenght = 1000
+        if hasattr(self._task, '_max_episode_length'):
+            max_e_lenght = self._task._max_episode_length
         mdp_info = MDPInfo(observation_space, action_space, 0.99,
-                           self._task._max_episode_length, dt=RENDER_DT, backend=backend)
+                           max_e_lenght, dt=RENDER_DT, backend=backend)
 
         super().__init__(mdp_info, self._task.num_envs)
 
@@ -80,10 +85,13 @@ class IsaacEnv(VectorizedEnvironment):
         return set_seed(seed)
 
     def reset_all(self, env_mask, state=None):
-        idxs = torch.argwhere(env_mask).squeeze().cpu().numpy()  # TODO check if torch is just fine
-        self._task.reset_idx(idxs)
+        idxs = torch.argwhere(env_mask).squeeze()  # .cpu().numpy()  # takes torch datatype 
+        if idxs.dim() > 0:  # only resets task for tensor with actual dimension
+            self._task.reset_idx(idxs)
         # self._world.step(render=self._render) # TODO Check if we can do otherwise
-        return self._task.get_observations(), [{}]*self._n_envs
+        task_obs = self._task.get_observations()
+        observation = convert_task_observation(task_obs)
+        return observation, [{}]*self._n_envs
 
     def step_all(self, env_mask, action):
         self._task.pre_physics_step(action)
@@ -93,7 +101,9 @@ class IsaacEnv(VectorizedEnvironment):
             self._world.step(render=self._render)
 
         observation, reward, done, info = self._task.post_physics_step()
-
+        # converts task obs from dictionary to tensor
+        observation = convert_task_observation(observation)
+        
         env_mask_cuda = torch.as_tensor(env_mask).cuda()
         
         return observation, reward, torch.logical_and(done, env_mask_cuda), [info]*self._n_envs
