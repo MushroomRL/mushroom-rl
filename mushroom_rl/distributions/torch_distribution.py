@@ -91,3 +91,45 @@ class DiagonalGaussianTorchDistribution(AbstractGaussianTorchDistribution):
 
     def _get_mean_and_chol(self, context):
         return self._mu, torch.diag(torch.exp(self._log_sigma))
+
+
+class CholeskyGaussianTorchDistribution(AbstractGaussianTorchDistribution):
+    def __init__(self, mu, sigma):
+        chol_sigma = torch.linalg.cholesky(sigma)
+
+        self._mu = torch.nn.Parameter(mu)
+        self._chol_sigma = torch.nn.Parameter(chol_sigma)
+
+        super().__init__()
+
+        self._add_save_attr(
+            _mu='torch',
+            _chol_sigma='torch'
+        )
+
+    def get_parameters(self):
+        rho = torch.empty(self.parameters_size)
+        n_dims = len(self._mu)
+        tril_indices = torch.tril_indices(row=n_dims, col=n_dims)
+
+        rho[:n_dims] = self._mu
+        rho[n_dims:] = self._chol_sigma.data[tril_indices[0], tril_indices[1]]
+
+        return rho
+
+    def set_parameters(self, rho):
+        n_dims = len(self._mu)
+        tril_indices = torch.tril_indices(row=n_dims, col=n_dims)
+        self._mu.data = rho[:n_dims]
+        self._chol_sigma.data[tril_indices[0], tril_indices[1]] = rho[n_dims:]
+
+    @property
+    def parameters_size(self):
+        n_dims = len(self._mu)
+        return 2 * n_dims + (n_dims * n_dims - n_dims) // 2
+
+    def parameters(self):
+        return [self._mu, self._chol_sigma]
+
+    def _get_mean_and_chol(self, context):
+        return self._mu, self._chol_sigma.tril()
