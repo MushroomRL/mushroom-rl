@@ -36,6 +36,10 @@ class AbstractGaussianTorchDistribution(Distribution):
     def __call__(self, theta, context=None):
         return torch.exp(self.log_pdf(theta, context))
 
+    def mean(self, context=None):
+        mu, _ = self._get_mean_and_chol(context)
+        return mu
+
     def entropy(self, context=None):
         dist = self.distribution(context)
         return dist.entropy()

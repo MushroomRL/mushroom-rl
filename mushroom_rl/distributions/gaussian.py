@@ -40,6 +40,9 @@ class GaussianDistribution(Distribution):
     def __call__(self, theta, context=None):
         return multivariate_normal.pdf(theta, self._mu, self._sigma)
 
+    def mean(self, context=None):
+        return self._mu
+
     def entropy(self, context=None):
         n_dims = len(self._mu)
         sigma = self._sigma
@@ -160,6 +163,9 @@ class GaussianDiagonalDistribution(Distribution):
     def __call__(self, theta, context=None):
         sigma = np.diag(self._std ** 2)
         return multivariate_normal.pdf(theta, self._mu, sigma)
+
+    def mean(self, context=None):
+        return self._mu
 
     def entropy(self, context=None):
         n_dims = len(self._mu)
@@ -314,6 +320,9 @@ class GaussianCholeskyDistribution(Distribution):
     def __call__(self, theta, context=None):
         sigma = self._chol_sigma.dot(self._chol_sigma.T)
         return multivariate_normal.pdf(theta, self._mu, sigma)
+
+    def mean(self, context=None):
+        return self._mu
 
     def entropy(self, context=None):
         n_dims = len(self._mu)

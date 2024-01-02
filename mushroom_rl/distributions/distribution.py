@@ -57,6 +57,9 @@ class Distribution(Serializable):
         """
         raise NotImplementedError
 
+    def mean(self, context=None):
+        raise NotImplementedError
+
     def entropy(self, context=None):
         """
         Compute the entropy of the distribution.

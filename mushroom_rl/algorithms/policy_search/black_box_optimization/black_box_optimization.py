@@ -29,12 +29,14 @@ class BlackBoxOptimization(Agent):
                (distribution.is_contextual and context_builder is not None)
         self.distribution = distribution
         self._context_builder = ContextBuilder() if context_builder is None else context_builder
+        self._deterministic = False
 
         super().__init__(mdp_info, policy, is_episodic=True, backend=backend)
 
         self._add_save_attr(
             distribution='mushroom',
-            _context_builder='mushroom'
+            _context_builder='mushroom',
+            _deterministic='primitive'
         )
 
     def episode_start(self, initial_state, episode_info):
@@ -42,7 +44,11 @@ class BlackBoxOptimization(Agent):
             self.policy = self.policy.get_flat_policy()
 
         context = self._context_builder(initial_state, **episode_info)
-        theta = self.distribution.sample(context)
+
+        if self._deterministic:
+            theta = self.distribution.mean(context)
+        else:
+            theta = self.distribution.sample(context)
         self.policy.set_weights(theta)
 
         policy_state, _ = super().episode_start(initial_state, episode_info)
@@ -59,8 +65,20 @@ class BlackBoxOptimization(Agent):
         theta = self.policy.get_weights()
         if start_mask.any():
             context = self._context_builder(initial_states, **episode_info)[start_mask]
-            theta[start_mask] = self._agent_backend.from_list(
-                [self.distribution.sample(context[i]) for i in range(start_mask.sum())])  # TODO change it
+
+            if self._deterministic:
+                if context is not None:
+                    theta[start_mask] = self.distribution.mean(context[start_mask])
+                else:
+                    theta[start_mask] = self._agent_backend.from_list(
+                        [self.distribution.mean() for _ in range(start_mask.sum())])
+            else:
+                if context is not None:
+                    theta[start_mask] = self._agent_backend.from_list(
+                        [self.distribution.sample(context[i]) for i in range(start_mask.sum())])  # TODO change it
+                else:
+                    theta[start_mask] = self._agent_backend.from_list(
+                        [self.distribution.sample() for _ in range(start_mask.sum())])
             self.policy.set_weights(theta)
 
         policy_states = self.policy.reset()
@@ -80,6 +98,9 @@ class BlackBoxOptimization(Agent):
             context = None
 
         self._update(Jep, theta, context)
+
+    def set_deterministic(self, deterministic=True):
+        self._deterministic = deterministic
 
     def _update(self, Jep, theta, context):
         """
