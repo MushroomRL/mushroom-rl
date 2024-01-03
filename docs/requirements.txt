@@ -1,0 +1,10 @@
+opencv-python
+numpy
+scipy
+gym
+scikit-learn
+matplotlib
+joblib
+tqdm
+pygame
+sphinx-rtd-theme
