@@ -10,7 +10,7 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('.'))
 
-from mushroom_rl import __version__
+#from mushroom_rl import __version__
 
 # General information about the project.
 project = u'MushroomRL'
@@ -33,7 +33,8 @@ extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
-    'sphinx.ext.napoleon']
+    'sphinx.ext.napoleon',
+    'sphinxcontrib.youtube']
 
 
 # Add any paths that contain templates here, relative to this directory.
@@ -58,16 +59,6 @@ todo_include_todos = True
 
 
 
-# The version info for the project you're documenting, acts as replacement for
-# |version| and |release|, also used in various other places throughout the
-# built documents.
-#
-# The short X.Y version.
-version = '.'.join(__version__.split('.')[:-1])
-
-# The full version, including alpha/beta/rc tags.
-release = __version__
-
 
 
 
@@ -80,7 +71,16 @@ language = "en'"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "piccolo_theme"
-html_static_path = ['_static/basic_mod.scss']
+
+# These folders are copied to the documentation's HTML output
+html_static_path = ['_static']
+
+# These paths are either relative to html_static_path
+# or fully qualified paths (eg. https://...)
+html_css_files = [
+    '/basic_mod.css',
+]
+
 
 html_sidebars = {
    '**': ['globaltoc.html', 'sourcelink.html', 'searchbox.html'],
@@ -95,7 +95,7 @@ master_doc = 'index'
 
 html_short_title = 'Mushroom RL'
 # Enabling this line will change the nav title from a text to an image:
-#html_logo = 'image/images.png'
+html_logo = 'image/image3.jpg'
  
 html_theme_options = {
    
@@ -157,7 +157,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 main_pages = [
-    (master_doc, 'mushroom_rl', u'MushroomRL Documentation',
+    (master_doc, '/mushroom_rl', u'MushroomRL Documentation',
      [author], 1)
 ]
 

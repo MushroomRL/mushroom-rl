@@ -3,11 +3,24 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-==========
-MushroomRL
-==========
 
 
+
+
+
+====================          
+MushroomRL |image1|
+====================
+
+.. image:: image/image3.jpg
+  :width: 900
+  :height: 300
+  :alt: Alternative text
+  :align: center
+
+
+.. |image1| image:: image/image1.png
+   :height: 1em
 
 
 
@@ -17,6 +30,12 @@ MushroomRL
 Introduction
 ============
 
+
+What is Reinforcement Learning
+-------------------------------
+
+
+..  youtube:: 2xATEwcRpy8
 
 
 What is MushroomRL
@@ -38,6 +57,9 @@ libraries like
 the `PyTorch <https://pytorch.org>`_ library for tensor computation.
 
 
+
+
+
 With MushroomRL you can:
 ------------------------
 
@@ -48,7 +70,14 @@ With MushroomRL you can:
 - exploit regression models offered by third-party libraries (e.g., scikit-learn) or
   build a customized one with PyTorch;
 - seamlessly run experiments on CPU or GPU. 
-   
+
+
+.. image:: image/image2.jpg
+  :width: 500
+  :height: 300
+  :alt: Alternative text
+  :align: center
+
 
 Basic run example
 -----------------

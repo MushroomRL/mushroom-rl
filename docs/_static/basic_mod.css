@@ -43,7 +43,7 @@
 /*****************************************************************************/
 /* Typography */
 :root {
-  --codeBackgroundColor: #f8f8f8;
+  --codeBackgroundColor: white;
   --inlineCodeBackgroundColor: #f8f8f8;
   --codeBlue: #0000ff;
   --codeGreen: #008000;
@@ -375,8 +375,13 @@ div.document b {
   font-weight: 700;
 }
 div.document h1 {
-  margin: 0.8rem 0 0.5rem 0;
+  margin: 0.8rem 3rem 0.5rem 0;
 }
+div.document h1 {
+  font-size: 4rem;
+
+}
+
 div.document h2 {
   margin: 0.8rem 0 0.5rem 0;
 }
