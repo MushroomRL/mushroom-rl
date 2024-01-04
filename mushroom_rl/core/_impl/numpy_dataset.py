@@ -133,23 +133,42 @@ class NumpyDataset(Serializable):
 
         self._len = 0
 
-    def get_view(self, index):
+    def get_view(self, index, copy=False):
         view = self.copy()
 
-        view._states = self.state[index, ...]
-        view._actions = self.action[index, ...]
-        view._rewards = self.reward[index, ...]
-        view._next_states = self.next_state[index, ...]
-        view._absorbing = self.absorbing[index, ...]
-        view._last = self.last[index, ...]
-        view._len = view._states.shape[0]
+        if copy:
+            new_states = self.state[index, ...]
+            new_len = new_states.shape[0]
 
-        if self.is_stateful:
-            view._policy_states = self._policy_states[index, ...]
-            view._policy_next_states = self._policy_next_states[index, ...]
+            view._states[:new_len] = new_states
+            view._actions[:new_len] = self.action[index, ...]
+            view._rewards[:new_len] = self.reward[index, ...]
+            view._next_states[:new_len] = self.next_state[index, ...]
+            view._absorbing[:new_len] = self.absorbing[index, ...]
+            view._last[:new_len] = self.last[index, ...]
+            view._len = new_len
 
-        if self._mask is not None:
-            view._mask = self._mask[index, ...]
+            if self.is_stateful:
+                view._policy_states[:new_len] = self._policy_states[index, ...]
+                view._policy_next_states[:new_len] = self._policy_next_states[index, ...]
+
+            if self._mask is not None:
+                view._mask[:new_len] = self._mask[index, ...]
+        else:
+            view._states = self.state[index, ...]
+            view._actions = self.action[index, ...]
+            view._rewards = self.reward[index, ...]
+            view._next_states = self.next_state[index, ...]
+            view._absorbing = self.absorbing[index, ...]
+            view._last = self.last[index, ...]
+            view._len = view._states.shape[0]
+
+            if self.is_stateful:
+                view._policy_states = self._policy_states[index, ...]
+                view._policy_next_states = self._policy_next_states[index, ...]
+
+            if self._mask is not None:
+                view._mask = self._mask[index, ...]
 
         return view
 
@@ -210,6 +229,10 @@ class NumpyDataset(Serializable):
     @property
     def mask(self):
         return self._mask[:len(self)]
+
+    @mask.setter
+    def mask(self, new_mask):
+        self._mask[:len(self)] = new_mask
 
     @property
     def is_stateful(self):

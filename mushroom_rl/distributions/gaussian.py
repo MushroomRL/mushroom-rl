@@ -29,16 +29,16 @@ class GaussianDistribution(Distribution):
             _inv_sigma='numpy'
         )
 
-    def sample(self):
+    def sample(self, initial_state=None, **context):
         return np.random.multivariate_normal(self._mu, self._sigma)
 
-    def log_pdf(self, theta):
+    def log_pdf(self, theta, initial_state=None, **context):
         return multivariate_normal.logpdf(theta, self._mu, self._sigma)
 
-    def __call__(self, theta):
+    def __call__(self, theta, initial_state=None, **context):
         return multivariate_normal.pdf(theta, self._mu, self._sigma)
 
-    def entropy(self):
+    def entropy(self, initial_state=None, **context):
         n_dims = len(self._mu)
         sigma = self._sigma
         (sign_sigma, logdet_sigma) = np.linalg.slogdet(sigma)
@@ -65,7 +65,7 @@ class GaussianDistribution(Distribution):
 
         self._mu = GaussianDistribution._compute_mu_from_lagrangian(weights, theta, mu, eta_opt)
 
-    def diff_log(self, theta):
+    def diff_log(self, theta, initial_state=None, **context):
         delta = theta - self._mu
         g = self._inv_sigma.dot(delta)
 
@@ -145,19 +145,19 @@ class GaussianDiagonalDistribution(Distribution):
             _std='numpy'
         )
 
-    def sample(self):
+    def sample(self, initial_state=None, **context):
         sigma = np.diag(self._std**2)
         return np.random.multivariate_normal(self._mu, sigma)
 
-    def log_pdf(self, theta):
+    def log_pdf(self, theta, initial_state=None, **context):
         sigma = np.diag(self._std ** 2)
         return multivariate_normal.logpdf(theta, self._mu, sigma)
 
-    def __call__(self, theta):
+    def __call__(self, theta, initial_state=None, **context):
         sigma = np.diag(self._std ** 2)
         return multivariate_normal.pdf(theta, self._mu, sigma)
 
-    def entropy(self):
+    def entropy(self, initial_state=None, **context):
         n_dims = len(self._mu)
         sigma = np.diag(self._std**2)
         (sign_sigma, logdet_sigma) = np.linalg.slogdet(sigma)
@@ -192,7 +192,7 @@ class GaussianDiagonalDistribution(Distribution):
 
         self._mu, self._std = GaussianDiagonalDistribution._compute_mu_sigma_from_lagrangian(weights, theta, mu, sigma, eta_opt, omg_opt)
 
-    def diff_log(self, theta):
+    def diff_log(self, theta, initial_state=None, **context):
         n_dims = len(self._mu)
 
         sigma = self._std**2
@@ -297,19 +297,19 @@ class GaussianCholeskyDistribution(Distribution):
             _chol_sigma='numpy'
         )
 
-    def sample(self):
+    def sample(self, initial_state=None, **context):
         sigma = self._chol_sigma.dot(self._chol_sigma.T)
         return np.random.multivariate_normal(self._mu, sigma)
 
-    def log_pdf(self, theta):
+    def log_pdf(self, theta, initial_state=None, **context):
         sigma = self._chol_sigma.dot(self._chol_sigma.T)
         return multivariate_normal.logpdf(theta, self._mu, sigma)
 
-    def __call__(self, theta):
+    def __call__(self, theta, initial_state=None, **context):
         sigma = self._chol_sigma.dot(self._chol_sigma.T)
         return multivariate_normal.pdf(theta, self._mu, sigma)
 
-    def entropy(self):
+    def entropy(self, initial_state=None, **context):
         n_dims = len(self._mu)
         sigma = self._chol_sigma.dot(self._chol_sigma.T)
         (sign_sigma, logdet_sigma) = np.linalg.slogdet(sigma)
@@ -349,7 +349,7 @@ class GaussianCholeskyDistribution(Distribution):
 
         self._mu, self._chol_sigma = mu_new, np.linalg.cholesky(sigma_new)
 
-    def diff_log(self, theta):
+    def diff_log(self, theta, initial_state=None, **context):
         n_dims = len(self._mu)
         inv_chol = np.linalg.inv(self._chol_sigma)
         inv_sigma = inv_chol.T.dot(inv_chol)
@@ -436,4 +436,3 @@ class GaussianCholeskyDistribution(Distribution):
         sum3 = omg * (GaussianCholeskyDistribution._entropy(logdet_sigma_new, n_dims) - ( GaussianCholeskyDistribution._entropy(logdet_sigma, n_dims) - kappa ) )
 
         return sum1 + sum2 + sum3
-        
