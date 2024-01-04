@@ -12,6 +12,7 @@ class Dataset(Serializable):
         assert (n_steps is not None and n_episodes is None) or (n_steps is None and n_episodes is not None)
 
         self._array_backend = ArrayBackend.get_array_backend(mdp_info.backend)
+        self._n_envs = n_envs
 
         if n_steps is not None:
             n_samples = n_steps
@@ -62,6 +63,7 @@ class Dataset(Serializable):
             _data='mushroom',
             _array_backend='primitive',
             _gamma='primitive',
+            _n_envs='primitive'
         )
 
     @classmethod
@@ -123,13 +125,16 @@ class Dataset(Serializable):
             dataset._data = ListDataset.from_array(states, actions, rewards, next_states, absorbings, lasts)
             dataset._array_backend = ListBackend
 
+        dataset._n_envs = 1
+
         dataset._add_save_attr(
             _info='pickle',
             _episode_info='pickle',
             _theta_list='pickle',
             _data='mushroom',
             _converter='primitive',
-            _gamma='primitive'
+            _gamma='primitive',
+            _n_envs='primitive'
         )
 
         return dataset
@@ -157,7 +162,7 @@ class Dataset(Serializable):
 
         self._data.clear()
 
-    def get_view(self, index):
+    def get_view(self, index, copy=False):
         dataset = self.copy()
 
         info_slice = defaultdict(list)
@@ -166,7 +171,7 @@ class Dataset(Serializable):
 
         dataset._info = info_slice
         dataset._episode_info = defaultdict(list)
-        dataset._data = self._data.get_view(index)
+        dataset._data = self._data.get_view(index, copy)
 
         return dataset
 
@@ -453,12 +458,30 @@ class VectorizedDataset(Dataset):
             if mask[i]:
                 self._theta_list[i].append(theta[i])
 
-    def clear(self):
+    def clear(self, n_steps_per_fit=None):
         n_envs = len(self._theta_list)
+
+        residual_data = None
+        if n_steps_per_fit is not None:
+            n_steps_dataset = self._data.mask.sum().item()
+
+            if n_steps_dataset > n_steps_per_fit:
+                n_extra_steps = n_steps_dataset - n_steps_per_fit
+                n_parallel_steps = int(np.ceil(n_extra_steps / self._n_envs))
+                view_size = slice(-n_parallel_steps, None)
+                residual_data = self._data.get_view(view_size, copy=True)
+                mask = residual_data.mask
+                original_shape = mask.shape
+                mask.flatten()[n_extra_steps:] = False
+                residual_data.mask = mask.reshape(original_shape)
+
         super().clear()
         self._initialize_theta_list(n_envs)
 
-    def flatten(self):
+        if n_steps_per_fit is not None and residual_data is not None:
+            self._data = residual_data
+
+    def flatten(self, n_steps_per_fit=None):
         if len(self) == 0:
             return None
 
@@ -478,6 +501,18 @@ class VectorizedDataset(Dataset):
         if self._data.is_stateful:
             policy_state = self._array_backend.pack_padded_sequence(self._data.policy_state, self._data.mask)
             policy_next_state = self._array_backend.pack_padded_sequence(self._data.policy_next_state, self._data.mask)
+
+        if n_steps_per_fit is not None:
+            states = states[:n_steps_per_fit]
+            actions = actions[:n_steps_per_fit]
+            rewards = rewards[:n_steps_per_fit]
+            next_states = next_states[:n_steps_per_fit]
+            absorbings = absorbings[:n_steps_per_fit]
+            lasts = lasts[:n_steps_per_fit]
+
+            if self._data.is_stateful:
+                policy_state = policy_state[:n_steps_per_fit]
+                policy_next_state = policy_next_state[:n_steps_per_fit]
 
         flat_theta_list = self._flatten_theta_list()
 
