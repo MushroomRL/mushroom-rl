@@ -54,7 +54,7 @@ class ListDataset(Serializable):
     def clear(self):
         self._dataset = list()
 
-    def get_view(self, index):
+    def get_view(self, index, copy=False):
         view = self.copy()
 
         if isinstance(index, (int, slice)):
@@ -119,6 +119,10 @@ class ListDataset(Serializable):
     @property
     def mask(self):
         return self._mask
+
+    @mask.setter
+    def mask(self, new_mask):
+        self._mask = new_mask
 
     @property
     def n_episodes(self):
