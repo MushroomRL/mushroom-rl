@@ -42,7 +42,8 @@ class DummyEpisodicAgent(Agent):
     def fit(self, dataset):
         assert len(dataset.theta_list) == 5
 
-    def episode_start_vectorized(self, initial_states, episode_info, n_envs):
+    def episode_start_vectorized(self, initial_states, episode_info, start_mask):
+        n_envs = len(start_mask)
         current_count = self._counter
         self._counter += 1
         if self._backend == 'torch':

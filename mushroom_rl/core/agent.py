@@ -112,17 +112,17 @@ class Agent(Serializable):
         """
         return self.policy.reset(), None
 
-    def episode_start_vectorized(self, initial_states, episode_info, n_envs):
+    def episode_start_vectorized(self, initial_states, episode_info, start_mask):
         """
         Called by the VectorCore when a new episode starts.
 
         Args:
             initial_states (array): the initial states of the environment.
             episode_info (dict): a dictionary containing the information at reset, such as context;
-            n_envs (int): number of environments in parallel to run.
+            start_mask (array): boolean mask to select the environments that are starting a new episode
 
         Returns:
-            A tuple containing the policy initial state and, optionally, the policy parameters
+            A tuple containing the policy initial states and, optionally, the policy parameters
 
         """
         return self.episode_start(initial_states, episode_info)
