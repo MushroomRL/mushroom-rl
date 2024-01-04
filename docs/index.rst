@@ -12,14 +12,14 @@
 MushroomRL |image1|
 ====================
 
-.. image:: image/image3.jpg
+.. image:: _static/image3.jpg
   :width: 900
   :height: 300
   :alt: Alternative text
   :align: center
 
 
-.. |image1| image:: image/image1.png
+.. |image1| image:: _static/image1.png
    :height: 1em
 
 
@@ -72,7 +72,7 @@ With MushroomRL you can:
 - seamlessly run experiments on CPU or GPU. 
 
 
-.. image:: image/image2.jpg
+.. image:: _static/image2.jpg
   :width: 500
   :height: 300
   :alt: Alternative text

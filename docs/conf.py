@@ -105,7 +105,7 @@ master_doc = 'index'
 
 html_short_title = 'Mushroom RL'
 # Enabling this line will change the nav title from a text to an image:
-html_logo = 'image/image3.jpg'
+html_logo = '_static/image3.jpg'
  
 html_theme_options = {
    
