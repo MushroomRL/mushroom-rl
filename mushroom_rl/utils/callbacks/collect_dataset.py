@@ -19,7 +19,7 @@ class CollectDataset(Callback):
             dataset = dataset.flatten()
 
         if self._dataset is None:
-            self._dataset = dataset
+            self._dataset = dataset.copy()
         else:
             self._dataset += dataset
 
