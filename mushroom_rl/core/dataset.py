@@ -8,8 +8,11 @@ from ._impl import *
 
 
 class Dataset(Serializable):
-    def __init__(self, mdp_info, agent_info, n_steps=None, n_episodes=None, n_envs=1):
+    def __init__(self, mdp_info, agent_info, n_steps=None, n_episodes=None, n_envs=1, device=None):
         assert (n_steps is not None and n_episodes is None) or (n_steps is None and n_episodes is not None)
+
+        if mdp_info.backend != "torch":
+            assert device is None
 
         self._array_backend = ArrayBackend.get_array_backend(mdp_info.backend)
         self._n_envs = n_envs
@@ -50,7 +53,7 @@ class Dataset(Serializable):
                                       policy_state_shape, mask_shape)
         elif mdp_info.backend == 'torch':
             self._data = TorchDataset(state_type, state_shape, action_type, action_shape, reward_shape, base_shape,
-                                      policy_state_shape, mask_shape)
+                                      policy_state_shape, mask_shape, device=device)
         else:
             self._data = ListDataset(policy_state_shape is not None, mask_shape is not None)
 
@@ -281,6 +284,10 @@ class Dataset(Serializable):
     def discounted_return(self):
         return self.compute_J(self._gamma)
 
+    @property
+    def array_backend(self):
+        return self._array_backend
+
     def parse(self, to='numpy'):
         """
         Return the dataset as set of arrays.
@@ -311,7 +318,6 @@ class Dataset(Serializable):
         Return the first ``n_episodes`` episodes in the provided dataset.
 
         Args:
-            dataset (list): the dataset to consider;
             n_episodes (int): the number of episodes to pick from the dataset;
 
         Returns:

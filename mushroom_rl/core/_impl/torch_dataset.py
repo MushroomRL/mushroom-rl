@@ -6,35 +6,36 @@ from mushroom_rl.utils.torch import TorchUtils
 
 class TorchDataset(Serializable):
     def __init__(self, state_type, state_shape, action_type, action_shape, reward_shape, flag_shape,
-                 policy_state_shape, mask_shape):
+                 policy_state_shape, mask_shape, device=None):
 
-        device = TorchUtils.get_device()
+        self._device = TorchUtils.get_device(device)
         self._state_type = state_type
         self._action_type = action_type
 
-        self._states = torch.empty(*state_shape, dtype=self._state_type, device=device)
-        self._actions = torch.empty(*action_shape, dtype=self._action_type, device=device)
-        self._rewards = torch.empty(*reward_shape, dtype=torch.float, device=device)
-        self._next_states = torch.empty(*state_shape, dtype=self._state_type, device=device)
-        self._absorbing = torch.empty(flag_shape, dtype=torch.bool, device=device)
-        self._last = torch.empty(flag_shape, dtype=torch.bool, device=device)
+        self._states = torch.empty(*state_shape, dtype=self._state_type, device=self._device)
+        self._actions = torch.empty(*action_shape, dtype=self._action_type, device=self._device)
+        self._rewards = torch.empty(*reward_shape, dtype=torch.float, device=self._device)
+        self._next_states = torch.empty(*state_shape, dtype=self._state_type, device=self._device)
+        self._absorbing = torch.empty(flag_shape, dtype=torch.bool, device=self._device)
+        self._last = torch.empty(flag_shape, dtype=torch.bool, device=self._device)
         self._len = 0
 
         if policy_state_shape is None:
             self._policy_states = None
             self._policy_next_states = None
         else:
-            self._policy_states = torch.empty(policy_state_shape, dtype=torch.float, device=device)
-            self._policy_next_states = torch.empty(policy_state_shape, dtype=torch.float, device=device)
+            self._policy_states = torch.empty(policy_state_shape, dtype=torch.float, device=self._device)
+            self._policy_next_states = torch.empty(policy_state_shape, dtype=torch.float, device=self._device)
 
         if mask_shape is None:
             self._mask = None
         else:
-            self._mask = torch.empty(mask_shape, dtype=torch.bool, device=device)
+            self._mask = torch.empty(mask_shape, dtype=torch.bool, device=self._device)
 
         self._add_save_attr(
             _state_type='primitive',
             _action_type='primitive',
+            _device='primitive',
             _states='torch',
             _actions='torch',
             _rewards='torch',
@@ -102,7 +103,7 @@ class TorchDataset(Serializable):
 
     def append(self, state, action, reward, next_state, absorbing, last, policy_state=None, policy_next_state=None,
                mask=None):
-        i = self._len
+        i = self._len   # todo: handle index out of bounds?
 
         self._states[i] = state
         self._actions[i] = action
@@ -194,7 +195,6 @@ class TorchDataset(Serializable):
             result._policy_next_states = torch.concatenate((self.policy_next_state, other.policy_next_state))
 
         return result
-
 
     @property
     def state(self):

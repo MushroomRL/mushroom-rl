@@ -1,6 +1,7 @@
 import numpy as np
+import torch
 
-from mushroom_rl.core.serialization import Serializable
+from mushroom_rl.core import Dataset, Serializable
 from mushroom_rl.rl_utils.parameters import to_parameter
 
 
@@ -10,32 +11,25 @@ class ReplayMemory(Serializable):
     "Human-Level Control Through Deep Reinforcement Learning" by Mnih V. et al..
 
     """
-    def __init__(self, initial_size, max_size):
-        """
-        Constructor.
+    def __init__(self, mdp_info, agent_info, initial_size, max_size):
 
-        Args:
-            initial_size (int): initial number of elements in the replay memory;
-            max_size (int): maximum number of elements that the replay memory
-                can contain.
-
-        """
         self._initial_size = initial_size
         self._max_size = max_size
+        self._mdp_info = mdp_info
+        self._agent_info = agent_info
+        self._idx = 0
+        self._full = False
 
-        self.reset()
+        assert mdp_info.backend in ["numpy", "torch"], f"{mdp_info.backend} backend currently not supported in " \
+                                                       f"the replay memory class."
+
+        self.dataset = Dataset(mdp_info=mdp_info, agent_info=agent_info, n_steps=max_size, n_envs=1)
 
         self._add_save_attr(
             _initial_size='primitive',
             _max_size='primitive',
             _idx='primitive!',
             _full='primitive!',
-            _states='pickle!',
-            _actions='pickle!',
-            _rewards='pickle!',
-            _next_states='pickle!',
-            _absorbing='pickle!',
-            _last='pickle!'
         )
 
     def add(self, dataset, n_steps_return=1, gamma=1.):
@@ -43,32 +37,37 @@ class ReplayMemory(Serializable):
         Add elements to the replay memory.
 
         Args:
-            dataset (list): list of elements to add to the replay memory;
+            dataset (Dataset): list of elements to add to the replay memory;
             n_steps_return (int, 1): number of steps to consider for computing n-step return;
             gamma (float, 1.): discount factor for n-step return.
 
         """
+        dataset = dataset.copy()
         assert n_steps_return > 0
 
         i = 0
         while i < len(dataset) - n_steps_return + 1:
-            reward = dataset[i][2]
+            reward = dataset.reward[i]
             j = 0
             while j < n_steps_return - 1:
-                if dataset[i + j][5]:
+                if dataset.last[i + j]:
                     i += j + 1
                     break
                 j += 1
-                reward += gamma ** j * dataset[i + j][2]
+                reward += gamma ** j * dataset.reward[i + j]
             else:
-                self._states[self._idx] = dataset[i][0]
-                self._actions[self._idx] = dataset[i][1]
-                self._rewards[self._idx] = reward
+                if self._full:
+                    self.dataset.state[self._idx] = dataset.state[i]
+                    self.dataset.action[self._idx] = dataset.action[i]
+                    self.dataset.reward[self._idx] = reward
 
-                self._next_states[self._idx] = dataset[i + j][3]
-                self._absorbing[self._idx] = dataset[i + j][4]
-                self._last[self._idx] = dataset[i + j][5]
-
+                    self.dataset.next_state[self._idx] = dataset.next_state[i + j]
+                    self.dataset.absorbing[self._idx] = dataset.absorbing[i + j]
+                    self.dataset.last[self._idx] = dataset.last[i + j]
+                else:
+                    # todo: add info and policy state
+                    self.dataset.append([dataset.state[i], dataset.action[i], reward,
+                                         dataset.next_state[i + j], dataset.absorbing[i + j], dataset.last[i + j]], {})
                 self._idx += 1
                 if self._idx == self._max_size:
                     self._full = True
@@ -84,22 +83,8 @@ class ReplayMemory(Serializable):
         Returns:
             The requested number of samples.
         """
-        s = list()
-        a = list()
-        r = list()
-        ss = list()
-        ab = list()
-        last = list()
-        for i in np.random.randint(self.size, size=n_samples):
-            s.append(np.array(self._states[i]))
-            a.append(self._actions[i])
-            r.append(self._rewards[i])
-            ss.append(np.array(self._next_states[i]))
-            ab.append(self._absorbing[i])
-            last.append(self._last[i])
-
-        return np.array(s), np.array(a), np.array(r), np.array(ss),\
-            np.array(ab), np.array(last)
+        samples = self.dataset.select_random_samples(n_samples).copy()
+        return samples.parse()
 
     def reset(self):
         """
@@ -108,12 +93,7 @@ class ReplayMemory(Serializable):
         """
         self._idx = 0
         self._full = False
-        self._states = [None for _ in range(self._max_size)]
-        self._actions = [None for _ in range(self._max_size)]
-        self._rewards = [None for _ in range(self._max_size)]
-        self._next_states = [None for _ in range(self._max_size)]
-        self._absorbing = [None for _ in range(self._max_size)]
-        self._last = [None for _ in range(self._max_size)]
+        self.dataset.clear()
 
     @property
     def initialized(self):
@@ -134,9 +114,91 @@ class ReplayMemory(Serializable):
         """
         return self._idx if not self._full else self._max_size
 
+    @property
+    def _backend(self):
+        return self.dataset.array_backend
+
     def _post_load(self):
         if self._full is None:
             self.reset()
+
+
+class SequenceReplayMemory(ReplayMemory):
+    """
+    This class extend the base replay memory to allow sampling sequences of a certain length. This is useful for
+    training recurrent agents or agents operating on a window of states etc.
+
+    """
+    def __init__(self, mdp_info, agent_info, initial_size, max_size, truncation_length):
+        self._truncation_length = truncation_length
+        super(SequenceReplayMemory, self).__init__(mdp_info, agent_info, initial_size, max_size)
+
+    def get(self, n_samples):
+        """
+        Returns the provided number of states from the replay memory.
+        Args:
+            n_samples (int): the number of samples to return.
+        Returns:
+            The requested number of samples.
+        """
+
+        s = list()
+        a = list()
+        r = list()
+        ss = list()
+        ab = list()
+        last = list()
+        pa = list()         # previous actions
+        lengths = list()    # lengths of the sequences
+
+        for i in np.random.randint(self.size, size=n_samples):
+
+            with torch.no_grad():
+
+                # determine the begin of a sequence
+                begin_seq = np.maximum(i - self._truncation_length + 1, 0)
+                end_seq = i + 1
+
+                # the sequence can contain more than one trajectory, check to only include one
+                lasts_absorbing = self.dataset.last[begin_seq: i]
+                begin_traj = self._backend.where(lasts_absorbing > 0)
+                more_than_one_traj = len(*begin_traj) > 0
+                if more_than_one_traj:
+                    # take the beginning of the last trajectory
+                    begin_seq = begin_seq + begin_traj[0][-1] + 1
+
+                # get data and apply padding if needed
+                states = self._backend.copy(self.dataset.state[begin_seq:end_seq])
+                next_states = self._backend.copy(self.dataset.next_state[begin_seq:end_seq])
+                action_seq = self._backend.copy(self.dataset.action[begin_seq:end_seq])
+                if more_than_one_traj or begin_seq == 0 or self.dataset.last[begin_seq-1]:
+                    prev_actions = self._backend.copy(self.dataset.action[begin_seq:end_seq - 1])
+                    init_prev_action = self._backend.zeros(1, *self._mdp_info.action_space.shape)
+                    if len(prev_actions) == 0:
+                        prev_actions = init_prev_action
+                    else:
+                        prev_actions = self._backend.concatenate([init_prev_action, prev_actions])
+                else:
+                    prev_actions = self._backend.copy(self.dataset.action[begin_seq - 1:end_seq - 1])
+
+                length_seq = len(states)
+
+                s.append(self._backend.expand_dims(self._add_padding(states), dim=0))
+                a.append(self._backend.expand_dims(self._add_padding(action_seq), dim=0))
+                r.append(self._backend.expand_dims(self._backend.copy(self.dataset.reward[i]), dim=0))
+                ss.append(self._backend.expand_dims(self._add_padding(next_states), dim=0))
+                ab.append(self._backend.expand_dims(self._backend.copy(self.dataset.absorbing[i]), dim=0))
+                last.append(self._backend.expand_dims(self._backend.copy(self.dataset.last[i]), dim=0))
+                pa.append(self._backend.expand_dims(self._add_padding(prev_actions), dim=0))
+                lengths.append(length_seq)
+
+        return self._backend.concatenate(s), self._backend.concatenate(a), self._backend.concatenate(r),\
+               self._backend.concatenate(ss), self._backend.concatenate(ab), self._backend.concatenate(last),\
+               self._backend.concatenate(pa), lengths
+
+    def _add_padding(self, array):
+        return self._backend.concatenate([array, self._backend.zeros(
+            self._truncation_length - array.shape[0], array.shape[1])])
 
 
 class SumTree(object):
