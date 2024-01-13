@@ -56,6 +56,8 @@ class PPO_BPTT(Agent):
 
         self._iter = 1
 
+        super().__init__(mdp_info, policy, is_episodic=False)
+
         self._add_save_attr(
             _critic_fit_params='pickle',
             _n_epochs_policy='mushroom',
@@ -68,8 +70,6 @@ class PPO_BPTT(Agent):
             _iter='primitive',
             _dim_env_state='primitive'
         )
-
-        super().__init__(mdp_info, policy, is_episodic=False)
 
         # add the standardization preprocessor
         self._preprocessors.append(StandardizationPreprocessor(mdp_info))

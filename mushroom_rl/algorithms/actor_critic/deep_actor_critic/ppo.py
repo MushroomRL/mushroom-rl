@@ -56,6 +56,8 @@ class PPO(Agent):
 
         self._iter = 1
 
+        super().__init__(mdp_info, policy)
+
         self._add_save_attr(
             _critic_fit_params='pickle', 
             _n_epochs_policy='mushroom',
@@ -67,8 +69,6 @@ class PPO(Agent):
             _V='mushroom',
             _iter='primitive'
         )
-
-        super().__init__(mdp_info, policy)
 
     def fit(self, dataset):
         state, action, reward, next_state, absorbing, last = dataset.parse(to='torch')

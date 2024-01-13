@@ -53,13 +53,6 @@ class DDPG(DeepAC):
         self._actor_predict_params = dict() if actor_predict_params is None else actor_predict_params
         self._critic_predict_params = dict() if critic_predict_params is None else critic_predict_params
 
-        self._batch_size = to_parameter(batch_size)
-        self._tau = to_parameter(tau)
-        self._policy_delay = to_parameter(policy_delay)
-        self._fit_count = 0
-
-        self._replay_memory = ReplayMemory(initial_replay_size, max_replay_size)
-
         target_critic_params = deepcopy(critic_params)
         self._critic_approximator = Regressor(TorchApproximator, **critic_params)
         self._target_critic_approximator = Regressor(TorchApproximator, **target_critic_params)
@@ -75,6 +68,15 @@ class DDPG(DeepAC):
 
         policy_parameters = self._actor_approximator.model.network.parameters()
 
+        super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
+
+        self._batch_size = to_parameter(batch_size)
+        self._tau = to_parameter(tau)
+        self._policy_delay = to_parameter(policy_delay)
+        self._fit_count = 0
+
+        self._replay_memory = ReplayMemory(mdp_info, self.info, initial_replay_size, max_replay_size)
+
         self._add_save_attr(
             _critic_fit_params='pickle',
             _critic_predict_params='pickle',
@@ -89,7 +91,7 @@ class DDPG(DeepAC):
             _target_actor_approximator='mushroom'
         )
 
-        super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
+
 
     def fit(self, dataset):
         self._replay_memory.add(dataset)

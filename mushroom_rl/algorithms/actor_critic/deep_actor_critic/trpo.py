@@ -65,6 +65,8 @@ class TRPO(Agent):
 
         self._old_policy = None
 
+        super().__init__(mdp_info, policy)
+
         self._add_save_attr(
             _critic_fit_params='pickle', 
             _n_epochs_line_search='mushroom',
@@ -78,8 +80,6 @@ class TRPO(Agent):
             _old_policy='mushroom',
             _iter='primitive'
         )
-
-        super().__init__(mdp_info, policy)
 
     def fit(self, dataset):
         state, action, reward, next_state, absorbing, last = dataset.parse(to='torch')

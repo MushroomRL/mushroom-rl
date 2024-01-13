@@ -63,7 +63,7 @@ class SACPolicy(Policy):
         raise NotImplementedError
 
     def draw_action(self, state, internal_state=None):
-        return self.compute_action_and_log_prob_t(state, compute_log_prob=False).detach().cpu().numpy(), None
+        return self.compute_action_and_log_prob_t(state, compute_log_prob=False).detach(), None
 
     def compute_action_and_log_prob(self, state):
         """
@@ -77,7 +77,7 @@ class SACPolicy(Policy):
 
         """
         a, log_prob = self.compute_action_and_log_prob_t(state)
-        return a.detach().cpu().numpy(), log_prob.detach().cpu().numpy()
+        return a.detach(), log_prob.detach()
 
     def compute_action_and_log_prob_t(self, state, compute_log_prob=True):
         """
@@ -220,8 +220,6 @@ class SAC(DeepAC):
         else:
             self._target_entropy = target_entropy
 
-        self._replay_memory = ReplayMemory(initial_replay_size, max_replay_size)
-
         if 'n_models' in critic_params.keys():
             assert critic_params['n_models'] == 2
         else:
@@ -246,6 +244,10 @@ class SAC(DeepAC):
         policy_parameters = chain(actor_mu_approximator.model.network.parameters(),
                                   actor_sigma_approximator.model.network.parameters())
 
+        super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
+
+        self._replay_memory = ReplayMemory(mdp_info, self.info, initial_replay_size, max_replay_size)
+
         self._add_save_attr(
             _critic_fit_params='pickle',
             _batch_size='mushroom',
@@ -259,8 +261,6 @@ class SAC(DeepAC):
             _log_alpha='torch',
             _alpha_optim='torch'
         )
-
-        super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
 
     def fit(self, dataset):
         self._replay_memory.add(dataset)
@@ -309,8 +309,7 @@ class SAC(DeepAC):
         """
         a, log_prob_next = self.policy.compute_action_and_log_prob(next_state)
 
-        q = self._target_critic_approximator.predict(
-            next_state, a, prediction='min') - self._alpha_np * log_prob_next
+        q = self._target_critic_approximator.predict(next_state, a, prediction='min') - self._alpha * log_prob_next
         q *= 1 - absorbing
 
         return q
@@ -321,7 +320,3 @@ class SAC(DeepAC):
     @property
     def _alpha(self):
         return self._log_alpha.exp()
-
-    @property
-    def _alpha_np(self):
-        return self._alpha.detach().cpu().numpy()
