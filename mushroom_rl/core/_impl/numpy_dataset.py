@@ -113,6 +113,8 @@ class NumpyDataset(Serializable):
         if self.is_stateful:
             self._policy_states[i] = policy_state
             self._policy_next_states[i] = policy_next_state
+        else:
+            assert (policy_state is None) and (policy_next_state is None)
 
         if mask is not None:
             self._mask[i] = mask

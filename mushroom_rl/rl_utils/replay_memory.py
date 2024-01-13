@@ -26,6 +26,7 @@ class ReplayMemory(Serializable):
         self.dataset = Dataset(mdp_info=mdp_info, agent_info=agent_info, n_steps=max_size, n_envs=1)
 
         self._add_save_attr(
+            dataset='mushroom',
             _initial_size='primitive',
             _max_size='primitive',
             _idx='primitive!',
@@ -42,9 +43,11 @@ class ReplayMemory(Serializable):
             gamma (float, 1.): discount factor for n-step return.
 
         """
-        dataset = dataset.copy()
-        assert n_steps_return > 0
 
+        assert n_steps_return > 0
+        assert self.dataset.is_stateful == dataset.is_stateful
+
+        # todo: implement vectorized n_step_return to avoid loop
         i = 0
         while i < len(dataset) - n_steps_return + 1:
             reward = dataset.reward[i]
@@ -57,17 +60,34 @@ class ReplayMemory(Serializable):
                 reward += gamma ** j * dataset.reward[i + j]
             else:
                 if self._full:
-                    self.dataset.state[self._idx] = dataset.state[i]
-                    self.dataset.action[self._idx] = dataset.action[i]
-                    self.dataset.reward[self._idx] = reward
+                    self.dataset.state[self._idx] = self._backend.copy(dataset.state[i])
+                    self.dataset.action[self._idx] = self._backend.copy(dataset.action[i])
+                    self.dataset.reward[self._idx] = self._backend.copy(reward)
 
-                    self.dataset.next_state[self._idx] = dataset.next_state[i + j]
-                    self.dataset.absorbing[self._idx] = dataset.absorbing[i + j]
-                    self.dataset.last[self._idx] = dataset.last[i + j]
+                    self.dataset.next_state[self._idx] = self._backend.copy(dataset.next_state[i + j])
+                    self.dataset.absorbing[self._idx] = self._backend.copy(dataset.absorbing[i + j])
+                    self.dataset.last[self._idx] = self._backend.copy(dataset.last[i + j])
+
+                    if self.dataset.is_stateful:
+                        self.dataset.policy_state[self._idx] = self._backend.copy(dataset.policy_state[i])
+                        self.dataset.policy_next_state[self._idx] = self._backend.copy(dataset.policy_next_state[i + j])
+
                 else:
-                    # todo: add info and policy state
-                    self.dataset.append([dataset.state[i], dataset.action[i], reward,
-                                         dataset.next_state[i + j], dataset.absorbing[i + j], dataset.last[i + j]], {})
+
+                    sample = [self._backend.copy(dataset.state[i]),
+                              self._backend.copy(dataset.action[i]),
+                              self._backend.copy(reward),
+                              self._backend.copy(dataset.next_state[i + j]),
+                              self._backend.copy(dataset.absorbing[i + j]),
+                              self._backend.copy(dataset.last[i + j])]
+
+                    if self.dataset.is_stateful:
+                        sample += [self._backend.copy(dataset.policy_state[i]),
+                                   self._backend.copy(dataset.policy_next_state[i+j])]
+                        self.dataset.append(sample, {})
+                    else:
+                        self.dataset.append(sample, {})
+
                 self._idx += 1
                 if self._idx == self._max_size:
                     self._full = True
@@ -83,8 +103,20 @@ class ReplayMemory(Serializable):
         Returns:
             The requested number of samples.
         """
-        samples = self.dataset.select_random_samples(n_samples).copy()
-        return samples.parse()
+        idxs = self.dataset.array_backend.randint(0, len(self.dataset), (n_samples,))
+
+        default = (self.dataset.array_backend.copy(self.dataset.state[idxs]),
+                   self.dataset.array_backend.copy(self.dataset.action[idxs]),
+                   self.dataset.array_backend.copy(self.dataset.reward[idxs]),
+                   self.dataset.array_backend.copy(self.dataset.next_state[idxs]),
+                   self.dataset.array_backend.copy(self.dataset.absorbing[idxs]),
+                   self.dataset.array_backend.copy(self.dataset.last[idxs]))
+
+        if self.dataset.is_stateful:
+            return *default, self.dataset.array_backend.copy(self.dataset.policy_state[idxs]),\
+                   self.dataset.array_backend.copy(self.dataset.policy_next_state[idxs])
+        else:
+            return default
 
     def reset(self):
         """

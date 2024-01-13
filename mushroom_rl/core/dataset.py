@@ -288,6 +288,10 @@ class Dataset(Serializable):
     def array_backend(self):
         return self._array_backend
 
+    @property
+    def is_stateful(self):
+        return self._data.is_stateful
+
     def parse(self, to='numpy'):
         """
         Return the dataset as set of arrays.

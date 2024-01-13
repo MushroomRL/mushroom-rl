@@ -203,7 +203,7 @@ class TestUtils:
         """
         Compare two ReplayMemory objects for equality
         """
-        
+        # todo: this has to be fixed to adapt to the new replay mem
         res = this._idx == that._idx
         res &= this._full == that._full
         for a, b in zip(this._states, that._states):

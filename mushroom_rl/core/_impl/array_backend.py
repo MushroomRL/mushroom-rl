@@ -72,6 +72,10 @@ class ArrayBackend(object):
         raise NotImplementedError
 
     @staticmethod
+    def randint(low, high, size):
+        raise NotImplementedError
+
+    @staticmethod
     def copy(array):
         raise NotImplementedError
 
@@ -128,6 +132,11 @@ class NumpyBackend(ArrayBackend):
     @staticmethod
     def expand_dims(array, dim):
         return np.expand_dims(array, axis=dim)
+
+    @staticmethod
+    def randint(low, high, size):
+        assert type(size) == tuple
+        return np.random.randint(low, high, size)
 
     @staticmethod
     def copy(array):
@@ -189,6 +198,10 @@ class TorchBackend(ArrayBackend):
     @staticmethod
     def expand_dims(array, dim):
         return torch.unsqueeze(array, dim=dim)
+
+    @staticmethod
+    def randint(low, high, size):
+        return torch.randint(low, high, size)
 
     @staticmethod
     def copy(array):
