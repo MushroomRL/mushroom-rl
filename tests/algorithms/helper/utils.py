@@ -191,7 +191,7 @@ class TestUtils:
         """
         
         res = cls.eq_weights(this, that)
-        res &= cls._eq_numpy(this._sigma, that._sigma)
+        res &= cls._eq_numpy(this._chol_sigma, that._chol_sigma)
         res &= this._theta == that._theta
         res &= this._dt == that._dt
         res &= cls._eq_numpy(this._x0, that._x0)

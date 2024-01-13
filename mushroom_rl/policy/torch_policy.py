@@ -259,8 +259,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
         self._action_dim = output_shape[0]
         self._predict_params = dict()
 
-        self._logits = Regressor(TorchApproximator, input_shape, output_shape,
-                                 network=network, **params)
+        self._logits = Regressor(TorchApproximator, input_shape, output_shape, network=network, **params)
         self._beta = to_parameter(beta)
 
         self._add_save_attr(

@@ -44,6 +44,9 @@ class TD3(DDPG):
                 of the critic approximator.
 
         """
+        super().__init__(mdp_info, policy_class, policy_params, actor_params, actor_optimizer, critic_params,
+                         batch_size, initial_replay_size, max_replay_size, tau, policy_delay, critic_fit_params)
+
         self._noise_std = to_parameter(noise_std)
         self._noise_clip = to_parameter(noise_clip)
 
@@ -56,11 +59,6 @@ class TD3(DDPG):
             _noise_std='mushroom',
             _noise_clip='mushroom'
         )
-
-        super().__init__(mdp_info, policy_class, policy_params,  actor_params,
-                         actor_optimizer, critic_params, batch_size,
-                         initial_replay_size, max_replay_size, tau,
-                         policy_delay, critic_fit_params)
 
     def _loss(self, state):
         action = self._actor_approximator(state, **self._actor_predict_params)

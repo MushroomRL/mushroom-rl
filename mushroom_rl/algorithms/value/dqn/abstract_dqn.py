@@ -38,6 +38,8 @@ class AbstractDQN(Agent):
             clip_reward (bool, False): whether to clip the reward or not.
 
         """
+        super().__init__(mdp_info, policy, backend='torch')
+
         self._fit_params = dict() if fit_params is None else fit_params
         self._predict_params = dict() if predict_params is None else predict_params
 
@@ -52,8 +54,7 @@ class AbstractDQN(Agent):
             else:
                 self._fit = self._fit_standard
         else:
-            self._replay_memory = ReplayMemory(initial_replay_size,
-                                               max_replay_size)
+            self._replay_memory = ReplayMemory(mdp_info, self.info, initial_replay_size, max_replay_size)
             self._fit = self._fit_standard
 
         self._n_updates = 0
@@ -61,8 +62,8 @@ class AbstractDQN(Agent):
         apprx_params_train = deepcopy(approximator_params)
         apprx_params_target = deepcopy(approximator_params)
 
-        self._initialize_regressors(approximator, apprx_params_train,
-                                    apprx_params_target)
+        self._initialize_regressors(approximator, apprx_params_train, apprx_params_target)
+
         policy.set_q(self.approximator)
 
         self._add_save_attr(
@@ -77,8 +78,6 @@ class AbstractDQN(Agent):
             approximator='mushroom',
             target_approximator='mushroom'
         )
-
-        super().__init__(mdp_info, policy, backend='torch')
 
     def fit(self, dataset):
         self._fit(dataset)

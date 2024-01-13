@@ -48,13 +48,13 @@ class A2C(DeepAC):
             actor_optimizer['clipping'] = dict(
                 method=torch.nn.utils.clip_grad_norm_, params=clipping_params)
 
+        super().__init__(mdp_info, policy, actor_optimizer, policy.parameters())
+
         self._add_save_attr(
             _critic_fit_params='pickle',
             _entropy_coeff='mushroom',
             _V='mushroom'
         )
-
-        super().__init__(mdp_info, policy, actor_optimizer, policy.parameters())
 
     def fit(self, dataset):
         state, action, reward, next_state, absorbing, _ = dataset.parse(to='torch')

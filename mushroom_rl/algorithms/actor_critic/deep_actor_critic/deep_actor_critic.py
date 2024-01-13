@@ -9,7 +9,7 @@ class DeepAC(Agent):
 
     """
 
-    def __init__(self, mdp_info, policy, actor_optimizer, parameters):
+    def __init__(self, mdp_info, policy, actor_optimizer, parameters, backend='torch'):
         """
         Constructor.
 
@@ -31,14 +31,14 @@ class DeepAC(Agent):
             if 'clipping' in actor_optimizer:
                 self._clipping = actor_optimizer['clipping']['method']
                 self._clipping_params = actor_optimizer['clipping']['params']
+
+        super().__init__(mdp_info, policy, backend=backend)
         
         self._add_save_attr(
             _optimizer='torch',
             _clipping='torch',
             _clipping_params='pickle'
         )
-
-        super().__init__(mdp_info, policy)
 
     def fit(self, dataset):
         """

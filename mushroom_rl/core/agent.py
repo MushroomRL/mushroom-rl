@@ -90,6 +90,8 @@ class Agent(Serializable):
 
         """
         if self.next_action is None:
+            state = self._convert_to_agent_backend(state)
+            policy_state = self._convert_to_agent_backend(policy_state)
             action, next_policy_state = self.policy.draw_action(state, policy_state)
         else:
             action = self.next_action
@@ -110,7 +112,7 @@ class Agent(Serializable):
             A tuple containing the policy initial state and, optionally, the policy parameters
 
         """
-        return self.policy.reset(), None
+        return self._convert_to_env_backend(self.policy.reset()), None
 
     def episode_start_vectorized(self, initial_states, episode_info, start_mask):
         """
