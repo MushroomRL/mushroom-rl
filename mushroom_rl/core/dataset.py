@@ -2,6 +2,8 @@ import numpy as np
 
 from collections import defaultdict
 
+import torch
+
 from mushroom_rl.core.serialization import Serializable
 
 from ._impl import *
@@ -202,7 +204,7 @@ class Dataset(Serializable):
         return self[0]
 
     def __getitem__(self, index):
-        if isinstance(index, (slice, np.ndarray)):
+        if isinstance(index, (slice, np.ndarray)) or isinstance(index, (slice, torch.Tensor)):
             return self.get_view(index)
         elif isinstance(index, int) and index < len(self._data):
             return self._data[index]
@@ -274,9 +276,6 @@ class Dataset(Serializable):
         """
         Compute the length of each episode in the dataset.
 
-        Args:
-            dataset (list): the dataset to consider.
-
         Returns:
             A list of length of each episode in the dataset.
 
@@ -311,29 +310,34 @@ class Dataset(Serializable):
     def is_stateful(self):
         return self._data.is_stateful
 
-    def parse(self, to='numpy'):
+    def parse(self, to=None):
         """
         Return the dataset as set of arrays.
-
-        to (str, numpy):  the backend to be used for the returned arrays.
+        Args:
+            to (str, None):  the backend to be used for the returned arrays. By default, the dataset backend is used.
 
         Returns:
             A tuple containing the arrays that define the dataset, i.e. state, action, next state, absorbing and last
 
         """
+        if to is None:
+            to = self._array_backend.get_backend_name()
         return self._array_backend.convert(self.state, self.action, self.reward, self.next_state,
                                            self.absorbing, self.last, to=to)
 
-    def parse_policy_state(self, to='numpy'):
+    def parse_policy_state(self, to=None):
         """
         Return the dataset as set of arrays.
 
-        to (str, numpy):  the backend to be used for the returned arrays.
+        Args:
+            to (str, None):  the backend to be used for the returned arrays. By default, the dataset backend is used.
 
         Returns:
             A tuple containing the arrays that define the dataset, i.e. state, action, next state, absorbing and last
 
         """
+        if to is None:
+            to = self._array_backend.get_backend_name()
         return self._array_backend.convert(self.policy_state, self.policy_next_state, to=to)
 
     def select_first_episodes(self, n_episodes):
@@ -358,7 +362,6 @@ class Dataset(Serializable):
         dataset.
 
         Args:
-            dataset (list): the dataset to consider;
             n_samples (int): the number of samples to pick from the dataset.
 
         Returns:
@@ -379,9 +382,6 @@ class Dataset(Serializable):
         """
         Get the initial states of a dataset
 
-        Args:
-            dataset (list): the dataset to consider.
-
         Returns:
             An array of initial states of the considered dataset.
 
@@ -399,7 +399,6 @@ class Dataset(Serializable):
         Compute the cumulative discounted reward of each episode in the dataset.
 
         Args:
-            dataset (list): the dataset to consider;
             gamma (float, 1.): discount factor.
 
         Returns:
@@ -428,7 +427,6 @@ class Dataset(Serializable):
         Compute the metrics of each complete episode in the dataset.
 
         Args:
-            dataset (list): the dataset to consider;
             gamma (float, 1.): the discount factor.
 
         Returns:

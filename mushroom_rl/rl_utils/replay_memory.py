@@ -17,18 +17,23 @@ class ReplayMemory(Serializable):
         self._max_size = max_size
         self._idx = 0
         self._full = False
+        self._mdp_info = mdp_info
+        self._agent_info = agent_info
 
-        assert mdp_info.backend in ["numpy", "torch"], f"{mdp_info.backend} backend currently not supported in " \
-                                                       f"the replay memory class."
+        assert agent_info.backend in ["numpy", "torch"], f"{agent_info.backend} backend currently not supported in " \
+                                                         f"the replay memory class."
 
-        self.dataset = Dataset(mdp_info=mdp_info, agent_info=agent_info, n_steps=max_size, n_envs=1)
+        self._dataset = None
+        self.reset()
 
         self._add_save_attr(
             _initial_size='primitive',
             _max_size='primitive',
+            _mdp_info='mushroom',
+            _agent_info='mushroom',
             _idx='primitive!',
             _full='primitive!',
-            dataset='mushroom',
+            _dataset='mushroom!',
         )
 
     def add(self, dataset, n_steps_return=1, gamma=1.):
@@ -43,9 +48,9 @@ class ReplayMemory(Serializable):
         """
 
         assert n_steps_return > 0
-        assert self.dataset.is_stateful == dataset.is_stateful
+        assert self._dataset.is_stateful == dataset.is_stateful
 
-        # todo: implement vectorized n_step_return to avoid loop
+        # TODO: implement vectorized n_step_return to avoid loop
         i = 0
         while i < len(dataset) - n_steps_return + 1:
             reward = dataset.reward[i]
@@ -58,33 +63,33 @@ class ReplayMemory(Serializable):
                 reward += gamma ** j * dataset.reward[i + j]
             else:
                 if self._full:
-                    self.dataset.state[self._idx] = self._backend.copy(dataset.state[i])
-                    self.dataset.action[self._idx] = self._backend.copy(dataset.action[i])
-                    self.dataset.reward[self._idx] = self._backend.copy(reward)
+                    self._dataset.state[self._idx] = dataset.state[i]
+                    self._dataset.action[self._idx] = dataset.action[i]
+                    self._dataset.reward[self._idx] = reward
 
-                    self.dataset.next_state[self._idx] = self._backend.copy(dataset.next_state[i + j])
-                    self.dataset.absorbing[self._idx] = self._backend.copy(dataset.absorbing[i + j])
-                    self.dataset.last[self._idx] = self._backend.copy(dataset.last[i + j])
+                    self._dataset.next_state[self._idx] = dataset.next_state[i + j]
+                    self._dataset.absorbing[self._idx] = dataset.absorbing[i + j]
+                    self._dataset.last[self._idx] = dataset.last[i + j]
 
-                    if self.dataset.is_stateful:
-                        self.dataset.policy_state[self._idx] = self._backend.copy(dataset.policy_state[i])
-                        self.dataset.policy_next_state[self._idx] = self._backend.copy(dataset.policy_next_state[i + j])
+                    if self._dataset.is_stateful:
+                        self._dataset.policy_state[self._idx] = dataset.policy_state[i]
+                        self._dataset.policy_next_state[self._idx] = dataset.policy_next_state[i + j]
 
                 else:
 
-                    sample = [self._backend.copy(dataset.state[i]),
-                              self._backend.copy(dataset.action[i]),
-                              self._backend.copy(reward),
-                              self._backend.copy(dataset.next_state[i + j]),
-                              self._backend.copy(dataset.absorbing[i + j]),
-                              self._backend.copy(dataset.last[i + j])]
+                    sample = [dataset.state[i],
+                              dataset.action[i],
+                              reward,
+                              dataset.next_state[i + j],
+                              dataset.absorbing[i + j],
+                              dataset.last[i + j]]
 
-                    if self.dataset.is_stateful:
+                    if self._dataset.is_stateful:
                         sample += [self._backend.copy(dataset.policy_state[i]),
                                    self._backend.copy(dataset.policy_next_state[i+j])]
-                        self.dataset.append(sample, {})
+                        self._dataset.append(sample, {})
                     else:
-                        self.dataset.append(sample, {})
+                        self._dataset.append(sample, {})
 
                 self._idx += 1
                 if self._idx == self._max_size:
@@ -96,25 +101,20 @@ class ReplayMemory(Serializable):
     def get(self, n_samples):
         """
         Returns the provided number of states from the replay memory.
+
         Args:
             n_samples (int): the number of samples to return.
         Returns:
             The requested number of samples.
         """
-        idxs = self.dataset.array_backend.randint(0, len(self.dataset), (n_samples,))
+        idxs = self._dataset.array_backend.randint(0, len(self._dataset), (n_samples,))
 
-        default = (self.dataset.array_backend.copy(self.dataset.state[idxs]),
-                   self.dataset.array_backend.copy(self.dataset.action[idxs]),
-                   self.dataset.array_backend.copy(self.dataset.reward[idxs]),
-                   self.dataset.array_backend.copy(self.dataset.next_state[idxs]),
-                   self.dataset.array_backend.copy(self.dataset.absorbing[idxs]),
-                   self.dataset.array_backend.copy(self.dataset.last[idxs]))
+        dataset_batch = self._dataset[idxs]
 
-        if self.dataset.is_stateful:
-            return *default, self.dataset.array_backend.copy(self.dataset.policy_state[idxs]),\
-                   self.dataset.array_backend.copy(self.dataset.policy_next_state[idxs])
+        if self._dataset.is_stateful:
+            return *dataset_batch.parse(), *dataset_batch.parse_policy_state()
         else:
-            return default
+            return dataset_batch.parse()
 
     def reset(self):
         """
@@ -123,7 +123,8 @@ class ReplayMemory(Serializable):
         """
         self._idx = 0
         self._full = False
-        self.dataset.clear()
+        self._dataset = Dataset(mdp_info=self._mdp_info, agent_info=self._agent_info, n_steps=self._max_size,
+                                n_envs=1, backend=self._agent_info.backend)
 
     @property
     def initialized(self):
@@ -146,7 +147,7 @@ class ReplayMemory(Serializable):
 
     @property
     def _backend(self):
-        return self.dataset.array_backend
+        return self._dataset.array_backend
 
     def _post_load(self):
         if self._full is None:
@@ -197,7 +198,7 @@ class SequenceReplayMemory(ReplayMemory):
                 end_seq = i + 1
 
                 # the sequence can contain more than one trajectory, check to only include one
-                lasts_absorbing = self.dataset.last[begin_seq: i]
+                lasts_absorbing = self._dataset.last[begin_seq: i]
                 begin_traj = self._backend.where(lasts_absorbing > 0)
                 more_than_one_traj = len(*begin_traj) > 0
                 if more_than_one_traj:
@@ -205,27 +206,27 @@ class SequenceReplayMemory(ReplayMemory):
                     begin_seq = begin_seq + begin_traj[0][-1] + 1
 
                 # get data and apply padding if needed
-                states = self._backend.copy(self.dataset.state[begin_seq:end_seq])
-                next_states = self._backend.copy(self.dataset.next_state[begin_seq:end_seq])
-                action_seq = self._backend.copy(self.dataset.action[begin_seq:end_seq])
-                if more_than_one_traj or begin_seq == 0 or self.dataset.last[begin_seq-1]:
-                    prev_actions = self._backend.copy(self.dataset.action[begin_seq:end_seq - 1])
+                states = self._backend.copy(self._dataset.state[begin_seq:end_seq])
+                next_states = self._backend.copy(self._dataset.next_state[begin_seq:end_seq])
+                action_seq = self._backend.copy(self._dataset.action[begin_seq:end_seq])
+                if more_than_one_traj or begin_seq == 0 or self._dataset.last[begin_seq-1]:
+                    prev_actions = self._backend.copy(self._dataset.action[begin_seq:end_seq - 1])
                     init_prev_action = self._backend.zeros(1, *self._action_space_shape)
                     if len(prev_actions) == 0:
                         prev_actions = init_prev_action
                     else:
                         prev_actions = self._backend.concatenate([init_prev_action, prev_actions])
                 else:
-                    prev_actions = self._backend.copy(self.dataset.action[begin_seq - 1:end_seq - 1])
+                    prev_actions = self._backend.copy(self._dataset.action[begin_seq - 1:end_seq - 1])
 
                 length_seq = len(states)
 
                 s.append(self._backend.expand_dims(self._add_padding(states), dim=0))
                 a.append(self._backend.expand_dims(self._add_padding(action_seq), dim=0))
-                r.append(self._backend.expand_dims(self._backend.copy(self.dataset.reward[i]), dim=0))
+                r.append(self._backend.expand_dims(self._backend.copy(self._dataset.reward[i]), dim=0))
                 ss.append(self._backend.expand_dims(self._add_padding(next_states), dim=0))
-                ab.append(self._backend.expand_dims(self._backend.copy(self.dataset.absorbing[i]), dim=0))
-                last.append(self._backend.expand_dims(self._backend.copy(self.dataset.last[i]), dim=0))
+                ab.append(self._backend.expand_dims(self._backend.copy(self._dataset.absorbing[i]), dim=0))
+                last.append(self._backend.expand_dims(self._backend.copy(self._dataset.last[i]), dim=0))
                 pa.append(self._backend.expand_dims(self._add_padding(prev_actions), dim=0))
                 lengths.append(length_seq)
 
