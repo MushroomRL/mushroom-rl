@@ -32,20 +32,43 @@ class TorchDataset(Serializable):
         else:
             self._mask = torch.empty(mask_shape, dtype=torch.bool, device=self._device)
 
-        self._add_save_attr(
-            _state_type='primitive',
-            _action_type='primitive',
-            _device='primitive',
-            _states='torch',
-            _actions='torch',
-            _rewards='torch',
-            _next_states='torch',
-            _absorbing='torch',
-            _last='torch',
-            _policy_states='numpy',
-            _policy_next_states='numpy',
-            _len='primitive'
-        )
+    @classmethod
+    def create_new_instance(cls, dataset=None):
+        """
+        Creates an empty instance of the Dataset and populates essential data structures
+
+        Args:
+            dataset (NumpyDataset, None): a template dataset to be used to create the new instance.
+
+        Returns:
+            A new empty instance of the dataset.
+
+        """
+        new_dataset = cls.__new__(cls)
+
+        if dataset is not None:
+            new_dataset._device = dataset._device
+            new_dataset._state_type = dataset._state_type
+            new_dataset._action_type = dataset._action_type
+        else:
+            new_dataset._device = None
+            new_dataset._state_type = None
+            new_dataset._action_type = None
+
+        new_dataset._states = None
+        new_dataset._actions = None
+        new_dataset._rewards = None
+        new_dataset._next_states = None
+        new_dataset._absorbing = None
+        new_dataset._last = None
+        new_dataset._len = None
+        new_dataset._policy_states = None
+        new_dataset._policy_next_states = None
+        new_dataset._mask = None
+
+        new_dataset._add_all_save_attr()
+
+        return new_dataset
 
     @classmethod
     def from_array(cls, states, actions, rewards, next_states, absorbings, lasts,
@@ -58,7 +81,7 @@ class TorchDataset(Serializable):
             absorbings = torch.as_tensor(absorbings)
             lasts = torch.as_tensor(lasts)
 
-        dataset = cls.__new__(cls)
+        dataset = cls.create_new_instance()
 
         dataset._state_type = states.dtype
         dataset._action_type = actions.dtype
@@ -81,20 +104,6 @@ class TorchDataset(Serializable):
         else:
             dataset._policy_states = None
             dataset._policy_next_states = None
-
-        dataset._add_save_attr(
-            _state_type='primitive',
-            _action_type='primitive',
-            _states='torch',
-            _actions='torch',
-            _rewards='torch',
-            _next_states='torch',
-            _absorbing='torch',
-            _last='torch',
-            _policy_states='numpy',
-            _policy_next_states='numpy',
-            _len='primitive'
-        )
 
         return dataset
 
@@ -136,9 +145,16 @@ class TorchDataset(Serializable):
         self._len = 0
 
     def get_view(self, index, copy=False):
-        view = self.copy()
+        view = self.create_new_instance(self)
 
         if copy:
+            view._states = torch.empty_like(self._states)
+            view._actions = torch.empty_like(self._actions)
+            view._rewards = torch.empty_like(self._rewards)
+            view._next_states = torch.empty_like(self._next_states)
+            view._absorbing = torch.empty_like(self._absorbing)
+            view._last = torch.empty_like(self._last)
+
             new_states = self.state[index, ...]
             new_len = new_states.shape[0]
 
@@ -151,18 +167,22 @@ class TorchDataset(Serializable):
             view._len = new_len
 
             if self.is_stateful:
+                view._policy_states = torch.empty_like(self._policy_states)
+                view._policy_next_states = torch.empty_like(self._policy_next_states)
+
                 view._policy_states[:new_len] = self._policy_states[index, ...]
                 view._policy_next_states[:new_len] = self._policy_next_states[index, ...]
 
             if self._mask is not None:
+                view._mask = torch.empty_like(self._mask)
                 view._mask[:new_len] = self._mask[index, ...]
         else:
-            view._states = self._states[index, ...]
-            view._actions = self._actions[index, ...]
-            view._rewards = self._rewards[index, ...]
-            view._next_states = self._next_states[index, ...]
-            view._absorbing = self._absorbing[index, ...]
-            view._last = self._last[index, ...]
+            view._states = self.state[index, ...]
+            view._actions = self.action[index, ...]
+            view._rewards = self.reward[index, ...]
+            view._next_states = self.next_state[index, ...]
+            view._absorbing = self.absorbing[index, ...]
+            view._last = self.last[index, ...]
             view._len = view._states.shape[0]
 
             if self.is_stateful:
@@ -179,7 +199,7 @@ class TorchDataset(Serializable):
                self._absorbing[index], self._last[index]
 
     def __add__(self, other):
-        result = self.copy()
+        result = self.create_new_instance(self)
 
         result._states = torch.concatenate((self.state, other.state))
         result._actions = torch.concatenate((self.action, other.action))
@@ -248,3 +268,19 @@ class TorchDataset(Serializable):
             n_episodes += 1
 
         return n_episodes
+
+    def _add_all_save_attr(self):
+        self._add_save_attr(
+            _state_type='primitive',
+            _action_type='primitive',
+            _device='primitive',
+            _states='torch',
+            _actions='torch',
+            _rewards='torch',
+            _next_states='torch',
+            _absorbing='torch',
+            _last='torch',
+            _policy_states='numpy',
+            _policy_next_states='numpy',
+            _len='primitive'
+        )

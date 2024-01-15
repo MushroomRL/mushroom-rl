@@ -14,11 +14,31 @@ class ListDataset(Serializable):
         else:
             self._mask = None
 
-        self._add_save_attr(
-            _dataset='pickle',
-            _policy_dataset='pickle',
-            _is_stateful='primitive'
-        )
+        self._add_all_save_attr()
+
+    @classmethod
+    def create_new_instance(cls, dataset):
+        """
+        Creates an empty instance of the Dataset and populates essential data structures
+
+        Args:
+            dataset (ListDataset): a template dataset to be used to create the new instance.
+
+        Returns:
+            A new empty instance of the dataset.
+
+        """
+
+        new_dataset = cls.__new__(cls)
+
+        new_dataset._dataset = None
+        new_dataset._policy_dataset = None
+        new_dataset._is_stateful = dataset._is_stateful
+        new_dataset._mask = None
+
+        new_dataset._add_all_save_attr()
+
+        return new_dataset
 
     @classmethod
     def from_array(cls, states, actions, rewards, next_states, absorbings, lasts, policy_states=None,
@@ -55,7 +75,7 @@ class ListDataset(Serializable):
         self._dataset = list()
 
     def get_view(self, index, copy=False):
-        view = self.copy()
+        view = self.create_new_instance(self)
 
         if isinstance(index, (int, slice)):
             view._dataset = self._dataset[index]
@@ -63,20 +83,26 @@ class ListDataset(Serializable):
             view._dataset = [self._dataset[i] for i in index]
 
         if self._mask is not None:
-            view._mask = self._mask[index, ...]
+            if isinstance(index, (int, slice)):
+                view._mask = self._mask[index, ...]
+            else:
+                view._mask = [self._mask[i] for i in index]
 
-        return view
+        if copy:
+            return view.copy()
+        else:
+            return view
 
     def __getitem__(self, index):
         return self._dataset[index]
 
     def __add__(self, other):
-        result = self.copy()
-        last_step = result._dataset[-1]
+        result = self.create_new_instance(self)
+        last_step = self._dataset[-1]
         modified_last_step = last_step[:-1] + (True,)
         result._dataset[-1] = modified_last_step
-        result._dataset = result._dataset + other._dataset
-        result._policy_dataset = result._policy_dataset + other._policy_dataset
+        result._dataset = self._dataset + other._dataset
+        result._policy_dataset = self._policy_dataset + other._policy_dataset
 
         return result
 
@@ -134,4 +160,11 @@ class ListDataset(Serializable):
             n_episodes += 1
 
         return n_episodes
+
+    def _add_all_save_attr(self):
+        self._add_save_attr(
+            _dataset='pickle',
+            _policy_dataset='pickle',
+            _is_stateful='primitive'
+        )
 

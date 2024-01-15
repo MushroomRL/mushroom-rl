@@ -59,15 +59,42 @@ class Dataset(Serializable):
 
         self._gamma = mdp_info.gamma
 
-        self._add_save_attr(
-            _info='pickle',
-            _episode_info='pickle',
-            _theta_list='pickle',
-            _data='mushroom',
-            _array_backend='primitive',
-            _gamma='primitive',
-            _n_envs='primitive'
-        )
+        self._add_all_save_attr()
+
+    @classmethod
+    def create_new_instance(cls, dataset=None, gamma=None):
+        """
+        Creates an empty instance of the Dataset and populates essential data structures
+
+        Args:
+            dataset (Dataset, None): a template dataset to be used to create the new instance.
+            gamma (float, None): The discount factor to be used.
+
+        Returns:
+            A new empty instance of the dataset.
+
+        """
+        assert (dataset is not None and gamma is None) or (dataset is None and gamma is not None)
+
+        new_dataset = cls.__new__(cls)
+
+        if dataset is not None:
+            new_dataset._gamma = dataset._gamma
+            new_dataset._array_backend = dataset._array_backend
+            new_dataset._n_envs = dataset._n_envs
+        else:
+            new_dataset._gamma = gamma
+            new_dataset._array_backend = None
+            new_dataset._n_envs = None
+
+        new_dataset._info = None
+        new_dataset._episode_info = None
+        new_dataset._data = None
+        new_dataset._theta_list = None
+
+        new_dataset._add_all_save_attr()
+
+        return new_dataset
 
     @classmethod
     def from_array(cls, states, actions, rewards, next_states, absorbings, lasts,
@@ -100,8 +127,7 @@ class Dataset(Serializable):
         if policy_state is not None:
             assert len(states) == len(policy_state) == len(policy_next_state)
 
-        dataset = cls.__new__(cls)
-        dataset._gamma = gamma
+        dataset = cls.create_new_instance(gamma=gamma)
 
         if info is None:
             dataset._info = defaultdict(list)
@@ -130,16 +156,6 @@ class Dataset(Serializable):
 
         dataset._n_envs = 1
 
-        dataset._add_save_attr(
-            _info='pickle',
-            _episode_info='pickle',
-            _theta_list='pickle',
-            _data='mushroom',
-            _converter='primitive',
-            _gamma='primitive',
-            _n_envs='primitive'
-        )
-
         return dataset
 
     def append(self, step, info):
@@ -166,7 +182,7 @@ class Dataset(Serializable):
         self._data.clear()
 
     def get_view(self, index, copy=False):
-        dataset = self.copy()
+        dataset = self.create_new_instance(dataset=self)
 
         info_slice = defaultdict(list)
         for key in self._info.keys():
@@ -191,15 +207,15 @@ class Dataset(Serializable):
             raise IndexError
 
     def __add__(self, other):
-        result = self.copy()
-
-        new_info = self._merge_info(result.info, other.info)
-        new_episode_info = self._merge_info(result.episode_info, other.episode_info)
+        result = self.create_new_instance(dataset=self)
+        new_info = self._merge_info(self.info, other.info)
+        new_episode_info = self._merge_info(self.episode_info, other.episode_info)
 
         result._info = new_info
         result._episode_info = new_episode_info
-        result._theta_list = result._theta_list + other._theta_list
+        result._theta_list = self._theta_list + other._theta_list
         result._data = self._data + other._data
+        result._gamma = self._gamma
 
         return result
 
@@ -436,6 +452,17 @@ class Dataset(Serializable):
             return J.min(), J.max(), J.mean(), median, len(J)
         else:
             return 0, 0, 0, 0, 0
+
+    def _add_all_save_attr(self):
+        self._add_save_attr(
+            _info='pickle',
+            _episode_info='pickle',
+            _theta_list='pickle',
+            _data='mushroom',
+            _array_backend='primitive',
+            _gamma='primitive',
+            _n_envs='primitive'
+        )
 
     @staticmethod
     def _append_info(info, step_info):
