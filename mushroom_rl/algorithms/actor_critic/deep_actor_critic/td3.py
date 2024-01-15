@@ -44,9 +44,6 @@ class TD3(DDPG):
                 of the critic approximator.
 
         """
-        super().__init__(mdp_info, policy_class, policy_params, actor_params, actor_optimizer, critic_params,
-                         batch_size, initial_replay_size, max_replay_size, tau, policy_delay, critic_fit_params)
-
         self._noise_std = to_parameter(noise_std)
         self._noise_clip = to_parameter(noise_clip)
 
@@ -54,6 +51,9 @@ class TD3(DDPG):
             assert(critic_params['n_models'] >= 2)
         else:
             critic_params['n_models'] = 2
+
+        super().__init__(mdp_info, policy_class, policy_params, actor_params, actor_optimizer, critic_params,
+                         batch_size, initial_replay_size, max_replay_size, tau, policy_delay, critic_fit_params)
 
         self._add_save_attr(
             _noise_std='mushroom',
