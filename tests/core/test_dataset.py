@@ -97,7 +97,7 @@ def test_dataset_creation():
     for array_1, array_2 in zip(parsed, new_numpy_dataset.parse()):
         assert np.array_equal(array_1, array_2)
 
-    for array_1, array_2 in zip(parsed, new_list_dataset.parse()):
+    for array_1, array_2 in zip(parsed, new_list_dataset.parse(to='numpy')):
         assert np.array_equal(array_1, array_2)
 
     for array_1, array_2 in zip(parsed_torch, new_torch_dataset.parse(to='torch')):

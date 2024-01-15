@@ -224,9 +224,13 @@ class TestUtils:
         """
         res = this._initial_size == that._initial_size
         res &= this._max_size == that._max_size
+        res &= cls.eq_mdp_info(this._mdp_info, that._mdp_info)
+        res &= cls.eq_agent_info(this._agent_info, that._agent_info)
         res &= this._idx == that._idx
         res &= this._full == that._full
-        res &= cls.eq_dataset(this.dataset, that.dataset)
+
+        if this._dataset is not None and that._dataset is not None:
+            res &= cls.eq_dataset(this._dataset, that._dataset)
 
         return res
 
