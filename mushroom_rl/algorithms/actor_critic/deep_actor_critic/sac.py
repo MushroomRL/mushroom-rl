@@ -8,7 +8,7 @@ from mushroom_rl.policy import Policy
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.replay_memory import ReplayMemory
-from mushroom_rl.utils.torch import to_float_tensor
+from mushroom_rl.utils.torch import to_float_tensor, update_optimizer_parameters
 from mushroom_rl.utils.parameters import to_parameter
 
 from copy import deepcopy
@@ -333,6 +333,11 @@ class SAC(DeepAC):
 
     def _post_load(self):
         self._update_optimizer_parameters(self.policy.parameters())
+        self._update_alpha_optimizer_parameters()
+
+    def _update_alpha_optimizer_parameters(self):
+        if self._optimizer is not None:
+            update_optimizer_parameters(self._alpha_optim, [self._log_alpha])
 
     @property
     def _alpha(self):
