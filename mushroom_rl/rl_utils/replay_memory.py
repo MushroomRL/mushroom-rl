@@ -15,8 +15,6 @@ class ReplayMemory(Serializable):
 
         self._initial_size = initial_size
         self._max_size = max_size
-        self._mdp_info = mdp_info
-        self._agent_info = agent_info
         self._idx = 0
         self._full = False
 
@@ -26,11 +24,11 @@ class ReplayMemory(Serializable):
         self.dataset = Dataset(mdp_info=mdp_info, agent_info=agent_info, n_steps=max_size, n_envs=1)
 
         self._add_save_attr(
-            dataset='mushroom',
             _initial_size='primitive',
             _max_size='primitive',
             _idx='primitive!',
             _full='primitive!',
+            dataset='mushroom',
         )
 
     def add(self, dataset, n_steps_return=1, gamma=1.):
@@ -163,7 +161,14 @@ class SequenceReplayMemory(ReplayMemory):
     """
     def __init__(self, mdp_info, agent_info, initial_size, max_size, truncation_length):
         self._truncation_length = truncation_length
+        self._action_space_shape = mdp_info.action_space.shape
+
         super(SequenceReplayMemory, self).__init__(mdp_info, agent_info, initial_size, max_size)
+
+        self._add_save_attr(
+            _truncation_length='primitive',
+            _action_space_shape='primitive'
+        )
 
     def get(self, n_samples):
         """
@@ -205,7 +210,7 @@ class SequenceReplayMemory(ReplayMemory):
                 action_seq = self._backend.copy(self.dataset.action[begin_seq:end_seq])
                 if more_than_one_traj or begin_seq == 0 or self.dataset.last[begin_seq-1]:
                     prev_actions = self._backend.copy(self.dataset.action[begin_seq:end_seq - 1])
-                    init_prev_action = self._backend.zeros(1, *self._mdp_info.action_space.shape)
+                    init_prev_action = self._backend.zeros(1, *self._action_space_shape)
                     if len(prev_actions) == 0:
                         prev_actions = init_prev_action
                     else:
