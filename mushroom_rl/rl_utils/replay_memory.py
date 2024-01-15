@@ -85,11 +85,10 @@ class ReplayMemory(Serializable):
                               dataset.last[i + j]]
 
                     if self._dataset.is_stateful:
-                        sample += [self._backend.copy(dataset.policy_state[i]),
-                                   self._backend.copy(dataset.policy_next_state[i+j])]
-                        self._dataset.append(sample, {})
-                    else:
-                        self._dataset.append(sample, {})
+                        sample += [dataset.policy_state[i],
+                                   dataset.policy_next_state[i+j]]
+
+                    self._dataset.append(sample, {})
 
                 self._idx += 1
                 if self._idx == self._max_size:
