@@ -75,6 +75,8 @@ class Ensemble(Serializable):
         if idx is None:
             idx = [x for x in range(len(self))]
 
+        torch_output = False
+
         if isinstance(idx, int):
             try:
                 results = self[idx].predict(*z, **predict_params)
@@ -93,6 +95,7 @@ class Ensemble(Serializable):
                 predictions = np.array(predictions)
             else:
                 predictions = torch.stack(predictions, axis=0)
+                torch_output = True
 
             if prediction == 'mean':
                 results = predictions.mean(0)
@@ -107,7 +110,10 @@ class Ensemble(Serializable):
             if compute_variance:
                 results = [results, predictions.var(0)]
 
-        return results
+        if torch_output and (prediction == 'min' or prediction == 'max'):
+            return results.values
+        else:
+            return results
 
     def reset(self):
         """
