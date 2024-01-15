@@ -27,7 +27,7 @@ class LSPI(BatchTD):
         super().__init__(mdp_info, policy, LinearApproximator, approximator_params, fit_params)
 
     def fit(self, dataset):
-        state, action, reward, next_state, absorbing, _ = dataset.parse()
+        state, action, reward, next_state, absorbing, _ = dataset.parse(to='numpy')
 
         phi_state = self.approximator.model.phi(state)
         phi_next_state = self.approximator.model.phi(next_state)

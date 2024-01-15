@@ -28,7 +28,7 @@ class DoubleFQI(FQI):
 
             half = len(dataset) // 2
             for i in range(2):
-                s, a, r, ss, ab, _ = dataset[i * half:(i + 1) * half].parse()
+                s, a, r, ss, ab, _ = dataset[i * half:(i + 1) * half].parse(to='numpy')
                 state.append(s)
                 action.append(a)
                 reward.append(r)
