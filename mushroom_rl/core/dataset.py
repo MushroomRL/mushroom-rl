@@ -8,13 +8,16 @@ from ._impl import *
 
 
 class Dataset(Serializable):
-    def __init__(self, mdp_info, agent_info, n_steps=None, n_episodes=None, n_envs=1, device=None):
+    def __init__(self, mdp_info, agent_info, n_steps=None, n_episodes=None, n_envs=1, backend=None, device=None):
         assert (n_steps is not None and n_episodes is None) or (n_steps is None and n_episodes is not None)
 
-        if mdp_info.backend != "torch":
+        if backend is None:
+            backend = mdp_info.backend
+
+        if backend != "torch":
             assert device is None
 
-        self._array_backend = ArrayBackend.get_array_backend(mdp_info.backend)
+        self._array_backend = ArrayBackend.get_array_backend(backend)
         self._n_envs = n_envs
 
         if n_steps is not None:
@@ -48,10 +51,10 @@ class Dataset(Serializable):
         self._episode_info = defaultdict(list)
         self._theta_list = list()
 
-        if mdp_info.backend == 'numpy':
+        if backend == 'numpy':
             self._data = NumpyDataset(state_type, state_shape, action_type, action_shape, reward_shape, base_shape,
                                       policy_state_shape, mask_shape)
-        elif mdp_info.backend == 'torch':
+        elif backend == 'torch':
             self._data = TorchDataset(state_type, state_shape, action_type, action_shape, reward_shape, base_shape,
                                       policy_state_shape, mask_shape, device=device)
         else:
