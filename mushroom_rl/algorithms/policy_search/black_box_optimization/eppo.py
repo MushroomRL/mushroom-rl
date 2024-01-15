@@ -32,7 +32,7 @@ class ePPO(BlackBoxOptimization):
         super().__init__(mdp_info, distribution, policy, context_builder=context_builder, backend='torch')
 
         self._add_save_attr(
-            optimizer='torch',
+            _optimizer='torch',
             _n_epochs_policy='mushroom',
             _batch_size='mushroom',
             _eps_ppo='mushroom',
