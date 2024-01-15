@@ -38,7 +38,7 @@ class AbstractDQN(Agent):
             clip_reward (bool, False): whether to clip the reward or not.
 
         """
-        super().__init__(mdp_info, policy, backend='torch')
+        super().__init__(mdp_info, policy, backend='numpy')
 
         self._fit_params = dict() if fit_params is None else fit_params
         self._predict_params = dict() if predict_params is None else predict_params
@@ -111,7 +111,7 @@ class AbstractDQN(Agent):
 
             q_next = self._next_q(next_state, absorbing)
             q = reward + self.mdp_info.gamma * q_next
-            td_error = q - self.approximator.predict(state, action, **self._predict_params)
+            td_error = q - self.approximator.predict(state, action, **self._predict_params).detach().numpy()  # TODO remove when porting DQN fully on torch
 
             self._replay_memory.update(td_error, idxs)
 

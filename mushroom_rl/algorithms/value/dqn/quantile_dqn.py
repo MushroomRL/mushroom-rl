@@ -103,10 +103,10 @@ class QuantileDQN(AbstractDQN):
             if self._clip_reward:
                 reward = np.clip(reward, -1, 1)
 
-            q_next = self.target_approximator.predict(next_state, **self._predict_params)
+            q_next = self.target_approximator.predict(next_state, **self._predict_params).detach().numpy()  # TODO remove when porting DQN fully on torch
             a_max = np.argmax(q_next, 1)
             quant_next = self.target_approximator.predict(next_state, a_max,
-                                                          get_quantiles=True, **self._predict_params)
+                                                          get_quantiles=True, **self._predict_params).detach().numpy()  # TODO remove when porting DQN fully on torch
             quant_next *= (1 - absorbing).reshape(-1, 1)
             quant = reward.reshape(-1, 1) + self.mdp_info.gamma * quant_next
 

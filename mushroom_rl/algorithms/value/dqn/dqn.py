@@ -1,5 +1,3 @@
-import torch
-
 from mushroom_rl.algorithms.value.dqn import AbstractDQN
 
 
@@ -11,8 +9,8 @@ class DQN(AbstractDQN):
 
     """
     def _next_q(self, next_state, absorbing):
-        q = self.target_approximator.predict(next_state, **self._predict_params)
+        q = self.target_approximator.predict(next_state, **self._predict_params).detach().numpy()  # TODO remove when porting DQN fully on torch
         if absorbing.any():
             q *= 1 - absorbing.reshape(-1, 1)
 
-        return q.max(1).values.detach()
+        return q.max(1)
