@@ -316,6 +316,11 @@ class SAC(DeepAC):
 
     def _post_load(self):
         self._update_optimizer_parameters(self.policy.parameters())
+        self._update_alpha_optimizer_parameters()
+
+    def _update_alpha_optimizer_parameters(self):
+        if self._optimizer is not None:
+            TorchUtils.update_optimizer_parameters(self._alpha_optim, [self._log_alpha])
 
     @property
     def _alpha(self):
