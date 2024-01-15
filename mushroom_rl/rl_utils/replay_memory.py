@@ -41,7 +41,7 @@ class ReplayMemory(Serializable):
         Add elements to the replay memory.
 
         Args:
-            dataset (Dataset): list of elements to add to the replay memory;
+            dataset (Dataset): dataset class elements to add to the replay memory;
             n_steps_return (int, 1): number of steps to consider for computing n-step return;
             gamma (float, 1.): discount factor for n-step return.
 
@@ -50,43 +50,44 @@ class ReplayMemory(Serializable):
         assert n_steps_return > 0
         assert self._dataset.is_stateful == dataset.is_stateful
 
+        state, action, reward, next_state, absorbing, last = dataset.parse(to=self._agent_info.backend)
+
+        if self._dataset.is_stateful:
+            policy_state, policy_next_state = dataset.parse_policy_state(to=self._agent_info.backend)
+        else:
+            policy_state, policy_next_state = (None, None)
+
         # TODO: implement vectorized n_step_return to avoid loop
         i = 0
         while i < len(dataset) - n_steps_return + 1:
-            reward = dataset.reward[i]
             j = 0
             while j < n_steps_return - 1:
-                if dataset.last[i + j]:
+                if last[i + j]:
                     i += j + 1
                     break
                 j += 1
-                reward += gamma ** j * dataset.reward[i + j]
+                reward[i] += gamma ** j * reward[i + j]
             else:
-                if self._full:
-                    self._dataset.state[self._idx] = dataset.state[i]
-                    self._dataset.action[self._idx] = dataset.action[i]
-                    self._dataset.reward[self._idx] = reward
 
-                    self._dataset.next_state[self._idx] = dataset.next_state[i + j]
-                    self._dataset.absorbing[self._idx] = dataset.absorbing[i + j]
-                    self._dataset.last[self._idx] = dataset.last[i + j]
+                if self._full:
+                    self._dataset.state[self._idx] = state[i]
+                    self._dataset.action[self._idx] = action[i]
+                    self._dataset.reward[self._idx] = reward[i]
+
+                    self._dataset.next_state[self._idx] = next_state[i + j]
+                    self._dataset.absorbing[self._idx] = absorbing[i + j]
+                    self._dataset.last[self._idx] = last[i + j]
 
                     if self._dataset.is_stateful:
-                        self._dataset.policy_state[self._idx] = dataset.policy_state[i]
-                        self._dataset.policy_next_state[self._idx] = dataset.policy_next_state[i + j]
+                        self._dataset.policy_state[self._idx] = policy_state[i]
+                        self._dataset.policy_next_state[self._idx] = policy_next_state[i + j]
 
                 else:
 
-                    sample = [dataset.state[i],
-                              dataset.action[i],
-                              reward,
-                              dataset.next_state[i + j],
-                              dataset.absorbing[i + j],
-                              dataset.last[i + j]]
+                    sample = [state[i], action[i], reward[i], next_state[i + j], absorbing[i + j], last[i + j]]
 
                     if self._dataset.is_stateful:
-                        sample += [dataset.policy_state[i],
-                                   dataset.policy_next_state[i+j]]
+                        sample += [policy_state[i], policy_next_state[i+j]]
 
                     self._dataset.append(sample, {})
 
@@ -123,7 +124,7 @@ class ReplayMemory(Serializable):
         self._idx = 0
         self._full = False
         self._dataset = Dataset(mdp_info=self._mdp_info, agent_info=self._agent_info, n_steps=self._max_size,
-                                n_envs=1, backend=self._agent_info.backend)
+                                n_envs=1, backend=self._agent_info.backend, state_dtype=float, action_dtype=float)
 
     @property
     def initialized(self):

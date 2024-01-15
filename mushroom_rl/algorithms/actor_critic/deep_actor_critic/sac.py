@@ -300,8 +300,8 @@ class SAC(DeepAC):
     def _next_q(self, next_state, absorbing):
         """
         Args:
-            next_state (np.ndarray): the states where next action has to be evaluated;
-            absorbing (np.ndarray): the absorbing flag for the states in ``next_state``.
+            next_state (torch.Tensor): the states where next action has to be evaluated;
+            absorbing (torch.Tensor): the absorbing flag for the states in ``next_state``.
 
         Returns:
             Action-values returned by the critic for ``next_state`` and the action returned by the actor.
@@ -310,7 +310,7 @@ class SAC(DeepAC):
         a, log_prob_next = self.policy.compute_action_and_log_prob(next_state)
 
         q = self._target_critic_approximator.predict(next_state, a, prediction='min') - self._alpha * log_prob_next
-        q *= 1 - absorbing
+        q *= 1 - absorbing.to(int)
 
         return q
 

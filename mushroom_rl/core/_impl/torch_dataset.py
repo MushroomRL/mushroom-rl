@@ -32,6 +32,8 @@ class TorchDataset(Serializable):
         else:
             self._mask = torch.empty(mask_shape, dtype=torch.bool, device=self._device)
 
+        self._add_all_save_attr()
+
     @classmethod
     def create_new_instance(cls, dataset=None):
         """

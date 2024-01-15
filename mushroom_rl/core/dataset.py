@@ -10,11 +10,18 @@ from ._impl import *
 
 
 class Dataset(Serializable):
-    def __init__(self, mdp_info, agent_info, n_steps=None, n_episodes=None, n_envs=1, backend=None, device=None):
+    def __init__(self, mdp_info, agent_info, n_steps=None, n_episodes=None, n_envs=1, backend=None,
+                 device=None, state_dtype=None, action_dtype=None):
         assert (n_steps is not None and n_episodes is None) or (n_steps is None and n_episodes is not None)
 
         if backend is None:
             backend = mdp_info.backend
+
+        if state_dtype is None:
+            state_dtype = mdp_info.observation_space.data_type
+
+        if action_dtype is None:
+            action_dtype = mdp_info.action_space.data_type
 
         if backend != "torch":
             assert device is None
@@ -46,18 +53,15 @@ class Dataset(Serializable):
         else:
             policy_state_shape = None
 
-        state_type = mdp_info.observation_space.data_type
-        action_type = mdp_info.action_space.data_type
-
         self._info = defaultdict(list)
         self._episode_info = defaultdict(list)
         self._theta_list = list()
 
         if backend == 'numpy':
-            self._data = NumpyDataset(state_type, state_shape, action_type, action_shape, reward_shape, base_shape,
+            self._data = NumpyDataset(state_dtype, state_shape, action_dtype, action_shape, reward_shape, base_shape,
                                       policy_state_shape, mask_shape)
         elif backend == 'torch':
-            self._data = TorchDataset(state_type, state_shape, action_type, action_shape, reward_shape, base_shape,
+            self._data = TorchDataset(state_dtype, state_shape, action_dtype, action_shape, reward_shape, base_shape,
                                       policy_state_shape, mask_shape, device=device)
         else:
             self._data = ListDataset(policy_state_shape is not None, mask_shape is not None)
