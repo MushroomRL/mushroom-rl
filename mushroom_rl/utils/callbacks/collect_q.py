@@ -2,7 +2,7 @@ import numpy as np
 from copy import deepcopy
 
 from mushroom_rl.utils.callbacks.callback import CallbackList
-from mushroom_rl.approximators.table import EnsembleTable
+from mushroom_rl.approximators.ensemble_table import EnsembleTable
 
 
 class CollectQ(CallbackList):

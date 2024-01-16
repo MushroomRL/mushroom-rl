@@ -59,10 +59,10 @@ class TorchUtils(object):
         weights = list()
 
         for p in parameters:
-            w = p.data.detach().cpu().numpy()
+            w = p.data.detach()
             weights.append(w.flatten())
 
-        weights = np.concatenate(weights, 0)
+        weights = torch.concatenate(weights)
 
         return weights
 

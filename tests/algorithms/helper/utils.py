@@ -10,7 +10,7 @@ from mushroom_rl.policy.torch_policy import TorchPolicy
 from mushroom_rl.policy.policy import ParametricPolicy
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic.sac import SACPolicy
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory, PrioritizedReplayMemory
-from mushroom_rl.approximators._implementations.ensemble import Ensemble
+from mushroom_rl.approximators.ensemble import Ensemble
 from mushroom_rl.approximators._implementations.action_regressor import ActionRegressor
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.policy.noise_policy import OrnsteinUhlenbeckPolicy

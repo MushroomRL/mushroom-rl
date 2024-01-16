@@ -9,7 +9,7 @@ from helper.utils import TestUtils as tu
 
 from mushroom_rl.core import Agent
 from mushroom_rl.algorithms.value import *
-from mushroom_rl.approximators.parametric import LinearApproximator, TorchApproximator
+from mushroom_rl.approximators.parametric import LinearApproximator, NumpyTorchApproximator
 from mushroom_rl.core import Core
 from mushroom_rl.environments import GridWorld, PuddleWorld
 from mushroom_rl.features import Features
@@ -405,7 +405,7 @@ def test_sarsa_lambda_continuous_nn():
         network=Network,
         n_actions=mdp_continuous.info.action_space.n,
     )
-    agent = SARSALambdaContinuous(mdp_continuous.info, pi, TorchApproximator, Parameter(.1), .9,
+    agent = SARSALambdaContinuous(mdp_continuous.info, pi, NumpyTorchApproximator, Parameter(.1), .9,
                                   approximator_params=approximator_params)
 
     core = Core(agent, mdp_continuous)
@@ -431,7 +431,7 @@ def test_sarsa_lambda_continuous_nn_save(tmpdir):
         network=Network,
         n_actions=mdp_continuous.info.action_space.n
     )
-    agent_save = SARSALambdaContinuous(mdp_continuous.info, pi, TorchApproximator, Parameter(.1), .9,
+    agent_save = SARSALambdaContinuous(mdp_continuous.info, pi, NumpyTorchApproximator, Parameter(.1), .9,
                                        approximator_params=approximator_params)
 
     core = Core(agent_save, mdp_continuous)

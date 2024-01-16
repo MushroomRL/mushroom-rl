@@ -277,7 +277,7 @@ class TorchApproximator(Serializable):
             if provided.
 
         """
-        torch_args = [torch.as_tensor(np.atleast_2d(x), device=TorchUtils.get_device()) for x in args]
+        torch_args = [torch.atleast_2d(x) for x in args]
 
         y_hat = self.network(*torch_args, **kwargs)
         n_outs = 1 if len(y_hat.shape) == 0 else y_hat.shape[-1]
@@ -290,14 +290,14 @@ class TorchApproximator(Serializable):
 
             gradient = list()
             for p in self.network.parameters():
-                g = p.grad.data.detach().cpu().numpy()
+                g = p.grad.data.detach()
                 gradient.append(g.flatten())
 
-            g = np.concatenate(gradient, 0)
+            g = torch.concatenate(gradient)
 
             gradients.append(g)
 
-        g = np.stack(gradients, -1)
+        g = torch.stack(gradients, -1)
 
         return g
 
@@ -313,3 +313,51 @@ class TorchApproximator(Serializable):
     def _post_load(self):
         if self._optimizer is not None:
             TorchUtils.update_optimizer_parameters(self._optimizer, list(self.network.parameters()))
+
+
+class NumpyTorchApproximator(TorchApproximator):
+    """
+    Wrapper to get a Numpy interface to the  TorchApproximator class.
+    This class allows you to use the torch approximator with numpy backend algorithms.
+
+    """
+    def predict(self, *args, **kwargs):
+        """
+        Predict.
+
+        Args:
+            *args: input;
+            **kwargs: other parameters used by the predict method
+                the regressor.
+
+        Returns:
+            The predictions of the model.
+
+        """
+        torch_args = [torch.as_tensor(x, device=TorchUtils.get_device()) for x in args]
+        return super().predict(*torch_args, **kwargs).detach().cpu().numpy()
+
+    def fit(self, *args, n_epochs=None, weights=None, epsilon=None, patience=1, validation_split=1., **kwargs):
+        torch_args = [torch.as_tensor(x, device=TorchUtils.get_device()) for x in args]
+
+        super().fit(torch_args, n_epochs, weights, epsilon, patience, validation_split, **kwargs)
+
+    def diff(self, *args, **kwargs):
+        """
+        Compute the derivative of the output w.r.t. ``state``, and ``action``
+        if provided.
+
+        Args:
+            state (np.ndarray): the state;
+            action (np.ndarray, None): the action.
+
+        Returns:
+            The derivative of the output w.r.t. ``state``, and ``action``
+            if provided.
+
+        """
+        torch_args = [torch.as_tensor(np.atleast_2d(x), device=TorchUtils.get_device()) for x in args]
+
+        gradient = super().diff(*torch_args, **kwargs)
+
+        return gradient.detach().cpu().numpy()

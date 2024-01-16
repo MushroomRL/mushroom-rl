@@ -38,9 +38,9 @@ def test_pytorch_approximator():
     torch.manual_seed(1)
 
     n_actions = 2
-    s = np.random.rand(1000, 4)
-    a = np.random.randint(n_actions, size=(1000, 1))
-    q = np.random.rand(1000)
+    s = torch.as_tensor(np.random.rand(1000, 4))
+    a = torch.as_tensor(np.random.randint(n_actions, size=(1000, 1)))
+    q = torch.as_tensor(np.random.rand(1000))
 
     approximator = Regressor(TorchApproximator, input_shape=(4,),
                              output_shape=(2,), n_actions=n_actions,
@@ -51,10 +51,10 @@ def test_pytorch_approximator():
 
     approximator.fit(s, a, q, n_epochs=20)
 
-    x_s = np.random.rand(2, 4)
-    x_a = np.random.randint(n_actions, size=(2, 1))
+    x_s = torch.as_tensor(np.random.rand(2, 4))
+    x_a = torch.as_tensor(np.random.randint(n_actions, size=(2, 1)))
     y = approximator.predict(x_s, x_a).detach().numpy()
-    y_test = np.array([0.37191153, 0.5920861])
+    y_test = torch.as_tensor(np.array([0.37191153, 0.5920861]))
 
     assert np.allclose(y, y_test)
 
@@ -64,7 +64,7 @@ def test_pytorch_approximator():
 
     assert np.allclose(y, y_test)
 
-    gradient = approximator.diff(x_s[0], x_a[0])
+    gradient = approximator.diff(x_s[0], x_a[0]).detach().numpy()
     gradient_test = np.array([0., 0., 0., 0., 0.02627479, 0.76513696,
                               0.6672573, 0.35979462, 0., 1.])
     assert np.allclose(gradient, gradient_test)
@@ -77,15 +77,15 @@ def test_pytorch_approximator():
                               [0., 1.]])
     assert np.allclose(gradient, gradient_test)
 
-    old_weights = approximator.get_weights()
+    old_weights = approximator.get_weights().detach().numpy()
     approximator.set_weights(old_weights)
-    new_weights = approximator.get_weights()
+    new_weights = approximator.get_weights().detach().numpy()
 
     assert np.array_equal(new_weights, old_weights)
 
     random_weights = np.random.randn(*old_weights.shape).astype(np.float32)
     approximator.set_weights(random_weights)
-    random_weight_new = approximator.get_weights()
+    random_weight_new = approximator.get_weights().detach().numpy()
 
     assert np.array_equal(random_weights, random_weight_new)
     assert not np.any(np.equal(random_weights, old_weights))

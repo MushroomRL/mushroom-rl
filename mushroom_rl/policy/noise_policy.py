@@ -102,29 +102,31 @@ class ClippedGaussianPolicy(ParametricPolicy):
 
         self._approximator = mu
         self._predict_params = dict()
-        self._chol_sigma = torch.cholesky(sigma)
-        self._low = low
-        self._high = high
+        self._chol_sigma = torch.linalg.cholesky(sigma)
+        self._low = torch.as_tensor(low)
+        self._high = torch.as_tensor(high)
 
         self._add_save_attr(
             _approximator='mushroom',
             _predict_params='pickle',
-            _chol_sigma='numpy',
-            _low='numpy',
-            _high='numpy'
+            _chol_sigma='torch',
+            _low='torch',
+            _high='torch'
         )
 
     def __call__(self, state, action=None, policy_state=None):
         raise NotImplementedError
 
     def draw_action(self, state, policy_state=None):
-        mu = np.reshape(self._approximator.predict(np.expand_dims(state, axis=0), **self._predict_params), -1)
+        with torch.no_grad():
+            mu = np.reshape(self._approximator.predict(np.expand_dims(state, axis=0), **self._predict_params), -1)
 
-        distribution = torch.distributions.MultivariateNormal(loc=mu, scale_tril=self._chol_sigma, validate_args=False)
+            distribution = torch.distributions.MultivariateNormal(loc=mu, scale_tril=self._chol_sigma,
+                                                                  validate_args=False)
 
-        action_raw = distribution.sample()
+            action_raw = distribution.sample()
 
-        return torch.clip(action_raw, self._low, self._high), None
+            return torch.clip(action_raw, self._low, self._high), None
 
     def set_weights(self, weights):
         self._approximator.set_weights(weights)
