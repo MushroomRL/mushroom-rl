@@ -5,10 +5,9 @@ import torch.nn.functional as F
 from datetime import datetime
 from helper.utils import TestUtils as tu
 
-from mushroom_rl.core import Agent, Logger
+from mushroom_rl.core import Core, Agent, AgentInfo, Logger
 from mushroom_rl.algorithms.value import DQN, DoubleDQN, AveragedDQN,\
     MaxminDQN, DuelingDQN, CategoricalDQN, QuantileDQN, NoisyDQN, Rainbow
-from mushroom_rl.core import Core
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.approximators.parametric.torch_approximator import *
@@ -139,10 +138,9 @@ def test_dqn_logger(tmpdir):
 
 
 def test_prioritized_dqn():
-    replay_memory = PrioritizedReplayMemory(
-        50, 500, alpha=.6,
-        beta=LinearParameter(.4, threshold_value=1, n=500 // 5)
-    )
+
+    replay_memory = {"class": PrioritizedReplayMemory,
+                     "params": dict(alpha=.6, beta=LinearParameter(.4, threshold_value=1, n=500 // 5))}
     params = dict(batch_size=50, initial_replay_size=50,
                   max_replay_size=500, target_update_frequency=50,
                   replay_memory=replay_memory)
@@ -157,11 +155,8 @@ def test_prioritized_dqn():
 
 def test_prioritized_dqn_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
-
-    replay_memory = PrioritizedReplayMemory(
-        50, 500, alpha=.6,
-        beta=LinearParameter(.4, threshold_value=1, n=500 // 5)
-    )
+    replay_memory = {"class": PrioritizedReplayMemory,
+                     "params": dict(alpha=.6, beta=LinearParameter(.4, threshold_value=1, n=500 // 5))}
     params = dict(batch_size=50, initial_replay_size=50,
                   max_replay_size=500, target_update_frequency=50,
                   replay_memory=replay_memory)

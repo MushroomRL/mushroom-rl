@@ -64,7 +64,7 @@ class RainbowNetwork(nn.Module):
 class Rainbow(AbstractDQN):
     """
     Rainbow algorithm.
-    "Rainbow: Combinining Improvements in Deep Reinforcement Learning".
+    "Rainbow: Combining Improvements in Deep Reinforcement Learning".
     Hessel M. et al.. 2018.
 
     """
@@ -102,10 +102,10 @@ class Rainbow(AbstractDQN):
         self._n_steps_return = n_steps_return
         self._sigma_coeff = sigma_coeff
 
-        params['replay_memory'] = PrioritizedReplayMemory(
-            params['initial_replay_size'], params['max_replay_size'], alpha=alpha_coeff,
-            beta=beta
-        )
+        params['replay_memory'] = {"class": PrioritizedReplayMemory,
+                                   "params": dict(alpha=alpha_coeff, beta=beta)}
+
+        super().__init__(mdp_info, policy, TorchApproximator, **params)
 
         self._add_save_attr(
             _n_atoms='primitive',
@@ -116,8 +116,6 @@ class Rainbow(AbstractDQN):
             _n_steps_return='primitive',
             _sigma_coeff='primitive'
         )
-
-        super().__init__(mdp_info, policy, TorchApproximator, **params)
 
     def fit(self, dataset):
         self._replay_memory.add(dataset, np.ones(len(dataset)) * self._replay_memory.max_priority,

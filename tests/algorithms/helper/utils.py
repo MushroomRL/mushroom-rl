@@ -256,9 +256,7 @@ class TestUtils:
         
         res = this._max_size == that._max_size
         res &= cls._eq_numpy(this._tree, that._tree)
-        res &= len(this._data) == len(that._data)
-        for a, b in zip(this._data, that._data):
-            res &= cls._eq_listlike(a, b)
+        res &= cls.eq_dataset(this.dataset, that.dataset)
         res &= this._idx == that._idx
         res &= this._full == that._full
         return res

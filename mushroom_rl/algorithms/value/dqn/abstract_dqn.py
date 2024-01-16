@@ -48,8 +48,9 @@ class AbstractDQN(Agent):
         self._target_update_frequency = target_update_frequency
 
         if replay_memory is not None:
-            self._replay_memory = replay_memory
-            if isinstance(replay_memory, PrioritizedReplayMemory):
+            self._replay_memory = replay_memory["class"](mdp_info, self.info, initial_size=initial_replay_size,
+                                                         max_size=max_replay_size, **replay_memory["params"])
+            if isinstance(self._replay_memory, PrioritizedReplayMemory):
                 self._fit = self._fit_prioritized
             else:
                 self._fit = self._fit_standard
