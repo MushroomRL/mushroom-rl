@@ -171,6 +171,16 @@ class SequenceReplayMemory(ReplayMemory):
 
     """
     def __init__(self, mdp_info, agent_info, initial_size, max_size, truncation_length):
+        """
+        Constructor.
+
+        Args:
+            mdp_info (MDPInfo): information about the MDP;
+            agent_info (AgentInfo): information about the agent;
+            initial_size (int): initial size of the replay buffer;
+            max_size (int): maximum size of the replay buffer;
+            truncation_length (int): truncation length to be sampled;
+        """
         self._truncation_length = truncation_length
         self._action_space_shape = mdp_info.action_space.shape
 
@@ -190,16 +200,22 @@ class SequenceReplayMemory(ReplayMemory):
             The requested number of samples.
         """
 
-        s = list()
-        a = list()
-        r = list()
-        ss = list()
-        ab = list()
-        last = list()
-        pa = list()         # previous actions
-        lengths = list()    # lengths of the sequences
+        s = self._backend.zeros(n_samples, self._truncation_length, *self._mdp_info.observation_space.shape,
+                                dtype=self._mdp_info.observation_space.data_type)
+        a = self._backend.zeros(n_samples, self._truncation_length, *self._mdp_info.action_space.shape,
+                                dtype=self._mdp_info.action_space.data_type)
+        r = self._backend.zeros(n_samples, 1)
+        ss = self._backend.zeros(n_samples, self._truncation_length, *self._mdp_info.observation_space.shape,
+                                 dtype=self._mdp_info.observation_space.data_type)
+        ab = self._backend.zeros(n_samples, 1, dtype=int)
+        last = self._backend.zeros(n_samples, dtype=int)
+        ps = self._backend.zeros(n_samples, self._truncation_length, *self._agent_info.policy_state_shape)
+        nps = self._backend.zeros(n_samples, self._truncation_length, *self._agent_info.policy_state_shape)
+        pa = self._backend.zeros(n_samples, self._truncation_length, *self._mdp_info.action_space.shape,
+                                 dtype=self._mdp_info.action_space.data_type)
+        lengths = list()
 
-        for i in np.random.randint(self.size, size=n_samples):
+        for num, i in enumerate(np.random.randint(self.size, size=n_samples)):
 
             with torch.no_grad():
 
@@ -215,38 +231,34 @@ class SequenceReplayMemory(ReplayMemory):
                     # take the beginning of the last trajectory
                     begin_seq = begin_seq + begin_traj[0][-1] + 1
 
-                # get data and apply padding if needed
-                states = self._backend.copy(self._dataset.state[begin_seq:end_seq])
-                next_states = self._backend.copy(self._dataset.next_state[begin_seq:end_seq])
-                action_seq = self._backend.copy(self._dataset.action[begin_seq:end_seq])
+                # determine prev action
                 if more_than_one_traj or begin_seq == 0 or self._dataset.last[begin_seq-1]:
-                    prev_actions = self._backend.copy(self._dataset.action[begin_seq:end_seq - 1])
+                    prev_actions = self._dataset.action[begin_seq:end_seq - 1]
                     init_prev_action = self._backend.zeros(1, *self._action_space_shape)
                     if len(prev_actions) == 0:
                         prev_actions = init_prev_action
                     else:
                         prev_actions = self._backend.concatenate([init_prev_action, prev_actions])
                 else:
-                    prev_actions = self._backend.copy(self._dataset.action[begin_seq - 1:end_seq - 1])
+                    prev_actions = self._dataset.action[begin_seq - 1:end_seq - 1]
 
-                length_seq = len(states)
+                # write data
+                s[num, :end_seq-begin_seq] = self._dataset.state[begin_seq:end_seq]
+                ss[num, :end_seq-begin_seq] = self._dataset.next_state[begin_seq:end_seq]
+                a[num, :end_seq-begin_seq] = self._dataset.action[begin_seq:end_seq]
+                ps[num, :end_seq-begin_seq] = self._dataset.policy_state[begin_seq:end_seq]
+                nps[num, :end_seq-begin_seq] = self._dataset.policy_next_state[begin_seq:end_seq]
+                pa[num, :end_seq-begin_seq] = prev_actions
+                r[num] = self._dataset.reward[i]
+                ab[num] = self._dataset.absorbing[i]
+                last[num] = self._dataset.last[i]
 
-                s.append(self._backend.expand_dims(self._add_padding(states), dim=0))
-                a.append(self._backend.expand_dims(self._add_padding(action_seq), dim=0))
-                r.append(self._backend.expand_dims(self._backend.copy(self._dataset.reward[i]), dim=0))
-                ss.append(self._backend.expand_dims(self._add_padding(next_states), dim=0))
-                ab.append(self._backend.expand_dims(self._backend.copy(self._dataset.absorbing[i]), dim=0))
-                last.append(self._backend.expand_dims(self._backend.copy(self._dataset.last[i]), dim=0))
-                pa.append(self._backend.expand_dims(self._add_padding(prev_actions), dim=0))
-                lengths.append(length_seq)
+                lengths.append(end_seq - begin_seq)
 
-        return self._backend.concatenate(s), self._backend.concatenate(a), self._backend.concatenate(r),\
-               self._backend.concatenate(ss), self._backend.concatenate(ab), self._backend.concatenate(last),\
-               self._backend.concatenate(pa), lengths
-
-    def _add_padding(self, array):
-        return self._backend.concatenate([array, self._backend.zeros(
-            self._truncation_length - array.shape[0], array.shape[1])])
+        if self._dataset.is_stateful:
+            return s, a, r, ss, ab, last, ps, nps, pa, lengths
+        else:
+            return s, a, r, ss, ab, last, pa, lengths
 
 
 class SumTree(Serializable):
