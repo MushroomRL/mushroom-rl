@@ -247,11 +247,11 @@ class BoltzmannTorchPolicy(TorchPolicy):
                 regressor;
             input_shape (tuple): the shape of the state space;
             output_shape (tuple): the shape of the action space;
-            beta ((float, Parameter)): the inverse of the temperature distribution. As
+            beta ([float, Parameter]): the inverse of the temperature distribution. As
                 the temperature approaches infinity, the policy becomes more and
                 more random. As the temperature approaches 0.0, the policy becomes
                 more and more greedy.
-            params (dict): parameters used by the network constructor.
+            **params: parameters used by the network constructor.
 
         """
         super().__init__(policy_state_shape)

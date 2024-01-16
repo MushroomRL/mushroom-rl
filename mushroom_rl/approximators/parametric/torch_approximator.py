@@ -340,7 +340,8 @@ class NumpyTorchApproximator(TorchApproximator):
     def fit(self, *args, n_epochs=None, weights=None, epsilon=None, patience=1, validation_split=1., **kwargs):
         torch_args = [torch.as_tensor(x, device=TorchUtils.get_device()) for x in args]
 
-        super().fit(torch_args, n_epochs, weights, epsilon, patience, validation_split, **kwargs)
+        super().fit(*torch_args, n_epochs=n_epochs, weights=weights, epsilon=epsilon, patience=patience,
+                    validation_split=validation_split, **kwargs)
 
     def diff(self, *args, **kwargs):
         """
@@ -361,3 +362,24 @@ class NumpyTorchApproximator(TorchApproximator):
         gradient = super().diff(*torch_args, **kwargs)
 
         return gradient.detach().cpu().numpy()
+
+    def set_weights(self, weights):
+        """
+        Setter.
+
+        Args:
+            weights (np.ndarray): the set of weights to set.
+
+        """
+        torch_weights = torch.as_tensor(weights)
+        super().set_weights(torch_weights)
+
+    def get_weights(self):
+        """
+        Getter.
+
+        Returns:
+            The set of weights of the approximator.
+
+        """
+        return super().get_weights().detach().cpu().numpy()
