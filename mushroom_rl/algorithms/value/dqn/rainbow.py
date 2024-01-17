@@ -1,12 +1,15 @@
 from copy import deepcopy
 
+import numpy as np
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from mushroom_rl.algorithms.value.dqn import AbstractDQN
 from mushroom_rl.algorithms.value.dqn.categorical_dqn import categorical_loss
 from mushroom_rl.algorithms.value.dqn.noisy_dqn import NoisyNetwork
-from mushroom_rl.approximators.parametric.torch_approximator import *
+from mushroom_rl.approximators.parametric import NumpyTorchApproximator
 from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
 from mushroom_rl.utils.torch import TorchUtils
 
@@ -105,7 +108,7 @@ class Rainbow(AbstractDQN):
         params['replay_memory'] = {"class": PrioritizedReplayMemory,
                                    "params": dict(alpha=alpha_coeff, beta=beta)}
 
-        super().__init__(mdp_info, policy, TorchApproximator, **params)
+        super().__init__(mdp_info, policy, NumpyTorchApproximator, **params)
 
         self._add_save_attr(
             _n_atoms='primitive',
@@ -127,11 +130,11 @@ class Rainbow(AbstractDQN):
             if self._clip_reward:
                 reward = np.clip(reward, -1, 1)
 
-            q_next = self.approximator.predict(next_state, **self._predict_params).detach().numpy()  # TODO remove when porting DQN fully on torch
+            q_next = self.approximator.predict(next_state, **self._predict_params)
             a_max = np.argmax(q_next, axis=1)
             gamma = self.mdp_info.gamma ** self._n_steps_return * (1 - absorbing)
             p_next = self.target_approximator.predict(next_state, a_max,
-                                                      get_distribution=True, **self._predict_params).detach().numpy()  # TODO remove when porting DQN fully on torch
+                                                      get_distribution=True, **self._predict_params)
             gamma_z = gamma.reshape(-1, 1) * np.expand_dims(
                 self._a_values, 0).repeat(len(gamma), 0)
             bell_a = (reward.reshape(-1, 1) + gamma_z).clip(self._v_min,
@@ -149,8 +152,10 @@ class Rainbow(AbstractDQN):
                 m[np.arange(len(m)), l[:, i]] += p_next[:, i] * (u[:, i] - b[:, i])
                 m[np.arange(len(m)), u[:, i]] += p_next[:, i] * (b[:, i] - l[:, i])
 
+            action = action.astype(int)  # TODO: fix the replay memory to save the data in the proper format
+
             kl = -np.sum(m * np.log(self.approximator.predict(state, action, get_distribution=True,
-                                                              **self._predict_params).detach().numpy().clip(1e-5)), 1) # TODO remove when porting DQN fully on torch
+                                                              **self._predict_params).clip(1e-5)), 1)
             self._replay_memory.update(kl, idxs)
 
             self.approximator.fit(state, action, m, weights=is_weight,

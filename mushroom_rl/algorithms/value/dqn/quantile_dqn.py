@@ -1,10 +1,13 @@
 from copy import deepcopy
 
+import numpy as np
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from mushroom_rl.algorithms.value.dqn import AbstractDQN
-from mushroom_rl.approximators.parametric.torch_approximator import *
+from mushroom_rl.approximators.parametric import NumpyTorchApproximator
 
 
 def quantile_huber_loss(input, target):
@@ -92,7 +95,7 @@ class QuantileDQN(AbstractDQN):
             _n_quantiles='primitive'
         )
 
-        super().__init__(mdp_info, policy, TorchApproximator, **params)
+        super().__init__(mdp_info, policy, NumpyTorchApproximator, **params)
 
     def fit(self, dataset):
         self._replay_memory.add(dataset)
@@ -103,10 +106,10 @@ class QuantileDQN(AbstractDQN):
             if self._clip_reward:
                 reward = np.clip(reward, -1, 1)
 
-            q_next = self.target_approximator.predict(next_state, **self._predict_params).detach().numpy()  # TODO remove when porting DQN fully on torch
+            q_next = self.target_approximator.predict(next_state, **self._predict_params)
             a_max = np.argmax(q_next, 1)
             quant_next = self.target_approximator.predict(next_state, a_max,
-                                                          get_quantiles=True, **self._predict_params).detach().numpy()  # TODO remove when porting DQN fully on torch
+                                                          get_quantiles=True, **self._predict_params)
             quant_next *= (1 - absorbing).reshape(-1, 1)
             quant = reward.reshape(-1, 1) + self.mdp_info.gamma * quant_next
 

@@ -107,12 +107,14 @@ class AbstractDQN(Agent):
             state, action, reward, next_state, absorbing, _, idxs, is_weight = \
                 self._replay_memory.get(self._batch_size())
 
+            action = action.astype(int)  # TODO: fix the replay memory to save the data in the proper format
+
             if self._clip_reward:
                 reward = np.clip(reward, -1, 1)
 
             q_next = self._next_q(next_state, absorbing)
             q = reward + self.mdp_info.gamma * q_next
-            td_error = q - self.approximator.predict(state, action, **self._predict_params).detach().numpy()  # TODO remove when porting DQN fully on torch
+            td_error = q - self.approximator.predict(state, action, **self._predict_params)
 
             self._replay_memory.update(td_error, idxs)
 

@@ -9,7 +9,7 @@ import torch.nn.functional as F
 
 from mushroom_rl.algorithms.value import AveragedDQN, CategoricalDQN, DQN,\
     DoubleDQN, MaxminDQN, DuelingDQN, NoisyDQN, Rainbow
-from mushroom_rl.approximators.parametric import TorchApproximator
+from mushroom_rl.approximators.parametric import NumpyTorchApproximator
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments.habitat_env import *
 from mushroom_rl.policy import EpsGreedy
@@ -335,7 +335,7 @@ def experiment():
         if args.algorithm not in ['cdqn', 'rainbow']:
             approximator_params['loss'] = F.smooth_l1_loss
 
-        approximator = TorchApproximator
+        approximator = NumpyTorchApproximator
 
         if args.prioritized:
             replay_memory = PrioritizedReplayMemory(

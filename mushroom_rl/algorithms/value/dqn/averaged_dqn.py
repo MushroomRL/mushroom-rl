@@ -53,7 +53,7 @@ class AveragedDQN(AbstractDQN):
     def _next_q(self, next_state, absorbing):
         q = list()
         for idx in range(self._n_fitted_target_models):
-            q_target_idx = self.target_approximator.predict(next_state, idx=idx, **self._predict_params).detach().numpy()  # TODO remove when porting DQN fully on torch
+            q_target_idx = self.target_approximator.predict(next_state, idx=idx, **self._predict_params)
             q.append(q_target_idx)
         q = np.mean(q, axis=0)
         if np.any(absorbing):

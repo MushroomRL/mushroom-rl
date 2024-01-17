@@ -1,3 +1,6 @@
+import numpy as np
+
+import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
@@ -10,7 +13,7 @@ from mushroom_rl.algorithms.value import DQN, DoubleDQN, AveragedDQN,\
     MaxminDQN, DuelingDQN, CategoricalDQN, QuantileDQN, NoisyDQN, Rainbow
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.approximators.parametric.torch_approximator import *
+from mushroom_rl.approximators.parametric import NumpyTorchApproximator
 from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter
 from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
 
@@ -72,7 +75,7 @@ def learn(alg, alg_params, logger=None):
 
     # Agent
     if alg not in [DuelingDQN, QuantileDQN, CategoricalDQN, NoisyDQN, Rainbow]:
-        agent = alg(mdp.info, pi, TorchApproximator,
+        agent = alg(mdp.info, pi, NumpyTorchApproximator,
                     approximator_params=approximator_params, **alg_params)
     elif alg in [CategoricalDQN, Rainbow]:
         agent = alg(mdp.info, pi, approximator_params=approximator_params,
