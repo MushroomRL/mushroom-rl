@@ -56,7 +56,7 @@ class PPO(Agent):
 
         self._iter = 1
 
-        super().__init__(mdp_info, policy)
+        super().__init__(mdp_info, policy, backend='torch')
 
         self._add_save_attr(
             _critic_fit_params='pickle', 

@@ -183,7 +183,7 @@ class SAC(DeepAC):
     """
     def __init__(self, mdp_info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params, batch_size,
                  initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha, use_log_alpha_loss=False,
-                 log_std_min=-20, log_std_max=2, target_entropy=None,critic_fit_params=None):
+                 log_std_min=-20, log_std_max=2, target_entropy=None, critic_fit_params=None):
         """
         Constructor.
 

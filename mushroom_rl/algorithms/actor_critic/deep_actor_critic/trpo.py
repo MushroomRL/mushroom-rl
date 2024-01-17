@@ -22,7 +22,7 @@ class TRPO(Agent):
     """
     def __init__(self, mdp_info, policy, critic_params, ent_coeff=0., max_kl=.001, lam=1.,
                  n_epochs_line_search=10, n_epochs_cg=10, cg_damping=1e-2, cg_residual_tol=1e-10,
-                 critic_fit_params=None):
+                 critic_fit_params=None, backend='torch'):
         """
         Constructor.
 
@@ -65,7 +65,7 @@ class TRPO(Agent):
 
         self._old_policy = None
 
-        super().__init__(mdp_info, policy)
+        super().__init__(mdp_info, policy, backend=backend)
 
         self._add_save_attr(
             _critic_fit_params='pickle', 

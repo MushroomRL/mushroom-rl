@@ -56,7 +56,7 @@ class PPO_BPTT(Agent):
 
         self._iter = 1
 
-        super().__init__(mdp_info, policy, is_episodic=False)
+        super().__init__(mdp_info, policy, backend='torch')
 
         self._add_save_attr(
             _critic_fit_params='pickle',
