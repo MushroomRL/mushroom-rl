@@ -89,6 +89,7 @@ class MultiprocessEnvironment(VectorizedEnvironment):
         self._state_shape = (n_envs,) + self.info.observation_space.shape
         self._reward_shape = (n_envs,)
         self._absorbing_shape = (n_envs,)
+        self._states = np.empty(self._state_shape)
 
     def reset_all(self, env_mask, state=None):
         for i, remote in enumerate(self._remotes):
@@ -96,25 +97,23 @@ class MultiprocessEnvironment(VectorizedEnvironment):
                 state_i = state[i, :] if state is not None else None
                 remote.send(('reset', state_i))
 
-        states = np.empty(self._state_shape)
         episode_infos = list()
         for i, remote in enumerate(self._remotes):
             if env_mask[i]:
                 state, episode_info = remote.recv()
 
-                states[i] = state
+                self._states[i] = state
                 episode_infos.append(episode_info)
             else:
                 episode_infos.append({})
 
-        return states, episode_infos
+        return self._states, episode_infos
 
     def step_all(self, env_mask, action):
         for i, remote in enumerate(self._remotes):
             if env_mask[i]:
                 remote.send(('step', action[i, :]))
 
-        states = np.empty(self._state_shape)
         rewards = np.empty(self._reward_shape)
         absorbings = np.zeros(self._absorbing_shape, dtype=bool)
         step_infos = list()
@@ -123,14 +122,14 @@ class MultiprocessEnvironment(VectorizedEnvironment):
             if env_mask[i]:
                 state, reward, absorbing, step_info = remote.recv()
 
-                states[i] = state
+                self._states[i] = state
                 rewards[i] = reward
                 absorbings[i] = absorbing
                 step_infos.append(step_info)
             else:
                 step_infos.append({})
 
-        return states, rewards, absorbings, step_infos
+        return self._states, rewards, absorbings, step_infos
 
     def render_all(self, env_mask, record=False):
         for i, remote in enumerate(self._remotes):
