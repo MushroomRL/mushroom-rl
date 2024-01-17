@@ -12,6 +12,9 @@ from mushroom_rl.algorithms.actor_critic import PPO
 
 from mushroom_rl.policy import GaussianTorchPolicy
 
+torch.set_num_threads(1)
+torch.set_num_interop_threads(4)
+
 
 class Network(nn.Module):
     def __init__(self, input_shape, output_shape, n_features, **kwargs):
