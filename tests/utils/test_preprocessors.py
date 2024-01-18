@@ -68,7 +68,7 @@ def test_normalizing_preprocessor(tmpdir):
     agent = DQN(mdp.info, pi, NumpyTorchApproximator, approximator_params=approximator_params, **alg_params)
 
     norm_box = MinMaxPreprocessor(mdp_info=mdp.info, clip_obs=5.0, alpha=0.001)
-    agent.add_preprocessor(norm_box)
+    agent.add_core_preprocessor(norm_box)
 
     core = Core(agent, mdp)
 
@@ -91,9 +91,9 @@ def test_normalizing_preprocessor(tmpdir):
 
     agent_new = DQN.load(tmpdir / 'agent.msh')
 
-    assert len(agent_new.preprocessors) == 1
+    assert len(agent_new.core_preprocessors) == 1
 
-    norm_box_agent = agent_new.preprocessors[0]
+    norm_box_agent = agent_new.core_preprocessors[0]
 
     state_dict2 = norm_box_new.__dict__
     state_dict3 = norm_box_agent.__dict__

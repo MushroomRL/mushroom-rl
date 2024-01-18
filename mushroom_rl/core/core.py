@@ -199,7 +199,7 @@ class Core(object):
              The preprocessed state.
 
         """
-        for p in self.agent.preprocessors:
+        for p in self.agent.core_preprocessors:
             p.update(state)
             state = p(state)
 

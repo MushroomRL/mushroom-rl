@@ -54,7 +54,7 @@ def experiment(n_epochs, n_iterations, ep_per_run):
 
     # normalization callback
     prepro = MinMaxPreprocessor(mdp_info=mdp.info)
-    agent.add_preprocessor(prepro)
+    agent.add_core_preprocessor(prepro)
 
     # plotting callback
     plotter = PlotDataset(mdp.info, obs_normalized=True)

@@ -72,7 +72,7 @@ class PPO_BPTT(Agent):
         )
 
         # add the standardization preprocessor
-        self._preprocessors.append(StandardizationPreprocessor(mdp_info))
+        self._core_preprocessors.append(StandardizationPreprocessor(mdp_info))
 
     def divide_state_to_env_hidden_batch(self, states):
         assert len(states.shape) > 1, "This function only divides batches of states."

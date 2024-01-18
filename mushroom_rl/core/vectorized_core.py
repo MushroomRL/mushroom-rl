@@ -222,7 +222,7 @@ class VectorCore(object):
              The preprocessed states.
 
         """
-        for p in self.agent.preprocessors:
+        for p in self.agent.core_preprocessors:
             p.update(states)
             states = p(states)
 

@@ -51,7 +51,8 @@ class Agent(Serializable):
         self._agent_backend = ArrayBackend.get_array_backend(backend)
         self._env_backend = ArrayBackend.get_array_backend(self.mdp_info.backend)
 
-        self._preprocessors = list()
+        self._core_preprocessors = list()
+        self._agent_preprocessors = list()
 
         self._logger = None
 
@@ -62,7 +63,8 @@ class Agent(Serializable):
             _info='mushroom',
             _agent_backend='primitive',
             _env_backend='primitive',
-            _preprocessors='mushroom',
+            _core_preprocessors='mushroom',
+            _agent_preprocessors='mushroom',
             _logger='none'
         )
 
@@ -89,8 +91,10 @@ class Agent(Serializable):
             The action to be executed.
 
         """
+        
         if self.next_action is None:
             state = self._convert_to_agent_backend(state)
+            state = self._agent_preprocess(state)
             policy_state = self._convert_to_agent_backend(policy_state)
             action, next_policy_state = self.policy.draw_action(state, policy_state)
         else:
@@ -99,6 +103,34 @@ class Agent(Serializable):
             self.next_action = None
 
         return self._convert_to_env_backend(action), self._convert_to_env_backend(next_policy_state)
+
+    def _agent_preprocess(self, state):
+        """
+        Applies all the agent's preprocessors to the state.
+
+        Args:
+            state (Array): the state where the agent is;
+
+        Returns:
+            The preprocessed state.
+
+        """
+        for p in self._agent_preprocessors:
+            state = p(state)
+        return state
+
+    def _update_agent_preprocessor(self, state):
+        """
+        Updates the stats of all the agent's preprocessors given the state.
+
+        Args:
+            state (Array): the state where the agent is;
+
+        """
+        for i, p in enumerate(self._agent_preprocessors, 1):
+            p.update(state)
+            if i < len(self._agent_preprocessors):
+                state = p(state)
 
     def episode_start(self, initial_state, episode_info):
         """
@@ -147,24 +179,35 @@ class Agent(Serializable):
         """
         self._logger = logger
 
-    def add_preprocessor(self, preprocessor):
+    def add_core_preprocessor(self, preprocessor):
         """
-        Add preprocessor to the preprocessor list. The preprocessors are applied in order.
+        Add preprocessor to the core's preprocessor list. The preprocessors are applied in order.
 
         Args:
             preprocessor (object): state preprocessors to be applied
                 to state variables before feeding them to the agent.
 
         """
-        self._preprocessors.append(preprocessor)
+        self._core_preprocessors.append(preprocessor)
+
+    def add_agent_preprocessor(self, preprocessor):
+        """
+        Add preprocessor to the agent's preprocessor list. The preprocessors are applied in order.
+
+        Args:
+            preprocessor (object): state preprocessors to be applied
+                to state variables before feeding them to the agent.
+
+        """
+        self._agent_preprocessors.append(preprocessor)
 
     @property
-    def preprocessors(self):
+    def core_preprocessors(self):
         """
-        Access to state preprocessors stored in the agent.
+        Access to core's state preprocessors stored in the agent.
 
         """
-        return self._preprocessors
+        return self._core_preprocessors
 
     def _convert_to_env_backend(self, array):
         return self._env_backend.to_backend_array(self._agent_backend, array)
