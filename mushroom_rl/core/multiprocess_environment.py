@@ -129,7 +129,7 @@ class MultiprocessEnvironment(VectorizedEnvironment):
             else:
                 step_infos.append({})
 
-        return self._states, rewards, absorbings, step_infos
+        return self._states.copy(), rewards, absorbings, step_infos
 
     def render_all(self, env_mask, record=False):
         for i, remote in enumerate(self._remotes):
