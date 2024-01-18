@@ -200,6 +200,7 @@ class Core(object):
 
         """
         for p in self.agent.preprocessors:
+            p.update(state)
             state = p(state)
 
         return state

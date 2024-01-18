@@ -223,6 +223,7 @@ class VectorCore(object):
 
         """
         for p in self.agent.preprocessors:
+            p.update(states)
             states = p(states)
 
         return states

@@ -4,7 +4,38 @@ from mushroom_rl.core.serialization import Serializable
 from mushroom_rl.rl_utils.running_stats import RunningStandardization
 
 
-class StandardizationPreprocessor(Serializable):
+class Preprocessor(Serializable):
+    """
+    Abstract preprocessor class.
+
+    """
+    def __call__(self, obs):
+        """
+        Preprocess the observations.
+
+        Args:
+            obs (Array): observations to be preprocessed.
+
+        Return:
+            Preprocessed observations.
+
+        """
+        # TODO: Support vectorized environment and batch preprocessing.
+        raise NotImplementedError
+
+    def update(self, obs):
+        """
+        Update internal state of the preprocessor using the current observations.
+
+        Args:
+            obs (Array): observations to be preprocessed.
+
+        """
+        # TODO: Support vectorized environment and batch update.
+        pass
+
+
+class StandardizationPreprocessor(Preprocessor):
     """
     Preprocess observations from the environment using a running
     standardization.
@@ -33,28 +64,20 @@ class StandardizationPreprocessor(Serializable):
         )
 
     def __call__(self, obs):
-        """
-        Call function to normalize the observation.
-
-        Args:
-            obs (np.ndarray): observation to be normalized.
-
-        Returns:
-            Normalized observation array with the same shape.
-
-        """
         assert obs.shape == self._obs_shape, \
             "Values given to running_norm have incorrect shape " \
             "(obs shape: {},  expected shape: {})" \
             .format(obs.shape, self._obs_shape)
 
-        self._obs_runstand.update_stats(obs)
         norm_obs = np.clip(
             (obs - self._obs_runstand.mean) / self._obs_runstand.std,
             -self._clip_obs, self._clip_obs
         )
 
         return norm_obs
+
+    def update(self, obs):
+        self._obs_runstand.update_stats(obs)
 
 
 class MinMaxPreprocessor(StandardizationPreprocessor):
@@ -104,16 +127,6 @@ class MinMaxPreprocessor(StandardizationPreprocessor):
         )
 
     def __call__(self, obs):
-        """
-        Call function to normalize the observation.
-
-        Args:
-            obs (np.ndarray): observation to be normalized.
-
-        Returns:
-            Normalized observation array with the same shape.
-
-        """
         orig_obs = obs.copy()
 
         if self._run_norm_obs:
