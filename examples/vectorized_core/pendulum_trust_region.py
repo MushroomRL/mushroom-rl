@@ -8,7 +8,7 @@ from tqdm import trange
 
 from mushroom_rl.core import VectorCore, Logger, MultiprocessEnvironment
 from mushroom_rl.environments import Gym
-from mushroom_rl.algorithms.actor_critic import PPO
+from mushroom_rl.algorithms.actor_critic import PPO, TRPO
 
 from mushroom_rl.policy import GaussianTorchPolicy
 
@@ -27,12 +27,9 @@ class Network(nn.Module):
         self._h2 = nn.Linear(n_features, n_features)
         self._h3 = nn.Linear(n_features, n_output)
 
-        nn.init.xavier_uniform_(self._h1.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h2.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h3.weight,
-                                gain=nn.init.calculate_gain('linear'))
+        nn.init.xavier_uniform_(self._h1.weight, gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self._h2.weight, gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self._h3.weight, gain=nn.init.calculate_gain('linear'))
 
     def forward(self, state, **kwargs):
         features1 = F.relu(self._h1(torch.squeeze(state, 1).float()))
@@ -119,7 +116,8 @@ if __name__ == '__main__':
                        cg_residual_tol=1e-10)
 
     algs_params = [
-        (PPO, 'ppo', ppo_params)
+        (PPO, 'ppo', ppo_params),
+        (TRPO, 'trpo', trpo_params)
     ]
 
     for alg, alg_name, alg_params in algs_params:
