@@ -1,6 +1,5 @@
 from mushroom_rl.core.serialization import Serializable
-
-from ._impl import *
+from .array_backend import ArrayBackend
 
 
 class AgentInfo(Serializable):
@@ -210,10 +209,10 @@ class Agent(Serializable):
         return self._core_preprocessors
 
     def _convert_to_env_backend(self, array):
-        return self._env_backend.to_backend_array(self._agent_backend, array)
+        return self._env_backend.convert_to_backend(self._agent_backend, array)
 
     def _convert_to_agent_backend(self, array):
-        return self._agent_backend.to_backend_array(self._env_backend, array)
+        return self._agent_backend.convert_to_backend(self._env_backend, array)
 
     @property
     def info(self):

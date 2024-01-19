@@ -1,7 +1,7 @@
 import numpy.random
 import torch
 import numpy as np
-from mushroom_rl.core._impl import NumpyBackend, TorchBackend
+from mushroom_rl.core.array_backend import NumpyBackend, TorchBackend
 
 
 def sequence_generator():

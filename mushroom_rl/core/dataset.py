@@ -5,6 +5,7 @@ from collections import defaultdict
 import torch
 
 from mushroom_rl.core.serialization import Serializable
+from .array_backend import ArrayBackend
 
 from ._impl import *
 
@@ -153,15 +154,13 @@ class Dataset(Serializable):
         else:
             dataset._theta_list = theta_list
 
+        dataset._array_backend = ArrayBackend.get_array_backend(backend)
         if backend == 'numpy':
             dataset._data = NumpyDataset.from_array(states, actions, rewards, next_states, absorbings, lasts)
-            dataset._array_backend = NumpyBackend
         elif backend == 'torch':
             dataset._data = TorchDataset.from_array(states, actions, rewards, next_states, absorbings, lasts)
-            dataset._array_backend = TorchBackend
         else:
             dataset._data = ListDataset.from_array(states, actions, rewards, next_states, absorbings, lasts)
-            dataset._array_backend = ListBackend
 
         dataset._n_envs = 1
 
@@ -326,8 +325,7 @@ class Dataset(Serializable):
         """
         if to is None:
             to = self._array_backend.get_backend_name()
-        return self._array_backend.convert(self.state, self.action, self.reward, self.next_state,
-                                           self.absorbing, self.last, to=to)
+        return self._convert(self.state, self.action, self.reward, self.next_state, self.absorbing, self.last, to=to)
 
     def parse_policy_state(self, to=None):
         """
@@ -342,7 +340,7 @@ class Dataset(Serializable):
         """
         if to is None:
             to = self._array_backend.get_backend_name()
-        return self._array_backend.convert(self.policy_state, self.policy_next_state, to=to)
+        return self._convert(self.policy_state, self.policy_next_state, to=to)
 
     def select_first_episodes(self, n_episodes):
         """
@@ -457,6 +455,14 @@ class Dataset(Serializable):
             return J.min(), J.max(), J.mean(), median, len(J)
         else:
             return 0, 0, 0, 0, 0
+
+    def _convert(self, *arrays, to='numpy'):
+        if to == 'numpy':
+            return self._array_backend.arrays_to_numpy(*arrays)
+        elif to == 'torch':
+            return self._array_backend.arrays_to_torch(*arrays)
+        else:
+            return NotImplementedError
 
     def _add_all_save_attr(self):
         self._add_save_attr(

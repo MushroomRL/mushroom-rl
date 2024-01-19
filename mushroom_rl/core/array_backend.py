@@ -1,3 +1,4 @@
+from collections import deque
 import numpy as np
 import torch
 
@@ -5,39 +6,63 @@ from mushroom_rl.utils.torch import TorchUtils
 
 
 class ArrayBackend(object):
+
     @staticmethod
     def get_backend_name():
         raise NotImplementedError
 
     @staticmethod
-    def get_array_backend(backend):
-        if backend == 'numpy':
+    def get_array_backend(backend_name):
+        assert type(backend_name) == str, f"Backend has to be string, not {type(backend_name).__name__}."
+        if backend_name == 'numpy':
             return NumpyBackend
-        elif backend == 'torch':
+        elif backend_name == 'torch':
             return TorchBackend
-        else:
+        elif backend_name == 'list':
             return ListBackend
+        else:
+            raise ValueError(f"Unknown backend {backend_name}.")
+
+    @staticmethod
+    def get_array_backend_from(array):
+        if isinstance(array, np.ndarray):
+            return NumpyBackend
+        elif isinstance(array, torch.Tensor):
+            return TorchBackend
+        elif isinstance(array, (list, deque)):
+            return ListBackend
+        else:
+            raise ValueError(f"Unknown backend for type {type(array)}.")
 
     @classmethod
-    def convert(cls, *arrays, to='numpy'):
+    def convert(cls, *arrays, to=None, backend=None):
+        if to is None:
+            to = cls.get_backend_name()
+        if backend is None:
+            backend = ArrayBackend.get_array_backend_from(arrays[0])
         if to == 'numpy':
-            return cls.arrays_to_numpy(*arrays)
+            return backend.arrays_to_numpy(*arrays) if len(arrays) > 1 else backend.arrays_to_numpy(*arrays)[0]
         elif to == 'torch':
-            return cls.arrays_to_torch(*arrays)
+            return backend.arrays_to_torch(*arrays) if len(arrays) > 1 else backend.arrays_to_torch(*arrays)[0]
         else:
             return NotImplementedError
 
-    @classmethod
-    def convert_to_backend(cls, *arrays, to='numpy'):
-        return cls.convert(*arrays, to=cls.get_backend_name())
+    @staticmethod
+    def convert_to_backend(cls, array):
+        raise NotImplementedError
 
     @classmethod
     def arrays_to_numpy(cls, *arrays):
-        return (cls.to_numpy(array) for array in arrays)
+        return tuple(cls.to_numpy(array) for array in arrays)
 
     @classmethod
     def arrays_to_torch(cls, *arrays):
-        return (cls.to_torch(array) for array in arrays)
+        return tuple(cls.to_torch(array) for array in arrays)
+
+    @classmethod
+    def check_device(cls, device):
+        if device is not None:
+            raise ValueError(f"Device can not be set for {cls.get_backend_name()} backend.")
 
     @staticmethod
     def to_numpy(array):
@@ -47,16 +72,20 @@ class ArrayBackend(object):
     def to_torch(array):
         raise NotImplementedError
 
-    @staticmethod
-    def to_backend_array(cls, array):
+    @classmethod
+    def zeros(cls, *dims, dtype, device=None):
         raise NotImplementedError
 
-    @staticmethod
-    def zeros(*dims, dtype):
+    @classmethod
+    def ones(cls, *dims, dtype, device=None):
         raise NotImplementedError
 
-    @staticmethod
-    def ones(*dims, dtype):
+    @classmethod
+    def zeros_like(cls, array, dtype, device=None):
+        raise NotImplementedError
+
+    @classmethod
+    def ones_like(cls, array, dtype, device=None):
         raise NotImplementedError
 
     @staticmethod
@@ -68,7 +97,15 @@ class ArrayBackend(object):
         raise NotImplementedError
 
     @staticmethod
+    def squeeze(array, dim):
+        raise NotImplementedError
+
+    @staticmethod
     def expand_dims(array, dim):
+        raise NotImplementedError
+
+    @staticmethod
+    def size(arr):
         raise NotImplementedError
 
     @staticmethod
@@ -80,11 +117,23 @@ class ArrayBackend(object):
         raise NotImplementedError
 
     @staticmethod
+    def abs(array):
+        raise NotImplementedError
+
+    @staticmethod
+    def clip(array, min, max):
+        raise NotImplementedError
+
+    @staticmethod
     def copy(array):
         raise NotImplementedError
 
     @staticmethod
     def median(array):
+        raise NotImplementedError
+
+    @staticmethod
+    def sqrt(array):
         raise NotImplementedError
 
     @staticmethod
@@ -110,16 +159,28 @@ class NumpyBackend(ArrayBackend):
         return None if array is None else torch.from_numpy(array).to(TorchUtils.get_device())
 
     @staticmethod
-    def to_backend_array(cls, array):
+    def convert_to_backend(cls, array):
         return cls.to_numpy(array)
 
-    @staticmethod
-    def zeros(*dims, dtype=float):
+    @classmethod
+    def zeros(cls, *dims, dtype=float, device=None):
+        cls.check_device(device)
         return np.zeros(dims, dtype=dtype)
 
-    @staticmethod
-    def ones(*dims, dtype=float):
+    @classmethod
+    def ones(cls, *dims, dtype=float, device=None):
+        cls.check_device(device)
         return np.ones(dims, dtype=dtype)
+
+    @classmethod
+    def zeros_like(cls, array, dtype=float, device=None):
+        cls.check_device(device)
+        return np.zeros_like(array, dtype=dtype)
+
+    @classmethod
+    def ones_like(cls, array, dtype=float, device=None):
+        cls.check_device(device)
+        return np.ones_like(array, dtype=dtype)
 
     @staticmethod
     def concatenate(list_of_arrays, dim=0):
@@ -134,8 +195,16 @@ class NumpyBackend(ArrayBackend):
             np.where(cond, x, y)
 
     @staticmethod
+    def squeeze(array, dim=None):
+        return np.squeeze(array, axis=dim)
+
+    @staticmethod
     def expand_dims(array, dim):
         return np.expand_dims(array, axis=dim)
+
+    @staticmethod
+    def size(arr):
+        return np.size(arr)
 
     @staticmethod
     def randint(low, high, size):
@@ -147,12 +216,24 @@ class NumpyBackend(ArrayBackend):
         return np.arange(start, stop, step, dtype=dtype)
 
     @staticmethod
+    def abs(array):
+        return np.abs(array)
+
+    @staticmethod
+    def clip(array, min, max):
+        return np.clip(array, min, max)
+
+    @staticmethod
     def copy(array):
         return array.copy()
 
     @staticmethod
     def median(array):
         return np.median(array)
+
+    @staticmethod
+    def sqrt(array):
+        return np.sqrt(array)
 
     @staticmethod
     def from_list(array):
@@ -167,6 +248,7 @@ class NumpyBackend(ArrayBackend):
 
 
 class TorchBackend(ArrayBackend):
+
     @staticmethod
     def get_backend_name():
         return 'torch'
@@ -180,16 +262,28 @@ class TorchBackend(ArrayBackend):
         return array
 
     @staticmethod
-    def to_backend_array(cls, array):
+    def convert_to_backend(cls, array):
         return cls.to_torch(array)
 
-    @staticmethod
-    def zeros(*dims, dtype=torch.float32):
-        return torch.zeros(*dims, dtype=dtype, device=TorchUtils.get_device())
+    @classmethod
+    def zeros(cls, *dims, dtype=torch.float32, device=None):
+        device = TorchUtils.get_device() if device is None else device
+        return torch.zeros(*dims, dtype=dtype, device=device)
 
-    @staticmethod
-    def ones(*dims, dtype=torch.float32):
-        return torch.ones(*dims, dtype=dtype, device=TorchUtils.get_device())
+    @classmethod
+    def ones(cls, *dims, dtype=torch.float32, device=None):
+        device = TorchUtils.get_device() if device is None else device
+        return torch.ones(*dims, dtype=dtype, device=device)
+
+    @classmethod
+    def zeros_like(cls, array, dtype=torch.float32, device=None):
+        device = array.device if device is None else device
+        return torch.zeros_like(array, dtype=dtype, device=device)
+
+    @classmethod
+    def ones_like(cls, array, dtype=torch.float32, device=None):
+        device = array.device if device is None else device
+        return torch.ones_like(array, dtype=dtype, device=device)
 
     @staticmethod
     def concatenate(list_of_arrays, dim=0):
@@ -204,8 +298,19 @@ class TorchBackend(ArrayBackend):
             torch.where(cond, x, y)
 
     @staticmethod
+    def squeeze(array, dim=None):
+        if dim is None:
+            return torch.squeeze(array)
+        else:
+            return torch.squeeze(array, dim=dim)
+
+    @staticmethod
     def expand_dims(array, dim):
         return torch.unsqueeze(array, dim=dim)
+
+    @staticmethod
+    def size(arr):
+        return torch.numel(arr)
 
     @staticmethod
     def randint(low, high, size):
@@ -216,12 +321,24 @@ class TorchBackend(ArrayBackend):
         return torch.arange(start, stop, step, dtype=dtype)
 
     @staticmethod
+    def abs(array):
+        return torch.abs(array)
+
+    @staticmethod
+    def clip(array, min, max):
+        return torch.clip(array, min, max)
+
+    @staticmethod
     def copy(array):
         return array.clone()
 
     @staticmethod
     def median(array):
         return array.median()
+
+    @staticmethod
+    def sqrt(array):
+        return torch.sqrt(array)
 
     @staticmethod
     def from_list(array):
@@ -240,6 +357,7 @@ class TorchBackend(ArrayBackend):
 
 
 class ListBackend(ArrayBackend):
+
     @staticmethod
     def get_backend_name():
         return 'list'
@@ -253,16 +371,28 @@ class ListBackend(ArrayBackend):
         return None if array is None else torch.as_tensor(array, device=TorchUtils.get_device())
 
     @staticmethod
-    def to_backend_array(cls, array):
+    def convert_to_backend(cls, array):
         return cls.to_numpy(array)
 
-    @staticmethod
-    def zeros(*dims, dtype=float):
-        return np.zeros(dims, dtype=float)
+    @classmethod
+    def zeros(cls, *dims, dtype=float, device=None):
+        cls.check_device(device)
+        return np.zeros(dims, dtype=dtype)
 
-    @staticmethod
-    def ones(*dims, dtype=float):
-        return np.ones(dims, dtype=float)
+    @classmethod
+    def ones(cls, *dims, dtype=float, device=None):
+        cls.check_device(device)
+        return np.ones(dims, dtype=dtype)
+
+    @classmethod
+    def zeros_like(cls, array, dtype=float, device=None):
+        cls.check_device(device)
+        return np.zeros_like(array, dtype=dtype)
+
+    @classmethod
+    def ones_like(cls, array, dtype=float, device=None):
+        cls.check_device(device)
+        return np.ones_like(array, dtype=dtype)
 
     @staticmethod
     def copy(array):

@@ -1,4 +1,4 @@
-from .array_backend import ArrayBackend
+from mushroom_rl.core import ArrayBackend
 from .core_logic import CoreLogic
 
 

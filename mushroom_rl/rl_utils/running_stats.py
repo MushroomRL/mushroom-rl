@@ -1,6 +1,6 @@
 import numpy as np
 from collections import deque
-from mushroom_rl.core.serialization import Serializable
+from mushroom_rl.core import Serializable, ArrayBackend
 
 
 class RunningStandardization(Serializable):
@@ -9,30 +9,35 @@ class RunningStandardization(Serializable):
     algorithm: https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
 
     """
-    def __init__(self, shape, alpha=1e-32):
+    def __init__(self, shape, backend, alpha=1e-32):
         """
         Constructor.
 
         Args:
             shape (tuple): shape of the data to standardize;
+            backend (str): name of the backend to be used;
             alpha (float, 1e-32): minimum learning rate.
 
         """
+        assert backend in ["numpy", "torch"]
         self._shape = shape
 
         assert 0. < alpha < 1.
         self._alpha = alpha
 
+        self._array_backend = ArrayBackend.get_array_backend(backend)
+
         self._n = 1
-        self._m = np.zeros(self._shape)
-        self._s = np.ones(self._shape)
+        self._m = self._array_backend.zeros(*self._shape)
+        self._s = self._array_backend.ones(*self._shape)
 
         self._add_save_attr(
             _shape='primitive',
             _alpha='primitive',
+            _array_backend='pickle',
             _n='primitive',
             _m='primitive',
-            _s='primitive',
+            _s='primitive'
         )
 
     def reset(self):
@@ -41,8 +46,8 @@ class RunningStandardization(Serializable):
 
         """
         self._n = 1
-        self._m = np.zeros(self._shape)
-        self._s = np.ones(self._shape)
+        self._m = self._array_backend.zeros(*self._shape)
+        self._s = self._array_backend.ones(*self._shape)
 
     def update_stats(self, value):
         """
@@ -74,7 +79,7 @@ class RunningStandardization(Serializable):
             The estimated standard deviation value.
 
         """
-        return np.sqrt(self._s / self._n)
+        return self._array_backend.sqrt(self._s / self._n)
 
 
 class RunningExpWeightedAverage(Serializable):
@@ -82,23 +87,27 @@ class RunningExpWeightedAverage(Serializable):
     Compute an exponentially weighted moving average.
 
     """
-    def __init__(self, shape, alpha, init_value=None):
+    def __init__(self, shape, alpha, backend, init_value=None):
         """
         Constructor.
 
         Args:
-             shape (tuple): shape of the data to standardize;
-             alpha (float): learning rate;
-             init_value (np.ndarray): initial value of the filter.
+            shape (tuple): shape of the data to standardize;
+            alpha (float): learning rate;
+            backend (str): name of the backend to be used;
+            init_value (np.ndarray): initial value of the filter.
 
         """
+        assert backend in ["numpy", "torch"]
         self._shape = shape
         self._alpha = alpha
+        self._array_backend = ArrayBackend.get_array_backend(backend)
         self.reset(init_value)
 
         self._add_save_attr(
             _shape='primitive',
             _alpha='primitive',
+            _array_backend="pickle",
             _avg_value='primitive',
         )
 
@@ -111,9 +120,9 @@ class RunningExpWeightedAverage(Serializable):
 
         """
         if init_value is None:
-            self._avg_value = np.zeros(self._shape)
+            self._avg_value = self._array_backend.zeros(*self._shape)
         else:
-            self._avg_value = init_value
+            self._avg_value = self._array_backend.convert(init_value)
 
     def update_stats(self, value):
         """
@@ -141,23 +150,27 @@ class RunningAveragedWindow(Serializable):
     Compute the running average using a window of fixed size.
 
     """
-    def __init__(self, shape, window_size, init_value=None):
+    def __init__(self, shape, window_size, backend, init_value=None):
         """
         Constructor.
 
         Args:
-             shape (tuple): shape of the data to standardize;
-             window_size (int): size of the windos;
-             init_value (np.ndarray): initial value of the filter.
+            shape (tuple): shape of the data to standardize;
+            window_size (int): size of the windows;
+            backend (str): name of the backend to be used;
+            init_value (np.ndarray): initial value of the filter.
 
         """
+        assert backend in ["numpy", "torch"]
         self._shape = shape
         self._window_size = window_size
+        self._array_backend = ArrayBackend.get_array_backend(backend)
         self.reset(init_value)
 
         self._add_save_attr(
             _shape='primitive',
             _window_size='primitive',
+            _array_backend='pickle',
             _avg_buffer='primitive',
         )
 
@@ -170,10 +183,10 @@ class RunningAveragedWindow(Serializable):
 
         """
         if init_value is None:
-            self._avg_buffer = deque(np.zeros((1, *self._shape)),
-                                    maxlen=self._window_size)
+            self._avg_buffer = deque(self._array_backend.zeros(1, *self._shape),
+                                     maxlen=self._window_size)
         else:
-            self._avg_buffer = deque([init_value], maxlen=self._window_size)
+            self._avg_buffer = deque([self._array_backend.convert(init_value)], maxlen=self._window_size)
 
     def update_stats(self, value):
         """
@@ -192,4 +205,4 @@ class RunningAveragedWindow(Serializable):
             The estimated mean value.
 
         """
-        return np.mean(self._avg_buffer, axis=0)
+        return self._array_backend.convert(self._avg_buffer).mean(0)

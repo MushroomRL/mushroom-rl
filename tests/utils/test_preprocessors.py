@@ -67,7 +67,7 @@ def test_normalizing_preprocessor(tmpdir):
 
     agent = DQN(mdp.info, pi, NumpyTorchApproximator, approximator_params=approximator_params, **alg_params)
 
-    norm_box = MinMaxPreprocessor(mdp_info=mdp.info, clip_obs=5.0, alpha=0.001)
+    norm_box = MinMaxPreprocessor(mdp_info=mdp.info, backend="numpy", clip_obs=5.0, alpha=0.001)
     agent.add_core_preprocessor(norm_box)
 
     core = Core(agent, mdp)
@@ -99,7 +99,30 @@ def test_normalizing_preprocessor(tmpdir):
     state_dict3 = norm_box_agent.__dict__
 
     assert (state_dict1["_obs_runstand"].mean == state_dict2["_obs_runstand"].mean).all() \
-            and (state_dict1["_obs_runstand"].std == state_dict2["_obs_runstand"].std).all()
+           and (state_dict1["_obs_runstand"].std == state_dict2["_obs_runstand"].std).all()
 
     assert (state_dict1["_obs_runstand"].mean == state_dict3["_obs_runstand"].mean).all() \
            and (state_dict1["_obs_runstand"].std == state_dict3["_obs_runstand"].std).all()
+
+
+def test_normalizing_preprocessor_backend():
+    # check if the preprocessor work the same for numpy and torch
+    np.random.seed(88)
+
+    mdp = Gym('CartPole-v0', horizon=500, gamma=.99)
+
+    norm_box_np = MinMaxPreprocessor(mdp_info=mdp.info, backend="numpy", clip_obs=5.0, alpha=0.001)
+    norm_box_torch = MinMaxPreprocessor(mdp_info=mdp.info, backend="torch", clip_obs=5.0, alpha=0.001)
+
+    mdp.reset()
+    for i in range(20):
+        action = np.random.randint(1, size=mdp.info.action_space.shape)
+        next_state, _, _, _ = mdp.step(action)
+
+        next_state_np = norm_box_np(next_state)
+        next_state_torch = norm_box_torch(torch.from_numpy(next_state)).detach().cpu().numpy()
+
+        assert np.all(np.isclose(next_state_np, next_state_torch))
+
+        norm_box_np.update(next_state)
+        norm_box_torch.update(torch.from_numpy(next_state))
