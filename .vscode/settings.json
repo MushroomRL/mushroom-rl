@@ -1,3 +1,4 @@
 {
-    "makefile.extensionOutputFolder": "./.vscode"
+    "makefile.extensionOutputFolder": "./.vscode",
+    "esbonio.sphinx.confDir": ""
 }

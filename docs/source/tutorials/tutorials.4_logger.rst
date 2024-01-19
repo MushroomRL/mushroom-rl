@@ -1,4 +1,4 @@
-How to use the Logger
+Use the Logger
 =====================
 
 Here we explain in detail the usage of the MushroomRL Logger class.

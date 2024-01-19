@@ -1,4 +1,4 @@
-How to make an advanced experiment
+Make an advanced experiment
 ==================================
 
 Continuous MDPs are a challenging class of problems to solve in RL. In these

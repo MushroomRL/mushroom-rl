@@ -1,4 +1,4 @@
-How to create a regressor
+Create a regressor
 =========================
 
 MushroomRL offers a high-level interface to build function regressors. Indeed, it

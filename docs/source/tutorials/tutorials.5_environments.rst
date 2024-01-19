@@ -1,4 +1,4 @@
-How to use the Environment interface
+Use the Environment interface
 ====================================
 
 Here we explain in detail the usage of the MushroomRL Environment interface.

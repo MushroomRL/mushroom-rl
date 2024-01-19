@@ -1,4 +1,4 @@
-How to make a deep RL experiment
+Make a deep RL experiment
 ================================
 
 The usual script to run a deep RL experiment does not significantly differ from

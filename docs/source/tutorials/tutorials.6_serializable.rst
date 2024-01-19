@@ -1,4 +1,4 @@
-How to Save and Load (Serializable interface)
+Save and Load (Serializable interface)
 =============================================
 
 In this tutorial, we explain in detail the ``Serializable`` interface, i.e. the interface to save and load classes from

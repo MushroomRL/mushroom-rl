@@ -1,0 +1,82 @@
+/* custom CSS classes (used in docs/user_guide/extending.rst) NOTE: the begin
+ *  and end markers are necessary for partial file includes! don't remove them.
+ */
+
+/* begin-custom-color/* <your static path>/custom.css */
+
+
+
+.navbar-brand p {
+
+  color: rgb(23, 176, 23);
+
+
+}
+
+
+h1 {
+  font-size: 3rem;
+  align-content: center;
+  text-align: center;
+  color: rgb(23, 176, 23);
+}
+
+h2 {
+  font-size: 2rem;
+  align-content: center;
+  text-align: center;
+  color: rgb(23, 176, 23);
+}
+
+
+h3 {
+  font-size: 1.17rem;
+
+  align-content: center;
+  text-align: center;
+}
+
+
+
+
+div.admonition.admonition-olive {
+  border-color: hsl(60, 100%, 25%);
+}
+div.admonition.admonition-olive > .admonition-title {
+  background-color: hsl(60, 100%, 14%);
+  color: white;
+}
+div.admonition.admonition-olive > .admonition-title:after {
+  color: hsl(60, 100%, 25%);
+}
+/* end-custom-color */
+
+/* begin-custom-icon/* <your static path>/custom.css */
+
+div.admonition.admonition-icon > .admonition-title:after {
+  content: "\f24e"; /* the fa-scale icon */
+}
+/* end-custom-icon */
+
+/* begin-custom-youtube/* <your static path>/custom.css */
+
+div.admonition.admonition-youtube {
+  border-color: hsl(0, 100%, 50%); /* YouTube red */
+}
+div.admonition.admonition-youtube > .admonition-title {
+  background-color: hsl(0, 99%, 18%);
+  color: white;
+}
+div.admonition.admonition-youtube > .admonition-title:after {
+  color: hsl(0, 100%, 50%);
+  content: "\f26c"; /* fa-solid fa-tv */
+}
+/* end-custom-youtube */
+
+/* fix for project names that are parsed as links: the whole card is a link so
+ * don't format the project name itself like a text link
+ */
+div.downstream-project-links a {
+  text-decoration: none !important;
+  color: inherit !important;
+}
