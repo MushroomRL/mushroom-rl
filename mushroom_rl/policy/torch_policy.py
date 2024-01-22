@@ -20,6 +20,9 @@ class TorchPolicy(Policy):
     required.
 
     """
+
+    # TODO: remove TorchUtils.to_float_tensor(array) and update the docstring to replace np.ndarray.
+
     def __init__(self, policy_state_shape=None):
         """
         Constructor.
@@ -28,14 +31,14 @@ class TorchPolicy(Policy):
         super().__init__(policy_state_shape)
 
     def __call__(self, state, action, policy_state=None):
-        s = TorchUtils.to_float_tensor(np.atleast_2d(state))
-        a = TorchUtils.to_float_tensor(np.atleast_2d(action))
+        s = TorchUtils.to_float_tensor(torch.atleast_2d(state))
+        a = TorchUtils.to_float_tensor(torch.atleast_2d(action))
 
-        return np.exp(self.log_prob_t(s, a).item())
+        return torch.exp(self.log_prob_t(s, a))
 
     def draw_action(self, state, policy_state=None):
         with torch.no_grad():
-            s = TorchUtils.to_float_tensor(np.atleast_2d(state))
+            s = TorchUtils.to_float_tensor(torch.atleast_2d(state))
             a = self.draw_action_t(s)
 
         return torch.squeeze(a, dim=0).detach(), None
@@ -71,7 +74,7 @@ class TorchPolicy(Policy):
         """
         s = TorchUtils.to_float_tensor(state) if state is not None else None
 
-        return self.entropy_t(s).detach().cpu().numpy().item()
+        return self.entropy_t(s).detach()
 
     def draw_action_t(self, state):
         """
@@ -189,7 +192,7 @@ class GaussianTorchPolicy(TorchPolicy):
         self._mu = Regressor(TorchApproximator, input_shape, output_shape, network=network, **params)
         self._predict_params = dict()
 
-        log_sigma_init = TorchUtils.to_float_tensor(torch.ones(self._action_dim) * np.log(std_0))
+        log_sigma_init = torch.ones(self._action_dim, device=TorchUtils.get_device()) * torch.log(TorchUtils.to_float_tensor(std_0))
 
         self._log_sigma = nn.Parameter(log_sigma_init)
 
@@ -207,7 +210,8 @@ class GaussianTorchPolicy(TorchPolicy):
         return self.distribution_t(state).log_prob(action)[:, None]
 
     def entropy_t(self, state=None):
-        return self._action_dim / 2 * np.log(2 * np.pi * np.e) + torch.sum(self._log_sigma)
+        return self._action_dim / 2 * torch.log(TorchUtils.to_float_tensor(2 * np.pi * np.e))\
+               + torch.sum(self._log_sigma)
 
     def distribution_t(self, state):
         mu, chol_sigma = self.get_mean_and_chol(state)
@@ -225,9 +229,9 @@ class GaussianTorchPolicy(TorchPolicy):
 
     def get_weights(self):
         mu_weights = self._mu.get_weights()
-        sigma_weights = self._log_sigma.data.detach().cpu().numpy()
+        sigma_weights = self._log_sigma.data.detach()
 
-        return np.concatenate([mu_weights, sigma_weights])
+        return torch.concatenate([mu_weights, sigma_weights])
 
     def parameters(self):
         return chain(self._mu.model.network.parameters(), [self._log_sigma])

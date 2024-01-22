@@ -59,14 +59,14 @@ def test_gaussian_torch_policy():
     torch.manual_seed(88)
     pi = GaussianTorchPolicy(Network, (3,), (2,), n_features=50)
 
-    state = np.random.rand(3)
+    state = torch.as_tensor(np.random.rand(3))
     action, _ = pi.draw_action(state)
     action_test = np.array([-0.21276927,  0.27437747])
-    assert np.allclose(action, action_test)
+    assert np.allclose(action.detach().cpu().numpy(), action_test)
 
-    p_sa = pi(state, action)
+    p_sa = pi(state, torch.as_tensor(action))
     p_sa_test = 0.07710557966732147
-    assert np.allclose(p_sa, p_sa_test)
+    assert np.allclose(p_sa.detach().cpu().numpy(), p_sa_test)
 
     entropy = pi.entropy()
     entropy_test = 2.837877
@@ -79,16 +79,16 @@ def test_boltzmann_torch_policy():
     beta = Parameter(1.0)
     pi = BoltzmannTorchPolicy(Network, (3,), (2,), beta, n_features=50)
 
-    state = np.random.rand(3, 3)
+    state = torch.as_tensor(np.random.rand(3, 3))
     action, _ = pi.draw_action(state)
     action_test = np.array([1, 0, 0])
-    assert np.allclose(action, action_test)
+    assert np.allclose(action.detach().cpu().numpy(), action_test)
 
     p_sa = pi(state[0], action[0])
     p_sa_test = 0.24054041611818922
-    assert np.allclose(p_sa, p_sa_test)
+    assert np.allclose(p_sa.detach(), p_sa_test)
 
     states = np.random.rand(1000, 3)
     entropy = pi.entropy(states)
     entropy_test = 0.5428627133369446
-    assert np.allclose(entropy, entropy_test)
+    assert np.allclose(entropy.detach().cpu().numpy(), entropy_test)
