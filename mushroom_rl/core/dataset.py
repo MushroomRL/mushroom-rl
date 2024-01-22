@@ -291,7 +291,7 @@ class Dataset(Serializable):
                 lengths.append(l)
                 l = 0
 
-        return lengths
+        return self._array_backend.from_list(lengths)
 
     @property
     def n_episodes(self):
