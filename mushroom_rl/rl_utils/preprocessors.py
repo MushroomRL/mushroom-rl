@@ -68,10 +68,6 @@ class StandardizationPreprocessor(Preprocessor):
         )
 
     def __call__(self, obs):
-        assert obs.shape == self._obs_shape, \
-            "Values given to running_norm have incorrect shape " \
-            "(obs shape: {},  expected shape: {})" \
-            .format(obs.shape, self._obs_shape)
 
         norm_obs = self._array_backend.clip(
             (obs - self._obs_runstand.mean) / self._obs_runstand.std,
