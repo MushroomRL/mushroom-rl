@@ -126,8 +126,8 @@ class PPO_BPTT(OnPolicyDeepAC):
                 # apply padding
                 length_seq = len(states_seq)
                 padded_states_old = torch.concatenate([states_old_seq,
-                                                       torch.zeros((self._truncation_length - states_seq.shape[0],
-                                                                    states_seq.shape[1]))])
+                                                       torch.zeros((self._truncation_length - states_old_seq.shape[0],
+                                                                    states_old_seq.shape[1]))])
                 padded_states = torch.concatenate([states_seq,
                                                    torch.zeros((self._truncation_length - states_seq.shape[0],
                                                                 states_seq.shape[1]))])
