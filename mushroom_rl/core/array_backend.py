@@ -125,6 +125,10 @@ class ArrayBackend(object):
         raise NotImplementedError
 
     @staticmethod
+    def atleast_2d(array):
+        raise NotImplementedError
+
+    @staticmethod
     def copy(array):
         raise NotImplementedError
 
@@ -222,6 +226,10 @@ class NumpyBackend(ArrayBackend):
     @staticmethod
     def clip(array, min, max):
         return np.clip(array, min, max)
+
+    @staticmethod
+    def atleast_2d(array):
+        return np.atleast_2d(array)
 
     @staticmethod
     def copy(array):
@@ -327,6 +335,10 @@ class TorchBackend(ArrayBackend):
     @staticmethod
     def clip(array, min, max):
         return torch.clip(array, min, max)
+
+    @staticmethod
+    def atleast_2d(array):
+        return torch.atleast_2d(array)
 
     @staticmethod
     def copy(array):

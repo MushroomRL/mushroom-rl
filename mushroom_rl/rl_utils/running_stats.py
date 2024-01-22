@@ -46,21 +46,23 @@ class RunningStandardization(Serializable):
 
         """
         self._n = 1
-        self._m = self._array_backend.zeros(*self._shape)
-        self._s = self._array_backend.ones(*self._shape)
+        self._m = self._array_backend.zeros(1, *self._shape)
+        self._s = self._array_backend.ones(1, *self._shape)
 
     def update_stats(self, value):
         """
         Update the statistics with the current data value.
 
         Args:
-            value (np.ndarray): current data value to use for the update.
+            value (Array): current data value to use for the update.
 
         """
-        self._n += 1
-        alpha = max(1. / self._n, self._alpha)
-        new_m = (1 - alpha) * self._m + alpha * value
-        new_s = self._s + (value - self._m) * (value - new_m)
+        value = self._array_backend.atleast_2d(value)
+        batch_size = len(value)
+        self._n += batch_size
+        alpha = max(batch_size / self._n, self._alpha)
+        new_m = (1 - alpha) * self._m + alpha * value.mean(0)
+        new_s = self._s + (value.mean(0) - self._m) * (value.mean(0) - new_m)
         self._m, self._s = new_m, new_s
 
     @property
@@ -70,7 +72,7 @@ class RunningStandardization(Serializable):
             The estimated mean value.
 
         """
-        return self._m
+        return self._array_backend.squeeze(self._m)
 
     @property
     def std(self):
@@ -79,7 +81,7 @@ class RunningStandardization(Serializable):
             The estimated standard deviation value.
 
         """
-        return self._array_backend.sqrt(self._s / self._n)
+        return self._array_backend.squeeze(self._array_backend.sqrt(self._s / self._n))
 
 
 class RunningExpWeightedAverage(Serializable):
@@ -116,24 +118,26 @@ class RunningExpWeightedAverage(Serializable):
         Reset the mean and standard deviation.
 
         Args:
-            init_value (np.ndarray): initial value of the filter.
+            init_value (Array): initial value of the filter.
 
         """
         if init_value is None:
-            self._avg_value = self._array_backend.zeros(*self._shape)
+            self._avg_value = self._array_backend.zeros(1, *self._shape)
         else:
-            self._avg_value = self._array_backend.convert(init_value)
+            self._avg_value = self._array_backend.atleast_2d(self._array_backend.convert(init_value))
 
     def update_stats(self, value):
         """
         Update the statistics with the current data value.
 
         Args:
-            value (np.ndarray): current data value to use for the update.
+            value (Array): current data value to use for the update.
 
         """
-        self._avg_value = (
-            1. - self._alpha) * self._avg_value + self._alpha * value
+        value = self._array_backend.atleast_2d(value)
+        batch_size = len(value)
+        for i in range(batch_size):
+            self._avg_value = (1. - self._alpha) * self._avg_value + self._alpha * value[i]
 
     @property
     def mean(self):
@@ -196,7 +200,10 @@ class RunningAveragedWindow(Serializable):
             value (np.ndarray): current data value to use for the update.
 
         """
-        self._avg_buffer.append(value)
+        value = self._array_backend.atleast_2d(value)
+        batch_size = len(value)
+        for i in range(batch_size):
+            self._avg_buffer.append(value[i])
 
     @property
     def mean(self):
