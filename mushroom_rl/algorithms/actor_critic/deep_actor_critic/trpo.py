@@ -5,7 +5,7 @@ from copy import deepcopy
 import torch
 import torch.nn.functional as F
 
-from mushroom_rl.core import Agent
+from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OnPolicyDeepAC
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.torch import TorchUtils
@@ -13,7 +13,7 @@ from mushroom_rl.rl_utils.value_functions import compute_gae
 from mushroom_rl.rl_utils.parameters import to_parameter
 
 
-class TRPO(Agent):
+class TRPO(OnPolicyDeepAC):
     """
     Trust Region Policy optimization algorithm.
     "Trust Region Policy Optimization".
@@ -83,6 +83,7 @@ class TRPO(Agent):
 
     def fit(self, dataset):
         state, action, reward, next_state, absorbing, last = dataset.parse(to='torch')
+        state, next_state, state_old = self._preprocess_state(state, next_state)
 
         v_target, adv = compute_gae(self._V, state, next_state, reward, absorbing, last,
                                     self.mdp_info.gamma, self._lambda())
@@ -93,8 +94,8 @@ class TRPO(Agent):
 
         # Policy update
         self._old_policy = deepcopy(self.policy)
-        old_pol_dist = self._old_policy.distribution_t(state)
-        old_log_prob = self._old_policy.log_prob_t(state, action).detach()
+        old_pol_dist = self._old_policy.distribution_t(state_old)
+        old_log_prob = self._old_policy.log_prob_t(state_old, action).detach()
 
         TorchUtils.zero_grad(self.policy.parameters())
         loss = self._compute_loss(state, action, adv, old_log_prob)

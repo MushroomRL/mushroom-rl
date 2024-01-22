@@ -22,7 +22,7 @@ class RecurrentGaussianTorchPolicy(GaussianTorchPolicy):
             state = TorchUtils.to_float_tensor(state)
             policy_state = torch.as_tensor(policy_state)
             a, policy_state = self.draw_action_t(state, policy_state)
-        return torch.squeeze(a, dim=0).detach().cpu().numpy(), policy_state
+        return torch.squeeze(a, dim=0), policy_state
 
     def draw_action_t(self, state, policy_state):
         lengths = torch.tensor([1])

@@ -1,15 +1,14 @@
 import torch
 
-from mushroom_rl.core import Agent
+from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OnPolicyDeepAC
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.torch import TorchUtils
 from mushroom_rl.utils.minibatches import minibatch_generator
 from mushroom_rl.rl_utils.parameters import to_parameter
-from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
 
 
-class PPO_BPTT(Agent):
+class PPO_BPTT(OnPolicyDeepAC):
     """
     Proximal Policy Optimization algorithm.
     "Proximal Policy Optimization Algorithms".
@@ -71,81 +70,84 @@ class PPO_BPTT(Agent):
             _dim_env_state='primitive'
         )
 
-        # add the standardization preprocessor
-        self._core_preprocessors.append(StandardizationPreprocessor(mdp_info))
-
-    def divide_state_to_env_hidden_batch(self, states):
-        assert len(states.shape) > 1, "This function only divides batches of states."
-        return states[:, 0:self._dim_env_state], states[:, self._dim_env_state:]
-
     def fit(self, dataset):
-        obs, act, r, obs_next, absorbing, last = dataset.parse(to='torch')
-        policy_state, policy_next_state = dataset.parse_policy_state(to='torch')
-        obs_seq, policy_state_seq, act_seq, obs_next_seq, policy_next_state_seq, lengths = \
-            self.transform_to_sequences(obs, policy_state, act, obs_next, policy_next_state, last, absorbing)
+        state, action, reward, next_state, absorbing, last = dataset.parse(to='torch')
+        state, next_state, state_old = self._preprocess_state(state, next_state)
 
-        v_target, adv = self.compute_gae(self._V, obs_seq, policy_state_seq, obs_next_seq, policy_next_state_seq,
-                                         lengths, r, absorbing, last, self.mdp_info.gamma, self._lambda())
+        policy_state, policy_next_state = dataset.parse_policy_state(to='torch')
+        state_old_seq, state_seq, policy_state_seq, act_seq, state_next_seq, policy_next_state_seq, lengths = \
+            self._transform_to_sequences(state_old, state, policy_state, action, next_state, policy_next_state,
+                                         last, absorbing)
+
+        v_target, adv = self.compute_gae(self._V, state_seq, policy_state_seq, state_next_seq, policy_next_state_seq,
+                                         lengths, reward, absorbing, last, self.mdp_info.gamma, self._lambda())
         adv = (adv - torch.mean(adv)) / (torch.std(adv) + 1e-8)
 
-        old_pol_dist = self.policy.distribution_t(obs_seq, policy_state_seq, lengths)
-        old_log_p = old_pol_dist.log_prob(act)[:, None].detach()
+        old_pol_dist = self.policy.distribution_t(state_old_seq, policy_state_seq, lengths)
+        old_log_p = old_pol_dist.log_prob(action)[:, None].detach()
 
-        self._V.fit(obs_seq, policy_state_seq, lengths, v_target, **self._critic_fit_params)
+        self._V.fit(state_seq, policy_state_seq, lengths, v_target, **self._critic_fit_params)
 
-        self._update_policy(obs_seq, policy_state_seq, act, lengths, adv, old_log_p)
+        self._update_policy(state_seq, policy_state_seq, action, lengths, adv, old_log_p)
 
         # Print fit information
-        self._log_info(dataset, obs_seq, policy_state_seq, lengths, v_target, old_pol_dist)
+        self._log_info(dataset, state_seq, policy_state_seq, lengths, v_target, old_pol_dist)
         self._iter += 1
 
-    def transform_to_sequences(self, states, policy_states, actions, next_states, policy_next_states, last, absorbing):
+    def _transform_to_sequences(self, states_old, states, policy_states, actions, next_states, policy_next_states,
+                                last, absorbing):
+        with torch.no_grad():
+            s_old = torch.empty(len(states), self._truncation_length, states.shape[-1])
+            s = torch.empty(len(states), self._truncation_length, states.shape[-1])
+            ps = torch.empty(len(states), policy_states.shape[-1])
+            a = torch.empty(len(actions), self._truncation_length, actions.shape[-1])
+            ss = torch.empty(len(states), self._truncation_length, states.shape[-1])
+            pss = torch.empty(len(states), policy_states.shape[-1])
+            lengths = torch.empty(len(states), dtype=torch.long)
 
-        s = torch.empty(len(states), self._truncation_length, states.shape[-1])
-        ps = torch.empty(len(states), policy_states.shape[-1])
-        a = torch.empty(len(actions), self._truncation_length, actions.shape[-1])
-        ss = torch.empty(len(states), self._truncation_length, states.shape[-1])
-        pss = torch.empty(len(states), policy_states.shape[-1])
-        lengths = torch.empty(len(states), dtype=torch.long)
+            for i in range(len(states)):
+                # determine the begin of a sequence
+                begin_seq = max(i - self._truncation_length + 1, 0)
+                end_seq = i + 1
 
-        for i in range(len(states)):
-            # determine the begin of a sequence
-            begin_seq = max(i - self._truncation_length + 1, 0)
-            end_seq = i + 1
+                # the sequence may contain more than one trajectory, we need to cut it so that it contains only one
+                lasts_absorbing = last[begin_seq - 1: i].int() + absorbing[begin_seq - 1: i].int()
+                begin_traj = torch.where(lasts_absorbing > 0)
+                sequence_is_shorter_than_requested = len(*begin_traj) > 0
+                if sequence_is_shorter_than_requested:
+                    begin_seq = begin_seq + begin_traj[0][-1]
 
-            # maybe the sequence contains more than one trajectory, so we need to cut it so that it contains only one
-            lasts_absorbing = last[begin_seq - 1: i].int() + absorbing[begin_seq - 1: i].int()
-            begin_traj = torch.where(lasts_absorbing > 0)
-            sequence_is_shorter_than_requested = len(*begin_traj) > 0
-            if sequence_is_shorter_than_requested:
-                begin_seq = begin_seq + begin_traj[0][-1]
+                # get the sequences
+                states_old_seq = states_old[begin_seq:end_seq]
+                states_seq = states[begin_seq:end_seq]
+                actions_seq = actions[begin_seq:end_seq]
+                next_states_seq = next_states[begin_seq:end_seq]
 
-            # get the sequences
-            states_seq = states[begin_seq:end_seq]
-            actions_seq = actions[begin_seq:end_seq]
-            next_states_seq = next_states[begin_seq:end_seq]
+                # apply padding
+                length_seq = len(states_seq)
+                padded_states_old = torch.concatenate([states_old_seq,
+                                                       torch.zeros((self._truncation_length - states_seq.shape[0],
+                                                                    states_seq.shape[1]))])
+                padded_states = torch.concatenate([states_seq,
+                                                   torch.zeros((self._truncation_length - states_seq.shape[0],
+                                                                states_seq.shape[1]))])
+                padded_next_states = torch.concatenate([next_states_seq,
+                                                        torch.zeros((self._truncation_length - next_states_seq.shape[0],
+                                                                     next_states_seq.shape[1]))])
+                padded_action_seq = torch.concatenate([actions_seq,
+                                                       torch.zeros((self._truncation_length - actions_seq.shape[0],
+                                                                    actions_seq.shape[1]))])
 
-            # apply padding
-            length_seq = len(states_seq)
-            padded_states = torch.concatenate([states_seq,
-                                               torch.zeros((self._truncation_length - states_seq.shape[0],
-                                                                  states_seq.shape[1]))])
-            padded_next_states = torch.concatenate([next_states_seq,
-                                                    torch.zeros((self._truncation_length - next_states_seq.shape[0],
-                                                    next_states_seq.shape[1]))])
-            padded_action_seq = torch.concatenate([actions_seq,
-                                                   torch.zeros((self._truncation_length - actions_seq.shape[0],
-                                                                actions_seq.shape[1]))])
+                s_old[i] = padded_states_old
+                s[i] = padded_states
+                ps[i] = policy_states[begin_seq]
+                a[i] = padded_action_seq
+                ss[i] = padded_next_states
+                pss[i] = policy_next_states[begin_seq]
 
-            s[i] = padded_states
-            ps[i] = policy_states[begin_seq]
-            a[i] = padded_action_seq
-            ss[i] = padded_next_states
-            pss[i] = policy_next_states[begin_seq]
+                lengths[i] = length_seq
 
-            lengths[i] = length_seq
-
-        return s.detach(), ps.detach(), a.detach(), ss.detach(), pss.detach(), lengths.detach()
+            return s_old, s, ps, a, ss, pss, lengths
 
     def _update_policy(self, obs, pi_h, act, lengths, adv, old_log_p):
         for epoch in range(self._n_epochs_policy()):

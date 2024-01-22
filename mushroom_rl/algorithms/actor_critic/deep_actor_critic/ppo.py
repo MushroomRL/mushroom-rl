@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from mushroom_rl.core import Agent
+from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OnPolicyDeepAC
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.torch import TorchUtils
@@ -12,7 +12,7 @@ from mushroom_rl.rl_utils.value_functions import compute_gae
 from mushroom_rl.rl_utils.parameters import to_parameter
 
 
-class PPO(Agent):
+class PPO(OnPolicyDeepAC):
     """
     Proximal Policy Optimization algorithm.
     "Proximal Policy Optimization Algorithms".
@@ -72,6 +72,7 @@ class PPO(Agent):
 
     def fit(self, dataset):
         state, action, reward, next_state, absorbing, last = dataset.parse(to='torch')
+        state, next_state, state_old = self._preprocess_state(state, next_state)
 
         v_target, adv = compute_gae(self._V, state, next_state, reward, absorbing, last, self.mdp_info.gamma,
                                     self._lambda())
@@ -80,7 +81,7 @@ class PPO(Agent):
         adv = adv.detach()
         v_target = v_target.detach()
 
-        old_pol_dist = self.policy.distribution_t(state)
+        old_pol_dist = self.policy.distribution_t(state_old)
         old_log_p = old_pol_dist.log_prob(action)[:, None].detach()
 
         self._V.fit(state, v_target, **self._critic_fit_params)

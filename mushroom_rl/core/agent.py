@@ -103,34 +103,6 @@ class Agent(Serializable):
 
         return self._convert_to_env_backend(action), self._convert_to_env_backend(next_policy_state)
 
-    def _agent_preprocess(self, state):
-        """
-        Applies all the agent's preprocessors to the state.
-
-        Args:
-            state (Array): the state where the agent is;
-
-        Returns:
-            The preprocessed state.
-
-        """
-        for p in self._agent_preprocessors:
-            state = p(state)
-        return state
-
-    def _update_agent_preprocessor(self, state):
-        """
-        Updates the stats of all the agent's preprocessors given the state.
-
-        Args:
-            state (Array): the state where the agent is;
-
-        """
-        for i, p in enumerate(self._agent_preprocessors, 1):
-            p.update(state)
-            if i < len(self._agent_preprocessors):
-                state = p(state)
-
     def episode_start(self, initial_state, episode_info):
         """
         Called by the Core when a new episode starts.
@@ -213,6 +185,34 @@ class Agent(Serializable):
 
     def _convert_to_agent_backend(self, array):
         return self._agent_backend.convert_to_backend(self._env_backend, array)
+
+    def _agent_preprocess(self, state):
+        """
+        Applies all the agent's preprocessors to the state.
+
+        Args:
+            state (Array): the state where the agent is;
+
+        Returns:
+            The preprocessed state.
+
+        """
+        for p in self._agent_preprocessors:
+            state = p(state)
+        return state
+
+    def _update_agent_preprocessor(self, state):
+        """
+        Updates the stats of all the agent's preprocessors given the state.
+
+        Args:
+            state (Array): the state where the agent is;
+
+        """
+        for i, p in enumerate(self._agent_preprocessors, 1):
+            p.update(state)
+            if i < len(self._agent_preprocessors):
+                state = p(state)
 
     @property
     def info(self):

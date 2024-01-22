@@ -2,10 +2,27 @@ from mushroom_rl.core import Agent
 from mushroom_rl.utils.torch import TorchUtils
 
 
+class OnPolicyDeepAC(Agent):
+    def _preprocess_state(self, state, next_state, output_old=True):
+        state_old = None
+
+        if output_old:
+            state_old = self._agent_preprocess(state)
+
+        self._update_agent_preprocessor(state)
+        state = self._agent_preprocess(state)
+        next_state = self._agent_preprocess(next_state)
+
+        if output_old:
+            return state, next_state, state_old
+        else:
+            return state, next_state
+
+
 class DeepAC(Agent):
     """
-    Base class for algorithms that uses the reparametrization trick, such as
-    SAC, DDPG and TD3.
+    Base class for off policy deep actor-critic algorithms.
+    These algorithms use the reparametrization trick, such as SAC, DDPG and TD3.
 
     """
 

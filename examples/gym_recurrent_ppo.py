@@ -223,7 +223,7 @@ def experiment(
     # setup critic
     input_shape_critic = (mdp.info.observation_space.shape[0]+2*n_hidden_features,)
     critic_params = dict(network=PPOCriticBPTTNetwork,
-                         optimizer={'class':  optim.Adam,
+                         optimizer={'class': optim.Adam,
                                     'params': {'lr': lr_critic,
                                                'weight_decay': 0.0}},
                          loss=torch.nn.MSELoss(),
@@ -240,7 +240,7 @@ def experiment(
                          )
 
     alg_params = dict(actor_optimizer={'class':  optim.Adam,
-                                       'params': {'lr':           lr_actor,
+                                       'params': {'lr': lr_actor,
                                                   'weight_decay': 0.0}},
                       n_epochs_policy=n_epochs_policy,
                       batch_size=batch_size_actor,
@@ -258,9 +258,9 @@ def experiment(
 
     # Evaluation
     dataset = core.evaluate(n_episodes=5)
-    J = np.mean(dataset.discounted_return)
-    R = np.mean(dataset.undiscounted_return)
-    L = np.mean(dataset.episodes_length)
+    J = dataset.discounted_return.mean()
+    R = dataset.undiscounted_return.mean()
+    L = dataset.episodes_length.mean()
     logger.log_numpy(R=R, J=J, L=L)
     logger.epoch_info(0, R=R, J=J, L=L)
 
@@ -269,9 +269,9 @@ def experiment(
 
         # Evaluation
         dataset = core.evaluate(n_episodes=n_episode_eval)
-        J = np.mean(dataset.discounted_return)
-        R = np.mean(dataset.undiscounted_return)
-        L = np.mean(dataset.episodes_length)
+        J = dataset.discounted_return.mean()
+        R = dataset.undiscounted_return.mean()
+        L = dataset.episodes_length.mean()
         logger.log_numpy(R=R, J=J, L=L)
         logger.epoch_info(i, R=R, J=J, L=L)
 
