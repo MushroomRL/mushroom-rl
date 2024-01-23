@@ -64,9 +64,9 @@ class DatasetInfo(Serializable):
         horizon = mdp_info.horizon
         gamma = mdp_info.gamma
         state_shape = mdp_info.observation_space.shape
-        state_dtype = mdp_info.observation_space.data_type
+        state_dtype = mdp_info.observation_space.data_type  # FIXME: this may cause issues, needs fix
         action_shape = mdp_info.action_space.shape
-        action_dtype = mdp_info.action_space.data_type
+        action_dtype = mdp_info.action_space.data_type  # FIXME: this may cause issues, needs fix
         policy_state_shape = agent_info.policy_state_shape
 
         return DatasetInfo(backend, device, horizon, gamma, state_shape, state_dtype,
