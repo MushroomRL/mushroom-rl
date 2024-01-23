@@ -63,7 +63,7 @@ class Core(object):
         assert (render and record) or (not record), "To record, the render flag must be set to true"
         self._core_logic.initialize_learn(n_steps_per_fit, n_episodes_per_fit)
 
-        dataset = Dataset(self.env.info, self.agent.info, n_steps_per_fit, n_episodes_per_fit)
+        dataset = Dataset.generate(self.env.info, self.agent.info, n_steps_per_fit, n_episodes_per_fit)
 
         self._run(dataset, n_steps, n_episodes, render, quiet, record)
 
@@ -91,7 +91,7 @@ class Core(object):
         self._core_logic.initialize_evaluate()
 
         n_episodes_dataset = len(initial_states) if initial_states is not None else n_episodes
-        dataset = Dataset(self.env.info, self.agent.info, n_steps, n_episodes_dataset)
+        dataset = Dataset.generate(self.env.info, self.agent.info, n_steps, n_episodes_dataset)
 
         return self._run(dataset, n_steps, n_episodes, render, quiet, record, initial_states)
 

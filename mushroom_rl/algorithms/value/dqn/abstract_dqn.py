@@ -107,8 +107,6 @@ class AbstractDQN(Agent):
             state, action, reward, next_state, absorbing, _, idxs, is_weight = \
                 self._replay_memory.get(self._batch_size())
 
-            action = action.astype(int)  # TODO: fix the replay memory to save the data in the proper format
-
             if self._clip_reward:
                 reward = np.clip(reward, -1, 1)
 

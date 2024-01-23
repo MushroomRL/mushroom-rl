@@ -4,7 +4,7 @@ from sklearn.ensemble import ExtraTreesRegressor
 import itertools
 
 import mushroom_rl
-from mushroom_rl.core import MDPInfo, AgentInfo, Dataset
+from mushroom_rl.core import MDPInfo, AgentInfo, DatasetInfo, Dataset
 from mushroom_rl.policy.td_policy import TDPolicy
 from mushroom_rl.policy.torch_policy import TorchPolicy
 from mushroom_rl.policy.policy import ParametricPolicy
@@ -201,19 +201,37 @@ class TestUtils:
         return res
 
     @classmethod
+    def eq_dataset_info(cls, this, that):
+        """
+        Compare two dataset classes
+        """
+
+        res = this.backend == that.backend
+        res &= this.device == that.device
+        res &= this.horizon == that.horizon
+        res &= this.gamma == that.gamma
+        res &= this.state_shape == that.state_shape
+        res &= this.state_dtype == that.state_dtype
+        res &= this.action_shape == that.action_shape
+        res &= this.action_dtype == that.action_dtype
+        res &= this.policy_state_shape == that.policy_state_shape
+        res &= this.n_envs == that.n_envs
+
+        return res
+
+    @classmethod
     def eq_dataset(cls, this, that):
         """
         Compare two dataset classes
         """
 
         res = this._array_backend == that._array_backend
-        res &= this._n_envs == that._n_envs
+        res &= cls.eq_dataset_info(this._dataset_info, that._dataset_info)
 
         # res &= this._info == that._info TODO fix this equality check
         # res &= this._episode_info == that._episode_info
         # res &= this._theta_list == that._theta_list
         # res &= this._data == that._data
-        res &= this._gamma == that._gamma
 
         return res
 

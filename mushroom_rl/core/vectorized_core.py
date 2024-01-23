@@ -63,8 +63,8 @@ class VectorCore(object):
         assert (render and record) or (not record), "To record, the render flag must be set to true"
         self._core_logic.initialize_learn(n_steps_per_fit, n_episodes_per_fit)
 
-        dataset = VectorizedDataset(self.env.info, self.agent.info, self.env.number,
-                                    n_steps_per_fit, n_episodes_per_fit)
+        dataset = VectorizedDataset.generate(self.env.info, self.agent.info,
+                                             n_steps_per_fit, n_episodes_per_fit, self.env.number)
 
         self._run(dataset, n_steps, n_episodes, render, quiet, record)
 
@@ -92,7 +92,8 @@ class VectorCore(object):
         self._core_logic.initialize_evaluate()
 
         n_episodes_dataset = len(initial_states) if initial_states is not None else n_episodes
-        dataset = VectorizedDataset(self.env.info, self.agent.info, self.env.number, n_steps, n_episodes_dataset)
+        dataset = VectorizedDataset.generate(self.env.info, self.agent.info,
+                                             n_steps, n_episodes_dataset, self.env.number)
 
         return self._run(dataset, n_steps, n_episodes, render, quiet, record, initial_states)
 

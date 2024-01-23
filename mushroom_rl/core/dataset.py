@@ -10,47 +10,96 @@ from .array_backend import ArrayBackend
 from ._impl import *
 
 
+class DatasetInfo(Serializable):
+    def __init__(self, backend, device, horizon, gamma, state_shape, state_dtype, action_shape, action_dtype,
+                 policy_state_shape, n_envs=1):
+        assert backend == "torch" or device is None
+
+        self.backend = backend
+        self.device = device
+        self.horizon = horizon
+        self.gamma = gamma
+        self.state_shape = state_shape
+        self.state_dtype = state_dtype
+        self.action_shape = action_shape
+        self.action_dtype = action_dtype
+        self.policy_state_shape = policy_state_shape
+        self.n_envs = n_envs
+
+        super().__init__()
+
+        self._add_save_attr(
+            backend='primitive',
+            gamma='primitive',
+            horizon='primitive',
+            state_shape='primitive',
+            state_dtype='primitive',
+            action_shape='primitive',
+            action_dtype='primitive',
+            policy_state_shape='primitive',
+            n_envs='primitive'
+        )
+
+    @property
+    def is_agent_stateful(self):
+        return self.policy_state_shape is not None
+
+    @staticmethod
+    def create_dataset_info(mdp_info, agent_info, n_envs=1, device=None):
+        backend = mdp_info.backend
+        horizon = mdp_info.horizon
+        gamma = mdp_info.gamma
+        state_shape = mdp_info.observation_space.shape
+        state_dtype = mdp_info.observation_space.data_type
+        action_shape = mdp_info.action_space.shape
+        action_dtype = mdp_info.action_space.data_type
+        policy_state_shape = agent_info.policy_state_shape
+
+        return DatasetInfo(backend, device, horizon, gamma, state_shape, state_dtype,
+                           action_shape, action_dtype, policy_state_shape, n_envs)
+
+    @staticmethod
+    def create_replay_memory_info(mdp_info, agent_info, device=None):
+        backend = agent_info.backend
+        horizon = mdp_info.horizon
+        gamma = mdp_info.gamma
+        state_shape = mdp_info.observation_space.shape
+        state_dtype = mdp_info.observation_space.data_type
+        action_shape = mdp_info.action_space.shape
+        action_dtype = mdp_info.action_space.data_type
+        policy_state_shape = agent_info.policy_state_shape
+
+        return DatasetInfo(backend, device, horizon, gamma, state_shape, state_dtype,
+                           action_shape, action_dtype, policy_state_shape)
+
+
 class Dataset(Serializable):
-    def __init__(self, mdp_info, agent_info, n_steps=None, n_episodes=None, n_envs=1, backend=None,
-                 device=None, state_dtype=None, action_dtype=None):
+    def __init__(self, dataset_info, n_steps=None, n_episodes=None):
         assert (n_steps is not None and n_episodes is None) or (n_steps is None and n_episodes is not None)
 
-        if backend is None:
-            backend = mdp_info.backend
-
-        if state_dtype is None:
-            state_dtype = mdp_info.observation_space.data_type
-
-        if action_dtype is None:
-            action_dtype = mdp_info.action_space.data_type
-
-        if backend != "torch":
-            assert device is None
-
-        self._array_backend = ArrayBackend.get_array_backend(backend)
-        self._n_envs = n_envs
+        self._array_backend = ArrayBackend.get_array_backend(dataset_info.backend)
 
         if n_steps is not None:
             n_samples = n_steps
         else:
-            horizon = mdp_info.horizon
+            horizon = dataset_info.horizon
             assert np.isfinite(horizon)
 
             n_samples = horizon * n_episodes
 
-        if n_envs == 1:
+        if dataset_info.n_envs == 1:
             base_shape = (n_samples,)
             mask_shape = None
         else:
-            base_shape = (n_samples, n_envs)
+            base_shape = (n_samples, dataset_info.n_envs)
             mask_shape = base_shape
 
-        state_shape = base_shape + mdp_info.observation_space.shape
-        action_shape = base_shape + mdp_info.action_space.shape
+        state_shape = base_shape + dataset_info.state_shape
+        action_shape = base_shape + dataset_info.action_shape
         reward_shape = base_shape
 
-        if agent_info.is_stateful:
-            policy_state_shape = base_shape + agent_info.policy_state_shape
+        if dataset_info.is_agent_stateful:
+            policy_state_shape = base_shape + dataset_info.policy_state_shape
         else:
             policy_state_shape = None
 
@@ -58,44 +107,49 @@ class Dataset(Serializable):
         self._episode_info = defaultdict(list)
         self._theta_list = list()
 
-        if backend == 'numpy':
-            self._data = NumpyDataset(state_dtype, state_shape, action_dtype, action_shape, reward_shape, base_shape,
+        if dataset_info.backend == 'numpy':
+            self._data = NumpyDataset(dataset_info.state_dtype, state_shape,
+                                      dataset_info.action_dtype, action_shape,
+                                      reward_shape, base_shape,
                                       policy_state_shape, mask_shape)
-        elif backend == 'torch':
-            self._data = TorchDataset(state_dtype, state_shape, action_dtype, action_shape, reward_shape, base_shape,
-                                      policy_state_shape, mask_shape, device=device)
+        elif dataset_info.backend == 'torch':
+            self._data = TorchDataset(dataset_info.state_dtype, state_shape,
+                                      dataset_info.action_dtype, action_shape, reward_shape, base_shape,
+                                      policy_state_shape, mask_shape, device=dataset_info.device)
         else:
             self._data = ListDataset(policy_state_shape is not None, mask_shape is not None)
 
-        self._gamma = mdp_info.gamma
+        self._dataset_info = dataset_info
+
+        super().__init__()
 
         self._add_all_save_attr()
 
     @classmethod
-    def create_new_instance(cls, dataset=None, gamma=None):
+    def generate(cls, mdp_info, agent_info, n_steps=None, n_episodes=None, n_envs=1):
+        dataset_info = DatasetInfo.create_dataset_info(mdp_info, agent_info, n_envs)
+
+        return cls(dataset_info, n_steps, n_episodes)
+
+    @classmethod
+    def create_raw_instance(cls, dataset=None):
         """
         Creates an empty instance of the Dataset and populates essential data structures
 
         Args:
             dataset (Dataset, None): a template dataset to be used to create the new instance.
-            gamma (float, None): The discount factor to be used.
 
         Returns:
             A new empty instance of the dataset.
 
         """
-        assert (dataset is not None and gamma is None) or (dataset is None and gamma is not None)
-
         new_dataset = cls.__new__(cls)
 
         if dataset is not None:
-            new_dataset._gamma = dataset._gamma
             new_dataset._array_backend = dataset._array_backend
-            new_dataset._n_envs = dataset._n_envs
+            new_dataset._dataset_info = dataset._dataset_info
         else:
-            new_dataset._gamma = gamma
-            new_dataset._array_backend = None
-            new_dataset._n_envs = None
+            new_dataset._dataset_info = None
 
         new_dataset._info = None
         new_dataset._episode_info = None
@@ -109,7 +163,7 @@ class Dataset(Serializable):
     @classmethod
     def from_array(cls, states, actions, rewards, next_states, absorbings, lasts,
                    policy_state=None, policy_next_state=None, info=None, episode_info=None, theta_list=None,
-                   gamma=0.99, backend='numpy'):
+                   horizon=None, gamma=0.99, backend='numpy', device=None):
         """
         Creates a dataset of transitions from the provided arrays.
 
@@ -125,6 +179,7 @@ class Dataset(Serializable):
             info (dict, None): dictiornay of step info;
             episode_info (dict, None): dictiornary of episode info;
             theta_list (list, None): list of policy parameters;
+            horizon (int, None): horizon of the mdp;
             gamma (float, 0.99): discount factor;
             backend (str, 'numpy'): backend to be used by the dataset.
 
@@ -137,7 +192,7 @@ class Dataset(Serializable):
         if policy_state is not None:
             assert len(states) == len(policy_state) == len(policy_next_state)
 
-        dataset = cls.create_new_instance(gamma=gamma)
+        dataset = cls.create_raw_instance()
 
         if info is None:
             dataset._info = defaultdict(list)
@@ -162,7 +217,12 @@ class Dataset(Serializable):
         else:
             dataset._data = ListDataset.from_array(states, actions, rewards, next_states, absorbings, lasts)
 
-        dataset._n_envs = 1
+        state_shape = states.shape[1:]
+        action_shape = actions.shape[1:]
+        policy_state_shape = None if policy_state is None else policy_state.shape[1:]
+
+        dataset._dataset_info = DatasetInfo(backend, device, horizon, gamma, state_shape, states.dtype,
+                                            action_shape, actions.dtype, policy_state_shape)
 
         return dataset
 
@@ -190,7 +250,7 @@ class Dataset(Serializable):
         self._data.clear()
 
     def get_view(self, index, copy=False):
-        dataset = self.create_new_instance(dataset=self)
+        dataset = self.create_raw_instance(dataset=self)
 
         info_slice = defaultdict(list)
         for key in self._info.keys():
@@ -215,7 +275,7 @@ class Dataset(Serializable):
             raise IndexError
 
     def __add__(self, other):
-        result = self.create_new_instance(dataset=self)
+        result = self.create_raw_instance(dataset=self)
         new_info = self._merge_info(self.info, other.info)
         new_episode_info = self._merge_info(self.episode_info, other.episode_info)
 
@@ -223,7 +283,6 @@ class Dataset(Serializable):
         result._episode_info = new_episode_info
         result._theta_list = self._theta_list + other._theta_list
         result._data = self._data + other._data
-        result._gamma = self._gamma
 
         return result
 
@@ -303,7 +362,7 @@ class Dataset(Serializable):
 
     @property
     def discounted_return(self):
-        return self.compute_J(self._gamma)
+        return self.compute_J(self._dataset_info.gamma)
 
     @property
     def array_backend(self):
@@ -471,8 +530,7 @@ class Dataset(Serializable):
             _theta_list='pickle',
             _data='mushroom',
             _array_backend='primitive',
-            _gamma='primitive',
-            _n_envs='primitive'
+            _dataset_info='mushroom'
         )
 
     @staticmethod
@@ -489,10 +547,10 @@ class Dataset(Serializable):
 
 
 class VectorizedDataset(Dataset):
-    def __init__(self, mdp_info, agent_info, n_envs, n_steps=None, n_episodes=None):
-        super().__init__(mdp_info, agent_info, n_steps, n_episodes, n_envs)
+    def __init__(self, dataset_info, n_steps=None, n_episodes=None):
+        super().__init__(dataset_info, n_steps, n_episodes)
 
-        self._initialize_theta_list(n_envs)
+        self._initialize_theta_list(self._dataset_info.n_envs)
 
     def append(self, step, info):
         raise RuntimeError("Trying to use append on a vectorized dataset")
@@ -515,7 +573,7 @@ class VectorizedDataset(Dataset):
 
             if n_steps_dataset > n_steps_per_fit:
                 n_extra_steps = n_steps_dataset - n_steps_per_fit
-                n_parallel_steps = int(np.ceil(n_extra_steps / self._n_envs))
+                n_parallel_steps = int(np.ceil(n_extra_steps / self._dataset_info.n_envs))
                 view_size = slice(-n_parallel_steps, None)
                 residual_data = self._data.get_view(view_size, copy=True)
                 mask = residual_data.mask
@@ -567,7 +625,8 @@ class VectorizedDataset(Dataset):
         return Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
                                   policy_state=policy_state, policy_next_state=policy_next_state,
                                   info=None, episode_info=None, theta_list=flat_theta_list,  # FIXME: handle properly info
-                                  gamma=self._gamma, backend=self._array_backend.get_backend_name())
+                                  horizon=self._dataset_info.horizon, gamma=self._dataset_info.gamma,
+                                  backend=self._array_backend.get_backend_name())
 
     def _flatten_theta_list(self):
         flat_theta_list = list()

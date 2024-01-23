@@ -152,8 +152,6 @@ class Rainbow(AbstractDQN):
                 m[np.arange(len(m)), l[:, i]] += p_next[:, i] * (u[:, i] - b[:, i])
                 m[np.arange(len(m)), u[:, i]] += p_next[:, i] * (b[:, i] - l[:, i])
 
-            action = action.astype(int)  # TODO: fix the replay memory to save the data in the proper format
-
             kl = -np.sum(m * np.log(self.approximator.predict(state, action, get_distribution=True,
                                                               **self._predict_params).clip(1e-5)), 1)
             self._replay_memory.update(kl, idxs)

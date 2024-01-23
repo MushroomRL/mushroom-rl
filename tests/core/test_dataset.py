@@ -124,6 +124,6 @@ def test_dataset_loading(tmpdir):
             np.array_equal(dataset.absorbing, new_dataset.absorbing) and \
             np.array_equal(dataset.last, new_dataset.last)
 
-    assert dataset._gamma == new_dataset._gamma
+    assert dataset._dataset_info.gamma == new_dataset._dataset_info.gamma
 
 

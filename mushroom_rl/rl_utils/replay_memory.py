@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from mushroom_rl.core import Dataset, Serializable
+from mushroom_rl.core import DatasetInfo, Dataset, Serializable
 from mushroom_rl.rl_utils.parameters import to_parameter
 
 
@@ -133,8 +133,8 @@ class ReplayMemory(Serializable):
         """
         self._idx = 0
         self._full = False
-        self._dataset = Dataset(mdp_info=self._mdp_info, agent_info=self._agent_info, n_steps=self._max_size,
-                                n_envs=1, backend=self._agent_info.backend, state_dtype=float, action_dtype=float)
+        dataset_info = DatasetInfo.create_replay_memory_info(self._mdp_info, self._agent_info)
+        self._dataset = Dataset(dataset_info, n_steps=self._max_size)
 
     @property
     def initialized(self):
@@ -281,8 +281,8 @@ class SumTree(Serializable):
         self._tree = np.zeros(2 * max_size - 1)
         self._mdp_info = mdp_info
         self._agent_info = agent_info
-        self.dataset = Dataset(mdp_info=mdp_info, agent_info=agent_info, n_steps=max_size,
-                               n_envs=1, backend=agent_info.backend, state_dtype=float, action_dtype=float)
+        dataset_info = DatasetInfo.create_replay_memory_info(self._mdp_info, self._agent_info)
+        self.dataset = Dataset(dataset_info, n_steps=max_size)
         self._idx = 0
         self._full = False
 
@@ -462,8 +462,8 @@ class SumTree(Serializable):
 
     def _post_load(self):
         if self.dataset is None:
-            self.dataset = Dataset(mdp_info=self._mdp_info, agent_info=self._agent_info, n_steps=self._max_size,
-                                   n_envs=1, backend=self._agent_info.backend, state_dtype=float, action_dtype=float)
+            dataset_info = DatasetInfo.create_replay_memory_info(self._mdp_info, self._agent_info)
+            self.dataset = Dataset(dataset_info, n_steps=self._max_size)
 
 
 class PrioritizedReplayMemory(Serializable):
