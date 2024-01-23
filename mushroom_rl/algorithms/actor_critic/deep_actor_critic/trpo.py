@@ -155,7 +155,7 @@ class TRPO(OnPolicyDeepAC):
         direction = self._fisher_vector_product(stepdir, obs, old_pol_dist).detach()
         shs = .5 * stepdir.dot(direction)
         lm = torch.sqrt(shs / self._max_kl())
-        full_step = (stepdir / lm).detach().cpu().numpy()
+        full_step = (stepdir / lm).detach()
         stepsize = 1.
 
         # Save old policy parameters
