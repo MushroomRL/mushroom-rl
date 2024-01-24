@@ -207,6 +207,12 @@ html_theme_options = {
     }
     
     
+    
+    
+   
+   
+    
+
 
 html_context = {
     "github_repo": "pydata-sphinx-theme",
@@ -220,7 +226,7 @@ master_doc = 'index'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-html_css_files = ["custom.css"]
+html_css_files = ["style.css"]
 html_js_files = ["custom-icon.js"]
 todo_include_todos = True
 

@@ -18,14 +18,20 @@ h1 {
   font-size: 3rem;
   align-content: center;
   text-align: center;
-  color: rgb(23, 176, 23);
+  
+  font-family: Roboto;
+  font-style: normal;
+  font-weight: 700;
 }
 
 h2 {
   font-size: 2rem;
   align-content: center;
   text-align: center;
-  color: rgb(23, 176, 23);
+  
+  font-family: Roboto;
+  font-style: normal;
+  font-weight: 700;
 }
 
 

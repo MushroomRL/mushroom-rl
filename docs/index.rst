@@ -11,7 +11,6 @@
 
 
 
-
 ===============         
   MushroomRL 
 ===============
@@ -32,37 +31,54 @@ A Library for Reinforcement learning
 
 
 
+
+What is MushroomRL
+------------------
+
+.. highlight:: python
+
+MushroomRL is a Reinforcement Learning (RL) library developed to be a simple, yet
+powerful way to make **RL** and **deep RL** experiments. The idea behind MushroomRL
+is to offer the majority of RL algorithms providing a common interface
+in order to run them without excessive effort. Moreover, it is designed in such
+a way that new algorithms and other stuff can be added transparently,
+without the need of editing other parts of the code. MushroomRL is compatible with RL
+libraries like   
+`OpenAI Gym <https://gym.openai.com/>`_,
+`DeepMind Control Suite <https://github.com/deepmind/dm_control>`_,
+`Pybullet <https://pybullet.org/wordpress/>`_, and
+`MuJoCo <http://www.mujoco.org/>`_, and
+the `PyTorch <https://pytorch.org>`_ library for tensor computation.
+
+
    
 
-Compatibility with other RL libraries
-=====================================
 
-|pic3| |pic5| |pic4|
-     |pic6|   |pic7|
+
+
+|pic3| |pic5| |pic4| |pic6| |pic7|
+     
+     
    
 .. |pic3| image:: _static/pytorch.png
-   :width: 30%
-   :height: 5em
+   :width: 17%   
    :target: https://pytorch.org/
+
    
 .. |pic4| image:: _static/pybullet.jpg
-   :width: 30%
-   :height: 5em
+   :width: 17%
    :target: https://pybullet.org/wordpress/
 
 .. |pic5| image:: _static/mujoco.jpg
-   :width: 30%
-   :height: 5em
+   :width: 17%
    :target: https://mujoco.org/
 
 .. |pic6| image:: _static/deep.png
-   :width: 40%
-   :height: 5em
+   :width: 17%
    :target: https://paperswithcode.com/dataset/deepmind-control-suite
 
 .. |pic7| image:: _static/openai.png
-   :width: 40%
-   :height: 5em
+   :width: 17%
    :target: https://github.com/openai/gym
 
 
@@ -71,25 +87,12 @@ Compatibility with other RL libraries
 
 
 .. toctree::
-   :caption: Getting started:
-   :maxdepth: 2
-   :glob:
-   :hidden:
-
-   source/Getting_started
-
-
-
-
-.. toctree::
-   :caption: User guide:
-   :maxdepth: 2
+   :caption: Getting Started:
+   :maxdepth: 1
    :glob:
    :hidden:
 
    source/user_guide
-
-
 
 
 .. toctree::

@@ -1,8 +1,304 @@
-bd-main .bd-content .bd-article-container {
-  max-width: 100%;  /* default is 60em */
+:root {
+
+    --pst-font-size-base: 16px;
+    --pst-font-size-milli: 13px;
+    --pst-font-family-base: 'Source Sans Pro', var(--pst-font-family-base-system);
+    --pst-font-family-heading: var(--pst-font-family-base);
+    --pst-font-family-monospace: 'Source Code Pro', var(--pst-font-family-monospace-system);
+    /* colors that aren't responsive to light/dark mode */
+    --mne-color-discord: #5865F2;
+    --mne-color-primary: darkgreen;
+    --mne-color-primary-highlight: darkgreen;
+    /* font weight */
+    --mne-font-weight-semibold: 600;
 }
 
 
-.bd-page-width {
-  max-width: 100%;  /* default is 88rem */
+html[data-theme="light"] {
+    /* topbar logo links */
+    --mne-color-github: #000;
+    --mne-color-discourse: #d0232b;
+    --mne-color-mastodon: #2F0C7A;
+    /* code block copy button */
+    --copybtn-opacity: 0.75;
+    /* card header bg color */
+    --mne-color-card-header: rgba(0, 0, 0, 0.05);
+    /* section headings */
+    --mne-color-heading: black;
+    /* pydata-sphinx-theme overrides */
+    --pst-color-primary: var(--mne-color-primary);
+    --pst-color-primary-highlight: var(--mne-color-primary-highlight);
+    --pst-color-info: var(--pst-color-primary);
+    --pst-color-border: #ccc;
+    --pst-color-background: #fff;
+    --pst-color-link: var(--pst-color-primary-highlight);
+    /* sphinx-gallery overrides */
+    --sg-download-a-background-color: var(--pst-color-primary);
+    --sg-download-a-background-image: unset;
+    --sg-download-a-border-color: var(--pst-color-border);
+    --sg-download-a-color: #fff;
+    --sg-download-a-hover-background-color: var(--pst-color-primary-highlight);
+    --sg-download-a-hover-box-shadow-1: none;
+    --sg-download-a-hover-box-shadow-2: none;
 }
+html[data-theme="dark"] {
+    /* topbar logo links */
+    --mne-color-github: rgb(240, 246, 252);  /* from their logo SVG */
+    --mne-color-discourse: #FFF9AE;  /* from their logo SVG */
+    --mne-color-mastodon: #858AFA;  /* www.joinmastodon.org/en/branding */
+    /* code block copy button */
+    --copybtn-opacity: 0.25;
+    /* card header bg color */
+    --mne-color-card-header: rgba(255, 255, 255, 0.2);
+    /* section headings */
+    --mne-color-heading: #b8cbe0;
+    /* pydata-sphinx-theme overrides */
+    --pst-color-primary: var(--mne-color-primary);
+    --pst-color-primary-highlight: var(--mne-color-primary-highlight);
+    --pst-color-info: var(--pst-color-primary);
+    --pst-color-border: #333;
+    --pst-color-background: #000;
+    --pst-color-link: #66b0ff;
+    --pst-color-on-background: #1e1e1e;
+    /* sphinx-gallery overrides */
+    --sg-download-a-background-color: var(--pst-color-primary);
+    --sg-download-a-background-image: unset;
+    --sg-download-a-border-color: var(--pst-color-border);
+    --sg-download-a-color: #000;
+    --sg-download-a-hover-background-color: var(--pst-color-primary-highlight);
+    --sg-download-a-hover-box-shadow-1: none;
+    --sg-download-a-hover-box-shadow-2: none;
+}
+h1, h2, h3, h4, h5, h6 {
+    color: var(--mne-color-heading);
+}
+
+
+h1 {
+    font-size: 3rem;
+    align-content: center;
+    text-align: center;
+    
+    font-family: Roboto;
+    font-style: normal;
+    font-weight: 700;
+  }
+  
+  h2 {
+    font-size: 2rem;
+    align-content: center;
+    text-align: center;
+    
+    font-family: Roboto;
+    font-style: normal;
+    font-weight: 700;
+  }
+  
+  
+  h3 {
+    font-size: 1.17rem;
+  
+    align-content: center;
+    text-align: center;
+  }
+  
+
+  .navbar-brand p {
+
+    color: var(--mne-color-heading) ;
+    font-weight: 700;
+  
+  
+  }
+
+
+/* ************************************************************ Sphinx fixes */
+
+/* API docs parameter lists */
+dl.field-list {
+    grid-template-columns: auto 1fr;
+}
+
+/* make HTML'd pandas dataframes scrollable */
+table.dataframe {
+    display: block;
+    overflow: auto;
+}
+
+/* Long API titles need to wrap for mobile */
+div[id^="mne-"] h1,
+div[id^="examples-using-"] h2 {
+    word-break: break-word;
+}
+
+/* *********************************************** pydata-sphinx-theme fixes */
+
+/* this is most critical for the homepage logos, but affects all images */
+html[data-theme="dark"] img {
+    filter: none;
+}
+
+/* prev/next links */
+.prev-next-area a p.prev-next-title {
+    color: var(--pst-color-link);
+}
+
+/* make versionadded smaller and inline with param name */
+/* don't do for deprecated / versionchanged; they have extra info (too long to fit) */
+div.versionadded > p {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+div.versionadded {
+    margin: 0;
+    margin-left: 0.5rem;
+    display: inline-block;
+}
+/* when FF supports :has(), change to →  dd > p:has(+div.versionadded) */
+dd>p {
+    display: inline;
+}
+
+/* **************************************************** sphinx-gallery fixes */
+
+/* backreference links: restore hover decoration that SG removes */
+a.sphx-glr-backref-instance:hover {
+    text-decoration: underline;
+}
+/* backreference links: make non-MNE func/meth calls resemble regular code */
+a[class^="sphx-glr-backref-module"] {
+    color: rgb(var(--pst-color-text-base));
+}
+/* backreference links: make MNE calls bold and colorful */
+a[class^="sphx-glr-backref-module-mne"] {
+    color: rgb(var(--pst-color-link));
+    font-weight: var(--mne-font-weight-semibold);
+}
+/* suppress redundant note at top of every tutorial and signature at the end */
+div.sphx-glr-download-link-note,
+p.sphx-glr-signature {
+    visibility: hidden;
+    height: 0;
+    margin: 0;
+    padding: 0;
+}
+/* script/notebook download buttons */
+.sphx-glr-download a.download {
+    border-radius: 0.5rem;
+    /* ↓↓↓↓↓↓↓ these two rules copied from sphinx-design */
+    box-shadow: 0 .125rem .25rem var(--sd-color-shadow) !important;
+    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+/* Report embedding */
+iframe.sg_report {
+    width: 95%;
+    height: 70vh;
+    margin: 20px auto;
+    display: block;
+    border-style: solid;
+}
+/* Disable thumbnail tooltips on hover */
+.sphx-glr-thumbcontainer[tooltip]:hover::before,
+.sphx-glr-thumbcontainer[tooltip]:hover::after {
+    display: none;
+}
+
+/* Make our external thumbnails act like standard SG ones */
+.sphx-glr-thumbcontainer a.external {
+    bottom: 0;
+    display: block;
+    left: 0;
+    box-sizing: border-box;
+    padding: 150px 10px 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+
+/* TODO: Either pydata-sphinx-theme (for using Bootstrap) or sphinx-gallery (for adding table formatting) should fix this */
+.table-striped-columns>:not(caption)>tr>:nth-child(2n),.table-striped>tbody>tr:nth-of-type(odd)>* {
+    --bs-table-accent-bg: var(--bs-table-striped-bg);
+    color: var(--pst-color-text-base);
+}
+.table-hover>tbody>tr:hover>* {
+    --bs-table-accent-bg: var(--bs-table-hover-bg);
+    color: var(--pst-color-text-base);
+}
+.rendered_html table {
+    color: var(--pst-color-text-base);
+}
+
+
+/* ***************************************************** sphinx-design fixes */
+p.btn a {
+    color: unset;
+}
+/* sphinx-design tabs */
+html .bd-content .sd-tab-set > label:hover,
+.bd-content .sd-tab-set > input:not(:checked) + label:hover {
+    opacity: unset;
+    color: var(--pst-color-secondary);
+    border-color: var(--pst-color-secondary);
+}
+
+/* ************************************************************* copy button */
+button.copybtn {
+    /* always show; https://sphinx-copybutton.readthedocs.io/en/latest/use.html#modify-the-copy-button-s-css */
+    opacity: var(--copybtn-opacity);
+ }
+
+/* *************************************************** bib reference spacing */
+aside.footnote {
+    margin-bottom: 0.5rem;
+}
+aside.footnote:last-child {
+    margin-bottom: 1rem;
+}
+
+
+
+/* ******************************************************* navbar icon links */
+.navbar-icon-links i.fa-square-github::before {
+    color: var(--mne-color-github);
+}
+.navbar-icon-links i.fa-discourse::before {
+    color: var(--mne-color-discourse);
+}
+.navbar-icon-links i.fa-discord::before {
+    color: var(--mne-color-discord);
+}
+.navbar-icon-links i.fa-mastodon::before {
+    color: var(--mne-color-mastodon);
+}
+
+/* ************************************************************ nav elements */
+/* topbar nav inactive */
+.bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link {
+    color: var(--pst-color-text-muted);
+}
+/* topbar nav active */
+.bd-header.navbar-light#navbar-main .navbar-nav > li.active > .nav-link {
+    color: var(--pst-color-link);
+    font-weight: var(--mne-font-weight-semibold);
+}
+/* topbar nav hover */
+.bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link:focus,
+.bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link:hover {
+    color: var(--pst-color-secondary);
+}
+/* sidebar nav */
+nav.bd-links .active > a,
+nav.bd-links .active:hover > a,
+.toc-entry a.nav-link.active,
+.toc-entry a.nav-link.active:hover {
+    color: var(--pst-color-link);
+}
+/* sidebar nav hover */
+nav.bd-links li > a:hover,
+.toc-entry a.nav-link:hover {
+    color: var(--pst-color-secondary);
+}
+
+
+
+
