@@ -336,7 +336,7 @@ class SAC(DeepAC):
         self._update_alpha_optimizer_parameters()
 
     def _update_alpha_optimizer_parameters(self):
-        if self._optimizer is not None:
+        if self._alpha_optim is not None:
             update_optimizer_parameters(self._alpha_optim, [self._log_alpha])
 
     @property
