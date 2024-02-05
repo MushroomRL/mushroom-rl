@@ -54,7 +54,7 @@ def experiment(n_epochs, n_steps, n_steps_test):
     # MDP
     horizon = 1000
     gamma = 0.99
-    mdp = Gym('Acrobot-v1', horizon, gamma)
+    mdp = Gymnasium('Acrobot-v1', horizon, gamma, headless=False)
 
     # Policy
     epsilon = LinearParameter(value=1., threshold_value=.01, n=5000)

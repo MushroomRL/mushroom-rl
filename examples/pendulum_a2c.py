@@ -7,7 +7,7 @@ import numpy as np
 from tqdm import trange
 
 from mushroom_rl.core import Core, Logger
-from mushroom_rl.environments import Gym
+from mushroom_rl.environments import Gymnasium
 from mushroom_rl.algorithms.actor_critic import A2C
 
 from mushroom_rl.policy import GaussianTorchPolicy
@@ -45,7 +45,7 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit,
     logger.strong_line()
     logger.info('Experiment Algorithm: ' + A2C.__name__)
 
-    mdp = Gym(env_id, horizon, gamma)
+    mdp = Gymnasium(env_id, horizon, gamma, headless=False)
 
     critic_params = dict(network=Network,
                          optimizer={'class': optim.RMSprop,

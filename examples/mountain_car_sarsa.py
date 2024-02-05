@@ -3,7 +3,7 @@ from joblib import Parallel, delayed
 
 from mushroom_rl.algorithms.value import TrueOnlineSARSALambda
 from mushroom_rl.core import Core, Logger
-from mushroom_rl.environments import Gym
+from mushroom_rl.environments import Gymnasium
 from mushroom_rl.features import Features
 from mushroom_rl.features.tiles import Tiles
 from mushroom_rl.policy import EpsGreedy
@@ -21,7 +21,7 @@ def experiment(alpha):
     np.random.seed()
 
     # MDP
-    mdp = Gym(name='MountainCar-v0', horizon=np.inf, gamma=1.)
+    mdp = Gymnasium(name='MountainCar-v0', horizon=int(1e4), gamma=1., headless=False)
 
     # Policy
     epsilon = Parameter(value=0.)

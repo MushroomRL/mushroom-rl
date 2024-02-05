@@ -276,9 +276,9 @@ def experiment():
         max_steps = args.max_steps
 
     # MDP
-    mdp = Atari(args.name, args.screen_width, args.screen_height,
+    mdp = GymnasiumAtari(args.name, args.screen_width, args.screen_height,
                 ends_at_life=True, history_length=args.history_length,
-                max_no_op_actions=args.max_no_op_actions)
+                max_no_op_actions=args.max_no_op_actions, headless=False)
 
     if args.load_path:
         logger = Logger(DQN.__name__, results_dir=None)
@@ -408,7 +408,7 @@ def experiment():
         pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(False)
         dataset = core.evaluate(n_steps=test_samples, render=args.render,
-                                quiet=args.quiet)
+                                quiet=args.quiet, record=True)
         scores.append(get_stats(dataset, logger))
 
         np.save(folder_name + '/scores.npy', scores)

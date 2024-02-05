@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 from mushroom_rl.algorithms.actor_critic import DDPG, TD3
 from mushroom_rl.core import Core, Logger
-from mushroom_rl.environments.gym_env import Gym
+from mushroom_rl.environments import Gymnasium
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy
 
 from tqdm import trange
@@ -76,7 +76,7 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
     # MDP
     horizon = 200
     gamma = 0.99
-    mdp = Gym('Pendulum-v1', horizon, gamma)
+    mdp = Gymnasium('Pendulum-v1', horizon, gamma, headless=False)
 
     # Policy
     policy_class = OrnsteinUhlenbeckPolicy

@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 from mushroom_rl.algorithms.actor_critic import A2C
 from mushroom_rl.core import Core, Logger
-from mushroom_rl.environments import Gym
+from mushroom_rl.environments import Gymnasium
 from mushroom_rl.policy import BoltzmannTorchPolicy
 from mushroom_rl.approximators.parametric.torch_approximator import *
 from mushroom_rl.rl_utils.parameters import Parameter
@@ -47,7 +47,7 @@ def experiment(n_epochs, n_steps, n_steps_per_fit, n_step_test):
     # MDP
     horizon = 1000
     gamma = 0.99
-    mdp = Gym('Acrobot-v1', horizon, gamma)
+    mdp = Gymnasium('Acrobot-v1', horizon, gamma, headless=False)
 
     # Policy
     policy_params = dict(
