@@ -10,24 +10,46 @@
 
 
 
+.. image:: _static/output_image.jpeg
+  :width: 500
+  :align: center
+  :class: only-light
 
-===============         
-  MushroomRL 
-===============
+
+.. image:: _static/title_dark.jpeg
+  :width: 500
+  :align: center
+  :class: only-dark
+
+
+
+
+
+
 
 A Library for Reinforcement learning
-======================================
+-------------------------------------
  
-|pic1|  |pic2|
 
-.. |pic1| image:: _static/top_gif.gif
-   :width: 49%
+
+
+
+
+|pic2| |pic9|
+   
+
+.. |pic2| image:: _static/walker_walk_sac.gif
+   :width: 420
    :height: 15em
    
 
-.. |pic2| image:: _static/top_gif2.gif
-   :width: 49%
+
+
+
+.. |pic9| image:: _static/defend.gif
+   :width: 420
    :height: 15em
+   
 
 
 
@@ -35,7 +57,21 @@ A Library for Reinforcement learning
 What is MushroomRL
 ------------------
 
+
+
+
+
+
+
+
+
 .. highlight:: python
+
+
+
+
+
+
 
 MushroomRL is a Reinforcement Learning (RL) library developed to be a simple, yet
 powerful way to make **RL** and **deep RL** experiments. The idea behind MushroomRL
@@ -51,35 +87,12 @@ libraries like
 the `PyTorch <https://pytorch.org>`_ library for tensor computation.
 
 
-   
+ 
+.. image:: _static/breakout_dqn.gif
+  :width: 400  
+  :height: 15em
+  :align: center  
 
-
-
-
-|pic3| |pic5| |pic4| |pic6| |pic7|
-     
-     
-   
-.. |pic3| image:: _static/pytorch.png
-   :width: 17%   
-   :target: https://pytorch.org/
-
-   
-.. |pic4| image:: _static/pybullet.jpg
-   :width: 17%
-   :target: https://pybullet.org/wordpress/
-
-.. |pic5| image:: _static/mujoco.jpg
-   :width: 17%
-   :target: https://mujoco.org/
-
-.. |pic6| image:: _static/deep.png
-   :width: 17%
-   :target: https://paperswithcode.com/dataset/deepmind-control-suite
-
-.. |pic7| image:: _static/openai.png
-   :width: 17%
-   :target: https://github.com/openai/gym
 
 
 
@@ -96,7 +109,7 @@ the `PyTorch <https://pytorch.org>`_ library for tensor computation.
 
 
 .. toctree::
-   :caption: Features:
+   :caption: API:
    :maxdepth: 2
    :glob:
    :hidden:

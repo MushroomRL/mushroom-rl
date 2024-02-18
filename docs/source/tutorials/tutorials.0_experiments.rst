@@ -1,4 +1,4 @@
-How to make a simple experiment
+Make a simple experiment
 ===============================
 
 The main purpose of MushroomRL is to simplify the scripting of RL experiments. A

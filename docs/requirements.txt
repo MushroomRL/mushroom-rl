@@ -7,4 +7,7 @@ matplotlib
 joblib
 tqdm
 pygame
-sphinx-rtd-theme
+sphinx
+autodoc
+numpydoc
+sphinx_togglebutton

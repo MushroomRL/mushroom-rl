@@ -45,58 +45,16 @@ copyright = u'2018-2021 Carlo D\'Eramo, Davide Tateo'
 author = u'Carlo D\'Eramo'
 # -- General configuration ------------------------------------------------
 
-# If your documentation needs a minimal Sphinx version, state it here.
-#
-# needs_sphinx = '1.0'
-
-# Add any Sphinx extension module names here, as strings. They can be
-# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
-# ones.
-
-# -- General configuration ---------------------------------------------------
-
 extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.todo",
-    "sphinx.ext.viewcode",
-    
-    "sphinx_design",
-    "sphinx_copybutton",
-    
-   
-    # For extension examples and demos
-    "myst_parser",
-    "ablog",
-
-    "sphinxcontrib.youtube",
-    
     "numpydoc",
     "sphinx_togglebutton",
-
-    "sphinx_favicon",
     'sphinx.ext.doctest',
-    'sphinx.ext.todo',
-    'sphinx.ext.coverage',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.ifconfig',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.napoleon',
-    'sphinxcontrib.youtube',
-    'sphinx.ext.napoleon',
-    
-    
-    
-    
-    "sphinx.ext.autodoc",
     "sphinx.ext.githubpages",
-    "sphinx.ext.viewcode",
-    "sphinx.ext.coverage",
-    "myst_parser",
-    
-    
-    "sphinx_github_changelog",
+
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -120,14 +78,7 @@ html_favicon = "_static/dark.png"
 html_sourcelink_suffix = ""
 html_last_updated_fmt = ""  # to reveal the build date in the pages meta
 
-# Define the json_url for our version switcher.
-json_url = "https://pydata-sphinx-theme.readthedocs.io/en/latest/_static/switcher.json"
 
-# Define the version we use for matching in the version switcher.
-
-# If READTHEDOCS_VERSION doesn't exist, we're not on RTD
-# If it is an integer, we're in a PR build and the version isn't correct.
-# If it's "latest" → change to "dev" (that's what we want the switcher to call it)
 
 # Napoleon settings
 napoleon_use_ivar = True
