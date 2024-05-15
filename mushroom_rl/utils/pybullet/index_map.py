@@ -105,9 +105,13 @@ class IndexMap(object):
             for joint_id in range(self._client.getNumJoints(model_id)):
                 joint_data = self._client.getJointInfo(model_id, joint_id)
 
-                if joint_data[2] != pybullet.JOINT_FIXED:
-                    joint_name = joint_data[1].decode('UTF-8')
-                    self.joint_map[joint_name] = (model_id, joint_id)
+                # if joint_data[2] != pybullet.JOINT_FIXED:
+                #     joint_name = joint_data[1].decode('UTF-8')
+                #     self.joint_map[joint_name] = (model_id, joint_id)
+
+                joint_name = joint_data[1].decode('UTF-8')
+                self.joint_map[joint_name] = (model_id, joint_id)
+
                 link_name = joint_data[12].decode('UTF-8')
                 self.link_map[link_name] = (model_id, joint_id)
 
