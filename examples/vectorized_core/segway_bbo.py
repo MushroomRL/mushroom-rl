@@ -1,15 +1,14 @@
 import numpy as np
 
-from mushroom_rl.core import Core, Logger
+from mushroom_rl.core import VectorCore, Logger, MultiprocessEnvironment
 from mushroom_rl.environments.segway import Segway
 from mushroom_rl.algorithms.policy_search import *
 from mushroom_rl.policy import DeterministicPolicy
 from mushroom_rl.distributions import GaussianDiagonalDistribution
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
-from mushroom_rl.utils.dataset import compute_J
 from mushroom_rl.utils.callbacks import CollectDataset
-from mushroom_rl.utils.optimizers import AdaptiveOptimizer
+from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer
 
 from tqdm import tqdm, trange
 tqdm.monitor_interval = 0
@@ -23,7 +22,7 @@ def experiment(alg, params, n_epochs, n_episodes, n_ep_per_fit):
     logger.info('Experiment Algorithm: ' + alg.__name__)
 
     # MDP
-    mdp = Segway()
+    mdp = MultiprocessEnvironment(Segway, n_envs=15)
 
     # Policy
     approximator = Regressor(LinearApproximator,
@@ -40,17 +39,21 @@ def experiment(alg, params, n_epochs, n_episodes, n_ep_per_fit):
 
     # Train
     dataset_callback = CollectDataset()
-    core = Core(agent, mdp, callbacks_fit=[dataset_callback])
+    core = VectorCore(agent, mdp, callbacks_fit=[dataset_callback])
+
+    dataset = core.evaluate(n_episodes=n_episodes)
+    J = np.mean(dataset.discounted_return)
+    p = dist.get_parameters()
+    logger.epoch_info(0, J=J, mu=p[:n_weights], sigma=p[n_weights:])
 
     for i in trange(n_epochs, leave=False):
-        core.learn(n_episodes=n_episodes,
-                   n_episodes_per_fit=n_ep_per_fit, render=False)
-        J = compute_J(dataset_callback.get(), gamma=mdp.info.gamma)
+        core.learn(n_episodes=n_episodes, n_episodes_per_fit=n_ep_per_fit, render=False)
+        J = np.mean(dataset_callback.get().discounted_return)
         dataset_callback.clean()
 
         p = dist.get_parameters()
 
-        logger.epoch_info(i+1, J=np.mean(J), mu=p[:n_weights], sigma=p[n_weights:])
+        logger.epoch_info(i+1, J=J, mu=p[:n_weights], sigma=p[n_weights:])
 
     logger.info('Press a button to visualize the segway...')
     input()

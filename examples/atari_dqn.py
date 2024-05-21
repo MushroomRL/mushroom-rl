@@ -10,13 +10,12 @@ import torch.nn.functional as F
 
 from mushroom_rl.algorithms.value import AveragedDQN, CategoricalDQN, DQN,\
     DoubleDQN, MaxminDQN, DuelingDQN, NoisyDQN, QuantileDQN, Rainbow
-from mushroom_rl.approximators.parametric import TorchApproximator
+from mushroom_rl.approximators.parametric import NumpyTorchApproximator
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.utils.dataset import compute_metrics
-from mushroom_rl.utils.parameters import LinearParameter, Parameter
-from mushroom_rl.utils.replay_memory import PrioritizedReplayMemory
+from mushroom_rl.rl_utils.parameters import LinearParameter, Parameter
+from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
 
 """
 This script runs Atari experiments with DQN, and some of its variants, as
@@ -103,7 +102,7 @@ def print_epoch(epoch, logger):
 
 
 def get_stats(dataset, logger):
-    score = compute_metrics(dataset)
+    score = dataset.compute_metrics()
     logger.info(('min_reward: %f, max_reward: %f, mean_reward: %f,'
                 ' median_reward: %f, games_completed: %d' % score))
 
@@ -277,9 +276,9 @@ def experiment():
         max_steps = args.max_steps
 
     # MDP
-    mdp = Atari(args.name, args.screen_width, args.screen_height,
+    mdp = GymnasiumAtari(args.name, args.screen_width, args.screen_height,
                 ends_at_life=True, history_length=args.history_length,
-                max_no_op_actions=args.max_no_op_actions)
+                max_no_op_actions=args.max_no_op_actions, headless=False)
 
     if args.load_path:
         logger = Logger(DQN.__name__, results_dir=None)
@@ -315,13 +314,12 @@ def experiment():
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
             n_features=Network.n_features,
-            optimizer=optimizer,
-            use_cuda=args.use_cuda
+            optimizer=optimizer
         )
         if args.algorithm not in ['cdqn', 'qdqn', 'rainbow']:
             approximator_params['loss'] = F.smooth_l1_loss
 
-        approximator = TorchApproximator
+        approximator = NumpyTorchApproximator
 
         if args.prioritized:
             replay_memory = PrioritizedReplayMemory(
@@ -410,7 +408,7 @@ def experiment():
         pi.set_epsilon(epsilon_test)
         mdp.set_episode_end(False)
         dataset = core.evaluate(n_steps=test_samples, render=args.render,
-                                quiet=args.quiet)
+                                quiet=args.quiet, record=True)
         scores.append(get_stats(dataset, logger))
 
         np.save(folder_name + '/scores.npy', scores)

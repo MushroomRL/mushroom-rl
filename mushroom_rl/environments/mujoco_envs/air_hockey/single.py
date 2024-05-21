@@ -1,7 +1,7 @@
 import numpy as np
 import mujoco
 
-from mushroom_rl.utils.spaces import Box
+from mushroom_rl.rl_utils.spaces import Box
 from mushroom_rl.environments.mujoco_envs.air_hockey.base import AirHockeyBase
 from mushroom_rl.utils.mujoco import forward_kinematics
 

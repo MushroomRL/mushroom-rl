@@ -4,8 +4,8 @@ from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DeepAC
 from mushroom_rl.policy import Policy
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.utils.replay_memory import ReplayMemory
-from mushroom_rl.utils.parameters import Parameter, to_parameter
+from mushroom_rl.rl_utils.replay_memory import ReplayMemory
+from mushroom_rl.rl_utils.parameters import Parameter, to_parameter
 
 from copy import deepcopy
 
@@ -53,33 +53,29 @@ class DDPG(DeepAC):
         self._actor_predict_params = dict() if actor_predict_params is None else actor_predict_params
         self._critic_predict_params = dict() if critic_predict_params is None else critic_predict_params
 
+        target_critic_params = deepcopy(critic_params)
+        self._critic_approximator = Regressor(TorchApproximator, **critic_params)
+        self._target_critic_approximator = Regressor(TorchApproximator, **target_critic_params)
+
+        target_actor_params = deepcopy(actor_params)
+        self._actor_approximator = Regressor(TorchApproximator, **actor_params)
+        self._target_actor_approximator = Regressor(TorchApproximator, **target_actor_params)
+
+        self._init_target(self._critic_approximator, self._target_critic_approximator)
+        self._init_target(self._actor_approximator, self._target_actor_approximator)
+
+        policy = policy_class(self._actor_approximator, **policy_params)
+
+        policy_parameters = self._actor_approximator.model.network.parameters()
+
+        super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
+
         self._batch_size = to_parameter(batch_size)
         self._tau = to_parameter(tau)
         self._policy_delay = to_parameter(policy_delay)
         self._fit_count = 0
 
-        self._replay_memory = ReplayMemory(initial_replay_size, max_replay_size)
-
-        target_critic_params = deepcopy(critic_params)
-        self._critic_approximator = Regressor(TorchApproximator,
-                                              **critic_params)
-        self._target_critic_approximator = Regressor(TorchApproximator,
-                                                     **target_critic_params)
-
-        target_actor_params = deepcopy(actor_params)
-        self._actor_approximator = Regressor(TorchApproximator,
-                                             **actor_params)
-        self._target_actor_approximator = Regressor(TorchApproximator,
-                                                    **target_actor_params)
-
-        self._init_target(self._critic_approximator,
-                          self._target_critic_approximator)
-        self._init_target(self._actor_approximator,
-                          self._target_actor_approximator)
-
-        policy = policy_class(self._actor_approximator, **policy_params)
-
-        policy_parameters = self._actor_approximator.model.network.parameters()
+        self._replay_memory = ReplayMemory(mdp_info, self.info, initial_replay_size, max_replay_size)
 
         self._add_save_attr(
             _critic_fit_params='pickle',
@@ -95,34 +91,30 @@ class DDPG(DeepAC):
             _target_actor_approximator='mushroom'
         )
 
-        super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
 
-    def fit(self, dataset, **info):
+
+    def fit(self, dataset):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
-            state, action, reward, next_state, absorbing, _ =\
-                self._replay_memory.get(self._batch_size())
+            state, action, reward, next_state, absorbing, _ = self._replay_memory.get(self._batch_size())
 
             q_next = self._next_q(next_state, absorbing)
             q = reward + self.mdp_info.gamma * q_next
 
-            self._critic_approximator.fit(state, action, q,
-                                          **self._critic_fit_params)
+            self._critic_approximator.fit(state, action, q, **self._critic_fit_params)
 
             if self._fit_count % self._policy_delay() == 0:
                 loss = self._loss(state)
                 self._optimize_actor_parameters(loss)
 
-            self._update_target(self._critic_approximator,
-                                self._target_critic_approximator)
-            self._update_target(self._actor_approximator,
-                                self._target_actor_approximator)
+            self._update_target(self._critic_approximator, self._target_critic_approximator)
+            self._update_target(self._actor_approximator, self._target_actor_approximator)
 
             self._fit_count += 1
 
     def _loss(self, state):
-        action = self._actor_approximator(state, output_tensor=True, **self._actor_predict_params)
-        q = self._critic_approximator(state, action, output_tensor=True, **self._critic_predict_params)
+        action = self._actor_approximator(state, **self._actor_predict_params)
+        q = self._critic_approximator(state, action, **self._critic_predict_params)
 
         return -q.mean()
 

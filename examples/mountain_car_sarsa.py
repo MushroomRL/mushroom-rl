@@ -3,12 +3,11 @@ from joblib import Parallel, delayed
 
 from mushroom_rl.algorithms.value import TrueOnlineSARSALambda
 from mushroom_rl.core import Core, Logger
-from mushroom_rl.environments import Gym
+from mushroom_rl.environments import Gymnasium
 from mushroom_rl.features import Features
 from mushroom_rl.features.tiles import Tiles
 from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.utils.dataset import compute_J
-from mushroom_rl.utils.parameters import Parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 """
 This script aims to replicate the experiments on the Mountain Car MDP as
@@ -22,7 +21,7 @@ def experiment(alpha):
     np.random.seed()
 
     # MDP
-    mdp = Gym(name='MountainCar-v0', horizon=np.inf, gamma=1.)
+    mdp = Gymnasium(name='MountainCar-v0', horizon=int(1e4), gamma=1., headless=False)
 
     # Policy
     epsilon = Parameter(value=0.)
@@ -39,13 +38,14 @@ def experiment(alpha):
 
     approximator_params = dict(input_shape=(features.size,),
                                output_shape=(mdp.info.action_space.n,),
-                               n_actions=mdp.info.action_space.n)
+                               n_actions=mdp.info.action_space.n,
+                               phi=features)
     algorithm_params = {'learning_rate': learning_rate,
                         'lambda_coeff': .9}
 
     agent = TrueOnlineSARSALambda(mdp.info, pi,
                                   approximator_params=approximator_params,
-                                  features=features, **algorithm_params)
+                                  **algorithm_params)
 
     # Algorithm
     core = Core(agent, mdp)
@@ -54,7 +54,7 @@ def experiment(alpha):
     core.learn(n_episodes=40, n_steps_per_fit=1, render=False)
     dataset = core.evaluate(n_episodes=1, render=True)
 
-    return np.mean(compute_J(dataset, 1.))
+    return np.mean(dataset.undiscounted_return)
 
 
 if __name__ == '__main__':

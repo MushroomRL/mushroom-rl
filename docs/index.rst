@@ -53,7 +53,7 @@ Then, an epsilon-greedy **policy** with:
 ::
 
     from mushroom_rl.policy import EpsGreedy
-    from mushroom_rl.utils.parameters import Parameter
+    from mushroom_rl.rl_utils.parameters import Parameter
 
     epsilon = Parameter(value=1.)
     policy = EpsGreedy(epsilon=epsilon)

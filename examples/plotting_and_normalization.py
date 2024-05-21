@@ -1,6 +1,6 @@
 import os
 
-from mushroom_rl.utils.preprocessors import MinMaxPreprocessor
+from mushroom_rl.rl_utils.preprocessors import MinMaxPreprocessor
 from mushroom_rl.utils.callbacks import PlotDataset
 
 import numpy as np
@@ -11,8 +11,7 @@ from mushroom_rl.approximators.regressor import Regressor
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import LQR
 from mushroom_rl.policy import StateStdGaussianPolicy
-from mushroom_rl.utils.dataset import compute_J
-from mushroom_rl.utils.optimizers import AdaptiveOptimizer
+from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer
 
 from tqdm import tqdm
 
@@ -25,7 +24,7 @@ This script shows how to use preprocessors and plot callback.
 tqdm.monitor_interval = 0
 
 
-def experiment(n_epochs, n_iterations, ep_per_run, save_states_to_disk):
+def experiment(n_epochs, n_iterations, ep_per_run):
     np.random.seed()
 
     logger = Logger('plot_and_norm_example', results_dir=None)
@@ -55,7 +54,7 @@ def experiment(n_epochs, n_iterations, ep_per_run, save_states_to_disk):
 
     # normalization callback
     prepro = MinMaxPreprocessor(mdp_info=mdp.info)
-    agent.add_preprocessor(prepro)
+    agent.add_core_preprocessor(prepro)
 
     # plotting callback
     plotter = PlotDataset(mdp.info, obs_normalized=True)
@@ -68,22 +67,9 @@ def experiment(n_epochs, n_iterations, ep_per_run, save_states_to_disk):
         core.learn(n_episodes=n_iterations * ep_per_run,
                    n_episodes_per_fit=ep_per_run)
         dataset = core.evaluate(n_episodes=ep_per_run, render=False)
-        J = np.mean(compute_J(dataset,mdp.info.gamma))
+        J = np.mean(dataset.discounted_return)
         logger.epoch_info(n+1, J=J)
-
-    if save_states_to_disk:
-        # save normalization / plot states to disk path
-        logger.info('Saving plotting and normalization data')
-        os.makedirs("./logs/plot_and_norm", exist_ok=True)
-        prepro.save("./logs/plot_and_norm/preprocessor.msh")
-        plotter.save_state("./logs/plot_and_norm/plotting_state")
-
-        # load states from disk path
-        logger.info('Loading preprocessor and plotter')
-        prerpo = MinMaxPreprocessor.load("./logs/plot_and_norm/preprocessor.msh")
-        plotter.load_state("./logs/plot_and_norm/plotting_state")
 
 
 if __name__ == '__main__':
-    experiment(n_epochs=10, n_iterations=10, ep_per_run=100,
-               save_states_to_disk=False)
+    experiment(n_epochs=10, n_iterations=10, ep_per_run=100)

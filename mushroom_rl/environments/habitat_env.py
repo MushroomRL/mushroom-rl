@@ -26,7 +26,7 @@ import numpy as np
 
 from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.environments import Gym
-from mushroom_rl.utils.spaces import Discrete, Box
+from mushroom_rl.rl_utils.spaces import Discrete, Box
 from mushroom_rl.utils.viewer import ImageViewer
 
 
@@ -251,7 +251,7 @@ class Habitat(Gym):
     def reset(self, state=None):
         assert state is None, 'Cannot set Habitat state'
         obs = self._convert_observation(np.atleast_1d(self.env.reset()))
-        return obs
+        return obs, {}
 
     def step(self, action):
         action = self._convert_action(action)

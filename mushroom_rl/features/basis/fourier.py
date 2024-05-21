@@ -9,8 +9,8 @@ class FourierBasis:
     .. math::
         \sum \cos{\pi(X - m)/\Delta c}
 
-    where X is the input, m is the vector of the minumum input values (for each
-    dimensions) , \Delta is the vector of maximum
+    where :math:`X` is the input, m is the vector of the minumum input values (for each dimensions) , :math:`\Delta` is
+    the vector of differences between maximum and minumun values for the variables.
 
     """
     def __init__(self, low, delta, c, dimensions=None):
@@ -19,11 +19,10 @@ class FourierBasis:
 
         Args:
             low (np.ndarray): vector of minimum values of the input variables;
-            delta (np.ndarray): vector of the maximum difference between two
-             values of the input variables, i.e. delta = high - low;
+            delta (np.ndarray): vector of the maximum difference between two values of the input variables, i.e.
+                delta = high - low;
             c (np.ndarray): vector of weights for the state variables;
-            dimensions (list, None): list of the dimensions of the input to be
-                considered by the feature.
+            dimensions (list, None): list of the dimensions of the input to be considered by the feature.
 
         """
         self._low = low

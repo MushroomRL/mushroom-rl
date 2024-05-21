@@ -1,10 +1,13 @@
 from copy import deepcopy
 
+import numpy as np
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from mushroom_rl.algorithms.value.dqn import AbstractDQN
-from mushroom_rl.approximators.parametric.torch_approximator import *
+from mushroom_rl.approximators.parametric import NumpyTorchApproximator
 
 
 def quantile_huber_loss(input, target):
@@ -88,16 +91,13 @@ class QuantileDQN(AbstractDQN):
         tau = torch.arange(n_quantiles + 1) / n_quantiles
         QuantileDQN.tau_hat = torch.Tensor([(tau[i-1] + tau[i]) / 2 for i in range(1, len(tau))])
 
-        if params['approximator_params']['use_cuda']:
-            QuantileDQN.tau_hat = QuantileDQN.tau_hat.cuda()
-
         self._add_save_attr(
             _n_quantiles='primitive'
         )
 
-        super().__init__(mdp_info, policy, TorchApproximator, **params)
+        super().__init__(mdp_info, policy, NumpyTorchApproximator, **params)
 
-    def fit(self, dataset, **info):
+    def fit(self, dataset):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
             state, action, reward, next_state, absorbing, _ =\

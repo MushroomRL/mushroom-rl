@@ -6,14 +6,15 @@ import torch.nn.functional as F
 from torch.nn.parameter import Parameter
 
 from mushroom_rl.algorithms.value.dqn import DQN
-from mushroom_rl.approximators.parametric import TorchApproximator
+from mushroom_rl.approximators.parametric import NumpyTorchApproximator
+from mushroom_rl.utils.torch import TorchUtils
 
 
 class NoisyNetwork(nn.Module):
     class NoisyLinear(nn.Module):
         __constants__ = ['in_features', 'out_features']
 
-        def __init__(self, in_features, out_features, use_cuda, sigma_coeff=.5, bias=True):
+        def __init__(self, in_features, out_features, sigma_coeff=.5, bias=True):
             super().__init__()
             self.in_features = in_features
             self.out_features = out_features
@@ -24,7 +25,6 @@ class NoisyNetwork(nn.Module):
                 self.sigma_bias = Parameter(torch.Tensor(out_features))
             else:
                 self.register_parameter('bias', None)
-            self._use_cuda = use_cuda
             self._sigma_coeff = sigma_coeff
 
             self.reset_parameters()
@@ -42,11 +42,9 @@ class NoisyNetwork(nn.Module):
                 nn.init.constant_(self.sigma_bias, bound_sigma)
 
         def forward(self, input):
-            eps_output = torch.rand(self.mu_weight.shape[0], 1)
-            eps_input = torch.rand(1, self.mu_weight.shape[1])
-            if self._use_cuda:
-                eps_output = eps_output.cuda()
-                eps_input = eps_input.cuda()
+            eps_output = torch.rand(self.mu_weight.shape[0], 1, device=TorchUtils.get_device())
+            eps_input = torch.rand(1, self.mu_weight.shape[1], device=TorchUtils.get_device())
+
             eps_dot = torch.matmul(self._noise(eps_output), self._noise(eps_input))
             weight = self.mu_weight + self.sigma_weight * eps_dot
 
@@ -64,14 +62,14 @@ class NoisyNetwork(nn.Module):
                 self.in_features, self.out_features, self.mu_bias, self.sigma_bias is not None
             )
 
-    def __init__(self, input_shape, output_shape, features_network, n_features, use_cuda, **kwargs):
+    def __init__(self, input_shape, output_shape, features_network, n_features, **kwargs):
         super().__init__()
 
         self._n_output = output_shape[0]
         self._phi = features_network(input_shape, (n_features,),
                                      n_features=n_features, **kwargs)
 
-        self._Q = self.NoisyLinear(n_features, self._n_output, use_cuda)
+        self._Q = self.NoisyLinear(n_features, self._n_output)
 
     def forward(self, state, action=None):
         features = self._phi(state)
@@ -101,4 +99,4 @@ class NoisyDQN(DQN):
         params['approximator_params']['network'] = NoisyNetwork
         params['approximator_params']['features_network'] = features_network
 
-        super().__init__(mdp_info, policy, TorchApproximator, **params)
+        super().__init__(mdp_info, policy, NumpyTorchApproximator, **params)

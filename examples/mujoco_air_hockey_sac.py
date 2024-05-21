@@ -8,7 +8,6 @@ import torch.nn.functional as F
 from mushroom_rl.algorithms.actor_critic import SAC
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments.mujoco_envs.air_hockey import AirHockeyHit
-from mushroom_rl.utils.dataset import compute_J, parse_dataset
 
 from tqdm import trange
 
@@ -87,20 +86,16 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
     tau = 0.001
     lr_alpha = 3e-4
 
-    use_cuda = torch.cuda.is_available()
-
     # Approximator
     actor_input_shape = mdp.info.observation_space.shape
     actor_mu_params = dict(network=ActorNetwork,
                            n_features=n_features,
                            input_shape=actor_input_shape,
-                           output_shape=mdp.info.action_space.shape,
-                           use_cuda=use_cuda)
+                           output_shape=mdp.info.action_space.shape)
     actor_sigma_params = dict(network=ActorNetwork,
                               n_features=n_features,
                               input_shape=actor_input_shape,
-                              output_shape=mdp.info.action_space.shape,
-                              use_cuda=use_cuda)
+                              output_shape=mdp.info.action_space.shape)
 
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': 5e-4}}
@@ -112,8 +107,7 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
                          loss=F.mse_loss,
                          n_features=n_features,
                          input_shape=critic_input_shape,
-                         output_shape=(1,),
-                         use_cuda=use_cuda)
+                         output_shape=(1,))
 
     # Agent
     agent = alg(mdp.info, actor_mu_params, actor_sigma_params,
@@ -126,11 +120,10 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
 
     # RUN
     dataset = core.evaluate(n_steps=n_steps_test, render=False)
-    s, *_ = parse_dataset(dataset)
 
-    J = np.mean(compute_J(dataset, mdp.info.gamma))
-    R = np.mean(compute_J(dataset))
-    E = agent.policy.entropy(s)
+    J = np.mean(dataset.discounted_return)
+    R = np.mean(dataset.undiscounted_return)
+    E = agent.policy.entropy(dataset.state)
 
     logger.epoch_info(0, J=J, R=R, entropy=E)
 
@@ -139,11 +132,10 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
     for n in trange(n_epochs, leave=False):
         core.learn(n_steps=n_steps, n_steps_per_fit=1, quiet=True)
         dataset = core.evaluate(n_steps=n_steps_test, render=False, quiet=True)
-        s, *_ = parse_dataset(dataset)
 
-        J = np.mean(compute_J(dataset, mdp.info.gamma))
-        R = np.mean(compute_J(dataset))
-        E = agent.policy.entropy(s)
+        J = np.mean(dataset.discounted_return)
+        R = np.mean(dataset.undiscounted_return)
+        E = agent.policy.entropy(dataset.state)
 
         logger.epoch_info(n+1, J=J, R=R, entropy=E)
 

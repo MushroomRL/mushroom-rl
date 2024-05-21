@@ -3,8 +3,6 @@ import time
 import gym
 from gym import spaces as gym_spaces
 
-import numpy as np
-
 try:
     import pybullet_envs
     pybullet_found = True
@@ -12,7 +10,7 @@ except ImportError:
     pybullet_found = False
 
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.utils.spaces import *
+from mushroom_rl.rl_utils.spaces import *
 
 gym.logger.set_level(40)
 
@@ -83,12 +81,12 @@ class Gym(Environment):
 
     def reset(self, state=None):
         if state is None:
-            return np.atleast_1d(self.env.reset())
+            return np.atleast_1d(self.env.reset()), {}
         else:
             self.env.reset()
             self.env.state = state
 
-            return np.atleast_1d(state)
+            return np.atleast_1d(state), {}
 
     def step(self, action):
         action = self._convert_action(action)

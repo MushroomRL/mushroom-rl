@@ -5,15 +5,14 @@ import numpy as np
 from mushroom_rl.core import Agent
 from mushroom_rl.approximators.parametric.torch_approximator import *
 from mushroom_rl.approximators.regressor import Regressor
-from mushroom_rl.utils.replay_memory import PrioritizedReplayMemory, ReplayMemory
-from mushroom_rl.utils.parameters import to_parameter
+from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory, ReplayMemory
+from mushroom_rl.rl_utils.parameters import to_parameter
 
 
 class AbstractDQN(Agent):
-    def __init__(self, mdp_info, policy, approximator, approximator_params,
-                 batch_size, target_update_frequency,
-                 replay_memory=None, initial_replay_size=500,
-                 max_replay_size=5000, fit_params=None, predict_params=None, clip_reward=False):
+    def __init__(self, mdp_info, policy, approximator, approximator_params, batch_size, target_update_frequency,
+                 replay_memory=None, initial_replay_size=500, max_replay_size=5000, fit_params=None,
+                 predict_params=None, clip_reward=False):
         """
         Constructor.
 
@@ -39,6 +38,8 @@ class AbstractDQN(Agent):
             clip_reward (bool, False): whether to clip the reward or not.
 
         """
+        super().__init__(mdp_info, policy, backend='numpy')
+
         self._fit_params = dict() if fit_params is None else fit_params
         self._predict_params = dict() if predict_params is None else predict_params
 
@@ -47,14 +48,14 @@ class AbstractDQN(Agent):
         self._target_update_frequency = target_update_frequency
 
         if replay_memory is not None:
-            self._replay_memory = replay_memory
-            if isinstance(replay_memory, PrioritizedReplayMemory):
+            self._replay_memory = replay_memory["class"](mdp_info, self.info, initial_size=initial_replay_size,
+                                                         max_size=max_replay_size, **replay_memory["params"])
+            if isinstance(self._replay_memory, PrioritizedReplayMemory):
                 self._fit = self._fit_prioritized
             else:
                 self._fit = self._fit_standard
         else:
-            self._replay_memory = ReplayMemory(initial_replay_size,
-                                               max_replay_size)
+            self._replay_memory = ReplayMemory(mdp_info, self.info, initial_replay_size, max_replay_size)
             self._fit = self._fit_standard
 
         self._n_updates = 0
@@ -62,8 +63,8 @@ class AbstractDQN(Agent):
         apprx_params_train = deepcopy(approximator_params)
         apprx_params_target = deepcopy(approximator_params)
 
-        self._initialize_regressors(approximator, apprx_params_train,
-                                    apprx_params_target)
+        self._initialize_regressors(approximator, apprx_params_train, apprx_params_target)
+
         policy.set_q(self.approximator)
 
         self._add_save_attr(
@@ -79,9 +80,7 @@ class AbstractDQN(Agent):
             target_approximator='mushroom'
         )
 
-        super().__init__(mdp_info, policy)
-
-    def fit(self, dataset, **info):
+    def fit(self, dataset):
         self._fit(dataset)
 
         self._n_updates += 1
@@ -91,8 +90,7 @@ class AbstractDQN(Agent):
     def _fit_standard(self, dataset):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
-            state, action, reward, next_state, absorbing, _ = \
-                self._replay_memory.get(self._batch_size())
+            state, action, reward, next_state, absorbing, _ = self._replay_memory.get(self._batch_size())
 
             if self._clip_reward:
                 reward = np.clip(reward, -1, 1)
@@ -121,16 +119,9 @@ class AbstractDQN(Agent):
             self.approximator.fit(state, action, q, weights=is_weight,
                                   **self._fit_params)
 
-    def draw_action(self, state):
-        action = super().draw_action(np.array(state))
-
-        return action
-
-    def _initialize_regressors(self, approximator, apprx_params_train,
-                               apprx_params_target):
+    def _initialize_regressors(self, approximator, apprx_params_train, apprx_params_target):
         self.approximator = Regressor(approximator, **apprx_params_train)
-        self.target_approximator = Regressor(approximator,
-                                             **apprx_params_target)
+        self.target_approximator = Regressor(approximator, **apprx_params_target)
         self._update_target()
 
     def _update_target(self):

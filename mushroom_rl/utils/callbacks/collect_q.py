@@ -1,11 +1,11 @@
 import numpy as np
 from copy import deepcopy
 
-from mushroom_rl.utils.callbacks.callback import Callback
-from mushroom_rl.utils.table import EnsembleTable
+from mushroom_rl.utils.callbacks.callback import CallbackList
+from mushroom_rl.approximators.ensemble_table import EnsembleTable
 
 
-class CollectQ(Callback):
+class CollectQ(CallbackList):
     """
     This callback can be used to collect the action values in all states at the
     current time step.

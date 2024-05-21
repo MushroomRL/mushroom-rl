@@ -2,7 +2,7 @@ import mujoco
 import numpy as np
 from dm_control import mjcf
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.utils.spaces import Box
+from mushroom_rl.rl_utils.spaces import Box
 from mushroom_rl.utils.mujoco import *
 
 
@@ -18,45 +18,34 @@ class MuJoCo(Environment):
         Constructor.
 
         Args:
-             xml_file (str/xml handle): A string with a path to the xml or an Mujoco xml handle.
-             actuation_spec (list): A list specifying the names of the joints
-                which should be controllable by the agent. Can be left empty
-                when all actuators should be used;
-             observation_spec (list): A list containing the names of data that
-                should be made available to the agent as an observation and
-                their type (ObservationType). They are combined with a key,
-                which is used to access the data. An entry in the list
-                is given by: (key, name, type). The name can later be used
-                to retrieve specific observations;
-             gamma (float): The discounting factor of the environment;
-             horizon (int): The maximum horizon for the environment;
-             timestep (float): The timestep used by the MuJoCo
-                simulator. If None, the default timestep specified in the XML will be used;
-             n_substeps (int, 1): The number of substeps to use by the MuJoCo
-                simulator. An action given by the agent will be applied for
-                n_substeps before the agent receives the next observation and
-                can act accordingly;
-             n_intermediate_steps (int, 1): The number of steps between every action
-                taken by the agent. Similar to n_substeps but allows the user
-                to modify, control and access intermediate states.
-             additional_data_spec (list, None): A list containing the data fields of
-                interest, which should be read from or written to during
-                simulation. The entries are given as the following tuples:
-                (key, name, type) key is a string for later referencing in the
-                "read_data" and "write_data" methods. The name is the name of
-                the object in the XML specification and the type is the
-                ObservationType;
-             collision_groups (list, None): A list containing groups of geoms for
-                which collisions should be checked during simulation via
-                ``check_collision``. The entries are given as:
-                ``(key, geom_names)``, where key is a string for later
-                referencing in the "check_collision" method, and geom_names is
-                a list of geom names in the XML specification.
-             max_joint_vel (list, None): A list with the maximum joint velocities which are provided in the mdp_info.
-                The list has to define a maximum velocity for every occurrence of JOINT_VEL in the observation_spec. The
-                velocity will not be limited in mujoco
-             **viewer_params: other parameters to be passed to the viewer.
-                See MujocoViewer documentation for the available options.
+            xml_file (str/xml handle): A string with a path to the xml or an Mujoco xml handle.
+            actuation_spec (list): A list specifying the names of the joints  which should be controllable by the
+               agent. Can be left empty when all actuators should be used;
+            observation_spec (list): A list containing the names of data that should be made available to the agent as
+               an observation and their type (ObservationType). They are combined with a key, which is used to access
+               the data. An entry in the list is given by: (key, name, type). The name can later be used to retrieve
+               specific observations;
+            gamma (float): The discounting factor of the environment;
+            horizon (int): The maximum horizon for the environment;
+            timestep (float): The timestep used by the MuJoCo simulator. If None, the default timestep specified in
+               the XML will be used;
+            n_substeps (int, 1): The number of substeps to use by the MuJoCo simulator. An action given by the agent
+               will be applied for n_substeps before the agent receives the next observation and can act accordingly;
+            n_intermediate_steps (int, 1): The number of steps between every action taken by the agent. Similar to
+               n_substeps but allows the user to modify, control and access intermediate states.
+            additional_data_spec (list, None): A list containing the data fields of interest, which should be read from
+               or written to during simulation. The entries are given as the following tuples: (key, name, type) key
+               is a string for later referencing in the "read_data" and "write_data" methods. The name is the name of
+               the object in the XML specification and the type is the ObservationType;
+            collision_groups (list, None): A list containing groups of geoms for which collisions should be checked
+               during simulation via ``check_collision``. The entries are given as: ``(key, geom_names)``, where key is
+               a string for later referencing in the "check_collision" method, and geom_names is a list of geom names
+               in the XML specification.
+            max_joint_vel (list, None): A list with the maximum joint velocities which are provided in the mdp_info.
+               The list has to define a maximum velocity for every occurrence of JOINT_VEL in the observation_spec. The
+               velocity will not be limited in mujoco
+            **viewer_params: other parameters to be passed to the viewer.
+               See MujocoViewer documentation for the available options.
 
         """
         # Create the simulation
@@ -131,7 +120,7 @@ class MuJoCo(Environment):
         self.setup(obs)
 
         self._obs = self._create_observation(self.obs_helper._build_obs(self._data))
-        return self._modify_observation(self._obs)
+        return self._modify_observation(self._obs), {}
 
     def step(self, action):
         cur_obs = self._obs.copy()
@@ -462,9 +451,8 @@ class MuJoCo(Environment):
         Args:
             model: MuJoCo model.
             data: MuJoCo data structure.
-             actuation_spec (list): A list specifying the names of the joints
-                which should be controllable by the agent. Can be left empty
-                when all actuators should be used;
+            actuation_spec (list): A list specifying the names of the joints  which should be controllable by the agent.
+                Can be left empty when all actuators should be used;
 
         Returns:
             A list of actuator indices.
@@ -561,45 +549,34 @@ class MultiMuJoCo(MuJoCo):
         Constructor.
 
         Args:
-             xml_files (str/xml handle): A list containing strings with a path to the xml or Mujoco xml handles;
-             actuation_spec (list): A list specifying the names of the joints
-                which should be controllable by the agent. Can be left empty
-                when all actuators should be used;
-             observation_spec (list): A list containing the names of data that
-                should be made available to the agent as an observation and
-                their type (ObservationType). They are combined with a key,
-                which is used to access the data. An entry in the list
-                is given by: (key, name, type);
-             gamma (float): The discounting factor of the environment;
-             horizon (int): The maximum horizon for the environment;
-             timestep (float): The timestep used by the MuJoCo
-                simulator. If None, the default timestep specified in the XML will be used;
-             n_substeps (int, 1): The number of substeps to use by the MuJoCo
-                simulator. An action given by the agent will be applied for
-                n_substeps before the agent receives the next observation and
-                can act accordingly;
-             n_intermediate_steps (int, 1): The number of steps between every action
-                taken by the agent. Similar to n_substeps but allows the user
-                to modify, control and access intermediate states.
-             additional_data_spec (list, None): A list containing the data fields of
-                interest, which should be read from or written to during
-                simulation. The entries are given as the following tuples:
-                (key, name, type) key is a string for later referencing in the
-                "read_data" and "write_data" methods. The name is the name of
-                the object in the XML specification and the type is the
-                ObservationType;
-             collision_groups (list, None): A list containing groups of geoms for
-                which collisions should be checked during simulation via
-                ``check_collision``. The entries are given as:
-                ``(key, geom_names)``, where key is a string for later
-                referencing in the "check_collision" method, and geom_names is
-                a list of geom names in the XML specification.
-             max_joint_vel (list, None): A list with the maximum joint velocities which are provided in the mdp_info.
+            xml_files (str/xml handle): A list containing strings with a path to the xml or Mujoco xml handles;
+                actuation_spec (list): A list specifying the names of the joints which should be controllable by the
+                agent. Can be left empty when all actuators should be used;
+            observation_spec (list): A list containing the names of data that should be made available to the agent as
+                an observation and their type (ObservationType). They are combined with a key, which is used to access
+                the data. An entry in the list is given by: (key, name, type);
+            gamma (float): The discounting factor of the environment;
+            horizon (int): The maximum horizon for the environment;
+            timestep (float): The timestep used by the MuJoCo simulator. If None, the default timestep specified in the
+                XML will be used;
+            n_substeps (int, 1): The number of substeps to use by the MuJoCo simulator. An action given by the agent
+                will be applied for n_substeps before the agent receives the next observation and can act accordingly;
+            n_intermediate_steps (int, 1): The number of steps between every action taken by the agent. Similar to
+            n_substeps but allows the user to modify, control and access intermediate states.
+                additional_data_spec (list, None): A list containing the data fields of interest, which should be read
+                from or written to during simulation. The entries are given as the following tuples: (key, name, type)
+                key is a string for later referencing in the "read_data" and "write_data" methods. The name is the name
+                of the object in the XML specification and the type is the ObservationType;
+            collision_groups (list, None): A list containing groups of geoms for which collisions should be checked
+                during simulation via ``check_collision``. The entries are given as: ``(key, geom_names)``, where key is
+                a string for later referencing in the "check_collision" method, and geom_names is a list of geom names
+                in the XML specification.
+            max_joint_vel (list, None): A list with the maximum joint velocities which are provided in the mdp_info.
                 The list has to define a maximum velocity for every occurrence of JOINT_VEL in the observation_spec. The
                 velocity will not be limited in mujoco.
             random_env_reset (bool): If True, a random environment/model is chosen after each episode. If False, it is
-                sequentially iterated through the environment/model list.
-             **viewer_params: other parameters to be passed to the viewer.
+            sequentially iterated through the environment/model list.
+            **viewer_params: other parameters to be passed to the viewer.
                 See MujocoViewer documentation for the available options.
 
         """

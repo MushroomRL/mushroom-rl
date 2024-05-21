@@ -7,8 +7,7 @@ from mushroom_rl.environments import PuddleWorld
 from mushroom_rl.features import Features
 from mushroom_rl.features.tiles import Tiles
 from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.utils.dataset import compute_J
-from mushroom_rl.utils.parameters import Parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 from tqdm import trange
 
@@ -42,39 +41,38 @@ def experiment(alpha, quiet):
 
     approximator_params = dict(input_shape=(features.size,),
                                output_shape=(mdp.info.action_space.n,),
-                               n_actions=mdp.info.action_space.n)
+                               n_actions=mdp.info.action_space.n,
+                               phi=features)
+
     algorithm_params = {'learning_rate': learning_rate,
                         'lambda_coeff': .9}
 
-    agent = TrueOnlineSARSALambda(mdp.info, pi,
-                                  approximator_params=approximator_params,
-                                  features=features, **algorithm_params)
+    agent = TrueOnlineSARSALambda(mdp.info, pi, approximator_params=approximator_params, **algorithm_params)
 
     # Algorithm
     core = Core(agent, mdp)
 
     # Train
     dataset = core.evaluate(n_episodes=5, render=False)
-    J = np.mean(compute_J(dataset, mdp.info.gamma))
+    J = np.mean(dataset.discounted_return)
 
     logger.epoch_info(0, J=J)
 
     for epoch in trange(10, leave=False, disable=quiet):
         core.learn(n_steps=5000, n_steps_per_fit=1, render=False)
         dataset = core.evaluate(n_episodes=5, render=False, quiet=quiet)
-        J = np.mean(compute_J(dataset, mdp.info.gamma))
+        J = np.mean(dataset.discounted_return)
         logger.epoch_info(epoch + 1, J=J)
 
     if not quiet:
         core.evaluate(n_episodes=5, render=True, quiet=True)
 
 
-    return np.mean(compute_J(dataset, 1.))
+    return np.mean(dataset.undiscounted_return)
 
 
 if __name__ == '__main__':
     n_experiment = 1
 
     alpha = .1
-    Js = Parallel(
-        n_jobs=-1)(delayed(experiment)(alpha, n_experiment > 1) for _ in range(n_experiment))
+    Js = Parallel(n_jobs=-1)(delayed(experiment)(alpha, n_experiment > 1) for _ in range(n_experiment))

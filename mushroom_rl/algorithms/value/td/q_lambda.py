@@ -1,9 +1,9 @@
 import numpy as np
 
 from mushroom_rl.algorithms.value.td import TD
-from mushroom_rl.utils.eligibility_trace import EligibilityTrace
-from mushroom_rl.utils.table import Table
-from mushroom_rl.utils.parameters import to_parameter
+from mushroom_rl.rl_utils.eligibility_trace import EligibilityTrace
+from mushroom_rl.approximators.table import Table
+from mushroom_rl.rl_utils.parameters import to_parameter
 
 
 class QLambda(TD):
@@ -44,7 +44,7 @@ class QLambda(TD):
         self.Q.table += self._alpha(state, action) * delta * self.e.table
         self.e.table *= self.mdp_info.gamma * self._lambda()
 
-    def episode_start(self):
+    def episode_start(self, initial_state, episode_info):
         self.e.reset()
 
-        super().episode_start()
+        return super().episode_start(initial_state, episode_info)

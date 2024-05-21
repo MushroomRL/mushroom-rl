@@ -2,7 +2,7 @@ from mushroom_rl.core import Serializable
 
 import torch
 import numpy as np
-from mushroom_rl.utils.parameters import Parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class TestClass(Serializable):

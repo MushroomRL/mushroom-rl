@@ -10,7 +10,7 @@ from mushroom_rl.environments import *
 from mushroom_rl.features import Features
 from mushroom_rl.features.basis import PolynomialBasis
 from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.utils.parameters import Parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 def learn_lspi():
@@ -30,9 +30,9 @@ def learn_lspi():
     fit_params = dict()
     approximator_params = dict(input_shape=(features.size,),
                                output_shape=(mdp.info.action_space.n,),
-                               n_actions=mdp.info.action_space.n)
-    agent = LSPI(mdp.info, pi, approximator_params=approximator_params,
-                 fit_params=fit_params, features=features)
+                               n_actions=mdp.info.action_space.n,
+                               phi=features)
+    agent = LSPI(mdp.info, pi, approximator_params=approximator_params, fit_params=fit_params)
 
     # Algorithm
     core = Core(agent, mdp)

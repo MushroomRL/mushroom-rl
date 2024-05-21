@@ -3,15 +3,17 @@ from scipy.optimize import brentq
 from scipy.special import logsumexp
 from .policy import Policy
 
-from mushroom_rl.utils.parameters import Parameter, to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter, to_parameter
 
 
 class TDPolicy(Policy):
-    def __init__(self):
+    def __init__(self, policy_state_shape=None):
         """
         Constructor.
 
         """
+        super().__init__(policy_state_shape)
+
         self._approximator = None
         self._predict_params = dict()
 
@@ -40,7 +42,7 @@ class EpsGreedy(TDPolicy):
     Epsilon greedy policy.
 
     """
-    def __init__(self, epsilon):
+    def __init__(self, epsilon, policy_state_shape=None):
         """
         Constructor.
 
@@ -50,7 +52,7 @@ class EpsGreedy(TDPolicy):
                 step.
 
         """
-        super().__init__()
+        super().__init__(policy_state_shape)
 
         self._epsilon = to_parameter(epsilon)
 
@@ -75,7 +77,7 @@ class EpsGreedy(TDPolicy):
 
             return probs
 
-    def draw_action(self, state):
+    def draw_action(self, state, policy_state=None):
         if not np.random.uniform() < self._epsilon(state):
             q = self._approximator.predict(state, **self._predict_params)
             max_a = np.argwhere(q == np.max(q)).ravel()
@@ -83,9 +85,9 @@ class EpsGreedy(TDPolicy):
             if len(max_a) > 1:
                 max_a = np.array([np.random.choice(max_a)])
 
-            return max_a
+            return max_a, None
 
-        return np.array([np.random.choice(self._approximator.n_actions)])
+        return np.array([np.random.choice(self._approximator.n_actions)]), None
 
     def set_epsilon(self, epsilon):
         """
@@ -116,7 +118,7 @@ class Boltzmann(TDPolicy):
     Boltzmann softmax policy.
 
     """
-    def __init__(self, beta):
+    def __init__(self, beta, policy_state_shape=None):
         """
         Constructor.
 
@@ -127,7 +129,7 @@ class Boltzmann(TDPolicy):
             more and more greedy.
 
         """
-        super().__init__()
+        super().__init__(policy_state_shape)
         self._beta = to_parameter(beta)
 
         self._add_save_attr(_beta='mushroom')
@@ -145,9 +147,8 @@ class Boltzmann(TDPolicy):
         else:
             return qs / np.sum(qs)
 
-    def draw_action(self, state):
-        return np.array([np.random.choice(self._approximator.n_actions,
-                                          p=self(state))])
+    def draw_action(self, state, policy_state=None):
+        return np.array([np.random.choice(self._approximator.n_actions, p=self(state))]), None
 
     def set_beta(self, beta):
         """
@@ -213,7 +214,7 @@ class Mellowmax(Boltzmann):
             except ValueError:
                 return 0.
 
-    def __init__(self, omega, beta_min=-10., beta_max=10.):
+    def __init__(self, omega, beta_min=-10., beta_max=10., policy_state_shape=None):
         """
         Constructor.
 
@@ -228,7 +229,7 @@ class Mellowmax(Boltzmann):
         """
         beta_mellow = self.MellowmaxParameter(self, omega, beta_min, beta_max)
 
-        super().__init__(beta_mellow)
+        super().__init__(beta_mellow, policy_state_shape)
 
     def set_beta(self, beta):
         raise RuntimeError('Cannot change the beta parameter of Mellowmax policy')

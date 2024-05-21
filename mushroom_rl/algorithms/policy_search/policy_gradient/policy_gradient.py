@@ -11,7 +11,7 @@ class PolicyGradient(Agent):
     al.. 2011.
 
     """
-    def __init__(self, mdp_info, policy, optimizer, features):
+    def __init__(self, mdp_info, policy, optimizer):
         """
         Constructor.
 
@@ -29,9 +29,9 @@ class PolicyGradient(Agent):
             J_episode='numpy'
         )
 
-        super().__init__(mdp_info, policy, features)
+        super().__init__(mdp_info, policy)
 
-    def fit(self, dataset, **info):
+    def fit(self, dataset):
         J = list()
         self.df = 1.
         self.J_episode = 0.
@@ -132,8 +132,5 @@ class PolicyGradient(Agent):
         next_state = sample[3]
         absorbing = sample[4]
         last = sample[5]
-
-        if self.phi is not None:
-            state = self.phi(state)
 
         return state, action, reward, next_state, absorbing, last

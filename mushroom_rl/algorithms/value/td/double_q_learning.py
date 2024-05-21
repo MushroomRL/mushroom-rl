@@ -2,7 +2,7 @@ import numpy as np
 from copy import deepcopy
 
 from mushroom_rl.algorithms.value.td import TD
-from mushroom_rl.utils.table import EnsembleTable
+from mushroom_rl.approximators.ensemble_table import EnsembleTable
 
 
 class DoubleQLearning(TD):

@@ -1,4 +1,3 @@
-import sys
 import json
 import torch
 import pickle
@@ -7,10 +6,9 @@ import numpy as np
 from copy import deepcopy
 from pathlib import Path
 
-if sys.version_info >= (3, 7):
-    from zipfile import ZipFile
-else:
-    from zipfile37 import ZipFile
+from mushroom_rl.utils.torch import TorchUtils
+
+from zipfile import ZipFile
 
 
 class Serializable(object):
@@ -212,7 +210,7 @@ class Serializable(object):
     @staticmethod
     def _load_torch(zip_file, name):
         with zip_file.open(name, 'r') as f:
-            return torch.load(f)
+            return torch.load(f, map_location=TorchUtils.get_device())
 
     @staticmethod
     def _load_json(zip_file, name):

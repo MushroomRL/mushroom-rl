@@ -2,7 +2,6 @@ import warnings
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
-    import gym_minigrid
     from gym_minigrid.wrappers import RGBImgPartialObsWrapper, ImgObsWrapper
 
 import gym
@@ -12,7 +11,7 @@ from collections import deque
 
 from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.environments import Gym
-from mushroom_rl.utils.spaces import Discrete, Box
+from mushroom_rl.rl_utils.spaces import Discrete, Box
 from mushroom_rl.utils.frames import LazyFrames, preprocess_frame
 
 
@@ -82,13 +81,13 @@ class MiniGrid(Gym):
             self._state) for _ in range(self._history_length)],
             maxlen=self._history_length
         )
-        return LazyFrames(list(self._state), self._history_length)
+        return LazyFrames(list(self._state), self._history_length), {}
 
     def step(self, action):
         obs, reward, absorbing, info = self.env.step(action)
-        reward *= 1. # Int to float
+        reward = float(reward)
         if reward > 0:
-            reward = 1. # MiniGrid discounts rewards based on timesteps, but we need raw rewards
+            reward = 1.  # MiniGrid discounts rewards based on timesteps, but we need raw rewards
 
         self._state.append(preprocess_frame(obs, self._img_size))
 

@@ -6,8 +6,7 @@ from mushroom_rl.approximators.regressor import Regressor
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import LQR
 from mushroom_rl.policy import StateStdGaussianPolicy
-from mushroom_rl.utils.dataset import compute_J
-from mushroom_rl.utils.optimizers import AdaptiveOptimizer
+from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer
 
 from tqdm import tqdm, trange
 
@@ -52,15 +51,15 @@ def experiment(alg, n_epochs, n_iterations, ep_per_run):
     # Train
     core = Core(agent, mdp)
     dataset_eval = core.evaluate(n_episodes=ep_per_run)
-    J = compute_J(dataset_eval, gamma=mdp.info.gamma)
-    logger.epoch_info(0, J=np.mean(J), policy_weights=policy.get_weights().tolist())
+    J = np.mean(dataset_eval.discounted_return)
+    logger.epoch_info(0, J=J, policy_weights=policy.get_weights().tolist())
 
     for i in trange(n_epochs, leave=False):
         core.learn(n_episodes=n_iterations * ep_per_run,
                    n_episodes_per_fit=ep_per_run)
         dataset_eval = core.evaluate(n_episodes=ep_per_run)
-        J = compute_J(dataset_eval, gamma=mdp.info.gamma)
-        logger.epoch_info(i+1, J=np.mean(J), policy_weights=policy.get_weights().tolist())
+        J = np.mean(dataset_eval.discounted_return)
+        logger.epoch_info(i+1, J=J, policy_weights=policy.get_weights().tolist())
 
 
 if __name__ == '__main__':

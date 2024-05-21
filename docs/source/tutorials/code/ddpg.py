@@ -9,7 +9,6 @@ from mushroom_rl.algorithms.actor_critic import DDPG
 from mushroom_rl.core import Core
 from mushroom_rl.environments.dm_control_env import DMControl
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy
-from mushroom_rl.utils.dataset import compute_J
 
 
 class CriticNetwork(nn.Module):
@@ -119,7 +118,7 @@ n_steps = 1000
 n_steps_test = 2000
 
 dataset = core.evaluate(n_steps=n_steps_test, render=False)
-J = compute_J(dataset, gamma_eval)
+J = dataset.discounted_return
 print('Epoch: 0')
 print('J: ', np.mean(J))
 
@@ -127,5 +126,5 @@ for n in range(n_epochs):
     print('Epoch: ', n+1)
     core.learn(n_steps=n_steps, n_steps_per_fit=1)
     dataset = core.evaluate(n_steps=n_steps_test, render=False)
-    J = compute_J(dataset, gamma_eval)
+    J = dataset.discounted_return
     print('J: ', np.mean(J))

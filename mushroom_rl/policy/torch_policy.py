@@ -6,8 +6,8 @@ import torch.nn as nn
 from mushroom_rl.policy import Policy
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.utils.torch import to_float_tensor, CategoricalWrapper
-from mushroom_rl.utils.parameters import to_parameter
+from mushroom_rl.utils.torch import TorchUtils, CategoricalWrapper
+from mushroom_rl.rl_utils.parameters import to_parameter
 
 from itertools import chain
 
@@ -20,30 +20,28 @@ class TorchPolicy(Policy):
     required.
 
     """
-    def __init__(self, use_cuda):
+
+    # TODO: remove TorchUtils.to_float_tensor(array) and update the docstring to replace np.ndarray.
+
+    def __init__(self, policy_state_shape=None):
         """
         Constructor.
 
-        Args:
-            use_cuda (bool): whether to use cuda or not.
-
         """
-        self._use_cuda = use_cuda
+        super().__init__(policy_state_shape)
 
-        self._add_save_attr(_use_cuda='primitive')
+    def __call__(self, state, action, policy_state=None):
+        s = TorchUtils.to_float_tensor(torch.atleast_2d(state))
+        a = TorchUtils.to_float_tensor(torch.atleast_2d(action))
 
-    def __call__(self, state, action):
-        s = to_float_tensor(np.atleast_2d(state), self._use_cuda)
-        a = to_float_tensor(np.atleast_2d(action), self._use_cuda)
+        return torch.exp(self.log_prob_t(s, a))
 
-        return np.exp(self.log_prob_t(s, a).item())
-
-    def draw_action(self, state):
+    def draw_action(self, state, policy_state=None):
         with torch.no_grad():
-            s = to_float_tensor(np.atleast_2d(state), self._use_cuda)
+            s = TorchUtils.to_float_tensor(torch.atleast_2d(state))
             a = self.draw_action_t(s)
 
-        return torch.squeeze(a, dim=0).detach().cpu().numpy()
+        return torch.squeeze(a, dim=0).detach(), None
 
     def distribution(self, state):
         """
@@ -57,7 +55,7 @@ class TorchPolicy(Policy):
             The torch distribution for the provided states.
 
         """
-        s = to_float_tensor(state, self._use_cuda)
+        s = TorchUtils.to_float_tensor(state)
 
         return self.distribution_t(s)
 
@@ -74,9 +72,9 @@ class TorchPolicy(Policy):
             The value of the entropy of the policy.
 
         """
-        s = to_float_tensor(state, self._use_cuda) if state is not None else None
+        s = TorchUtils.to_float_tensor(state) if state is not None else None
 
-        return self.entropy_t(s).detach().cpu().numpy().item()
+        return self.entropy_t(s).detach()
 
     def draw_action_t(self, state):
         """
@@ -167,16 +165,6 @@ class TorchPolicy(Policy):
         """
         raise NotImplementedError
 
-    def reset(self):
-        pass
-
-    @property
-    def use_cuda(self):
-        """
-        True if the policy is using cuda_tensors.
-        """
-        return self._use_cuda
-
 
 class GaussianTorchPolicy(TorchPolicy):
     """
@@ -184,8 +172,7 @@ class GaussianTorchPolicy(TorchPolicy):
     deviation. The standard deviation is not state-dependent.
 
     """
-    def __init__(self, network, input_shape, output_shape, std_0=1.,
-                 use_cuda=False, **params):
+    def __init__(self, network, input_shape, output_shape, std_0=1., policy_state_shape=None, **params):
         """
         Constructor.
 
@@ -198,18 +185,14 @@ class GaussianTorchPolicy(TorchPolicy):
             params (dict): parameters used by the network constructor.
 
         """
-        super().__init__(use_cuda)
+        super().__init__(policy_state_shape)
 
         self._action_dim = output_shape[0]
 
-        self._mu = Regressor(TorchApproximator, input_shape, output_shape,
-                             network=network, use_cuda=use_cuda, **params)
+        self._mu = Regressor(TorchApproximator, input_shape, output_shape, network=network, **params)
         self._predict_params = dict()
 
-        log_sigma_init = (torch.ones(self._action_dim) * np.log(std_0)).float()
-
-        if self._use_cuda:
-            log_sigma_init = log_sigma_init.cuda()
+        log_sigma_init = torch.ones(self._action_dim, device=TorchUtils.get_device()) * torch.log(TorchUtils.to_float_tensor(std_0))
 
         self._log_sigma = nn.Parameter(log_sigma_init)
 
@@ -227,7 +210,8 @@ class GaussianTorchPolicy(TorchPolicy):
         return self.distribution_t(state).log_prob(action)[:, None]
 
     def entropy_t(self, state=None):
-        return self._action_dim / 2 * np.log(2 * np.pi * np.e) + torch.sum(self._log_sigma)
+        return self._action_dim / 2 * torch.log(TorchUtils.to_float_tensor(2 * np.pi * np.e))\
+               + torch.sum(self._log_sigma)
 
     def distribution_t(self, state):
         mu, chol_sigma = self.get_mean_and_chol(state)
@@ -235,21 +219,19 @@ class GaussianTorchPolicy(TorchPolicy):
 
     def get_mean_and_chol(self, state):
         assert torch.all(torch.exp(self._log_sigma) > 0)
-        return self._mu(state, **self._predict_params, output_tensor=True), torch.diag(torch.exp(self._log_sigma))
+        return self._mu(state, **self._predict_params), torch.diag(torch.exp(self._log_sigma))
 
     def set_weights(self, weights):
-        log_sigma_data = torch.from_numpy(weights[-self._action_dim:])
-        if self.use_cuda:
-            log_sigma_data = log_sigma_data.cuda()
+        log_sigma_data = TorchUtils.to_float_tensor(weights[-self._action_dim:])
         self._log_sigma.data = log_sigma_data
 
         self._mu.set_weights(weights[:-self._action_dim])
 
     def get_weights(self):
         mu_weights = self._mu.get_weights()
-        sigma_weights = self._log_sigma.data.detach().cpu().numpy()
+        sigma_weights = self._log_sigma.data.detach()
 
-        return np.concatenate([mu_weights, sigma_weights])
+        return torch.concatenate([mu_weights, sigma_weights])
 
     def parameters(self):
         return chain(self._mu.model.network.parameters(), [self._log_sigma])
@@ -260,7 +242,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
     Torch policy implementing a Boltzmann policy.
 
     """
-    def __init__(self, network, input_shape, output_shape, beta, use_cuda=False, **params):
+    def __init__(self, network, input_shape, output_shape, beta, policy_state_shape=None, **params):
         """
         Constructor.
 
@@ -269,20 +251,19 @@ class BoltzmannTorchPolicy(TorchPolicy):
                 regressor;
             input_shape (tuple): the shape of the state space;
             output_shape (tuple): the shape of the action space;
-            beta ((float, Parameter)): the inverse of the temperature distribution. As
+            beta ([float, Parameter]): the inverse of the temperature distribution. As
                 the temperature approaches infinity, the policy becomes more and
                 more random. As the temperature approaches 0.0, the policy becomes
                 more and more greedy.
-            params (dict): parameters used by the network constructor.
+            **params: parameters used by the network constructor.
 
         """
-        super().__init__(use_cuda)
+        super().__init__(policy_state_shape)
 
         self._action_dim = output_shape[0]
         self._predict_params = dict()
 
-        self._logits = Regressor(TorchApproximator, input_shape, output_shape,
-                                 network=network, use_cuda=use_cuda, **params)
+        self._logits = Regressor(TorchApproximator, input_shape, output_shape, network=network, **params)
         self._beta = to_parameter(beta)
 
         self._add_save_attr(
@@ -307,7 +288,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
         return torch.mean(self.distribution_t(state).entropy())
 
     def distribution_t(self, state):
-        logits = self._logits(state, **self._predict_params, output_tensor=True) * self._beta(state.numpy())
+        logits = self._logits(state, **self._predict_params) * self._beta(state.numpy())
         return CategoricalWrapper(logits)
 
     def set_weights(self, weights):

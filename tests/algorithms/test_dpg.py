@@ -12,7 +12,7 @@ from mushroom_rl.features.tiles import Tiles
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.policy import GaussianPolicy
-from mushroom_rl.utils.parameters import Parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 def learn_copdac_q():
@@ -35,16 +35,12 @@ def learn_copdac_q():
 
     input_shape = (phi.size,)
 
-    mu = Regressor(LinearApproximator, input_shape=input_shape,
-                   output_shape=mdp.info.action_space.shape)
+    mu = Regressor(LinearApproximator, input_shape=input_shape, output_shape=mdp.info.action_space.shape, phi=phi)
 
     sigma = 1e-1 * np.eye(1)
     policy = GaussianPolicy(mu, sigma)
 
-    agent = COPDAC_Q(mdp.info, policy, mu,
-                     alpha_theta, alpha_omega, alpha_v,
-                     value_function_features=phi,
-                     policy_features=phi)
+    agent = COPDAC_Q(mdp.info, policy, mu, alpha_theta, alpha_omega, alpha_v, value_function_features=phi)
 
     # Train
     core = Core(agent, mdp)

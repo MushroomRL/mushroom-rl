@@ -4,7 +4,7 @@ from collections import deque
 import gym
 
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.utils.spaces import *
+from mushroom_rl.rl_utils.spaces import *
 from mushroom_rl.utils.frames import LazyFrames, preprocess_frame
 
 
@@ -109,7 +109,7 @@ class Atari(Environment):
 
         self._current_no_op = np.random.randint(self._max_no_op_actions + 1)
 
-        return LazyFrames(list(self._state), self._history_length)
+        return LazyFrames(list(self._state), self._history_length), {}
 
     def step(self, action):
         action = action[0]
@@ -129,13 +129,11 @@ class Atari(Environment):
             if self._episode_ends_at_life:
                 absorbing = True
             self._lives = info['lives']
-            self._force_fire = self.env.unwrapped.get_action_meanings()[
-                1] == 'FIRE'
+            self._force_fire = self.env.unwrapped.get_action_meanings()[1] == 'FIRE'
 
         self._state.append(preprocess_frame(obs, self._img_size))
 
-        return LazyFrames(list(self._state),
-                          self._history_length), reward, absorbing, info
+        return LazyFrames(list(self._state), self._history_length), reward, absorbing, info
 
     def render(self, record=False):
         self.env.render(mode='human')

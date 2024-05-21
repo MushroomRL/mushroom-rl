@@ -1,12 +1,17 @@
 from copy import deepcopy
 
+import numpy as np
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from mushroom_rl.algorithms.value.dqn import AbstractDQN
-from mushroom_rl.approximators.parametric.torch_approximator import *
+from mushroom_rl.approximators.parametric import NumpyTorchApproximator
+from mushroom_rl.utils.torch import TorchUtils
 
 eps = torch.finfo(torch.float32).eps
+
 
 def categorical_loss(input, target, reduction='sum'):
     input = input.clamp(1e-5)
@@ -23,7 +28,7 @@ def categorical_loss(input, target, reduction='sum'):
 
 class CategoricalNetwork(nn.Module):
     def __init__(self, input_shape, output_shape, features_network, n_atoms,
-                 v_min, v_max, n_features, use_cuda, **kwargs):
+                 v_min, v_max, n_features, **kwargs):
         super().__init__()
 
         self._n_output = output_shape[0]
@@ -34,9 +39,7 @@ class CategoricalNetwork(nn.Module):
         self._v_max = v_max
 
         delta = (self._v_max - self._v_min) / (self._n_atoms - 1)
-        self._a_values = torch.arange(self._v_min, self._v_max + eps, delta)
-        if use_cuda:
-            self._a_values = self._a_values.cuda()
+        self._a_values = torch.arange(self._v_min, self._v_max + eps, delta, device= TorchUtils.get_device())
 
         self._p = nn.ModuleList(
             [nn.Linear(n_features, n_atoms) for _ in range(self._n_output)])
@@ -111,9 +114,9 @@ class CategoricalDQN(AbstractDQN):
             _a_values='numpy'
         )
 
-        super().__init__(mdp_info, policy, TorchApproximator, **params)
+        super().__init__(mdp_info, policy, NumpyTorchApproximator, **params)
 
-    def fit(self, dataset, **info):
+    def fit(self, dataset):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
             state, action, reward, next_state, absorbing, _ =\

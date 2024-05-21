@@ -8,18 +8,16 @@ class LinearApproximator(Serializable):
     This class implements a linear approximator.
 
     """
-    def __init__(self, weights=None, input_shape=None, output_shape=(1,),
+    def __init__(self, weights=None, input_shape=None, output_shape=(1,), phi=None,
                  **kwargs):
         """
         Constructor.
 
         Args:
-             weights (np.ndarray): array of weights to initialize the weights
-                of the approximator;
-             input_shape (np.ndarray, None): the shape of the input of the
-                model;
-             output_shape (np.ndarray, (1,)): the shape of the output of the
-                model;
+             weights (np.ndarray): array of weights to initialize the weights of the approximator;
+             input_shape (np.ndarray, None): the shape of the input of the model;
+             output_shape (np.ndarray, (1,)): the shape of the output of the model;
+             phi (object, None): features to extract from the state;
              **kwargs: other params of the approximator.
 
         """
@@ -36,7 +34,11 @@ class LinearApproximator(Serializable):
             raise ValueError('You should specify the initial parameter vector'
                              ' or the input dimension')
 
-        self._add_save_attr(_w='numpy')
+        self._phi = phi
+        self._add_save_attr(
+            _w='numpy',
+            _phi='pickle'
+        )
 
     def fit(self, x, y, **fit_params):
         """
@@ -45,11 +47,11 @@ class LinearApproximator(Serializable):
         Args:
             x (np.ndarray): input;
             y (np.ndarray): target;
-            **fit_params: other parameters used by the fit method of the
-                regressor.
+            **fit_params: other parameters used by the fit method of the regressor.
 
         """
-        self._w = np.atleast_2d(np.linalg.pinv(x).dot(y).T)
+        phi = np.atleast_2d(self.phi(x))
+        self._w = np.atleast_2d(np.linalg.pinv(phi).dot(y).T)
 
     def predict(self, x, **predict_params):
         """
@@ -57,16 +59,17 @@ class LinearApproximator(Serializable):
 
         Args:
             x (np.ndarray): input;
-            **predict_params: other parameters used by the predict method
-                the regressor.
+            **predict_params: other parameters used by the predict method the regressor.
 
         Returns:
             The predictions of the model.
 
         """
-        prediction = np.ones((x.shape[0], self._w.shape[0]))
-        for i, x_i in enumerate(x):
-            prediction[i] = x_i.dot(self._w.T)
+        phi = np.atleast_2d(self.phi(x))
+
+        prediction = np.ones((phi.shape[0], self._w.shape[0]))
+        for i, phi_i in enumerate(phi):
+            prediction[i] = phi_i.dot(self._w.T)
 
         return prediction
 
@@ -99,10 +102,15 @@ class LinearApproximator(Serializable):
         """
         self._w = w.reshape(self._w.shape)
 
+    def phi(self, x):
+        if self._phi is not None:
+            return self._phi(x)
+        else:
+            return x
+
     def diff(self, state, action=None):
         """
-        Compute the derivative of the output w.r.t. ``state``, and ``action``
-        if provided.
+        Compute the derivative of the output w.r.t. ``state``, and ``action`` if provided.
 
         Args:
             state (np.ndarray): the state;
@@ -114,7 +122,7 @@ class LinearApproximator(Serializable):
 
         """
         if len(self._w.shape) == 1 or self._w.shape[0] == 1:
-            return state
+            return self.phi(state)
         else:
             n_phi = self._w.shape[1]
             n_outs = self._w.shape[0]
@@ -125,13 +133,14 @@ class LinearApproximator(Serializable):
                 start = 0
                 for i in range(n_outs):
                     stop = start + n_phi
-                    df[start:stop, i] = state
+                    df[start:stop, i] = self.phi(state)
                     start = stop
             else:
                 shape = (n_phi * n_outs)
                 df = np.zeros(shape)
                 start = action[0] * n_phi
                 stop = start + n_phi
-                df[start:stop] = state
+                df[start:stop] = self.phi(state)
 
             return df
+

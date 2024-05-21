@@ -80,8 +80,7 @@ class Observations(PlotItemBufferLimited):
 
         """
         title = "Observations"
-        super().__init__(title, plot_buffers, maxs=maxs, mins=mins,
-                         dotted_limits=dotted_limits)
+        super().__init__(title, plot_buffers, maxs=maxs, mins=mins, dotted_limits=dotted_limits)
 
 
 class LenOfEpisodeTraining(PlotItemBuffer):

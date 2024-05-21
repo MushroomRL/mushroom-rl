@@ -10,7 +10,7 @@ class DeterministicPolicy(ParametricPolicy):
     differentiable, even if the mean value approximator is differentiable.
 
     """
-    def __init__(self, mu):
+    def __init__(self, mu, policy_state_shape=None):
         """
         Constructor.
 
@@ -19,11 +19,13 @@ class DeterministicPolicy(ParametricPolicy):
                 in each state.
 
         """
+        super().__init__(policy_state_shape)
+
         self._approximator = mu
         self._predict_params = dict()
 
-        self._add_save_attr(_approximator='mushroom')
-        self._add_save_attr(_predict_params='pickle')
+        self._add_save_attr(_approximator='mushroom',
+                            _predict_params='pickle')
 
     def get_regressor(self):
         """
@@ -35,13 +37,13 @@ class DeterministicPolicy(ParametricPolicy):
         """
         return self._approximator
 
-    def __call__(self, state, action):
+    def __call__(self, state, action, policy_state=None):
         policy_action = self._approximator.predict(state, **self._predict_params)
 
         return 1. if np.array_equal(action, policy_action) else 0.
 
-    def draw_action(self, state):
-        return self._approximator.predict(state, **self._predict_params)
+    def draw_action(self, state, policy_state=None):
+        return self._approximator.predict(state, **self._predict_params), None
 
     def set_weights(self, weights):
         self._approximator.set_weights(weights)

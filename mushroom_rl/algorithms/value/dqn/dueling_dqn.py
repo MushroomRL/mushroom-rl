@@ -1,9 +1,10 @@
 from copy import deepcopy
 
+import torch
 import torch.nn as nn
 
 from mushroom_rl.algorithms.value.dqn import DQN
-from mushroom_rl.approximators.parametric.torch_approximator import *
+from mushroom_rl.approximators.parametric import NumpyTorchApproximator
 
 
 class DuelingNetwork(nn.Module):
@@ -65,4 +66,4 @@ class DuelingDQN(DQN):
         params['approximator_params']['avg_advantage'] = avg_advantage
         params['approximator_params']['output_dim'] = (mdp_info.action_space.n,)
 
-        super().__init__(mdp_info, policy, TorchApproximator, **params)
+        super().__init__(mdp_info, policy, NumpyTorchApproximator, **params)

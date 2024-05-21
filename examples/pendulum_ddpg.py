@@ -7,9 +7,8 @@ import torch.nn.functional as F
 
 from mushroom_rl.algorithms.actor_critic import DDPG, TD3
 from mushroom_rl.core import Core, Logger
-from mushroom_rl.environments.gym_env import Gym
+from mushroom_rl.environments import Gymnasium
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy
-from mushroom_rl.utils.dataset import compute_J
 
 from tqdm import trange
 
@@ -74,12 +73,10 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
     logger.strong_line()
     logger.info('Experiment Algorithm: ' + alg.__name__)
 
-    use_cuda = torch.cuda.is_available()
-
     # MDP
     horizon = 200
     gamma = 0.99
-    mdp = Gym('Pendulum-v1', horizon, gamma)
+    mdp = Gymnasium('Pendulum-v1', horizon, gamma, headless=False)
 
     # Policy
     policy_class = OrnsteinUhlenbeckPolicy
@@ -97,8 +94,7 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
     actor_params = dict(network=ActorNetwork,
                         n_features=n_features,
                         input_shape=actor_input_shape,
-                        output_shape=mdp.info.action_space.shape,
-                        use_cuda=use_cuda)
+                        output_shape=mdp.info.action_space.shape)
 
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': .001}}
@@ -110,8 +106,7 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
                          loss=F.mse_loss,
                          n_features=n_features,
                          input_shape=critic_input_shape,
-                         output_shape=(1,),
-                         use_cuda=use_cuda)
+                         output_shape=(1,))
 
     # Agent
     agent = alg(mdp.info, policy_class, policy_params,
@@ -125,16 +120,17 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
 
     # RUN
     dataset = core.evaluate(n_steps=n_steps_test, render=False)
-    J = np.mean(compute_J(dataset, gamma))
-    R = np.mean(compute_J(dataset))
+    J = np.mean(dataset.discounted_return)
+    R = np.mean(dataset.undiscounted_return)
 
     logger.epoch_info(0, J=J, R=R)
 
     for n in trange(n_epochs, leave=False):
         core.learn(n_steps=n_steps, n_steps_per_fit=1)
         dataset = core.evaluate(n_steps=n_steps_test, render=False)
-        J = np.mean(compute_J(dataset, gamma))
-        R = np.mean(compute_J(dataset))
+
+        J = np.mean(dataset.discounted_return)
+        R = np.mean(dataset.undiscounted_return)
 
         logger.epoch_info(n+1, J=J, R=R)
 
