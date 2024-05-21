@@ -1,7 +1,7 @@
 import numpy as np
 
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.utils import spaces
+from mushroom_rl.rl_utils import spaces
 from mushroom_rl.utils.viewer import Viewer
 
 
@@ -32,8 +32,7 @@ class AbstractGridWorld(Environment):
         self._goal = goal
 
         # Visualization
-        self._viewer = Viewer(self._width, self._height, 500,
-                              self._height * 500 // self._width)
+        self._viewer = Viewer(self._width, self._height, 500, self._height * 500 // self._width)
 
         super().__init__(mdp_info)
 
@@ -43,7 +42,7 @@ class AbstractGridWorld(Environment):
 
         self._state = state
 
-        return self._state
+        return self._state, {}
 
     def step(self, action):
         state = self.convert_to_grid(self._state, self._width)
@@ -56,23 +55,18 @@ class AbstractGridWorld(Environment):
     def render(self, record=False):
         for row in range(1, self._height):
             for col in range(1, self._width):
-                self._viewer.line(np.array([col, 0]),
-                                  np.array([col, self._height]))
-                self._viewer.line(np.array([0, row]),
-                                  np.array([self._width, row]))
+                self._viewer.line(np.array([col, 0]), np.array([col, self._height]))
+                self._viewer.line(np.array([0, row]), np.array([self._width, row]))
 
-        goal_center = np.array([.5 + self._goal[1],
-                                self._height - (.5 + self._goal[0])])
+        goal_center = np.array([.5 + self._goal[1], self._height - (.5 + self._goal[0])])
         self._viewer.square(goal_center, 0, 1, (0, 255, 0))
 
         start_grid = self.convert_to_grid(self._start, self._width)
-        start_center = np.array([.5 + start_grid[1],
-                                 self._height - (.5 + start_grid[0])])
+        start_center = np.array([.5 + start_grid[1], self._height - (.5 + start_grid[0])])
         self._viewer.square(start_center, 0, 1, (255, 0, 0))
 
         state_grid = self.convert_to_grid(self._state, self._width)
-        state_center = np.array([.5 + state_grid[1],
-                                 self._height - (.5 + state_grid[0])])
+        state_center = np.array([.5 + state_grid[1], self._height - (.5 + state_grid[0])])
         self._viewer.circle(state_center, .4, (0, 0, 255))
 
         frame = self._viewer.get_frame() if record else None

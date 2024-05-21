@@ -1,7 +1,7 @@
 import numpy as np
 
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.utils import spaces
+from mushroom_rl.rl_utils import spaces
 from mushroom_rl.utils.angles import normalize_angle
 from mushroom_rl.utils.viewer import Viewer
 
@@ -19,7 +19,7 @@ class ShipSteering(Environment):
         Args:
              small (bool, True): whether to use a small state space or not.
              n_steps_action (int, 3): number of integration intervals for each
-                                      step of the mdp.
+                                      step of the env.
 
         """
         # MDP parameters
@@ -67,7 +67,7 @@ class ShipSteering(Environment):
         else:
             self._state = state
 
-        return self._state
+        return self._state, {}
 
     def step(self, action):
 
@@ -83,10 +83,7 @@ class ShipSteering(Environment):
             new_state[2] = normalize_angle(state[2] + state[3] * self.info.dt)
             new_state[3] = state[3] + (r - state[3]) * self.info.dt / self._T
 
-            if new_state[0] > self.field_size \
-               or new_state[1] > self.field_size \
-               or new_state[0] < 0 or new_state[1] < 0:
-
+            if new_state[0] > self.field_size or new_state[1] > self.field_size or new_state[0] < 0 or new_state[1] < 0:
                 new_state[0] = self._bound(new_state[0], 0, self.field_size)
                 new_state[1] = self._bound(new_state[1], 0, self.field_size)
 

@@ -13,6 +13,20 @@ except ImportError:
     pass
 
 try:
+    GymnasiumAtari = None
+    from .gymnasium_atari import GymnasiumAtari
+    GymnasiumAtari.register()
+except ImportError:
+    pass
+
+try:
+    Gymnasium = None
+    from .gymnasium_env import Gymnasium
+    Gymnasium.register()
+except ImportError:
+    pass
+
+try:
     DMControl = None
     from .dm_control_env import DMControl
     DMControl.register()
@@ -48,6 +62,11 @@ try:
 except ImportError:
     pass
 
+try:
+    IsaacEnv = None
+    from .isaac_env import IsaacEnv
+except ImportError:
+    pass
 
 try:
     PyBullet = None

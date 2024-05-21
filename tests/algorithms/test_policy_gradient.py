@@ -10,7 +10,7 @@ from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.core import Core
 from mushroom_rl.environments.lqr import LQR
 from mushroom_rl.policy.gaussian_policy import StateStdGaussianPolicy
-from mushroom_rl.utils.optimizers import AdaptiveOptimizer
+from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer
 
 
 def learn(alg, alg_params):

@@ -1,9 +1,7 @@
 import argparse
 import datetime
 import pathlib
-import os
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -11,13 +9,12 @@ import torch.nn.functional as F
 
 from mushroom_rl.algorithms.value import AveragedDQN, CategoricalDQN, DQN,\
     DoubleDQN, MaxminDQN, DuelingDQN, NoisyDQN, Rainbow
-from mushroom_rl.approximators.parametric import TorchApproximator
+from mushroom_rl.approximators.parametric import NumpyTorchApproximator
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments.habitat_env import *
 from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.utils.dataset import compute_metrics
-from mushroom_rl.utils.parameters import LinearParameter, Parameter
-from mushroom_rl.utils.replay_memory import PrioritizedReplayMemory
+from mushroom_rl.rl_utils.parameters import LinearParameter, Parameter
+from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
 
 
 """
@@ -134,7 +131,7 @@ def print_epoch(epoch, logger):
 
 
 def get_stats(dataset, logger):
-    score = compute_metrics(dataset)
+    score = dataset.compute_metrics()
     logger.info(('min_reward: %f, max_reward: %f, mean_reward: %f,'
                 ' median_reward: %f, episodes_completed: %d' % score))
 
@@ -333,13 +330,12 @@ def experiment():
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
             n_features=Network.n_features,
-            optimizer=optimizer,
-            use_cuda=args.use_cuda
+            optimizer=optimizer
         )
         if args.algorithm not in ['cdqn', 'rainbow']:
             approximator_params['loss'] = F.smooth_l1_loss
 
-        approximator = TorchApproximator
+        approximator = NumpyTorchApproximator
 
         if args.prioritized:
             replay_memory = PrioritizedReplayMemory(

@@ -5,16 +5,15 @@ from copy import deepcopy
 import torch
 import torch.nn.functional as F
 
-from mushroom_rl.core import Agent
+from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OnPolicyDeepAC
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.utils.torch import get_gradient, zero_grad, to_float_tensor
-from mushroom_rl.utils.dataset import parse_dataset, compute_J
-from mushroom_rl.utils.value_functions import compute_gae
-from mushroom_rl.utils.parameters import to_parameter
+from mushroom_rl.utils.torch import TorchUtils
+from mushroom_rl.rl_utils.value_functions import compute_gae
+from mushroom_rl.rl_utils.parameters import to_parameter
 
 
-class TRPO(Agent):
+class TRPO(OnPolicyDeepAC):
     """
     Trust Region Policy optimization algorithm.
     "Trust Region Policy Optimization".
@@ -23,7 +22,7 @@ class TRPO(Agent):
     """
     def __init__(self, mdp_info, policy, critic_params, ent_coeff=0., max_kl=.001, lam=1.,
                  n_epochs_line_search=10, n_epochs_cg=10, cg_damping=1e-2, cg_residual_tol=1e-10,
-                 critic_fit_params=None):
+                 critic_fit_params=None, backend='torch'):
         """
         Constructor.
 
@@ -66,6 +65,8 @@ class TRPO(Agent):
 
         self._old_policy = None
 
+        super().__init__(mdp_info, policy, backend=backend)
+
         self._add_save_attr(
             _critic_fit_params='pickle', 
             _n_epochs_line_search='mushroom',
@@ -80,57 +81,45 @@ class TRPO(Agent):
             _iter='primitive'
         )
 
-        super().__init__(mdp_info, policy, None)
+    def fit(self, dataset):
+        state, action, reward, next_state, absorbing, last = dataset.parse(to='torch')
+        state, next_state, state_old = self._preprocess_state(state, next_state)
 
-    def fit(self, dataset, **info):
-        state, action, reward, next_state, absorbing, last = parse_dataset(dataset)
-        x = state.astype(np.float32)
-        u = action.astype(np.float32)
-        r = reward.astype(np.float32)
-        xn = next_state.astype(np.float32)
+        v_target, adv = compute_gae(self._V, state, next_state, reward, absorbing, last,
+                                    self.mdp_info.gamma, self._lambda())
+        adv = (adv - torch.mean(adv)) / (torch.std(adv) + 1e-8)
 
-        obs = to_float_tensor(x, self.policy.use_cuda)
-        act = to_float_tensor(u, self.policy.use_cuda)
-        v_target, np_adv = compute_gae(self._V, x, xn, r, absorbing, last,
-                                       self.mdp_info.gamma, self._lambda())
-        np_adv = (np_adv - np.mean(np_adv)) / (np.std(np_adv) + 1e-8)
-        adv = to_float_tensor(np_adv, self.policy.use_cuda)
+        adv = adv.detach()
+        v_target = v_target.detach()
 
         # Policy update
         self._old_policy = deepcopy(self.policy)
-        old_pol_dist = self._old_policy.distribution_t(obs)
-        old_log_prob = self._old_policy.log_prob_t(obs, act).detach()
+        old_pol_dist = self._old_policy.distribution_t(state_old)
+        old_log_prob = self._old_policy.log_prob_t(state_old, action).detach()
 
-        zero_grad(self.policy.parameters())
-        loss = self._compute_loss(obs, act, adv, old_log_prob)
+        TorchUtils.zero_grad(self.policy.parameters())
+        loss = self._compute_loss(state, action, adv, old_log_prob)
 
         prev_loss = loss.item()
 
         # Compute Gradient
         loss.backward()
-        g = get_gradient(self.policy.parameters())
+        g = TorchUtils.get_gradient(self.policy.parameters())
 
         # Compute direction through conjugate gradient
-        stepdir = self._conjugate_gradient(g, obs, old_pol_dist)
+        stepdir = self._conjugate_gradient(g, state, old_pol_dist)
 
         # Line search
-        self._line_search(obs, act, adv, old_log_prob, old_pol_dist, prev_loss, stepdir)
+        self._line_search(state, action, adv, old_log_prob, old_pol_dist, prev_loss, stepdir)
 
         # VF update
-        self._V.fit(x, v_target, **self._critic_fit_params)
+        self._V.fit(state, v_target, **self._critic_fit_params)
 
         # Print fit information
-        self._log_info(dataset, x, v_target, old_pol_dist)
+        self._log_info(dataset, state, v_target, old_pol_dist)
         self._iter += 1
 
     def _fisher_vector_product(self, p, obs, old_pol_dist):
-        p_tensor = torch.from_numpy(p)
-        if self.policy.use_cuda:
-            p_tensor = p_tensor.cuda()
-
-        return self._fisher_vector_product_t(p_tensor, obs, old_pol_dist)
-
-    def _fisher_vector_product_t(self, p, obs, old_pol_dist):
         kl = self._compute_kl(obs, old_pol_dist)
         grads = torch.autograd.grad(kl, self.policy.parameters(), create_graph=True)
         flat_grad_kl = torch.cat([grad.view(-1) for grad in grads])
@@ -142,13 +131,13 @@ class TRPO(Agent):
         return flat_grad_grad_kl + p * self._cg_damping()
 
     def _conjugate_gradient(self, b, obs, old_pol_dist):
-        p = b.detach().cpu().numpy()
-        r = b.detach().cpu().numpy()
-        x = np.zeros_like(p)
+        p = b.detach()
+        r = b.detach()
+        x = torch.zeros_like(p)
         r2 = r.dot(r)
 
         for i in range(self._n_epochs_cg()):
-            z = self._fisher_vector_product(p, obs, old_pol_dist).detach().cpu().numpy()
+            z = self._fisher_vector_product(p, obs, old_pol_dist).detach()
             v = r2 / p.dot(z)
             x += v * p
             r -= v * z
@@ -163,10 +152,10 @@ class TRPO(Agent):
 
     def _line_search(self, obs, act, adv, old_log_prob, old_pol_dist, prev_loss, stepdir):
         # Compute optimal step size
-        direction = self._fisher_vector_product(stepdir, obs, old_pol_dist).detach().cpu().numpy()
+        direction = self._fisher_vector_product(stepdir, obs, old_pol_dist).detach()
         shs = .5 * stepdir.dot(direction)
-        lm = np.sqrt(shs / self._max_kl())
-        full_step = stepdir / lm
+        lm = torch.sqrt(shs / self._max_kl())
+        full_step = (stepdir / lm).detach()
         stepsize = 1.
 
         # Save old policy parameters
@@ -214,7 +203,7 @@ class TRPO(Agent):
             logging_kl = torch.mean(
                 torch.distributions.kl.kl_divergence(old_pol_dist, new_pol_dist)
             )
-            avg_rwd = np.mean(compute_J(dataset))
+            avg_rwd = np.mean(dataset.undiscounted_return)
             msg = "Iteration {}:\n\t\t\t\trewards {} vf_loss {}\n\t\t\t\tentropy {}  kl {}".format(
                 self._iter, avg_rwd, logging_verr, logging_ent, logging_kl)
 

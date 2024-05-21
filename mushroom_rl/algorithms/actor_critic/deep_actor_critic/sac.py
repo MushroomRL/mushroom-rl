@@ -7,9 +7,9 @@ from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DeepAC
 from mushroom_rl.policy import Policy
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.utils.replay_memory import ReplayMemory
-from mushroom_rl.utils.torch import to_float_tensor
-from mushroom_rl.utils.parameters import to_parameter
+from mushroom_rl.rl_utils.replay_memory import ReplayMemory
+from mushroom_rl.utils.torch import TorchUtils
+from mushroom_rl.rl_utils.parameters import to_parameter
 
 from copy import deepcopy
 from itertools import chain
@@ -22,7 +22,8 @@ class SACPolicy(Policy):
     compute_action_and_log_prob_t methods, that are fundamental for the internals calculations of the SAC algorithm.
 
     """
-    def __init__(self, mu_approximator, sigma_approximator, min_a, max_a, log_std_min, log_std_max):
+    def __init__(self, mu_approximator, sigma_approximator, min_a, max_a, log_std_min, log_std_max,
+                 policy_state_shape=None):
         """
         Constructor.
 
@@ -35,22 +36,18 @@ class SACPolicy(Policy):
             log_std_max ([float, Parameter]): max value for the policy log std.
 
         """
+        super().__init__(policy_state_shape)
+
         self._mu_approximator = mu_approximator
         self._sigma_approximator = sigma_approximator
 
-        self._delta_a = to_float_tensor(.5 * (max_a - min_a), self.use_cuda)
-        self._central_a = to_float_tensor(.5 * (max_a + min_a), self.use_cuda)
+        self._delta_a = TorchUtils.to_float_tensor(.5 * (max_a - min_a))
+        self._central_a = TorchUtils.to_float_tensor(.5 * (max_a + min_a))
 
         self._log_std_min = to_parameter(log_std_min)
         self._log_std_max = to_parameter(log_std_max)
 
         self._eps_log_prob = 1e-6
-
-        use_cuda = self._mu_approximator.model.use_cuda
-
-        if use_cuda:
-            self._delta_a = self._delta_a.cuda()
-            self._central_a = self._central_a.cuda()
 
         self._add_save_attr(
             _mu_approximator='mushroom',
@@ -62,12 +59,11 @@ class SACPolicy(Policy):
             _eps_log_prob='primitive'
         )
 
-    def __call__(self, state, action):
+    def __call__(self, state, action, internal_state=None):
         raise NotImplementedError
 
-    def draw_action(self, state):
-        return self.compute_action_and_log_prob_t(
-            state, compute_log_prob=False).detach().cpu().numpy()
+    def draw_action(self, state, internal_state=None):
+        return self.compute_action_and_log_prob_t(state, compute_log_prob=False).detach(), None
 
     def compute_action_and_log_prob(self, state):
         """
@@ -81,7 +77,7 @@ class SACPolicy(Policy):
 
         """
         a, log_prob = self.compute_action_and_log_prob_t(state)
-        return a.detach().cpu().numpy(), log_prob.detach().cpu().numpy()
+        return a.detach(), log_prob.detach()
 
     def compute_action_and_log_prob_t(self, state, compute_log_prob=True):
         """
@@ -119,8 +115,8 @@ class SACPolicy(Policy):
             The torch distribution for the provided states.
 
         """
-        mu = self._mu_approximator.predict(state, output_tensor=True)
-        log_sigma = self._sigma_approximator.predict(state, output_tensor=True)
+        mu = self._mu_approximator.predict(state)
+        log_sigma = self._sigma_approximator.predict(state)
         # Bound the log_std
         log_sigma = torch.clamp(log_sigma, self._log_std_min(), self._log_std_max())
         return torch.distributions.Normal(mu, log_sigma.exp())
@@ -166,13 +162,6 @@ class SACPolicy(Policy):
 
         return np.concatenate([mu_weights, sigma_weights])
 
-    @property
-    def use_cuda(self):
-        """
-        True if the policy is using cuda_tensors.
-        """
-        return self._mu_approximator.model.use_cuda
-
     def parameters(self):
         """
         Returns the trainable policy parameters, as expected by torch optimizers.
@@ -194,7 +183,7 @@ class SAC(DeepAC):
     """
     def __init__(self, mdp_info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params, batch_size,
                  initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha, use_log_alpha_loss=False,
-                 log_std_min=-20, log_std_max=2, target_entropy=None,critic_fit_params=None):
+                 log_std_min=-20, log_std_max=2, target_entropy=None, critic_fit_params=None):
         """
         Constructor.
 
@@ -231,8 +220,6 @@ class SAC(DeepAC):
         else:
             self._target_entropy = target_entropy
 
-        self._replay_memory = ReplayMemory(initial_replay_size, max_replay_size)
-
         if 'n_models' in critic_params.keys():
             assert critic_params['n_models'] == 2
         else:
@@ -250,17 +237,16 @@ class SAC(DeepAC):
 
         self._init_target(self._critic_approximator, self._target_critic_approximator)
 
-        self._log_alpha = torch.tensor(0., dtype=torch.float32)
-
-        if policy.use_cuda:
-            self._log_alpha = self._log_alpha.cuda().requires_grad_()
-        else:
-            self._log_alpha.requires_grad_()
+        self._log_alpha = torch.tensor(0., dtype=torch.float32, requires_grad=True)
 
         self._alpha_optim = optim.Adam([self._log_alpha], lr=lr_alpha)
 
         policy_parameters = chain(actor_mu_approximator.model.network.parameters(),
                                   actor_sigma_approximator.model.network.parameters())
+
+        super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
+
+        self._replay_memory = ReplayMemory(mdp_info, self.info, initial_replay_size, max_replay_size)
 
         self._add_save_attr(
             _critic_fit_params='pickle',
@@ -276,9 +262,7 @@ class SAC(DeepAC):
             _alpha_optim='torch'
         )
 
-        super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
-
-    def fit(self, dataset, **info):
+    def fit(self, dataset):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
             state, action, reward, next_state, absorbing, _ = self._replay_memory.get(self._batch_size())
@@ -297,8 +281,8 @@ class SAC(DeepAC):
             self._update_target(self._critic_approximator, self._target_critic_approximator)
 
     def _loss(self, state, action_new, log_prob):
-        q_0 = self._critic_approximator(state, action_new, output_tensor=True, idx=0)
-        q_1 = self._critic_approximator(state, action_new, output_tensor=True, idx=1)
+        q_0 = self._critic_approximator(state, action_new, idx=0)
+        q_1 = self._critic_approximator(state, action_new, idx=1)
 
         q = torch.min(q_0, q_1)
 
@@ -316,8 +300,8 @@ class SAC(DeepAC):
     def _next_q(self, next_state, absorbing):
         """
         Args:
-            next_state (np.ndarray): the states where next action has to be evaluated;
-            absorbing (np.ndarray): the absorbing flag for the states in ``next_state``.
+            next_state (torch.Tensor): the states where next action has to be evaluated;
+            absorbing (torch.Tensor): the absorbing flag for the states in ``next_state``.
 
         Returns:
             Action-values returned by the critic for ``next_state`` and the action returned by the actor.
@@ -325,19 +309,19 @@ class SAC(DeepAC):
         """
         a, log_prob_next = self.policy.compute_action_and_log_prob(next_state)
 
-        q = self._target_critic_approximator.predict(
-            next_state, a, prediction='min') - self._alpha_np * log_prob_next
-        q *= 1 - absorbing
+        q = self._target_critic_approximator.predict(next_state, a, prediction='min') - self._alpha * log_prob_next
+        q *= 1 - absorbing.to(int)
 
         return q
 
     def _post_load(self):
         self._update_optimizer_parameters(self.policy.parameters())
+        self._update_alpha_optimizer_parameters()
+
+    def _update_alpha_optimizer_parameters(self):
+        if self._alpha_optim is not None:
+            TorchUtils.update_optimizer_parameters(self._alpha_optim, [self._log_alpha])
 
     @property
     def _alpha(self):
         return self._log_alpha.exp()
-
-    @property
-    def _alpha_np(self):
-        return self._alpha.detach().cpu().numpy()

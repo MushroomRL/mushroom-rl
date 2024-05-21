@@ -1,8 +1,8 @@
-from mushroom_rl.utils.callbacks.callback import Callback
+from mushroom_rl.utils.callbacks.callback import CallbackList
 import numpy as np
 
 
-class CollectMaxQ(Callback):
+class CollectMaxQ(CallbackList):
     """
     This callback can be used to collect the maximum action value in a given
     state at each call.

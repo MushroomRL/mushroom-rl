@@ -1,3 +1,6 @@
+import numpy as np
+
+import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
@@ -5,15 +8,14 @@ import torch.nn.functional as F
 from datetime import datetime
 from helper.utils import TestUtils as tu
 
-from mushroom_rl.core import Agent, Logger
+from mushroom_rl.core import Core, Agent, AgentInfo, Logger
 from mushroom_rl.algorithms.value import DQN, DoubleDQN, AveragedDQN,\
     MaxminDQN, DuelingDQN, CategoricalDQN, QuantileDQN, NoisyDQN, Rainbow
-from mushroom_rl.core import Core
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.approximators.parametric.torch_approximator import *
-from mushroom_rl.utils.parameters import Parameter, LinearParameter
-from mushroom_rl.utils.replay_memory import PrioritizedReplayMemory
+from mushroom_rl.approximators.parametric import NumpyTorchApproximator
+from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter
+from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
 
 
 class Network(nn.Module):
@@ -68,11 +70,12 @@ def learn(alg, alg_params, logger=None):
                                input_shape=input_shape,
                                output_shape=mdp.info.action_space.size,
                                n_actions=mdp.info.action_space.n,
-                               n_features=2, use_cuda=False)
+                               n_features=2
+                               )
 
     # Agent
     if alg not in [DuelingDQN, QuantileDQN, CategoricalDQN, NoisyDQN, Rainbow]:
-        agent = alg(mdp.info, pi, TorchApproximator,
+        agent = alg(mdp.info, pi, NumpyTorchApproximator,
                     approximator_params=approximator_params, **alg_params)
     elif alg in [CategoricalDQN, Rainbow]:
         agent = alg(mdp.info, pi, approximator_params=approximator_params,
@@ -138,10 +141,9 @@ def test_dqn_logger(tmpdir):
 
 
 def test_prioritized_dqn():
-    replay_memory = PrioritizedReplayMemory(
-        50, 500, alpha=.6,
-        beta=LinearParameter(.4, threshold_value=1, n=500 // 5)
-    )
+
+    replay_memory = {"class": PrioritizedReplayMemory,
+                     "params": dict(alpha=.6, beta=LinearParameter(.4, threshold_value=1, n=500 // 5))}
     params = dict(batch_size=50, initial_replay_size=50,
                   max_replay_size=500, target_update_frequency=50,
                   replay_memory=replay_memory)
@@ -156,11 +158,8 @@ def test_prioritized_dqn():
 
 def test_prioritized_dqn_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
-
-    replay_memory = PrioritizedReplayMemory(
-        50, 500, alpha=.6,
-        beta=LinearParameter(.4, threshold_value=1, n=500 // 5)
-    )
+    replay_memory = {"class": PrioritizedReplayMemory,
+                     "params": dict(alpha=.6, beta=LinearParameter(.4, threshold_value=1, n=500 // 5))}
     params = dict(batch_size=50, initial_replay_size=50,
                   max_replay_size=500, target_update_frequency=50,
                   replay_memory=replay_memory)

@@ -1,4 +1,3 @@
-import os
 import cv2
 import datetime
 from pathlib import Path
@@ -7,6 +6,7 @@ from pathlib import Path
 class VideoRecorder(object):
     """
     Simple video record that creates a video from a stream of images.
+
     """
 
     def __init__(self, path="./mushroom_rl_recordings", tag=None, video_name=None, fps=60):

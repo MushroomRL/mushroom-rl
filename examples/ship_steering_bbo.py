@@ -9,8 +9,7 @@ from mushroom_rl.features.tiles import Tiles
 from mushroom_rl.features.features import Features
 from mushroom_rl.distributions import GaussianDiagonalDistribution
 from mushroom_rl.policy import DeterministicPolicy
-from mushroom_rl.utils.dataset import compute_J
-from mushroom_rl.utils.optimizers import AdaptiveOptimizer
+from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer
 
 from tqdm import tqdm
 
@@ -63,15 +62,15 @@ def experiment(alg, params, n_epochs, fit_per_epoch, ep_per_fit):
     # Train
     core = Core(agent, mdp)
     dataset_eval = core.evaluate(n_episodes=ep_per_fit)
-    J = compute_J(dataset_eval, gamma=mdp.info.gamma)
-    logger.epoch_info(0, J=np.mean(J))
+    J = np.mean(dataset_eval.discounted_return)
+    logger.epoch_info(0, J=J)
 
     for i in range(n_epochs):
         core.learn(n_episodes=fit_per_epoch * ep_per_fit,
                    n_episodes_per_fit=ep_per_fit)
         dataset_eval = core.evaluate(n_episodes=ep_per_fit)
-        J = compute_J(dataset_eval, gamma=mdp.info.gamma)
-        logger.epoch_info(i+1, J=np.mean(J))
+        J = np.mean(dataset_eval.discounted_return)
+        logger.epoch_info(i+1, J=J)
 
 
 if __name__ == '__main__':

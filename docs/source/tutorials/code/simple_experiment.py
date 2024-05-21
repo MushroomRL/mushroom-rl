@@ -5,8 +5,7 @@ from mushroom_rl.algorithms.value import FQI
 from mushroom_rl.core import Core
 from mushroom_rl.environments import CarOnHill
 from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.utils.dataset import compute_J
-from mushroom_rl.utils.parameters import Parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 mdp = CarOnHill()
 
@@ -34,4 +33,4 @@ pi.set_epsilon(Parameter(0.))
 initial_state = np.array([[-.5, 0.]])
 dataset = core.evaluate(initial_states=initial_state)
 
-print(compute_J(dataset, gamma=mdp.info.gamma))
+print(dataset.discounted_return)

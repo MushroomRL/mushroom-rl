@@ -3,7 +3,7 @@ import pybullet
 import pybullet_data
 from pybullet_utils.bullet_client import BulletClient
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.utils.spaces import Box
+from mushroom_rl.rl_utils.spaces import Box
 from mushroom_rl.utils.pybullet import *
 
 
@@ -93,7 +93,7 @@ class PyBullet(Environment):
         self._state = self._indexer.create_sim_state()
         observation = self._create_observation(self._state)
 
-        return observation
+        return observation, {}
 
     def render(self, record=False):
         frame = self._viewer.display()

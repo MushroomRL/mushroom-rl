@@ -7,11 +7,10 @@ import numpy as np
 from tqdm import trange
 
 from mushroom_rl.core import Core, Logger
-from mushroom_rl.environments import Gym
-from mushroom_rl.algorithms.actor_critic import TRPO, PPO
+from mushroom_rl.environments import Gymnasium
+from mushroom_rl.algorithms.actor_critic import PPO, TRPO
 
 from mushroom_rl.policy import GaussianTorchPolicy
-from mushroom_rl.utils.dataset import compute_J
 
 
 class Network(nn.Module):
@@ -25,12 +24,9 @@ class Network(nn.Module):
         self._h2 = nn.Linear(n_features, n_features)
         self._h3 = nn.Linear(n_features, n_output)
 
-        nn.init.xavier_uniform_(self._h1.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h2.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h3.weight,
-                                gain=nn.init.calculate_gain('linear'))
+        nn.init.xavier_uniform_(self._h1.weight, gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self._h2.weight, gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self._h3.weight, gain=nn.init.calculate_gain('linear'))
 
     def forward(self, state, **kwargs):
         features1 = F.relu(self._h1(torch.squeeze(state, 1).float()))
@@ -47,7 +43,7 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
     logger.strong_line()
     logger.info('Experiment Algorithm: ' + alg.__name__)
 
-    mdp = Gym(env_id, horizon, gamma)
+    mdp = Gymnasium(env_id, horizon, gamma, headless=False)
 
     critic_params = dict(network=Network,
                          optimizer={'class': optim.Adam,
@@ -66,14 +62,14 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
     alg_params['critic_params'] = critic_params
 
     agent = alg(mdp.info, policy, **alg_params)
-    agent.set_logger(logger)
+    #agent.set_logger(logger)
 
     core = Core(agent, mdp)
 
     dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
 
-    J = np.mean(compute_J(dataset, mdp.info.gamma))
-    R = np.mean(compute_J(dataset))
+    J = np.mean(dataset.discounted_return)
+    R = np.mean(dataset.undiscounted_return)
     E = agent.policy.entropy()
 
     logger.epoch_info(0, J=J, R=R, entropy=E)
@@ -82,8 +78,8 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit)
         dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
 
-        J = np.mean(compute_J(dataset, mdp.info.gamma))
-        R = np.mean(compute_J(dataset))
+        J = np.mean(dataset.discounted_return)
+        R = np.mean(dataset.undiscounted_return)
         E = agent.policy.entropy()
 
         logger.epoch_info(it+1, J=J, R=R, entropy=E)
@@ -98,9 +94,7 @@ if __name__ == '__main__':
 
     policy_params = dict(
         std_0=1.,
-        n_features=32,
-        use_cuda=torch.cuda.is_available()
-
+        n_features=32
     )
 
     ppo_params = dict(actor_optimizer={'class': optim.Adam,
@@ -119,8 +113,8 @@ if __name__ == '__main__':
                        cg_residual_tol=1e-10)
 
     algs_params = [
-        (TRPO, 'trpo', trpo_params),
-        (PPO, 'ppo', ppo_params)
+        (PPO, 'ppo', ppo_params),
+        (TRPO, 'trpo', trpo_params)
      ]
 
     for alg, alg_name, alg_params in algs_params:

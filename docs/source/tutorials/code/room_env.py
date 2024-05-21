@@ -1,7 +1,7 @@
 import numpy as np
 
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.utils.spaces import Box, Discrete
+from mushroom_rl.rl_utils.spaces import Box, Discrete
 
 from mushroom_rl.utils.viewer import Viewer
 
@@ -111,8 +111,7 @@ if __name__ == '__main__':
     from mushroom_rl.policy import EpsGreedy
     from mushroom_rl.features import Features
     from mushroom_rl.features.tiles import Tiles
-    from mushroom_rl.utils.parameters import Parameter
-    from mushroom_rl.utils.dataset import compute_J
+    from mushroom_rl.rl_utils.parameters import Parameter
 
     # Set the seed
     np.random.seed(1)
@@ -150,7 +149,7 @@ if __name__ == '__main__':
     dataset = core.evaluate(n_episodes=3, render=True)
 
     # Print the average objective value before learning
-    J = np.mean(compute_J(dataset, env.info.gamma))
+    J = np.mean(dataset.discounted_return)
     print(f'Objective function before learning: {J}')
 
     # Train
@@ -160,7 +159,7 @@ if __name__ == '__main__':
     dataset = core.evaluate(n_episodes=3, render=True)
 
     # Print the average objective value after learning
-    J = np.mean(compute_J(dataset, env.info.gamma))
+    J = np.mean(dataset.discounted_return)
     print(f'Objective function after learning: {J}')
 
 

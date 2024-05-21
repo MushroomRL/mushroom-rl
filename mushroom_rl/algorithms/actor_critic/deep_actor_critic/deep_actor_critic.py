@@ -1,15 +1,32 @@
 from mushroom_rl.core import Agent
-from mushroom_rl.utils.torch import update_optimizer_parameters
+from mushroom_rl.utils.torch import TorchUtils
+
+
+class OnPolicyDeepAC(Agent):
+    def _preprocess_state(self, state, next_state, output_old=True):
+        state_old = None
+
+        if output_old:
+            state_old = self._agent_preprocess(state)
+
+        self._update_agent_preprocessor(state)
+        state = self._agent_preprocess(state)
+        next_state = self._agent_preprocess(next_state)
+
+        if output_old:
+            return state, next_state, state_old
+        else:
+            return state, next_state
 
 
 class DeepAC(Agent):
     """
-    Base class for algorithms that uses the reparametrization trick, such as
-    SAC, DDPG and TD3.
+    Base class for off policy deep actor-critic algorithms.
+    These algorithms use the reparametrization trick, such as SAC, DDPG and TD3.
 
     """
 
-    def __init__(self, mdp_info, policy, actor_optimizer, parameters):
+    def __init__(self, mdp_info, policy, actor_optimizer, parameters, backend='torch'):
         """
         Constructor.
 
@@ -24,15 +41,15 @@ class DeepAC(Agent):
                 parameters = list(parameters)
             self._parameters = parameters
 
-            self._optimizer = actor_optimizer['class'](
-                parameters, **actor_optimizer['params']
-            )
+            self._optimizer = actor_optimizer['class'](parameters, **actor_optimizer['params'])
 
             self._clipping = None
 
             if 'clipping' in actor_optimizer:
                 self._clipping = actor_optimizer['clipping']['method']
                 self._clipping_params = actor_optimizer['clipping']['params']
+
+        super().__init__(mdp_info, policy, backend=backend)
         
         self._add_save_attr(
             _optimizer='torch',
@@ -40,9 +57,7 @@ class DeepAC(Agent):
             _clipping_params='pickle'
         )
 
-        super().__init__(mdp_info, policy)
-
-    def fit(self, dataset, **info):
+    def fit(self, dataset):
         """
         Fit step.
 
@@ -83,8 +98,7 @@ class DeepAC(Agent):
     def _update_optimizer_parameters(self, parameters):
         self._parameters = list(parameters)
         if self._optimizer is not None:
-            update_optimizer_parameters(self._optimizer, self._parameters)
+            TorchUtils.update_optimizer_parameters(self._optimizer, self._parameters)
 
     def _post_load(self):
-        raise NotImplementedError('DeepAC is an abstract class. Subclasses need'
-                                  'to implement the `_post_load` method.')
+        raise NotImplementedError('DeepAC is an abstract class. Subclasses need to implement the `_post_load` method.')

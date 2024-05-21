@@ -2,7 +2,7 @@ import numpy as np
 
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DDPG
 from mushroom_rl.policy import Policy
-from mushroom_rl.utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import to_parameter
 
 
 class TD3(DDPG):
@@ -52,19 +52,17 @@ class TD3(DDPG):
         else:
             critic_params['n_models'] = 2
 
+        super().__init__(mdp_info, policy_class, policy_params, actor_params, actor_optimizer, critic_params,
+                         batch_size, initial_replay_size, max_replay_size, tau, policy_delay, critic_fit_params)
+
         self._add_save_attr(
             _noise_std='mushroom',
             _noise_clip='mushroom'
         )
 
-        super().__init__(mdp_info, policy_class, policy_params,  actor_params,
-                         actor_optimizer, critic_params, batch_size,
-                         initial_replay_size, max_replay_size, tau,
-                         policy_delay, critic_fit_params)
-
     def _loss(self, state):
-        action = self._actor_approximator(state, output_tensor=True, **self._actor_predict_params)
-        q = self._critic_approximator(state, action, idx=0, output_tensor=True, **self._critic_predict_params)
+        action = self._actor_approximator(state, **self._actor_predict_params)
+        q = self._critic_approximator(state, action, idx=0, **self._critic_predict_params)
 
         return -q.mean()
 

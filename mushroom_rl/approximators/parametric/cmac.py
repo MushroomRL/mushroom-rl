@@ -16,21 +16,18 @@ class CMAC(LinearApproximator):
 
         Args:
             tilings (list): list of tilings to discretize the input space.
-            weights (np.ndarray): array of weights to initialize the weights
-                of the approximator;
-            input_shape (np.ndarray, None): the shape of the input of the
-                model;
-            output_shape (np.ndarray, (1,)): the shape of the output of the
-                model;
+            weights (np.ndarray): array of weights to initialize the weights of the approximator;
+            input_shape (np.ndarray, None): the shape of the input of the model;
+            output_shape (np.ndarray, (1,)): the shape of the output of the model;
             **kwargs: other params of the approximator.
 
         """
-        self._phi = Features(tilings=tilings)
+        phi = Features(tilings=tilings)
         self._n = len(tilings)
 
-        super().__init__(weights=weights, input_shape=(self._phi.size,), output_shape=output_shape)
+        super().__init__(weights=weights, input_shape=(phi.size,), output_shape=output_shape, phi=phi)
 
-        self._add_save_attr(_phi='pickle', _n='primitive')
+        self._add_save_attr(_n='primitive')
 
     def fit(self, x, y, alpha=1.0, **kwargs):
         """
@@ -40,8 +37,7 @@ class CMAC(LinearApproximator):
             x (np.ndarray): input;
             y (np.ndarray): target;
             alpha (float): learning rate;
-            **kwargs: other parameters used by the fit method of the
-                regressor.
+            **kwargs: other parameters used by the fit method of the regressor.
 
         """
         y_hat = self.predict(x)
@@ -64,8 +60,7 @@ class CMAC(LinearApproximator):
 
         Args:
             x (np.ndarray): input;
-            **predict_params: other parameters used by the predict method
-                the regressor.
+            **predict_params: other parameters used by the predict method the regressor.
 
         Returns:
             The predictions of the model.
@@ -84,16 +79,14 @@ class CMAC(LinearApproximator):
 
     def diff(self, state, action=None):
         """
-        Compute the derivative of the output w.r.t. ``state``, and ``action``
-        if provided.
+        Compute the derivative of the output w.r.t. ``state``, and ``action`` if provided.
 
         Args:
             state (np.ndarray): the state;
             action (np.ndarray, None): the action.
 
         Returns:
-            The derivative of the output w.r.t. ``state``, and ``action``
-            if provided.
+            The derivative of the output w.r.t. ``state``, and ``action`` if provided.
 
         """
 

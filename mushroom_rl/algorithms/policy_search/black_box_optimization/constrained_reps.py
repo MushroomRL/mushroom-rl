@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import minimize
 from mushroom_rl.algorithms.policy_search.black_box_optimization import BlackBoxOptimization
-from mushroom_rl.utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import to_parameter
 
 
 class ConstrainedREPS(BlackBoxOptimization):
@@ -9,7 +9,7 @@ class ConstrainedREPS(BlackBoxOptimization):
     Episodic Relative Entropy Policy Search algorithm with constrained policy update.
 
     """
-    def __init__(self, mdp_info, distribution, policy, eps, kappa, features=None):
+    def __init__(self, mdp_info, distribution, policy, eps, kappa):
         """
         Constructor.
 
@@ -22,15 +22,19 @@ class ConstrainedREPS(BlackBoxOptimization):
                 previous one at each update step. 
 
         """
+        assert not distribution.is_contextual
+
         self._eps = to_parameter(eps)
         self._kappa = to_parameter(kappa)
 
-        self._add_save_attr(_eps='mushroom')
-        self._add_save_attr(_kappa='mushroom')
+        super().__init__(mdp_info, distribution, policy)
 
-        super().__init__(mdp_info, distribution, policy, features)
+        self._add_save_attr(
+            _eps='mushroom',
+            _kappa='mushroom'
+        )
 
-    def _update(self, Jep, theta):
+    def _update(self, Jep, theta, context):
         eta_start = np.ones(1)
 
         res = minimize(ConstrainedREPS._dual_function, eta_start,

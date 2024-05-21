@@ -10,8 +10,7 @@ from mushroom_rl.features.tiles import Tiles
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.policy import GaussianPolicy
-from mushroom_rl.utils.dataset import compute_J
-from mushroom_rl.utils.parameters import Parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 from mushroom_rl.utils.callbacks import CollectDataset
 
 from tqdm import tqdm, trange
@@ -113,16 +112,17 @@ def experiment(n_epochs, n_episodes):
 
     input_shape = (phi.size,)
 
-    mu = Regressor(LinearApproximator, input_shape=input_shape,
-                   output_shape=mdp.info.action_space.shape)
+    mu = Regressor(LinearApproximator,
+                   input_shape=input_shape,
+                   output_shape=mdp.info.action_space.shape,
+                   phi=phi)
 
     sigma = 1e-1 * np.eye(1)
     policy = GaussianPolicy(mu, sigma)
 
     agent = COPDAC_Q(mdp.info, policy, mu,
                      alpha_theta, alpha_omega, alpha_v,
-                     value_function_features=phi,
-                     policy_features=phi)
+                     value_function_features=phi)
 
     # Train
     dataset_callback = CollectDataset()
@@ -135,7 +135,7 @@ def experiment(n_epochs, n_episodes):
     for i in trange(n_epochs, leave=False):
         core.learn(n_episodes=n_episodes,
                    n_steps_per_fit=1, render=False)
-        J = compute_J(dataset_callback.get(), gamma=1.0)
+        J = dataset_callback.get().undiscounted_return
         dataset_callback.clean()
         visualization_callback()
         logger.epoch_info(i+1, R_mean=np.sum(J) / n_steps/n_episodes)

@@ -11,8 +11,7 @@ class MaxminDQN(DQN):
     Lan Q. et al.. 2020.
 
     """
-    def __init__(self, mdp_info, policy, approximator, n_approximators,
-                 **params):
+    def __init__(self, mdp_info, policy, approximator, n_approximators, **params):
         """
         Constructor.
 
@@ -26,17 +25,15 @@ class MaxminDQN(DQN):
 
         super().__init__(mdp_info, policy, approximator, **params)
 
-    def fit(self, dataset, **info):
+    def fit(self, dataset):
         self._fit_params['idx'] = np.random.randint(self._n_approximators)
 
-        super().fit(dataset, **info)
+        super().fit(dataset)
 
-    def _initialize_regressors(self, approximator, apprx_params_train,
-                               apprx_params_target):
+    def _initialize_regressors(self, approximator, apprx_params_train, apprx_params_target):
         self.approximator = Regressor(approximator,
                                       n_models=self._n_approximators,
-                                      prediction='min',
-                                      **apprx_params_train)
+                                      prediction='min', **apprx_params_train)
         self.target_approximator = Regressor(approximator,
                                              n_models=self._n_approximators,
                                              prediction='min',
@@ -45,5 +42,4 @@ class MaxminDQN(DQN):
 
     def _update_target(self):
         for i in range(len(self.target_approximator)):
-            self.target_approximator[i].set_weights(
-                self.approximator[i].get_weights())
+            self.target_approximator[i].set_weights(self.approximator[i].get_weights())

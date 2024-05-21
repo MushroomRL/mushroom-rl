@@ -27,25 +27,25 @@ Now, we define useful functions, set some hyperparameters, and create the ``mdp`
 and the policy ``pi``:
 
 .. literalinclude:: code/dqn.py
-   :lines: 57-99
+   :lines: 55-97
 
 Differently from the literature, we use ``Adam`` as the optimizer.
 
 Then, the ``approximator``:
 
 .. literalinclude:: code/dqn.py
-   :lines: 101-113
+   :lines: 99-111
 
 Finally, the ``agent`` and the ``core``:
 
 .. literalinclude:: code/dqn.py
-   :lines: 115-129
+   :lines: 113-127
 
 Eventually, the learning loop is performed. As done in literature, learning and
 evaluation steps are alternated:
 
 .. literalinclude:: code/dqn.py
-   :lines: 131-158
+   :lines: 129-156
 
 Solving MuJoCo with DDPG
 ------------------------

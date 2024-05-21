@@ -16,7 +16,7 @@ def get_mean_and_confidence(data):
     mean = np.mean(data, axis=0)
     se = st.sem(data, axis=0)
     n = len(data)
-    interval, _ = st.t.interval(0.95, n-1, scale=se)
+    _, interval = st.t.interval(0.95, n-1, scale=se)
     return mean, interval
 
 

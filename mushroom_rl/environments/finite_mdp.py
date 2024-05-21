@@ -1,7 +1,7 @@
 import numpy as np
 
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.utils import spaces
+from mushroom_rl.rl_utils import spaces
 
 
 class FiniteMDP(Environment):
@@ -49,7 +49,7 @@ class FiniteMDP(Environment):
         else:
             self._state = state
 
-        return self._state
+        return self._state, {}
 
     def step(self, action):
         p = self.p[self._state[0], action[0], :]

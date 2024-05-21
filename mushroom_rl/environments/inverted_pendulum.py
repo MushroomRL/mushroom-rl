@@ -2,7 +2,7 @@ import numpy as np
 from scipy.integrate import odeint
 
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.utils import spaces
+from mushroom_rl.rl_utils import spaces
 from mushroom_rl.utils.angles import normalize_angle
 from mushroom_rl.utils.viewer import Viewer
 
@@ -65,11 +65,10 @@ class InvertedPendulum(Environment):
         else:
             self._state = state
             self._state[0] = normalize_angle(self._state[0])
-            self._state[1] = self._bound(self._state[1], -self._max_omega,
-                                         self._max_omega)
+            self._state[1] = self._bound(self._state[1], -self._max_omega, self._max_omega)
 
         self._last_u = 0.0
-        return self._state
+        return self._state, {}
 
     def step(self, action):
         u = self._bound(action[0], -self._max_u, self._max_u)

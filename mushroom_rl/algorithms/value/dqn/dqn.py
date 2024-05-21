@@ -1,5 +1,3 @@
-import numpy as np
-
 from mushroom_rl.algorithms.value.dqn import AbstractDQN
 
 
@@ -12,7 +10,7 @@ class DQN(AbstractDQN):
     """
     def _next_q(self, next_state, absorbing):
         q = self.target_approximator.predict(next_state, **self._predict_params)
-        if np.any(absorbing):
+        if absorbing.any():
             q *= 1 - absorbing.reshape(-1, 1)
 
-        return np.max(q, axis=1)
+        return q.max(1)

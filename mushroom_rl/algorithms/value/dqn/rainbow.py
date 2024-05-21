@@ -1,19 +1,24 @@
 from copy import deepcopy
 
+import numpy as np
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from mushroom_rl.algorithms.value.dqn import AbstractDQN
 from mushroom_rl.algorithms.value.dqn.categorical_dqn import categorical_loss
 from mushroom_rl.algorithms.value.dqn.noisy_dqn import NoisyNetwork
-from mushroom_rl.approximators.parametric.torch_approximator import *
-from mushroom_rl.utils.replay_memory import PrioritizedReplayMemory
+from mushroom_rl.approximators.parametric import NumpyTorchApproximator
+from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
+from mushroom_rl.utils.torch import TorchUtils
 
 eps = torch.finfo(torch.float32).eps
 
+
 class RainbowNetwork(nn.Module):
     def __init__(self, input_shape, output_shape, features_network, n_atoms,
-                 v_min, v_max, n_features, use_cuda, sigma_coeff, **kwargs):
+                 v_min, v_max, n_features, sigma_coeff, **kwargs):
         super().__init__()
 
         self._n_output = output_shape[0]
@@ -24,13 +29,11 @@ class RainbowNetwork(nn.Module):
         self._v_max = v_max
 
         delta = (self._v_max - self._v_min) / (self._n_atoms - 1)
-        self._a_values = torch.arange(self._v_min, self._v_max + eps, delta)
-        if use_cuda:
-            self._a_values = self._a_values.cuda()
+        self._a_values = torch.arange(self._v_min, self._v_max + eps, delta, device=TorchUtils.get_device())
 
-        self._pv = NoisyNetwork.NoisyLinear(n_features, n_atoms, use_cuda, sigma_coeff)
-        self._pa = nn.ModuleList(
-            [NoisyNetwork.NoisyLinear(n_features, n_atoms, use_cuda, sigma_coeff) for _ in range(self._n_output)])
+        self._pv = NoisyNetwork.NoisyLinear(n_features, n_atoms, sigma_coeff)
+        self._pa = nn.ModuleList([NoisyNetwork.NoisyLinear(n_features, n_atoms, sigma_coeff)
+                                  for _ in range(self._n_output)])
 
     def forward(self, state, action=None, get_distribution=False):
         features = self._phi(state)
@@ -64,7 +67,7 @@ class RainbowNetwork(nn.Module):
 class Rainbow(AbstractDQN):
     """
     Rainbow algorithm.
-    "Rainbow: Combinining Improvements in Deep Reinforcement Learning".
+    "Rainbow: Combining Improvements in Deep Reinforcement Learning".
     Hessel M. et al.. 2018.
 
     """
@@ -102,10 +105,10 @@ class Rainbow(AbstractDQN):
         self._n_steps_return = n_steps_return
         self._sigma_coeff = sigma_coeff
 
-        params['replay_memory'] = PrioritizedReplayMemory(
-            params['initial_replay_size'], params['max_replay_size'], alpha=alpha_coeff,
-            beta=beta
-        )
+        params['replay_memory'] = {"class": PrioritizedReplayMemory,
+                                   "params": dict(alpha=alpha_coeff, beta=beta)}
+
+        super().__init__(mdp_info, policy, NumpyTorchApproximator, **params)
 
         self._add_save_attr(
             _n_atoms='primitive',
@@ -117,9 +120,7 @@ class Rainbow(AbstractDQN):
             _sigma_coeff='primitive'
         )
 
-        super().__init__(mdp_info, policy, TorchApproximator, **params)
-
-    def fit(self, dataset, **info):
+    def fit(self, dataset):
         self._replay_memory.add(dataset, np.ones(len(dataset)) * self._replay_memory.max_priority,
                                 n_steps_return=self._n_steps_return, gamma=self.mdp_info.gamma)
         if self._replay_memory.initialized:

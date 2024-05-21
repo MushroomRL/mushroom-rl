@@ -3,7 +3,7 @@ import numpy as np
 from scipy.optimize import minimize
 
 from mushroom_rl.algorithms.policy_search.black_box_optimization import BlackBoxOptimization
-from mushroom_rl.utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import to_parameter
 
 
 class REPS(BlackBoxOptimization):
@@ -13,7 +13,7 @@ class REPS(BlackBoxOptimization):
     Peters J.. 2013.
 
     """
-    def __init__(self, mdp_info, distribution, policy, eps, features=None):
+    def __init__(self, mdp_info, distribution, policy, eps):
         """
         Constructor.
 
@@ -23,13 +23,15 @@ class REPS(BlackBoxOptimization):
                 previous one at each update step.
 
         """
+        assert not distribution.is_contextual
+
         self._eps = to_parameter(eps)
+
+        super().__init__(mdp_info, distribution, policy)
 
         self._add_save_attr(_eps='mushroom')
 
-        super().__init__(mdp_info, distribution, policy, features)
-
-    def _update(self, Jep, theta):
+    def _update(self, Jep, theta, context):
         eta_start = np.ones(1)
 
         res = minimize(REPS._dual_function, eta_start,

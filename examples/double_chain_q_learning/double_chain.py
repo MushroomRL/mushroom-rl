@@ -8,7 +8,7 @@ from mushroom_rl.core import Core
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.utils.callbacks import CollectQ
-from mushroom_rl.utils.parameters import Parameter, ExponentialParameter
+from mushroom_rl.rl_utils.parameters import Parameter, DecayParameter
 
 
 """
@@ -33,7 +33,7 @@ def experiment(algorithm_class, exp):
     pi = EpsGreedy(epsilon=epsilon)
 
     # Agent
-    learning_rate = ExponentialParameter(value=1., exp=exp, size=mdp.info.size)
+    learning_rate = DecayParameter(value=1., exp=exp, size=mdp.info.size)
     algorithm_params = dict(learning_rate=learning_rate)
     agent = algorithm_class(mdp.info, pi, **algorithm_params)
 
@@ -51,7 +51,7 @@ def experiment(algorithm_class, exp):
 
 
 if __name__ == '__main__':
-    n_experiment = 500
+    n_experiment = 5
 
     names = {1: '1', .51: '51', QLearning: 'Q', DoubleQLearning: 'DQ',
              WeightedQLearning: 'WQ', SpeedyQLearning: 'SPQ'}
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     for e in [1, .51]:
         for a in [QLearning, DoubleQLearning, WeightedQLearning,
                   SpeedyQLearning]:
-            out = Parallel(n_jobs=-1)(
+            out = Parallel(n_jobs=1)(
                 delayed(experiment)(a, e) for _ in range(n_experiment))
             Qs = np.array([o for o in out])
 

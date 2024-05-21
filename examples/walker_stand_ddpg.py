@@ -9,7 +9,6 @@ from mushroom_rl.algorithms.actor_critic import DDPG
 from mushroom_rl.core import Core
 from mushroom_rl.environments.dm_control_env import DMControl
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy
-from mushroom_rl.utils.dataset import compute_J
 
 """
 Simple script to run DMControl walker stand-up task from pixels with DDPG.
@@ -95,7 +94,6 @@ def experiment():
     # MDP
     horizon = 500
     gamma = 0.99
-    gamma_eval = 1.
     mdp = DMControl('walker', 'stand', horizon, gamma, use_pixels=True)
 
     # Policy
@@ -146,7 +144,7 @@ def experiment():
     n_steps_test = 2000
 
     dataset = core.evaluate(n_steps=n_steps_test, render=False)
-    J = compute_J(dataset, gamma_eval)
+    J = dataset.undiscounted_return
     print('Epoch: 0')
     print('J: ', np.mean(J))
 
@@ -154,7 +152,7 @@ def experiment():
         print('Epoch: ', n+1)
         core.learn(n_steps=n_steps, n_steps_per_fit=1)
         dataset = core.evaluate(n_steps=n_steps_test, render=False)
-        J = compute_J(dataset, gamma_eval)
+        J = dataset.undiscounted_return
         print('J: ', np.mean(J))
 
 

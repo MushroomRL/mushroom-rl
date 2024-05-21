@@ -4,9 +4,7 @@ from mushroom_rl.algorithms.value import QLearning
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.utils.parameters import Parameter
-
-from mushroom_rl.utils.dataset import compute_J
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 """
@@ -40,7 +38,7 @@ def experiment():
 
     # Initial policy Evaluation
     dataset = core.evaluate(n_steps=1000)
-    J = np.mean(compute_J(dataset, mdp.info.gamma))
+    J = np.mean(dataset.discounted_return)
     logger.info(f'J start: {J}')
 
     # Train
@@ -48,7 +46,7 @@ def experiment():
 
     # Final Policy Evaluation
     dataset = core.evaluate(n_steps=1000)
-    J = np.mean(compute_J(dataset, mdp.info.gamma))
+    J = np.mean(dataset.discounted_return)
     logger.info(f'J final: {J}')
 
 

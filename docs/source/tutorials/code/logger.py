@@ -43,8 +43,7 @@ from mushroom_rl.core import Core
 from mushroom_rl.environments.generators import generate_simple_chain
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.algorithms.value import QLearning
-from mushroom_rl.utils.parameters import Parameter
-from mushroom_rl.utils.dataset import compute_J
+from mushroom_rl.rl_utils.parameters import Parameter
 from tqdm import trange
 from time import sleep
 import numpy as np
@@ -63,8 +62,8 @@ logger.info('Experiment started')
 logger.strong_line()
 
 dataset = core.evaluate(n_steps=100)
-J = np.mean(compute_J(dataset, mdp.info.gamma))  # Discounted returns
-R = np.mean(compute_J(dataset))  # Undiscounted returns
+J = np.mean(dataset.discounted_return)
+R = np.mean(dataset.undiscounted_return)  # Undiscounted returns
 
 logger.epoch_info(0, J=J, R=R, any_label='any value')
 
@@ -74,8 +73,8 @@ for i in trange(epochs):
     sleep(0.5)
     dataset = core.evaluate(n_steps=100)
     sleep(0.5)
-    J = np.mean(compute_J(dataset, mdp.info.gamma))  # Discounted returns
-    R = np.mean(compute_J(dataset))  # Undiscounted returns
+    J = np.mean(dataset.discounted_return)  # Discounted returns
+    R = np.mean(dataset.undiscounted_return)  # Undiscounted returns
 
     # Here logging epoch results to the console
     logger.epoch_info(i+1, J=J, R=R)

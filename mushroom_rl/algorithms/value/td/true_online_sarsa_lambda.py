@@ -4,7 +4,7 @@ from mushroom_rl.algorithms.value.td import TD
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.features import get_action_features
-from mushroom_rl.utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import to_parameter
 
 
 class TrueOnlineSARSALambda(TD):
@@ -13,8 +13,7 @@ class TrueOnlineSARSALambda(TD):
     "True Online TD(lambda)". Seijen H. V. et al.. 2014.
 
     """
-    def __init__(self, mdp_info, policy, learning_rate, lambda_coeff,
-                 features, approximator_params=None):
+    def __init__(self, mdp_info, policy, learning_rate, lambda_coeff, approximator_params=None):
         """
         Constructor.
 
@@ -22,8 +21,7 @@ class TrueOnlineSARSALambda(TD):
             lambda_coeff ([float, Parameter]): eligibility trace coefficient.
 
         """
-        approximator_params = dict() if approximator_params is None else \
-            approximator_params
+        approximator_params = dict() if approximator_params is None else approximator_params
 
         Q = Regressor(LinearApproximator, **approximator_params)
         self.e = np.zeros(Q.weights_size)
@@ -36,13 +34,12 @@ class TrueOnlineSARSALambda(TD):
             e='numpy'
         )
 
-        super().__init__(mdp_info, policy, Q, learning_rate, features)
+        super().__init__(mdp_info, policy, Q, learning_rate)
 
     def _update(self, state, action, reward, next_state, absorbing):
-        phi_state = self.phi(state)
-        phi_state_action = get_action_features(phi_state, action,
-                                               self.mdp_info.action_space.n)
-        q_current = self.Q.predict(phi_state, action)
+        phi_state = self.Q.model.phi(state)
+        phi_state_action = get_action_features(phi_state, action, self.mdp_info.action_space.n)
+        q_current = self.Q.predict(state, action)
 
         if self._q_old is None:
             self._q_old = q_current
@@ -50,25 +47,22 @@ class TrueOnlineSARSALambda(TD):
         alpha = self._alpha(state, action)
 
         e_phi = self.e.dot(phi_state_action)
-        self.e = self.mdp_info.gamma * self._lambda() * self.e + alpha * (
-            1. - self.mdp_info.gamma * self._lambda.get_value() * e_phi) * phi_state_action
+        self.e = (self.mdp_info.gamma * self._lambda() * self.e +
+                  alpha * (1. - self.mdp_info.gamma * self._lambda.get_value() * e_phi) * phi_state_action)
 
-        self.next_action = self.draw_action(next_state)
-        phi_next_state = self.phi(next_state)
-        q_next = self.Q.predict(phi_next_state,
-                                self.next_action) if not absorbing else 0.
+        self.next_action, _ = self.draw_action(next_state)
+        q_next = self.Q.predict(next_state, self.next_action) if not absorbing else 0.
 
         delta = reward + self.mdp_info.gamma * q_next - self._q_old
 
         theta = self.Q.get_weights()
-        theta += delta * self.e + alpha * (
-            self._q_old - q_current) * phi_state_action
+        theta += delta * self.e + alpha * (self._q_old - q_current) * phi_state_action
         self.Q.set_weights(theta)
 
         self._q_old = q_next
 
-    def episode_start(self):
+    def episode_start(self, initial_state, episode_info):
         self._q_old = None
         self.e = np.zeros(self.Q.weights_size)
 
-        super().episode_start()
+        return super().episode_start(initial_state, episode_info)

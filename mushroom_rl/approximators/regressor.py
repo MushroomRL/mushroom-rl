@@ -1,9 +1,9 @@
 import numpy as np
 
-from mushroom_rl.core import Serializable
+from mushroom_rl.core.serialization import Serializable
+from .ensemble import Ensemble
 from ._implementations.q_regressor import QRegressor
 from ._implementations.action_regressor import ActionRegressor
-from ._implementations.ensemble import Ensemble
 from ._implementations.generic_regressor import GenericRegressor
 
 

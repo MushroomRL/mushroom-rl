@@ -4,19 +4,17 @@ from tqdm import trange, tqdm
 
 from mushroom_rl.core import Serializable
 from mushroom_rl.utils.minibatches import minibatch_generator
-from mushroom_rl.utils.torch import get_weights, set_weights, zero_grad, update_optimizer_parameters
+from mushroom_rl.utils.torch import TorchUtils
 
 
 class TorchApproximator(Serializable):
     """
     Class to interface a pytorch model to the mushroom Regressor interface.
-    This class implements all is needed to use a generic pytorch model and train
-    it using a specified optimizer and objective function.
-    This class supports also minibatches.
+    This class implements all is needed to use a generic pytorch model and train it using a specified optimizer and
+    objective function. This class supports also minibatches.
 
     """
-    def __init__(self, input_shape, output_shape, network, optimizer=None,
-                 loss=None, batch_size=0, n_fit_targets=1, use_cuda=False,
+    def __init__(self, input_shape, output_shape, network, optimizer=None, loss=None, batch_size=0, n_fit_targets=1,
                  reinitialize=False, dropout=False, quiet=True, **params):
         """
         Constructor.
@@ -32,7 +30,6 @@ class TorchApproximator(Serializable):
                 dataset is fed to the optimizer at each epoch;
             n_fit_targets (int, 1): the number of fit targets used by the fit
                 method of the network;
-            use_cuda (bool, False): if True, runs the network on the GPU;
             reinitialize (bool, False): if True, the approximator is re
                 initialized at every fit call. To perform the initialization, 
                 the weights_init method must be defined properly for the 
@@ -47,28 +44,23 @@ class TorchApproximator(Serializable):
         """
         self._batch_size = batch_size
         self._reinitialize = reinitialize
-        self._use_cuda = use_cuda
         self._dropout = dropout
         self._quiet = quiet
         self._n_fit_targets = n_fit_targets
 
-        self.network = network(input_shape, output_shape, use_cuda=use_cuda,
-                               dropout=dropout, **params)
+        self.network = network(input_shape, output_shape, dropout=dropout, **params)
+        self.network.to(TorchUtils.get_device())
 
-        if self._use_cuda:
-            self.network.cuda()
         if self._dropout:
             self.network.eval()
 
         if optimizer is not None:
-            self._optimizer = optimizer['class'](self.network.parameters(),
-                                                 **optimizer['params'])
+            self._optimizer = optimizer['class'](self.network.parameters(), **optimizer['params'])
         self._loss = loss
 
         self._add_save_attr(
             _batch_size='primitive',
             _reinitialize='primitive',
-            _use_cuda='primitive',
             _dropout='primitive',
             _quiet='primitive',
             _n_fit_targets='primitive',
@@ -80,14 +72,12 @@ class TorchApproximator(Serializable):
 
         self._last_loss = None
 
-    def predict(self, *args, output_tensor=False, **kwargs):
+    def predict(self, *args, **kwargs):
         """
         Predict.
 
         Args:
             *args: input;
-            output_tensor (bool, False): whether to return the output as tensor
-                or not;
             **kwargs: other parameters used by the predict method
                 the regressor.
 
@@ -95,33 +85,12 @@ class TorchApproximator(Serializable):
             The predictions of the model.
 
         """
-        if not self._use_cuda:
-            torch_args = [torch.as_tensor(x) if isinstance(x, np.ndarray) else x
-                          for x in args]
-            val = self.network(*torch_args, **kwargs)
-
-            if output_tensor:
-                return val
-            elif isinstance(val, tuple):
-                val = tuple([x.detach().numpy() for x in val])
-            else:
-                val = val.detach().numpy()
-        else:
-            torch_args = [torch.as_tensor(x).cuda()
-                          if isinstance(x, np.ndarray) else x.cuda() for x in args]
-            val = self.network(*torch_args, **kwargs)
-
-            if output_tensor:
-                return val
-            elif isinstance(val, tuple):
-                val = tuple([x.detach().cpu().numpy() for x in val])
-            else:
-                val = val.detach().cpu().numpy()
+        torch_args = [torch.as_tensor(x, device=TorchUtils.get_device()) for x in args]
+        val = self.network(*torch_args, **kwargs)
 
         return val
 
-    def fit(self, *args, n_epochs=None, weights=None, epsilon=None, patience=1,
-            validation_split=1., **kwargs):
+    def fit(self, *args, n_epochs=None, weights=None, epsilon=None, patience=1, validation_split=1., **kwargs):
         """
         Fit the model.
 
@@ -239,15 +208,10 @@ class TorchApproximator(Serializable):
 
     def _compute_batch_loss(self, batch, use_weights, kwargs):
         if use_weights:
-            weights = torch.as_tensor(batch[-1]).type(torch.float)
-            if self._use_cuda:
-                weights = weights.cuda()
+            weights = torch.as_tensor(batch[-1], device=TorchUtils.get_device()).type(torch.float)
             batch = batch[:-1]
 
-        if not self._use_cuda:
-            torch_args = [torch.as_tensor(x) for x in batch]
-        else:
-            torch_args = [torch.as_tensor(x).cuda() for x in batch]
+        torch_args = [torch.as_tensor(x, device=TorchUtils.get_device()) for x in batch]
 
         x = torch_args[:-self._n_fit_targets]
 
@@ -258,11 +222,8 @@ class TorchApproximator(Serializable):
         else:
             output_type = y_hat.dtype
 
-        y = [y_i.clone().detach().type(output_type) for y_i
-             in torch_args[-self._n_fit_targets:]]
-
-        if self._use_cuda:
-            y = [y_i.cuda() for y_i in y]
+        y = [y_i.clone().detach().type(output_type).to(TorchUtils.get_device())
+             for y_i in torch_args[-self._n_fit_targets:]]
 
         if not use_weights:
             loss = self._loss(y_hat, *y)
@@ -281,7 +242,7 @@ class TorchApproximator(Serializable):
             w (np.ndarray): the set of weights to set.
 
         """
-        set_weights(self.network.parameters(), weights, self._use_cuda)
+        TorchUtils.set_weights(self.network.parameters(), weights)
 
     def get_weights(self):
         """
@@ -291,7 +252,7 @@ class TorchApproximator(Serializable):
             The set of weights of the approximator.
 
         """
-        return get_weights(self.network.parameters())
+        return TorchUtils.get_weights(self.network.parameters())
 
     @property
     def weights_size(self):
@@ -316,11 +277,7 @@ class TorchApproximator(Serializable):
             if provided.
 
         """
-        if not self._use_cuda:
-            torch_args = [torch.as_tensor(np.atleast_2d(x)) for x in args]
-        else:
-            torch_args = [torch.as_tensor(np.atleast_2d(x)).cuda()
-                          for x in args]
+        torch_args = [torch.atleast_2d(x) for x in args]
 
         y_hat = self.network(*torch_args, **kwargs)
         n_outs = 1 if len(y_hat.shape) == 0 else y_hat.shape[-1]
@@ -328,25 +285,21 @@ class TorchApproximator(Serializable):
 
         gradients = list()
         for i in range(y_hat.shape[1]):
-            zero_grad(self.network.parameters())
+            TorchUtils.zero_grad(self.network.parameters())
             y_hat[:, i].backward(retain_graph=True)
 
             gradient = list()
             for p in self.network.parameters():
-                g = p.grad.data.detach().cpu().numpy()
+                g = p.grad.data.detach()
                 gradient.append(g.flatten())
 
-            g = np.concatenate(gradient, 0)
+            g = torch.concatenate(gradient)
 
             gradients.append(g)
 
-        g = np.stack(gradients, -1)
+        g = torch.stack(gradients, -1)
 
         return g
-
-    @property
-    def use_cuda(self):
-        return self._use_cuda
 
     @property
     def loss_fit(self):
@@ -359,4 +312,74 @@ class TorchApproximator(Serializable):
 
     def _post_load(self):
         if self._optimizer is not None:
-            update_optimizer_parameters(self._optimizer, list(self.network.parameters()))
+            TorchUtils.update_optimizer_parameters(self._optimizer, list(self.network.parameters()))
+
+
+class NumpyTorchApproximator(TorchApproximator):
+    """
+    Wrapper to get a Numpy interface to the  TorchApproximator class.
+    This class allows you to use the torch approximator with numpy backend algorithms.
+
+    """
+    def predict(self, *args, **kwargs):
+        """
+        Predict.
+
+        Args:
+            *args: input;
+            **kwargs: other parameters used by the predict method
+                the regressor.
+
+        Returns:
+            The predictions of the model.
+
+        """
+        torch_args = [torch.as_tensor(x, device=TorchUtils.get_device()) for x in args]
+        return super().predict(*torch_args, **kwargs).detach().cpu().numpy()
+
+    def fit(self, *args, n_epochs=None, weights=None, epsilon=None, patience=1, validation_split=1., **kwargs):
+        torch_args = [torch.as_tensor(x, device=TorchUtils.get_device()) for x in args]
+
+        super().fit(*torch_args, n_epochs=n_epochs, weights=weights, epsilon=epsilon, patience=patience,
+                    validation_split=validation_split, **kwargs)
+
+    def diff(self, *args, **kwargs):
+        """
+        Compute the derivative of the output w.r.t. ``state``, and ``action``
+        if provided.
+
+        Args:
+            state (np.ndarray): the state;
+            action (np.ndarray, None): the action.
+
+        Returns:
+            The derivative of the output w.r.t. ``state``, and ``action``
+            if provided.
+
+        """
+        torch_args = [torch.as_tensor(np.atleast_2d(x), device=TorchUtils.get_device()) for x in args]
+
+        gradient = super().diff(*torch_args, **kwargs)
+
+        return gradient.detach().cpu().numpy()
+
+    def set_weights(self, weights):
+        """
+        Setter.
+
+        Args:
+            weights (np.ndarray): the set of weights to set.
+
+        """
+        torch_weights = torch.as_tensor(weights)
+        super().set_weights(torch_weights)
+
+    def get_weights(self):
+        """
+        Getter.
+
+        Returns:
+            The set of weights of the approximator.
+
+        """
+        return super().get_weights().detach().cpu().numpy()

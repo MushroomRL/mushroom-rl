@@ -72,13 +72,11 @@ def learn_sac():
     actor_mu_params = dict(network=ActorNetwork,
                            n_features=n_features,
                            input_shape=actor_input_shape,
-                           output_shape=mdp.info.action_space.shape,
-                           use_cuda=False)
+                           output_shape=mdp.info.action_space.shape)
     actor_sigma_params = dict(network=ActorNetwork,
                               n_features=n_features,
                               input_shape=actor_input_shape,
-                              output_shape=mdp.info.action_space.shape,
-                              use_cuda=False)
+                              output_shape=mdp.info.action_space.shape)
 
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': 3e-4}}
@@ -91,8 +89,7 @@ def learn_sac():
                          loss=F.mse_loss,
                          n_features=n_features,
                          input_shape=critic_input_shape,
-                         output_shape=(1,),
-                         use_cuda=False)
+                         output_shape=(1,))
 
     # Agent
     agent = SAC(mdp.info, actor_mu_params, actor_sigma_params, actor_optimizer,
@@ -108,12 +105,14 @@ def learn_sac():
     
     return agent
 
+
 def test_sac():
     policy = learn_sac().policy
     w = policy.get_weights()
     w_test = np.array([1.8968109,  1.3198196,  0.19724008,  1.7562234, -0.333138, -0.3410603])
 
     assert np.allclose(w, w_test)
+
 
 def test_sac_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
