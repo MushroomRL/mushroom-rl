@@ -63,7 +63,7 @@ class RoomToyEnv(Environment):
         elif action == 3:
             movement[0] += 0.1
         else:
-            assert ValueError('The environment has only 4 actions')
+            raise ValueError('The environment has only 4 actions')
 
         # Apply the movement with some noise:
         self._state += movement + np.random.randn(2)*0.05
