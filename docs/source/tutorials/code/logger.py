@@ -79,7 +79,7 @@ for i in trange(epochs):
     # Here logging epoch results to the console
     logger.epoch_info(i+1, J=J, R=R)
 
-    # Logging the data in J.npy and E.npy
+    # Logging the data in J.npy and R.npy
     logger.log_numpy(J=J, R=R)
 
     # Logging the best agent according to the best J
