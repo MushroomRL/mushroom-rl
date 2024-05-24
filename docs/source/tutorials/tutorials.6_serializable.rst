@@ -128,7 +128,7 @@ loaded into the class. It can be useful to set the variables not saved in the fi
 
 In this scenario, we have to set the ``self.not_important`` variable to his default value, but only if it's None, i.e.
 has not been loaded from the file, because the file didn't contain it.
-Also, we set the `` self._list_primitive`` variable to maintain its original semantic, i.e. to contain a
+Also, we set the ``self._list_reference`` variable to maintain its original semantic, i.e. to contain a
 reference to the content of the ``self._dictionary`` variable.
 
 To test the implementation, we write a function to write in easy to read way the content of the class:
