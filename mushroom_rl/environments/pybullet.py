@@ -132,10 +132,11 @@ class PyBullet(Environment):
         reward = self.reward(self._state, action, curr_state, absorbing)
 
         observation = self._create_observation(curr_state)
+        step_info = self._create_state_info(curr_state)
 
         self._state = curr_state
 
-        return observation, reward, absorbing, {}
+        return observation, reward, absorbing, step_info
 
     def get_sim_state_index(self, name, obs_type):
         return self._indexer.get_index(name, obs_type)
@@ -184,6 +185,20 @@ class PyBullet(Environment):
 
         """
         return state
+    
+    def _create_state_info(self, state):
+        """
+        This method can be overridden to ctreate an info dict from the simulator state vector.
+        By default, returns empty dict.
+
+        Args:
+            state (np.ndarray): the simulator state vector.
+
+        Returns:
+            The state info.
+
+        """
+        return {}
 
     def _load_model(self, file_name, kwargs):
         if file_name.endswith('.urdf'):
