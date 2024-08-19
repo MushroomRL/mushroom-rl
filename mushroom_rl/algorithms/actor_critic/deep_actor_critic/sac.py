@@ -49,6 +49,8 @@ class SACPolicy(Policy):
 
         self._eps_log_prob = 1e-6
 
+        self.deterministic = False
+
         self._add_save_attr(
             _mu_approximator='mushroom',
             _sigma_approximator='mushroom',
@@ -63,7 +65,15 @@ class SACPolicy(Policy):
         raise NotImplementedError
 
     def draw_action(self, state, internal_state=None):
+        if self.deterministic:
+            return self.draw_action_deterministic(state, internal_state)
         return self.compute_action_and_log_prob_t(state, compute_log_prob=False).detach(), None
+    
+    def draw_action_deterministic(self, state, internal_state=None):
+        a_raw = self._mu_approximator.predict(state) # only mu is used
+        a = torch.tanh(a_raw)
+        a_true = a * self._delta_a + self._central_a
+        return a_true.detach(), None
 
     def compute_action_and_log_prob(self, state):
         """
@@ -172,6 +182,12 @@ class SACPolicy(Policy):
         """
         return chain(self._mu_approximator.model.network.parameters(),
                      self._sigma_approximator.model.network.parameters())
+    
+    def eval(self):
+        self.deterministic = True
+
+    def train(self):
+        self.deterministic = False
 
 
 class SAC(DeepAC):
@@ -325,3 +341,10 @@ class SAC(DeepAC):
     @property
     def _alpha(self):
         return self._log_alpha.exp()
+    
+    def eval(self):
+        self.policy.eval()
+
+
+    def train(self):
+        self.policy.train()
