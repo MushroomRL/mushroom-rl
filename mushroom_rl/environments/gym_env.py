@@ -53,7 +53,7 @@ class Gym(Environment):
 
         if wrappers is not None:
             if wrappers_args is None:
-                wrappers_args = [dict()] * len(wrappers)
+                wrappers_args = [list()] * len(wrappers)
             for wrapper, args in zip(wrappers, wrappers_args):
                 if isinstance(wrapper, tuple):
                     self.env = wrapper[0](self.env, **args, **wrapper[1])
