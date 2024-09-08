@@ -132,3 +132,11 @@ class IsaacEnv(VectorizedEnvironment):
             return Box(low=space.low, high=space.high, shape=space.shape)
         else:
             raise ValueError
+
+    @property
+    def world(self):
+        return self._world
+
+    @property
+    def render_enabled(self):
+        return self._render
