@@ -1,6 +1,8 @@
 import numpy as np
 from enum import Enum
 
+import mujoco
+
 
 class ObservationType(Enum):
     """
@@ -49,7 +51,7 @@ class ObservationHelper:
         current_idx = 0
         for key, name, ot in observation_spec:
             assert key not in self.obs_idx_map.keys(), "Found duplicate key in observation specification: \"%s\"" % key
-            obs_count = len(self.get_state(data, name, ot))
+            obs_count = len(self.get_state(model, data, name, ot))
             self.obs_idx_map[key] = list(range(current_idx, current_idx + obs_count))
             self.build_omit_idx[key] = []
             if obs_count == 1 and ot == ObservationType.JOINT_POS:
@@ -147,7 +149,7 @@ class ObservationHelper:
     def get_joint_vel_limits(self):
         return self.obs_low[self.joint_vel_idx], self.obs_high[self.joint_vel_idx]
 
-    def _build_obs(self, data):
+    def _build_obs(self, model, data):
         """
         Builds the observation given the true state of the simulation. The ObservationType documentation
         describes the different returns in detail
@@ -159,13 +161,13 @@ class ObservationHelper:
         observations = []
         for key, name, o_type in self.observation_spec:
             omit = np.array(self.build_omit_idx[key])
-            obs = self.get_state(data, name, o_type)
+            obs = self.get_state(model, data, name, o_type)
             if len(omit) != 0:
                 obs = np.delete(obs, omit)
             observations.append(obs)
         return np.concatenate(observations)
 
-    def _modify_data(self, data, obs):
+    def _modify_data(self, model, data, obs):
         """
         Write the values of the observation into the provided mujoco data object. ONLY joint_pos / joint_vel
         observations will have an effect on the simulation when overwritten. Everything else is just discarded by mujoco
@@ -173,13 +175,13 @@ class ObservationHelper:
         current_idx = 0
         for key, name, o_type in self.observation_spec:
             omit = np.array(self.build_omit_idx[key])
-            current_obs = self.get_state(data, name, o_type)
+            current_obs = self.get_state(model, data, name, o_type)
             for i in range(len(current_obs)):
                 if i not in omit:
                     current_obs[i] = obs[current_idx]
                     current_idx += 1
 
-    def get_state(self, data, name, o_type):
+    def get_state(self, model, data, name, o_type):
         """
         Get a single observation from data, given it's name and observation type. The ObservationType documentation
         describes the different returns in detail
@@ -189,7 +191,8 @@ class ObservationHelper:
         elif o_type == ObservationType.BODY_ROT:
             obs = data.body(name).xquat
         elif o_type == ObservationType.BODY_VEL:
-            obs = data.body(name).cvel
+            obs = np.empty(6)
+            mujoco.mj_objectVelocity(model, data, mujoco.mjtObj.mjOBJ_XBODY, data.body(name).id, obs, True)
         elif o_type == ObservationType.JOINT_POS:
             obs = data.joint(name).qpos
         elif o_type == ObservationType.JOINT_VEL:
