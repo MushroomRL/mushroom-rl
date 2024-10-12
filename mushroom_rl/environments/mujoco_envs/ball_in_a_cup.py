@@ -36,7 +36,7 @@ class BallInACup(MuJoCo):
                             ("palm_yaw_pos", "wam/palm_yaw_joint", ObservationType.JOINT_POS),
                             ("palm_yaw_vel", "wam/palm_yaw_joint", ObservationType.JOINT_VEL),
                             ("ball_pos", "ball", ObservationType.BODY_POS),
-                            ("ball_vel", "ball", ObservationType.BODY_VEL)]
+                            ("ball_vel", "ball", ObservationType.BODY_VEL_WORLD)]
 
         additional_data_spec = [("ball_pos", "ball", ObservationType.BODY_POS),
                                 ("goal_pos", "cup_goal_final", ObservationType.SITE_POS)]

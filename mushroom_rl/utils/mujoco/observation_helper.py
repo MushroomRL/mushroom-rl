@@ -11,20 +11,22 @@ class ObservationType(Enum):
     The Observation have the following returns:
         BODY_POS: (3,) x, y, z position of the body
         BODY_ROT: (4,) quaternion of the body
-        BODY_VEL: (6,) first angular velocity around x, y, z. Then linear velocity for x, y, z
+        BODY_VEL: (6,) first angular velocity around x, y, z. Then linear velocity for x, y, z, in local frame
+        BODY_VEL_WORLD: (6,) first angular velocity around x, y, z. Then linear velocity for x, y, z, in world frame
         JOINT_POS: (1,) rotation of the joint OR (7,) position, quaternion of a free joint
         JOINT_VEL: (1,) velocity of the joint OR (6,) FIRST linear then angular velocity !different to BODY_VEL!
         SITE_POS: (3,) x, y, z position of the body
         SITE_ROT: (9,) rotation matrix of the site
     """
-    __order__ = "BODY_POS BODY_ROT BODY_VEL JOINT_POS JOINT_VEL SITE_POS SITE_ROT"
+    __order__ = "BODY_POS BODY_ROT BODY_VEL BODY_VEL_WORLD JOINT_POS JOINT_VEL SITE_POS SITE_ROT"
     BODY_POS = 0
     BODY_ROT = 1
     BODY_VEL = 2
-    JOINT_POS = 3
-    JOINT_VEL = 4
-    SITE_POS = 5
-    SITE_ROT = 6
+    BODY_VEL_WORLD = 3
+    JOINT_POS = 4
+    JOINT_VEL = 5
+    SITE_POS = 6
+    SITE_ROT = 7
 
 
 class ObservationHelper:
@@ -190,9 +192,10 @@ class ObservationHelper:
             obs = data.body(name).xpos
         elif o_type == ObservationType.BODY_ROT:
             obs = data.body(name).xquat
-        elif o_type == ObservationType.BODY_VEL:
+        elif o_type == ObservationType.BODY_VEL or o_type == ObservationType.BODY_VEL_WORLD:
+            local = o_type == ObservationType.BODY_VEL
             obs = np.empty(6)
-            mujoco.mj_objectVelocity(model, data, mujoco.mjtObj.mjOBJ_XBODY, data.body(name).id, obs, True)
+            mujoco.mj_objectVelocity(model, data, mujoco.mjtObj.mjOBJ_XBODY, data.body(name).id, obs, local)
         elif o_type == ObservationType.JOINT_POS:
             obs = data.joint(name).qpos
         elif o_type == ObservationType.JOINT_VEL:

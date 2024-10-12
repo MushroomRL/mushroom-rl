@@ -57,7 +57,7 @@ class AirHockeyBase(MuJoCo):
                                  ("robot_1/joint_3_vel", "planar_robot_1/joint_3", ObservationType.JOINT_VEL)]
 
             additional_data += [("robot_1/ee_pos", "planar_robot_1/body_ee", ObservationType.BODY_POS),
-                                ("robot_1/ee_vel", "planar_robot_1/body_ee", ObservationType.BODY_VEL)]
+                                ("robot_1/ee_vel", "planar_robot_1/body_ee", ObservationType.BODY_VEL_WORLD)]
 
             collision_spec += [("robot_1/ee", ["planar_robot_1/ee"])]
 
@@ -76,7 +76,7 @@ class AirHockeyBase(MuJoCo):
                                      ("robot_2/joint_3_vel", "planar_robot_2/joint_3", ObservationType.JOINT_VEL)]
 
                 additional_data += [("robot_2/ee_pos", "planar_robot_2/body_ee", ObservationType.BODY_POS),
-                                    ("robot_2/ee_vel", "planar_robot_2/body_ee", ObservationType.BODY_VEL)]
+                                    ("robot_2/ee_vel", "planar_robot_2/body_ee", ObservationType.BODY_VEL_WORLD)]
 
                 collision_spec += [("robot_2/ee", ["planar_robot_2/ee"])]
         else:
