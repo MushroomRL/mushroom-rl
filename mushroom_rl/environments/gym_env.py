@@ -36,7 +36,7 @@ class Gym(Environment):
                 a tuple with two elements: the gym wrapper class and a
                 dictionary containing the parameters needed by the wrapper
                 constructor;
-            wrappers_args (list, None): list of list of arguments for each wrapper;
+            wrappers_args (list, None): list of dictionaries of arguments for each wrapper;
             ** env_args: other gym environment parameters.
 
         """
@@ -56,9 +56,9 @@ class Gym(Environment):
                 wrappers_args = [dict()] * len(wrappers)
             for wrapper, args in zip(wrappers, wrappers_args):
                 if isinstance(wrapper, tuple):
-                    self.env = wrapper[0](self.env, *args, **wrapper[1])
+                    self.env = wrapper[0](self.env, **args, **wrapper[1])
                 else:
-                    self.env = wrapper(self.env, *args, **env_args)
+                    self.env = wrapper(self.env, **args, **env_args)
 
         horizon = self._set_horizon(self.env, horizon)
 
