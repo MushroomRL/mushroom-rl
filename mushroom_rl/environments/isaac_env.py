@@ -90,8 +90,9 @@ class IsaacEnv(VectorizedEnvironment):
             self._task.reset_idx(idxs)
         # self._world.step(render=self._render) # TODO Check if we can do otherwise
         task_obs = self._task.get_observations()
+        task_extras = self._task.get_extras()
         observation = convert_task_observation(task_obs)
-        return observation.clone(), [{}]*self._n_envs
+        return observation.clone(), [task_extras]*self._n_envs
 
     def step_all(self, env_mask, action):
         self._task.pre_physics_step(action)
