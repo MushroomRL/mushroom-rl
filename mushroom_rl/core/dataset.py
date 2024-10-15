@@ -6,6 +6,7 @@ import torch
 
 from mushroom_rl.core.serialization import Serializable
 from .array_backend import ArrayBackend
+from .extra_info import ExtraInfo
 
 from ._impl import *
 
@@ -103,8 +104,8 @@ class Dataset(Serializable):
         else:
             policy_state_shape = None
 
-        self._info = defaultdict(list)
-        self._episode_info = defaultdict(list)
+        self._info = ExtraInfo(dataset_info.n_envs, dataset_info.backend, dataset_info.device)
+        self._episode_info = ExtraInfo(dataset_info.n_envs, dataset_info.backend, dataset_info.device)
         self._theta_list = list()
 
         if dataset_info.backend == 'numpy':
@@ -195,12 +196,12 @@ class Dataset(Serializable):
         dataset = cls.create_raw_instance()
 
         if info is None:
-            dataset._info = defaultdict(list)
+            dataset._info = ExtraInfo(1, backend)
         else:
             dataset._info = info.copy()
 
         if episode_info is None:
-            dataset._episode_info = defaultdict(list)
+            dataset._episode_info = ExtraInfo(1, backend)
         else:
             dataset._episode_info = episode_info.copy()
 
@@ -228,7 +229,7 @@ class Dataset(Serializable):
 
     def append(self, step, info):
         self._data.append(*step)
-        self._append_info(self._info, info)
+        self._info.append(info)
 
     def append_episode_info(self, info):
         self._append_info(self._episode_info, info)
@@ -243,21 +244,17 @@ class Dataset(Serializable):
             return self._info[field][index]
 
     def clear(self):
-        self._episode_info = defaultdict(list)
+        self._episode_info.clear()
         self._theta_list = list()
-        self._info = defaultdict(list)
+        self._info.clear()
 
         self._data.clear()
 
     def get_view(self, index, copy=False):
         dataset = self.create_raw_instance(dataset=self)
 
-        info_slice = defaultdict(list)
-        for key in self._info.keys():
-            info_slice[key] = self._info[key][index]
-
-        dataset._info = info_slice
-        dataset._episode_info = defaultdict(list)
+        dataset._info = self._info.get_view(index, copy)
+        dataset._episode_info = self._episode_info.get_view(index, copy)
         dataset._data = self._data.get_view(index, copy)
 
         return dataset
@@ -276,11 +273,9 @@ class Dataset(Serializable):
 
     def __add__(self, other):
         result = self.create_raw_instance(dataset=self)
-        new_info = self._merge_info(self.info, other.info)
-        new_episode_info = self._merge_info(self.episode_info, other.episode_info)
 
-        result._info = new_info
-        result._episode_info = new_episode_info
+        result._info = self._info + other._info
+        result._episode_info = self._episode_info + other._episode_info
         result._theta_list = self._theta_list + other._theta_list
         result._data = self._data + other._data
 
@@ -525,8 +520,8 @@ class Dataset(Serializable):
 
     def _add_all_save_attr(self):
         self._add_save_attr(
-            _info='pickle',
-            _episode_info='pickle',
+            _info='mushroom',
+            _episode_info='mushroom',
             _theta_list='pickle',
             _data='mushroom',
             _array_backend='primitive',
@@ -557,7 +552,7 @@ class VectorizedDataset(Dataset):
 
     def append_vectorized(self, step, info, mask):
         self._data.append(*step, mask=mask)
-        self._append_info(self._info, {})  # FIXME: handle properly info
+        self._info.append(info)
 
     def append_theta_vectorized(self, theta, mask):
         for i in range(len(theta)):
@@ -581,11 +576,16 @@ class VectorizedDataset(Dataset):
                 mask.flatten()[n_extra_steps:] = False
                 residual_data.mask = mask.reshape(original_shape)
 
+                residual_info = self._info.get_view(view_size, copy=True)
+                residual_episode_info = self._episode_info.get_view(view_size, copy=True)
+
         super().clear()
         self._initialize_theta_list(n_envs)
 
         if n_steps_per_fit is not None and residual_data is not None:
             self._data = residual_data
+            self._info = residual_info
+            self._episode_info = residual_episode_info
 
     def flatten(self, n_steps_per_fit=None):
         if len(self) == 0:
@@ -622,9 +622,12 @@ class VectorizedDataset(Dataset):
 
         flat_theta_list = self._flatten_theta_list()
 
+        flat_info = self._info.flatten(self.mask)
+        flat_episode_info = self._episode_info.flatten(self.mask)
+
         return Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
                                   policy_state=policy_state, policy_next_state=policy_next_state,
-                                  info=None, episode_info=None, theta_list=flat_theta_list,  # FIXME: handle properly info
+                                  info=flat_info, episode_info=flat_episode_info, theta_list=flat_theta_list,
                                   horizon=self._dataset_info.horizon, gamma=self._dataset_info.gamma,
                                   backend=self._array_backend.get_backend_name())
 
