@@ -128,6 +128,8 @@ class Core(object):
 
         self._end(record)
 
+        dataset.info.parse()
+        dataset.episode_info.parse()
         return dataset
 
     def _step(self, render, record):

@@ -90,8 +90,9 @@ class IsaacEnv(VectorizedEnvironment):
             self._task.reset_idx(idxs)
         # self._world.step(render=self._render) # TODO Check if we can do otherwise
         task_obs = self._task.get_observations()
+        task_extras = self._task.get_extras()
         observation = convert_task_observation(task_obs)
-        return observation, [{}]*self._n_envs
+        return observation.clone(), [task_extras]*self._n_envs
 
     def step_all(self, env_mask, action):
         self._task.pre_physics_step(action)
@@ -106,7 +107,7 @@ class IsaacEnv(VectorizedEnvironment):
         
         env_mask_cuda = torch.as_tensor(env_mask).cuda()
         
-        return observation, reward, torch.logical_and(done, env_mask_cuda), [info]*self._n_envs
+        return observation.clone(), reward, torch.logical_and(done, env_mask_cuda), [info]*self._n_envs
 
     def render_all(self, env_mask, record=False):
         self._world.render()
@@ -132,3 +133,11 @@ class IsaacEnv(VectorizedEnvironment):
             return Box(low=space.low, high=space.high, shape=space.shape)
         else:
             raise ValueError
+
+    @property
+    def world(self):
+        return self._world
+
+    @property
+    def render_enabled(self):
+        return self._render
