@@ -66,6 +66,7 @@ class MultiprocessEnvironment(VectorizedEnvironment):
             **kwargs: keyword arguments to set to the constructor or to the generator;
 
         """
+        assert env_class is not None, "Environment class requires not installed module."
         assert n_envs > 1 or n_envs == -1
 
         if n_envs == -1:
