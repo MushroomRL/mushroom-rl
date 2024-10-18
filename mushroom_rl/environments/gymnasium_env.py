@@ -21,8 +21,7 @@ class Gymnasium(Environment):
     are managed in a separate class.
 
     """
-    def __init__(self, name, horizon=None, gamma=0.99, headless = False, wrappers=None, wrappers_args=None,
-                 **env_args):
+    def __init__(self, name, horizon=None, gamma=0.99, headless=False, wrappers=None, wrappers_args=None, **env_args):
         """
         Constructor.
 
