@@ -66,6 +66,7 @@ class MultiprocessEnvironment(VectorizedEnvironment):
             **kwargs: keyword arguments to set to the constructor or to the generator;
 
         """
+        assert env_class is not None, "Environment class requires not installed module."
         assert n_envs > 1 or n_envs == -1
 
         if n_envs == -1:
@@ -107,7 +108,7 @@ class MultiprocessEnvironment(VectorizedEnvironment):
             else:
                 episode_infos.append({})
 
-        return self._states, episode_infos
+        return self._states.copy(), episode_infos.copy()
 
     def step_all(self, env_mask, action):
         for i, remote in enumerate(self._remotes):
@@ -129,7 +130,7 @@ class MultiprocessEnvironment(VectorizedEnvironment):
             else:
                 step_infos.append({})
 
-        return self._states.copy(), rewards, absorbings, step_infos
+        return self._states.copy(), rewards.copy(), absorbings.copy(), step_infos.copy()
 
     def render_all(self, env_mask, record=False):
         for i, remote in enumerate(self._remotes):

@@ -147,6 +147,26 @@ class ArrayBackend(object):
     @staticmethod
     def pack_padded_sequence(array, mask):
         raise NotImplementedError
+    
+    @staticmethod
+    def flatten(array):
+        raise NotImplementedError
+    
+    @staticmethod
+    def empty(shape, device=None):
+        raise NotImplementedError
+    
+    @staticmethod
+    def none():
+        raise NotImplementedError
+    
+    @staticmethod
+    def shape(array):
+        raise NotImplementedError
+    
+    @staticmethod
+    def full(shape, value):
+        raise NotImplementedError
 
 
 class NumpyBackend(ArrayBackend):
@@ -253,6 +273,28 @@ class NumpyBackend(ArrayBackend):
 
         new_shape = (shape[0] * shape[1],) + shape[2:]
         return array.reshape(new_shape, order='F')[mask.flatten(order='F')]
+    
+    @staticmethod
+    def flatten(array):
+        shape = array.shape
+        new_shape = (shape[0] * shape[1],) + shape[2:]
+        return array.reshape(new_shape, order='F')
+    
+    @staticmethod
+    def empty(shape, device=None):
+        return np.empty(shape)
+    
+    @staticmethod
+    def none():
+        return np.nan
+    
+    @staticmethod
+    def shape(array):
+        return array.shape
+    
+    @staticmethod
+    def full(shape, value):
+        return np.full(shape, value)
 
 
 class TorchBackend(ArrayBackend):
@@ -364,9 +406,31 @@ class TorchBackend(ArrayBackend):
         shape = array.shape
 
         new_shape = (shape[0]*shape[1], ) + shape[2:]
-
+        
         return array.transpose(0, 1).reshape(new_shape)[mask.transpose(0, 1).flatten()]
 
+    @staticmethod
+    def flatten(array):
+        shape = array.shape
+        new_shape = (shape[0]*shape[1], ) + shape[2:]
+        return array.transpose(0, 1).reshape(new_shape)
+
+    @staticmethod
+    def empty(shape, device=None):
+        device = TorchUtils.get_device() if device is None else device
+        return torch.empty(shape, device=device)
+    
+    @staticmethod
+    def none():
+        return torch.nan
+    
+    @staticmethod
+    def shape(array):
+        return array.shape
+    
+    @staticmethod
+    def full(shape, value):
+        return torch.full(shape, value)
 
 class ListBackend(ArrayBackend):
 
@@ -421,3 +485,23 @@ class ListBackend(ArrayBackend):
     @staticmethod
     def pack_padded_sequence(array, mask):
         return NumpyBackend.pack_padded_sequence(array, np.array(mask))
+    
+    @staticmethod
+    def flatten(array):
+        return NumpyBackend.flatten(array)
+
+    @staticmethod
+    def empty(shape, device=None):
+        return np.empty(shape)
+    
+    @staticmethod
+    def none():
+        return None
+    
+    @staticmethod
+    def shape(array):
+        return np.array(array).shape
+    
+    @staticmethod
+    def full(shape, value):
+        return np.full(shape, value)
