@@ -12,7 +12,7 @@ from mushroom_rl.core import Core
 from mushroom_rl.approximators.parametric import NumpyTorchApproximator
 from torch import optim, nn
 
-from mushroom_rl.environments import Gym
+from mushroom_rl.environments import Gymnasium
 from mushroom_rl.rl_utils.preprocessors import MinMaxPreprocessor
 
 from copy import deepcopy
@@ -43,7 +43,7 @@ class LinearNetwork(nn.Module):
 def test_normalizing_preprocessor(tmpdir):
     np.random.seed(88)
 
-    mdp = Gym('CartPole-v0', horizon=500, gamma=.99)
+    mdp = Gymnasium('CartPole-v0', horizon=500, gamma=.99)
 
     # Policy
     epsilon_random = Parameter(value=1.)
@@ -109,7 +109,7 @@ def test_normalizing_preprocessor_backend():
     # check if the preprocessor work the same for numpy and torch
     np.random.seed(88)
 
-    mdp = Gym('CartPole-v0', horizon=500, gamma=.99)
+    mdp = Gymnasium('CartPole-v0', horizon=500, gamma=.99)
 
     norm_box_np = MinMaxPreprocessor(mdp_info=mdp.info, backend="numpy", clip_obs=5.0, alpha=0.001)
     norm_box_torch = MinMaxPreprocessor(mdp_info=mdp.info, backend="torch", clip_obs=5.0, alpha=0.001)

@@ -13,8 +13,6 @@ from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.rl_utils.spaces import *
 from mushroom_rl.utils.viewer import ImageViewer
 
-gym.logger.set_level(40)
-
 
 class Gymnasium(Environment):
     """
@@ -30,7 +28,7 @@ class Gymnasium(Environment):
 
         Args:
              name (str): gym id of the environment;
-             horizon (int): the horizon. If None, use the one from Gym;
+             horizon (int): the horizon. If None, use the one from Gymnasium;
              gamma (float, 0.99): the discount factor;
              headless (bool, False): If True, the rendering is forced to be headless.
              wrappers (list, None): list of wrappers to apply over the environment. It
@@ -53,7 +51,7 @@ class Gymnasium(Environment):
             pybullet.connect(pybullet.DIRECT)
             self._not_pybullet = False
 
-        self.env = gym.make(name, render_mode = 'rgb_array', **env_args) # always rgb_array render mode
+        self.env = gym.make(name, render_mode='rgb_array', **env_args) # always rgb_array render mode
 
         if wrappers is not None:
             if wrappers_args is None:
@@ -81,14 +79,21 @@ class Gymnasium(Environment):
         else:
             self._convert_action = lambda a: a
 
+        self._seed = None
+
         super().__init__(mdp_info)
+
+    def seed(self, seed):
+        self._seed = seed
 
     def reset(self, state=None):
         if state is None:
-            state, info = self.env.reset()
+            state, info = self.env.reset(seed=self._seed)
+            self._seed = None
             return np.atleast_1d(state), info
         else:
-            _, info = self.env.reset()
+            _, info = self.env.reset(seed=self._seed)
+            self._seed = None
             self.env.state = state
 
             return np.atleast_1d(state), info

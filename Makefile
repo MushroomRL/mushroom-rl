@@ -1,6 +1,5 @@
 package: 
-	python3 setup.py sdist
-
+	python3 -m build
 
 install: 
 	pip install $(shell ls dist/*.tar.gz)

@@ -7,7 +7,7 @@ import numpy as np
 from tqdm import trange
 
 from mushroom_rl.core import VectorCore, Logger, MultiprocessEnvironment
-from mushroom_rl.environments import Gym
+from mushroom_rl.environments import Gymnasium
 from mushroom_rl.algorithms.actor_critic import PPO, TRPO
 
 from mushroom_rl.policy import GaussianTorchPolicy
@@ -46,7 +46,7 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
     logger.strong_line()
     logger.info('Experiment Algorithm: ' + alg.__name__)
 
-    mdp = MultiprocessEnvironment(Gym, env_id, horizon, gamma, n_envs=15)
+    mdp = MultiprocessEnvironment(Gymnasium, env_id, horizon, gamma, n_envs=15)
 
     critic_params = dict(network=Network,
                          optimizer={'class': optim.Adam,

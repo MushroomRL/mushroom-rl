@@ -123,7 +123,7 @@ def experiment():
     arg_env.add_argument("--name",
                           type=str,
                           default='MiniGrid-Unlock-v0',
-                          help='Gym ID of the MiniGrid environment.')
+                          help='Gymnasium ID of the MiniGrid environment.')
 
     arg_mem = parser.add_argument_group('Replay Memory')
     arg_mem.add_argument("--initial-replay-size", type=int, default=50000,

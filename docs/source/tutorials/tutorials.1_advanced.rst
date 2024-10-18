@@ -19,8 +19,8 @@ Initially, the MDP and the policy are created:
 .. literalinclude:: code/advanced_experiment.py
    :lines: 1-19
 
-This is an environment created with the MushroomRL interface to the OpenAI Gym
-library. Each environment offered by OpenAI Gym can be created this way simply
+This is an environment created with the MushroomRL interface to the Gymnasium
+library. Each environment offered by Gymnasium can be created this way simply
 providing the corresponding id in the ``name`` parameter, except for the Atari
 that are managed by a separate class.
 After the creation of the MDP, the tiles features are created:
@@ -46,7 +46,7 @@ Sutton & Barto, 1998* for details). After that, the learning is run as usual:
 .. literalinclude:: code/advanced_experiment.py
    :lines: 32-46
 
-To visualize the learned policy the rendering method of OpenAI Gym is used. To
+To visualize the learned policy the rendering method of Gymnasium is used. To
 activate the rendering in the environments that supports it, it is necessary to
 set ``render=True``.
 

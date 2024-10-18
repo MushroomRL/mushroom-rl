@@ -4,18 +4,18 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     from gym_minigrid.wrappers import RGBImgPartialObsWrapper, ImgObsWrapper
 
-import gym
+import gymnasium
 
 from copy import deepcopy
 from collections import deque
 
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.environments import Gym
+from mushroom_rl.environments import Gymnasium
 from mushroom_rl.rl_utils.spaces import Discrete, Box
 from mushroom_rl.utils.frames import LazyFrames, preprocess_frame
 
 
-class MiniGrid(Gym):
+class MiniGrid(Gymnasium):
     """
     Interface for gym_minigrid environments. It makes it possible to
     use all MiniGrid environments that do not use text instructions, such as
@@ -46,7 +46,7 @@ class MiniGrid(Gym):
         self._not_pybullet = True
         self._first = True
 
-        env = gym.make(name)
+        env = gymnasium.make(name)
         obs_high = 10.
         if use_pixels:
             env = RGBImgPartialObsWrapper(env) # Get pixel observations

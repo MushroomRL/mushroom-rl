@@ -12,7 +12,7 @@ from mushroom_rl.rl_utils.parameters import Parameter
 
 
 # MDP
-mdp = Gym(name='MountainCar-v0', horizon=np.inf, gamma=1.)
+mdp = Gymnasium(name='MountainCar-v0', horizon=np.inf, gamma=1.)
 
 # Policy
 epsilon = Parameter(value=0.)
@@ -33,7 +33,7 @@ approximator_params = dict(input_shape=(features.size,),
 agent = SARSALambdaContinuous(mdp.info, pi, LinearApproximator,
                               approximator_params=approximator_params,
                               learning_rate=learning_rate,
-                              lambda_coeff= .9, features=features)
+                              lambda_coeff=.9, features=features)
 
 # Algorithm
 collect_dataset = CollectDataset()

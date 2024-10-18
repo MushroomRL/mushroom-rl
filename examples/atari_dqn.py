@@ -119,7 +119,7 @@ def experiment():
     arg_game.add_argument("--name",
                           type=str,
                           default='BreakoutDeterministic-v4',
-                          help='Gym ID of the Atari game.')
+                          help='Gymnasium ID of the Atari game.')
     arg_game.add_argument("--screen-width", type=int, default=84,
                           help='Width of the game screen.')
     arg_game.add_argument("--screen-height", type=int, default=84,

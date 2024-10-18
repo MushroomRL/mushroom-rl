@@ -1,12 +1,11 @@
 import numpy as np
-
+from mushroom_rl.environments.gymnasium_env import Gymnasium
 from mushroom_rl.environments.atari import Atari
 from mushroom_rl.environments.car_on_hill import CarOnHill
 from mushroom_rl.environments.cart_pole import CartPole
 from mushroom_rl.environments.generators import generate_grid_world,\
     generate_simple_chain, generate_taxi
 from mushroom_rl.environments.grid_world import GridWorld, GridWorldVanHasselt
-from mushroom_rl.environments.gym_env import Gym
 from mushroom_rl.environments.inverted_pendulum import InvertedPendulum
 from mushroom_rl.environments.lqr import LQR
 from mushroom_rl.environments.puddle_world import PuddleWorld
@@ -109,14 +108,14 @@ def test_grid_world():
     assert ns == 4
 
 
-def test_gym():
+def test_gymnasium():
     np.random.seed(1)
-    mdp = Gym('Acrobot-v1', 1000, .99)
+    mdp = Gymnasium('Acrobot-v1', 1000, .99)
     mdp.seed(1)
     mdp.reset()
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
-    ns_test = np.array([0.9996687, -0.02573896,  0.9839331, -0.17853762, -0.17821608, 0.5534913])
+    ns_test = np.array([0.9996687, -0.02573896,  0.9839331 , -0.17853762, -0.17821608,0.5534913])
 
     assert np.allclose(ns, ns_test)
 
