@@ -13,7 +13,7 @@ def split_episodes(last, *arrays):
     episodes_arrays = []
 
     for array in arrays:
-        array_ep = backend.zeros(n_episodes, max_episode_steps, *array.shape[1:], dtype=array.dtype, device=array.device if hasattr(array, 'device') else None)
+        array_ep = backend.zeros(n_episodes, max_episode_steps, *array.shape[1:], dtype=array.dtype, device=array.device if backend.get_backend_name() == "torch" else None)
 
         array_ep[row_idx, colum_idx] = array
         episodes_arrays.append(array_ep)
@@ -41,18 +41,21 @@ def _get_episode_idx(last, backend=None):
     if backend is None:
         backend = ArrayBackend.get_array_backend_from(last)
 
+    last = backend.copy(last)
+    last[-1] = True
+
     n_episodes = last.sum()
     last_idx = backend.nonzero(last).squeeze()
     first_steps = backend.from_list([last_idx[0] + 1])
-    if hasattr(last, 'device'):
+    if backend.get_backend_name() == 'torch':
         first_steps = first_steps.to(last.device)
     episode_steps = backend.concatenate([first_steps, last_idx[1:] - last_idx[:-1]])
     max_episode_steps = episode_steps.max()
 
-    start_idx = backend.concatenate([backend.zeros(1, dtype=int, device=last.device if hasattr(last, 'device') else None), last_idx[:-1] + 1])
+    start_idx = backend.concatenate([backend.zeros(1, dtype=int, device=last.device if backend.get_backend_name() == 'torch' else None), last_idx[:-1] + 1])
     range_n_episodes = backend.arange(0, n_episodes, dtype=int)
     range_len = backend.arange(0, last.shape[0], dtype=int)
-    if hasattr(last, 'device'):
+    if backend.get_backend_name() == 'torch':
         range_n_episodes = range_n_episodes.to(last.device)
         range_len = range_len.to(last.device)
     row_idx = backend.repeat(range_n_episodes, episode_steps)

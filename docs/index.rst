@@ -22,7 +22,7 @@ in order to run them without excessive effort. Moreover, it is designed in such
 a way that new algorithms and other stuff can be added transparently,
 without the need of editing other parts of the code. MushroomRL is compatible with RL
 libraries like
-`OpenAI Gym <https://gym.openai.com/>`_,
+`Gymnasium <https://gymnasium.farama.org/>`_,
 `DeepMind Control Suite <https://github.com/deepmind/dm_control>`_,
 `Pybullet <https://pybullet.org/wordpress/>`_, and
 `MuJoCo <http://www.mujoco.org/>`_, and
@@ -150,14 +150,11 @@ Installing with all the dependencies takes approximately 5 minutes using a fast 
 internet connection may increase the installation time significantly.
 
 If installing all the dependencies, ensure that the swig library is installed, as it is used
-by some Gym environments and the installation may fail otherwise. For Atari, you might need to install the ROM separately, otherwise
-the creation of Atari environments may fail. Opencv should be installed too. For MuJoCo, ensure that the path of your MuJoCo folder is included
-in the environment variable ``LD_LIBRARY_PATH`` and that ``mujoco_py`` is correctly installed.
-Installing MushroomRL in a Conda environment is generally
-safe. However, we are aware that when installing with the option
-``plots``, some errors may arise due to incompatibility issues between
-``pyqtgraph`` and Conda. We recommend not using Conda when installing using ``plots``.
-Finally, ensure that C/C++ compilers and Cython are working as expected.
+by some Gymnasium environments and the installation may fail otherwise. For Atari, you might need to install the ROM
+separately, otherwise the creation of Atari environments may fail. Opencv should be installed too.
+Installing MushroomRL in a Conda environment is generally safe. However, we are aware that when installing with the
+option ``plots``, some errors may arise due to incompatibility issues between ``pyqtgraph`` and Conda. We recommend not
+using Conda when installing using ``plots``.
 
 To check if the installation has been successful, you can try to run the basic example above.
 

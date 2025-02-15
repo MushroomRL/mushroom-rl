@@ -150,7 +150,7 @@ def experiment(alg, n_epochs, n_steps, n_episodes_test):
 
     J = np.mean(dataset.discounted_return)
     R = np.mean(dataset.undiscounted_return)
-    E = agent.policy.entropy(dataset.state)
+    E = agent.policy.entropy(dataset.state).item()
 
     logger.epoch_info(0, J=J, R=R, entropy=E)
 
@@ -162,7 +162,7 @@ def experiment(alg, n_epochs, n_steps, n_episodes_test):
 
         J = np.mean(dataset.discounted_return)
         R = np.mean(dataset.undiscounted_return)
-        E = agent.policy.entropy(dataset.state)
+        E = agent.policy.entropy(dataset.state).item()
 
         logger.epoch_info(n+1, J=J, R=R, entropy=E)
 

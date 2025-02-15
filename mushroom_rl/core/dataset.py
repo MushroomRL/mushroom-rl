@@ -478,7 +478,7 @@ class Dataset(Serializable):
 
         if len(r_ep.shape) == 1:
             r_ep = r_ep.unsqueeze(0)
-        if hasattr(r_ep, 'device'):
+        if self._dataset_info.backend == 'torch':
             js = self._array_backend.zeros(r_ep.shape[0], dtype=r_ep.dtype, device=r_ep.device)
         else:
             js = self._array_backend.zeros(r_ep.shape[0], dtype=r_ep.dtype)

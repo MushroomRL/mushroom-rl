@@ -21,16 +21,16 @@ with warnings.catch_warnings():
     from habitat.datasets.utils import get_action_shortest_path
     from habitat_sim.errors import GreedyFollowerError
 
-import gym
+import gymnasium
 import numpy as np
 
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.environments import Gym
+from mushroom_rl.environments import Gymnasium
 from mushroom_rl.rl_utils.spaces import Discrete, Box
 from mushroom_rl.utils.viewer import ImageViewer
 
 
-class HabitatNavigationWrapper(gym.Wrapper):
+class HabitatNavigationWrapper(gymnasium.Wrapper):
     """
     Use it for navigation tasks, where the agent has to go from point A to B.
     Action is discrete: stop, turn left, turn right, move forward.
@@ -43,7 +43,7 @@ class HabitatNavigationWrapper(gym.Wrapper):
 
     """
     def __init__(self, env):
-        gym.Wrapper.__init__(self, env)
+        gymnasium.Wrapper.__init__(self, env)
         self.action_space = self.env.action_space
         self.observation_space = self.env.observation_space['rgb']
         self._last_full_obs = None # For rendering
@@ -112,7 +112,7 @@ class HabitatNavigationWrapper(gym.Wrapper):
         return rwd_sum
 
 
-class HabitatRearrangeWrapper(gym.Wrapper):
+class HabitatRearrangeWrapper(gymnasium.Wrapper):
     """
     Use it for the rearrange task, where the robot has to interact with objects.
     There are several 'rearrange' tasks, such as 'pick', 'place', 'open X',
@@ -141,7 +141,7 @@ class HabitatRearrangeWrapper(gym.Wrapper):
 
     """
     def __init__(self, env):
-        gym.Wrapper.__init__(self, env)
+        gymnasium.Wrapper.__init__(self, env)
         self.arm_ac_size = env.action_space['ARM_ACTION']['arm_action'].shape[0]
         self.grip_ac_size = env.action_space['ARM_ACTION']['grip_action'].shape[0]
         self.n_actions = self.arm_ac_size + self.grip_ac_size
@@ -167,7 +167,7 @@ class HabitatRearrangeWrapper(gym.Wrapper):
         return obs, rwd, done, info
 
 
-class Habitat(Gym):
+class Habitat(Gymnasium):
     """
     Interface for Habitat RL environments.
     This class is very generic and can be used for many Habitat task. Depending

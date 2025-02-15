@@ -12,24 +12,25 @@ with warnings.catch_warnings():
 
     logging.disable(logging.NOTSET) # Re-enable logging
 
-import gym
+import gymnasium
 import numpy as np
 
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.environments import Gym
+from mushroom_rl.environments import Gymnasium
 from mushroom_rl.rl_utils.spaces import Discrete, Box
 from mushroom_rl.utils.viewer import ImageViewer
 
-class iGibsonWrapper(gym.ObservationWrapper):
+
+class iGibsonWrapper(gymnasium.ObservationWrapper):
     def __init__(self, env):
-        gym.ObservationWrapper.__init__(self, env)
+        gymnasium.ObservationWrapper.__init__(self, env)
         self.observation_space = env.observation_space.spaces['rgb']
 
     def observation(self, observation):
         return observation['rgb'] * 255.
 
 
-class iGibson(Gym):
+class iGibson(Gymnasium):
     """
     Interface for iGibson https://github.com/StanfordVL/iGibson
 

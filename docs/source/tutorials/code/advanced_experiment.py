@@ -8,10 +8,10 @@ from mushroom_rl.features.tiles import Tiles
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.utils.callbacks import CollectDataset
 from mushroom_rl.rl_utils.parameters import Parameter
-from mushroom_rl.environments import Gym
+from mushroom_rl.environments import Gymnasium
 
 # MDP
-mdp = Gym(name='MountainCar-v0', horizon=np.inf, gamma=1.)
+mdp = Gymnasium(name='MountainCar-v0', horizon=np.inf, gamma=1.)
 
 # Policy
 epsilon = Parameter(value=0.)

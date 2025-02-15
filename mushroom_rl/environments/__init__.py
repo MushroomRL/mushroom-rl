@@ -6,20 +6,6 @@ except ImportError:
     pass
 
 try:
-    Gym = None
-    from .gym_env import Gym
-    Gym.register()
-except ImportError:
-    pass
-
-try:
-    GymnasiumAtari = None
-    from .gymnasium_atari import GymnasiumAtari
-    GymnasiumAtari.register()
-except ImportError:
-    pass
-
-try:
     Gymnasium = None
     from .gymnasium_env import Gymnasium
     Gymnasium.register()

@@ -60,10 +60,10 @@ Grid World
     :inherited-members:
     :show-inheritance:
 
-Gym
-~~~
+Gymnasium
+~~~~~~~~~
 
-.. automodule:: mushroom_rl.environments.gym_env
+.. automodule:: mushroom_rl.environments.gymnasium_env
     :members:
     :private-members:
     :inherited-members:

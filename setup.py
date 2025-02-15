@@ -22,9 +22,9 @@ here = path.abspath(path.dirname(__file__))
 
 
 extras = {
-    'gym': ['gym==0.24.1'],
-    'atari': ['ale-py==0.7.5', 'Pillow', 'opencv-python'],
-    'box2d': ['box2d-py~=2.3.5'],
+    'gymnasium': ['gymnasium'],
+    'atari': ['ale-py', 'Pillow', 'opencv-python'],
+    'box2d': ['box2d-py'],
     'bullet': ['pybullet'],
     'mujoco': ['mujoco>=2.3', 'dm_control>=1.0.9'],
     'plots': ['pyqtgraph']
@@ -32,7 +32,7 @@ extras = {
 
 all_deps = []
 for group_name in extras:
-    if group_name not in ['plots','box2d']:
+    if group_name not in ['plots','box2d', 'bullet']:
         all_deps += extras[group_name]
 extras['all'] = all_deps
 

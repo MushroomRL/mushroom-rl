@@ -25,7 +25,7 @@ class DummyAgent(Agent):
 
 
 def test_core():
-    mdp = Atari(name='BreakoutDeterministic-v4')
+    mdp = Atari(name='ALE/Breakout-v5', repeat_action_probability=0.0)
 
     agent = DummyAgent(mdp.info)
 
@@ -45,7 +45,7 @@ def test_core():
     info_lives = np.array(dataset.info['lives'])
 
     print(info_lives)
-    lives_gt = np.array([5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4])
+    lives_gt = np.array([5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5.])
     assert len(info_lives) == 20
     assert np.all(info_lives == lives_gt)
     assert len(dataset) == 20

@@ -6,7 +6,7 @@ from experiment_launcher import run_experiment
 import torch.optim as optim
 
 from mushroom_rl.core import Logger, Core
-from mushroom_rl.environments import Gym
+from mushroom_rl.environments import Gymnasium
 
 from mushroom_rl.algorithms.actor_critic import PPO_BPTT
 from mushroom_rl.policy import RecurrentGaussianTorchPolicy
@@ -201,7 +201,7 @@ def experiment(
     logger = Logger(results_dir=results_dir, log_name="stochastic_logging", seed=seed)
 
     # MDP
-    mdp = Gym(env, horizon=horizon, gamma=gamma)
+    mdp = Gymnasium(env, horizon=horizon, gamma=gamma)
 
     # create the policy
     dim_env_state = mdp.info.observation_space.shape[0]
