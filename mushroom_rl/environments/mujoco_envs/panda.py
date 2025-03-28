@@ -169,6 +169,7 @@ class Panda(MuJoCo):
         super().setup(obs)
         self._load_keyframe(self._keyframe)
 
+    # Gravity compensation implementation adapted from https://colab.research.google.com/drive/1zlsplgSyk59hxnw3kOJMIxAXuwxXqOHD?usp=sharing
     def get_body_children_ids(self, body_id):
         return [
             i
