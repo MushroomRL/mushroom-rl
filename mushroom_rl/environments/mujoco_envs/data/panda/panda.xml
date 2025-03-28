@@ -224,7 +224,6 @@
                         <geom name="left_fingertip_pad_collision_3" class="fingertip_pad_collision_3"/>
                         <geom name="left_fingertip_pad_collision_4" class="fingertip_pad_collision_4"/>
                         <geom name="left_fingertip_pad_collision_5" class="fingertip_pad_collision_5"/>
-                        <!--<site name="left_fingertip_pad" pos="0 0 0.045" size="0.001" rgba="1 0 1 1"/>-->
 
                       </body>
                       <body name="right_finger" pos="0 0 0.0584" quat="0 0 0 1">
@@ -238,7 +237,6 @@
                         <geom name="right_fingertip_pad_collision_3" class="fingertip_pad_collision_3"/>
                         <geom name="right_fingertip_pad_collision_4" class="fingertip_pad_collision_4"/>
                         <geom name="right_fingertip_pad_collision_5" class="fingertip_pad_collision_5"/>
-                        <!--<site name="right_fingertip_pad" pos="0 0.0 0.045" size="0.001" rgba="0 1 0 1"/>-->
                       </body>
                     </body>
                   </body>
