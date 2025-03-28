@@ -1,0 +1,47 @@
+<mujoco model="panda scene">
+
+  <option timestep="5e-3" integrator="RK4" impratio="5">
+  </option>
+
+  <include file="panda.xml"/>
+  <include file="assets/table.xml"/>
+  <statistic center="0.3 0 0.4" extent="1"/> 
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
+    <rgba haze="0.15 0.25 0.35 1"/>
+    <global azimuth="120" elevation="-20"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
+      markrgb="0.8 0.8 0.8" width="300" height="300"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
+    <geom name="floor" pos="0.0 0.0 -1.05" size="0 0 0.05" type="plane" material="groundplane"/>
+
+    <body name="peg">
+      <freejoint name="peg"/>
+      <geom name="peg" type="cylinder" mass="0.05" size="0.01 0.04" friction="1 0.05 0.001" solref="0.01 1"/>
+      <site name="peg" pos="0 0 -0.04" type="cylinder" rgba="1 0 0 1" size="0.01 0.0001"/>
+    </body>
+
+<body name="hole" pos="0.5 0.0 0.025" mocap="true">
+    <geom type="box" size="0.01 0.0325 0.025" pos="-0.0225 0 0" solref="0.004 1" condim="4" contype="1" conaffinity="1"/>
+    <geom type="box" size="0.01 0.0325 0.025" pos="0.0225 0.0 0.0" solref="0.004 1" condim="4" contype="1" conaffinity="1"/>
+    <geom type="box" size="0.0325 0.01 0.025" pos="0.0 0.0225 0.0" solref="0.004 1" condim="4" contype="1" conaffinity="1"/>
+    <geom type="box" size="0.0325 0.01 0.025" pos="0.0 -0.0225 0.0" solref="0.004 1" condim="4" contype="1" conaffinity="1"/>
+    <site name="hole" pos="0 0 -0.025" type="box" rgba="1 0 0 1" size="0.0125 0.0125 0.001"/>
+</body>
+
+  </worldbody>
+
+  <keyframe>
+    <key name="home" qpos="0 -0.569 0 -2.810 0 3.037 0.741 0.0093 0.0093 0.47 0.0 0.38 0.9238795 0 -0.3826834 0" ctrl="0 0 0 0 0 0 0 0" act="0 -0.569 0 -2.810 0 3.037 0.741"/>
+  </keyframe>
+</mujoco>
+
