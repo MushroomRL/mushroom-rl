@@ -12,6 +12,7 @@ from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
 
 from tqdm import trange
 
+
 class Network(nn.Module):
     def __init__(self, input_shape, output_shape, n_features, **kwargs):
         super(Network, self).__init__()
@@ -95,9 +96,7 @@ def experiment(env, n_epochs, n_steps, n_episodes_test):
 
     core = Core(agent, mdp)
 
-    dataset = core.evaluate(
-        n_episodes=n_episodes_test, render=args.render, record=args.record
-    )
+    dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
 
     J = np.mean(dataset.discounted_return)
     R = np.mean(dataset.undiscounted_return)
@@ -107,9 +106,7 @@ def experiment(env, n_epochs, n_steps, n_episodes_test):
 
     for it in trange(n_epochs, leave=False):
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit)
-        dataset = core.evaluate(
-            n_episodes=n_episodes_test, render=False
-        )
+        dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
 
         J = np.mean(dataset.discounted_return)
         R = np.mean(dataset.undiscounted_return)
