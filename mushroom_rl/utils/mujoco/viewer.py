@@ -43,7 +43,7 @@ class MujocoViewer:
     def __init__(self, model, dt, width=1920, height=1080, start_paused=False,
                  custom_render_callback=None, record=False, camera_params=None,
                  default_camera_mode="static", hide_menu_on_startup=None,
-                 geom_group_visualization_on_startup=None, headless=False):
+                 geom_group_visualization_on_startup=None, headless=False, reference_frame_visualization_on_startup=0):
         """
         Constructor.
 
@@ -63,6 +63,7 @@ class MujocoViewer:
             geom_group_visualization_on_startup (int/list): int or list defining which geom group_ids should be
                 visualized on startup. If None, all are visualized.
             headless (bool): If True, render will be done in headless mode.
+            reference_frame_visualization_on_startup (int): Specifies the group of reference frames that should be visualized.
 
         """
 
@@ -147,6 +148,8 @@ class MujocoViewer:
             for group_id, _ in enumerate(self._scene_option.geomgroup):
                 if group_id not in geom_group_visualization_on_startup:
                     self._scene_option.geomgroup[group_id] = False
+
+        self._scene_option.frame = reference_frame_visualization_on_startup
 
     def load_new_model(self, model):
         """
