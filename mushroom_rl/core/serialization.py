@@ -9,6 +9,7 @@ from pathlib import Path
 from mushroom_rl.utils.torch import TorchUtils
 
 from zipfile import ZipFile
+import inspect
 
 
 class Serializable(object):
@@ -210,8 +211,11 @@ class Serializable(object):
     @staticmethod
     def _load_torch(zip_file, name):
         with zip_file.open(name, 'r') as f:
-            return torch.load(f, map_location=TorchUtils.get_device())
-
+            #modern versions of torch require weights_only to be explicitly set to False
+            if 'weights_only' in inspect.signature(torch.load).parameters:
+                return torch.load(f, map_location=TorchUtils.get_device(), weights_only=False)
+            else:
+                return torch.load(f, map_location=TorchUtils.get_device())
     @staticmethod
     def _load_json(zip_file, name):
         with zip_file.open(name, 'r') as f:
