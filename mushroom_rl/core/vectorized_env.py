@@ -1,6 +1,7 @@
 import numpy as np
 
 from .environment import Environment
+from .array_backend import ArrayBackend
 
 
 class VectorizedEnvironment(Environment):
@@ -15,17 +16,22 @@ class VectorizedEnvironment(Environment):
         super().__init__(mdp_info)
 
     def reset(self, state=None):
-        env_mask = np.zeros(self._n_envs, dtype=bool)
+        env_mask = ArrayBackend.get_array_backend(self._mdp_info.backend).zeros(self._n_envs, dtype=bool)
         env_mask[self._default_env] = True
         return self.reset_all(env_mask, state)
 
     def step(self, action):
-        env_mask = np.zeros(self._n_envs, dtype=bool)
+        arraybackend = ArrayBackend.get_array_backend(self._mdp_info.backend)
+        env_mask = arraybackend.zeros(self._n_envs, dtype=bool)
         env_mask[self._default_env] = True
+
+        actions = arraybackend.zeros(self._n_envs, *arraybackend.shape(action))
+        actions[self._default_env] = action
+
         return self.step_all(env_mask, action)
 
     def render(self, record=False):
-        env_mask = np.zeros(self._n_envs, dtype=bool)
+        env_mask = ArrayBackend.get_array_backend(self._mdp_info.backend).zeros(self._n_envs, dtype=bool)
         env_mask[self._default_env] = True
 
         return self.render_all(env_mask, record=record)
@@ -49,7 +55,7 @@ class VectorizedEnvironment(Environment):
         Move all the specified agents from their current state according to the actions.
 
         Args:
-            env_mask: mask specifying which environments needs reset.
+            env_mask: mask specifying which environments needs to do a step.
             action: set of actions to execute.
 
         Returns:

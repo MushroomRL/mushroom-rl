@@ -113,6 +113,10 @@ class ArrayBackend(object):
         raise NotImplementedError
 
     @staticmethod
+    def rand(*dims, device=None):
+        raise NotImplementedError
+
+    @staticmethod
     def randint(low, high, size):
         raise NotImplementedError
 
@@ -179,6 +183,42 @@ class ArrayBackend(object):
     @staticmethod
     def repeat(array, repeats):
         raise NotImplementedError
+    
+    @staticmethod
+    def inf():
+        raise NotImplementedError
+    
+    @staticmethod
+    def maximum(x, y):
+        raise NotImplementedError
+    
+    @staticmethod
+    def minimum(x, y):
+        raise NotImplementedError
+    
+    @staticmethod
+    def max(array, dim=None):
+        raise NotImplementedError
+    
+    @staticmethod
+    def min(array, dim=None):
+        raise NotImplementedError
+    
+    @staticmethod
+    def norm(array, dim=None):
+        raise NotImplementedError
+    
+    @staticmethod
+    def logical_and(x, y):
+        raise NotImplementedError
+    
+    @staticmethod
+    def sum(array, dim=None):
+        raise NotImplementedError
+    
+    @staticmethod
+    def stack(lst, dim):
+        raise NotImplementedError
 
 class NumpyBackend(ArrayBackend):
     @staticmethod
@@ -236,7 +276,7 @@ class NumpyBackend(ArrayBackend):
         if x is None:
             return np.where(cond)
         else:
-            np.where(cond, x, y)
+            return np.where(cond, x, y)
 
     @staticmethod
     def squeeze(array, dim=None):
@@ -249,6 +289,10 @@ class NumpyBackend(ArrayBackend):
     @staticmethod
     def size(arr):
         return np.size(arr)
+
+    @staticmethod
+    def rand(*dims, device=None):
+        return np.random.rand(*dims)
 
     @staticmethod
     def randint(low, high, size):
@@ -323,7 +367,42 @@ class NumpyBackend(ArrayBackend):
     @staticmethod
     def repeat(array, repeats):
         return np.repeat(array, repeats)
-
+    
+    @staticmethod
+    def inf():
+        return np.inf
+    
+    @staticmethod
+    def maximum(x, y):
+        return np.maximum(x, y)
+    
+    @staticmethod
+    def minimum(x, y):
+        return np.minimum(x, y)
+    
+    @staticmethod
+    def max(array, dim=None):
+        return np.max(array, axis=dim)
+    
+    @staticmethod
+    def min(array, dim=None):
+        return np.min(array, axis=dim)
+    
+    @staticmethod
+    def norm(array, ord=None, dim=None):
+        return np.linalg.norm(array, ord=ord, axis=dim)
+    
+    @staticmethod
+    def logical_and(x, y):
+        return np.logical_and(x, y)
+    
+    @staticmethod
+    def sum(array, dim=None):
+        return np.sum(array, axis=dim)
+    
+    @staticmethod
+    def stack(lst, dim):
+        return np.stack(lst, axis=dim)
 
 class TorchBackend(ArrayBackend):
 
@@ -377,7 +456,7 @@ class TorchBackend(ArrayBackend):
         if x is None:
             return torch.where(cond)
         else:
-            torch.where(cond, x, y)
+            return torch.where(cond, x, y)
 
     @staticmethod
     def squeeze(array, dim=None):
@@ -393,6 +472,11 @@ class TorchBackend(ArrayBackend):
     @staticmethod
     def size(arr):
         return torch.numel(arr)
+    
+    @staticmethod
+    def rand(*dims, device=None):
+        device = TorchUtils.get_device() if device is None else device
+        return torch.rand(dims, device=device)
 
     @staticmethod
     def randint(low, high, size):
@@ -431,7 +515,7 @@ class TorchBackend(ArrayBackend):
         if len(array) > 1 and isinstance(array[0], torch.Tensor):
             return torch.stack(array)
         else:
-            return torch.tensor(array)
+            return torch.tensor(array).to(TorchUtils.get_device())
 
     @staticmethod
     def pack_padded_sequence(array, mask):
@@ -462,7 +546,7 @@ class TorchBackend(ArrayBackend):
     
     @staticmethod
     def full(shape, value):
-        return torch.full(shape, value)
+        return torch.full(shape, value).to(device=TorchUtils.get_device())
     
     @staticmethod
     def nonzero(array):
@@ -471,6 +555,42 @@ class TorchBackend(ArrayBackend):
     @staticmethod
     def repeat(array, repeats):
         return torch.repeat_interleave(array, repeats)
+    
+    @staticmethod
+    def inf():
+        return torch.inf
+    
+    @staticmethod
+    def maximum(x, y):
+        return torch.maximum(x, y)
+    
+    @staticmethod
+    def minimum(x, y):
+        return torch.minimum(x, y)
+    
+    @staticmethod
+    def max(array, dim):
+        return torch.max(array, dim=dim).values
+    
+    @staticmethod
+    def min(array, dim):
+        return torch.min(array, dim=dim).values
+    
+    @staticmethod
+    def norm(array, ord=None, dim=None):
+        return torch.linalg.norm(array, ord=ord, dim=dim)
+    
+    @staticmethod
+    def logical_and(x, y):
+        return torch.logical_and(x, y)
+    
+    @staticmethod
+    def sum(array, dim=None):
+        return torch.sum(array, dim=dim)
+    
+    @staticmethod
+    def stack(lst, dim):
+        return torch.stack(lst, dim=dim)
 
 class ListBackend(ArrayBackend):
 
@@ -549,3 +669,39 @@ class ListBackend(ArrayBackend):
     @staticmethod
     def full(shape, value):
         return np.full(shape, value)
+    
+    @staticmethod
+    def inf():
+        return np.inf
+    
+    @staticmethod
+    def maximum(x, y):
+        return np.maximum(x, y)
+    
+    @staticmethod
+    def minimum(x, y):
+        return np.minimum(x, y)
+    
+    @staticmethod
+    def max(array, dim):
+        return np.max(array, axis=dim)
+    
+    @staticmethod
+    def min(array, dim):
+        return np.min(array, axis=dim)
+    
+    @staticmethod
+    def norm(array, ord=None, dim=None):
+        return np.linalg.norm(array, ord=ord, axis=dim)
+    
+    @staticmethod
+    def logical_and(x, y):
+        return np.logical_and(x, y)
+    
+    @staticmethod
+    def sum(array, dim=None):
+        return np.sum(array, axis=dim)
+
+    @staticmethod
+    def stack(lst, dim):
+        return np.stack(lst, axis=dim)
