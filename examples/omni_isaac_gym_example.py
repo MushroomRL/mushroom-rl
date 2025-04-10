@@ -15,7 +15,7 @@ from mushroom_rl.core import VectorCore, Logger
 from mushroom_rl.algorithms.actor_critic import TRPO, PPO
 
 from mushroom_rl.policy import GaussianTorchPolicy
-from mushroom_rl.environments import IsaacEnv
+from mushroom_rl.environments import OmniIsaacGymEnv
 from mushroom_rl.utils import TorchUtils
 
 
@@ -52,7 +52,8 @@ def experiment(cfg_dict, headless, alg, n_epochs, n_steps, n_steps_per_fit, n_ep
     logger.strong_line()
     logger.info('Experiment Algorithm: ' + alg.__name__)
 
-    mdp = IsaacEnv(cfg_dict, headless=headless)
+    mdp = OmniIsaacGymEnv(cfg_dict, headless=True)
+    mdp.render_all()
 
 
     critic_params = dict(network=Network,
@@ -97,7 +98,7 @@ def experiment(cfg_dict, headless, alg, n_epochs, n_steps, n_steps_per_fit, n_ep
 
     logger.info('Press a button to visualize')
     input()
-    core.evaluate(n_episodes=5, render=True)
+    core.evaluate(n_episodes=5, render=False)
 
 
 @hydra.main(config_name="config", config_path="./cfg")
@@ -131,8 +132,7 @@ def parse_hydra_configs(cfg: DictConfig):
                        cg_residual_tol=1e-10)
 
     algs_params = [
-        (PPO, 'ppo', ppo_params),
-        (TRPO, 'trpo', trpo_params)
+        (PPO, 'ppo', ppo_params)
     ]
 
     for alg, alg_name, alg_params in algs_params:
