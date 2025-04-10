@@ -61,6 +61,12 @@ try:
 except ImportError:
     pass
 
+try:
+    IsaacSim = None
+    from .isaacsim_env import IsaacSim
+except ImportError:
+    pass
+
 from .generators.simple_chain import generate_simple_chain
 
 from .car_on_hill import CarOnHill
