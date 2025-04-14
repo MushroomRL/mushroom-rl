@@ -632,7 +632,6 @@ class VectorizedDataset(Dataset):
             next_states = next_states[:n_steps_per_fit]
             absorbings = absorbings[:n_steps_per_fit]
             lasts = lasts[:n_steps_per_fit]
-            lasts[-1] = True
 
             if self._data.is_stateful:
                 policy_state = policy_state[:n_steps_per_fit]
