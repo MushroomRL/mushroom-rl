@@ -41,7 +41,7 @@ class Network(nn.Module):
 
         return a
 
-def experiment(mdp, alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test,
+def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test,
                alg_params, policy_params):
 
     logger = Logger(alg.__name__ + "_1_legged_gym", results_dir="./logs/", log_console=True, use_timestamp=True)
