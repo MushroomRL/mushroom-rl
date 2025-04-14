@@ -31,11 +31,11 @@ if sys.version_info < (3, 7):
 
 extras = {
     'gym': ['gym==0.24.1'],
-    'atari': ['ale-py==0.7.5', 'Pillow', 'opencv-python'],
-    'box2d': ['box2d-py~=2.3.5'],
-    'bullet': ['pybullet'],
-    'mujoco': ['mujoco>=2.3', 'dm_control>=1.0.9'],
-    'plots': ['pyqtgraph']
+    'atari': ['ale-py==0.7.5', 'Pillow==11.2.1', 'opencv-python==4.11.0.86'],
+    'bullet': ['pybullet==3.2.7'],
+    'mujoco': ['mujoco==2.3.1.post1', 'dm_control==1.0.9'],
+    'plots': ['pyqtgraph'],
+    'minatar': ['minatar==1.0.12']
 }
 
 all_deps = []
