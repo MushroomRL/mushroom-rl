@@ -2,6 +2,7 @@ import warnings
 import numpy as np
 
 from mushroom_rl.core.serialization import Serializable
+from mushroom_rl.core.array_backend import ArrayBackend
 
 
 class MDPInfo(Serializable):
@@ -195,8 +196,7 @@ class Environment(object):
         """
         return self._mdp_info
 
-    @staticmethod
-    def _bound(x, min_value, max_value):
+    def _bound(self, x, min_value, max_value):
         """
         Method used to bound state and action variables.
 
@@ -209,6 +209,7 @@ class Environment(object):
             The bounded variable.
 
         """
-        return np.maximum(min_value, np.minimum(x, max_value))
+        array_backend = ArrayBackend.get_array_backend(self.info.backend)
+        return array_backend.maximum(min_value, array_backend.minimum(x, max_value))
 
     _registered_envs = dict()

@@ -47,10 +47,10 @@ try:
     from .mujoco_envs import *
 except ImportError:
     pass
-
+    
 try:
-    IsaacEnv = None
-    from .isaac_env import IsaacEnv
+    OmniIsaacGymEnv = None
+    from .omni_isaac_gym_env import OmniIsaacGymEnv
 except ImportError:
     pass
 
@@ -58,6 +58,12 @@ try:
     PyBullet = None
     from .pybullet import PyBullet
     from .pybullet_envs import *
+except ImportError:
+    pass
+
+try:
+    IsaacSim = None
+    from .isaacsim_env import IsaacSim
 except ImportError:
     pass
 

@@ -1,6 +1,7 @@
 import numpy as np
 
 from mushroom_rl.core.serialization import Serializable
+from mushroom_rl.core import ArrayBackend
 
 
 class Box(Serializable):
@@ -45,9 +46,12 @@ class Box(Serializable):
 
         self._data_type = data_type
 
+        arr_backend = ArrayBackend.get_array_backend_from(self._low)
+        assert arr_backend == ArrayBackend.get_array_backend_from(self._high)
+
         self._add_save_attr(
-            _low='numpy',
-            _high='numpy',
+            _low=arr_backend.get_backend_serialization(),
+            _high=arr_backend.get_backend_serialization(),
             _data_type='primitive'
         )
 

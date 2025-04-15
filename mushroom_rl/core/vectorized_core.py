@@ -37,7 +37,7 @@ class VectorCore(object):
 
         if record_dictionary is None:
             record_dictionary = dict()
-        self._record = [self._build_recorder_class(**record_dictionary) for _ in range(self.env.number)]
+        self._record = self._build_recorder_class(**record_dictionary)
 
     def learn(self, n_steps=None, n_episodes=None, n_steps_per_fit=None, n_episodes_per_fit=None,
               render=False, record=False, quiet=False):
@@ -157,12 +157,10 @@ class VectorCore(object):
         self._episode_steps[mask] += 1
 
         if render:
-            frames = self.env.render_all(mask, record=record)
+            frame = self.env.render_all(mask, record=record)
 
             if record:
-                for i in range(self.env.number):
-                    if mask[i]:
-                        self._record[i](frames[i])
+                self._record(frame)
 
         last = absorbing | (self._episode_steps >= self.env.info.horizon)
 
@@ -207,8 +205,7 @@ class VectorCore(object):
         self._episode_steps = None
 
         if record:
-            for record in self._record:
-                record.stop()
+            self._record.stop()
 
         self._core_logic.terminate_run()
 
