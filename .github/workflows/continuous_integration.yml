@@ -34,7 +34,7 @@ jobs:
     - name: Test with pytest
       run: |
         pytest --cov=mushroom_rl --cov-report=xml
-    - name: Publish code coverage to CodeClimate
-      uses: paambaati/codeclimate-action@v2.7.5
-      env:
-        CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
+    - uses: qltysh/qlty-action/coverage@v1
+      with:
+        token: ${{secrets.QLTY_COVERAGE_TOKEN}}
+        files: coverage.xml
