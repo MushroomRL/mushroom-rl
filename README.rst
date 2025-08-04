@@ -10,12 +10,12 @@ MushroomRL
    :target: https://mushroomrl.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
 
-.. image:: https://api.codeclimate.com/v1/badges/3b0e7167358a661ed882/maintainability
-   :target: https://codeclimate.com/github/MushroomRL/mushroom-rl/maintainability
+.. image:: https://qlty.sh/gh/MushroomRL/projects/mushroom-rl/maintainability.svg
+   :target: https://qlty.sh/gh/MushroomRL/projects/mushroom-rl
    :alt: Maintainability
 
-.. image:: https://api.codeclimate.com/v1/badges/3b0e7167358a661ed882/test_coverage
-   :target: https://codeclimate.com/github/MushroomRL/mushroom-rl/test_coverage
+.. image:: https://qlty.sh/gh/MushroomRL/projects/mushroom-rl/coverage.svg
+   :target: https://qlty.sh/gh/MushroomRL/projects/mushroom-rl
    :alt: Test Coverage
 
 **MushroomRL: Reinforcement Learning Python library.**
