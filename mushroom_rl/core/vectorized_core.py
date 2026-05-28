@@ -181,15 +181,14 @@ class VectorCore(object):
             
         initial_state = self._core_logic.get_initial_state(initial_states)
 
-        state, episode_info = self._preprocess(self.env.reset_all(reset_mask, initial_state))
+        state, episode_info = self.env.reset_all(reset_mask, initial_state)
 
-        policy_state, current_theta = self.agent.episode_start_vectorized(state, episode_info, reset_mask)
+        self._state = self._preprocess(state)
+        policy_state, current_theta = self.agent.episode_start_vectorized(self._state, episode_info, reset_mask)
         if self._policy_state is None or policy_state is None:
             self._policy_state = policy_state
         elif reset_mask.any():
             self._policy_state[reset_mask] = policy_state[reset_mask]
-
-        self._state = self._preprocess(state)
         self.agent.next_action = None
 
         if self._episode_steps is None:
