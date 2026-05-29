@@ -49,6 +49,13 @@ try:
     from .mujoco_envs import *
 except ImportError:
     pass
+
+try:
+    MuJoCoWarp = None
+    from .mujoco_warp import MuJoCoWarp
+    from .mujoco_warp_envs import *
+except ImportError:
+    pass
     
 try:
     OmniIsaacGymEnv = None
