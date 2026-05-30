@@ -26,7 +26,7 @@ class ShipSteering(Environment):
         self.field_size = 150 if small else 1000
         low = np.array([0, 0, -np.pi, -np.pi / 12.])
         high = np.array([self.field_size, self.field_size, np.pi, np.pi / 12.])
-        self.omega_max = np.array([np.pi / 12.])
+        self.omega_max = np.pi / 12.
         self._v = 3.
         self._T = 5.
         self._gate_s = np.empty(2)
@@ -44,7 +44,7 @@ class ShipSteering(Environment):
         # MDP properties
         dt = .2
         observation_space = spaces.Box(low=low, high=high)
-        action_space = spaces.Box(low=-self.omega_max, high=self.omega_max)
+        action_space = spaces.Box(low=-self.omega_max, high=self.omega_max, shape=(1,))
         horizon = 5000
         gamma = .99
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)

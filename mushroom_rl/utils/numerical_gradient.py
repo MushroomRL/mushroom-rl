@@ -95,6 +95,6 @@ def numerical_diff_function(function, params, eps=1e-6):
         v1 = function(params - perturb)
         v2 = function(params + perturb)
 
-        g[i] = (v2 - v1) / (2 * eps)
+        g[i] = np.atleast_1d((v2 - v1) / (2 * eps)).item()
 
     return g
