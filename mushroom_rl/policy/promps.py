@@ -46,8 +46,8 @@ class ProMP(ParametricPolicy):
             _periodic='primitive'
         )
 
-    def __call__(self, state, action):
-        z = self._compute_phase(state)
+    def __call__(self, state, action, policy_state=None):
+        z = self._compute_phase(state, policy_state)
         mu = self._approximator(self._phi(z))
 
         if self._sigma is None:
@@ -56,7 +56,7 @@ class ProMP(ParametricPolicy):
             return multivariate_normal.pdf(action, mu, self._sigma)
 
     def draw_action(self, state, policy_state):
-        z = self._compute_phase(state)
+        z = self._compute_phase(state, policy_state)
 
         mu = self._approximator(self._phi(z))
 
@@ -75,12 +75,12 @@ class ProMP(ParametricPolicy):
             state (np.ndarray): The current state of the system.
 
         """
-        policy_state += 1
+        next_policy_state = policy_state + 1
 
-        if not self._periodic and policy_state >= self._duration:
-            policy_state = self._duration
+        if not self._periodic and next_policy_state >= self._duration:
+            next_policy_state = self._duration
 
-        return policy_state
+        return next_policy_state
 
     def _compute_phase(self, state, policy_state):
         """

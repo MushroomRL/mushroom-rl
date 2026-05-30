@@ -16,3 +16,4 @@ logs/
 .coverage*
 *.c
 *.so
+CLAUDE.md

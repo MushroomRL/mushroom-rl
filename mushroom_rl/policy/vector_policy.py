@@ -30,16 +30,16 @@ class VectorPolicy(ParametricPolicy):
             actions.append(action)
 
             if policy_next_state is not None:
-                policy_next_state.append(policy_next_state)
+                policy_next_states.append(policy_next_state)
 
-        return np.array(actions), None if len(policy_next_states) == 0 else np.array(policy_next_state)
+        return np.array(actions), None if len(policy_next_states) == 0 else np.array(policy_next_states)
 
     def set_n(self, n_envs):
-        if len(self) < n_envs:
-            self._policy_vector = self._policy_vector[:n_envs]
         if len(self) > n_envs:
+            self._policy_vector = self._policy_vector[:n_envs]
+        elif len(self) < n_envs:
             n_missing = n_envs - len(self)
-            self._policy_vector += [self._policy_vector[0] for _ in range(n_missing)]
+            self._policy_vector += [deepcopy(self._policy_vector[0]) for _ in range(n_missing)]
 
     def get_flat_policy(self):
         return self._policy_vector[0]

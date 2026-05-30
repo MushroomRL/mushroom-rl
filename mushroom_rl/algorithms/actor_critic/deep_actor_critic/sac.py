@@ -59,10 +59,10 @@ class SACPolicy(Policy):
             _eps_log_prob='primitive'
         )
 
-    def __call__(self, state, action, internal_state=None):
+    def __call__(self, state, action, policy_state=None):
         raise NotImplementedError
 
-    def draw_action(self, state, internal_state=None):
+    def draw_action(self, state, policy_state=None):
         return self.compute_action_and_log_prob_t(state, compute_log_prob=False).detach(), None
 
     def compute_action_and_log_prob(self, state):

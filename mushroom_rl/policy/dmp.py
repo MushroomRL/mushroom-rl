@@ -10,8 +10,16 @@ class DMP(ParametricPolicy):
     Differently from the original implementation of DMP, an arbitrary regressor can be used to compute the mean from
     phase variable.
 
+    The internal state of the dynamical system, i.e. the canonical velocity ``v``, the phase ``x``, and the
+    transformation system variables ``z`` and ``y``, is stored in the policy state as a single array stacking the
+    four variables, with shape ``(4,) + action_shape``.
+
     """
     def __init__(self, mu, phi, goal, dt, tau, alpha_v, beta_v, alpha_z, beta_z):
+        self._action_shape = mu.output_shape
+
+        super().__init__(policy_state_shape=(4,) + tuple(self._action_shape))
+
         self._approximator = mu
         self._phi = phi
 
@@ -25,13 +33,6 @@ class DMP(ParametricPolicy):
         self._alpha_z = alpha_z
         self._beta_z = beta_z
 
-        action_size = self._approximator.output_shape
-
-        self._v = np.zeros(action_size)
-        self._x = np.zeros(action_size)
-        self._z = np.zeros(action_size)
-        self._y = np.zeros(action_size)
-
         self._add_save_attr(
             _approximator='mushroom',
             _phi='mushroom',
@@ -42,19 +43,20 @@ class DMP(ParametricPolicy):
             _alpha_z='numpy',
             _beta_z='numpy',
             _g='numpy',
-            _v='numpy',
-            _x='numpy',
-            _z='numpy',
-            _y='numpy'
+            _action_shape='primitive'
         )
 
-    def __call__(self, state, action):
-        return 1.0 if np.allclose(self._y == action) else 0.0
+    def __call__(self, state, action, policy_state=None):
+        next_policy_state = self.update_system(state, policy_state)
+        y = next_policy_state[3]
 
-    def draw_action(self, state):
-        self.update_system(state)
+        return 1.0 if np.allclose(y, action) else 0.0
 
-        return self._y
+    def draw_action(self, state, policy_state):
+        next_policy_state = self.update_system(state, policy_state)
+        y = next_policy_state[3]
+
+        return y, next_policy_state
 
     def set_goal(self, goal):
         self._g = goal
@@ -62,35 +64,44 @@ class DMP(ParametricPolicy):
     def get_goal(self, state):
         return self._g
 
-    def update_system(self, state):
+    def update_system(self, state, policy_state):
         """
         Method that updates the dynamical system. Can be overridden to introduce complex state-dependant behaviors.
 
         Args:
-            state (np.ndarray): The current state of the system.
+            state (np.ndarray): the current state of the environment;
+            policy_state (np.ndarray): the internal state of the DMP, stacking the ``[v, x, z, y]`` variables.
+
+        Returns:
+            The updated internal state of the DMP.
 
         """
+        next_policy_state = np.array(policy_state)
+        v, x, z, y = next_policy_state
+
         g = self.get_goal(state)
 
-        f = self._approximator(self._phi(self._x/g)) * self._v
+        f = self._approximator(self._phi(x / g)) * v
 
-        v_dot, x_dot = self._canonical_system(g)
-        y_dot, z_dot = self._transformation_system(f, g)
+        v_dot, x_dot = self._canonical_system(g, v, y)
+        y_dot, z_dot = self._transformation_system(f, g, y, z)
 
-        self._v += v_dot * self._dt
-        self._x += x_dot * self._dt
-        self._z += z_dot * self._dt
-        self._y += y_dot * self._dt
+        v += v_dot * self._dt
+        x += x_dot * self._dt
+        z += z_dot * self._dt
+        y += y_dot * self._dt
 
-    def _transformation_system(self, f, g):
-        z_dot = self._alpha_z * (self._beta_z * (g - self._y) - self._z) / self._tau
-        y_dot = (self._z + f) / self._tau
+        return next_policy_state
+
+    def _transformation_system(self, f, g, y, z):
+        z_dot = self._alpha_z * (self._beta_z * (g - y) - z) / self._tau
+        y_dot = (z + f) / self._tau
 
         return y_dot, z_dot
 
-    def _canonical_system(self, g):
-        v_dot = self._alpha_v * (self._beta_v * (g - self._y) - self._v) / self._tau
-        x_dot = self._v / self._tau
+    def _canonical_system(self, g, v, y):
+        v_dot = self._alpha_v * (self._beta_v * (g - y) - v) / self._tau
+        x_dot = v / self._tau
 
         return v_dot, x_dot
 
@@ -105,9 +116,4 @@ class DMP(ParametricPolicy):
         return self._approximator.weights_size
 
     def reset(self):
-        action_size = self._approximator.output_shape
-        self._v = np.zeros(action_size)
-        self._x = np.zeros(action_size)
-        self._z = np.zeros(action_size)
-        self._y = np.zeros(action_size)
-
+        return np.zeros((4,) + tuple(self._action_shape))
