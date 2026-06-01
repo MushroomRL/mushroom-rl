@@ -1,0 +1,432 @@
+import numpy as np
+import torch
+
+from mushroom_rl.core import MDPInfo, AgentInfo, Dataset
+from mushroom_rl.rl_utils.spaces import Box
+from mushroom_rl.rl_utils.replay_memory import (
+    ReplayMemory, SequenceReplayMemory, SumTree, PrioritizedReplayMemory
+)
+from mushroom_rl.rl_utils.parameters import LinearParameter
+
+
+def make_mdp_info(obs_shape, act_shape, backend='numpy'):
+    obs_space = Box(np.full(obs_shape, -1.0), np.full(obs_shape, 1.0), obs_shape)
+    act_space = Box(np.full(act_shape, -1.0), np.full(act_shape, 1.0), act_shape)
+    return MDPInfo(obs_space, act_space, gamma=0.99, horizon=100, backend=backend)
+
+
+def make_agent_info(policy_state_shape=None, backend='numpy'):
+    return AgentInfo(is_episodic=False, policy_state_shape=policy_state_shape, backend=backend)
+
+
+def make_dataset(n, rng, obs_shape, act_shape, policy_state_shape=None, backend='numpy', episode_ends=None):
+    states = rng.randn(n, *obs_shape)
+    actions = rng.randn(n, *act_shape)
+    rewards = rng.randn(n)
+    next_states = rng.randn(n, *obs_shape)
+    absorbings = np.zeros(n)
+    lasts = np.zeros(n)
+    if episode_ends is None:
+        lasts[-1] = 1.0
+    else:
+        for idx in episode_ends:
+            lasts[idx] = 1.0
+
+    policy_state = policy_next_state = None
+    if policy_state_shape is not None:
+        policy_state = rng.randn(n, *policy_state_shape)
+        policy_next_state = rng.randn(n, *policy_state_shape)
+
+    return (Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
+                               policy_state=policy_state, policy_next_state=policy_next_state,
+                               backend=backend),
+            states, actions, rewards, next_states, policy_state, policy_next_state)
+
+
+def test_replay_memory_add_get():
+    obs_shape = (4,)
+    act_shape = (2,)
+    n = 10
+
+    rng = np.random.RandomState(42)
+    dataset, states, actions, rewards, next_states, _, _ = make_dataset(
+        n, rng, obs_shape, act_shape)
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info()
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50)
+    rm.add(dataset)
+
+    assert rm.size == 10
+    assert rm.initialized
+
+    np.random.seed(7)
+    s, a, r, ss, ab, last = rm.get(4)
+
+    expected_idxs = np.array([4, 9, 6, 3])
+    s_test = np.array([[-1.01283112,  0.31424733, -0.90802408, -1.4123037],
+                       [ 0.2088636,  -1.95967012, -1.32818605,  0.19686124],
+                       [-0.54438272,  0.11092259, -1.15099358,  0.37569802],
+                       [ 0.24196227, -1.91328024, -1.72491783, -0.56228753]])
+    r_test = np.array([0.81252582, -0.64511975, -0.07201012, -1.19620662])
+
+    assert np.allclose(s, states[expected_idxs])
+    assert np.allclose(a, actions[expected_idxs])
+    assert np.allclose(r, rewards[expected_idxs])
+    assert np.allclose(ss, next_states[expected_idxs])
+    assert np.allclose(s, s_test)
+    assert np.allclose(r, r_test)
+
+
+def test_replay_memory_not_initialized():
+    obs_shape = (4,)
+    act_shape = (2,)
+
+    rng = np.random.RandomState(0)
+    dataset, *_ = make_dataset(10, rng, obs_shape, act_shape)
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info()
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=20, max_size=100)
+    rm.add(dataset)
+
+    assert rm.size == 10
+    assert not rm.initialized
+
+
+def test_replay_memory_wrapping_when_full():
+    obs_shape = (4,)
+    act_shape = (2,)
+    max_size = 15
+    n = 10
+
+    rng = np.random.RandomState(42)
+    ds_a, states_a, _, rewards_a, next_states_a, _, _ = make_dataset(n, rng, obs_shape, act_shape)
+    ds_b, states_b, _, rewards_b, next_states_b, _, _ = make_dataset(n, rng, obs_shape, act_shape)
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info()
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=max_size)
+    rm.add(ds_a)
+    rm.add(ds_b)
+
+    assert rm._full
+    assert rm.size == max_size
+    
+    assert np.allclose(rm._dataset.state[:5], states_b[5:10])
+    assert np.allclose(rm._dataset.state[5:10], states_a[5:10])
+    assert np.allclose(rm._dataset.state[10:15], states_b[0:5])
+    assert np.allclose(rm._dataset.reward[:5], rewards_b[5:10])
+    assert np.allclose(rm._dataset.next_state[10:15], next_states_b[0:5])
+
+
+def test_replay_memory_n_steps_return():
+    obs_shape = (4,)
+    act_shape = (2,)
+    n, n_steps, gamma = 10, 3, 0.9
+
+    rng = np.random.RandomState(0)
+    states = rng.randn(n, *obs_shape)
+    actions = rng.randn(n, *act_shape)
+    rewards = np.ones(n)
+    next_states = rng.randn(n, *obs_shape)
+    absorbings = np.zeros(n)
+    lasts = np.zeros(n)
+    lasts[-1] = 1.0
+    dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts)
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info()
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=1, max_size=50)
+    rm.add(dataset, n_steps_return=n_steps, gamma=gamma)
+
+    assert rm.size == n - n_steps + 1
+
+    expected_reward = 1.0 + gamma + gamma ** 2
+    assert np.allclose(rm._dataset.reward[:rm.size], expected_reward)
+
+    assert np.allclose(rm._dataset.next_state[0], next_states[n_steps - 1])
+    assert np.allclose(rm._dataset.next_state[rm.size - 1], next_states[n - 1])
+
+
+def test_replay_memory_stateful():
+    obs_shape = (4,)
+    act_shape = (2,)
+    policy_state_shape = (8,)
+    n = 10
+
+    rng = np.random.RandomState(5)
+    dataset, states, actions, rewards, _, policy_states, _ = make_dataset(
+        n, rng, obs_shape, act_shape, policy_state_shape=policy_state_shape)
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info(policy_state_shape=policy_state_shape)
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50)
+
+    assert rm._dataset.is_stateful
+
+    rm.add(dataset)
+
+    np.random.seed(7)
+    s, a, r, ss, ab, last, ps, nps = rm.get(4)
+
+    expected_idxs = np.array([4, 9, 6, 3])
+    ps_test = np.array([[ 1.21228341, -0.6346525,  -1.5996985,   0.87715281, -0.09383245,
+                          -0.05567103, -0.88942073, -1.30095145],
+                        [-0.14312642, -0.22418983, -1.03849524, -0.17170905,  0.47634618,
+                          -0.41417827, -1.26408334, -0.57321556],
+                        [-1.27962318,  0.03654264, -0.64635659,  0.54856784,  0.21054246,
+                          0.34650175, -0.56705117,  0.41367881],
+                        [ 0.92751621,  1.63995407,  2.07361553,  0.70979786,  0.74715259,
+                          1.46309548,  1.73844881,  1.46520488]])
+
+    assert np.allclose(ps, policy_states[expected_idxs])
+    assert np.allclose(ps, ps_test)
+    assert np.allclose(s, states[expected_idxs])
+
+
+def test_replay_memory_reset():
+    obs_shape = (4,)
+    act_shape = (2,)
+
+    rng = np.random.RandomState(1)
+    dataset, *_ = make_dataset(10, rng, obs_shape, act_shape)
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info()
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=1, max_size=20)
+    rm.add(dataset)
+
+    assert rm.size == 10
+
+    rm.reset()
+
+    assert rm.size == 0
+    assert not rm._full
+    assert rm._idx == 0
+
+
+def test_replay_memory_torch_backend():
+    obs_shape = (4,)
+    act_shape = (2,)
+    n = 10
+
+    rng = np.random.RandomState(42)
+    dataset, states, actions, rewards, next_states, _, _ = make_dataset(
+        n, rng, obs_shape, act_shape, backend='torch')
+
+    mdp_info = make_mdp_info(obs_shape, act_shape, backend='torch')
+    agent_info = make_agent_info(backend='torch')
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50)
+    rm.add(dataset)
+
+    assert rm.size == 10
+
+    torch.manual_seed(7)
+    s, a, r, ss, ab, last = rm.get(4)
+
+    assert isinstance(s, torch.Tensor)
+
+    idxs = torch.randint(0, 10, (4,), generator=torch.Generator().manual_seed(7)).numpy()
+    assert np.allclose(s.numpy(), states[idxs])
+    assert np.allclose(r.numpy(), rewards[idxs])
+
+
+def test_sequence_replay_memory_shapes_and_values():
+    obs_shape = (4,)
+    act_shape = (2,)
+    policy_state_shape = (8,)
+    truncation_length = 5
+    n = 30
+
+    rng = np.random.RandomState(42)
+    dataset, states, actions, rewards, _, policy_states, _ = make_dataset(
+        n, rng, obs_shape, act_shape, policy_state_shape=policy_state_shape,
+        episode_ends=[14, 29])
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info(policy_state_shape=policy_state_shape)
+    rm = SequenceReplayMemory(mdp_info, agent_info, initial_size=10, max_size=100,
+                              truncation_length=truncation_length)
+    rm.add(dataset)
+
+    n_samples = 2
+    np.random.seed(3)
+    s_seq, a_seq, r_seq, ss_seq, ab_seq, last_seq, ps_seq, nps_seq, pa_seq, lengths = rm.get(n_samples)
+
+    expected_idxs = np.array([10, 24])
+    expected_lengths = [5, 5]
+
+    assert s_seq.shape == (n_samples, truncation_length, *obs_shape)
+    assert a_seq.shape == (n_samples, truncation_length, *act_shape)
+    assert r_seq.shape == (n_samples, 1)
+    assert ps_seq.shape == (n_samples, truncation_length, *policy_state_shape)
+    assert lengths == expected_lengths
+
+    assert np.allclose(r_seq[:, 0], rm._dataset.reward[expected_idxs])
+
+    for i, (idx, length) in enumerate(zip(expected_idxs, expected_lengths)):
+        begin = idx - length + 1
+        assert np.allclose(s_seq[i, :length], rm._dataset.state[begin:idx + 1])
+        assert np.allclose(ps_seq[i, :length], rm._dataset.policy_state[begin:idx + 1])
+
+
+def test_sequence_replay_memory_episode_boundary():
+    obs_shape = (4,)
+    act_shape = (2,)
+    policy_state_shape = (8,)
+    episode_length = 5
+
+    rng = np.random.RandomState(0)
+    dataset, *_ = make_dataset(10, rng, obs_shape, act_shape, policy_state_shape=policy_state_shape,
+                               episode_ends=[4, 9])
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info(policy_state_shape=policy_state_shape)
+    rm = SequenceReplayMemory(mdp_info, agent_info, initial_size=5, max_size=100,
+                              truncation_length=10)
+    rm.add(dataset)
+
+    for seed in range(20):
+        np.random.seed(seed)
+        *_, lengths = rm.get(1)
+        assert lengths[0] <= episode_length
+
+
+def test_sum_tree_add_and_priorities():
+    obs_shape = (4,)
+    act_shape = (2,)
+    n = 5
+
+    rng = np.random.RandomState(42)
+    dataset, *_ = make_dataset(n, rng, obs_shape, act_shape)
+    priorities = np.array([1.0, 2.0, 1.0, 1.5, 0.5])
+
+    tree = SumTree(make_mdp_info(obs_shape, act_shape), make_agent_info(), max_size=20)
+    tree.add(dataset, priorities, n_steps_return=1, gamma=1.0)
+
+    assert tree.size == 5
+    assert np.isclose(tree.total_p, 6.0)
+    assert np.isclose(tree.max_p, 2.0)
+
+
+def test_sum_tree_update_propagates():
+    obs_shape = (4,)
+    act_shape = (2,)
+    n = 5
+
+    rng = np.random.RandomState(42)
+    dataset, *_ = make_dataset(n, rng, obs_shape, act_shape)
+
+    tree = SumTree(make_mdp_info(obs_shape, act_shape), make_agent_info(), max_size=20)
+    tree.add(dataset, np.ones(n), n_steps_return=1, gamma=1.0)
+
+    first_leaf = tree._max_size - 1
+    tree.update([first_leaf], [5.0])
+
+    assert np.isclose(tree.total_p, 9.0) 
+    assert np.isclose(tree.max_p, 5.0)
+    assert np.isclose(tree._tree[first_leaf], 5.0)
+
+
+def test_sum_tree_get_ind_retrieves_correct_priority():
+    obs_shape = (4,)
+    act_shape = (2,)
+    n = 5
+
+    rng = np.random.RandomState(42)
+    dataset, *_ = make_dataset(n, rng, obs_shape, act_shape)
+    priorities = np.array([1.0, 2.0, 1.0, 1.5, 0.5])
+
+    tree = SumTree(make_mdp_info(obs_shape, act_shape), make_agent_info(), max_size=20)
+    tree.add(dataset, priorities, n_steps_return=1, gamma=1.0)
+
+    idx, p, data_idx = tree.get_ind(0.5)
+    assert data_idx == 0
+    assert np.isclose(p, 1.0)
+
+    idx2, p2, data_idx2 = tree.get_ind(3.0)
+    assert data_idx2 == 1
+    assert np.isclose(p2, 2.0)
+
+
+def test_prioritized_replay_memory_add_get():
+    obs_shape = (4,)
+    act_shape = (2,)
+    n = 10
+
+    rng = np.random.RandomState(11)
+    dataset, states, actions, rewards, next_states, _, _ = make_dataset(n, rng, obs_shape, act_shape)
+
+    beta = LinearParameter(1.0, threshold_value=0.0, n=100)
+    rm = PrioritizedReplayMemory(make_mdp_info(obs_shape, act_shape), make_agent_info(),
+                                 initial_size=5, max_size=50, alpha=0.6, beta=beta)
+    rm.add(dataset, np.ones(n))
+
+    assert rm.initialized
+    assert np.isclose(rm._tree.total_p, 10.0)
+
+    np.random.seed(3)
+    s, a, r, ss, ab, last, idxs, is_weight = rm.get(4)
+
+    assert np.allclose(is_weight, 1.0)
+
+    s_test = np.array([[-0.00828463, -0.31963136, -0.53662936,  0.31540267],
+                       [ 0.73683739,  1.57463407, -0.03107509, -0.68344663],
+                       [ 1.0956297,  -0.30957664,  0.72575222,  1.54907163],
+                       [-0.18577532, -0.38053642,  0.08897764,  0.06367166]])
+    r_test = np.array([1.31094364, 2.15667443, -0.82943725, -1.08019383])
+
+    assert np.allclose(s, s_test)
+    assert np.allclose(r, r_test)
+
+
+def test_prioritized_replay_memory_update_changes_priorities():
+    obs_shape = (4,)
+    act_shape = (2,)
+    n = 10
+
+    rng = np.random.RandomState(11)
+    dataset, *_ = make_dataset(n, rng, obs_shape, act_shape)
+
+    beta = LinearParameter(1.0, threshold_value=0.0, n=100)
+    rm = PrioritizedReplayMemory(make_mdp_info(obs_shape, act_shape), make_agent_info(),
+                                 initial_size=1, max_size=50, alpha=0.6, beta=beta)
+    rm.add(dataset, np.ones(n))
+
+    np.random.seed(3)
+    *_, idxs, _ = rm.get(4)
+
+    errors = np.array([0.5, 0.1, 0.3, 0.8])
+    rm.update(errors, idxs)
+
+    new_priorities = (np.abs(errors) + 0.01) ** 0.6
+    expected_total = 10.0 - 4.0 + np.sum(new_priorities)
+    assert np.isclose(rm._tree.total_p, expected_total)
+
+
+def test_prioritized_replay_memory_max_priority_before_init():
+    obs_shape = (4,)
+    act_shape = (2,)
+
+    beta = LinearParameter(1.0, threshold_value=0.0, n=100)
+    rm = PrioritizedReplayMemory(make_mdp_info(obs_shape, act_shape), make_agent_info(),
+                                 initial_size=10, max_size=50, alpha=0.6, beta=beta)
+
+    assert rm.max_priority == 1.0
+
+
+def test_prioritized_replay_memory_max_priority_after_add():
+    obs_shape = (4,)
+    act_shape = (2,)
+
+    beta = LinearParameter(1.0, threshold_value=0.0, n=100)
+    rm = PrioritizedReplayMemory(make_mdp_info(obs_shape, act_shape), make_agent_info(),
+                                 initial_size=1, max_size=50, alpha=0.6, beta=beta)
+
+    rng = np.random.RandomState(99)
+    dataset, *_ = make_dataset(5, rng, obs_shape, act_shape)
+    rm.add(dataset, np.array([1.0, 3.0, 0.5, 1.5, 1.0]))
+
+    assert rm.initialized
+    assert np.isclose(rm.max_priority, 3.0)
