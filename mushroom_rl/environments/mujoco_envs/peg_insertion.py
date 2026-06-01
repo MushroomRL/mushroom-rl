@@ -12,15 +12,15 @@ from mushroom_rl.environments.mujoco_envs.panda import Panda
 class PegInsertion(Panda):
     def __init__(
         self,
-        gamma: float = 0.99,
-        horizon: int = 300,
-        alignment_reward_weight: float = 1.0,
-        insertion_reward_weight: float = 15.0,
-        rotation_reward_weight: float = 2.0,
-        ctrl_cost_weight: float = -1e-4,
-        contact_cost_weight: float = 0,
-        n_substeps: int = 5,
-        contact_force_range: tuple[float, float] = (-1.0, 1.0),
+         gamma=0.99,
+        horizon=300,
+        alignment_reward_weight=1.0,
+        insertion_reward_weight=15.0,
+        rotation_reward_weight=2.0,
+        ctrl_cost_weight=-1e-4,
+        contact_cost_weight=0,
+        n_substeps=5,
+        contact_force_range=(-1.0, 1.0),
         **viewer_params,
     ):
         xml_path = (

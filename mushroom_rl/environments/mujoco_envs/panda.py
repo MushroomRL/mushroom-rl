@@ -161,7 +161,7 @@ class Panda(MuJoCo):
         contact_force = np.sum(np.square(contact_force), keepdims=True)
         return contact_force
 
-    def _load_keyframe(self, name: str):
+    def _load_keyframe(self, name):
         keyframe = self._model.keyframe(name)
         mujoco.mj_resetDataKeyframe(self._model, self._data, keyframe.id)  # type: ignore
 
@@ -179,7 +179,7 @@ class Panda(MuJoCo):
         ]
 
     def get_subtree_body_ids(self, body_id):
-        body_ids: list[int] = []
+        body_ids = []
         stack = [body_id]
         while stack:
             body_id = stack.pop()
@@ -190,7 +190,7 @@ class Panda(MuJoCo):
     def gravity_compensation(
         self,
         subtree_body_id,
-    ) -> None:
+    ):
         self._data.qfrc_applied[:] = 0.0
         jac = np.empty((3, self._model.nv))
         total_mass = self._model.body_subtreemass[subtree_body_id]

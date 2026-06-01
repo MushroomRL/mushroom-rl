@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Tuple
 
 import numpy as np
 from mushroom_rl.environments.mujoco import MuJoCo, ObservationType
@@ -16,19 +15,19 @@ class Ant(MuJoCo):
 
     def __init__(
         self,
-        gamma: float = 0.99,
-        horizon: int = 1000,
-        forward_reward_weight: float = 1.0,
-        ctrl_cost_weight: float = 0.5,
-        contact_cost_weight: float = 5e-4,
-        healthy_reward: float = 1.0,
-        terminate_when_unhealthy: bool = True,
-        healthy_z_range: Tuple[float, float] = (0.2, 1.0),
-        contact_force_range: Tuple[float, float] = (-1.0, 1.0),
-        reset_noise_scale: float = 0.1,
-        n_substeps: int = 5,
-        exclude_current_positions_from_observation: bool = True,
-        use_contact_forces: bool = False,
+        gamma=0.99,
+        horizon=1000,
+        forward_reward_weight=1.0,
+        ctrl_cost_weight=0.5,
+        contact_cost_weight=5e-4,
+        healthy_reward=1.0,
+        terminate_when_unhealthy=True,
+        healthy_z_range=(0.2, 1.0),
+        contact_force_range=(-1.0, 1.0),
+        reset_noise_scale=0.1,
+        n_substeps=5,
+        exclude_current_positions_from_observation=True,
+        use_contact_forces=False,
         **viewer_params,
     ):
         """

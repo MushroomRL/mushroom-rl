@@ -12,15 +12,15 @@ from mushroom_rl.environments.mujoco_envs.panda import Panda
 class Pick(Panda):
     def __init__(
         self,
-        gamma: float = 0.99,
-        horizon: int = 200,
-        gripper_cube_distance_reward_weight: float = 1.0,
-        cube_goal_distance_reward_weight: float = 20.0,
-        cube_goal_rotation_reward_weight: float = 10.0,
-        ctrl_cost_weight: float = -1e-4,
-        contact_cost_weight: float = -1e-4,
-        n_substeps: int = 5,
-        contact_force_range: tuple[float, float] = (-1.0, 1.0),
+        gamma=0.99,
+        horizon=200,
+        gripper_cube_distance_reward_weight=1.0,
+        cube_goal_distance_reward_weight=20.0,
+        cube_goal_rotation_reward_weight=10.0,
+        ctrl_cost_weight=-1e-4,
+        contact_cost_weight=-1e-4,
+        n_substeps=5,
+        contact_force_range=(-1.0, 1.0),
         **viewer_params,
     ):
         xml_path = (

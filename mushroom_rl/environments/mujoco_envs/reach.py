@@ -14,12 +14,12 @@ class Reach(Panda):
 
     def __init__(
         self,
-        gamma: float = 0.99,
-        horizon: int = 200,
-        gripper_goal_distance_reward_weight: float = -2.0,
-        gripper_goal_rotation_reward_weight: float = -1.0,
-        ctrl_cost_weight: float = -1e-4,
-        n_substeps: int = 5,
+        gamma=0.99,
+        horizon=200,
+        gripper_goal_distance_reward_weight=-2.0,
+        gripper_goal_rotation_reward_weight=-1.0,
+        ctrl_cost_weight=-1e-4,
+        n_substeps=5,
         **viewer_params,
     ):
 

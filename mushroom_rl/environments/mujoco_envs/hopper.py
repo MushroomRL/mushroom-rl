@@ -95,13 +95,13 @@ class Hopper(MuJoCo):
             obs = np.concatenate([obs, x_pos])
         return obs
 
-    def _is_within_state_range(self) -> bool:
+    def _is_within_state_range(self):
         """Check if state variables are within the healthy range."""
         state = self.get_states()
         min_state, max_state = self._healthy_state_range
         return np.all(np.logical_and(min_state < state, state < max_state))
 
-    def _is_within_z_range(self, obs: np.ndarray) -> bool:
+    def _is_within_z_range(self, obs):
         """Check if Z position of torso is within the healthy range."""
         z_pos = self.obs_helper.get_from_obs(obs, "z_pos").item()
         min_z, max_z = self._healthy_z_range
@@ -113,7 +113,7 @@ class Hopper(MuJoCo):
         min_angle, max_angle = self._healthy_angle_range
         return min_angle < y_angle < max_angle
 
-    def _is_healthy(self, obs: np.ndarray) -> bool:
+    def _is_healthy(self, obs):
         """Check if the agent is healthy."""
         is_within_state_range = self._is_within_state_range()
         is_within_z_range = self._is_within_z_range(obs)
@@ -163,10 +163,11 @@ class Hopper(MuJoCo):
 
     def _create_info_dictionary(self, obs, action):
         info = {
-            "healthy_reward": self._get_healthy_reward(obs),
+            "healthy_reward": self._get_healthy_reward(obs), 
             "forward_reward": self._get_forward_reward(),
+            "ctrl_cost": self._get_ctrl_cost(action)
         }
-        info["ctrl_cost"] = self._get_ctrl_cost(action)
+        
         return info
 
     def get_states(self):
