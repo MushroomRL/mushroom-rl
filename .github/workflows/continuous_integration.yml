@@ -38,3 +38,4 @@ jobs:
       with:
         token: ${{secrets.QLTY_COVERAGE_TOKEN}}
         files: coverage.xml
+        add-prefix: 'mushroom_rl/'
