@@ -1,5 +1,3 @@
-import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
@@ -9,34 +7,8 @@ from tqdm import trange
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import Gymnasium
 from mushroom_rl.algorithms.actor_critic import A2C
-
 from mushroom_rl.policy import GaussianTorchPolicy
-
-
-class Network(nn.Module):
-    def __init__(self, input_shape, output_shape, n_features, **kwargs):
-        super(Network, self).__init__()
-
-        n_input = input_shape[-1]
-        n_output = output_shape[0]
-
-        self._h1 = nn.Linear(n_input, n_features)
-        self._h2 = nn.Linear(n_features, n_features)
-        self._h3 = nn.Linear(n_features, n_output)
-
-        nn.init.xavier_uniform_(self._h1.weight,
-                                gain=nn.init.calculate_gain('tanh'))
-        nn.init.xavier_uniform_(self._h2.weight,
-                                gain=nn.init.calculate_gain('tanh'))
-        nn.init.xavier_uniform_(self._h3.weight,
-                                gain=nn.init.calculate_gain('linear'))
-
-    def forward(self, state, **kwargs):
-        features1 = torch.tanh(self._h1(torch.squeeze(state, 1).float()))
-        features2 = torch.tanh(self._h2(features1))
-        a = self._h3(features2)
-
-        return a
+from mushroom_rl.approximators.parametric.networks import ActorNetwork
 
 
 def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit,
@@ -47,12 +19,13 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit,
 
     mdp = Gymnasium(env_id, horizon, gamma, headless=False)
 
-    critic_params = dict(network=Network,
+    critic_params = dict(network=ActorNetwork,
                          optimizer={'class': optim.RMSprop,
                                     'params': {'lr': 7e-4,
                                                'eps': 1e-5}},
                          loss=F.mse_loss,
                          n_features=64,
+                         activation='tanh',
                          batch_size=64,
                          input_shape=mdp.info.observation_space.shape,
                          output_shape=(1,))
@@ -60,7 +33,7 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit,
     alg_params['critic_params'] = critic_params
 
 
-    policy = GaussianTorchPolicy(Network,
+    policy = GaussianTorchPolicy(ActorNetwork,
                                  mdp.info.observation_space.shape,
                                  mdp.info.action_space.shape,
                                  **policy_params)
@@ -95,7 +68,8 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit,
 if __name__ == '__main__':
     policy_params = dict(
         std_0=1.,
-        n_features=64
+        n_features=64,
+        activation='tanh'
     )
 
     a2c_params = dict(actor_optimizer={'class': optim.RMSprop,

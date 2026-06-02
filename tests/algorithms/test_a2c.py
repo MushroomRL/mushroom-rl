@@ -1,5 +1,4 @@
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
@@ -13,22 +12,7 @@ from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.algorithms.actor_critic import A2C
 
 from mushroom_rl.policy import GaussianTorchPolicy
-
-
-class Network(nn.Module):
-    def __init__(self, input_shape, output_shape, **kwargs):
-        super().__init__()
-
-        n_input = input_shape[-1]
-        n_output = output_shape[0]
-
-        self._h = nn.Linear(n_input, n_output)
-
-        nn.init.xavier_uniform_(self._h.weight,
-                                gain=nn.init.calculate_gain('relu'))
-
-    def forward(self, state):
-        return F.relu(self._h(torch.squeeze(state, 1).float()))
+from mushroom_rl.approximators.parametric.networks import ActorNetwork
 
 
 def learn_a2c():
@@ -37,16 +21,15 @@ def learn_a2c():
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
 
-    policy_params = dict(
-        std_0=1.,
-        n_features=64
-    )
+    policy_params = dict(std_0=1., n_features=None, n_layers=0)
 
-    critic_params = dict(network=Network,
+    critic_params = dict(network=ActorNetwork,
                          optimizer={'class': optim.RMSprop,
                                     'params': {'lr': 7e-4,
                                                'eps': 1e-5}},
                          loss=F.mse_loss,
+                         n_features=None,
+                         n_layers=0,
                          input_shape=mdp.info.observation_space.shape,
                          output_shape=(1,))
 
@@ -57,7 +40,7 @@ def learn_a2c():
                             max_grad_norm=0.5,
                             ent_coeff=0.01)
 
-    policy = GaussianTorchPolicy(Network,
+    policy = GaussianTorchPolicy(ActorNetwork,
                                  mdp.info.observation_space.shape,
                                  mdp.info.action_space.shape,
                                  **policy_params)
@@ -71,11 +54,10 @@ def learn_a2c():
 
 
 def test_a2c():
-    
     agent = learn_a2c()
 
     w = agent.policy.get_weights()
-    w_test = np.array([ 0.9389272 ,-1.8838323 ,-0.13710725,-0.00668973])
+    w_test = np.array([0.662464, -1.3380364, -0.1384504, -0.00665062])
 
     assert np.allclose(w, w_test)
 
@@ -95,5 +77,3 @@ def test_a2c_save(tmpdir):
         print(save_attr, load_attr)
 
         tu.assert_eq(save_attr, load_attr)
-
-test_a2c()

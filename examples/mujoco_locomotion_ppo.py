@@ -1,7 +1,5 @@
 from argparse import ArgumentParser
 import numpy as np
-import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
@@ -9,37 +7,9 @@ from mushroom_rl.algorithms.actor_critic import PPO
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import Ant, HalfCheetah, Hopper, Walker2D
 from mushroom_rl.policy import GaussianTorchPolicy
+from mushroom_rl.approximators.parametric.networks import ActorNetwork
 
 from tqdm import trange
-
-
-class Network(nn.Module):
-    def __init__(self, input_shape, output_shape, n_features, **kwargs):
-        super(Network, self).__init__()
-
-        n_input = input_shape[-1]
-        n_output = output_shape[0]
-
-        self._h1 = nn.Linear(n_input, n_features)
-        self._h2 = nn.Linear(n_features, n_features)
-        self._h3 = nn.Linear(n_features, n_output)
-
-        nn.init.xavier_uniform_(
-            self._h1.weight, gain=nn.init.calculate_gain("relu") / 10
-        )
-        nn.init.xavier_uniform_(
-            self._h2.weight, gain=nn.init.calculate_gain("relu") / 10
-        )
-        nn.init.xavier_uniform_(
-            self._h3.weight, gain=nn.init.calculate_gain("linear") / 10
-        )
-
-    def forward(self, state, **kwargs):
-        features1 = F.relu(self._h1(torch.squeeze(state, 1).float()))
-        features2 = F.relu(self._h2(features1))
-        a = self._h3(features2)
-
-        return a
 
 
 def experiment(env, n_epochs, n_steps, n_episodes_test):
@@ -62,10 +32,11 @@ def experiment(env, n_epochs, n_steps, n_episodes_test):
     n_steps_per_fit = 2000
 
     critic_params = dict(
-        network=Network,
+        network=ActorNetwork,
         optimizer={"class": optim.Adam, "params": {"lr": critic_lr}},
         loss=F.mse_loss,
         n_features=n_features,
+        gain_scale=0.1,
         batch_size=batch_size,
         input_shape=mdp.info.observation_space.shape,
         output_shape=(1,),
@@ -80,10 +51,10 @@ def experiment(env, n_epochs, n_steps, n_episodes_test):
         critic_params=critic_params,
     )
 
-    policy_params = dict(std_0=std_0, n_features=n_features)
+    policy_params = dict(std_0=std_0, n_features=n_features, gain_scale=0.1)
 
     policy = GaussianTorchPolicy(
-        Network,
+        ActorNetwork,
         mdp.info.observation_space.shape,
         mdp.info.action_space.shape,
         **policy_params,

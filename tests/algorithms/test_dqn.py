@@ -16,30 +16,7 @@ from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.approximators.parametric import NumpyTorchApproximator
 from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter
 from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
-
-
-class Network(nn.Module):
-    def __init__(self, input_shape, output_shape, **kwargs):
-        super().__init__()
-
-        n_input = input_shape[-1]
-        n_output = output_shape[0]
-
-        self._h1 = nn.Linear(n_input, n_output)
-
-        nn.init.xavier_uniform_(self._h1.weight,
-                                gain=nn.init.calculate_gain('relu'))
-
-    def forward(self, state, action=None):
-        q = F.relu(self._h1(torch.squeeze(state, 1).float()))
-
-        if action is None:
-            return q
-        else:
-            action = action.long()
-            q_acted = torch.squeeze(q.gather(1, action))
-
-            return q_acted
+from mushroom_rl.approximators.parametric.networks import QNetwork
 
 
 class FeatureNetwork(nn.Module):
@@ -63,14 +40,15 @@ def learn(alg, alg_params, logger=None):
 
     # Approximator
     input_shape = mdp.info.observation_space.shape
-    approximator_params = dict(network=Network if alg not in [CategoricalDQN, Rainbow] else FeatureNetwork,
+    approximator_params = dict(network=QNetwork if alg not in [CategoricalDQN, Rainbow] else FeatureNetwork,
                                optimizer={'class': optim.Adam,
                                           'params': {'lr': .001}},
                                loss=F.smooth_l1_loss if alg not in [CategoricalDQN, Rainbow] else None,
                                input_shape=input_shape,
                                output_shape=mdp.info.action_space.size,
                                n_actions=mdp.info.action_space.n,
-                               n_features=2
+                               n_features=2,
+                               n_layers=0
                                )
 
     # Agent
@@ -104,8 +82,8 @@ def test_dqn():
     approximator = learn(DQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = np.array([-0.20857571, 0.4301014, 0.09157596, 0.56593966, -0.573920,
-                       -0.07434221, -0.07043041, 0.42729577, 0.15255776])
+    w_test = np.array([-0.20050035, 0.24002515, -0.02295898, 0.32232404, -0.36275005,
+                       -0.01453803, -0.05687293, 0.43410516, 0.1590765])
 
     assert np.allclose(w, w_test)
 
@@ -137,7 +115,7 @@ def test_dqn_logger(tmpdir):
     loss_file = np.load(logger.path / 'loss_Q.npy')
 
     assert loss_file.shape == (90,)
-    assert loss_file[0] == 0.9765409231185913 and loss_file[-1] == 0.6936992406845093
+    assert loss_file[0] == 0.7991676926612854 and loss_file[-1] == 0.5159794688224792
 
 
 def test_prioritized_dqn():
@@ -150,8 +128,8 @@ def test_prioritized_dqn():
     approximator = learn(DQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = np.array([-0.2410347, 0.39138362, 0.12457055, 0.60612524, -0.54973847,
-                       -0.06486652, -0.07349031, 0.4376623, 0.14254288])
+    w_test = np.array([-0.19866402, 0.2357937, -0.02972439, 0.31267533, -0.35202834,
+                       -0.00553649, -0.05840667, 0.43584204, 0.16416478])
 
     assert np.allclose(w, w_test)
 
@@ -181,8 +159,8 @@ def test_double_dqn():
     approximator = learn(DoubleDQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = np.array([-0.20857571, 0.4301014, 0.09157596, 0.56593966, -0.5739204,
-                       -0.07434221, -0.07043041, 0.42729577, 0.15255776])
+    w_test = np.array([-0.20049825, 0.24002622, -0.02295567, 0.3223236, -0.3627546,
+                       -0.01453804, -0.05687486, 0.43409595, 0.1590613])
 
     assert np.allclose(w, w_test)
 
@@ -210,8 +188,8 @@ def test_averaged_dqn():
     approximator = learn(AveragedDQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = np.array([-0.20855692, 0.4300971, 0.09070298, 0.56503105, -0.57473886,
-                       -0.07523372, -0.07045465, 0.42477432, 0.15313861])
+    w_test = np.array([-0.20050386, 0.24001993, -0.0221192, 0.32318467, -0.36512366,
+                       -0.0166209, -0.0568868, 0.43519753, 0.16197258])
 
     assert np.allclose(w, w_test)
 
@@ -239,8 +217,8 @@ def test_maxmin_dqn():
     approximator = learn(MaxminDQN, params).approximator
 
     w = approximator[0].get_weights()
-    w_test = np.array([-0.20750952, 0.41153884, 0.06031952, 0.54991245, -0.58597267,
-                       -0.09532283, -0.1639097, 0.34269238, 0.08022686])
+    w_test = np.array([-0.15172458, 0.28573582, 0.03817964, 0.38416952, -0.41005808,
+                       -0.06267934, -0.16421957, 0.3418669, 0.07960468])
 
     assert np.allclose(w, w_test)
 
@@ -268,11 +246,10 @@ def test_dueling_dqn():
     approximator = learn(DuelingDQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = np.array([-0.44132388, 0.79595834, 0.23078996, -0.17289384,
-                       -0.7490091, 0.5055381, -0.14357203, -0.4858748,
-                       -0.38062495, 0.10331012, 0.62843525, 0.5607314,
-                       0.05413188, 0.07322324, 0.56302196, -1.3005875,
-                       0.94485873, -0.34308702])
+    w_test = np.array([-0.314546, 0.54604924, 0.20915823, -0.07975413, -0.74092555,
+                       0.5050177, -0.14456294, -0.5389542, -0.3534887, 0.07831666,
+                       0.61038506, 0.6548378, 0.02511988, 0.04343156, 0.6825224,
+                       -1.3261368, 0.9239293, -0.3491529])
 
     assert np.allclose(w, w_test)
 
@@ -330,11 +307,11 @@ def test_quantile_dqn():
     approximator = learn(QuantileDQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = np.array([-0.445598, 0.7921833, 0.3127064, -0.13804975, -0.7560823,
-                       0.35417593, -1.1218646, 0.7265262, 0.40201563, 1.2316055,
-                       0.02598637, 0.02116407, 0.76916, -1.0395582, -1.0759451,
-                       -0.5113829, -0.18624172, -0.33754084, 1.005778, -0.2562586,
-                       0.5079987, -0.5034418, 0.3462327, 0.45655805])
+    w_test = np.array([-0.33921587, 0.5343955, 0.24983048, -0.06784417, -0.6075502,
+                       0.3601502, -1.115198, 0.6865875, 0.29323563, 1.2454914,
+                       -0.12360247, 0.02286462, 0.7213106, -1.0360246, -1.121014,
+                       -0.5056948, -0.18354908, -0.3344422, 0.99689376, -0.13668007,
+                       0.44865605, -0.49715987, 0.4467747, 0.4644443])
 
     assert np.allclose(w, w_test, rtol=1e-4)
 
@@ -362,11 +339,11 @@ def test_noisy_dqn():
     approximator = learn(NoisyDQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = np.array([-0.40481162, 0.84183586, 0.29812846, -0.15331453, -0.6233022,
-                       0.44782484, 0.17155018, 0.07006463, 0.23487908, -0.23030677,
-                       -0.10514411, -0.13489397, 0.32838345, 0.37297514, 0.32157022,
-                       0.38325936, 0.30015582, 0.28873885, 0.16997868, 0.06498576,
-                       0.5568779, 0.4157398, 0.4247934, 0.2948213 ])
+    w_test = np.array([-0.30852458, 0.5647726, 0.13873313, -0.17767607, -0.59714687,
+                       0.45167482, 0.14077583, 0.10388352, 0.1845346, -0.19802122,
+                       -0.00943174, -0.13583986, 0.30453312, 0.41494054, 0.28900382,
+                       0.42479482, 0.3897369, 0.28961122, 0.17465961, 0.07124078,
+                       0.53694916, 0.42173594, 0.42799577, 0.2785571])
 
     assert np.allclose(w, w_test, rtol=1e-4)
 

@@ -1,5 +1,4 @@
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
@@ -8,40 +7,10 @@ from tqdm import trange
 
 from mushroom_rl.core import VectorCore, Logger
 from mushroom_rl.algorithms.actor_critic import RudinPPO
-
 from mushroom_rl.policy import GaussianTorchPolicy
 from mushroom_rl.environments.isaacsim_envs import HoneyBadgerWalking
 from mushroom_rl.utils import TorchUtils
-
-
-class Network(nn.Module):
-    def __init__(self, input_shape, output_shape, n_features, **kwargs):
-        super(Network, self).__init__()
-
-        n_input = input_shape[-1]
-        n_output = output_shape[0]
-
-        self._h1 = nn.Linear(n_input, n_features[0])
-        self._h2 = nn.Linear(n_features[0], n_features[1])
-        self._h3 = nn.Linear(n_features[1], n_features[2])
-        self._h4 = nn.Linear(n_features[2], n_output)
-
-        nn.init.xavier_uniform_(self._h1.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h2.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h3.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h4.weight,
-                                gain=nn.init.calculate_gain('linear'))
-
-    def forward(self, state, **kwargs):
-        features1 = F.relu(self._h1(torch.squeeze(state, 1).float()))
-        features2 = F.relu(self._h2(features1))
-        features3 = F.relu(self._h3(features2))
-        a = self._h4(features3)
-
-        return a
+from mushroom_rl.approximators.parametric.networks import ActorNetwork
 
 
 def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test,
@@ -53,7 +22,7 @@ def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test,
 
     mdp = HoneyBadgerWalking(4096, 1000, True, True)
     
-    critic_params = dict(network=Network,
+    critic_params = dict(network=ActorNetwork,
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': 1e-3}},
                          loss=F.mse_loss,
@@ -63,7 +32,7 @@ def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test,
                          input_shape=mdp.info.observation_space.shape,
                          output_shape=(1,))
 
-    policy = GaussianTorchPolicy(Network,
+    policy = GaussianTorchPolicy(ActorNetwork,
                                  mdp.info.observation_space.shape,
                                  mdp.info.action_space.shape,
                                  **policy_params)

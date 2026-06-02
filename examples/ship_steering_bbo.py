@@ -23,7 +23,7 @@ using policy gradient algorithms.
 tqdm.monitor_interval = 0
 
 
-def experiment(alg, params, n_epochs, fit_per_epoch, ep_per_fit):
+def experiment(alg, params, n_epochs, fit_per_epoch, ep_per_fit, ep_test):
     np.random.seed()
 
     logger = Logger(alg.__name__, results_dir=None)
@@ -48,7 +48,7 @@ def experiment(alg, params, n_epochs, fit_per_epoch, ep_per_fit):
     input_shape = (phi.size,)
 
     approximator = Regressor(LinearApproximator, input_shape=input_shape,
-                             output_shape=mdp.info.action_space.shape)
+                             output_shape=mdp.info.action_space.shape, phi=phi)
 
     policy = DeterministicPolicy(approximator)
 
@@ -57,20 +57,22 @@ def experiment(alg, params, n_epochs, fit_per_epoch, ep_per_fit):
     distribution = GaussianDiagonalDistribution(mu, sigma)
 
     # Agent
-    agent = alg(mdp.info, distribution, policy, features=phi, **params)
+    agent = alg(mdp.info, distribution, policy, **params)
 
     # Train
     core = Core(agent, mdp)
-    dataset_eval = core.evaluate(n_episodes=ep_per_fit)
+    dataset_eval = core.evaluate(n_episodes=ep_test)
     J = np.mean(dataset_eval.discounted_return)
     logger.epoch_info(0, J=J)
 
     for i in range(n_epochs):
         core.learn(n_episodes=fit_per_epoch * ep_per_fit,
                    n_episodes_per_fit=ep_per_fit)
-        dataset_eval = core.evaluate(n_episodes=ep_per_fit)
+        dataset_eval = core.evaluate(n_episodes=ep_test)
         J = np.mean(dataset_eval.discounted_return)
         logger.epoch_info(i+1, J=J)
+
+    core.evaluate(n_episodes=ep_test, render=True)
 
 
 if __name__ == '__main__':
@@ -82,4 +84,4 @@ if __name__ == '__main__':
         ]
 
     for alg, params in algs_params:
-        experiment(alg, params, n_epochs=25, fit_per_epoch=10, ep_per_fit=20)
+        experiment(alg, params, n_epochs=25, fit_per_epoch=10, ep_per_fit=20, ep_test=5)

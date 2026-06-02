@@ -52,25 +52,27 @@ class AirHockeySingleBullet(AirHockeyBaseBullet):
         puck_pose_2d = self._puck_2d_in_robot_frame(puck_pose, self.agents[0]['frame'], type='pose')
 
         robot_pos = np.zeros(3)
-        robot_pos[0] = self.get_sim_state(state, self.agents[0]['name'] + "/joint_1", PyBulletObservationType.JOINT_POS)
-        robot_pos[1] = self.get_sim_state(state, self.agents[0]['name'] + "/joint_2", PyBulletObservationType.JOINT_POS)
-        robot_pos[2] = self.get_sim_state(state, self.agents[0]['name'] + "/joint_3", PyBulletObservationType.JOINT_POS)
+        robot_pos[0] = self.get_sim_state(state, self.agents[0]['name'] + "/joint_1",
+                                          PyBulletObservationType.JOINT_POS).item()
+        robot_pos[1] = self.get_sim_state(state, self.agents[0]['name'] + "/joint_2",
+                                          PyBulletObservationType.JOINT_POS).item()
+        robot_pos[2] = self.get_sim_state(state, self.agents[0]['name'] + "/joint_3",
+                                          PyBulletObservationType.JOINT_POS).item()
 
         if self.obs_noise:
             puck_pose_2d[:2] += np.random.randn(2) * 0.001
-            puck_pose_2d[2] += np.random.randn(1) * 0.001
 
         puck_lin_vel = self.get_sim_state(state, "puck", PyBulletObservationType.BODY_LIN_VEL)
         puck_ang_vel = self.get_sim_state(state, "puck", PyBulletObservationType.BODY_ANG_VEL)
         puck_vel_2d = self._puck_2d_in_robot_frame(np.concatenate([puck_lin_vel, puck_ang_vel]),
                                                    self.agents[0]['frame'], type='vel')
         robot_vel = np.zeros(3)
-        robot_vel[0] = self.get_sim_state(state, self.agents[0]['name'] + "/joint_1",
-                                          PyBulletObservationType.JOINT_VEL)
+        robot_vel[0] = self.get_sim_state(state, self.agents[0]['name'] + "/joint_1", 
+                                          PyBulletObservationType.JOINT_VEL).item()
         robot_vel[1] = self.get_sim_state(state, self.agents[0]['name'] + "/joint_2",
-                                          PyBulletObservationType.JOINT_VEL)
+                                          PyBulletObservationType.JOINT_VEL).item()
         robot_vel[2] = self.get_sim_state(state, self.agents[0]['name'] + "/joint_3",
-                                          PyBulletObservationType.JOINT_VEL)
+                                          PyBulletObservationType.JOINT_VEL).item()
 
         if self.obs_delay:
             alpha = 0.5

@@ -1,7 +1,6 @@
 import numpy as np
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 
 from datetime import datetime
@@ -12,6 +11,7 @@ from mushroom_rl.algorithms.value import *
 from mushroom_rl.approximators.parametric import LinearApproximator, NumpyTorchApproximator
 from mushroom_rl.core import Core
 from mushroom_rl.environments import GridWorld, PuddleWorld
+from mushroom_rl.approximators.parametric.networks import QNetwork
 from mushroom_rl.features import Features
 from mushroom_rl.features.tiles import Tiles
 from mushroom_rl.policy.td_policy import EpsGreedy
@@ -26,28 +26,6 @@ def assert_properly_loaded(agent_save, agent_load):
             tu.assert_eq(save_attr, load_attr)
 
 
-class Network(nn.Module):
-    def __init__(self, input_shape, output_shape, **kwargs):
-        super().__init__()
-
-        n_input = input_shape[-1]
-        n_output = output_shape[0]
-
-        self._h1 = nn.Linear(n_input, n_output)
-
-        nn.init.xavier_uniform_(self._h1.weight,
-                                gain=nn.init.calculate_gain('relu'))
-
-    def forward(self, state, action=None):
-        q = F.relu(self._h1(torch.squeeze(state, 1).float()))
-
-        if action is None:
-            return q
-        else:
-            action = action.long()
-            q_acted = torch.squeeze(q.gather(1, action))
-
-            return q_acted
 
 
 def initialize():
@@ -402,7 +380,9 @@ def test_sarsa_lambda_continuous_nn():
     approximator_params = dict(
         input_shape=mdp_continuous.info.observation_space.shape,
         output_shape=(mdp_continuous.info.action_space.n,),
-        network=Network,
+        network=QNetwork,
+        n_features=None,
+        n_layers=0,
         n_actions=mdp_continuous.info.action_space.n,
     )
     agent = SARSALambdaContinuous(mdp_continuous.info, pi, NumpyTorchApproximator, Parameter(.1), .9,
@@ -413,9 +393,9 @@ def test_sarsa_lambda_continuous_nn():
     # Train
     core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
 
-    test_w = np.array([-1.8319136, -1.5731438, -2.9321826, -3.5566466, -1.282013,
-                       -2.7563045, -0.790771, -0.2194604, -0.5647575, -0.4195656,
-                       -4.46288, -11.742587, -5.3095326, -0.27556023, -0.05155428])
+    test_w = np.array([-43.621815, -79.27821, -45.31944, -89.00731, -31.043007,
+                       -77.56836, -47.811436, -88.486305, -42.081253, -82.90734,
+                       -158.01721, -178.69487, -151.41151, -185.12704, -167.8663])
 
     assert np.allclose(agent.Q.get_weights(), test_w)
 
@@ -428,7 +408,9 @@ def test_sarsa_lambda_continuous_nn_save(tmpdir):
     approximator_params = dict(
         input_shape=mdp_continuous.info.observation_space.shape,
         output_shape=(mdp_continuous.info.action_space.n,),
-        network=Network,
+        network=QNetwork,
+        n_features=None,
+        n_layers=0,
         n_actions=mdp_continuous.info.action_space.n
     )
     agent_save = SARSALambdaContinuous(mdp_continuous.info, pi, NumpyTorchApproximator, Parameter(.1), .9,

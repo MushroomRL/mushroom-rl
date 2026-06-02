@@ -3,34 +3,11 @@ import numpy as np
 from mushroom_rl.core import Logger
 from mushroom_rl.approximators.regressor import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator, NumpyTorchApproximator
+from mushroom_rl.approximators.parametric.networks import QNetwork
 
 import torch
-import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-
-
-class ExampleNet(nn.Module):
-    def __init__(self, input_shape, output_shape,
-                 **kwargs):
-        super(ExampleNet, self).__init__()
-
-        self._q = nn.Linear(input_shape[0], output_shape[0])
-
-        nn.init.xavier_uniform_(self._q.weight,
-                                gain=nn.init.calculate_gain('linear'))
-
-    def forward(self, x, a=None):
-        x = x.float()
-        q = self._q(x)
-
-        if a is None:
-            return q
-        else:
-            action = a.long()
-            q_acted = torch.squeeze(q.gather(1, action))
-
-            return q_acted
 
 
 def test_torch_approximator():
@@ -44,7 +21,9 @@ def test_torch_approximator():
 
     approximator = Regressor(TorchApproximator, input_shape=(4,),
                              output_shape=(2,), n_actions=n_actions,
-                             network=ExampleNet,
+                             network=QNetwork,
+                             n_features=None,
+                             n_layers=0,
                              optimizer={'class': optim.Adam,
                                         'params': {}}, loss=F.mse_loss,
                              batch_size=100, quiet=True)
@@ -102,7 +81,9 @@ def test_numpy_torch_approximator():
 
     approximator = Regressor(NumpyTorchApproximator, input_shape=(4,),
                              output_shape=(2,), n_actions=n_actions,
-                             network=ExampleNet,
+                             network=QNetwork,
+                             n_features=None,
+                             n_layers=0,
                              optimizer={'class': optim.Adam,
                                         'params': {}}, loss=F.mse_loss,
                              batch_size=100, quiet=True)
@@ -157,7 +138,9 @@ def test_torch_ensemble_logger(tmpdir):
 
     approximator = Regressor(TorchApproximator, input_shape=(4,),
                              output_shape=(2,), n_models=3,
-                             network=ExampleNet,
+                             network=QNetwork,
+                             n_features=None,
+                             n_layers=0,
                              optimizer={'class': optim.Adam,
                                         'params': {}}, loss=F.mse_loss,
                              batch_size=100, quiet=True)

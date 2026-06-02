@@ -14,7 +14,7 @@ class CartPole(Environment):
 
     """
     def __init__(self, m=2., M=8., l=.5, g=9.8, mu=1e-2, max_u=50., noise_u=10.,
-                 horizon=3000, gamma=.95):
+                 horizon=200, gamma=.95):
         """
         Constructor.
 

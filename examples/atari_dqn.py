@@ -4,7 +4,6 @@ import pathlib
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
@@ -17,6 +16,7 @@ from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.rl_utils.parameters import LinearParameter, Parameter
 from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
 from mushroom_rl.utils.torch import TorchUtils
+from mushroom_rl.approximators.parametric.networks import AtariNetwork, AtariFeatureNetwork
 
 """
 This script runs Atari experiments with DQN, and some of its variants, as
@@ -24,76 +24,6 @@ presented in:
 "Human-Level Control Through Deep Reinforcement Learning". Mnih V. et al.. 2015.
 
 """
-
-
-class Network(nn.Module):
-    n_features = 512
-
-    def __init__(self, input_shape, output_shape, **kwargs):
-        super().__init__()
-
-        n_input = input_shape[0]
-        n_output = output_shape[0]
-
-        self._h1 = nn.Conv2d(n_input, 32, kernel_size=8, stride=4)
-        self._h2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
-        self._h3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
-        self._h4 = nn.Linear(3136, self.n_features)
-        self._h5 = nn.Linear(self.n_features, n_output)
-
-        nn.init.xavier_uniform_(self._h1.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h2.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h3.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h4.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h5.weight,
-                                gain=nn.init.calculate_gain('linear'))
-
-    def forward(self, state, action=None):
-        h = F.relu(self._h1(state.float() / 255.))
-        h = F.relu(self._h2(h))
-        h = F.relu(self._h3(h))
-        h = F.relu(self._h4(h.view(-1, 3136)))
-        q = self._h5(h)
-
-        if action is None:
-            return q
-        else:
-            q_acted = torch.squeeze(q.gather(1, action.long()))
-
-            return q_acted
-
-
-class FeatureNetwork(nn.Module):
-    def __init__(self, input_shape, output_shape, **kwargs):
-        super().__init__()
-
-        n_input = input_shape[0]
-
-        self._h1 = nn.Conv2d(n_input, 32, kernel_size=8, stride=4)
-        self._h2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
-        self._h3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
-        self._h4 = nn.Linear(3136, Network.n_features)
-
-        nn.init.xavier_uniform_(self._h1.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h2.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h3.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h4.weight,
-                                gain=nn.init.calculate_gain('relu'))
-
-    def forward(self, state, action=None):
-        h = F.relu(self._h1(state.float() / 255.))
-        h = F.relu(self._h2(h))
-        h = F.relu(self._h3(h))
-        h = F.relu(self._h4(h.view(-1, 3136)))
-
-        return h
 
 
 def print_epoch(epoch, logger):
@@ -314,11 +244,11 @@ def experiment():
 
         # Approximator
         approximator_params = dict(
-            network=Network if args.algorithm not in ['dueldqn', 'cdqn', 'ndqn', 'qdqn', 'rainbow'] else FeatureNetwork,
+            network=AtariNetwork if args.algorithm not in ['dueldqn', 'cdqn', 'ndqn', 'qdqn', 'rainbow'] else AtariFeatureNetwork,
             input_shape=mdp.info.observation_space.shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            n_features=Network.n_features,
+            n_features=AtariNetwork.n_features,
             optimizer=optimizer,
         )
         if args.algorithm not in ['cdqn', 'qdqn', 'rainbow']:

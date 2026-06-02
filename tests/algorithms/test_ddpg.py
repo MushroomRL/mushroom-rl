@@ -1,5 +1,4 @@
 import torch
-import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
@@ -12,41 +11,7 @@ from mushroom_rl.algorithms.actor_critic import DDPG, TD3
 from mushroom_rl.core import Core
 from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy
-
-
-class CriticNetwork(nn.Module):
-    def __init__(self, input_shape, output_shape, **kwargs):
-        super().__init__()
-
-        n_input = input_shape[-1]
-        n_output = output_shape[0]
-
-        self._h = nn.Linear(n_input, n_output)
-
-        nn.init.xavier_uniform_(self._h.weight,
-                                gain=nn.init.calculate_gain('relu'))
-
-    def forward(self, state, action):
-        state_action = torch.cat((state.float(), action.float()), dim=1)
-        q = F.relu(self._h(state_action))
-
-        return torch.squeeze(q)
-
-
-class ActorNetwork(nn.Module):
-    def __init__(self, input_shape, output_shape, **kwargs):
-        super(ActorNetwork, self).__init__()
-
-        n_input = input_shape[-1]
-        n_output = output_shape[0]
-
-        self._h = nn.Linear(n_input, n_output)
-
-        nn.init.xavier_uniform_(self._h.weight,
-                                gain=nn.init.calculate_gain('relu'))
-
-    def forward(self, state):
-        return F.relu(self._h(torch.squeeze(state, 1).float()))
+from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNetwork
 
 
 def learn(alg):
@@ -55,21 +20,18 @@ def learn(alg):
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
 
-    # Policy
     policy_class = OrnsteinUhlenbeckPolicy
     policy_params = dict(sigma=torch.ones(1) * .2, theta=.15, dt=1e-2)
 
-    # Settings
     initial_replay_size = 500
     max_replay_size = 5000
     batch_size = 200
-    n_features = 80
     tau = .001
 
-    # Approximator
     actor_input_shape = mdp.info.observation_space.shape
     actor_params = dict(network=ActorNetwork,
-                        n_features=n_features,
+                        n_features=None,
+                        n_layers=0,
                         input_shape=actor_input_shape,
                         output_shape=mdp.info.action_space.shape)
 
@@ -81,16 +43,15 @@ def learn(alg):
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': .001}},
                          loss=F.mse_loss,
-                         n_features=n_features,
+                         n_features=None,
+                         n_layers=0,
                          input_shape=critic_input_shape,
                          output_shape=(1,))
 
-    # Agent
     agent = alg(mdp.info, policy_class, policy_params,
                 actor_params, actor_optimizer, critic_params, batch_size,
                 initial_replay_size, max_replay_size, tau)
 
-    # Algorithm
     core = Core(agent, mdp)
 
     core.learn(n_episodes=10, n_episodes_per_fit=5)
@@ -101,7 +62,7 @@ def learn(alg):
 def test_ddpg():
     policy = learn(DDPG).policy
     w = policy.get_weights()
-    w_test = np.array([-0.00798965, 1.7483335, 0.10249085])
+    w_test = np.array([-0.00564953, 1.2362584, 0.10249085])
 
     assert np.allclose(w, w_test)
 
@@ -124,7 +85,7 @@ def test_ddpg_save(tmpdir):
 def test_td3():
     policy = learn(TD3).policy
     w = policy.get_weights()
-    w_test = np.array([1.8971109, 1.3201196, 0.19754009])
+    w_test = np.array([1.34146, 0.93346554, 0.19754009])
 
     assert np.allclose(w, w_test)
 

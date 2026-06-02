@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
@@ -13,22 +12,7 @@ from mushroom_rl.algorithms.actor_critic import PPO, TRPO
 from mushroom_rl.core import Core
 from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.policy import GaussianTorchPolicy
-
-
-class Network(nn.Module):
-    def __init__(self, input_shape, output_shape, **kwargs):
-        super(Network, self).__init__()
-
-        n_input = input_shape[-1]
-        n_output = output_shape[0]
-
-        self._h = nn.Linear(n_input, n_output)
-
-        nn.init.xavier_uniform_(self._h.weight,
-                                gain=nn.init.calculate_gain('relu'))
-
-    def forward(self, state, **kwargs):
-        return F.relu(self._h(torch.squeeze(state, 1).float()))
+from mushroom_rl.approximators.parametric.networks import ActorNetwork
 
 
 def learn(alg, alg_params):
@@ -37,16 +21,18 @@ def learn(alg, alg_params):
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
 
-    critic_params = dict(network=Network,
+    critic_params = dict(network=ActorNetwork,
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': 3e-4}},
                          loss=F.mse_loss,
+                         n_features=None,
+                         n_layers=0,
                          input_shape=mdp.info.observation_space.shape,
                          output_shape=(1,))
 
-    policy_params = dict(std_0=1.)
+    policy_params = dict(std_0=1., n_features=None, n_layers=0)
 
-    policy = GaussianTorchPolicy(Network,
+    policy = GaussianTorchPolicy(ActorNetwork,
                                  mdp.info.observation_space.shape,
                                  mdp.info.action_space.shape,
                                  **policy_params)
@@ -68,7 +54,7 @@ def test_PPO():
                   n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95)
     policy = learn(PPO, params).policy
     w = policy.get_weights()
-    w_test = np.array([0.9378777, -1.8841006 , -0.13794397, -0.00241548])
+    w_test = np.array([0.6613755, -1.333808, -0.13946329, -0.00241474])
 
     assert np.allclose(w, w_test)
 
@@ -96,7 +82,7 @@ def test_TRPO():
                   n_epochs_cg=10, cg_damping=1e-2, cg_residual_tol=1e-10)
     policy = learn(TRPO, params).policy
     w = policy.get_weights()
-    w_test = np.array([9.5286590e-01, -1.9460459e+00, -1.2838534e-01, 8.5962377e-04])
+    w_test = np.array([0.53987426, -1.3105278, 0.02826479, -0.02005163])
 
     assert np.allclose(w, w_test)
 

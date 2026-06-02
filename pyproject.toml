@@ -10,11 +10,11 @@ dependencies = [
     "matplotlib",
     "joblib",
     "tqdm",
-    "pygame",
+    "pygame-ce",
     "opencv-python>=4.7",
     "torch"
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 authors = [
     { name="Carlo D'Eramo", email="carlo.deramo@gmail.com"}, 
     { name = "Davide Tateo", email = "davide@robot-learning.de" }

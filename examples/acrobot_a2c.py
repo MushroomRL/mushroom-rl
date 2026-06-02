@@ -1,4 +1,3 @@
-import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
@@ -8,33 +7,8 @@ from mushroom_rl.environments import Gymnasium
 from mushroom_rl.policy import BoltzmannTorchPolicy
 from mushroom_rl.approximators.parametric.torch_approximator import *
 from mushroom_rl.rl_utils.parameters import Parameter
+from mushroom_rl.approximators.parametric.networks import ActorNetwork
 from tqdm import trange
-
-
-class Network(nn.Module):
-    def __init__(self, input_shape, output_shape, n_features, **kwargs):
-        super(Network, self).__init__()
-
-        n_input = input_shape[-1]
-        n_output = output_shape[0]
-
-        self._h1 = nn.Linear(n_input, n_features)
-        self._h2 = nn.Linear(n_features, n_features)
-        self._h3 = nn.Linear(n_features, n_output)
-
-        nn.init.xavier_uniform_(self._h1.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h2.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h3.weight,
-                                gain=nn.init.calculate_gain('linear'))
-
-    def forward(self, state, **kwargs):
-        features1 = torch.relu(self._h1(torch.squeeze(state, 1).float()))
-        features2 = torch.relu(self._h2(features1))
-        a = self._h3(features2)
-
-        return a
 
 
 def experiment(n_epochs, n_steps, n_steps_per_fit, n_step_test):
@@ -55,14 +29,14 @@ def experiment(n_epochs, n_steps, n_steps_per_fit, n_step_test):
     )
 
     beta = Parameter(1e0)
-    pi = BoltzmannTorchPolicy(Network,
+    pi = BoltzmannTorchPolicy(ActorNetwork,
                               mdp.info.observation_space.shape,
                               (mdp.info.action_space.n,),
                               beta=beta,
                               **policy_params)
 
     # Agent
-    critic_params = dict(network=Network,
+    critic_params = dict(network=ActorNetwork,
                          optimizer={'class': optim.RMSprop,
                                     'params': {'lr': 1e-3,
                                                'eps': 1e-5}},

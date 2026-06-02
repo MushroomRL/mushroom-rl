@@ -117,7 +117,7 @@ def test_normalizing_preprocessor_backend():
     mdp.reset()
     for i in range(20):
         action = np.random.randint(1, size=mdp.info.action_space.shape)
-        next_state, _, _, _ = mdp.step(action)
+        next_state, _, absorbing, _ = mdp.step(action)
 
         next_state_np = norm_box_np(next_state)
         next_state_torch = norm_box_torch(torch.from_numpy(next_state)).detach().cpu().numpy()
@@ -126,3 +126,6 @@ def test_normalizing_preprocessor_backend():
 
         norm_box_np.update(next_state)
         norm_box_torch.update(torch.from_numpy(next_state))
+
+        if absorbing:
+            mdp.reset()
