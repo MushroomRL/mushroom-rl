@@ -5,6 +5,7 @@ from mushroom_rl.environments.segway import Segway
 from mushroom_rl.core import Core, Agent
 from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator, TorchApproximator
+from mushroom_rl.approximators.parametric.networks import LinearNetwork
 from mushroom_rl.rl_utils.value_functions import compute_gae, compute_advantage_montecarlo
 
 from mushroom_rl.utils.episodes import split_episodes, unsplit_episodes
@@ -51,7 +52,7 @@ def test_compute_gae():
 def _value_functions_tester(test_fun, correct_fun, *args):
     mdp = Segway()
     V = Regressor(TorchApproximator, input_shape=mdp.info.observation_space.shape, output_shape=(1,),
-                  network=Net, loss=torch.nn.MSELoss(), optimizer={'class': torch.optim.Adam, 'params': {'lr': 0.001}})
+                  network=LinearNetwork, use_bias=True, loss=torch.nn.MSELoss(), optimizer={'class': torch.optim.Adam, 'params': {'lr': 0.001}})
 
     state, action, reward, next_state, absorbing, last = _get_episodes(mdp, 10)
     
@@ -84,11 +85,3 @@ def _get_episodes(mdp, n_episodes=100):
     dataset = core.evaluate(n_episodes=n_episodes)
 
     return dataset.parse(to='torch')
-
-class Net(torch.nn.Module):
-    def __init__(self, input_shape, output_shape, **kwargs):
-        super().__init__()
-        self._q = torch.nn.Linear(input_shape[0], output_shape[0])
-
-    def forward(self, x):
-        return self._q(x.float())

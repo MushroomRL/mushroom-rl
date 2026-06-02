@@ -10,34 +10,13 @@ from mushroom_rl.algorithms.value import DQN
 from mushroom_rl.core import Core
 
 from mushroom_rl.approximators.parametric import NumpyTorchApproximator
-from torch import optim, nn
+from mushroom_rl.approximators.parametric.networks import QNetwork
+from torch import optim
 
 from mushroom_rl.environments import Gymnasium
 from mushroom_rl.rl_utils.preprocessors import MinMaxPreprocessor
 
 from copy import deepcopy
-
-
-class LinearNetwork(nn.Module):
-    def __init__(self, input_shape, output_shape, **kwargs):
-        super().__init__()
-
-        n_input = input_shape[-1]
-        n_output = output_shape[0]
-
-        self._h1 = nn.Linear(n_input, n_output)
-
-        nn.init.xavier_uniform_(self._h1.weight,
-                                gain=nn.init.calculate_gain('relu'))
-
-    def forward(self, state, action=None):
-        q = F.relu(self._h1(torch.squeeze(state, 1).float()))
-        if action is None:
-            return q
-        else:
-            action = action.long()
-            q_acted = torch.squeeze(q.gather(1, action))
-            return q_acted
 
 
 def test_normalizing_preprocessor(tmpdir):
@@ -52,14 +31,14 @@ def test_normalizing_preprocessor(tmpdir):
     # Approximator
     input_shape = mdp.info.observation_space.shape
 
-    approximator_params = dict(network=LinearNetwork,
+    approximator_params = dict(network=QNetwork,
                                optimizer={'class':  optim.Adam,
                                           'params': {'lr': .001}},
                                loss=F.smooth_l1_loss,
                                input_shape=input_shape,
                                output_shape=mdp.info.action_space.size,
                                n_actions=mdp.info.action_space.n,
-                               n_features=2
+                               n_features=None
                                )
 
     alg_params = dict(batch_size=5, initial_replay_size=10,
