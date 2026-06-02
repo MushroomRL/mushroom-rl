@@ -22,7 +22,7 @@ try:
             assert np.array_equal(obs, obs_0)
             done = False
             i = 0
-            while not done:
+            while not done and i < env.info.horizon:
                 q_cmd = env.linear_movement(env.init_robot_pos, des_pos, 100, i)
                 q_curr = obs[0:14:2]
                 qdot_cur = obs[1:14:2]

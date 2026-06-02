@@ -26,7 +26,7 @@ extras = {
     'atari': ['ale-py', 'Pillow', 'opencv-python'],
     'box2d': ['box2d-py'],
     'bullet': ['pybullet'],
-    'mujoco': ['mujoco>=2.3', 'dm_control>=1.0.9'],
+    'mujoco': ['mujoco>=3.9', 'dm_control @ git+https://github.com/google-deepmind/dm_control.git'],
     'plots': ['pyqtgraph']
 }
 
