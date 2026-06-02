@@ -62,9 +62,9 @@ def learn(alg):
 def test_ddpg():
     policy = learn(DDPG).policy
     w = policy.get_weights()
-    w_test = np.array([-0.00564953, 1.2362584, 0.10249085])
+    w_test = torch.tensor([-0.00564953, 1.2362584, 0.10249085])
 
-    assert np.allclose(w, w_test)
+    assert torch.allclose(w, w_test)
 
 
 def test_ddpg_save(tmpdir):
@@ -85,9 +85,9 @@ def test_ddpg_save(tmpdir):
 def test_td3():
     policy = learn(TD3).policy
     w = policy.get_weights()
-    w_test = np.array([1.34146, 0.93346554, 0.19754009])
+    w_test = torch.tensor([1.34146, 0.93346554, 0.19754009])
 
-    assert np.allclose(w, w_test)
+    assert torch.allclose(w, w_test)
 
 
 def test_td3_save(tmpdir):

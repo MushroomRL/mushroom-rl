@@ -57,9 +57,9 @@ def test_a2c():
     agent = learn_a2c()
 
     w = agent.policy.get_weights()
-    w_test = np.array([0.662464, -1.3380364, -0.1384504, -0.00665062])
+    w_test = torch.tensor([0.662464, -1.3380364, -0.1384504, -0.00665062])
 
-    assert np.allclose(w, w_test)
+    assert torch.allclose(w, w_test)
 
 
 def test_a2c_save(tmpdir):

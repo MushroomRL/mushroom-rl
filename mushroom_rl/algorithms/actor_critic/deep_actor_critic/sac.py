@@ -160,7 +160,7 @@ class SACPolicy(Policy):
         mu_weights = self._mu_approximator.get_weights()
         sigma_weights = self._sigma_approximator.get_weights()
 
-        return np.concatenate([mu_weights, sigma_weights])
+        return torch.concatenate([mu_weights, sigma_weights])
 
     def parameters(self):
         """

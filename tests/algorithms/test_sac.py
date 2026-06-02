@@ -68,9 +68,9 @@ def learn_sac():
 def test_sac():
     policy = learn_sac().policy
     w = policy.get_weights()
-    w_test = np.array([1.3411599, 0.93316555, 0.19724008, 1.2421376, -0.23526412, -0.34076032])
+    w_test = torch.tensor([1.3411599, 0.93316555, 0.19724008, 1.2421376, -0.23526412, -0.34076032])
 
-    assert np.allclose(w, w_test)
+    assert torch.allclose(w, w_test)
 
 
 def test_sac_save(tmpdir):
