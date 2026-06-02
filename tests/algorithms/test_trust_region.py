@@ -54,9 +54,9 @@ def test_PPO():
                   n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95)
     policy = learn(PPO, params).policy
     w = policy.get_weights()
-    w_test = np.array([0.6613755, -1.333808, -0.13946329, -0.00241474])
+    w_test = torch.tensor([0.6613755, -1.333808, -0.13946329, -0.00241474])
 
-    assert np.allclose(w, w_test)
+    assert torch.allclose(w, w_test)
 
 
 def test_PPO_save(tmpdir):
@@ -82,9 +82,9 @@ def test_TRPO():
                   n_epochs_cg=10, cg_damping=1e-2, cg_residual_tol=1e-10)
     policy = learn(TRPO, params).policy
     w = policy.get_weights()
-    w_test = np.array([0.53987426, -1.3105278, 0.02826479, -0.02005163])
+    w_test = torch.tensor([0.53987426, -1.3105278, 0.02826479, -0.02005163])
 
-    assert np.allclose(w, w_test)
+    assert torch.allclose(w, w_test)
 
 
 def test_TRPO_save(tmpdir):

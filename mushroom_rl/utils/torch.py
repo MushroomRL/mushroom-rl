@@ -56,7 +56,8 @@ class TorchUtils(object):
             parameters (list): list of parameters to be considered.
 
         Returns:
-            A numpy vector consisting of all the values of the vectors.
+            A torch tensor consisting of all the parameter values concatenated
+            into a single vector.
 
         """
         weights = list()
