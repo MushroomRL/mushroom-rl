@@ -24,7 +24,7 @@ class RandomFourierBasis(nn.Module):
 
     """
     def __init__(self, P, phi, nu):
-        """
+        r"""
         Constructor.
 
         Args:

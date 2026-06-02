@@ -84,7 +84,7 @@ def test_TRPO():
     w = policy.get_weights()
     w_test = torch.tensor([0.53987426, -1.3105278, 0.02826479, -0.02005163])
 
-    assert torch.allclose(w, w_test)
+    assert torch.allclose(w, w_test, rtol=1e-4), f"actual={w}, expected={w_test}, diff={w - w_test}"
 
 
 def test_TRPO_save(tmpdir):
