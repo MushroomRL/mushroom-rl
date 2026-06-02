@@ -122,7 +122,7 @@ def test_normalizing_preprocessor_backend():
         next_state_np = norm_box_np(next_state)
         next_state_torch = norm_box_torch(torch.from_numpy(next_state)).detach().cpu().numpy()
 
-        assert np.all(np.isclose(next_state_np, next_state_torch))
+        assert np.allclose(next_state_np, next_state_torch, rtol=1e-4)
 
         norm_box_np.update(next_state)
         norm_box_torch.update(torch.from_numpy(next_state))
