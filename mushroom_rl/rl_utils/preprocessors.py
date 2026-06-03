@@ -39,18 +39,18 @@ class StandardizationPreprocessor(Preprocessor):
     standardization.
 
     """
-    def __init__(self, mdp_info, backend, clip_obs=10., alpha=1e-32):
+    def __init__(self, mdp_info, clip_obs=10., alpha=1e-32):
         """
         Constructor.
 
         Args:
             mdp_info (MDPInfo): information of the MDP;
-            backend (str): name of the backend to be used;
             clip_obs (float, 10.): values to clip the normalized observations;
             alpha (float, 1e-32): moving average catchup parameter for the
                 normalization.
 
         """
+        backend = mdp_info.backend
         self._clip_obs = clip_obs
         self._obs_shape = mdp_info.observation_space.shape
         self._array_backend = ArrayBackend.get_array_backend(backend)
@@ -85,19 +85,18 @@ class MinMaxPreprocessor(StandardizationPreprocessor):
     falls back to using running mean standardization.
 
     """
-    def __init__(self, mdp_info, backend, clip_obs=10., alpha=1e-32):
+    def __init__(self, mdp_info, clip_obs=10., alpha=1e-32):
         """
         Constructor.
 
         Args:
             mdp_info (MDPInfo): information of the MDP;
-            backend (str): name of the backend to be used;
             clip_obs (float, 10.): values to clip the normalized observations;
             alpha (float, 1e-32): moving average catchup parameter for the
                 normalization.
 
         """
-        super(MinMaxPreprocessor, self).__init__(mdp_info, backend, clip_obs, alpha)
+        super(MinMaxPreprocessor, self).__init__(mdp_info, clip_obs, alpha)
 
         obs_low, obs_high = (self._array_backend.convert(mdp_info.observation_space.low.copy(),
                                                          mdp_info.observation_space.high.copy()))

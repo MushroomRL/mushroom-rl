@@ -70,9 +70,7 @@ def experiment(env, n_epochs, n_steps, n_episodes_test):
 
     agent = PPO(mdp.info, policy, **alg_params)
 
-    standardization_preprocessor = StandardizationPreprocessor(
-        mdp.info, backend="numpy"
-    )
+    standardization_preprocessor = StandardizationPreprocessor(mdp.info)
     agent.add_core_preprocessor(standardization_preprocessor)
 
     core = Core(agent, mdp)

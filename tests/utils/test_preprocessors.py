@@ -46,7 +46,7 @@ def test_normalizing_preprocessor(tmpdir):
 
     agent = DQN(mdp.info, pi, NumpyTorchApproximator, approximator_params=approximator_params, **alg_params)
 
-    norm_box = MinMaxPreprocessor(mdp_info=mdp.info, backend="numpy", clip_obs=5.0, alpha=0.001)
+    norm_box = MinMaxPreprocessor(mdp_info=mdp.info, clip_obs=5.0, alpha=0.001)
     agent.add_core_preprocessor(norm_box)
 
     core = Core(agent, mdp)
@@ -90,8 +90,11 @@ def test_normalizing_preprocessor_backend():
 
     mdp = Gymnasium('CartPole-v1', horizon=500, gamma=.99)
 
-    norm_box_np = MinMaxPreprocessor(mdp_info=mdp.info, backend="numpy", clip_obs=5.0, alpha=0.001)
-    norm_box_torch = MinMaxPreprocessor(mdp_info=mdp.info, backend="torch", clip_obs=5.0, alpha=0.001)
+    mdp_info_torch = deepcopy(mdp.info)
+    mdp_info_torch.backend = 'torch'
+
+    norm_box_np = MinMaxPreprocessor(mdp_info=mdp.info, clip_obs=5.0, alpha=0.001)
+    norm_box_torch = MinMaxPreprocessor(mdp_info=mdp_info_torch, clip_obs=5.0, alpha=0.001)
 
     mdp.reset()
     for i in range(20):

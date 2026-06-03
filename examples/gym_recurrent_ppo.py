@@ -1,8 +1,6 @@
 import os
 import numpy as np
 import torch
-from experiment_launcher.decorators import single_experiment
-from experiment_launcher import run_experiment
 import torch.optim as optim
 
 from mushroom_rl.core import Logger, Core
@@ -24,9 +22,8 @@ def get_POMDP_params(pomdp_type):
         return dict(obs_to_hide=tuple(), random_force_com=True)
 
 
-@single_experiment
 def experiment(
-        env: str = 'HalfCheetah-v4',
+        env: str = 'HalfCheetah-v5',
         horizon: int = 1000,
         gamma: float = 0.99,
         n_epochs: int = 300,
@@ -132,4 +129,4 @@ def experiment(
 
 
 if __name__ == '__main__':
-    run_experiment(experiment)
+    experiment()

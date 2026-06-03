@@ -35,7 +35,7 @@ class RecurrentGaussianTorchPolicy(GaussianTorchPolicy):
         return action, policy_state
 
     def log_prob_t(self, state, action, policy_state, lengths):
-        return self.distribution_t(state, policy_state, lengths).log_prob(action.squeeze())[:, None]
+        return self.distribution_t(state, policy_state, lengths).log_prob(action)[:, None]
 
     def entropy_t(self, state=None):
         return self._action_dim / 2 * np.log(2 * np.pi * np.e) + torch.sum(self._log_sigma)

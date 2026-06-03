@@ -254,13 +254,13 @@
   </equality>
 
   <actuator>
-    <intvelocity class="panda" name="actuator1" joint="joint1" ctrlrange="-2.175 2.175" forcerange="-87 87" forcelimited="true" inheritrange="1.0" kp="400" kv="80"/>
-    <intvelocity class="panda" name="actuator2" joint="joint2" ctrlrange="-2.175 2.175" forcerange="-87 87" forcelimited="true" inheritrange="1.0" kp="400" kv="80"/>
-    <intvelocity class="panda" name="actuator3" joint="joint3" ctrlrange="-2.175 2.175" forcerange="-87 87" forcelimited="true" inheritrange="1.0" kp="400" kv="80"/>
-    <intvelocity class="panda" name="actuator4" joint="joint4" ctrlrange="-2.175 2.175" forcerange="-87 87" forcelimited="true" inheritrange="1.0" kp="400" kv="80"/>
-    <intvelocity class="panda" name="actuator5" joint="joint5" ctrlrange="-2.61 2.61" forcerange="-12 12" forcelimited="true" inheritrange="1.0" kp="400" kv="80"/>
-    <intvelocity class="panda" name="actuator6" joint="joint6" ctrlrange="-2.61 2.61" forcerange="-12 12" forcelimited="true" inheritrange="1.0" kp="400" kv="80"/>
-    <intvelocity class="panda" name="actuator7" joint="joint7" ctrlrange="-2.61 2.61" forcerange="-12 12" forcelimited="true" inheritrange="1.0" kp="400" kv="80"/>
+    <intvelocity class="panda" name="actuator1" joint="joint1" ctrlrange="-2.175 2.175" forcerange="-87 87" forcelimited="true" actrange="-2.8973 2.8973" kp="400" kv="80"/>
+    <intvelocity class="panda" name="actuator2" joint="joint2" ctrlrange="-2.175 2.175" forcerange="-87 87" forcelimited="true" actrange="-1.7628 1.7628" kp="400" kv="80"/>
+    <intvelocity class="panda" name="actuator3" joint="joint3" ctrlrange="-2.175 2.175" forcerange="-87 87" forcelimited="true" actrange="-2.8973 2.8973" kp="400" kv="80"/>
+    <intvelocity class="panda" name="actuator4" joint="joint4" ctrlrange="-2.175 2.175" forcerange="-87 87" forcelimited="true" actrange="-3.0718 -0.0698" kp="400" kv="80"/>
+    <intvelocity class="panda" name="actuator5" joint="joint5" ctrlrange="-2.61 2.61" forcerange="-12 12" forcelimited="true" actrange="-2.8973 2.8973" kp="400" kv="80"/>
+    <intvelocity class="panda" name="actuator6" joint="joint6" ctrlrange="-2.61 2.61" forcerange="-12 12" forcelimited="true" actrange="-0.0175 3.7525" kp="400" kv="80"/>
+    <intvelocity class="panda" name="actuator7" joint="joint7" ctrlrange="-2.61 2.61" forcerange="-12 12" forcelimited="true" actrange="-2.8973 2.8973" kp="400" kv="80"/>
     <position name="actuator8" joint="finger_joint1" ctrlrange="0 0.04" kp="350" kv="10" forcerange="-200 200"/>
   </actuator>
 

@@ -67,7 +67,8 @@ class PPO_BPTT(OnPolicyDeepAC):
             _lambda='mushroom',
             _V='mushroom',
             _iter='primitive',
-            _dim_env_state='primitive'
+            _dim_env_state='primitive',
+            _truncation_length='primitive'
         )
 
     def fit(self, dataset):
