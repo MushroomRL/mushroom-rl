@@ -53,7 +53,7 @@ def experiment(n_epochs, n_iterations, ep_per_run):
     agent = REINFORCE(mdp.info, policy, **algorithm_params)
 
     # normalization callback
-    prepro = MinMaxPreprocessor(mdp_info=mdp.info)
+    prepro = MinMaxPreprocessor(mdp_info=mdp.info, backend=agent.info.backend)
     agent.add_core_preprocessor(prepro)
 
     # plotting callback

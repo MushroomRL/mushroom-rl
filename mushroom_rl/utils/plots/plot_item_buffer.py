@@ -2,7 +2,7 @@ import random
 from itertools import product
 
 import numpy as np
-from PyQt5.QtGui import QPen
+from pyqtgraph.Qt.QtGui import QPen
 from pyqtgraph import PlotItem, PlotDataItem, mkPen, mkColor, mkQApp
 
 

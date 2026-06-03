@@ -1,4 +1,3 @@
-import pickle
 from collections import deque
 
 
@@ -83,25 +82,3 @@ class DataBuffer(object):
         """
         self._tracking_enabled = status
 
-    def save(self, path):
-        """
-        Save the data buffer.
-
-        """
-        path = path + "/{}".format(self.name)
-        with open(path, "wb") as file:
-            pickle.dump(self, file)
-
-    @staticmethod
-    def load(path):
-        """
-        Load the data buffer.
-
-        Returns:
-            The loaded data buffer instance.
-
-        """
-        with open(path, "rb") as file:
-            loaded_instance = pickle.load(file)
-
-        return loaded_instance

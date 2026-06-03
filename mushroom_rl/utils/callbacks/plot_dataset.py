@@ -1,4 +1,3 @@
-import pickle
 import numpy as np
 
 from mushroom_rl.utils.callbacks.callback import Callback

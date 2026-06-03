@@ -57,7 +57,7 @@ You can install everything by running:
 
     pip3 install mushroom_rl[all]
 
-This will install every dependency of MushroomRL, except the Plots dependency.
+This will install every dependency of MushroomRL, except Box2D and PyBullet.
 For ubuntu>20.04, you may need to install pygame and gym dependencies:
 
 .. code:: shell
@@ -72,18 +72,7 @@ Below is the code that you need to run to install the Plots dependencies:
 
 .. code:: shell
 
-    sudo apt -y install python3-pyqt5
     pip3 install mushroom_rl[plots]
-
-You might need to install external dependencies first. For more information about mujoco-py
-installation follow the instructions on the `project page <https://github.com/openai/mujoco-py>`_
-
-    WARNING! when using conda, there may be issues with QT. You can fix them by adding the following lines to the code, replacing ``<conda_base_path>`` with the path to your conda distribution and ``<env_name>`` with the name of the conda environment you are using:
-   
-.. code:: python
-
-   import os
-   os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = '<conda_base_path>/envs/<env_name>/bin/platforms'
 
 To use dm_control MushroomRL interface, install ``dm_control`` following the instruction that can
 be found `here <https://github.com/deepmind/dm_control>`_

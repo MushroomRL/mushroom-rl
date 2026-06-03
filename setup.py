@@ -27,12 +27,12 @@ extras = {
     'box2d': ['box2d-py'],
     'bullet': ['pybullet'],
     'mujoco': ['mujoco>=3.9', 'dm_control @ git+https://github.com/google-deepmind/dm_control.git'],
-    'plots': ['pyqtgraph']
+    'plots': ['pyqtgraph', 'PySide6']
 }
 
 all_deps = []
 for group_name in extras:
-    if group_name not in ['plots','box2d', 'bullet']:
+    if group_name not in ['box2d', 'bullet']:
         all_deps += extras[group_name]
 extras['all'] = all_deps
 

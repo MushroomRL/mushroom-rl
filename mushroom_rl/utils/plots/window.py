@@ -1,8 +1,8 @@
 import time
 
-from PyQt5.QtGui import QGuiApplication, QBrush, QColor
-from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QSplitter
-from PyQt5 import QtCore
+from pyqtgraph.Qt.QtGui import QBrush, QColor, QGuiApplication
+from pyqtgraph.Qt.QtWidgets import QTreeWidget, QTreeWidgetItem, QSplitter
+from pyqtgraph.Qt import QtCore
 
 import pyqtgraph as pg
 
