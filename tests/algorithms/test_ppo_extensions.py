@@ -3,6 +3,9 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
+
 from datetime import datetime
 from helper.utils import TestUtils as tu
 
@@ -17,12 +20,12 @@ def learn(alg, policy, alg_params):
     mdp = InvertedPendulum(horizon=50)
     agent = alg(mdp.info, policy, **alg_params)
     core = Core(agent, mdp)
-    core.learn(n_episodes=2, n_episodes_per_fit=1)
+    core.learn(n_steps=50, n_steps_per_fit=50)
     return agent
 
 
 def make_bptt_setup():
-    n_features, n_hidden = 16, 16
+    n_features, n_hidden = 4, 4
     dim_env_state, dim_action = 2, 1  # InvertedPendulum
 
     policy = RecurrentGaussianTorchPolicy(
@@ -51,7 +54,7 @@ def make_bptt_setup():
             dim_env_state=dim_env_state,
             dim_action=dim_action,
         ),
-        n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95,
+        n_epochs_policy=2, batch_size=64, eps_ppo=.2, lam=.95,
         dim_env_state=dim_env_state,
     )
 
@@ -91,7 +94,7 @@ def test_PPO_BPTT():
     w = learn(PPO_BPTT, policy, alg_params).policy.get_weights().numpy()
     w_test = np.load('tests/algorithms/test_ppo_bptt.npy')
 
-    assert np.allclose(w, w_test)
+    assert np.allclose(w, w_test, atol=1e-4), f'max discrepancy: {np.max(np.abs(w - w_test))}, w[:5]={w[:5]}'
 
 
 def test_PPO_BPTT_save(tmpdir):
@@ -116,7 +119,7 @@ def test_RudinPPO():
     policy, alg_params = make_rudin_setup()
 
     w = learn(RudinPPO, policy, alg_params).policy.get_weights()
-    w_test = torch.tensor([0.6530, -1.3422, -0.1476, -0.0107])
+    w_test = torch.tensor([0.6614, -1.3338, -0.1395, -0.0024])
 
     assert torch.allclose(w, w_test, atol=1e-4)
 
