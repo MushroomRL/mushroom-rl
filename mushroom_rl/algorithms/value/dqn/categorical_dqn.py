@@ -119,7 +119,7 @@ class CategoricalDQN(AbstractDQN):
     def fit(self, dataset):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
-            state, action, reward, next_state, absorbing, _ =\
+            state, action, reward, next_state, absorbing, *_ =\
                 self._replay_memory.get(self._batch_size())
 
             if self._clip_reward:

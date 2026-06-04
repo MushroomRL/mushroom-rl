@@ -265,7 +265,7 @@ class SAC(DeepAC):
     def fit(self, dataset):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
-            state, action, reward, next_state, absorbing, _ = self._replay_memory.get(self._batch_size())
+            state, action, reward, next_state, absorbing, *_ = self._replay_memory.get(self._batch_size())
 
             if self._replay_memory.size > self._warmup_transitions():
                 action_new, log_prob = self.policy.compute_action_and_log_prob_t(state)
@@ -310,7 +310,7 @@ class SAC(DeepAC):
         a, log_prob_next = self.policy.compute_action_and_log_prob(next_state)
 
         q = self._target_critic_approximator.predict(next_state, a, prediction='min') - self._alpha * log_prob_next
-        q *= 1 - absorbing.to(int)
+        q *= ~absorbing
 
         return q
 

@@ -90,7 +90,7 @@ class AbstractDQN(Agent):
     def _fit_standard(self, dataset):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
-            state, action, reward, next_state, absorbing, _ = self._replay_memory.get(self._batch_size())
+            state, action, reward, next_state, absorbing, *_ = self._replay_memory.get(self._batch_size())
 
             if self._clip_reward:
                 reward = np.clip(reward, -1, 1)
@@ -104,7 +104,7 @@ class AbstractDQN(Agent):
         self._replay_memory.add(
             dataset, np.ones(len(dataset)) * self._replay_memory.max_priority)
         if self._replay_memory.initialized:
-            state, action, reward, next_state, absorbing, _, idxs, is_weight = \
+            state, action, reward, next_state, absorbing, *_, idxs, is_weight = \
                 self._replay_memory.get(self._batch_size())
 
             if self._clip_reward:

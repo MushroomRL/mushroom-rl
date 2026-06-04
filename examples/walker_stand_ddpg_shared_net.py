@@ -105,7 +105,7 @@ def experiment():
 
     # Policy
     policy_class = OrnsteinUhlenbeckPolicy
-    policy_params = dict(sigma=np.ones(1) * .2, theta=.15, dt=1e-2)
+    policy_params = dict(sigma=torch.ones(1) * .2, theta=.15, dt=1e-2)
 
     # Settings
     initial_replay_size = 500

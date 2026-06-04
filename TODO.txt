@@ -1,7 +1,6 @@
 For Mushroom 2.0:
     * Simplify Regressor interface: drop GenericRegressor, remove facade pattern
     * vectorize basis functions and simplify interface, simplify facade pattern
-    * remove custom save for plotting, use Serializable
     * improve replay memory, allowing to store arbitrary information into replay buffer
     * Port all DQN algorithms away from numpy, use native torch
     * remove numpy for all torch algorithms

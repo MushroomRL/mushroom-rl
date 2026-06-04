@@ -59,7 +59,7 @@ def learn_sac():
 
     core = Core(agent, mdp)
 
-    core.learn(n_steps=2 * initial_replay_size,
+    core.learn(n_steps=4 * initial_replay_size,
                n_steps_per_fit=initial_replay_size)
 
     return agent
@@ -68,7 +68,7 @@ def learn_sac():
 def test_sac():
     policy = learn_sac().policy
     w = policy.get_weights()
-    w_test = torch.tensor([1.3411599, 0.93316555, 0.19724008, 1.2421376, -0.23526412, -0.34076032])
+    w_test = torch.tensor([1.34026611, 0.93226570, 0.19634973, 1.24291027, -0.23446862, -0.33998108])
 
     assert torch.allclose(w, w_test)
 

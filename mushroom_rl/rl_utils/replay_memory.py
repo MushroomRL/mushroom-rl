@@ -144,7 +144,7 @@ class ReplayMemory(Serializable):
             allows it to be used.
 
         """
-        return self.size > self._initial_size
+        return self.size >= self._initial_size
 
     @property
     def size(self):
@@ -583,7 +583,7 @@ class PrioritizedReplayMemory(Serializable):
             allows it to be used.
 
         """
-        return self._tree.size > self._initial_size
+        return self._tree.size >= self._initial_size
 
     @property
     def max_priority(self):

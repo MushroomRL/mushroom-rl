@@ -94,6 +94,22 @@ def test_replay_memory_not_initialized():
     assert not rm.initialized
 
 
+def test_replay_memory_initialized_at_boundary():
+    obs_shape = (4,)
+    act_shape = (2,)
+
+    rng = np.random.RandomState(0)
+    dataset, *_ = make_dataset(10, rng, obs_shape, act_shape)
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info()
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=10, max_size=100)
+    rm.add(dataset)
+
+    assert rm.size == 10
+    assert rm.initialized
+
+
 def test_replay_memory_wrapping_when_full():
     obs_shape = (4,)
     act_shape = (2,)

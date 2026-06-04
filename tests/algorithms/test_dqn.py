@@ -73,17 +73,19 @@ def learn(alg, alg_params, logger=None):
 
     core.learn(n_steps=500, n_steps_per_fit=5)
 
+    assert agent._n_updates > 0
+
     return agent
 
 
 def test_dqn():
-    params = dict(batch_size=50, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=500, target_update_frequency=50)
     approximator = learn(DQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = np.array([-0.20050035, 0.24002515, -0.02295898, 0.32232404, -0.36275005,
-                       -0.01453803, -0.05687293, 0.43410516, 0.1590765])
+    w_test = np.array([-0.19848235, 0.23930363, -0.00657551, 0.33505076, -0.36853665,
+                       -0.02079613, -0.06618375, 0.43131915, 0.16657214])
 
     assert np.allclose(w, w_test)
 
@@ -91,7 +93,7 @@ def test_dqn():
 def test_dqn_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
-    params = dict(batch_size=50, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=500, target_update_frequency=50)
     agent_save = learn(DQN, params)
 
@@ -108,29 +110,29 @@ def test_dqn_save(tmpdir):
 def test_dqn_logger(tmpdir):
     logger = Logger('dqn_logger', results_dir=tmpdir, use_timestamp=True)
 
-    params = dict(batch_size=50, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=500, target_update_frequency=50)
     learn(DQN, params, logger)
 
     loss_file = np.load(logger.path / 'loss_Q.npy')
 
-    assert loss_file.shape == (90,)
-    assert np.allclose(loss_file[0], 0.7991676926612854) 
-    assert np.allclose(loss_file[-1], 0.5159794688224792)
+    assert loss_file.shape == (81,)
+    assert np.allclose(loss_file[0], 0.7500651478767395)
+    assert np.allclose(loss_file[-1], 0.5382087826728821)
 
 
 def test_prioritized_dqn():
 
     replay_memory = {"class": PrioritizedReplayMemory,
                      "params": dict(alpha=.6, beta=LinearParameter(.4, threshold_value=1, n=500 // 5))}
-    params = dict(batch_size=50, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=500, target_update_frequency=50,
                   replay_memory=replay_memory)
     approximator = learn(DQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = np.array([-0.19866402, 0.2357937, -0.02972439, 0.31267533, -0.35202834,
-                       -0.00553649, -0.05840667, 0.43584204, 0.16416478])
+    w_test = np.array([-0.2036822, 0.23392732, -0.0123152, 0.3307111, -0.36101586,
+                       -0.0121725, -0.06685782, 0.4360569, 0.15306984])
 
     assert np.allclose(w, w_test)
 
@@ -139,7 +141,7 @@ def test_prioritized_dqn_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
     replay_memory = {"class": PrioritizedReplayMemory,
                      "params": dict(alpha=.6, beta=LinearParameter(.4, threshold_value=1, n=500 // 5))}
-    params = dict(batch_size=50, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=500, target_update_frequency=50,
                   replay_memory=replay_memory)
     agent_save = learn(DQN, params)
@@ -155,13 +157,13 @@ def test_prioritized_dqn_save(tmpdir):
 
 
 def test_double_dqn():
-    params = dict(batch_size=50, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=500, target_update_frequency=50)
     approximator = learn(DoubleDQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = np.array([-0.20049825, 0.24002622, -0.02295567, 0.3223236, -0.3627546,
-                       -0.01453804, -0.05687486, 0.43409595, 0.1590613])
+    w_test = np.array([-0.19848235, 0.23930365, -0.00657496, 0.33505082, -0.36853364,
+                       -0.02080254, -0.06618375, 0.43131968, 0.1665634])
 
     assert np.allclose(w, w_test)
 
@@ -169,7 +171,7 @@ def test_double_dqn():
 def test_double_dqn_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
-    params = dict(batch_size=50, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=500, target_update_frequency=50)
     agent_save = learn(DoubleDQN, params)
 
@@ -184,13 +186,13 @@ def test_double_dqn_save(tmpdir):
 
 
 def test_averaged_dqn():
-    params = dict(batch_size=50, n_approximators=5, initial_replay_size=50,
+    params = dict(batch_size=50, n_approximators=5, initial_replay_size=100,
                   max_replay_size=5000, target_update_frequency=50)
     approximator = learn(AveragedDQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = np.array([-0.20050386, 0.24001993, -0.0221192, 0.32318467, -0.36512366,
-                       -0.0166209, -0.0568868, 0.43519753, 0.16197258])
+    w_test = np.array([-0.19846025, 0.2393236, -0.00552265, 0.33593556, -0.3700093,
+                       -0.02234051, -0.06621848, 0.4320244, 0.16846392])
 
     assert np.allclose(w, w_test)
 
@@ -198,7 +200,7 @@ def test_averaged_dqn():
 def test_averaged_dqn_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
-    params = dict(batch_size=50, n_approximators=5, initial_replay_size=50,
+    params = dict(batch_size=50, n_approximators=5, initial_replay_size=100,
                   max_replay_size=5000, target_update_frequency=50)
     agent_save = learn(AveragedDQN, params)
 
@@ -213,13 +215,13 @@ def test_averaged_dqn_save(tmpdir):
 
 
 def test_maxmin_dqn():
-    params = dict(batch_size=50, n_approximators=5, initial_replay_size=50,
+    params = dict(batch_size=50, n_approximators=5, initial_replay_size=100,
                   max_replay_size=5000, target_update_frequency=50)
     approximator = learn(MaxminDQN, params).approximator
 
     w = approximator[0].get_weights()
-    w_test = np.array([-0.15172458, 0.28573582, 0.03817964, 0.38416952, -0.41005808,
-                       -0.06267934, -0.16421957, 0.3418669, 0.07960468])
+    w_test = np.array([-0.14637606, 0.29144737, 0.04357848, 0.38892528, -0.41530567,
+                       -0.06814317, -0.15791543, 0.34688082, 0.08587101])
 
     assert np.allclose(w, w_test)
 
@@ -227,7 +229,7 @@ def test_maxmin_dqn():
 def test_maxmin_dqn_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
-    params = dict(batch_size=50, n_approximators=5, initial_replay_size=50,
+    params = dict(batch_size=50, n_approximators=5, initial_replay_size=100,
                   max_replay_size=5000, target_update_frequency=50)
     agent_save = learn(MaxminDQN, params)
 
@@ -242,15 +244,15 @@ def test_maxmin_dqn_save(tmpdir):
 
 
 def test_dueling_dqn():
-    params = dict(batch_size=50, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=5000, target_update_frequency=50)
     approximator = learn(DuelingDQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = np.array([-0.314546, 0.54604924, 0.20915823, -0.07975413, -0.74092555,
-                       0.5050177, -0.14456294, -0.5389542, -0.3534887, 0.07831666,
-                       0.61038506, 0.6548378, 0.02511988, 0.04343156, 0.6825224,
-                       -1.3261368, 0.9239293, -0.3491529])
+    w_test = np.array([-0.3061806, 0.56389284, 0.20562603, -0.10358601, -0.7341211,
+                       0.50224435, -0.12417892, -0.5442874, -0.37345916, 0.09038441,
+                       0.59898126, 0.66412216, 0.02598017, 0.04493077, 0.6922575,
+                       -1.3478152, 0.91464853, -0.35326177])
 
     assert np.allclose(w, w_test)
 
@@ -258,7 +260,7 @@ def test_dueling_dqn():
 def test_dueling_dqn_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
-    params = dict(batch_size=50, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=5000, target_update_frequency=50)
     agent_save = learn(DuelingDQN, params)
 
@@ -273,14 +275,14 @@ def test_dueling_dqn_save(tmpdir):
 
 
 def test_categorical_dqn():
-    params = dict(batch_size=50, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=5000, target_update_frequency=50)
     approximator = learn(CategoricalDQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = np.array([0.99196255, 0.3011091, -0.37743387, -0.6596791, -0.7362115, 0.49457926,
-                       -0.11459535, -0.4379756, -0.48315868, -0.03166399, 0.1229288, 0.10807777,
-                       0.6754166, 0.61144304, -1.1425636, 0.8134951, 0.03522068, 0.06444537])
+    w_test = np.array([0.9961103, 0.3062344, -0.38158175, -0.66480434, -0.6700932, 0.42846054,
+                       -0.13206097, -0.45175707, -0.46569303, -0.01788258, 0.12564264, 0.10536393,
+                       0.68053454, 0.61753774, -1.1476808, 0.80740047, 0.02384322, 0.07582285])
 
     assert np.allclose(w, w_test, rtol=1e-4)
 
@@ -288,7 +290,7 @@ def test_categorical_dqn():
 def test_categorical_dqn_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
-    params = dict(batch_size=50, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=5000, target_update_frequency=50)
     agent_save = learn(CategoricalDQN, params)
 
@@ -303,16 +305,16 @@ def test_categorical_dqn_save(tmpdir):
 
 
 def test_quantile_dqn():
-    params = dict(batch_size=50, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=5000, target_update_frequency=50)
     approximator = learn(QuantileDQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = np.array([-0.33921587, 0.5343955, 0.24983048, -0.06784417, -0.6075502,
-                       0.3601502, -1.115198, 0.6865875, 0.29323563, 1.2454914,
-                       -0.12360247, 0.02286462, 0.7213106, -1.0360246, -1.121014,
-                       -0.5056948, -0.18354908, -0.3344422, 0.99689376, -0.13668007,
-                       0.44865605, -0.49715987, 0.4467747, 0.4644443])
+    w_test = np.array([-0.32990956, 0.5447867, 0.24215372, -0.07598333, -0.6022206,
+                       0.34981713, -1.1227207, 0.6894482, 0.29463118, 1.2344137,
+                       -0.12729159, 0.01054376, 0.73561853, -1.0448822, -1.1211058,
+                       -0.5167815, -0.19001749, -0.35105047, 0.999933, -0.13281494,
+                       0.44891715, -0.4945631, 0.43864432, 0.4653612])
 
     assert np.allclose(w, w_test, rtol=1e-4)
 
@@ -320,7 +322,7 @@ def test_quantile_dqn():
 def test_quantile_dqn_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
-    params = dict(batch_size=50, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=5000, target_update_frequency=50)
     agent_save = learn(QuantileDQN, params)
 
@@ -335,16 +337,16 @@ def test_quantile_dqn_save(tmpdir):
 
 
 def test_noisy_dqn():
-    params = dict(batch_size=50, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=5000, target_update_frequency=50)
     approximator = learn(NoisyDQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = np.array([-0.30852458, 0.5647726, 0.13873313, -0.17767607, -0.59714687,
-                       0.45167482, 0.14077583, 0.10388352, 0.1845346, -0.19802122,
-                       -0.00943174, -0.13583986, 0.30453312, 0.41494054, 0.28900382,
-                       0.42479482, 0.3897369, 0.28961122, 0.17465961, 0.07124078,
-                       0.53694916, 0.42173594, 0.42799577, 0.2785571])
+    w_test = np.array([-0.3010259, 0.57106143, 0.1527097, -0.1720791, -0.60167384,
+                       0.4341214, 0.1494948, 0.09190126, 0.19013157, -0.2041249,
+                       0.00164998, -0.13452633, 0.31217825, 0.40318996, 0.29261786,
+                       0.42166942, 0.39590827, 0.29078802, 0.16835015, 0.06620326,
+                       0.5465707, 0.41377932, 0.4227871, 0.28850415])
 
     assert np.allclose(w, w_test, rtol=1e-4)
 
@@ -352,7 +354,7 @@ def test_noisy_dqn():
 def test_noisy_dqn_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
-    params = dict(batch_size=50, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=5000, target_update_frequency=50)
     agent_save = learn(NoisyDQN, params)
 
@@ -367,20 +369,20 @@ def test_noisy_dqn_save(tmpdir):
 
 
 def test_rainbow():
-    params = dict(batch_size=50, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=500, target_update_frequency=50, n_steps_return=3,
                   alpha_coeff=.6, beta=LinearParameter(.4, threshold_value=1, n=500 // 5))
     approximator = learn(Rainbow, params).approximator
 
     w = approximator.get_weights()
-    w_test = np.array([0.41471523, -0.24608319, -0.18744999, 0.26587564, 0.39882535, 0.412821,
-                       0.30898723, 0.29745516, -0.5973996, 0.35576734, 0.41858765, 0.2911771,
-                       -0.09666843, 0.32220146, 0.04949852, -0.04904625, 0.3972141, 0.32487455,
-                       0.3105287, 0.38326296, 0.15647355, 0.07453305, 0.31577617, 0.38884395,
-                       0.30908346, -0.20951316, -0.1023823, -0.12970605, 0.40118366, 0.41426662,
-                       0.30691648, 0.2924496, 0.08292492, 0.01674112, 0.33560023, 0.3732411,
-                       0.5594649, 0.17095159, -0.20466673, -0.37797216, 0.29877642, 0.3118145,
-                       0.40977645, 0.39796302, -0.0712048, -0.35232118, 0.40097338, 0.3074576])
+    w_test = np.array([0.40122062, -0.2713766, -0.17395529, 0.29116902, 0.3863779, 0.39097774,
+                       0.31873056, 0.3150636, -0.6239894, 0.38235706, 0.39467114, 0.3141591,
+                       -0.11718756, 0.36295494, 0.07001767, -0.08979987, 0.37919402, 0.3576465,
+                       0.32715875, 0.347632, 0.17648698, 0.05451963, 0.33272108, 0.3706946,
+                       0.2915318, -0.2385303, -0.08483079, -0.10068879, 0.38783127, 0.3902555,
+                       0.32132867, 0.3168995, 0.11075438, -0.01108828, 0.36168385, 0.34621114,
+                       0.58059007, 0.18328355, -0.22579168, -0.39030415, 0.32016888, 0.32173228,
+                       0.3869971, 0.38787156, -0.1020159, -0.32151017, 0.36618155, 0.33658257])
 
     assert np.allclose(w, w_test, rtol=1e-4)
 
@@ -388,7 +390,7 @@ def test_rainbow():
 def test_rainbow_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
-    params = dict(batch_size=50, initial_replay_size=50,
+    params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=500, target_update_frequency=50, n_steps_return=1,
                   alpha_coeff=.6, beta=LinearParameter(.4, threshold_value=1, n=500 // 5))
     agent_save = learn(Rainbow, params)

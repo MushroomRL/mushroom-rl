@@ -96,7 +96,7 @@ class DDPG(DeepAC):
     def fit(self, dataset):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
-            state, action, reward, next_state, absorbing, _ = self._replay_memory.get(self._batch_size())
+            state, action, reward, next_state, absorbing, *_ = self._replay_memory.get(self._batch_size())
 
             q_next = self._next_q(next_state, absorbing)
             q = reward + self.mdp_info.gamma * q_next
@@ -134,7 +134,7 @@ class DDPG(DeepAC):
         a = self._target_actor_approximator.predict(next_state, **self._actor_predict_params)
 
         q = self._target_critic_approximator.predict(next_state, a, **self._critic_predict_params)
-        q *= 1 - absorbing
+        q *= ~absorbing
 
         return q
 
