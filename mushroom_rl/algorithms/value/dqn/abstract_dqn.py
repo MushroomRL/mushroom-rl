@@ -12,7 +12,7 @@ from mushroom_rl.rl_utils.parameters import to_parameter
 class AbstractDQN(Agent):
     def __init__(self, mdp_info, policy, approximator, approximator_params, batch_size, target_update_frequency,
                  replay_memory=None, initial_replay_size=500, max_replay_size=5000, fit_params=None,
-                 predict_params=None, clip_reward=False):
+                 predict_params=None, clip_reward=False, history_length=1):
         """
         Constructor.
 
@@ -24,9 +24,11 @@ class AbstractDQN(Agent):
             batch_size ([int, Parameter]): the number of samples in a batch;
             target_update_frequency (int): the number of samples collected
                 between each update of the target network;
-            replay_memory ([ReplayMemory, PrioritizedReplayMemory], None): the
-                object of the replay memory to use; if None, a default replay
-                memory is created;
+            replay_memory ([dict, ReplayMemory, PrioritizedReplayMemory, None]):
+                if a dict, must have keys 'class' and 'params' and the class
+                will be instantiated with mdp_info and agent_info; if already
+                an instance, it is used directly; if None a default ReplayMemory
+                is created;
             initial_replay_size (int): the number of samples to collect before
                 starting the learning;
             max_replay_size (int): the maximum number of samples in the replay
@@ -35,10 +37,12 @@ class AbstractDQN(Agent):
                 approximator;
             predict_params (dict, None): parameters for the prediction with the
                 approximator;
-            clip_reward (bool, False): whether to clip the reward or not.
+            clip_reward (bool, False): whether to clip the reward or not;
+            history_length (int, 1): number of consecutive frames stacked as
+                policy input.
 
         """
-        super().__init__(mdp_info, policy, backend='numpy')
+        super().__init__(mdp_info, policy, backend='numpy', history_length=history_length)
 
         self._fit_params = dict() if fit_params is None else fit_params
         self._predict_params = dict() if predict_params is None else predict_params
@@ -48,14 +52,21 @@ class AbstractDQN(Agent):
         self._target_update_frequency = target_update_frequency
 
         if replay_memory is not None:
-            self._replay_memory = replay_memory["class"](mdp_info, self.info, initial_size=initial_replay_size,
-                                                         max_size=max_replay_size, **replay_memory["params"])
+            if isinstance(replay_memory, dict):
+                self._replay_memory = replay_memory["class"](
+                    mdp_info, self.info, initial_replay_size, max_replay_size,
+                    history_length=self._history_length, **replay_memory["params"])
+            else:
+                self._replay_memory = replay_memory
+
             if isinstance(self._replay_memory, PrioritizedReplayMemory):
                 self._fit = self._fit_prioritized
             else:
                 self._fit = self._fit_standard
         else:
-            self._replay_memory = ReplayMemory(mdp_info, self.info, initial_replay_size, max_replay_size)
+            self._replay_memory = ReplayMemory(
+                mdp_info, self.info, initial_replay_size, max_replay_size,
+                history_length=self._history_length)
             self._fit = self._fit_standard
 
         self._n_updates = 0

@@ -244,6 +244,14 @@ class Dataset(Serializable):
         self._data.append(*step)
         self._info.append(info)
 
+    def append_batch(self, state, action, reward, next_state, absorbing, last,
+                     policy_state=None, policy_next_state=None, info=None):
+        self._data.append_batch(state, action, reward, next_state, absorbing, last,
+                                policy_state, policy_next_state)
+        if info is None:
+            info = [{}] * len(state)
+        self._info._storage += info
+
     def append_episode_info(self, info):
         self._append_info(self._episode_info, info)
 
@@ -269,6 +277,7 @@ class Dataset(Serializable):
         dataset._info = self._info.get_view(index, copy)
         dataset._episode_info = self._episode_info.get_view(index, copy)
         dataset._data = self._data.get_view(index, copy)
+        dataset._theta_list = []
 
         return dataset
 

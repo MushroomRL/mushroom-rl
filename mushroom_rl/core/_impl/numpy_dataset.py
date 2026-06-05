@@ -125,8 +125,6 @@ class NumpyDataset(Serializable):
             if self.is_stateful:
                 self._policy_states[i] = policy_state
                 self._policy_next_states[i] = policy_next_state
-            else:
-                assert (policy_state is None) and (policy_next_state is None)
         else:
             n_active_envs = self._states.shape[1]
 
@@ -140,12 +138,25 @@ class NumpyDataset(Serializable):
             if self.is_stateful:
                 self._policy_states[i] = policy_state[:n_active_envs]
                 self._policy_next_states[i] = policy_next_state[:n_active_envs]
-            else:
-                assert (policy_state is None) and (policy_next_state is None)
 
             self._mask[i] = mask[:n_active_envs]
 
         self._len += 1
+
+    def append_batch(self, state, action, reward, next_state, absorbing, last,
+                     policy_state=None, policy_next_state=None):
+        n = len(state)
+        i = self._len
+        self._states[i:i + n] = state
+        self._actions[i:i + n] = action
+        self._rewards[i:i + n] = reward
+        self._next_states[i:i + n] = next_state
+        self._absorbing[i:i + n] = absorbing
+        self._last[i:i + n] = last
+        if self.is_stateful:
+            self._policy_states[i:i + n] = policy_state
+            self._policy_next_states[i:i + n] = policy_next_state
+        self._len += n
 
     def clear(self):
         self._states = np.empty_like(self._states)

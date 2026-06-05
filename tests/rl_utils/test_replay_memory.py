@@ -318,7 +318,7 @@ def test_sum_tree_add_and_priorities():
     dataset, *_ = make_dataset(n, rng, obs_shape, act_shape)
     priorities = np.array([1.0, 2.0, 1.0, 1.5, 0.5])
 
-    tree = SumTree(make_mdp_info(obs_shape, act_shape), make_agent_info(), max_size=20)
+    tree = SumTree(max_size=20)
     tree.add(dataset, priorities, n_steps_return=1, gamma=1.0)
 
     assert tree.size == 5
@@ -334,7 +334,7 @@ def test_sum_tree_update_propagates():
     rng = np.random.RandomState(42)
     dataset, *_ = make_dataset(n, rng, obs_shape, act_shape)
 
-    tree = SumTree(make_mdp_info(obs_shape, act_shape), make_agent_info(), max_size=20)
+    tree = SumTree(max_size=20)
     tree.add(dataset, np.ones(n), n_steps_return=1, gamma=1.0)
 
     first_leaf = tree._max_size - 1
@@ -354,7 +354,7 @@ def test_sum_tree_get_ind_retrieves_correct_priority():
     dataset, *_ = make_dataset(n, rng, obs_shape, act_shape)
     priorities = np.array([1.0, 2.0, 1.0, 1.5, 0.5])
 
-    tree = SumTree(make_mdp_info(obs_shape, act_shape), make_agent_info(), max_size=20)
+    tree = SumTree(max_size=20)
     tree.add(dataset, priorities, n_steps_return=1, gamma=1.0)
 
     idx, p, data_idx = tree.get_ind(0.5)

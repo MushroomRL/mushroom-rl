@@ -257,6 +257,21 @@ def test_dueling_dqn():
     assert np.allclose(w, w_test)
 
 
+def test_dueling_dqn_max_advantage():
+    params = dict(batch_size=50, initial_replay_size=100,
+                  max_replay_size=5000, target_update_frequency=50,
+                  avg_advantage=False)
+    approximator = learn(DuelingDQN, params).approximator
+
+    w = approximator.get_weights()
+    w_test = np.array([-0.29124907,  0.56782734,  0.18771048, -0.1283148 , -0.7235397 ,
+                        0.5023744 , -0.12695645, -0.53951675, -0.339607  ,  0.04036221,
+                        0.59426063,  0.6619993 ,  0.03047938, -0.00207051,  0.686303  ,
+                       -1.353534  ,  0.89845675, -0.35604987])
+
+    assert np.allclose(w, w_test)
+
+
 def test_dueling_dqn_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 

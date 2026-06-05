@@ -71,6 +71,16 @@ class ListDataset(Serializable):
         if mask is not None:
             self._mask.append(mask)
 
+    def append_batch(self, state, action, reward, next_state, absorbing, last,
+                     policy_state=None, policy_next_state=None):
+        if policy_state is not None:
+            for s, a, r, ss, ab, la, ps, pns in zip(state, action, reward, next_state, absorbing, last,
+                                                     policy_state, policy_next_state):
+                self.append(s, a, r, ss, ab, la, ps, pns)
+        else:
+            for s, a, r, ss, ab, la in zip(state, action, reward, next_state, absorbing, last):
+                self.append(s, a, r, ss, ab, la)
+
     def clear(self):
         self._dataset = list()
 
