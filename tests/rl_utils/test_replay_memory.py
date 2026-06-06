@@ -309,60 +309,47 @@ def test_sequence_replay_memory_episode_boundary():
         assert lengths[0] <= episode_length
 
 
-def test_sum_tree_add_and_priorities():
-    obs_shape = (4,)
-    act_shape = (2,)
+def test_sum_tree_update_priorities():
     n = 5
-
-    rng = np.random.RandomState(42)
-    dataset, *_ = make_dataset(n, rng, obs_shape, act_shape)
     priorities = np.array([1.0, 2.0, 1.0, 1.5, 0.5])
 
     tree = SumTree(max_size=20)
-    tree.add(dataset, priorities, n_steps_return=1, gamma=1.0)
+    tree_idxs = np.arange(n) + tree._max_size - 1
+    tree.update(tree_idxs, priorities)
 
-    assert tree.size == 5
     assert np.isclose(tree.total_p, 6.0)
     assert np.isclose(tree.max_p, 2.0)
 
 
 def test_sum_tree_update_propagates():
-    obs_shape = (4,)
-    act_shape = (2,)
     n = 5
 
-    rng = np.random.RandomState(42)
-    dataset, *_ = make_dataset(n, rng, obs_shape, act_shape)
-
     tree = SumTree(max_size=20)
-    tree.add(dataset, np.ones(n), n_steps_return=1, gamma=1.0)
+    tree_idxs = np.arange(n) + tree._max_size - 1
+    tree.update(tree_idxs, np.ones(n))
 
     first_leaf = tree._max_size - 1
     tree.update([first_leaf], [5.0])
 
-    assert np.isclose(tree.total_p, 9.0) 
+    assert np.isclose(tree.total_p, 9.0)
     assert np.isclose(tree.max_p, 5.0)
     assert np.isclose(tree._tree[first_leaf], 5.0)
 
 
-def test_sum_tree_get_ind_retrieves_correct_priority():
-    obs_shape = (4,)
-    act_shape = (2,)
+def test_sum_tree_get_retrieves_correct_priority():
     n = 5
-
-    rng = np.random.RandomState(42)
-    dataset, *_ = make_dataset(n, rng, obs_shape, act_shape)
     priorities = np.array([1.0, 2.0, 1.0, 1.5, 0.5])
 
     tree = SumTree(max_size=20)
-    tree.add(dataset, priorities, n_steps_return=1, gamma=1.0)
+    tree_idxs = np.arange(n) + tree._max_size - 1
+    tree.update(tree_idxs, priorities)
 
-    idx, p, data_idx = tree.get_ind(0.5)
-    assert data_idx == 0
+    idx, p = tree.get(0.5)
+    assert idx - (tree._max_size - 1) == 0
     assert np.isclose(p, 1.0)
 
-    idx2, p2, data_idx2 = tree.get_ind(3.0)
-    assert data_idx2 == 1
+    idx2, p2 = tree.get(3.0)
+    assert idx2 - (tree._max_size - 1) == 1
     assert np.isclose(p2, 2.0)
 
 
