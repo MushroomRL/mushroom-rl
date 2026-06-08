@@ -151,6 +151,8 @@ class PrioritizedReplayMemory(ReplayMemory):
             if result is None:
                 return
             dataset, p = result
+        else:
+            dataset = dataset.to_backend(self._agent_info.backend)
 
         positions = self._write_to_buffer(dataset)
         self._tree.update(positions + self._max_size - 1, p)

@@ -67,6 +67,8 @@ class ReplayMemory(Serializable):
             if result is None:
                 return
             dataset, _ = result
+        else:
+            dataset = dataset.to_backend(self._agent_info.backend)
 
         self._write_to_buffer(dataset)
 
