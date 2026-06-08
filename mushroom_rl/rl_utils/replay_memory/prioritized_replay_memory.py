@@ -114,7 +114,7 @@ class PrioritizedReplayMemory(ReplayMemory):
             alpha (float): prioritization coefficient;
             beta ([float, Parameter]): importance sampling coefficient;
             epsilon (float, .01): small value to avoid zero probabilities;
-            history_length (int, 1): number of consecutive frames per sample;
+            history_length (int, 1): number of consecutive observations per sample;
             n_steps_return (int, 1): number of steps used for the n-step return.
 
         """
@@ -136,30 +136,24 @@ class PrioritizedReplayMemory(ReplayMemory):
         Add elements to the replay memory.
 
         Args:
-            dataset (Dataset): list of elements to add to the replay memory;
+            dataset (Dataset): dataset whose transitions will be added to the replay memory;
             p (np.ndarray): priority of each sample in the dataset.
 
         """
         assert self._dataset.is_stateful == dataset.is_stateful
 
-        state, action, reward, next_state, absorbing, last = dataset.parse(to=self._agent_info.backend)
-
-        if self._dataset.is_stateful:
-            policy_state, policy_next_state = dataset.parse_policy_state(to=self._agent_info.backend)
-        else:
-            policy_state, policy_next_state = None, None
-
         if self._n_steps_return > 1:
+            state, action, reward, next_state, absorbing, last = dataset.parse(to=self._agent_info.backend)
+            policy_state, policy_next_state = (dataset.parse_policy_state(to=self._agent_info.backend)
+                                               if self._dataset.is_stateful else (None, None))
             result = self._compute_n_step_return(state, action, reward, next_state, absorbing, last,
                                                  policy_state, policy_next_state, priority=p)
             if result is None:
                 return
-            state, action, reward, next_state, absorbing, last, policy_state, policy_next_state, p = result
+            dataset, p = result
 
-        positions = self._write_to_buffer(state, action, reward, next_state, absorbing, last,
-                                          policy_state, policy_next_state)
-        tree_idxs = positions + self._max_size - 1
-        self._tree.update(tree_idxs, p)
+        positions = self._write_to_buffer(dataset)
+        self._tree.update(positions + self._max_size - 1, p)
 
     def get(self, n_samples):
         """

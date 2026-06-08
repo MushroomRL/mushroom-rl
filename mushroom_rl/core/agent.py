@@ -37,7 +37,7 @@ class Agent(Serializable):
             is_episodic (bool, False): whether the agent is learning in an episodic fashion or not;
             backend (str, 'numpy'): array backend to be used by the algorithm;
             history_length (int, 1): number of states to stack as input to the policy. When > 1 the agent maintains a
-                rolling frame buffer (not stored in the dataset).
+                rolling observation buffer (not stored in the dataset).
 
         """
         self.mdp_info = mdp_info

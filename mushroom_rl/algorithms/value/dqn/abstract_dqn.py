@@ -17,29 +17,19 @@ class AbstractDQN(Agent):
         Constructor.
 
         Args:
-            approximator (object): the approximator to use to fit the
-               Q-function;
-            approximator_params (dict): parameters of the approximator to
-                build;
+            approximator (object): the approximator to use to fit the Q-function;
+            approximator_params (dict): parameters of the approximator to build;
             batch_size ([int, Parameter]): the number of samples in a batch;
-            target_update_frequency (int): the number of samples collected
-                between each update of the target network;
-            replay_memory ([dict, ReplayMemory, PrioritizedReplayMemory, None]):
-                if a dict, must have keys 'class' and 'params' and the class
-                will be instantiated with mdp_info and agent_info; if already
-                an instance, it is used directly; if None a default ReplayMemory
-                is created;
-            initial_replay_size (int): the number of samples to collect before
-                starting the learning;
-            max_replay_size (int): the maximum number of samples in the replay
-                memory;
-            fit_params (dict, None): parameters of the fitting algorithm of the
-                approximator;
-            predict_params (dict, None): parameters for the prediction with the
-                approximator;
+            target_update_frequency (int): the number of samples collected between each update of the target network;
+            replay_memory ([dict, ReplayMemory, PrioritizedReplayMemory, None]): if a dict, must have keys 'class' and
+                'params' and the class will be instantiated with mdp_info and agent_info; if already an instance, it is
+                used directly; if None a default ReplayMemory is created;
+            initial_replay_size (int): the number of samples to collect before starting the learning;
+            max_replay_size (int): the maximum number of samples in the replay memory;
+            fit_params (dict, None): parameters of the fitting algorithm of the approximator;
+            predict_params (dict, None): parameters for the prediction with the approximator;
             clip_reward (bool, False): whether to clip the reward or not;
-            history_length (int, 1): number of consecutive frames stacked as
-                policy input.
+            history_length (int, 1): number of consecutive observation stacked as policy input.
 
         """
         super().__init__(mdp_info, policy, backend='numpy', history_length=history_length)

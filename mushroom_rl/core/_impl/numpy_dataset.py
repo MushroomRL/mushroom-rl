@@ -143,19 +143,18 @@ class NumpyDataset(Serializable):
 
         self._len += 1
 
-    def append_batch(self, state, action, reward, next_state, absorbing, last,
-                     policy_state=None, policy_next_state=None):
-        n = len(state)
+    def append_batch(self, other):
+        n = len(other)
         i = self._len
-        self._states[i:i + n] = state
-        self._actions[i:i + n] = action
-        self._rewards[i:i + n] = reward
-        self._next_states[i:i + n] = next_state
-        self._absorbing[i:i + n] = absorbing
-        self._last[i:i + n] = last
+        self._states[i:i + n] = other.state
+        self._actions[i:i + n] = other.action
+        self._rewards[i:i + n] = other.reward
+        self._next_states[i:i + n] = other.next_state
+        self._absorbing[i:i + n] = other.absorbing
+        self._last[i:i + n] = other.last
         if self.is_stateful:
-            self._policy_states[i:i + n] = policy_state
-            self._policy_next_states[i:i + n] = policy_next_state
+            self._policy_states[i:i + n] = other.policy_state
+            self._policy_next_states[i:i + n] = other.policy_next_state
         self._len += n
 
     def clear(self):

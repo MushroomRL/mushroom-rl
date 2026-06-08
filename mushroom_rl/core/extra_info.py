@@ -5,7 +5,7 @@ from mushroom_rl.core.serialization import Serializable
 
 class ExtraInfo(Serializable, UserDict):
     """
-    A class to to collect and parse step information
+    A class to collect and parse step information
     """
     def __init__(self, n_envs, backend, device=None):
         """
@@ -19,8 +19,8 @@ class ExtraInfo(Serializable, UserDict):
         self._device = device
 
         self._storage = []
-        self._key_mapping = {} #maps keys for future output to key paths
-        self._shape_mapping = {} #maps keys to additional shapes for arrays
+        self._key_mapping = {} # maps keys for future output to key paths
+        self._shape_mapping = {} # maps keys to additional shapes for arrays
         self._structured_storage = {}
         super().__init__()
         self._add_all_save_attr()
@@ -39,9 +39,20 @@ class ExtraInfo(Serializable, UserDict):
 
         self._storage.append(info)
 
+    def __iadd__(self, other):
+        """
+        In-place append: extend storage with another ExtraInfo.
+
+        Args:
+            other (ExtraInfo): ExtraInfo whose storage will be appended.
+
+        """
+        self._storage += other._storage
+        return self
+
     def parse(self, to=None):
         """
-        Parse the stored information into an flat dictionary of arrays
+        Parse the stored information into a flat dictionary of arrays
 
         Args:
             to (str): the backend to be used for the returned arrays, 'torch' or 'numpy'.
@@ -68,20 +79,20 @@ class ExtraInfo(Serializable, UserDict):
             length_structured_storage = 0
         size = (len(self._storage) + length_structured_storage, self._n_envs) if self._n_envs > 1 else (len(self._storage) + length_structured_storage, )
         
-        #create output dictionary with empty arrays
+        # create output dictionary with empty arrays
         output = {
             key: ArrayBackend.get_array_backend(to).empty(size + self._shape_mapping[key], self._device)
             for key in self._key_mapping
         }
 
-        #fill output with elements stored in structured storage
+        # fill output with elements stored in structured storage
         if self._structured_storage:
             for key in output:
                 index = length_structured_storage
                 value = self._convert(self._structured_storage[key], to)
                 output[key][:index] = value
         
-        #fill output with elements stored in storage
+        # fill output with elements stored in storage
         for index, step_data in enumerate(self._storage): 
             index = index + length_structured_storage
             if isinstance(step_data, dict):
