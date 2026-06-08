@@ -75,9 +75,8 @@ class Rainbow(AbstractDQN):
     def fit(self, dataset):
         if self._pending is not None:
             dataset = self._pending + dataset
-        self._pending = dataset[-(self._n_steps_return - 1):]
-        self._replay_memory.add(dataset, np.ones(len(dataset)) * self._replay_memory.max_priority,
-                                n_steps_return=self._n_steps_return, gamma=self.mdp_info.gamma)
+        self._pending = dataset[-(self._n_steps_return - 1):] if self._n_steps_return > 1 else None
+        self._replay_memory.add(dataset, np.ones(len(dataset)) * self._replay_memory.max_priority)
         if self._replay_memory.initialized:
             state, action, reward, next_state, absorbing, *_, idxs, is_weight = \
                 self._replay_memory.get(self._batch_size())

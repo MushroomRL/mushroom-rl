@@ -9,10 +9,10 @@ from mushroom_rl.rl_utils.replay_memory import (
 from mushroom_rl.rl_utils.parameters import LinearParameter
 
 
-def make_mdp_info(obs_shape, act_shape, backend='numpy'):
+def make_mdp_info(obs_shape, act_shape, backend='numpy', gamma=0.99):
     obs_space = Box(np.full(obs_shape, -1.0), np.full(obs_shape, 1.0), obs_shape)
     act_space = Box(np.full(act_shape, -1.0), np.full(act_shape, 1.0), act_shape)
-    return MDPInfo(obs_space, act_space, gamma=0.99, horizon=100, backend=backend)
+    return MDPInfo(obs_space, act_space, gamma=gamma, horizon=100, backend=backend)
 
 
 def make_agent_info(policy_state_shape=None, backend='numpy'):
@@ -151,10 +151,10 @@ def test_replay_memory_n_steps_return():
     lasts[-1] = 1.0
     dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts)
 
-    mdp_info = make_mdp_info(obs_shape, act_shape)
+    mdp_info = make_mdp_info(obs_shape, act_shape, gamma=gamma)
     agent_info = make_agent_info()
-    rm = ReplayMemory(mdp_info, agent_info, initial_size=1, max_size=50)
-    rm.add(dataset, n_steps_return=n_steps, gamma=gamma)
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=1, max_size=50, n_steps_return=n_steps)
+    rm.add(dataset)
 
     assert rm.size == n - n_steps + 1
 

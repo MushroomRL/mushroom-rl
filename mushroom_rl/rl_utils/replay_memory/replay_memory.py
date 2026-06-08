@@ -48,17 +48,14 @@ class ReplayMemory(Serializable):
             _dataset='mushroom!',
         )
 
-    def add(self, dataset, n_steps_return=1, gamma=1.):
+    def add(self, dataset):
         """
         Add elements to the replay memory.
 
         Args:
-            dataset (Dataset): dataset class elements to add to the replay memory;
-            n_steps_return (int, 1): number of steps to consider for computing n-step return;
-            gamma (float, 1.): discount factor for n-step return.
+            dataset (Dataset): dataset class elements to add to the replay memory.
 
         """
-        assert n_steps_return > 0
         assert self._dataset.is_stateful == dataset.is_stateful
 
         state, action, reward, next_state, absorbing, last = dataset.parse(to=self._agent_info.backend)
@@ -68,9 +65,9 @@ class ReplayMemory(Serializable):
         else:
             policy_state, policy_next_state = None, None
 
-        if n_steps_return > 1:
+        if self._n_steps_return > 1:
             result = self._compute_n_step_return(state, action, reward, next_state, absorbing, last,
-                                                 n_steps_return, gamma, policy_state, policy_next_state)
+                                                 policy_state, policy_next_state)
             if result is None:
                 return
             state, action, reward, next_state, absorbing, last, policy_state, policy_next_state, _ = result
@@ -128,27 +125,30 @@ class ReplayMemory(Serializable):
         return self.size >= self._initial_size
 
     def _compute_n_step_return(self, state, action, reward, next_state, absorbing, last,
-                               n_steps_return, gamma, policy_state=None, policy_next_state=None,
-                               priority=None):
-        max_valid = len(state) - n_steps_return + 1
-        valid_i = self._dataset.array_backend.zeros(max_valid, dtype=int)
-        valid_ij = self._dataset.array_backend.zeros(max_valid, dtype=int)
+                               policy_state=None, policy_next_state=None, priority=None):
+        backend = self._dataset.array_backend
+        max_valid = len(state) - self._n_steps_return + 1
+        valid_i = backend.zeros(max_valid, dtype=int)
+        valid_ij = backend.zeros(max_valid, dtype=int)
+        valid_reward = backend.zeros(max_valid, dtype=reward.dtype)
         count = 0
         i = 0
         while i < max_valid:
             j = 0
             skip = False
-            while j < n_steps_return - 1:
+            acc_reward = reward[i]
+            while j < self._n_steps_return - 1:
                 if last[i + j]:
                     if not absorbing[i + j]:
                         skip = True
                         i += j + 1
                     break
                 j += 1
-                reward[i] += gamma ** j * reward[i + j]
+                acc_reward = acc_reward + self._mdp_info.gamma ** j * reward[i + j]
             if not skip:
                 valid_i[count] = i
                 valid_ij[count] = i + j
+                valid_reward[count] = acc_reward
                 count += 1
                 i += 1
 
@@ -162,7 +162,7 @@ class ReplayMemory(Serializable):
         pns = policy_next_state[valid_ij] if policy_next_state is not None else None
         p = priority[valid_i] if priority is not None else None
 
-        return (state[valid_i], action[valid_i], reward[valid_i],
+        return (state[valid_i], action[valid_i], valid_reward[:count],
                 next_state[valid_ij], absorbing[valid_ij], last[valid_ij],
                 ps, pns, p)
 

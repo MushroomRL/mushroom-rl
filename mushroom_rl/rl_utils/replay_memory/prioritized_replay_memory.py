@@ -131,18 +131,15 @@ class PrioritizedReplayMemory(ReplayMemory):
             _tree='mushroom'
         )
 
-    def add(self, dataset, p, n_steps_return=1, gamma=1.):
+    def add(self, dataset, p):
         """
         Add elements to the replay memory.
 
         Args:
             dataset (Dataset): list of elements to add to the replay memory;
-            p (np.ndarray): priority of each sample in the dataset;
-            n_steps_return (int, 1): number of steps to consider for computing n-step return;
-            gamma (float, 1.): discount factor for n-step return.
+            p (np.ndarray): priority of each sample in the dataset.
 
         """
-        assert n_steps_return > 0
         assert self._dataset.is_stateful == dataset.is_stateful
 
         state, action, reward, next_state, absorbing, last = dataset.parse(to=self._agent_info.backend)
@@ -152,10 +149,9 @@ class PrioritizedReplayMemory(ReplayMemory):
         else:
             policy_state, policy_next_state = None, None
 
-        if n_steps_return > 1:
+        if self._n_steps_return > 1:
             result = self._compute_n_step_return(state, action, reward, next_state, absorbing, last,
-                                                 n_steps_return, gamma, policy_state, policy_next_state,
-                                                 priority=p)
+                                                 policy_state, policy_next_state, priority=p)
             if result is None:
                 return
             state, action, reward, next_state, absorbing, last, policy_state, policy_next_state, p = result
