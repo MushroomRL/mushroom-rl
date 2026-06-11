@@ -270,7 +270,7 @@ def experiment():
         max_steps = args.max_steps
 
     # MDP
-    mdp = MiniGrid(args.name, history_length=args.history_length)
+    mdp = MiniGrid(args.name)
 
     if args.load_path:
         logger = Logger(DQN.__name__, results_dir=None)
@@ -300,9 +300,10 @@ def experiment():
         pi = EpsGreedy(epsilon=epsilon_random)
 
         # Approximator
+        stacked_input_shape = (args.history_length,) + mdp.info.observation_space.shape
         approximator_params = dict(
             network=Network if args.algorithm not in ['dueldqn', 'cdqn', 'ndqn', 'rainbow'] else FeatureNetwork,
-            input_shape=mdp.info.observation_space.shape,
+            input_shape=stacked_input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
             n_features=Network.n_features,
@@ -314,11 +315,14 @@ def experiment():
         approximator = NumpyTorchApproximator
 
         if args.prioritized:
-            replay_memory = PrioritizedReplayMemory(
-                initial_replay_size, max_replay_size, alpha=args.alpha_coeff,
-                beta=LinearParameter(.4, threshold_value=1,
-                                     n=max_steps // train_frequency)
-            )
+            replay_memory = {
+                "class": PrioritizedReplayMemory,
+                "params": {
+                    "alpha": args.alpha_coeff,
+                    "beta": LinearParameter(.4, threshold_value=1,
+                                            n=max_steps // train_frequency),
+                },
+            }
         else:
             replay_memory = None
 
@@ -328,7 +332,8 @@ def experiment():
             target_update_frequency=target_update_frequency // train_frequency,
             replay_memory=replay_memory,
             initial_replay_size=initial_replay_size,
-            max_replay_size=max_replay_size
+            max_replay_size=max_replay_size,
+            history_length=args.history_length,
         )
 
         if args.algorithm == 'dqn':

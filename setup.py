@@ -24,6 +24,7 @@ here = path.abspath(path.dirname(__file__))
 extras = {
     'gymnasium': ['gymnasium'],
     'atari': ['ale-py', 'Pillow', 'opencv-python'],
+    'minigrid': ['minigrid'],
     'box2d': ['box2d-py'],
     'bullet': ['pybullet'],
     'mujoco': ['mujoco>=3.9', 'dm_control @ git+https://github.com/google-deepmind/dm_control.git'],
