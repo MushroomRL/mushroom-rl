@@ -138,9 +138,12 @@ class Gymnasium(Environment):
                 env = env.env
 
         if horizon is None:
-            if not hasattr(env, '_max_episode_steps'):
+            if hasattr(env, '_max_episode_steps'):
+                horizon = env._max_episode_steps
+            elif hasattr(env.unwrapped, 'max_steps'):
+                horizon = env.unwrapped.max_steps
+            else:
                 raise RuntimeError('This gymnasium environment has no specified time limit!')
-            horizon = env._max_episode_steps
             if horizon == np.inf:
                 warnings.warn("Horizon can not be infinity.")
                 horizon = int(1e4)
