@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import brentq
 from scipy.special import logsumexp
-from .policy import Policy
+from mushroom_rl.policy.policy import Policy
 
 from mushroom_rl.rl_utils.parameters import Parameter, to_parameter
 

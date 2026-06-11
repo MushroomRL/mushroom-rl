@@ -1,7 +1,7 @@
 import numpy as np
 from copy import deepcopy
 
-from .policy import ParametricPolicy
+from mushroom_rl.policy.policy import ParametricPolicy
 
 
 class VectorPolicy(ParametricPolicy):

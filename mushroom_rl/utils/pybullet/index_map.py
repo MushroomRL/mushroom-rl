@@ -1,7 +1,7 @@
 import numpy as np
 import pybullet
-from .observation import PyBulletObservationType
-from .contacts import ContactHelper
+from mushroom_rl.utils.pybullet.observation import PyBulletObservationType
+from mushroom_rl.utils.pybullet.contacts import ContactHelper
 
 
 class IndexMap(object):

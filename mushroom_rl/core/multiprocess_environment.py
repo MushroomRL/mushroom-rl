@@ -2,7 +2,7 @@ from multiprocessing import Pipe, Process, cpu_count
 
 import numpy as np
 
-from .vectorized_env import VectorizedEnvironment
+from mushroom_rl.core.vectorized_env import VectorizedEnvironment
 
 
 def _env_worker(remote, env_class, use_generator, args, kwargs):

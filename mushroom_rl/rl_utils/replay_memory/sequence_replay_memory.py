@@ -1,4 +1,4 @@
-from .replay_memory import ReplayMemory
+from mushroom_rl.rl_utils.replay_memory.replay_memory import ReplayMemory
 
 
 class SequenceReplayMemory(ReplayMemory):

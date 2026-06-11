@@ -1,6 +1,6 @@
 import numpy as np
 
-from .policy import ParametricPolicy
+from mushroom_rl.policy.policy import ParametricPolicy
 
 
 class DMP(ParametricPolicy):

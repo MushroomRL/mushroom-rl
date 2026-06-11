@@ -1,6 +1,6 @@
 import numpy as np
 
-from .observation import PyBulletObservationType
+from mushroom_rl.utils.pybullet.observation import PyBulletObservationType
 
 
 class JointsHelper(object):

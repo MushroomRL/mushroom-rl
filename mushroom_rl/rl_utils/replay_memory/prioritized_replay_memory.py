@@ -3,7 +3,7 @@ import numpy as np
 from mushroom_rl.core import Serializable
 from mushroom_rl.rl_utils.parameters import to_parameter
 
-from .replay_memory import ReplayMemory
+from mushroom_rl.rl_utils.replay_memory.replay_memory import ReplayMemory
 
 
 class SumTree(Serializable):

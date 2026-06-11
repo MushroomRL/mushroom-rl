@@ -1,5 +1,5 @@
 from mushroom_rl.core.serialization import Serializable
-from .array_backend import ArrayBackend
+from mushroom_rl.core.array_backend import ArrayBackend
 
 
 class AgentInfo(Serializable):

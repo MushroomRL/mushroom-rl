@@ -1,6 +1,6 @@
-from collections import UserDict
 import numbers
-from .array_backend import ArrayBackend
+from collections import UserDict
+from mushroom_rl.core.array_backend import ArrayBackend
 from mushroom_rl.core.serialization import Serializable
 
 class ExtraInfo(Serializable, UserDict):

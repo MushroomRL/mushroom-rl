@@ -6,8 +6,8 @@ from collections import defaultdict
 import torch
 
 from mushroom_rl.core.serialization import Serializable
-from .array_backend import ArrayBackend
-from .extra_info import ExtraInfo
+from mushroom_rl.core.array_backend import ArrayBackend
+from mushroom_rl.core.extra_info import ExtraInfo
 
 from ._impl import *
 
