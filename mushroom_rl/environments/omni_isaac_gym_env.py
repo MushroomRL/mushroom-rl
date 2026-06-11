@@ -1,5 +1,5 @@
 import torch
-from gym import spaces as gym_spaces
+from gymnasium import spaces as gym_spaces
 
 from omni.isaac.kit import SimulationApp
 from omniisaacgymenvs.utils.task_util import initialize_task

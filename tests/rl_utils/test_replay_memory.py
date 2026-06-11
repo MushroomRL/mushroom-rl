@@ -9,10 +9,10 @@ from mushroom_rl.rl_utils.replay_memory import (
 from mushroom_rl.rl_utils.parameters import LinearParameter
 
 
-def make_mdp_info(obs_shape, act_shape, backend='numpy'):
+def make_mdp_info(obs_shape, act_shape, backend='numpy', gamma=0.99):
     obs_space = Box(np.full(obs_shape, -1.0), np.full(obs_shape, 1.0), obs_shape)
     act_space = Box(np.full(act_shape, -1.0), np.full(act_shape, 1.0), act_shape)
-    return MDPInfo(obs_space, act_space, gamma=0.99, horizon=100, backend=backend)
+    return MDPInfo(obs_space, act_space, gamma=gamma, horizon=100, backend=backend)
 
 
 def make_agent_info(policy_state_shape=None, backend='numpy'):
@@ -151,10 +151,10 @@ def test_replay_memory_n_steps_return():
     lasts[-1] = 1.0
     dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts)
 
-    mdp_info = make_mdp_info(obs_shape, act_shape)
+    mdp_info = make_mdp_info(obs_shape, act_shape, gamma=gamma)
     agent_info = make_agent_info()
-    rm = ReplayMemory(mdp_info, agent_info, initial_size=1, max_size=50)
-    rm.add(dataset, n_steps_return=n_steps, gamma=gamma)
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=1, max_size=50, n_steps_return=n_steps)
+    rm.add(dataset)
 
     assert rm.size == n - n_steps + 1
 
@@ -309,60 +309,47 @@ def test_sequence_replay_memory_episode_boundary():
         assert lengths[0] <= episode_length
 
 
-def test_sum_tree_add_and_priorities():
-    obs_shape = (4,)
-    act_shape = (2,)
+def test_sum_tree_update_priorities():
     n = 5
-
-    rng = np.random.RandomState(42)
-    dataset, *_ = make_dataset(n, rng, obs_shape, act_shape)
     priorities = np.array([1.0, 2.0, 1.0, 1.5, 0.5])
 
-    tree = SumTree(make_mdp_info(obs_shape, act_shape), make_agent_info(), max_size=20)
-    tree.add(dataset, priorities, n_steps_return=1, gamma=1.0)
+    tree = SumTree(max_size=20)
+    tree_idxs = np.arange(n) + tree._max_size - 1
+    tree.update(tree_idxs, priorities)
 
-    assert tree.size == 5
     assert np.isclose(tree.total_p, 6.0)
     assert np.isclose(tree.max_p, 2.0)
 
 
 def test_sum_tree_update_propagates():
-    obs_shape = (4,)
-    act_shape = (2,)
     n = 5
 
-    rng = np.random.RandomState(42)
-    dataset, *_ = make_dataset(n, rng, obs_shape, act_shape)
-
-    tree = SumTree(make_mdp_info(obs_shape, act_shape), make_agent_info(), max_size=20)
-    tree.add(dataset, np.ones(n), n_steps_return=1, gamma=1.0)
+    tree = SumTree(max_size=20)
+    tree_idxs = np.arange(n) + tree._max_size - 1
+    tree.update(tree_idxs, np.ones(n))
 
     first_leaf = tree._max_size - 1
     tree.update([first_leaf], [5.0])
 
-    assert np.isclose(tree.total_p, 9.0) 
+    assert np.isclose(tree.total_p, 9.0)
     assert np.isclose(tree.max_p, 5.0)
     assert np.isclose(tree._tree[first_leaf], 5.0)
 
 
-def test_sum_tree_get_ind_retrieves_correct_priority():
-    obs_shape = (4,)
-    act_shape = (2,)
+def test_sum_tree_get_retrieves_correct_priority():
     n = 5
-
-    rng = np.random.RandomState(42)
-    dataset, *_ = make_dataset(n, rng, obs_shape, act_shape)
     priorities = np.array([1.0, 2.0, 1.0, 1.5, 0.5])
 
-    tree = SumTree(make_mdp_info(obs_shape, act_shape), make_agent_info(), max_size=20)
-    tree.add(dataset, priorities, n_steps_return=1, gamma=1.0)
+    tree = SumTree(max_size=20)
+    tree_idxs = np.arange(n) + tree._max_size - 1
+    tree.update(tree_idxs, priorities)
 
-    idx, p, data_idx = tree.get_ind(0.5)
-    assert data_idx == 0
+    idx, p = tree.get(0.5)
+    assert idx - (tree._max_size - 1) == 0
     assert np.isclose(p, 1.0)
 
-    idx2, p2, data_idx2 = tree.get_ind(3.0)
-    assert data_idx2 == 1
+    idx2, p2 = tree.get(3.0)
+    assert idx2 - (tree._max_size - 1) == 1
     assert np.isclose(p2, 2.0)
 
 

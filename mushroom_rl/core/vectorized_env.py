@@ -1,7 +1,7 @@
 import numpy as np
 
-from .environment import Environment
-from .array_backend import ArrayBackend
+from mushroom_rl.core.environment import Environment
+from mushroom_rl.core.array_backend import ArrayBackend
 
 
 class VectorizedEnvironment(Environment):

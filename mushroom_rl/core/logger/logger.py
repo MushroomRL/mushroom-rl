@@ -1,8 +1,8 @@
 from datetime import datetime
 from pathlib import Path
 
-from .console_logger import ConsoleLogger
-from .data_logger import DataLogger
+from mushroom_rl.core.logger.console_logger import ConsoleLogger
+from mushroom_rl.core.logger.data_logger import DataLogger
 
 
 class Logger(DataLogger, ConsoleLogger):

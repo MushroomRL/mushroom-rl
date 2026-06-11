@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from .policy import ParametricPolicy
+from mushroom_rl.policy.policy import ParametricPolicy
 
 
 class ProMP(ParametricPolicy):

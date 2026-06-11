@@ -26,11 +26,13 @@ This script runs MiniGrid tasks with DQN.
 class Network(nn.Module):
     n_features = 512
 
-    def __init__(self, input_shape, output_shape, **kwargs):
+    def __init__(self, input_shape, output_shape, obs_high=255., **kwargs):
         super().__init__()
 
         n_input = input_shape[0]
         n_output = output_shape[0]
+
+        self._obs_high = obs_high
 
         self._h1 = nn.Conv2d(n_input, 32, kernel_size=3, stride=2, padding=1)
         self._h2 = nn.Conv2d(32, 32, kernel_size=3, stride=2, padding=1)
@@ -52,7 +54,7 @@ class Network(nn.Module):
                                 gain=nn.init.calculate_gain('linear'))
 
     def forward(self, state, action=None):
-        h = F.relu(self._h1(state.float() / 255.))
+        h = F.relu(self._h1(state.float() / self._obs_high))
         h = F.relu(self._h2(h))
         h = F.relu(self._h3(h))
         h = F.relu(self._h4(h.view(state.shape[0], -1)))
@@ -68,11 +70,13 @@ class Network(nn.Module):
 
 class FeatureNetwork(nn.Module):
     n_features = 512
-    
-    def __init__(self, input_shape, output_shape, **kwargs):
+
+    def __init__(self, input_shape, output_shape, obs_high=255., **kwargs):
         super().__init__()
 
         n_input = input_shape[0]
+
+        self._obs_high = obs_high
 
         self._h1 = nn.Conv2d(n_input, 32, kernel_size=3, stride=2, padding=1)
         self._h2 = nn.Conv2d(32, 32, kernel_size=3, stride=2, padding=1)
@@ -91,7 +95,7 @@ class FeatureNetwork(nn.Module):
                                 gain=nn.init.calculate_gain('relu'))
 
     def forward(self, state, action=None):
-        h = F.relu(self._h1(state.float() / 255.))
+        h = F.relu(self._h1(state.float() / self._obs_high))
         h = F.relu(self._h2(h))
         h = F.relu(self._h3(h))
         h = F.relu(self._h4(h.view(state.shape[0], -1)))
@@ -122,11 +126,11 @@ def experiment():
     arg_env = parser.add_argument_group('Environment')
     arg_env.add_argument("--name",
                           type=str,
-                          default='MiniGrid-Unlock-v0',
+                          default='MiniGrid-Empty-5x5-v0',
                           help='Gymnasium ID of the MiniGrid environment.')
 
     arg_mem = parser.add_argument_group('Replay Memory')
-    arg_mem.add_argument("--initial-replay-size", type=int, default=50000,
+    arg_mem.add_argument("--initial-replay-size", type=int, default=5000,
                          help='Initial size of the replay memory.')
     arg_mem.add_argument("--max-replay-size", type=int, default=500000,
                          help='Max size of the replay memory.')
@@ -270,7 +274,7 @@ def experiment():
         max_steps = args.max_steps
 
     # MDP
-    mdp = MiniGrid(args.name, history_length=args.history_length)
+    mdp = MiniGridRGB(args.name)
 
     if args.load_path:
         logger = Logger(DQN.__name__, results_dir=None)
@@ -300,12 +304,14 @@ def experiment():
         pi = EpsGreedy(epsilon=epsilon_random)
 
         # Approximator
+        stacked_input_shape = (args.history_length,) + mdp.info.observation_space.shape
         approximator_params = dict(
             network=Network if args.algorithm not in ['dueldqn', 'cdqn', 'ndqn', 'rainbow'] else FeatureNetwork,
-            input_shape=mdp.info.observation_space.shape,
+            input_shape=stacked_input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
             n_features=Network.n_features,
+            obs_high=float(mdp.info.observation_space.high.max()),
             optimizer=optimizer
         )
         if args.algorithm not in ['cdqn', 'rainbow']:
@@ -314,11 +320,14 @@ def experiment():
         approximator = NumpyTorchApproximator
 
         if args.prioritized:
-            replay_memory = PrioritizedReplayMemory(
-                initial_replay_size, max_replay_size, alpha=args.alpha_coeff,
-                beta=LinearParameter(.4, threshold_value=1,
-                                     n=max_steps // train_frequency)
-            )
+            replay_memory = {
+                "class": PrioritizedReplayMemory,
+                "params": {
+                    "alpha": args.alpha_coeff,
+                    "beta": LinearParameter(.4, threshold_value=1,
+                                            n=max_steps // train_frequency),
+                },
+            }
         else:
             replay_memory = None
 
@@ -328,7 +337,8 @@ def experiment():
             target_update_frequency=target_update_frequency // train_frequency,
             replay_memory=replay_memory,
             initial_replay_size=initial_replay_size,
-            max_replay_size=max_replay_size
+            max_replay_size=max_replay_size,
+            history_length=args.history_length,
         )
 
         if args.algorithm == 'dqn':

@@ -1,12 +1,8 @@
-from copy import deepcopy
-from collections import deque
-
 import gymnasium as gym
 import ale_py
 
 from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.rl_utils.spaces import *
-from mushroom_rl.utils.frames import LazyFrames, preprocess_frame
 from mushroom_rl.utils.viewer import ImageViewer
 
 import cv2
@@ -20,14 +16,13 @@ class Atari(Environment):
     2015.
 
     """
-    def __init__(self, 
-                 name, 
+    def __init__(self,
+                 name,
                  width = 84,
                  height = 84,
                  full_action_space = False,
                  repeat_action_probability = 0.25,
                  frameskip = 4,
-                 framestack = 4,
                  headless = False
                  ):
         """
@@ -37,24 +32,22 @@ class Atari(Environment):
             name (str): id name of the Atari game in Gymnasium;
             width (int, 84): width of the screen;
             height (int, 84): height of the screen;
-            headless (bool, False): If True, the rendering is forced to be headless.
+            frameskip (int, 4): number of frames to skip (repeat action) per step;
+            headless (bool, False): if True, the rendering is forced to be headless.
 
         """
-        # MPD creation
         assert 'v5' in name, 'This wrapper supports only v5 ALE environments'
         self.env = gym.make(
                             name,
-                            full_action_space=full_action_space, 
-                            frameskip=1, 
-                            repeat_action_probability=repeat_action_probability, 
+                            full_action_space=full_action_space,
+                            frameskip=1,
+                            repeat_action_probability=repeat_action_probability,
                             render_mode='rgb_array'
                             )
 
-        # MDP parameters
         self.name = name
         self.state_height, self.state_width = (height, width)
-        self.n_stacked_frames = frameskip
-        self.n_skipped_frames = framestack
+        self.n_skipped_frames = frameskip
         self._headless = headless
 
         self.original_state_height, self.original_state_width, _ = self.env.observation_space._shape
@@ -63,20 +56,18 @@ class Atari(Environment):
             np.empty((self.original_state_height, self.original_state_width), dtype=np.uint8),
         ]
 
-        # MDP properties
         action_space = Discrete(self.env.action_space.n)
-        observation_space = Box(
-            low=0., high=255., shape=(self.n_stacked_frames, self.state_height, self.state_width))
-        horizon = 27_000 # instead of np.inf
+        observation_space = Box(low=0., high=255., shape=(self.state_height, self.state_width), data_type=np.uint8)
+        horizon = 27_000
         gamma = .99
         dt = 1/60
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
-        # Viewer
-        self._viewer =  ImageViewer((self.original_state_width, self.original_state_height), dt, headless=self._headless)
+        self._viewer = ImageViewer((self.original_state_width, self.original_state_height), dt, headless=self._headless)
 
         self._seed = None
-        
+        self.state_ = None
+
         super().__init__(mdp_info)
 
     def seed(self, seed):
@@ -92,8 +83,7 @@ class Atari(Environment):
             self.env.unwrapped.ale.getScreenGrayscale(self.screen_buffer[0])
             self.screen_buffer[1].fill(0)
 
-            self.state_ = np.zeros((self.n_stacked_frames, self.state_height, self.state_width), dtype=np.uint8)
-            self.state_[-1, :, :] = self.resize()
+            self.state_ = self.resize()
         else:
             self.state_ = state
 
@@ -115,8 +105,7 @@ class Atari(Environment):
             if absorbing:
                 break
 
-        self.state_ = np.roll(self.state_, -1, axis=0)
-        self.state_[-1, :, :] = self.pool_and_resize()
+        self.state_ = self.pool_and_resize()
 
         self.n_steps += 1
 

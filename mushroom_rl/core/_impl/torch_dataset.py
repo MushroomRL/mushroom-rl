@@ -145,6 +145,20 @@ class TorchDataset(Serializable):
 
         self._len += 1
 
+    def append_batch(self, other):
+        n = len(other)
+        i = self._len
+        self._states[i:i + n] = other.state
+        self._actions[i:i + n] = other.action
+        self._rewards[i:i + n] = other.reward
+        self._next_states[i:i + n] = other.next_state
+        self._absorbing[i:i + n] = other.absorbing
+        self._last[i:i + n] = other.last
+        if self.is_stateful:
+            self._policy_states[i:i + n] = other.policy_state
+            self._policy_next_states[i:i + n] = other.policy_next_state
+        self._len += n
+
     def clear(self):
         self._states = torch.empty_like(self._states)
         self._actions = torch.empty_like(self._actions)

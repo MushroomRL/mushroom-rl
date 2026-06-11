@@ -1,7 +1,7 @@
 import numpy as np
 from copy import deepcopy
 
-from .policy import ParametricPolicy
+from mushroom_rl.policy.policy import ParametricPolicy
 
 
 class VectorPolicy(ParametricPolicy):
@@ -83,25 +83,28 @@ class VectorPolicy(ParametricPolicy):
         """
         return len(self), self._policy_vector[0].weights_size
 
-    def reset(self, mask=None):
+    def reset(self):
         policy_states = None
-        if self.policy_state_shape is None:
-            if mask is None:
-                for policy in self._policy_vector:
-                    policy.reset()
-            else:
-                for masked, policy in zip(mask, self._policy_vector):
-                    if masked:
-                        policy.reset()
-        else:
+        if self.policy_state_shape is not None:
             policy_states = np.empty((len(self._policy_vector),) + self.policy_state_shape)
-            if mask is None:
-                for i, policy in enumerate(self._policy_vector):
+            for i, policy in enumerate(self._policy_vector):
+                policy_states[i] = policy.reset()
+        else:
+            for policy in self._policy_vector:
+                policy.reset()
+        return policy_states
+
+    def reset_vectorized(self, start_mask):
+        policy_states = None
+        if self.policy_state_shape is not None:
+            policy_states = np.empty((len(self._policy_vector),) + self.policy_state_shape)
+            for i, (masked, policy) in enumerate(zip(start_mask, self._policy_vector)):
+                if masked:
                     policy_states[i] = policy.reset()
-            else:
-                for i, (masked, policy) in enumerate(zip(mask, self._policy_vector)):
-                    if masked:
-                        policy_states[i] = policy.reset()
+        else:
+            for masked, policy in zip(start_mask, self._policy_vector):
+                if masked:
+                    policy.reset()
         return policy_states
 
     def __len__(self):

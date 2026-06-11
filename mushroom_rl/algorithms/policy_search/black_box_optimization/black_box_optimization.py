@@ -81,7 +81,7 @@ class BlackBoxOptimization(Agent):
                         [self.distribution.sample() for _ in range(start_mask.sum())])
             self.policy.set_weights(theta)
 
-        policy_states = self.policy.reset()
+        policy_states = self.policy.reset_vectorized(start_mask)
 
         return policy_states, theta
 

@@ -94,8 +94,8 @@ def experiment():
                               "AveragedDQN or MaxminDQN.")
     arg_alg.add_argument("--batch-size", type=int, default=32,
                          help='Batch size for each fit of the network.')
-    # arg_alg.add_argument("--history-length", type=int, default=4,
-    #                      help='Number of frames composing a state.')
+    arg_alg.add_argument("--history-length", type=int, default=4,
+                         help='Number of frames composing a state.')
     arg_alg.add_argument("--target-update-frequency", type=int, default=8_000,
                          help='Number of collected samples before each update'
                               'of the target network.')
@@ -210,10 +210,7 @@ def experiment():
         max_steps = args.max_steps
 
     # MDP
-    mdp = Atari(args.name, headless=False) 
-                # args.screen_width, args.screen_height,
-                # ends_at_life=True, history_length=args.history_length,
-                # max_no_op_actions=args.max_no_op_actions, 
+    mdp = Atari(args.name, headless=False)
 
     if args.load_path:
         logger = Logger(DQN.__name__, results_dir=None)
@@ -243,9 +240,10 @@ def experiment():
         pi = EpsGreedy(epsilon=epsilon_random)
 
         # Approximator
+        stacked_input_shape = (args.history_length,) + mdp.info.observation_space.shape
         approximator_params = dict(
             network=AtariNetwork if args.algorithm not in ['dueldqn', 'cdqn', 'ndqn', 'qdqn', 'rainbow'] else AtariFeatureNetwork,
-            input_shape=mdp.info.observation_space.shape,
+            input_shape=stacked_input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
             n_features=AtariNetwork.n_features,
@@ -259,11 +257,14 @@ def experiment():
         TorchUtils.set_default_device('cuda:0' if torch.cuda.is_available() and args.use_cuda else 'cpu')
 
         if args.prioritized:
-            replay_memory = PrioritizedReplayMemory(
-                initial_replay_size, max_replay_size, alpha=args.alpha_coeff,
-                beta=LinearParameter(.4, threshold_value=1,
-                                     n=max_steps // train_frequency)
-            )
+            replay_memory = {
+                "class": PrioritizedReplayMemory,
+                "params": {
+                    "alpha": args.alpha_coeff,
+                    "beta": LinearParameter(.4, threshold_value=1,
+                                            n=max_steps // train_frequency),
+                },
+            }
         else:
             replay_memory = None
 
@@ -273,7 +274,8 @@ def experiment():
             target_update_frequency=target_update_frequency // train_frequency,
             replay_memory=replay_memory,
             initial_replay_size=initial_replay_size,
-            max_replay_size=max_replay_size
+            max_replay_size=max_replay_size,
+            history_length=args.history_length,
         )
 
         if args.algorithm == 'dqn':

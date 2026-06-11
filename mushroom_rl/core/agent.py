@@ -1,5 +1,5 @@
 from mushroom_rl.core.serialization import Serializable
-from .array_backend import ArrayBackend
+from mushroom_rl.core.array_backend import ArrayBackend
 
 
 class AgentInfo(Serializable):
@@ -27,7 +27,7 @@ class Agent(Serializable):
 
     """
 
-    def __init__(self, mdp_info, policy, is_episodic=False, backend='numpy'):
+    def __init__(self, mdp_info, policy, is_episodic=False, backend='numpy', history_length=1):
         """
         Constructor.
 
@@ -35,7 +35,9 @@ class Agent(Serializable):
             mdp_info (MDPInfo): information about the MDP;
             policy (Policy): the policy followed by the agent;
             is_episodic (bool, False): whether the agent is learning in an episodic fashion or not;
-            backend (str, 'numpy'): array backend to be used by the algorithm.
+            backend (str, 'numpy'): array backend to be used by the algorithm;
+            history_length (int, 1): number of states to stack as input to the policy. When > 1 the agent maintains a
+                rolling observation buffer (not stored in the dataset).
 
         """
         self.mdp_info = mdp_info
@@ -44,6 +46,8 @@ class Agent(Serializable):
             policy_state_shape=policy.policy_state_shape,
             backend=backend
         )
+        self._history_length = history_length
+        self._add_history = None
 
         self.policy = policy
         self.next_action = None
@@ -60,6 +64,8 @@ class Agent(Serializable):
             next_action='none',
             mdp_info='mushroom',
             _info='mushroom',
+            _history_length='primitive',
+            _add_history='none',
             _agent_backend='primitive',
             _env_backend='primitive',
             _core_preprocessors='mushroom',
@@ -95,7 +101,13 @@ class Agent(Serializable):
             state = self._convert_to_agent_backend(state)
             state = self._agent_preprocess(state)
             policy_state = self._convert_to_agent_backend(policy_state)
-            action, next_policy_state = self.policy.draw_action(state, policy_state)
+
+            if self._history_length > 1:
+                assert self._add_history is not None, "episode_start must be called before draw_action"
+                stacked, next_policy_state = self._add_history(state, policy_state)
+                action, _ = self.policy.draw_action(stacked, None)
+            else:
+                action, next_policy_state = self.policy.draw_action(state, policy_state)
         else:
             action = self.next_action
             next_policy_state = None  # FIXME
@@ -115,6 +127,10 @@ class Agent(Serializable):
             A tuple containing the policy initial state and, optionally, the policy parameters
 
         """
+        if self._history_length > 1:
+            self._add_history = self._add_history_single
+            self.policy.reset()
+            return self._reset_history(), None
         return self._convert_to_env_backend(self.policy.reset()), None
 
     def episode_start_vectorized(self, initial_states, episode_info, start_mask):
@@ -130,7 +146,11 @@ class Agent(Serializable):
             A tuple containing the policy initial states and, optionally, the policy parameters
 
         """
-        return self.episode_start(initial_states, episode_info)
+        if self._history_length > 1:
+            self._add_history = self._add_history_vectorized
+            self.policy.reset()
+            return self._reset_history(n_envs=initial_states.shape[0]), None
+        return self._convert_to_env_backend(self.policy.reset()), None
 
     def stop(self):
         """
@@ -179,6 +199,21 @@ class Agent(Serializable):
 
         """
         return self._core_preprocessors
+
+    def _reset_history(self, n_envs=None):
+        obs_shape = self.mdp_info.observation_space.shape
+        obs_dtype = self.mdp_info.observation_space.data_type
+        if n_envs is None:
+            return self._env_backend.zeros(self._history_length - 1, *obs_shape, dtype=obs_dtype)
+        return self._env_backend.zeros(n_envs, self._history_length - 1, *obs_shape, dtype=obs_dtype)
+
+    def _add_history_single(self, state, policy_state):
+        stacked = self._agent_backend.concatenate([policy_state, state[None]], dim=0)
+        return stacked, stacked[1:]
+
+    def _add_history_vectorized(self, state, policy_state):
+        stacked = self._agent_backend.concatenate([policy_state, state[:, None]], dim=1)
+        return stacked, stacked[:, 1:]
 
     def _convert_to_env_backend(self, array):
         return self._env_backend.convert_to_backend(self._agent_backend, array)

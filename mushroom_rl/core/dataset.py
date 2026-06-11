@@ -6,8 +6,8 @@ from collections import defaultdict
 import torch
 
 from mushroom_rl.core.serialization import Serializable
-from .array_backend import ArrayBackend
-from .extra_info import ExtraInfo
+from mushroom_rl.core.array_backend import ArrayBackend
+from mushroom_rl.core.extra_info import ExtraInfo
 
 from ._impl import *
 
@@ -244,6 +244,17 @@ class Dataset(Serializable):
         self._data.append(*step)
         self._info.append(info)
 
+    def append_batch(self, other):
+        """
+        Append all transitions from another dataset without copying data.
+
+        Args:
+            other (Dataset): dataset whose transitions will be appended.
+
+        """
+        self._data.append_batch(other._data)
+        self._info += other._info
+
     def append_episode_info(self, info):
         self._append_info(self._episode_info, info)
 
@@ -269,6 +280,7 @@ class Dataset(Serializable):
         dataset._info = self._info.get_view(index, copy)
         dataset._episode_info = self._episode_info.get_view(index, copy)
         dataset._data = self._data.get_view(index, copy)
+        dataset._theta_list = []
 
         return dataset
 
@@ -408,6 +420,26 @@ class Dataset(Serializable):
         if to is None:
             to = self._array_backend.get_backend_name()
         return self._convert(self.policy_state, self.policy_next_state, to=to)
+
+    def to_backend(self, backend):
+        """
+        Return a copy of this dataset converted to the given backend.
+
+        Args:
+            backend (str): target backend (``'numpy'``, ``'torch'``, or ``'list'``).
+
+        Returns:
+            A new Dataset in the requested backend, or ``self`` if the backend already matches.
+
+        """
+        if self._array_backend.get_backend_name() == backend:
+            return self
+        state, action, reward, next_state, absorbing, last = self.parse(to=backend)
+        policy_state, policy_next_state = (self.parse_policy_state(to=backend) if self.is_stateful else (None, None))
+        return Dataset.from_array(state, action, reward, next_state, absorbing, last,
+                                  policy_state=policy_state, policy_next_state=policy_next_state,
+                                  info=self._info, episode_info=self._episode_info,
+                                  theta_list=self._theta_list, backend=backend)
 
     def select_first_episodes(self, n_episodes):
         """

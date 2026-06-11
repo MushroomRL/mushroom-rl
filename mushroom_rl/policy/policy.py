@@ -57,8 +57,7 @@ class Policy(Serializable):
 
     def reset(self):
         """
-        Useful when the policy needs a special initialization at the beginning
-        of an episode.
+        Useful when the policy needs a special initialization at the beginning of an episode.
 
         Returns:
             The initial policy state (by default None).

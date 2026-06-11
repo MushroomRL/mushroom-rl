@@ -1,32 +1,50 @@
-import warnings
+import cv2
+import numpy as np
+from minigrid.wrappers import RGBImgPartialObsWrapper, ImgObsWrapper
 
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
-    from gym_minigrid.wrappers import RGBImgPartialObsWrapper, ImgObsWrapper
-
-import gymnasium
-
-from copy import deepcopy
-from collections import deque
-
-from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.environments import Gymnasium
-from mushroom_rl.rl_utils.spaces import Discrete, Box
-from mushroom_rl.utils.frames import LazyFrames, preprocess_frame
+from mushroom_rl.rl_utils.spaces import Box
 
 
-class MiniGrid(Gymnasium):
+class MiniGridBase(Gymnasium):
+    def __init__(self, name, horizon, gamma, fixed_seed, headless, wrappers, obs_high):
+        super().__init__(name, horizon=horizon, gamma=gamma, headless=headless, wrappers=wrappers)
+
+        self._fixed_seed = fixed_seed
+        self._img_size = self.env.observation_space.shape[0:2]
+        self.info.observation_space = Box(low=0., high=obs_high, shape=self._obs_shape())
+        self.info.dt = 1 / self.env.unwrapped.metadata["render_fps"]
+        self.env.unwrapped.max_steps = self.info.horizon + 1
+
+    def reset(self, state=None):
+        obs, info = self.env.reset(seed=self._fixed_seed)
+        return self._preprocess_frame(obs), info
+
+    def step(self, action):
+        obs, reward, terminated, truncated, info = self.env.step(action[0])
+        reward = float(reward)
+        if reward > 0:
+            reward = 1.
+
+        absorbing = terminated or truncated
+
+        return self._preprocess_frame(obs), reward, absorbing, info
+
+    def _obs_shape(self):
+        raise NotImplementedError
+
+    def _preprocess_frame(self, obs):
+        raise NotImplementedError
+
+
+class MiniGrid(MiniGridBase):
     """
-    Interface for gym_minigrid environments. It makes it possible to
-    use all MiniGrid environments that do not use text instructions, such as
-    MultiRoom, KeyCorridor, BlockedUnblockPickup, ObstructedMaze.
-    This environment uses either MiniGrid's default 7x7x3 observations or their
-    pixel 56x56x3 version. In both cases, the state is partially observable.
-    To compensate for the partial observability, LazyFrames are used.
+    Interface for MiniGrid environments using the symbolic 7x7x3 observation.
+    Each cell is encoded as (object_type, color, state), returned as a (3, H, W)
+    array. Suitable for environments where color and door state matter.
 
     """
-    def __init__(self, name, horizon=None, gamma=0.99, history_length=4,
-                 fixed_seed=None, use_pixels=False):
+    def __init__(self, name, horizon=None, gamma=0.99, fixed_seed=None, headless=False):
         """
         Constructor.
 
@@ -34,62 +52,46 @@ class MiniGrid(Gymnasium):
              name (str): name of the environment;
              horizon (int, None): the horizon;
              gamma (float, 0.99): the discount factor;
-             history_length (int, 4): number of frames to form a state;
-             fixed_seed (int, None): if passed, it fixes the seed of the
-                environment at every reset. This way, the environment is fixed
-                rather than procedurally generated;
-             use_pixels (bool, False): if True, MiniGrid's default 7x7x3
-                observations is converted to an image of resolution 56x56x3.
+             fixed_seed (int, None): if passed, fixes the seed at every reset;
+             headless (bool, False): if True, the rendering is forced to be headless.
 
         """
-        # MDP creation
-        self._not_pybullet = True
-        self._first = True
+        super().__init__(name, horizon, gamma, fixed_seed, headless,
+                         wrappers=[ImgObsWrapper], obs_high=10.)
 
-        env = gymnasium.make(name)
-        obs_high = 10.
-        if use_pixels:
-            env = RGBImgPartialObsWrapper(env) # Get pixel observations
-            obs_high = 255.
-        env = ImgObsWrapper(env) # Get rid of the 'mission' field
-        self.env = env
+    def _obs_shape(self):
+        return 3, *self._img_size
 
-        self._fixed_seed = fixed_seed
+    def _preprocess_frame(self, obs):
+        return np.ascontiguousarray(obs.transpose(2, 0, 1), dtype=np.uint8)
 
-        self._img_size = env.observation_space.shape[0:2]
-        self._history_length = history_length
 
-        # Get the default horizon
-        if horizon is None:
-            horizon = self.env.max_steps
+class MiniGridRGB(MiniGridBase):
+    """
+    Interface for MiniGrid environments using pixel observations.
+    The 56x56x3 RGB partial observation is converted to grayscale, suitable
+    for CNN-based agents such as DQN.
 
-        # MDP properties
-        action_space = Discrete(self.env.action_space.n)
-        observation_space = Box(
-            low=0., high=obs_high, shape=(history_length, self._img_size[1], self._img_size[0]))
-        self.env.max_steps = horizon + 1 # Hack to ignore gym time limit (do not use np.inf, since MiniGrid returns r(t) = 1 - 0.9t/T)
-        dt = 1/self.env.unwrapped.metadata["render_fps"]
-        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
+    """
+    def __init__(self, name, horizon=None, gamma=0.99, fixed_seed=None, headless=False):
+        """
+        Constructor.
 
-        Environment.__init__(self, mdp_info)
+        Args:
+             name (str): name of the environment;
+             horizon (int, None): the horizon;
+             gamma (float, 0.99): the discount factor;
+             fixed_seed (int, None): if passed, fixes the seed at every reset;
+             headless (bool, False): if True, the rendering is forced to be headless.
 
-        self._state = None
+        """
+        super().__init__(name, horizon, gamma, fixed_seed, headless,
+                         wrappers=[RGBImgPartialObsWrapper, ImgObsWrapper], obs_high=255.)
 
-    def reset(self, state=None):
-        self._state = preprocess_frame(self.env.reset(), self._img_size)
-        self._state = deque([deepcopy(
-            self._state) for _ in range(self._history_length)],
-            maxlen=self._history_length
-        )
-        return LazyFrames(list(self._state), self._history_length), {}
+    def _obs_shape(self):
+        return self._img_size
 
-    def step(self, action):
-        obs, reward, absorbing, info = self.env.step(action)
-        reward = float(reward)
-        if reward > 0:
-            reward = 1.  # MiniGrid discounts rewards based on timesteps, but we need raw rewards
-
-        self._state.append(preprocess_frame(obs, self._img_size))
-
-        return LazyFrames(list(self._state),
-                          self._history_length), reward, absorbing, info
+    def _preprocess_frame(self, obs):
+        image = cv2.cvtColor(obs, cv2.COLOR_RGB2GRAY)
+        image = cv2.resize(image, self._img_size, interpolation=cv2.INTER_LINEAR)
+        return np.array(image, dtype=np.uint8)

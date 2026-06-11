@@ -159,7 +159,7 @@ def test_reset_stateful_with_mask():
     assert not np.allclose(policy_state, reset_value)
 
     mask = np.array([True, False, True])
-    policy_states = vpi.reset(mask=mask)
+    policy_states = vpi.reset_vectorized(mask)
 
     assert policy_states.shape == (n_envs, 2)
     assert np.allclose(policy_states[0], reset_value)

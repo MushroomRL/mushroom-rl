@@ -1,6 +1,7 @@
 import numpy as np
 from mushroom_rl.environments.gymnasium_env import Gymnasium
 from mushroom_rl.environments.atari import Atari
+from mushroom_rl.environments.minigrid_env import MiniGrid, MiniGridRGB
 from mushroom_rl.environments.car_on_hill import CarOnHill
 from mushroom_rl.environments.cart_pole import CartPole
 from mushroom_rl.environments.generators import generate_grid_world,\
@@ -210,5 +211,29 @@ def test_taxi():
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
     ns_test = 5
+
+    assert np.allclose(ns, ns_test)
+
+
+def test_minigrid():
+    np.random.seed(1)
+    mdp = MiniGrid('MiniGrid-Empty-5x5-v0', fixed_seed=1)
+    mdp.reset()
+    for i in range(10):
+        ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
+
+    ns_test = np.load('tests/environments/test_minigrid_1.npy')
+
+    assert np.allclose(ns, ns_test)
+
+
+def test_minigrid_rgb():
+    np.random.seed(1)
+    mdp = MiniGridRGB('MiniGrid-Empty-5x5-v0', fixed_seed=1)
+    mdp.reset()
+    for i in range(10):
+        ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
+
+    ns_test = np.load('tests/environments/test_minigrid_2.npy')
 
     assert np.allclose(ns, ns_test)

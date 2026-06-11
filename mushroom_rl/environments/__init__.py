@@ -21,8 +21,10 @@ except ImportError:
 
 try:
     MiniGrid = None
-    from .minigrid_env import MiniGrid
+    MiniGridRGB = None
+    from .minigrid_env import MiniGrid, MiniGridRGB
     MiniGrid.register()
+    MiniGridRGB.register()
 except ImportError:
     pass
 

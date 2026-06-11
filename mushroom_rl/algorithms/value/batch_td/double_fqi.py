@@ -1,7 +1,7 @@
 import numpy as np
 from tqdm import trange
 
-from .fqi import FQI
+from mushroom_rl.algorithms.value.batch_td.fqi import FQI
 
 
 class DoubleFQI(FQI):
