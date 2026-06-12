@@ -1,7 +1,7 @@
 from copy import deepcopy
 
 from mushroom_rl.algorithms.value.dqn import DQN
-from mushroom_rl.approximators.parametric import NumpyTorchApproximator
+from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import NoisyNetwork
 
 
@@ -22,4 +22,4 @@ class NoisyDQN(DQN):
         params['approximator_params']['network'] = NoisyNetwork
         params['approximator_params']['features_network'] = features_network
 
-        super().__init__(mdp_info, policy, NumpyTorchApproximator, **params)
+        super().__init__(mdp_info, policy, TorchApproximator, **params)

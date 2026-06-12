@@ -117,7 +117,15 @@ class ArrayBackend(object):
         raise NotImplementedError
 
     @staticmethod
-    def randint(low, high, size):
+    def randint(low, high, size, device=None):
+        raise NotImplementedError
+
+    @staticmethod
+    def multinomial(p):
+        raise NotImplementedError
+
+    @staticmethod
+    def uniform(low, high):
         raise NotImplementedError
 
     @staticmethod
@@ -126,6 +134,10 @@ class ArrayBackend(object):
 
     @staticmethod
     def abs(array):
+        raise NotImplementedError
+
+    @staticmethod
+    def exp(array):
         raise NotImplementedError
 
     @staticmethod
@@ -294,10 +306,19 @@ class NumpyBackend(ArrayBackend):
     def rand(*dims, device=None):
         return np.random.rand(*dims)
 
-    @staticmethod
-    def randint(low, high, size):
+    @classmethod
+    def randint(cls, low, high, size, device=None):
         assert type(size) == tuple
+        cls.check_device(device)
         return np.random.randint(low, high, size)
+
+    @staticmethod
+    def multinomial(p):
+        return np.array([np.random.choice(len(p), p=p)])
+
+    @staticmethod
+    def uniform(low, high):
+        return np.random.uniform(low, high)
 
     @staticmethod
     def arange(start, stop, step=1, dtype=None):
@@ -306,6 +327,10 @@ class NumpyBackend(ArrayBackend):
     @staticmethod
     def abs(array):
         return np.abs(array)
+
+    @staticmethod
+    def exp(array):
+        return np.exp(array)
 
     @staticmethod
     def clip(array, min, max):
@@ -479,8 +504,17 @@ class TorchBackend(ArrayBackend):
         return torch.rand(dims, device=device)
 
     @staticmethod
-    def randint(low, high, size):
-        return torch.randint(low, high, size)
+    def randint(low, high, size, device=None):
+        device = TorchUtils.get_device() if device is None else device
+        return torch.randint(low, high, size, device=device)
+
+    @staticmethod
+    def multinomial(p):
+        return torch.multinomial(p, 1)
+
+    @staticmethod
+    def uniform(low, high):
+        return low + (high - low) * torch.rand_like(low)
 
     @staticmethod
     def arange(start, stop, step=1, dtype=None):
@@ -489,6 +523,10 @@ class TorchBackend(ArrayBackend):
     @staticmethod
     def abs(array):
         return torch.abs(array)
+
+    @staticmethod
+    def exp(array):
+        return torch.exp(array)
 
     @staticmethod
     def clip(array, min, max):

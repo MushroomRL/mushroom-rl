@@ -1,4 +1,4 @@
-import numpy as np
+import torch
 
 from mushroom_rl.algorithms.value.dqn import DQN
 from mushroom_rl.approximators.regressor import Regressor
@@ -26,7 +26,7 @@ class MaxminDQN(DQN):
         super().__init__(mdp_info, policy, approximator, **params)
 
     def fit(self, dataset):
-        self._fit_params['idx'] = np.random.randint(self._n_approximators)
+        self._fit_params['idx'] = torch.randint(self._n_approximators, (1,)).item()
 
         super().fit(dataset)
 

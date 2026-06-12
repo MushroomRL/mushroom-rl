@@ -1,6 +1,4 @@
-import numpy as np
-
-from mushroom_rl.core import Serializable
+from mushroom_rl.core import ArrayBackend, Serializable
 from mushroom_rl.rl_utils.parameters import to_parameter
 
 from mushroom_rl.rl_utils.replay_memory.replay_memory import ReplayMemory
@@ -12,21 +10,24 @@ class SumTree(Serializable):
     This is used, for instance, by ``PrioritizedReplayMemory``.
 
     """
-    def __init__(self, max_size):
+    def __init__(self, max_size, backend):
         """
         Constructor.
 
         Args:
-            max_size (int): maximum size of the tree.
+            max_size (int): maximum size of the tree;
+            backend (str): name of the array backend to use for the tree.
 
         """
         self._max_size = max_size
-        self._tree = np.zeros(2 * max_size - 1)
+        self._backend = ArrayBackend.get_array_backend(backend)
+        self._tree = self._backend.zeros(2 * max_size - 1)
 
         super().__init__()
         self._add_save_attr(
             _max_size="primitive",
-            _tree="numpy")
+            _backend="primitive",
+            _tree=self._backend.get_backend_serialization())
 
     def get(self, s):
         """
@@ -45,8 +46,8 @@ class SumTree(Serializable):
         Update the priorities at the given tree indices.
 
         Args:
-            idx (np.ndarray): tree indices;
-            priorities (np.ndarray): new priorities.
+            idx (Array): tree indices;
+            priorities (Array): new priorities.
 
         """
         for i, p in zip(idx, priorities):
@@ -69,7 +70,8 @@ class SumTree(Serializable):
             return idx
 
         if self._tree[left] == self._tree[right]:
-            return self._retrieve(s, np.random.choice([left, right]))
+            side = self._backend.randint(0, 2, (1,)).item()
+            return self._retrieve(s, left if side == 0 else right)
 
         if s <= self._tree[left]:
             return self._retrieve(s, left)
@@ -137,7 +139,7 @@ class PrioritizedReplayMemory(ReplayMemory):
 
         Args:
             dataset (Dataset): dataset whose transitions will be added to the replay memory;
-            p (np.ndarray): priority of each sample in the dataset.
+            p (Array): priority of each sample in the dataset.
 
         """
         assert self._dataset.is_stateful == dataset.is_stateful
@@ -175,9 +177,9 @@ class PrioritizedReplayMemory(ReplayMemory):
 
         total_p = self._tree.total_p
         segment = total_p / n_samples
-        samples = np.random.uniform(
-            np.arange(n_samples) * segment,
-            np.arange(1, n_samples + 1) * segment
+        samples = backend.uniform(
+            backend.arange(0, n_samples) * segment,
+            backend.arange(1, n_samples + 1) * segment
         )
 
         for i, s in enumerate(samples):
@@ -203,22 +205,23 @@ class PrioritizedReplayMemory(ReplayMemory):
 
     def reset(self):
         super().reset()
-        self._tree = SumTree(self._max_size)
+        self._tree = SumTree(self._max_size, self._agent_info.backend)
 
     def update(self, error, idx):
         """
         Update the priority of the sample at the provided index in the dataset.
 
         Args:
-            error (np.ndarray): errors to consider to compute the priorities;
-            idx (np.ndarray): indexes of the transitions in the dataset.
+            error (Array): errors to consider to compute the priorities;
+            idx (Array): indexes of the transitions in the dataset.
 
         """
         p = self._get_priority(error)
         self._tree.update(idx, p)
 
     def _get_priority(self, error):
-        return (np.abs(error) + self._epsilon) ** self._alpha
+        backend = self._dataset.array_backend
+        return (backend.abs(error) + self._epsilon) ** self._alpha
 
     @property
     def max_priority(self):

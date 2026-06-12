@@ -1,12 +1,12 @@
 from copy import deepcopy
 
-import numpy as np
+import torch
 
 from mushroom_rl.core import Agent
-from mushroom_rl.approximators.parametric.torch_approximator import *
 from mushroom_rl.approximators.regressor import Regressor
 from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory, ReplayMemory
 from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.utils.torch import TorchUtils
 
 
 class AbstractDQN(Agent):
@@ -36,7 +36,7 @@ class AbstractDQN(Agent):
             history_length (int, 1): number of consecutive observation stacked as policy input.
 
         """
-        super().__init__(mdp_info, policy, backend='numpy', history_length=history_length)
+        super().__init__(mdp_info, policy, backend='torch', history_length=history_length)
 
         self._fit_params = dict() if fit_params is None else fit_params
         self._predict_params = dict() if predict_params is None else predict_params
@@ -98,26 +98,28 @@ class AbstractDQN(Agent):
             state, action, reward, next_state, absorbing, *_ = self._replay_memory.get(self._batch_size())
 
             if self._clip_reward:
-                reward = np.clip(reward, -1, 1)
+                reward = torch.clip(reward, -1, 1)
 
-            q_next = self._next_q(next_state, absorbing)
-            q = reward + self.mdp_info.gamma * q_next
+            with torch.no_grad():
+                q_next = self._next_q(next_state, absorbing)
+                q = reward + self.mdp_info.gamma * q_next
 
             self.approximator.fit(state, action, q, **self._fit_params)
 
     def _fit_prioritized(self, dataset):
-        self._replay_memory.add(
-            dataset, np.ones(len(dataset)) * self._replay_memory.max_priority)
+        initial_priority = torch.ones(len(dataset), device=TorchUtils.get_device()) * self._replay_memory.max_priority
+        self._replay_memory.add(dataset, initial_priority)
         if self._replay_memory.initialized:
             state, action, reward, next_state, absorbing, *_, idxs, is_weight = \
                 self._replay_memory.get(self._batch_size())
 
             if self._clip_reward:
-                reward = np.clip(reward, -1, 1)
+                reward = torch.clip(reward, -1, 1)
 
-            q_next = self._next_q(next_state, absorbing)
-            q = reward + self.mdp_info.gamma * q_next
-            td_error = q - self.approximator.predict(state, action, **self._predict_params)
+            with torch.no_grad():
+                q_next = self._next_q(next_state, absorbing)
+                q = reward + self.mdp_info.gamma * q_next
+                td_error = q - self.approximator.predict(state, action, **self._predict_params)
 
             self._replay_memory.update(td_error, idxs)
 
@@ -139,9 +141,9 @@ class AbstractDQN(Agent):
     def _next_q(self, next_state, absorbing):
         """
         Args:
-            next_state (np.ndarray): the states where next action has to be
+            next_state (torch.Tensor): the states where next action has to be
                 evaluated;
-            absorbing (np.ndarray): the absorbing flag for the states in
+            absorbing (torch.Tensor): the absorbing flag for the states in
                 ``next_state``.
 
         Returns:

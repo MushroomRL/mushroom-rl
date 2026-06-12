@@ -243,7 +243,8 @@ def test_replay_memory_torch_backend():
 
     assert isinstance(s, torch.Tensor)
 
-    idxs = torch.randint(0, 10, (4,), generator=torch.Generator().manual_seed(7)).numpy()
+    torch.manual_seed(7)
+    idxs = torch.randint(0, 10, (4,)).numpy()
     assert np.allclose(s.numpy(), states[idxs])
     assert np.allclose(r.numpy(), rewards[idxs])
 
@@ -311,10 +312,10 @@ def test_sequence_replay_memory_episode_boundary():
 
 def test_sum_tree_update_priorities():
     n = 5
-    priorities = np.array([1.0, 2.0, 1.0, 1.5, 0.5])
+    priorities = torch.tensor([1.0, 2.0, 1.0, 1.5, 0.5])
 
-    tree = SumTree(max_size=20)
-    tree_idxs = np.arange(n) + tree._max_size - 1
+    tree = SumTree(max_size=20, backend='torch')
+    tree_idxs = torch.arange(n) + tree._max_size - 1
     tree.update(tree_idxs, priorities)
 
     assert np.isclose(tree.total_p, 6.0)
@@ -324,9 +325,9 @@ def test_sum_tree_update_priorities():
 def test_sum_tree_update_propagates():
     n = 5
 
-    tree = SumTree(max_size=20)
-    tree_idxs = np.arange(n) + tree._max_size - 1
-    tree.update(tree_idxs, np.ones(n))
+    tree = SumTree(max_size=20, backend='torch')
+    tree_idxs = torch.arange(n) + tree._max_size - 1
+    tree.update(tree_idxs, torch.ones(n))
 
     first_leaf = tree._max_size - 1
     tree.update([first_leaf], [5.0])
@@ -338,10 +339,10 @@ def test_sum_tree_update_propagates():
 
 def test_sum_tree_get_retrieves_correct_priority():
     n = 5
-    priorities = np.array([1.0, 2.0, 1.0, 1.5, 0.5])
+    priorities = torch.tensor([1.0, 2.0, 1.0, 1.5, 0.5])
 
-    tree = SumTree(max_size=20)
-    tree_idxs = np.arange(n) + tree._max_size - 1
+    tree = SumTree(max_size=20, backend='torch')
+    tree_idxs = torch.arange(n) + tree._max_size - 1
     tree.update(tree_idxs, priorities)
 
     idx, p = tree.get(0.5)

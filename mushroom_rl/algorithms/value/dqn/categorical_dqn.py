@@ -1,12 +1,11 @@
 from copy import deepcopy
 
-import numpy as np
-
 import torch
 
 from mushroom_rl.algorithms.value.dqn import AbstractDQN
-from mushroom_rl.approximators.parametric import NumpyTorchApproximator
+from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import CategoricalNetwork
+from mushroom_rl.utils.torch import TorchUtils
 
 eps = torch.finfo(torch.float32).eps
 
@@ -55,17 +54,17 @@ class CategoricalDQN(AbstractDQN):
         self._v_min = v_min
         self._v_max = v_max
         self._delta = (v_max - v_min) / (n_atoms - 1)
-        self._a_values = np.arange(v_min, v_max + eps, self._delta)
+        self._a_values = torch.arange(v_min, v_max + eps, self._delta, device=TorchUtils.get_device())
 
         self._add_save_attr(
             _n_atoms='primitive',
             _v_min='primitive',
             _v_max='primitive',
             _delta='primitive',
-            _a_values='numpy'
+            _a_values='torch'
         )
 
-        super().__init__(mdp_info, policy, NumpyTorchApproximator, **params)
+        super().__init__(mdp_info, policy, TorchApproximator, **params)
 
     def fit(self, dataset):
         self._replay_memory.add(dataset)
@@ -74,29 +73,30 @@ class CategoricalDQN(AbstractDQN):
                 self._replay_memory.get(self._batch_size())
 
             if self._clip_reward:
-                reward = np.clip(reward, -1, 1)
+                reward = torch.clip(reward, -1, 1)
 
-            q_next = self.target_approximator.predict(next_state, **self._predict_params)
-            a_max = np.argmax(q_next, 1)
-            gamma = self.mdp_info.gamma * (1 - absorbing)
-            p_next = self.target_approximator.predict(next_state, a_max,
-                                                      get_distribution=True, **self._predict_params)
-            gamma_z = gamma.reshape(-1, 1) * np.expand_dims(
-                self._a_values, 0).repeat(len(gamma), 0)
-            bell_a = (reward.reshape(-1, 1) + gamma_z).clip(self._v_min,
-                                                            self._v_max)
+            with torch.no_grad():
+                q_next = self.target_approximator.predict(next_state, **self._predict_params)
+                a_max = torch.argmax(q_next, 1)
+                gamma = self.mdp_info.gamma * ~absorbing
+                p_next = self.target_approximator.predict(next_state, a_max,
+                                                          get_distribution=True, **self._predict_params)
+                gamma_z = gamma.unsqueeze(1) * self._a_values
+                bell_a = (reward.unsqueeze(1) + gamma_z).clip(self._v_min,
+                                                              self._v_max)
 
-            b = (bell_a - self._v_min) / self._delta
-            l = np.floor(b).astype(int)
-            u = np.ceil(b).astype(int)
+                b = (bell_a - self._v_min) / self._delta
+                l = torch.floor(b).long()
+                u = torch.ceil(b).long()
 
-            m = np.zeros((self._batch_size.get_value(), self._n_atoms))
-            for i in range(self._n_atoms):
-                l[:, i][(u[:, i] > 0) * (l[:, i] == u[:, i])] -= 1
-                u[:, i][(l[:, i] < (self._n_atoms - 1)) * (l[:, i] == u[:, i])] += 1
+                m = torch.zeros(self._batch_size.get_value(), self._n_atoms, device=TorchUtils.get_device())
+                rows = torch.arange(len(m), device=TorchUtils.get_device())
+                for i in range(self._n_atoms):
+                    l[:, i][(u[:, i] > 0) & (l[:, i] == u[:, i])] -= 1
+                    u[:, i][(l[:, i] < (self._n_atoms - 1)) & (l[:, i] == u[:, i])] += 1
 
-                m[np.arange(len(m)), l[:, i]] += p_next[:, i] * (u[:, i] - b[:, i])
-                m[np.arange(len(m)), u[:, i]] += p_next[:, i] * (b[:, i] - l[:, i])
+                    m[rows, l[:, i]] += p_next[:, i] * (u[:, i] - b[:, i])
+                    m[rows, u[:, i]] += p_next[:, i] * (b[:, i] - l[:, i])
 
             self.approximator.fit(state, action, m, get_distribution=True,
                                   **self._fit_params)

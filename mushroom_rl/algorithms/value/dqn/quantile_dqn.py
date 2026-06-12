@@ -1,13 +1,12 @@
 from copy import deepcopy
 
-import numpy as np
-
 import torch
 import torch.nn.functional as F
 
 from mushroom_rl.algorithms.value.dqn import AbstractDQN
-from mushroom_rl.approximators.parametric import NumpyTorchApproximator
+from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import QuantileNetwork
+from mushroom_rl.utils.torch import TorchUtils
 
 
 def quantile_huber_loss(input, target):
@@ -48,14 +47,14 @@ class QuantileDQN(AbstractDQN):
 
         self._n_quantiles = n_quantiles
 
-        tau = torch.arange(n_quantiles + 1) / n_quantiles
-        QuantileDQN.tau_hat = torch.Tensor([(tau[i-1] + tau[i]) / 2 for i in range(1, len(tau))])
+        tau = torch.arange(n_quantiles + 1, device=TorchUtils.get_device()) / n_quantiles
+        QuantileDQN.tau_hat = (tau[:-1] + tau[1:]) / 2
 
         self._add_save_attr(
             _n_quantiles='primitive'
         )
 
-        super().__init__(mdp_info, policy, NumpyTorchApproximator, **params)
+        super().__init__(mdp_info, policy, TorchApproximator, **params)
 
     def fit(self, dataset):
         self._replay_memory.add(dataset)
@@ -64,14 +63,15 @@ class QuantileDQN(AbstractDQN):
                 self._replay_memory.get(self._batch_size())
 
             if self._clip_reward:
-                reward = np.clip(reward, -1, 1)
+                reward = torch.clip(reward, -1, 1)
 
-            q_next = self.target_approximator.predict(next_state, **self._predict_params)
-            a_max = np.argmax(q_next, 1)
-            quant_next = self.target_approximator.predict(next_state, a_max,
-                                                          get_quantiles=True, **self._predict_params)
-            quant_next *= (1 - absorbing).reshape(-1, 1)
-            quant = reward.reshape(-1, 1) + self.mdp_info.gamma * quant_next
+            with torch.no_grad():
+                q_next = self.target_approximator.predict(next_state, **self._predict_params)
+                a_max = torch.argmax(q_next, 1)
+                quant_next = self.target_approximator.predict(next_state, a_max,
+                                                              get_quantiles=True, **self._predict_params)
+                quant_next *= (~absorbing).unsqueeze(1)
+                quant = reward.unsqueeze(1) + self.mdp_info.gamma * quant_next
 
             self.approximator.fit(state, action, quant, get_quantiles=True, **self._fit_params)
 
