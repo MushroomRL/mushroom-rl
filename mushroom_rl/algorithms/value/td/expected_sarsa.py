@@ -5,8 +5,8 @@ from mushroom_rl.approximators.table import Table
 class ExpectedSARSA(TD):
     """
     Expected SARSA algorithm.
-    "A theoretical and empirical analysis of Expected Sarsa". Seijen H. V. et
-    al.. 2009.
+    "A theoretical and empirical analysis of Expected Sarsa"
+    Seijen H. V. et al. 2009.
 
     """
     def __init__(self, mdp_info, policy, learning_rate):

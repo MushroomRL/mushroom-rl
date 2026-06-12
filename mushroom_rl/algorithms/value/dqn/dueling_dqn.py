@@ -8,8 +8,8 @@ from mushroom_rl.approximators.parametric.networks import DuelingNetwork
 class DuelingDQN(DQN):
     """
     Dueling DQN algorithm.
-    "Dueling Network Architectures for Deep Reinforcement Learning".
-    Wang Z. et al.. 2016.
+    "Dueling Network Architectures for Deep Reinforcement Learning"
+    Wang Z. et al. 2016.
 
     """
     def __init__(self, mdp_info, policy, approximator_params,

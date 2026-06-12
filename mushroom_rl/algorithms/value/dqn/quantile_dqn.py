@@ -27,8 +27,8 @@ def quantile_huber_loss(input, target):
 class QuantileDQN(AbstractDQN):
     """
     Quantile Regression DQN algorithm.
-    "Distributional Reinforcement Learning with Quantile Regression".
-    Dabney W. et al.. 2018.
+    "Distributional Reinforcement Learning with Quantile Regression"
+    Dabney W. et al. 2018.
 
     """
     def __init__(self, mdp_info, policy, approximator_params, n_quantiles, **params):

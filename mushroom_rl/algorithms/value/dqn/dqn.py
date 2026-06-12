@@ -5,7 +5,7 @@ class DQN(AbstractDQN):
     """
     Deep Q-Network algorithm.
     "Human-Level Control Through Deep Reinforcement Learning".
-    Mnih V. et al.. 2015.
+    Mnih V. et al. 2015.
 
     """
     def _next_q(self, next_state, absorbing):

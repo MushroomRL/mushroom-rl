@@ -10,6 +10,10 @@ from mushroom_rl.rl_utils.parameters import to_parameter
 
 
 class AbstractDQN(Agent):
+    """
+    Abstract class for every DQN-based approach.
+
+    """
     def __init__(self, mdp_info, policy, approximator, approximator_params, batch_size, target_update_frequency,
                  replay_memory=None, initial_replay_size=500, max_replay_size=5000, fit_params=None,
                  predict_params=None, clip_reward=False, history_length=1):

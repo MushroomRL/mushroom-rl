@@ -14,7 +14,7 @@ class A2C(DeepAC):
     Advantage Actor Critic algorithm (A2C).
     Synchronous version of the A3C algorithm.
     "Asynchronous Methods for Deep Reinforcement Learning".
-    Mnih V. et. al.. 2016.
+    Mnih V. et al. 2016.
 
     """
     def __init__(self, mdp_info, policy, actor_optimizer, critic_params,

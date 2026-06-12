@@ -6,8 +6,8 @@ from mushroom_rl.algorithms.policy_search.policy_gradient import PolicyGradient
 class GPOMDP(PolicyGradient):
     """
     GPOMDP algorithm.
-    "Infinite-Horizon Policy-Gradient Estimation". Baxter J. and Bartlett P. L..
-    2001.
+    "Infinite-Horizon Policy-Gradient Estimation".
+    Baxter J. and Bartlett P. L. 2001.
 
     """
     def __init__(self, mdp_info, policy, optimizer):

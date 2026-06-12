@@ -7,8 +7,8 @@ from mushroom_rl.approximators.regressor import Regressor
 class AveragedDQN(AbstractDQN):
     """
     Averaged-DQN algorithm.
-    "Averaged-DQN: Variance Reduction and Stabilization for Deep Reinforcement
-    Learning". Anschel O. et al.. 2017.
+    "Averaged-DQN: Variance Reduction and Stabilization for Deep Reinforcement Learning".
+    Anschel O. et al. 2017.
 
     """
     def __init__(self, mdp_info, policy, approximator, n_approximators,

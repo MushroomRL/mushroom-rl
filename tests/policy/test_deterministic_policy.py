@@ -7,7 +7,7 @@ import numpy as np
 
 
 def test_deterministic_policy():
-    np.random.seed(88)
+    np.random.seed(42)
 
     n_dims = 5
 
@@ -35,7 +35,7 @@ def test_deterministic_policy():
     assert pi(s_test_1, a_test) == 1
     assert pi(s_test_2, a_test) == 0
 
-    a_stored = np.array([-1.86941072, -0.1789696])
+    a_stored = np.array([-0.24029878, -0.55175323])
     action, _ = pi.draw_action(s_test_1)
     assert np.allclose(action, a_stored)
 

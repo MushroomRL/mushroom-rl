@@ -8,7 +8,8 @@ from mushroom_rl.approximators.ensemble_table import EnsembleTable
 class DoubleQLearning(TD):
     """
     Double Q-Learning algorithm.
-    "Double Q-Learning". Hasselt H. V.. 2010.
+    "Double Q-Learning".
+    Hasselt H. V. 2010.
 
     """
     def __init__(self, mdp_info, policy, learning_rate):

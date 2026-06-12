@@ -7,7 +7,7 @@ class DoubleDQN(DQN):
     """
     Double DQN algorithm.
     "Deep Reinforcement Learning with Double Q-Learning".
-    Hasselt H. V. et al.. 2016.
+    Hasselt H. V. et al. 2016.
 
     """
     def _next_q(self, next_state, absorbing):

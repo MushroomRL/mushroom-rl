@@ -10,9 +10,9 @@ from mushroom_rl.rl_utils.parameters import to_parameter
 
 class PPO_BPTT(OnPolicyDeepAC):
     """
-    Proximal Policy Optimization algorithm.
+    Backpropagation trough time extension of the  Proximal Policy Optimization algorithm.
     "Proximal Policy Optimization Algorithms".
-    Schulman J. et al.. 2017.
+    Schulman J. et al. 2017.
 
     """
     def __init__(self, mdp_info, policy, actor_optimizer, critic_params,

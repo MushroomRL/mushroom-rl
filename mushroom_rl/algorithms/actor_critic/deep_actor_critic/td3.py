@@ -9,7 +9,7 @@ class TD3(DDPG):
     """
     Twin Delayed DDPG algorithm.
     "Addressing Function Approximation Error in Actor-Critic Methods".
-    Fujimoto S. et al.. 2018.
+    Fujimoto S. et al. 2018.
 
     """
     def __init__(self, mdp_info, policy_class, policy_params, actor_params,

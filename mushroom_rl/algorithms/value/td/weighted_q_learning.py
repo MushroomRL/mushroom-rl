@@ -7,8 +7,8 @@ from mushroom_rl.approximators.table import Table
 class WeightedQLearning(TD):
     """
     Weighted Q-Learning algorithm.
-    "Estimating the Maximum Expected Value through Gaussian Approximation".
-    D'Eramo C. et. al.. 2016.
+    "Estimating the Maximum Expected Value through Gaussian Approximation"
+    D'Eramo C. et al. 2016.
 
     """
     def __init__(self, mdp_info, policy, learning_rate, sampling=True,

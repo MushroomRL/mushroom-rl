@@ -10,8 +10,8 @@ from mushroom_rl.rl_utils.parameters import to_parameter
 class StochasticAC(Agent):
     """
     Stochastic Actor critic in the episodic setting as presented in:
-    "Model-Free Reinforcement Learning with Continuous Action in Practice".
-    Degris T. et al.. 2012.
+    "Model-Free Reinforcement Learning with Continuous Action in Practice"
+    Degris T. et al. 2012.
 
     """
     def __init__(self, mdp_info, policy, alpha_theta, alpha_v, lambda_par=.9, value_function_features=None):

@@ -8,7 +8,8 @@ from mushroom_rl.approximators.table import Table
 class SpeedyQLearning(TD):
     """
     Speedy Q-Learning algorithm.
-    "Speedy Q-Learning". Ghavamzadeh et. al.. 2011.
+    "Speedy Q-Learning"
+    Ghavamzadeh et. al. 2011.
 
     """
     def __init__(self, mdp_info, policy, learning_rate):

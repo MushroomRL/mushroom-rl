@@ -10,7 +10,7 @@ class RLearning(TD):
     """
     R-Learning algorithm.
     "A Reinforcement Learning Method for Maximizing Undiscounted Rewards".
-    Schwartz A.. 1993.
+    Schwartz A. 1993.
 
     """
     def __init__(self, mdp_info, policy, learning_rate, beta):

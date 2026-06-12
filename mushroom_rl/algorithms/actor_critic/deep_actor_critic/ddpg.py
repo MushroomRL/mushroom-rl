@@ -14,7 +14,7 @@ class DDPG(DeepAC):
     """
     Deep Deterministic Policy Gradient algorithm.
     "Continuous Control with Deep Reinforcement Learning".
-    Lillicrap T. P. et al.. 2016.
+    Lillicrap T. P. et al. 2016.
 
     """
     def __init__(self, mdp_info, policy_class, policy_params,

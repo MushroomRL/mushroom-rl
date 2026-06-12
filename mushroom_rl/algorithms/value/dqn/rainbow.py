@@ -16,8 +16,8 @@ eps = torch.finfo(torch.float32).eps
 class Rainbow(AbstractDQN):
     """
     Rainbow algorithm.
-    "Rainbow: Combining Improvements in Deep Reinforcement Learning".
-    Hessel M. et al.. 2018.
+    "Rainbow: Combining Improvements in Deep Reinforcement Learning"
+    Hessel M. et al. 2018.
 
     """
     def __init__(self, mdp_info, policy, approximator_params, n_atoms, v_min,

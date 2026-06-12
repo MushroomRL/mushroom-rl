@@ -20,9 +20,11 @@ from copy import deepcopy
 
 
 def test_normalizing_preprocessor(tmpdir):
-    np.random.seed(88)
+    np.random.seed(42)
+    torch.manual_seed(42)
 
     mdp = Gymnasium('CartPole-v1', horizon=500, gamma=.99)
+    mdp.seed(42)
 
     # Policy
     epsilon_random = Parameter(value=1.)
@@ -85,8 +87,7 @@ def test_normalizing_preprocessor(tmpdir):
 
 
 def test_normalizing_preprocessor_backend():
-    # check if the preprocessor work the same for numpy and torch
-    np.random.seed(88)
+    np.random.seed(42)
 
     mdp = Gymnasium('CartPole-v1', horizon=500, gamma=.99)
 
@@ -96,6 +97,7 @@ def test_normalizing_preprocessor_backend():
     norm_box_np = MinMaxPreprocessor(mdp_info=mdp.info, clip_obs=5.0, alpha=0.001)
     norm_box_torch = MinMaxPreprocessor(mdp_info=mdp_info_torch, clip_obs=5.0, alpha=0.001)
 
+    mdp.seed(42)
     mdp.reset()
     for i in range(20):
         action = np.random.randint(1, size=mdp.info.action_space.shape)

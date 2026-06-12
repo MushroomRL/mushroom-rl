@@ -7,7 +7,8 @@ from mushroom_rl.approximators.table import Table
 class QLearning(TD):
     """
     Q-Learning algorithm.
-    "Learning from Delayed Rewards". Watkins C.J.C.H.. 1989.
+    "Learning from Delayed Rewards".
+    Watkins C.J.C.H. 1989.
 
     """
     def __init__(self, mdp_info, policy, learning_rate):

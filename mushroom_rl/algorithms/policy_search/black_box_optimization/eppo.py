@@ -9,7 +9,7 @@ class ePPO(BlackBoxOptimization):
     """
     Episodic adaptation of the Proximal Policy Optimization algorithm.
     "Proximal Policy Optimization Algorithms".
-    Schulman J. et al.. 2017.
+    Schulman J. et al. 2017.
 
     """
     def __init__(self, mdp_info, distribution, policy, optimizer, n_epochs_policy, batch_size, eps_ppo, ent_coeff=0.0,

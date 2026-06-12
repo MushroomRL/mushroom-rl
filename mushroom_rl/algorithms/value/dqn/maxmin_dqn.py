@@ -7,8 +7,8 @@ from mushroom_rl.approximators.regressor import Regressor
 class MaxminDQN(DQN):
     """
     MaxminDQN algorithm.
-    "Maxmin Q-learning: Controlling the Estimation Bias of Q-learning".
-    Lan Q. et al.. 2020.
+    "Maxmin Q-learning: Controlling the Estimation Bias of Q-learning"
+    Lan Q. et al. 2020.
 
     """
     def __init__(self, mdp_info, policy, approximator, n_approximators, **params):

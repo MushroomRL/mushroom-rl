@@ -7,8 +7,8 @@ from mushroom_rl.rl_utils.parameters import to_parameter
 class RWR(BlackBoxOptimization):
     """
     Reward-Weighted Regression algorithm.
-    "A Survey on Policy Search for Robotics", Deisenroth M. P., Neumann G.,
-    Peters J.. 2013.
+    "A Survey on Policy Search for Robotics",
+    Deisenroth M. P. et al. 2013.
 
     """
     def __init__(self, mdp_info, distribution, policy, beta):

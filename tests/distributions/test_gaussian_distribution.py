@@ -4,7 +4,7 @@ from mushroom_rl.utils.numerical_gradient import numerical_diff_dist
 
 
 def test_gaussian():
-    np.random.seed(88)
+    np.random.seed(42)
     n_dims = 6
 
     random_matrix = np.random.rand(n_dims, n_dims)
@@ -23,7 +23,7 @@ def test_gaussian():
 
     theta = dist.sample()
     log_p = dist.log_pdf(theta)
-    log_p_test = -5.622792079250801
+    log_p_test = -6.475847829950508
     assert np.isclose(log_p, log_p_test)
 
     theta = np.random.randn(100, n_dims)
@@ -37,11 +37,11 @@ def test_gaussian():
     assert np.array_equal(dist.get_parameters(), weights.dot(theta) / np.sum(weights))
 
     entropy = dist.entropy()
-    assert np.isclose(entropy, 4.74920830903762)
+    assert np.isclose(entropy, 6.399803705012358)
 
 
 def test_diagonal_gaussian():
-    np.random.seed(88)
+    np.random.seed(42)
     n_dims = 6
 
     std = np.abs(np.random.rand(n_dims))
@@ -58,7 +58,7 @@ def test_diagonal_gaussian():
 
     theta = dist.sample()
     log_p = dist.log_pdf(theta)
-    log_p_test = -7.818947754486631
+    log_p_test = -2.599084899766805
     assert np.isclose(log_p, log_p_test)
 
     theta = np.random.randn(100, n_dims)
@@ -70,17 +70,17 @@ def test_diagonal_gaussian():
     assert np.array_equal(dist.get_parameters()[n_dims:], theta.std(axis=0))
 
     dist.mle(theta, weights)
-    wmle_test = np.array([0.14420612, -0.02660736,  0.07439633, -0.00424596,
-                          0.2495252 , 0.20968329,  0.97527594,  1.08187144,
-                          1.04907019,  1.0634484 , 1.03453275,  1.03961039])
+    wmle_test = np.array([ 0.15593144, -0.09015819,  0.06310449, -0.02479729, -0.17266137,
+                            0.04501165,  0.93521283,  0.93517738,  1.02358103,  0.94439444,
+                            1.07237331,  1.07481608])
     assert np.allclose(dist.get_parameters(), wmle_test)
 
     entropy = dist.entropy()
-    assert np.isclose(entropy, 8.749505679983452)
+    assert np.isclose(entropy, 8.487750719294691)
 
 
 def test_cholesky_gaussian():
-    np.random.seed(88)
+    np.random.seed(42)
     n_dims = 6
 
     random_matrix = np.random.rand(n_dims, n_dims)
@@ -99,7 +99,7 @@ def test_cholesky_gaussian():
 
     theta = dist.sample()
     log_p = dist.log_pdf(theta)
-    log_p_test = -5.622792079250836
+    log_p_test = -6.475847829950512
     assert np.isclose(log_p, log_p_test)
 
     theta = np.random.randn(100, n_dims)
@@ -108,20 +108,22 @@ def test_cholesky_gaussian():
 
     dist.mle(theta)
 
-    mle_test = np.array([0.03898376, 0.07252868,  0.26070238,  0.13782173,  0.18927999, -0.02548812,
-                         1.00855691, 0.19697324,  1.06381216, -0.07439629,  0.0656251 ,  1.02907183,
-                         0.03779866,-0.00504703, -0.14902275,  0.99917335, -0.09132656, -0.03225904,
-                        -0.13589437, 0.1419549,  0.94040997, -0.00145945,  0.00326904,  0.00291136,
-                        -0.07456335, 0.04581934,  1.02750578])
+    mle_test = np.array([-0.18129564,  0.15145523,  0.12950102, -0.14675118, -0.00414876,
+                          0.02530839,  1.07648894, -0.00951914,  1.07871011,  0.05569449,
+                          0.0242835 ,  0.92714112, -0.04334935, -0.00721217, -0.02253386,
+                          0.93596673, -0.29276611,  0.05085615, -0.02773648, -0.1832614 ,
+                          0.95865511,  0.04086696, -0.0585859 , -0.13229675, -0.03377006,
+                         -0.00291481,  0.90979281])
     assert np.allclose(dist.get_parameters(), mle_test)
 
     dist.mle(theta, weights)
-    wmle_test = np.array([-0.07797052, 0.08518447,  0.36272218, 0.17409145,  0.26339453, -0.02891896,
-                           0.98529941, 0.26728657,  1.09177517, -0.03838698, -0.08395759,  0.98168805,
-                           0.0150622, 0.05611417, -0.09351055,  1.0166716, -0.06390746, -0.05409177,
-                          -0.08944413, 0.17745539,  1.01277413, 0.00923361,  0.05694206, -0.02457328,
-                          -0.14141649, 0.1117947,  1.03121418])
+    wmle_test = np.array([-0.08694296,  0.11313395,  0.10607875, -0.04840444, -0.11541166,
+                          -0.00923628,  1.1372729 , -0.04715041,  1.02481764,  0.00315469,
+                          -0.10054765,  0.96970133, -0.06784433, -0.04317921, -0.00271539,
+                           0.95497878, -0.31632473,  0.14081723, -0.05889656, -0.15912514,
+                           0.89851531,  0.07221545, -0.09813957, -0.10400764,  0.02005758,
+                          -0.07618892,  0.91872909])
     assert np.allclose(dist.get_parameters(), wmle_test)
 
     entropy = dist.entropy()
-    assert np.isclose(entropy, 8.628109062120682)
+    assert np.isclose(entropy, 8.398170245353436)

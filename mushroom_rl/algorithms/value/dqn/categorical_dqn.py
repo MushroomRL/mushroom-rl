@@ -27,8 +27,8 @@ def categorical_loss(input, target, reduction='sum'):
 class CategoricalDQN(AbstractDQN):
     """
     Categorical DQN algorithm.
-    "A Distributional Perspective on Reinforcement Learning".
-    Bellemare M. et al.. 2017.
+    "A Distributional Perspective on Reinforcement Learning"
+    Bellemare M. et al. 2017.
 
     """
     def __init__(self, mdp_info, policy, approximator_params, n_atoms, v_min,

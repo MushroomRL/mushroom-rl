@@ -8,7 +8,7 @@ from mushroom_rl.approximators.ensemble_table import EnsembleTable
 class MaxminQLearning(TD):
     """
     Maxmin Q-Learning algorithm without replay memory.
-    "Maxmin Q-learning: Controlling the Estimation Bias of Q-learning".
+    "Maxmin Q-learning: Controlling the Estimation Bias of Q-learning"
     Lan Q. et al. 2019.
 
     """

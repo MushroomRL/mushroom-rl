@@ -8,8 +8,8 @@ from mushroom_rl.approximators.parametric.networks import NoisyNetwork
 class NoisyDQN(DQN):
     """
     Noisy DQN algorithm.
-    "Noisy networks for exploration".
-    Fortunato M. et al.. 2018.
+    "Noisy networks for exploration"
+    Fortunato M. et al. 2018.
 
     """
     def __init__(self, mdp_info, policy, approximator_params, **params):

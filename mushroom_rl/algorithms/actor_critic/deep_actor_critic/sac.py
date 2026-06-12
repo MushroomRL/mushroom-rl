@@ -178,7 +178,7 @@ class SAC(DeepAC):
     """
     Soft Actor-Critic algorithm.
     "Soft Actor-Critic Algorithms and Applications".
-    Haarnoja T. et al.. 2019.
+    Haarnoja T. et al. 2019.
 
     """
     def __init__(self, mdp_info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params, batch_size,

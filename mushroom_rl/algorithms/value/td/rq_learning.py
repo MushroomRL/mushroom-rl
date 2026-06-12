@@ -8,8 +8,8 @@ from mushroom_rl.rl_utils.parameters import to_parameter
 class RQLearning(TD):
     """
     RQ-Learning algorithm.
-    "Exploiting Structure and Uncertainty of Bellman Updates in Markov Decision
-    Processes". Tateo D. et al.. 2017.
+    "Exploiting Structure and Uncertainty of Bellman Updates in Markov Decision Processes".
+    Tateo D. et al. 2017.
 
     """
     def __init__(self, mdp_info, policy, learning_rate, off_policy=False,
