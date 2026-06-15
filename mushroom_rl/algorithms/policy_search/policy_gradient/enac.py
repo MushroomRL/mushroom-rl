@@ -6,8 +6,8 @@ from mushroom_rl.algorithms.policy_search.policy_gradient import PolicyGradient
 class eNAC(PolicyGradient):
     """
     Episodic Natural Actor Critic algorithm.
-    "A Survey on Policy Search for Robotics", Deisenroth M. P., Neumann G.,
-    Peters J. 2013.
+    "A Survey on Policy Search for Robotics",
+    Deisenroth M. P. et al. 2013.
 
     """
     def __init__(self, mdp_info, policy, optimizer, critic_features=None):

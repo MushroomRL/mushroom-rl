@@ -5,7 +5,7 @@ from mushroom_rl.utils.numerical_gradient import numerical_diff_policy
 
 
 def test_univariate_gaussian():
-    np.random.seed(88)
+    np.random.seed(42)
     sigma = 1e-3 * np.eye(1)
 
     n_dims = 5
@@ -30,7 +30,7 @@ def test_univariate_gaussian():
 
 
 def test_multivariate_gaussian():
-    np.random.seed(88)
+    np.random.seed(42)
     n_dims = 5
     n_outs = 3
 
@@ -58,7 +58,7 @@ def test_multivariate_gaussian():
 
 
 def test_multivariate_diagonal_gaussian():
-    np.random.seed(88)
+    np.random.seed(42)
     n_dims = 5
     n_outs = 3
 
@@ -84,7 +84,7 @@ def test_multivariate_diagonal_gaussian():
 
 
 def test_multivariate_state_std_gaussian():
-    np.random.seed(88)
+    np.random.seed(42)
     n_dims = 5
     n_outs = 3
 
@@ -112,7 +112,7 @@ def test_multivariate_state_std_gaussian():
 
 
 def test_multivariate_state_log_std_gaussian():
-    np.random.seed(88)
+    np.random.seed(42)
     n_dims = 5
     n_outs = 3
 

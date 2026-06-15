@@ -1,5 +1,8 @@
 from mushroom_rl.policy.td_policy import *
 from mushroom_rl.approximators.table import Table
+from mushroom_rl.approximators.regressor import Regressor
+from mushroom_rl.approximators.parametric import TorchApproximator
+from mushroom_rl.approximators.parametric.networks import LinearNetwork
 from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter
 
 
@@ -13,7 +16,7 @@ def test_td_policy():
 
 
 def test_eps_greedy():
-    np.random.seed(88)
+    np.random.seed(42)
     eps = Parameter(0.1)
     pi = EpsGreedy(eps)
 
@@ -23,10 +26,10 @@ def test_eps_greedy():
     pi.set_q(Q)
 
     s = np.array([2])
-    a = np.array([1])
+    a = np.array([0])
 
     p_s = pi(s)
-    p_s_test = np.array([0.03333333, 0.93333333, 0.03333333])
+    p_s_test = np.array([0.93333333, 0.03333333, 0.03333333])
     assert np.allclose(p_s, p_s_test)
 
     p_sa = pi(s, a)
@@ -34,7 +37,7 @@ def test_eps_greedy():
     assert np.allclose(p_sa, p_sa_test)
 
     a, _ = pi.draw_action(s)
-    a_test = 1
+    a_test = 0
     assert a.item() == a_test
 
     eps_2 = LinearParameter(0.2, 0.1, 2)
@@ -49,8 +52,28 @@ def test_eps_greedy():
     assert p_sa_3 == p_sa
 
 
+def test_eps_greedy_torch():
+    np.random.seed(42)
+    torch.manual_seed(42)
+    eps = Parameter(0.1)
+    pi = EpsGreedy(eps, backend='torch')
+
+    Q = Regressor(TorchApproximator, input_shape=(4,), output_shape=(3,), n_actions=3, network=LinearNetwork)
+    pi.set_q(Q)
+
+    s = torch.rand(4)
+
+    p_s = pi(s)
+    p_s_test = np.array([0.93333333, 0.03333333, 0.03333333])
+    assert np.allclose(p_s, p_s_test)
+
+    a, _ = pi.draw_action(s)
+    assert isinstance(a, torch.Tensor)
+    assert a.item() == 0
+
+
 def test_boltzmann():
-    np.random.seed(88)
+    np.random.seed(42)
     beta = Parameter(0.1)
     pi = Boltzmann(beta)
 
@@ -60,18 +83,18 @@ def test_boltzmann():
     pi.set_q(Q)
 
     s = np.array([2])
-    a = np.array([1])
+    a = np.array([0])
 
     p_s = pi(s)
-    p_s_test = np.array([0.30676679, 0.36223227, 0.33100094])
+    p_s_test = np.array([0.36539237, 0.33690263, 0.297705])
     assert np.allclose(p_s, p_s_test)
 
     p_sa = pi(s, a)
-    p_sa_test = np.array([0.36223227])
+    p_sa_test = np.array([0.36539237])
     assert np.allclose(p_sa, p_sa_test)
 
     a, _ = pi.draw_action(s)
-    a_test = 2
+    a_test = 1
     assert a.item() == a_test
 
     beta_2 = LinearParameter(0.2, 0.1, 2)
@@ -81,12 +104,32 @@ def test_boltzmann():
 
     pi.update(s, a)
     p_sa_3 = pi(s, a)
-    p_sa_3_test = np.array([0.33100094])
+    p_sa_3_test = np.array([0.33690263])
     assert np.allclose(p_sa_3, p_sa_3_test)
 
 
+def test_boltzmann_torch():
+    np.random.seed(42)
+    torch.manual_seed(42)
+    beta = Parameter(0.5)
+    pi = Boltzmann(beta, backend='torch')
+
+    Q = Regressor(TorchApproximator, input_shape=(4,), output_shape=(3,), n_actions=3, network=LinearNetwork)
+    pi.set_q(Q)
+
+    s = torch.rand(4)
+
+    p_s = pi(s)
+    p_s_test = np.array([0.36522284, 0.32458198, 0.31019512])
+    assert np.allclose(p_s, p_s_test)
+
+    a, _ = pi.draw_action(s)
+    assert isinstance(a, torch.Tensor)
+    assert a.item() == 2
+
+
 def test_mellowmax():
-    np.random.seed(88)
+    np.random.seed(42)
     omega = Parameter(3)
     pi = Mellowmax(omega)
 
@@ -99,15 +142,15 @@ def test_mellowmax():
     a = np.array([1])
 
     p_s = pi(s)
-    p_s_test = np.array([0.08540336, 0.69215916, 0.22243748])
+    p_s_test = np.array([0.67744364, 0.26133716, 0.0612192])
     assert np.allclose(p_s, p_s_test)
 
     p_sa = pi(s, a)
-    p_sa_test = np.array([0.69215916])
+    p_sa_test = np.array([0.26133716])
     assert np.allclose(p_sa, p_sa_test)
 
     a, _ = pi.draw_action(s)
-    a_test = 2
+    a_test = 1
     assert a.item() == a_test
 
     try:

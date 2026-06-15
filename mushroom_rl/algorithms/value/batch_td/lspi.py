@@ -9,7 +9,8 @@ from mushroom_rl.rl_utils.parameters import to_parameter
 class LSPI(BatchTD):
     """
     Least-Squares Policy Iteration algorithm.
-    "Least-Squares Policy Iteration". Lagoudakis M. G. and Parr R.. 2003.
+    "Least-Squares Policy Iteration".
+    Lagoudakis M. G. and Parr R. 2003.
 
     """
     def __init__(self, mdp_info, policy, approximator_params=None, epsilon=1e-2, fit_params=None):

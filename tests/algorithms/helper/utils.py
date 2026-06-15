@@ -98,6 +98,8 @@ class TestUtils:
             pass # Equality of Functions is not tested
         elif cls._check_type(this, that, torch.nn.parameter.Parameter):
             assert cls._eq_torch(this, that)
+        elif cls._check_type(this, that, torch.Tensor):
+            assert cls._eq_torch(this, that)
         elif cls._check_type(this, that, np.ndarray):
             assert cls._eq_numpy(this, that)
         else:

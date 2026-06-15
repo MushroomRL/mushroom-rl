@@ -10,7 +10,8 @@ from mushroom_rl.rl_utils.parameters import to_parameter
 class TrueOnlineSARSALambda(TD):
     """
     True Online SARSA(lambda) with linear function approximation.
-    "True Online TD(lambda)". Seijen H. V. et al.. 2014.
+    "True Online TD(lambda)"
+    Seijen H. V. et al. 2014.
 
     """
     def __init__(self, mdp_info, policy, learning_rate, lambda_coeff, approximator_params=None):

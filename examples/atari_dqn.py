@@ -9,7 +9,7 @@ import torch.nn.functional as F
 
 from mushroom_rl.algorithms.value import AveragedDQN, CategoricalDQN, DQN,\
     DoubleDQN, MaxminDQN, DuelingDQN, NoisyDQN, QuantileDQN, Rainbow
-from mushroom_rl.approximators.parametric import NumpyTorchApproximator, TorchApproximator
+from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
@@ -237,7 +237,7 @@ def experiment():
                                   n=args.final_exploration_frame)
         epsilon_test = Parameter(value=args.test_exploration_rate)
         epsilon_random = Parameter(value=1)
-        pi = EpsGreedy(epsilon=epsilon_random)
+        pi = EpsGreedy(epsilon=epsilon_random, backend='torch')
 
         # Approximator
         stacked_input_shape = (args.history_length,) + mdp.info.observation_space.shape
@@ -251,8 +251,6 @@ def experiment():
         )
         if args.algorithm not in ['cdqn', 'qdqn', 'rainbow']:
             approximator_params['loss'] = F.smooth_l1_loss
-
-        approximator = TorchApproximator if args.use_cuda else NumpyTorchApproximator
 
         TorchUtils.set_default_device('cuda:0' if torch.cuda.is_available() and args.use_cuda else 'cpu')
 
@@ -280,23 +278,23 @@ def experiment():
 
         if args.algorithm == 'dqn':
             alg = DQN
-            agent = alg(mdp.info, pi, approximator,
+            agent = alg(mdp.info, pi, TorchApproximator,
                         approximator_params=approximator_params,
                         **algorithm_params)
         elif args.algorithm == 'ddqn':
             alg = DoubleDQN
-            agent = alg(mdp.info, pi, approximator,
+            agent = alg(mdp.info, pi, TorchApproximator,
                         approximator_params=approximator_params,
                         **algorithm_params)
         elif args.algorithm == 'adqn':
             alg = AveragedDQN
-            agent = alg(mdp.info, pi, approximator,
+            agent = alg(mdp.info, pi, TorchApproximator,
                         approximator_params=approximator_params,
                         n_approximators=args.n_approximators,
                         **algorithm_params)
         elif args.algorithm == 'mmdqn':
             alg = MaxminDQN
-            agent = alg(mdp.info, pi, approximator,
+            agent = alg(mdp.info, pi, TorchApproximator,
                         approximator_params=approximator_params,
                         n_approximators=args.n_approximators,
                         **algorithm_params)

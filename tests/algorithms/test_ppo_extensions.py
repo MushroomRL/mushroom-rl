@@ -3,9 +3,6 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-torch.set_num_threads(1)
-torch.set_num_interop_threads(1)
-
 from datetime import datetime
 from helper.utils import TestUtils as tu
 

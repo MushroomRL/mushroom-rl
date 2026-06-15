@@ -117,15 +117,27 @@ class ArrayBackend(object):
         raise NotImplementedError
 
     @staticmethod
-    def randint(low, high, size):
+    def randint(low, high, size, device=None):
         raise NotImplementedError
 
     @staticmethod
-    def arange(start, stop, step=1, dtype=None):
+    def multinomial(p):
+        raise NotImplementedError
+
+    @staticmethod
+    def uniform(low, high):
+        raise NotImplementedError
+
+    @staticmethod
+    def arange(start, stop, step=1, dtype=None, device=None):
         raise NotImplementedError
 
     @staticmethod
     def abs(array):
+        raise NotImplementedError
+
+    @staticmethod
+    def exp(array):
         raise NotImplementedError
 
     @staticmethod
@@ -290,22 +302,37 @@ class NumpyBackend(ArrayBackend):
     def size(arr):
         return np.size(arr)
 
-    @staticmethod
-    def rand(*dims, device=None):
+    @classmethod
+    def rand(cls, *dims, device=None):
+        cls.check_device(device)
         return np.random.rand(*dims)
 
-    @staticmethod
-    def randint(low, high, size):
+    @classmethod
+    def randint(cls, low, high, size, device=None):
         assert type(size) == tuple
+        cls.check_device(device)
         return np.random.randint(low, high, size)
 
     @staticmethod
-    def arange(start, stop, step=1, dtype=None):
+    def multinomial(p):
+        return np.array([np.random.choice(len(p), p=p)])
+
+    @staticmethod
+    def uniform(low, high):
+        return np.random.uniform(low, high)
+
+    @classmethod
+    def arange(cls, start, stop, step=1, dtype=None, device=None):
+        cls.check_device(device)
         return np.arange(start, stop, step, dtype=dtype)
 
     @staticmethod
     def abs(array):
         return np.abs(array)
+
+    @staticmethod
+    def exp(array):
+        return np.exp(array)
 
     @staticmethod
     def clip(array, min, max):
@@ -479,16 +506,32 @@ class TorchBackend(ArrayBackend):
         return torch.rand(dims, device=device)
 
     @staticmethod
-    def randint(low, high, size):
-        return torch.randint(low, high, size)
+    def randint(low, high, size, device=None):
+        device = TorchUtils.get_device() if device is None else device
+        return torch.randint(low, high, size, device=device)
 
     @staticmethod
-    def arange(start, stop, step=1, dtype=None):
-        return torch.arange(start, stop, step, dtype=dtype)
+    def multinomial(p):
+        return torch.multinomial(p, 1)
+
+    @staticmethod
+    def uniform(low, high):
+        low = torch.as_tensor(low, device=TorchUtils.get_device())
+        high = torch.as_tensor(high, device=TorchUtils.get_device())
+        return low + (high - low) * torch.rand_like(low)
+
+    @classmethod
+    def arange(cls, start, stop, step=1, dtype=None, device=None):
+        device = TorchUtils.get_device() if device is None else device
+        return torch.arange(start, stop, step, dtype=dtype, device=device)
 
     @staticmethod
     def abs(array):
         return torch.abs(array)
+
+    @staticmethod
+    def exp(array):
+        return torch.exp(array)
 
     @staticmethod
     def clip(array, min, max):

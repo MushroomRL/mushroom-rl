@@ -6,8 +6,8 @@ from mushroom_rl.algorithms.policy_search.black_box_optimization import BlackBox
 class PGPE(BlackBoxOptimization):
     """
     Policy Gradient with Parameter Exploration algorithm.
-    "A Survey on Policy Search for Robotics", Deisenroth M. P., Neumann G.,
-    Peters J.. 2013.
+    "A Survey on Policy Search for Robotics",
+    Deisenroth M. P. et al. 2013.
 
     """
     def __init__(self, mdp_info, distribution, policy, optimizer, context_builder=None):

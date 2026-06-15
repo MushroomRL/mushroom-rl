@@ -1,12 +1,11 @@
 from copy import deepcopy
 
-import numpy as np
-
 import torch
 
 from mushroom_rl.algorithms.value.dqn import AbstractDQN
-from mushroom_rl.approximators.parametric import NumpyTorchApproximator
+from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import CategoricalNetwork
+from mushroom_rl.utils.torch import TorchUtils
 
 eps = torch.finfo(torch.float32).eps
 
@@ -24,11 +23,76 @@ def categorical_loss(input, target, reduction='sum'):
         raise ValueError
 
 
-class CategoricalDQN(AbstractDQN):
+class AbstractCategoricalDQN(AbstractDQN):
+    """
+    Abstract class for DQN-based algorithms with a categorical (distributional) value function.
+
+    """
+    def __init__(self, mdp_info, policy, approximator_params, n_atoms, v_min, v_max, **params):
+        """
+        Constructor.
+
+        Args:
+            n_atoms (int): number of atoms;
+            v_min (float): minimum value of value-function;
+            v_max (float): maximum value of value-function.
+
+        """
+        self._n_atoms = n_atoms
+        self._v_min = v_min
+        self._v_max = v_max
+        self._delta = (v_max - v_min) / (n_atoms - 1)
+        self._a_values = torch.arange(v_min, v_max + eps, self._delta, device=TorchUtils.get_device())
+
+        approximator_params['loss'] = categorical_loss
+
+        self._add_save_attr(
+            _n_atoms='primitive',
+            _v_min='primitive',
+            _v_max='primitive',
+            _delta='primitive',
+            _a_values='torch'
+        )
+
+        super().__init__(mdp_info, policy, TorchApproximator, approximator_params=approximator_params, **params)
+
+    def _categorical_projection(self, reward, gamma, p_next):
+        """
+        Project the target distribution onto the fixed support of the value function.
+
+        Args:
+            reward (torch.Tensor): batch of (possibly n-step) rewards;
+            gamma (torch.Tensor): per-sample discount, already zeroed on absorbing states;
+            p_next (torch.Tensor): next-state probability mass over the atoms.
+
+        Returns:
+            The projected target distribution over the atoms.
+
+        """
+        gamma_z = gamma.unsqueeze(1) * self._a_values
+        bell_a = (reward.unsqueeze(1) + gamma_z).clip(self._v_min, self._v_max)
+
+        b = (bell_a - self._v_min) / self._delta
+        l = torch.floor(b).long()
+        u = torch.ceil(b).long()
+
+        m = torch.zeros(len(reward), self._n_atoms, device=TorchUtils.get_device())
+        rows = torch.arange(len(m), device=TorchUtils.get_device())
+        for i in range(self._n_atoms):
+            l[:, i][(u[:, i] > 0) & (l[:, i] == u[:, i])] -= 1
+            u[:, i][(l[:, i] < (self._n_atoms - 1)) & (l[:, i] == u[:, i])] += 1
+
+            m[rows, l[:, i]] += p_next[:, i] * (u[:, i] - b[:, i])
+            m[rows, u[:, i]] += p_next[:, i] * (b[:, i] - l[:, i])
+
+        return m
+
+
+class CategoricalDQN(AbstractCategoricalDQN):
     """
     Categorical DQN algorithm.
-    "A Distributional Perspective on Reinforcement Learning".
-    Bellemare M. et al.. 2017.
+    "A Distributional Perspective on Reinforcement Learning"
+    Bellemare M. et al. 2017.
 
     """
     def __init__(self, mdp_info, policy, approximator_params, n_atoms, v_min,
@@ -43,29 +107,14 @@ class CategoricalDQN(AbstractDQN):
 
         """
         features_network = approximator_params['network']
-        params['approximator_params'] = deepcopy(approximator_params)
-        params['approximator_params']['network'] = CategoricalNetwork
-        params['approximator_params']['features_network'] = features_network
-        params['approximator_params']['n_atoms'] = n_atoms
-        params['approximator_params']['v_min'] = v_min
-        params['approximator_params']['v_max'] = v_max
-        params['approximator_params']['loss'] = categorical_loss
+        approximator_params = deepcopy(approximator_params)
+        approximator_params['network'] = CategoricalNetwork
+        approximator_params['features_network'] = features_network
+        approximator_params['n_atoms'] = n_atoms
+        approximator_params['v_min'] = v_min
+        approximator_params['v_max'] = v_max
 
-        self._n_atoms = n_atoms
-        self._v_min = v_min
-        self._v_max = v_max
-        self._delta = (v_max - v_min) / (n_atoms - 1)
-        self._a_values = np.arange(v_min, v_max + eps, self._delta)
-
-        self._add_save_attr(
-            _n_atoms='primitive',
-            _v_min='primitive',
-            _v_max='primitive',
-            _delta='primitive',
-            _a_values='numpy'
-        )
-
-        super().__init__(mdp_info, policy, NumpyTorchApproximator, **params)
+        super().__init__(mdp_info, policy, approximator_params, n_atoms, v_min, v_max, **params)
 
     def fit(self, dataset):
         self._replay_memory.add(dataset)
@@ -74,29 +123,15 @@ class CategoricalDQN(AbstractDQN):
                 self._replay_memory.get(self._batch_size())
 
             if self._clip_reward:
-                reward = np.clip(reward, -1, 1)
+                reward = torch.clip(reward, -1, 1)
 
-            q_next = self.target_approximator.predict(next_state, **self._predict_params)
-            a_max = np.argmax(q_next, 1)
-            gamma = self.mdp_info.gamma * (1 - absorbing)
-            p_next = self.target_approximator.predict(next_state, a_max,
-                                                      get_distribution=True, **self._predict_params)
-            gamma_z = gamma.reshape(-1, 1) * np.expand_dims(
-                self._a_values, 0).repeat(len(gamma), 0)
-            bell_a = (reward.reshape(-1, 1) + gamma_z).clip(self._v_min,
-                                                            self._v_max)
-
-            b = (bell_a - self._v_min) / self._delta
-            l = np.floor(b).astype(int)
-            u = np.ceil(b).astype(int)
-
-            m = np.zeros((self._batch_size.get_value(), self._n_atoms))
-            for i in range(self._n_atoms):
-                l[:, i][(u[:, i] > 0) * (l[:, i] == u[:, i])] -= 1
-                u[:, i][(l[:, i] < (self._n_atoms - 1)) * (l[:, i] == u[:, i])] += 1
-
-                m[np.arange(len(m)), l[:, i]] += p_next[:, i] * (u[:, i] - b[:, i])
-                m[np.arange(len(m)), u[:, i]] += p_next[:, i] * (b[:, i] - l[:, i])
+            with torch.no_grad():
+                q_next = self.target_approximator.predict(next_state, **self._predict_params)
+                a_max = torch.argmax(q_next, 1)
+                gamma = self.mdp_info.gamma * ~absorbing
+                p_next = self.target_approximator.predict(next_state, a_max,
+                                                          get_distribution=True, **self._predict_params)
+                m = self._categorical_projection(reward, gamma, p_next)
 
             self.approximator.fit(state, action, m, get_distribution=True,
                                   **self._fit_params)

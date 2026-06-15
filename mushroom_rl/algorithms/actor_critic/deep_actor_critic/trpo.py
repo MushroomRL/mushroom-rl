@@ -17,7 +17,7 @@ class TRPO(OnPolicyDeepAC):
     """
     Trust Region Policy optimization algorithm.
     "Trust Region Policy Optimization".
-    Schulman J. et al.. 2015.
+    Schulman J. et al. 2015.
 
     """
     def __init__(self, mdp_info, policy, critic_params, ent_coeff=0., max_kl=.001, lam=1.,

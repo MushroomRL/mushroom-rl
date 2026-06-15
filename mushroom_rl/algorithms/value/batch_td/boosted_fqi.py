@@ -7,7 +7,8 @@ from mushroom_rl.algorithms.value.batch_td.fqi import FQI
 class BoostedFQI(FQI):
     """
     Boosted Fitted Q-Iteration algorithm.
-    "Boosted Fitted Q-Iteration". Tosatto S. et al.. 2017.
+    "Boosted Fitted Q-Iteration"
+    Tosatto S. et al. 2017.
 
     """
     def __init__(self, mdp_info, policy, approximator, n_iterations,

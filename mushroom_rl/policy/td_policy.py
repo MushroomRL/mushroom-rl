@@ -1,24 +1,31 @@
+import torch
 import numpy as np
 from scipy.optimize import brentq
 from scipy.special import logsumexp
+from mushroom_rl.core.array_backend import ArrayBackend
 from mushroom_rl.policy.policy import Policy
 
 from mushroom_rl.rl_utils.parameters import Parameter, to_parameter
 
 
 class TDPolicy(Policy):
-    def __init__(self, policy_state_shape=None):
+    def __init__(self, policy_state_shape=None, backend='numpy'):
         """
         Constructor.
+
+        Args:
+            backend (str, 'numpy'): name of the array backend used by the policy.
 
         """
         super().__init__(policy_state_shape)
 
         self._approximator = None
         self._predict_params = dict()
+        self._backend = ArrayBackend.get_array_backend(backend)
 
         self._add_save_attr(_approximator='mushroom!',
-                            _predict_params='pickle')
+                            _predict_params='pickle',
+                            _backend='primitive')
 
     def set_q(self, approximator):
         """
@@ -42,17 +49,18 @@ class EpsGreedy(TDPolicy):
     Epsilon greedy policy.
 
     """
-    def __init__(self, epsilon, policy_state_shape=None):
+    def __init__(self, epsilon, policy_state_shape=None, backend='numpy'):
         """
         Constructor.
 
         Args:
             epsilon ([float, Parameter]): the exploration coefficient. It indicates
                 the probability of performing a random actions in the current
-                step.
+                step;
+            backend (str, 'numpy'): name of the array backend used by the policy.
 
         """
-        super().__init__(policy_state_shape)
+        super().__init__(policy_state_shape, backend)
 
         self._epsilon = to_parameter(epsilon)
 
@@ -60,8 +68,9 @@ class EpsGreedy(TDPolicy):
 
     def __call__(self, *args):
         state = args[0]
-        q = self._approximator.predict(np.expand_dims(state, axis=0), **self._predict_params).ravel()
-        max_a = np.argwhere(q == np.max(q)).ravel()
+        with torch.no_grad():
+            q = self._approximator.predict(self._backend.expand_dims(state, 0), **self._predict_params).ravel()
+        max_a = self._backend.nonzero(q == q.max()).ravel()
 
         p = self._epsilon.get_value(state) / self._approximator.n_actions
 
@@ -72,22 +81,23 @@ class EpsGreedy(TDPolicy):
             else:
                 return p
         else:
-            probs = np.ones(self._approximator.n_actions) * p
+            probs = self._backend.ones(self._approximator.n_actions) * p
             probs[max_a] += (1. - self._epsilon.get_value(state)) / len(max_a)
 
             return probs
 
     def draw_action(self, state, policy_state=None):
-        if not np.random.uniform() < self._epsilon(state):
-            q = self._approximator.predict(state, **self._predict_params)
-            max_a = np.argwhere(q == np.max(q)).ravel()
+        if not self._backend.rand() < self._epsilon(state):
+            with torch.no_grad():
+                q = self._approximator.predict(state, **self._predict_params)
+            max_a = self._backend.nonzero(q == q.max()).ravel()
 
             if len(max_a) > 1:
-                max_a = np.array([np.random.choice(max_a)])
+                max_a = max_a[self._backend.randint(0, len(max_a), (1,))]
 
             return max_a, None
 
-        return np.array([np.random.choice(self._approximator.n_actions)]), None
+        return self._backend.randint(0, self._approximator.n_actions, (1,)), None
 
     def set_epsilon(self, epsilon):
         """
@@ -118,7 +128,7 @@ class Boltzmann(TDPolicy):
     Boltzmann softmax policy.
 
     """
-    def __init__(self, beta, policy_state_shape=None):
+    def __init__(self, beta, policy_state_shape=None, backend='numpy'):
         """
         Constructor.
 
@@ -126,29 +136,32 @@ class Boltzmann(TDPolicy):
             beta ([float, Parameter]): the inverse of the temperature distribution. As
             the temperature approaches infinity, the policy becomes more and
             more random. As the temperature approaches 0.0, the policy becomes
-            more and more greedy.
+            more and more greedy;
+            backend (str, 'numpy'): name of the array backend used by the policy.
 
         """
-        super().__init__(policy_state_shape)
+        super().__init__(policy_state_shape, backend)
         self._beta = to_parameter(beta)
 
         self._add_save_attr(_beta='mushroom')
 
     def __call__(self, *args):
         state = args[0]
-        q_beta = self._approximator.predict(state, **self._predict_params) * self._beta(state)
+        with torch.no_grad():
+            q = self._approximator.predict(state, **self._predict_params)
+        q_beta = q * self._beta(state)
         q_beta -= q_beta.max()
-        qs = np.exp(q_beta)
+        qs = self._backend.exp(q_beta)
 
         if len(args) == 2:
             action = args[1]
 
-            return qs[action] / np.sum(qs)
+            return qs[action] / qs.sum()
         else:
-            return qs / np.sum(qs)
+            return qs / qs.sum()
 
     def draw_action(self, state, policy_state=None):
-        return np.array([np.random.choice(self._approximator.n_actions, p=self(state))]), None
+        return self._backend.multinomial(self(state)), None
 
     def set_beta(self, beta):
         """
@@ -195,7 +208,9 @@ class Mellowmax(Boltzmann):
             )
 
         def __call__(self, state):
-            q = self._outer._approximator.predict(state, **self._outer._predict_params)
+            with torch.no_grad():
+                q = self._outer._approximator.predict(state, **self._outer._predict_params)
+            q = ArrayBackend.convert(q, to='numpy')
             mm = (logsumexp(q * self._omega(state)) - np.log(
                 q.size)) / self._omega(state)
 
@@ -214,7 +229,7 @@ class Mellowmax(Boltzmann):
             except ValueError:
                 return 0.
 
-    def __init__(self, omega, beta_min=-10., beta_max=10., policy_state_shape=None):
+    def __init__(self, omega, beta_min=-10., beta_max=10., policy_state_shape=None, backend='numpy'):
         """
         Constructor.
 
@@ -224,12 +239,13 @@ class Mellowmax(Boltzmann):
             beta_min (float, -10.): one end of the bracketing interval for
                 minimization with Brent's method;
             beta_max (float, 10.): the other end of the bracketing interval for
-                minimization with Brent's method.
+                minimization with Brent's method;
+            backend (str, 'numpy'): name of the array backend used by the policy.
 
         """
         beta_mellow = self.MellowmaxParameter(self, omega, beta_min, beta_max)
 
-        super().__init__(beta_mellow, policy_state_shape)
+        super().__init__(beta_mellow, policy_state_shape, backend)
 
     def set_beta(self, beta):
         raise RuntimeError('Cannot change the beta parameter of Mellowmax policy')

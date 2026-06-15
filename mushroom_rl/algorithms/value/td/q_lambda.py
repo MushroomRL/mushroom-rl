@@ -9,7 +9,8 @@ from mushroom_rl.rl_utils.parameters import to_parameter
 class QLambda(TD):
     """
     Q(Lambda) algorithm.
-    "Learning from Delayed Rewards". Watkins C.J.C.H.. 1989.
+    "Learning from Delayed Rewards".
+    Watkins C.J.C.H. 1989.
 
     """
     def __init__(self, mdp_info, policy, learning_rate, lambda_coeff,

@@ -10,8 +10,8 @@ from mushroom_rl.rl_utils.parameters import to_parameter
 class COPDAC_Q(Agent):
     """
     Compatible off-policy deterministic actor-critic algorithm.
-    "Deterministic Policy Gradient Algorithms".
-    Silver D. et al.. 2014.
+    "Deterministic Policy Gradient Algorithms"
+    Silver D. et al. 2014.
 
     """
     def __init__(self, mdp_info, policy, mu, alpha_theta, alpha_omega, alpha_v, value_function_features=None):

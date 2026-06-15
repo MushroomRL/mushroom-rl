@@ -13,8 +13,8 @@ from mushroom_rl.distributions import GaussianCholeskyDistribution
 class MORE(BlackBoxOptimization):
     """
     Model-Based Relative Entropy Stochastic Search algorithm.
-    "Model-Based Relative Entropy Stochastic Search", Abdolmaleki, Abbas and Lioutikov, Rudolf and
-    Peters, Jan R and Lau, Nuno and Pualo Reis, Luis and Neumann, Gerhard. 2015.
+    "Model-Based Relative Entropy Stochastic Search",
+    Abdolmaleki, A. et al. 2015.
 
     """
     def __init__(self, mdp_info, distribution, policy, eps, h0=-75, kappa=0.99):

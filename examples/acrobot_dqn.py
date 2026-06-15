@@ -28,7 +28,7 @@ def experiment(n_epochs, n_steps, n_steps_test):
     epsilon = LinearParameter(value=1., threshold_value=.01, n=5000)
     epsilon_test = Parameter(value=0.)
     epsilon_random = Parameter(value=1.)
-    pi = EpsGreedy(epsilon=epsilon_random)
+    pi = EpsGreedy(epsilon=epsilon_random, backend='torch')
 
     # Settings
     initial_replay_size = 500
@@ -50,7 +50,7 @@ def experiment(n_epochs, n_steps, n_steps_test):
                                n_actions=mdp.info.action_space.n)
 
     # Agent
-    agent = DQN(mdp.info, pi, NumpyTorchApproximator,
+    agent = DQN(mdp.info, pi, TorchApproximator,
                 approximator_params=approximator_params, batch_size=batch_size,
                 initial_replay_size=initial_replay_size,
                 max_replay_size=max_replay_size,

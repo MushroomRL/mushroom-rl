@@ -9,8 +9,8 @@ from mushroom_rl.algorithms.policy_search.black_box_optimization.context_builder
 class BlackBoxOptimization(Agent):
     """
     Base class for black box optimization algorithms.
-    These algorithms work on a distribution of policy parameters and often they
-    do not rely on stochastic and differentiable policies.
+    These algorithms work on a distribution of policy parameters, and often they do not rely on stochastic and
+    differentiable policies.
 
     """
     def __init__(self, mdp_info, distribution, policy, context_builder=None, backend='numpy'):

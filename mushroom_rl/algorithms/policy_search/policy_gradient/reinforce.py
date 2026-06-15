@@ -6,8 +6,8 @@ from mushroom_rl.algorithms.policy_search.policy_gradient import PolicyGradient
 class REINFORCE(PolicyGradient):
     """
     REINFORCE algorithm.
-    "Simple Statistical Gradient-Following Algorithms for Connectionist
-    Reinforcement Learning", Williams R. J.. 1992.
+    "Simple Statistical Gradient-Following Algorithms for Connectionist Reinforcement Learning"
+    Williams R. J. 1992.
 
     """
     def __init__(self, mdp_info, policy, optimizer):

@@ -1,4 +1,4 @@
-import numpy as np
+import torch
 
 from mushroom_rl.algorithms.value.dqn import AbstractDQN
 from mushroom_rl.approximators.regressor import Regressor
@@ -7,8 +7,8 @@ from mushroom_rl.approximators.regressor import Regressor
 class AveragedDQN(AbstractDQN):
     """
     Averaged-DQN algorithm.
-    "Averaged-DQN: Variance Reduction and Stabilization for Deep Reinforcement
-    Learning". Anschel O. et al.. 2017.
+    "Averaged-DQN: Variance Reduction and Stabilization for Deep Reinforcement Learning".
+    Anschel O. et al. 2017.
 
     """
     def __init__(self, mdp_info, policy, approximator, n_approximators,
@@ -55,8 +55,8 @@ class AveragedDQN(AbstractDQN):
         for idx in range(self._n_fitted_target_models):
             q_target_idx = self.target_approximator.predict(next_state, idx=idx, **self._predict_params)
             q.append(q_target_idx)
-        q = np.mean(q, axis=0)
-        if np.any(absorbing):
-            q *= 1 - absorbing.reshape(-1, 1)
+        q = torch.stack(q).mean(0)
+        if absorbing.any():
+            q *= ~absorbing.unsqueeze(1)
 
-        return np.max(q, axis=1)
+        return q.max(1).values

@@ -8,7 +8,8 @@ from mushroom_rl.rl_utils.parameters import to_parameter
 class FQI(BatchTD):
     """
     Fitted Q-Iteration algorithm.
-    "Tree-Based Batch Mode Reinforcement Learning", Ernst D. et al.. 2005.
+    "Tree-Based Batch Mode Reinforcement Learning",
+    Ernst D. et al. 2005.
 
     """
     def __init__(self, mdp_info, policy, approximator, n_iterations,
