@@ -38,6 +38,12 @@ class AbstractDQN(Agent):
         """
         super().__init__(mdp_info, policy, backend='torch', history_length=history_length)
 
+        assert policy._backend == self._agent_backend, \
+            f"The policy uses the '{policy._backend.get_backend_name()}' backend, but DQN-based agents " \
+            f"run on the '{self._agent_backend.get_backend_name()}' backend. Build the policy with " \
+            f"backend='{self._agent_backend.get_backend_name()}', e.g. " \
+            f"EpsGreedy(epsilon, backend='{self._agent_backend.get_backend_name()}')."
+
         self._fit_params = dict() if fit_params is None else fit_params
         self._predict_params = dict() if predict_params is None else predict_params
 

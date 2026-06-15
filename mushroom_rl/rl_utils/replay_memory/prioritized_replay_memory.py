@@ -1,100 +1,10 @@
-from mushroom_rl.core import ArrayBackend, Serializable
+import numpy as np
+
+from mushroom_rl.core import ArrayBackend
 from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.utils.sum_tree import SumTree
 
 from mushroom_rl.rl_utils.replay_memory.replay_memory import ReplayMemory
-
-
-class SumTree(Serializable):
-    """
-    This class implements a sum tree data structure.
-    This is used, for instance, by ``PrioritizedReplayMemory``.
-
-    """
-    def __init__(self, max_size, backend):
-        """
-        Constructor.
-
-        Args:
-            max_size (int): maximum size of the tree;
-            backend (str): name of the array backend to use for the tree.
-
-        """
-        self._max_size = max_size
-        self._backend = ArrayBackend.get_array_backend(backend)
-        self._tree = self._backend.zeros(2 * max_size - 1)
-
-        super().__init__()
-        self._add_save_attr(
-            _max_size="primitive",
-            _backend="primitive",
-            _tree=self._backend.get_backend_serialization())
-
-    def get(self, s):
-        """
-        Args:
-            s (float): the value to query.
-
-        Returns:
-            The tree index and its priority.
-
-        """
-        idx = self._retrieve(s, 0)
-        return idx, self._tree[idx]
-
-    def update(self, idx, priorities):
-        """
-        Update the priorities at the given tree indices.
-
-        Args:
-            idx (Array): tree indices;
-            priorities (Array): new priorities.
-
-        """
-        for i, p in zip(idx, priorities):
-            delta = p - self._tree[i]
-            self._tree[i] = p
-            self._propagate(delta, i)
-
-    def _propagate(self, delta, idx):
-        parent_idx = (idx - 1) // 2
-        self._tree[parent_idx] += delta
-
-        if parent_idx != 0:
-            self._propagate(delta, parent_idx)
-
-    def _retrieve(self, s, idx):
-        left = 2 * idx + 1
-        right = left + 1
-
-        if left >= len(self._tree):
-            return idx
-
-        if self._tree[left] == self._tree[right]:
-            side = self._backend.randint(0, 2, (1,)).item()
-            return self._retrieve(s, left if side == 0 else right)
-
-        if s <= self._tree[left]:
-            return self._retrieve(s, left)
-        else:
-            return self._retrieve(s - self._tree[left], right)
-
-    @property
-    def max_p(self):
-        """
-        Returns:
-            The maximum priority among the ones in the tree.
-
-        """
-        return self._tree[-self._max_size:].max()
-
-    @property
-    def total_p(self):
-        """
-        Returns:
-            The sum of the priorities in the tree, i.e. the value of the root node.
-
-        """
-        return self._tree[0]
 
 
 class PrioritizedReplayMemory(ReplayMemory):
@@ -157,7 +67,8 @@ class PrioritizedReplayMemory(ReplayMemory):
             dataset = dataset.to_backend(self._agent_info.backend)
 
         positions = self._write_to_buffer(dataset)
-        self._tree.update(positions + self._max_size - 1, p)
+        tree_idxs = ArrayBackend.convert(positions, to='numpy') + self._max_size - 1
+        self._tree.update(tree_idxs, ArrayBackend.convert(p, to='numpy'))
 
     def get(self, n_samples):
         """
@@ -170,20 +81,19 @@ class PrioritizedReplayMemory(ReplayMemory):
             The requested number of samples.
 
         """
-        backend = self._dataset.array_backend
-        idxs = backend.zeros(n_samples, dtype=int)
-        priorities = backend.zeros(n_samples, dtype=float)
-        data_idxs = backend.zeros(n_samples, dtype=int)
+        idxs = np.zeros(n_samples, dtype=int)
+        priorities = np.zeros(n_samples, dtype=float)
+        data_idxs = np.zeros(n_samples, dtype=int)
 
         total_p = self._tree.total_p
         segment = total_p / n_samples
-        samples = backend.uniform(
-            backend.arange(0, n_samples) * segment,
-            backend.arange(1, n_samples + 1) * segment
+        samples = np.random.uniform(
+            np.arange(n_samples) * segment,
+            np.arange(1, n_samples + 1) * segment
         )
 
         for i, s in enumerate(samples):
-            idx, p = self._tree.get(float(s))
+            idx, p = self._tree.get(s)
             idxs[i] = idx
             priorities[i] = p
             data_idxs[i] = idx - self._max_size + 1
@@ -191,6 +101,8 @@ class PrioritizedReplayMemory(ReplayMemory):
         sampling_probabilities = priorities / self._tree.total_p
         is_weight = (self.size * sampling_probabilities) ** -self._beta()
         is_weight /= is_weight.max()
+
+        data_idxs = ArrayBackend.convert(data_idxs, to=self._agent_info.backend)
 
         if self._history_length > 1:
             state_out, nstate_out = self._get_with_history(data_idxs)
@@ -205,7 +117,7 @@ class PrioritizedReplayMemory(ReplayMemory):
 
     def reset(self):
         super().reset()
-        self._tree = SumTree(self._max_size, self._agent_info.backend)
+        self._tree = SumTree(self._max_size)
 
     def update(self, error, idx):
         """
@@ -216,12 +128,13 @@ class PrioritizedReplayMemory(ReplayMemory):
             idx (Array): indexes of the transitions in the dataset.
 
         """
+        error = ArrayBackend.convert(error, to='numpy')
+        idx = ArrayBackend.convert(idx, to='numpy')
         p = self._get_priority(error)
         self._tree.update(idx, p)
 
     def _get_priority(self, error):
-        backend = self._dataset.array_backend
-        return (backend.abs(error) + self._epsilon) ** self._alpha
+        return (np.abs(error) + self._epsilon) ** self._alpha
 
     @property
     def max_priority(self):

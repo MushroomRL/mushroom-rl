@@ -9,18 +9,38 @@ from mushroom_rl.approximators.parametric.networks import QuantileNetwork
 from mushroom_rl.utils.torch import TorchUtils
 
 
-def quantile_huber_loss(input, target):
-    tau = QuantileDQN.tau_hat.repeat(input.shape[0], 1)
+class QuantileHuberLoss:
+    """
+    Quantile Huber loss for Quantile Regression DQN.
 
-    target = target.t().unsqueeze(-1).repeat(1, 1, tau.shape[-1])
-    input = input.repeat(tau.shape[-1], 1, 1)
+    """
+    def __init__(self, n_quantiles):
+        self._n_quantiles = n_quantiles
+        self._tau_hat = self._build_tau_hat()
 
-    indicator = (((target - input) < 0.).type(torch.float))
-    huber_loss = F.smooth_l1_loss(input, target, reduction='none')
+    def _build_tau_hat(self):
+        tau = torch.arange(self._n_quantiles + 1, device=TorchUtils.get_device()) / self._n_quantiles
+        return (tau[:-1] + tau[1:]) / 2
 
-    loss = torch.abs(tau - indicator) * huber_loss
+    def __call__(self, input, target):
+        tau = self._tau_hat.repeat(input.shape[0], 1)
 
-    return loss.mean()
+        target = target.t().unsqueeze(-1).repeat(1, 1, tau.shape[-1])
+        input = input.repeat(tau.shape[-1], 1, 1)
+
+        indicator = (((target - input) < 0.).type(torch.float))
+        huber_loss = F.smooth_l1_loss(input, target, reduction='none')
+
+        loss = torch.abs(tau - indicator) * huber_loss
+
+        return loss.mean()
+
+    def __getstate__(self):
+        return {'_n_quantiles': self._n_quantiles}
+
+    def __setstate__(self, state):
+        self._n_quantiles = state['_n_quantiles']
+        self._tau_hat = self._build_tau_hat()
 
 
 class QuantileDQN(AbstractDQN):
@@ -43,12 +63,10 @@ class QuantileDQN(AbstractDQN):
         params['approximator_params']['network'] = QuantileNetwork
         params['approximator_params']['features_network'] = features_network
         params['approximator_params']['n_quantiles'] = n_quantiles
-        params['approximator_params']['loss'] = quantile_huber_loss
 
         self._n_quantiles = n_quantiles
 
-        tau = torch.arange(n_quantiles + 1, device=TorchUtils.get_device()) / n_quantiles
-        QuantileDQN.tau_hat = (tau[:-1] + tau[1:]) / 2
+        params['approximator_params']['loss'] = QuantileHuberLoss(n_quantiles)
 
         self._add_save_attr(
             _n_quantiles='primitive'

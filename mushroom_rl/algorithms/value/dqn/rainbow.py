@@ -2,17 +2,13 @@ from copy import deepcopy
 
 import torch
 
-from mushroom_rl.algorithms.value.dqn import AbstractDQN
-from mushroom_rl.algorithms.value.dqn.categorical_dqn import categorical_loss
-from mushroom_rl.approximators.parametric import TorchApproximator
+from mushroom_rl.algorithms.value.dqn.categorical_dqn import AbstractCategoricalDQN
 from mushroom_rl.approximators.parametric.networks import RainbowNetwork
 from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
 from mushroom_rl.utils.torch import TorchUtils
 
-eps = torch.finfo(torch.float32).eps
 
-
-class Rainbow(AbstractDQN):
+class Rainbow(AbstractCategoricalDQN):
     """
     Rainbow algorithm.
     "Rainbow: Combining Improvements in Deep Reinforcement Learning"
@@ -36,20 +32,14 @@ class Rainbow(AbstractDQN):
 
         """
         features_network = approximator_params['network']
-        params['approximator_params'] = deepcopy(approximator_params)
-        params['approximator_params']['network'] = RainbowNetwork
-        params['approximator_params']['features_network'] = features_network
-        params['approximator_params']['n_atoms'] = n_atoms
-        params['approximator_params']['v_min'] = v_min
-        params['approximator_params']['v_max'] = v_max
-        params['approximator_params']['sigma_coeff'] = sigma_coeff
-        params['approximator_params']['loss'] = categorical_loss
+        approximator_params = deepcopy(approximator_params)
+        approximator_params['network'] = RainbowNetwork
+        approximator_params['features_network'] = features_network
+        approximator_params['n_atoms'] = n_atoms
+        approximator_params['v_min'] = v_min
+        approximator_params['v_max'] = v_max
+        approximator_params['sigma_coeff'] = sigma_coeff
 
-        self._n_atoms = n_atoms
-        self._v_min = v_min
-        self._v_max = v_max
-        self._delta = (v_max - v_min) / (n_atoms - 1)
-        self._a_values = torch.arange(v_min, v_max + eps, self._delta, device=TorchUtils.get_device())
         self._n_steps_return = n_steps_return
         self._sigma_coeff = sigma_coeff
         self._pending = None
@@ -58,14 +48,9 @@ class Rainbow(AbstractDQN):
                                    "params": dict(alpha=alpha_coeff, beta=beta,
                                                   n_steps_return=n_steps_return)}
 
-        super().__init__(mdp_info, policy, TorchApproximator, **params)
+        super().__init__(mdp_info, policy, approximator_params, n_atoms, v_min, v_max, **params)
 
         self._add_save_attr(
-            _n_atoms='primitive',
-            _v_min='primitive',
-            _v_max='primitive',
-            _delta='primitive',
-            _a_values='torch',
             _n_steps_return='primitive',
             _sigma_coeff='primitive',
             _pending='none'
@@ -90,22 +75,7 @@ class Rainbow(AbstractDQN):
                 gamma = self.mdp_info.gamma ** self._n_steps_return * ~absorbing
                 p_next = self.target_approximator.predict(next_state, a_max,
                                                           get_distribution=True, **self._predict_params)
-                gamma_z = gamma.unsqueeze(1) * self._a_values
-                bell_a = (reward.unsqueeze(1) + gamma_z).clip(self._v_min,
-                                                              self._v_max)
-
-                b = (bell_a - self._v_min) / self._delta
-                l = torch.floor(b).long()
-                u = torch.ceil(b).long()
-
-                m = torch.zeros(self._batch_size.get_value(), self._n_atoms, device=TorchUtils.get_device())
-                rows = torch.arange(len(m), device=TorchUtils.get_device())
-                for i in range(self._n_atoms):
-                    l[:, i][(u[:, i] > 0) & (l[:, i] == u[:, i])] -= 1
-                    u[:, i][(l[:, i] < (self._n_atoms - 1)) & (l[:, i] == u[:, i])] += 1
-
-                    m[rows, l[:, i]] += p_next[:, i] * (u[:, i] - b[:, i])
-                    m[rows, u[:, i]] += p_next[:, i] * (b[:, i] - l[:, i])
+                m = self._categorical_projection(reward, gamma, p_next)
 
                 kl = -torch.sum(m * torch.log(self.approximator.predict(state, action, get_distribution=True,
                                                                         **self._predict_params).clip(1e-5)), 1)

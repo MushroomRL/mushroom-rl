@@ -129,7 +129,7 @@ class ArrayBackend(object):
         raise NotImplementedError
 
     @staticmethod
-    def arange(start, stop, step=1, dtype=None):
+    def arange(start, stop, step=1, dtype=None, device=None):
         raise NotImplementedError
 
     @staticmethod
@@ -302,8 +302,9 @@ class NumpyBackend(ArrayBackend):
     def size(arr):
         return np.size(arr)
 
-    @staticmethod
-    def rand(*dims, device=None):
+    @classmethod
+    def rand(cls, *dims, device=None):
+        cls.check_device(device)
         return np.random.rand(*dims)
 
     @classmethod
@@ -320,8 +321,9 @@ class NumpyBackend(ArrayBackend):
     def uniform(low, high):
         return np.random.uniform(low, high)
 
-    @staticmethod
-    def arange(start, stop, step=1, dtype=None):
+    @classmethod
+    def arange(cls, start, stop, step=1, dtype=None, device=None):
+        cls.check_device(device)
         return np.arange(start, stop, step, dtype=dtype)
 
     @staticmethod
@@ -514,11 +516,14 @@ class TorchBackend(ArrayBackend):
 
     @staticmethod
     def uniform(low, high):
+        low = torch.as_tensor(low, device=TorchUtils.get_device())
+        high = torch.as_tensor(high, device=TorchUtils.get_device())
         return low + (high - low) * torch.rand_like(low)
 
-    @staticmethod
-    def arange(start, stop, step=1, dtype=None):
-        return torch.arange(start, stop, step, dtype=dtype)
+    @classmethod
+    def arange(cls, start, stop, step=1, dtype=None, device=None):
+        device = TorchUtils.get_device() if device is None else device
+        return torch.arange(start, stop, step, dtype=dtype, device=device)
 
     @staticmethod
     def abs(array):
