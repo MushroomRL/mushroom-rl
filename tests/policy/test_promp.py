@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.features import Features
 from mushroom_rl.policy.promps import ProMP
@@ -10,7 +9,7 @@ from mushroom_rl.policy.promps import ProMP
 def _make_promp(duration=10, action_dim=2, sigma=None, periodic=False):
     n_features = 5
     phi = Features(n_outputs=n_features, function=lambda z: np.repeat(z, n_features))
-    mu = Regressor(LinearApproximator, input_shape=(n_features,), output_shape=(action_dim,))
+    mu = LinearApproximator(input_shape=(n_features,), output_shape=(action_dim,))
     return ProMP(mu, phi, duration, sigma=sigma, periodic=periodic)
 
 

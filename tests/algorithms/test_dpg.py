@@ -9,7 +9,6 @@ from mushroom_rl.core import Core
 from mushroom_rl.environments import *
 from mushroom_rl.features import Features
 from mushroom_rl.features.tiles import Tiles
-from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.policy import GaussianPolicy
 from mushroom_rl.rl_utils.parameters import Parameter
@@ -35,7 +34,7 @@ def learn_copdac_q():
 
     input_shape = (phi.size,)
 
-    mu = Regressor(LinearApproximator, input_shape=input_shape, output_shape=mdp.info.action_space.shape, phi=phi)
+    mu = LinearApproximator(input_shape=input_shape, output_shape=mdp.info.action_space.shape, phi=phi)
 
     sigma = 1e-1 * np.eye(1)
     policy = GaussianPolicy(mu, sigma)

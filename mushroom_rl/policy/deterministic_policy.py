@@ -43,7 +43,7 @@ class DeterministicPolicy(ParametricPolicy):
         return 1. if np.array_equal(action, policy_action) else 0.
 
     def draw_action(self, state, policy_state=None):
-        return self._approximator.predict(state, **self._predict_params), None
+        return self._approximator(state, **self._predict_params), None
 
     def set_weights(self, weights):
         self._approximator.set_weights(weights)

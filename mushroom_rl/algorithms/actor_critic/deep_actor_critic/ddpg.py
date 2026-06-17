@@ -2,7 +2,6 @@ import numpy as np
 
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DeepAC
 from mushroom_rl.policy import Policy
-from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory
 from mushroom_rl.rl_utils.parameters import Parameter, to_parameter
@@ -54,19 +53,19 @@ class DDPG(DeepAC):
         self._critic_predict_params = dict() if critic_predict_params is None else critic_predict_params
 
         target_critic_params = deepcopy(critic_params)
-        self._critic_approximator = Regressor(TorchApproximator, **critic_params)
-        self._target_critic_approximator = Regressor(TorchApproximator, **target_critic_params)
+        self._critic_approximator = TorchApproximator(**critic_params)
+        self._target_critic_approximator = TorchApproximator(**target_critic_params)
 
         target_actor_params = deepcopy(actor_params)
-        self._actor_approximator = Regressor(TorchApproximator, **actor_params)
-        self._target_actor_approximator = Regressor(TorchApproximator, **target_actor_params)
+        self._actor_approximator = TorchApproximator(**actor_params)
+        self._target_actor_approximator = TorchApproximator(**target_actor_params)
 
         self._init_target(self._critic_approximator, self._target_critic_approximator)
         self._init_target(self._actor_approximator, self._target_actor_approximator)
 
         policy = policy_class(self._actor_approximator, **policy_params)
 
-        policy_parameters = self._actor_approximator.model.network.parameters()
+        policy_parameters = self._actor_approximator.parameters()
 
         super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
 
@@ -101,7 +100,7 @@ class DDPG(DeepAC):
             q_next = self._next_q(next_state, absorbing)
             q = reward + self.mdp_info.gamma * q_next
 
-            self._critic_approximator.fit(state, action, q, **self._critic_fit_params)
+            self._critic_approximator.fit(state, action, q.detach(), **self._critic_fit_params)
 
             if self._fit_count % self._policy_delay() == 0:
                 loss = self._loss(state)
@@ -140,4 +139,4 @@ class DDPG(DeepAC):
 
     def _post_load(self):
         self._actor_approximator = self.policy._approximator
-        self._update_optimizer_parameters(self._actor_approximator.model.network.parameters())
+        self._update_optimizer_parameters(self._actor_approximator.parameters())

@@ -5,7 +5,6 @@ from helper.utils import TestUtils as tu
 
 from mushroom_rl.core import Agent
 from mushroom_rl.algorithms.policy_search import PGPE, REPS, ConstrainedREPS, RWR
-from mushroom_rl.approximators import Regressor
 from mushroom_rl.core import Core
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.distributions import GaussianDiagonalDistribution
@@ -21,9 +20,8 @@ def learn(alg, **alg_params):
     # MDP
     mdp = LQR.generate(dimensions=2)
 
-    approximator = Regressor(LinearApproximator,
-                             input_shape=mdp.info.observation_space.shape,
-                             output_shape=mdp.info.action_space.shape)
+    approximator = LinearApproximator(input_shape=mdp.info.observation_space.shape,
+                                      output_shape=mdp.info.action_space.shape)
 
     policy = DeterministicPolicy(mu=approximator)
 

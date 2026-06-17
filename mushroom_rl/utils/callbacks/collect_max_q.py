@@ -13,7 +13,7 @@ class CollectMaxQ(CallbackList):
         Constructor.
 
         Args:
-            approximator ([Table, EnsembleTable]): the approximator to use;
+            approximator ([Table, Ensemble]): the approximator to use;
             state (np.ndarray): the state to consider.
 
         """

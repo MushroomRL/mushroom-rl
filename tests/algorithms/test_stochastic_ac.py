@@ -9,7 +9,6 @@ from mushroom_rl.core import Core
 from mushroom_rl.environments import *
 from mushroom_rl.features import Features
 from mushroom_rl.features.tiles import Tiles
-from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.policy import StateLogStdGaussianPolicy
 from mushroom_rl.rl_utils.parameters import Parameter
@@ -40,9 +39,9 @@ def learn(alg):
 
     input_shape = (phi.size,)
 
-    mu = Regressor(LinearApproximator, input_shape=input_shape, output_shape=mdp.info.action_space.shape, phi=phi)
+    mu = LinearApproximator(input_shape=input_shape, output_shape=mdp.info.action_space.shape, phi=phi)
 
-    std = Regressor(LinearApproximator, input_shape=input_shape, output_shape=mdp.info.action_space.shape, phi=phi)
+    std = LinearApproximator(input_shape=input_shape, output_shape=mdp.info.action_space.shape, phi=phi)
 
     std_0 = np.sqrt(1.)
     std.set_weights(np.log(std_0) / n_tilings * np.ones(std.weights_size))

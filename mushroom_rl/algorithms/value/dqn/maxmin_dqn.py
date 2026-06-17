@@ -1,7 +1,6 @@
 import torch
 
 from mushroom_rl.algorithms.value.dqn import DQN
-from mushroom_rl.approximators.regressor import Regressor
 
 
 class MaxminDQN(DQN):
@@ -31,13 +30,9 @@ class MaxminDQN(DQN):
         super().fit(dataset)
 
     def _initialize_regressors(self, approximator, apprx_params_train, apprx_params_target):
-        self.approximator = Regressor(approximator,
-                                      n_models=self._n_approximators,
-                                      prediction='min', **apprx_params_train)
-        self.target_approximator = Regressor(approximator,
-                                             n_models=self._n_approximators,
-                                             prediction='min',
-                                             **apprx_params_target)
+        self.approximator = approximator(n_models=self._n_approximators, prediction='min', **apprx_params_train)
+        self.target_approximator = approximator(n_models=self._n_approximators, prediction='min',
+                                                **apprx_params_target)
         self._update_target()
 
     def _update_target(self):

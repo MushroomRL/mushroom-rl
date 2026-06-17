@@ -81,7 +81,7 @@ def test_boltzmann_torch_policy():
 
     state = torch.as_tensor(np.random.rand(3, 3))
     action, _ = pi.draw_action(state)
-    action_test = np.array([1, 0, 0])
+    action_test = np.array([[1], [0], [0]])
     assert np.allclose(action.detach().cpu().numpy(), action_test)
 
     p_sa = pi(state[0], action[0])

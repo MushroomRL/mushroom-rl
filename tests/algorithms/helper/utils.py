@@ -10,9 +10,8 @@ from mushroom_rl.policy.torch_policy import TorchPolicy
 from mushroom_rl.policy.policy import ParametricPolicy
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic.sac import SACPolicy
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory, PrioritizedReplayMemory
-from mushroom_rl.approximators.ensemble import Ensemble
-from mushroom_rl.approximators._implementations.action_regressor import ActionRegressor
-from mushroom_rl.approximators import Regressor
+from mushroom_rl.approximators.approximator import Approximator, Ensemble
+from mushroom_rl.approximators.q_approximator import QApproximator
 from mushroom_rl.policy.noise_policy import OrnsteinUhlenbeckPolicy
 from mushroom_rl.features._implementations.tiles_features import TilesFeatures
 from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter
@@ -37,18 +36,16 @@ class TestUtils:
             for a, b in zip(this.values(), that.values()): cls.assert_eq(a, b)
         elif cls._check_subtype(this, that, Ensemble):
             assert len(this) == len(that)
-            for i in range(0, len(this)):
-                cls.assert_eq(this[i], that[i])
-        elif cls._check_type(this, that, Regressor):
-            if cls._check_type(this._impl, that._impl, ActionRegressor):
-                this = this.model
-                that = that.model
-            for i in range(0, len(this)):
-                if cls._check_type(this[i], that[i], list) or cls._check_type(this[i], that[i], Ensemble) \
-                        or cls._check_type(this[i], that[i], ExtraTreesRegressor):
-                    cls.assert_eq(this[i], that[i])
-                else:
-                    assert cls.eq_weights(this[i], that[i])
+            for a, b in zip(this._models, that._models):
+                cls.assert_eq(a, b)
+        elif cls._check_subtype(this, that, QApproximator):
+            assert len(this._models) == len(that._models)
+            for a, b in zip(this._models, that._models):
+                cls.assert_eq(a, b)
+        elif cls._check_type(this, that, Table):
+            assert cls._eq_numpy(this.table, that.table)
+        elif cls._check_subtype(this, that, Approximator):
+            assert cls.eq_weights(this, that)
         elif cls._check_subtype(this, that, TorchPolicy) or cls._check_type(this, that, SACPolicy) \
                 or cls._check_subtype(this, that, ParametricPolicy):
             assert cls.eq_weights(this, that)
@@ -84,8 +81,6 @@ class TestUtils:
             assert cls.eq_adam_optimizer(this, that)
         elif cls._check_type(this, that, GaussianDiagonalDistribution):
             assert cls.eq_gaussian_diagonal_dist(this, that)
-        elif cls._check_type(this, that, Table):
-            assert cls._eq_numpy(this.table, that.table)
         elif cls._check_type(this, that, Discrete):
             assert cls.eq_discrete(this, that)
         elif cls._check_type(this, that, FunctionalFeatures):

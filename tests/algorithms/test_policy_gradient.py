@@ -5,7 +5,6 @@ from helper.utils import TestUtils as tu
 
 from mushroom_rl.core import Agent
 from mushroom_rl.algorithms.policy_search import *
-from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.core import Core
 from mushroom_rl.environments.lqr import LQR
@@ -19,16 +18,11 @@ def learn(alg, alg_params):
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
 
-    approximator_params = dict(input_dim=mdp.info.observation_space.shape)
-    approximator = Regressor(LinearApproximator,
-                             input_shape=mdp.info.observation_space.shape,
-                             output_shape=mdp.info.action_space.shape,
-                             params=approximator_params)
+    approximator = LinearApproximator(input_shape=mdp.info.observation_space.shape,
+                                      output_shape=mdp.info.action_space.shape)
 
-    sigma = Regressor(LinearApproximator,
-                      input_shape=mdp.info.observation_space.shape,
-                      output_shape=mdp.info.action_space.shape,
-                      params=approximator_params)
+    sigma = LinearApproximator(input_shape=mdp.info.observation_space.shape,
+                               output_shape=mdp.info.action_space.shape)
 
     sigma_weights = 2 * np.ones(sigma.weights_size)
     sigma.set_weights(sigma_weights)

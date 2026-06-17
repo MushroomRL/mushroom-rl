@@ -1,7 +1,7 @@
 import numpy as np
 
 from mushroom_rl.algorithms.value.td import TD
-from mushroom_rl.approximators import Regressor
+from mushroom_rl.approximators import QApproximator
 from mushroom_rl.rl_utils.parameters import to_parameter
 
 
@@ -20,7 +20,7 @@ class SARSALambdaContinuous(TD):
         """
         approximator_params = dict() if approximator_params is None else approximator_params
 
-        Q = Regressor(approximator, **approximator_params)
+        Q = QApproximator(approximator, **approximator_params)
         self.e = np.zeros(Q.weights_size)
         self._lambda = to_parameter(lambda_coeff)
 

@@ -1,7 +1,7 @@
 import numpy as np
 
 from mushroom_rl.algorithms.value.td import TD
-from mushroom_rl.approximators import Regressor
+from mushroom_rl.approximators import QApproximator
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.features import get_action_features
 from mushroom_rl.rl_utils.parameters import to_parameter
@@ -24,7 +24,7 @@ class TrueOnlineSARSALambda(TD):
         """
         approximator_params = dict() if approximator_params is None else approximator_params
 
-        Q = Regressor(LinearApproximator, **approximator_params)
+        Q = QApproximator(LinearApproximator, **approximator_params)
         self.e = np.zeros(Q.weights_size)
         self._lambda = to_parameter(lambda_coeff)
         self._q_old = None

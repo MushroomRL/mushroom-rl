@@ -4,7 +4,6 @@ import torch
 import torch.nn.functional as F
 
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OnPolicyDeepAC
-from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.torch import TorchUtils
 from mushroom_rl.utils.minibatches import minibatch_generator
@@ -52,7 +51,7 @@ class PPO(OnPolicyDeepAC):
         self._lambda = to_parameter(lam)
         self._ent_coeff = to_parameter(ent_coeff)
 
-        self._V = Regressor(TorchApproximator, **critic_params)
+        self._V = TorchApproximator(**critic_params)
 
         self._iter = 1
 

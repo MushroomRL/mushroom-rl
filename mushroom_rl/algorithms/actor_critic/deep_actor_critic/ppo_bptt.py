@@ -1,7 +1,6 @@
 import torch
 
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OnPolicyDeepAC
-from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.torch import TorchUtils
 from mushroom_rl.utils.minibatches import minibatch_generator
@@ -48,7 +47,7 @@ class PPO_BPTT(OnPolicyDeepAC):
         self._lambda = to_parameter(lam)
         self._ent_coeff = to_parameter(ent_coeff)
 
-        self._V = Regressor(TorchApproximator, **critic_params)
+        self._V = TorchApproximator(**critic_params)
 
         self._truncation_length = truncation_length
         self._dim_env_state = dim_env_state
@@ -201,8 +200,8 @@ class PPO_BPTT(OnPolicyDeepAC):
             and the estimated generalized advantage.
         """
         with torch.no_grad():
-            v = V(s, pi_h, lengths)
-            v_next = V(ss, pi_hn, lengths)
+            v = V(s, pi_h, lengths=lengths)
+            v_next = V(ss, pi_hn, lengths=lengths)
             gen_adv = torch.empty_like(v)
             for rev_k in range(len(v)):
                 k = len(v) - rev_k - 1

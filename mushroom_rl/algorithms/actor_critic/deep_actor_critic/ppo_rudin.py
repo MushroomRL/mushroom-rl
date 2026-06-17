@@ -90,5 +90,5 @@ class RudinPPO(PPO):
             for param_group in self._optimizer.param_groups:
                 param_group['lr'] = self._actor_learning_rate
 
-            for param_group in self._V._impl.model._optimizer.param_groups:
+            for param_group in self._V._optimizer.param_groups:
                 param_group['lr'] = self._critic_learning_rate

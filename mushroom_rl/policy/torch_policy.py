@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 
 from mushroom_rl.policy import Policy
-from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.torch import TorchUtils, CategoricalWrapper
 from mushroom_rl.rl_utils.parameters import to_parameter
@@ -38,10 +37,9 @@ class TorchPolicy(Policy):
 
     def draw_action(self, state, policy_state=None):
         with torch.no_grad():
-            s = TorchUtils.to_float_tensor(torch.atleast_2d(state))
-            a = self.draw_action_t(s)
+            a = self.draw_action_t(state)
 
-        return torch.squeeze(a, dim=0).detach(), None
+            return a, None
 
     def distribution(self, state):
         """
@@ -189,7 +187,7 @@ class GaussianTorchPolicy(TorchPolicy):
 
         self._action_dim = output_shape[0]
 
-        self._mu = Regressor(TorchApproximator, input_shape, output_shape, network=network, **params)
+        self._mu = TorchApproximator(input_shape=input_shape, output_shape=output_shape, network=network, **params)
         self._predict_params = dict()
 
         log_sigma_init = torch.ones(self._action_dim, device=TorchUtils.get_device()) * torch.log(TorchUtils.to_float_tensor(std_0))
@@ -234,7 +232,7 @@ class GaussianTorchPolicy(TorchPolicy):
         return torch.concatenate([mu_weights, sigma_weights])
 
     def parameters(self):
-        return chain(self._mu.model.network.parameters(), [self._log_sigma])
+        return chain(self._mu.parameters(), [self._log_sigma])
 
 
 class BoltzmannTorchPolicy(TorchPolicy):
@@ -263,7 +261,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
         self._action_dim = output_shape[0]
         self._predict_params = dict()
 
-        self._logits = Regressor(TorchApproximator, input_shape, output_shape, network=network, **params)
+        self._logits = TorchApproximator(input_shape=input_shape, output_shape=output_shape, network=network, **params)
         self._beta = to_parameter(beta)
 
         self._add_save_attr(
@@ -275,14 +273,10 @@ class BoltzmannTorchPolicy(TorchPolicy):
 
     def draw_action_t(self, state):
         action = self.distribution_t(state).sample().detach()
-
-        if len(action.shape) > 1:
-            return action
-        else:
-            return action.unsqueeze(0)
+        return action.unsqueeze(-1)
 
     def log_prob_t(self, state, action):
-        return self.distribution_t(state).log_prob(action)[:, None]
+        return self.distribution_t(state).log_prob(action).unsqueeze(-1)
 
     def entropy_t(self, state):
         return torch.mean(self.distribution_t(state).entropy())
@@ -298,7 +292,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
         return self._logits.get_weights()
 
     def parameters(self):
-        return self._logits.model.network.parameters()
+        return self._logits.parameters()
 
     def set_beta(self, beta):
         self._beta = to_parameter(beta)

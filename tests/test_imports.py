@@ -16,7 +16,6 @@ def test_imports():
     import mushroom_rl.algorithms.value.dqn
 
     import mushroom_rl.approximators
-    import mushroom_rl.approximators._implementations
     import mushroom_rl.approximators.parametric
 
     import mushroom_rl.core

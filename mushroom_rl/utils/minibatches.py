@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 
 def minibatch_number(size, batch_size):
@@ -40,3 +41,31 @@ def minibatch_generator(batch_size, *dataset):
         for i in range(len(dataset)):
             batch.append(dataset[i][indexes[batch_start:batch_end]])
         yield batch
+
+
+def ensemble_minibatch_generator(batch_size, n_models, *dataset):
+    """
+    Generator that creates independently-shuffled minibatches for ensemble training.
+    Each model gets its own shuffle of the dataset, matching the random state
+    consumption of n_models sequential calls to minibatch_generator.
+
+    Args:
+        batch_size (int): the maximum size of each minibatch;
+        n_models (int): number of ensemble models;
+        dataset: the dataset to be split.
+
+    Returns:
+        For each batch index, a list of stacked arrays with shape (n_models, batch_size, ...).
+
+    """
+    size = len(dataset[0])
+    num_batches = minibatch_number(size, batch_size)
+    batches = [(i * batch_size, min(size, (i + 1) * batch_size)) for i in range(num_batches)]
+
+    all_indexes = [torch.randperm(size) for _ in range(n_models)]
+
+    for batch_start, batch_end in batches:
+        yield [
+            torch.stack([dataset[j][all_indexes[m][batch_start:batch_end]] for m in range(n_models)])
+            for j in range(len(dataset))
+        ]

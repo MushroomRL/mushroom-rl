@@ -1,5 +1,4 @@
 from mushroom_rl.policy import DeterministicPolicy
-from mushroom_rl.approximators.regressor import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.utils.numerical_gradient import numerical_diff_policy
 
@@ -11,9 +10,7 @@ def test_deterministic_policy():
 
     n_dims = 5
 
-    approximator = Regressor(LinearApproximator,
-                             input_shape=(n_dims,),
-                             output_shape=(2,))
+    approximator = LinearApproximator(input_shape=(n_dims,), output_shape=(2,))
 
     pi = DeterministicPolicy(approximator)
 

@@ -1,6 +1,5 @@
 import numpy as np
 
-from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.features import Features
 from mushroom_rl.policy.dmp import DMP
@@ -9,7 +8,7 @@ from mushroom_rl.policy.dmp import DMP
 def _make_dmp(action_dim=1, goal=None):
     n_features = 4
     phi = Features(n_outputs=n_features, function=lambda z: np.repeat(z, n_features))
-    mu = Regressor(LinearApproximator, input_shape=(n_features,), output_shape=(action_dim,))
+    mu = LinearApproximator(input_shape=(n_features,), output_shape=(action_dim,))
     if goal is None:
         goal = np.ones(action_dim)
     return DMP(mu, phi, goal=goal, dt=0.01, tau=1.0,

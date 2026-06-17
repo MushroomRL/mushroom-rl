@@ -1,7 +1,6 @@
 import torch
 
 from mushroom_rl.algorithms.value.dqn import AbstractDQN
-from mushroom_rl.approximators.regressor import Regressor
 
 
 class AveragedDQN(AbstractDQN):
@@ -32,10 +31,9 @@ class AveragedDQN(AbstractDQN):
 
     def _initialize_regressors(self, approximator, apprx_params_train,
                                apprx_params_target):
-        self.approximator = Regressor(approximator, **apprx_params_train)
-        self.target_approximator = Regressor(approximator,
-                                             n_models=self._n_approximators,
-                                             **apprx_params_target)
+        self.approximator = approximator(**apprx_params_train)
+        self.target_approximator = approximator(n_models=self._n_approximators,
+                                                **apprx_params_target)
         for i in range(len(self.target_approximator)):
             self.target_approximator[i].set_weights(
                 self.approximator.get_weights()
@@ -53,7 +51,7 @@ class AveragedDQN(AbstractDQN):
     def _next_q(self, next_state, absorbing):
         q = list()
         for idx in range(self._n_fitted_target_models):
-            q_target_idx = self.target_approximator.predict(next_state, idx=idx, **self._predict_params)
+            q_target_idx = self.target_approximator[idx].predict(next_state, **self._predict_params)
             q.append(q_target_idx)
         q = torch.stack(q).mean(0)
         if absorbing.any():
