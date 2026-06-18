@@ -65,6 +65,7 @@ class TorchApproximator(Approximator):
         """
         super().__init__()
 
+        self._input_shape = input_shape
         self._output_shape = output_shape
         self._parse_output = self._parse_single_output if n_outputs == 1 else self._parse_multi_output
 
@@ -84,6 +85,7 @@ class TorchApproximator(Approximator):
                                      self._fit_epoch, self._compute_val_loss, self._store_loss, quiet)
 
         self._add_save_attr(
+            _input_shape='primitive',
             _output_shape='primitive',
             _parse_output='primitive',
             network='torch',
@@ -118,8 +120,9 @@ class TorchApproximator(Approximator):
             The predictions of the model.
 
         """
-        torch_args = [torch.atleast_2d(torch.as_tensor(x, device=TorchUtils.get_device())) for x in args]
-        return self._parse_output(self.network(*torch_args, **kwargs))
+        if args[0].ndim == len(self._input_shape):
+            args = [x.unsqueeze(0) for x in args]
+        return self._parse_output(self.network(*args, **kwargs))
 
     def fit(self, *args, n_epochs=None, weights=None, epsilon=None, patience=1, validation_split=1., **kwargs):
         """

@@ -118,14 +118,17 @@ class Dataset(Serializable):
         self._episode_info = ExtraInfo(min(n_episodes, dataset_info.n_envs) if n_episodes else dataset_info.n_envs, dataset_info.backend, dataset_info.device)
         self._theta_list = list()
 
+        state_dtype = self._array_backend.to_backend_dtype(dataset_info.state_dtype)
+        action_dtype = self._array_backend.to_backend_dtype(dataset_info.action_dtype)
+
         if dataset_info.backend == 'numpy':
-            self._data = NumpyDataset(dataset_info.state_dtype, state_shape,
-                                      dataset_info.action_dtype, action_shape,
+            self._data = NumpyDataset(state_dtype, state_shape,
+                                      action_dtype, action_shape,
                                       reward_shape, base_shape,
                                       policy_state_shape, mask_shape)
         elif dataset_info.backend == 'torch':
-            self._data = TorchDataset(dataset_info.state_dtype, state_shape,
-                                      dataset_info.action_dtype, action_shape, reward_shape, base_shape,
+            self._data = TorchDataset(state_dtype, state_shape,
+                                      action_dtype, action_shape, reward_shape, base_shape,
                                       policy_state_shape, mask_shape, device=dataset_info.device)
         else:
             self._data = ListDataset(policy_state_shape is not None, mask_shape is not None)

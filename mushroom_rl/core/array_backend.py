@@ -232,7 +232,23 @@ class ArrayBackend(object):
     def stack(lst, dim):
         raise NotImplementedError
 
+    @staticmethod
+    def to_backend_dtype(dtype):
+        raise NotImplementedError
+
 class NumpyBackend(ArrayBackend):
+    _DTYPE_MAP = {
+        torch.bool:    np.dtype('bool'),
+        torch.uint8:   np.dtype('uint8'),
+        torch.int8:    np.dtype('int8'),
+        torch.int16:   np.dtype('int16'),
+        torch.int32:   np.dtype('int32'),
+        torch.int64:   np.dtype('int64'),
+        torch.float16: np.dtype('float16'),
+        torch.float32: np.dtype('float32'),
+        torch.float64: np.dtype('float64'),
+    }
+
     @staticmethod
     def get_backend_name():
         return 'numpy'
@@ -249,10 +265,16 @@ class NumpyBackend(ArrayBackend):
     def to_torch(array):
         if array is None:
             return None
-        else:
-            if array.dtype == np.float64:
-                array = array.astype(np.float32)
-            return torch.from_numpy(array).to(TorchUtils.get_device())
+        torch_dtype = TorchBackend.to_backend_dtype(array.dtype)
+        return torch.as_tensor(array, dtype=torch_dtype, device=TorchUtils.get_device())
+
+    @classmethod
+    def to_backend_dtype(cls, dtype):
+        if isinstance(dtype, np.dtype):
+            return dtype
+        if isinstance(dtype, torch.dtype):
+            return cls._DTYPE_MAP[dtype]
+        return np.dtype(dtype)
 
     @staticmethod
     def convert_to_backend(cls, array):
@@ -431,7 +453,22 @@ class NumpyBackend(ArrayBackend):
     def stack(lst, dim):
         return np.stack(lst, axis=dim)
 
+    @staticmethod
+    def to_backend_dtype(dtype):
+        return dtype
+
 class TorchBackend(ArrayBackend):
+    _DTYPE_MAP = {
+        np.dtype('bool'):    torch.bool,
+        np.dtype('uint8'):   torch.uint8,
+        np.dtype('int8'):    torch.int8,
+        np.dtype('int16'):   torch.int16,
+        np.dtype('int32'):   torch.int32,
+        np.dtype('int64'):   torch.int64,
+        np.dtype('float16'): torch.float16,
+        np.dtype('float32'): torch.float32,
+        np.dtype('float64'): torch.float32,
+    }
 
     @staticmethod
     def get_backend_name():
@@ -634,6 +671,12 @@ class TorchBackend(ArrayBackend):
     @staticmethod
     def stack(lst, dim):
         return torch.stack(lst, dim=dim)
+
+    @classmethod
+    def to_backend_dtype(cls, dtype):
+        if isinstance(dtype, torch.dtype):
+            return dtype
+        return cls._DTYPE_MAP[np.dtype(dtype)]
 
 class ListBackend(ArrayBackend):
 
