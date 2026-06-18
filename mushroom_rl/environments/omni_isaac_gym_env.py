@@ -7,7 +7,7 @@ from omniisaacgymenvs.utils.task_util import initialize_task
 from mushroom_rl.core import VectorizedEnvironment, MDPInfo
 from mushroom_rl.utils.viewer import ImageViewer
 from mushroom_rl.utils.isaac_utils import convert_task_observation
-from mushroom_rl.rl_utils.spaces import *
+from mushroom_rl.core.spaces import Box, Discrete
 
 # import carb
 

@@ -2,7 +2,7 @@ import gymnasium as gym
 import ale_py
 
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.rl_utils.spaces import *
+from mushroom_rl.core.spaces import Box, Discrete
 from mushroom_rl.utils.viewer import ImageViewer
 
 import cv2

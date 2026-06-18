@@ -1,7 +1,7 @@
 import numpy as np
 
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.rl_utils import spaces
+from mushroom_rl.core.spaces import Box
 
 
 class LQR(Environment):
@@ -63,8 +63,8 @@ class LQR(Environment):
         high_u = self._max_action * np.ones(B.shape[1])
         low_u = -high_u
 
-        observation_space = spaces.Box(low=low_x, high=high_x)
-        action_space = spaces.Box(low=low_u, high=high_u)
+        observation_space = Box(low=low_x, high=high_x)
+        action_space = Box(low=low_u, high=high_u)
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
         self._state = None

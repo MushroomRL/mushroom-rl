@@ -1,4 +1,5 @@
 from .array_backend import ArrayBackend
+from .spaces import Box, Discrete
 from .core import Core
 from .dataset import DatasetInfo, Dataset, VectorizedDataset
 from .environment import Environment, MDPInfo
@@ -14,5 +15,6 @@ from .multiprocess_environment import MultiprocessEnvironment
 
 import mushroom_rl.environments
 
-__all__ = ['ArrayBackend', 'Core', 'DatasetInfo', 'Dataset', 'Environment', 'MDPInfo', 'Agent', 'AgentInfo',
-           'Serializable', 'Logger', 'ExtraInfo', 'VectorCore', 'VectorizedEnvironment', 'MultiprocessEnvironment']
+__all__ = ['ArrayBackend', 'Core', 'DatasetInfo', 'Dataset', 'Environment', 'MDPInfo', 'Box', 'Discrete',
+           'Agent', 'AgentInfo', 'Serializable', 'Logger', 'ExtraInfo', 'VectorCore', 'VectorizedEnvironment',
+           'MultiprocessEnvironment']

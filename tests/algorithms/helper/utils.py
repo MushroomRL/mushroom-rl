@@ -18,7 +18,7 @@ from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter
 from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer, SGDOptimizer, AdamOptimizer
 from mushroom_rl.distributions.gaussian import GaussianDiagonalDistribution
 from mushroom_rl.approximators.table import Table
-from mushroom_rl.rl_utils.spaces import Discrete
+from mushroom_rl.core.spaces import Discrete
 from mushroom_rl.features._implementations.functional_features import FunctionalFeatures
 from mushroom_rl.features._implementations.basis_features import BasisFeatures
 
@@ -153,16 +153,16 @@ class TestUtils:
         Compare two mdp_info objects for equality
         """
         res = True
-        if isinstance(this.observation_space, mushroom_rl.rl_utils.spaces.Box):
+        if isinstance(this.observation_space, mushroom_rl.core.spaces.Box):
             res &= cls.eq_box(this.observation_space, that.observation_space)
-        elif isinstance(this.observation_space, mushroom_rl.rl_utils.spaces.Discrete):
+        elif isinstance(this.observation_space, mushroom_rl.core.spaces.Discrete):
             res = cls.eq_discrete(this.observation_space, that.observation_space)
         else:
             raise TypeError('Type not supported')
 
-        if isinstance(this.action_space, mushroom_rl.rl_utils.spaces.Box):
+        if isinstance(this.action_space, mushroom_rl.core.spaces.Box):
             res &= cls.eq_box(this.action_space, that.action_space)
-        elif isinstance(this.action_space, mushroom_rl.rl_utils.spaces.Discrete):
+        elif isinstance(this.action_space, mushroom_rl.core.spaces.Discrete):
             res &= cls.eq_discrete(this.action_space, that.action_space)
         else:
             raise TypeError('Type not supported')

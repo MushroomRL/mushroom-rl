@@ -1,7 +1,7 @@
 from scipy.stats import norm
 
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.rl_utils.spaces import *
+from mushroom_rl.core.spaces import Box, Discrete
 from mushroom_rl.utils.viewer import Viewer
 
 

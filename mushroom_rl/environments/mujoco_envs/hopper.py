@@ -3,7 +3,7 @@ import mujoco
 from pathlib import Path
 
 from mushroom_rl.environments.mujoco import MuJoCo, ObservationType
-from mushroom_rl.rl_utils.spaces import Box
+from mushroom_rl.core.spaces import Box
 
 
 class Hopper(MuJoCo):

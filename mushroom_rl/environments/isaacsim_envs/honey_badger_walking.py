@@ -1,6 +1,6 @@
 from mushroom_rl.environments import IsaacSim
 from mushroom_rl.utils.isaac_sim import ObservationType, ActionType
-from mushroom_rl.rl_utils.spaces import Box
+from mushroom_rl.core.spaces import Box
 
 import numpy as np
 import torch

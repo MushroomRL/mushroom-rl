@@ -4,7 +4,7 @@ import numpy as np
 import mujoco
 
 from mushroom_rl.environments.mujoco import MuJoCo, ObservationType
-from mushroom_rl.rl_utils.spaces import Box
+from mushroom_rl.core.spaces import Box
 
 
 class HalfCheetah(MuJoCo):

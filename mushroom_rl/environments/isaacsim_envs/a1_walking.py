@@ -2,7 +2,7 @@ from mushroom_rl.environments import IsaacSim
 from mushroom_rl.utils.isaac_sim import ObservationType, ActionType
 import numpy as np
 import torch
-from mushroom_rl.rl_utils.spaces import Box
+from mushroom_rl.core.spaces import Box
 from pathlib import Path
 
 class A1Walking(IsaacSim):

@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from mushroom_rl.core import MDPInfo, AgentInfo, Dataset
-from mushroom_rl.rl_utils.spaces import Box
+from mushroom_rl.core.spaces import Box
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory, SequenceReplayMemory, PrioritizedReplayMemory
 from mushroom_rl.rl_utils.parameters import LinearParameter
 

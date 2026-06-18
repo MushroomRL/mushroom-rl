@@ -1,7 +1,7 @@
 import numpy as np
 
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.rl_utils import spaces
+from mushroom_rl.core.spaces import Discrete
 
 
 class FiniteMDP(Environment):
@@ -31,8 +31,8 @@ class FiniteMDP(Environment):
         self.mu = mu
 
         # MDP properties
-        observation_space = spaces.Discrete(p.shape[0])
-        action_space = spaces.Discrete(p.shape[1])
+        observation_space = Discrete(p.shape[0])
+        action_space = Discrete(p.shape[1])
         horizon = horizon
         gamma = gamma
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)

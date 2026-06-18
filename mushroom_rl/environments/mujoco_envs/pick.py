@@ -4,7 +4,7 @@ import numpy as np
 import mujoco
 
 from mushroom_rl.environments.mujoco import ObservationType
-from mushroom_rl.rl_utils.spaces import Box
+from mushroom_rl.core.spaces import Box
 from mushroom_rl.utils.quaternions import quaternion_distance
 from mushroom_rl.environments.mujoco_envs.panda import Panda
 

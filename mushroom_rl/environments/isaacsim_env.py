@@ -3,7 +3,7 @@ import sys
 import atexit
 
 from mushroom_rl.core import VectorizedEnvironment, MDPInfo, ArrayBackend
-from mushroom_rl.rl_utils.spaces import Box
+from mushroom_rl.core.spaces import Box
 from mushroom_rl.utils import TorchUtils
 from mushroom_rl.utils.viewer import ImageViewer
 from mushroom_rl.utils.isaac_sim import ObservationHelper, ActionType
