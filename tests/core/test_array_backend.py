@@ -4,6 +4,26 @@ import numpy as np
 from mushroom_rl.core.array_backend import NumpyBackend, TorchBackend
 
 
+def test_to_backend_dtype_numpy():
+    assert NumpyBackend.to_backend_dtype(np.uint8) == np.dtype('uint8')
+    assert NumpyBackend.to_backend_dtype(np.float32) == np.dtype('float32')
+    assert NumpyBackend.to_backend_dtype(float) == np.dtype('float64')
+    assert NumpyBackend.to_backend_dtype(int) == np.dtype('int64')
+    assert NumpyBackend.to_backend_dtype(np.dtype('uint8')) == np.dtype('uint8')
+    assert NumpyBackend.to_backend_dtype(torch.uint8) == np.dtype('uint8')
+    assert NumpyBackend.to_backend_dtype(torch.float32) == np.dtype('float32')
+
+
+def test_to_backend_dtype_torch():
+    assert TorchBackend.to_backend_dtype(np.uint8) == torch.uint8
+    assert TorchBackend.to_backend_dtype(np.float32) == torch.float32
+    assert TorchBackend.to_backend_dtype(float) == torch.float32
+    assert TorchBackend.to_backend_dtype(int) == torch.int64
+    assert TorchBackend.to_backend_dtype(np.dtype('uint8')) == torch.uint8
+    assert TorchBackend.to_backend_dtype(torch.uint8) == torch.uint8
+    assert TorchBackend.to_backend_dtype(torch.float32) == torch.float32
+
+
 def sequence_generator():
     list_n_steps = np.random.randint(2, 10, 100)
     list_n_envs = np.random.randint(2, 20, 100)

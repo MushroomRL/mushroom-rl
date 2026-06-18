@@ -5,8 +5,31 @@ from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import QNetwork
 
 import torch
+import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+
+
+def test_predict_single_sample_multidim_input():
+    torch.manual_seed(1)
+
+    class FlatNet(nn.Module):
+        def __init__(self, input_shape, output_shape, **kwargs):
+            super().__init__()
+            self._h = nn.Linear(input_shape[0] * input_shape[1], output_shape[0])
+
+        def forward(self, x):
+            return self._h(x.float().reshape(x.shape[0], -1))
+
+    approximator = TorchApproximator(input_shape=(4, 8), output_shape=(3,), network=FlatNet)
+
+    single = torch.rand(4, 8)
+    out_single = approximator.predict(single)
+    assert out_single.shape == (3,)
+
+    batch = torch.rand(5, 4, 8)
+    out_batch = approximator.predict(batch)
+    assert out_batch.shape == (5, 3)
 
 
 def test_torch_ensemble_logger(tmpdir):

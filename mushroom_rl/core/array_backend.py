@@ -453,10 +453,6 @@ class NumpyBackend(ArrayBackend):
     def stack(lst, dim):
         return np.stack(lst, axis=dim)
 
-    @staticmethod
-    def to_backend_dtype(dtype):
-        return dtype
-
 class TorchBackend(ArrayBackend):
     _DTYPE_MAP = {
         np.dtype('bool'):    torch.bool,
@@ -695,6 +691,10 @@ class ListBackend(ArrayBackend):
     @staticmethod
     def to_torch(array):
         return None if array is None else torch.as_tensor(array, device=TorchUtils.get_device())
+
+    @staticmethod
+    def to_backend_dtype(dtype):
+        return dtype
 
     @staticmethod
     def convert_to_backend(cls, array):
