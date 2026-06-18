@@ -24,14 +24,12 @@ class IsaacSim(VectorizedEnvironment):
 
         Args:
             usd_path (str): Path to usd file of the robot.
-            actuation_spec (list): A list specifying the names of the joints  which should be controllable by the
-               agent.
+            actuation_spec (list): A list specifying the names of the joints  which should be controllable by the agent.
             observation_spec (list): A list containing the names of data that should be made available to the agent as
-               an observation and their type (ObservationType). They are combined with a path, which is used to access the prim,
-               and a list or a single string with name of the subelements of prim which should be accessed. For example a subbody 
-               or a joint of an ArticulationView
-               An entry in the list is given by: (key, name, type, element). The name can later be used to retrieve
-               specific observations.
+               an observation and their type (ObservationType). They are combined with a path, which is used to access
+               the prim, and a list or a single string with name of the subelements of prim which should be accessed.
+               For example a subbody or a joint of an ArticulationView. An entry in the list is given by:
+               (key, name, type, element). The name can later be used to retrieve specific observations.
             backend (str): Backend for array operations.
             device (str): Compute device (e.g., 'cuda:0').
             collision_between_envs (bool): Whether inter-environment collisions are allowed.
@@ -46,28 +44,30 @@ class IsaacSim(VectorizedEnvironment):
             additional_data_spec (list, None): A list containing the data fields of interest, which should be read from
                or written to during simulation. The entries are given as the following tuples: (key, path, type) key
                is a string for later referencing in the "read_data" and "write_data" methods.
-            collision_groups (dict, None): A list containing groups of prims for which collisions should be checked during
-                simulation. The entries are given as ``(key, prim_paths)``, where key is a string for later reference and 
-                prim_paths is a list of paths to the prims.
+            collision_groups (dict, None): A list containing groups of prims for which collisions should be checked
+                during simulation. The entries are given as ``(key, prim_paths)``, where key is a string for later
+                reference and prim_paths is a list of paths to the prims.
             action_type (ActionType): Control type of the joints (effort, position, velocity).
-            physics_material_spec (list, None): A list containing all data to create a custom physics material for each environment, which 
-                will be applied to all rigidbodies. 
-                The entries are given as the following tuples: (name, dynamic_friction, static_friction, restitution)
+            physics_material_spec (list, None): A list containing all data to create a custom physics material for each
+                environment, which will be applied to all rigidbodies. The entries are given as the following tuples:
+                (name, dynamic_friction, static_friction, restitution)
             sim_params (dict): Dictionary of simulation parameters for the physics context. 
                 Intended to set gpu_collision_stack_size, gpu_found_lost_aggregate_pairs_capacity, 
                 gpu_found_lost_pairs_capacity, gpu_heap_capacity, gpu_max_num_partitions, gpu_max_particle_contacts, 
                 gpu_max_rigid_contact_count, gpu_max_rigid_patch_count, gpu_max_soft_body_contacts, 
                 gpu_temp_buffer_capacity, gpu_total_aggregate_pairs_capacity.
-            solver_pos_it_count (torch, array): An array with the same size as num_envs. Determines how accurately contacts, 
-                drives, and limits are resolved. Low values can lead to performance improvement
-            solver_vel_it_count (torch, array): An array with the same size as num_envs. Determines how accurately contacts, 
-                drives, and limits are resolved. Low values can lead to performance improvement
-            ground_plane_friction (tuple, None): A tuple containing the static friciton, dynamic friction and restitution 
-                for the groundplane. The tuple should have the following format: (static_friction, dynamic_friction, restitution)
+            solver_pos_it_count (torch, array): An array with the same size as num_envs. Determines how accurately
+                contacts, drives, and limits are resolved. Low values can lead to performance improvement;
+            solver_vel_it_count (torch, array): An array with the same size as num_envs. Determines how accurately
+                contacts, drives, and limits are resolved. Low values can lead to performance improvement
+            ground_plane_friction (tuple, None): A tuple containing the static friciton, dynamic friction and
+                restitution for the groundplane. The tuple should have the following format:
+                (static_friction, dynamic_friction, restitution)
             camera_position (tuple): The position where the camera is placed.
             camera_target (tuple): The position the camera is aimed at.
             headless (bool): Whether to run in headless mode.
             render_product_size (tuple): (Width, Height) of the recorded and displayed image.
+
         """
         self._headless = headless
         self._simulation_app = self._create_simulation_app(headless)
@@ -139,9 +139,9 @@ class IsaacSim(VectorizedEnvironment):
         Returns:
             cur_obs (torch.tensor, np.ndarray): The updated observations after the step.
             reward (torch.tensor, np.ndarray): The computed rewards for each environment.
-            absorbing (torch.tensor, np.ndarray): A boolean tensor indicating if an environment is 
-                in an absorbing state.
+            absorbing (torch.tensor, np.ndarray): A boolean tensor indicating if an environment is in an absorbing state.
             extra_info (dict): Additional information about the simulation step.
+
         """
         arr_backend = ArrayBackend.get_array_backend(self._mdp_info.backend)
 
@@ -194,6 +194,7 @@ class IsaacSim(VectorizedEnvironment):
         Returns:
             obs (torch.tensor, np.ndarray): The observations after resetting the environments.
             info (dict): Additional information about the reset environments.
+
         """
         arr_backend = ArrayBackend.get_array_backend(self._mdp_info.backend)
         env_indices = arr_backend.where(env_mask)[0]
@@ -218,8 +219,8 @@ class IsaacSim(VectorizedEnvironment):
         Render all environments. Optionally record the frames.
 
         Args:
-            record (bool): If True, the function returns the rendered image data.
-                Defaults to False.
+            record (bool, False): If True, the function returns the rendered image data.
+
         """
         self._world.render()
         data = self._task.rgb_annot.get_data().numpy()[..., :3]
@@ -246,7 +247,7 @@ class IsaacSim(VectorizedEnvironment):
             absorbing (torch.tensor, np.array): whether next_state is an absorbing state or not.
 
         Returns:
-            The rewards as a array or tensor.
+            The rewards as an array or tensor.
 
         """
         raise NotImplementedError
@@ -267,6 +268,7 @@ class IsaacSim(VectorizedEnvironment):
     def setup(self, env_indices, obs):
         """
         A function that allows to execute setup code after an environment reset.
+
         """
         raise NotImplementedError
 
@@ -280,6 +282,7 @@ class IsaacSim(VectorizedEnvironment):
         
         Returns:
             int: The seed value that was set.
+
         """
         from isaacsim.core.utils.torch.maths import set_seed
         return set_seed(seed, torch_deterministic)
@@ -295,6 +298,7 @@ class IsaacSim(VectorizedEnvironment):
             soft (bool): Defaults to True.
                 - True: Performs soft reset of world.
                 - False: Perform reset of world and clears consistent properties.
+
         """
         if self._viewer is not None:
             self._viewer.close()
@@ -307,6 +311,7 @@ class IsaacSim(VectorizedEnvironment):
     def cleanup(self):
         """
         Ends simulation.
+
         """
         if hasattr(self, "_viewer") and self._viewer is not None:
             self._viewer.close()
@@ -331,6 +336,7 @@ class IsaacSim(VectorizedEnvironment):
 
         Returns:
             The desired data as a tensor or array.
+
         """
         return self._task.read_data(name, env_indices)
 
@@ -343,6 +349,7 @@ class IsaacSim(VectorizedEnvironment):
             value (torch.tensor, np.ndarra): The data that should be written.
             reapply_after_reset (bool): Whether the written property should be reapplied after a world reset. 
                 Defaults to False.
+
         """
         self._task.write_data(name, value, env_indices, reapply_after_reset)
 
@@ -379,6 +386,7 @@ class IsaacSim(VectorizedEnvironment):
         Args:
             timestep (float, None): The physics timestep. the default physics timestep is used.
             custom_sim_params (dict, None): A dictionary of simulation parameters to override the default ones.
+
         """
         from isaacsim.core.api import World
 
@@ -458,6 +466,7 @@ class IsaacSim(VectorizedEnvironment):
 
         Returns:
             A boolean tensor or array indicating where the computed forces exceed the given threshold.
+
         """
         if selector:
             return self._task.collision_helper.check_collision(group1, group2, threshold, selector=selector, dt=dt)
@@ -480,6 +489,7 @@ class IsaacSim(VectorizedEnvironment):
         Returns:
             A tensor or array containing the computed collision forces between the groups, 
             processed by the `selector` function.
+
         """
         if selector:
             return self._task.collision_helper.get_collision_force(group1, group2, selector, dt)
@@ -505,6 +515,7 @@ class IsaacSim(VectorizedEnvironment):
 
         Returns:
             A tensor or array containing the count of collisions
+
         """
         if selector:
             return self._task.collision_helper.count_collisions(group1, group2, threshold, selector=selector, dt=dt)
@@ -518,6 +529,7 @@ class IsaacSim(VectorizedEnvironment):
         Args:
             group (str): The name of the collision group.
             dt (float, optional): The time step duration used for computing forces. Defaults to 1.0.
+
         """
         return self._task.collision_helper.get_net_contact_forces(group, dt)
 
@@ -577,6 +589,7 @@ class IsaacSim(VectorizedEnvironment):
 
         Returns:
             The action to be used for the current step
+
         """
         return action
     
@@ -612,6 +625,7 @@ class IsaacSim(VectorizedEnvironment):
         Allows information to be accesed and changed at every intermediate step
         before taking a step in the isaac sim simulation.
         Can be usefull to apply an external force/torque to the specified bodies.
+
         """
         pass
 
@@ -627,5 +641,6 @@ class IsaacSim(VectorizedEnvironment):
     def _step_finalize(self, env_indices):
         """
         Allows information to be accesed at the end of a step.
+
         """
         pass

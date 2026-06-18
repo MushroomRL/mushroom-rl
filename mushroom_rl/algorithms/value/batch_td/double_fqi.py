@@ -8,7 +8,7 @@ class DoubleFQI(FQI):
     """
     Double Fitted Q-Iteration algorithm.
     "Estimating the Maximum Expected Value in Continuous Reinforcement Learning Problems"
-     D'Eramo C. et al. 2017.
+    D'Eramo C. et al. 2017.
 
     """
     def __init__(self, mdp_info, policy, approximator, n_iterations,
