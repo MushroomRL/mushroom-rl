@@ -3,7 +3,6 @@ from tqdm import tqdm, trange
 
 from mushroom_rl.algorithms.policy_search import RWR, PGPE, REPS, ConstrainedREPS, MORE
 from mushroom_rl.approximators.parametric import LinearApproximator
-from mushroom_rl.approximators.regressor import Regressor
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.distributions import GaussianCholeskyDistribution
 from mushroom_rl.environments import LQR
@@ -30,9 +29,8 @@ def experiment(alg, params, n_epochs, fit_per_epoch, ep_per_fit):
     # MDP
     mdp = LQR.generate(dimensions=1)
 
-    approximator = Regressor(LinearApproximator,
-                             input_shape=mdp.info.observation_space.shape,
-                             output_shape=mdp.info.action_space.shape)
+    approximator = LinearApproximator(input_shape=mdp.info.observation_space.shape,
+                                      output_shape=mdp.info.action_space.shape)
 
     policy = DeterministicPolicy(mu=approximator)
 

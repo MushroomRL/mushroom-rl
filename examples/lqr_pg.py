@@ -2,7 +2,6 @@ import numpy as np
 
 from mushroom_rl.algorithms.policy_search import REINFORCE, GPOMDP, eNAC
 from mushroom_rl.approximators.parametric import LinearApproximator
-from mushroom_rl.approximators.regressor import Regressor
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import LQR
 from mushroom_rl.policy import StateStdGaussianPolicy
@@ -30,13 +29,11 @@ def experiment(alg, n_epochs, n_iterations, ep_per_run):
     # MDP
     mdp = LQR.generate(dimensions=2, max_action=1., max_pos=1.)
 
-    approximator = Regressor(LinearApproximator,
-                             input_shape=mdp.info.observation_space.shape,
-                             output_shape=mdp.info.action_space.shape)
+    approximator = LinearApproximator(input_shape=mdp.info.observation_space.shape,
+                                      output_shape=mdp.info.action_space.shape)
 
-    sigma = Regressor(LinearApproximator,
-                      input_shape=mdp.info.observation_space.shape,
-                      output_shape=mdp.info.action_space.shape)
+    sigma = LinearApproximator(input_shape=mdp.info.observation_space.shape,
+                               output_shape=mdp.info.action_space.shape)
 
     sigma_weights = 0.25 * np.ones(sigma.weights_size)
     sigma.set_weights(sigma_weights)

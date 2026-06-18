@@ -8,7 +8,6 @@ from mushroom_rl.environments.segway import Segway
 from mushroom_rl.algorithms.policy_search import ePPO
 from mushroom_rl.policy import DeterministicPolicy
 from mushroom_rl.distributions import DiagonalGaussianTorchDistribution
-from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.callbacks import CollectDataset
 
@@ -42,10 +41,9 @@ def experiment(alg, params, n_epochs, n_episodes, n_ep_per_fit, n_ep_test):
     mdp = Segway()
 
     # Policy
-    approximator = Regressor(TorchApproximator,
-                             input_shape=mdp.info.observation_space.shape,
-                             output_shape=mdp.info.action_space.shape,
-                             network=LinearNetwork)
+    approximator = TorchApproximator(input_shape=mdp.info.observation_space.shape,
+                                      output_shape=mdp.info.action_space.shape,
+                                      network=LinearNetwork)
 
     n_weights = approximator.weights_size
     mu = torch.zeros(n_weights)
