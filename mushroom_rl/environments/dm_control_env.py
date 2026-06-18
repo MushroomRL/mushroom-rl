@@ -1,3 +1,4 @@
+import numpy as np
 import warnings
 
 with warnings.catch_warnings():

@@ -1,3 +1,4 @@
+import numpy as np
 from scipy.stats import norm
 
 from mushroom_rl.core import Environment, MDPInfo
