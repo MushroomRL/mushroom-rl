@@ -36,5 +36,4 @@ class MaxminDQN(DQN):
         self._update_target()
 
     def _update_target(self):
-        for i in range(len(self.target_approximator)):
-            self.target_approximator[i].set_weights(self.approximator[i].get_weights())
+        self.target_approximator.set_weights(self.approximator.get_weights())

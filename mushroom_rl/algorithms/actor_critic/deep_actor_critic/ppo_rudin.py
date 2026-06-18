@@ -53,7 +53,7 @@ class RudinPPO(PPO):
         self._update_policy(state, action, adv, old_log_p, state, old_pol_dist)
 
         # Print fit information
-        self._log_info(dataset, state, v_target, old_pol_dist)
+        self._log_info(dataset, state, old_pol_dist)
         self._iter += 1
 
     def _update_policy(self, obs, act, adv, old_log_p, state, old_pol_dist):

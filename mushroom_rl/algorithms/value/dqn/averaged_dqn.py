@@ -32,28 +32,21 @@ class AveragedDQN(AbstractDQN):
     def _initialize_regressors(self, approximator, apprx_params_train,
                                apprx_params_target):
         self.approximator = approximator(**apprx_params_train)
-        self.target_approximator = approximator(n_models=self._n_approximators,
+        self.target_approximator = approximator(n_models=self._n_approximators, prediction=None,
                                                 **apprx_params_target)
-        for i in range(len(self.target_approximator)):
-            self.target_approximator[i].set_weights(
-                self.approximator.get_weights()
-            )
+        w = self.approximator.get_weights()
+        self.target_approximator.set_weights(w.unsqueeze(0).expand(self._n_approximators, -1))
 
     def _update_target(self):
-        idx = self._n_updates // self._target_update_frequency\
-              % self._n_approximators
-        self.target_approximator[idx].set_weights(
-            self.approximator.get_weights())
+        idx = self._n_updates // self._target_update_frequency % self._n_approximators
+        self.target_approximator[idx].set_weights(self.approximator.get_weights())
 
         if self._n_fitted_target_models < self._n_approximators:
             self._n_fitted_target_models += 1
 
     def _next_q(self, next_state, absorbing):
-        q = list()
-        for idx in range(self._n_fitted_target_models):
-            q_target_idx = self.target_approximator[idx].predict(next_state, **self._predict_params)
-            q.append(q_target_idx)
-        q = torch.stack(q).mean(0)
+        q = self.target_approximator.predict(next_state, **self._predict_params)
+        q = q[:self._n_fitted_target_models].mean(0)
         if absorbing.any():
             q *= ~absorbing.unsqueeze(1)
 

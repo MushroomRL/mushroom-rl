@@ -530,10 +530,10 @@ class TorchEnsemble(Ensemble):
     def loss_fit(self):
         """
         Returns:
-            The average loss of the last epoch of the last fit call of the first model.
+            List of per-model losses from the last fit call.
 
         """
-        return self._models[0].loss_fit
+        return [m.loss_fit for m in self._models]
 
     def set_learning_rate(self, lr):
         """

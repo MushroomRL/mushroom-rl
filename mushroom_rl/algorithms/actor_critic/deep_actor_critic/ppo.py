@@ -88,7 +88,7 @@ class PPO(OnPolicyDeepAC):
         self._update_policy(state, action, adv, old_log_p)
 
         # Print fit information
-        self._log_info(dataset, state, v_target, old_pol_dist)
+        self._log_info(dataset, state, old_pol_dist)
         self._iter += 1
 
     def _update_policy(self, obs, act, adv, old_log_p):
@@ -103,14 +103,10 @@ class PPO(OnPolicyDeepAC):
                 loss.backward()
                 self._optimizer.step()
 
-    def _log_info(self, dataset, x, v_target, old_pol_dist):
+    def _log_info(self, dataset, x, old_pol_dist):
         if self._logger:
             with torch.no_grad():
-                logging_verr = []
-                for idx in range(len(self._V)):
-                    v_pred = self._V(x, idx=idx)
-                    v_err = F.mse_loss(v_pred, v_target)
-                    logging_verr.append(v_err.item())
+                logging_verr = self._V.loss_fit
 
                 logging_ent = self.policy.entropy(x)
                 new_pol_dist = self.policy.distribution(x)
