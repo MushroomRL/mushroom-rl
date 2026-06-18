@@ -5,7 +5,7 @@ from helper.utils import TestUtils as tu
 
 from mushroom_rl.core import Agent
 from mushroom_rl.algorithms.policy_search import PGPE, REPS, ConstrainedREPS, RWR
-from mushroom_rl.core import Core
+from mushroom_rl.core import Core, VectorCore, MultiprocessEnvironment
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.distributions import GaussianDiagonalDistribution
 from mushroom_rl.environments import LQR
@@ -33,6 +33,33 @@ def learn(alg, **alg_params):
     core = Core(agent, mdp)
 
     core.learn(n_episodes=5, n_episodes_per_fit=5)
+
+    return agent
+
+
+def learn_vectorized(alg, **alg_params):
+    np.random.seed(1)
+    torch.manual_seed(1)
+
+    # MDP
+    mdp = MultiprocessEnvironment(LQR, dimensions=2, n_envs=5, use_generator=True)
+
+    approximator = LinearApproximator(input_shape=mdp.info.observation_space.shape,
+                                      output_shape=mdp.info.action_space.shape)
+
+    policy = DeterministicPolicy(mu=approximator)
+
+    mu = np.zeros(policy.weights_size)
+    sigma = 1e-3 * np.ones(policy.weights_size)
+    distribution = GaussianDiagonalDistribution(mu, sigma)
+
+    agent = alg(mdp.info, distribution, policy, **alg_params)
+    core = VectorCore(agent, mdp)
+
+    try:
+        core.learn(n_episodes=25, n_episodes_per_fit=5, quiet=True)
+    finally:
+        mdp.close_all()
 
     return agent
 
@@ -109,6 +136,24 @@ def test_ConstrainedREPS_save(tmpdir):
         tu.assert_eq(save_attr, load_attr)
 
 
+def test_RWR_vectorized():
+    distribution = learn_vectorized(RWR, beta=1.).distribution
+    w = distribution.get_parameters()
+    w_test = np.array([-4.69344455e-04, -2.89837445e-03, 3.14330005e-03, -1.16009810e-03,
+                       1.08396911e-04, 2.82932526e-05, 2.13583517e-04, 8.57529937e-05])
+
+    assert np.allclose(w, w_test)
+
+
+def test_REPS_vectorized():
+    distribution = learn_vectorized(REPS, eps=.7).distribution
+    w = distribution.get_parameters()
+    w_test = np.array([3.38656856e-04, -2.65343883e-03, 1.22095958e-03, -1.29026211e-03,
+                       9.23115364e-05, 3.78374156e-05, 4.76125495e-04, 1.95123615e-04])
+
+    assert np.allclose(w, w_test)
+
+
 def test_PGPE():
     distribution = learn(PGPE, optimizer=AdaptiveOptimizer(1.5)).distribution
     w = distribution.get_parameters()
@@ -131,3 +176,12 @@ def test_PGPE_save(tmpdir):
         load_attr = getattr(agent_load, att)
 
         tu.assert_eq(save_attr, load_attr)
+
+
+def test_PGPE_vectorized():
+    distribution = learn_vectorized(PGPE, optimizer=AdaptiveOptimizer(1.5)).distribution
+    w = distribution.get_parameters()
+    w_test = np.array([-0.98513892, -0.07076845, 0.53698872, -0.75166881,
+                       0.2858429, 0.4656616, 0.98251223, -0.22922507])
+
+    assert np.allclose(w, w_test)
