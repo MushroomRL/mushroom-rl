@@ -216,6 +216,18 @@ class TorchApproximator(Approximator):
         """
         return self._last_loss
 
+    def set_learning_rate(self, lr):
+        """
+        Set the learning rate of the optimizer.
+
+        Args:
+            lr (float): the new learning rate.
+
+        """
+        assert self._optimizer is not None, "Cannot set learning rate: optimizer not set."
+        for param_group in self._optimizer.param_groups:
+            param_group['lr'] = lr
+
     def set_weights(self, weights):
         """
         Setter.
@@ -522,6 +534,17 @@ class TorchEnsemble(Ensemble):
 
         """
         return self._models[0].loss_fit
+
+    def set_learning_rate(self, lr):
+        """
+        Set the learning rate of the optimizer of all models in the ensemble.
+
+        Args:
+            lr (float): the new learning rate.
+
+        """
+        for m in self._models:
+            m.set_learning_rate(lr)
 
     def set_weights(self, weights):
         """

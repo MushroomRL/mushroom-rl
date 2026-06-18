@@ -83,12 +83,11 @@ class RudinPPO(PPO):
             if kl > 2.0 * self._desired_kl:
                 self._actor_learning_rate = max(1e-5, self._actor_learning_rate / 1.5)
                 self._critic_learning_rate = max(1e-5, self._critic_learning_rate / 1.5)
-            elif kl < 0.5 * self._desired_kl and kl > 0.0:
+            elif 0.0 < kl  < 0.5 * self._desired_kl:
                 self._actor_learning_rate = min(1e-2, self._actor_learning_rate * 1.5)
                 self._critic_learning_rate = min(1e-2, self._critic_learning_rate * 1.5)
 
             for param_group in self._optimizer.param_groups:
                 param_group['lr'] = self._actor_learning_rate
 
-            for param_group in self._V._optimizer.param_groups:
-                param_group['lr'] = self._critic_learning_rate
+            self._V.set_learning_rate(self._critic_learning_rate)
