@@ -18,16 +18,6 @@ Features
     :show-inheritance:
 
 
-Frames
-------
-
-.. automodule:: mushroom_rl.utils.frames
-    :members:
-    :private-members:
-    :inherited-members:
-    :show-inheritance:
-
-
 Minibatches
 -----------
 

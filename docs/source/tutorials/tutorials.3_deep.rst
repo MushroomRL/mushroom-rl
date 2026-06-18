@@ -14,68 +14,59 @@ Solving Atari with DQN
 ----------------------
 This script runs the experiment to solve the Atari Breakout game as described in
 the DQN paper *"Human-level control through deep reinforcement learning", Mnih V. et
-al., 2015*). We start creating the neural network to learn the action-value
-function:
+al., 2015*). We import ``AtariNetwork`` from the networks package and define
+a few helper functions:
 
 .. literalinclude:: code/dqn.py
-   :lines: 1-54
+   :lines: 1-24
 
-Note that the forward function may return all the action-values of ``state``,
-or only the one for the provided ``action``. This network will be used later in
-the script.
-Now, we define useful functions, set some hyperparameters, and create the ``mdp``
-and the policy ``pi``:
+We then set some hyperparameters and create the ``mdp`` and the policy ``pi``.
+Differently from the literature, we use ``Adam`` as the optimizer:
 
 .. literalinclude:: code/dqn.py
-   :lines: 55-97
-
-Differently from the literature, we use ``Adam`` as the optimizer.
+   :lines: 27-52
 
 Then, the ``approximator``:
 
 .. literalinclude:: code/dqn.py
-   :lines: 99-111
+   :lines: 54-66
 
 Finally, the ``agent`` and the ``core``:
 
 .. literalinclude:: code/dqn.py
-   :lines: 113-127
+   :lines: 68-83
 
 Eventually, the learning loop is performed. As done in literature, learning and
 evaluation steps are alternated:
 
 .. literalinclude:: code/dqn.py
-   :lines: 129-156
+   :lines: 87-107
 
 Solving MuJoCo with DDPG
 ------------------------
 This script runs the experiment to solve the Walker-Stand MuJoCo task, as
-implemented in `MuJoCo <https://github.com/deepmind/dm_control/>`_. As with ``DQN``,
-we start creating the neural networks. For ``DDPG``, we need an actor and a critic
-network:
-
-.. literalinclude:: code/ddpg.py
-   :lines: 1-65
+implemented in `MuJoCo <https://github.com/deepmind/dm_control/>`_. We import
+``ActorNetwork`` and ``CriticNetwork`` from the networks package.
 
 We create the ``mdp``, the policy, and set some hyperparameters:
 
 .. literalinclude:: code/ddpg.py
-   :lines: 68-83
+   :lines: 1-28
 
-Note that the policy is not instatiated in the script, since in DDPG the
-instatiation is done inside the algorithm constructor.
+Note that the policy is not instantiated in the script, since in DDPG the
+instantiation is done inside the algorithm constructor.
 
 We create the actor and the critic approximators:
 
 .. literalinclude:: code/ddpg.py
-   :lines: 85-102
+   :lines: 30-47
 
 Finally, we create the ``agent`` and the ``core``:
 
 .. literalinclude:: code/ddpg.py
-   :lines: 104-111
+   :lines: 49-59
 
 As in ``DQN``, we alternate learning and evaluation steps:
 
 .. literalinclude:: code/ddpg.py
-   :lines: 112-129
+   :lines: 61-76

@@ -33,4 +33,4 @@ pi.set_epsilon(Parameter(0.))
 initial_state = np.array([[-.5, 0.]])
 dataset = core.evaluate(initial_states=initial_state)
 
-print(dataset.discounted_return)
+print(f'J: {dataset.discounted_return.item()}')

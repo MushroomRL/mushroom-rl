@@ -41,13 +41,13 @@ the agent and the MDP object and contains the function to learn in the MDP and
 evaluate the learned policy. It can be created with:
 
 .. literalinclude:: code/simple_experiment.py
-   :lines: 29
+   :lines: 28
 
 Once the core has been created, the agent can be trained collecting a dataset and
 fitting the policy:
 
 .. literalinclude:: code/simple_experiment.py
-   :lines: 31
+   :lines: 30
 
 In this case, the agent's policy is fitted only once, after that 1000 episodes
 have been collected. This is a common practice in batch RL algorithms such as
@@ -61,4 +61,4 @@ Fixing :math:`\varepsilon = 0`, the greedy policy is applied starting from the
 provided initial states, then the average cumulative discounted reward is returned.
 
 .. literalinclude:: code/simple_experiment.py
-   :lines: 33-
+   :lines: 32-

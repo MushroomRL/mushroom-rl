@@ -1,47 +1,23 @@
 import numpy as np
+from matplotlib import pyplot as plt
 
-from mushroom_rl.algorithms.value import SARSALambdaContinuous
 from mushroom_rl.approximators.parametric import LinearApproximator
-from mushroom_rl.core import Core
-from mushroom_rl.environments import *
-from mushroom_rl.features import Features
-from mushroom_rl.features.tiles import Tiles
-from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.utils.callbacks import CollectDataset
-from mushroom_rl.rl_utils.parameters import Parameter
 
 
-# MDP
-mdp = Gymnasium(name='MountainCar-v0', horizon=np.inf, gamma=1.)
+x = np.arange(10).reshape(-1, 1)
 
-# Policy
-epsilon = Parameter(value=0.)
-pi = EpsGreedy(epsilon=epsilon)
+intercept = 10
+noise = np.random.randn(10, 1) * 1
+y = 2 * x + intercept + noise
 
-# Q-function approximator
-n_tilings = 10
-tilings = Tiles.generate(n_tilings, [10, 10],
-                         mdp.info.observation_space.low,
-                         mdp.info.observation_space.high)
-features = Features(tilings=tilings)
+phi = np.concatenate((np.ones(10).reshape(-1, 1), x), axis=1)
 
-# Agent
-learning_rate = Parameter(.1 / n_tilings)
-approximator_params = dict(input_shape=(features.size,),
-                           output_shape=(mdp.info.action_space.n,),
-                           n_actions=mdp.info.action_space.n)
-agent = SARSALambdaContinuous(mdp.info, pi, LinearApproximator,
-                              approximator_params=approximator_params,
-                              learning_rate=learning_rate,
-                              lambda_coeff=.9, features=features)
+approximator = LinearApproximator(input_shape=(2,), output_shape=(1,))
+approximator.fit(phi, y)
 
-# Algorithm
-collect_dataset = CollectDataset()
-callbacks = [collect_dataset]
-core = Core(agent, mdp, callbacks_fit=callbacks)
+print('Weights: ' + str(approximator.get_weights()))
+print('Gradient: ' + str(approximator.diff(np.array([5.]))))
 
-# Train
-core.learn(n_episodes=100, n_steps_per_fit=1)
-
-# Evaluate
-core.evaluate(n_episodes=1, render=True)
+plt.scatter(x, y)
+plt.plot(x, approximator.predict(phi))
+plt.show()

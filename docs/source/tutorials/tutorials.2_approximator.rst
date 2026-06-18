@@ -1,85 +1,90 @@
-How to create a regressor
+How to use approximators
 =========================
 
-MushroomRL offers a high-level interface to build function regressors. Indeed, it
-transparently manages regressors for generic functions and Q-function regressors.
-The user should not care about the low-level implementation of these regressors and
-should only use the ``Regressor`` interface. This interface creates a Q-function regressor
-or a ``GenericRegressor`` depending on whether the ``n_actions`` parameter is provided
-to the constructor or not.
+MushroomRL provides an interface for approximator classes to perform function approximation.
+The root class is ``Approximator``; every concrete subclass (``Table``, ``LinearApproximator``,
+``TorchApproximator``, …) automatically dispatches to an ``Ensemble`` when
+``n_models > 1`` is passed to the constructor, allowing ensemble methods to
+be built without any extra glue code:
 
-Usage of the ``Regressor`` interface
-------------------------------------
+.. code-block:: python
 
-When the action space of RL problems is finite and the adopted approach is value-based,
- we want to compute the Q-function of each action. In MushroomRL, this is possible using:
+    # single table
+    q = Table(shape=(10, 4))
 
-* a Q-function regressor with a different approximator for each action (``ActionRegressor``);
-* a single Q-function regressor with a different output for each action (``QRegressor``).
+    # ensemble of 5 tables — returns an Ensemble transparently
+    q = Table(n_models=5, shape=(10, 4))
 
-The ``QRegressor`` is suggested when the number of discrete actions is high, due to
-memory reasons.
+Function approximation
+----------------------
 
-The user can create create a ``QRegressor`` or an ``ActionRegressor``, setting
-the ``output_shape`` parameter of the ``Regressor`` interface. If it is set to (1,),
-an ``ActionRegressor`` is created; otherwise if it is set to the number of discrete actions,
-a ``QRegressor`` is created.
+An approximator is a class representing any type of function approximation (parametric, non-parametric, tabular).
+It exposes a ``fit`` / ``predict`` interface, and  in case of parametric functions, provides weight and gradient access.
 
-Example
--------
-
-Initially, the MDP, the policy and the features are created:
+The example below fits a ``LinearApproximator`` to points sampled from a
+line with Gaussian noise. Polynomial features of degree 1 are built by hand
+so that the model can learn both slope and intercept:
 
 .. literalinclude:: code/approximator.py
-   :lines: 1-29
+   :lines: 1-16
 
-The following snippet, sets the output shape of the regressor to the number of
-actions, creating a ``QRegressor``:
-
-.. literalinclude:: code/approximator.py
-   :lines: 30-32
-
-If you prefer to use an ``ActionRegressor``, simply set the output shape to (1,):
-
-::
-
-   approximator_params = dict(input_shape=(features.size,),
-                              output_shape=(1,),
-                              n_actions=mdp.info.action_space.n)
-
-Then, the rest of the code fits the approximator and runs the evaluation rendering
-the behaviour of the agent:
+After fitting, the weights, the gradient at a specific input, and a plot of
+the approximated function can be obtained:
 
 .. literalinclude:: code/approximator.py
-   :lines: 33-
+   :lines: 18-
 
-Generic regressor
------------------
-Whenever the ``n_actions`` parameter is not provided, the ``Regressor`` interface creates
-a ``GenericRegressor``. This regressor can be used for general purposes and it is
-more flexible to be used. It is commonly used in policy search algorithms.
+Q-function approximation
+-------------------------
+
+For classical RL algorithms with discrete action spaces, MushroomRL provides
+``QApproximator`` — a unified interface that selects the appropriate concrete
+implementation based on the constructor arguments:
+
+* ``n_models > 1``: ``QApproximatorEnsemble`` — ensemble of independent
+  Q-approximators;
+* ``output_shape[0] != n_actions``: ``QApproximatorAction`` — one independent
+  model per action;
+* ``output_shape[0] == n_actions``: ``QApproximatorSimple`` — a single
+  multi-output model with one output per action.
+
+Algorithms that accept an ``approximator`` class (e.g. ``SARSALambdaContinuous``,
+``QLearning``, ``SARSA``) pass it through ``QApproximator`` internally, so the
+same algorithm code handles all three cases transparently.
+
+``QApproximatorSimple`` is preferred when the number of actions is large, since
+a single model stores all Q-values jointly. ``QApproximatorAction`` trains a
+separate model per action and is useful when per-action function complexity
+differs.
 
 Example
 ~~~~~~~
 
-Create a dataset of points distributed on a line with random gaussian noise.
+The following example trains a SARSA(λ) agent on the MountainCar environment
+using tile-coded features and a ``LinearApproximator``.
 
-.. literalinclude:: code/generic_regressor.py
-   :lines: 1-12
+First, the MDP, the policy and the features are set up:
 
-To fit the intercept, polynomial features of degree 1 are created by hand:
+.. literalinclude:: code/q_approximator.py
+   :lines: 1-26
 
-.. literalinclude:: code/generic_regressor.py
-   :lines: 14
+Setting ``output_shape`` to the number of actions creates a ``QApproximatorSimple``
+inside the algorithm:
 
-The regressor is then created and fit (note that ``n_actions`` is not provided):
+.. literalinclude:: code/q_approximator.py
+   :lines: 28-37
 
-.. literalinclude:: code/generic_regressor.py
-   :lines: 16-20
+To use a ``QApproximatorAction`` instead — one independent model per action —
+simply set ``output_shape`` to ``(1,)``:
 
-Eventually, the approximated function of the regressor is plotted together with
-the target points. Moreover, the weights and the gradient in point 5 of the linear approximator
-are printed.
+.. code-block:: python
 
-.. literalinclude:: code/generic_regressor.py
-   :lines: 22-27
+   approximator_params = dict(input_shape=(features.size,),
+                              output_shape=(1,),
+                              n_actions=mdp.info.action_space.n,
+                              phi=features)
+
+The rest creates the training loop and runs training and evaluation:
+
+.. literalinclude:: code/q_approximator.py
+   :lines: 39-

@@ -32,7 +32,9 @@ from mushroom_rl import __version__
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc',
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.intersphinx',
     'sphinx.ext.doctest',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
@@ -208,9 +210,9 @@ epub_exclude_files = ['search.html']
 # -- Options for autodoc ---------------------------------------------------
 
 autodoc_member_order = 'bysource'
-autodoc_mock_imports = ['torch', 'pybullet', 'pybullet_data', 'pybullet_utils', 'dm_control', 'mujoco', 'glfw',
-                        'habitat', 'habitat_baselines', 'habitat_sim', 'igibson',
-                        'gym_minigrid']
+autodoc_mock_imports = ['torch', 'scipy', 'sklearn', 'pybullet', 'pybullet_data', 'pybullet_utils', 'dm_control',
+                        'minigrid', 'mujoco', 'glfw', 'habitat', 'habitat_baselines', 'habitat_sim', 'igibson',
+                        'omni', 'omniisaacgymenvs']
 add_module_names = False
 
 def skip(app, what, name, obj, skip, options):
@@ -221,5 +223,11 @@ def skip(app, what, name, obj, skip, options):
 def setup(app):
     app.connect("autodoc-skip-member", skip)
     app.add_css_file('theme_overrides.css')
+
+# -- Options for intersphinx ---------------------------------------------------
+
+intersphinx_mapping = {
+    "torch": ("https://docs.pytorch.org/docs/stable/", None)
+}
 
 

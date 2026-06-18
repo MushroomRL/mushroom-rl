@@ -3,12 +3,13 @@ import numpy as np
 from mushroom_rl.algorithms.value import SARSALambdaContinuous
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.core import Core
+from mushroom_rl.environments import Gymnasium
 from mushroom_rl.features import Features
 from mushroom_rl.features.tiles import Tiles
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.utils.callbacks import CollectDataset
 from mushroom_rl.rl_utils.parameters import Parameter
-from mushroom_rl.environments import Gymnasium
+
 
 # MDP
 mdp = Gymnasium(name='MountainCar-v0', horizon=3000, gamma=1.)
@@ -24,14 +25,12 @@ tilings = Tiles.generate(n_tilings, [10, 10],
                          mdp.info.observation_space.high)
 features = Features(tilings=tilings)
 
+# Agent
+learning_rate = Parameter(.1 / n_tilings)
 approximator_params = dict(input_shape=(features.size,),
                            output_shape=(mdp.info.action_space.n,),
                            n_actions=mdp.info.action_space.n,
                            phi=features)
-
-# Agent
-learning_rate = Parameter(.1 / n_tilings)
-
 agent = SARSALambdaContinuous(mdp.info, pi, LinearApproximator,
                               approximator_params=approximator_params,
                               learning_rate=learning_rate,
