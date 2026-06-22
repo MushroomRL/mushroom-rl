@@ -31,10 +31,10 @@ Approximator
 Q-Approximator
 --------------
 
-``QApproximator`` is the high-level interface for Q-function approximation, only used in classical (non deep RL)
-algorithms. Its constructor dispatches to one of three concrete implementations depending on the arguments:
-This class is necessary to integrate sklearn-style regressors in MushroomRL seamlessly and to handle different types of
-Q-function approximation.
+``QApproximator`` is the high-level interface for Q-function approximation, used in classical
+(non-deep RL) algorithms with function approximators. This design allows to integrate many types of approximators, 
+including sklearn-style regressors seamlessly. Its constructor dispatches to one of three concrete implementations 
+depending on the arguments:
 
 - ``QApproximatorSimple`` — single multi-output model (``output_shape[0] == n_actions``);
 - ``QApproximatorAction`` — one independent model per action;

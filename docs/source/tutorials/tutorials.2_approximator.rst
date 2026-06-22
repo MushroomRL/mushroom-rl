@@ -48,8 +48,8 @@ implementation based on the constructor arguments:
 * ``output_shape[0] == n_actions``: ``QApproximatorSimple`` — a single
   multi-output model with one output per action.
 
-Algorithms that accept an ``approximator`` class (e.g. ``SARSALambdaContinuous``,
-``QLearning``, ``SARSA``) pass it through ``QApproximator`` internally, so the
+Algorithms that accept a parametric ``approximator`` class (e.g. ``SARSALambdaContinuous``,
+``TrueOnlineSARSALambda``, ``FQI``) pass it through ``QApproximator`` internally, so the
 same algorithm code handles all three cases transparently.
 
 ``QApproximatorSimple`` is preferred when the number of actions is large, since

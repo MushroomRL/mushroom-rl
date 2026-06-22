@@ -67,6 +67,12 @@ Torch
     :inherited-members:
     :show-inheritance:
 
+.. automodule:: mushroom_rl.utils.torch_training
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
 
 Viewer
 ------
