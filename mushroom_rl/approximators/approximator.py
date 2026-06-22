@@ -150,12 +150,14 @@ class Ensemble(Approximator):
             idx (int, None): index of the model to use for prediction. If ``None``, all models
                 are used and aggregated according to ``prediction``;
             prediction (str, None): aggregation mode, overrides the constructor default.
-                One of ``'mean'``, ``'sum'``, ``'min'``, ``'max'``;
+                One of ``'mean'``, ``'sum'``, ``'min'``, ``'max'``, or ``None`` to return
+                all predictions stacked along axis 0;
             compute_variance (bool, False): if ``True``, also return the variance across models;
             **predict_params: other parameters passed to each model's predict method.
 
         Returns:
-            The aggregated predictions, or a list ``[predictions, variance]`` if
+            The stacked predictions along axis 0 if ``prediction`` is ``None``, the aggregated
+            predictions otherwise, or a list ``[predictions, variance]`` if
             ``compute_variance`` is ``True``.
 
         """
@@ -175,10 +177,12 @@ class Ensemble(Approximator):
                 except NotFittedError:
                     raise NotFittedError
 
-            prediction = self._prediction if prediction is None else prediction
+            prediction = prediction if prediction is not None else self._prediction
             predictions = self._backend.stack(predictions, 0)
 
-            if prediction == 'mean':
+            if prediction is None:
+                return predictions
+            elif prediction == 'mean':
                 results = predictions.mean(0)
             elif prediction == 'sum':
                 results = predictions.sum(0)
