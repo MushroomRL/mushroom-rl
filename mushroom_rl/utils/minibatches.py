@@ -46,8 +46,8 @@ def minibatch_generator(batch_size, *dataset):
 def ensemble_minibatch_generator(batch_size, n_models, *dataset):
     """
     Generator that creates independently-shuffled minibatches for ensemble training.
-    Each model gets its own shuffle of the dataset, matching the random state
-    consumption of n_models sequential calls to minibatch_generator.
+    Each model gets its own shuffle of the dataset; batches are
+    then stacked so that all models are processed together in a single ``vmap`` call.
 
     Args:
         batch_size (int): the maximum size of each minibatch;

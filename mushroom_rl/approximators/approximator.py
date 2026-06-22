@@ -1,7 +1,6 @@
-import torch
-import numpy as np
 from sklearn.exceptions import NotFittedError
 
+from mushroom_rl.core.array_backend import ArrayBackend
 from mushroom_rl.core.serialization import Serializable
 
 
@@ -21,10 +20,11 @@ class Approximator(Serializable):
             return ensemble
         return object.__new__(cls)
 
-    def __init__(self):
+    def __init__(self, backend='numpy'):
         self._logger = None
         self._loss_filename = None
-        self._add_save_attr(_logger='none', _loss_filename='none')
+        self._backend = ArrayBackend.get_array_backend(backend)
+        self._add_save_attr(_logger='none', _loss_filename='none', _backend='primitive')
 
     def fit(self, *args, **kwargs):
         """
@@ -92,7 +92,7 @@ class Ensemble(Approximator):
 
     """
 
-    def __init__(self, model, n_models, prediction='mean', **params):
+    def __init__(self, model, n_models, prediction='mean', backend='numpy', **params):
         """
         Constructor.
 
@@ -101,10 +101,11 @@ class Ensemble(Approximator):
             n_models (int): number of models in the ensemble;
             prediction (str, 'mean'): the type of prediction to make across models.
                 One of ``'mean'``, ``'sum'``, ``'min'``, ``'max'``;
+            backend (str, 'numpy'): array backend to use;
             **params: parameters dictionary to create each model.
 
         """
-        super().__init__()
+        super().__init__(backend=backend)
 
         self._prediction = prediction
         self._models = []
@@ -175,19 +176,16 @@ class Ensemble(Approximator):
                     raise NotFittedError
 
             prediction = self._prediction if prediction is None else prediction
-            if isinstance(predictions[0], np.ndarray):
-                predictions = np.array(predictions)
-            else:
-                predictions = torch.stack(predictions, dim=0)
+            predictions = self._backend.stack(predictions, 0)
 
             if prediction == 'mean':
                 results = predictions.mean(0)
             elif prediction == 'sum':
                 results = predictions.sum(0)
             elif prediction == 'min':
-                results = predictions.min(0)
+                results = self._backend.min(predictions, 0)
             elif prediction == 'max':
-                results = predictions.max(0)
+                results = self._backend.max(predictions, 0)
             else:
                 raise ValueError
 

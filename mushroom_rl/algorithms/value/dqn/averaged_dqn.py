@@ -35,7 +35,7 @@ class AveragedDQN(AbstractDQN):
         self.target_approximator = approximator(n_models=self._n_approximators, prediction=None,
                                                 **apprx_params_target)
         w = self.approximator.get_weights()
-        self.target_approximator.set_weights(w.unsqueeze(0).expand(self._n_approximators, -1))
+        self.target_approximator.set_weights(w.repeat(self._n_approximators, 1))
 
     def _update_target(self):
         idx = self._n_updates // self._target_update_frequency % self._n_approximators

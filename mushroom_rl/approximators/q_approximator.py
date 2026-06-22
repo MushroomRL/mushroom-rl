@@ -1,7 +1,4 @@
-import numpy as np
-
-from mushroom_rl.approximators.approximator import Approximator
-from mushroom_rl.core.array_backend import ArrayBackend
+from mushroom_rl.approximators.approximator import Approximator, Ensemble
 
 
 class QApproximator(Approximator):
@@ -38,7 +35,7 @@ class QApproximatorSimple(QApproximator):
     """
 
     def __init__(self, approximator, n_actions, output_shape=(1,), n_models=1, input_shape=None,
-                 backend='numpy', **params):
+                 **params):
         """
         Constructor.
 
@@ -47,21 +44,20 @@ class QApproximatorSimple(QApproximator):
             n_actions (int): number of actions;
             output_shape (tuple, (1,)): shape of the output of the model;
             input_shape (tuple, None): shape of the input of the model;
-            backend (str, 'numpy'): array backend to use;
             **params: other parameters passed to the approximator.
 
         """
-        super().__init__()
         assert len(output_shape) == 1 and n_actions >= 2
-        self._n_actions = n_actions
-        self._backend = ArrayBackend.get_array_backend(backend)
         if input_shape is not None:
             params['input_shape'] = input_shape
         params['output_shape'] = output_shape
-        self._models = [approximator(**params)]
+        model = approximator(**params)
+        backend = getattr(model, '_backend', None)
+        super().__init__(backend=backend.get_backend_name() if backend is not None else 'numpy')
+        self._n_actions = n_actions
+        self._models = [model]
         self._add_save_attr(
             _n_actions='primitive',
-            _backend='primitive',
             _models=self._get_serialization_method(approximator)
         )
 
@@ -173,7 +169,7 @@ class QApproximatorAction(QApproximator):
     """
 
     def __init__(self, approximator, n_actions, output_shape=(1,), n_models=1, input_shape=None,
-                 backend='numpy', **params):
+                 **params):
         """
         Constructor.
 
@@ -182,21 +178,19 @@ class QApproximatorAction(QApproximator):
             n_actions (int): number of actions, determines the number of models created;
             output_shape (tuple, (1,)): shape of the output of each model;
             input_shape (tuple, None): shape of the input of each model;
-            backend (str, 'numpy'): array backend to use;
             **params: other parameters passed to each model.
 
         """
-        super().__init__()
         assert n_actions >= 2
-        self._n_actions = n_actions
-        self._backend = ArrayBackend.get_array_backend(backend)
         is_sklearn = approximator.__module__.startswith('sklearn')
         if input_shape is not None and not is_sklearn:
             params['input_shape'] = input_shape
+        self._n_actions = n_actions
         self._models = [approximator(**params) for _ in range(n_actions)]
+        backend = getattr(self._models[0], '_backend', None)
+        super().__init__(backend=backend.get_backend_name() if backend is not None else 'numpy')
         self._add_save_attr(
             _n_actions='primitive',
-            _backend='primitive',
             _models=self._get_serialization_method(approximator)
         )
 
@@ -316,14 +310,14 @@ class QApproximatorAction(QApproximator):
             raise NotImplementedError
 
 
-class QApproximatorEnsemble(QApproximator):
+class QApproximatorEnsemble(QApproximator, Ensemble):
     """
     Ensemble of ``QApproximator`` models. Each model is an independent ``QApproximatorSimple``
     or ``QApproximatorAction`` depending on the output shape.
 
     """
 
-    def __init__(self, approximator, n_actions, output_shape=(1,), n_models=1, backend='numpy', **params):
+    def __init__(self, approximator, n_actions, output_shape=(1,), n_models=1, prediction='mean', **params):
         """
         Constructor.
 
@@ -332,53 +326,20 @@ class QApproximatorEnsemble(QApproximator):
             n_actions (int): number of actions;
             output_shape (tuple, (1,)): shape of the output of each model;
             n_models (int): number of models in the ensemble;
-            backend (str, 'numpy'): array backend to use;
+            prediction (str, 'mean'): aggregation mode across models.
+                One of ``'mean'``, ``'sum'``, ``'min'``, ``'max'``;
             **params: other parameters passed to each model.
 
         """
-        super().__init__()
         assert n_actions >= 2 and n_models > 1
+        Ensemble.__init__(self, QApproximator, n_models, prediction=prediction,
+                          approximator=approximator, n_actions=n_actions,
+                          output_shape=output_shape, **params)
+        backend = getattr(self._models[0], '_backend', None)
+        if backend is not None:
+            self._backend = backend
         self._n_actions = n_actions
-        self._backend = ArrayBackend.get_array_backend(backend)
-        self._models = [QApproximator(approximator, n_actions, output_shape, n_models=1, backend=backend, **params)
-                        for _ in range(n_models)]
-        self._add_save_attr(
-            _n_actions='primitive',
-            _backend='primitive',
-            _models='mushroom'
-        )
-
-    def fit(self, *z, idx=None, **fit_params):
-        """
-        Fit the ``idx``-th model if provided, all models otherwise.
-
-        Args:
-            *z: list of inputs;
-            idx (int, None): index of the model to fit;
-            **fit_params: other parameters passed to each model's fit method.
-
-        """
-        models = [self._models[idx]] if idx is not None else self._models
-        for m in models:
-            m.fit(*z, **fit_params)
-
-    def predict(self, *z, idx=None, **predict_params):
-        """
-        Predict.
-
-        Args:
-            *z: list of inputs;
-            idx (int, None): if provided, use only the model at that index;
-            **predict_params: other parameters passed to each model's predict method.
-
-        Returns:
-            The mean prediction across all models, or the prediction of model ``idx``.
-
-        """
-        if idx is not None:
-            return self._models[idx].predict(*z, **predict_params)
-        predictions = [m.predict(*z, **predict_params) for m in self._models]
-        return self._backend.stack(predictions, 0).mean(0)
+        self._add_save_attr(_n_actions='primitive')
 
     @property
     def weights_size(self):
@@ -420,12 +381,4 @@ class QApproximatorEnsemble(QApproximator):
             The stacked derivatives of all models w.r.t. the model parameters.
 
         """
-        return np.stack([m.diff(state, action) for m in self._models], axis=0)
-
-    def reset(self):
-        """
-        Reset the parameters of all models in the ensemble.
-
-        """
-        for m in self._models:
-            m.reset()
+        return self._backend.stack([m.diff(state, action) for m in self._models], 0)

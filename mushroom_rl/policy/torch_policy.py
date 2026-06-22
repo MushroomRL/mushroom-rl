@@ -205,7 +205,7 @@ class GaussianTorchPolicy(TorchPolicy):
         return self.distribution_t(state).sample().detach()
 
     def log_prob_t(self, state, action):
-        return self.distribution_t(state).log_prob(action)[:, None]
+        return self.distribution_t(state).log_prob(action).unsqueeze(-1)
 
     def entropy_t(self, state=None):
         return self._action_dim / 2 * torch.log(TorchUtils.to_float_tensor(2 * np.pi * np.e))\

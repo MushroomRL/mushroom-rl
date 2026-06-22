@@ -63,7 +63,7 @@ class TorchApproximator(Approximator):
                 network.
 
         """
-        super().__init__()
+        super().__init__(backend='torch')
 
         self._input_shape = input_shape
         self._output_shape = output_shape
@@ -81,6 +81,7 @@ class TorchApproximator(Approximator):
             self._optimizer = None
         self._loss = loss
         self._last_loss = None
+        self._dirty = False
         self._trainer = TorchTrainer(loss, batch_size, n_fit_targets, reinitialize, dropout,
                                      self._fit_epoch, self._compute_val_loss, self._store_loss, quiet)
 
@@ -146,6 +147,7 @@ class TorchApproximator(Approximator):
             self.network.train()
 
         self._trainer.fit(args, n_epochs, weights, epsilon, patience, validation_split, kwargs)
+        self._dirty = True
 
         if self._trainer.dropout:
             self.network.eval()
@@ -240,6 +242,7 @@ class TorchApproximator(Approximator):
 
         """
         TorchUtils.set_weights(self.network.parameters(), weights)
+        self._dirty = True
 
     def get_weights(self):
         """
@@ -325,7 +328,7 @@ class TorchEnsemble(Ensemble):
             **params: dictionary of parameters needed to construct the network.
 
         """
-        super().__init__(TorchApproximator, n_models, prediction=prediction,
+        super().__init__(TorchApproximator, n_models, prediction=prediction, backend='torch',
                          input_shape=input_shape, output_shape=output_shape, network=network,
                          optimizer=optimizer, loss=loss, batch_size=batch_size,
                          n_fit_targets=n_fit_targets, reinitialize=reinitialize,
@@ -340,13 +343,17 @@ class TorchEnsemble(Ensemble):
         self._add_save_attr(_trainer='mushroom')
 
     def _sync_params(self):
-        self._params, self._buffers = stack_module_state([m.network for m in self._models])
+        if any(m._dirty for m in self._models):
+            self._params, self._buffers = stack_module_state([m.network for m in self._models])
+            for m in self._models:
+                m._dirty = False
 
     def _post_load(self):
         self._base_model = deepcopy(self._models[0].network).to('meta').eval()
+        for m in self._models:
+            m._dirty = True
         self._sync_params()
-        self._trainer.set_callbacks(self._fit_epoch, self._compute_val_loss,
-                                    self._store_loss)
+        self._trainer.set_callbacks(self._fit_epoch, self._compute_val_loss, self._store_loss)
 
     def predict(self, *args, idx=None, prediction=None, **kwargs):
         """
@@ -420,7 +427,6 @@ class TorchEnsemble(Ensemble):
             for m in self._models:
                 m.network.train()
 
-        self._sync_params()
         self._trainer.fit(args, n_epochs, weights, epsilon, patience, validation_split, kwargs)
 
         if self._trainer.dropout:
@@ -436,7 +442,7 @@ class TorchEnsemble(Ensemble):
         if self._trainer.batch_size > 0:
             batches = ensemble_minibatch_generator(self._trainer.batch_size, n_models, *args)
         else:
-            batches = [[torch.as_tensor(a, device=TorchUtils.get_device()).unsqueeze(0).expand(n_models, *a.shape).contiguous() for a in args]]
+            batches = [[torch.as_tensor(a, device=TorchUtils.get_device()).unsqueeze(0).expand(n_models, *a.shape) for a in args]]
 
         loss_current = []
         for batch in batches:
@@ -483,6 +489,7 @@ class TorchEnsemble(Ensemble):
             for name, param in m.network.named_parameters():
                 param.grad = per_model_grads[name][i]
             m._optimizer.step()
+            m._dirty = True
 
         return per_model_losses.detach().cpu().numpy()
 

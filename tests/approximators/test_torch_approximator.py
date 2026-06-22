@@ -116,3 +116,27 @@ def test_torch_ensemble_predict():
                                [1.3279692 ,  0.28780013], [1.6225293 ,  0.58951503],
                                [1.2630175 ,  0.12988877]])
     assert np.allclose(y_stacked[0].detach().numpy(), y_stacked0_exp)
+
+
+def test_torch_ensemble_full_batch():
+    torch.manual_seed(7)
+
+    approximator = TorchApproximator(input_shape=(4,), output_shape=(2,), n_models=3,
+                                     network=QNetwork, n_features=None, n_layers=0,
+                                     optimizer={'class': optim.Adam, 'params': {}},
+                                     loss=F.mse_loss, batch_size=0, quiet=True)
+
+    x = torch.rand(50, 4)
+    y = torch.rand(50, 2)
+
+    for _ in range(10):
+        approximator.fit(x, y)
+
+    x_test = torch.rand(5, 4)
+    y_out = approximator.predict(x_test, prediction='mean')
+    y_out_exp = torch.tensor([[-0.0140205 ,  0.49749446],
+                               [ 0.20315261,  0.88453037],
+                               [ 0.18861724,  0.6976128 ],
+                               [ 0.045397  ,  0.5313599 ],
+                               [ 0.41143703,  0.6998553 ]])
+    assert torch.allclose(y_out, y_out_exp)
