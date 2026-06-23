@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from .features_implementation import FeaturesImplementation
-from mushroom_rl.utils.torch import TorchUtils
+from mushroom_rl.utils.torch_utils import TorchUtils
 
 
 class TorchFeatures(FeaturesImplementation):

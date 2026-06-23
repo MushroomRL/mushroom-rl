@@ -5,7 +5,7 @@ import torch.nn as nn
 
 from mushroom_rl.policy import Policy
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.utils.torch import TorchUtils, CategoricalWrapper
+from mushroom_rl.utils.torch_utils import TorchUtils, CategoricalWrapper
 from mushroom_rl.rl_utils.parameters import to_parameter
 
 from itertools import chain

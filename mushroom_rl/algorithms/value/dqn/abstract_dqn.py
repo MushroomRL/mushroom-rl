@@ -5,7 +5,7 @@ import torch
 from mushroom_rl.core import Agent
 from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory, ReplayMemory
 from mushroom_rl.rl_utils.parameters import to_parameter
-from mushroom_rl.utils.torch import TorchUtils
+from mushroom_rl.utils.torch_utils import TorchUtils
 
 
 class AbstractDQN(Agent):

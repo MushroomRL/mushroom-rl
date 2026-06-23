@@ -2,7 +2,7 @@ from collections import deque
 import numpy as np
 import torch
 
-from mushroom_rl.utils.torch import TorchUtils
+from mushroom_rl.utils.torch_utils import TorchUtils
 
 
 class ArrayBackend(object):

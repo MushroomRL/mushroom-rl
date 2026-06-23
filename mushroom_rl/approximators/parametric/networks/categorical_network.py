@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from mushroom_rl.utils.torch import TorchUtils
+from mushroom_rl.utils.torch_utils import TorchUtils
 
 eps = torch.finfo(torch.float32).eps
 

@@ -15,7 +15,7 @@ from mushroom_rl.environments import *
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.rl_utils.parameters import LinearParameter, Parameter
 from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
-from mushroom_rl.utils.torch import TorchUtils
+from mushroom_rl.utils.torch_utils import TorchUtils
 from mushroom_rl.approximators.parametric.networks import AtariNetwork, AtariFeatureNetwork
 
 """

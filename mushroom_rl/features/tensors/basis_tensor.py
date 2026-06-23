@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 
 from mushroom_rl.utils.features import uniform_grid
-from mushroom_rl.utils.torch import TorchUtils
+from mushroom_rl.utils.torch_utils import TorchUtils
 
 
 class GenericBasisTensor(nn.Module):

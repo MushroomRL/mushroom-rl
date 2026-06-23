@@ -5,7 +5,7 @@ import torch
 from mushroom_rl.algorithms.value.dqn import AbstractDQN
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import CategoricalNetwork
-from mushroom_rl.utils.torch import TorchUtils
+from mushroom_rl.utils.torch_utils import TorchUtils
 
 eps = torch.finfo(torch.float32).eps
 

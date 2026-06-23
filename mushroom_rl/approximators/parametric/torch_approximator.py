@@ -6,7 +6,7 @@ from torch.func import stack_module_state, functional_call, vmap, grad
 
 from mushroom_rl.approximators.approximator import Approximator, Ensemble
 from mushroom_rl.utils.minibatches import minibatch_generator, ensemble_minibatch_generator
-from mushroom_rl.utils.torch import TorchUtils
+from mushroom_rl.utils.torch_utils import TorchUtils
 from mushroom_rl.utils.torch_training import TorchTrainer
 
 

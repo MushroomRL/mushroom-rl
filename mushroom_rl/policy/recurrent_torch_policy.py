@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 from mushroom_rl.policy import GaussianTorchPolicy
-from mushroom_rl.utils.torch import TorchUtils
+from mushroom_rl.utils.torch_utils import TorchUtils
 from mushroom_rl.rl_utils.parameters import to_parameter
 
 

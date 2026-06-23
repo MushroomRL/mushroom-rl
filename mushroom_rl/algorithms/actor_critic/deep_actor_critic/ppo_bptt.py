@@ -2,7 +2,7 @@ import torch
 
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OnPolicyDeepAC
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.utils.torch import TorchUtils
+from mushroom_rl.utils.torch_utils import TorchUtils
 from mushroom_rl.utils.minibatches import minibatch_generator
 from mushroom_rl.rl_utils.parameters import to_parameter
 

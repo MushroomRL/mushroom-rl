@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from mushroom_rl.features.tensors import ConstantTensor
-from mushroom_rl.utils.torch import TorchUtils
+from mushroom_rl.utils.torch_utils import TorchUtils
 
 import numpy as np
 

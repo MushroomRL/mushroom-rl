@@ -5,7 +5,7 @@ import torch
 from mushroom_rl.algorithms.value.dqn.categorical_dqn import AbstractCategoricalDQN
 from mushroom_rl.approximators.parametric.networks import RainbowNetwork
 from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
-from mushroom_rl.utils.torch import TorchUtils
+from mushroom_rl.utils.torch_utils import TorchUtils
 
 
 class Rainbow(AbstractCategoricalDQN):

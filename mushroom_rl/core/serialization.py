@@ -6,7 +6,7 @@ import numpy as np
 from copy import deepcopy
 from pathlib import Path
 
-from mushroom_rl.utils.torch import TorchUtils
+from mushroom_rl.utils.torch_utils import TorchUtils
 
 from zipfile import ZipFile
 import inspect
