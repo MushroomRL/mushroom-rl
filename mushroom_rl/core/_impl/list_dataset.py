@@ -92,7 +92,7 @@ class ListDataset(Serializable):
 
         if self._mask is not None:
             if isinstance(index, (int, slice)):
-                view._mask = self._mask[index, ...]
+                view._mask = self._mask[index]
             else:
                 view._mask = [self._mask[i] for i in index]
 
@@ -106,11 +106,11 @@ class ListDataset(Serializable):
 
     def __add__(self, other):
         result = self.create_new_instance(self)
-        last_step = self._dataset[-1]
-        modified_last_step = last_step[:-1] + (True,)
-        result._dataset[-1] = modified_last_step
         result._dataset = self._dataset + other._dataset
         result._policy_dataset = self._policy_dataset + other._policy_dataset
+
+        last_step = self._dataset[-1]
+        result._dataset[len(self) - 1] = last_step[:-1] + (True,)
 
         return result
 
@@ -140,11 +140,11 @@ class ListDataset(Serializable):
 
     @property
     def policy_state(self):
-        return [step[6] for step in self._dataset]
+        return [step[0] for step in self._policy_dataset]
 
     @property
     def policy_next_state(self):
-        return [step[7] for step in self._dataset]
+        return [step[1] for step in self._policy_dataset]
 
     @property
     def is_stateful(self):

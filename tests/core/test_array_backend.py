@@ -1,7 +1,159 @@
 import numpy.random
 import torch
 import numpy as np
-from mushroom_rl.core.array_backend import NumpyBackend, TorchBackend
+import pytest
+from mushroom_rl.core.array_backend import ArrayBackend, NumpyBackend, TorchBackend, ListBackend
+
+
+def test_get_array_backend():
+    assert ArrayBackend.get_array_backend('numpy') is NumpyBackend
+    assert ArrayBackend.get_array_backend('torch') is TorchBackend
+    assert ArrayBackend.get_array_backend('list') is ListBackend
+
+    with pytest.raises(AssertionError):
+        ArrayBackend.get_array_backend(1)
+
+    with pytest.raises(ValueError):
+        ArrayBackend.get_array_backend('unknown')
+
+
+def test_get_array_backend_from():
+    assert ArrayBackend.get_array_backend_from(np.zeros(2)) is NumpyBackend
+    assert ArrayBackend.get_array_backend_from(torch.zeros(2)) is TorchBackend
+    assert ArrayBackend.get_array_backend_from([1, 2]) is ListBackend
+
+    with pytest.raises(ValueError):
+        ArrayBackend.get_array_backend_from(1)
+
+
+def test_abstract_backend_not_implemented():
+    calls = [
+        lambda: ArrayBackend.get_backend_name(),
+        lambda: ArrayBackend.get_backend_serialization(),
+        lambda: ArrayBackend.convert_to_backend(ArrayBackend, None),
+        lambda: ArrayBackend.to_numpy(None),
+        lambda: ArrayBackend.to_torch(None),
+        lambda: ArrayBackend.zeros(2, dtype=float),
+        lambda: ArrayBackend.ones(2, dtype=float),
+        lambda: ArrayBackend.zeros_like(None, dtype=float),
+        lambda: ArrayBackend.ones_like(None, dtype=float),
+        lambda: ArrayBackend.concatenate([], 0),
+        lambda: ArrayBackend.where(None),
+        lambda: ArrayBackend.squeeze(None, 0),
+        lambda: ArrayBackend.expand_dims(None, 0),
+        lambda: ArrayBackend.size(None),
+        lambda: ArrayBackend.rand(2),
+        lambda: ArrayBackend.randint(0, 1, 1),
+        lambda: ArrayBackend.multinomial(None),
+        lambda: ArrayBackend.uniform(0, 1),
+        lambda: ArrayBackend.arange(0, 1),
+        lambda: ArrayBackend.abs(None),
+        lambda: ArrayBackend.exp(None),
+        lambda: ArrayBackend.clip(None, 0, 1),
+        lambda: ArrayBackend.atleast_2d(None),
+        lambda: ArrayBackend.copy(None),
+        lambda: ArrayBackend.median(None),
+        lambda: ArrayBackend.sqrt(None),
+        lambda: ArrayBackend.from_list(None),
+        lambda: ArrayBackend.pack_padded_sequence(None, None),
+        lambda: ArrayBackend.flatten(None),
+        lambda: ArrayBackend.empty(2),
+        lambda: ArrayBackend.none(),
+        lambda: ArrayBackend.shape(None),
+        lambda: ArrayBackend.full(2, 0),
+        lambda: ArrayBackend.nonzero(None),
+        lambda: ArrayBackend.repeat(None, 1),
+        lambda: ArrayBackend.inf(),
+        lambda: ArrayBackend.maximum(None, None),
+        lambda: ArrayBackend.minimum(None, None),
+        lambda: ArrayBackend.max(None),
+        lambda: ArrayBackend.min(None),
+        lambda: ArrayBackend.norm(None),
+        lambda: ArrayBackend.logical_and(None, None),
+        lambda: ArrayBackend.sum(None),
+        lambda: ArrayBackend.stack([], 0),
+        lambda: ArrayBackend.to_backend_dtype(float),
+    ]
+
+    for call in calls:
+        with pytest.raises(NotImplementedError):
+            call()
+
+
+def test_list_backend():
+    assert ListBackend.get_backend_name() == 'list'
+    assert ListBackend.get_backend_serialization() == 'numpy'
+
+    assert np.array_equal(ListBackend.to_numpy([1, 2, 3]), np.array([1, 2, 3]))
+    assert torch.equal(ListBackend.to_torch([1, 2, 3]), torch.tensor([1, 2, 3]))
+    assert ListBackend.to_torch(None) is None
+    assert ListBackend.to_backend_dtype(np.float32) == np.float32
+    assert np.array_equal(ListBackend.convert_to_backend(ListBackend, [1, 2]), np.array([1, 2]))
+
+    assert np.array_equal(ListBackend.zeros(2, 3, dtype=float), np.zeros((2, 3)))
+    assert np.array_equal(ListBackend.ones(2, 3, dtype=float), np.ones((2, 3)))
+    assert np.array_equal(ListBackend.zeros_like(np.ones(3)), np.zeros(3))
+    assert np.array_equal(ListBackend.ones_like(np.zeros(3)), np.ones(3))
+
+    with pytest.raises(ValueError):
+        ListBackend.zeros(2, dtype=float, device='cuda')
+
+    array = np.array([3.0, 1.0, 2.0])
+    assert np.array_equal(ListBackend.copy(array), array)
+    assert ListBackend.median(array) == 2.0
+    assert ListBackend.from_list(array) is array
+    assert ListBackend.empty(3).shape == (3,)
+    assert ListBackend.none() is None
+    assert ListBackend.shape([[1, 2], [3, 4]]) == (2, 2)
+    assert np.array_equal(ListBackend.full((2,), 5), np.full((2,), 5))
+    assert ListBackend.inf() == np.inf
+
+    x = np.array([1.0, 4.0])
+    y = np.array([3.0, 2.0])
+    assert np.array_equal(ListBackend.maximum(x, y), np.array([3.0, 4.0]))
+    assert np.array_equal(ListBackend.minimum(x, y), np.array([1.0, 2.0]))
+    assert ListBackend.max(x, None) == 4.0
+    assert ListBackend.min(x, None) == 1.0
+    assert np.isclose(ListBackend.norm(np.array([3.0, 4.0])), 5.0)
+    assert np.array_equal(ListBackend.logical_and(np.array([True, False]), np.array([True, True])),
+                          np.array([True, False]))
+    assert ListBackend.sum(x) == 5.0
+    assert np.array_equal(ListBackend.stack([x, y], 0), np.stack([x, y], axis=0))
+    assert np.array_equal(ListBackend.flatten(np.ones((2, 3))), np.ones(6))
+
+
+def test_backend_ops_numpy():
+    cond = np.array([True, False])
+    assert np.array_equal(NumpyBackend.where(cond, np.array([1, 1]), np.array([2, 2])), np.array([1, 2]))
+    assert NumpyBackend.size(np.ones((2, 3))) == 6
+    assert NumpyBackend.inf() == np.inf
+    assert NumpyBackend.max(np.array([1.0, 3.0, 2.0])) == 3.0
+    assert NumpyBackend.min(np.array([1.0, 3.0, 2.0])) == 1.0
+    assert np.isclose(NumpyBackend.norm(np.array([3.0, 4.0])), 5.0)
+    assert np.array_equal(NumpyBackend.logical_and(np.array([True, False]), np.array([True, True])),
+                          np.array([True, False]))
+    assert NumpyBackend.sum(np.array([1.0, 2.0, 3.0])) == 6.0
+    assert NumpyBackend.median(np.array([3.0, 1.0, 2.0])) == 2.0
+
+    np.random.seed(42)
+    u = NumpyBackend.uniform(0.0, 1.0)
+    assert 0.0 <= u <= 1.0
+
+
+def test_backend_ops_torch():
+    cond = torch.tensor([True, False])
+    assert torch.equal(TorchBackend.where(cond, torch.tensor([1, 1]), torch.tensor([2, 2])),
+                       torch.tensor([1, 2]))
+    assert TorchBackend.size(torch.ones(2, 3)) == 6
+    assert TorchBackend.inf() == torch.inf
+    assert TorchBackend.max(torch.tensor([1.0, 3.0, 2.0]), 0) == 3.0
+    assert TorchBackend.min(torch.tensor([1.0, 3.0, 2.0]), 0) == 1.0
+    assert torch.isclose(TorchBackend.norm(torch.tensor([3.0, 4.0])), torch.tensor(5.0))
+    assert torch.equal(TorchBackend.logical_and(torch.tensor([True, False]), torch.tensor([True, True])),
+                       torch.tensor([True, False]))
+    assert TorchBackend.sum(torch.tensor([1.0, 2.0, 3.0])) == 6.0
+    assert TorchBackend.median(torch.tensor([3.0, 1.0, 2.0])) == 2.0
+    assert torch.equal(TorchBackend.squeeze(torch.ones(2, 1), 1), torch.ones(2))
 
 
 def test_to_backend_dtype_numpy():
