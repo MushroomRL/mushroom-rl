@@ -3,4 +3,5 @@ numpy
 matplotlib
 joblib
 tqdm
+gymnasium
 sphinx-rtd-theme
