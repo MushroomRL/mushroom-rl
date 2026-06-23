@@ -416,3 +416,80 @@ def test_replay_memory_torch_uint8_obs():
     state, action, reward, next_state, absorbing, last = rm.get(5)
     assert state.dtype == torch.uint8
     assert state.shape == (5, *obs_shape)
+
+
+def test_replay_memory_history():
+    obs_shape = (4,)
+    act_shape = (2,)
+    n = 10
+    history_length = 4
+
+    rng = np.random.RandomState(42)
+    dataset, states, actions, rewards, next_states, _, _ = make_dataset(n, rng, obs_shape, act_shape)
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info()
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50, history_length=history_length)
+    rm.add(dataset)
+
+    np.random.seed(7)
+    s, a, r, ss, ab, last = rm.get(4)
+
+    expected_idxs = np.array([4, 9, 6, 3])
+
+    assert s.shape == (4, history_length, *obs_shape)
+    assert ss.shape == (4, history_length, *obs_shape)
+    assert a.shape == (4, *act_shape)
+    assert np.allclose(s[:, history_length - 1], states[expected_idxs])
+    assert np.allclose(ss[:, history_length - 1], next_states[expected_idxs])
+
+
+def test_replay_memory_wrap_after_full():
+    obs_shape = (4,)
+    act_shape = (2,)
+    max_size = 10
+
+    rng = np.random.RandomState(42)
+    ds_a, states_a, _, _, _, _, _ = make_dataset(10, rng, obs_shape, act_shape)
+    ds_b, states_b, _, _, _, _, _ = make_dataset(6, rng, obs_shape, act_shape)
+    ds_c, states_c, _, _, _, _, _ = make_dataset(6, rng, obs_shape, act_shape)
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info()
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=max_size)
+    rm.add(ds_a)
+    rm.add(ds_b)
+    rm.add(ds_c)
+
+    assert rm._full
+    assert rm.size == max_size
+    assert rm._idx == 2
+
+    assert np.allclose(rm._dataset.state[6:10], states_c[:4])
+    assert np.allclose(rm._dataset.state[:2], states_c[4:6])
+
+
+def test_replay_memory_wrap_after_full_stateful():
+    obs_shape = (4,)
+    act_shape = (2,)
+    policy_state_shape = (3,)
+    max_size = 10
+
+    rng = np.random.RandomState(42)
+    ds_a, _, _, _, _, ps_a, _ = make_dataset(10, rng, obs_shape, act_shape, policy_state_shape)
+    ds_b, _, _, _, _, ps_b, _ = make_dataset(6, rng, obs_shape, act_shape, policy_state_shape)
+    ds_c, _, _, _, _, ps_c, _ = make_dataset(6, rng, obs_shape, act_shape, policy_state_shape)
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info(policy_state_shape=policy_state_shape)
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=max_size)
+    rm.add(ds_a)
+    rm.add(ds_b)
+    rm.add(ds_c)
+
+    assert rm._full
+    assert rm.size == max_size
+    assert rm._idx == 2
+
+    assert np.allclose(rm._dataset.policy_state[6:10], ps_c[:4])
+    assert np.allclose(rm._dataset.policy_state[:2], ps_c[4:6])

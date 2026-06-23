@@ -1,14 +1,22 @@
 try:
-    from mushroom_rl.environments.mujoco_envs.air_hockey import AirHockeyDefend, AirHockeyHit, AirHockeyPrepare,\
-        AirHockeyRepel
-    from mushroom_rl.environments.mujoco_envs.air_hockey.double import AirHockeyDouble
+    from mushroom_rl.environments.mujoco_envs.reach import Reach
+    from mushroom_rl.environments.mujoco_envs.pick import Pick
+    from mushroom_rl.environments.mujoco_envs.push import Push
+    from mushroom_rl.environments.mujoco_envs.peg_insertion import PegInsertion
     import numpy as np
+    import random
+    import torch
 
-    def test_double():
+
+    def test_reach():
+        np.random.seed(42)
+        random.seed(42)
+        torch.manual_seed(42)
+
         obs = []
-        mdp = AirHockeyDouble()
+        mdp = Reach()
         mdp.reset()
-        action = np.array([1] * 6)
+        action = np.zeros(7)
 
         for _ in range(20):
             observation, _, _, _ = mdp.step(action)
@@ -16,16 +24,20 @@ try:
             assert len(observation) == len(mdp._mdp_info.observation_space.high)
             obs.append(observation)
 
-        obs_test = np.load("tests/environments/mujoco_envs/air_hockey_double_data.npy")
+        obs_test = np.load("tests/environments/mujoco_envs/reach_data.npy")
 
         assert np.allclose(obs, obs_test)
 
 
-    def test_defend():
+    def test_pick():
+        np.random.seed(42)
+        random.seed(42)
+        torch.manual_seed(42)
+
         obs = []
-        mdp = AirHockeyDefend()
+        mdp = Pick()
         mdp.reset()
-        action = np.array([1] * 3)
+        action = np.zeros(8)
 
         for _ in range(20):
             observation, _, _, _ = mdp.step(action)
@@ -33,16 +45,20 @@ try:
             assert len(observation) == len(mdp._mdp_info.observation_space.high)
             obs.append(observation)
 
-        obs_test = np.load("tests/environments/mujoco_envs/air_hockey_defend_data.npy")
+        obs_test = np.load("tests/environments/mujoco_envs/pick_data.npy")
 
         assert np.allclose(obs, obs_test)
 
 
-    def test_hit():
+    def test_push():
+        np.random.seed(42)
+        random.seed(42)
+        torch.manual_seed(42)
+
         obs = []
-        mdp = AirHockeyHit()
+        mdp = Push()
         mdp.reset()
-        action = np.array([1] * 3)
+        action = np.zeros(7)
 
         for _ in range(20):
             observation, _, _, _ = mdp.step(action)
@@ -50,16 +66,20 @@ try:
             assert len(observation) == len(mdp._mdp_info.observation_space.high)
             obs.append(observation)
 
-        obs_test = np.load("tests/environments/mujoco_envs/air_hockey_hit_data.npy")
+        obs_test = np.load("tests/environments/mujoco_envs/push_data.npy")
 
         assert np.allclose(obs, obs_test)
 
 
-    def test_prepare():
+    def test_peg_insertion():
+        np.random.seed(42)
+        random.seed(42)
+        torch.manual_seed(42)
+
         obs = []
-        mdp = AirHockeyPrepare()
+        mdp = PegInsertion()
         mdp.reset()
-        action = np.array([1] * 3)
+        action = np.zeros(7)
 
         for _ in range(20):
             observation, _, _, _ = mdp.step(action)
@@ -67,24 +87,7 @@ try:
             assert len(observation) == len(mdp._mdp_info.observation_space.high)
             obs.append(observation)
 
-        obs_test = np.load("tests/environments/mujoco_envs/air_hockey_prepare_data.npy")
-
-        assert np.allclose(obs, obs_test)
-
-
-    def test_repel():
-        obs = []
-        mdp = AirHockeyRepel()
-        mdp.reset()
-        action = np.array([1] * 3)
-
-        for _ in range(20):
-            observation, _, _, _ = mdp.step(action)
-            assert len(observation) == len(mdp._mdp_info.observation_space.low)
-            assert len(observation) == len(mdp._mdp_info.observation_space.high)
-            obs.append(observation)
-
-        obs_test = np.load("tests/environments/mujoco_envs/air_hockey_repel_data.npy")
+        obs_test = np.load("tests/environments/mujoco_envs/peg_insertion_data.npy")
 
         assert np.allclose(obs, obs_test)
 

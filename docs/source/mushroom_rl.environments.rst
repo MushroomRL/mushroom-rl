@@ -299,12 +299,6 @@ Air Hockey
     :inherited-members:
     :show-inheritance:
 
-.. automodule:: mushroom_rl.environments.pybullet_envs.air_hockey.double
-    :members:
-    :private-members:
-    :inherited-members:
-    :show-inheritance:
-
 .. automodule:: mushroom_rl.environments.pybullet_envs.air_hockey.prepare
     :members:
     :private-members:

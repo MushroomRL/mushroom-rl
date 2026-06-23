@@ -1,8 +1,13 @@
 [run]
 omit =
-    mushrioom_rl/utils/isaac_utils.py
+    mushroom_rl/utils/isaac_utils.py
+    mushroom_rl/utils/isaac_sim/*
     mushroom_rl/environments/isaacsim_env.py
     mushroom_rl/environments/omni_isaac_gym_env.py
     mushroom_rl/environments/isaacsim_envs/*
-
-
+    mushroom_rl/environments/habitat_env.py
+    mushroom_rl/environments/igibson_env.py
+    mushroom_rl/utils/mujoco/viewer.py
+    mushroom_rl/utils/pybullet/viewer.py
+    mushroom_rl/utils/plots/*
+    mushroom_rl/utils/callbacks/plot_dataset.py
