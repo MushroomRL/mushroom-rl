@@ -1,5 +1,4 @@
 from mushroom_rl.policy.gaussian_policy import *
-from mushroom_rl.approximators.regressor import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.utils.numerical_gradient import numerical_diff_policy
 
@@ -10,7 +9,7 @@ def test_univariate_gaussian():
 
     n_dims = 5
 
-    approximator = Regressor(LinearApproximator,
+    approximator = LinearApproximator(
                              input_shape=(n_dims,),
                              output_shape=(1,))
 
@@ -38,7 +37,7 @@ def test_multivariate_gaussian():
 
     sigma = random_matrix.dot(random_matrix.T)
 
-    approximator = Regressor(LinearApproximator,
+    approximator = LinearApproximator(
                              input_shape=(n_dims,),
                              output_shape=(n_outs,))
 
@@ -64,7 +63,7 @@ def test_multivariate_diagonal_gaussian():
 
     std = np.random.randn(n_outs)
 
-    approximator = Regressor(LinearApproximator,
+    approximator = LinearApproximator(
                              input_shape=(n_dims,),
                              output_shape=(n_outs,))
 
@@ -88,11 +87,11 @@ def test_multivariate_state_std_gaussian():
     n_dims = 5
     n_outs = 3
 
-    mu_approximator = Regressor(LinearApproximator,
+    mu_approximator = LinearApproximator(
                                 input_shape=(n_dims,),
                                 output_shape=(n_outs,))
 
-    std_approximator = Regressor(LinearApproximator,
+    std_approximator = LinearApproximator(
                                  input_shape=(n_dims,),
                                  output_shape=(n_outs,))
 
@@ -116,11 +115,11 @@ def test_multivariate_state_log_std_gaussian():
     n_dims = 5
     n_outs = 3
 
-    mu_approximator = Regressor(LinearApproximator,
+    mu_approximator = LinearApproximator(
                                 input_shape=(n_dims,),
                                 output_shape=(n_outs,))
 
-    log_var_approximator = Regressor(LinearApproximator,
+    log_var_approximator = LinearApproximator(
                                      input_shape=(n_dims,),
                                      output_shape=(n_outs,))
 

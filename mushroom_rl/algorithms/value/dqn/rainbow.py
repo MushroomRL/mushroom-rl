@@ -71,10 +71,10 @@ class Rainbow(AbstractCategoricalDQN):
 
             with torch.no_grad():
                 q_next = self.approximator.predict(next_state, **self._predict_params)
-                a_max = torch.argmax(q_next, 1)
+                a_max = torch.argmax(q_next, 1).unsqueeze(1)
                 gamma = self.mdp_info.gamma ** self._n_steps_return * ~absorbing
-                p_next = self.target_approximator.predict(next_state, a_max,
-                                                          get_distribution=True, **self._predict_params)
+                p_next = self.target_approximator.predict(next_state, a_max, get_distribution=True, 
+                                                          **self._predict_params)
                 m = self._categorical_projection(reward, gamma, p_next)
 
                 kl = -torch.sum(m * torch.log(self.approximator.predict(state, action, get_distribution=True,

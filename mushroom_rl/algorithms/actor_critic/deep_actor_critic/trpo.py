@@ -6,7 +6,6 @@ import torch
 import torch.nn.functional as F
 
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OnPolicyDeepAC
-from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.torch import TorchUtils
 from mushroom_rl.rl_utils.value_functions import compute_gae
@@ -59,7 +58,7 @@ class TRPO(OnPolicyDeepAC):
 
         self._lambda = to_parameter(lam)
 
-        self._V = Regressor(TorchApproximator, **critic_params)
+        self._V = TorchApproximator(**critic_params)
 
         self._iter = 1
 
@@ -116,7 +115,7 @@ class TRPO(OnPolicyDeepAC):
         self._V.fit(state, v_target, **self._critic_fit_params)
 
         # Print fit information
-        self._log_info(dataset, state, v_target, old_pol_dist)
+        self._log_info(dataset, state, old_pol_dist)
         self._iter += 1
 
     def _fisher_vector_product(self, p, obs, old_pol_dist):
@@ -189,14 +188,9 @@ class TRPO(OnPolicyDeepAC):
 
         return J + self._ent_coeff() * self.policy.entropy_t(obs)
 
-    def _log_info(self, dataset, x, v_target, old_pol_dist):
+    def _log_info(self, dataset, x, old_pol_dist):
         if self._logger:
-            logging_verr = []
-            torch_v_targets = torch.tensor(v_target, dtype=torch.float)
-            for idx in range(len(self._V)):
-                v_pred = torch.tensor(self._V(x, idx=idx), dtype=torch.float)
-                v_err = F.mse_loss(v_pred, torch_v_targets)
-                logging_verr.append(v_err.item())
+            logging_verr = self._V.loss_fit
 
             logging_ent = self.policy.entropy(x)
             new_pol_dist = self.policy.distribution(x)

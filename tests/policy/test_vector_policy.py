@@ -1,6 +1,5 @@
 import numpy as np
 
-from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.policy.gaussian_policy import GaussianPolicy
 from mushroom_rl.policy.vector_policy import VectorPolicy
@@ -8,7 +7,7 @@ from mushroom_rl.policy.policy import ParametricPolicy
 
 
 def _make_gaussian_policy(state_dim=3, action_dim=2):
-    mu = Regressor(LinearApproximator, input_shape=(state_dim,), output_shape=(action_dim,))
+    mu = LinearApproximator(input_shape=(state_dim,), output_shape=(action_dim,))
     return GaussianPolicy(mu, np.eye(action_dim))
 
 

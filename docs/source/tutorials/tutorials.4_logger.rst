@@ -68,7 +68,7 @@ restricted to ``J``, ``R``, or other predefined metrics.
 We now consider the learning loop:
 
 .. literalinclude:: code/logger.py
-   :lines: 71-87
+   :lines: 70-87
 
 Here we make use of both the ``epoch_info`` method to log the data in the console output and the methods
 ``log_numpy`` and ``log_best_agent`` to log the learning progress.

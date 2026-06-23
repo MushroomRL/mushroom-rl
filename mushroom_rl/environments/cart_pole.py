@@ -2,7 +2,7 @@ import numpy as np
 from scipy.integrate import odeint
 
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.rl_utils import spaces
+from mushroom_rl.core.spaces import Box, Discrete
 from mushroom_rl.utils.angles import normalize_angle
 from mushroom_rl.utils.viewer import Viewer
 
@@ -42,8 +42,8 @@ class CartPole(Environment):
 
         # MDP properties
         dt = .1
-        observation_space = spaces.Box(low=-high, high=high)
-        action_space = spaces.Discrete(3)
+        observation_space = Box(low=-high, high=high)
+        action_space = Discrete(3)
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
         # Visualization

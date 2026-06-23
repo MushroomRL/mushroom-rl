@@ -3,7 +3,7 @@ import numpy as np
 from mushroom_rl.utils.callbacks.callback import Callback
 from mushroom_rl.utils.plots import DataBuffer, Window, Actions,\
     LenOfEpisodeTraining, Observations, RewardPerEpisode, RewardPerStep
-from mushroom_rl.rl_utils.spaces import Box
+from mushroom_rl.core.spaces import Box
 
 
 class PlotDataset(Callback):

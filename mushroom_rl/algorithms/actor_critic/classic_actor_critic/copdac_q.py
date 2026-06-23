@@ -1,7 +1,6 @@
 import numpy as np
 
 from mushroom_rl.core import Agent
-from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 
 from mushroom_rl.rl_utils.parameters import to_parameter
@@ -40,12 +39,9 @@ class COPDAC_Q(Agent):
         else:
             input_shape = mdp_info.observation_space.shape
 
-        self._V = Regressor(LinearApproximator, input_shape=input_shape,
-                            output_shape=(1,))
+        self._V = LinearApproximator(input_shape=input_shape, output_shape=(1,))
 
-        self._A = Regressor(LinearApproximator,
-                            input_shape=(self._mu.weights_size,),
-                            output_shape=(1,))
+        self._A = LinearApproximator(input_shape=(self._mu.weights_size,), output_shape=(1,))
 
         self._add_save_attr(
             _mu='mushroom',

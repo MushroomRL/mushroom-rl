@@ -20,10 +20,12 @@ class TDPolicy(Policy):
         super().__init__(policy_state_shape)
 
         self._approximator = None
+        self._n_actions = None
         self._predict_params = dict()
         self._backend = ArrayBackend.get_array_backend(backend)
 
         self._add_save_attr(_approximator='mushroom!',
+                            _n_actions='primitive',
                             _predict_params='pickle',
                             _backend='primitive')
 
@@ -34,6 +36,10 @@ class TDPolicy(Policy):
 
         """
         self._approximator = approximator
+        if hasattr(approximator, 'n_actions'):
+            self._n_actions = approximator.n_actions
+        else:
+            self._n_actions = approximator.output_shape[0]
 
     def get_q(self):
         """
@@ -72,7 +78,7 @@ class EpsGreedy(TDPolicy):
             q = self._approximator.predict(self._backend.expand_dims(state, 0), **self._predict_params).ravel()
         max_a = self._backend.nonzero(q == q.max()).ravel()
 
-        p = self._epsilon.get_value(state) / self._approximator.n_actions
+        p = self._epsilon.get_value(state) / self._n_actions
 
         if len(args) == 2:
             action = args[1]
@@ -81,7 +87,7 @@ class EpsGreedy(TDPolicy):
             else:
                 return p
         else:
-            probs = self._backend.ones(self._approximator.n_actions) * p
+            probs = self._backend.ones(self._n_actions) * p
             probs[max_a] += (1. - self._epsilon.get_value(state)) / len(max_a)
 
             return probs
@@ -97,7 +103,7 @@ class EpsGreedy(TDPolicy):
 
             return max_a, None
 
-        return self._backend.randint(0, self._approximator.n_actions, (1,)), None
+        return self._backend.randint(0, self._n_actions, (1,)), None
 
     def set_epsilon(self, epsilon):
         """

@@ -2,7 +2,7 @@ import numpy as np
 from copy import deepcopy
 
 from mushroom_rl.algorithms.value.td import TD
-from mushroom_rl.approximators.ensemble_table import EnsembleTable
+from mushroom_rl.approximators.table import Table
 
 
 class MaxminQLearning(TD):
@@ -21,7 +21,7 @@ class MaxminQLearning(TD):
 
         """
         self._n_tables = n_tables
-        Q = EnsembleTable(n_tables, mdp_info.size, prediction='min')
+        Q = Table(n_models=n_tables, prediction='min', shape=mdp_info.size)
 
         super().__init__(mdp_info, policy, Q, learning_rate)
 

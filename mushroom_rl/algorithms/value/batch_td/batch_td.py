@@ -1,5 +1,5 @@
 from mushroom_rl.core import Agent
-from mushroom_rl.approximators import Regressor
+from mushroom_rl.approximators import QApproximator
 
 
 class BatchTD(Agent):
@@ -24,7 +24,7 @@ class BatchTD(Agent):
             approximator_params
         self._fit_params = dict() if fit_params is None else fit_params
 
-        self.approximator = Regressor(approximator, **approximator_params)
+        self.approximator = QApproximator(approximator, **approximator_params)
         policy.set_q(self.approximator)
 
         self._add_save_attr(

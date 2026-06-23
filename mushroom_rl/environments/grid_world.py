@@ -1,7 +1,7 @@
 import numpy as np
 
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.rl_utils import spaces
+from mushroom_rl.core.spaces import Discrete
 from mushroom_rl.utils.viewer import Viewer
 
 
@@ -123,8 +123,8 @@ class GridWorld(AbstractGridWorld):
 
         """
         # MDP properties
-        observation_space = spaces.Discrete(height * width)
-        action_space = spaces.Discrete(4)
+        observation_space = Discrete(height * width)
+        action_space = Discrete(4)
         horizon = 100
         gamma = .9
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
@@ -163,8 +163,8 @@ class GridWorldVanHasselt(AbstractGridWorld):
 
         """
         # MDP properties
-        observation_space = spaces.Discrete(height * width)
-        action_space = spaces.Discrete(4)
+        observation_space = Discrete(height * width)
+        action_space = Discrete(4)
         horizon = np.inf
         gamma = .95
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)

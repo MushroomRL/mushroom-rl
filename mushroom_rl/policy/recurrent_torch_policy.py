@@ -9,7 +9,7 @@ from mushroom_rl.rl_utils.parameters import to_parameter
 class RecurrentGaussianTorchPolicy(GaussianTorchPolicy):
     def __init__(self,  policy_state_shape, log_std_min=-20, log_std_max=2, **kwargs):
 
-        super().__init__(policy_state_shape=policy_state_shape, **kwargs)
+        super().__init__(policy_state_shape=policy_state_shape, n_outputs=2, **kwargs)
 
         self._log_std_min = to_parameter(log_std_min)
         self._log_std_max = to_parameter(log_std_max)
@@ -19,10 +19,8 @@ class RecurrentGaussianTorchPolicy(GaussianTorchPolicy):
 
     def draw_action(self, state, policy_state):
         with torch.no_grad():
-            state = TorchUtils.to_float_tensor(state)
-            policy_state = torch.as_tensor(policy_state)
             a, policy_state = self.draw_action_t(state, policy_state)
-        return torch.squeeze(a, dim=0), policy_state
+            return a, policy_state
 
     def draw_action_t(self, state, policy_state):
         lengths = torch.tensor([1])
@@ -54,7 +52,7 @@ class RecurrentGaussianTorchPolicy(GaussianTorchPolicy):
         return torch.distributions.MultivariateNormal(loc=mu, covariance_matrix=sigma), policy_state
 
     def get_mean_and_covariance_and_policy_state(self, state, policy_state, lengths):
-        mu, next_hidden_state = self._mu(state, policy_state, lengths, **self._predict_params)
+        mu, next_hidden_state = self._mu(state, policy_state, lengths=lengths, **self._predict_params)
 
         # Bound the log_std
         log_sigma = torch.clamp(self._log_sigma, self._log_std_min(), self._log_std_max())

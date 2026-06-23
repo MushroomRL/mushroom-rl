@@ -35,7 +35,7 @@ Classical Policy Search and Actor-Critic
 Black Box Optimization
 ----------------------
 - `LQR with BBO <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/lqr_bbo.py>`_
-- `Segway with BBO <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/segway_test_bbo.py>`_
+- `Segway with BBO <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/segway_bbo.py>`_
 - `Ship Steering with BBO <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/ship_steering_bbo.py>`_
 
 

@@ -61,7 +61,7 @@ Running Statistics
 Spaces
 ------
 
-.. automodule:: mushroom_rl.rl_utils.spaces
+.. automodule:: mushroom_rl.core.spaces
     :members:
     :show-inheritance:
 

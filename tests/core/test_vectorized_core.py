@@ -1,8 +1,7 @@
 import numpy as np
 import torch
 
-from mushroom_rl.core import Agent, VectorCore, VectorizedEnvironment, MDPInfo
-from mushroom_rl.rl_utils import Box
+from mushroom_rl.core import Agent, VectorCore, VectorizedEnvironment, MDPInfo, Box
 from mushroom_rl.policy import Policy
 from mushroom_rl.utils import TorchUtils
 

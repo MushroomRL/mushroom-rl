@@ -1,4 +1,3 @@
-from argparse import ArgumentParser
 import numpy as np
 import torch.nn.functional as F
 import torch.optim as optim

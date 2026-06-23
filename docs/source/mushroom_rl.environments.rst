@@ -3,7 +3,6 @@ Environments
 
 In mushroom_rl we distinguish between two different types of environment classes:
 
-
 - proper environments
 - generators
 
@@ -194,6 +193,66 @@ Ball In A Cup
     :inherited-members:
     :show-inheritance:
 
+Locomotion
+^^^^^^^^^^
+
+.. automodule:: mushroom_rl.environments.mujoco_envs.ant
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.mujoco_envs.half_cheetah
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.mujoco_envs.hopper
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.mujoco_envs.walker_2d
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+Manipulation
+^^^^^^^^^^^^
+
+.. automodule:: mushroom_rl.environments.mujoco_envs.panda
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.mujoco_envs.reach
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.mujoco_envs.pick
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.mujoco_envs.push
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.mujoco_envs.peg_insertion
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
 
 Puddle World
 ~~~~~~~~~~~~
@@ -240,6 +299,24 @@ Air Hockey
     :inherited-members:
     :show-inheritance:
 
+.. automodule:: mushroom_rl.environments.pybullet_envs.air_hockey.double
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.pybullet_envs.air_hockey.prepare
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.pybullet_envs.air_hockey.repel
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
 Segway
 ~~~~~~~~~~~~~
 
@@ -257,7 +334,49 @@ Ship steering
     :private-members:
     :inherited-members:
     :show-inheritance:
-    
+
+Isaac Sim
+~~~~~~~~~
+
+.. automodule:: mushroom_rl.environments.isaacsim_env
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.isaacsim_envs.a1_walking
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.isaacsim_envs.cartpole
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.isaacsim_envs.honey_badger_walking
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.isaacsim_envs.silver_badger_walking
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
+Omni Isaac Gym
+~~~~~~~~~~~~~~
+
+.. automodule:: mushroom_rl.environments.omni_isaac_gym_env
+    :members:
+    :private-members:
+    :inherited-members:
+    :show-inheritance:
+
 Generators
 ----------
 

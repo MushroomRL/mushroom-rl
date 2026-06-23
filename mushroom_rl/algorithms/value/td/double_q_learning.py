@@ -2,7 +2,7 @@ import numpy as np
 from copy import deepcopy
 
 from mushroom_rl.algorithms.value.td import TD
-from mushroom_rl.approximators.ensemble_table import EnsembleTable
+from mushroom_rl.approximators.table import Table
 
 
 class DoubleQLearning(TD):
@@ -13,7 +13,7 @@ class DoubleQLearning(TD):
 
     """
     def __init__(self, mdp_info, policy, learning_rate):
-        Q = EnsembleTable(2, mdp_info.size)
+        Q = Table(n_models=2, shape=mdp_info.size)
 
         super().__init__(mdp_info, policy, Q, learning_rate)
 

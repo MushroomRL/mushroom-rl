@@ -1,3 +1,4 @@
+import numpy as np
 import warnings
 
 with warnings.catch_warnings():
@@ -7,7 +8,7 @@ with warnings.catch_warnings():
 
 
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.rl_utils.spaces import *
+from mushroom_rl.core.spaces import Box
 from mushroom_rl.utils.viewer import CV2Viewer
 
 

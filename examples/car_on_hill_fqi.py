@@ -11,7 +11,7 @@ from mushroom_rl.rl_utils.parameters import Parameter
 """
 This script aims to replicate the experiments on the Car on Hill MDP as
 presented in:
-"Tree-Based Batch Mode Reinforcement Learning", Ernst D. et al.. 2005. 
+"Tree-Based Batch Mode Reinforcement Learning", Ernst D. et al. 2005. 
 
 """
 

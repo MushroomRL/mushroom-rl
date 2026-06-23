@@ -3,7 +3,6 @@ from copy import deepcopy
 import torch
 
 from mushroom_rl.core import Agent
-from mushroom_rl.approximators.regressor import Regressor
 from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory, ReplayMemory
 from mushroom_rl.rl_utils.parameters import to_parameter
 from mushroom_rl.utils.torch import TorchUtils
@@ -133,8 +132,8 @@ class AbstractDQN(Agent):
                                   **self._fit_params)
 
     def _initialize_regressors(self, approximator, apprx_params_train, apprx_params_target):
-        self.approximator = Regressor(approximator, **apprx_params_train)
-        self.target_approximator = Regressor(approximator, **apprx_params_target)
+        self.approximator = approximator(**apprx_params_train)
+        self.target_approximator = approximator(**apprx_params_target)
         self._update_target()
 
     def _update_target(self):

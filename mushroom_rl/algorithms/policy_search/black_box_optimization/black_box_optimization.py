@@ -64,21 +64,16 @@ class BlackBoxOptimization(Agent):
 
         theta = self.policy.get_weights()
         if start_mask.any():
-            context = self._context_builder(initial_states, **episode_info)[start_mask]
+            n_starts = start_mask.sum()
 
-            if self._deterministic:
-                if context is not None:
-                    theta[start_mask] = self.distribution.mean(context[start_mask])
-                else:
-                    theta[start_mask] = self._agent_backend.from_list(
-                        [self.distribution.mean() for _ in range(start_mask.sum())])
-            else:
-                if context is not None:
-                    theta[start_mask] = self._agent_backend.from_list(
-                        [self.distribution.sample(context[i]) for i in range(start_mask.sum())])  # TODO change it
-                else:
-                    theta[start_mask] = self._agent_backend.from_list(
-                        [self.distribution.sample() for _ in range(start_mask.sum())])
+            context = self._context_builder(initial_states, **episode_info) if self.distribution.is_contextual else None
+            if context is not None:
+                context = context[start_mask]
+
+            draw = self.distribution.mean if self._deterministic else self.distribution.sample
+            theta[start_mask] = self._agent_backend.from_list(
+                [draw(context[i] if context is not None else None) for i in range(n_starts)])
+
             self.policy.set_weights(theta)
 
         policy_states = self.policy.reset_vectorized(start_mask)

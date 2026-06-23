@@ -2,7 +2,7 @@ import numpy as np
 from copy import deepcopy
 
 from mushroom_rl.utils.callbacks.callback import CallbackList
-from mushroom_rl.approximators.ensemble_table import EnsembleTable
+from mushroom_rl.approximators import Ensemble
 
 
 class CollectQ(CallbackList):
@@ -16,7 +16,7 @@ class CollectQ(CallbackList):
         Constructor.
 
         Args:
-            approximator ([Table, EnsembleTable]): the approximator to use to
+            approximator ([Table, Ensemble]): the approximator to use to
                 predict the action values.
 
         """
@@ -25,9 +25,9 @@ class CollectQ(CallbackList):
         super().__init__()
 
     def __call__(self, dataset):
-        if isinstance(self._approximator, EnsembleTable):
+        if isinstance(self._approximator, Ensemble):
             qs = list()
-            for m in self._approximator.model:
+            for m in self._approximator:
                 qs.append(m.table)
             self._data_list.append(deepcopy(np.mean(qs, 0)))
         else:

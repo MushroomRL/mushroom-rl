@@ -1,16 +1,11 @@
+import numpy as np
 import warnings
 
 import gymnasium as gym
 from gymnasium import spaces as gym_spaces
 
-try:
-    import pybullet_envs
-    pybullet_found = True
-except ImportError:
-    pybullet_found = False
-
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.rl_utils.spaces import *
+from mushroom_rl.core.spaces import Box, Discrete
 from mushroom_rl.utils.viewer import ImageViewer
 
 
@@ -45,10 +40,6 @@ class Gymnasium(Environment):
         self._first = True
         self._headless = headless
         self._viewer = None
-        if pybullet_found and '- ' + name in pybullet_envs.getList():
-            import pybullet
-            pybullet.connect(pybullet.DIRECT)
-            self._not_pybullet = False
 
         self.env = gym.make(name, render_mode='rgb_array', **env_args) # always rgb_array render mode
 

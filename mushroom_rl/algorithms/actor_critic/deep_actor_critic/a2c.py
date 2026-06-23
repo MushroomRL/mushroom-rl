@@ -1,7 +1,6 @@
 import torch
 
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DeepAC
-from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.rl_utils.value_functions import compute_advantage_montecarlo
 from mushroom_rl.rl_utils.parameters import to_parameter
@@ -40,7 +39,7 @@ class A2C(DeepAC):
 
         self._entropy_coeff = to_parameter(ent_coeff)
 
-        self._V = Regressor(TorchApproximator, **critic_params)
+        self._V = TorchApproximator(**critic_params)
 
         if 'clipping' not in actor_optimizer and max_grad_norm is not None:
             actor_optimizer = deepcopy(actor_optimizer)

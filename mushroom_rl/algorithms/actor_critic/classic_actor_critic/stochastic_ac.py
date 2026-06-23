@@ -1,7 +1,6 @@
 import numpy as np
 
 from mushroom_rl.core import Agent
-from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 
 from mushroom_rl.rl_utils.parameters import to_parameter
@@ -39,7 +38,7 @@ class StochasticAC(Agent):
         else:
             input_shape = mdp_info.observation_space.shape
 
-        self._V = Regressor(LinearApproximator, input_shape=input_shape, output_shape=(1,))
+        self._V = LinearApproximator(input_shape=input_shape, output_shape=(1,))
 
         self._e_v = np.zeros(self._V.weights_size)
         self._e_theta = np.zeros(self.policy.weights_size)

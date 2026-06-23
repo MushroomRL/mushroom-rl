@@ -7,7 +7,6 @@ from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import *
 from mushroom_rl.features import Features
 from mushroom_rl.features.tiles import Tiles
-from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.policy import StateLogStdGaussianPolicy
 from mushroom_rl.utils.callbacks import CollectDataset
@@ -18,19 +17,18 @@ tqdm.monitor_interval = 0
 
 
 class Display:
-    def __init__(self, V, mu, std, low, high, phi, psi):
+    def __init__(self, V, mu, std, low, high, psi):
         plt.ion()
 
         self._V = V
         self._mu = mu
         self._std = std
-        self._phi = phi
         self._psi = psi
 
-        fig = plt.figure(figsize=(15, 5))
-        ax1 = fig.add_subplot(1, 3, 1)
-        ax2 = fig.add_subplot(1, 3, 2)
-        ax3 = fig.add_subplot(1, 3, 3)
+        self._fig = plt.figure(figsize=(15, 5))
+        ax1 = self._fig.add_subplot(1, 3, 1)
+        ax2 = self._fig.add_subplot(1, 3, 2)
+        ax3 = self._fig.add_subplot(1, 3, 3)
 
         self._theta = np.linspace(low[0], high[0], 100)
         self._omega = np.linspace(low[1], high[1], 100)
@@ -42,15 +40,15 @@ class Display:
 
         ax1.set_title('V')
         im1 = ax1.imshow(vv, cmap=cm.coolwarm, extent=ext, aspect='auto')
-        fig.colorbar(im1, ax=ax1)
+        self._fig.colorbar(im1, ax=ax1)
 
         ax2.set_title('mean')
         im2 = ax2.imshow(mm, cmap=cm.coolwarm, extent=ext, aspect='auto')
-        fig.colorbar(im2, ax=ax2)
+        self._fig.colorbar(im2, ax=ax2)
 
         ax3.set_title('sigma')
         im3 = ax3.imshow(ss, cmap=cm.coolwarm, extent=ext, aspect='auto')
-        fig.colorbar(im3, ax=ax3)
+        self._fig.colorbar(im3, ax=ax3)
 
         self._im = [im1, im2, im3]
 
@@ -74,6 +72,11 @@ class Display:
         plt.draw()
         plt.pause(.1)
 
+    def pump(self, *args, **kwargs):
+        self._counter += 1
+        if self._counter % 100 == 0:
+            self._fig.canvas.flush_events()
+
     def _compute_data(self):
         n_points = len(self._theta) * len(self._omega)
         vv = np.empty(n_points)
@@ -83,11 +86,10 @@ class Display:
         c = 0
         for y in self._omega:
             for x in self._theta:
-                s = self._phi(np.array([x, y]))
-                s_v = self._psi(np.array([x, y]))
-                vv[c] = self._V(s_v)
-                mm[c] = self._mu(s)
-                ss[c] = np.exp(self._std(s)) ** 2
+                s = np.array([x, y])
+                vv[c] = self._V(self._psi(s)).item()
+                mm[c] = self._mu(s).item()
+                ss[c] = np.exp(self._std(s).item()) ** 2
                 c += 1
 
         shape = (len(self._theta), len(self._omega))
@@ -127,15 +129,13 @@ def experiment(n_epochs, n_episodes):
 
     input_shape = (phi.size,)
 
-    mu = Regressor(LinearApproximator,
-                   input_shape=input_shape,
-                   output_shape=mdp.info.action_space.shape,
-                   phi=phi)
+    mu = LinearApproximator(input_shape=input_shape,
+                            output_shape=mdp.info.action_space.shape,
+                            phi=phi)
 
-    std = Regressor(LinearApproximator,
-                    input_shape=input_shape,
-                    output_shape=mdp.info.action_space.shape,
-                    phi=phi)
+    std = LinearApproximator(input_shape=input_shape,
+                             output_shape=mdp.info.action_space.shape,
+                             phi=phi)
 
     std_0 = np.sqrt(1.)
     std.set_weights(np.log(std_0) / n_tilings * np.ones(std.weights_size))
@@ -152,8 +152,9 @@ def experiment(n_epochs, n_episodes):
     display_callback = Display(agent._V, mu, std,
                                mdp.info.observation_space.low,
                                mdp.info.observation_space.high,
-                               phi, psi)
-    core = Core(agent, mdp, callbacks_fit=[dataset_callback])
+                               psi)
+    core = Core(agent, mdp, callbacks_fit=[dataset_callback],
+                callback_step=display_callback.pump)
 
     for i in trange(n_epochs, leave=False):
         core.learn(n_episodes=n_episodes,

@@ -3,7 +3,7 @@ import numpy as np
 from minigrid.wrappers import RGBImgPartialObsWrapper, ImgObsWrapper
 
 from mushroom_rl.environments import Gymnasium
-from mushroom_rl.rl_utils.spaces import Box
+from mushroom_rl.core.spaces import Box
 
 
 class MiniGridBase(Gymnasium):

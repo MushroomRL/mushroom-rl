@@ -1,11 +1,11 @@
 import numpy as np
 
-from mushroom_rl.core.serialization import Serializable
+from mushroom_rl.approximators.approximator import Approximator
 
 
-class Table(Serializable):
+class Table(Approximator):
     """
-    Table regressor. Used for discrete state and action spaces.
+    Table approximator. Used for discrete state and action spaces.
 
     """
     def __init__(self, shape, initial_value=0., dtype=None):
@@ -19,6 +19,7 @@ class Table(Serializable):
             dtype ([int, float], None): the dtype of the table array.
 
         """
+        super().__init__()
         self.table = np.ones(shape, dtype=dtype) * initial_value
 
         self._add_save_attr(table='numpy')
@@ -82,6 +83,10 @@ class Table(Serializable):
             return values[0]
         else:
             return np.array(values)
+
+    @property
+    def output_shape(self):
+        return self.table.shape
 
     @property
     def n_actions(self):

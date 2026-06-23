@@ -119,7 +119,7 @@ class ClippedGaussianPolicy(ParametricPolicy):
 
     def draw_action(self, state, policy_state=None):
         with torch.no_grad():
-            mu = self._approximator.predict(torch.unsqueeze(state, 0), **self._predict_params).reshape(-1)
+            mu = self._approximator.predict(state, **self._predict_params).reshape(-1)
 
             distribution = torch.distributions.MultivariateNormal(loc=mu, scale_tril=self._chol_sigma,
                                                                   validate_args=False)

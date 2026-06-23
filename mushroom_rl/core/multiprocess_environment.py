@@ -158,13 +158,24 @@ class MultiprocessEnvironment(VectorizedEnvironment):
             remote.send(('stop', None))
             remote.recv()
 
-    def __del__(self):
+    def close_all(self):
+        """
+        Terminate all the worker processes and join them. After this call the environment can no longer be used.
+
+        """
+        if getattr(self, '_closed', False):
+            return
+        self._closed = True
+
         if hasattr(self, '_remotes'):
             for remote in self._remotes:
                 remote.send(('close', None))
         if hasattr(self, '_processes'):
             for p in self._processes:
                 p.join()
+
+    def __del__(self):
+        self.close_all()
 
     @staticmethod
     def generate(env, *args, n_envs=-1, **kwargs):

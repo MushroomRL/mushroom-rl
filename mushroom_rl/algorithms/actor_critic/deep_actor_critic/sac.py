@@ -5,7 +5,6 @@ import torch.optim as optim
 
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DeepAC
 from mushroom_rl.policy import Policy
-from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory
 from mushroom_rl.utils.torch import TorchUtils
@@ -170,8 +169,8 @@ class SACPolicy(Policy):
             List of parameters to be optimized.
 
         """
-        return chain(self._mu_approximator.model.network.parameters(),
-                     self._sigma_approximator.model.network.parameters())
+        return chain(self._mu_approximator.parameters(),
+                     self._sigma_approximator.parameters())
 
 
 class SAC(DeepAC):
@@ -226,11 +225,11 @@ class SAC(DeepAC):
             critic_params['n_models'] = 2
 
         target_critic_params = deepcopy(critic_params)
-        self._critic_approximator = Regressor(TorchApproximator, **critic_params)
-        self._target_critic_approximator = Regressor(TorchApproximator, **target_critic_params)
+        self._critic_approximator = TorchApproximator(**critic_params)
+        self._target_critic_approximator = TorchApproximator(**target_critic_params)
 
-        actor_mu_approximator = Regressor(TorchApproximator, **actor_mu_params)
-        actor_sigma_approximator = Regressor(TorchApproximator, **actor_sigma_params)
+        actor_mu_approximator = TorchApproximator(**actor_mu_params)
+        actor_sigma_approximator = TorchApproximator(**actor_sigma_params)
 
         policy = SACPolicy(actor_mu_approximator, actor_sigma_approximator,  mdp_info.action_space.low,
                            mdp_info.action_space.high, log_std_min, log_std_max)
@@ -241,8 +240,8 @@ class SAC(DeepAC):
 
         self._alpha_optim = optim.Adam([self._log_alpha], lr=lr_alpha)
 
-        policy_parameters = chain(actor_mu_approximator.model.network.parameters(),
-                                  actor_sigma_approximator.model.network.parameters())
+        policy_parameters = chain(actor_mu_approximator.parameters(),
+                                  actor_sigma_approximator.parameters())
 
         super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
 
@@ -276,7 +275,7 @@ class SAC(DeepAC):
             q_next = self._next_q(next_state, absorbing)
             q = reward + self.mdp_info.gamma * q_next
 
-            self._critic_approximator.fit(state, action, q, **self._critic_fit_params)
+            self._critic_approximator.fit(state, action, q.detach(), **self._critic_fit_params)
 
             self._update_target(self._critic_approximator, self._target_critic_approximator)
 

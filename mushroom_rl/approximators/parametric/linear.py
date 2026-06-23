@@ -1,15 +1,14 @@
 import numpy as np
 
-from mushroom_rl.core import Serializable
+from mushroom_rl.approximators.approximator import Approximator
 
 
-class LinearApproximator(Serializable):
+class LinearApproximator(Approximator):
     """
     This class implements a linear approximator.
 
     """
-    def __init__(self, weights=None, input_shape=None, output_shape=(1,), phi=None,
-                 **kwargs):
+    def __init__(self, weights=None, input_shape=None, output_shape=(1,), phi=None, **kwargs):
         """
         Constructor.
 
@@ -21,6 +20,8 @@ class LinearApproximator(Serializable):
              **kwargs: other params of the approximator.
 
         """
+        super().__init__()
+
         assert len(input_shape) == 1 and len(output_shape) == 1
 
         input_dim = input_shape[0]
@@ -35,39 +36,25 @@ class LinearApproximator(Serializable):
                              ' or the input dimension')
 
         self._phi = phi
+        self._input_shape = input_shape
+
         self._add_save_attr(
+            _input_shape='primitive',
             _w='numpy',
             _phi='pickle'
         )
 
     def fit(self, x, y, **fit_params):
-        """
-        Fit the model.
-
-        Args:
-            x (np.ndarray): input;
-            y (np.ndarray): target;
-            **fit_params: other parameters used by the fit method of the regressor.
-
-        """
         phi = np.atleast_2d(self.phi(x))
         self._w = np.atleast_2d(np.linalg.pinv(phi).dot(y).T)
 
     def predict(self, x, **predict_params):
-        """
-        Predict.
-
-        Args:
-            x (np.ndarray): input;
-            **predict_params: other parameters used by the predict method the regressor.
-
-        Returns:
-            The predictions of the model.
-
-        """
         phi = np.atleast_2d(self.phi(x))
+        return np.atleast_1d((phi @ self._w.T).squeeze())
 
-        return phi @ self._w.T
+    @property
+    def output_shape(self):
+        return (self._w.shape[0],)
 
     @property
     def weights_size(self):
@@ -139,4 +126,3 @@ class LinearApproximator(Serializable):
                 df[start:stop] = self.phi(state)
 
             return df
-

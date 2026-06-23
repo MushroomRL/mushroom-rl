@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from mushroom_rl.core import MDPInfo, AgentInfo, Dataset
-from mushroom_rl.rl_utils.spaces import Box
+from mushroom_rl.core.spaces import Box, Discrete
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory, SequenceReplayMemory, PrioritizedReplayMemory
 from mushroom_rl.rl_utils.parameters import LinearParameter
 
@@ -388,3 +388,31 @@ def test_prioritized_replay_memory_max_priority_after_add():
 
     assert rm.initialized
     assert np.isclose(rm.max_priority, 3.0)
+
+
+def test_replay_memory_torch_uint8_obs():
+    np.random.seed(42)
+
+    obs_shape = (4, 8)
+    obs_space = Box(low=0, high=255, shape=obs_shape, data_type=np.uint8)
+    act_space = Discrete(3)
+    mdp_info = MDPInfo(obs_space, act_space, gamma=0.99, horizon=100)
+    agent_info = AgentInfo(is_episodic=False, policy_state_shape=None, backend='torch')
+
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50)
+
+    states = np.random.randint(0, 256, (10, *obs_shape), dtype=np.uint8)
+    actions = np.random.randint(0, 3, (10, 1))
+    rewards = np.random.randn(10).astype(np.float32)
+    next_states = np.random.randint(0, 256, (10, *obs_shape), dtype=np.uint8)
+    absorbings = np.zeros(10)
+    lasts = np.zeros(10)
+    lasts[-1] = 1.0
+
+    dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts, backend='numpy')
+    rm.add(dataset)
+
+    assert rm.initialized
+    state, action, reward, next_state, absorbing, last = rm.get(5)
+    assert state.dtype == torch.uint8
+    assert state.shape == (5, *obs_shape)

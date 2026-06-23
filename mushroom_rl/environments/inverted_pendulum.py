@@ -2,7 +2,7 @@ import numpy as np
 from scipy.integrate import odeint
 
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.rl_utils import spaces
+from mushroom_rl.core.spaces import Box
 from mushroom_rl.utils.angles import normalize_angle
 from mushroom_rl.utils.viewer import Viewer
 
@@ -44,8 +44,8 @@ class InvertedPendulum(Environment):
 
         # MDP properties
         dt = .01
-        observation_space = spaces.Box(low=-high, high=high)
-        action_space = spaces.Box(low=np.array([-max_u]), high=np.array([max_u]))
+        observation_space = Box(low=-high, high=high)
+        action_space = Box(low=np.array([-max_u]), high=np.array([max_u]))
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
         # Visualization

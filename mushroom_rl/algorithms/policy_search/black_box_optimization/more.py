@@ -3,7 +3,6 @@ from scipy.optimize import minimize
 
 from mushroom_rl.algorithms.policy_search.black_box_optimization import BlackBoxOptimization
 from mushroom_rl.rl_utils.parameters import to_parameter
-from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.features import Features
 from mushroom_rl.features.basis.polynomial import PolynomialBasis
@@ -39,15 +38,11 @@ class MORE(BlackBoxOptimization):
 
         poly_basis_quadratic = PolynomialBasis().generate(2, policy.weights_size)
         self.phi_quadratic_ = Features(basis_list=poly_basis_quadratic)
-        self.regressor_quadratic = Regressor(LinearApproximator,
-                                             input_shape=(len(poly_basis_quadratic),),
-                                             output_shape=(1,))
+        self.regressor_quadratic = LinearApproximator(input_shape=(len(poly_basis_quadratic),), output_shape=(1,))
 
         poly_basis_linear = PolynomialBasis().generate(1, policy.weights_size)
         self.phi_linear_ = Features(basis_list=poly_basis_linear)
-        self.regressor_linear = Regressor(LinearApproximator,
-                                          input_shape=(len(poly_basis_linear),),
-                                          output_shape=(1,))
+        self.regressor_linear = LinearApproximator(input_shape=(len(poly_basis_linear),), output_shape=(1,))
 
         super().__init__(mdp_info, distribution, policy)
 

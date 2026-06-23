@@ -1,6 +1,6 @@
 from mushroom_rl.policy.td_policy import *
 from mushroom_rl.approximators.table import Table
-from mushroom_rl.approximators.regressor import Regressor
+from mushroom_rl.approximators import QApproximator
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import LinearNetwork
 from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter
@@ -58,7 +58,7 @@ def test_eps_greedy_torch():
     eps = Parameter(0.1)
     pi = EpsGreedy(eps, backend='torch')
 
-    Q = Regressor(TorchApproximator, input_shape=(4,), output_shape=(3,), n_actions=3, network=LinearNetwork)
+    Q = QApproximator(TorchApproximator, n_actions=3, output_shape=(3,), input_shape=(4,), network=LinearNetwork)
     pi.set_q(Q)
 
     s = torch.rand(4)
@@ -114,7 +114,7 @@ def test_boltzmann_torch():
     beta = Parameter(0.5)
     pi = Boltzmann(beta, backend='torch')
 
-    Q = Regressor(TorchApproximator, input_shape=(4,), output_shape=(3,), n_actions=3, network=LinearNetwork)
+    Q = QApproximator(TorchApproximator, n_actions=3, output_shape=(3,), input_shape=(4,), network=LinearNetwork)
     pi.set_q(Q)
 
     s = torch.rand(4)

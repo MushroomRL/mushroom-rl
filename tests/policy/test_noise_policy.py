@@ -1,6 +1,5 @@
 import torch
 
-from mushroom_rl.approximators import Regressor
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import LinearNetwork
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy, ClippedGaussianPolicy
@@ -9,7 +8,7 @@ from mushroom_rl.policy import OrnsteinUhlenbeckPolicy, ClippedGaussianPolicy
 def test_ornstein_uhlenbeck_policy():
     torch.manual_seed(42)
 
-    mu = Regressor(TorchApproximator, network=LinearNetwork, input_shape=(5,), output_shape=(2,))
+    mu = TorchApproximator(network=LinearNetwork, input_shape=(5,), output_shape=(2,))
     pi = OrnsteinUhlenbeckPolicy(mu, sigma=torch.ones(1) * .2, theta=.15, dt=1e-2)
 
     w = torch.randn(pi.weights_size)
@@ -43,7 +42,7 @@ def test_clipped_gaussian_policy():
     low = -torch.ones(2)
     high = torch.ones(2)
 
-    mu = Regressor(TorchApproximator, network=LinearNetwork, input_shape=(5,), output_shape=(2,))
+    mu = TorchApproximator(network=LinearNetwork, input_shape=(5,), output_shape=(2,))
     pi = ClippedGaussianPolicy(mu, torch.eye(2), low, high)
 
     w = torch.randn(pi.weights_size)

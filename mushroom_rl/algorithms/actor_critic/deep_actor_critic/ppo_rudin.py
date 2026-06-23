@@ -53,7 +53,7 @@ class RudinPPO(PPO):
         self._update_policy(state, action, adv, old_log_p, state, old_pol_dist)
 
         # Print fit information
-        self._log_info(dataset, state, v_target, old_pol_dist)
+        self._log_info(dataset, state, old_pol_dist)
         self._iter += 1
 
     def _update_policy(self, obs, act, adv, old_log_p, state, old_pol_dist):
@@ -83,12 +83,11 @@ class RudinPPO(PPO):
             if kl > 2.0 * self._desired_kl:
                 self._actor_learning_rate = max(1e-5, self._actor_learning_rate / 1.5)
                 self._critic_learning_rate = max(1e-5, self._critic_learning_rate / 1.5)
-            elif kl < 0.5 * self._desired_kl and kl > 0.0:
+            elif 0.0 < kl  < 0.5 * self._desired_kl:
                 self._actor_learning_rate = min(1e-2, self._actor_learning_rate * 1.5)
                 self._critic_learning_rate = min(1e-2, self._critic_learning_rate * 1.5)
 
             for param_group in self._optimizer.param_groups:
                 param_group['lr'] = self._actor_learning_rate
 
-            for param_group in self._V._impl.model._optimizer.param_groups:
-                param_group['lr'] = self._critic_learning_rate
+            self._V.set_learning_rate(self._critic_learning_rate)

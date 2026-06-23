@@ -1,7 +1,7 @@
 import numpy as np
 
 from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.rl_utils.spaces import Box, Discrete
+from mushroom_rl.core.spaces import Box, Discrete
 
 from mushroom_rl.utils.viewer import Viewer
 
@@ -48,8 +48,8 @@ class RoomToyEnv(Environment):
             assert np.linalg.norm(state - self._goal) > self._goal_radius
             self._state = state
 
-        # Return the current state
-        return self._state
+        # Return the current state and an empty info dictionary
+        return self._state, {}
 
     def step(self, action):
         # convert the action in a N, S, W, E movement
@@ -72,7 +72,7 @@ class RoomToyEnv(Environment):
         low = self.info.observation_space.low
         high = self.info.observation_space.high
 
-        self._state = Environment._bound(self._state, low, high)
+        self._state = self._bound(self._state, low, high)
 
         # Compute distance form goal
         goal_distance = np.linalg.norm(self._state - self._goal)
@@ -134,11 +134,11 @@ if __name__ == '__main__':
 
     approximator_params = dict(input_shape=(features.size,),
                                output_shape=(env.info.action_space.n,),
-                               n_actions=env.info.action_space.n)
+                               n_actions=env.info.action_space.n,
+                               phi=features)
 
     agent = TrueOnlineSARSALambda(env.info, pi,
                                   approximator_params=approximator_params,
-                                  features=features,
                                   learning_rate=learning_rate,
                                   lambda_coeff=.9)
 

@@ -2,7 +2,6 @@ import torch
 import numpy as np
 
 from mushroom_rl.core import Core, Agent
-from mushroom_rl.approximators import Regressor
 from mushroom_rl.policy import DeterministicPolicy
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.environments import Segway
@@ -46,10 +45,9 @@ def test_numpy_split():
 def get_episodes(mdp, n_episodes=100):
     mu = np.array([6.31154476, 3.32346271, 0.49648221])
     
-    approximator = Regressor(LinearApproximator,
-                            input_shape=mdp.info.observation_space.shape,
-                            output_shape=mdp.info.action_space.shape,
-                            weights=mu)
+    approximator = LinearApproximator(input_shape=mdp.info.observation_space.shape,
+                                      output_shape=mdp.info.action_space.shape,
+                                      weights=mu)
                              
     policy = DeterministicPolicy(approximator)
 

@@ -2,7 +2,6 @@ import numpy as np
 
 from mushroom_rl.algorithms.policy_search import REPS, RWR, PGPE
 from mushroom_rl.approximators.parametric import LinearApproximator
-from mushroom_rl.approximators.regressor import Regressor
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import ShipSteering
 from mushroom_rl.features.tiles import Tiles
@@ -47,8 +46,8 @@ def experiment(alg, params, n_epochs, fit_per_epoch, ep_per_fit, ep_test):
     phi = Features(tilings=tilings)
     input_shape = (phi.size,)
 
-    approximator = Regressor(LinearApproximator, input_shape=input_shape,
-                             output_shape=mdp.info.action_space.shape, phi=phi)
+    approximator = LinearApproximator(input_shape=input_shape,
+                                      output_shape=mdp.info.action_space.shape, phi=phi)
 
     policy = DeterministicPolicy(approximator)
 
