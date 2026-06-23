@@ -49,7 +49,11 @@ class MORE(BlackBoxOptimization):
         self._add_save_attr(
             eps='primitive',
             h0='primitive',
-            kappa='primitive'
+            kappa='primitive',
+            phi_quadratic_='pickle',
+            regressor_quadratic='mushroom',
+            phi_linear_='pickle',
+            regressor_linear='mushroom'
         )
 
     def _update(self, Jep, theta, context):

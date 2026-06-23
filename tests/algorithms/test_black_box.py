@@ -1,38 +1,48 @@
 import numpy as np
 import torch
+from torch import optim
+from functools import partial
 from datetime import datetime
 from helper.utils import TestUtils as tu
 
 from mushroom_rl.core import Agent
-from mushroom_rl.algorithms.policy_search import PGPE, REPS, ConstrainedREPS, RWR
+from mushroom_rl.algorithms.policy_search import PGPE, REPS, ConstrainedREPS, RWR, MORE, ePPO
 from mushroom_rl.core import Core, VectorCore, MultiprocessEnvironment
-from mushroom_rl.approximators.parametric import LinearApproximator
-from mushroom_rl.distributions import GaussianDiagonalDistribution
+from mushroom_rl.approximators.parametric import LinearApproximator, TorchApproximator
+from mushroom_rl.approximators.parametric.networks import LinearNetwork
+from mushroom_rl.distributions import GaussianDiagonalDistribution, GaussianCholeskyDistribution,\
+    DiagonalGaussianTorchDistribution
 from mushroom_rl.environments import LQR
 from mushroom_rl.policy import DeterministicPolicy
 from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer
 
 
-def learn(alg, **alg_params):
+def learn(alg, approximator_class=LinearApproximator, distribution_class=GaussianDiagonalDistribution,
+          sigma=1e-3, n_episodes=5, **alg_params):
     np.random.seed(1)
     torch.manual_seed(1)
 
     # MDP
     mdp = LQR.generate(dimensions=2)
 
-    approximator = LinearApproximator(input_shape=mdp.info.observation_space.shape,
+    approximator = approximator_class(input_shape=mdp.info.observation_space.shape,
                                       output_shape=mdp.info.action_space.shape)
+    policy = DeterministicPolicy(approximator)
+    n = policy.weights_size
 
-    policy = DeterministicPolicy(mu=approximator)
+    if distribution_class is DiagonalGaussianTorchDistribution:
+        mu, sigma = torch.zeros(n), sigma * torch.ones(n)
+    elif distribution_class is GaussianCholeskyDistribution:
+        mu, sigma = np.zeros(n), sigma * np.eye(n)
+    else:
+        mu, sigma = np.zeros(n), sigma * np.ones(n)
 
-    mu = np.zeros(policy.weights_size)
-    sigma = 1e-3 * np.ones(policy.weights_size)
-    distribution = GaussianDiagonalDistribution(mu, sigma)
+    distribution = distribution_class(mu, sigma)
 
     agent = alg(mdp.info, distribution, policy, **alg_params)
     core = Core(agent, mdp)
 
-    core.learn(n_episodes=5, n_episodes_per_fit=5)
+    core.learn(n_episodes=n_episodes, n_episodes_per_fit=n_episodes)
 
     return agent
 
@@ -185,3 +195,60 @@ def test_PGPE_vectorized():
                        0.2858429, 0.4656616, 0.98251223, -0.22922507])
 
     assert np.allclose(w, w_test)
+
+
+def test_MORE():
+    distribution = learn(MORE, distribution_class=GaussianCholeskyDistribution, sigma=1e-1,
+                         n_episodes=100, eps=0.5, kappa=0.99).distribution
+    w = distribution.get_parameters()
+    w_test = np.array([-0.04363140, 0.01242653, 0.01254028, -0.06094352, 0.28314392,
+                       -0.02048622, 0.29749173, 0.17302031, -0.00197523, 0.17936346,
+                       -0.04546476, -0.04406964, 0.10505358, 0.30932095])
+
+    assert np.allclose(w, w_test)
+
+
+def test_MORE_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
+    agent_save = learn(MORE, distribution_class=GaussianCholeskyDistribution, sigma=1e-1,
+                       n_episodes=100, eps=0.5, kappa=0.99)
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    for att, method in vars(agent_save).items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+
+        tu.assert_eq(save_attr, load_attr)
+
+
+def test_ePPO():
+    optimizer = {'class': optim.Adam, 'params': {'lr': 1e-2, 'weight_decay': 0.0}}
+    distribution = learn(ePPO, approximator_class=partial(TorchApproximator, network=LinearNetwork),
+                         distribution_class=DiagonalGaussianTorchDistribution, sigma=1e-1,
+                         optimizer=optimizer, n_epochs_policy=5, batch_size=5, eps_ppo=5e-2).distribution
+    w = distribution.get_parameters().detach().numpy()
+    w_test = np.array([-0.02981966, 0.01895342, -0.02684142, 0.03063847,
+                       -2.33322644, -2.33125615, -2.33870649, -2.33909726], dtype=np.float32)
+
+    assert np.allclose(w, w_test)
+
+
+def test_ePPO_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
+    optimizer = {'class': optim.Adam, 'params': {'lr': 1e-2, 'weight_decay': 0.0}}
+    agent_save = learn(ePPO, approximator_class=partial(TorchApproximator, network=LinearNetwork),
+                       distribution_class=DiagonalGaussianTorchDistribution, sigma=1e-1,
+                       optimizer=optimizer, n_epochs_policy=5, batch_size=5, eps_ppo=5e-2)
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    for att, method in vars(agent_save).items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+
+        tu.assert_eq(save_attr, load_attr)

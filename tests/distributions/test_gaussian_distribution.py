@@ -39,6 +39,12 @@ def test_gaussian():
     entropy = dist.entropy()
     assert np.isclose(entropy, 6.399803705012358)
 
+    assert np.array_equal(dist.mean(), dist.get_parameters())
+
+    dist.con_wmle(theta, weights, 0.5)
+    con_wmle_test = np.array([-0.08694296, 0.11313395, 0.10607875, -0.04840444, -0.11541166, -0.00923628])
+    assert np.allclose(dist.get_parameters(), con_wmle_test)
+
 
 def test_diagonal_gaussian():
     np.random.seed(42)
@@ -77,6 +83,8 @@ def test_diagonal_gaussian():
 
     entropy = dist.entropy()
     assert np.isclose(entropy, 8.487750719294691)
+
+    assert np.array_equal(dist.mean(), dist.get_parameters()[:n_dims])
 
 
 def test_cholesky_gaussian():
@@ -127,3 +135,14 @@ def test_cholesky_gaussian():
 
     entropy = dist.entropy()
     assert np.isclose(entropy, 8.398170245353436)
+
+    assert np.array_equal(dist.mean(), dist.get_parameters()[:n_dims])
+
+    dist.con_wmle(theta, weights, 0.5, 0.1)
+    con_wmle_test = np.array([-0.08694296,  0.11313395,  0.10607875, -0.04840444, -0.11541166,
+                             -0.00923628,  1.12956765, -0.04683095,  1.01787429,  0.00313332,
+                             -0.09986642,  0.96313141, -0.06738467, -0.04288666, -0.00269699,
+                              0.94850861, -0.31418156,  0.13986317, -0.05849752, -0.15804703,
+                              0.89242769,  0.07172617, -0.09747465, -0.10330297,  0.01992169,
+                             -0.07567273,  0.91250452])
+    assert np.allclose(dist.get_parameters(), con_wmle_test)
