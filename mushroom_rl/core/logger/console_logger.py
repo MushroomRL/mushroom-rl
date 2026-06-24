@@ -25,7 +25,7 @@ class ConsoleLogger(object):
     """
     def __init__(self, log_name, log_dir=None, suffix='',
                  log_file_name=None,
-                 console_log_level=logging.DEBUG,
+                 console_log_level=logging.INFO,
                  file_log_level=logging.DEBUG):
         """
         Constructor.
@@ -38,7 +38,7 @@ class ConsoleLogger(object):
                 and to the data file logged;
             log_file_name (str, None): optional specifier for log file name,
                 id is used by default;
-            console_log_level (int, logging.DEBUG): logging level for console;
+            console_log_level (int, logging.INFO): logging level for console;
             file_log_level (int, logging.DEBUG): logging level for file.
 
         """

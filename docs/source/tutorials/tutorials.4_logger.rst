@@ -34,6 +34,17 @@ Our logger uses the standard Python logger, and it follows a similar set of func
 .. literalinclude:: code/logger.py
    :lines: 10-29
 
+By default, the console only shows messages with the ``info`` level or higher, while the ``.log`` file
+(if console logging is active) stores everything down to the ``debug`` level. You can change these
+thresholds through the ``console_log_level`` and ``file_log_level`` arguments of the Logger constructor,
+using the standard Python ``logging`` levels:
+
+.. code-block:: python
+
+    import logging
+    logger = Logger('tutorial', results_dir='/tmp/logs', log_console=True,
+                    console_log_level=logging.DEBUG, file_log_level=logging.DEBUG)
+
 We can also log to terminal the exceptions. Using this method, instead of a raw print, you can manage
 correctly the exception output without breaking any ``tqdm`` progress bar (see below), and the exception
 text will be saved in the console log files (if console logging is active).

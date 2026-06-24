@@ -10,7 +10,7 @@ logger_no_folder = Logger('tutorial_no_folder', results_dir=None)
 # Write a line of hashtags, to be used as a separator
 logger.strong_line()
 
-# Print an info message
+# Print a debug message (filtered from the console by default)
 logger.debug('This is a debug message')
 
 # Print an info message
