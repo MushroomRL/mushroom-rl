@@ -96,15 +96,58 @@ stored results values. This can be done by specifying the ``append`` flag in the
 .. literalinclude:: code/logger.py
    :lines: 97-
 
-Finally, another functionality of the logger is to activate some specific text output from some algorithms.
+Finally, another functionality of the logger is to activate some specific output from some algorithms.
 This can be done by calling the agent's ``set_logger`` method:
 
 .. code-block:: python
 
     agent.set_logger(logger)
 
+Algorithms use the logger to describe some learning metrics after every fit, both as console output and,
+if enabled, as Weights & Biases logging, described next.
 
-Currently, only the ``PPO`` and the ``TRPO`` algorithms provide additional output, by describing some
-learning metrics after every fit.
+
+Logging to Weights & Biases
+---------------------------
+
+The Logger can optionally log to `Weights & Biases <https://wandb.ai>`_ (wandb), in addition to the
+console and the numpy disk logging described above.
+
+wandb logging is an optional functionality: it is enabled only if the ``wandb`` package is installed
+and a set of init arguments is provided to the Logger. If ``wandb`` is not installed, or no init
+arguments are provided, every wandb logging call is a safe no-op. You can install the optional
+dependency with:
+
+.. code-block:: bash
+
+    pip install mushroom_rl[wandb]
+
+To enable wandb logging, we build a dictionary of arguments for ``wandb.init`` and pass it to the
+Logger through the ``wandb_kwargs`` argument. The helper static method ``default_wandb_kwargs``
+returns an editable dictionary with sensible defaults; the ``config`` argument should contain the
+experiment hyperparameters:
+
+.. literalinclude:: code/wandb_logging.py
+    :lines: 1-12
+
+The unified ``log`` method logs a set of named values to every active backend. By default, the values
+are sent to wandb and printed on the console with the ``debug`` level (so they are not shown by
+default), but they are not stored on disk. To also save the values on disk as numpy arrays, construct
+the Logger with ``force_numpy=True``:
+
+.. literalinclude:: code/wandb_logging.py
+    :lines: 14-15
+
+wandb associates each logged value with a monotonically increasing step. The Logger keeps an internal
+step counter that is shared by all the values logged through ``log``. The counter is advanced explicitly
+by calling ``advance_step``, typically once a logical step (e.g. an epoch, or an algorithm update) is
+complete:
+
+.. literalinclude:: code/wandb_logging.py
+    :lines: 17-19
+
+While the numpy logging is typically driven by the experiment script, wandb logging is meant to be
+driven from inside the algorithms, which log their internal metrics (e.g. losses, entropy, KL
+divergence) during the fit, once the logger is passed to the agent via ``set_logger`` as shown above.
 
 

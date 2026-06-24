@@ -24,10 +24,10 @@ class Approximator(Serializable):
         self._input_shape = input_shape
         self._output_shape = output_shape
         self._logger = None
-        self._loss_filename = None
+        self._loss_label = None
         self._backend = ArrayBackend.get_array_backend(backend)
         self._add_save_attr(_input_shape='primitive', _output_shape='primitive',
-                            _logger='none', _loss_filename='none', _backend='primitive')
+                            _logger='none', _loss_label='none', _backend='primitive')
 
     def fit(self, *args, **kwargs):
         """
@@ -81,18 +81,18 @@ class Approximator(Serializable):
         """
         return self._output_shape
 
-    def set_logger(self, logger, loss_filename=None):
+    def set_logger(self, logger, label=None):
         """
-        Attach a logger to the approximator so that losses are stored after each fit call.
+        Attach a logger to the approximator so that the loss is logged after each fit call.
 
         Args:
             logger (Logger): the logger object;
-            loss_filename (str, None): optional key override for the loss array saved to disk.
+            label (str, None): optional label used for the loss across the logging backends.
                 Defaults to ``'loss'``.
 
         """
         self._logger = logger
-        self._loss_filename = loss_filename
+        self._loss_label = label
 
     def _log(self):
         if self._logger:
@@ -103,8 +103,8 @@ class Approximator(Serializable):
                 return
             if hasattr(loss, 'squeeze'):
                 loss = loss.squeeze()
-            key = 'loss' if self._loss_filename is None else self._loss_filename
-            self._logger.log_numpy(**{key: loss})
+            key = 'loss' if self._loss_label is None else self._loss_label
+            self._logger.log(**{key: loss})
 
 
 class Ensemble(Approximator):
@@ -222,14 +222,14 @@ class Ensemble(Approximator):
 
     def _log(self):
         if self._logger:
-            key = 'loss' if self._loss_filename is None else self._loss_filename
+            key = 'loss' if self._loss_label is None else self._loss_label
             for i, m in enumerate(self._models):
                 if not hasattr(m, 'loss_fit'):
                     continue
                 loss = m.loss_fit
                 if loss is None:
                     continue
-                self._logger.log_numpy(**{f'{key}_{i}': loss})
+                self._logger.log(**{f'{key}_{i}': loss})
 
     @property
     def n_actions(self):

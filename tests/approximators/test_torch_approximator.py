@@ -35,7 +35,7 @@ def test_predict_single_sample_multidim_input():
 def test_torch_ensemble_logger(tmpdir):
     torch.manual_seed(1)
 
-    logger = Logger('ensemble_logger', results_dir=tmpdir, use_timestamp=True)
+    logger = Logger('ensemble_logger', results_dir=tmpdir, use_timestamp=True, force_numpy=True)
 
     approximator = TorchApproximator(input_shape=(4,),
                                      output_shape=(2,), n_models=3,
@@ -64,6 +64,42 @@ def test_torch_ensemble_logger(tmpdir):
     assert np.isclose(loss_0[0], 0.303314387798) and np.isclose(loss_0[-1], 0.097760476172)
     assert np.isclose(loss_1[0], 0.867674708366) and np.isclose(loss_1[-1], 0.190568745136)
     assert np.isclose(loss_2[0], 1.048998713493) and np.isclose(loss_2[-1], 0.152651250362)
+
+
+def test_torch_approximator_logger_force_numpy(tmpdir):
+    torch.manual_seed(1)
+
+    logger = Logger('approx_force_numpy', results_dir=tmpdir, use_timestamp=True, force_numpy=True)
+
+    approximator = TorchApproximator(input_shape=(4,), output_shape=(2,),
+                                     network=QNetwork, n_features=None, n_layers=0,
+                                     optimizer={'class': optim.Adam, 'params': {}},
+                                     loss=F.mse_loss, batch_size=100, quiet=True)
+    approximator.set_logger(logger, label='critic_loss')
+
+    x = torch.rand(100, 4)
+    y = torch.rand(100, 2)
+    approximator.fit(x, y)
+
+    assert (logger.path / 'critic_loss.npy').exists()
+
+
+def test_torch_approximator_logger_no_numpy(tmpdir):
+    torch.manual_seed(1)
+
+    logger = Logger('approx_no_numpy', results_dir=tmpdir, use_timestamp=True)
+
+    approximator = TorchApproximator(input_shape=(4,), output_shape=(2,),
+                                     network=QNetwork, n_features=None, n_layers=0,
+                                     optimizer={'class': optim.Adam, 'params': {}},
+                                     loss=F.mse_loss, batch_size=100, quiet=True)
+    approximator.set_logger(logger, label='critic_loss')
+
+    x = torch.rand(100, 4)
+    y = torch.rand(100, 2)
+    approximator.fit(x, y)
+
+    assert not (logger.path / 'critic_loss.npy').exists()
 
 
 def test_torch_ensemble_predict():

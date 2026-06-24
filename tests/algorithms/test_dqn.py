@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from datetime import datetime
 from helper.utils import TestUtils as tu
 
-from mushroom_rl.core import Core, Agent, AgentInfo, Logger
+from mushroom_rl.core import Core, Agent, Logger
 from mushroom_rl.algorithms.value import DQN, DoubleDQN, AveragedDQN,\
     MaxminDQN, DuelingDQN, CategoricalDQN, QuantileDQN, NoisyDQN, Rainbow
 from mushroom_rl.environments import *
@@ -108,7 +108,7 @@ def test_dqn_save(tmpdir):
 
 
 def test_dqn_logger(tmpdir):
-    logger = Logger('dqn_logger', results_dir=tmpdir, use_timestamp=True)
+    logger = Logger('dqn_logger', results_dir=tmpdir, use_timestamp=True, force_numpy=True)
 
     params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=500, target_update_frequency=50)
