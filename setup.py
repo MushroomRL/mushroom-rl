@@ -28,7 +28,8 @@ extras = {
     'box2d': ['box2d-py'],
     'bullet': ['pybullet'],
     'mujoco': ['mujoco>=3.9', 'dm_control @ git+https://github.com/google-deepmind/dm_control.git'],
-    'plots': ['pyqtgraph', 'PySide6']
+    'plots': ['pyqtgraph', 'PySide6'],
+    'wandb': ['wandb']
 }
 
 all_deps = []
