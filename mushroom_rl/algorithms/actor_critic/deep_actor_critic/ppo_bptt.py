@@ -182,15 +182,15 @@ class PPO_BPTT(OnPolicyDeepAC):
 
         Args:
             V (Regressor): the current value function regressor;
-            s (numpy.ndarray): the set of states in which we want
+            s (torch.Tensor): the set of states in which we want
                 to evaluate the advantage;
-            ss (numpy.ndarray): the set of next states in which we want
+            ss (torch.Tensor): the set of next states in which we want
                 to evaluate the advantage;
-            r (numpy.ndarray): the reward obtained in each transition
+            r (torch.Tensor): the reward obtained in each transition
                 from state s to state ss;
-            absorbing (numpy.ndarray): an array of boolean flags indicating
+            absorbing (torch.Tensor): an array of boolean flags indicating
                 if the reached state is absorbing;
-            last (numpy.ndarray): an array of boolean flags indicating
+            last (torch.Tensor): an array of boolean flags indicating
                 if the reached state is the last of the trajectory;
             gamma (float): the discount factor of the considered problem;
             lam (float): the value for the lamba coefficient used by GEA

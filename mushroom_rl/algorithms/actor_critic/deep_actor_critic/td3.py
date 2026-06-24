@@ -69,9 +69,9 @@ class TD3(DDPG):
     def _next_q(self, next_state, absorbing):
         """
         Args:
-            next_state (np.ndarray): the states where next action has to be
+h            next_state (torch.Tensor): the states where next action has to be
                 evaluated;
-            absorbing (np.ndarray): the absorbing flag for the states in
+            absorbing (torch.Tensor): the absorbing flag for the states in
                 ``next_state``.
 
         Returns:

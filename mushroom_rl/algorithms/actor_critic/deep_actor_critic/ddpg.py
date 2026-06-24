@@ -1,5 +1,3 @@
-import numpy as np
-
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DeepAC
 from mushroom_rl.policy import Policy
 from mushroom_rl.approximators.parametric import TorchApproximator
@@ -120,9 +118,9 @@ class DDPG(DeepAC):
     def _next_q(self, next_state, absorbing):
         """
         Args:
-            next_state (np.ndarray): the states where next action has to be
+            next_state (torch.Tensor): the states where next action has to be
                 evaluated;
-            absorbing (np.ndarray): the absorbing flag for the states in
+            absorbing (torch.Tensor): the absorbing flag for the states in
                 ``next_state``.
 
         Returns:

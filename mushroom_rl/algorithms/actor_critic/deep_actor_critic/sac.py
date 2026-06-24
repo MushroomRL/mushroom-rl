@@ -1,4 +1,4 @@
-import numpy as np
+import math
 
 import torch
 import torch.optim as optim
@@ -56,7 +56,7 @@ class SAC(DeepAC):
         self._use_log_alpha_loss = use_log_alpha_loss
 
         if target_entropy is None:
-            self._target_entropy = -np.prod(mdp_info.action_space.shape).astype(np.float32)
+            self._target_entropy = -math.prod(mdp_info.action_space.shape)
         else:
             self._target_entropy = target_entropy
 

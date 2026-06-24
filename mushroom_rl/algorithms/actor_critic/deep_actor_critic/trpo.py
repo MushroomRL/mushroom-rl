@@ -1,9 +1,6 @@
-import numpy as np
+import torch
 
 from copy import deepcopy
-
-import torch
-import torch.nn.functional as F
 
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OnPolicyDeepAC
 from mushroom_rl.approximators.parametric import TorchApproximator
@@ -197,7 +194,7 @@ class TRPO(OnPolicyDeepAC):
             logging_kl = torch.mean(
                 torch.distributions.kl.kl_divergence(old_pol_dist, new_pol_dist)
             )
-            avg_rwd = np.mean(dataset.undiscounted_return)
+            avg_rwd = dataset.undiscounted_return.mean().item()
             msg = "Iteration {}:\n\t\t\t\trewards {} vf_loss {}\n\t\t\t\tentropy {}  kl {}".format(
                 self._iter, avg_rwd, logging_verr, logging_ent, logging_kl)
 
