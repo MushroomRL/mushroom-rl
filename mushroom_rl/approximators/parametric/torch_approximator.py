@@ -63,10 +63,8 @@ class TorchApproximator(Approximator):
                 network.
 
         """
-        super().__init__(backend='torch')
+        super().__init__(input_shape=input_shape, output_shape=output_shape, backend='torch')
 
-        self._input_shape = input_shape
-        self._output_shape = output_shape
         self._parse_output = self._parse_single_output if n_outputs == 1 else self._parse_multi_output
 
         self.network = network(input_shape, output_shape, dropout=dropout, **params)
@@ -86,8 +84,6 @@ class TorchApproximator(Approximator):
                                      self._fit_epoch, self._compute_val_loss, self._store_loss, quiet)
 
         self._add_save_attr(
-            _input_shape='primitive',
-            _output_shape='primitive',
             _parse_output='primitive',
             network='torch',
             _optimizer='torch',
@@ -202,15 +198,6 @@ class TorchApproximator(Approximator):
 
         """
         return self.network.parameters()
-
-    @property
-    def output_shape(self):
-        """
-        Returns:
-            The shape of the output of the approximator.
-
-        """
-        return self._output_shape
 
     @property
     def loss_fit(self):

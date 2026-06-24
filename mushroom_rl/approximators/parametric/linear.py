@@ -20,7 +20,7 @@ class LinearApproximator(Approximator):
              **kwargs: other params of the approximator.
 
         """
-        super().__init__()
+        super().__init__(input_shape=input_shape, output_shape=output_shape)
 
         assert len(input_shape) == 1 and len(output_shape) == 1
 
@@ -36,10 +36,8 @@ class LinearApproximator(Approximator):
                              ' or the input dimension')
 
         self._phi = phi
-        self._input_shape = input_shape
 
         self._add_save_attr(
-            _input_shape='primitive',
             _w='numpy',
             _phi='pickle'
         )
@@ -51,10 +49,6 @@ class LinearApproximator(Approximator):
     def predict(self, x, **predict_params):
         phi = np.atleast_2d(self.phi(x))
         return np.atleast_1d((phi @ self._w.T).squeeze())
-
-    @property
-    def output_shape(self):
-        return (self._w.shape[0],)
 
     @property
     def weights_size(self):

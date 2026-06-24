@@ -5,7 +5,8 @@ import torch.nn as nn
 
 from mushroom_rl.policy import Policy
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.utils.torch_utils import TorchUtils, CategoricalWrapper
+from mushroom_rl.utils.torch_utils import TorchUtils
+from mushroom_rl.utils.torch_distributions import CategoricalWrapper, SquashedGaussian
 from mushroom_rl.rl_utils.parameters import to_parameter
 
 from itertools import chain
@@ -15,12 +16,9 @@ class TorchPolicy(Policy):
     """
     Interface for a generic PyTorch policy.
     A PyTorch policy is a policy implemented as a neural network using PyTorch.
-    Functions ending with '_t' use tensors as input, and also as output when
-    required.
+    Its methods operate directly on torch tensors.
 
     """
-
-    # TODO: remove TorchUtils.to_float_tensor(array) and update the docstring to replace np.ndarray.
 
     def __init__(self, policy_state_shape=None):
         """
@@ -30,70 +28,29 @@ class TorchPolicy(Policy):
         super().__init__(policy_state_shape)
 
     def __call__(self, state, action, policy_state=None):
-        s = TorchUtils.to_float_tensor(torch.atleast_2d(state))
-        a = TorchUtils.to_float_tensor(torch.atleast_2d(action))
+        return torch.exp(self.log_prob(state, action))
 
-        return torch.exp(self.log_prob_t(s, a))
-
-    def draw_action(self, state, policy_state=None):
-        with torch.no_grad():
-            a = self.draw_action_t(state)
-
-            return a, None
-
-    def distribution(self, state):
+    def draw_with_log_prob(self, state):
         """
-        Compute the policy distribution in the given states.
+        Sample an action in ``state`` using the reparametrization trick and compute its log probability. Since the
+        action is sampled through the reparametrization trick, gradients can flow through both the action and its
+        log probability.
 
         Args:
-            state (np.ndarray): the set of states where the distribution is
-                computed.
+            state (torch.Tensor): the set of states where the action is sampled.
 
         Returns:
-            The torch distribution for the provided states.
-
-        """
-        s = TorchUtils.to_float_tensor(state)
-
-        return self.distribution_t(s)
-
-    def entropy(self, state=None):
-        """
-        Compute the entropy of the policy.
-
-        Args:
-            state (np.ndarray, None): the set of states to consider. If the
-                entropy of the policy can be computed in closed form, then
-                ``state`` can be None.
-
-        Returns:
-            The value of the entropy of the policy.
-
-        """
-        s = TorchUtils.to_float_tensor(state) if state is not None else None
-
-        return self.entropy_t(s).detach()
-
-    def draw_action_t(self, state):
-        """
-        Draw an action given a tensor.
-
-        Args:
-            state (torch.Tensor): set of states.
-
-        Returns:
-            The tensor of the actions to perform in each state.
+            The sampled action and its log probability.
 
         """
         raise NotImplementedError
 
-    def log_prob_t(self, state, action):
+    def log_prob(self, state, action):
         """
-        Compute the logarithm of the probability of taking ``action`` in
-        ``state``.
+        Compute the logarithm of the probability of taking ``action`` in ``state``.
 
         Args:
-            state (torch.Tensor): set of states.
+            state (torch.Tensor): set of states;
             action (torch.Tensor): set of actions.
 
         Returns:
@@ -102,28 +59,26 @@ class TorchPolicy(Policy):
         """
         raise NotImplementedError
 
-    def entropy_t(self, state):
+    def entropy(self, state=None):
         """
         Compute the entropy of the policy.
 
         Args:
-            state (torch.Tensor): the set of states to consider. If the
-                entropy of the policy can be computed in closed form, then
-                ``state`` can be None.
+            state (torch.Tensor, None): the set of states to consider. If the entropy of the policy can be computed in
+                closed form, then ``state`` can be None.
 
         Returns:
-            The tensor value of the entropy of the policy.
+            The value of the entropy of the policy.
 
         """
         raise NotImplementedError
 
-    def distribution_t(self, state):
+    def distribution(self, state):
         """
         Compute the policy distribution in the given states.
 
         Args:
-            state (torch.Tensor): the set of states where the distribution is
-                computed.
+            state (torch.Tensor): the set of states where the distribution is computed.
 
         Returns:
             The torch distribution for the provided states.
@@ -201,17 +156,24 @@ class GaussianTorchPolicy(TorchPolicy):
             _log_sigma='torch'
         )
 
-    def draw_action_t(self, state):
-        return self.distribution_t(state).sample().detach()
+    def draw_action(self, state, policy_state=None):
+        with torch.no_grad():
+            return self.distribution(state).sample(), None
 
-    def log_prob_t(self, state, action):
-        return self.distribution_t(state).log_prob(action).unsqueeze(-1)
+    def draw_with_log_prob(self, state):
+        dist = self.distribution(state)
+        a = dist.rsample()
 
-    def entropy_t(self, state=None):
+        return a, dist.log_prob(a).unsqueeze(-1)
+
+    def log_prob(self, state, action):
+        return self.distribution(state).log_prob(action).unsqueeze(-1)
+
+    def entropy(self, state=None):
         return self._action_dim / 2 * torch.log(TorchUtils.to_float_tensor(2 * np.pi * np.e))\
                + torch.sum(self._log_sigma)
 
-    def distribution_t(self, state):
+    def distribution(self, state):
         mu, chol_sigma = self.get_mean_and_chol(state)
         return torch.distributions.MultivariateNormal(loc=mu, scale_tril=chol_sigma, validate_args=False)
 
@@ -271,17 +233,20 @@ class BoltzmannTorchPolicy(TorchPolicy):
             _logits='mushroom'
         )
 
-    def draw_action_t(self, state):
-        action = self.distribution_t(state).sample().detach()
-        return action.unsqueeze(-1)
+    def draw_action(self, state, policy_state=None):
+        with torch.no_grad():
+            return self.distribution(state).sample().unsqueeze(-1), None
 
-    def log_prob_t(self, state, action):
-        return self.distribution_t(state).log_prob(action).unsqueeze(-1)
+    def draw_with_log_prob(self, state):
+        raise NotImplementedError("The Boltzmann policy cannot be sampled with the reparametrization trick.")
 
-    def entropy_t(self, state):
-        return torch.mean(self.distribution_t(state).entropy())
+    def log_prob(self, state, action):
+        return self.distribution(state).log_prob(action).unsqueeze(-1)
 
-    def distribution_t(self, state):
+    def entropy(self, state=None):
+        return torch.mean(self.distribution(state).entropy())
+
+    def distribution(self, state):
         logits = self._logits(state, **self._predict_params) * self._beta(state.numpy())
         return CategoricalWrapper(logits)
 
@@ -296,3 +261,84 @@ class BoltzmannTorchPolicy(TorchPolicy):
 
     def set_beta(self, beta):
         self._beta = to_parameter(beta)
+
+
+class SquashedGaussianTorchPolicy(TorchPolicy):
+    """
+    Torch policy implementing a Gaussian policy squashed by a tanh and remapped to a bounded action range, as used
+    by the Soft Actor-Critic algorithm. The squashing and the corresponding change-of-variables are handled by the
+    :class:`~mushroom_rl.utils.torch_distributions.SquashedGaussian` distribution.
+
+    """
+    def __init__(self, mu_approximator, sigma_approximator, min_a, max_a, log_std_min, log_std_max,
+                 policy_state_shape=None):
+        """
+        Constructor.
+
+        Args:
+            mu_approximator (Approximator): a regressor computing the mean given a state;
+            sigma_approximator (Approximator): a regressor computing the log standard deviation given a state;
+            min_a (np.ndarray): a vector specifying the minimum action value for each component;
+            max_a (np.ndarray): a vector specifying the maximum action value for each component;
+            log_std_min ([float, Parameter]): min value for the policy log std;
+            log_std_max ([float, Parameter]): max value for the policy log std.
+
+        """
+        super().__init__(policy_state_shape)
+
+        self._mu_approximator = mu_approximator
+        self._sigma_approximator = sigma_approximator
+
+        self._min_a = TorchUtils.to_float_tensor(min_a)
+        self._max_a = TorchUtils.to_float_tensor(max_a)
+
+        self._log_std_min = to_parameter(log_std_min)
+        self._log_std_max = to_parameter(log_std_max)
+
+        self._eps = 1e-6
+
+        self._add_save_attr(
+            _mu_approximator='mushroom',
+            _sigma_approximator='mushroom',
+            _min_a='torch',
+            _max_a='torch',
+            _log_std_min='mushroom',
+            _log_std_max='mushroom',
+            _eps='primitive'
+        )
+
+    def draw_action(self, state, policy_state=None):
+        with torch.no_grad():
+            return self.distribution(state).sample(), None
+
+    def draw_with_log_prob(self, state):
+        return self.distribution(state).rsample_and_log_prob()
+
+    def log_prob(self, state, action):
+        return self.distribution(state).log_prob(action).unsqueeze(-1)
+
+    def entropy(self, state=None):
+        _, log_prob = self.draw_with_log_prob(state)
+        return -log_prob.mean()
+
+    def distribution(self, state):
+        mu = self._mu_approximator.predict(state)
+        log_sigma = self._sigma_approximator.predict(state)
+        log_sigma = torch.clamp(log_sigma, self._log_std_min(), self._log_std_max())
+        return SquashedGaussian(mu, log_sigma.exp(), self._min_a, self._max_a, eps=self._eps)
+
+    def set_weights(self, weights):
+        mu_weights = weights[:self._mu_approximator.weights_size]
+        sigma_weights = weights[self._mu_approximator.weights_size:]
+
+        self._mu_approximator.set_weights(mu_weights)
+        self._sigma_approximator.set_weights(sigma_weights)
+
+    def get_weights(self):
+        mu_weights = self._mu_approximator.get_weights()
+        sigma_weights = self._sigma_approximator.get_weights()
+
+        return torch.concatenate([mu_weights, sigma_weights])
+
+    def parameters(self):
+        return chain(self._mu_approximator.parameters(), self._sigma_approximator.parameters())

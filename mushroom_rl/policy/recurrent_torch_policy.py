@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 from mushroom_rl.policy import GaussianTorchPolicy
-from mushroom_rl.utils.torch_utils import TorchUtils
+
 from mushroom_rl.rl_utils.parameters import to_parameter
 
 
@@ -19,35 +19,31 @@ class RecurrentGaussianTorchPolicy(GaussianTorchPolicy):
 
     def draw_action(self, state, policy_state):
         with torch.no_grad():
-            a, policy_state = self.draw_action_t(state, policy_state)
-            return a, policy_state
+            lengths = torch.tensor([1])
+            state, policy_state = self._pad_state(state, policy_state)
 
-    def draw_action_t(self, state, policy_state):
-        lengths = torch.tensor([1])
-        state = torch.atleast_2d(state).view(1, 1, -1)
-        policy_state = torch.atleast_2d(policy_state)
+            dist, policy_state = self.distribution_and_policy_state(state, policy_state, lengths)
+            action = dist.sample()
 
-        dist, policy_state = self.distribution_and_policy_state_t(state, policy_state, lengths)
-        action = dist.sample().detach()
+            return action, policy_state
 
-        return action, policy_state
+    def draw_with_log_prob(self, state, policy_state, lengths):
+        dist, next_policy_state = self.distribution_and_policy_state(state, policy_state, lengths)
+        action = dist.rsample()
 
-    def log_prob_t(self, state, action, policy_state, lengths):
-        return self.distribution_t(state, policy_state, lengths).log_prob(action)[:, None]
+        return action, dist.log_prob(action)[:, None], next_policy_state
 
-    def entropy_t(self, state=None):
+    def log_prob(self, state, action, policy_state, lengths):
+        return self.distribution(state, policy_state, lengths).log_prob(action)[:, None]
+
+    def entropy(self, state=None):
         return self._action_dim / 2 * np.log(2 * np.pi * np.e) + torch.sum(self._log_sigma)
 
     def distribution(self, state, policy_state, lengths):
-        s = TorchUtils.to_float_tensor(state)
-
-        return self.distribution_t(s, policy_state, lengths)
-
-    def distribution_t(self, state, policy_state, lengths):
         mu, sigma, _ = self.get_mean_and_covariance_and_policy_state(state, policy_state, lengths)
         return torch.distributions.MultivariateNormal(loc=mu, covariance_matrix=sigma)
 
-    def distribution_and_policy_state_t(self, state, policy_state, lengths):
+    def distribution_and_policy_state(self, state, policy_state, lengths):
         mu, sigma, policy_state = self.get_mean_and_covariance_and_policy_state(state, policy_state, lengths)
         return torch.distributions.MultivariateNormal(loc=mu, covariance_matrix=sigma), policy_state
 
@@ -59,3 +55,10 @@ class RecurrentGaussianTorchPolicy(GaussianTorchPolicy):
 
         covariance = torch.diag(torch.exp(2 * log_sigma))
         return mu, covariance, next_hidden_state
+
+    def _pad_state(self, state, policy_state):
+        if state.ndim == len(self._mu.input_shape):
+            state = state.unsqueeze(0)
+            policy_state = policy_state.unsqueeze(0)
+        state = state.unsqueeze(1)
+        return state, policy_state

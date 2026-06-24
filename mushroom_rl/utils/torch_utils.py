@@ -226,18 +226,3 @@ class TorchUtils(object):
                 optimizer.state[p_new] = data
 
         optimizer.param_groups[0]['params'] = new_parameters
-
-
-class CategoricalWrapper(torch.distributions.Categorical):
-    """
-    Wrapper for the Torch Categorical distribution.
-
-    Needed to convert a vector of mushroom discrete action in an input with the proper shape of the original
-    distribution implemented in torch
-
-    """
-    def __init__(self, logits):
-        super().__init__(logits=logits)
-
-    def log_prob(self, value):
-        return super().log_prob(value.squeeze())

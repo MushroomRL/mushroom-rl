@@ -20,11 +20,14 @@ class Approximator(Serializable):
             return ensemble
         return object.__new__(cls)
 
-    def __init__(self, backend='numpy'):
+    def __init__(self, input_shape, output_shape, backend='numpy'):
+        self._input_shape = input_shape
+        self._output_shape = output_shape
         self._logger = None
         self._loss_filename = None
         self._backend = ArrayBackend.get_array_backend(backend)
-        self._add_save_attr(_logger='none', _loss_filename='none', _backend='primitive')
+        self._add_save_attr(_input_shape='primitive', _output_shape='primitive',
+                            _logger='none', _loss_filename='none', _backend='primitive')
 
     def fit(self, *args, **kwargs):
         """
@@ -59,6 +62,24 @@ class Approximator(Serializable):
 
     def __call__(self, *z, **kw):
         return self.predict(*z, **kw)
+
+    @property
+    def input_shape(self):
+        """
+        Returns:
+            The shape of the input of the approximator.
+
+        """
+        return self._input_shape
+
+    @property
+    def output_shape(self):
+        """
+        Returns:
+            The shape of the output of the approximator.
+
+        """
+        return self._output_shape
 
     def set_logger(self, logger, loss_filename=None):
         """
@@ -105,7 +126,8 @@ class Ensemble(Approximator):
             **params: parameters dictionary to create each model.
 
         """
-        super().__init__(backend=backend)
+        super().__init__(input_shape=params.get('input_shape'), output_shape=params.get('output_shape'),
+                         backend=backend)
 
         self._prediction = prediction
         self._models = []
@@ -208,15 +230,6 @@ class Ensemble(Approximator):
                 if loss is None:
                     continue
                 self._logger.log_numpy(**{f'{key}_{i}': loss})
-
-    @property
-    def output_shape(self):
-        """
-        Returns:
-            The shape of the output of the first model in the ensemble.
-
-        """
-        return self._models[0].output_shape
 
     @property
     def n_actions(self):

@@ -53,7 +53,8 @@ class QApproximatorSimple(QApproximator):
         params['output_shape'] = output_shape
         model = approximator(**params)
         backend = getattr(model, '_backend', None)
-        super().__init__(backend=backend.get_backend_name() if backend is not None else 'numpy')
+        super().__init__(input_shape=input_shape, output_shape=output_shape,
+                         backend=backend.get_backend_name() if backend is not None else 'numpy')
         self._n_actions = n_actions
         self._models = [model]
         self._add_save_attr(
@@ -188,7 +189,8 @@ class QApproximatorAction(QApproximator):
         self._n_actions = n_actions
         self._models = [approximator(**params) for _ in range(n_actions)]
         backend = getattr(self._models[0], '_backend', None)
-        super().__init__(backend=backend.get_backend_name() if backend is not None else 'numpy')
+        super().__init__(input_shape=input_shape, output_shape=output_shape,
+                         backend=backend.get_backend_name() if backend is not None else 'numpy')
         self._add_save_attr(
             _n_actions='primitive',
             _models=self._get_serialization_method(approximator)

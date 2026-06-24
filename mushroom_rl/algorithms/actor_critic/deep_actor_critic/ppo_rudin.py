@@ -44,7 +44,7 @@ class RudinPPO(PPO):
         adv = adv.detach()
         v_target = v_target.detach()
 
-        old_pol_dist = self.policy.distribution_t(state_old)
+        old_pol_dist = self.policy.distribution(state_old)
 
         old_log_p = old_pol_dist.log_prob(action)[:, None].detach()
 
@@ -61,15 +61,15 @@ class RudinPPO(PPO):
             for obs_i, act_i, adv_i, old_log_p_i in minibatch_generator(
                     self._batch_size(), obs, act, adv, old_log_p):
                 with torch.inference_mode():
-                    new_pol_dist = self.policy.distribution_t(state)
+                    new_pol_dist = self.policy.distribution(state)
                     kl = torch.mean(torch.distributions.kl.kl_divergence(old_pol_dist, new_pol_dist))
                     self._adapt_learning_rate(kl)
 
                 self._optimizer.zero_grad()
-                prob_ratio = torch.exp(self.policy.log_prob_t(obs_i, act_i) - old_log_p_i)
+                prob_ratio = torch.exp(self.policy.log_prob(obs_i, act_i) - old_log_p_i)
                 clipped_ratio = torch.clamp(prob_ratio, 1 - self._eps_ppo(), 1 + self._eps_ppo.get_value())
                 loss = -torch.mean(torch.min(prob_ratio * adv_i, clipped_ratio * adv_i))
-                loss -= self._ent_coeff() * self.policy.entropy_t(obs_i)
+                loss -= self._ent_coeff() * self.policy.entropy(obs_i)
                 loss.backward()
                 self._clip_gradient()
                 self._optimizer.step()

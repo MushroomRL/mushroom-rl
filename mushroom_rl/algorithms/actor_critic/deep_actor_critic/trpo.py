@@ -93,8 +93,8 @@ class TRPO(OnPolicyDeepAC):
 
         # Policy update
         self._old_policy = deepcopy(self.policy)
-        old_pol_dist = self._old_policy.distribution_t(state_old)
-        old_log_prob = self._old_policy.log_prob_t(state_old, action).detach()
+        old_pol_dist = self._old_policy.distribution(state_old)
+        old_log_prob = self._old_policy.log_prob(state_old, action).detach()
 
         TorchUtils.zero_grad(self.policy.parameters())
         loss = self._compute_loss(state, action, adv, old_log_prob)
@@ -179,14 +179,14 @@ class TRPO(OnPolicyDeepAC):
             self.policy.set_weights(theta_old)
 
     def _compute_kl(self, obs, old_pol_dist):
-        new_pol_dist = self.policy.distribution_t(obs)
+        new_pol_dist = self.policy.distribution(obs)
         return torch.mean(torch.distributions.kl.kl_divergence(old_pol_dist, new_pol_dist))
 
     def _compute_loss(self, obs, act, adv, old_log_prob):
-        ratio = torch.exp(self.policy.log_prob_t(obs, act) - old_log_prob)
+        ratio = torch.exp(self.policy.log_prob(obs, act) - old_log_prob)
         J = torch.mean(ratio * adv)
 
-        return J + self._ent_coeff() * self.policy.entropy_t(obs)
+        return J + self._ent_coeff() * self.policy.entropy(obs)
 
     def _log_info(self, dataset, x, old_pol_dist):
         if self._logger:

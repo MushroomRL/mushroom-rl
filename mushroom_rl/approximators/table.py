@@ -19,7 +19,7 @@ class Table(Approximator):
             dtype ([int, float], None): the dtype of the table array.
 
         """
-        super().__init__()
+        super().__init__(input_shape=(1,), output_shape=(1,))
         self.table = np.ones(shape, dtype=dtype) * initial_value
 
         self._add_save_attr(table='numpy')
@@ -83,10 +83,6 @@ class Table(Approximator):
             return values[0]
         else:
             return np.array(values)
-
-    @property
-    def output_shape(self):
-        return self.table.shape
 
     @property
     def n_actions(self):

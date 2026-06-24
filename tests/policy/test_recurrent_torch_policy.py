@@ -66,34 +66,17 @@ def test_recurrent_policy_draw_action():
     assert torch.allclose(new_policy_state, new_ps_test, atol=1e-5)
 
 
-def test_recurrent_policy_draw_action_t():
-    n_state, n_action, n_hidden = 4, 2, 8
-    policy = make_policy(n_state, n_action, n_hidden)
-
-    state = torch.zeros(1, 1, n_state)
-    policy_state = torch.zeros(1, n_hidden)
-
-    torch.manual_seed(42)
-    action, new_policy_state = policy.draw_action_t(state, policy_state)
-
-    action_test = torch.tensor([0.596062, 0.41514623])
-
-    assert action.shape == (n_action,)
-    assert new_policy_state.shape == (n_hidden,)
-    assert torch.allclose(action, action_test, atol=1e-5)
-
-
 def test_recurrent_policy_entropy():
     policy = make_policy()
 
-    entropy = policy.entropy_t()
+    entropy = policy.entropy()
 
     assert isinstance(entropy, torch.Tensor)
     assert entropy.shape == ()
     assert torch.isclose(entropy, torch.tensor(2.837877), atol=1e-5)
 
 
-def test_recurrent_policy_distribution_t():
+def test_recurrent_policy_distribution_and_policy_state():
     n_state, n_action, n_hidden = 4, 2, 8
     policy = make_policy(n_state, n_action, n_hidden)
 
@@ -102,23 +85,7 @@ def test_recurrent_policy_distribution_t():
     policy_state = torch.zeros(batch, n_hidden)
     lengths = torch.tensor([3, 3])
 
-    dist = policy.distribution_t(state, policy_state, lengths)
-
-    assert isinstance(dist, torch.distributions.MultivariateNormal)
-    assert dist.loc.shape == (batch, n_action)
-    assert torch.allclose(dist.loc[0], dist.loc[1])
-
-
-def test_recurrent_policy_distribution_and_policy_state_t():
-    n_state, n_action, n_hidden = 4, 2, 8
-    policy = make_policy(n_state, n_action, n_hidden)
-
-    batch = 2
-    state = torch.zeros(batch, 3, n_state)
-    policy_state = torch.zeros(batch, n_hidden)
-    lengths = torch.tensor([3, 3])
-
-    dist, new_ps = policy.distribution_and_policy_state_t(state, policy_state, lengths)
+    dist, new_ps = policy.distribution_and_policy_state(state, policy_state, lengths)
 
     assert isinstance(dist, torch.distributions.MultivariateNormal)
     assert dist.loc.shape == (batch, n_action)
@@ -126,7 +93,7 @@ def test_recurrent_policy_distribution_and_policy_state_t():
     assert not torch.all(new_ps == 0.0)
 
 
-def test_recurrent_policy_log_prob_t():
+def test_recurrent_policy_log_prob():
     n_state, n_action, n_hidden = 4, 2, 8
     policy = make_policy(n_state, n_action, n_hidden)
 
@@ -136,7 +103,7 @@ def test_recurrent_policy_log_prob_t():
     lengths = torch.ones(batch, dtype=torch.long)
     action = torch.zeros(batch, n_action)
 
-    log_prob = policy.log_prob_t(state, action, policy_state, lengths)
+    log_prob = policy.log_prob(state, action, policy_state, lengths)
 
     log_prob_test = torch.tensor([[-1.9125082],
                                    [-1.9125082],
@@ -145,6 +112,33 @@ def test_recurrent_policy_log_prob_t():
     assert log_prob.shape == (batch, 1)
     assert torch.allclose(log_prob[0], log_prob[1])
     assert torch.allclose(log_prob[0], log_prob[2])
+    assert torch.allclose(log_prob, log_prob_test, atol=1e-5)
+
+
+def test_recurrent_policy_draw_with_log_prob():
+    n_state, n_action, n_hidden = 4, 2, 8
+    policy = make_policy(n_state, n_action, n_hidden)
+
+    batch = 3
+    state = torch.zeros(batch, 1, n_state)
+    policy_state = torch.zeros(batch, n_hidden)
+    lengths = torch.ones(batch, dtype=torch.long)
+
+    torch.manual_seed(42)
+    action, log_prob, next_policy_state = policy.draw_with_log_prob(state, policy_state, lengths)
+
+    action_test = torch.tensor([[0.5960621, 0.4151462],
+                                [0.4938340, 0.5166699],
+                                [-0.8634847, 0.1000085]])
+    log_prob_test = torch.tensor([[-1.9028531],
+                                  [-1.8918899],
+                                  [-2.4856393]])
+
+    assert action.shape == (batch, n_action)
+    assert log_prob.shape == (batch, 1)
+    assert next_policy_state.shape == (batch, n_hidden)
+    assert action.requires_grad and log_prob.requires_grad
+    assert torch.allclose(action, action_test, atol=1e-5)
     assert torch.allclose(log_prob, log_prob_test, atol=1e-5)
 
 

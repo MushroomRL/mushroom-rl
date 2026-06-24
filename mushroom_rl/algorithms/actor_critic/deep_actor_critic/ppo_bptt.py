@@ -83,7 +83,7 @@ class PPO_BPTT(OnPolicyDeepAC):
                                          lengths, reward, absorbing, last, self.mdp_info.gamma, self._lambda())
         adv = (adv - torch.mean(adv)) / (torch.std(adv) + 1e-8)
 
-        old_pol_dist = self.policy.distribution_t(state_old_seq, policy_state_seq, lengths)
+        old_pol_dist = self.policy.distribution(state_old_seq, policy_state_seq, lengths)
         old_log_p = old_pol_dist.log_prob(action)[:, None].detach()
 
         self._V.fit(state_seq, policy_state_seq, lengths, v_target, **self._critic_fit_params)
@@ -155,11 +155,11 @@ class PPO_BPTT(OnPolicyDeepAC):
                     self._batch_size(), obs, pi_h, act, lengths, adv, old_log_p):
                 self._optimizer.zero_grad()
                 prob_ratio = torch.exp(
-                    self.policy.log_prob_t(obs_i, act_i, pi_h_i, length_i) - old_log_p_i
+                    self.policy.log_prob(obs_i, act_i, pi_h_i, length_i) - old_log_p_i
                 )
                 clipped_ratio = torch.clamp(prob_ratio, 1 - self._eps_ppo(), 1 + self._eps_ppo.get_value())
                 loss = -torch.mean(torch.min(prob_ratio * adv_i, clipped_ratio * adv_i))
-                loss -= self._ent_coeff()*self.policy.entropy_t(obs_i)
+                loss -= self._ent_coeff()*self.policy.entropy(obs_i)
                 loss.backward()
                 self._optimizer.step()
 

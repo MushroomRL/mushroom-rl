@@ -67,8 +67,8 @@ class A2C(DeepAC):
         self._optimize_actor_parameters(loss)
 
     def _loss(self, state, action, adv):
-        gradient_loss = -torch.mean(self.policy.log_prob_t(state, action)*adv)
-        entropy_loss = -self.policy.entropy_t(state)
+        gradient_loss = -torch.mean(self.policy.log_prob(state, action)*adv)
+        entropy_loss = -self.policy.entropy(state)
 
         return gradient_loss + self._entropy_coeff() * entropy_loss
 
