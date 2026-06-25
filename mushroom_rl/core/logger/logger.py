@@ -79,6 +79,9 @@ class Logger(DataLogger, ConsoleLogger, VideoLogger, WandbLogger):
                                suffix=suffix, **kwargs)
         VideoLogger.__init__(self, recorder_class=recorder_class, fps=fps,
                              video_path=video_path, append=append, **(recorder_kwargs or {}))
+        if wandb_kwargs is not None and not wandb_kwargs.get('group'):
+            wandb_kwargs = dict(wandb_kwargs, group=log_name)
+
         WandbLogger.__init__(self, wandb_kwargs, base_results_dir, log_dir=results_dir, append=append)
 
     def log_training(self, **kwargs):

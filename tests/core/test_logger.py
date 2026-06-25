@@ -122,6 +122,7 @@ def test_wandb_offline(tmpdir):
 
     assert logger.wandb_active
     assert logger._n_fit == 0
+    assert logger._wandb_run.group == 'wandb_test'
 
     logger.log_training(actor_loss=0.5)
     logger.advance_step()
@@ -134,6 +135,27 @@ def test_wandb_offline(tmpdir):
 
     logger.finish()
     assert not logger.wandb_active
+
+
+def test_wandb_group_auto_set(tmpdir):
+    importorskip('wandb')
+
+    wandb_kwargs = Logger.default_wandb_kwargs('test_project', mode='offline', dir=str(tmpdir))
+    logger = Logger('my_experiment', results_dir=None, wandb_kwargs=wandb_kwargs)
+
+    assert logger._wandb_run.group == 'my_experiment'
+    logger.finish()
+
+
+def test_wandb_group_not_overridden(tmpdir):
+    importorskip('wandb')
+
+    wandb_kwargs = Logger.default_wandb_kwargs('test_project', mode='offline',
+                                               dir=str(tmpdir), group='custom_group')
+    logger = Logger('my_experiment', results_dir=None, wandb_kwargs=wandb_kwargs)
+
+    assert logger._wandb_run.group == 'custom_group'
+    logger.finish()
 
 
 def test_wandb_append_offline(tmpdir):
