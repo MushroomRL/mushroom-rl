@@ -56,6 +56,7 @@ class ConsoleLogger(object):
         self._logger.addHandler(ch)
 
         if log_dir is not None:
+            log_dir.mkdir(parents=True, exist_ok=True)
             log_file_name = self._log_id if log_file_name is None else log_file_name
             log_file_name += '.log'
             log_file_path = log_dir / log_file_name

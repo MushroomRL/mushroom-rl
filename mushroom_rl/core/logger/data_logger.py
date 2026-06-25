@@ -85,9 +85,11 @@ class DataLogger(object):
                 will be used to identify the given quantity and as base file name.
 
         """
+        results_dir = self._get_folder()
+
         for name, data in kwargs.items():
             filename = name + self._suffix + '.npy'
-            path = self._results_dir / filename
+            path = results_dir / filename
 
             np.save(path, data)
 
@@ -106,7 +108,7 @@ class DataLogger(object):
         epoch_suffix = '' if epoch is None else '-' + str(epoch)
 
         filename = 'agent' + self._suffix + epoch_suffix + '.msh'
-        path = self._results_dir / filename
+        path = self._get_folder() / filename
         agent.save(path, full_save=full_save)
 
     def log_best_agent(self, agent, J, full_save=False):
@@ -127,12 +129,12 @@ class DataLogger(object):
             self._best_J = J
 
             filename = 'agent' + self._suffix + '-best.msh'
-            path = self._results_dir / filename
+            path = self._get_folder() / filename
             agent.save(path, full_save=full_save)
 
     def log_dataset(self, dataset):
         filename = 'dataset' + self._suffix + '.msh'
-        path = self._results_dir / filename
+        path = self._get_folder() / filename
 
         dataset.save(path)
 
@@ -145,6 +147,8 @@ class DataLogger(object):
         return self._results_dir
 
     def _load_numpy(self):
+        if not self._results_dir.exists():
+            return
         for file in self._results_dir.rglob('*.npy'):
             if file.is_file() and file.stem.endswith(self._suffix):
                 name = re.split(r'-\d+$', file.stem)[0]

@@ -69,8 +69,8 @@ class Logger(DataLogger, ConsoleLogger, VideoLogger, WandbLogger):
         base_results_dir = Path(results_dir) if results_dir else None
 
         if results_dir:
+            base_results_dir.mkdir(parents=True, exist_ok=True)
             results_dir = base_results_dir / log_name
-            results_dir.mkdir(parents=True, exist_ok=True)
 
         suffix = '' if seed is None else '-' + str(seed)
 

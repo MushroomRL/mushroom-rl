@@ -150,6 +150,7 @@ class WandbLogger(object):
 
     def _save_wandb_state(self):
         if self._log_dir is not None and self._wandb_run is not None:
+            self._log_dir.mkdir(parents=True, exist_ok=True)
             state = {'run_id': self._wandb_run.id, 'n_fit': self._n_fit}
             with open(self._log_dir / '.wandb_state.pkl', 'wb') as f:
                 pickle.dump(state, f)
