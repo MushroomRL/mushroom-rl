@@ -1,5 +1,6 @@
 import numpy as np
 
+import torch
 import torch.optim as optim
 import torch.nn.functional as F
 
@@ -73,7 +74,7 @@ def experiment(alg, n_epochs, n_steps, n_steps_test, save, load):
 
     J = np.mean(dataset.discounted_return)
     R = np.mean(dataset.undiscounted_return)
-    E = agent.policy.entropy(dataset.state).item()
+    E = agent.policy.entropy(torch.from_numpy(dataset.state)).item()
 
     logger.epoch_info(0, J=J, R=R, entropy=E)
 
@@ -85,7 +86,7 @@ def experiment(alg, n_epochs, n_steps, n_steps_test, save, load):
 
         J = np.mean(dataset.discounted_return)
         R = np.mean(dataset.undiscounted_return)
-        E = agent.policy.entropy(dataset.state).item()
+        E = agent.policy.entropy(torch.from_numpy(dataset.state)).item()
 
         logger.epoch_info(n+1, J=J, R=R, entropy=E)
 

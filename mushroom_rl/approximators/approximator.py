@@ -104,7 +104,7 @@ class Approximator(Serializable):
             if hasattr(loss, 'squeeze'):
                 loss = loss.squeeze()
             key = 'loss' if self._loss_label is None else self._loss_label
-            self._logger.log(**{key: loss})
+            self._logger.log_training(**{key: loss})
 
 
 class Ensemble(Approximator):
@@ -229,7 +229,7 @@ class Ensemble(Approximator):
                 loss = m.loss_fit
                 if loss is None:
                     continue
-                self._logger.log(**{f'{key}_{i}': loss})
+                self._logger.log_training(**{f'{key}_{i}': loss})
 
     @property
     def n_actions(self):

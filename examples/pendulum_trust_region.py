@@ -37,9 +37,8 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
     alg_params['critic_params'] = critic_params
 
     agent = alg(mdp.info, policy, **alg_params)
-    #agent.set_logger(logger)
 
-    core = Core(agent, mdp)
+    core = Core(agent, mdp, logger=logger)
 
     dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
 

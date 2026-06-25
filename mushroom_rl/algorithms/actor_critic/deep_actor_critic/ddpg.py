@@ -14,6 +14,9 @@ class DDPG(DeepAC):
     Lillicrap T. P. et al. 2016.
 
     """
+
+    _logged_approximators = (('_critic_approximator', 'critic/loss'),)
+
     def __init__(self, mdp_info, policy_class, policy_params,
                  actor_params, actor_optimizer, critic_params, batch_size,
                  initial_replay_size, max_replay_size, tau, policy_delay=1,
@@ -104,10 +107,16 @@ class DDPG(DeepAC):
                 loss = self._loss(state)
                 self._optimize_actor_parameters(loss)
 
+                if self._logger:
+                    self._logger.log_training(**{'actor/loss': loss.item()})
+
             self._update_target(self._critic_approximator, self._target_critic_approximator)
             self._update_target(self._actor_approximator, self._target_actor_approximator)
 
             self._fit_count += 1
+
+            if self._logger:
+                self._logger.advance_step()
 
     def _loss(self, state):
         action = self._actor_approximator(state, **self._actor_predict_params)

@@ -16,6 +16,9 @@ class PPO(OnPolicyDeepAC):
     Schulman J. et al. 2017.
 
     """
+
+    _logged_approximators = (('_V', 'critic/loss'),)
+
     def __init__(self, mdp_info, policy, actor_optimizer, critic_params,
                  n_epochs_policy, batch_size, eps_ppo, lam, ent_coeff=0.0,
                  critic_fit_params=None):
@@ -115,6 +118,10 @@ class PPO(OnPolicyDeepAC):
 
                 self._logger.info(msg)
                 self._logger.weak_line()
+
+                self._logger.log_training(**{'actor/entropy': logging_ent.item(),
+                                             'actor/kl': logging_kl.item()})
+                self._logger.advance_step()
 
     def _post_load(self):
         if self._optimizer is not None:

@@ -16,6 +16,9 @@ class TRPO(OnPolicyDeepAC):
     Schulman J. et al. 2015.
 
     """
+
+    _logged_approximators = (('_V', 'critic/loss'),)
+
     def __init__(self, mdp_info, policy, critic_params, ent_coeff=0., max_kl=.001, lam=1.,
                  n_epochs_line_search=10, n_epochs_cg=10, cg_damping=1e-2, cg_residual_tol=1e-10,
                  critic_fit_params=None, backend='torch'):
@@ -200,3 +203,7 @@ class TRPO(OnPolicyDeepAC):
 
             self._logger.info(msg)
             self._logger.weak_line()
+
+            self._logger.log_training(**{'actor/entropy': logging_ent.item(),
+                                         'actor/kl': logging_kl.item()})
+            self._logger.advance_step()

@@ -62,8 +62,10 @@ class Logger(DataLogger, ConsoleLogger, VideoLogger, WandbLogger):
         elif use_timestamp:
             log_name += '_' + timestamp
 
+        base_results_dir = Path(results_dir) if results_dir else None
+
         if results_dir:
-            results_dir = Path(results_dir) / log_name
+            results_dir = base_results_dir / log_name
             results_dir.mkdir(parents=True, exist_ok=True)
 
         suffix = '' if seed is None else '-' + str(seed)
@@ -76,25 +78,70 @@ class Logger(DataLogger, ConsoleLogger, VideoLogger, WandbLogger):
         ConsoleLogger.__init__(self, log_name, results_dir if log_console else None,
                                suffix=suffix, **kwargs)
         VideoLogger.__init__(self, recorder_class=recorder_class, fps=fps,
-                             video_path=video_path, **(recorder_kwargs or {}))
-        WandbLogger.__init__(self, wandb_kwargs)
+                             video_path=video_path, append=append, **(recorder_kwargs or {}))
+        WandbLogger.__init__(self, wandb_kwargs, base_results_dir, log_dir=results_dir, append=append)
 
-    def log(self, **kwargs):
+    def log_training(self, **kwargs):
         """
-        Log a set of named scalars to every active logging backend. The values
-        are always logged to wandb (if active) and to the console with the
-        ``debug`` level (so they are not shown by default). They are logged to
-        disk as numpy arrays only if the logger was constructed with
-        ``force_numpy=True``.
+        Log a set of named training metrics. The values are logged to wandb under the
+        ``training/`` group (if active), to the console with the ``debug`` level (so they
+        are not shown by default), and to disk as numpy arrays inside the ``training``
+        subfolder only if the logger was constructed with ``force_numpy=True``.
+
+        A ``'/'`` in a name groups the metric in wandb (e.g. ``'critic/loss'``) and is
+        replaced by ``'_'`` for the numpy file name (e.g. ``critic_loss.npy``).
 
         Args:
-            **kwargs: set of named values to be logged. The argument name is used
-                as label across all the backends.
+            **kwargs: set of named values to be logged.
 
         """
-        self.log_wandb(**kwargs)
+        self.log_wandb_training(**kwargs)
 
         if self._force_numpy:
-            self.log_numpy(**kwargs)
+            numpy_kwargs = {name.replace('/', '_'): data for name, data in kwargs.items()}
+            self.log_numpy(folder='training', **numpy_kwargs)
 
         self.debug(' '.join(f'{name}: {data}' for name, data in kwargs.items()))
+
+    def log_evaluation(self, epoch, **kwargs):
+        """
+        Log a set of named evaluation metrics. The values are logged to wandb under the
+        ``eval/`` group using the epoch as x-axis (if active), to the console through
+        ``epoch_info``, and to disk as numpy arrays in the logging directory.
+
+        Args:
+            epoch (int): the current epoch;
+            **kwargs: set of named values to be logged.
+
+        """
+        self.log_wandb_eval(epoch, **kwargs)
+
+        if self._results_dir is not None:
+            numpy_kwargs = {name.replace('/', '_'): data for name, data in kwargs.items()}
+            self.log_numpy(**numpy_kwargs)
+
+        self.epoch_info(epoch, **kwargs)
+
+    def log_video(self, epoch, video=None):
+        """
+        If wandb logging is active, upload a video to wandb under the ``eval/`` group using the
+        epoch as x-axis. The recording itself is stopped by ``Core``; this method only handles
+        the wandb upload. The video name is taken from the file name (without extension) and the
+        video is uploaded as is, without any re-encoding.
+
+        Args:
+            epoch (int): the current epoch, used as x-axis for the video;
+            video (str, Path, None): path of the video file to upload. If None, the last recorded
+                video is used.
+
+        """
+        if not self.wandb_active:
+            return
+
+        if video is None:
+            if not self._recorded_videos:
+                return
+            video = self._recorded_videos[-1]
+
+        video = Path(video)
+        self.log_wandb_video(video.stem, video, epoch)

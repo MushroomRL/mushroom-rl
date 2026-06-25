@@ -13,6 +13,9 @@ class AbstractDQN(Agent):
     Abstract class for every DQN-based approach.
 
     """
+
+    _logged_approximators = (('approximator', 'critic/loss'),)
+
     def __init__(self, mdp_info, policy, approximator, approximator_params, batch_size, target_update_frequency,
                  replay_memory=None, initial_replay_size=500, max_replay_size=5000, fit_params=None,
                  predict_params=None, clip_reward=False, history_length=1):
@@ -97,6 +100,9 @@ class AbstractDQN(Agent):
         if self._n_updates % self._target_update_frequency == 0:
             self._update_target()
 
+        if self._logger:
+            self._logger.advance_step()
+
     def _fit_standard(self, dataset):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
@@ -164,14 +170,3 @@ class AbstractDQN(Agent):
             self._fit = self._fit_standard
 
         self.policy.set_q(self.approximator)
-
-    def set_logger(self, logger, loss_filename='loss_Q'):
-        """
-        Setter that can be used to pass a logger to the algorithm
-
-        Args:
-            logger (Logger): the logger to be used by the algorithm;
-            loss_filename (str, 'loss_Q'): optional string to specify the loss filename.
-
-        """
-        self.approximator.set_logger(logger, loss_filename)

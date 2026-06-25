@@ -27,6 +27,8 @@ class Agent(Serializable):
 
     """
 
+    _logged_approximators = ()
+
     def __init__(self, mdp_info, policy, is_episodic=False, backend='numpy', history_length=1):
         """
         Constructor.
@@ -162,13 +164,16 @@ class Agent(Serializable):
 
     def set_logger(self, logger):
         """
-        Setter that can be used to pass a logger to the algorithm
+        Setter that can be used to pass a logger to the algorithm. The logger is also attached to the
+        approximators listed in the ``_logged_approximators`` class variable, so that their loss is logged.
 
         Args:
             logger (Logger): the logger to be used by the algorithm.
 
         """
         self._logger = logger
+        for attr, label in self._logged_approximators:
+            getattr(self, attr).set_logger(logger, label)
 
     def add_core_preprocessor(self, preprocessor):
         """

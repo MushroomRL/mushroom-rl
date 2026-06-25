@@ -54,9 +54,9 @@ def test_torch_ensemble_logger(tmpdir):
     for i in range(50):
         approximator.fit(x, y)
 
-    loss_0 = np.load(logger.path / 'loss_0.npy')
-    loss_1 = np.load(logger.path / 'loss_1.npy')
-    loss_2 = np.load(logger.path / 'loss_2.npy')
+    loss_0 = np.load(logger.path / 'training' / 'loss_0.npy')
+    loss_1 = np.load(logger.path / 'training' / 'loss_1.npy')
+    loss_2 = np.load(logger.path / 'training' / 'loss_2.npy')
 
     assert loss_0.shape == (50,)
     assert loss_1.shape == (50,)
@@ -81,7 +81,7 @@ def test_torch_approximator_logger_force_numpy(tmpdir):
     y = torch.rand(100, 2)
     approximator.fit(x, y)
 
-    assert (logger.path / 'critic_loss.npy').exists()
+    assert (logger.path / 'training' / 'critic_loss.npy').exists()
 
 
 def test_torch_approximator_logger_no_numpy(tmpdir):
@@ -99,7 +99,7 @@ def test_torch_approximator_logger_no_numpy(tmpdir):
     y = torch.rand(100, 2)
     approximator.fit(x, y)
 
-    assert not (logger.path / 'critic_loss.npy').exists()
+    assert not (logger.path / 'training' / 'critic_loss.npy').exists()
 
 
 def test_torch_ensemble_predict():

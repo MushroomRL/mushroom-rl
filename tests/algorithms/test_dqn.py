@@ -114,7 +114,7 @@ def test_dqn_logger(tmpdir):
                   max_replay_size=500, target_update_frequency=50)
     learn(DQN, params, logger)
 
-    loss_file = np.load(logger.path / 'loss_Q.npy')
+    loss_file = np.load(logger.path / 'training' / 'critic_loss.npy')
 
     assert loss_file.shape == (81,)
     assert np.allclose(loss_file[0], 0.6862927079200745)

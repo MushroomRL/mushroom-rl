@@ -108,11 +108,19 @@ stored results values. This can be done by specifying the ``append`` flag in the
    :lines: 97-
 
 Finally, another functionality of the logger is to activate some specific output from some algorithms.
-This can be done by calling the agent's ``set_logger`` method:
+This can be done by calling the ``set_logger`` method on the ``Core`` (or ``VectorCore``) object, which
+forwards the logger to the agent and automatically configures the video recording fps from the
+environment:
 
 .. code-block:: python
 
-    agent.set_logger(logger)
+    core.set_logger(logger)
+
+Alternatively, the logger can be passed directly as a constructor argument:
+
+.. code-block:: python
+
+    core = Core(agent, mdp, logger=logger)
 
 Algorithms use the logger to describe some learning metrics after every fit, both as console output and,
 if enabled, as Weights & Biases logging, described next.
@@ -141,24 +149,91 @@ experiment hyperparameters:
 .. literalinclude:: code/wandb_logging.py
     :lines: 1-12
 
-The unified ``log`` method logs a set of named values to every active backend. By default, the values
-are sent to wandb and printed on the console with the ``debug`` level (so they are not shown by
-default), but they are not stored on disk. To also save the values on disk as numpy arrays, construct
-the Logger with ``force_numpy=True``:
+The ``log_training`` method logs the training metrics: they are grouped under the ``training/`` prefix in
+wandb (using the number of fits as x-axis), printed on the console with the ``debug`` level (so they are
+not shown by default), and stored on disk as numpy arrays inside a ``training`` subfolder only if the
+Logger was constructed with ``force_numpy=True``. A ``'/'`` in a name groups the metric in wandb and is
+replaced by ``'_'`` in the numpy file name:
 
 .. literalinclude:: code/wandb_logging.py
     :lines: 14-15
 
-wandb associates each logged value with a monotonically increasing step. The Logger keeps an internal
-step counter that is shared by all the values logged through ``log``. The counter is advanced explicitly
-by calling ``advance_step``, typically once a logical step (e.g. an epoch, or an algorithm update) is
-complete:
+The number of fits counter, used as x-axis for the training metrics, is advanced explicitly by calling
+``advance_step`` once per fit, so that all the values logged during a fit share the same x-axis value:
 
 .. literalinclude:: code/wandb_logging.py
     :lines: 17-19
 
-While the numpy logging is typically driven by the experiment script, wandb logging is meant to be
-driven from inside the algorithms, which log their internal metrics (e.g. losses, entropy, KL
-divergence) during the fit, once the logger is passed to the agent via ``set_logger`` as shown above.
+The ``log_evaluation`` method logs the evaluation metrics: they are grouped under the ``eval/`` prefix in
+wandb (using the epoch as x-axis), printed on the console through ``epoch_info``, and stored on disk as
+numpy arrays in the logging directory:
+
+.. literalinclude:: code/wandb_logging.py
+    :lines: 21-22
+
+The wandb run is finished automatically when the process exits, so there is usually no need to close it
+explicitly; the ``finish`` method is available to close it earlier if needed.
+
+While the numpy evaluation logging is typically driven by the experiment script, the training logging is
+meant to be driven from inside the algorithms, which log their internal metrics (e.g. losses, entropy, KL
+divergence) during the fit, once the logger is attached to the agent through the ``Core`` (via
+``set_logger`` or the constructor) as shown above. A complete runnable example with metric logging is
+available in ``examples/wandb_logging.py``.
+
+
+Video Recording
+---------------
+
+The Logger includes a ``VideoLogger`` mixin that handles video recording. Videos are saved in a
+``videos/`` subfolder of the logging directory. The recorder is created lazily on the first frame,
+so no resources are allocated until recording actually starts.
+
+To record during evaluation or learning, pass ``record=True`` (and ``render=True``) to the ``Core``
+methods. The ``Core`` delegates recording to the agent's logger:
+
+.. code-block:: python
+
+    logger = Logger('my_experiment', results_dir='./logs')
+    core = Core(agent, mdp, logger=logger)
+
+    # Record a video during evaluation
+    core.evaluate(n_episodes=1, render=True, record=True)
+
+The fps is automatically set from the environment when the logger is attached to the ``Core`` via
+``set_logger`` or the constructor. It can also be set explicitly in the Logger constructor:
+
+.. code-block:: python
+
+    logger = Logger('my_experiment', results_dir='./logs', fps=30)
+
+By default, the ``VideoRecorder`` class from ``mushroom_rl.utils.record`` is used, which writes
+``.mp4`` files using OpenCV. A custom recorder class can be provided through the ``recorder_class``
+argument. The class must implement ``__call__(frame)`` and ``stop()`` methods:
+
+.. code-block:: python
+
+    logger = Logger('my_experiment', results_dir='./logs',
+                    recorder_class=MyCustomRecorder)
+
+The underlying recorder instance is accessible through ``logger.video_recorder`` after the first frame
+has been recorded, and the list of recorded (and, with ``append=True``, previously stored) video files
+is available through ``logger.recorded_videos``.
+
+If wandb logging is active, the last recorded video can be uploaded to wandb through the ``log_video``
+method. The recording is stopped by the ``Core``, so ``log_video`` only handles the upload, using the
+epoch as x-axis and the recorded file name as the video name. The video is uploaded as is, without any
+re-encoding:
+
+.. code-block:: python
+
+    core.evaluate(n_episodes=1, render=True, record=True)
+    logger.log_video(epoch)
+
+A specific video file can also be uploaded instead of the last recorded one by passing its path through
+the ``video`` argument:
+
+.. code-block:: python
+
+    logger.log_video(epoch, video='./logs/my_experiment/videos/recording.mp4')
 
 

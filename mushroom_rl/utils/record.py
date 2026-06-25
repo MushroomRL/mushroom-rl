@@ -33,6 +33,8 @@ class VideoRecorder(object):
         self._fps = fps
 
         self._video_writer = None
+        self._current_path = None
+        self._last_path = None
 
     def __call__(self, frame):
         """
@@ -57,13 +59,23 @@ class VideoRecorder(object):
 
         self._path.mkdir(parents=True, exist_ok=True)
 
-        path = self._path / name
+        self._current_path = self._path / name
 
-        self._video_writer = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc('m', 'p', '4', 'v'),
+        self._video_writer = cv2.VideoWriter(str(self._current_path), cv2.VideoWriter_fourcc('m', 'p', '4', 'v'),
                                              self._fps, (width, height))
 
     def stop(self):
-        cv2.destroyAllWindows()
-        self._video_writer.release()
-        self._video_writer = None
-        self._counter += 1
+        """
+        Finalize the current video file.
+
+        Returns:
+            The path of the recorded video file, or None if nothing was recorded.
+
+        """
+        if self._video_writer is not None:
+            cv2.destroyAllWindows()
+            self._video_writer.release()
+            self._video_writer = None
+            self._counter += 1
+
+        return self._current_path

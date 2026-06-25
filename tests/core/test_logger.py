@@ -2,6 +2,7 @@ import numpy as np
 from pathlib import Path
 from pytest import importorskip
 from mushroom_rl.core import Logger
+from mushroom_rl.core.dataset import Dataset
 
 
 def test_logger(tmpdir):
@@ -47,20 +48,59 @@ def test_default_wandb_kwargs():
     assert default_kwargs['config'] == dict()
 
 
-def test_logger_unified_log(tmpdir):
+def test_logger_training_evaluation(tmpdir):
     logger = Logger('test_log', results_dir=tmpdir)
 
     assert not logger.wandb_active
 
-    logger.log(x=1.0)
-    assert not (tmpdir / 'test_log' / 'x.npy').exists()
+    logger.log_training(x=1.0)
+    assert not (tmpdir / 'test_log' / 'training' / 'x.npy').exists()
     logger.advance_step()
+
+    logger.log_evaluation(0, J=5.0)
+    J = np.load(str(tmpdir / 'test_log' / 'J.npy'))
+    assert np.array_equal(J, np.array([5.0]))
 
     logger_numpy = Logger('test_log_numpy', results_dir=tmpdir, force_numpy=True)
 
-    logger_numpy.log(y=2.0)
-    y = np.load(str(tmpdir / 'test_log_numpy' / 'y.npy'))
+    logger_numpy.log_training(y=2.0)
+    y = np.load(str(tmpdir / 'test_log_numpy' / 'training' / 'y.npy'))
     assert np.array_equal(y, np.array([2.0]))
+
+
+def test_logger_append_evaluation(tmpdir):
+    logger = Logger('test', results_dir=tmpdir)
+
+    for i in range(3):
+        logger.log_evaluation(i, J=float(i))
+
+    J = np.load(str(tmpdir / 'test' / 'J.npy'))
+    assert np.array_equal(J, np.array([0.0, 1.0, 2.0]))
+
+    logger_append = Logger('test', results_dir=tmpdir, append=True)
+    logger_append.log_evaluation(3, J=3.0)
+
+    J = np.load(str(tmpdir / 'test' / 'J.npy'))
+    assert np.array_equal(J, np.array([0.0, 1.0, 2.0, 3.0]))
+
+
+def test_logger_append_training(tmpdir):
+    logger = Logger('test', results_dir=tmpdir, force_numpy=True)
+
+    for i in range(3):
+        logger.log_training(x=float(i), y=float(2 * i + 1))
+        logger.advance_step()
+
+    x = np.load(str(tmpdir / 'test' / 'training' / 'x.npy'))
+    assert np.array_equal(x, np.array([0.0, 1.0, 2.0]))
+
+    logger_append = Logger('test', results_dir=tmpdir, append=True, force_numpy=True)
+    logger_append.log_training(x=3.0, y=7.0)
+
+    x = np.load(str(tmpdir / 'test' / 'training' / 'x.npy'))
+    y = np.load(str(tmpdir / 'test' / 'training' / 'y.npy'))
+    assert np.array_equal(x, np.array([0.0, 1.0, 2.0, 3.0]))
+    assert np.array_equal(y, np.array([1.0, 3.0, 5.0, 7.0]))
 
 
 def test_logger_no_results_dir():
@@ -68,8 +108,8 @@ def test_logger_no_results_dir():
 
     assert not logger.wandb_active
 
-    logger.log(x=1.0)
-    logger.log_wandb(x=1.0)
+    logger.log_training(x=1.0)
+    logger.log_wandb_training(x=1.0)
     logger.advance_step()
 
 
@@ -81,28 +121,64 @@ def test_wandb_offline(tmpdir):
     logger = Logger('wandb_test', results_dir=None, wandb_kwargs=wandb_kwargs)
 
     assert logger.wandb_active
-    assert logger._wandb_step == 0
+    assert logger._n_fit == 0
 
-    logger.log(actor_loss=0.5)
+    logger.log_training(actor_loss=0.5)
     logger.advance_step()
-    assert logger._wandb_step == 1
-    logger.log(actor_loss=0.25)
+    assert logger._n_fit == 1
+    logger.log_training(actor_loss=0.25)
+    logger.advance_step()
+    logger.log_evaluation(1, J=10.0)
 
-    assert logger._wandb_run.summary['actor_loss'] in (0.5, 0.25)
+    assert logger._wandb_run.summary['training/actor_loss'] in (0.5, 0.25)
 
-    logger._wandb_run.finish()
+    logger.finish()
+    assert not logger.wandb_active
+
+
+def test_wandb_append_offline(tmpdir):
+    importorskip('wandb')
+
+    wandb_kwargs = Logger.default_wandb_kwargs('test_project', config={'lr': 0.1},
+                                               mode='offline', dir=str(tmpdir))
+    logger = Logger('wandb_append', results_dir=tmpdir, wandb_kwargs=wandb_kwargs)
+
+    assert logger.wandb_active
+    run_id = logger._wandb_run.id
+
+    for i in range(5):
+        logger.log_training(loss=float(i))
+        logger.advance_step()
+
+    assert logger._n_fit == 5
+    logger.finish()
+
+    wandb_kwargs_2 = Logger.default_wandb_kwargs('test_project', config={'lr': 0.1},
+                                                 mode='offline', dir=str(tmpdir))
+    logger_append = Logger('wandb_append', results_dir=tmpdir, append=True,
+                           wandb_kwargs=wandb_kwargs_2)
+
+    assert logger_append.wandb_active
+    assert logger_append._wandb_run.id == run_id
+    assert logger_append._n_fit == 5
+
+    logger_append.log_training(loss=5.0)
+    logger_append.advance_step()
+    assert logger_append._n_fit == 6
+
+    logger_append.finish()
 
 
 def test_video_logger_lazy_creation(tmpdir):
     logger = Logger('test_video', results_dir=tmpdir)
 
-    assert logger.recorder is None
+    assert logger.video_recorder is None
 
     frame = np.zeros((100, 100, 3), dtype=np.uint8)
     logger.set_video_fps(30)
     logger.record_frame(frame)
 
-    assert logger.recorder is not None
+    assert logger.video_recorder is not None
 
     logger.stop_recording()
 
@@ -126,9 +202,9 @@ def test_video_logger_custom_recorder():
     logger.record_frame(frame_1)
     logger.record_frame(frame_2)
 
-    assert len(logger.recorder.frames) == 2
-    assert np.array_equal(logger.recorder.frames[0], frame_1)
-    assert np.array_equal(logger.recorder.frames[1], frame_2)
+    assert len(logger.video_recorder.frames) == 2
+    assert np.array_equal(logger.video_recorder.frames[0], frame_1)
+    assert np.array_equal(logger.video_recorder.frames[1], frame_2)
 
     logger.stop_recording()
 
@@ -152,7 +228,7 @@ def test_video_logger_set_fps():
     frame = np.zeros((100, 100, 3), dtype=np.uint8)
     logger.record_frame(frame)
 
-    assert logger.recorder.fps == 30
+    assert logger.video_recorder.fps == 30
 
 
 def test_video_logger_video_path(tmpdir):
@@ -160,10 +236,63 @@ def test_video_logger_video_path(tmpdir):
 
     frame = np.zeros((100, 100, 3), dtype=np.uint8)
     logger.record_frame(frame)
-    logger.stop_recording()
+    path = logger.stop_recording()
 
     video_dir = Path(tmpdir) / 'test_video' / 'videos'
     assert video_dir.exists()
 
     videos = list(video_dir.rglob('*.mp4'))
     assert len(videos) == 1
+
+    assert path == videos[0]
+    assert logger.recorded_videos == [path]
+
+
+def test_video_logger_append(tmpdir):
+    logger = Logger('test_video', results_dir=tmpdir, fps=30)
+
+    frame = np.zeros((100, 100, 3), dtype=np.uint8)
+    logger.record_frame(frame)
+    path = logger.stop_recording()
+
+    logger_append = Logger('test_video', results_dir=tmpdir, fps=30, append=True)
+    assert logger_append.recorded_videos == [path]
+
+
+def test_log_dataset(tmpdir):
+    logger = Logger('test', results_dir=tmpdir)
+    logger_seed = Logger('test_seed', seed=42, results_dir=tmpdir)
+
+    states = np.arange(10).reshape(5, 2).astype(float)
+    actions = np.arange(5).reshape(5, 1).astype(float)
+    rewards = np.arange(5).astype(float)
+    next_states = states + 1
+    absorbing = np.zeros(5)
+    last = np.array([0, 0, 0, 0, 1], dtype=float)
+
+    dataset = Dataset.from_array(states, actions, rewards, next_states, absorbing, last)
+
+    logger.log_dataset(dataset)
+    logger_seed.log_dataset(dataset)
+
+    loaded = Dataset.load(logger.path / 'dataset.msh')
+    assert np.array_equal(loaded.state, states)
+    assert np.array_equal(loaded.action, actions)
+    assert np.array_equal(loaded.reward, rewards)
+
+    assert (logger_seed.path / 'dataset-42.msh').exists()
+
+
+def test_log_video_wandb_offline(tmpdir):
+    importorskip('wandb')
+
+    wandb_kwargs = Logger.default_wandb_kwargs('test_project', mode='offline', dir=str(tmpdir))
+    logger = Logger('wandb_video', results_dir=tmpdir, fps=30, wandb_kwargs=wandb_kwargs)
+
+    frame = np.zeros((100, 100, 3), dtype=np.uint8)
+    logger.record_frame(frame)
+    logger.stop_recording()
+
+    logger.log_video(0)
+
+    logger.finish()

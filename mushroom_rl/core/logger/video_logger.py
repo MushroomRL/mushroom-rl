@@ -7,7 +7,7 @@ class VideoLogger(object):
     The recorder is created lazily on the first call to ``record_frame``.
 
     """
-    def __init__(self, recorder_class=None, fps=None, video_path=None, **recorder_kwargs):
+    def __init__(self, recorder_class=None, fps=None, video_path=None, append=False, **recorder_kwargs):
         """
         Constructor.
 
@@ -17,6 +17,8 @@ class VideoLogger(object):
             fps (int, None): frames per second for the video. If None, the default of the recorder class is used;
             video_path (Path, None): path where videos are stored. If None, videos go to the default location
                 of the recorder class;
+            append (bool, False): if True, the videos already present in ``video_path`` are loaded into the
+                recorded videos list at construction;
             **recorder_kwargs: additional keyword arguments forwarded to the recorder class constructor.
 
         """
@@ -25,6 +27,10 @@ class VideoLogger(object):
         self._video_path = video_path
         self._recorder_kwargs = recorder_kwargs
         self._recorder = None
+        self._recorded_videos = list()
+
+        if append:
+            self._load_videos()
 
     def record_frame(self, frame):
         """
@@ -43,9 +49,19 @@ class VideoLogger(object):
         """
         Stop the current recording. The next call to ``record_frame`` will start a new recording.
 
+        Returns:
+            The path of the recorded video file, or None if nothing was recorded.
+
         """
-        if self._recorder is not None:
-            self._recorder.stop()
+        if self._recorder is None:
+            return None
+
+        path = self._recorder.stop()
+
+        if path is not None and path not in self._recorded_videos:
+            self._recorded_videos.append(path)
+
+        return path
 
     def set_video_fps(self, fps):
         """
@@ -71,10 +87,23 @@ class VideoLogger(object):
 
         self._recorder = recorder_class(**kwargs)
 
+    def _load_videos(self):
+        if self._video_path is not None and self._video_path.exists():
+            self._recorded_videos = sorted(self._video_path.rglob('*.mp4'))
+
     @property
-    def recorder(self):
+    def video_recorder(self):
         """
         Access to the underlying recorder instance. Returns None if no frame has been recorded yet.
 
         """
         return self._recorder
+
+    @property
+    def recorded_videos(self):
+        """
+        Returns:
+            The list of paths of the videos recorded (and loaded) so far.
+
+        """
+        return self._recorded_videos

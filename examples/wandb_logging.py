@@ -1,5 +1,6 @@
 import numpy as np
 
+import torch
 import torch.optim as optim
 import torch.nn.functional as F
 
@@ -17,7 +18,7 @@ def experiment(n_epochs, n_steps, n_steps_test, save_agent, load_agent):
     # MDP
     horizon = 200
     gamma = 0.99
-    mdp = Gymnasium('Pendulum-v1', horizon, gamma, headless=False)
+    mdp = Gymnasium('Pendulum-v1', horizon, gamma, headless=True)
 
     # Settings
     initial_replay_size = 64
@@ -35,11 +36,9 @@ def experiment(n_epochs, n_steps, n_steps_test, save_agent, load_agent):
 
     wandb_kwargs = Logger.default_wandb_kwargs('mushroom_rl_wandb_example',
                                                config=hyperparams,
-                                               name=SAC.__name__,
-                                               mode='offline')
+                                               name=SAC.__name__)
 
-    logger = Logger(SAC.__name__, results_dir='./logs' if save_agent else None,
-                    wandb_kwargs=wandb_kwargs)
+    logger = Logger(SAC.__name__, results_dir='./logs', wandb_kwargs=wandb_kwargs)
     logger.strong_line()
     logger.info('Experiment Algorithm: ' + SAC.__name__)
 
@@ -83,12 +82,15 @@ def experiment(n_epochs, n_steps, n_steps_test, save_agent, load_agent):
 
     J = np.mean(dataset.discounted_return)
     R = np.mean(dataset.undiscounted_return)
-    E = agent.policy.entropy(dataset.state).item()
+    E = agent.policy.entropy(torch.from_numpy(dataset.state)).item()
 
-    logger.epoch_info(0, J=J, R=R, entropy=E)
-    logger.log(J=J, R=R, entropy=E)
+    logger.log_evaluation(0, J=J, R=R, entropy=E)
 
     core.learn(n_steps=initial_replay_size, n_steps_per_fit=initial_replay_size)
+
+    # Record an evaluation video before training and upload it to wandb
+    core.evaluate(n_episodes=1, render=True, record=True)
+    logger.log_video(0)
 
     for it in trange(n_epochs, leave=False):
         core.learn(n_steps=n_steps, n_steps_per_fit=1)
@@ -96,18 +98,21 @@ def experiment(n_epochs, n_steps, n_steps_test, save_agent, load_agent):
 
         J = np.mean(dataset.discounted_return)
         R = np.mean(dataset.undiscounted_return)
-        E = agent.policy.entropy(dataset.state).item()
+        E = agent.policy.entropy(torch.from_numpy(dataset.state)).item()
 
-        logger.epoch_info(it+1, J=J, R=R, entropy=E)
-        logger.log(J=J, R=R, entropy=E)
-        logger.advance_step()
+        logger.log_evaluation(it+1, J=J, R=R, entropy=E)
 
         if save_agent:
             logger.log_best_agent(agent, J)
 
-    logger.info('Press a button to visualize pendulum')
-    input()
-    core.evaluate(n_episodes=5, render=True)
+        if it + 1 == 20:
+            core.evaluate(n_episodes=1, render=True, record=True)
+            logger.log_video(it+1)
+
+    # Record a final evaluation video and upload it to wandb
+    core.evaluate(n_episodes=1, render=True, record=True)
+    logger.log_video(n_epochs)
+
 
 
 if __name__ == '__main__':

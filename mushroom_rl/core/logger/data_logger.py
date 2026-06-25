@@ -1,5 +1,4 @@
 import re
-import pickle
 import numpy as np
 
 from pathlib import Path
@@ -32,26 +31,50 @@ class DataLogger(object):
         if append:
             self._load_numpy()
 
-    def log_numpy(self, **kwargs):
+    def log_numpy(self, folder='', **kwargs):
         """
         Log scalars into numpy arrays.
 
         Args:
+            folder (str, ''): optional subfolder of the logging directory where the
+                arrays are stored. If empty, they are stored in the logging directory;
             **kwargs: set of named scalar values to be saved. The argument name
                 will be used to identify the given quantity and as base file name.
 
         """
-        for name, data in kwargs.items():
-            if name not in self._data_dict:
-                self._data_dict[name] = list()
+        results_dir = self._get_folder(folder)
 
-            self._data_dict[name].append(data)
+        for name, data in kwargs.items():
+            key = folder + '/' + name if folder else name
+
+            if key not in self._data_dict:
+                self._data_dict[key] = list()
+
+            self._data_dict[key].append(data)
 
             filename = name + self._suffix + '.npy'
-            path = self._results_dir / filename
+            path = results_dir / filename
 
-            current_data = np.array(self._data_dict[name])
+            current_data = np.array(self._data_dict[key])
             np.save(path, current_data)
+
+    def _get_folder(self, folder=''):
+        """
+        Return the path of the given subfolder of the logging directory, creating it if it
+        does not exist yet. If ``folder`` is empty, the logging directory itself is returned.
+
+        Args:
+            folder (str, ''): name of the subfolder.
+
+        Returns:
+            The path of the (sub)folder.
+
+        """
+        results_dir = self._results_dir / folder if folder else self._results_dir
+        if not results_dir.exists():
+            results_dir.mkdir(parents=True, exist_ok=True)
+
+        return results_dir
 
     def log_numpy_array(self, **kwargs):
         """
@@ -108,11 +131,10 @@ class DataLogger(object):
             agent.save(path, full_save=full_save)
 
     def log_dataset(self, dataset):
-        filename = 'dataset' + self._suffix + '.pkl'
+        filename = 'dataset' + self._suffix + '.msh'
         path = self._results_dir / filename
 
-        with path.open(mode='wb') as f:
-            pickle.dump(dataset, f)
+        dataset.save(path)
 
     @property
     def path(self):
@@ -123,9 +145,11 @@ class DataLogger(object):
         return self._results_dir
 
     def _load_numpy(self):
-        for file in self._results_dir.iterdir():
-            if file.is_file() and file.suffix == '.npy':
-                if file.stem.endswith(self._suffix):
-                    name = re.split(r'-\d+$', file.stem)[0]
-                    data = np.load(str(file)).tolist()
-                    self._data_dict[name] = data
+        for file in self._results_dir.rglob('*.npy'):
+            if file.is_file() and file.stem.endswith(self._suffix):
+                name = re.split(r'-\d+$', file.stem)[0]
+                rel = file.parent.relative_to(self._results_dir)
+                folder = str(rel) if str(rel) != '.' else ''
+                key = folder + '/' + name if folder else name
+                data = np.load(str(file)).tolist()
+                self._data_dict[key] = data

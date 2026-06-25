@@ -11,9 +11,12 @@ wandb_kwargs = Logger.default_wandb_kwargs('tutorial_project',
 logger = Logger('wandb_tutorial', results_dir='/tmp/logs',
                 wandb_kwargs=wandb_kwargs, force_numpy=False)
 
-# Log some metrics to every active backend
-logger.log(actor_loss=0.5, critic_loss=1.2)
+# Log training metrics, grouped under training/ and using n_fit as x-axis
+logger.log_training(**{'actor/loss': 0.5, 'critic/loss': 1.2})
 
-# Advance the wandb step and log the next values
+# Advance the number of fits counter once per fit
 logger.advance_step()
-logger.log(actor_loss=0.4, critic_loss=1.0)
+logger.log_training(**{'actor/loss': 0.4, 'critic/loss': 1.0})
+
+# Log evaluation metrics, grouped under eval/ and using the epoch as x-axis
+logger.log_evaluation(0, J=10.0, R=20.0)

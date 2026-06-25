@@ -40,7 +40,7 @@ class Core(object):
               render=False, record=False, quiet=False):
         """
         This function moves the agent in the environment and fits the policy using the collected samples.
-        The agent can be moved for a given number of steps or a given number of episodes and, independently from this
+        The agent can be moved for a given number of steps or a given number of episodes and, independently of this
         choice, the policy can be fitted after a given number of steps or a given number of episodes.
         The environment is reset at the beginning of the learning process.
 
