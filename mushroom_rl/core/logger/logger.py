@@ -3,10 +3,11 @@ from pathlib import Path
 
 from mushroom_rl.core.logger.console_logger import ConsoleLogger
 from mushroom_rl.core.logger.data_logger import DataLogger
+from mushroom_rl.core.logger.video_logger import VideoLogger
 from mushroom_rl.core.logger.wandb_logger import WandbLogger
 
 
-class Logger(DataLogger, ConsoleLogger, WandbLogger):
+class Logger(DataLogger, ConsoleLogger, VideoLogger, WandbLogger):
     """
     This class implements the logging functionality. It can be used to create
     automatically a log directory, save numpy data array and the current agent.
@@ -16,7 +17,8 @@ class Logger(DataLogger, ConsoleLogger, WandbLogger):
     """
     def __init__(self, log_name='', results_dir='./logs', log_console=False,
                  use_timestamp=False, append=False, seed=None, wandb_kwargs=None,
-                 force_numpy=False, **kwargs):
+                 force_numpy=False, recorder_class=None, fps=None, recorder_kwargs=None,
+                 **kwargs):
         """
         Constructor.
 
@@ -39,6 +41,13 @@ class Logger(DataLogger, ConsoleLogger, WandbLogger):
             force_numpy (bool, False): if True, the values logged through the
                 ``log`` method are also stored on disk as numpy arrays (only if a
                 results directory is set);
+            recorder_class (class, None): the class used to record video. By default,
+                the ``VideoRecorder`` class is used. The class must implement the
+                ``__call__`` and ``stop`` methods;
+            fps (int, None): frames per second for video recording. If None, the
+                value is set automatically by ``Core.set_logger`` from the environment;
+            recorder_kwargs (dict, None): additional keyword arguments forwarded to
+                the recorder class constructor;
             **kwargs: other parameters for ConsoleLogger class.
 
         """
@@ -61,9 +70,13 @@ class Logger(DataLogger, ConsoleLogger, WandbLogger):
 
         self._force_numpy = force_numpy and results_dir is not None
 
+        video_path = results_dir / 'videos' if results_dir else None
+
         DataLogger.__init__(self, results_dir, suffix=suffix, append=append)
         ConsoleLogger.__init__(self, log_name, results_dir if log_console else None,
                                suffix=suffix, **kwargs)
+        VideoLogger.__init__(self, recorder_class=recorder_class, fps=fps,
+                             video_path=video_path, **(recorder_kwargs or {}))
         WandbLogger.__init__(self, wandb_kwargs)
 
     def log(self, **kwargs):

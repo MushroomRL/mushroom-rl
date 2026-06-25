@@ -75,10 +75,8 @@ def experiment(n_epochs, n_steps, n_steps_test, save_agent, load_agent):
                     max_replay_size, warmup_transitions, tau, lr_alpha,
                     critic_fit_params=None)
 
-    agent.set_logger(logger)
-
     # Algorithm
-    core = Core(agent, mdp)
+    core = Core(agent, mdp, logger=logger)
 
     # RUN
     dataset = core.evaluate(n_steps=n_steps_test, render=False)

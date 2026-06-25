@@ -1,4 +1,5 @@
 import numpy as np
+from pathlib import Path
 from pytest import importorskip
 from mushroom_rl.core import Logger
 
@@ -90,3 +91,79 @@ def test_wandb_offline(tmpdir):
     assert logger._wandb_run.summary['actor_loss'] in (0.5, 0.25)
 
     logger._wandb_run.finish()
+
+
+def test_video_logger_lazy_creation(tmpdir):
+    logger = Logger('test_video', results_dir=tmpdir)
+
+    assert logger.recorder is None
+
+    frame = np.zeros((100, 100, 3), dtype=np.uint8)
+    logger.set_video_fps(30)
+    logger.record_frame(frame)
+
+    assert logger.recorder is not None
+
+    logger.stop_recording()
+
+
+def test_video_logger_custom_recorder():
+    class FrameRecorder:
+        def __init__(self, fps=None):
+            self.frames = []
+
+        def __call__(self, frame):
+            self.frames.append(frame)
+
+        def stop(self):
+            pass
+
+    logger = Logger('test_video', results_dir=None, recorder_class=FrameRecorder, fps=30)
+
+    frame_1 = np.zeros((100, 100, 3), dtype=np.uint8)
+    frame_2 = np.ones((100, 100, 3), dtype=np.uint8)
+
+    logger.record_frame(frame_1)
+    logger.record_frame(frame_2)
+
+    assert len(logger.recorder.frames) == 2
+    assert np.array_equal(logger.recorder.frames[0], frame_1)
+    assert np.array_equal(logger.recorder.frames[1], frame_2)
+
+    logger.stop_recording()
+
+
+def test_video_logger_set_fps():
+    class FrameRecorder:
+        def __init__(self, fps=None):
+            self.fps = fps
+
+        def __call__(self, frame):
+            pass
+
+        def stop(self):
+            pass
+
+    logger = Logger('test_video', results_dir=None, recorder_class=FrameRecorder)
+
+    logger.set_video_fps(30)
+    logger.set_video_fps(60)
+
+    frame = np.zeros((100, 100, 3), dtype=np.uint8)
+    logger.record_frame(frame)
+
+    assert logger.recorder.fps == 30
+
+
+def test_video_logger_video_path(tmpdir):
+    logger = Logger('test_video', results_dir=tmpdir, fps=30)
+
+    frame = np.zeros((100, 100, 3), dtype=np.uint8)
+    logger.record_frame(frame)
+    logger.stop_recording()
+
+    video_dir = Path(tmpdir) / 'test_video' / 'videos'
+    assert video_dir.exists()
+
+    videos = list(video_dir.rglob('*.mp4'))
+    assert len(videos) == 1

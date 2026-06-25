@@ -253,3 +253,11 @@ class Agent(Serializable):
     def info(self):
         return self._info
 
+    @property
+    def logger(self):
+        """
+        Access to the logger set via ``set_logger``.
+
+        """
+        return self._logger
+
