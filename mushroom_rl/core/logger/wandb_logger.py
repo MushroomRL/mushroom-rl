@@ -51,6 +51,7 @@ class WandbLogger(object):
             wandb.define_metric('training/*', step_metric='n_fit')
             wandb.define_metric('epoch')
             wandb.define_metric('eval/*', step_metric='epoch')
+            wandb.define_metric('video/*', step_metric='epoch')
 
             self._save_wandb_state()
 
@@ -114,7 +115,7 @@ class WandbLogger(object):
 
     def log_wandb_video(self, name, path, epoch):
         """
-        Log a video file to wandb, grouped under the ``eval/`` prefix and using the epoch as
+        Log a video file to wandb, grouped under the ``video/`` prefix and using the epoch as
         x-axis. The video is uploaded as is, without any re-encoding.
 
         Args:
@@ -124,8 +125,8 @@ class WandbLogger(object):
 
         """
         if self._wandb_run is not None:
-            video = wandb.Video(str(path))
-            wandb.log({'eval/' + name: video, 'epoch': epoch})
+            video = wandb.Video(str(path), format='mp4')
+            wandb.log({'video/' + name: video, 'epoch': epoch})
 
     def advance_step(self):
         """

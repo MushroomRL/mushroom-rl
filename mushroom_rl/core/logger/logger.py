@@ -138,17 +138,19 @@ class Logger(DataLogger, ConsoleLogger, VideoLogger, WandbLogger):
 
         self.epoch_info(epoch, **kwargs)
 
-    def log_video(self, epoch, video=None):
+    def log_video(self, epoch, video=None, wandb_name='evaluation'):
         """
-        If wandb logging is active, upload a video to wandb under the ``eval/`` group using the
+        If wandb logging is active, upload a video to wandb under the ``video/`` group using the
         epoch as x-axis. The recording itself is stopped by ``Core``; this method only handles
-        the wandb upload. The video name is taken from the file name (without extension) and the
-        video is uploaded as is, without any re-encoding.
+        the wandb upload. The video is uploaded as is, without any re-encoding. The same
+        ``wandb_name`` should be used across epochs so that wandb shows a slider to browse them.
 
         Args:
             epoch (int): the current epoch, used as x-axis for the video;
             video (str, Path, None): path of the video file to upload. If None, the last recorded
-                video is used.
+                video is used;
+            wandb_name (str, 'evaluation'): the wandb key name for the video. Must be consistent
+                across epochs for the slider to work.
 
         """
         if not self.wandb_active:
@@ -159,5 +161,4 @@ class Logger(DataLogger, ConsoleLogger, VideoLogger, WandbLogger):
                 return
             video = self._recorded_videos[-1]
 
-        video = Path(video)
-        self.log_wandb_video(video.stem, video, epoch)
+        self.log_wandb_video(wandb_name, video, epoch)

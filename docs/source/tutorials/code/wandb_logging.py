@@ -8,7 +8,7 @@ wandb_kwargs = Logger.default_wandb_kwargs('tutorial_project',
                                            mode='offline')
 
 # Create a logger with wandb logging enabled
-logger = Logger('wandb_tutorial', results_dir='/tmp/logs',
+logger = Logger('wandb_tutorial', results_dir='/tmp/logs', use_timestamp=True,
                 wandb_kwargs=wandb_kwargs, force_numpy=False)
 
 # Log training metrics, grouped under training/ and using n_fit as x-axis

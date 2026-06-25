@@ -38,7 +38,7 @@ def experiment(n_epochs, n_steps, n_steps_test, save_agent, load_agent):
                                                config=hyperparams,
                                                name=SAC.__name__)
 
-    logger = Logger(SAC.__name__, results_dir='./logs', wandb_kwargs=wandb_kwargs)
+    logger = Logger(SAC.__name__, results_dir='./logs', use_timestamp=True, wandb_kwargs=wandb_kwargs)
     logger.strong_line()
     logger.info('Experiment Algorithm: ' + SAC.__name__)
 

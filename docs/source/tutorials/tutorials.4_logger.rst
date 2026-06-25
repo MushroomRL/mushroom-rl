@@ -220,8 +220,10 @@ The fps is automatically set from the environment when the logger is attached to
     logger = Logger('my_experiment', results_dir='./logs', fps=30)
 
 By default, the ``VideoRecorder`` class from ``mushroom_rl.utils.record`` is used, which writes
-``.mp4`` files using OpenCV. A custom recorder class can be provided through the ``recorder_class``
-argument. The class must implement ``__call__(frame)`` and ``stop()`` methods:
+``.mp4`` files using OpenCV with the VP9 codec. The codec can be changed through the
+``recorder_kwargs`` argument (e.g. ``recorder_kwargs=dict(codec='avc1')`` for H.264).
+A custom recorder class can be provided through the ``recorder_class`` argument.
+The class must implement ``__call__(frame)`` and ``stop()`` methods:
 
 .. code-block:: python
 
@@ -234,8 +236,8 @@ is available through ``logger.recorded_videos``.
 
 If wandb logging is active, the last recorded video can be uploaded to wandb through the ``log_video``
 method. The recording is stopped by the ``Core``, so ``log_video`` only handles the upload, using the
-epoch as x-axis and the recorded file name as the video name. The video is uploaded as is, without any
-re-encoding:
+epoch as x-axis. The video is uploaded under the ``video/`` group with a fixed key (``evaluation`` by
+default), so that wandb shows a slider to browse videos across epochs:
 
 .. code-block:: python
 
