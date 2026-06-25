@@ -33,11 +33,15 @@ class Logger(DataLogger, ConsoleLogger, VideoLogger, WandbLogger):
             append (bool, False): If true, the logger will append the new
                 data logged to the one already existing in the directory;
             seed (int, None): seed for the current run. It can be optionally
-                specified to add a seed suffix for each data file logged;
+                specified to add a seed suffix for each data file logged.
+                When wandb logging is active, the seed is added to the wandb
+                ``config`` and, if ``name`` is not set, to the run name;
             wandb_kwargs (dict, None): dictionary of arguments forwarded to
                 ``wandb.init`` to enable wandb logging. If None, or if the
                 ``wandb`` package is not installed, wandb logging is disabled.
-                Use ``Logger.default_wandb_kwargs`` to build a default dictionary;
+                Use ``Logger.default_wandb_kwargs`` to build a default dictionary.
+                If ``group`` is not set, it defaults to ``log_name`` so that
+                all runs from the same experiment are grouped together;
             force_numpy (bool, False): if True, the values logged through the
                 ``log`` method are also stored on disk as numpy arrays (only if a
                 results directory is set);
@@ -79,8 +83,17 @@ class Logger(DataLogger, ConsoleLogger, VideoLogger, WandbLogger):
                                suffix=suffix, **kwargs)
         VideoLogger.__init__(self, recorder_class=recorder_class, fps=fps,
                              video_path=video_path, append=append, **(recorder_kwargs or {}))
-        if wandb_kwargs is not None and not wandb_kwargs.get('group'):
-            wandb_kwargs = dict(wandb_kwargs, group=log_name)
+        if wandb_kwargs is not None:
+            if not wandb_kwargs.get('group'):
+                wandb_kwargs = dict(wandb_kwargs, group=log_name)
+
+            if seed is not None:
+                config = dict(wandb_kwargs.get('config') or {})
+                config['seed'] = seed
+                wandb_kwargs = dict(wandb_kwargs, config=config)
+
+                if not wandb_kwargs.get('name'):
+                    wandb_kwargs = dict(wandb_kwargs, name=log_name + '_' + str(seed))
 
         WandbLogger.__init__(self, wandb_kwargs, base_results_dir, log_dir=results_dir, append=append)
 

@@ -158,6 +158,30 @@ def test_wandb_group_not_overridden(tmpdir):
     logger.finish()
 
 
+def test_wandb_seed(tmpdir):
+    importorskip('wandb')
+
+    wandb_kwargs = Logger.default_wandb_kwargs('test_project', mode='offline', dir=str(tmpdir))
+    logger = Logger('my_experiment', results_dir=None, seed=42, wandb_kwargs=wandb_kwargs)
+
+    assert logger._wandb_run.config['seed'] == 42
+    assert logger._wandb_run.name == 'my_experiment_42'
+    assert logger._wandb_run.group == 'my_experiment'
+    logger.finish()
+
+
+def test_wandb_seed_name_not_overridden(tmpdir):
+    importorskip('wandb')
+
+    wandb_kwargs = Logger.default_wandb_kwargs('test_project', mode='offline',
+                                               dir=str(tmpdir), name='custom_name')
+    logger = Logger('my_experiment', results_dir=None, seed=42, wandb_kwargs=wandb_kwargs)
+
+    assert logger._wandb_run.config['seed'] == 42
+    assert logger._wandb_run.name == 'custom_name'
+    logger.finish()
+
+
 def test_wandb_append_offline(tmpdir):
     importorskip('wandb')
 

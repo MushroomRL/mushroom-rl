@@ -171,6 +171,19 @@ numpy arrays in the logging directory:
 .. literalinclude:: code/wandb_logging.py
     :lines: 21-22
 
+When the Logger is created, it automatically sets the wandb ``group`` to the experiment name
+(``log_name``) unless a ``group`` is already specified in ``wandb_kwargs``. This means that all runs
+from the same experiment (e.g. different seeds) are grouped together in the wandb dashboard. You can
+override this by passing an explicit ``group`` in ``wandb_kwargs``:
+
+.. code-block:: python
+
+    wandb_kwargs = Logger.default_wandb_kwargs('my_project', group='custom_group')
+
+When a ``seed`` is passed to the Logger, it is automatically added to the wandb ``config`` dictionary
+and, if ``name`` is not already set, the run name is set to ``log_name_seed`` (e.g. ``SAC_42``).
+This makes it easy to distinguish individual seed runs within the same group:
+
 The wandb run is finished automatically when the process exits, so there is usually no need to close it
 explicitly; the ``finish`` method is available to close it earlier if needed.
 
