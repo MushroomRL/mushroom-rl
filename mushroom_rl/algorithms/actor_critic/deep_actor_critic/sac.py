@@ -22,8 +22,6 @@ class SAC(DeepAC):
 
     """
 
-    _logged_approximators = (('_critic_approximator', 'critic/loss'),)
-
     def __init__(self, mdp_info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params, batch_size,
                  initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha, use_log_alpha_loss=False,
                  log_std_min=-20, log_std_max=2, target_entropy=None, critic_fit_params=None):
@@ -105,6 +103,7 @@ class SAC(DeepAC):
             _log_alpha='torch',
             _alpha_optim='torch'
         )
+        self._add_logger_attr('_critic_approximator', group='critic')
 
     def fit(self, dataset):
         self._replay_memory.add(dataset)
@@ -118,10 +117,12 @@ class SAC(DeepAC):
                 alpha_loss = self._update_alpha(log_prob.detach())
 
                 if self._logger:
-                    self._logger.log_training(**{'actor/loss': loss.item(),
-                                                 'actor/entropy': -log_prob.mean().item(),
-                                                 'alpha/value': self._alpha.item(),
-                                                 'alpha/loss': alpha_loss.item()})
+                    self._logger.log_training('actor',
+                                              loss=loss.item(),
+                                              entropy=-log_prob.mean().item())
+                    self._logger.log_training('alpha',
+                                              value=self._alpha.item(),
+                                              loss=alpha_loss.item())
 
             q_next = self._next_q(next_state, absorbing)
             q = reward + self.mdp_info.gamma * q_next

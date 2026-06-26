@@ -97,27 +97,31 @@ class Logger(DataLogger, ConsoleLogger, VideoLogger, WandbLogger):
 
         WandbLogger.__init__(self, wandb_kwargs, base_results_dir, log_dir=results_dir, append=append)
 
-    def log_training(self, **kwargs):
+    def log_training(self, prefix=None, **kwargs):
         """
         Log a set of named training metrics. The values are logged to wandb under the
         ``training/`` group (if active), to the console with the ``debug`` level (so they
         are not shown by default), and to disk as numpy arrays inside the ``training``
         subfolder only if the logger was constructed with ``force_numpy=True``.
 
-        A ``'/'`` in a name groups the metric in wandb (e.g. ``'critic/loss'``) and is
-        replaced by ``'_'`` for the numpy file name (e.g. ``critic_loss.npy``).
+        An optional ``prefix`` groups the metrics (e.g. ``prefix='critic'``, ``loss=...``
+        becomes ``critic/loss``); a ``'/'`` in the resulting name groups the metric in wandb
+        and is replaced by ``'_'`` for the numpy file name (e.g. ``critic_loss.npy``).
 
         Args:
+            prefix (str, None): optional group prepended to each metric name;
             **kwargs: set of named values to be logged.
 
         """
-        self.log_wandb_training(**kwargs)
+        self.log_wandb_training(prefix, **kwargs)
+
+        names = {name: (prefix + '/' + name if prefix else name) for name in kwargs}
 
         if self._force_numpy:
-            numpy_kwargs = {name.replace('/', '_'): data for name, data in kwargs.items()}
+            numpy_kwargs = {names[name].replace('/', '_'): data for name, data in kwargs.items()}
             self.log_numpy(folder='training', **numpy_kwargs)
 
-        self.debug(' '.join(f'{name}: {data}' for name, data in kwargs.items()))
+        self.debug(' '.join(f'{names[name]}: {data}' for name, data in kwargs.items()))
 
     def log_evaluation(self, epoch, **kwargs):
         """

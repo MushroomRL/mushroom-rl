@@ -1,13 +1,14 @@
 For Mushroom 2.0:
-    * Implement wandb advance logging functionality in all algorithms
+    * Single core class, two instantiation (SingleCore and VectorizedCore)
+    * Rename Serializable in MushroomObject
     * Rework of stateful policies:
         - fix stateful policy hierarchy issue
         - vectorize RecurrentGaussianTorchPolicy to support batched hidden states natively (currently hardcoded for single env)
         - add history_length support to SequenceReplayMemory (frame stacking + BPTT simultaneously) and necessary framework level support.
-    * Single core class, two instantiation (SingleCore and VectorizedCore)
     * fix basis functions
         - vectorize if possible, using vmap if allowed
         - simplify interface, improving facade pattern
+
 
 For Mushroom 2.1:
     * vectorize _compute_n_step_return in AbstractReplayMemory

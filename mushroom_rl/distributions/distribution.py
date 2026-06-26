@@ -13,7 +13,15 @@ class Distribution(Serializable):
 
         super().__init__()
 
-        self._add_save_attr(_context_shape='primitive')
+        self._add_save_attr(
+            _context_shape='primitive'
+        )
+
+    def _log(self):
+        if self._logger is None:
+            return
+
+        self._logger.log_training(self._log_prefix or 'distribution', entropy=float(self.entropy()))
 
     def sample(self, context=None):
         """

@@ -14,11 +14,29 @@ import inspect
 
 class Serializable(object):
     """
-    Interface to implement serialization of a MushroomRL object.
-    This provide load and save functionality to save the object in a zip file.
-    It is possible to save the state of the agent with different levels of
+    Interface to implement serialization and logging of a MushroomRL object.
+
+    It provides save and load functionality to store the object in a zip file: subclasses declare which
+    attributes to persist with ``_add_save_attr``, and ``full_save`` selects how much of the state is
+    saved.
+
+    It also provides logging functionality: a logger is attached with ``set_logger`` and forwarded to the
+    loggable children declared with ``_add_logger_attr``, so that the relevant quantities of an object and
+    of its sub-objects are logged under a hierarchy of metric names.
 
     """
+
+    def __new__(cls, *args, **kwargs):
+        obj = object.__new__(cls)
+
+        obj._save_attributes = dict()
+        obj._logger_attributes = dict()
+        obj._logger = None
+        obj._log_prefix = None
+        obj._log_label = None
+
+        return obj
+
     def save(self, path, full_save=False):
         """
         Serialize and save the object to the given path on disk.
@@ -73,6 +91,7 @@ class Serializable(object):
         config_data = dict(
             type=type(self),
             save_attributes=self._save_attributes,
+            logger_attributes=self._logger_attributes,
             primitive_dictionary=primitive_dictionary
         )
 
@@ -105,8 +124,11 @@ class Serializable(object):
         config_path = Serializable._append_folder(folder, 'config')
 
         try:
-            object_type, save_attributes, primitive_dictionary = \
-                cls._load_pickle(zip_file, config_path).values()
+            config = cls._load_pickle(zip_file, config_path)
+            object_type = config['type']
+            save_attributes = config['save_attributes']
+            logger_attributes = config['logger_attributes']
+            primitive_dictionary = config['primitive_dictionary']
         except KeyError:
             return None
 
@@ -115,6 +137,7 @@ class Serializable(object):
         else:
             loaded_object = object_type.__new__(object_type)
             setattr(loaded_object, '_save_attributes', save_attributes)
+            setattr(loaded_object, '_logger_attributes', logger_attributes)
 
             for att, method in save_attributes.items():
                 mandatory = not method.endswith('!')
@@ -141,16 +164,27 @@ class Serializable(object):
 
             return loaded_object
 
-    @classmethod
-    def _load_list(self, zip_file, folder, length):
-        loaded_list = list()
+    def set_logger(self, logger, prefix=None, label=None):
+        """
+        Attach a logger to the object so that its relevant quantities are logged. The ``prefix``
+        groups the logged metrics (e.g. ``critic`` produces ``critic/loss``); the ``label`` overrides
+        the default metric name of a single-value object. The logger is then forwarded to every
+        loggable child registered with ``_add_logger_attr``, with the child group joined to ``prefix``.
 
-        for i in range(length):
-            element_folder = Serializable._append_folder(folder, str(i))
-            loaded_element = Serializable.load_zip(zip_file, element_folder)
-            loaded_list.append(loaded_element)
+        Args:
+            logger (Logger): the logger to be used by the object;
+            prefix (str, None): optional group prepended to the logged metric names;
+            label (str, None): optional metric name override for single-value objects.
 
-        return loaded_list
+        """
+        self._logger = logger
+        self._log_prefix = prefix
+        self._log_label = label
+
+        for attr, (group, child_label) in self._logger_attributes.items():
+            child = getattr(self, attr, None)
+            if child is not None:
+                child.set_logger(logger, self._join_prefix(prefix, group), child_label)
 
     def copy(self):
         """
@@ -179,9 +213,28 @@ class Serializable(object):
                 that should be used to save and load them.
 
         """
-        if not hasattr(self, '_save_attributes'):
-            self._save_attributes = dict()
         self._save_attributes.update(attr_dict)
+
+    def _add_logger_attr(self, *attrs, group=None, **labels):
+        """
+        Register loggable child attributes so that ``set_logger`` forwards the logger to each of them,
+        all grouped under the optional ``group`` prefix. Attributes passed positionally use their default
+        metric name (``loss`` for an approximator, ``value`` for a parameter), while attributes passed as
+        keywords map to an explicit metric name. For example ``_add_logger_attr('_V', group='critic')`` logs
+        the approximator under ``critic/loss``, and ``_add_logger_attr(_epsilon='epsilon', group='policy')``
+        logs the parameter under ``policy/epsilon``. The registry is saved, so the forwarding keeps working
+        on a loaded object.
+
+        Args:
+            *attrs: attribute names that use their child default metric name;
+            group (str, None): optional group prefix shared by all the registered children;
+            **labels: mapping from attribute name to its explicit metric label.
+
+        """
+        for attr in attrs:
+            self._logger_attributes[attr] = (group, None)
+        for attr, label in labels.items():
+            self._logger_attributes[attr] = (group, label)
 
     def _post_load(self):
         """
@@ -192,11 +245,34 @@ class Serializable(object):
         pass
 
     @staticmethod
+    def _join_prefix(prefix, group):
+        """
+        Join a parent ``prefix`` and a child ``group`` into a logging prefix using ``'/'`` as separator,
+        ignoring the empty ones. Returns ``None`` if both are empty, so that the prefix composes cleanly
+        through nested objects.
+
+        """
+        if prefix and group:
+            return prefix + '/' + group
+        return prefix or group
+
+    @staticmethod
     def _append_folder(folder, name):
         if folder:
            return folder + '/' + name
         else:
            return name
+
+    @staticmethod
+    def _load_list(zip_file, folder, length):
+        loaded_list = list()
+
+        for i in range(length):
+            element_folder = Serializable._append_folder(folder, str(i))
+            loaded_element = Serializable.load_zip(zip_file, element_folder)
+            loaded_list.append(loaded_element)
+
+        return loaded_list
 
     @staticmethod
     def _load_pickle(zip_file, name):
@@ -257,6 +333,7 @@ class Serializable(object):
             config_data = dict(
                 type=list,
                 save_attributes=dict(),
+                logger_attributes=dict(),
                 primitive_dictionary=dict(len=len(obj))
             )
 

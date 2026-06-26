@@ -84,17 +84,21 @@ class WandbLogger(object):
 
         return kwargs
 
-    def log_wandb_training(self, **kwargs):
+    def log_wandb_training(self, prefix=None, **kwargs):
         """
         Log a set of named training metrics to wandb, grouped under the ``training/`` prefix
-        and using the number of fits as x-axis.
+        and using the number of fits as x-axis. An optional ``prefix`` adds an intermediate
+        group, so that a value ``loss`` logged with ``prefix='critic'`` becomes
+        ``training/critic/loss``.
 
         Args:
+            prefix (str, None): optional group prepended to each metric name;
             **kwargs: set of named values to be logged.
 
         """
         if self._wandb_run is not None:
-            data = {'training/' + name: value for name, value in kwargs.items()}
+            group = 'training/' + (prefix + '/' if prefix else '')
+            data = {group + name: value for name, value in kwargs.items()}
             data['n_fit'] = self._n_fit
             wandb.log(data)
 

@@ -50,8 +50,12 @@ class PolicyGradient(Agent):
                 self._init_update()
         
         assert len(J) > 1, "More than one episode is needed to compute the gradient"
-        
+
         self._update_parameters(J)
+
+        if self._logger:
+            self._logger.log_training(J=np.mean(J).item())
+            self._logger.advance_step()
 
     def _update_parameters(self, J):
         """

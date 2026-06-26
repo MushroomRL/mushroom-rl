@@ -88,3 +88,6 @@ class Rainbow(AbstractCategoricalDQN):
 
             if self._n_updates % self._target_update_frequency == 0:
                 self._update_target()
+
+            if self._logger:
+                self._logger.advance_step()

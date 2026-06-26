@@ -152,24 +152,26 @@ experiment hyperparameters:
 The ``log_training`` method logs the training metrics: they are grouped under the ``training/`` prefix in
 wandb (using the number of fits as x-axis), printed on the console with the ``debug`` level (so they are
 not shown by default), and stored on disk as numpy arrays inside a ``training`` subfolder only if the
-Logger was constructed with ``force_numpy=True``. A ``'/'`` in a name groups the metric in wandb and is
-replaced by ``'_'`` in the numpy file name:
+Logger was constructed with ``force_numpy=True``. The metric values are passed as keyword arguments, and
+the optional first positional argument is a group prefix prepended to every name (so
+``log_training('critic', loss=...)`` logs ``training/critic/loss``); the resulting ``'/'`` separator groups
+the metric in wandb and is replaced by ``'_'`` in the numpy file name:
 
 .. literalinclude:: code/wandb_logging.py
-    :lines: 14-15
+    :lines: 14-17
 
 The number of fits counter, used as x-axis for the training metrics, is advanced explicitly by calling
 ``advance_step`` once per fit, so that all the values logged during a fit share the same x-axis value:
 
 .. literalinclude:: code/wandb_logging.py
-    :lines: 17-19
+    :lines: 19-22
 
 The ``log_evaluation`` method logs the evaluation metrics: they are grouped under the ``eval/`` prefix in
 wandb (using the epoch as x-axis), printed on the console through ``epoch_info``, and stored on disk as
 numpy arrays in the logging directory:
 
 .. literalinclude:: code/wandb_logging.py
-    :lines: 21-22
+    :lines: 24-25
 
 When the Logger is created, it automatically sets the wandb ``group`` to the experiment name
 (``log_name``) unless a ``group`` is already specified in ``wandb_kwargs``. This means that all runs
@@ -192,6 +194,14 @@ meant to be driven from inside the algorithms, which log their internal metrics 
 divergence) during the fit, once the logger is attached to the agent through the ``Core`` (via
 ``set_logger`` or the constructor) as shown above. A complete runnable example with metric logging is
 available in ``examples/wandb_logging.py``.
+
+When the logger is attached, it is automatically forwarded down the agent's loggable components, so that
+their relevant quantities are logged under a hierarchy of grouped metric names without any extra code: the
+critic approximator logs ``critic/loss``, an exploration parameter logs ``policy/epsilon``, a learning
+rate logs ``alpha/value``, a distribution logs ``distribution/entropy``, and so on. This forwarding is part
+of the ``Serializable`` interface (see the related tutorial): any class declares its loggable children with
+``self._add_logger_attr`` (analogous to ``self._add_save_attr``), and ``set_logger`` propagates the logger
+and the metric-name prefix recursively.
 
 
 Video Recording

@@ -1,3 +1,4 @@
+from mushroom_rl.core.serialization import Serializable
 from mushroom_rl.approximators.approximator import Approximator, Ensemble
 
 
@@ -14,13 +15,13 @@ class QApproximator(Approximator):
 
     def __new__(cls, approximator=None, n_actions=None, output_shape=(1,), n_models=1, **kwargs):
         if cls is not QApproximator:
-            return object.__new__(cls)
+            return Serializable.__new__(cls)
         if n_models > 1:
-            return object.__new__(QApproximatorEnsemble)
+            return Serializable.__new__(QApproximatorEnsemble)
         elif output_shape[0] != n_actions:
-            return object.__new__(QApproximatorAction)
+            return Serializable.__new__(QApproximatorAction)
         else:
-            return object.__new__(QApproximatorSimple)
+            return Serializable.__new__(QApproximatorSimple)
 
     @property
     def n_actions(self):

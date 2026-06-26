@@ -11,7 +11,7 @@ class VarianceParameter(Parameter):
 
     """
     def __init__(self, value, exponential=False, min_value=None, tol=1.,
-                 size=(1,)):
+                 size=(1,), log_table=False):
         """
         Constructor.
 
@@ -27,7 +27,7 @@ class VarianceParameter(Parameter):
         self._x2 = Table(size)
         self._parameter_value = Table(size)
 
-        super().__init__(value, min_value, size)
+        super().__init__(value, min_value, size, log_table=log_table)
 
         self._add_save_attr(
             _exponential='primitive',
@@ -77,6 +77,8 @@ class VarianceParameter(Parameter):
             factor * parameter_value) ** 2
         self._parameter_value[idx] = parameter_value
 
+        self._log(*idx, **kwargs)
+
     def _compute_parameter(self, sigma, **kwargs):
         raise NotImplementedError('VarianceParameter is an abstract class.')
 
@@ -115,7 +117,7 @@ class WindowedVarianceParameter(Parameter):
 
     """
     def __init__(self, value, exponential=False, min_value=None, tol=1.,
-                 window=100, size=(1,)):
+                 window=100, size=(1,), log_table=False):
         """
         Constructor.
 
@@ -142,7 +144,7 @@ class WindowedVarianceParameter(Parameter):
             _parameter_value='mushroom',
         )
 
-        super(WindowedVarianceParameter, self).__init__(value, min_value, size)
+        super(WindowedVarianceParameter, self).__init__(value, min_value, size, log_table=log_table)
 
     def _compute(self, *idx, **kwargs):
         return self._parameter_value[idx]
@@ -191,6 +193,8 @@ class WindowedVarianceParameter(Parameter):
             1. - factor*parameter_value) ** 2 * self._weights_var[idx] + (
             factor * parameter_value) ** 2
         self._parameter_value[idx] = parameter_value
+
+        self._log(*idx, **kwargs)
 
     def _compute_parameter(self, sigma, **kwargs):
         raise NotImplementedError(

@@ -14,8 +14,6 @@ class AbstractDQN(Agent):
 
     """
 
-    _logged_approximators = (('approximator', 'critic/loss'),)
-
     def __init__(self, mdp_info, policy, approximator, approximator_params, batch_size, target_update_frequency,
                  replay_memory=None, initial_replay_size=500, max_replay_size=5000, fit_params=None,
                  predict_params=None, clip_reward=False, history_length=1):
@@ -92,6 +90,8 @@ class AbstractDQN(Agent):
             approximator='mushroom',
             target_approximator='mushroom'
         )
+
+        self._add_logger_attr('approximator', group='critic')
 
     def fit(self, dataset):
         self._fit(dataset)

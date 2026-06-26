@@ -71,6 +71,7 @@ class EpsGreedy(TDPolicy):
         self._epsilon = to_parameter(epsilon)
 
         self._add_save_attr(_epsilon='mushroom')
+        self._add_logger_attr(_epsilon='epsilon', group='policy')
 
     def __call__(self, *args):
         state = args[0]
@@ -150,6 +151,7 @@ class Boltzmann(TDPolicy):
         self._beta = to_parameter(beta)
 
         self._add_save_attr(_beta='mushroom')
+        self._add_logger_attr(_beta='beta', group='policy')
 
     def __call__(self, *args):
         state = args[0]
@@ -201,6 +203,8 @@ class Mellowmax(Boltzmann):
     """
     class MellowmaxParameter(Parameter):
         def __init__(self, outer, omega, beta_min, beta_max):
+            super().__init__(0.)
+
             self._omega = omega
             self._outer = outer
             self._beta_min = beta_min

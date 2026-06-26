@@ -69,6 +69,7 @@ class PPO_BPTT(OnPolicyDeepAC):
             _dim_env_state='primitive',
             _truncation_length='primitive'
         )
+        self._add_logger_attr('_V', group='critic')
 
     def fit(self, dataset):
         state, action, reward, next_state, absorbing, last = dataset.parse(to='torch')
@@ -178,8 +179,9 @@ class PPO_BPTT(OnPolicyDeepAC):
                 self._logger.info(msg)
                 self._logger.weak_line()
 
-                self._logger.log_training(**{'actor/entropy': logging_ent.item(),
-                                             'actor/kl': logging_kl.item()})
+                self._logger.log_training('actor',
+                                          entropy=logging_ent.item(),
+                                          kl=logging_kl.item())
                 self._logger.advance_step()
 
     def _post_load(self):

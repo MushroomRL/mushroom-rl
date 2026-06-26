@@ -55,6 +55,8 @@ class GaussianDistribution(Distribution):
         else:
             self._mu = weights.dot(theta) / np.sum(weights)
 
+        self._log()
+
     def con_wmle(self, theta, weights, eps, *args):
         n_dims = len(self._mu)
         mu =self._mu
@@ -70,6 +72,8 @@ class GaussianDistribution(Distribution):
 
         self._mu = GaussianDistribution._compute_mu_from_lagrangian(weights, theta, mu, eta_opt)
 
+        self._log()
+
     def diff_log(self, theta, context=None):
         delta = theta - self._mu
         g = self._inv_sigma.dot(delta)
@@ -81,6 +85,8 @@ class GaussianDistribution(Distribution):
 
     def set_parameters(self, rho):
         self._mu = rho
+
+        self._log()
 
     @property
     def parameters_size(self):
@@ -187,6 +193,8 @@ class GaussianDiagonalDistribution(Distribution):
             delta2 = (theta - self._mu)**2
             self._std = np.sqrt(weights.dot(delta2) / Z)
 
+        self._log()
+
     def con_wmle(self, theta, weights, eps, kappa):
         n_dims = len(self._mu)
         mu = self._mu
@@ -201,6 +209,8 @@ class GaussianDiagonalDistribution(Distribution):
         eta_opt, omg_opt = res.x[0], res.x[1]
 
         self._mu, self._std = GaussianDiagonalDistribution._compute_mu_sigma_from_lagrangian(weights, theta, mu, sigma, eta_opt, omg_opt)
+
+        self._log()
 
     def diff_log(self, theta, context=None):
         n_dims = len(self._mu)
@@ -231,6 +241,8 @@ class GaussianDiagonalDistribution(Distribution):
         n_dims = len(self._mu)
         self._mu = rho[:n_dims]
         self._std = rho[n_dims:]
+
+        self._log()
 
     @property
     def parameters_size(self):
@@ -347,6 +359,8 @@ class GaussianCholeskyDistribution(Distribution):
 
         self._chol_sigma = np.linalg.cholesky(sigma)
 
+        self._log()
+
     def con_wmle(self, theta, weights, eps, kappa):
         n_dims = len(self._mu)
         mu =self._mu
@@ -363,6 +377,8 @@ class GaussianCholeskyDistribution(Distribution):
         mu_new, sigma_new = GaussianCholeskyDistribution._compute_mu_sigma_from_lagrangian(weights, theta, mu, sigma, eta_opt, omg_opt)
 
         self._mu, self._chol_sigma = mu_new, np.linalg.cholesky(sigma_new)
+
+        self._log()
 
     def diff_log(self, theta, context=None):
         n_dims = len(self._mu)
@@ -399,6 +415,8 @@ class GaussianCholeskyDistribution(Distribution):
         n_dims = len(self._mu)
         self._mu = rho[:n_dims]
         self._chol_sigma[np.tril_indices(n_dims)] = rho[n_dims:]
+
+        self._log()
 
     @property
     def parameters_size(self):

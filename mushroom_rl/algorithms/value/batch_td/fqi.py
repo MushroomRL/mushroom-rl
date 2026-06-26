@@ -48,3 +48,6 @@ class FQI(BatchTD):
                 self._target = reward + self.mdp_info.gamma * max_q
 
             self.approximator.fit(state, action, self._target, **self._fit_params)
+
+            if self._logger:
+                self._logger.advance_step()

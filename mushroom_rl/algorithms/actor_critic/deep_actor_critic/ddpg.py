@@ -15,8 +15,6 @@ class DDPG(DeepAC):
 
     """
 
-    _logged_approximators = (('_critic_approximator', 'critic/loss'),)
-
     def __init__(self, mdp_info, policy_class, policy_params,
                  actor_params, actor_optimizer, critic_params, batch_size,
                  initial_replay_size, max_replay_size, tau, policy_delay=1,
@@ -90,8 +88,7 @@ class DDPG(DeepAC):
             _target_critic_approximator='mushroom',
             _target_actor_approximator='mushroom'
         )
-
-
+        self._add_logger_attr('_critic_approximator', group='critic')
 
     def fit(self, dataset):
         self._replay_memory.add(dataset)
@@ -108,7 +105,7 @@ class DDPG(DeepAC):
                 self._optimize_actor_parameters(loss)
 
                 if self._logger:
-                    self._logger.log_training(**{'actor/loss': loss.item()})
+                    self._logger.log_training('actor', loss=loss.item())
 
             self._update_target(self._critic_approximator, self._target_critic_approximator)
             self._update_target(self._actor_approximator, self._target_actor_approximator)

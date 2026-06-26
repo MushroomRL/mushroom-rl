@@ -51,3 +51,6 @@ class DoubleFQI(FQI):
             for i in range(2):
                 self.approximator.fit(state[i], action[i], self._target[i], idx=i,
                                       **self._fit_params)
+
+            if self._logger:
+                self._logger.advance_step()

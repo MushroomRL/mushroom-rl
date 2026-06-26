@@ -339,6 +339,9 @@ def test_log_video_wandb_offline(tmpdir):
     logger.record_frame(frame)
     logger.stop_recording()
 
+    assert len(logger.recorded_videos) == 1
+    assert logger.recorded_videos[0].exists()
+
     logger.log_video(0)
 
     logger.finish()

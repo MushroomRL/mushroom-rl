@@ -51,3 +51,6 @@ class BoostedFQI(FQI):
                                   **self._fit_params)
 
             self._idx += 1
+
+            if self._logger:
+                self._logger.advance_step()

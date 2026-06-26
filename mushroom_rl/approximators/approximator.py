@@ -13,21 +13,19 @@ class Approximator(Serializable):
 
     def __new__(cls, *args, n_models=1, **kwargs):
         if issubclass(cls, Ensemble):
-            return object.__new__(cls)
+            return Serializable.__new__(cls)
         if n_models > 1:
-            ensemble = object.__new__(Ensemble)
+            ensemble = Serializable.__new__(Ensemble)
             Ensemble.__init__(ensemble, cls, n_models, **kwargs)
             return ensemble
-        return object.__new__(cls)
+        return Serializable.__new__(cls)
 
     def __init__(self, input_shape, output_shape, backend='numpy'):
         self._input_shape = input_shape
         self._output_shape = output_shape
-        self._logger = None
-        self._loss_label = None
         self._backend = ArrayBackend.get_array_backend(backend)
         self._add_save_attr(_input_shape='primitive', _output_shape='primitive',
-                            _logger='none', _loss_label='none', _backend='primitive')
+                            _backend='primitive')
 
     def fit(self, *args, **kwargs):
         """
@@ -81,19 +79,6 @@ class Approximator(Serializable):
         """
         return self._output_shape
 
-    def set_logger(self, logger, label=None):
-        """
-        Attach a logger to the approximator so that the loss is logged after each fit call.
-
-        Args:
-            logger (Logger): the logger object;
-            label (str, None): optional label used for the loss across the logging backends.
-                Defaults to ``'loss'``.
-
-        """
-        self._logger = logger
-        self._loss_label = label
-
     def _log(self):
         if self._logger:
             if not hasattr(self, 'loss_fit'):
@@ -103,8 +88,8 @@ class Approximator(Serializable):
                 return
             if hasattr(loss, 'squeeze'):
                 loss = loss.squeeze()
-            key = 'loss' if self._loss_label is None else self._loss_label
-            self._logger.log_training(**{key: loss})
+            name = self._log_label or 'loss'
+            self._logger.log_training(self._log_prefix, **{name: loss})
 
 
 class Ensemble(Approximator):
@@ -161,7 +146,6 @@ class Ensemble(Approximator):
                 self[i].fit(*z, **fit_params)
         else:
             self[idx].fit(*z, **fit_params)
-        self._log()
 
     def predict(self, *z, idx=None, prediction=None, compute_variance=False, **predict_params):
         """
@@ -220,16 +204,21 @@ class Ensemble(Approximator):
 
         return results
 
-    def _log(self):
-        if self._logger:
-            key = 'loss' if self._loss_label is None else self._loss_label
-            for i, m in enumerate(self._models):
-                if not hasattr(m, 'loss_fit'):
-                    continue
-                loss = m.loss_fit
-                if loss is None:
-                    continue
-                self._logger.log_training(**{f'{key}_{i}': loss})
+    def set_logger(self, logger, prefix=None, label=None):
+        """
+        Attach the logger to each model of the ensemble so that every model logs its own loss during
+        its ``fit``. The model index is appended to the metric name (e.g. ``critic/loss_0``).
+
+        Args:
+            logger (Logger): the logger object;
+            prefix (str, None): optional group prepended to the logged metric names;
+            label (str, None): optional name used for the loss. Defaults to ``'loss'``.
+
+        """
+        super().set_logger(logger, prefix, label)
+        name = label or 'loss'
+        for i, m in enumerate(self._models):
+            m.set_logger(logger, prefix, f'{name}_{i}')
 
     @property
     def n_actions(self):

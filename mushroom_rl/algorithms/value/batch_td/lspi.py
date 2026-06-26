@@ -56,3 +56,7 @@ class LSPI(BatchTD):
             self.approximator.set_weights(w)
 
             norm = np.linalg.norm(w - old_w)
+
+            if self._logger:
+                self._logger.log_training('critic', weights_delta_norm=norm.item())
+                self._logger.advance_step()
