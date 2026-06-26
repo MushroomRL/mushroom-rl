@@ -8,6 +8,7 @@ class TD(Agent):
     Implements functions to run TD algorithms.
 
     """
+
     def __init__(self, mdp_info, policy, approximator, learning_rate):
         """
         Constructor.
@@ -22,15 +23,19 @@ class TD(Agent):
         policy.set_q(approximator)
         self.Q = approximator
 
-        self._add_save_attr(_alpha='mushroom', Q='mushroom')
-
         super().__init__(mdp_info, policy)
+
+        self._add_save_attr(_alpha='mushroom', Q='mushroom')
+        self._add_logger_attr('_alpha', group='alpha')
 
     def fit(self, dataset):
         assert len(dataset) == 1
 
         state, action, reward, next_state, absorbing, _ = dataset.item()
         self._update(state, action, reward, next_state, absorbing)
+
+        if self._logger:
+            self._logger.advance_step()
 
     def _update(self, state, action, reward, next_state, absorbing):
         """

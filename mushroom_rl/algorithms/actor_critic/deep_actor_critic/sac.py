@@ -21,6 +21,7 @@ class SAC(DeepAC):
     Haarnoja T. et al. 2019.
 
     """
+
     def __init__(self, mdp_info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params, batch_size,
                  initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha, use_log_alpha_loss=False,
                  log_std_min=-20, log_std_max=2, target_entropy=None, critic_fit_params=None):
@@ -102,6 +103,7 @@ class SAC(DeepAC):
             _log_alpha='torch',
             _alpha_optim='torch'
         )
+        self._add_logger_attr('_critic_approximator', group='critic')
 
     def fit(self, dataset):
         self._replay_memory.add(dataset)
@@ -112,7 +114,15 @@ class SAC(DeepAC):
                 action_new, log_prob = self.policy.draw_with_log_prob(state)
                 loss = self._loss(state, action_new, log_prob)
                 self._optimize_actor_parameters(loss)
-                self._update_alpha(log_prob.detach())
+                alpha_loss = self._update_alpha(log_prob.detach())
+
+                if self._logger:
+                    self._logger.log_training('actor',
+                                              loss=loss.item(),
+                                              entropy=-log_prob.mean().item())
+                    self._logger.log_training('alpha',
+                                              value=self._alpha.item(),
+                                              loss=alpha_loss.item())
 
             q_next = self._next_q(next_state, absorbing)
             q = reward + self.mdp_info.gamma * q_next
@@ -120,6 +130,9 @@ class SAC(DeepAC):
             self._critic_approximator.fit(state, action, q.detach(), **self._critic_fit_params)
 
             self._update_target(self._critic_approximator, self._target_critic_approximator)
+
+            if self._logger:
+                self._logger.advance_step()
 
     def _loss(self, state, action_new, log_prob):
         q_0 = self._critic_approximator(state, action_new, idx=0)
@@ -137,6 +150,8 @@ class SAC(DeepAC):
         self._alpha_optim.zero_grad()
         alpha_loss.backward()
         self._alpha_optim.step()
+
+        return alpha_loss
 
     def _next_q(self, next_state, absorbing):
         """

@@ -16,6 +16,7 @@ class A2C(DeepAC):
     Mnih V. et al. 2016.
 
     """
+
     def __init__(self, mdp_info, policy, actor_optimizer, critic_params,
                  ent_coeff, max_grad_norm=None, critic_fit_params=None):
         """
@@ -54,6 +55,7 @@ class A2C(DeepAC):
             _entropy_coeff='mushroom',
             _V='mushroom'
         )
+        self._add_logger_attr('_V', group='critic')
 
     def fit(self, dataset):
         state, action, reward, next_state, absorbing, last = dataset.parse(to='torch')
@@ -65,6 +67,12 @@ class A2C(DeepAC):
 
         loss = self._loss(state, action, adv)
         self._optimize_actor_parameters(loss)
+
+        if self._logger:
+            self._logger.log_training('actor',
+                                      loss=loss.item(),
+                                      entropy=self.policy.entropy(state).item())
+            self._logger.advance_step()
 
     def _loss(self, state, action, adv):
         gradient_loss = -torch.mean(self.policy.log_prob(state, action)*adv)

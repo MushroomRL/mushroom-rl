@@ -4,6 +4,7 @@ import torch
 import numpy as np
 from torch.func import stack_module_state, functional_call, vmap, grad
 
+from mushroom_rl.core.serialization import Serializable
 from mushroom_rl.approximators.approximator import Approximator, Ensemble
 from mushroom_rl.utils.minibatches import minibatch_generator, ensemble_minibatch_generator
 from mushroom_rl.utils.torch_utils import TorchUtils
@@ -22,17 +23,16 @@ class TorchApproximator(Approximator):
     def __new__(cls, input_shape=None, output_shape=None, network=None, optimizer=None, loss=None,
                 batch_size=0, n_fit_targets=1, reinitialize=False, dropout=False, quiet=True,
                 n_models=None, **params):
-        if cls is not TorchApproximator:
-            return object.__new__(cls)
-        if n_models is not None and n_models > 1:
-            instance = object.__new__(TorchEnsemble)
+        if cls is TorchApproximator and n_models is not None and n_models > 1:
+            instance = Serializable.__new__(TorchEnsemble)
             TorchEnsemble.__init__(instance, input_shape=input_shape, output_shape=output_shape,
                                    network=network, optimizer=optimizer, loss=loss,
                                    batch_size=batch_size, n_fit_targets=n_fit_targets,
                                    reinitialize=reinitialize, dropout=dropout, quiet=quiet,
                                    n_models=n_models, **params)
             return instance
-        return object.__new__(cls)
+        else:
+            return Serializable.__new__(cls)
 
     def __init__(self, input_shape, output_shape, network, optimizer=None, loss=None, batch_size=0,
                  n_fit_targets=1, reinitialize=False, dropout=False, quiet=True, n_models=None,
@@ -402,7 +402,6 @@ class TorchEnsemble(Ensemble):
             self._models[idx].fit(*args, n_epochs=n_epochs, weights=weights, epsilon=epsilon,
                                   patience=patience, validation_split=validation_split, **kwargs)
             self._sync_params()
-            self._log()
             return
 
         if self._trainer.reinitialize:
@@ -505,6 +504,10 @@ class TorchEnsemble(Ensemble):
     def _store_loss(self, losses):
         for m, ml in zip(self._models, losses):
             m._last_loss = float(ml)
+
+    def _log(self):
+        for m in self._models:
+            m._log()
 
     def parameters(self):
         """

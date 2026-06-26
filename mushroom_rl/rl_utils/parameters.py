@@ -18,7 +18,7 @@ class Parameter(Serializable):
     tuple.
 
     """
-    def __init__(self, value, min_value=None, max_value=None, size=(1,)):
+    def __init__(self, value, min_value=None, max_value=None, size=(1,), log_table=False):
         """
         Constructor.
 
@@ -28,18 +28,23 @@ class Parameter(Serializable):
             max_value (float, None): maximum value that the parameter can reach when increasing;
             size (tuple, (1,)): shape of the matrix of parameters; this shape can be used to have a single parameter for
                 each state or state-action tuple.
+            log_table (bool, False): if True, the parameter is logged also when it is backed by a table with more than
+                one element. By default tabular parameters are not logged, as logging a per-state or per-state-action
+                value on every update is too expensive.
 
         """
         self._initial_value = value
         self._min_value = min_value
         self._max_value = max_value
         self._n_updates = Table(size)
+        self._log_table = log_table
 
         self._add_save_attr(
             _initial_value='primitive',
             _min_value='primitive',
             _max_value='primitive',
             _n_updates='mushroom',
+            _log_table='primitive',
         )
 
     def __call__(self, *idx, **kwargs):
@@ -96,6 +101,17 @@ class Parameter(Serializable):
         """
         self._n_updates[idx] += 1
 
+        self._log(*idx, **kwargs)
+
+    def _log(self, *idx, **kwargs):
+        if self._logger is None:
+            return
+        if self._n_updates.table.size != 1 and not self._log_table:
+            return
+
+        name = self._log_label or 'value'
+        self._logger.log_training(self._log_prefix, **{name: float(np.squeeze(self.get_value(*idx, **kwargs)))})
+
     @property
     def shape(self):
         """
@@ -127,7 +143,7 @@ class LinearParameter(Parameter):
     the upper or lower threshold for the parameter.
 
     """
-    def __init__(self, value, threshold_value, n, size=(1,)):
+    def __init__(self, value, threshold_value, n, size=(1,), log_table=False):
         """
         Constructor.
 
@@ -137,14 +153,16 @@ class LinearParameter(Parameter):
             n (int): number of time steps needed to reach the threshold value;
             size (tuple, (1,)): shape of the matrix of parameters; this shape can be used to have a single parameter for
                 each state or state-action tuple.
+            log_table (bool, False): if True, the parameter is logged also when it is backed by a table with more than
+                one element.
 
         """
         self._coeff = (threshold_value - value) / n
 
         if self._coeff >= 0:
-            super().__init__(value, None, threshold_value, size)
+            super().__init__(value, None, threshold_value, size, log_table)
         else:
-            super().__init__(value, threshold_value, None, size)
+            super().__init__(value, threshold_value, None, size, log_table)
 
         self._add_save_attr(_coeff='primitive')
 
@@ -163,7 +181,7 @@ class DecayParameter(Parameter):
     arbitrary exponent.
 
     """
-    def __init__(self, value, exp=1., min_value=None, max_value=None, size=(1,)):
+    def __init__(self, value, exp=1., min_value=None, max_value=None, size=(1,), log_table=False):
         """
         Constructor.
 
@@ -174,11 +192,13 @@ class DecayParameter(Parameter):
             max_value (float, None): maximum value that the parameter can reach when increasing;
             size (tuple, (1,)): shape of the matrix of parameters; this shape can be used to have a single parameter for
                 each state or state-action tuple.
+            log_table (bool, False): if True, the parameter is logged also when it is backed by a table with more than
+                one element.
 
         """
         self._exp = exp
 
-        super().__init__(value, min_value, max_value, size)
+        super().__init__(value, min_value, max_value, size, log_table)
 
         self._add_save_attr(_exp='primitive')
 

@@ -146,3 +146,40 @@ def test_cholesky_gaussian():
                               0.89242769,  0.07172617, -0.09747465, -0.10330297,  0.01992169,
                              -0.07567273,  0.91250452])
     assert np.allclose(dist.get_parameters(), con_wmle_test)
+
+
+class FakeLogger:
+    def __init__(self):
+        self.calls = list()
+
+    def log_training(self, prefix=None, **kwargs):
+        self.calls.append({(prefix + '/' + name if prefix else name): value for name, value in kwargs.items()})
+
+    def advance_step(self):
+        pass
+
+
+def test_distribution_logs_entropy_on_update():
+    np.random.seed(42)
+    n_dims = 3
+
+    mu = np.zeros(n_dims)
+    std = np.ones(n_dims)
+    dist = GaussianDiagonalDistribution(mu, std)
+
+    logger = FakeLogger()
+    dist.set_logger(logger, 'distribution')
+
+    theta = np.random.randn(50, n_dims)
+    dist.mle(theta)
+
+    assert len(logger.calls) == 1
+    assert np.isclose(logger.calls[0]['distribution/entropy'], dist.entropy())
+
+
+def test_distribution_without_logger_does_not_raise():
+    dist = GaussianDiagonalDistribution(np.zeros(2), np.ones(2))
+    dist.set_parameters(np.array([1., 2., 1., 1.]))
+
+    assert dist._logger is None
+    assert np.allclose(dist.get_parameters(), np.array([1., 2., 1., 1.]))

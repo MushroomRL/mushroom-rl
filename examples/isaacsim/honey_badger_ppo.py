@@ -41,8 +41,8 @@ def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test,
 
     agent = alg(mdp.info, policy, **alg_params)
 
-    core = VectorCore(agent, mdp)
-    
+    core = VectorCore(agent, mdp, logger=logger)
+
     dataset = core.evaluate(n_episodes=n_episodes_test, render=True, record=True)
 
     J = torch.mean(dataset.discounted_return).item()

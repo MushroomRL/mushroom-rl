@@ -16,6 +16,7 @@ class PPO(OnPolicyDeepAC):
     Schulman J. et al. 2017.
 
     """
+
     def __init__(self, mdp_info, policy, actor_optimizer, critic_params,
                  n_epochs_policy, batch_size, eps_ppo, lam, ent_coeff=0.0,
                  critic_fit_params=None):
@@ -66,6 +67,7 @@ class PPO(OnPolicyDeepAC):
             _V='mushroom',
             _iter='primitive'
         )
+        self._add_logger_attr('_V', group='critic')
 
     def fit(self, dataset):
         state, action, reward, next_state, absorbing, last = dataset.parse(to='torch')
@@ -115,6 +117,11 @@ class PPO(OnPolicyDeepAC):
 
                 self._logger.info(msg)
                 self._logger.weak_line()
+
+                self._logger.log_training('actor',
+                                          entropy=logging_ent.item(),
+                                          kl=logging_kl.item())
+                self._logger.advance_step()
 
     def _post_load(self):
         if self._optimizer is not None:

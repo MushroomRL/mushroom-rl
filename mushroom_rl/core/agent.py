@@ -57,7 +57,7 @@ class Agent(Serializable):
         self._core_preprocessors = list()
         self._agent_preprocessors = list()
 
-        self._logger = None
+        self._add_logger_attr('policy')
 
         self._add_save_attr(
             policy='mushroom',
@@ -69,8 +69,7 @@ class Agent(Serializable):
             _agent_backend='primitive',
             _env_backend='primitive',
             _core_preprocessors='mushroom',
-            _agent_preprocessors='mushroom',
-            _logger='none'
+            _agent_preprocessors='mushroom'
         )
 
     def fit(self, dataset):
@@ -160,16 +159,6 @@ class Agent(Serializable):
         """
         pass
 
-    def set_logger(self, logger):
-        """
-        Setter that can be used to pass a logger to the algorithm
-
-        Args:
-            logger (Logger): the logger to be used by the algorithm.
-
-        """
-        self._logger = logger
-
     def add_core_preprocessor(self, preprocessor):
         """
         Add preprocessor to the core's preprocessor list. The preprocessors are applied in order.
@@ -252,4 +241,12 @@ class Agent(Serializable):
     @property
     def info(self):
         return self._info
+
+    @property
+    def logger(self):
+        """
+        Access to the logger set via ``set_logger``.
+
+        """
+        return self._logger
 

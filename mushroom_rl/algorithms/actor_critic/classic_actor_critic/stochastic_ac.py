@@ -13,6 +13,7 @@ class StochasticAC(Agent):
     Degris T. et al. 2012.
 
     """
+
     def __init__(self, mdp_info, policy, alpha_theta, alpha_v, lambda_par=.9, value_function_features=None):
         """
         Constructor.
@@ -52,6 +53,7 @@ class StochasticAC(Agent):
             _e_v='numpy',
             _e_theta='numpy'
         )
+        self._add_logger_attr(_alpha_theta='theta', _alpha_v='v', group='alpha')
 
     def episode_start(self, initial_state, episode_info):
         self._e_v = np.zeros(self._V.weights_size)
@@ -79,6 +81,9 @@ class StochasticAC(Agent):
             delta_theta = self._alpha_theta(s, a) * delta * self._e_theta
             theta_new = self.policy.get_weights() + delta_theta
             self.policy.set_weights(theta_new)
+
+        if self._logger:
+            self._logger.advance_step()
 
     def _compute_td_n_traces(self, s, a, r, v_next, s_psi):
         # Compute TD error

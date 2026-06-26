@@ -1,9 +1,11 @@
 How to Save and Load (Serializable interface)
 =============================================
 
-In this tutorial, we explain in detail the ``Serializable`` interface, i.e. the interface to save and load classes from
-disk. We first explain how to use classes implementing the ``Serializable`` interface, and then we provide a small
-example of how to implement the ``Serializable`` interface on a custom class to serialize the object properly on disk.
+In this tutorial, we explain in detail the ``Serializable`` interface, i.e. the interface that provides save/load and
+logging functionality to MushroomRL objects. We first explain how to use classes implementing the ``Serializable``
+interface, and then we provide a small example of how to implement the ``Serializable`` interface on a custom class to
+serialize the object properly on disk. Finally, we describe how the same interface is used to forward a logger down the
+object tree.
 
 The Mushroom RL save format (extension ``.msh``) is nothing else than a zip file, containing some information (stored into
 the ``config`` file) to load the object. This information can be accessed easily and you can try to recover the information
@@ -97,12 +99,13 @@ While it is required to import the ``Serializable`` interface, the other three i
 they are used to create variables of such type.
 
 Now we define a class implementing the ``Serializable`` interface. In this case, we call it ``TestClass``.
-The constructor can be divided into two parts: first, we build a set of variables of different types.
-Then, we call the superclass constructor, i.e. the constructor of ``Serializable``. Finally, we specify which variables
-we want to be saved in the MushroomRL file passing keywords to the ``self._add_save_attr`` method.
+In the constructor we first build a set of variables of different types, and then we specify which variables
+we want to be saved in the MushroomRL file passing keywords to the ``self._add_save_attr`` method. Note that
+``Serializable`` has no constructor to call: the important attributes are set up automatically when the
+object is created.
 
 .. literalinclude:: code/serialization.py
-   :lines: 8-45
+   :lines: 8-42
 
 Some remarks about the ``self._add_save_attr`` method: the keyword name must be the name of the variable we want to
 store in the file, while the associated value is the method we want to use to store such variables.
@@ -124,7 +127,7 @@ To conclude the implementation of our ``Serializable`` interface, we might want 
 loaded into the class. It can be useful to set the variables not saved in the file to a default variable.
 
 .. literalinclude:: code/serialization.py
-   :lines: 47-51
+   :lines: 44-48
 
 In this scenario, we have to set the ``self.not_important`` variable to his default value, but only if it's None, i.e.
 has not been loaded from the file, because the file didn't contain it.
@@ -134,14 +137,40 @@ reference to the content of the ``self._dictionary`` variable.
 To test the implementation, we write a function to write in easy to read way the content of the class:
 
 .. literalinclude:: code/serialization.py
-   :lines: 54-63
+   :lines: 51-60
 
 Finally, we test the save functionality with the following code:
 
 .. literalinclude:: code/serialization.py
-   :lines: 66-
+   :lines: 63-
 
 We can see that the content of ``self.not_important`` is stored only if the ``full_save`` flag is set to true.
 
 The last remark is that the ``Serializable`` interface works also in presence of inheritance. If you extend a
 serializable class, you only need to add the new attributes defined by the child class.
+
+Logging through the Serializable interface
+------------------------------------------
+
+Besides save and load, the ``Serializable`` interface also provides the logging functionality used by the
+algorithms. A logger is attached to an object with ``set_logger`` and is automatically forwarded to the
+loggable children declared by the object, so that the relevant quantities of an object and of its
+sub-objects are logged under a hierarchy of grouped metric names.
+
+The loggable children are declared with ``self._add_logger_attr``, in the same spirit as
+``self._add_save_attr``: the first argument is an optional group prefix shared by the registered children,
+attributes passed positionally use their default metric name, and attributes passed as keywords use an
+explicit metric name. For example, an algorithm registers its critic approximator and its exploration
+parameter as:
+
+.. code-block:: python
+
+    self._add_logger_attr('_V', group='critic')                 # logs critic/loss
+    self._add_logger_attr(_epsilon='epsilon', group='policy')   # logs policy/epsilon
+
+When ``set_logger`` is called (typically by the ``Core``, see the Logger tutorial), the logger is stored
+and forwarded to each registered child, joining the child group to the current prefix, so the hierarchy is
+composed automatically down the object tree. As for ``_add_save_attr``, children are referenced by name, so
+the forwarding keeps working after an object is reassigned or loaded from disk (the registry is part of the
+saved data). A single value is logged with ``self._logger.log_training(...)`` from inside the object, where
+the first positional argument is the metric group and the values are passed as keyword arguments.

@@ -47,9 +47,8 @@ def experiment(cfg_dict, headless, alg, n_epochs, n_steps, n_steps_per_fit, n_ep
     alg_params['critic_params'] = critic_params
 
     agent = alg(mdp.info, policy, **alg_params)
-    #agent.set_logger(logger)
 
-    core = VectorCore(agent, mdp)
+    core = VectorCore(agent, mdp, logger=logger)
 
     dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
 

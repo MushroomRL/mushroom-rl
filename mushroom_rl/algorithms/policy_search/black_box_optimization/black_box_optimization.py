@@ -13,6 +13,7 @@ class BlackBoxOptimization(Agent):
     differentiable policies.
 
     """
+
     def __init__(self, mdp_info, distribution, policy, context_builder=None, backend='numpy'):
         """
         Constructor.
@@ -38,6 +39,7 @@ class BlackBoxOptimization(Agent):
             _context_builder='mushroom',
             _deterministic='primitive'
         )
+        self._add_logger_attr('distribution', group='distribution')
 
     def episode_start(self, initial_state, episode_info):
         if isinstance(self.policy, VectorPolicy):
@@ -93,6 +95,10 @@ class BlackBoxOptimization(Agent):
             context = None
 
         self._update(Jep, theta, context)
+
+        if self._logger:
+            self._logger.log_training(J=Jep.mean().item())
+            self._logger.advance_step()
 
     def set_deterministic(self, deterministic=True):
         self._deterministic = deterministic

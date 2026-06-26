@@ -13,6 +13,7 @@ class COPDAC_Q(Agent):
     Silver D. et al. 2014.
 
     """
+
     def __init__(self, mdp_info, policy, mu, alpha_theta, alpha_omega, alpha_v, value_function_features=None):
         """
         Constructor.
@@ -43,6 +44,8 @@ class COPDAC_Q(Agent):
 
         self._A = LinearApproximator(input_shape=(self._mu.weights_size,), output_shape=(1,))
 
+        super().__init__(mdp_info, policy)
+
         self._add_save_attr(
             _mu='mushroom',
             _psi='pickle',
@@ -52,8 +55,7 @@ class COPDAC_Q(Agent):
             _V='mushroom',
             _A='mushroom'
         )
-
-        super().__init__(mdp_info, policy)
+        self._add_logger_attr(_alpha_theta='theta', _alpha_omega='omega', _alpha_v='v', group='alpha')
 
     def fit(self, dataset):
         for step in dataset:
@@ -81,6 +83,9 @@ class COPDAC_Q(Agent):
 
             v_new = self._V.get_weights() + delta_v
             self._V.set_weights(v_new)
+
+        if self._logger:
+            self._logger.advance_step()
 
     def _Q(self, state, action):
         state_psi = self._psi(state) if self._psi is not None else state

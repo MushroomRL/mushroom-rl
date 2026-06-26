@@ -5,7 +5,7 @@ def compute_advantage_montecarlo(V, s, ss, r, absorbing, last, gamma):
     """
     Function to estimate the advantage and new value function target
     over a dataset. The value function is estimated using rollouts
-    (monte carlo estimation).
+    (Monte Carlo estimation).
 
     Args:
         V (Regressor): the current value function regressor;

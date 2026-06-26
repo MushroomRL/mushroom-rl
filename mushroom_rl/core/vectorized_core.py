@@ -1,5 +1,4 @@
 from mushroom_rl.core.dataset import VectorizedDataset
-from mushroom_rl.utils.record import VideoRecorder
 
 from ._impl import VectorizedCoreLogic
 
@@ -10,7 +9,7 @@ class VectorCore(object):
 
     """
 
-    def __init__(self, agent, env, callbacks_fit=None, callback_step=None, record_dictionary=None):
+    def __init__(self, agent, env, callbacks_fit=None, callback_step=None, logger=None):
         """
         Constructor.
 
@@ -19,9 +18,8 @@ class VectorCore(object):
             env (VectorEnvironment): the environment in which the agent moves;
             callbacks_fit (list): list of callbacks to execute at the end of each fit;
             callback_step (Callback): callback to execute after each step;
-            record_dictionary (dict, None): a dictionary of parameters for the recording, must containt the
-                recorder_class, fps,  and optionally other keyword arguments to be passed to build the recorder class.
-                By default, the VideoRecorder class is used and the environment action frequency as frames per second.
+            logger (Logger, None): the logger to be used by the agent. If provided, it is set on the agent via
+                ``agent.set_logger`` and the video fps is configured from the environment.
 
         """
         self.agent = agent
@@ -35,9 +33,8 @@ class VectorCore(object):
 
         self._core_logic = VectorizedCoreLogic(self.env.info.backend, self.env.number)
 
-        if record_dictionary is None:
-            record_dictionary = dict()
-        self._record = self._build_recorder_class(**record_dictionary)
+        if logger is not None:
+            self.set_logger(logger)
 
     def learn(self, n_steps=None, n_episodes=None, n_steps_per_fit=None, n_episodes_per_fit=None,
               render=False, record=False, quiet=False):
@@ -61,6 +58,9 @@ class VectorCore(object):
 
         """
         assert (render and record) or (not record), "To record, the render flag must be set to true"
+        if record:
+            assert self.agent.logger is not None, "To record, a logger must be set on the agent via set_logger"
+
         self._core_logic.initialize_learn(n_steps_per_fit, n_episodes_per_fit)
 
         dataset = VectorizedDataset.generate(self.env.info, self.agent.info,
@@ -88,6 +88,8 @@ class VectorCore(object):
 
         """
         assert (render and record) or (not record), "To record, the render flag must be set to true"
+        if record:
+            assert self.agent.logger is not None, "To record, a logger must be set on the agent via set_logger"
 
         self._core_logic.initialize_evaluate()
 
@@ -96,6 +98,17 @@ class VectorCore(object):
                                              n_steps, n_episodes_dataset, self.env.number, n_episodes is not None)
 
         return self._run(dataset, n_steps, n_episodes, render, quiet, record, initial_states)
+
+    def set_logger(self, logger):
+        """
+        Set the logger on the agent and configure the video fps from the environment.
+
+        Args:
+            logger (Logger): the logger to be used by the agent.
+
+        """
+        self.agent.set_logger(logger)
+        logger.set_video_fps(int(1 / self.env.info.dt))
 
     def _run(self, dataset, n_steps, n_episodes, render, quiet, record, initial_states=None):
         self._core_logic.initialize_run(n_steps, n_episodes, initial_states, quiet)
@@ -160,7 +173,7 @@ class VectorCore(object):
             frame = self.env.render_all(mask, record=record)
 
             if record:
-                self._record(frame)
+                self.agent.logger.record_frame(frame)
 
         last = absorbing | (self._episode_steps >= self.env.info.horizon)
 
@@ -178,7 +191,7 @@ class VectorCore(object):
 
         """
         reset_mask = last & mask
-            
+
         initial_state = self._core_logic.get_initial_state(initial_states)
 
         state, episode_info = self.env.reset_all(reset_mask, initial_state)
@@ -204,7 +217,7 @@ class VectorCore(object):
         self._episode_steps = None
 
         if record:
-            self._record.stop()
+            self.agent.logger.stop_recording()
 
         self._core_logic.terminate_run()
 
@@ -224,24 +237,3 @@ class VectorCore(object):
             states = p(states)
 
         return states
-
-    def _build_recorder_class(self, recorder_class=None, fps=None, **kwargs):
-        """
-        Method to create a video recorder class.
-
-        Args:
-            recorder_class (class): the class used to record the video. By default, we use the ``VideoRecorder`` class
-                from mushroom. The class must implement the ``__call__`` and ``stop`` methods.
-
-        Returns:
-             The recorder object.
-
-        """
-
-        if not recorder_class:
-            recorder_class = VideoRecorder
-
-        if not fps:
-            fps = int(1 / self.env.info.dt)
-
-        return recorder_class(fps=fps, **kwargs)

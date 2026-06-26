@@ -7,23 +7,18 @@ import torch.nn.functional as F
 from mushroom_rl.algorithms.actor_critic import SAC
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import Gymnasium
-from mushroom_rl.utils import TorchUtils
 from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNetwork
 
 from tqdm import trange
 
 
-def experiment(alg, n_epochs, n_steps, n_steps_test, save, load):
+def experiment(n_epochs, n_steps, n_steps_test, save_agent, load_agent):
     np.random.seed()
-
-    logger = Logger(alg.__name__, results_dir='./logs' if save else None)
-    logger.strong_line()
-    logger.info('Experiment Algorithm: ' + alg.__name__)
 
     # MDP
     horizon = 200
     gamma = 0.99
-    mdp = Gymnasium('Pendulum-v1', horizon, gamma, headless=False)
+    mdp = Gymnasium('Pendulum-v1', horizon, gamma, headless=True)
 
     # Settings
     initial_replay_size = 64
@@ -34,7 +29,20 @@ def experiment(alg, n_epochs, n_steps, n_steps_test, save, load):
     tau = 0.005
     lr_alpha = 3e-4
 
-    if load:
+    # wandb run configuration
+    hyperparams = dict(gamma=gamma, horizon=horizon, batch_size=batch_size,
+                       n_features=n_features, warmup_transitions=warmup_transitions,
+                       tau=tau, lr_alpha=lr_alpha, max_replay_size=max_replay_size)
+
+    wandb_kwargs = Logger.default_wandb_kwargs('mushroom_rl_wandb_example',
+                                               config=hyperparams,
+                                               name=SAC.__name__)
+
+    logger = Logger(SAC.__name__, results_dir='./logs', use_timestamp=True, wandb_kwargs=wandb_kwargs)
+    logger.strong_line()
+    logger.info('Experiment Algorithm: ' + SAC.__name__)
+
+    if load_agent:
         agent = SAC.load('logs/SAC/agent-best.msh')
     else:
         # Approximator
@@ -61,13 +69,13 @@ def experiment(alg, n_epochs, n_steps, n_steps_test, save, load):
                              output_shape=(1,))
 
         # Agent
-        agent = alg(mdp.info, actor_mu_params, actor_sigma_params,
+        agent = SAC(mdp.info, actor_mu_params, actor_sigma_params,
                     actor_optimizer, critic_params, batch_size, initial_replay_size,
                     max_replay_size, warmup_transitions, tau, lr_alpha,
                     critic_fit_params=None)
 
     # Algorithm
-    core = Core(agent, mdp)
+    core = Core(agent, mdp, logger=logger)
 
     # RUN
     dataset = core.evaluate(n_steps=n_steps_test, render=False)
@@ -76,11 +84,15 @@ def experiment(alg, n_epochs, n_steps, n_steps_test, save, load):
     R = np.mean(dataset.undiscounted_return)
     E = agent.policy.entropy(torch.from_numpy(dataset.state)).item()
 
-    logger.epoch_info(0, J=J, R=R, entropy=E)
+    logger.log_evaluation(0, J=J, R=R, entropy=E)
 
     core.learn(n_steps=initial_replay_size, n_steps_per_fit=initial_replay_size)
 
-    for n in trange(n_epochs, leave=False):
+    # Record an evaluation video before training and upload it to wandb
+    core.evaluate(n_episodes=1, render=True, record=True)
+    logger.log_video(0)
+
+    for it in trange(n_epochs, leave=False):
         core.learn(n_steps=n_steps, n_steps_per_fit=1)
         dataset = core.evaluate(n_steps=n_steps_test, render=False)
 
@@ -88,18 +100,20 @@ def experiment(alg, n_epochs, n_steps, n_steps_test, save, load):
         R = np.mean(dataset.undiscounted_return)
         E = agent.policy.entropy(torch.from_numpy(dataset.state)).item()
 
-        logger.epoch_info(n+1, J=J, R=R, entropy=E)
+        logger.log_evaluation(it+1, J=J, R=R, entropy=E)
 
-        if save:
+        if save_agent:
             logger.log_best_agent(agent, J)
 
-    logger.info('Press a button to visualize pendulum')
-    input()
-    core.evaluate(n_episodes=5, render=True)
+        if it + 1 == 20:
+            core.evaluate(n_episodes=1, render=True, record=True)
+            logger.log_video(it+1)
+
+    # Record a final evaluation video and upload it to wandb
+    core.evaluate(n_episodes=1, render=True, record=True)
+    logger.log_video(n_epochs)
+
 
 
 if __name__ == '__main__':
-    save = False
-    load = False
-    TorchUtils.set_default_device('cpu')
-    experiment(alg=SAC, n_epochs=40, n_steps=1000, n_steps_test=2000, save=save, load=load)
+    experiment(n_epochs=40, n_steps=1000, n_steps_test=2000, save_agent=False, load_agent=False)
