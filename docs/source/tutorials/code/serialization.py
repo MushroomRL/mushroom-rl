@@ -28,9 +28,6 @@ class TestClass(Serializable):
         # A variable that contains a reference to another variable
         self._list_reference = [self._dictionary]
 
-        # Superclass constructor
-        super().__init__()
-
         # Here we specify how to save each component
         self._add_save_attr(
             _primitive_variable='primitive',
