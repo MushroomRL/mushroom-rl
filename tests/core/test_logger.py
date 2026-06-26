@@ -206,11 +206,11 @@ def test_wandb_append_offline(tmpdir):
 
     assert logger_append.wandb_active
     assert logger_append._wandb_run.id == run_id
-    assert logger_append._n_fit == 5
+    assert logger_append._n_fit == 0 # offline mode cannot restore the run
 
     logger_append.log_training(loss=5.0)
     logger_append.advance_step()
-    assert logger_append._n_fit == 6
+    assert logger_append._n_fit == 1
 
     logger_append.finish()
 

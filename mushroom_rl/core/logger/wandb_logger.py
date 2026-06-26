@@ -25,14 +25,15 @@ class WandbLogger(object):
                 ``Logger``. If provided, and ``dir`` is not already set in
                 ``wandb_kwargs``, wandb stores its files inside this directory;
             log_dir (Path, None): experiment-specific directory where the wandb
-                run state is persisted for resume on append;
-            append (bool, False): if True and a previous run state is found in
+                run id is persisted for resume on append;
+            append (bool, False): if True and a previous run id is found in
                 ``log_dir``, the wandb run is resumed with the same run id and
-                the fit counter is restored.
+                the fit counter is restored from the wandb run summary.
 
         """
         self._wandb_run = None
         self._n_fit = 0
+        self._epoch_offset = 0
         self._log_dir = log_dir
 
         if wandb_kwargs is not None and wandb is not None:
@@ -40,10 +41,9 @@ class WandbLogger(object):
                 wandb_kwargs = dict(wandb_kwargs, dir=str(results_dir))
 
             if append:
-                state = self._load_wandb_state()
-                if state is not None and 'resume' not in wandb_kwargs:
-                    wandb_kwargs = dict(wandb_kwargs, resume='allow', id=state['run_id'])
-                    self._n_fit = state.get('n_fit', 0)
+                run_id = self._load_run_id()
+                if run_id is not None and 'resume' not in wandb_kwargs:
+                    wandb_kwargs = dict(wandb_kwargs, resume='allow', id=run_id)
 
             self._wandb_run = wandb.init(**wandb_kwargs)
 
@@ -53,7 +53,13 @@ class WandbLogger(object):
             wandb.define_metric('eval/*', step_metric='epoch')
             wandb.define_metric('video/*', step_metric='epoch')
 
-            self._save_wandb_state()
+            last_n_fit = self._wandb_run.summary.get('n_fit')
+            self._n_fit = int(last_n_fit) + 1 if last_n_fit is not None else 0
+
+            last_epoch = self._wandb_run.summary.get('epoch')
+            self._epoch_offset = int(last_epoch) + 1 if last_epoch is not None else 0
+
+            self._save_run_id()
 
     @staticmethod
     def default_wandb_kwargs(project, config=None, **overrides):
@@ -114,7 +120,7 @@ class WandbLogger(object):
         """
         if self._wandb_run is not None:
             data = {'eval/' + name: value for name, value in kwargs.items()}
-            data['epoch'] = epoch
+            data['epoch'] = epoch + self._epoch_offset
             wandb.log(data)
 
     def log_wandb_video(self, name, path, epoch):
@@ -130,7 +136,7 @@ class WandbLogger(object):
         """
         if self._wandb_run is not None:
             video = wandb.Video(str(path), format='mp4')
-            wandb.log({'video/' + name: video, 'epoch': epoch})
+            wandb.log({'video/' + name: video, 'epoch': epoch + self._epoch_offset})
 
     def advance_step(self):
         """
@@ -148,22 +154,20 @@ class WandbLogger(object):
 
         """
         if self._wandb_run is not None:
-            self._save_wandb_state()
             self._wandb_run.finish()
             self._wandb_run = None
 
-    def _save_wandb_state(self):
+    def _save_run_id(self):
         if self._log_dir is not None and self._wandb_run is not None:
             self._log_dir.mkdir(parents=True, exist_ok=True)
-            state = {'run_id': self._wandb_run.id, 'n_fit': self._n_fit}
-            with open(self._log_dir / '.wandb_state.pkl', 'wb') as f:
-                pickle.dump(state, f)
+            with open(self._log_dir / '.wandb_run_id.pkl', 'wb') as f:
+                pickle.dump(self._wandb_run.id, f)
 
-    def _load_wandb_state(self):
+    def _load_run_id(self):
         if self._log_dir is not None:
-            state_file = self._log_dir / '.wandb_state.pkl'
-            if state_file.exists():
-                with open(state_file, 'rb') as f:
+            run_id_file = self._log_dir / '.wandb_run_id.pkl'
+            if run_id_file.exists():
+                with open(run_id_file, 'rb') as f:
                     return pickle.load(f)
         return None
 
