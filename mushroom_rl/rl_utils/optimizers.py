@@ -1,10 +1,10 @@
 import numpy as np
 
-from mushroom_rl.core.serialization import Serializable
+from mushroom_rl.core.mushroom_object import MushroomObject
 from mushroom_rl.rl_utils.parameters import Parameter
 
 
-class Optimizer(Serializable):
+class Optimizer(MushroomObject):
     """
     Base class for gradient optimizers.
     These objects take the current parameters and the gradient estimate to compute the new parameters.

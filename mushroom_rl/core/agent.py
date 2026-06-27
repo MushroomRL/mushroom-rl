@@ -1,8 +1,8 @@
-from mushroom_rl.core.serialization import Serializable
+from mushroom_rl.core.mushroom_object import MushroomObject
 from mushroom_rl.core.array_backend import ArrayBackend
 
 
-class AgentInfo(Serializable):
+class AgentInfo(MushroomObject):
     def __init__(self, is_episodic, policy_state_shape, backend):
         assert isinstance(is_episodic, bool)
         assert policy_state_shape is None or isinstance(policy_state_shape, tuple)
@@ -21,7 +21,7 @@ class AgentInfo(Serializable):
         )
 
 
-class Agent(Serializable):
+class Agent(MushroomObject):
     """
     This class implements the functions to manage the agent (e.g. move the agent following its policy).
 

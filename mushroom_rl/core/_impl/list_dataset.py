@@ -1,9 +1,9 @@
 from copy import deepcopy
 
-from mushroom_rl.core.serialization import Serializable
+from mushroom_rl.core.mushroom_object import MushroomObject
 
 
-class ListDataset(Serializable):
+class ListDataset(MushroomObject):
     def __init__(self, is_stateful, is_vectorized):
         self._dataset = list()
         self._policy_dataset = list()

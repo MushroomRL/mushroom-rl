@@ -5,7 +5,7 @@ from collections import defaultdict
 
 import torch
 
-from mushroom_rl.core.serialization import Serializable
+from mushroom_rl.core.mushroom_object import MushroomObject
 from mushroom_rl.core.array_backend import ArrayBackend
 from mushroom_rl.core.extra_info import ExtraInfo
 
@@ -13,7 +13,7 @@ from ._impl import *
 
 from mushroom_rl.utils.episodes import split_episodes, unsplit_episodes
 
-class DatasetInfo(Serializable):
+class DatasetInfo(MushroomObject):
     def __init__(self, backend, device, horizon, gamma, state_shape, state_dtype, action_shape, action_dtype,
                  policy_state_shape, n_envs=1):
         assert backend == "torch" or device is None
@@ -77,7 +77,7 @@ class DatasetInfo(Serializable):
                            action_shape, action_dtype, policy_state_shape)
 
 
-class Dataset(Serializable):
+class Dataset(MushroomObject):
     def __init__(self, dataset_info, n_steps=None, n_episodes=None, core_counts_episodes=False):
         assert (n_steps is not None and n_episodes is None) or (n_steps is None and n_episodes is not None)
 

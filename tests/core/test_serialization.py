@@ -1,11 +1,11 @@
 import torch
 import numpy as np
 
-from mushroom_rl.core import Serializable
+from mushroom_rl.core import MushroomObject
 from mushroom_rl.utils import TorchUtils
 
 
-class DummyClass(Serializable):
+class DummyClass(MushroomObject):
     def __init__(self):
         self.torch_tensor = torch.randn(2, 2).to(TorchUtils.get_device())
         self.numpy_array = np.random.randn(3, 4)
@@ -36,7 +36,7 @@ def test_serialization(tmpdir):
     a = DummyClass()
     a.save(tmpdir / 'test.msh')
     
-    b = Serializable.load(tmpdir / 'test.msh')
+    b = MushroomObject.load(tmpdir / 'test.msh')
     
     assert a == b
     assert b.not_saved == None
@@ -53,7 +53,7 @@ def test_serialization_cuda_cpu(tmpdir):
 
         assert a.torch_tensor.device.type == 'cuda'
         
-        b = Serializable.load(tmpdir / 'test.msh')
+        b = MushroomObject.load(tmpdir / 'test.msh')
         
         assert b.torch_tensor.device.type == 'cpu'
 
@@ -71,7 +71,7 @@ def test_serialization_cpu_cuda(tmpdir):
 
         assert a.torch_tensor.device.type == 'cpu'
 
-        b = Serializable.load(tmpdir / 'test.msh')
+        b = MushroomObject.load(tmpdir / 'test.msh')
 
         assert b.torch_tensor.device.type == 'cuda'
 

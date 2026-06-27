@@ -312,7 +312,7 @@ Air Hockey
     :show-inheritance:
 
 Segway
-~~~~~~~~~~~~~
+~~~~~~
 
 .. automodule:: mushroom_rl.environments.segway
     :members:

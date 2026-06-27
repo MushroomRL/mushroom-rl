@@ -1,6 +1,5 @@
 For Mushroom 2.0:
     * Single core class, two instantiation (SingleCore and VectorizedCore)
-    * Rename Serializable in MushroomObject
     * Rework of stateful policies:
         - fix stateful policy hierarchy issue
         - vectorize RecurrentGaussianTorchPolicy to support batched hidden states natively (currently hardcoded for single env)
@@ -12,5 +11,6 @@ For Mushroom 2.0:
 
 For Mushroom 2.1:
     * vectorize _compute_n_step_return in AbstractReplayMemory
+    * fix MellowMax parameter class
     * handle ExtraInfo correctly in ReplayMemory (currently ignored in circular-buffer phase; info is never read back during sampling)
 

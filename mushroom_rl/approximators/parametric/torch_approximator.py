@@ -4,7 +4,7 @@ import torch
 import numpy as np
 from torch.func import stack_module_state, functional_call, vmap, grad
 
-from mushroom_rl.core.serialization import Serializable
+from mushroom_rl.core.mushroom_object import MushroomObject
 from mushroom_rl.approximators.approximator import Approximator, Ensemble
 from mushroom_rl.utils.minibatches import minibatch_generator, ensemble_minibatch_generator
 from mushroom_rl.utils.torch_utils import TorchUtils
@@ -24,7 +24,7 @@ class TorchApproximator(Approximator):
                 batch_size=0, n_fit_targets=1, reinitialize=False, dropout=False, quiet=True,
                 n_models=None, **params):
         if cls is TorchApproximator and n_models is not None and n_models > 1:
-            instance = Serializable.__new__(TorchEnsemble)
+            instance = MushroomObject.__new__(TorchEnsemble)
             TorchEnsemble.__init__(instance, input_shape=input_shape, output_shape=output_shape,
                                    network=network, optimizer=optimizer, loss=loss,
                                    batch_size=batch_size, n_fit_targets=n_fit_targets,
@@ -32,7 +32,7 @@ class TorchApproximator(Approximator):
                                    n_models=n_models, **params)
             return instance
         else:
-            return Serializable.__new__(cls)
+            return MushroomObject.__new__(cls)
 
     def __init__(self, input_shape, output_shape, network, optimizer=None, loss=None, batch_size=0,
                  n_fit_targets=1, reinitialize=False, dropout=False, quiet=True, n_models=None,

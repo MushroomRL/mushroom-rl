@@ -1,9 +1,9 @@
 import numbers
 from collections import UserDict
 from mushroom_rl.core.array_backend import ArrayBackend
-from mushroom_rl.core.serialization import Serializable
+from mushroom_rl.core.mushroom_object import MushroomObject
 
-class ExtraInfo(Serializable, UserDict):
+class ExtraInfo(MushroomObject, UserDict):
     """
     A class to collect and parse step information
     """

@@ -4,7 +4,7 @@ from .core import Core
 from .dataset import DatasetInfo, Dataset, VectorizedDataset
 from .environment import Environment, MDPInfo
 from .agent import Agent, AgentInfo
-from .serialization import Serializable
+from .mushroom_object import MushroomObject
 from .logger import Logger
 
 from .extra_info import ExtraInfo
@@ -16,5 +16,5 @@ from .multiprocess_environment import MultiprocessEnvironment
 import mushroom_rl.environments
 
 __all__ = ['ArrayBackend', 'Core', 'DatasetInfo', 'Dataset', 'Environment', 'MDPInfo', 'Box', 'Discrete',
-           'Agent', 'AgentInfo', 'Serializable', 'Logger', 'ExtraInfo', 'VectorCore', 'VectorizedEnvironment',
+           'Agent', 'AgentInfo', 'MushroomObject', 'Logger', 'ExtraInfo', 'VectorCore', 'VectorizedEnvironment',
            'MultiprocessEnvironment']

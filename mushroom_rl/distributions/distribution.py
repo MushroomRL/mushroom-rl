@@ -1,7 +1,7 @@
-from mushroom_rl.core import Serializable
+from mushroom_rl.core import MushroomObject
 
 
-class Distribution(Serializable):
+class Distribution(MushroomObject):
     """
     Interface for Distributions to represent a generic probability distribution.
     Probability distributions are often used by black box optimization algorithms in order to perform exploration in

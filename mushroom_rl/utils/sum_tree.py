@@ -1,9 +1,9 @@
 import numpy as np
 
-from mushroom_rl.core import Serializable
+from mushroom_rl.core import MushroomObject
 
 
-class SumTree(Serializable):
+class SumTree(MushroomObject):
     """
     This class implements a sum tree data structure.
     This is used, for instance, by ``PrioritizedReplayMemory``.

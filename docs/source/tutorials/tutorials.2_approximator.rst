@@ -1,5 +1,5 @@
 How to use approximators
-=========================
+========================
 
 MushroomRL provides an interface for approximator classes to perform function approximation.
 The root class is ``Approximator``; every concrete subclass (``Table``, ``LinearApproximator``,
@@ -35,7 +35,7 @@ the approximated function can be obtained:
    :lines: 18-
 
 Q-function approximation
--------------------------
+------------------------
 
 For classical RL algorithms with discrete action spaces, MushroomRL provides
 ``QApproximator`` — a unified interface that selects the appropriate concrete

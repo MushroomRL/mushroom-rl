@@ -1,7 +1,7 @@
-from mushroom_rl.core import DatasetInfo, Dataset, Serializable
+from mushroom_rl.core import DatasetInfo, Dataset, MushroomObject
 
 
-class ReplayMemory(Serializable):
+class ReplayMemory(MushroomObject):
     """
     This class implements function to manage a replay memory as the one used in
     "Human-Level Control Through Deep Reinforcement Learning" by Mnih V. et al..

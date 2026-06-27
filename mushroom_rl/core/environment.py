@@ -1,11 +1,11 @@
 import warnings
 import numpy as np
 
-from mushroom_rl.core.serialization import Serializable
+from mushroom_rl.core.mushroom_object import MushroomObject
 from mushroom_rl.core.array_backend import ArrayBackend
 
 
-class MDPInfo(Serializable):
+class MDPInfo(MushroomObject):
     """
     This class is used to store the information of the environment.
 

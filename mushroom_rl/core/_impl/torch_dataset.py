@@ -1,10 +1,10 @@
 import torch
 
-from mushroom_rl.core.serialization import Serializable
+from mushroom_rl.core.mushroom_object import MushroomObject
 from mushroom_rl.utils.torch_utils import TorchUtils
 
 
-class TorchDataset(Serializable):
+class TorchDataset(MushroomObject):
     def __init__(self, state_type, state_shape, action_type, action_shape, reward_shape, flag_shape,
                  policy_state_shape, mask_shape, device=None):
 

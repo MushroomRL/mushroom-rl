@@ -1,9 +1,9 @@
 import numpy as np
 from collections import deque
-from mushroom_rl.core import Serializable, ArrayBackend
+from mushroom_rl.core import MushroomObject, ArrayBackend
 
 
-class RunningStandardization(Serializable):
+class RunningStandardization(MushroomObject):
     """
     Compute a running standardization of values according to Welford's online
     algorithm: https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
@@ -84,7 +84,7 @@ class RunningStandardization(Serializable):
         return self._array_backend.squeeze(self._array_backend.sqrt(self._s / self._n))
 
 
-class RunningExpWeightedAverage(Serializable):
+class RunningExpWeightedAverage(MushroomObject):
     """
     Compute an exponentially weighted moving average.
 
@@ -149,7 +149,7 @@ class RunningExpWeightedAverage(Serializable):
         return self._avg_value
 
 
-class RunningAveragedWindow(Serializable):
+class RunningAveragedWindow(MushroomObject):
     """
     Compute the running average using a window of fixed size.
 

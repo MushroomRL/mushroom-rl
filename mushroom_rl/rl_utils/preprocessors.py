@@ -1,8 +1,8 @@
-from mushroom_rl.core import Serializable, ArrayBackend
+from mushroom_rl.core import MushroomObject, ArrayBackend
 from mushroom_rl.rl_utils.running_stats import RunningStandardization
 
 
-class Preprocessor(Serializable):
+class Preprocessor(MushroomObject):
     """
     Abstract preprocessor class.
 

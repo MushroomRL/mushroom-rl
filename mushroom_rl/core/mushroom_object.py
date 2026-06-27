@@ -12,7 +12,7 @@ from zipfile import ZipFile
 import inspect
 
 
-class Serializable(object):
+class MushroomObject(object):
     """
     Interface to implement serialization and logging of a MushroomRL object.
 
@@ -121,7 +121,7 @@ class Serializable(object):
 
     @classmethod
     def load_zip(cls, zip_file, folder=''):
-        config_path = Serializable._append_folder(folder, 'config')
+        config_path = MushroomObject._append_folder(folder, 'config')
 
         try:
             config = cls._load_pickle(zip_file, config_path)
@@ -142,7 +142,7 @@ class Serializable(object):
             for att, method in save_attributes.items():
                 mandatory = not method.endswith('!')
                 method = method[:-1] if not mandatory else method
-                file_name = Serializable._append_folder(
+                file_name = MushroomObject._append_folder(
                     folder, '{}.{}'.format(att, method)
                 )
 
@@ -203,7 +203,7 @@ class Serializable(object):
         and none. The primitive method can be used to store primitive attributes,
         while the none method always skip the attribute, but ensure that it is
         initialized to None after the load. The mushroom method can be used with
-        classes that implement the Serializable interface. All the other methods
+        classes that implement the MushroomObject interface. All the other methods
         use the library named.
         If a "!" character is added at the end of the method, the field will be
         saved only if full_save is set to True.
@@ -268,8 +268,8 @@ class Serializable(object):
         loaded_list = list()
 
         for i in range(length):
-            element_folder = Serializable._append_folder(folder, str(i))
-            loaded_element = Serializable.load_zip(zip_file, element_folder)
+            element_folder = MushroomObject._append_folder(folder, str(i))
+            loaded_element = MushroomObject.load_zip(zip_file, element_folder)
             loaded_list.append(loaded_element)
 
         return loaded_list
@@ -299,36 +299,36 @@ class Serializable(object):
 
     @staticmethod
     def _load_mushroom(zip_file, name):
-        return Serializable.load_zip(zip_file, name)
+        return MushroomObject.load_zip(zip_file, name)
 
     @staticmethod
     def _save_pickle(zip_file, name, obj, folder, **_):
-        path = Serializable._append_folder(folder, name)
+        path = MushroomObject._append_folder(folder, name)
         with zip_file.open(path, 'w') as f:
             pickle.dump(obj, f, protocol=pickle.DEFAULT_PROTOCOL)
 
     @staticmethod
     def _save_numpy(zip_file, name, obj, folder, **_):
-        path = Serializable._append_folder(folder, name)
+        path = MushroomObject._append_folder(folder, name)
         with zip_file.open(path, 'w') as f:
             np.save(f, obj)
 
     @staticmethod
     def _save_torch(zip_file, name, obj, folder, **_):
-        path = Serializable._append_folder(folder, name)
+        path = MushroomObject._append_folder(folder, name)
         with zip_file.open(path, 'w') as f:
             torch.save(obj, f)
 
     @staticmethod
     def _save_json(zip_file, name, obj, folder, **_):
-        path = Serializable._append_folder(folder, name)
+        path = MushroomObject._append_folder(folder, name)
         with zip_file.open(path, 'w') as f:
             string = json.dumps(obj)
             f.write(string.encode('utf8'))
 
     @staticmethod
     def _save_mushroom(zip_file, name, obj, folder, full_save):
-        new_folder = Serializable._append_folder(folder, name)
+        new_folder = MushroomObject._append_folder(folder, name)
         if isinstance(obj, list):
             config_data = dict(
                 type=list,
@@ -337,16 +337,16 @@ class Serializable(object):
                 primitive_dictionary=dict(len=len(obj))
             )
 
-            Serializable._save_pickle(zip_file, 'config', config_data, folder=new_folder)
+            MushroomObject._save_pickle(zip_file, 'config', config_data, folder=new_folder)
             for i, element in enumerate(obj):
-                element_folder = Serializable._append_folder(new_folder, str(i))
+                element_folder = MushroomObject._append_folder(new_folder, str(i))
                 element.save_zip(zip_file, full_save=full_save, folder=element_folder)
         else:
             obj.save_zip(zip_file, full_save=full_save, folder=new_folder)
 
     @staticmethod
     def _get_serialization_method(class_name):
-        if issubclass(class_name, Serializable):
+        if issubclass(class_name, MushroomObject):
             return 'mushroom'
         else:
             return 'pickle'

@@ -7,7 +7,7 @@ The three basic interface of mushroom_rl are the Agent, the Environment and the 
 - The ``Environment`` is the basic interface for every problem/task that the agent should solve.
 - The ``Core`` is a class used to control the interaction between an agent and an environment.
 
-We provide the logging functionality with the ``Logger`` class. Finally, the ``Serializable`` interface implements
+We provide the logging functionality with the ``Logger`` class. Finally, the ``MushroomObject`` interface implements
 serialization of MushroomRL data on the disk (load/save functionality) and forwards a logger down the object tree.
 
 
@@ -57,7 +57,7 @@ Core
 Serialization
 -------------
 
-.. automodule:: mushroom_rl.core.serialization
+.. automodule:: mushroom_rl.core.mushroom_object
     :members:
     :private-members:
     :inherited-members:

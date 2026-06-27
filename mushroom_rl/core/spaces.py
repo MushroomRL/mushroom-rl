@@ -1,10 +1,10 @@
 import numpy as np
 
-from mushroom_rl.core.serialization import Serializable
+from mushroom_rl.core.mushroom_object import MushroomObject
 from mushroom_rl.core.array_backend import ArrayBackend
 
 
-class Box(Serializable):
+class Box(MushroomObject):
     """
     This class implements functions to manage continuous states and action
     spaces. It is similar to the ``Box`` class in ``gym.spaces.box``.
@@ -90,7 +90,7 @@ class Box(Serializable):
         self._shape = self._low.shape
 
 
-class Discrete(Serializable):
+class Discrete(MushroomObject):
     """
     This class implements functions to manage discrete states and action
     spaces. It is similar to the ``Discrete`` class in ``gym.spaces.discrete``.

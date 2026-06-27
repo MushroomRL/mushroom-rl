@@ -1,6 +1,6 @@
 import numpy as np
 
-from mushroom_rl.core.serialization import Serializable
+from mushroom_rl.core.mushroom_object import MushroomObject
 from mushroom_rl.approximators.table import Table
 
 
@@ -11,7 +11,7 @@ def to_parameter(x):
         return Parameter(x)
 
 
-class Parameter(Serializable):
+class Parameter(MushroomObject):
     """
     This class implements function to manage parameters, such as learning rate.
     It also allows to have a single parameter for each state of state-action

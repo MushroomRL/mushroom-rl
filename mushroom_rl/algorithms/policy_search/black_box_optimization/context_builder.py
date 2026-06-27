@@ -1,7 +1,7 @@
-from mushroom_rl.core import Serializable
+from mushroom_rl.core import MushroomObject
 
 
-class ContextBuilder(Serializable):
+class ContextBuilder(MushroomObject):
     def __init__(self, context_shape=None):
         self._context_shape = context_shape
 

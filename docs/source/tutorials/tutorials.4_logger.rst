@@ -199,7 +199,7 @@ When the logger is attached, it is automatically forwarded down the agent's logg
 their relevant quantities are logged under a hierarchy of grouped metric names without any extra code: the
 critic approximator logs ``critic/loss``, an exploration parameter logs ``policy/epsilon``, a learning
 rate logs ``alpha/value``, a distribution logs ``distribution/entropy``, and so on. This forwarding is part
-of the ``Serializable`` interface (see the related tutorial): any class declares its loggable children with
+of the ``MushroomObject`` interface (see the related tutorial): any class declares its loggable children with
 ``self._add_logger_attr`` (analogous to ``self._add_save_attr``), and ``set_logger`` propagates the logger
 and the metric-name prefix recursively.
 

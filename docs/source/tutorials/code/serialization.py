@@ -1,11 +1,11 @@
-from mushroom_rl.core import Serializable
+from mushroom_rl.core import MushroomObject
 
 import torch
 import numpy as np
 from mushroom_rl.rl_utils.parameters import Parameter
 
 
-class TestClass(Serializable):
+class TestClass(MushroomObject):
     def __init__(self, value):
         # Create some different types of variables
 
@@ -18,7 +18,7 @@ class TestClass(Serializable):
         data_tensor = torch.from_numpy(data_array)
         self._torch_object = torch.nn.Parameter(data_tensor)
 
-        # Some variables that implement the Serializable interface
+        # Some variables that implement the MushroomObject interface
         self._mushroom_parameter = Parameter(2.0*value)
         self._list_of_objects = [Parameter(i) for i in range(value)]  # This is a list!
 

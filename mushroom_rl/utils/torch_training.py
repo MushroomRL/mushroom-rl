@@ -1,10 +1,10 @@
 import numpy as np
 from tqdm import trange, tqdm
 
-from mushroom_rl.core.serialization import Serializable
+from mushroom_rl.core.mushroom_object import MushroomObject
 
 
-class TorchTrainer(Serializable):
+class TorchTrainer(MushroomObject):
     def __init__(self, loss_fn, batch_size, n_fit_targets, reinitialize, dropout,
                  fit_epoch_fn, compute_val_loss_fn, store_loss_fn, quiet):
         self._loss_fn = loss_fn

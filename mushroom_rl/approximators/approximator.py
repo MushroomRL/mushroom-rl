@@ -1,10 +1,10 @@
 from sklearn.exceptions import NotFittedError
 
 from mushroom_rl.core.array_backend import ArrayBackend
-from mushroom_rl.core.serialization import Serializable
+from mushroom_rl.core.mushroom_object import MushroomObject
 
 
-class Approximator(Serializable):
+class Approximator(MushroomObject):
     """
     Base class for all approximators. Handles logger attachment and dispatches
     to an ``Ensemble`` when ``n_models > 1`` is requested at construction time.
@@ -13,12 +13,12 @@ class Approximator(Serializable):
 
     def __new__(cls, *args, n_models=1, **kwargs):
         if issubclass(cls, Ensemble):
-            return Serializable.__new__(cls)
+            return MushroomObject.__new__(cls)
         if n_models > 1:
-            ensemble = Serializable.__new__(Ensemble)
+            ensemble = MushroomObject.__new__(Ensemble)
             Ensemble.__init__(ensemble, cls, n_models, **kwargs)
             return ensemble
-        return Serializable.__new__(cls)
+        return MushroomObject.__new__(cls)
 
     def __init__(self, input_shape, output_shape, backend='numpy'):
         self._input_shape = input_shape
