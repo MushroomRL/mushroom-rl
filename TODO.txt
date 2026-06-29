@@ -1,5 +1,4 @@
 For Mushroom 2.0:
-    * Single core class, two instantiation (SingleCore and VectorizedCore)
     * Rework of stateful policies:
         - fix stateful policy hierarchy issue
         - vectorize RecurrentGaussianTorchPolicy to support batched hidden states natively (currently hardcoded for single env)
