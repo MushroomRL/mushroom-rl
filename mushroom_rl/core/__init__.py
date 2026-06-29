@@ -1,20 +1,26 @@
 from .array_backend import ArrayBackend
-from .spaces import Box, Discrete
-from .core import Core
-from .dataset import DatasetInfo, Dataset, VectorizedDataset
-from .environment import Environment, MDPInfo
-from .agent import Agent, AgentInfo
 from .mushroom_object import MushroomObject
-from .logger import Logger
-
-from .extra_info import ExtraInfo
-
-from .vectorized_core import VectorCore
+from .spaces import Box, Discrete
+from .environment import Environment, MDPInfo
 from .vectorized_env import VectorizedEnvironment
 from .multiprocess_environment import MultiprocessEnvironment
+from .agent import Agent, AgentInfo
+from .core import Core
+from .dataset import Dataset, VectorizedDataset, DatasetInfo
+from .extra_info import ExtraInfo
+from .logger import Logger
 
 import mushroom_rl.environments
 
-__all__ = ['ArrayBackend', 'Core', 'DatasetInfo', 'Dataset', 'Environment', 'MDPInfo', 'Box', 'Discrete',
-           'Agent', 'AgentInfo', 'MushroomObject', 'Logger', 'ExtraInfo', 'VectorCore', 'VectorizedEnvironment',
-           'MultiprocessEnvironment']
+__all__ = [
+    'ArrayBackend',
+    'MushroomObject',
+    'Box', 'Discrete',
+    'Environment', 'MDPInfo',
+    'VectorizedEnvironment', 'MultiprocessEnvironment',
+    'Agent', 'AgentInfo',
+    'Core',
+    'Dataset', 'VectorizedDataset',
+    'DatasetInfo', 'ExtraInfo',
+    'Logger',
+]

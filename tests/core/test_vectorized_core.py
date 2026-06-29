@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from mushroom_rl.core import Agent, VectorCore, VectorizedEnvironment, MDPInfo, Box
+from mushroom_rl.core import Agent, Core, VectorizedEnvironment, MDPInfo, Box
 from mushroom_rl.policy import Policy
 from mushroom_rl.utils import TorchUtils
 
@@ -105,7 +105,7 @@ def run_exp(env_backend, agent_backend):
     env = DummyVecEnv(env_backend)
     agent = DummyAgent(env.info, agent_backend)
 
-    core = VectorCore(agent, env)
+    core = Core(agent, env)
 
     print('- evaluate n_steps=2000')
     dataset = core.evaluate(n_steps=2000)
@@ -134,7 +134,7 @@ def run_exp_episodic(env_backend, agent_backend):
     env = DummyVecEnv(env_backend)
     agent = DummyEpisodicAgent(env.info, agent_backend)
 
-    core = VectorCore(agent, env)
+    core = Core(agent, env)
 
     print('- evaluate n_episodes=20')
     dataset = core.evaluate(n_episodes=20)

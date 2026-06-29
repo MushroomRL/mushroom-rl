@@ -5,7 +5,7 @@ import torch.optim as optim
 import numpy as np
 from tqdm import trange
 
-from mushroom_rl.core import VectorCore, Logger, MultiprocessEnvironment
+from mushroom_rl.core import Core, Logger, MultiprocessEnvironment
 from mushroom_rl.environments import Gymnasium
 from mushroom_rl.algorithms.actor_critic import PPO, TRPO
 from mushroom_rl.policy import GaussianTorchPolicy
@@ -42,7 +42,7 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
 
     agent = alg(mdp.info, policy, **alg_params)
 
-    core = VectorCore(agent, mdp, logger=logger)
+    core = Core(agent, mdp, logger=logger)
 
     dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
 

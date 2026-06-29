@@ -7,7 +7,7 @@ from helper.utils import TestUtils as tu
 
 from mushroom_rl.core import Agent
 from mushroom_rl.algorithms.policy_search import PGPE, REPS, ConstrainedREPS, RWR, MORE, ePPO
-from mushroom_rl.core import Core, VectorCore, MultiprocessEnvironment
+from mushroom_rl.core import Core, MultiprocessEnvironment
 from mushroom_rl.approximators.parametric import LinearApproximator, TorchApproximator
 from mushroom_rl.approximators.parametric.networks import LinearNetwork
 from mushroom_rl.distributions import GaussianDiagonalDistribution, GaussianCholeskyDistribution,\
@@ -64,7 +64,7 @@ def learn_vectorized(alg, **alg_params):
     distribution = GaussianDiagonalDistribution(mu, sigma)
 
     agent = alg(mdp.info, distribution, policy, **alg_params)
-    core = VectorCore(agent, mdp)
+    core = Core(agent, mdp)
 
     try:
         core.learn(n_episodes=25, n_episodes_per_fit=5, quiet=True)

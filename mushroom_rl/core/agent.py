@@ -134,7 +134,7 @@ class Agent(MushroomObject):
 
     def episode_start_vectorized(self, initial_states, episode_info, start_mask):
         """
-        Called by the VectorCore when a new episode starts.
+        Called by the Core when a new episode starts.
 
         Args:
             initial_states (Array): the initial states of the environment.
