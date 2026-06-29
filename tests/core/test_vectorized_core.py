@@ -28,7 +28,7 @@ class DummyAgent(Agent):
 
     def fit(self, dataset):
         print(f'\t* samples={len(dataset)}, episodes={len(dataset.episodes_length)}')
-        assert len(dataset.episodes_length) == 20 or len(dataset) == 150
+        assert len(dataset.episodes_length) in (1, 20) or len(dataset) == 150
 
 
 class DummyEpisodicAgent(Agent):
@@ -121,6 +121,20 @@ def run_exp(env_backend, agent_backend):
     print('- evaluate n_episodes=20')
     dataset = core.evaluate(n_episodes=20)
     assert len(dataset.episodes_length) == 20
+
+    print('- evaluate n_episodes=1')
+    dataset = core.evaluate(n_episodes=1)
+    assert len(dataset.episodes_length) == 1
+
+    print('- evaluate single initial state')
+    initial_states = np.array([[4., 5., 6.]])
+    dataset = core.evaluate(initial_states=initial_states)
+    assert len(dataset.episodes_length) == 1
+    init_states = dataset.array_backend.to_numpy(dataset.get_init_states())
+    assert sorted(tuple(row) for row in init_states) == sorted(tuple(row) for row in initial_states)
+
+    print('- learn n_episodes=5 n_episodes_per_fit=1')
+    core.learn(n_episodes=5, n_episodes_per_fit=1)
 
     print('- learn n_steps=10000 n_episodes_per_fit=20')
     core.learn(n_steps=10000, n_episodes_per_fit=20)

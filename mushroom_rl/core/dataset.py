@@ -115,8 +115,10 @@ class Dataset(MushroomObject):
         else:
             policy_state_shape = None
 
-        self._info = ExtraInfo(min(n_episodes, dataset_info.n_envs) if n_episodes else dataset_info.n_envs, dataset_info.backend, dataset_info.device)
-        self._episode_info = ExtraInfo(min(n_episodes, dataset_info.n_envs) if n_episodes else dataset_info.n_envs, dataset_info.backend, dataset_info.device)
+        info_n_envs = min(n_episodes, dataset_info.n_envs) if n_episodes else dataset_info.n_envs
+        vectorized = dataset_info.n_envs > 1
+        self._info = ExtraInfo(info_n_envs, dataset_info.backend, dataset_info.device, vectorized=vectorized)
+        self._episode_info = ExtraInfo(info_n_envs, dataset_info.backend, dataset_info.device, vectorized=vectorized)
         self._theta_list = list()
 
         if dataset_info.backend == 'numpy':
