@@ -134,7 +134,7 @@ class Agent(MushroomObject):
 
     def episode_start_vectorized(self, initial_states, episode_info, start_mask):
         """
-        Called by the Core when a new episode starts.
+        Called by the Core at the start of a new episode when using a vectorized environment.
 
         Args:
             initial_states (Array): the initial states of the environment.
@@ -241,12 +241,4 @@ class Agent(MushroomObject):
     @property
     def info(self):
         return self._info
-
-    @property
-    def logger(self):
-        """
-        Access to the logger set via ``set_logger``.
-
-        """
-        return self._logger
 

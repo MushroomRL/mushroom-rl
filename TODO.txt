@@ -6,6 +6,7 @@ For Mushroom 2.0:
     * fix basis functions
         - vectorize if possible, using vmap if allowed
         - simplify interface, improving facade pattern
+    * reorganize example folder
 
 
 For Mushroom 2.1:
