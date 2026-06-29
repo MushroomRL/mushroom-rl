@@ -290,7 +290,7 @@ class Dataset(MushroomObject):
         return self[0]
 
     def __getitem__(self, index):
-        if isinstance(index, (slice, np.ndarray)) or isinstance(index, (slice, torch.Tensor)):
+        if isinstance(index, (slice, np.ndarray, torch.Tensor)):
             return self.get_view(index)
         elif isinstance(index, int) and index < len(self._data):
             return self._data[index]
@@ -559,7 +559,7 @@ class Dataset(MushroomObject):
         elif to == 'torch':
             return self._array_backend.arrays_to_torch(*arrays)
         else:
-            return NotImplementedError
+            raise NotImplementedError
 
     def _add_all_save_attr(self):
         self._add_save_attr(

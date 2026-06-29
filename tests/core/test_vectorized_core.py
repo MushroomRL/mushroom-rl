@@ -76,13 +76,18 @@ class DummyVecEnv(VectorizedEnvironment):
         super().__init__(mdp_info, n_envs)
 
     def reset_all(self, env_mask, state=None):
-        if self.info.backend == 'torch':
+        if state is not None:
+            self._state[env_mask] = state[env_mask]
+        elif self.info.backend == 'torch':
             self._state[env_mask] = torch.randint(size=(env_mask.sum(), self._state.shape[1]),
                                                   low=2, high=200).float().to(TorchUtils.get_device())
         elif self.info.backend == 'numpy':
             self._state[env_mask] = np.random.randint(size=(env_mask.sum(), self._state.shape[1]),
                                                       low=2, high=200).astype(float)
-        return self._state, [{}]*self._n_envs
+
+        next_state = self._state.clone() if self.info.backend == 'torch' else self._state.copy()
+
+        return next_state, [{}] * self._n_envs
 
     def step_all(self, env_mask, action):
         self._state[env_mask] -= 1
@@ -96,7 +101,9 @@ class DummyVecEnv(VectorizedEnvironment):
 
         done = (self._state == 0).any(1)
 
-        return self._state, reward, done & env_mask, [{}] * self._n_envs
+        next_state = self._state.clone() if self.info.backend == 'torch' else self._state.copy()
+
+        return next_state, reward, done & env_mask, [{}] * self._n_envs
 
 
 def run_exp(env_backend, agent_backend):
@@ -145,6 +152,33 @@ def run_exp_episodic(env_backend, agent_backend):
     core.learn(n_episodes=25, n_episodes_per_fit=5)
     
 
+def run_exp_initial_states(env_backend, agent_backend):
+    torch.random.manual_seed(42)
+    np.random.seed(42)
+
+    env = DummyVecEnv(env_backend)
+    agent = DummyAgent(env.info, agent_backend)
+
+    core = Core(agent, env)
+
+    initial_states = np.array([[5., 9., 7.],
+                               [3., 8., 6.],
+                               [10., 4., 11.],
+                               [12., 7., 5.],
+                               [6., 6., 9.],
+                               [8., 5., 4.],
+                               [9., 3., 10.]])
+
+    dataset = core.evaluate(initial_states=initial_states)
+
+    assert len(dataset.episodes_length) == 7
+
+    init_states = dataset.array_backend.to_numpy(dataset.get_init_states())
+
+    assert len(init_states) == 7
+    assert sorted(tuple(row) for row in init_states) == sorted(tuple(row) for row in initial_states)
+
+
 def test_vectorized_core():
     print('# CPU test')
     run_exp(env_backend='torch', agent_backend='torch')
@@ -156,6 +190,11 @@ def test_vectorized_core():
     run_exp_episodic(env_backend='torch', agent_backend='numpy')
     run_exp_episodic(env_backend='numpy', agent_backend='torch')
     run_exp_episodic(env_backend='numpy', agent_backend='numpy')
+
+    run_exp_initial_states(env_backend='torch', agent_backend='torch')
+    run_exp_initial_states(env_backend='torch', agent_backend='numpy')
+    run_exp_initial_states(env_backend='numpy', agent_backend='torch')
+    run_exp_initial_states(env_backend='numpy', agent_backend='numpy')
 
     if torch.cuda.is_available():
         print('# Testing also cuda')

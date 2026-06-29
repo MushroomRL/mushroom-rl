@@ -63,6 +63,8 @@ class ExtraInfo(MushroomObject, UserDict):
         if to is None:
             to = self._array_backend.get_backend_name()
 
+        target_backend = ArrayBackend.get_array_backend(to)
+
         #create key mapping
         for step_data in self._storage:
             if isinstance(step_data, dict):
@@ -81,7 +83,7 @@ class ExtraInfo(MushroomObject, UserDict):
         
         # create output dictionary with empty arrays
         output = {
-            key: ArrayBackend.get_array_backend(to).empty(size + self._shape_mapping[key], self._device)
+            key: target_backend.empty(size + self._shape_mapping[key], self._device)
             for key in self._key_mapping
         }
 
@@ -102,7 +104,7 @@ class ExtraInfo(MushroomObject, UserDict):
 
         self._structured_storage = {key: value for key, value in output.items()}
         self._storage = []
-        self._array_backend = ArrayBackend.get_array_backend(to)
+        self._array_backend = target_backend
             
         self.data = output
     
@@ -311,10 +313,11 @@ class ExtraInfo(MushroomObject, UserDict):
             index (int): index of the step
             to (str): Target format
         """
+        none_value = ArrayBackend.get_array_backend(to).none()
         for key, key_path in self._key_mapping.items():
             value = self._find_element_by_key_path(step_data, key_path)
             value = self._convert(value, to)
-            if value is ArrayBackend.get_array_backend(to).none() or self._n_envs == 1:
+            if value is none_value or self._n_envs == 1:
                 output[key][index] = value
             else:
                 output[key][index] = value[:self._n_envs]

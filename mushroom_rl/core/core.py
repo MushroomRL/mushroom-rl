@@ -189,7 +189,7 @@ class SequentialCore(Core):
             sample, step_info = self._step(render, record)
 
             self.callback_step(sample)
-            self._core_logic.after_step(sample[5])
+            last = self._core_logic.after_step(sample[5])
 
             dataset.append(sample, step_info)
 
@@ -201,8 +201,6 @@ class SequentialCore(Core):
                     c(dataset)
 
                 dataset.clear()
-
-            last = sample[5]
 
         self.agent.stop()
         self.env.stop()
@@ -289,9 +287,10 @@ class VectorizedCore(Core):
 
         last = self._core_logic.converter.ones(self.env.number, dtype=bool)
         mask = None
+        need_reset = True
 
         while self._core_logic.move_required():
-            if last.any():
+            if need_reset:
                 mask = self._core_logic.get_mask(last)
                 current_theta, reset_mask = self._reset(initial_states, last, mask)
 
@@ -301,11 +300,12 @@ class VectorizedCore(Core):
             samples, step_infos = self._step(render, record, mask)
 
             self.callback_step(samples)
-            self._core_logic.after_step(samples[5] & mask)
+            completed = self._core_logic.after_step(samples[5] & mask)
 
             dataset.append_vectorized(samples, step_infos, mask)
 
             last = samples[5]
+            need_reset = completed > 0
 
             if self._core_logic.fit_required():
                 fit_dataset = dataset.flatten(self._core_logic.n_steps_per_fit)
@@ -316,6 +316,8 @@ class VectorizedCore(Core):
 
                 n_carry_forward_steps = dataset.clear(self._core_logic.n_steps_per_fit)
                 last = self._core_logic.after_fit_vectorized(last, n_carry_forward_steps)
+                if self._core_logic.n_episodes_per_fit is not None:
+                    need_reset = True
 
         self.agent.stop()
         self.env.stop()
@@ -366,7 +368,7 @@ class VectorizedCore(Core):
         """
         reset_mask = last & mask
 
-        initial_state = self._core_logic.get_initial_state(initial_states)
+        initial_state = self._core_logic.get_initial_state(initial_states, reset_mask)
 
         state, episode_info = self.env.reset_all(reset_mask, initial_state)
 
