@@ -5,7 +5,7 @@ import torch.optim as optim
 import numpy as np
 from tqdm import trange
 
-from mushroom_rl.core import VectorCore, Logger
+from mushroom_rl.core import Core, Logger
 from mushroom_rl.algorithms.actor_critic import TRPO, PPO
 from mushroom_rl.policy import GaussianTorchPolicy
 from mushroom_rl.environments.isaacsim_envs.cartpole import CartPole
@@ -41,7 +41,7 @@ def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test,
 
     agent = alg(mdp.info, policy, **alg_params)
 
-    core = VectorCore(agent, mdp, logger=logger)
+    core = Core(agent, mdp, logger=logger)
 
     dataset = core.evaluate(n_episodes=n_episodes_test, render=True, record=True)
 

@@ -108,7 +108,7 @@ stored results values. This can be done by specifying the ``append`` flag in the
    :lines: 97-
 
 Finally, another functionality of the logger is to activate some specific output from some algorithms.
-This can be done by calling the ``set_logger`` method on the ``Core`` (or ``VectorCore``) object, which
+This can be done by calling the ``set_logger`` method on the ``Core`` object, which
 forwards the logger to the agent and automatically configures the video recording fps from the
 environment:
 

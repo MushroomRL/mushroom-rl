@@ -7,14 +7,18 @@ class ExtraInfo(MushroomObject, UserDict):
     """
     A class to collect and parse step information
     """
-    def __init__(self, n_envs, backend, device=None):
+    def __init__(self, n_envs, backend, device=None, vectorized=None):
         """
         Constructor.
 
         Args:
-            n_envs (int): Number of parallel environments
+            n_envs (int): Number of parallel environments;
+            vectorized (bool, None): whether the step information is provided in vectorized form (a list of dicts or a
+                dict of arrays, one entry per environment) rather than as a single dict. If None, it defaults to
+                ``n_envs > 1``.
         """
         self._n_envs = n_envs
+        self._vectorized = n_envs > 1 if vectorized is None else vectorized
         self._array_backend = ArrayBackend.get_array_backend(backend)
         self._device = device
 
@@ -32,7 +36,7 @@ class ExtraInfo(MushroomObject, UserDict):
         Args:
             info (dict or list): Information to append either list of dicts of every environment, or a dictionary of arrays 
         """
-        if self._n_envs > 1:
+        if self._vectorized:
             assert isinstance(info, (dict, list))
         else:
             assert isinstance(info, dict)
@@ -63,10 +67,12 @@ class ExtraInfo(MushroomObject, UserDict):
         if to is None:
             to = self._array_backend.get_backend_name()
 
+        target_backend = ArrayBackend.get_array_backend(to)
+
         #create key mapping
         for step_data in self._storage:
             if isinstance(step_data, dict):
-                self._update_key_mapping(step_data, self._n_envs == 1)
+                self._update_key_mapping(step_data, not self._vectorized)
             elif isinstance(step_data, list):
                 for env_data in step_data:
                     assert isinstance(env_data, dict)
@@ -77,11 +83,15 @@ class ExtraInfo(MushroomObject, UserDict):
             length_structured_storage = self._structured_storage[next(iter(self._structured_storage.keys()))].shape[0]
         else:
             length_structured_storage = 0
-        size = (len(self._storage) + length_structured_storage, self._n_envs) if self._n_envs > 1 else (len(self._storage) + length_structured_storage, )
+
+        if self._vectorized:
+            size = (len(self._storage) + length_structured_storage, self._n_envs)
+        else:
+            size = (len(self._storage) + length_structured_storage, )
         
         # create output dictionary with empty arrays
         output = {
-            key: ArrayBackend.get_array_backend(to).empty(size + self._shape_mapping[key], self._device)
+            key: target_backend.empty(size + self._shape_mapping[key], self._device)
             for key in self._key_mapping
         }
 
@@ -102,7 +112,7 @@ class ExtraInfo(MushroomObject, UserDict):
 
         self._structured_storage = {key: value for key, value in output.items()}
         self._storage = []
-        self._array_backend = ArrayBackend.get_array_backend(to)
+        self._array_backend = target_backend
             
         self.data = output
     
@@ -145,8 +155,8 @@ class ExtraInfo(MushroomObject, UserDict):
             other(ExtraInfo): other ExtraInfo which will be combined with self
         """
         assert(self._n_envs == other.n_envs)
-
-        info = ExtraInfo(self._n_envs, self._array_backend.get_backend_name(), self._device)
+        backend_name = self._array_backend.get_backend_name()
+        info = ExtraInfo(self._n_envs, backend_name, self._device, vectorized=self._vectorized)
         info._storage = self._storage + other._storage
 
         info._structured_storage = self._concatenate_dictionary(self._structured_storage, other._structured_storage, self._array_backend, other._array_backend)
@@ -217,7 +227,7 @@ class ExtraInfo(MushroomObject, UserDict):
 
 
     def copy(self):
-        info = ExtraInfo(self._n_envs, self._array_backend.get_backend_name(), self._device)
+        info = ExtraInfo(self._n_envs, self._array_backend.get_backend_name(), self._device, vectorized=self._vectorized)
         info._storage = self._storage.copy()
         info._key_mapping = self._key_mapping.copy()
         info._shape_mapping = self._shape_mapping.copy()
@@ -234,7 +244,7 @@ class ExtraInfo(MushroomObject, UserDict):
             copy (bool): wether content of ExtraInfo object should be copied
         """
         self.parse()
-        info = ExtraInfo(self._n_envs, self._array_backend.get_backend_name(), self._device)
+        info = ExtraInfo(self._n_envs, self._array_backend.get_backend_name(), self._device, vectorized=self._vectorized)
         info._key_mapping = self._key_mapping
         info._shape_mapping = self._shape_mapping
 
@@ -311,10 +321,11 @@ class ExtraInfo(MushroomObject, UserDict):
             index (int): index of the step
             to (str): Target format
         """
+        none_value = ArrayBackend.get_array_backend(to).none()
         for key, key_path in self._key_mapping.items():
             value = self._find_element_by_key_path(step_data, key_path)
             value = self._convert(value, to)
-            if value is ArrayBackend.get_array_backend(to).none() or self._n_envs == 1:
+            if value is none_value or not self._vectorized:
                 output[key][index] = value
             else:
                 output[key][index] = value[:self._n_envs]
@@ -329,7 +340,7 @@ class ExtraInfo(MushroomObject, UserDict):
             index (int): index of the step
             to (str): Target format
         """
-        assert(self._n_envs > 1)
+        assert self._vectorized
         for key, key_path in self._key_mapping.items():
             for i, env_data in enumerate(step_data):
                 if i >= self._n_envs:

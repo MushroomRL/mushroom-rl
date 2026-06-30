@@ -7,6 +7,8 @@ class VectorizedCoreLogic(CoreLogic):
         self._array_backend = ArrayBackend.get_array_backend(backend)
         self._n_envs = n_envs
         self._running_envs = self._array_backend.zeros(n_envs, dtype=bool)
+        self._n_active_envs = 0
+        self._started_counter = 0
 
         super().__init__()
 
@@ -41,32 +43,40 @@ class VectorizedCoreLogic(CoreLogic):
             mask[last] = new_mask
 
         self._running_envs = self._array_backend.copy(mask)
+        self._n_active_envs = mask.sum().item()
 
         return mask
 
-    def get_initial_state(self, initial_states):
-        if initial_states is None or self._total_episodes_counter >= self._n_episodes:
-            initial_state = None
-        else:
-            initial_state = initial_states[self._total_episodes_counter]  # FIXME
+    def get_initial_state(self, initial_states, reset_mask):
+        if initial_states is None:
+            return None
+
+        n_reset = reset_mask.sum().item()
+        selected = initial_states[self._started_counter:self._started_counter + n_reset]
+        self._started_counter += n_reset
+
+        initial_state = self._array_backend.empty((self._n_envs,) + selected.shape[1:])
+        initial_state[reset_mask] = self._array_backend.convert(selected)
 
         return initial_state
 
     def after_step(self, last):
-        n_active_envs = self._running_envs.sum().item()
-        self._total_steps_counter += n_active_envs
-        self._current_steps_counter += n_active_envs
-        self._steps_progress_bar.update(n_active_envs)
+        self._total_steps_counter += self._n_active_envs
+        self._current_steps_counter += self._n_active_envs
+        self._steps_progress_bar.update(self._n_active_envs)
 
         completed = last.sum().item()
         self._total_episodes_counter += completed
         self._current_episodes_counter += completed
         self._episodes_progress_bar.update(completed)
 
+        return completed
+
     def after_fit_vectorized(self, last, n_carry_forward_steps):
         super().after_fit(n_carry_forward_steps)
         if self._n_episodes_per_fit is not None:
             self._running_envs = self._array_backend.zeros(self._n_envs, dtype=bool)
+            self._n_active_envs = 0
             return self._array_backend.ones(self._n_envs, dtype=bool)
         else:
             return last
@@ -74,6 +84,8 @@ class VectorizedCoreLogic(CoreLogic):
     def _reset_counters(self):
         super()._reset_counters()
         self._running_envs = self._array_backend.zeros(self._n_envs, dtype=bool)
+        self._n_active_envs = 0
+        self._started_counter = 0
 
     @property
     def converter(self):

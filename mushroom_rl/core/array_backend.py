@@ -588,7 +588,7 @@ class TorchBackend(ArrayBackend):
 
     @staticmethod
     def from_list(array):
-        if len(array) > 1 and isinstance(array[0], torch.Tensor):
+        if len(array) > 0 and isinstance(array[0], torch.Tensor):
             return torch.stack(array)
         else:
             return torch.tensor(array).to(TorchUtils.get_device())

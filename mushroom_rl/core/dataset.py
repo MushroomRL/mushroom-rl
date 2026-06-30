@@ -115,8 +115,10 @@ class Dataset(MushroomObject):
         else:
             policy_state_shape = None
 
-        self._info = ExtraInfo(min(n_episodes, dataset_info.n_envs) if n_episodes else dataset_info.n_envs, dataset_info.backend, dataset_info.device)
-        self._episode_info = ExtraInfo(min(n_episodes, dataset_info.n_envs) if n_episodes else dataset_info.n_envs, dataset_info.backend, dataset_info.device)
+        info_n_envs = min(n_episodes, dataset_info.n_envs) if n_episodes else dataset_info.n_envs
+        vectorized = dataset_info.n_envs > 1
+        self._info = ExtraInfo(info_n_envs, dataset_info.backend, dataset_info.device, vectorized=vectorized)
+        self._episode_info = ExtraInfo(info_n_envs, dataset_info.backend, dataset_info.device, vectorized=vectorized)
         self._theta_list = list()
 
         if dataset_info.backend == 'numpy':
@@ -290,7 +292,7 @@ class Dataset(MushroomObject):
         return self[0]
 
     def __getitem__(self, index):
-        if isinstance(index, (slice, np.ndarray)) or isinstance(index, (slice, torch.Tensor)):
+        if isinstance(index, (slice, np.ndarray, torch.Tensor)):
             return self.get_view(index)
         elif isinstance(index, int) and index < len(self._data):
             return self._data[index]
@@ -559,7 +561,7 @@ class Dataset(MushroomObject):
         elif to == 'torch':
             return self._array_backend.arrays_to_torch(*arrays)
         else:
-            return NotImplementedError
+            raise NotImplementedError
 
     def _add_all_save_attr(self):
         self._add_save_attr(

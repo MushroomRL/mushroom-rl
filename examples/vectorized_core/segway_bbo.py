@@ -1,6 +1,6 @@
 import numpy as np
 
-from mushroom_rl.core import VectorCore, Logger, MultiprocessEnvironment
+from mushroom_rl.core import Core, Logger, MultiprocessEnvironment
 from mushroom_rl.environments.segway import Segway
 from mushroom_rl.algorithms.policy_search import *
 from mushroom_rl.policy import DeterministicPolicy
@@ -37,7 +37,7 @@ def experiment(alg, params, n_epochs, n_episodes, n_ep_per_fit):
 
     # Train
     dataset_callback = CollectDataset()
-    core = VectorCore(agent, mdp, callbacks_fit=[dataset_callback])
+    core = Core(agent, mdp, callbacks_fit=[dataset_callback])
 
     dataset = core.evaluate(n_episodes=n_episodes)
     J = np.mean(dataset.discounted_return)
