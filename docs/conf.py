@@ -119,7 +119,7 @@ html_sidebars = {
     ]
 }
 
-html_show_sourcelink=False
+html_show_sourcelink = False
 
 # -- Options for HTMLHelp output ------------------------------------------
 
@@ -185,7 +185,6 @@ texinfo_documents = [
 ]
 
 
-
 # -- Options for Epub output ----------------------------------------------
 
 # Bibliographic Dublin Core info.
@@ -215,19 +214,20 @@ autodoc_mock_imports = ['torch', 'scipy', 'sklearn', 'ale_py', 'pybullet', 'pybu
                         'igibson', 'omni', 'omniisaacgymenvs']
 add_module_names = False
 
+
 def skip(app, what, name, obj, skip, options):
     if name == "__init__" or name == "__call__":
         return False
     return skip
 
+
 def setup(app):
     app.connect("autodoc-skip-member", skip)
     app.add_css_file('theme_overrides.css')
+
 
 # -- Options for intersphinx ---------------------------------------------------
 
 intersphinx_mapping = {
     "torch": ("https://docs.pytorch.org/docs/stable/", None)
 }
-
-

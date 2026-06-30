@@ -161,6 +161,3 @@ if __name__ == '__main__':
     # Print the average objective value after learning
     J = np.mean(dataset.discounted_return)
     print(f'Objective function after learning: {J}')
-
-
-

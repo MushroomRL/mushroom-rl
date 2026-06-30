@@ -1,5 +1,3 @@
-import numpy as np
-
 from mushroom_rl.algorithms.value import SARSALambdaContinuous
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.core import Core

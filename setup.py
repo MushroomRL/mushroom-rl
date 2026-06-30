@@ -8,8 +8,8 @@ from mushroom_rl import __version__
 def glob_data_files(data_package, data_type=None):
     data_type = '*' if data_type is None else data_type
     data_dir = data_package.replace(".", "/")
-    data_files = [] 
-    directories = glob.glob(data_dir+'/**/', recursive=True) 
+    data_files = []
+    directories = glob.glob(data_dir+'/**/', recursive=True)
     for directory in directories:
         subdir = directory[len(data_dir)+1:]
         if subdir != "":

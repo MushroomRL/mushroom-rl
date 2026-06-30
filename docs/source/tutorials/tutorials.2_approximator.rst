@@ -66,13 +66,13 @@ using tile-coded features and a ``LinearApproximator``.
 First, the MDP, the policy and the features are set up:
 
 .. literalinclude:: code/q_approximator.py
-   :lines: 1-26
+   :lines: 1-24
 
 Setting ``output_shape`` to the number of actions creates a ``QApproximatorSimple``
 inside the algorithm:
 
 .. literalinclude:: code/q_approximator.py
-   :lines: 28-37
+   :lines: 26-35
 
 To use a ``QApproximatorAction`` instead — one independent model per action —
 simply set ``output_shape`` to ``(1,)``:
@@ -87,4 +87,4 @@ simply set ``output_shape`` to ``(1,)``:
 The rest creates the training loop and runs training and evaluation:
 
 .. literalinclude:: code/q_approximator.py
-   :lines: 39-
+   :lines: 37-

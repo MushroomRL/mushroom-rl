@@ -17,7 +17,7 @@ algorithm that requires the use of a linear approximator.
 Initially, the MDP and the policy are created:
 
 .. literalinclude:: code/advanced_experiment.py
-   :lines: 1-19
+   :lines: 1-17
 
 This is an environment created with the MushroomRL interface to the Gymnasium
 library. Each environment offered by Gymnasium can be created this way simply
@@ -26,7 +26,7 @@ that are managed by a separate class.
 After the creation of the MDP, the tiles features are created:
 
 .. literalinclude:: code/advanced_experiment.py
-   :lines: 21-30
+   :lines: 19-28
 
 In this example, we use sparse coding by means of **tiles** features. The
 ``generate`` method generates ``n_tilings`` grids of 10x10 tilings evenly spaced
@@ -44,11 +44,11 @@ tilings for the correctness of the update (see *"Reinforcement Learning: An Intr
 Sutton & Barto, 1998* for details). After that, the learning is run as usual:
 
 .. literalinclude:: code/advanced_experiment.py
-   :lines: 32-46
+   :lines: 30-44
 
 To visualize the learned policy the rendering method of Gymnasium is used. To
 activate the rendering in the environments that supports it, it is necessary to
 set ``render=True``.
 
 .. literalinclude:: code/advanced_experiment.py
-   :lines: 48-
+   :lines: 46-
