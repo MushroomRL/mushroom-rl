@@ -318,8 +318,6 @@ class ObservationHelper:
         else:
             raise ValueError('Invalid observation type')
 
-        return np.atleast_1d(obs)
-
     def _build_obs_warp(self, data_wp):
         """
         Build batched observations from a MuJoCo Warp data object.
