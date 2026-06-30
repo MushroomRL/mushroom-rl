@@ -12,5 +12,8 @@ For Mushroom 2.0:
 For Mushroom 2.1:
     * vectorize _compute_n_step_return in AbstractReplayMemory
     * fix MellowMax parameter class
-    * handle ExtraInfo correctly in ReplayMemory (currently ignored in circular-buffer phase; info is never read back during sampling)
+    * handle ExtraInfo correctly in ReplayMemory 
+      - currently ignored in circular-buffer phase; info is never read back during sampling
+    * vectorized env rendering 
+      - render a single window by default instead of one per active env; optionally a grid viewer compositing all envs
 
