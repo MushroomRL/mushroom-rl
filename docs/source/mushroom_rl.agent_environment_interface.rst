@@ -27,7 +27,6 @@ already available ones, by extending the following interface:
 .. automodule:: mushroom_rl.core.agent
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Environment
@@ -41,7 +40,6 @@ To implement a new environment, it is mandatory to use the following interface:
 .. automodule:: mushroom_rl.core.environment
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 
@@ -51,7 +49,23 @@ Core
 .. automodule:: mushroom_rl.core.core
     :members:
     :private-members:
-    :inherited-members:
+    :show-inheritance:
+
+History manager
+---------------
+
+A policy can depend on the past in two orthogonal ways. The **policy state** is the *latent*
+internal state a stateful policy carries and updates step-by-step (e.g. the hidden state of a
+recurrent network or the noise of an Ornstein-Uhlenbeck process); it is stored in the dataset
+because it cannot be reconstructed. The **context**, instead, is a deterministic function of the
+observed trajectory (e.g. a window of stacked observations) and is therefore always
+reconstructable from the stored transitions: the :class:`~mushroom_rl.core.history_manager.HistoryManager`
+assembles it on the fly, both online during the rollout and offline in the replay memory, so it
+is never stored as policy state.
+
+.. automodule:: mushroom_rl.core.history_manager
+    :members:
+    :private-members:
     :show-inheritance:
 
 Serialization
@@ -60,7 +74,6 @@ Serialization
 .. automodule:: mushroom_rl.core.mushroom_object
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Logger
@@ -69,5 +82,4 @@ Logger
 .. automodule:: mushroom_rl.core.logger
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
