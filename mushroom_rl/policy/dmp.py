@@ -1,9 +1,9 @@
 import numpy as np
 
-from mushroom_rl.policy.policy import ParametricPolicy
+from mushroom_rl.policy.policy import StatefulPolicy, HasWeights
 
 
-class DMP(ParametricPolicy):
+class DMP(StatefulPolicy, HasWeights):
     """
     Class representing a Dynamic Movement Primitive (DMP).
 
@@ -47,14 +47,15 @@ class DMP(ParametricPolicy):
         )
 
     def __call__(self, state, action, policy_state=None):
-        next_policy_state = self.update_system(state, policy_state)
-        y = next_policy_state[3]
+        if policy_state is None:
+            policy_state = self._policy_state
+
+        _, y = self.update_system(state, policy_state)
 
         return 1.0 if np.allclose(y, action) else 0.0
 
-    def draw_action(self, state, policy_state):
-        next_policy_state = self.update_system(state, policy_state)
-        y = next_policy_state[3]
+    def _draw_action(self, state, policy_state):
+        next_policy_state, y = self.update_system(state, policy_state)
 
         return y, next_policy_state
 
@@ -73,15 +74,15 @@ class DMP(ParametricPolicy):
             policy_state (np.ndarray): the internal state of the DMP, stacking the ``[v, x, z, y]`` variables.
 
         Returns:
-            The updated internal state of the DMP.
+            The updated internal state of the DMP and its ``y`` variable (the action).
 
         """
-        next_policy_state = np.array(policy_state)
-        v, x, z, y = next_policy_state
+        next_policy_state = policy_state.copy()
+        v, x, z, y = self._split_variables(next_policy_state)
 
         g = self.get_goal(state)
 
-        f = self._approximator(self._phi(x / g)) * v
+        f = self._approximator(self._phi(x / g)).reshape(v.shape) * v
 
         v_dot, x_dot = self._canonical_system(g, v, y)
         y_dot, z_dot = self._transformation_system(f, g, y, z)
@@ -91,7 +92,7 @@ class DMP(ParametricPolicy):
         z += z_dot * self._dt
         y += y_dot * self._dt
 
-        return next_policy_state
+        return next_policy_state, y
 
     def _transformation_system(self, f, g, y, z):
         z_dot = self._alpha_z * (self._beta_z * (g - y) - z) / self._tau
@@ -115,5 +116,24 @@ class DMP(ParametricPolicy):
     def weights_size(self):
         return self._approximator.weights_size
 
+    def _split_variables(self, policy_state):
+        """
+        Return a view of the internal state with the ``[v, x, z, y]`` variables on the leading axis, both for a single
+        state of shape ``(4,) + action_shape`` and a batched one of shape ``(n_envs, 4) + action_shape``. In-place
+        updates on the unpacked variables write back into ``policy_state``.
+
+        """
+        axis = policy_state.ndim - 1 - len(self._action_shape)
+        return np.moveaxis(policy_state, axis, 0)
+
     def reset(self):
-        return np.zeros((4,) + tuple(self._action_shape))
+        self._policy_state = np.zeros((4,) + tuple(self._action_shape))
+
+        return self._policy_state
+
+    def reset_vectorized(self, start_mask):
+        if self._policy_state is None:
+            self._policy_state = np.zeros((len(start_mask), 4) + tuple(self._action_shape))
+        self._policy_state[start_mask] = 0.
+
+        return self._policy_state

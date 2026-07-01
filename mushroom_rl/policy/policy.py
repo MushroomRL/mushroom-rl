@@ -1,4 +1,5 @@
 from mushroom_rl.core import MushroomObject
+from mushroom_rl.core.array_backend import ArrayBackend
 
 
 class Policy(MushroomObject):
@@ -9,29 +10,14 @@ class Policy(MushroomObject):
     A policy is used by mushroom agents to interact with the environment.
 
     """
-    def __init__(self, policy_state_shape=None):
-        """
-        Constructor.
-
-        Args:
-            policy_state_shape (tuple, None): the shape of the internal state of the policy.
-
-        """
-        super().__init__()
-
-        self.policy_state_shape = policy_state_shape
-
-        self._add_save_attr(policy_state_shape='primitive')
-
-    def __call__(self, state, action, policy_state):
+    def __call__(self, state, action):
         """
         Compute the probability of taking action in a certain state following
         the policy.
 
         Args:
             state: state where you want to evaluate the policy density;
-            action: action where you want to evaluate the policy density;
-            policy_state: internal_state where you want to evaluate the policy density.
+            action: action where you want to evaluate the policy density.
 
         Returns:
             The probability of all actions following the policy in the given state if the list contains only the state,
@@ -41,16 +27,15 @@ class Policy(MushroomObject):
         """
         raise NotImplementedError
 
-    def draw_action(self, state, policy_state):
+    def draw_action(self, state):
         """
         Sample an action in ``state`` using the policy.
 
         Args:
-            state: the state where the agent is;
-            policy_state: the internal state of the policy.
+            state: the state where the agent is.
 
         Returns:
-            The action sampled from the policy and optionally the next policy state.
+            The action sampled from the policy.
 
         """
         raise NotImplementedError
@@ -65,68 +50,159 @@ class Policy(MushroomObject):
         """
         return None
 
+    def reset_vectorized(self, start_mask):
+        """
+        Reset the policy for the environments selected by ``start_mask`` at the beginning of an episode.
+
+        Args:
+            start_mask: boolean mask selecting the environments that are starting a new episode.
+
+        Returns:
+            The initial policy states (by default None).
+
+        """
+        return None
+
     @property
     def is_stateful(self):
-        return self.policy_state_shape is not None
+        """
+        Whether the policy carries an internal state that is updated step-by-step.
+
+        """
+        return False
 
 
-class ParametricPolicy(Policy):
+class StatefulPolicy(Policy):
     """
-    Interface for a generic parametric policy.
-    A parametric policy is a policy that depends on set of parameters, called the policy weights.
-    For differentiable policies, the derivative of the probability for a specified state-action pair can be provided.
+    Interface representing a stateful policy, i.e. a policy carrying a latent internal state (e.g. the hidden state of
+    a recurrent network, the noise of an Ornstein-Uhlenbeck process, or the phase of a movement primitive) that is
+    updated at every step.
+
+    The current policy state is stored inside the policy and exposed through the ``policy_state`` property, so that the
+    :class:`~mushroom_rl.core.Core` can record it into the dataset for logging and learning. The query methods, instead,
+    take the policy state explicitly and never touch the stored one.
 
     """
-
-    def __init__(self, policy_state_shape=None):
+    def __init__(self, policy_state_shape):
         """
         Constructor.
 
         Args:
-            policy_state_shape (tuple, None): the shape of the internal state of the policy.
+            policy_state_shape (tuple): the shape of the internal state of the policy.
 
         """
-        super().__init__(policy_state_shape)
+        assert isinstance(policy_state_shape, tuple)
+        self.policy_state_shape = policy_state_shape
+        self._policy_state = None
 
-    def diff_log(self, state, action, policy_state):
+        self._add_save_attr(
+            policy_state_shape='primitive',
+            _policy_state='none'
+        )
+
+    @property
+    def is_stateful(self):
+        return True
+
+    @property
+    def policy_state(self):
         """
-        Compute the gradient of the logarithm of the probability density
-        function, in the specified state and action pair, i.e.:
+        The current internal state of the policy.
 
-        .. math::
-            \\nabla_{\\theta}\\log p(s,a)
+        """
+        return self._policy_state
 
+    @policy_state.setter
+    def policy_state(self, value):
+        self._policy_state = None if value is None else ArrayBackend.get_array_backend_from(value).copy(value)
+
+    def draw_action(self, state, policy_state=None):
+        """
+        Sample an action in ``state`` using the policy.
+
+        When ``policy_state`` is not provided, the policy uses and updates its internal state. When it is provided, the
+        policy uses the given state and leaves the internal one untouched (functional evaluation).
 
         Args:
-            state: the state where the gradient is computed;
-            action: the action where the gradient is computed;
+            state: the state where the agent is;
+            policy_state (None): the internal state of the policy. If ``None``, the stored internal state is used and
+                updated.
+
+        Returns:
+            The action sampled from the policy.
+
+        """
+        if policy_state is None:
+            action, self._policy_state = self._draw_action(state, self._policy_state)
+        else:
+            action, _ = self._draw_action(state, policy_state)
+
+        return action
+
+    def _draw_action(self, state, policy_state):
+        """
+        Sample an action in ``state`` given the policy state, returning the next policy state. This is the functional
+        core of :meth:`draw_action` and must not mutate the internal state.
+
+        Args:
+            state: the state where the agent is;
             policy_state: the internal state of the policy.
 
         Returns:
-            The gradient of the logarithm of the pdf w.r.t. the policy weights
+            A tuple containing the sampled action and the next policy state.
+
         """
-        raise RuntimeError('The policy is not differentiable')
+        raise NotImplementedError
 
-    def diff(self, state, action, policy_state=None):
+    def reset(self):
         """
-        Compute the derivative of the probability density function, in the
-        specified state and action pair. Normally it is computed w.r.t. the
-        derivative of the logarithm of the probability density function,
-        exploiting the likelihood ratio trick, i.e.:
-
-        .. math::
-            \\nabla_{\\theta}p(s,a)=p(s,a)\\nabla_{\\theta}\\log p(s,a)
-
-
-        Args:
-            state: the state where the derivative is computed;
-            action: the action where the derivative is computed;
-            policy_state: the internal state of the policy.
+        Reset the internal state of the policy at the beginning of an episode. Implementations must set
+        ``self._policy_state`` and return it.
 
         Returns:
-            The derivative w.r.t. the  policy weights
+            The initial policy state.
+
         """
-        return self(state, action, policy_state) * self.diff_log(state, action, policy_state)
+        raise NotImplementedError
+
+    def reset_vectorized(self, start_mask):
+        """
+        Reset the internal state of the policy for the environments selected by ``start_mask``, leaving the other
+        environments untouched. Implementations must set ``self._policy_state`` and return it.
+
+        Args:
+            start_mask: boolean mask selecting the environments that are starting a new episode.
+
+        Returns:
+            The batch of policy states after the masked reset.
+
+        """
+        raise NotImplementedError
+
+    def stop(self):
+        """
+        Clear the internal state at the end of a run, so that the next run reinitializes it from scratch (and can
+        therefore run with a different number of environments or a different vectorization mode).
+
+        """
+        self._policy_state = None
+
+
+class HasWeights:
+    """
+    Mixin adding a set of trainable parameters (the policy weights) to a policy. It is meant to be combined with a
+    :class:`Policy` subclass (e.g. ``class MyPolicy(Policy, HasWeights)`` or
+    ``class MyPolicy(StatefulPolicy, HasWeights)``); on its own it is not a policy. If the policy is also
+    differentiable, use :class:`HasGradient` instead.
+
+    """
+    def __init_subclass__(cls, is_mixin=False, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if not is_mixin and not issubclass(cls, Policy):
+            raise TypeError(
+                "'{}' uses the HasWeights mixin but does not inherit from Policy. HasWeights and HasGradient can only "
+                "be combined with a Policy subclass (intermediate mixins must pass is_mixin=True).".format(cls.__name__)
+            )
 
     def set_weights(self, weights):
         """
@@ -159,3 +235,52 @@ class ParametricPolicy(Policy):
 
         """
         raise NotImplementedError
+
+
+class HasGradient(HasWeights, is_mixin=True):
+    """
+    Mixin for a parametric policy that is also differentiable, i.e. one for which the gradient of the log-probability
+    w.r.t. the policy weights can be computed. It extends :class:`HasWeights` with the derivative of the
+    log-probability; policies that carry weights but are not differentiable should use :class:`HasWeights`
+    directly.
+
+    """
+    def diff_log(self, state, action, policy_state=None):
+        """
+        Compute the gradient of the logarithm of the probability density
+        function, in the specified state and action pair, i.e.:
+
+        .. math::
+            \\nabla_{\\theta}\\log p(s,a)
+
+
+        Args:
+            state: the state where the gradient is computed;
+            action: the action where the gradient is computed;
+            policy_state: the internal state of the policy.
+
+        Returns:
+            The gradient of the logarithm of the pdf w.r.t. the policy weights
+        """
+        raise NotImplementedError
+
+    def diff(self, state, action, policy_state=None):
+        """
+        Compute the derivative of the probability density function, in the
+        specified state and action pair. Normally it is computed w.r.t. the
+        derivative of the logarithm of the probability density function,
+        exploiting the likelihood ratio trick, i.e.:
+
+        .. math::
+            \\nabla_{\\theta}p(s,a)=p(s,a)\\nabla_{\\theta}\\log p(s,a)
+
+
+        Args:
+            state: the state where the derivative is computed;
+            action: the action where the derivative is computed;
+            policy_state: the internal state of the policy.
+
+        Returns:
+            The derivative w.r.t. the  policy weights
+        """
+        return self(state, action) * self.diff_log(state, action, policy_state)

@@ -3,7 +3,7 @@ import numpy as np
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.policy.gaussian_policy import GaussianPolicy
 from mushroom_rl.policy.vector_policy import VectorPolicy
-from mushroom_rl.policy.policy import ParametricPolicy
+from mushroom_rl.policy.policy import StatefulPolicy, HasWeights
 
 
 def _make_gaussian_policy(state_dim=3, action_dim=2):
@@ -11,19 +11,19 @@ def _make_gaussian_policy(state_dim=3, action_dim=2):
     return GaussianPolicy(mu, np.eye(action_dim))
 
 
-class _StatefulPolicy(ParametricPolicy):
-    """Stateful policy that increments its policy state at each step, for testing the stateful paths."""
+class _StatefulPolicy(StatefulPolicy, HasWeights):
     def __init__(self, reset_value):
         super().__init__(policy_state_shape=(reset_value.shape[0],))
         self._reset_value = reset_value.copy()
         self._w = np.zeros(3)
-        self._add_save_attr(_w='numpy')
+        self._add_save_attr(_reset_value='numpy', _w='numpy')
 
-    def draw_action(self, state, policy_state=None):
+    def _draw_action(self, state, policy_state):
         return self._w.copy(), policy_state + 1.0
 
     def reset(self):
-        return self._reset_value.copy()
+        self._policy_state = self._reset_value.copy()
+        return self._policy_state
 
     def set_weights(self, weights):
         self._w = weights.copy()
@@ -79,23 +79,23 @@ def test_draw_action_stateless_uses_per_env_weights():
 
     vpi.set_weights(np.stack([np.array([5.0, 0.0]), np.array([-5.0, 0.0])]))
 
-    actions, next_ps = vpi.draw_action(np.zeros((n_envs, 2)), None)
+    actions = vpi.draw_action(np.zeros((n_envs, 2)))
 
-    assert next_ps is None
     assert np.allclose(actions, np.array([[0.44122749], [-0.33087015]]))
 
 
-def test_draw_action_stateful_returns_stacked_next_state():
+def test_draw_action_stateful_advances_wrapped_state():
     np.random.seed(1)
     n_envs = 3
     pi = _StatefulPolicy(np.array([7.0, 8.0]))
     vpi = VectorPolicy(pi, n_envs)
 
-    policy_state = np.array([[1.0, 1.0], [2.0, 2.0], [3.0, 3.0]])
-    actions, next_ps = vpi.draw_action(np.zeros((n_envs, 4)), policy_state)
+    vpi.reset()
+    actions = vpi.draw_action(np.zeros((n_envs, 4)))
 
     assert actions.shape == (n_envs, 3)
-    assert np.allclose(next_ps, np.array([[2.0, 2.0], [3.0, 3.0], [4.0, 4.0]]))
+    for i in range(n_envs):
+        assert np.allclose(vpi._policy_vector[i].policy_state, np.array([8.0, 9.0]))
 
 
 def test_set_n_grow():
@@ -120,7 +120,6 @@ def test_set_n_grow_copies_are_independent():
     vpi = VectorPolicy(pi, 1)
     vpi.set_n(3)
 
-    # Assign distinct weights per env; the grown copies must not alias each other
     new_weights = np.arange(3 * 6, dtype=float).reshape(3, 6)
     vpi.set_weights(new_weights)
     assert np.allclose(vpi.get_weights(), new_weights)
@@ -133,16 +132,14 @@ def test_reset_stateful_no_mask():
     pi = _StatefulPolicy(reset_value)
     vpi = VectorPolicy(pi, n_envs)
 
-    # evolve the policy state away from the reset value before resetting
-    policy_state = vpi.reset()
-    _, policy_state = vpi.draw_action(np.zeros((n_envs, 4)), policy_state)
-    assert not np.allclose(policy_state, reset_value)
-
-    policy_states = vpi.reset()
-
-    assert policy_states.shape == (n_envs, 2)
+    vpi.reset()
+    vpi.draw_action(np.zeros((n_envs, 4)))
     for i in range(n_envs):
-        assert np.allclose(policy_states[i], reset_value)
+        assert not np.allclose(vpi._policy_vector[i].policy_state, reset_value)
+
+    vpi.reset()
+    for i in range(n_envs):
+        assert np.allclose(vpi._policy_vector[i].policy_state, reset_value)
 
 
 def test_reset_stateful_with_mask():
@@ -152,14 +149,12 @@ def test_reset_stateful_with_mask():
     pi = _StatefulPolicy(reset_value)
     vpi = VectorPolicy(pi, n_envs)
 
-    # evolve the policy state away from the reset value before resetting
-    policy_state = vpi.reset()
-    _, policy_state = vpi.draw_action(np.zeros((n_envs, 4)), policy_state)
-    assert not np.allclose(policy_state, reset_value)
+    vpi.reset()
+    vpi.draw_action(np.zeros((n_envs, 4)))
 
     mask = np.array([True, False, True])
-    policy_states = vpi.reset_vectorized(mask)
+    vpi.reset_vectorized(mask)
 
-    assert policy_states.shape == (n_envs, 2)
-    assert np.allclose(policy_states[0], reset_value)
-    assert np.allclose(policy_states[2], reset_value)
+    assert np.allclose(vpi._policy_vector[0].policy_state, reset_value)
+    assert np.allclose(vpi._policy_vector[2].policy_state, reset_value)
+    assert not np.allclose(vpi._policy_vector[1].policy_state, reset_value)

@@ -1,8 +1,8 @@
 import numpy as np
-from mushroom_rl.policy.policy import ParametricPolicy
+from mushroom_rl.policy.policy import Policy, HasWeights
 
 
-class DeterministicPolicy(ParametricPolicy):
+class DeterministicPolicy(Policy, HasWeights):
     """
     Simple parametric policy representing a deterministic policy. As
     deterministic policies are degenerate probability functions where all
@@ -10,7 +10,7 @@ class DeterministicPolicy(ParametricPolicy):
     differentiable, even if the mean value approximator is differentiable.
 
     """
-    def __init__(self, mu, policy_state_shape=None):
+    def __init__(self, mu):
         """
         Constructor.
 
@@ -19,8 +19,6 @@ class DeterministicPolicy(ParametricPolicy):
                 in each state.
 
         """
-        super().__init__(policy_state_shape)
-
         self._approximator = mu
         self._predict_params = dict()
 
@@ -37,13 +35,13 @@ class DeterministicPolicy(ParametricPolicy):
         """
         return self._approximator
 
-    def __call__(self, state, action, policy_state=None):
+    def __call__(self, state, action):
         policy_action = self._approximator.predict(state, **self._predict_params)
 
         return 1. if np.array_equal(action, policy_action) else 0.
 
-    def draw_action(self, state, policy_state=None):
-        return self._approximator(state, **self._predict_params), None
+    def draw_action(self, state):
+        return self._approximator(state, **self._predict_params)
 
     def set_weights(self, weights):
         self._approximator.set_weights(weights)

@@ -51,7 +51,7 @@ class TrueOnlineSARSALambda(TD):
         self.e = (self.mdp_info.gamma * self._lambda() * self.e +
                   alpha * (1. - self.mdp_info.gamma * self._lambda.get_value() * e_phi) * phi_state_action)
 
-        self.next_action, _ = self.draw_action(next_state)
+        self.next_action = self.draw_action(next_state)
         q_next = self.Q.predict(next_state, self.next_action) if not absorbing else 0.
 
         delta = reward + self.mdp_info.gamma * q_next - self._q_old

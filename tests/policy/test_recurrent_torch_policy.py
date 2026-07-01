@@ -47,14 +47,34 @@ def test_recurrent_policy_reset():
     assert torch.all(ps == 0.0)
 
 
+def test_recurrent_policy_vectorized():
+    n_state, n_action, n_hidden = 4, 2, 8
+    policy = make_policy(n_state, n_action, n_hidden)
+
+    ps = policy.reset_vectorized(torch.tensor([True, True, True]))
+    assert ps.shape == (3, n_hidden)
+    assert torch.all(ps == 0.0)
+
+    action = policy.draw_action(torch.randn(3, n_state))
+    assert action.shape == (3, n_action)
+    assert policy.policy_state.shape == (3, n_hidden)
+
+    before = policy.policy_state.clone()
+    policy.reset_vectorized(torch.tensor([True, False, True]))
+    assert torch.all(policy.policy_state[0] == 0.0)
+    assert torch.all(policy.policy_state[2] == 0.0)
+    assert torch.equal(policy.policy_state[1], before[1])
+
+
 def test_recurrent_policy_draw_action():
     n_state, n_action, n_hidden = 4, 2, 8
     policy = make_policy(n_state, n_action, n_hidden)
 
     state = torch.tensor([0.1, -0.2, 0.3, -0.4])
-    policy_state = policy.reset()
+    policy.reset()
 
-    action, new_policy_state = policy.draw_action(state, policy_state)
+    action = policy.draw_action(state)
+    new_policy_state = policy.policy_state
 
     action_test = torch.tensor([1.2770035, 0.48390746])
     new_ps_test = torch.tensor([-0.13474981,  0.16390274,  0.04836516, -0.00375814,

@@ -33,6 +33,6 @@ def test_deterministic_policy():
     assert pi(s_test_2, a_test) == 0
 
     a_stored = np.array([-0.24029878, -0.55175323])
-    action, _ = pi.draw_action(s_test_1)
+    action = pi.draw_action(s_test_1)
     assert np.allclose(action, a_stored)
 

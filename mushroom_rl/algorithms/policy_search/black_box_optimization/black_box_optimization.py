@@ -20,7 +20,7 @@ class BlackBoxOptimization(Agent):
 
         Args:
             distribution (Distribution): the distribution of policy parameters;
-            policy (ParametricPolicy): the policy to use;
+            policy (HasWeights): the policy to use;
             context_builder (ContextBuilder, None): class used to compute the context variables from initial state and
                 the episode_info dictionary;
             backend (str, 'numpy'): the backend used by the algorithm.

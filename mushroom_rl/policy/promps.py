@@ -1,10 +1,10 @@
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from mushroom_rl.policy.policy import ParametricPolicy
+from mushroom_rl.policy.policy import StatefulPolicy, HasWeights
 
 
-class ProMP(ParametricPolicy):
+class ProMP(StatefulPolicy, HasWeights):
     """
     Class representing a Probabilistic Movement Primitive (ProMP). Specifically, this class represents the low-level
     gaussian time-dependant policy.
@@ -35,37 +35,40 @@ class ProMP(ParametricPolicy):
         self._approximator = mu
         self._phi = phi
         self._duration = duration
-        self._sigma = sigma
+        self._chol_sigma = np.linalg.cholesky(sigma) if sigma is not None else None
         self._periodic = periodic
 
         self._add_save_attr(
             _approximator='mushroom',
             _phi='mushroom',
             _duration='primitive',
-            _sigma='numpy',
+            _chol_sigma='numpy',
             _periodic='primitive'
         )
 
     def __call__(self, state, action, policy_state=None):
+        if policy_state is None:
+            policy_state = self._policy_state
+
         z = self._compute_phase(state, policy_state)
         mu = self._approximator(self._phi(z))
 
-        if self._sigma is None:
-            return 1.0 if mu == action else 0.0
+        if self._chol_sigma is None:
+            return 1.0 if np.array_equal(mu, action) else 0.0
         else:
-            return multivariate_normal.pdf(action, mu, self._sigma)
+            return multivariate_normal.pdf(action, mu, self._chol_sigma @ self._chol_sigma.T)
 
-    def draw_action(self, state, policy_state):
+    def _draw_action(self, state, policy_state):
         z = self._compute_phase(state, policy_state)
 
         mu = self._approximator(self._phi(z))
 
         next_policy_state = self.update_time(state, policy_state)
 
-        if self._sigma is None:
+        if self._chol_sigma is None:
             return mu, next_policy_state
         else:
-            return np.random.multivariate_normal(mu, self._sigma), next_policy_state
+            return mu + np.random.randn(*mu.shape) @ self._chol_sigma.T, next_policy_state
 
     def update_time(self, state, policy_state):
         """
@@ -77,8 +80,8 @@ class ProMP(ParametricPolicy):
         """
         next_policy_state = policy_state + 1
 
-        if not self._periodic and next_policy_state >= self._duration:
-            next_policy_state = self._duration
+        if not self._periodic:
+            next_policy_state = np.minimum(next_policy_state, self._duration)
 
         return next_policy_state
 
@@ -114,4 +117,13 @@ class ProMP(ParametricPolicy):
         self._duration = duration - 1
 
     def reset(self):
-        return 0
+        self._policy_state = np.zeros(1)
+
+        return self._policy_state
+
+    def reset_vectorized(self, start_mask):
+        if self._policy_state is None:
+            self._policy_state = np.zeros((len(start_mask), 1))
+        self._policy_state[start_mask] = 0.
+
+        return self._policy_state

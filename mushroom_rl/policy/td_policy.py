@@ -9,7 +9,7 @@ from mushroom_rl.rl_utils.parameters import Parameter, to_parameter
 
 
 class TDPolicy(Policy):
-    def __init__(self, policy_state_shape=None, backend='numpy'):
+    def __init__(self, backend='numpy'):
         """
         Constructor.
 
@@ -17,8 +17,6 @@ class TDPolicy(Policy):
             backend (str, 'numpy'): name of the array backend used by the policy.
 
         """
-        super().__init__(policy_state_shape)
-
         self._approximator = None
         self._n_actions = None
         self._predict_params = dict()
@@ -55,7 +53,7 @@ class EpsGreedy(TDPolicy):
     Epsilon greedy policy.
 
     """
-    def __init__(self, epsilon, policy_state_shape=None, backend='numpy'):
+    def __init__(self, epsilon, backend='numpy'):
         """
         Constructor.
 
@@ -66,7 +64,7 @@ class EpsGreedy(TDPolicy):
             backend (str, 'numpy'): name of the array backend used by the policy.
 
         """
-        super().__init__(policy_state_shape, backend)
+        super().__init__(backend)
 
         self._epsilon = to_parameter(epsilon)
 
@@ -93,7 +91,7 @@ class EpsGreedy(TDPolicy):
 
             return probs
 
-    def draw_action(self, state, policy_state=None):
+    def draw_action(self, state):
         if not self._backend.rand() < self._epsilon(state):
             with torch.no_grad():
                 q = self._approximator.predict(state, **self._predict_params)
@@ -102,9 +100,9 @@ class EpsGreedy(TDPolicy):
             if len(max_a) > 1:
                 max_a = max_a[self._backend.randint(0, len(max_a), (1,))]
 
-            return max_a, None
+            return max_a
 
-        return self._backend.randint(0, self._n_actions, (1,)), None
+        return self._backend.randint(0, self._n_actions, (1,))
 
     def set_epsilon(self, epsilon):
         """
@@ -135,7 +133,7 @@ class Boltzmann(TDPolicy):
     Boltzmann softmax policy.
 
     """
-    def __init__(self, beta, policy_state_shape=None, backend='numpy'):
+    def __init__(self, beta, backend='numpy'):
         """
         Constructor.
 
@@ -147,7 +145,7 @@ class Boltzmann(TDPolicy):
             backend (str, 'numpy'): name of the array backend used by the policy.
 
         """
-        super().__init__(policy_state_shape, backend)
+        super().__init__(backend)
         self._beta = to_parameter(beta)
 
         self._add_save_attr(_beta='mushroom')
@@ -168,8 +166,8 @@ class Boltzmann(TDPolicy):
         else:
             return qs / qs.sum()
 
-    def draw_action(self, state, policy_state=None):
-        return self._backend.multinomial(self(state)), None
+    def draw_action(self, state):
+        return self._backend.multinomial(self(state))
 
     def set_beta(self, beta):
         """
@@ -239,7 +237,7 @@ class Mellowmax(Boltzmann):
             except ValueError:
                 return 0.
 
-    def __init__(self, omega, beta_min=-10., beta_max=10., policy_state_shape=None, backend='numpy'):
+    def __init__(self, omega, beta_min=-10., beta_max=10., backend='numpy'):
         """
         Constructor.
 
@@ -255,7 +253,7 @@ class Mellowmax(Boltzmann):
         """
         beta_mellow = self.MellowmaxParameter(self, omega, beta_min, beta_max)
 
-        super().__init__(beta_mellow, policy_state_shape, backend)
+        super().__init__(beta_mellow, backend)
 
     def set_beta(self, beta):
         raise RuntimeError('Cannot change the beta parameter of Mellowmax policy')

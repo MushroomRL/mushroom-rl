@@ -4,10 +4,10 @@ from sklearn.ensemble import ExtraTreesRegressor
 import itertools
 
 import mushroom_rl
-from mushroom_rl.core import MDPInfo, AgentInfo, DatasetInfo, Dataset
+from mushroom_rl.core import MDPInfo, AgentInfo, Dataset
 from mushroom_rl.policy.td_policy import TDPolicy
 from mushroom_rl.policy.torch_policy import TorchPolicy
-from mushroom_rl.policy.policy import ParametricPolicy
+from mushroom_rl.policy.policy import HasWeights
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory, PrioritizedReplayMemory
 from mushroom_rl.approximators.approximator import Approximator, Ensemble
 from mushroom_rl.approximators.q_approximator import QApproximator
@@ -46,7 +46,7 @@ class TestUtils:
         elif cls._check_subtype(this, that, Approximator):
             assert cls.eq_weights(this, that)
         elif cls._check_subtype(this, that, TorchPolicy) \
-                or cls._check_subtype(this, that, ParametricPolicy):
+                or cls._check_subtype(this, that, HasWeights):
             assert cls.eq_weights(this, that)
         elif cls._check_subtype(this, that, TDPolicy):
             cls.assert_eq(this.get_q(), that.get_q())

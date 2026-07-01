@@ -8,7 +8,7 @@ class ReplayMemory(MushroomObject):
 
     """
     def __init__(self, mdp_info, agent_info, initial_size, max_size,
-                 history_length=1, n_steps_return=1):
+                 history_length=1, n_steps_return=1, store_policy_state=False):
         """
         Constructor.
 
@@ -18,7 +18,10 @@ class ReplayMemory(MushroomObject):
             initial_size (int): initial size of the replay buffer;
             max_size (int): maximum size of the replay buffer;
             history_length (int, 1): number of consecutive observations returned per sample;
-            n_steps_return (int, 1): number of steps used for the n-step return.
+            n_steps_return (int, 1): number of steps used for the n-step return;
+            store_policy_state (bool, False): whether the policy internal state is stored in the replay memory. When
+                ``False``, no policy-state buffer is allocated and the policy state of the added datasets is dropped;
+                a stateless algorithm should leave it ``False`` even if its policy is stateful.
 
         """
         assert agent_info.backend in ["numpy", "torch"], \
@@ -28,6 +31,7 @@ class ReplayMemory(MushroomObject):
         self._max_size = max_size
         self._history_length = history_length
         self._n_steps_return = n_steps_return
+        self._store_policy_state = store_policy_state
         self._mdp_info = mdp_info
         self._agent_info = agent_info
 
@@ -41,6 +45,7 @@ class ReplayMemory(MushroomObject):
             _max_size='primitive',
             _history_length='primitive',
             _n_steps_return='primitive',
+            _store_policy_state='primitive',
             _mdp_info='mushroom',
             _agent_info='mushroom',
             _idx='primitive!',
@@ -56,7 +61,8 @@ class ReplayMemory(MushroomObject):
             dataset (Dataset): dataset class elements to add to the replay memory.
 
         """
-        assert self._dataset.is_stateful == dataset.is_stateful
+        assert not self._dataset.is_stateful or dataset.is_stateful, \
+            "The replay memory is configured to store the policy state, but the dataset does not provide it."
 
         if self._n_steps_return > 1:
             state, action, reward, next_state, absorbing, last = dataset.parse(to=self._agent_info.backend)
@@ -105,7 +111,7 @@ class ReplayMemory(MushroomObject):
         """
         self._idx = 0
         self._full = False
-        dataset_info = DatasetInfo.create_replay_memory_info(self._mdp_info, self._agent_info)
+        dataset_info = DatasetInfo.create_replay_memory_info(self._mdp_info, self._agent_info, self._store_policy_state)
         self._dataset = Dataset(dataset_info, n_steps=self._max_size)
 
     @property
@@ -239,7 +245,7 @@ class ReplayMemory(MushroomObject):
             self._dataset.next_state[self._idx:end] = dataset.next_state
             self._dataset.absorbing[self._idx:end] = dataset.absorbing
             self._dataset.last[self._idx:end] = dataset.last
-            if dataset.is_stateful:
+            if self._dataset.is_stateful:
                 self._dataset.policy_state[self._idx:end] = dataset.policy_state
                 self._dataset.policy_next_state[self._idx:end] = dataset.policy_next_state
             self._idx = end % self._max_size
@@ -258,7 +264,7 @@ class ReplayMemory(MushroomObject):
             self._dataset.absorbing[:rest] = dataset.absorbing[first:]
             self._dataset.last[self._idx:] = dataset.last[:first]
             self._dataset.last[:rest] = dataset.last[first:]
-            if dataset.is_stateful:
+            if self._dataset.is_stateful:
                 self._dataset.policy_state[self._idx:] = dataset.policy_state[:first]
                 self._dataset.policy_state[:rest] = dataset.policy_state[first:]
                 self._dataset.policy_next_state[self._idx:] = dataset.policy_next_state[:first]

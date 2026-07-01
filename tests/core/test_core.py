@@ -11,8 +11,8 @@ class RandomDiscretePolicy(Policy):
         super().__init__()
         self._n = n
 
-    def draw_action(self, state, policy_state=None):
-        return [np.random.randint(self._n)], None
+    def draw_action(self, state):
+        return [np.random.randint(self._n)]
 
 
 class DummyAgent(Agent):

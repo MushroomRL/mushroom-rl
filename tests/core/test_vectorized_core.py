@@ -12,11 +12,11 @@ class DummyPolicy(Policy):
         self._backend = backend
         super().__init__()
 
-    def draw_action(self, state, policy_state):
+    def draw_action(self, state):
         if self._backend == 'torch':
-            return torch.randn(state.shape[0], self._dim), None
+            return torch.randn(state.shape[0], self._dim)
         elif self._backend == 'numpy':
-            return np.random.randn(state.shape[0], self._dim), None
+            return np.random.randn(state.shape[0], self._dim)
         else:
             raise NotImplementedError
 

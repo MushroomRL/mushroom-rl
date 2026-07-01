@@ -62,7 +62,7 @@ class DatasetInfo(MushroomObject):
                            action_shape, action_dtype, policy_state_shape, n_envs)
 
     @staticmethod
-    def create_replay_memory_info(mdp_info, agent_info, device=None):
+    def create_replay_memory_info(mdp_info, agent_info, store_policy_state=True, device=None):
         backend = agent_info.backend
         array_backend = ArrayBackend.get_array_backend(backend)
         horizon = mdp_info.horizon
@@ -71,7 +71,7 @@ class DatasetInfo(MushroomObject):
         state_dtype = array_backend.to_backend_dtype(mdp_info.observation_space.data_type)
         action_shape = mdp_info.action_space.shape
         action_dtype = array_backend.to_backend_dtype(mdp_info.action_space.data_type)
-        policy_state_shape = agent_info.policy_state_shape
+        policy_state_shape = agent_info.policy_state_shape if store_policy_state else None
 
         return DatasetInfo(backend, device, horizon, gamma, state_shape, state_dtype,
                            action_shape, action_dtype, policy_state_shape)

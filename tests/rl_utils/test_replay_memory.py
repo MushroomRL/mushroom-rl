@@ -175,7 +175,7 @@ def test_replay_memory_stateful():
 
     mdp_info = make_mdp_info(obs_shape, act_shape)
     agent_info = make_agent_info(policy_state_shape=policy_state_shape)
-    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50)
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50, store_policy_state=True)
 
     assert rm._dataset.is_stateful
 
@@ -482,7 +482,7 @@ def test_replay_memory_wrap_after_full_stateful():
 
     mdp_info = make_mdp_info(obs_shape, act_shape)
     agent_info = make_agent_info(policy_state_shape=policy_state_shape)
-    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=max_size)
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=max_size, store_policy_state=True)
     rm.add(ds_a)
     rm.add(ds_b)
     rm.add(ds_c)
@@ -493,3 +493,22 @@ def test_replay_memory_wrap_after_full_stateful():
 
     assert np.allclose(rm._dataset.policy_state[6:10], ps_c[:4])
     assert np.allclose(rm._dataset.policy_state[:2], ps_c[4:6])
+
+
+def test_replay_memory_opt_out_drops_policy_state():
+    obs_shape = (4,)
+    act_shape = (2,)
+    policy_state_shape = (3,)
+
+    rng = np.random.RandomState(0)
+    ds, *_ = make_dataset(8, rng, obs_shape, act_shape, policy_state_shape=policy_state_shape)
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info(policy_state_shape=policy_state_shape)
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50)
+
+    assert not rm._dataset.is_stateful
+
+    rm.add(ds)
+    assert rm.size == 8
+    assert len(rm.get(4)) == 6

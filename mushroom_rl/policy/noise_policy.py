@@ -1,10 +1,10 @@
 import torch
 import numpy as np
 
-from mushroom_rl.policy.policy import ParametricPolicy
+from mushroom_rl.policy.policy import Policy, StatefulPolicy, HasWeights
 
 
-class OrnsteinUhlenbeckPolicy(ParametricPolicy):
+class OrnsteinUhlenbeckPolicy(StatefulPolicy, HasWeights):
     """
     Ornstein-Uhlenbeck process as implemented in:
     https://github.com/openai/baselines/blob/master/baselines/ddpg/noise.py.
@@ -24,15 +24,14 @@ class OrnsteinUhlenbeckPolicy(ParametricPolicy):
             x0 (torch.tensor, None): initial values of noise.
 
         """
+        super().__init__(policy_state_shape=tuple(mu.output_shape))
+
         self._approximator = mu
         self._predict_params = dict()
         self._sigma = sigma
         self._theta = theta
         self._dt = dt
         self._x0 = x0
-        self._x_prev = None
-
-        self.reset()
 
         self._add_save_attr(
             _approximator='mushroom',
@@ -43,18 +42,16 @@ class OrnsteinUhlenbeckPolicy(ParametricPolicy):
             _x0='torch'
         )
 
-        super().__init__(self._approximator.output_shape)
-
     def __call__(self, state, action=None, policy_state=None):
         raise NotImplementedError
 
-    def draw_action(self, state, policy_state):
+    def _draw_action(self, state, policy_state):
         with torch.no_grad():
             mu = self._approximator.predict(state, **self._predict_params)
             sqrt_dt = np.sqrt(self._dt)
 
             x = policy_state - self._theta * policy_state * self._dt +\
-                self._sigma * sqrt_dt * torch.randn(size=self._approximator.output_shape)
+                self._sigma * sqrt_dt * torch.randn_like(policy_state)
 
             return mu + x, x
 
@@ -69,10 +66,19 @@ class OrnsteinUhlenbeckPolicy(ParametricPolicy):
         return self._approximator.weights_size
 
     def reset(self):
-        return self._x0 if self._x0 is not None else torch.zeros(self._approximator.output_shape)
+        self._policy_state = self._x0.clone() if self._x0 is not None else torch.zeros(self._approximator.output_shape)
+
+        return self._policy_state
+
+    def reset_vectorized(self, start_mask):
+        if self._policy_state is None:
+            self._policy_state = torch.zeros((len(start_mask),) + tuple(self._approximator.output_shape))
+        self._policy_state[start_mask] = self._x0 if self._x0 is not None else 0.
+
+        return self._policy_state
 
 
-class ClippedGaussianPolicy(ParametricPolicy):
+class ClippedGaussianPolicy(Policy, HasWeights):
     """
     Clipped Gaussian policy, as used in:
 
@@ -86,7 +92,7 @@ class ClippedGaussianPolicy(ParametricPolicy):
     Thus, the non-differentiability.
 
     """
-    def __init__(self, mu, sigma, low, high, policy_state_shape=None):
+    def __init__(self, mu, sigma, low, high):
         """
         Constructor.
 
@@ -98,8 +104,6 @@ class ClippedGaussianPolicy(ParametricPolicy):
             high (torch.tensor): a vector containing the maximum action for each component.
 
         """
-        super().__init__(policy_state_shape)
-
         self._approximator = mu
         self._predict_params = dict()
         self._chol_sigma = torch.linalg.cholesky(sigma)
@@ -114,10 +118,10 @@ class ClippedGaussianPolicy(ParametricPolicy):
             _high='torch'
         )
 
-    def __call__(self, state, action=None, policy_state=None):
+    def __call__(self, state, action=None):
         raise NotImplementedError
 
-    def draw_action(self, state, policy_state=None):
+    def draw_action(self, state):
         with torch.no_grad():
             mu = self._approximator.predict(state, **self._predict_params).reshape(-1)
 
@@ -126,7 +130,7 @@ class ClippedGaussianPolicy(ParametricPolicy):
 
             action_raw = distribution.sample()
 
-            return torch.clip(action_raw, self._low, self._high), None
+            return torch.clip(action_raw, self._low, self._high)
 
     def set_weights(self, weights):
         self._approximator.set_weights(weights)
