@@ -23,16 +23,18 @@ from mushroom_rl.features._implementations.basis_features import BasisFeatures
 
 
 class TestUtils:
-    
+
     @classmethod
     def assert_eq(cls, this, that):
         """
         Check and compare two objects for equality
         """
         if cls._check_type(this, that, list):
-            for a, b in zip(this, that): cls.assert_eq(a, b)
+            for a, b in zip(this, that):
+                cls.assert_eq(a, b)
         elif cls._check_type(this, that, dict):
-            for a, b in zip(this.values(), that.values()): cls.assert_eq(a, b)
+            for a, b in zip(this.values(), that.values()):
+                cls.assert_eq(a, b)
         elif cls._check_subtype(this, that, Ensemble):
             assert len(this) == len(that)
             for a, b in zip(this._models, that._models):
@@ -87,9 +89,9 @@ class TestUtils:
         elif cls._check_type(this, that, BasisFeatures):
             assert cls._eq_basis_features(this, that)
         elif cls._check_type(this, that, ExtraTreesRegressor):
-            pass # Equality of ExtraTreeRegressor is not tested
+            pass  # Equality of ExtraTreeRegressor is not tested
         elif callable(this) and callable(that):
-            pass # Equality of Functions is not tested
+            pass  # Equality of Functions is not tested
         elif cls._check_type(this, that, torch.nn.parameter.Parameter):
             assert cls._eq_torch(this, that)
         elif cls._check_type(this, that, torch.Tensor):
@@ -98,21 +100,21 @@ class TestUtils:
             assert cls._eq_numpy(this, that)
         else:
             assert this == that
-    
+
     @classmethod
     def eq_weights(cls, this, that):
         """
         Compare the weights of two objects for equality
         """
         return cls._eq_numpy(this.get_weights(), that.get_weights())
-    
+
     @classmethod
     def eq_box(cls, this, that):
         """
         Compare two Box objects for equality
         """
         return cls._eq_numpy(this.low, that.low) and cls._eq_numpy(this.high, that.high) and this.shape == that.shape
-    
+
     @classmethod
     def eq_discrete(cls, this, that):
         """
@@ -134,7 +136,8 @@ class TestUtils:
         """
         this_state, this_param_groups = this.values()
         that_state, that_param_groups = that.values()
-        # params contains Tensor Ids which change after loading into a new optimizer instance ref: https://pytorch.org/docs/stable/_modules/torch/optim/optimizer.html
+        # params contains Tensor Ids which change after loading into a new optimizer instance
+        # ref: https://pytorch.org/docs/stable/_modules/torch/optim/optimizer.html
         del this_param_groups[0]['params']
         del that_param_groups[0]['params']
         res = this_param_groups == that_param_groups
@@ -165,7 +168,7 @@ class TestUtils:
             res &= cls.eq_discrete(this.action_space, that.action_space)
         else:
             raise TypeError('Type not supported')
-            
+
         res &= this.gamma == that.gamma
         res &= this.horizon == that.horizon
         return res
@@ -187,7 +190,7 @@ class TestUtils:
         """
         Compare two OrnsteinUhlenbeckPolicy objects for equality
         """
-        
+
         res = cls.eq_weights(this, that)
         res &= cls._eq_numpy(this._chol_sigma, that._chol_sigma)
         res &= this._theta == that._theta
@@ -253,7 +256,7 @@ class TestUtils:
         """
         Compare two PrioritizedReplayMemory objects for equality
         """
-        
+
         res = this._initial_size == that._initial_size
         res &= this._max_size == that._max_size
         res &= this._alpha == that._alpha
@@ -267,7 +270,7 @@ class TestUtils:
         """
         Compare two SumTree objects for equality
         """
-        
+
         res = this._max_size == that._max_size
         res &= cls._eq_numpy(this._tree, that._tree)
         res &= cls.eq_dataset(this.dataset, that.dataset)
@@ -280,7 +283,7 @@ class TestUtils:
         """
         Compare two TilesFeatures objects for equality
         """
-        
+
         res = this.size == that.size
         for a, b in zip(this._tiles, that._tiles):
             res &= cls.eq_tiles(a, b)
@@ -291,7 +294,7 @@ class TestUtils:
         """
         Compare two Tiles objects for equality
         """
-        
+
         res = this.size == that.size
         for a, b in zip(this._range, that._range):
             res &= a == b
@@ -307,7 +310,7 @@ class TestUtils:
         """
         Compare two Parameter objects for equality
         """
-        
+
         res = this._initial_value == that._initial_value
         res &= this._min_value == that._min_value
         res &= this._max_value == that._max_value
@@ -319,7 +322,7 @@ class TestUtils:
         """
         Compare two LinearParameter objects for equality
         """
-        
+
         res = cls.eq_parameter(this, that)
         res &= this._coeff == that._coeff
         return res
@@ -356,7 +359,7 @@ class TestUtils:
         """
         Compare two GaussianDiagonalDistribution objects for equality
         """
-        
+
         res = cls._eq_numpy(this.get_parameters(), that.get_parameters())
         return res
 
@@ -365,7 +368,7 @@ class TestUtils:
         """
         Compare two FunctionalFeatures objects for equality
         """
-        
+
         res = this.size == that.size
         return res
 
@@ -374,7 +377,7 @@ class TestUtils:
         """
         Compare two BasisFeatures objects for equality
         """
-        
+
         res = this.size == that.size
         for a, b in zip(this._basis, that._basis):
             res &= str(a) == str(b)
@@ -385,7 +388,7 @@ class TestUtils:
         """
         Compare the elements of two listlike objects for equality
         """
-        
+
         res = len(this) == len(that)
         for a, b in zip(this, that):
             if cls._check_type(a, b, np.ndarray):
@@ -408,7 +411,7 @@ class TestUtils:
         """
         Check if two objects have the type of a subclass of a specific type
         """
-        return issubclass(type(this), check_type) and issubclass(type(that), check_type) and type(this) == type(that)
+        return issubclass(type(this), check_type) and issubclass(type(that), check_type) and type(this) is type(that)
 
     @staticmethod
     def _eq_numpy(this, that):
@@ -417,4 +420,3 @@ class TestUtils:
     @staticmethod
     def _eq_torch(this, that):
         return torch.equal(this, that)
-

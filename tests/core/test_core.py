@@ -49,5 +49,3 @@ def test_core():
     assert len(info_lives) == 20
     assert np.all(info_lives == lives_gt)
     assert len(dataset) == 20
-
-

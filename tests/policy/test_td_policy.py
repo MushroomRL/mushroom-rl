@@ -162,7 +162,7 @@ def test_mellowmax():
         assert False
 
     try:
-        pi.update(s,a)
+        pi.update(s, a)
     except RuntimeError:
         pass
     else:

@@ -1,6 +1,5 @@
 from mushroom_rl.policy import DeterministicPolicy
 from mushroom_rl.approximators.parametric import LinearApproximator
-from mushroom_rl.utils.numerical_gradient import numerical_diff_policy
 
 import numpy as np
 
@@ -35,4 +34,3 @@ def test_deterministic_policy():
     a_stored = np.array([-0.24029878, -0.55175323])
     action = pi.draw_action(s_test_1)
     assert np.allclose(action, a_stored)
-

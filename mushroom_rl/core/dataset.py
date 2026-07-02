@@ -13,6 +13,7 @@ from ._impl import *
 
 from mushroom_rl.utils.episodes import split_episodes, unsplit_episodes
 
+
 class DatasetInfo(MushroomObject):
     def __init__(self, backend, device, horizon, gamma, state_shape, state_dtype, action_shape, action_dtype,
                  policy_state_shape, n_envs=1):
@@ -366,12 +367,12 @@ class Dataset(MushroomObject):
 
         """
         lengths = list()
-        l = 0
+        length = 0
         for sample in self:
-            l += 1
+            length += 1
             if sample[-1] == 1:
-                lengths.append(l)
-                l = 0
+                lengths.append(length)
+                length = 0
 
         return self._array_backend.from_list(lengths)
 

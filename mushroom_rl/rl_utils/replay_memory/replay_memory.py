@@ -281,7 +281,7 @@ class ReplayMemory(MushroomObject):
             idxs (array): buffer indices to retrieve.
 
         Returns:
-            A tuple ``(state_out, next_state_out)`` where each array has shape 
+            A tuple ``(state_out, next_state_out)`` where each array has shape
             ``(n_samples, history_length, *obs_shape)``.
 
         """
@@ -299,7 +299,7 @@ class ReplayMemory(MushroomObject):
             buffer (array): the observation buffer to read from (state or next_state).
 
         Returns:
-            An array of shape ``(n_samples, history_length, *obs_shape)`` with older observations at lower channel 
+            An array of shape ``(n_samples, history_length, *obs_shape)`` with older observations at lower channel
             indices and the anchor observation at index ``history_length - 1``.
 
         """

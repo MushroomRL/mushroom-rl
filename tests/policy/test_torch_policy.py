@@ -115,7 +115,7 @@ def test_squashed_gaussian_torch_policy():
     action_test = np.array([[-1.2562658,  1.0518261],
                             [-0.4723415,  0.1559990],
                             [-1.9490311,  0.4670197],
-                            [ 1.8914881, -1.1432009],
+                            [1.8914881, -1.1432009],
                             [-0.3192469, -0.1924078]])
     assert action.shape == (5, 2)
     assert not action.requires_grad

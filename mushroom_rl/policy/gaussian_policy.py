@@ -199,7 +199,7 @@ class StateStdGaussianPolicy(AbstractGaussianPolicy):
                 ensure that is always greater than zero.
 
         """
-        assert(eps > 0)
+        assert eps > 0
 
         self._mu_approximator = mu
         self._std_approximator = std

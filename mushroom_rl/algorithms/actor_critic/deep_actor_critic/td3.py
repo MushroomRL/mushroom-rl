@@ -48,7 +48,7 @@ class TD3(DDPG):
         self._noise_clip = to_parameter(noise_clip)
 
         if 'n_models' in critic_params.keys():
-            assert(critic_params['n_models'] >= 2)
+            assert critic_params['n_models'] >= 2
         else:
             critic_params['n_models'] = 2
 
@@ -83,7 +83,7 @@ class TD3(DDPG):
 
         eps = torch.randn_like(a) * self._noise_std()
         eps_clipped = torch.clamp(eps, -self._noise_clip(), self._noise_clip.get_value())
-        
+
         low = torch.from_numpy(self.mdp_info.action_space.low)
         high = torch.from_numpy(self.mdp_info.action_space.high)
         a_smoothed = torch.clamp(a + eps_clipped, low, high)
