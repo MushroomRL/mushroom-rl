@@ -108,11 +108,19 @@ class Walker2DWarp(MuJoCo):
         return mdp_info
 
     def _create_observation(self, obs):
+        obs = obs.clone()
 
+        obs[:, self.obs_helper.joint_vel_idx] = torch.clamp(
+            obs[:, self.obs_helper.joint_vel_idx], -10.0, 10.0
+        )
 
+        if not self._exclude_current_positions_from_observations:
+            x_pos = self._read_data("x_pos")
+            obs = torch.cat([obs, x_pos], dim = 1)
         return obs
 
     def _is_within_z_range(self, obs):
+
         pass
 
     def _is_within_angle_range(self,obs):
