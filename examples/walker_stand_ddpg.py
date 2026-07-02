@@ -17,20 +17,20 @@ Simple script to run DMControl walker stand-up task from pixels with DDPG.
 
 
 class CriticNetwork(nn.Module):
-    def __init__(self, input_shape, output_shape, n_features, **kwargs):
+    def __init__(self, input_shape, output_shape, action_shape, n_features, **kwargs):
         super().__init__()
 
         n_input_obs = input_shape[0]
-        n_input_act = input_shape[-1]
+        n_input_act = action_shape[0]
         n_output = output_shape[0]
 
         self._h1 = nn.Conv2d(n_input_obs, 32, kernel_size=8, stride=3)
         self._h2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self._h3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
-        dummy_obs = torch.zeros(1, *input_shape[:-1])
+        dummy_obs = torch.zeros(1, *input_shape)
         conv_out_size = np.prod(self._h3(self._h2(self._h1(dummy_obs))).shape)
         self._h4 = nn.Linear(conv_out_size + n_input_act, n_features)
-        self._h5 = nn.Linear(n_features, 1)
+        self._h5 = nn.Linear(n_features, n_output)
 
         nn.init.xavier_uniform_(self._h1.weight,
                                 gain=nn.init.calculate_gain('relu'))
@@ -44,14 +44,14 @@ class CriticNetwork(nn.Module):
                                 gain=nn.init.calculate_gain('linear'))
 
     def forward(self, state, action):
-        h = F.relu(self._h1(state.squeeze().float() / 255.))
+        h = F.relu(self._h1(state.float() / 255.))
         h = F.relu(self._h2(h))
         h = F.relu(self._h3(h))
-        h = torch.cat((h.view(1, state.shape[1], -1), action.float()), dim=2)
-        h = F.relu(self._h4(h.view(1, state.shape[1], -1)))
+        h = torch.cat((h.view(state.shape[0], -1), action.float()), dim=1)
+        h = F.relu(self._h4(h))
         q = self._h5(h)
 
-        return torch.squeeze(q, 2)
+        return torch.squeeze(q, -1)
 
 
 class ActorNetwork(nn.Module):
@@ -117,13 +117,14 @@ def experiment():
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': 1e-5}}
 
-    critic_input_shape = actor_input_shape + mdp.info.action_space.shape
+    critic_input_shape = actor_input_shape
     critic_params = dict(network=CriticNetwork,
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': 1e-3}},
                          loss=F.mse_loss,
                          n_features=n_features,
                          input_shape=critic_input_shape,
+                         action_shape=mdp.info.action_space.shape,
                          output_shape=(1,))
 
     # Agent

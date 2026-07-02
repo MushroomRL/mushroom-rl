@@ -85,7 +85,7 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
             std_0 (float, 1.): initial standard deviation;
             log_std_min ([float, Parameter], -20): min value for the policy log std;
             log_std_max ([float, Parameter], 2): max value for the policy log std;
-            params (dict): parameters used by the network constructor.
+            **params: parameters used by the network constructor.
 
         """
         super().__init__(policy_state_shape)

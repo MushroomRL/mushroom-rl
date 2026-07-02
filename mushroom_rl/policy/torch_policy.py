@@ -128,7 +128,7 @@ class GaussianTorchPolicy(TorchPolicy):
             input_shape (tuple): the shape of the state space;
             output_shape (tuple): the shape of the action space;
             std_0 (float, 1.): initial standard deviation;
-            params (dict): parameters used by the network constructor.
+            **params: parameters used by the network constructor.
 
         """
         self._action_dim = output_shape[0]
