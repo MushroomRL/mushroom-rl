@@ -182,7 +182,7 @@ class Walker2DWarp(MuJoCoWarp):
         self._mj_warp.forward(self._model_wp, self._data_wp)
 
 
-    def _create_info_dictionary(self, obs, action):
+    def _create_info_dictionary(self, obs):
         healthy = self._is_healthy(obs)
         healthy_r = (healthy | self._terminate_when_unhealthy).float() * self._healthy_reward
         torso_vel = self._read_data("torso_vel")
