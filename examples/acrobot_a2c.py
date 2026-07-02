@@ -1,3 +1,4 @@
+import numpy as np
 import torch.optim as optim
 import torch.nn.functional as F
 
@@ -5,7 +6,6 @@ from mushroom_rl.algorithms.actor_critic import A2C
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import Gymnasium
 from mushroom_rl.policy import BoltzmannTorchPolicy
-from mushroom_rl.approximators.parametric.torch_approximator import *
 from mushroom_rl.rl_utils.parameters import Parameter
 from mushroom_rl.approximators.parametric.networks import ActorNetwork
 from tqdm import trange
