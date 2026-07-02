@@ -27,7 +27,7 @@ extras = {
     'minigrid': ['minigrid'],
     'box2d': ['box2d-py'],
     'bullet': ['pybullet'],
-    'mujoco': ['mujoco>=3.9', 'dm_control @ git+https://github.com/google-deepmind/dm_control.git'],
+    'mujoco': ['mujoco>=3.10', 'dm_control>=1.0.43'],
     'plots': ['pyqtgraph', 'PySide6'],
     'wandb': ['wandb']
 }
