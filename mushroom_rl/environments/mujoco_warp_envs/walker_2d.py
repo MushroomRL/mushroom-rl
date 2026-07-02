@@ -7,9 +7,9 @@ from pathlib import Path
 
 from mushroom_rl.environments.mujoco_warp import MuJoCoWarp
 from mushroom_rl.environments.mujoco import ObservationType
-from mushroom_rl.rl_utils.spaces import Box
+from mushroom_rl.core.spaces import Box
 
-class Walker2DWarp(MuJoCo):
+class Walker2DWarp(MuJoCoWarp):
     """
     Mujoco WARP simulation of Walker2d task based on the Hopper environment.
 
@@ -17,6 +17,7 @@ class Walker2DWarp(MuJoCo):
 
     def __init__(
         self,
+        num_envs,
         gamma=0.99,
         horizon=1000,
         forward_reward_weight=1.0,
@@ -27,9 +28,9 @@ class Walker2DWarp(MuJoCo):
         healthy_angle_range=(-1.0, 1.0),
         reset_noise_scale=5e-3,
         exclude_current_positions_from_observation=True,
-        n_substeps=n_substeps,
-        nconmax=nconmax,
-        njmax=njmax,
+        n_substeps=4,
+        nconmax=200,
+        njmax=200,
         **viewer_params,
     ):
 
@@ -39,7 +40,7 @@ class Walker2DWarp(MuJoCo):
         """
 
         xml_path = (
-            Path(__file__).resolve().parent / "data" / "walker_2d" / "model.xml"
+            Path(__file__).resolve().parent.parent/ "mujoco_envs" / "data" / "walker_2d" / "model.xml"
         ).as_posix()
         actuation_spec = [
             "thigh_joint",
@@ -88,6 +89,7 @@ class Walker2DWarp(MuJoCo):
 
         
         super().__init__(
+            num_envs=num_envs,
             xml_file=xml_path,
             gamma=gamma,
             horizon=horizon,
@@ -114,44 +116,81 @@ class Walker2DWarp(MuJoCo):
             obs[:, self.obs_helper.joint_vel_idx], -10.0, 10.0
         )
 
-        if not self._exclude_current_positions_from_observations:
+        if not self._exclude_current_positions_from_observation:
             x_pos = self._read_data("x_pos")
             obs = torch.cat([obs, x_pos], dim = 1)
         return obs
 
     def _is_within_z_range(self, obs):
-
-        pass
-
+        """Check if Z position of torso is within the healthy range."""
+        min_z, max_z = self._healthy_z_range
+        z_position = self.obs_helper.get_from_obs(obs, "z_pos")[:, 0]
+        return (z_position > min_z) & (z_position < max_z)
     def _is_within_angle_range(self,obs):
-        pass
+        """Check if y-angle of torso is within the healthy range."""
+        min_angle, max_angle = self._healthy_angle_range
+        y_angle = self.obs_helper.get_from_obs(obs, "y_pos")[:, 0]
+        return (y_angle > min_angle) & (y_angle < max_angle)
+
 
     def is_absorbing(self, obs):
-        pass
+        return self._terminate_when_unhealthy & ~self._is_healthy(obs)
 
-    def _is_health(self, obs):
-        pass
 
-    def _get_healthy_reward(self, obs):
-        pass
+    def _is_healthy(self, obs):
+        is_within_z_range = self._is_within_z_range(obs)
+        is_within_angle_range = self._is_within_angle_range(obs)
+        return is_within_z_range & is_within_angle_range
+ 
 
-    def _get_forward_reward(self):
-        pass
 
-    def _get_ctrl_cost(self, action):
-        pass
 
     def reward(self, obs, action, next_obs, absorbing):
-        pass
+       
+        healthy = self._is_healthy(next_obs)
+        healthy_r = (healthy | self._terminate_when_unhealthy).float() * self._healthy_reward
 
-    def _generate_noise(self):
-        pass
+        torso_vel = self._read_data("torso_vel")   
+        forward_r = self._forward_reward_weight * torso_vel[:, 3]
 
-    def setup(self, obs):
-        pass
+        action_t = torch.as_tensor(action, dtype=healthy_r.dtype, device=healthy_r.device)
+        ctrl_cost = self._ctrl_cost_weight * (action_t ** 2).sum(dim=-1)
+
+        return healthy_r + forward_r - ctrl_cost
+
+
+ 
+    def setup(self, env_indices, obs):
+        """Reset with small uniform noise on qpos and qvel for the given environments."""
+        super().setup(env_indices, obs)
+
+        qpos_np = self._data_wp.qpos.numpy().copy()
+        qvel_np = self._data_wp.qvel.numpy().copy()
+
+        qpos_np[env_indices] += np.random.uniform(
+            -self._reset_noise_scale, self._reset_noise_scale,
+            (len(env_indices), self._model.nq),
+        )
+        qvel_np[env_indices] += np.random.uniform(
+            -self._reset_noise_scale, self._reset_noise_scale,
+            (len(env_indices), self._model.nv),
+        )
+
+        self._data_wp.qpos.assign(qpos_np)
+        self._data_wp.qvel.assign(qvel_np)
+
+        self._mj_warp.forward(self._model_wp, self._data_wp)
+
 
     def _create_info_dictionary(self, obs, action):
-        pass
+        healthy = self._is_healthy(obs)
+        healthy_r = (healthy | self._terminate_when_unhealthy).float() * self._healthy_reward
+        torso_vel = self._read_data("torso_vel")
+        forward_r = self._forward_reward_weight * torso_vel[:, 3]
+        return {
+            "healthy_reward": healthy_r,
+            "forward_reward": forward_r,
+        }
 
 
 
