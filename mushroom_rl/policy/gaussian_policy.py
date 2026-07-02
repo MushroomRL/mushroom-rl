@@ -1,30 +1,23 @@
 import numpy as np
 
-from mushroom_rl.policy.policy import ParametricPolicy
+from mushroom_rl.policy.policy import Policy, HasGradient
 from scipy.stats import multivariate_normal
 
 
-class AbstractGaussianPolicy(ParametricPolicy):
+class AbstractGaussianPolicy(Policy, HasGradient):
     """
     Abstract class of Gaussian policies.
 
     """
-    def __init__(self, policy_state_shape=None):
-        """
-        Constructor.
-
-        """
-        super().__init__(policy_state_shape)
-
-    def __call__(self, state, action, policy_state=None):
+    def __call__(self, state, action):
         mu, sigma = self._compute_multivariate_gaussian(state)[:2]
 
         return multivariate_normal.pdf(action, mu, sigma)
 
-    def draw_action(self, state, policy_state=None):
+    def draw_action(self, state):
         mu, sigma = self._compute_multivariate_gaussian(state)[:2]
 
-        return np.random.multivariate_normal(mu, sigma), None
+        return np.random.multivariate_normal(mu, sigma)
 
 
 class GaussianPolicy(AbstractGaussianPolicy):
@@ -36,7 +29,7 @@ class GaussianPolicy(AbstractGaussianPolicy):
     matrix is fixed.
 
     """
-    def __init__(self, mu, sigma, policy_state_shape=None):
+    def __init__(self, mu, sigma):
         """
         Constructor.
 
@@ -48,8 +41,6 @@ class GaussianPolicy(AbstractGaussianPolicy):
                 where n is the action dimensionality.
 
         """
-        super().__init__(policy_state_shape)
-
         self._approximator = mu
         self._predict_params = dict()
         self._inv_sigma = np.linalg.inv(sigma)
@@ -111,7 +102,7 @@ class DiagonalGaussianPolicy(AbstractGaussianPolicy):
     spaces. This policy is similar to the gaussian policy, but the weights includes also the standard deviation.
 
     """
-    def __init__(self, mu, std, policy_state_shape=None):
+    def __init__(self, mu, std):
         """
         Constructor.
 
@@ -122,8 +113,6 @@ class DiagonalGaussianPolicy(AbstractGaussianPolicy):
                 this vector must be equal to the action dimensionality.
 
         """
-        super().__init__(policy_state_shape)
-
         self._approximator = mu
         self._predict_params = dict()
         self._std = std
@@ -196,7 +185,7 @@ class StateStdGaussianPolicy(AbstractGaussianPolicy):
     deviation depends on the current state.
 
     """
-    def __init__(self, mu, std, eps=1e-6, policy_state_shape=None):
+    def __init__(self, mu, std, eps=1e-6):
         """
         Constructor.
 
@@ -210,9 +199,7 @@ class StateStdGaussianPolicy(AbstractGaussianPolicy):
                 ensure that is always greater than zero.
 
         """
-        assert(eps > 0)
-
-        super().__init__(policy_state_shape)
+        assert eps > 0
 
         self._mu_approximator = mu
         self._std_approximator = std
@@ -291,7 +278,7 @@ class StateLogStdGaussianPolicy(AbstractGaussianPolicy):
     regressor represents the logarithm of the standard deviation.
 
     """
-    def __init__(self, mu, log_std, policy_state_shape=None):
+    def __init__(self, mu, log_std):
         """
         Constructor.
 
@@ -303,8 +290,6 @@ class StateLogStdGaussianPolicy(AbstractGaussianPolicy):
                 regressor must be equal to the action dimensionality.
 
         """
-        super().__init__(policy_state_shape)
-
         self._mu_approximator = mu
         self._log_std_approximator = log_std
         self._predict_params = dict()

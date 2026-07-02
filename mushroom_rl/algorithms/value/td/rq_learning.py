@@ -78,6 +78,6 @@ class RQLearning(TD):
         if self.off_policy:
             return np.max(self.Q[next_state, :])
         else:
-            self.next_action, _ = self.draw_action(next_state)
+            self.next_action = self.draw_action(next_state)
 
             return self.Q[next_state, self.next_action]

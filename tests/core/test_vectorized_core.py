@@ -12,11 +12,11 @@ class DummyPolicy(Policy):
         self._backend = backend
         super().__init__()
 
-    def draw_action(self, state, policy_state):
+    def draw_action(self, state):
         if self._backend == 'torch':
-            return torch.randn(state.shape[0], self._dim), None
+            return torch.randn(state.shape[0], self._dim)
         elif self._backend == 'numpy':
-            return np.random.randn(state.shape[0], self._dim), None
+            return np.random.randn(state.shape[0], self._dim)
         else:
             raise NotImplementedError
 
@@ -164,7 +164,7 @@ def run_exp_episodic(env_backend, agent_backend):
 
     print('- learn n_episodes=25 n_episodes_per_fit=5')
     core.learn(n_episodes=25, n_episodes_per_fit=5)
-    
+
 
 def run_exp_initial_states(env_backend, agent_backend):
     torch.random.manual_seed(42)
@@ -218,4 +218,3 @@ def test_vectorized_core():
         run_exp_episodic(env_backend='torch', agent_backend='torch')
         run_exp_episodic(env_backend='torch', agent_backend='numpy')
         TorchUtils.set_default_device('cpu')
-

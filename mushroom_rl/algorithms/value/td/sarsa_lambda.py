@@ -32,7 +32,7 @@ class SARSALambda(TD):
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
 
-        self.next_action, _ = self.draw_action(next_state)
+        self.next_action = self.draw_action(next_state)
         q_next = self.Q[next_state, self.next_action] if not absorbing else 0.
 
         delta = reward + self.mdp_info.gamma * q_next - q_current

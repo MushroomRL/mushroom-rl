@@ -20,7 +20,6 @@ Atari
 .. autoclass:: mushroom_rl.environments.atari.Atari
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Car on hill
@@ -29,7 +28,6 @@ Car on hill
 .. automodule:: mushroom_rl.environments.car_on_hill
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 DeepMind Control Suite
@@ -38,7 +36,6 @@ DeepMind Control Suite
 .. automodule:: mushroom_rl.environments.dm_control_env
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Finite MDP
@@ -47,7 +44,6 @@ Finite MDP
 .. automodule:: mushroom_rl.environments.finite_mdp
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Grid World
@@ -56,7 +52,6 @@ Grid World
 .. automodule:: mushroom_rl.environments.grid_world
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Gymnasium
@@ -65,7 +60,6 @@ Gymnasium
 .. automodule:: mushroom_rl.environments.gymnasium_env
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Habitat
@@ -74,7 +68,6 @@ Habitat
 .. autoclass:: mushroom_rl.environments.habitat_env.Habitat
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. autoclass:: mushroom_rl.environments.habitat_env.HabitatNavigationWrapper
@@ -90,7 +83,6 @@ iGibson
 .. autoclass:: mushroom_rl.environments.igibson_env.iGibson
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Inverted pendulum
@@ -99,7 +91,6 @@ Inverted pendulum
 .. automodule:: mushroom_rl.environments.inverted_pendulum
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Cart Pole
@@ -108,7 +99,6 @@ Cart Pole
 .. automodule:: mushroom_rl.environments.cart_pole
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 LQR
@@ -117,7 +107,6 @@ LQR
 .. automodule:: mushroom_rl.environments.lqr
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Minigrid
@@ -126,7 +115,6 @@ Minigrid
 .. automodule:: mushroom_rl.environments.minigrid_env
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 
@@ -136,7 +124,6 @@ Mujoco
 .. automodule:: mushroom_rl.environments.mujoco
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Air Hockey
@@ -145,43 +132,36 @@ Air Hockey
 .. automodule:: mushroom_rl.environments.mujoco_envs.air_hockey.base
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.mujoco_envs.air_hockey.single
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.mujoco_envs.air_hockey.double
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.mujoco_envs.air_hockey.hit
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.mujoco_envs.air_hockey.defend
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.mujoco_envs.air_hockey.prepare
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.mujoco_envs.air_hockey.repel
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Ball In A Cup
@@ -190,7 +170,6 @@ Ball In A Cup
 .. automodule:: mushroom_rl.environments.mujoco_envs.ball_in_a_cup
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Locomotion
@@ -199,25 +178,21 @@ Locomotion
 .. automodule:: mushroom_rl.environments.mujoco_envs.ant
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.mujoco_envs.half_cheetah
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.mujoco_envs.hopper
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.mujoco_envs.walker_2d
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Manipulation
@@ -226,31 +201,26 @@ Manipulation
 .. automodule:: mushroom_rl.environments.mujoco_envs.panda
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.mujoco_envs.reach
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.mujoco_envs.pick
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.mujoco_envs.push
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.mujoco_envs.peg_insertion
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 
@@ -260,7 +230,6 @@ Puddle World
 .. automodule:: mushroom_rl.environments.puddle_world
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Pybullet
@@ -269,7 +238,6 @@ Pybullet
 .. automodule:: mushroom_rl.environments.pybullet
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Air Hockey
@@ -278,37 +246,31 @@ Air Hockey
 .. automodule:: mushroom_rl.environments.pybullet_envs.air_hockey.base
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.pybullet_envs.air_hockey.single
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.pybullet_envs.air_hockey.hit
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.pybullet_envs.air_hockey.defend
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.pybullet_envs.air_hockey.prepare
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.pybullet_envs.air_hockey.repel
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Segway
@@ -317,7 +279,6 @@ Segway
 .. automodule:: mushroom_rl.environments.segway
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Ship steering
@@ -326,7 +287,6 @@ Ship steering
 .. automodule:: mushroom_rl.environments.ship_steering
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Isaac Sim
@@ -335,31 +295,26 @@ Isaac Sim
 .. automodule:: mushroom_rl.environments.isaacsim_env
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.isaacsim_envs.a1_walking
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.isaacsim_envs.cartpole
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.isaacsim_envs.honey_badger_walking
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.environments.isaacsim_envs.silver_badger_walking
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Omni Isaac Gym
@@ -368,7 +323,6 @@ Omni Isaac Gym
 .. automodule:: mushroom_rl.environments.omni_isaac_gym_env
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Generators
@@ -380,7 +334,6 @@ Grid world
 .. automodule:: mushroom_rl.environments.generators.grid_world
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Simple chain
@@ -389,7 +342,6 @@ Simple chain
 .. automodule:: mushroom_rl.environments.generators.simple_chain
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Taxi
@@ -398,5 +350,4 @@ Taxi
 .. automodule:: mushroom_rl.environments.generators.taxi
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:

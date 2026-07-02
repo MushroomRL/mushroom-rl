@@ -223,7 +223,7 @@ class SequentialCore(Core):
             state, the absorbing flag of the reached state and the last step flag.
 
         """
-        action, policy_next_state = self.agent.draw_action(self._state, self._policy_state)
+        action = self.agent.draw_action(self._state)
         next_state, reward, absorbing, step_info = self.env.step(action)
 
         if render:
@@ -237,9 +237,11 @@ class SequentialCore(Core):
         last = self._episode_steps >= self.env.info.horizon or absorbing
 
         state = self._state
-        policy_state = self._policy_state
         next_state = self._preprocess(next_state)
         self._state = next_state
+
+        policy_state = self._policy_state
+        policy_next_state = self.agent.policy_state
         self._policy_state = policy_next_state
 
         return (state, action, reward, next_state, absorbing, last, policy_state, policy_next_state), step_info
@@ -339,7 +341,7 @@ class VectorizedCore(Core):
             of the reached states and the last step flags.
 
         """
-        action, policy_next_state = self.agent.draw_action(self._state, self._policy_state)
+        action = self.agent.draw_action(self._state)
 
         next_state, rewards, absorbing, step_info = self.env.step_all(mask, action)
 
@@ -354,9 +356,11 @@ class VectorizedCore(Core):
         last = absorbing | (self._episode_steps >= self.env.info.horizon)
 
         state = self._state
-        policy_state = self._policy_state
         next_state = self._preprocess(next_state)
         self._state = next_state
+
+        policy_state = self._policy_state
+        policy_next_state = self.agent.policy_state
         self._policy_state = policy_next_state
 
         return (state, action, rewards, next_state, absorbing, last, policy_state, policy_next_state), step_info
@@ -374,10 +378,7 @@ class VectorizedCore(Core):
 
         self._state = self._preprocess(state)
         policy_state, current_theta = self.agent.episode_start_vectorized(self._state, episode_info, reset_mask)
-        if self._policy_state is None or policy_state is None:
-            self._policy_state = policy_state
-        elif reset_mask.any():
-            self._policy_state[reset_mask] = policy_state[reset_mask]
+        self._policy_state = policy_state
         self.agent.next_action = None
 
         if self._episode_steps is None:

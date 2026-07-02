@@ -36,7 +36,7 @@ def test_eps_greedy():
     p_sa_test = np.array([0.93333333])
     assert np.allclose(p_sa, p_sa_test)
 
-    a, _ = pi.draw_action(s)
+    a = pi.draw_action(s)
     a_test = 0
     assert a.item() == a_test
 
@@ -67,7 +67,7 @@ def test_eps_greedy_torch():
     p_s_test = np.array([0.93333333, 0.03333333, 0.03333333])
     assert np.allclose(p_s, p_s_test)
 
-    a, _ = pi.draw_action(s)
+    a = pi.draw_action(s)
     assert isinstance(a, torch.Tensor)
     assert a.item() == 0
 
@@ -93,7 +93,7 @@ def test_boltzmann():
     p_sa_test = np.array([0.36539237])
     assert np.allclose(p_sa, p_sa_test)
 
-    a, _ = pi.draw_action(s)
+    a = pi.draw_action(s)
     a_test = 1
     assert a.item() == a_test
 
@@ -123,7 +123,7 @@ def test_boltzmann_torch():
     p_s_test = np.array([0.36522284, 0.32458198, 0.31019512])
     assert np.allclose(p_s, p_s_test)
 
-    a, _ = pi.draw_action(s)
+    a = pi.draw_action(s)
     assert isinstance(a, torch.Tensor)
     assert a.item() == 2
 
@@ -149,7 +149,7 @@ def test_mellowmax():
     p_sa_test = np.array([0.26133716])
     assert np.allclose(p_sa, p_sa_test)
 
-    a, _ = pi.draw_action(s)
+    a = pi.draw_action(s)
     a_test = 1
     assert a.item() == a_test
 
@@ -162,7 +162,7 @@ def test_mellowmax():
         assert False
 
     try:
-        pi.update(s,a)
+        pi.update(s, a)
     except RuntimeError:
         pass
     else:

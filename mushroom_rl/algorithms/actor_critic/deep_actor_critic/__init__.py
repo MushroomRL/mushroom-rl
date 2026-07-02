@@ -7,3 +7,5 @@ from .trpo import TRPO
 from .ppo import PPO
 from .ppo_bptt import PPO_BPTT
 from .ppo_rudin import RudinPPO
+
+__all__ = ['OnPolicyDeepAC', 'DeepAC', 'A2C', 'DDPG', 'TD3', 'SAC', 'TRPO', 'PPO', 'PPO_BPTT', 'RudinPPO']

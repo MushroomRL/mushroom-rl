@@ -20,7 +20,6 @@ that builds the one requested by the user.
 .. automodule:: mushroom_rl.features.features
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 The factory method returns a class that extends the abstract class
@@ -29,7 +28,6 @@ The factory method returns a class that extends the abstract class
 .. automodule:: mushroom_rl.features._implementations.features_implementation
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 The documentation for every feature type can be found here:

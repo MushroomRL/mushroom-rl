@@ -14,7 +14,6 @@ Features
 .. automodule:: mushroom_rl.utils.features
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 
@@ -24,7 +23,6 @@ Minibatches
 .. automodule:: mushroom_rl.utils.minibatches
     :members:
     :private-members:
-    :inherited-members:
     :undoc-members:
     :show-inheritance:
 
@@ -34,7 +32,6 @@ Numerical gradient
 .. automodule:: mushroom_rl.utils.numerical_gradient
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 
@@ -44,7 +41,6 @@ Plots
 .. automodule:: mushroom_rl.utils.plot
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 
@@ -54,23 +50,25 @@ Record
 .. automodule:: mushroom_rl.utils.record
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 
 Torch
 -----
 
-.. automodule:: mushroom_rl.utils.torch
+.. automodule:: mushroom_rl.utils.torch_utils
     :members:
     :private-members:
-    :inherited-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.utils.torch_distributions
+    :members:
+    :private-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.utils.torch_training
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 
@@ -80,5 +78,4 @@ Viewer
 .. automodule:: mushroom_rl.utils.viewer
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:

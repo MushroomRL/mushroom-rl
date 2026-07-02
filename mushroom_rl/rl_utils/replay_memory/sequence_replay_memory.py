@@ -21,7 +21,8 @@ class SequenceReplayMemory(ReplayMemory):
         self._truncation_length = truncation_length
         self._action_space_shape = mdp_info.action_space.shape
 
-        super(SequenceReplayMemory, self).__init__(mdp_info, agent_info, initial_size, max_size)
+        super(SequenceReplayMemory, self).__init__(mdp_info, agent_info, initial_size, max_size,
+                                                   store_policy_state=True)
 
         self._add_save_attr(
             _truncation_length='primitive',

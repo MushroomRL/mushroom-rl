@@ -27,7 +27,6 @@ already available ones, by extending the following interface:
 .. automodule:: mushroom_rl.core.agent
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Environment
@@ -41,7 +40,6 @@ To implement a new environment, it is mandatory to use the following interface:
 .. automodule:: mushroom_rl.core.environment
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 
@@ -51,7 +49,14 @@ Core
 .. automodule:: mushroom_rl.core.core
     :members:
     :private-members:
-    :inherited-members:
+    :show-inheritance:
+
+History manager
+---------------
+
+.. automodule:: mushroom_rl.core.history_manager
+    :members:
+    :private-members:
     :show-inheritance:
 
 Serialization
@@ -60,7 +65,6 @@ Serialization
 .. automodule:: mushroom_rl.core.mushroom_object
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Logger
@@ -69,5 +73,4 @@ Logger
 .. automodule:: mushroom_rl.core.logger
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:

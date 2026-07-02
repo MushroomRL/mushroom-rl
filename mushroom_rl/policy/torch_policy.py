@@ -20,14 +20,7 @@ class TorchPolicy(Policy):
 
     """
 
-    def __init__(self, policy_state_shape=None):
-        """
-        Constructor.
-
-        """
-        super().__init__(policy_state_shape)
-
-    def __call__(self, state, action, policy_state=None):
+    def __call__(self, state, action):
         return torch.exp(self.log_prob(state, action))
 
     def draw_with_log_prob(self, state):
@@ -125,7 +118,7 @@ class GaussianTorchPolicy(TorchPolicy):
     deviation. The standard deviation is not state-dependent.
 
     """
-    def __init__(self, network, input_shape, output_shape, std_0=1., policy_state_shape=None, **params):
+    def __init__(self, network, input_shape, output_shape, std_0=1., **params):
         """
         Constructor.
 
@@ -135,17 +128,16 @@ class GaussianTorchPolicy(TorchPolicy):
             input_shape (tuple): the shape of the state space;
             output_shape (tuple): the shape of the action space;
             std_0 (float, 1.): initial standard deviation;
-            params (dict): parameters used by the network constructor.
+            **params: parameters used by the network constructor.
 
         """
-        super().__init__(policy_state_shape)
-
         self._action_dim = output_shape[0]
 
         self._mu = TorchApproximator(input_shape=input_shape, output_shape=output_shape, network=network, **params)
         self._predict_params = dict()
 
-        log_sigma_init = torch.ones(self._action_dim, device=TorchUtils.get_device()) * torch.log(TorchUtils.to_float_tensor(std_0))
+        log_sigma_init = (torch.ones(self._action_dim, device=TorchUtils.get_device())
+                          * torch.log(TorchUtils.to_float_tensor(std_0)))
 
         self._log_sigma = nn.Parameter(log_sigma_init)
 
@@ -156,9 +148,9 @@ class GaussianTorchPolicy(TorchPolicy):
             _log_sigma='torch'
         )
 
-    def draw_action(self, state, policy_state=None):
+    def draw_action(self, state):
         with torch.no_grad():
-            return self.distribution(state).sample(), None
+            return self.distribution(state).sample()
 
     def draw_with_log_prob(self, state):
         dist = self.distribution(state)
@@ -202,7 +194,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
     Torch policy implementing a Boltzmann policy.
 
     """
-    def __init__(self, network, input_shape, output_shape, beta, policy_state_shape=None, **params):
+    def __init__(self, network, input_shape, output_shape, beta, **params):
         """
         Constructor.
 
@@ -218,8 +210,6 @@ class BoltzmannTorchPolicy(TorchPolicy):
             **params: parameters used by the network constructor.
 
         """
-        super().__init__(policy_state_shape)
-
         self._action_dim = output_shape[0]
         self._predict_params = dict()
 
@@ -233,9 +223,9 @@ class BoltzmannTorchPolicy(TorchPolicy):
             _logits='mushroom'
         )
 
-    def draw_action(self, state, policy_state=None):
+    def draw_action(self, state):
         with torch.no_grad():
-            return self.distribution(state).sample().unsqueeze(-1), None
+            return self.distribution(state).sample().unsqueeze(-1)
 
     def draw_with_log_prob(self, state):
         raise NotImplementedError("The Boltzmann policy cannot be sampled with the reparametrization trick.")
@@ -270,8 +260,7 @@ class SquashedGaussianTorchPolicy(TorchPolicy):
     :class:`~mushroom_rl.utils.torch_distributions.SquashedGaussian` distribution.
 
     """
-    def __init__(self, mu_approximator, sigma_approximator, min_a, max_a, log_std_min, log_std_max,
-                 policy_state_shape=None):
+    def __init__(self, mu_approximator, sigma_approximator, min_a, max_a, log_std_min, log_std_max):
         """
         Constructor.
 
@@ -284,8 +273,6 @@ class SquashedGaussianTorchPolicy(TorchPolicy):
             log_std_max ([float, Parameter]): max value for the policy log std.
 
         """
-        super().__init__(policy_state_shape)
-
         self._mu_approximator = mu_approximator
         self._sigma_approximator = sigma_approximator
 
@@ -307,9 +294,9 @@ class SquashedGaussianTorchPolicy(TorchPolicy):
             _eps='primitive'
         )
 
-    def draw_action(self, state, policy_state=None):
+    def draw_action(self, state):
         with torch.no_grad():
-            return self.distribution(state).sample(), None
+            return self.distribution(state).sample()
 
     def draw_with_log_prob(self, state):
         return self.distribution(state).rsample_and_log_prob()

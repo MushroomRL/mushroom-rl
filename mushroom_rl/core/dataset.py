@@ -13,6 +13,7 @@ from ._impl import *
 
 from mushroom_rl.utils.episodes import split_episodes, unsplit_episodes
 
+
 class DatasetInfo(MushroomObject):
     def __init__(self, backend, device, horizon, gamma, state_shape, state_dtype, action_shape, action_dtype,
                  policy_state_shape, n_envs=1):
@@ -62,7 +63,7 @@ class DatasetInfo(MushroomObject):
                            action_shape, action_dtype, policy_state_shape, n_envs)
 
     @staticmethod
-    def create_replay_memory_info(mdp_info, agent_info, device=None):
+    def create_replay_memory_info(mdp_info, agent_info, store_policy_state=True, device=None):
         backend = agent_info.backend
         array_backend = ArrayBackend.get_array_backend(backend)
         horizon = mdp_info.horizon
@@ -71,7 +72,7 @@ class DatasetInfo(MushroomObject):
         state_dtype = array_backend.to_backend_dtype(mdp_info.observation_space.data_type)
         action_shape = mdp_info.action_space.shape
         action_dtype = array_backend.to_backend_dtype(mdp_info.action_space.data_type)
-        policy_state_shape = agent_info.policy_state_shape
+        policy_state_shape = agent_info.policy_state_shape if store_policy_state else None
 
         return DatasetInfo(backend, device, horizon, gamma, state_shape, state_dtype,
                            action_shape, action_dtype, policy_state_shape)
@@ -366,12 +367,12 @@ class Dataset(MushroomObject):
 
         """
         lengths = list()
-        l = 0
+        length = 0
         for sample in self:
-            l += 1
+            length += 1
             if sample[-1] == 1:
-                lengths.append(l)
-                l = 0
+                lengths.append(length)
+                length = 0
 
         return self._array_backend.from_list(lengths)
 

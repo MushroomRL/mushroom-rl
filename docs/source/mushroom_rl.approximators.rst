@@ -24,7 +24,6 @@ Approximator
 .. automodule:: mushroom_rl.approximators.approximator
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 
@@ -44,7 +43,6 @@ depending on the arguments:
 .. automodule:: mushroom_rl.approximators.q_approximator
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Tabular
@@ -56,7 +54,6 @@ and action are discrete, or can be discretized in a simple way.
 .. automodule:: mushroom_rl.approximators.table
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 
@@ -76,7 +73,6 @@ Linear
 .. automodule:: mushroom_rl.approximators.parametric.linear
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
     
 CMAC
@@ -85,7 +81,6 @@ CMAC
 .. automodule:: mushroom_rl.approximators.parametric.cmac
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Torch Approximator
@@ -94,7 +89,6 @@ Torch Approximator
 .. automodule:: mushroom_rl.approximators.parametric.torch_approximator
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 Networks
@@ -105,65 +99,54 @@ Pre-built PyTorch network architectures for use with ``TorchApproximator``.
 .. automodule:: mushroom_rl.approximators.parametric.networks.atari_network
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.approximators.parametric.networks.actor_network
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.approximators.parametric.networks.critic_network
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.approximators.parametric.networks.q_network
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.approximators.parametric.networks.linear_network
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.approximators.parametric.networks.dueling_network
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.approximators.parametric.networks.noisy_network
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.approximators.parametric.networks.categorical_network
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.approximators.parametric.networks.quantile_network
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.approximators.parametric.networks.rainbow_network
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:
 
 .. automodule:: mushroom_rl.approximators.parametric.networks.recurrent_network
     :members:
     :private-members:
-    :inherited-members:
     :show-inheritance:

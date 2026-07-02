@@ -17,14 +17,14 @@ def test_ornstein_uhlenbeck_policy():
 
     state = torch.randn(5)
 
-    policy_state = pi.reset()
+    pi.reset()
 
-    action, policy_state = pi.draw_action(state, policy_state)
+    action = pi.draw_action(state)
     action_test = torch.tensor([-0.7055691481,  1.1255935431])
     assert torch.allclose(action, action_test)
 
-    policy_state = pi.reset()
-    action, policy_state = pi.draw_action(state, policy_state)
+    pi.reset()
+    action = pi.draw_action(state)
     action_test = torch.tensor([-0.7114595175,  1.1141412258])
     assert torch.allclose(action, action_test)
 
@@ -34,6 +34,27 @@ def test_ornstein_uhlenbeck_policy():
         pass
     else:
         assert False
+
+
+def test_ornstein_uhlenbeck_vectorized():
+    torch.manual_seed(42)
+
+    mu = TorchApproximator(network=LinearNetwork, input_shape=(5,), output_shape=(2,))
+    pi = OrnsteinUhlenbeckPolicy(mu, sigma=torch.ones(1) * .2, theta=.15, dt=1e-2)
+
+    ps = pi.reset_vectorized(torch.tensor([True, True, True]))
+    assert ps.shape == (3, 2)
+    assert torch.all(ps == 0.0)
+
+    action = pi.draw_action(torch.randn(3, 5))
+    assert action.shape == (3, 2)
+    assert pi.policy_state.shape == (3, 2)
+
+    before = pi.policy_state.clone()
+    pi.reset_vectorized(torch.tensor([True, False, True]))
+    assert torch.all(pi.policy_state[0] == 0.0)
+    assert torch.all(pi.policy_state[2] == 0.0)
+    assert torch.equal(pi.policy_state[1], before[1])
 
 
 def test_clipped_gaussian_policy():
@@ -51,11 +72,11 @@ def test_clipped_gaussian_policy():
 
     state = torch.randn(5)
 
-    action, _ = pi.draw_action(state)
+    action = pi.draw_action(state)
     action_test = torch.tensor([-1.0, 1.0])
     assert torch.allclose(action, action_test)
 
-    action, _ = pi.draw_action(state)
+    action = pi.draw_action(state)
     action_test = torch.tensor([0.4926533699, 1.0])
     assert torch.allclose(action, action_test)
 
@@ -67,4 +88,3 @@ def test_clipped_gaussian_policy():
         assert False
 
 # TODO Missing test for clipped gaussian!
-

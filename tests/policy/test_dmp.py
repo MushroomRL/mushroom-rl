@@ -7,7 +7,7 @@ from mushroom_rl.policy.dmp import DMP
 
 def _make_dmp(action_dim=1, goal=None):
     n_features = 4
-    phi = Features(n_outputs=n_features, function=lambda z: np.repeat(z, n_features))
+    phi = Features(n_outputs=n_features, function=lambda z: np.repeat(z, n_features, axis=-1))
     mu = LinearApproximator(input_shape=(n_features,), output_shape=(action_dim,))
     if goal is None:
         goal = np.ones(action_dim)
@@ -27,15 +27,14 @@ def test_reset_returns_initial_state():
     pi = _make_dmp(action_dim=1)
     state = np.zeros(1)
 
-    # evolve the dynamical system away from the default before resetting
-    ps = pi.reset()
+    pi.reset()
     for _ in range(5):
-        _, ps = pi.draw_action(state, ps)
-    assert not np.allclose(ps, 0.0)
+        pi.draw_action(state)
+    assert not np.allclose(pi.policy_state, 0.0)
 
-    ps_reset = pi.reset()
-    assert ps_reset.shape == (4, 1)
-    assert np.all(ps_reset == 0.0)
+    pi.reset()
+    assert pi.policy_state.shape == (4, 1)
+    assert np.all(pi.policy_state == 0.0)
 
 
 def test_weights_size_and_roundtrip():
@@ -52,26 +51,51 @@ def test_draw_action_dynamics():
     pi = _make_dmp(action_dim=1)
     state = np.zeros(1)
 
-    ps = pi.reset()
-    a1, ps = pi.draw_action(state, ps)
-    a2, ps = pi.draw_action(state, ps)
-    a3, ps = pi.draw_action(state, ps)
+    pi.reset()
+    a1 = pi.draw_action(state)
+    a2 = pi.draw_action(state)
+    a3 = pi.draw_action(state)
 
-    # zero-weight regressor -> forcing term is zero, dynamics driven only by the goal
     assert np.allclose(a1, np.array([0.0]))
     assert np.allclose(a2, np.array([2.5e-05]))
     assert np.allclose(a3, np.array([7.475e-05]))
 
 
-def test_draw_action_does_not_mutate_input_policy_state():
+def test_draw_action_explicit_state_does_not_mutate_or_advance():
     np.random.seed(1)
     pi = _make_dmp(action_dim=1)
     state = np.zeros(1)
+    pi.reset()
 
     ps = np.full((4, 1), 0.5)
     ps_before = ps.copy()
     pi.draw_action(state, ps)
     assert np.allclose(ps, ps_before)
+    assert np.all(pi.policy_state == 0.0)
+
+
+def test_draw_action_vectorized():
+    np.random.seed(1)
+    n_envs = 3
+    pi = _make_dmp(action_dim=1)
+
+    ps = pi.reset_vectorized(np.array([True, True, True]))
+    assert ps.shape == (n_envs, 4, 1)
+
+    a_single = _make_dmp(action_dim=1)
+    a_single.reset()
+    single_first = a_single.draw_action(np.zeros(1))
+
+    actions = pi.draw_action(np.zeros((n_envs, 1)))
+    assert actions.shape == (n_envs, 1)
+    for i in range(n_envs):
+        assert np.allclose(actions[i], single_first)
+
+    before = pi.policy_state.copy()
+    pi.reset_vectorized(np.array([True, False, True]))
+    assert np.all(pi.policy_state[0] == 0.0)
+    assert np.all(pi.policy_state[2] == 0.0)
+    assert np.allclose(pi.policy_state[1], before[1])
 
 
 def test_set_get_goal():
@@ -87,8 +111,8 @@ def test_call_matches_deterministic_action():
     pi = _make_dmp(action_dim=1)
     state = np.zeros(1)
 
-    ps = pi.reset()
-    action, _ = pi.draw_action(state, ps.copy())
+    pi.reset()
+    action = pi.draw_action(state, pi.policy_state)
 
-    assert pi(state, action, ps.copy()) == 1.0
-    assert pi(state, action + 1.0, ps.copy()) == 0.0
+    assert pi(state, action, pi.policy_state) == 1.0
+    assert pi(state, action + 1.0, pi.policy_state) == 0.0

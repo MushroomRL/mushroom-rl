@@ -50,7 +50,7 @@ templates_path = ['_templates']
 # You can specify multiple suffix as a list of string:
 #
 # source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = {'.rst': 'restructuredtext'}
 
 # The master toctree document.
 master_doc = 'index'
@@ -215,7 +215,24 @@ autodoc_mock_imports = ['torch', 'scipy', 'sklearn', 'ale_py', 'pybullet', 'pybu
 add_module_names = False
 
 
+# Low-level serialization helpers hidden from the API documentation.
+_UNDOCUMENTED_MEMBERS = {
+    '_join_prefix', '_append_folder', '_get_serialization_method',
+    '_load_list', '_load_pickle', '_load_numpy', '_load_torch', '_load_json', '_load_mushroom',
+    '_save_pickle', '_save_numpy', '_save_torch', '_save_json', '_save_mushroom',
+}
+
+
+# Interface methods documented only on their defining base class, not on every override.
+_INTERFACE_ONLY = {'fit': 'Agent.', '_post_load': 'MushroomObject.'}
+
+
 def skip(app, what, name, obj, skip, options):
+    if name in _UNDOCUMENTED_MEMBERS:
+        return True
+    base = _INTERFACE_ONLY.get(name)
+    if base is not None:
+        return not getattr(obj, '__qualname__', '').startswith(base)
     if name == "__init__" or name == "__call__":
         return False
     return skip

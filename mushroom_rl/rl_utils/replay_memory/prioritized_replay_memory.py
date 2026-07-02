@@ -14,7 +14,7 @@ class PrioritizedReplayMemory(ReplayMemory):
 
     """
     def __init__(self, mdp_info, agent_info, initial_size, max_size, alpha, beta, epsilon=.01,
-                 history_length=1, n_steps_return=1):
+                 history_length=1, n_steps_return=1, store_policy_state=False):
         """
         Constructor.
 
@@ -34,7 +34,8 @@ class PrioritizedReplayMemory(ReplayMemory):
         self._beta = to_parameter(beta)
         self._epsilon = epsilon
 
-        super().__init__(mdp_info, agent_info, initial_size, max_size, history_length, n_steps_return)
+        super().__init__(mdp_info, agent_info, initial_size, max_size, history_length, n_steps_return,
+                         store_policy_state)
 
         self._add_save_attr(
             _alpha='primitive',
@@ -52,7 +53,8 @@ class PrioritizedReplayMemory(ReplayMemory):
             p (Array): priority of each sample in the dataset.
 
         """
-        assert self._dataset.is_stateful == dataset.is_stateful
+        assert not self._dataset.is_stateful or dataset.is_stateful, \
+            "The replay memory is configured to store the policy state, but the dataset does not provide it."
 
         if self._n_steps_return > 1:
             state, action, reward, next_state, absorbing, last = dataset.parse(to=self._agent_info.backend)

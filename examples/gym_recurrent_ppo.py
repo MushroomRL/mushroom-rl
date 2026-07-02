@@ -1,4 +1,3 @@
-import os
 import numpy as np
 import torch
 import torch.optim as optim
@@ -11,15 +10,6 @@ from mushroom_rl.policy import RecurrentGaussianTorchPolicy
 from mushroom_rl.approximators.parametric.networks import RecurrentActorNetwork, RecurrentCriticNetwork
 
 from tqdm import trange
-
-
-def get_POMDP_params(pomdp_type):
-    if pomdp_type == "no_velocities":
-        return dict(obs_to_hide=("velocities",), random_force_com=False)
-    elif pomdp_type == "no_positions":
-        return dict(obs_to_hide=("positions",), random_force_com=False)
-    elif pomdp_type == "windy":
-        return dict(obs_to_hide=tuple(), random_force_com=True)
 
 
 def experiment(
@@ -37,10 +27,10 @@ def experiment(
         n_epochs_policy: int = 10,
         clip_eps_ppo: float = 0.05,
         gae_lambda: float = 0.95,
-        seed: int = 0,  # This argument is mandatory
-        results_dir: str = './logs',  # This argument is mandatory
+        seed: int = 0,
+        results_dir: str = './logs',
         std_0: float = 0.5,
-        rnn_type: str ="gru",
+        rnn_type: str = "gru",
         n_hidden_features: int = 128,
         num_hidden_layers: int = 1,
         truncation_length: int = 5
@@ -49,8 +39,7 @@ def experiment(
     torch.manual_seed(seed)
 
     # prepare logging
-    results_dir = os.path.join(results_dir, str(seed))
-    logger = Logger(results_dir=results_dir, log_name="stochastic_logging", seed=seed)
+    logger = Logger(results_dir=results_dir, log_name="gym_recurrent_ppo", seed=seed)
 
     # MDP
     mdp = Gymnasium(env, horizon=horizon, gamma=gamma)
@@ -67,9 +56,7 @@ def experiment(
                                           rnn_type=rnn_type,
                                           n_hidden_features=n_hidden_features,
                                           num_hidden_layers=num_hidden_layers,
-                                          dim_hidden_state=n_hidden_features,
                                           dim_env_state=dim_env_state,
-                                          dim_action=dim_action,
                                           std_0=std_0)
 
     # setup critic
@@ -87,7 +74,6 @@ def experiment(
                          rnn_type=rnn_type,
                          num_hidden_layers=num_hidden_layers,
                          dim_env_state=mdp.info.observation_space.shape[0],
-                         dim_hidden_state=n_hidden_features,
                          dim_action=dim_action
                          )
 

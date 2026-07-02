@@ -1,17 +1,15 @@
 import argparse
-import datetime
-import pathlib
 
 import numpy as np
 import torch
 import torch.optim as optim
 import torch.nn.functional as F
 
-from mushroom_rl.algorithms.value import AveragedDQN, CategoricalDQN, DQN,\
+from mushroom_rl.algorithms.value import AveragedDQN, CategoricalDQN, DQN, \
     DoubleDQN, MaxminDQN, DuelingDQN, NoisyDQN, QuantileDQN, Rainbow
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.core import Core, Logger
-from mushroom_rl.environments import *
+from mushroom_rl.environments import Atari
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.rl_utils.parameters import LinearParameter, Parameter
 from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
@@ -26,24 +24,15 @@ presented in:
 """
 
 
-def print_epoch(epoch, logger):
-    logger.info('################################################################')
-    logger.info('Epoch: %d' % epoch)
-    logger.info('----------------------------------------------------------------')
-
-
-def get_stats(dataset, logger):
+def get_stats(dataset, epoch, logger):
     score = dataset.compute_metrics()
-    logger.info(('min_reward: %f, max_reward: %f, mean_reward: %f,'
-                ' median_reward: %f, games_completed: %d' % score))
+    logger.epoch_info(epoch, min_reward=score[0], max_reward=score[1], mean_reward=score[2],
+                      median_reward=score[3], games_completed=score[4])
 
     return score
 
 
-def experiment():
-    np.random.seed()
-
-    # Argument parser
+def parse_arguments():
     parser = argparse.ArgumentParser()
 
     arg_game = parser.add_argument_group('Game')
@@ -59,7 +48,8 @@ def experiment():
     arg_mem = parser.add_argument_group('Replay Memory')
     arg_mem.add_argument("--initial-replay-size", type=int, default=20_000,
                          help='Initial size of the replay memory.')
-    arg_mem.add_argument("--max-replay-size", type=int, default=100000, #changed to 100k instead of 500k because of memory restrictions
+    # 100k instead of 500k because of memory restrictions
+    arg_mem.add_argument("--max-replay-size", type=int, default=100000,
                          help='Max size of the replay memory.')
     arg_mem.add_argument("--prioritized", action='store_true',
                          help='Whether to use prioritized memory or not.')
@@ -159,7 +149,13 @@ def experiment():
                            help='Flag specifying whether the script has to be'
                                 'run in debug mode.')
 
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+def experiment():
+    np.random.seed()
+
+    args = parse_arguments()
 
     scores = list()
 
@@ -185,11 +181,6 @@ def experiment():
                                    centered=True)
     else:
         raise ValueError
-
-    # Summary folder
-    folder_name = './logs/atari_' + args.algorithm + '_' + args.name +\
-        '_' + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    pathlib.Path(folder_name).mkdir(parents=True)
 
     # Settings
     if args.debug:
@@ -229,7 +220,7 @@ def experiment():
         dataset = core_test.evaluate(n_steps=args.test_samples,
                                      render=args.render,
                                      quiet=args.quiet)
-        get_stats(dataset, logger)
+        get_stats(dataset, 0, logger)
     else:
         # Policy
         epsilon = LinearParameter(value=args.initial_exploration_rate,
@@ -241,8 +232,9 @@ def experiment():
 
         # Approximator
         stacked_input_shape = (args.history_length,) + mdp.info.observation_space.shape
+        feature_algorithms = ['dueldqn', 'cdqn', 'ndqn', 'qdqn', 'rainbow']
         approximator_params = dict(
-            network=AtariNetwork if args.algorithm not in ['dueldqn', 'cdqn', 'ndqn', 'qdqn', 'rainbow'] else AtariFeatureNetwork,
+            network=AtariNetwork if args.algorithm not in feature_algorithms else AtariFeatureNetwork,
             input_shape=stacked_input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
@@ -323,8 +315,11 @@ def experiment():
                         v_max=args.v_max, n_steps_return=args.n_steps_return,
                         alpha_coeff=args.alpha_coeff, beta=beta,
                         sigma_coeff=args.sigma_coeff, **algorithm_params)
+        else:
+            raise ValueError('Unknown algorithm: ' + args.algorithm)
 
-        logger = Logger(alg.__name__, results_dir=None)
+        logger = Logger('atari_' + args.algorithm + '_' + args.name.replace('/', '-'),
+                        results_dir='./logs', use_timestamp=True)
         logger.strong_line()
         logger.info('Experiment Algorithm: ' + alg.__name__)
 
@@ -334,39 +329,35 @@ def experiment():
         # RUN
 
         # Fill replay memory with random dataset
-        print_epoch(0, logger)
         core.learn(n_steps=initial_replay_size,
                    n_steps_per_fit=initial_replay_size, quiet=args.quiet)
 
         if args.save:
-            agent.save(folder_name + '/agent_0.msh')
+            logger.log_agent(agent, epoch=0)
 
         # Evaluate initial policy
         pi.set_epsilon(epsilon_test)
         dataset = core.evaluate(n_steps=test_samples, render=args.render,
                                 quiet=args.quiet, record=args.record)
-        scores.append(get_stats(dataset, logger))
+        scores.append(get_stats(dataset, 0, logger))
 
-        np.save(folder_name + '/scores.npy', scores)
+        logger.log_numpy_array(scores=np.array(scores))
         for n_epoch in range(1, max_steps // evaluation_frequency + 1):
-            print_epoch(n_epoch, logger)
-            logger.info('- Learning:')
             # learning step
             pi.set_epsilon(epsilon)
             core.learn(n_steps=evaluation_frequency,
                        n_steps_per_fit=train_frequency, quiet=args.quiet)
 
             if args.save:
-                agent.save(folder_name + '/agent_' + str(n_epoch) + '.msh')
+                logger.log_agent(agent, epoch=n_epoch)
 
-            logger.info('- Evaluation:')
             # evaluation step
             pi.set_epsilon(epsilon_test)
             dataset = core.evaluate(n_steps=test_samples, render=args.render,
                                     quiet=args.quiet)
-            scores.append(get_stats(dataset, logger))
+            scores.append(get_stats(dataset, n_epoch, logger))
 
-            np.save(folder_name + '/scores.npy', scores)
+            logger.log_numpy_array(scores=np.array(scores))
 
     return scores
 

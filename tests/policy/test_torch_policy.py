@@ -45,7 +45,7 @@ class Network(nn.Module):
 
 
 def test_torch_policy():
-    tmp = TorchPolicy(False)
+    tmp = TorchPolicy()
     abstract_method_tester(tmp.draw_with_log_prob, None)
     abstract_method_tester(tmp.log_prob, None, None)
     abstract_method_tester(tmp.entropy, None)
@@ -62,7 +62,7 @@ def test_gaussian_torch_policy():
     pi = GaussianTorchPolicy(Network, (3,), (2,), n_features=50)
 
     state = torch.as_tensor(np.random.rand(3))
-    action, _ = pi.draw_action(state)
+    action = pi.draw_action(state)
     action_test = np.array([-2.242642,  1.444643])
     assert np.allclose(action.detach().cpu().numpy(), action_test)
 
@@ -82,7 +82,7 @@ def test_boltzmann_torch_policy():
     pi = BoltzmannTorchPolicy(Network, (3,), (2,), beta, n_features=50)
 
     state = torch.as_tensor(np.random.rand(3, 3))
-    action, _ = pi.draw_action(state)
+    action = pi.draw_action(state)
     action_test = np.array([[1], [0], [0]])
     assert np.allclose(action.detach().cpu().numpy(), action_test)
 
@@ -111,11 +111,11 @@ def test_squashed_gaussian_torch_policy():
     state = torch.as_tensor(np.random.rand(5, 3))
 
     torch.manual_seed(42)
-    action, _ = pi.draw_action(state)
+    action = pi.draw_action(state)
     action_test = np.array([[-1.2562658,  1.0518261],
                             [-0.4723415,  0.1559990],
                             [-1.9490311,  0.4670197],
-                            [ 1.8914881, -1.1432009],
+                            [1.8914881, -1.1432009],
                             [-0.3192469, -0.1924078]])
     assert action.shape == (5, 2)
     assert not action.requires_grad
