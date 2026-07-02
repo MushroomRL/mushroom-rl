@@ -6,7 +6,7 @@ from pathlib import Path
 
 from mushroom_rl.environments.mujoco_warp import MuJoCoWarp
 from mushroom_rl.environments.mujoco import ObservationType
-from mushroom_rl.rl_utils.spaces import Box
+from mushroom_rl.core.spaces import Box
 
 
 class HopperWarp(MuJoCoWarp):

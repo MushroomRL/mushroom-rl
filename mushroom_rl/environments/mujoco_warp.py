@@ -6,9 +6,10 @@ import warp as wp
 from dm_control import mjcf
 
 from mushroom_rl.core import VectorizedEnvironment, MDPInfo, ArrayBackend
-from mushroom_rl.rl_utils.spaces import Box
+#from mushroom_rl.rl_utils.spaces import Box
+from mushroom_rl.core.spaces import Box
 from mushroom_rl.utils.mujoco import ObservationHelper, ObservationType, MujocoViewer
-from mushroom_rl.utils.torch import TorchUtils
+from mushroom_rl.utils.torch_utils import TorchUtils
 from mushroom_rl.environments.mujoco import MuJoCo
 
 
