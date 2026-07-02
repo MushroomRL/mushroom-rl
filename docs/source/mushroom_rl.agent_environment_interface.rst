@@ -54,15 +54,6 @@ Core
 History manager
 ---------------
 
-A policy can depend on the past in two orthogonal ways. The **policy state** is the *latent*
-internal state a stateful policy carries and updates step-by-step (e.g. the hidden state of a
-recurrent network or the noise of an Ornstein-Uhlenbeck process); it is stored in the dataset
-because it cannot be reconstructed. The **context**, instead, is a deterministic function of the
-observed trajectory (e.g. a window of stacked observations) and is therefore always
-reconstructable from the stored transitions: the :class:`~mushroom_rl.core.history_manager.HistoryManager`
-assembles it on the fly, both online during the rollout and offline in the replay memory, so it
-is never stored as policy state.
-
 .. automodule:: mushroom_rl.core.history_manager
     :members:
     :private-members:
