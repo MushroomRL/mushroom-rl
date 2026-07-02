@@ -241,7 +241,7 @@ class SequentialCore(Core):
         self._state = next_state
 
         policy_state = self._policy_state
-        policy_next_state = self.agent.get_policy_state()
+        policy_next_state = self.agent.policy_state
         self._policy_state = policy_next_state
 
         return (state, action, reward, next_state, absorbing, last, policy_state, policy_next_state), step_info
@@ -360,7 +360,7 @@ class VectorizedCore(Core):
         self._state = next_state
 
         policy_state = self._policy_state
-        policy_next_state = self.agent.get_policy_state()
+        policy_next_state = self.agent.policy_state
         self._policy_state = policy_next_state
 
         return (state, action, rewards, next_state, absorbing, last, policy_state, policy_next_state), step_info

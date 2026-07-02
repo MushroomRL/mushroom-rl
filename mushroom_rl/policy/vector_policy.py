@@ -90,5 +90,9 @@ class VectorPolicy(Policy, HasWeights):
             if masked:
                 policy.reset()
 
+    def stop(self):
+        for policy in self._policy_vector:
+            policy.stop()
+
     def __len__(self):
         return len(self._policy_vector)

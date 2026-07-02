@@ -37,8 +37,9 @@ class Agent(MushroomObject):
             policy (Policy): the policy followed by the agent;
             is_episodic (bool, False): whether the agent is learning in an episodic fashion or not;
             backend (str, 'numpy'): array backend to be used by the algorithm;
-            history_length (int, 1): number of states to stack as input to the policy. When > 1 the agent maintains a
-                rolling observation buffer (not stored in the dataset).
+            history_length (int, 1): number of observations stacked as input to the policy. When greater than 1 the
+                agent builds a :class:`~mushroom_rl.core.history_manager.HistoryManager` that assembles the stacked
+                observation on the fly; the history is reconstructable and never stored as policy state.
 
         """
         self.mdp_info = mdp_info
@@ -108,11 +109,11 @@ class Agent(MushroomObject):
 
         return self._convert_to_env_backend(action)
 
-    def get_policy_state(self):
+    @property
+    def policy_state(self):
         """
-        Returns:
-            The current internal state of the policy, converted to the environment backend, or ``None`` if the policy
-            is stateless.
+        The current internal state of the policy, converted to the environment backend, or ``None`` if the policy is
+        stateless.
 
         """
         if self.policy.is_stateful:
@@ -160,8 +161,7 @@ class Agent(MushroomObject):
         environments internals after a core learn/evaluate to enforce consistency.
 
         """
-        if self.policy.is_stateful:
-            self.policy.stop()
+        self.policy.stop()
 
     def add_core_preprocessor(self, preprocessor):
         """
@@ -245,4 +245,3 @@ class Agent(MushroomObject):
 
         """
         return self._history_manager.history_length if self._history_manager is not None else 1
-

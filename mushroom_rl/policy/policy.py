@@ -63,6 +63,13 @@ class Policy(MushroomObject):
         """
         return None
 
+    def stop(self):
+        """
+        Called at the end of a run to reset any transient internal state. No-op by default.
+
+        """
+        pass
+
     @property
     def is_stateful(self):
         """
