@@ -147,3 +147,67 @@ def test_list_dataset_compute_j_metrics():
 
     assert np.allclose(metrics_list[:4], metrics_numpy[:4])
     assert metrics_list[4] == metrics_numpy[4]
+
+
+def test_from_array_list_backend():
+    states = np.arange(12).reshape(6, 2).astype(float)
+    actions = np.zeros((6, 1))
+    rewards = np.ones(6)
+    next_states = states + 1
+    absorbings = np.zeros(6)
+    lasts = np.array([0, 0, 1, 0, 0, 1])
+
+    dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
+                                 backend='list', gamma=0.9)
+
+    assert dataset.array_backend.get_backend_name() == 'list'
+    assert dataset.n_episodes == 2
+    assert len(dataset) == 6
+    assert dataset._dataset_info.state_shape == (2,)
+    assert dataset._dataset_info.action_shape == (1,)
+    assert not dataset.is_stateful
+    assert np.array_equal(dataset.compute_J(), np.array([3.0, 3.0]))
+
+    for original, restored in zip((states, actions, rewards, next_states, absorbings, lasts),
+                                  dataset.parse(to='numpy')):
+        assert np.array_equal(original, restored)
+
+
+def test_from_array_list_backend_stateful():
+    states = np.arange(8).reshape(4, 2).astype(float)
+    actions = np.zeros((4, 1))
+    rewards = np.ones(4)
+    next_states = states + 1
+    absorbings = np.zeros(4)
+    lasts = np.array([0, 0, 0, 1])
+    policy_states = np.arange(4).reshape(4, 1).astype(float)
+    policy_next_states = policy_states + 1
+
+    dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
+                                 policy_state=policy_states, policy_next_state=policy_next_states,
+                                 backend='list', gamma=0.9)
+
+    assert dataset.is_stateful
+    assert dataset._dataset_info.is_agent_stateful
+    assert dataset._dataset_info.policy_state_shape == (1,)
+    assert np.array_equal(np.array(dataset.policy_state), policy_states)
+    assert np.array_equal(np.array(dataset.policy_next_state), policy_next_states)
+
+
+def test_from_array_list_backend_ragged():
+    states = [np.array([0.0]), np.array([0.0, 1.0]), np.array([0.0, 1.0, 2.0])]
+    actions = [{'a': 0}, {'a': 1}, {'a': 2}]
+    rewards = [1.0, 1.0, 1.0]
+    absorbings = [False, False, True]
+    lasts = [False, False, True]
+
+    dataset = Dataset.from_array(states, actions, rewards, states, absorbings, lasts,
+                                 backend='list', gamma=0.9)
+
+    assert dataset.array_backend.get_backend_name() == 'list'
+    assert dataset.n_episodes == 1
+    assert dataset._dataset_info.state_shape == (1,)
+    assert dataset._dataset_info.action_shape == ()
+    assert np.array_equal(dataset.state[1], np.array([0.0, 1.0]))
+    assert dataset.action[2] == {'a': 2}
+    assert np.array_equal(dataset.compute_J(), np.array([3.0]))

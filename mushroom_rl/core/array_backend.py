@@ -6,7 +6,13 @@ from mushroom_rl.utils.torch_utils import TorchUtils
 
 
 class ArrayBackend(object):
+    """
+    Interface for the array backends used across MushroomRL. A backend abstracts the array type used to store
+    and manipulate data (states, actions, rewards, ...) so that the same code can run on different array
+    libraries. Three backends are provided: :class:`NumpyBackend`, :class:`TorchBackend` and
+    :class:`ListBackend`, selected by name through :meth:`get_array_backend`.
 
+    """
     @staticmethod
     def get_backend_name():
         raise NotImplementedError
@@ -171,67 +177,67 @@ class ArrayBackend(object):
     @staticmethod
     def pack_padded_sequence(array, mask):
         raise NotImplementedError
-    
+
     @staticmethod
     def flatten(array):
         raise NotImplementedError
-    
+
     @staticmethod
     def empty(shape, device=None):
         raise NotImplementedError
-    
+
     @staticmethod
     def none():
         raise NotImplementedError
-    
+
     @staticmethod
     def shape(array):
         raise NotImplementedError
-    
+
     @staticmethod
     def full(shape, value):
         raise NotImplementedError
-    
+
     @staticmethod
     def nonzero(array):
         raise NotImplementedError
-    
+
     @staticmethod
     def repeat(array, repeats):
         raise NotImplementedError
-    
+
     @staticmethod
     def inf():
         raise NotImplementedError
-    
+
     @staticmethod
     def maximum(x, y):
         raise NotImplementedError
-    
+
     @staticmethod
     def minimum(x, y):
         raise NotImplementedError
-    
+
     @staticmethod
     def max(array, dim=None):
         raise NotImplementedError
-    
+
     @staticmethod
     def min(array, dim=None):
         raise NotImplementedError
-    
+
     @staticmethod
     def norm(array, dim=None):
         raise NotImplementedError
-    
+
     @staticmethod
     def logical_and(x, y):
         raise NotImplementedError
-    
+
     @staticmethod
     def sum(array, dim=None):
         raise NotImplementedError
-    
+
     @staticmethod
     def stack(lst, dim):
         raise NotImplementedError
@@ -241,6 +247,11 @@ class ArrayBackend(object):
         raise NotImplementedError
 
 class NumpyBackend(ArrayBackend):
+    """
+    Array backend storing data in NumPy ``ndarray`` objects. It is the default backend for CPU-based
+    environments and agents.
+
+    """
     _DTYPE_MAP = {
         torch.bool:    np.dtype('bool'),
         torch.uint8:   np.dtype('uint8'),
@@ -390,74 +401,79 @@ class NumpyBackend(ArrayBackend):
 
         new_shape = (shape[0] * shape[1],) + shape[2:]
         return array.reshape(new_shape, order='F')[mask.flatten(order='F')]
-    
+
     @staticmethod
     def flatten(array):
         shape = array.shape
         new_shape = (shape[0] * shape[1],) + shape[2:]
         return array.reshape(new_shape, order='F')
-    
+
     @staticmethod
     def empty(shape, device=None):
         return np.empty(shape)
-    
+
     @staticmethod
     def none():
         return np.nan
-    
+
     @staticmethod
     def shape(array):
         return array.shape
-    
+
     @staticmethod
     def full(shape, value):
         return np.full(shape, value)
-    
+
     @staticmethod
     def nonzero(array):
         return np.flatnonzero(array)
-    
+
     @staticmethod
     def repeat(array, repeats):
         return np.repeat(array, repeats)
-    
+
     @staticmethod
     def inf():
         return np.inf
-    
+
     @staticmethod
     def maximum(x, y):
         return np.maximum(x, y)
-    
+
     @staticmethod
     def minimum(x, y):
         return np.minimum(x, y)
-    
+
     @staticmethod
     def max(array, dim=None):
         return np.max(array, axis=dim)
-    
+
     @staticmethod
     def min(array, dim=None):
         return np.min(array, axis=dim)
-    
+
     @staticmethod
     def norm(array, ord=None, dim=None):
         return np.linalg.norm(array, ord=ord, axis=dim)
-    
+
     @staticmethod
     def logical_and(x, y):
         return np.logical_and(x, y)
-    
+
     @staticmethod
     def sum(array, dim=None):
         return np.sum(array, axis=dim)
-    
+
     @staticmethod
     def stack(lst, dim):
         return np.stack(lst, axis=dim)
 
 class TorchBackend(ArrayBackend):
+    """
+    Array backend storing data in PyTorch ``Tensor`` objects. It supports GPU execution and is the backend of
+    choice for neural-network based agents and vectorized environments running on device.
+
+    """
     _DTYPE_MAP = {
         np.dtype('bool'):    torch.bool,
         np.dtype('uint8'):   torch.uint8,
@@ -536,7 +552,7 @@ class TorchBackend(ArrayBackend):
     @staticmethod
     def size(arr):
         return torch.numel(arr)
-    
+
     @staticmethod
     def rand(*dims, device=None):
         device = TorchUtils.get_device() if device is None else device
@@ -602,7 +618,7 @@ class TorchBackend(ArrayBackend):
         shape = array.shape
 
         new_shape = (shape[0]*shape[1], ) + shape[2:]
-        
+
         return array.transpose(0, 1).reshape(new_shape)[mask.transpose(0, 1).flatten()]
 
     @staticmethod
@@ -615,59 +631,59 @@ class TorchBackend(ArrayBackend):
     def empty(shape, device=None):
         device = TorchUtils.get_device() if device is None else device
         return torch.empty(shape, device=device)
-    
+
     @staticmethod
     def none():
         return torch.nan
-    
+
     @staticmethod
     def shape(array):
         return array.shape
-    
+
     @staticmethod
     def full(shape, value):
         return torch.full(shape, value).to(device=TorchUtils.get_device())
-    
+
     @staticmethod
     def nonzero(array):
         return torch.nonzero(array)
-    
+
     @staticmethod
     def repeat(array, repeats):
         return torch.repeat_interleave(array, repeats)
-    
+
     @staticmethod
     def inf():
         return torch.inf
-    
+
     @staticmethod
     def maximum(x, y):
         return torch.maximum(x, y)
-    
+
     @staticmethod
     def minimum(x, y):
         return torch.minimum(x, y)
-    
+
     @staticmethod
     def max(array, dim):
         return torch.max(array, dim=dim).values
-    
+
     @staticmethod
     def min(array, dim):
         return torch.min(array, dim=dim).values
-    
+
     @staticmethod
     def norm(array, ord=None, dim=None):
         return torch.linalg.norm(array, ord=ord, dim=dim)
-    
+
     @staticmethod
     def logical_and(x, y):
         return torch.logical_and(x, y)
-    
+
     @staticmethod
     def sum(array, dim=None):
         return torch.sum(array, dim=dim)
-    
+
     @staticmethod
     def stack(lst, dim):
         return torch.stack(lst, dim=dim)
@@ -797,35 +813,35 @@ class ListBackend(ArrayBackend):
         if len(shape) == 0:
             return value
         return [ListBackend.full(shape[1:], value) for _ in range(shape[0])]
-    
+
     @staticmethod
     def inf():
         return np.inf
-    
+
     @staticmethod
     def maximum(x, y):
         return np.maximum(x, y)
-    
+
     @staticmethod
     def minimum(x, y):
         return np.minimum(x, y)
-    
+
     @staticmethod
     def max(array, dim):
         return np.max(array, axis=dim)
-    
+
     @staticmethod
     def min(array, dim):
         return np.min(array, axis=dim)
-    
+
     @staticmethod
     def norm(array, ord=None, dim=None):
         return np.linalg.norm(array, ord=ord, axis=dim)
-    
+
     @staticmethod
     def logical_and(x, y):
         return np.logical_and(x, y)
-    
+
     @staticmethod
     def sum(array, dim=None):
         return np.sum(array, axis=dim)

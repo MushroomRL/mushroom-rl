@@ -35,7 +35,8 @@ class ExtraInfo(MushroomObject, UserDict):
         Append new step information
 
         Args:
-            info (dict or list): Information to append either list of dicts of every environment, or a dictionary of arrays 
+            info (dict or list): Information to append either list of dicts of every environment, or a
+                dictionary of arrays
         """
         if self._vectorized:
             assert isinstance(info, (dict, list))
@@ -89,7 +90,7 @@ class ExtraInfo(MushroomObject, UserDict):
             size = (len(self._storage) + length_structured_storage, self._n_envs)
         else:
             size = (len(self._storage) + length_structured_storage, )
-        
+
         # create output dictionary with empty arrays
         output = {
             key: target_backend.empty(size + self._shape_mapping[key], self._device)
@@ -102,9 +103,9 @@ class ExtraInfo(MushroomObject, UserDict):
                 index = length_structured_storage
                 value = self._convert(self._structured_storage[key], to)
                 output[key][:index] = value
-        
+
         # fill output with elements stored in storage
-        for index, step_data in enumerate(self._storage): 
+        for index, step_data in enumerate(self._storage):
             index = index + length_structured_storage
             if isinstance(step_data, dict):
                 self._append_dict_to_output(output, step_data, index, to)
@@ -114,16 +115,16 @@ class ExtraInfo(MushroomObject, UserDict):
         self._structured_storage = {key: value for key, value in output.items()}
         self._storage = []
         self._array_backend = target_backend
-            
+
         self.data = output
-    
+
     def flatten(self, mask=None):
         """
         Flattens the arrays in data by combining the first two dimensions.
 
         Args:
             mask
-        
+
         Returns:
             ExtraInfo: Flattened ExtraInfo
         """
@@ -144,10 +145,11 @@ class ExtraInfo(MushroomObject, UserDict):
             if mask is None:
                 info._structured_storage[key] = info._array_backend.flatten(self._structured_storage[key])
             else:
-                info._structured_storage[key] = info._array_backend.pack_padded_sequence(self._structured_storage[key], mask)
+                info._structured_storage[key] = info._array_backend.pack_padded_sequence(
+                    self._structured_storage[key], mask)
 
         return info
-        
+
     def __add__(self, other):
         """
         Returns new object which combines two ExtraInfo objects.
@@ -155,12 +157,13 @@ class ExtraInfo(MushroomObject, UserDict):
         Args:
             other(ExtraInfo): other ExtraInfo which will be combined with self
         """
-        assert(self._n_envs == other.n_envs)
+        assert self._n_envs == other.n_envs
         backend_name = self._array_backend.get_backend_name()
         info = ExtraInfo(self._n_envs, backend_name, self._device, vectorized=self._vectorized)
         info._storage = self._storage + other._storage
 
-        info._structured_storage = self._concatenate_dictionary(self._structured_storage, other._structured_storage, self._array_backend, other._array_backend)
+        info._structured_storage = self._concatenate_dictionary(self._structured_storage, other._structured_storage,
+                                                                self._array_backend, other._array_backend)
         info.data = self._concatenate_dictionary(self.data, other.data, self._array_backend, other._array_backend)
 
         #combine key_mapping
@@ -170,10 +173,11 @@ class ExtraInfo(MushroomObject, UserDict):
         #combine shape_mapping
         info._shape_mapping = self._shape_mapping.copy()
         info._shape_mapping.update(other._shape_mapping)
-        
+
         return info
-    
-    def _concatenate_array(self, array1, array2, intended_length_array1, intended_length_array2, array1_backend, array2_backend):
+
+    def _concatenate_array(self, array1, array2, intended_length_array1, intended_length_array2, array1_backend,
+                           array2_backend):
         """
         Concatenate array1 with array2
 
@@ -184,7 +188,7 @@ class ExtraInfo(MushroomObject, UserDict):
             intended_length_array2 (int): Intended Length of array2 in case array2 is None
             array1_backend (ArrayBackend): Backend of array1
             array2_backend (ArrayBackend): Backend of array2
-        
+
         Returns:
             array: Concatenation of array1 and array2
         """
@@ -196,7 +200,7 @@ class ExtraInfo(MushroomObject, UserDict):
             array2 = array2_backend.full(shape, array2_backend.none())
         array2 = array1_backend.convert(array2, backend=array2_backend)
         return array1_backend.concatenate((array1, array2))
-    
+
     def _concatenate_dictionary(self, dict1, dict2, backend1, backend2):
         """
         Concatenate dict1 with dict2.
@@ -214,7 +218,7 @@ class ExtraInfo(MushroomObject, UserDict):
             return dict2
         if not dict2:
             return dict1
-        
+
         array_length_dict1 = backend1.shape(dict1[next(iter(dict1.keys()))])[0]
         array_length_dict2 = backend2.shape(dict2[next(iter(dict2.keys()))])[0]
 
@@ -228,12 +232,13 @@ class ExtraInfo(MushroomObject, UserDict):
 
 
     def copy(self):
-        info = ExtraInfo(self._n_envs, self._array_backend.get_backend_name(), self._device, vectorized=self._vectorized)
+        info = ExtraInfo(self._n_envs, self._array_backend.get_backend_name(), self._device,
+                         vectorized=self._vectorized)
         info._storage = self._storage.copy()
         info._key_mapping = self._key_mapping.copy()
         info._shape_mapping = self._shape_mapping.copy()
         info.data = self.data.copy()
-            
+
         return info
 
     def get_view(self, index, copy=False):
@@ -245,7 +250,8 @@ class ExtraInfo(MushroomObject, UserDict):
             copy (bool): wether content of ExtraInfo object should be copied
         """
         self.parse()
-        info = ExtraInfo(self._n_envs, self._array_backend.get_backend_name(), self._device, vectorized=self._vectorized)
+        info = ExtraInfo(self._n_envs, self._array_backend.get_backend_name(), self._device,
+                         vectorized=self._vectorized)
         info._key_mapping = self._key_mapping
         info._shape_mapping = self._shape_mapping
 
@@ -263,7 +269,7 @@ class ExtraInfo(MushroomObject, UserDict):
                 value = value[index, ...]
                 info._structured_storage[key] = self._array_backend.empty(value.shape, self._device)
                 info._structured_storage[key][:] = value
-            
+
             for key, value in self.data.items():
                 value = value[index, ...]
                 info.data[key] = self._array_backend.empty(value.shape, self._device)
@@ -303,7 +309,7 @@ class ExtraInfo(MushroomObject, UserDict):
             template (dict): Dictionary to extract the keys from
             single_env (bool): Wether template contains data for only one environment
         """
-        assert(isinstance(template, dict))
+        assert isinstance(template, dict)
 
         # Stack to store dictionaries and their parent key
         stack = [(template, [])]
@@ -344,7 +350,7 @@ class ExtraInfo(MushroomObject, UserDict):
                 output[key][index] = value
             else:
                 output[key][index] = value[:self._n_envs]
-    
+
     def _append_list_to_output(self, output, step_data, index, to):
         """
         Append a list to the output arrays.
@@ -382,7 +388,7 @@ class ExtraInfo(MushroomObject, UserDict):
             else:
                 return None
         return current
-    
+
     def _convert(self, value, to):
         """
         Convert value to the target format.
@@ -411,7 +417,7 @@ class ExtraInfo(MushroomObject, UserDict):
 
         Args:
             key_path (list): List of keys to combine.
-        
+
         Returns:
             key (str): Created key.
         """
@@ -426,14 +432,14 @@ class ExtraInfo(MushroomObject, UserDict):
         Args:
             key (str): Dictionary key.
             value (Array, Number): Variable whose shape should be saved
-            sinlge_env (bool): 
+            sinlge_env (bool):
         """
         if isinstance(value, numbers.Number):
             self._shape_mapping[key] = ()
         else:
             shape = self._array_backend.shape(value)
             self._shape_mapping[key] = shape[1:] if not single_env else shape
-    
+
     @property
     def n_envs(self):
         return self._n_envs
