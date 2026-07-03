@@ -5,7 +5,6 @@ For Mushroom 2.0:
         - simplify interface, improving facade pattern
     * reorganize example folder
     * linting as much as possible
-    * fix input_shape approximator for multiple inputs
     * network cleanups
         - fix RecurrentCriticNetwork: dim_env_state should be derived from input_shape instead of being a
           separate constructor argument (then add its docstring)
