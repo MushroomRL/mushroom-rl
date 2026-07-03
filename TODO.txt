@@ -6,6 +6,11 @@ For Mushroom 2.0:
     * reorganize example folder
     * linting as much as possible
     * fix input_shape approximator for multiple inputs
+    * network cleanups
+        - fix RecurrentCriticNetwork: dim_env_state should be derived from input_shape instead of being a
+          separate constructor argument (then add its docstring)
+        - remove the AtariNetwork.n_features class variable and the related assert in AtariFeatureNetwork;
+          derive the feature size from output_shape instead of hardcoding it
     * deterministic policy evaluation
 
 

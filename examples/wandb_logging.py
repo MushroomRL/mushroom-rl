@@ -59,7 +59,7 @@ def experiment(n_epochs, n_steps, n_steps_test, save_agent, load_agent):
         actor_optimizer = {'class': optim.Adam,
                            'params': {'lr': 3e-4}}
 
-        critic_input_shape = (actor_input_shape[0] + mdp.info.action_space.shape[0],)
+        critic_input_shape = [actor_input_shape, mdp.info.action_space.shape]
         critic_params = dict(network=CriticNetwork,
                              optimizer={'class': optim.Adam,
                                         'params': {'lr': 3e-4}},

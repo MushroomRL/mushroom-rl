@@ -5,11 +5,19 @@ from mushroom_rl.utils.torch_utils import TorchUtils
 
 
 class RecurrentActorNetwork(nn.Module):
+    """
+    Recurrent actor network returning both the action mean and the next hidden state, so
+    ``output_shape`` must be ``[action_shape, policy_state_shape]``.
+
+    """
     def __init__(self, input_shape, output_shape, n_features, dim_env_state, rnn_type,
                  n_hidden_features, num_hidden_layers=1, **kwargs):
         super().__init__()
 
-        dim_action = output_shape[0]
+        assert isinstance(output_shape, list) and len(output_shape) == 2, \
+            'RecurrentActorNetwork requires output_shape=[action_shape, policy_state_shape].'
+
+        dim_action = output_shape[0][0]
         self._dim_env_state = dim_env_state
         self._num_hidden_layers = num_hidden_layers
         self._n_hidden_features = n_hidden_features

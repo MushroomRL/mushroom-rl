@@ -139,7 +139,7 @@ def test_critic_network():
     rng = np.random.RandomState(0)
     state = torch.as_tensor(rng.rand(3, 4), dtype=torch.float32)
     action = torch.as_tensor(rng.rand(3, 2), dtype=torch.float32)
-    net = CriticNetwork((6,), (1,), n_features=32)
+    net = CriticNetwork([(4,), (2,)], (1,), n_features=32)
     out = net(state, action).detach().numpy()
     expected = np.array([0.41429877, 0.27793425, 0.3294595])
     assert out.shape == (3,)
@@ -185,7 +185,7 @@ def test_recurrent_actor_network():
     policy_state = torch.zeros(batch, 1, 16)
     lengths = torch.tensor([5, 3, 4])
     net = RecurrentActorNetwork(
-        (dim_env,), (dim_action,),
+        (dim_env,), [(dim_action,), (16,)],
         n_features=32, dim_env_state=dim_env,
         rnn_type='gru', n_hidden_features=16, num_hidden_layers=1
     )

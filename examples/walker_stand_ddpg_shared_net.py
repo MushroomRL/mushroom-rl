@@ -45,14 +45,21 @@ class StateEmbedding(nn.Module):
         h = F.relu(self._h3(h))
         return h
 
+    @property
+    def output_shape(self):
+        return self._output_shape
+
 
 class CriticNetwork(nn.Module):
     def __init__(self, input_shape, output_shape, n_features, **kwargs):
         super().__init__()
 
+        assert isinstance(input_shape, list) and len(input_shape) == 2, \
+            'CriticNetwork requires input_shape=[state_shape, action_shape].'
+
         self._state_embedding = kwargs['embedding']
 
-        n_input = input_shape[-1]
+        n_input = input_shape[0][-1] + input_shape[1][-1]
         n_output = output_shape[0]
 
         self._h1 = nn.Linear(n_input, n_features)
@@ -65,7 +72,7 @@ class CriticNetwork(nn.Module):
 
     def forward(self, state, action):
         h = self._state_embedding(state)
-        h = h.view(-1, *self._state_embedding._output_shape)
+        h = h.view(-1, *self._state_embedding.output_shape)
         h = torch.cat((h, action.float()), dim=1)
         h = F.relu(self._h1(h))
         q = self._h2(h)
@@ -91,7 +98,7 @@ class ActorNetwork(nn.Module):
 
     def forward(self, state):
         h = self._state_embedding(state)
-        h = h.view(-1, *self._state_embedding._output_shape)
+        h = h.view(-1, *self._state_embedding.output_shape)
         h = F.relu(self._h1(h))
         a = self._h2(h)
         return a.squeeze()
@@ -117,7 +124,7 @@ def experiment():
     # Approximator
     embedding = StateEmbedding(mdp.info.observation_space.shape)
 
-    actor_input_shape = embedding._output_shape
+    actor_input_shape = embedding.output_shape
     actor_params = dict(network=ActorNetwork,
                         n_features=n_features,
                         input_shape=actor_input_shape,
@@ -127,7 +134,7 @@ def experiment():
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': 1e-5}}
 
-    critic_input_shape = (actor_input_shape[0] + mdp.info.action_space.shape[0],)
+    critic_input_shape = [actor_input_shape, mdp.info.action_space.shape]
     critic_params = dict(network=CriticNetwork,
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': 1e-3}},

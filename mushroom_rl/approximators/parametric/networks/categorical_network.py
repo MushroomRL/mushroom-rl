@@ -8,8 +8,27 @@ eps = torch.finfo(torch.float32).eps
 
 
 class CategoricalNetwork(nn.Module):
+    """
+    Distributional network for Categorical DQN (C51), modeling the value distribution of each action as a
+    categorical distribution over a fixed support of ``n_atoms`` between ``v_min`` and ``v_max``.
+
+    """
     def __init__(self, input_shape, output_shape, features_network, n_atoms,
                  v_min, v_max, n_features, **kwargs):
+        """
+        Constructor.
+
+        Args:
+            input_shape (tuple): shape of the input (the state);
+            output_shape (tuple): shape of the output (the number of actions);
+            features_network (nn.Module): the network used to compute the features;
+            n_atoms (int): number of atoms of the support of the value distribution;
+            v_min (float): minimum value of the support;
+            v_max (float): maximum value of the support;
+            n_features (int): number of features extracted by the features network;
+            **kwargs: parameters forwarded to the features network.
+
+        """
         super().__init__()
 
         self._n_output = output_shape[0]

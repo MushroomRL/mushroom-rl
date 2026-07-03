@@ -78,9 +78,11 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
         Constructor.
 
         Args:
-            network (object): the network class used to implement the mean regressor;
+            network (object): the network class used to implement the mean regressor. Its
+                ``forward`` must return ``(action_mean, next_policy_state)``;
             input_shape (tuple): the shape of the state space;
-            output_shape (tuple): the shape of the action space;
+            output_shape (tuple): the shape of the action space (the network internally also
+                receives ``policy_state_shape`` as its second output shape);
             policy_state_shape (tuple): the shape of the hidden state of the recurrent network;
             std_0 (float, 1.): initial standard deviation;
             log_std_min ([float, Parameter], -20): min value for the policy log std;
@@ -92,8 +94,8 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
 
         self._action_dim = output_shape[0]
 
-        self._mu = TorchApproximator(input_shape=input_shape, output_shape=output_shape, network=network, n_outputs=2,
-                                     **params)
+        self._mu = TorchApproximator(input_shape=input_shape, output_shape=[output_shape, policy_state_shape],
+                                     network=network, **params)
         self._predict_params = dict()
 
         log_sigma_init = torch.ones(self._action_dim, device=TorchUtils.get_device()) \

@@ -3,8 +3,25 @@ import torch.nn as nn
 
 
 class QuantileNetwork(nn.Module):
+    """
+    Distributional network for Quantile Regression DQN (QR-DQN), approximating the value distribution of each
+    action with ``n_quantiles`` quantiles whose mean gives the Q-value.
+
+    """
     def __init__(self, input_shape, output_shape, features_network, n_quantiles,
                  n_features, **kwargs):
+        """
+        Constructor.
+
+        Args:
+            input_shape (tuple): shape of the input (the state);
+            output_shape (tuple): shape of the output (the number of actions);
+            features_network (nn.Module): the network used to compute the features;
+            n_quantiles (int): number of quantiles used to approximate the value distribution;
+            n_features (int): number of features extracted by the features network;
+            **kwargs: parameters forwarded to the features network.
+
+        """
         super().__init__()
 
         self._n_output = output_shape[0]

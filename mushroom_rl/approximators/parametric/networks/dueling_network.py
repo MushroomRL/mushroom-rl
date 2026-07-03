@@ -3,8 +3,25 @@ import torch.nn as nn
 
 
 class DuelingNetwork(nn.Module):
+    """
+    Dueling architecture for DQN, splitting the shared features into a state-value stream and an advantage
+    stream that are recombined into the Q-values.
+
+    """
     def __init__(self, input_shape, output_shape, features_network, n_features,
                  avg_advantage, **kwargs):
+        """
+        Constructor.
+
+        Args:
+            input_shape (tuple): shape of the input (the state);
+            output_shape (tuple): shape of the output (the number of actions);
+            features_network (nn.Module): the network used to compute the features;
+            n_features (int): number of features extracted by the features network;
+            avg_advantage (bool): whether to subtract the mean (True) or the max (False) advantage;
+            **kwargs: parameters forwarded to the features network.
+
+        """
         super().__init__()
 
         self._avg_advantage = avg_advantage

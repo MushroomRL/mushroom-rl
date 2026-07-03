@@ -4,9 +4,22 @@ import torch.nn.functional as F
 
 
 class AtariNetwork(nn.Module):
+    """
+    Convolutional network for Atari from pixel observations, outputting the Q-values for every action.
+
+    """
     n_features = 512
 
     def __init__(self, input_shape, output_shape, **kwargs):
+        """
+        Constructor.
+
+        Args:
+            input_shape (tuple): shape of the input image (channels, height, width);
+            output_shape (tuple): shape of the output (one Q-value per action);
+            **kwargs: other parameters (unused).
+
+        """
         super().__init__()
 
         n_input = input_shape[0]
@@ -38,8 +51,24 @@ class AtariNetwork(nn.Module):
 
 
 class AtariFeatureNetwork(nn.Module):
+    """
+    Convolutional feature extractor for Atari, sharing the same body as ``AtariNetwork`` but returning the
+    features instead of the Q-values. Used as ``features_network`` by the distributional networks.
+
+    """
     def __init__(self, input_shape, output_shape, **kwargs):
+        """
+        Constructor.
+
+        Args:
+            input_shape (tuple): shape of the input image (channels, height, width);
+            output_shape (tuple): shape of the output;
+            **kwargs: other parameters (unused).
+
+        """
         super().__init__()
+        
+        assert output_shape[0] == AtariNetwork.n_features #FIXME this has to be removed
 
         n_input = input_shape[0]
 

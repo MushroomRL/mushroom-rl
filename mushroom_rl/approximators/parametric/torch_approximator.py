@@ -36,13 +36,19 @@ class TorchApproximator(Approximator):
 
     def __init__(self, input_shape, output_shape, network, optimizer=None, loss=None, batch_size=0,
                  n_fit_targets=1, reinitialize=False, dropout=False, quiet=True, n_models=None,
-                 n_outputs=1, **params):
+                 **params):
         """
         Constructor.
 
         Args:
-            input_shape (tuple): shape of the input of the network;
-            output_shape (tuple): shape of the output of the network;
+            input_shape (tuple, list): shape of the input of the network. A plain tuple for a
+                single-input network, or a list of shape tuples (one per positional input) for a
+                network that takes several distinct inputs (e.g. a critic taking ``state`` and
+                ``action`` separately);
+            output_shape (tuple, list): shape of the output of the network. A plain tuple for a
+                single-output network, or a list of shape tuples (one per output tensor) for a
+                network whose ``forward`` returns several tensors; the number of outputs to parse
+                is derived from this, not passed separately;
             network (torch.nn.Module): the network class to use;
             optimizer (dict): the optimizer used for every fit step;
             loss (torch.nn.functional): the loss function to optimize in the
@@ -65,7 +71,10 @@ class TorchApproximator(Approximator):
         """
         super().__init__(input_shape=input_shape, output_shape=output_shape, backend='torch')
 
+        n_outputs = len(output_shape) if isinstance(output_shape, list) else 1
         self._parse_output = self._parse_single_output if n_outputs == 1 else self._parse_multi_output
+
+        self._input_ndims = [len(s) for s in input_shape] if isinstance(input_shape, list) else [len(input_shape)]
 
         self.network = network(input_shape, output_shape, dropout=dropout, **params)
         self.network.to(TorchUtils.get_device())
@@ -85,6 +94,7 @@ class TorchApproximator(Approximator):
 
         self._add_save_attr(
             _parse_output='primitive',
+            _input_ndims='primitive',
             network='torch',
             _optimizer='torch',
             _loss='pickle',
@@ -117,8 +127,9 @@ class TorchApproximator(Approximator):
             The predictions of the model.
 
         """
-        if args[0].ndim == len(self._input_shape):
-            args = [x.unsqueeze(0) for x in args]
+        n_declared = len(self._input_ndims)
+        args = [a.unsqueeze(0) if i < n_declared and a.ndim == self._input_ndims[i] else a
+                for i, a in enumerate(args)]
         return self._parse_output(self.network(*args, **kwargs))
 
     def fit(self, *args, n_epochs=None, weights=None, epsilon=None, patience=1, validation_split=1., **kwargs):
@@ -298,8 +309,12 @@ class TorchEnsemble(Ensemble):
         Constructor.
 
         Args:
-            input_shape (tuple): shape of the input of the network;
-            output_shape (tuple): shape of the output of the network;
+            input_shape (tuple, list): shape of the input of the network. A plain tuple for a
+                single-input network, or a list of shape tuples (one per positional input) for a
+                network that takes several distinct inputs;
+            output_shape (tuple, list): shape of the output of the network. A plain tuple for a
+                single-output network, or a list of shape tuples (one per output tensor) for a
+                network whose ``forward`` returns several tensors;
             network (torch.nn.Module): the network class to use;
             optimizer (dict): the optimizer used for every fit step;
             loss (torch.nn.functional): the loss function to optimize in the fit method;

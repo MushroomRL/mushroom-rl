@@ -7,9 +7,10 @@ from mushroom_rl.policy import RecurrentGaussianTorchPolicy
 class SimpleGRUNetwork(nn.Module):
     def __init__(self, input_shape, output_shape, n_hidden=8, **kwargs):
         super().__init__()
+        assert isinstance(output_shape, list) and len(output_shape) == 2
         self._n_hidden = n_hidden
         self._rnn = nn.GRU(input_shape[0], n_hidden, batch_first=True)
-        self._fc = nn.Linear(n_hidden, output_shape[0])
+        self._fc = nn.Linear(n_hidden, output_shape[0][0])
 
     def forward(self, state, policy_state, lengths):
         h0 = policy_state.float().view(1, -1, self._n_hidden)

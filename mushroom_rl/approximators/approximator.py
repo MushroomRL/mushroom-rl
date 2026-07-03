@@ -21,6 +21,18 @@ class Approximator(MushroomObject):
         return MushroomObject.__new__(cls)
 
     def __init__(self, input_shape, output_shape, backend='numpy'):
+        """
+        Constructor.
+
+        Args:
+            input_shape (tuple, list): shape of the input. A plain tuple for a single input, or a
+                list of shape tuples (one per input) for a model that takes several distinct
+                inputs (e.g. a critic taking ``state`` and ``action`` separately);
+            output_shape (tuple, list): shape of the output. A plain tuple for a single output, or
+                a list of shape tuples (one per output) for a model that produces several outputs;
+            backend (str, 'numpy'): array backend to use.
+
+        """
         self._input_shape = input_shape
         self._output_shape = output_shape
         self._backend = ArrayBackend.get_array_backend(backend)

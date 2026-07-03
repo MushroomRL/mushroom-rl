@@ -5,9 +5,29 @@ from mushroom_rl.utils.torch_utils import TorchUtils
 
 
 class QNetwork(nn.Module):
+    """
+    Simple feedforward network outputting the Q-values for every discrete action given the ``state``, or the
+    Q-value of a specific ``action`` when one is provided.
+
+    """
     def __init__(self, input_shape, output_shape, n_features, n_layers=2,
                  activation='relu', gain_scale=1.0, weights_init='xavier',
                  bias_init=None, **kwargs):
+        """
+        Constructor.
+
+        Args:
+            input_shape (tuple): shape of the input (the state);
+            output_shape (tuple): shape of the output (one Q-value per discrete action);
+            n_features ([int, list]): size of the hidden layers, or a list of sizes for each of them;
+            n_layers (int, 2): number of hidden layers, used only if ``n_features`` is an int;
+            activation (str, 'relu'): activation function for the hidden layers;
+            gain_scale (float, 1.0): scaling factor for the weights initialization gain;
+            weights_init (str, 'xavier'): weights initialization method;
+            bias_init (str, None): bias initialization method;
+            **kwargs: other parameters (unused).
+
+        """
         super().__init__()
 
         n_input = input_shape[-1]

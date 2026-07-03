@@ -56,7 +56,8 @@ We create the ``mdp``, the policy, and set some hyperparameters:
 Note that the policy is not instantiated in the script, since in DDPG the
 instantiation is done inside the algorithm constructor.
 
-We create the actor and the critic approximators:
+We create the actor and the critic approximators. The critic takes ``state`` and ``action`` as two
+separate inputs, so its ``input_shape`` is a list of the two shapes:
 
 .. literalinclude:: code/ddpg.py
    :lines: 30-47

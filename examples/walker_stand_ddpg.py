@@ -17,17 +17,20 @@ Simple script to run DMControl walker stand-up task from pixels with DDPG.
 
 
 class CriticNetwork(nn.Module):
-    def __init__(self, input_shape, output_shape, action_shape, n_features, **kwargs):
+    def __init__(self, input_shape, output_shape, n_features, **kwargs):
         super().__init__()
 
-        n_input_obs = input_shape[0]
-        n_input_act = action_shape[0]
+        assert isinstance(input_shape, list) and len(input_shape) == 2, \
+            'CriticNetwork requires input_shape=[state_shape, action_shape].'
+
+        n_input_obs = input_shape[0][0]
+        n_input_act = input_shape[1][0]
         n_output = output_shape[0]
 
         self._h1 = nn.Conv2d(n_input_obs, 32, kernel_size=8, stride=3)
         self._h2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self._h3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
-        dummy_obs = torch.zeros(1, *input_shape)
+        dummy_obs = torch.zeros(1, *input_shape[0])
         conv_out_size = np.prod(self._h3(self._h2(self._h1(dummy_obs))).shape)
         self._h4 = nn.Linear(conv_out_size + n_input_act, n_features)
         self._h5 = nn.Linear(n_features, n_output)
@@ -117,14 +120,13 @@ def experiment():
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': 1e-5}}
 
-    critic_input_shape = actor_input_shape
+    critic_input_shape = [actor_input_shape, mdp.info.action_space.shape]
     critic_params = dict(network=CriticNetwork,
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': 1e-3}},
                          loss=F.mse_loss,
                          n_features=n_features,
                          input_shape=critic_input_shape,
-                         action_shape=mdp.info.action_space.shape,
                          output_shape=(1,))
 
     # Agent
