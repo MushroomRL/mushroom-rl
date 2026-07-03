@@ -1,4 +1,6 @@
 For Mushroom 2.0:
+    * fix list backend
+    * split environment from policy dataset
     * add history_length support to SequenceReplayMemory (frame stacking + BPTT simultaneously) and necessary framework level support.
     * fix basis functions
         - vectorize if possible, using vmap if allowed
