@@ -4,8 +4,10 @@ def split_episodes(last, *arrays):
     """
     Split a array from shape (n_steps) to (n_episodes, max_episode_steps).
     """
+    last = ArrayBackend.get_array_backend_from(last).as_array(last)
+    arrays = tuple(ArrayBackend.get_array_backend_from(array).as_array(array) for array in arrays)
     backend = ArrayBackend.get_array_backend_from(last)
-    
+
     if last.sum().item() <= 1:
         return arrays if len(arrays) > 1 else arrays[0]
 

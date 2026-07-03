@@ -20,7 +20,7 @@ class Core(object):
             return super().__new__(VectorizedCore)
         return super().__new__(SequentialCore)
 
-    def __init__(self, agent, env, callbacks_fit=None, callback_step=None, logger=None):
+    def __init__(self, agent, env, callbacks_fit=None, callback_step=None, logger=None, dataset_backend=None):
         """
         Constructor.
 
@@ -31,12 +31,16 @@ class Core(object):
             callback_step (Callback): callback to execute after each step;
             logger (Logger, None): the logger to be used by the agent. If provided, it is set on the agent via
                 ``agent.set_logger`` and the video fps is configured from the environment.
+            dataset_backend (str, None): if provided, forces the backend used to store the collected dataset
+                (e.g. ``'list'``), overriding the environment backend. The ``'list'`` backend grows the dataset
+                without pre-allocation, which is required to collect episodes when the horizon is not finite.
 
         """
         self.agent = agent
         self.env = env
         self.callbacks_fit = callbacks_fit if callbacks_fit is not None else list()
         self.callback_step = callback_step if callback_step is not None else lambda x: None
+        self._dataset_backend = dataset_backend
 
         self._state = None
         self._policy_state = None
@@ -174,7 +178,7 @@ class SequentialCore(Core):
 
     def _prepare_dataset(self, n_steps, n_episodes, core_counts_episodes):
         return Dataset.generate(self.env.info, self.agent.info, n_steps, n_episodes,
-                                core_counts_episodes=core_counts_episodes)
+                                core_counts_episodes=core_counts_episodes, backend=self._dataset_backend)
 
     def _run(self, dataset, n_steps, n_episodes, render, quiet, record, initial_states=None):
         self._core_logic.initialize_run(n_steps, n_episodes, initial_states, quiet)
@@ -282,7 +286,7 @@ class VectorizedCore(Core):
 
     def _prepare_dataset(self, n_steps, n_episodes, core_counts_episodes):
         return VectorizedDataset.generate(self.env.info, self.agent.info, n_steps, n_episodes,
-                                          self.env.number, core_counts_episodes)
+                                          self.env.number, core_counts_episodes, backend=self._dataset_backend)
 
     def _run(self, dataset, n_steps, n_episodes, render, quiet, record, initial_states=None):
         self._core_logic.initialize_run(n_steps, n_episodes, initial_states, quiet)

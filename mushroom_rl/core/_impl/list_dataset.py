@@ -1,5 +1,8 @@
 from copy import deepcopy
 
+import numpy as np
+
+from mushroom_rl.core.array_backend import ArrayBackend
 from mushroom_rl.core.mushroom_object import MushroomObject
 
 
@@ -47,14 +50,18 @@ class ListDataset(MushroomObject):
 
         dataset = cls(is_stateful, False)
 
+        rewards = ArrayBackend.get_array_backend_from(rewards).as_array(rewards)
+        absorbings = ArrayBackend.get_array_backend_from(absorbings).as_array(absorbings).astype(bool)
+        lasts = ArrayBackend.get_array_backend_from(lasts).as_array(lasts).astype(bool)
+
         if dataset._is_stateful:
-            for s, a, r, ss, ab, last, ps, pss in zip(states, actions, rewards, next_states,
-                                                      absorbings.astype(bool), lasts.astype(bool),
+            policy_states = ArrayBackend.get_array_backend_from(policy_states).as_array(policy_states)
+            policy_next_states = ArrayBackend.get_array_backend_from(policy_next_states).as_array(policy_next_states)
+            for s, a, r, ss, ab, last, ps, pss in zip(states, actions, rewards, next_states, absorbings, lasts,
                                                       policy_states, policy_next_states):
                 dataset.append(s, a, r.item(), ss, ab.item(), last.item(), ps.item(), pss.item())
         else:
-            for s, a, r, ss, ab, last in zip(states, actions, rewards, next_states,
-                                             absorbings.astype(bool), lasts.astype(bool)):
+            for s, a, r, ss, ab, last in zip(states, actions, rewards, next_states, absorbings, lasts):
                 dataset.append(s, a, r.item(), ss, ab.item(), last.item())
 
         return dataset
@@ -152,11 +159,13 @@ class ListDataset(MushroomObject):
 
     @property
     def mask(self):
-        return self._mask
+        if self._mask is None:
+            return None
+        return np.array(self._mask)
 
     @mask.setter
     def mask(self, new_mask):
-        self._mask = new_mask
+        self._mask = list(new_mask)
 
     @property
     def n_episodes(self):

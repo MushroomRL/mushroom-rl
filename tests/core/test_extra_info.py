@@ -451,3 +451,43 @@ def test_flatten_with_mask():
 
     assert np.array_equal(np.array([100, 110, 112, 104]), info["prop1"])
     assert np.array_equal(np.array([200, 210, 212, 204]), info["prop2"])
+
+
+def test_list_backend_sequential():
+    info = ExtraInfo(1, 'list')
+
+    info.append({'a': 1.0, 'nested': {'v': np.array([1.0, 2.0])}})
+    info.append({'a': 2.0, 'nested': {'v': np.array([3.0, 4.0])}})
+    info.append({'a': 3.0, 'nested': {'v': np.array([5.0, 6.0])}})
+
+    info.parse()
+
+    assert isinstance(info['a'], list)
+    assert info['a'] == [1.0, 2.0, 3.0]
+    assert isinstance(info['nested_v'], list)
+    assert np.array_equal(info['nested_v'][0], np.array([1.0, 2.0]))
+    assert np.array_equal(info['nested_v'][2], np.array([5.0, 6.0]))
+
+    view = info.get_view(slice(0, 2))
+    assert view['a'] == [1.0, 2.0]
+
+    view = info.get_view(np.array([2, 0]))
+    assert view['a'] == [3.0, 1.0]
+
+
+def test_list_backend_vectorized():
+    info = ExtraInfo(2, 'list', vectorized=True)
+
+    info.append([{'a': 1.0}, {'a': 2.0}])
+    info.append([{'a': 3.0}, {'a': 4.0}])
+
+    info.parse()
+
+    assert info['a'] == [[1.0, 2.0], [3.0, 4.0]]
+
+    flat = info.flatten()
+    assert flat['a'] == [1.0, 3.0, 2.0, 4.0]
+
+    mask = np.array([[True, True], [True, False]])
+    flat_masked = info.flatten(mask)
+    assert flat_masked['a'] == [1.0, 3.0, 2.0]

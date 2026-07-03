@@ -1,4 +1,5 @@
 import numbers
+from copy import deepcopy
 from collections import UserDict
 from mushroom_rl.core.array_backend import ArrayBackend
 from mushroom_rl.core.mushroom_object import MushroomObject
@@ -80,7 +81,7 @@ class ExtraInfo(MushroomObject, UserDict):
 
         # calculate the size for the array
         if self._structured_storage:
-            length_structured_storage = self._structured_storage[next(iter(self._structured_storage.keys()))].shape[0]
+            length_structured_storage = len(self._structured_storage[next(iter(self._structured_storage.keys()))])
         else:
             length_structured_storage = 0
 
@@ -248,6 +249,12 @@ class ExtraInfo(MushroomObject, UserDict):
         info._key_mapping = self._key_mapping
         info._shape_mapping = self._shape_mapping
 
+        if self._array_backend.get_backend_name() == 'list':
+            info._structured_storage = {key: self._select_list(value, index, copy)
+                                        for key, value in self._structured_storage.items()}
+            info.data = {key: self._select_list(value, index, copy) for key, value in self.data.items()}
+            return info
+
         if not copy:
             info._structured_storage = {key: value[index, ...] for key, value in self._structured_storage.items()}
             info.data = {key: value[index, ...] for key, value in self.data.items()}
@@ -261,9 +268,17 @@ class ExtraInfo(MushroomObject, UserDict):
                 value = value[index, ...]
                 info.data[key] = self._array_backend.empty(value.shape, self._device)
                 info.data[key][:] = value
-        
+
         return info
-    
+
+    @staticmethod
+    def _select_list(value, index, copy):
+        if isinstance(index, (int, slice)):
+            selected = value[index]
+        else:
+            selected = [value[i] for i in index]
+        return deepcopy(selected) if copy else selected
+
     def clear(self):
         self._storage = []
         self._key_mapping = {}
@@ -381,10 +396,13 @@ class ExtraInfo(MushroomObject, UserDict):
         """
         if isinstance(value, numbers.Number):
             return value
-        
+
         if value is None:
             return ArrayBackend.get_array_backend(to).none()
-        
+
+        if to == 'list':
+            return value
+
         return ArrayBackend.convert(value, to=to, backend=self._array_backend)
 
     def _create_key(self, key_path):

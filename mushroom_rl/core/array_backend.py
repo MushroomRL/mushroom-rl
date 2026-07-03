@@ -76,6 +76,10 @@ class ArrayBackend(object):
     def to_torch(array):
         raise NotImplementedError
 
+    @staticmethod
+    def as_array(array):
+        return array
+
     @classmethod
     def zeros(cls, *dims, dtype, device=None):
         raise NotImplementedError
@@ -675,7 +679,14 @@ class TorchBackend(ArrayBackend):
         return cls._DTYPE_MAP[np.dtype(dtype)]
 
 class ListBackend(ArrayBackend):
+    """
+    Storage backend that keeps data in plain Python lists. It grows without pre-allocation (which allows
+    collecting episodes of unbounded/infinite horizon) and can hold ragged or non-array observations and
+    actions. It is numpy-serialized: container reshaping (``empty``, ``full``, ``concatenate``, ``flatten``,
+    ``pack_padded_sequence``) is list-native and ragged-safe, while any numeric computation materializes the
+    (regular) data to numpy via ``as_array``.
 
+    """
     @staticmethod
     def get_backend_name():
         return 'list'
@@ -693,12 +704,28 @@ class ListBackend(ArrayBackend):
         return None if array is None else torch.as_tensor(array, device=TorchUtils.get_device())
 
     @staticmethod
+    def as_array(array):
+        return np.array(array)
+
+    @staticmethod
+    def expand_dims(array, dim):
+        return np.expand_dims(array, axis=dim)
+
+    @staticmethod
+    def where(cond, x=None, y=None):
+        assert (x is None) == (y is None), "Either both or neither of x and y should be given."
+        if x is None:
+            return np.where(cond)
+        else:
+            return np.where(cond, x, y)
+
+    @staticmethod
     def to_backend_dtype(dtype):
         return dtype
 
     @staticmethod
     def convert_to_backend(cls, array):
-        return cls.to_numpy(array)
+        return array
 
     @classmethod
     def zeros(cls, *dims, dtype=float, device=None):
@@ -734,27 +761,42 @@ class ListBackend(ArrayBackend):
 
     @staticmethod
     def pack_padded_sequence(array, mask):
-        return NumpyBackend.pack_padded_sequence(array, np.array(mask))
-    
+        n_steps = len(array)
+        n_envs = mask.shape[1]
+        return [array[s][e] for e in range(n_envs) for s in range(n_steps) if mask[s, e]]
+
     @staticmethod
     def flatten(array):
-        return NumpyBackend.flatten(array)
+        n_steps = len(array)
+        n_envs = len(array[0])
+        return [array[s][e] for e in range(n_envs) for s in range(n_steps)]
+
+    @staticmethod
+    def concatenate(list_of_arrays, dim=0):
+        result = []
+        for array in list_of_arrays:
+            result += list(array)
+        return result
 
     @staticmethod
     def empty(shape, device=None):
-        return np.empty(shape)
-    
+        if len(shape) == 0:
+            return None
+        return [ListBackend.empty(shape[1:]) for _ in range(shape[0])]
+
     @staticmethod
     def none():
         return None
-    
+
     @staticmethod
     def shape(array):
         return np.array(array).shape
-    
+
     @staticmethod
     def full(shape, value):
-        return np.full(shape, value)
+        if len(shape) == 0:
+            return value
+        return [ListBackend.full(shape[1:], value) for _ in range(shape[0])]
     
     @staticmethod
     def inf():

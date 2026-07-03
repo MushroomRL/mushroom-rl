@@ -129,3 +129,21 @@ def test_dataset_loading(tmpdir):
     assert len(dataset.info) == len(new_dataset.info)
     for key in dataset.info:
         assert np.array_equal(dataset.info[key], new_dataset.info[key])
+
+def test_list_dataset_compute_j_metrics():
+    np.random.seed(42)
+
+    mdp = GridWorld(3, 3, (2, 2))
+    dataset = generate_dataset(mdp, 5)
+
+    parsed = tuple(dataset.parse())
+    list_dataset = Dataset.from_array(*parsed, gamma=mdp.info.gamma, backend='list')
+
+    assert np.allclose(list_dataset.compute_J(), dataset.compute_J())
+    assert np.allclose(list_dataset.compute_J(mdp.info.gamma), dataset.compute_J(mdp.info.gamma))
+
+    metrics_numpy = dataset.compute_metrics(mdp.info.gamma)
+    metrics_list = list_dataset.compute_metrics(mdp.info.gamma)
+
+    assert np.allclose(metrics_list[:4], metrics_numpy[:4])
+    assert metrics_list[4] == metrics_numpy[4]

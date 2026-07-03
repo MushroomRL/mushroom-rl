@@ -49,8 +49,8 @@ class DatasetInfo(MushroomObject):
         return self.policy_state_shape is not None
 
     @staticmethod
-    def create_dataset_info(mdp_info, agent_info, n_envs=1, device=None):
-        backend = mdp_info.backend
+    def create_dataset_info(mdp_info, agent_info, n_envs=1, backend=None, device=None):
+        backend = mdp_info.backend if backend is None else backend
         horizon = mdp_info.horizon
         gamma = mdp_info.gamma
         state_shape = mdp_info.observation_space.shape
@@ -84,8 +84,8 @@ class Dataset(MushroomObject):
 
         self._array_backend = ArrayBackend.get_array_backend(dataset_info.backend)
 
-        if n_steps is not None:
-            n_samples = n_steps
+        if n_steps is not None or dataset_info.backend == 'list':
+            n_samples = n_steps if n_steps is not None else n_episodes
         else:
             horizon = dataset_info.horizon
             assert np.isfinite(horizon)
@@ -141,8 +141,9 @@ class Dataset(MushroomObject):
         self._add_all_save_attr()
 
     @classmethod
-    def generate(cls, mdp_info, agent_info, n_steps=None, n_episodes=None, n_envs=1, core_counts_episodes=False):
-        dataset_info = DatasetInfo.create_dataset_info(mdp_info, agent_info, n_envs)
+    def generate(cls, mdp_info, agent_info, n_steps=None, n_episodes=None, n_envs=1, core_counts_episodes=False,
+                 backend=None):
+        dataset_info = DatasetInfo.create_dataset_info(mdp_info, agent_info, n_envs, backend=backend)
 
         return cls(dataset_info, n_steps, n_episodes, core_counts_episodes)
 
@@ -235,12 +236,19 @@ class Dataset(MushroomObject):
             dataset._data = ListDataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
                                                    policy_state, policy_next_state)
 
-        state_shape = states.shape[1:]
-        action_shape = actions.shape[1:]
-        policy_state_shape = None if policy_state is None else policy_state.shape[1:]
+        if backend == 'list':
+            state_shape = action_shape = None
+            state_dtype = action_dtype = None
+            policy_state_shape = None if policy_state is None else ()
+        else:
+            state_shape = states.shape[1:]
+            action_shape = actions.shape[1:]
+            state_dtype = states.dtype
+            action_dtype = actions.dtype
+            policy_state_shape = None if policy_state is None else policy_state.shape[1:]
 
-        dataset._dataset_info = DatasetInfo(backend, device, horizon, gamma, state_shape, states.dtype,
-                                            action_shape, actions.dtype, policy_state_shape)
+        dataset._dataset_info = DatasetInfo(backend, device, horizon, gamma, state_shape, state_dtype,
+                                            action_shape, action_dtype, policy_state_shape)
 
         return dataset
 
@@ -650,7 +658,7 @@ class VectorizedDataset(Dataset):
         next_states = self._array_backend.pack_padded_sequence(self._data.next_state, self._data.mask)
         absorbings = self._array_backend.pack_padded_sequence(self._data.absorbing, self._data.mask)
 
-        last_padded = self._data.last
+        last_padded = self._array_backend.as_array(self._data.last)
         last_padded[-1, :] = True
         lasts = self._array_backend.pack_padded_sequence(last_padded, self._data.mask)
 
