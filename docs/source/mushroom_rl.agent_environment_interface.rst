@@ -59,6 +59,14 @@ History manager
     :private-members:
     :show-inheritance:
 
+Array Backend
+-------------
+
+.. automodule:: mushroom_rl.core.array_backend
+    :members:
+    :private-members:
+    :show-inheritance:
+
 Serialization
 -------------
 
