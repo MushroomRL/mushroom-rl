@@ -11,7 +11,7 @@ from mushroom_rl.core.extra_info import ExtraInfo
 
 from ._impl import *
 
-from mushroom_rl.utils.episodes import split_episodes, unsplit_episodes
+from mushroom_rl.utils.episodes import split_episodes
 
 
 class DatasetInfo(MushroomObject):
