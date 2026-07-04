@@ -81,6 +81,9 @@ class ListDataset(MushroomObject):
 
     def clear(self):
         self._dataset = list()
+        self._policy_dataset = list()
+        if self._mask is not None:
+            self._mask = list()
 
     def get_view(self, index, copy=False):
         view = self.create_new_instance(self)
@@ -162,6 +165,9 @@ class ListDataset(MushroomObject):
 
     @property
     def n_episodes(self):
+        if len(self._dataset) == 0:
+            return 0
+
         n_episodes = 0
         for sample in self._dataset:
             if sample[5] is True:
