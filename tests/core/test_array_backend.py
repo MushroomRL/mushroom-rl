@@ -110,6 +110,13 @@ def test_list_backend():
     nested_copy[0].append(99)
     assert nested == [[1, 2], [3, 4]]
 
+    mask = np.array([False, True, False, True])
+    values = [[1, 2], [3, 4]]
+    scattered = ListBackend.masked_init(mask, values)
+    assert scattered == [None, [1, 2], None, [3, 4]]
+    scattered[1].append(99)
+    assert values == [[1, 2], [3, 4]]
+
     assert ListBackend.median(array) == 2.0
     assert ListBackend.from_list(array) is array
     assert ListBackend.empty((3,)) == [None, None, None]

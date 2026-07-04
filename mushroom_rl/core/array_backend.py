@@ -392,7 +392,9 @@ class ArrayBackend(object):
 
         Returns:
             An array of shape ``(N, ...)`` with ``values`` scattered at the positions where ``mask`` is
-            ``True``.
+            ``True``. The scattered entries are independent of ``values`` (:class:`NumpyBackend`/
+            :class:`TorchBackend` copy the underlying numeric buffer; :class:`ListBackend` deep-copies each
+            scattered element, since it can hold nested/ragged Python containers).
 
         """
         raise NotImplementedError
@@ -1350,7 +1352,7 @@ class ListBackend(ArrayBackend):
     def masked_init(mask, values):
         result = [None] * len(mask)
         for j, i in enumerate(NumpyBackend.nonzero(mask)):
-            result[int(i)] = values[j]
+            result[int(i)] = copy.deepcopy(values[j])
         return result
 
     @staticmethod
