@@ -168,4 +168,4 @@ def test_infinite_horizon_uses_list_backend():
 
     assert dataset.array_backend.get_backend_name() == 'list'
     assert dataset.n_episodes == 2
-    assert np.all(np.isfinite(dataset.compute_J()))
+    assert np.array_equal(dataset.compute_J(), np.array([-124., -122.]))

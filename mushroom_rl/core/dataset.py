@@ -568,6 +568,8 @@ class Dataset(MushroomObject):
             return self._array_backend.arrays_to_numpy(*arrays)
         elif to == 'torch':
             return self._array_backend.arrays_to_torch(*arrays)
+        elif to == 'list':
+            return self._array_backend.arrays_to_list(*arrays)
         else:
             raise NotImplementedError
 

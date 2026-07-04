@@ -70,6 +70,10 @@ class ArrayBackend(object):
         return tuple(cls.to_torch(array) for array in arrays)
 
     @classmethod
+    def arrays_to_list(cls, *arrays):
+        return tuple(cls.to_list(array) for array in arrays)
+
+    @classmethod
     def check_device(cls, device):
         if device is not None:
             raise ValueError(f"Device can not be set for {cls.get_backend_name()} backend.")
@@ -84,6 +88,10 @@ class ArrayBackend(object):
 
     @staticmethod
     def as_array(array):
+        raise NotImplementedError
+
+    @staticmethod
+    def to_list(array):
         raise NotImplementedError
 
     @classmethod
@@ -187,6 +195,10 @@ class ArrayBackend(object):
         raise NotImplementedError
 
     @staticmethod
+    def masked_init(mask, values):
+        raise NotImplementedError
+
+    @staticmethod
     def none():
         raise NotImplementedError
 
@@ -286,6 +298,10 @@ class NumpyBackend(ArrayBackend):
     @staticmethod
     def as_array(array):
         return np.asarray(array)
+
+    @staticmethod
+    def to_list(array):
+        return array.tolist()
 
     @classmethod
     def to_backend_dtype(cls, dtype):
@@ -415,6 +431,12 @@ class NumpyBackend(ArrayBackend):
     @staticmethod
     def empty(shape, device=None):
         return np.empty(shape)
+
+    @staticmethod
+    def masked_init(mask, values):
+        result = np.empty((mask.shape[0],) + values.shape[1:])
+        result[mask] = values
+        return result
 
     @staticmethod
     def none():
@@ -615,6 +637,10 @@ class TorchBackend(ArrayBackend):
         return torch.as_tensor(array, device=TorchUtils.get_device())
 
     @staticmethod
+    def to_list(array):
+        return array.tolist()
+
+    @staticmethod
     def from_list(array):
         if len(array) > 0 and isinstance(array[0], torch.Tensor):
             return torch.stack(array)
@@ -639,6 +665,12 @@ class TorchBackend(ArrayBackend):
     def empty(shape, device=None):
         device = TorchUtils.get_device() if device is None else device
         return torch.empty(shape, device=device)
+
+    @staticmethod
+    def masked_init(mask, values):
+        result = torch.empty((mask.shape[0],) + values.shape[1:], device=TorchUtils.get_device())
+        result[mask] = torch.as_tensor(values, dtype=result.dtype, device=TorchUtils.get_device())
+        return result
 
     @staticmethod
     def none():
@@ -732,6 +764,10 @@ class ListBackend(ArrayBackend):
         return np.array(array)
 
     @staticmethod
+    def to_list(array):
+        return array
+
+    @staticmethod
     def expand_dims(array, dim):
         return np.expand_dims(array, axis=dim)
 
@@ -807,6 +843,13 @@ class ListBackend(ArrayBackend):
         if len(shape) == 0:
             return None
         return [ListBackend.empty(shape[1:]) for _ in range(shape[0])]
+
+    @staticmethod
+    def masked_init(mask, values):
+        result = [None] * len(mask)
+        for j, i in enumerate(np.where(mask)[0]):
+            result[int(i)] = values[j]
+        return result
 
     @staticmethod
     def none():
