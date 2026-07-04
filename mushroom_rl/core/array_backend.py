@@ -1,3 +1,4 @@
+import copy
 from collections import deque
 import numpy as np
 import torch
@@ -446,7 +447,10 @@ class ArrayBackend(object):
             array: an array.
 
         Returns:
-            A copy of ``array``.
+            An independent copy of ``array``. For :class:`NumpyBackend`/:class:`TorchBackend` this is a
+            shallow copy of the underlying numeric buffer, which is sufficient since they only ever hold
+            regular numeric data. :class:`ListBackend` performs a deep copy instead, since it can hold
+            nested/ragged Python containers whose inner elements a shallow copy would still alias.
 
         """
         raise NotImplementedError
@@ -1325,33 +1329,37 @@ class ListBackend(ArrayBackend):
     @classmethod
     def zeros(cls, *dims, dtype=float, device=None):
         cls.check_device(device)
-        return np.zeros(dims, dtype=dtype)
+        return NumpyBackend.zeros(*dims, dtype=dtype)
 
     @classmethod
     def ones(cls, *dims, dtype=float, device=None):
         cls.check_device(device)
-        return np.ones(dims, dtype=dtype)
+        return NumpyBackend.ones(*dims, dtype=dtype)
 
     @classmethod
     def zeros_like(cls, array, dtype=float, device=None):
         cls.check_device(device)
-        return np.zeros_like(array, dtype=dtype)
+        return NumpyBackend.zeros_like(array, dtype=dtype)
 
     @classmethod
     def ones_like(cls, array, dtype=float, device=None):
         cls.check_device(device)
-        return np.ones_like(array, dtype=dtype)
+        return NumpyBackend.ones_like(array, dtype=dtype)
 
     @staticmethod
     def masked_init(mask, values):
         result = [None] * len(mask)
-        for j, i in enumerate(np.where(mask)[0]):
+        for j, i in enumerate(NumpyBackend.nonzero(mask)):
             result[int(i)] = values[j]
         return result
 
     @staticmethod
     def shape(array):
-        return np.array(array).shape
+        return NumpyBackend.shape(NumpyBackend.as_array(array))
+
+    @staticmethod
+    def size(arr):
+        return NumpyBackend.size(arr)
 
     @staticmethod
     def none():
@@ -1359,56 +1367,107 @@ class ListBackend(ArrayBackend):
 
     @staticmethod
     def inf():
-        return np.inf
+        return NumpyBackend.inf()
 
     @staticmethod
     def copy(array):
-        return array.copy()
+        return copy.deepcopy(array)
+
+    @staticmethod
+    def squeeze(array, dim=None):
+        return NumpyBackend.squeeze(array, dim)
 
     @staticmethod
     def expand_dims(array, dim):
-        return np.expand_dims(array, axis=dim)
+        return NumpyBackend.expand_dims(array, dim)
+
+    @staticmethod
+    def atleast_2d(array):
+        return NumpyBackend.atleast_2d(array)
+
+    @staticmethod
+    def repeat(array, repeats):
+        return NumpyBackend.repeat(array, repeats)
 
     @staticmethod
     def stack(lst, dim):
-        return np.stack(lst, axis=dim)
+        return NumpyBackend.stack(lst, dim)
 
     @staticmethod
     def where(cond, x=None, y=None):
-        assert (x is None) == (y is None), "Either both or neither of x and y should be given."
-        if x is None:
-            return np.where(cond)
-        else:
-            return np.where(cond, x, y)
+        return NumpyBackend.where(cond, x, y)
+
+    @staticmethod
+    def nonzero(array):
+        return NumpyBackend.nonzero(array)
+
+    @staticmethod
+    def abs(array):
+        return NumpyBackend.abs(array)
+
+    @staticmethod
+    def exp(array):
+        return NumpyBackend.exp(array)
+
+    @staticmethod
+    def sqrt(array):
+        return NumpyBackend.sqrt(array)
+
+    @staticmethod
+    def clip(array, min, max):
+        return NumpyBackend.clip(array, min, max)
 
     @staticmethod
     def sum(array, dim=None):
-        return np.sum(array, axis=dim)
+        return NumpyBackend.sum(array, dim)
 
     @staticmethod
     def median(array):
-        return np.median(array)
+        return NumpyBackend.median(array)
 
     @staticmethod
     def max(array, dim=None):
-        return np.max(array, axis=dim)
+        return NumpyBackend.max(array, dim)
 
     @staticmethod
     def min(array, dim=None):
-        return np.min(array, axis=dim)
+        return NumpyBackend.min(array, dim)
 
     @staticmethod
     def norm(array, ord=None, dim=None):
-        return np.linalg.norm(array, ord=ord, axis=dim)
+        return NumpyBackend.norm(array, ord=ord, dim=dim)
 
     @staticmethod
     def maximum(x, y):
-        return np.maximum(x, y)
+        return NumpyBackend.maximum(x, y)
 
     @staticmethod
     def minimum(x, y):
-        return np.minimum(x, y)
+        return NumpyBackend.minimum(x, y)
 
     @staticmethod
     def logical_and(x, y):
-        return np.logical_and(x, y)
+        return NumpyBackend.logical_and(x, y)
+
+    @classmethod
+    def rand(cls, *dims, device=None):
+        cls.check_device(device)
+        return NumpyBackend.rand(*dims)
+
+    @classmethod
+    def randint(cls, low, high, size, device=None):
+        cls.check_device(device)
+        return NumpyBackend.randint(low, high, size)
+
+    @staticmethod
+    def multinomial(p):
+        return NumpyBackend.multinomial(p)
+
+    @staticmethod
+    def uniform(low, high):
+        return NumpyBackend.uniform(low, high)
+
+    @classmethod
+    def arange(cls, start, stop, step=1, dtype=None, device=None):
+        cls.check_device(device)
+        return NumpyBackend.arange(start, stop, step, dtype=dtype)

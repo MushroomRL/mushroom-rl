@@ -104,6 +104,12 @@ def test_list_backend():
 
     array = np.array([3.0, 1.0, 2.0])
     assert np.array_equal(ListBackend.copy(array), array)
+
+    nested = [[1, 2], [3, 4]]
+    nested_copy = ListBackend.copy(nested)
+    nested_copy[0].append(99)
+    assert nested == [[1, 2], [3, 4]]
+
     assert ListBackend.median(array) == 2.0
     assert ListBackend.from_list(array) is array
     assert ListBackend.empty((3,)) == [None, None, None]
@@ -130,6 +136,32 @@ def test_list_backend():
                           np.array([True, False]))
     assert ListBackend.sum(x) == 5.0
     assert np.array_equal(ListBackend.stack([x, y], 0), np.stack([x, y], axis=0))
+
+    assert ListBackend.size([[1, 2, 3], [4, 5, 6]]) == 6
+    assert np.array_equal(ListBackend.squeeze([[1, 2, 3]]), np.array([1, 2, 3]))
+    assert np.array_equal(ListBackend.atleast_2d([1, 2, 3]), np.array([[1, 2, 3]]))
+    assert np.array_equal(ListBackend.repeat([1, 2], 2), np.array([1, 1, 2, 2]))
+    assert np.array_equal(ListBackend.nonzero([0, 1, 0, 2]), np.array([1, 3]))
+    assert np.array_equal(ListBackend.abs([-1, -2, 3]), np.array([1, 2, 3]))
+    assert np.allclose(ListBackend.exp([0.0, 1.0]), np.array([1.0, np.e]))
+    assert np.array_equal(ListBackend.sqrt([4.0, 9.0]), np.array([2.0, 3.0]))
+    assert np.array_equal(ListBackend.clip([-5, 0, 5], -1, 1), np.array([-1, 0, 1]))
+    assert np.array_equal(ListBackend.arange(0, 5), np.arange(5))
+
+    with pytest.raises(ValueError):
+        ListBackend.rand(2, device='cuda')
+    with pytest.raises(ValueError):
+        ListBackend.randint(0, 1, (1,), device='cuda')
+    with pytest.raises(ValueError):
+        ListBackend.arange(0, 1, device='cuda')
+
+    np.random.seed(42)
+    assert ListBackend.rand(2, 3).shape == (2, 3)
+    randint_sample = ListBackend.randint(0, 5, (10,))
+    assert randint_sample.shape == (10,) and np.all((randint_sample >= 0) & (randint_sample < 5))
+    u = ListBackend.uniform(0.0, 1.0)
+    assert 0.0 <= u <= 1.0
+    assert ListBackend.multinomial(np.array([1.0, 0.0, 0.0])) == 0
 
 
 def test_backend_ops_numpy():
