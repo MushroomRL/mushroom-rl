@@ -128,6 +128,8 @@ class ExtraInfo(MushroomObject, UserDict):
         Returns:
             ExtraInfo: Flattened ExtraInfo
         """
+        assert self._vectorized
+
         self.parse()
 
         info = ExtraInfo(1, self._array_backend.get_backend_name(), self._device)

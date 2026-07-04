@@ -84,7 +84,7 @@ class ArrayBackend(object):
 
     @staticmethod
     def as_array(array):
-        return array
+        raise NotImplementedError
 
     @classmethod
     def zeros(cls, *dims, dtype, device=None):
@@ -282,6 +282,10 @@ class NumpyBackend(ArrayBackend):
             return None
         torch_dtype = TorchBackend.to_backend_dtype(array.dtype)
         return torch.as_tensor(array, dtype=torch_dtype, device=TorchUtils.get_device())
+
+    @staticmethod
+    def as_array(array):
+        return np.asarray(array)
 
     @classmethod
     def to_backend_dtype(cls, dtype):
@@ -605,6 +609,10 @@ class TorchBackend(ArrayBackend):
     @staticmethod
     def sqrt(array):
         return torch.sqrt(array)
+
+    @staticmethod
+    def as_array(array):
+        return torch.as_tensor(array, device=TorchUtils.get_device())
 
     @staticmethod
     def from_list(array):

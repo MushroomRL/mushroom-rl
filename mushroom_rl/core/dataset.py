@@ -381,7 +381,7 @@ class Dataset(MushroomObject):
                 lengths.append(length)
                 length = 0
 
-        return np.array(lengths)
+        return self._array_backend.as_array(lengths)
 
     @property
     def n_episodes(self):
@@ -663,22 +663,24 @@ class VectorizedDataset(Dataset):
         if len(self) == 0:
             return None
 
-        states = self._array_backend.pack_padded_sequence(self._data.state, self._data.mask)
-        actions = self._array_backend.pack_padded_sequence(self._data.action, self._data.mask)
-        rewards = self._array_backend.pack_padded_sequence(self._data.reward, self._data.mask)
-        next_states = self._array_backend.pack_padded_sequence(self._data.next_state, self._data.mask)
-        absorbings = self._array_backend.pack_padded_sequence(self._data.absorbing, self._data.mask)
+        mask = self._data.mask
+
+        states = self._array_backend.pack_padded_sequence(self._data.state, mask)
+        actions = self._array_backend.pack_padded_sequence(self._data.action, mask)
+        rewards = self._array_backend.pack_padded_sequence(self._data.reward, mask)
+        next_states = self._array_backend.pack_padded_sequence(self._data.next_state, mask)
+        absorbings = self._array_backend.pack_padded_sequence(self._data.absorbing, mask)
 
         last_padded = self._array_backend.as_array(self._data.last)
         last_padded[-1, :] = True
-        lasts = self._array_backend.pack_padded_sequence(last_padded, self._data.mask)
+        lasts = self._array_backend.pack_padded_sequence(last_padded, mask)
 
         policy_state = None
         policy_next_state = None
 
         if self._data.is_stateful:
-            policy_state = self._array_backend.pack_padded_sequence(self._data.policy_state, self._data.mask)
-            policy_next_state = self._array_backend.pack_padded_sequence(self._data.policy_next_state, self._data.mask)
+            policy_state = self._array_backend.pack_padded_sequence(self._data.policy_state, mask)
+            policy_next_state = self._array_backend.pack_padded_sequence(self._data.policy_next_state, mask)
 
         if n_steps_per_fit is not None:
             states = states[:n_steps_per_fit]
@@ -694,8 +696,8 @@ class VectorizedDataset(Dataset):
 
         flat_theta_list = self._flatten_theta_list()
 
-        flat_info = self._info.flatten(self.mask)
-        flat_episode_info = self._episode_info.flatten(self.mask)
+        flat_info = self._info.flatten(mask)
+        flat_episode_info = self._episode_info.flatten(mask)
 
         return Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
                                   policy_state=policy_state, policy_next_state=policy_next_state,

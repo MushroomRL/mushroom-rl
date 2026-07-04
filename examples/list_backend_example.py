@@ -60,12 +60,12 @@ def experiment(alpha):
     core = Core(agent, mdp)
 
     # Evaluate
-    logger.info('- Evaluating random policy for 1000 steps')
+    logger.info('- Evaluating random policy for 10000 steps')
     dataset = core.evaluate(n_steps=10000, render=False)
     logger.info(f'R: {dataset.undiscounted_return.mean()}')
     episode_length = dataset.episodes_length
     if len(episode_length) > 0:
-        logger.info(f'episode length: {dataset.episodes_length.item()}')
+        logger.info(f'completed episodes: {len(episode_length)}, mean episode length: {episode_length.mean()}')
     else:
         logger.info(f'episode length: {len(dataset)}, episode not completed')
 
