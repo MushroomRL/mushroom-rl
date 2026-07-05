@@ -48,8 +48,8 @@ class RoomToyEnv(Environment):
             assert np.linalg.norm(state - self._goal) > self._goal_radius
             self._state = state
 
-        # Return the current state and an empty info dictionary
-        return self._state, {}
+        # Return a copy: self._state is mutated in place by step()
+        return self._state.copy(), {}
 
     def step(self, action):
         # convert the action in a N, S, W, E movement
@@ -83,8 +83,8 @@ class RoomToyEnv(Environment):
         # Set the absorbing flag if goal is reached
         absorbing = goal_distance < self._goal_radius
 
-        # Return all the information + empty dictionary (used to pass additional information)
-        return self._state, reward, absorbing, {}
+        # Return a copy of the state (see reset()) + empty dictionary (used to pass additional information)
+        return self._state.copy(), reward, absorbing, {}
 
     def render(self, record=False):
         # Draw a red circle for the agent

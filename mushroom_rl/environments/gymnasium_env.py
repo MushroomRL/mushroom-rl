@@ -80,19 +80,19 @@ class Gymnasium(Environment):
         if state is None:
             state, info = self.env.reset(seed=self._seed)
             self._seed = None
-            return np.atleast_1d(state), info
+            return np.atleast_1d(state).copy(), info
         else:
             _, info = self.env.reset(seed=self._seed)
             self._seed = None
             self.env.state = state
 
-            return np.atleast_1d(state), info
+            return np.atleast_1d(state).copy(), info
 
     def step(self, action):
         action = self._convert_action(action)
-        obs, reward, absorbing, _, info = self.env.step(action) #truncated flag is ignored 
+        obs, reward, absorbing, _, info = self.env.step(action) #truncated flag is ignored
 
-        return np.atleast_1d(obs), reward, absorbing, info
+        return np.atleast_1d(obs).copy(), reward, absorbing, info
 
     def render(self, record=False):
         if self._first or self._not_pybullet:

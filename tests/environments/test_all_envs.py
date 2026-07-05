@@ -17,13 +17,22 @@ import os
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 
+def _assert_step_returns_not_mutated(states, snapshots):
+    for state, snapshot in zip(states, snapshots):
+        assert np.allclose(state, snapshot)
+
+
 def test_atari():
     np.random.seed(1)
     mdp = Atari(name='ALE/Pong-v5')
     mdp.seed(1)
     mdp.reset()
+    states, snapshots = [], []
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
+        states.append(ns)
+        snapshots.append(np.copy(ns))
+    _assert_step_returns_not_mutated(states, snapshots)
 
     ns_test = np.load('tests/environments/test_atari_1.npy')
 
@@ -34,8 +43,12 @@ def test_car_on_hill():
     mdp = CarOnHill()
     mdp.reset()
     mdp.render()
+    states, snapshots = [], []
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
+        states.append(ns)
+        snapshots.append(np.copy(ns))
+    _assert_step_returns_not_mutated(states, snapshots)
     ns_test = np.array([-0.29638141, -0.05527507])
     mdp.render()
 
@@ -55,8 +68,12 @@ def test_cartpole():
     mdp = CartPole()
     mdp.reset()
     mdp.render()
+    states, snapshots = [], []
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
+        states.append(ns)
+        snapshots.append(np.copy(ns))
+    _assert_step_returns_not_mutated(states, snapshots)
     ns_test = np.array([1.25234221, 2.44501606])
     mdp.render()
 
@@ -107,8 +124,12 @@ def test_gymnasium():
     mdp = Gymnasium('Acrobot-v1', 1000, .99)
     mdp.seed(1)
     mdp.reset()
+    states, snapshots = [], []
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
+        states.append(ns)
+        snapshots.append(np.copy(ns))
+    _assert_step_returns_not_mutated(states, snapshots)
     ns_test = np.array([0.9996687, -0.02573896,  0.9839331 , -0.17853762, -0.17821608,0.5534913])
 
     assert np.allclose(ns, ns_test)
@@ -119,8 +140,12 @@ def test_inverted_pendulum():
     mdp = InvertedPendulum()
     mdp.reset()
     mdp.render()
+    states, snapshots = [], []
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.rand(mdp.info.action_space.shape[0])])
+        states.append(ns)
+        snapshots.append(np.copy(ns))
+    _assert_step_returns_not_mutated(states, snapshots)
     ns_test = np.array([1.62134054, 1.0107062])
     mdp.render()
 
@@ -131,8 +156,12 @@ def test_lqr():
     np.random.seed(1)
     mdp = LQR.generate(2)
     mdp.reset()
+    states, snapshots = [], []
     for i in range(10):
         ns, r, ab, _ = mdp.step(np.random.rand(mdp.info.action_space.shape[0]))
+        states.append(ns)
+        snapshots.append(np.copy(ns))
+    _assert_step_returns_not_mutated(states, snapshots)
     ns_test = np.array([12.35564605, 14.98996889])
 
     assert np.allclose(ns, ns_test)
@@ -144,25 +173,37 @@ def test_lqr():
     mdp = LQR(A, B, Q, R, max_pos=11.0, max_action=0.5, episodic=True)
     mdp.reset()
 
+    states, snapshots = [], []
+
     a_test = np.array([1.0, 0.3])
     ns, r, ab, _ = mdp.step(a_test)
+    states.append(ns)
+    snapshots.append(np.copy(ns))
     ns_test = np.array([10.23333333, 10.16666667, 10.1])
     assert np.allclose(ns, ns_test) and np.allclose(r, -107.917) and not ab
 
     a_test = np.array([0.4, -0.1])
     ns, r, ab, _ = mdp.step(a_test)
+    states.append(ns)
+    snapshots.append(np.copy(ns))
     ns_test = np.array([10.5, 10.26666667, 10.03333333])
     assert np.allclose(ns, ns_test) and np.allclose(r, -113.72311111111117) and not ab
 
     a_test = np.array([0.5, 0.6])
     ns, r, ab, _ = mdp.step(a_test)
+    states.append(ns)
+    snapshots.append(np.copy(ns))
     ns_test = np.array([10.83333333, 10.6, 10.36666667])
     assert np.allclose(ns, ns_test) and np.allclose(r, -116.20577777777778) and not ab
 
     a_test = np.array([0.3, -0.7])
     ns, r, ab, _ = mdp.step(a_test)
+    states.append(ns)
+    snapshots.append(np.copy(ns))
     ns_test = np.array([11.03333333, 10.53333333, 10.03333333])
     assert np.allclose(ns, ns_test) and np.allclose(r, -1210.0) and ab
+
+    _assert_step_returns_not_mutated(states, snapshots)
 
 
 def test_puddle_world():
@@ -170,8 +211,12 @@ def test_puddle_world():
     mdp = PuddleWorld()
     mdp.reset()
     mdp.render()
+    states, snapshots = [], []
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
+        states.append(ns)
+        snapshots.append(np.copy(ns))
+    _assert_step_returns_not_mutated(states, snapshots)
     ns_test = np.array([0.41899424, 0.4022506])
     mdp.render()
 
@@ -183,8 +228,12 @@ def test_segway():
     mdp = Segway()
     mdp.reset()
     mdp.render()
+    states, snapshots = [], []
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.rand()])
+        states.append(ns)
+        snapshots.append(np.copy(ns))
+    _assert_step_returns_not_mutated(states, snapshots)
     ns_test = np.array([-0.64112019, -4.92869367, 10.33970413])
     mdp.render()
 
@@ -196,8 +245,12 @@ def test_ship_steering():
     mdp = ShipSteering()
     mdp.reset()
     mdp.render()
+    states, snapshots = [], []
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.rand()])
+        states.append(ns)
+        snapshots.append(np.copy(ns))
+    _assert_step_returns_not_mutated(states, snapshots)
     ns_test = np.array([0., 7.19403055, 1.66804923, 0.08134399])
     mdp.render()
 
@@ -219,8 +272,12 @@ def test_minigrid():
     np.random.seed(1)
     mdp = MiniGrid('MiniGrid-Empty-5x5-v0', fixed_seed=1)
     mdp.reset()
+    states, snapshots = [], []
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
+        states.append(ns)
+        snapshots.append(np.copy(ns))
+    _assert_step_returns_not_mutated(states, snapshots)
 
     ns_test = np.load('tests/environments/test_minigrid_1.npy')
 
@@ -231,8 +288,12 @@ def test_minigrid_rgb():
     np.random.seed(1)
     mdp = MiniGridRGB('MiniGrid-Empty-5x5-v0', fixed_seed=1)
     mdp.reset()
+    states, snapshots = [], []
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
+        states.append(ns)
+        snapshots.append(np.copy(ns))
+    _assert_step_returns_not_mutated(states, snapshots)
 
     ns_test = np.load('tests/environments/test_minigrid_2.npy')
 

@@ -154,6 +154,18 @@ is needed.
 .. literalinclude:: code/room_env.py
    :lines: 54-87
 
+.. warning::
+
+    ``reset``/``step`` must never return a reference to an internal buffer that your environment mutates in
+    place on a later call. ``Core`` keeps the array returned by one call as the state for the *next* call, and
+    also stores it in the ``Dataset``. If you keep a persistent buffer for performance (e.g. to avoid
+    reallocating an observation array every step, or when wrapping a simulator that reuses its own buffer) and
+    hand it out by reference, mutating it on the following step silently corrupts the transition you already
+    returned. Always return a copy of any internally mutated array, e.g. ``self._state.copy()`` for NumPy,
+    ``self._state.clone()`` for PyTorch. ``MuJoCo``, ``PyBullet`` and ``MultiprocessEnvironment`` follow this
+    pattern and are good references. The same rule applies to ``reset_all``/``step_all`` of a
+    ``VectorizedEnvironment``.
+
 Finally, we implement the render function using our ``Viewer`` class. This class wraps Pygame to provide an easy
 visualization tool for 2D Reinforcement Learning algorithms. The viewer class has many functionalities, but here we
 simply draw two circles representing the agent and the goal area:

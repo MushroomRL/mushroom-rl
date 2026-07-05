@@ -91,10 +91,10 @@ class HistoryManager(MushroomObject):
 
         if self._vectorized:
             stacked = self._agent_backend.concatenate([buffer, state[:, None]], dim=1)
-            new_buffer = stacked[:, 1:]
+            new_buffer = self._agent_backend.copy(stacked[:, 1:])
         else:
             stacked = self._agent_backend.concatenate([buffer, state[None]], dim=0)
-            new_buffer = stacked[1:]
+            new_buffer = self._agent_backend.copy(stacked[1:])
 
         self._buffer = self._env_backend.convert_to_backend(self._agent_backend, new_buffer)
 

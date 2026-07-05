@@ -137,7 +137,7 @@ class iGibson(Gymnasium):
 
     @staticmethod
     def _convert_observation(observation):
-        return observation.transpose((2, 0, 1))
+        return np.ascontiguousarray(observation.transpose((2, 0, 1)))
 
     @staticmethod
     def root_path():

@@ -58,3 +58,28 @@ def test_vectorized_masked_reset():
     stacked = hm(np.array([[7.0, 7.0], [8.0, 8.0]]))
     assert np.allclose(stacked[0], np.array([[0.0, 0.0], [0.0, 0.0], [7.0, 7.0]]))
     assert np.allclose(stacked[1], np.array([[2.0, 2.0], [4.0, 4.0], [8.0, 8.0]]))
+
+
+def test_vectorized_reset_does_not_corrupt_previously_returned_stack():
+    hm = _make_manager(history_length=3, obs_shape=(2,))
+    hm.reset_vectorized(np.array([True, True]))
+    hm(np.array([[1.0, 1.0], [2.0, 2.0]]))
+
+    stacked_1 = hm(np.array([[3.0, 3.0], [4.0, 4.0]]))
+    expected_stacked_1 = stacked_1.copy()
+
+    hm.reset_vectorized(np.array([True, False]))
+
+    assert np.allclose(stacked_1, expected_stacked_1)
+
+
+def test_single_call_does_not_corrupt_previously_returned_stack():
+    hm = _make_manager(history_length=3, obs_shape=(2,))
+    hm.reset()
+
+    stacked_1 = hm(np.array([1.0, 1.0]))
+    expected_stacked_1 = stacked_1.copy()
+
+    hm(np.array([2.0, 2.0]))
+
+    assert np.allclose(stacked_1, expected_stacked_1)

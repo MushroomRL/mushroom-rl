@@ -22,8 +22,13 @@ def test_half_cheetah():
     np.random.seed(1)
     mdp = HalfCheetah()
     mdp.reset()
+    states, snapshots = [], []
     for i in range(10):
         ns, *_ = mdp.step([np.random.rand()])
+        states.append(ns)
+        snapshots.append(np.copy(ns))
+    for state, snapshot in zip(states, snapshots):
+        assert np.allclose(state, snapshot)
     ns_test = np.load('tests/environments/mujoco_envs/locomotion_half_cheetah_data.npy')
 
     assert np.allclose(ns, ns_test)
