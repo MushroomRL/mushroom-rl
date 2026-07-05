@@ -55,10 +55,7 @@ class VectorizedCoreLogic(CoreLogic):
         selected = initial_states[self._started_counter:self._started_counter + n_reset]
         self._started_counter += n_reset
 
-        initial_state = self._array_backend.empty((self._n_envs,) + selected.shape[1:])
-        initial_state[reset_mask] = self._array_backend.convert(selected)
-
-        return initial_state
+        return self._array_backend.masked_init(reset_mask, selected)
 
     def after_step(self, last):
         self._total_steps_counter += self._n_active_envs

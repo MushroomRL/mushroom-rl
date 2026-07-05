@@ -5,7 +5,7 @@ def split_episodes(last, *arrays):
     Split a array from shape (n_steps) to (n_episodes, max_episode_steps).
     """
     backend = ArrayBackend.get_array_backend_from(last)
-    
+
     if last.sum().item() <= 1:
         return arrays if len(arrays) > 1 else arrays[0]
 
@@ -13,7 +13,8 @@ def split_episodes(last, *arrays):
     episodes_arrays = []
 
     for array in arrays:
-        array_ep = backend.zeros(n_episodes, max_episode_steps, *array.shape[1:], dtype=array.dtype, device=array.device if backend.get_backend_name() == "torch" else None)
+        device = array.device if backend.get_backend_name() == "torch" else None
+        array_ep = backend.zeros(n_episodes, max_episode_steps, *array.shape[1:], dtype=array.dtype, device=device)
 
         array_ep[row_idx, colum_idx] = array
         episodes_arrays.append(array_ep)
@@ -24,7 +25,7 @@ def unsplit_episodes(last, *episodes_arrays):
     """
     Unsplit a array from shape (n_episodes, max_episode_steps) to (n_steps).
     """
-    
+
     if last.sum().item() <= 1:
         return episodes_arrays if len(episodes_arrays) > 1 else episodes_arrays[0]
 
@@ -52,7 +53,8 @@ def _get_episode_idx(last, backend=None):
     episode_steps = backend.concatenate([first_steps, last_idx[1:] - last_idx[:-1]])
     max_episode_steps = episode_steps.max()
 
-    start_idx = backend.concatenate([backend.zeros(1, dtype=int, device=last.device if backend.get_backend_name() == 'torch' else None), last_idx[:-1] + 1])
+    device = last.device if backend.get_backend_name() == 'torch' else None
+    start_idx = backend.concatenate([backend.zeros(1, dtype=int, device=device), last_idx[:-1] + 1])
     range_n_episodes = backend.arange(0, n_episodes, dtype=int)
     range_len = backend.arange(0, last.shape[0], dtype=int)
     if backend.get_backend_name() == 'torch':

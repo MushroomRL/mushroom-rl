@@ -11,7 +11,7 @@ from mushroom_rl.core.extra_info import ExtraInfo
 
 from ._impl import *
 
-from mushroom_rl.utils.episodes import split_episodes, unsplit_episodes
+from mushroom_rl.utils.episodes import split_episodes
 
 
 class DatasetInfo(MushroomObject):
@@ -51,6 +51,9 @@ class DatasetInfo(MushroomObject):
     @staticmethod
     def create_dataset_info(mdp_info, agent_info, n_envs=1, device=None):
         backend = mdp_info.backend
+        if not np.isfinite(mdp_info.horizon):
+            assert backend != 'torch', "Infinite-horizon collection is not supported for the torch backend."
+            backend = 'list'
         horizon = mdp_info.horizon
         gamma = mdp_info.gamma
         state_shape = mdp_info.observation_space.shape
@@ -84,55 +87,57 @@ class Dataset(MushroomObject):
 
         self._array_backend = ArrayBackend.get_array_backend(dataset_info.backend)
 
-        if n_steps is not None:
-            n_samples = n_steps
-        else:
-            horizon = dataset_info.horizon
-            assert np.isfinite(horizon)
-
-            n_samples = horizon * n_episodes
-
-        if dataset_info.n_envs == 1:
-            base_shape = (n_samples,)
-            mask_shape = None
-        elif n_episodes:
-            horizon = dataset_info.horizon
-            x = math.ceil(n_episodes / dataset_info.n_envs)
-            base_shape = (x * horizon, min(n_episodes, dataset_info.n_envs))
-            mask_shape = base_shape
-        elif core_counts_episodes:
-            base_shape = (math.ceil(n_samples / dataset_info.n_envs) + 1 + dataset_info.horizon, dataset_info.n_envs)
-            mask_shape = base_shape
-        else:
-            base_shape = (math.ceil(n_samples / dataset_info.n_envs) + 1, dataset_info.n_envs)
-            mask_shape = base_shape
-
-        state_shape = base_shape + dataset_info.state_shape
-        action_shape = base_shape + dataset_info.action_shape
-        reward_shape = base_shape
-
-        if dataset_info.is_agent_stateful:
-            policy_state_shape = base_shape + dataset_info.policy_state_shape
-        else:
-            policy_state_shape = None
-
         info_n_envs = min(n_episodes, dataset_info.n_envs) if n_episodes else dataset_info.n_envs
         vectorized = dataset_info.n_envs > 1
         self._info = ExtraInfo(info_n_envs, dataset_info.backend, dataset_info.device, vectorized=vectorized)
         self._episode_info = ExtraInfo(info_n_envs, dataset_info.backend, dataset_info.device, vectorized=vectorized)
         self._theta_list = list()
 
-        if dataset_info.backend == 'numpy':
-            self._data = NumpyDataset(dataset_info.state_dtype, state_shape,
-                                      dataset_info.action_dtype, action_shape,
-                                      reward_shape, base_shape,
-                                      policy_state_shape, mask_shape)
-        elif dataset_info.backend == 'torch':
-            self._data = TorchDataset(dataset_info.state_dtype, state_shape,
-                                      dataset_info.action_dtype, action_shape, reward_shape, base_shape,
-                                      policy_state_shape, mask_shape, device=dataset_info.device)
+        if dataset_info.backend == 'list':
+            self._data = ListDataset(dataset_info.is_agent_stateful, vectorized)
         else:
-            self._data = ListDataset(policy_state_shape is not None, mask_shape is not None)
+            if n_steps is not None:
+                n_samples = n_steps
+            else:
+                horizon = dataset_info.horizon
+                assert np.isfinite(horizon)
+
+                n_samples = horizon * n_episodes
+
+            if dataset_info.n_envs == 1:
+                base_shape = (n_samples,)
+                mask_shape = None
+            elif n_episodes:
+                horizon = dataset_info.horizon
+                x = math.ceil(n_episodes / dataset_info.n_envs)
+                base_shape = (x * horizon, min(n_episodes, dataset_info.n_envs))
+                mask_shape = base_shape
+            elif core_counts_episodes:
+                base_shape = (math.ceil(n_samples / dataset_info.n_envs) + 1 + dataset_info.horizon,
+                              dataset_info.n_envs)
+                mask_shape = base_shape
+            else:
+                base_shape = (math.ceil(n_samples / dataset_info.n_envs) + 1, dataset_info.n_envs)
+                mask_shape = base_shape
+
+            state_shape = base_shape + dataset_info.state_shape
+            action_shape = base_shape + dataset_info.action_shape
+            reward_shape = base_shape
+
+            if dataset_info.is_agent_stateful:
+                policy_state_shape = base_shape + dataset_info.policy_state_shape
+            else:
+                policy_state_shape = None
+
+            if dataset_info.backend == 'numpy':
+                self._data = NumpyDataset(dataset_info.state_dtype, state_shape,
+                                          dataset_info.action_dtype, action_shape,
+                                          reward_shape, base_shape,
+                                          policy_state_shape, mask_shape)
+            else:
+                self._data = TorchDataset(dataset_info.state_dtype, state_shape,
+                                          dataset_info.action_dtype, action_shape, reward_shape, base_shape,
+                                          policy_state_shape, mask_shape, device=dataset_info.device)
 
         self._dataset_info = dataset_info
 
@@ -235,12 +240,14 @@ class Dataset(MushroomObject):
             dataset._data = ListDataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
                                                    policy_state, policy_next_state)
 
-        state_shape = states.shape[1:]
-        action_shape = actions.shape[1:]
-        policy_state_shape = None if policy_state is None else policy_state.shape[1:]
+        state_shape = cls._infer_shape(states)
+        action_shape = cls._infer_shape(actions)
+        state_dtype = cls._infer_dtype(states)
+        action_dtype = cls._infer_dtype(actions)
+        policy_state_shape = None if policy_state is None else cls._infer_shape(policy_state)
 
-        dataset._dataset_info = DatasetInfo(backend, device, horizon, gamma, state_shape, states.dtype,
-                                            action_shape, actions.dtype, policy_state_shape)
+        dataset._dataset_info = DatasetInfo(backend, device, horizon, gamma, state_shape, state_dtype,
+                                            action_shape, action_dtype, policy_state_shape)
 
         return dataset
 
@@ -363,7 +370,7 @@ class Dataset(MushroomObject):
         Compute the length of each episode in the dataset.
 
         Returns:
-            A list of length of each episode in the dataset.
+            An array with the length of each episode in the dataset.
 
         """
         lengths = list()
@@ -374,7 +381,7 @@ class Dataset(MushroomObject):
                 lengths.append(length)
                 length = 0
 
-        return self._array_backend.from_list(lengths)
+        return self._array_backend.as_array(lengths)
 
     @property
     def n_episodes(self):
@@ -510,7 +517,7 @@ class Dataset(MushroomObject):
             The cumulative discounted reward of each episode in the dataset.
 
         """
-        r_ep = split_episodes(self.last, self.reward)
+        r_ep = split_episodes(self._array_backend.as_array(self.last), self._array_backend.as_array(self.reward))
 
         if len(r_ep.shape) == 1:
             r_ep = self._array_backend.expand_dims(r_ep, 0)
@@ -561,6 +568,8 @@ class Dataset(MushroomObject):
             return self._array_backend.arrays_to_numpy(*arrays)
         elif to == 'torch':
             return self._array_backend.arrays_to_torch(*arrays)
+        elif to == 'list':
+            return self._array_backend.arrays_to_list(*arrays)
         else:
             raise NotImplementedError
 
@@ -585,6 +594,18 @@ class Dataset(MushroomObject):
         for key in info.keys():
             new_info[key] = info[key] + other_info[key]
         return new_info
+
+    @staticmethod
+    def _infer_shape(data):
+        if hasattr(data, 'shape'):
+            return data.shape[1:]
+        return data[0].shape if len(data) and hasattr(data[0], 'shape') else ()
+
+    @staticmethod
+    def _infer_dtype(data):
+        if hasattr(data, 'dtype'):
+            return data.dtype
+        return data[0].dtype if len(data) and hasattr(data[0], 'dtype') else None
 
 
 class VectorizedDataset(Dataset):
@@ -644,22 +665,24 @@ class VectorizedDataset(Dataset):
         if len(self) == 0:
             return None
 
-        states = self._array_backend.pack_padded_sequence(self._data.state, self._data.mask)
-        actions = self._array_backend.pack_padded_sequence(self._data.action, self._data.mask)
-        rewards = self._array_backend.pack_padded_sequence(self._data.reward, self._data.mask)
-        next_states = self._array_backend.pack_padded_sequence(self._data.next_state, self._data.mask)
-        absorbings = self._array_backend.pack_padded_sequence(self._data.absorbing, self._data.mask)
+        mask = self._data.mask
 
-        last_padded = self._data.last
+        states = self._array_backend.pack_padded_sequence(self._data.state, mask)
+        actions = self._array_backend.pack_padded_sequence(self._data.action, mask)
+        rewards = self._array_backend.pack_padded_sequence(self._data.reward, mask)
+        next_states = self._array_backend.pack_padded_sequence(self._data.next_state, mask)
+        absorbings = self._array_backend.pack_padded_sequence(self._data.absorbing, mask)
+
+        last_padded = self._array_backend.as_array(self._data.last)
         last_padded[-1, :] = True
-        lasts = self._array_backend.pack_padded_sequence(last_padded, self._data.mask)
+        lasts = self._array_backend.pack_padded_sequence(last_padded, mask)
 
         policy_state = None
         policy_next_state = None
 
         if self._data.is_stateful:
-            policy_state = self._array_backend.pack_padded_sequence(self._data.policy_state, self._data.mask)
-            policy_next_state = self._array_backend.pack_padded_sequence(self._data.policy_next_state, self._data.mask)
+            policy_state = self._array_backend.pack_padded_sequence(self._data.policy_state, mask)
+            policy_next_state = self._array_backend.pack_padded_sequence(self._data.policy_next_state, mask)
 
         if n_steps_per_fit is not None:
             states = states[:n_steps_per_fit]
@@ -675,8 +698,8 @@ class VectorizedDataset(Dataset):
 
         flat_theta_list = self._flatten_theta_list()
 
-        flat_info = self._info.flatten(self.mask)
-        flat_episode_info = self._episode_info.flatten(self.mask)
+        flat_info = self._info.flatten(mask)
+        flat_episode_info = self._episode_info.flatten(mask)
 
         return Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
                                   policy_state=policy_state, policy_next_state=policy_next_state,

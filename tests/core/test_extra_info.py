@@ -16,7 +16,7 @@ def test_list_of_dict():
             }
         }
         data.append(single_step_data)
-    
+
     data2 = []
     for i in range(6):
         single_step_data = {
@@ -34,27 +34,28 @@ def test_list_of_dict():
 
     info.parse(to='torch')
 
-    assert(len(info) == 4)
-    assert(torch.is_tensor(info["prop1"]))
-    assert(torch.is_tensor(info["prop2"]))
-    assert(torch.is_tensor(info["prop3_x"]))
-    assert(torch.is_tensor(info["prop3_y"]))
-    assert(info["prop1"].dim() == 2 and info["prop1"].size(0) == 2 and info["prop1"].size(1) == 6)
-    assert(info["prop2"].dim() == 3 and info["prop2"].size(0) == 2 and info["prop2"].size(1) == 6 and info["prop2"].size(2) == 5)
-    assert(info["prop3_x"].dim() == 2 and info["prop3_x"].size(0) == 2 and info["prop3_x"].size(1) == 6)
-    assert(info["prop3_y"].dim() == 2 and info["prop3_y"].size(0) == 2 and info["prop3_y"].size(1) == 6)
+    assert len(info) == 4
+    assert torch.is_tensor(info["prop1"])
+    assert torch.is_tensor(info["prop2"])
+    assert torch.is_tensor(info["prop3_x"])
+    assert torch.is_tensor(info["prop3_y"])
+    assert info["prop1"].dim() == 2 and info["prop1"].size(0) == 2 and info["prop1"].size(1) == 6
+    prop2 = info["prop2"]
+    assert prop2.dim() == 3 and prop2.size(0) == 2 and prop2.size(1) == 6 and prop2.size(2) == 5
+    assert info["prop3_x"].dim() == 2 and info["prop3_x"].size(0) == 2 and info["prop3_x"].size(1) == 6
+    assert info["prop3_y"].dim() == 2 and info["prop3_y"].size(0) == 2 and info["prop3_y"].size(1) == 6
 
     info = info.flatten()
 
-    assert(len(info) == 4)
-    assert(torch.is_tensor(info["prop1"]))
-    assert(torch.is_tensor(info["prop2"]))
-    assert(torch.is_tensor(info["prop3_x"]))
-    assert(torch.is_tensor(info["prop3_y"]))
-    assert(info["prop1"].dim() == 1 and info["prop1"].size(0) == 12)
-    assert(info["prop2"].dim() == 2 and info["prop2"].size(0) == 12 and info["prop2"].size(1) == 5)
-    assert(info["prop3_x"].dim() == 1 and info["prop3_x"].size(0) == 12)
-    assert(info["prop3_y"].dim() == 1 and info["prop3_y"].size(0) == 12)
+    assert len(info) == 4
+    assert torch.is_tensor(info["prop1"])
+    assert torch.is_tensor(info["prop2"])
+    assert torch.is_tensor(info["prop3_x"])
+    assert torch.is_tensor(info["prop3_y"])
+    assert info["prop1"].dim() == 1 and info["prop1"].size(0) == 12
+    assert info["prop2"].dim() == 2 and info["prop2"].size(0) == 12 and info["prop2"].size(1) == 5
+    assert info["prop3_x"].dim() == 1 and info["prop3_x"].size(0) == 12
+    assert info["prop3_y"].dim() == 1 and info["prop3_y"].size(0) == 12
 
     prop1 = torch.tensor([100, 110, 101, 111, 102, 112, 103, 113, 104, 114, 105, 115])
     prop3_x = torch.tensor([400, 410, 401, 411, 402, 412, 403, 413, 404, 414, 405, 415])
@@ -65,15 +66,15 @@ def test_list_of_dict():
 
     info.parse(to='torch')
 
-    assert(len(info) == 4)
-    assert(torch.is_tensor(info["prop1"]))
-    assert(torch.is_tensor(info["prop2"]))
-    assert(torch.is_tensor(info["prop3_x"]))
-    assert(torch.is_tensor(info["prop3_y"]))
-    assert(info["prop1"].dim() == 1 and info["prop1"].size(0) == 12)
-    assert(info["prop2"].dim() == 2 and info["prop2"].size(0) == 12 and info["prop2"].size(1) == 5)
-    assert(info["prop3_x"].dim() == 1 and info["prop3_x"].size(0) == 12)
-    assert(info["prop3_y"].dim() == 1 and info["prop3_y"].size(0) == 12)
+    assert len(info) == 4
+    assert torch.is_tensor(info["prop1"])
+    assert torch.is_tensor(info["prop2"])
+    assert torch.is_tensor(info["prop3_x"])
+    assert torch.is_tensor(info["prop3_y"])
+    assert info["prop1"].dim() == 1 and info["prop1"].size(0) == 12
+    assert info["prop2"].dim() == 2 and info["prop2"].size(0) == 12 and info["prop2"].size(1) == 5
+    assert info["prop3_x"].dim() == 1 and info["prop3_x"].size(0) == 12
+    assert info["prop3_y"].dim() == 1 and info["prop3_y"].size(0) == 12
 
 def test_dict_of_torch():
     info = ExtraInfo(4, 'torch')
@@ -96,39 +97,40 @@ def test_dict_of_torch():
 
     info.parse(to='numpy')
 
-    assert(len(info) == 3)
-    assert(isinstance(info["prop1"], np.ndarray))
-    assert(isinstance(info["prop2"], np.ndarray))
-    assert(isinstance(info["prop3_x"], np.ndarray))
-    assert(info["prop1"].ndim == 2 and info["prop1"].shape[0] == 2 and info["prop1"].shape[1] == 4)
-    assert(info["prop2"].ndim == 3 and info["prop2"].shape[0] == 2 and info["prop2"].shape[1] == 4 and info["prop2"].shape[2] == 2)
-    assert(info["prop3_x"].ndim == 2 and info["prop3_x"].shape[0] == 2 and info["prop3_x"].shape[1] == 4)
+    assert len(info) == 3
+    assert isinstance(info["prop1"], np.ndarray)
+    assert isinstance(info["prop2"], np.ndarray)
+    assert isinstance(info["prop3_x"], np.ndarray)
+    assert info["prop1"].ndim == 2 and info["prop1"].shape[0] == 2 and info["prop1"].shape[1] == 4
+    prop2 = info["prop2"]
+    assert prop2.ndim == 3 and prop2.shape[0] == 2 and prop2.shape[1] == 4 and prop2.shape[2] == 2
+    assert info["prop3_x"].ndim == 2 and info["prop3_x"].shape[0] == 2 and info["prop3_x"].shape[1] == 4
 
     info = info.flatten()
 
-    assert(len(info) == 3)
-    assert(isinstance(info["prop1"], np.ndarray))
-    assert(isinstance(info["prop2"], np.ndarray))
-    assert(isinstance(info["prop3_x"], np.ndarray))
-    assert(info["prop1"].ndim == 1 and info["prop1"].shape[0] == 8)
-    assert(info["prop2"].ndim == 2 and info["prop2"].shape[0] == 8 and info["prop2"].shape[1] == 2)
-    assert(info["prop3_x"].ndim == 1 and info["prop3_x"].shape[0] == 8)
+    assert len(info) == 3
+    assert isinstance(info["prop1"], np.ndarray)
+    assert isinstance(info["prop2"], np.ndarray)
+    assert isinstance(info["prop3_x"], np.ndarray)
+    assert info["prop1"].ndim == 1 and info["prop1"].shape[0] == 8
+    assert info["prop2"].ndim == 2 and info["prop2"].shape[0] == 8 and info["prop2"].shape[1] == 2
+    assert info["prop3_x"].ndim == 1 and info["prop3_x"].shape[0] == 8
 
     assert np.array_equal(np.array([100, 110, 101, 111, 102, 112, 103, 113]), info["prop1"])
-    prop2 = np.array([[200.0, 200.5], [210.0, 210.5], [201.0, 201.5], [211.0, 211.5], 
+    prop2 = np.array([[200.0, 200.5], [210.0, 210.5], [201.0, 201.5], [211.0, 211.5],
                       [202.0, 202.5], [212.0, 212.5], [203.0, 203.5], [213.0, 213.5]])
     assert np.array_equal(prop2, info["prop2"])
     assert np.array_equal(np.array([300, 310, 301, 311, 302, 312, 303, 313]), info["prop3_x"])
 
     info.parse()
 
-    assert(len(info) == 3)
-    assert(isinstance(info["prop1"], np.ndarray))
-    assert(isinstance(info["prop2"], np.ndarray))
-    assert(isinstance(info["prop3_x"], np.ndarray))
-    assert(info["prop1"].ndim == 1 and info["prop1"].shape[0] == 8)
-    assert(info["prop2"].ndim == 2 and info["prop2"].shape[0] == 8 and info["prop2"].shape[1] == 2)
-    assert(info["prop3_x"].ndim == 1 and info["prop3_x"].shape[0] == 8)
+    assert len(info) == 3
+    assert isinstance(info["prop1"], np.ndarray)
+    assert isinstance(info["prop2"], np.ndarray)
+    assert isinstance(info["prop3_x"], np.ndarray)
+    assert info["prop1"].ndim == 1 and info["prop1"].shape[0] == 8
+    assert info["prop2"].ndim == 2 and info["prop2"].shape[0] == 8 and info["prop2"].shape[1] == 2
+    assert info["prop3_x"].ndim == 1 and info["prop3_x"].shape[0] == 8
 
 def test_empty_dict_in_list():
     info = ExtraInfo(3, 'torch')
@@ -145,20 +147,20 @@ def test_empty_dict_in_list():
     info.append([data1, data2, data3])
     info = info.flatten()
     print(info)
-    assert(len(info) == 2)
+    assert len(info) == 2
 
-    assert("prop1" in info)
-    assert("prop2" in info)
+    assert "prop1" in info
+    assert "prop2" in info
 
-    assert(torch.is_tensor(info["prop1"]))
-    assert(torch.is_tensor(info["prop2"]))
+    assert torch.is_tensor(info["prop1"])
+    assert torch.is_tensor(info["prop2"])
 
-    assert(info["prop1"].dim() == 1 and info["prop1"].size(0) == 3)
-    assert(info["prop2"].dim() == 1 and info["prop2"].size(0) == 3)
-    
-    assert(info["prop1"][0] == 100 and info["prop2"][0] == 200)
-    assert(torch.isnan(info["prop1"][1]) and torch.isnan(info["prop2"][1]))
-    assert(info["prop1"][2] == 102 and info["prop2"][2] == 202)
+    assert info["prop1"].dim() == 1 and info["prop1"].size(0) == 3
+    assert info["prop2"].dim() == 1 and info["prop2"].size(0) == 3
+
+    assert info["prop1"][0] == 100 and info["prop2"][0] == 200
+    assert torch.isnan(info["prop1"][1]) and torch.isnan(info["prop2"][1])
+    assert info["prop1"][2] == 102 and info["prop2"][2] == 202
 
 def test_empty_dict():
     info = ExtraInfo(2, 'numpy')
@@ -175,10 +177,10 @@ def test_empty_dict():
     info = info.flatten()
     print(info)
 
-    assert(len(info) == 1)
-    assert("prop1" in info)
-    assert(isinstance(info["prop1"], np.ndarray))
-    assert(info["prop1"].ndim == 1 and info["prop1"].shape[0] == 6)
+    assert len(info) == 1
+    assert "prop1" in info
+    assert isinstance(info["prop1"], np.ndarray)
+    assert info["prop1"].ndim == 1 and info["prop1"].shape[0] == 6
 
     assert info["prop1"][0] == 100
     assert np.isnan(info["prop1"][1])
@@ -206,22 +208,22 @@ def test_changing_properties_dict():
     info.append(data3)
     info.parse(to='torch')
     info = info.flatten()
-    
+
     print(info)
 
-    assert(len(info) == 3)
+    assert len(info) == 3
 
-    assert("prop2" in info)
-    assert("prop3" in info)
-    assert("prop4" in info)
+    assert "prop2" in info
+    assert "prop3" in info
+    assert "prop4" in info
 
-    assert(torch.is_tensor(info["prop2"]))
-    assert(torch.is_tensor(info["prop3"]))
-    assert(torch.is_tensor(info["prop4"]))
+    assert torch.is_tensor(info["prop2"])
+    assert torch.is_tensor(info["prop3"])
+    assert torch.is_tensor(info["prop4"])
 
-    assert(info["prop2"].dim() == 1 and info["prop2"].size(0) == 6)
-    assert(info["prop3"].dim() == 1 and info["prop3"].size(0) == 6)
-    assert(info["prop4"].dim() == 1 and info["prop4"].size(0) == 6)
+    assert info["prop2"].dim() == 1 and info["prop2"].size(0) == 6
+    assert info["prop3"].dim() == 1 and info["prop3"].size(0) == 6
+    assert info["prop4"].dim() == 1 and info["prop4"].size(0) == 6
 
     assert info["prop2"][0] == 200 and info["prop3"][0] == 300 and torch.isnan(info["prop4"][0])
     assert info["prop2"][1] == 210 and torch.isnan(info["prop3"][1]) and info["prop4"][1] == 410
@@ -252,20 +254,21 @@ def test_one_environment():
     info.append(data3)
     info.parse('torch')
     print(info)
-    
-    assert(len(info) == 3)
 
-    assert("prop1" in info)
-    assert("prop2" in info)
-    assert("prop3" in info)
+    assert len(info) == 3
 
-    assert(torch.is_tensor(info["prop1"]))
-    assert(torch.is_tensor(info["prop2"]))
-    assert(torch.is_tensor(info["prop3"]))
+    assert "prop1" in info
+    assert "prop2" in info
+    assert "prop3" in info
 
-    assert(info["prop1"].dim() == 2 and info["prop1"].size(0) == 3 and info["prop2"].size(1) == 3)
-    assert(info["prop2"].dim() == 3 and info["prop2"].size(0) == 3 and info["prop2"].size(1) == 3 and info["prop2"].size(2) == 2)
-    assert(info["prop3"].dim() == 1 and info["prop3"].size(0) == 3)
+    assert torch.is_tensor(info["prop1"])
+    assert torch.is_tensor(info["prop2"])
+    assert torch.is_tensor(info["prop3"])
+
+    assert info["prop1"].dim() == 2 and info["prop1"].size(0) == 3 and info["prop2"].size(1) == 3
+    prop2 = info["prop2"]
+    assert prop2.dim() == 3 and prop2.size(0) == 3 and prop2.size(1) == 3 and prop2.size(2) == 2
+    assert info["prop3"].dim() == 1 and info["prop3"].size(0) == 3
 
 def test_get_view_slice():
     info = ExtraInfo(3, 'torch')
@@ -285,21 +288,21 @@ def test_get_view_slice():
     info = info.get_view(slice(4))
     info.parse('torch')
 
-    assert(len(info) == 2)
+    assert len(info) == 2
 
-    assert("prop1" in info)
-    assert("prop3" in info)
+    assert "prop1" in info
+    assert "prop3" in info
 
-    assert(torch.is_tensor(info["prop1"]))
-    assert(torch.is_tensor(info["prop3"]))
+    assert torch.is_tensor(info["prop1"])
+    assert torch.is_tensor(info["prop3"])
 
-    assert(info["prop1"].dim() == 1 and info["prop1"].size(0) == 4)
-    assert(info["prop3"].dim() == 2 and info["prop3"].size(0) == 4 and info["prop3"].size(1) == 2)
+    assert info["prop1"].dim() == 1 and info["prop1"].size(0) == 4
+    assert info["prop3"].dim() == 2 and info["prop3"].size(0) == 4 and info["prop3"].size(1) == 2
 
-    assert(info["prop1"][0] == 100)
-    assert(info["prop1"][1] == 110)
-    assert(info["prop1"][2] == 101)
-    assert(info["prop1"][3] == 111)
+    assert info["prop1"][0] == 100
+    assert info["prop1"][1] == 110
+    assert info["prop1"][2] == 101
+    assert info["prop1"][3] == 111
 
 def test_get_view_array():
     info = ExtraInfo(3, 'torch')
@@ -320,20 +323,20 @@ def test_get_view_array():
     info.parse('torch')
     print(info)
 
-    assert(len(info) == 2)
+    assert len(info) == 2
 
-    assert("prop1" in info)
-    assert("prop3" in info)
+    assert "prop1" in info
+    assert "prop3" in info
 
-    assert(torch.is_tensor(info["prop1"]))
-    assert(torch.is_tensor(info["prop3"]))
+    assert torch.is_tensor(info["prop1"])
+    assert torch.is_tensor(info["prop3"])
 
-    assert(info["prop1"].dim() == 1 and info["prop1"].size(0) == 3)
-    assert(info["prop3"].dim() == 2 and info["prop3"].size(0) == 3 and info["prop3"].size(1) == 2)
+    assert info["prop1"].dim() == 1 and info["prop1"].size(0) == 3
+    assert info["prop3"].dim() == 2 and info["prop3"].size(0) == 3 and info["prop3"].size(1) == 2
 
-    assert(info["prop1"][0] == 110)
-    assert(info["prop1"][1] == 101)
-    assert(info["prop1"][2] == 112)
+    assert info["prop1"][0] == 110
+    assert info["prop1"][1] == 101
+    assert info["prop1"][2] == 112
 
 def test_add():
     info1 = ExtraInfo(10, 'numpy')
@@ -365,31 +368,31 @@ def test_add():
 
     info = info1 + info2
 
-    assert(len(info) == 3)
+    assert len(info) == 3
 
-    assert("prop1" in info)
-    assert("prop2" in info)
-    assert("prop3" in info)
+    assert "prop1" in info
+    assert "prop2" in info
+    assert "prop3" in info
 
-    assert(torch.is_tensor(info["prop1"]))
-    assert(torch.is_tensor(info["prop2"]))
-    assert(torch.is_tensor(info["prop3"]))
+    assert torch.is_tensor(info["prop1"])
+    assert torch.is_tensor(info["prop2"])
+    assert torch.is_tensor(info["prop3"])
 
-    assert(info["prop1"].dim() == 2 and info["prop1"].size(0) == 4 and info["prop1"].size(1) == 10)
-    assert(info["prop2"].dim() == 2 and info["prop2"].size(0) == 4 and info["prop2"].size(1) == 10)
-    assert(info["prop3"].dim() == 2 and info["prop3"].size(0) == 4 and info["prop3"].size(1) == 10)
+    assert info["prop1"].dim() == 2 and info["prop1"].size(0) == 4 and info["prop1"].size(1) == 10
+    assert info["prop2"].dim() == 2 and info["prop2"].size(0) == 4 and info["prop2"].size(1) == 10
+    assert info["prop3"].dim() == 2 and info["prop3"].size(0) == 4 and info["prop3"].size(1) == 10
 
     for i in range(2):
         for j in range(10):
-            assert(info["prop1"][i][j] == 100 + i*10 + j)
-            assert(info["prop2"][i][j] == 200 + i*10 + j)
-            assert(torch.isnan(info["prop3"][i][j]))
-    
+            assert info["prop1"][i][j] == 100 + i*10 + j
+            assert info["prop2"][i][j] == 200 + i*10 + j
+            assert torch.isnan(info["prop3"][i][j])
+
     for i in range(2):
         for j in range(10):
-            assert(info["prop1"][2 + i][j] == 100 + i*10 + j)
-            assert(torch.isnan(info["prop2"][2 + i][j]))
-            assert(info["prop3"][2 + i][j] == 300 + i*10 + j)
+            assert info["prop1"][2 + i][j] == 100 + i*10 + j
+            assert torch.isnan(info["prop2"][2 + i][j])
+            assert info["prop3"][2 + i][j] == 300 + i*10 + j
 
 def test_clear():
     info = ExtraInfo(10, 'numpy')
@@ -405,7 +408,7 @@ def test_clear():
     info.append(data2)
     info.parse()
     info.clear()
-    assert(not info)
+    assert not info
 
 def test_flatten_with_mask():
     info = ExtraInfo(5, 'numpy')
@@ -422,32 +425,72 @@ def test_flatten_with_mask():
     mask = np.array([True, True, False, False, False, True, False, False, True, False])
     info = info.flatten(mask)
 
-    assert(len(info) == 2)
+    assert len(info) == 2
 
-    assert("prop1" in info)
-    assert("prop2" in info)
+    assert "prop1" in info
+    assert "prop2" in info
 
-    assert(isinstance(info["prop1"], np.ndarray))
-    assert(isinstance(info["prop2"], np.ndarray))
+    assert isinstance(info["prop1"], np.ndarray)
+    assert isinstance(info["prop2"], np.ndarray)
 
-    assert(info["prop1"].ndim == 1 and info["prop1"].shape[0] == 4)
-    assert(info["prop2"].ndim == 1 and info["prop2"].shape[0] == 4)
+    assert info["prop1"].ndim == 1 and info["prop1"].shape[0] == 4
+    assert info["prop2"].ndim == 1 and info["prop2"].shape[0] == 4
 
     assert np.array_equal(np.array([100, 110, 112, 104]), info["prop1"])
     assert np.array_equal(np.array([200, 210, 212, 204]), info["prop2"])
 
     #Test if mask is permantly applied
     info.parse()
-    assert(len(info) == 2)
+    assert len(info) == 2
 
-    assert("prop1" in info)
-    assert("prop2" in info)
+    assert "prop1" in info
+    assert "prop2" in info
 
-    assert(isinstance(info["prop1"], np.ndarray))
-    assert(isinstance(info["prop2"], np.ndarray))
+    assert isinstance(info["prop1"], np.ndarray)
+    assert isinstance(info["prop2"], np.ndarray)
 
-    assert(info["prop1"].ndim == 1 and info["prop1"].shape[0] == 4)
-    assert(info["prop2"].ndim == 1 and info["prop2"].shape[0] == 4)
+    assert info["prop1"].ndim == 1 and info["prop1"].shape[0] == 4
+    assert info["prop2"].ndim == 1 and info["prop2"].shape[0] == 4
 
     assert np.array_equal(np.array([100, 110, 112, 104]), info["prop1"])
     assert np.array_equal(np.array([200, 210, 212, 204]), info["prop2"])
+
+
+def test_list_backend_sequential():
+    info = ExtraInfo(1, 'list')
+
+    info.append({'a': 1.0, 'nested': {'v': np.array([1.0, 2.0])}})
+    info.append({'a': 2.0, 'nested': {'v': np.array([3.0, 4.0])}})
+    info.append({'a': 3.0, 'nested': {'v': np.array([5.0, 6.0])}})
+
+    info.parse()
+
+    assert isinstance(info['a'], list)
+    assert info['a'] == [1.0, 2.0, 3.0]
+    assert isinstance(info['nested_v'], list)
+    assert np.array_equal(info['nested_v'][0], np.array([1.0, 2.0]))
+    assert np.array_equal(info['nested_v'][2], np.array([5.0, 6.0]))
+
+    view = info.get_view(slice(0, 2))
+    assert view['a'] == [1.0, 2.0]
+
+    view = info.get_view(np.array([2, 0]))
+    assert view['a'] == [3.0, 1.0]
+
+
+def test_list_backend_vectorized():
+    info = ExtraInfo(2, 'list', vectorized=True)
+
+    info.append([{'a': 1.0}, {'a': 2.0}])
+    info.append([{'a': 3.0}, {'a': 4.0}])
+
+    info.parse()
+
+    assert info['a'] == [[1.0, 2.0], [3.0, 4.0]]
+
+    flat = info.flatten()
+    assert flat['a'] == [1.0, 3.0, 2.0, 4.0]
+
+    mask = np.array([[True, True], [True, False]])
+    flat_masked = info.flatten(mask)
+    assert flat_masked['a'] == [1.0, 3.0, 2.0]

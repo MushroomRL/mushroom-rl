@@ -88,7 +88,11 @@ def test_list_backend():
     assert torch.equal(ListBackend.to_torch([1, 2, 3]), torch.tensor([1, 2, 3]))
     assert ListBackend.to_torch(None) is None
     assert ListBackend.to_backend_dtype(np.float32) == np.float32
-    assert np.array_equal(ListBackend.convert_to_backend(ListBackend, [1, 2]), np.array([1, 2]))
+    raw_object = [1, 2]
+    assert ListBackend.convert_to_backend(ListBackend, raw_object) is raw_object
+    assert np.array_equal(ListBackend.as_array([1, 2, 3]), np.array([1, 2, 3]))
+    kept = np.array([1, 2, 3])
+    assert NumpyBackend.as_array(kept) is kept
 
     assert np.array_equal(ListBackend.zeros(2, 3, dtype=float), np.zeros((2, 3)))
     assert np.array_equal(ListBackend.ones(2, 3, dtype=float), np.ones((2, 3)))
@@ -100,12 +104,32 @@ def test_list_backend():
 
     array = np.array([3.0, 1.0, 2.0])
     assert np.array_equal(ListBackend.copy(array), array)
+
+    nested = [[1, 2], [3, 4]]
+    nested_copy = ListBackend.copy(nested)
+    nested_copy[0].append(99)
+    assert nested == [[1, 2], [3, 4]]
+
+    mask = np.array([False, True, False, True])
+    values = [[1, 2], [3, 4]]
+    scattered = ListBackend.masked_init(mask, values)
+    assert scattered == [None, [1, 2], None, [3, 4]]
+    scattered[1].append(99)
+    assert values == [[1, 2], [3, 4]]
+
     assert ListBackend.median(array) == 2.0
     assert ListBackend.from_list(array) is array
-    assert ListBackend.empty(3).shape == (3,)
+    assert ListBackend.empty((3,)) == [None, None, None]
+    assert ListBackend.empty((2, 2)) == [[None, None], [None, None]]
     assert ListBackend.none() is None
     assert ListBackend.shape([[1, 2], [3, 4]]) == (2, 2)
-    assert np.array_equal(ListBackend.full((2,), 5), np.full((2,), 5))
+    assert ListBackend.full((2,), 5) == [5, 5]
+    assert ListBackend.full((2, 2), 0) == [[0, 0], [0, 0]]
+    assert ListBackend.concatenate([[1, 2], [3]]) == [1, 2, 3]
+    assert ListBackend.flatten([[1, 2], [3, 4], [5, 6]]) == [1, 3, 5, 2, 4, 6]
+    assert ListBackend.flatten([[[1, 2], [3]], [[4], [5, 6, 7]]]) == [[1, 2], [4], [3], [5, 6, 7]]
+    assert ListBackend.pack_padded_sequence([[10, 11], [12, 13], [14, 15]],
+                                            np.array([[True, True], [True, False], [False, True]])) == [10, 12, 11, 15]
     assert ListBackend.inf() == np.inf
 
     x = np.array([1.0, 4.0])
@@ -119,7 +143,32 @@ def test_list_backend():
                           np.array([True, False]))
     assert ListBackend.sum(x) == 5.0
     assert np.array_equal(ListBackend.stack([x, y], 0), np.stack([x, y], axis=0))
-    assert np.array_equal(ListBackend.flatten(np.ones((2, 3))), np.ones(6))
+
+    assert ListBackend.size([[1, 2, 3], [4, 5, 6]]) == 6
+    assert np.array_equal(ListBackend.squeeze([[1, 2, 3]]), np.array([1, 2, 3]))
+    assert np.array_equal(ListBackend.atleast_2d([1, 2, 3]), np.array([[1, 2, 3]]))
+    assert np.array_equal(ListBackend.repeat([1, 2], 2), np.array([1, 1, 2, 2]))
+    assert np.array_equal(ListBackend.nonzero([0, 1, 0, 2]), np.array([1, 3]))
+    assert np.array_equal(ListBackend.abs([-1, -2, 3]), np.array([1, 2, 3]))
+    assert np.allclose(ListBackend.exp([0.0, 1.0]), np.array([1.0, np.e]))
+    assert np.array_equal(ListBackend.sqrt([4.0, 9.0]), np.array([2.0, 3.0]))
+    assert np.array_equal(ListBackend.clip([-5, 0, 5], -1, 1), np.array([-1, 0, 1]))
+    assert np.array_equal(ListBackend.arange(0, 5), np.arange(5))
+
+    with pytest.raises(ValueError):
+        ListBackend.rand(2, device='cuda')
+    with pytest.raises(ValueError):
+        ListBackend.randint(0, 1, (1,), device='cuda')
+    with pytest.raises(ValueError):
+        ListBackend.arange(0, 1, device='cuda')
+
+    np.random.seed(42)
+    assert ListBackend.rand(2, 3).shape == (2, 3)
+    randint_sample = ListBackend.randint(0, 5, (10,))
+    assert randint_sample.shape == (10,) and np.all((randint_sample >= 0) & (randint_sample < 5))
+    u = ListBackend.uniform(0.0, 1.0)
+    assert 0.0 <= u <= 1.0
+    assert ListBackend.multinomial(np.array([1.0, 0.0, 0.0])) == 0
 
 
 def test_backend_ops_numpy():
@@ -154,6 +203,8 @@ def test_backend_ops_torch():
     assert TorchBackend.sum(torch.tensor([1.0, 2.0, 3.0])) == 6.0
     assert TorchBackend.median(torch.tensor([3.0, 1.0, 2.0])) == 2.0
     assert torch.equal(TorchBackend.squeeze(torch.ones(2, 1), 1), torch.ones(2))
+    kept = torch.tensor([1, 2])
+    assert TorchBackend.as_array(kept) is kept
 
 
 def test_to_backend_dtype_numpy():

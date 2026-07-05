@@ -1,5 +1,7 @@
 from copy import deepcopy
 
+import numpy as np
+
 from mushroom_rl.core.mushroom_object import MushroomObject
 
 
@@ -48,14 +50,12 @@ class ListDataset(MushroomObject):
         dataset = cls(is_stateful, False)
 
         if dataset._is_stateful:
-            for s, a, r, ss, ab, last, ps, pss in zip(states, actions, rewards, next_states,
-                                                      absorbings.astype(bool), lasts.astype(bool),
+            for s, a, r, ss, ab, last, ps, pss in zip(states, actions, rewards, next_states, absorbings, lasts,
                                                       policy_states, policy_next_states):
-                dataset.append(s, a, r.item(), ss, ab.item(), last.item(), ps.item(), pss.item())
+                dataset.append(s, a, float(r), ss, bool(ab), bool(last), ps, pss)
         else:
-            for s, a, r, ss, ab, last in zip(states, actions, rewards, next_states,
-                                             absorbings.astype(bool), lasts.astype(bool)):
-                dataset.append(s, a, r.item(), ss, ab.item(), last.item())
+            for s, a, r, ss, ab, last in zip(states, actions, rewards, next_states, absorbings, lasts):
+                dataset.append(s, a, float(r), ss, bool(ab), bool(last))
 
         return dataset
 
@@ -81,6 +81,9 @@ class ListDataset(MushroomObject):
 
     def clear(self):
         self._dataset = list()
+        self._policy_dataset = list()
+        if self._mask is not None:
+            self._mask = list()
 
     def get_view(self, index, copy=False):
         view = self.create_new_instance(self)
@@ -152,14 +155,19 @@ class ListDataset(MushroomObject):
 
     @property
     def mask(self):
-        return self._mask
+        if self._mask is None:
+            return None
+        return np.array(self._mask)
 
     @mask.setter
     def mask(self, new_mask):
-        self._mask = new_mask
+        self._mask = list(new_mask)
 
     @property
     def n_episodes(self):
+        if len(self._dataset) == 0:
+            return 0
+
         n_episodes = 0
         for sample in self._dataset:
             if sample[5] is True:
