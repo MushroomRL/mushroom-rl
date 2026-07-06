@@ -112,12 +112,11 @@ class Agent(MushroomObject):
     @property
     def policy_state(self):
         """
-        The current internal state of the policy, converted to the environment backend, or ``None`` if the policy is
-        stateless.
+        The current internal state of the policy, in the agent's own backend, or ``None`` if the policy is stateless.
 
         """
         if self.policy.is_stateful:
-            return self._convert_to_env_backend(self.policy.policy_state)
+            return self.policy.policy_state
         return None
 
     def episode_start(self, initial_state, episode_info):
@@ -135,7 +134,7 @@ class Agent(MushroomObject):
         if self._history_manager is not None:
             self._history_manager.reset()
 
-        return self._convert_to_env_backend(self.policy.reset()), None
+        return self.policy.reset(), None
 
     def episode_start_vectorized(self, initial_states, episode_info, start_mask):
         """
@@ -153,7 +152,7 @@ class Agent(MushroomObject):
         if self._history_manager is not None:
             self._history_manager.reset_vectorized(start_mask)
 
-        return self._convert_to_env_backend(self.policy.reset_vectorized(start_mask)), None
+        return self.policy.reset_vectorized(start_mask), None
 
     def stop(self):
         """

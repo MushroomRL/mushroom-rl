@@ -211,3 +211,80 @@ def test_from_array_list_backend_ragged():
     assert np.array_equal(dataset.state[1], np.array([0.0, 1.0]))
     assert dataset.action[2] == {'a': 2}
     assert np.array_equal(dataset.compute_J(), np.array([3.0]))
+
+
+def test_dataset_policy_backend_split():
+    n = 4
+    states = np.arange(n * 2).reshape(n, 2).astype(float)
+    actions = np.arange(n).reshape(n, 1).astype(float)
+    rewards = np.arange(n).astype(float)
+    next_states = states + 1
+    absorbings = np.zeros(n, dtype=bool)
+    lasts = np.array([False, False, False, True])
+    policy_states = np.arange(n).reshape(n, 1).astype(float)
+    policy_next_states = policy_states + 1
+
+    dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
+                                 policy_state=policy_states, policy_next_state=policy_next_states,
+                                 backend='numpy', policy_backend='torch', gamma=0.9)
+
+    assert dataset.is_stateful
+    assert isinstance(dataset.state, np.ndarray)
+    assert isinstance(dataset.policy_state, torch.Tensor)
+
+    s, a, r, ss, ab, last = dataset.parse()
+    assert isinstance(s, np.ndarray)
+
+    ps, pns = dataset.parse_policy_state()
+    assert isinstance(ps, torch.Tensor)
+    assert torch.equal(ps, torch.from_numpy(policy_states))
+    assert torch.equal(pns, torch.from_numpy(policy_next_states))
+
+    ps_np, pns_np = dataset.parse_policy_state(to='numpy')
+    assert isinstance(ps_np, np.ndarray)
+    assert np.array_equal(ps_np, policy_states)
+
+
+def test_dataset_add_marks_boundary_last():
+    n = 3
+    states = np.arange(n * 2).reshape(n, 2).astype(float)
+    actions = np.arange(n).reshape(n, 1).astype(float)
+    rewards = np.arange(n).astype(float)
+    absorbings = np.zeros(n, dtype=bool)
+    lasts = np.zeros(n, dtype=bool)
+
+    a = Dataset.from_array(states, actions, rewards, states, absorbings, lasts, gamma=0.9)
+    b = Dataset.from_array(states, actions, rewards, states, absorbings, lasts, gamma=0.9)
+
+    result = a + b
+
+    assert len(result) == 2 * n
+    assert bool(result.last[n - 1])
+    assert not bool(a.last[n - 1])
+
+
+def test_dataset_save_load_policy_split(tmpdir):
+    n = 5
+    states = np.arange(n * 2).reshape(n, 2).astype(float)
+    actions = np.arange(n).reshape(n, 1).astype(float)
+    rewards = np.arange(n).astype(float)
+    next_states = states + 1
+    absorbings = np.zeros(n, dtype=bool)
+    lasts = np.array([False, False, True, False, True])
+    policy_states = np.arange(n).reshape(n, 1).astype(float)
+    policy_next_states = policy_states + 1
+
+    dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
+                                 policy_state=policy_states, policy_next_state=policy_next_states,
+                                 backend='numpy', policy_backend='torch', gamma=0.9)
+
+    path = tmpdir / 'dataset_split.msh'
+    dataset.save(path)
+    new_dataset = Dataset.load(path)
+
+    assert vars(dataset).keys() == vars(new_dataset).keys()
+    assert new_dataset.is_stateful
+    assert isinstance(new_dataset.policy_state, torch.Tensor)
+    assert np.array_equal(new_dataset.state, states)
+    assert torch.equal(new_dataset.policy_state, torch.from_numpy(policy_states))
+    assert new_dataset.n_episodes == 2

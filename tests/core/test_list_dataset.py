@@ -3,7 +3,7 @@ import numpy as np
 from mushroom_rl.core._impl.list_dataset import ListDataset
 
 
-def build_arrays(n, terminal_last=True):
+def build_columns(n, terminal_last=True):
     states = np.arange(n * 2).reshape(n, 2).astype(float)
     actions = np.arange(n).reshape(n, 1).astype(float)
     rewards = np.arange(n).astype(float)
@@ -12,120 +12,136 @@ def build_arrays(n, terminal_last=True):
     last = np.zeros(n)
     if terminal_last:
         last[-1] = 1
-    return states, actions, rewards, next_states, absorbing, last
+    return [states, actions, rewards, next_states, absorbing, last]
 
 
-def test_list_dataset_non_stateful():
+def test_list_dataset_from_array_columns():
     n = 5
-    states, actions, rewards, next_states, absorbing, last = build_arrays(n)
-
-    dataset = ListDataset.from_array(states, actions, rewards, next_states, absorbing, last)
+    columns = build_columns(n)
+    dataset = ListDataset.from_array(columns)
 
     assert len(dataset) == n
-    assert not dataset.is_stateful
-    assert dataset.mask is None
-
-    assert np.array_equal(dataset.state, states)
-    assert np.array_equal(dataset.action, actions)
-    assert dataset.reward == list(rewards)
-    assert np.array_equal(dataset.next_state, next_states)
-    assert dataset.absorbing == [False] * n
-    assert dataset.last == [False, False, False, False, True]
-
-    assert np.array_equal(dataset[0][0], states[0])
-    assert dataset.n_episodes == 1
+    assert dataset.n_columns == 6
+    assert np.array_equal(np.array(dataset.column(0)), columns[0])
+    assert dataset.column(2) == list(columns[2])
+    assert dataset.column(5)[-1] == 1.0
+    assert len(dataset.columns) == 6
 
 
-def test_list_dataset_n_episodes_open():
-    n = 4
-    arrays = build_arrays(n, terminal_last=False)
-    dataset = ListDataset.from_array(*arrays)
-
-    assert dataset.n_episodes == 1
-
-
-def test_list_dataset_stateful():
-    n = 4
-    states, actions, rewards, next_states, absorbing, last = build_arrays(n)
-    policy_states = np.arange(n).astype(float)
-    policy_next_states = np.arange(n).astype(float) + 1
-
-    dataset = ListDataset.from_array(states, actions, rewards, next_states, absorbing, last,
-                                     policy_states, policy_next_states)
-
-    assert dataset.is_stateful
-    assert dataset.policy_state == list(policy_states)
-    assert dataset.policy_next_state == list(policy_next_states)
-
-
-def test_list_dataset_append_and_clear():
-    n = 3
-    arrays = build_arrays(n)
-    dataset = ListDataset.from_array(*arrays)
+def test_list_dataset_append_and_len():
+    dataset = ListDataset(6)
 
     dataset.append(np.zeros(2), np.zeros(1), 1.0, np.ones(2), False, False)
-    assert len(dataset) == n + 1
+    dataset.append(np.ones(2), np.ones(1), 2.0, np.ones(2) * 2, False, True)
 
-    other = ListDataset.from_array(*build_arrays(2))
+    assert len(dataset) == 2
+    assert dataset.column(2) == [1.0, 2.0]
+    assert dataset.column(5) == [False, True]
+
+
+def test_list_dataset_append_isolation():
+    dataset = ListDataset(6)
+
+    state = np.zeros(2)
+    dataset.append(state, np.zeros(1), 0.0, np.zeros(2), False, False)
+    state[0] = 99.0
+
+    assert dataset.column(0)[0][0] == 0.0
+
+
+def test_list_dataset_append_batch():
+    dataset = ListDataset.from_array(build_columns(3))
+    other = ListDataset.from_array(build_columns(2))
+
     dataset.append_batch(other)
-    assert len(dataset) == n + 1 + 2
+
+    assert len(dataset) == 5
+    assert dataset.column(2) == [0.0, 1.0, 2.0, 0.0, 1.0]
+
+
+def test_list_dataset_clear():
+    dataset = ListDataset.from_array(build_columns(3))
 
     dataset.clear()
+
     assert len(dataset) == 0
-
-
-def test_list_dataset_add():
-    n_a = 3
-    n_b = 2
-    arrays_a = build_arrays(n_a, terminal_last=False)
-    arrays_b = build_arrays(n_b)
-    dataset_a = ListDataset.from_array(*arrays_a)
-    dataset_b = ListDataset.from_array(*arrays_b)
-
-    result = dataset_a + dataset_b
-
-    assert len(result) == n_a + n_b
-    assert result.last == [False, False, True, False, True]
-    assert np.array_equal(result.state[:n_a], dataset_a.state)
-    assert np.array_equal(result.state[n_a:], dataset_b.state)
-    assert dataset_a.last == [False, False, False]
+    assert dataset.n_columns == 6
 
 
 def test_list_dataset_get_view():
-    n = 6
-    arrays = build_arrays(n)
-    dataset = ListDataset.from_array(*arrays)
+    dataset = ListDataset.from_array(build_columns(6))
 
     view_slice = dataset.get_view(slice(0, 3))
     assert len(view_slice) == 3
+    assert view_slice.column(2) == [0.0, 1.0, 2.0]
 
     view_index = dataset.get_view([0, 2, 4])
     assert len(view_index) == 3
+    assert view_index.column(2) == [0.0, 2.0, 4.0]
+
+
+def test_list_dataset_get_view_copy_isolation():
+    dataset = ListDataset.from_array(build_columns(4))
 
     view_copy = dataset.get_view(slice(0, 2), copy=True)
-    assert len(view_copy) == 2
+    view_copy.column(0)[0][0] = 123.0
+
+    assert dataset.column(0)[0][0] == 0.0
 
 
-def test_list_dataset_get_view_mask():
-    dataset = ListDataset(is_stateful=False, is_vectorized=True)
-    for i in range(4):
-        dataset.append(np.array([float(i)]), np.zeros(1), 0.0, np.array([float(i)]), False, False,
-                       mask=np.array([True, i % 2 == 0]))
+def test_list_dataset_getitem_returns_step():
+    dataset = ListDataset.from_array(build_columns(4))
 
-    view_slice = dataset.get_view(slice(0, 2))
-    assert len(view_slice.mask) == 2
-    assert np.array_equal(view_slice.mask[0], np.array([True, True]))
+    step = dataset[1]
 
-    view_index = dataset.get_view([0, 3])
-    assert len(view_index.mask) == 2
-    assert np.array_equal(view_index.mask[1], np.array([True, False]))
+    assert len(step) == 6
+    assert np.array_equal(step[0], np.array([2.0, 3.0]))
+    assert step[2] == 1.0
 
 
-def test_list_dataset_mask_setter():
-    n = 3
-    arrays = build_arrays(n)
-    dataset = ListDataset.from_array(*arrays)
+def test_list_dataset_add():
+    dataset_a = ListDataset.from_array(build_columns(3, terminal_last=False))
+    dataset_b = ListDataset.from_array(build_columns(2))
 
-    mask = np.ones(n, dtype=bool)
-    dataset.mask = mask
-    assert np.array_equal(dataset.mask, mask)
+    result = dataset_a + dataset_b
+
+    assert len(result) == 5
+    assert result.column(2) == [0.0, 1.0, 2.0, 0.0, 1.0]
+    assert dataset_a.column(5) == [0.0, 0.0, 0.0]
+
+
+def test_list_dataset_column_single():
+    dataset = ListDataset(1)
+    dataset.append(np.array([True, False]))
+    dataset.append(np.array([True, True]))
+
+    assert np.array_equal(np.array(dataset.column()), np.array([[True, False], [True, True]]))
+
+
+def test_list_dataset_n_episodes_terminal():
+    dataset = ListDataset.from_array(build_columns(5))
+
+    assert dataset.n_episodes(5) == 1
+
+
+def test_list_dataset_n_episodes_open():
+    dataset = ListDataset.from_array(build_columns(4, terminal_last=False))
+
+    assert dataset.n_episodes(5) == 1
+
+
+def test_list_dataset_ragged_content():
+    dataset = ListDataset(6)
+    dataset.append([0.0], 0, 0.0, [0.0, 1.0], False, False)
+    dataset.append([0.0, 1.0, 2.0], 1, 1.0, [0.0], False, True)
+
+    assert dataset.column(0)[0] == [0.0]
+    assert dataset.column(0)[1] == [0.0, 1.0, 2.0]
+    assert dataset.n_episodes(5) == 1
+
+
+def test_list_dataset_truncates_to_n_envs():
+    dataset = ListDataset(1, n_envs=2)
+    dataset.append([10.0, 20.0, 30.0])
+
+    assert dataset.column(0)[0] == [10.0, 20.0]

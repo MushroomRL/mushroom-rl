@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 from mushroom_rl.core.mushroom_object import MushroomObject
@@ -5,42 +6,29 @@ from mushroom_rl.utils.torch_utils import TorchUtils
 
 
 class TorchDataset(MushroomObject):
-    def __init__(self, state_type, state_shape, action_type, action_shape, reward_shape, flag_shape,
-                 policy_state_shape, mask_shape, device=None):
+    """
+    Preallocated storage using torch tensors. Holds an ordered list of equal-length columns (one tensor per column),
+    each independently shaped and typed, plus a shared length counter.
 
+    """
+    def __init__(self, shapes, dtypes, device=None, n_envs=None):
         self._device = TorchUtils.get_device(device)
-        self._state_type = state_type
-        self._action_type = action_type
-
-        self._states = torch.empty(*state_shape, dtype=self._state_type, device=self._device)
-        self._actions = torch.empty(*action_shape, dtype=self._action_type, device=self._device)
-        self._rewards = torch.empty(*reward_shape, dtype=torch.float, device=self._device)
-        self._next_states = torch.empty(*state_shape, dtype=self._state_type, device=self._device)
-        self._absorbing = torch.empty(flag_shape, dtype=torch.bool, device=self._device)
-        self._last = torch.empty(flag_shape, dtype=torch.bool, device=self._device)
+        self._arrays = [torch.empty(shape, dtype=dtype, device=self._device)
+                        for shape, dtype in zip(shapes, dtypes)]
+        self._n_envs = n_envs
         self._len = 0
 
-        if policy_state_shape is None:
-            self._policy_states = None
-            self._policy_next_states = None
-        else:
-            self._policy_states = torch.empty(policy_state_shape, dtype=torch.float, device=self._device)
-            self._policy_next_states = torch.empty(policy_state_shape, dtype=torch.float, device=self._device)
-
-        if mask_shape is None:
-            self._mask = None
-        else:
-            self._mask = torch.empty(mask_shape, dtype=torch.bool, device=self._device)
+        super().__init__()
 
         self._add_all_save_attr()
 
     @classmethod
     def create_new_instance(cls, dataset=None):
         """
-        Creates an empty instance of the Dataset and populates essential data structures
+        Creates an empty instance of the dataset and populates essential data structures.
 
         Args:
-            dataset (NumpyDataset, None): a template dataset to be used to create the new instance.
+            dataset (TorchDataset, None): a template dataset to be used to create the new instance.
 
         Returns:
             A new empty instance of the dataset.
@@ -48,268 +36,112 @@ class TorchDataset(MushroomObject):
         """
         new_dataset = cls.__new__(cls)
 
-        if dataset is not None:
-            new_dataset._device = dataset._device
-            new_dataset._state_type = dataset._state_type
-            new_dataset._action_type = dataset._action_type
-        else:
-            new_dataset._device = None
-            new_dataset._state_type = None
-            new_dataset._action_type = None
-
-        new_dataset._states = None
-        new_dataset._actions = None
-        new_dataset._rewards = None
-        new_dataset._next_states = None
-        new_dataset._absorbing = None
-        new_dataset._last = None
+        new_dataset._device = dataset._device if dataset is not None else None
+        new_dataset._arrays = None
+        new_dataset._n_envs = dataset._n_envs if dataset is not None else None
         new_dataset._len = None
-        new_dataset._policy_states = None
-        new_dataset._policy_next_states = None
-        new_dataset._mask = None
 
         new_dataset._add_all_save_attr()
 
         return new_dataset
 
     @classmethod
-    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts,
-                   policy_states=None, policy_next_states=None):
-        if not isinstance(states, torch.Tensor):
-            states = torch.as_tensor(states)
-            actions = torch.as_tensor(actions)
-            rewards = torch.as_tensor(rewards)
-            next_states = torch.as_tensor(next_states)
-            absorbings = torch.as_tensor(absorbings)
-            lasts = torch.as_tensor(lasts)
-
+    def from_array(cls, arrays, device=None):
         dataset = cls.create_new_instance()
 
-        dataset._state_type = states.dtype
-        dataset._action_type = actions.dtype
-
-        dataset._states = torch.as_tensor(states)
-        dataset._actions = torch.as_tensor(actions)
-        dataset._rewards = torch.as_tensor(rewards)
-        dataset._next_states = torch.as_tensor(next_states)
-        dataset._absorbing = torch.as_tensor(absorbings, dtype=torch.bool)
-        dataset._last = torch.as_tensor(lasts, dtype=torch.bool)
-        dataset._len = len(lasts)
-
-        if policy_states is not None and policy_next_states is not None:
-            if not isinstance(policy_states, torch.Tensor):
-                policy_states = torch.as_tensor(policy_states)
-                policy_next_states = torch.as_tensor(policy_next_states)
-
-            dataset._policy_states = policy_states
-            dataset._policy_next_states = policy_next_states
-        else:
-            dataset._policy_states = None
-            dataset._policy_next_states = None
+        dataset._device = TorchUtils.get_device(device)
+        dataset._arrays = [dataset._to_tensor(array) for array in arrays]
+        dataset._len = len(dataset._arrays[0])
 
         return dataset
+
+    def _to_tensor(self, array):
+        if isinstance(array, torch.Tensor):
+            return array.to(device=self._device)
+        return torch.from_numpy(np.asarray(array)).to(device=self._device)
 
     def __len__(self):
         return self._len
 
-    def append(self, state, action, reward, next_state, absorbing, last, policy_state=None, policy_next_state=None,
-               mask=None):
-        i = self._len   # todo: handle index out of bounds?
-
-        if mask is None:
-            self._states[i] = state
-            self._actions[i] = action
-            self._rewards[i] = reward
-            self._next_states[i] = next_state
-            self._absorbing[i] = absorbing
-            self._last[i] = last
-
-            if self.is_stateful:
-                self._policy_states[i] = policy_state
-                self._policy_next_states[i] = policy_next_state
-        else:
-            n_active_envs = self._states.shape[1]
-
-            self._states[i] = state[:n_active_envs]
-            self._actions[i] = action[:n_active_envs]
-            self._rewards[i] = reward[:n_active_envs]
-            self._next_states[i] = next_state[:n_active_envs]
-            self._absorbing[i] = absorbing[:n_active_envs]
-            self._last[i] = last[:n_active_envs]
-
-            if self.is_stateful:
-                self._policy_states[i] = policy_state[:n_active_envs]
-                self._policy_next_states[i] = policy_next_state[:n_active_envs]
-
-            self._mask[i] = mask[:n_active_envs]
-
+    def append(self, *values):
+        i = self._len
+        for array, value in zip(self._arrays, values):
+            array[i] = value if self._n_envs is None else value[:self._n_envs]
         self._len += 1
 
     def append_batch(self, other):
         n = len(other)
         i = self._len
-        self._states[i:i + n] = other.state
-        self._actions[i:i + n] = other.action
-        self._rewards[i:i + n] = other.reward
-        self._next_states[i:i + n] = other.next_state
-        self._absorbing[i:i + n] = other.absorbing
-        self._last[i:i + n] = other.last
-        if self.is_stateful:
-            self._policy_states[i:i + n] = other.policy_state
-            self._policy_next_states[i:i + n] = other.policy_next_state
+        for array, column in zip(self._arrays, other.columns):
+            array[i:i + n] = column
         self._len += n
 
     def clear(self):
-        self._states = torch.empty_like(self._states)
-        self._actions = torch.empty_like(self._actions)
-        self._rewards = torch.empty_like(self._rewards)
-        self._next_states = torch.empty_like(self._next_states)
-        self._absorbing = torch.empty_like(self._absorbing)
-        self._last = torch.empty_like(self._last)
-
-        if self.is_stateful:
-            self._policy_states = torch.empty_like(self._policy_states)
-            self._policy_next_states = torch.empty_like(self._policy_next_states)
-
+        self._arrays = [torch.empty_like(array) for array in self._arrays]
         self._len = 0
 
     def get_view(self, index, copy=False):
         view = self.create_new_instance(self)
 
         if copy:
-            view._states = torch.empty_like(self._states)
-            view._actions = torch.empty_like(self._actions)
-            view._rewards = torch.empty_like(self._rewards)
-            view._next_states = torch.empty_like(self._next_states)
-            view._absorbing = torch.empty_like(self._absorbing)
-            view._last = torch.empty_like(self._last)
-
-            new_states = self.state[index, ...]
-            new_len = new_states.shape[0]
-
-            view._states[:new_len] = new_states
-            view._actions[:new_len] = self.action[index, ...]
-            view._rewards[:new_len] = self.reward[index, ...]
-            view._next_states[:new_len] = self.next_state[index, ...]
-            view._absorbing[:new_len] = self.absorbing[index, ...]
-            view._last[:new_len] = self.last[index, ...]
+            view._arrays = list()
+            new_len = 0
+            for array in self._arrays:
+                buffer = torch.empty_like(array)
+                sliced = array[:self._len][index, ...]
+                new_len = sliced.shape[0]
+                buffer[:new_len] = sliced
+                view._arrays.append(buffer)
             view._len = new_len
-
-            if self.is_stateful:
-                view._policy_states = torch.empty_like(self._policy_states)
-                view._policy_next_states = torch.empty_like(self._policy_next_states)
-
-                view._policy_states[:new_len] = self._policy_states[index, ...]
-                view._policy_next_states[:new_len] = self._policy_next_states[index, ...]
-
-            if self._mask is not None:
-                view._mask = torch.empty_like(self._mask)
-                view._mask[:new_len] = self._mask[index, ...]
         else:
-            view._states = self.state[index, ...]
-            view._actions = self.action[index, ...]
-            view._rewards = self.reward[index, ...]
-            view._next_states = self.next_state[index, ...]
-            view._absorbing = self.absorbing[index, ...]
-            view._last = self.last[index, ...]
-            view._len = view._states.shape[0]
-
-            if self.is_stateful:
-                view._policy_states = self._policy_states[index, ...]
-                view._policy_next_states = self._policy_next_states[index, ...]
-
-            if self._mask is not None:
-                view._mask = self._mask[index, ...]
+            view._arrays = [array[:self._len][index, ...] for array in self._arrays]
+            view._len = view._arrays[0].shape[0]
 
         return view
 
     def __getitem__(self, index):
-        return self._states[index], self._actions[index], self._rewards[index], self._next_states[index], \
-               self._absorbing[index], self._last[index]
+        return tuple(array[index] for array in self._arrays)
 
     def __add__(self, other):
         result = self.create_new_instance(self)
 
-        result._states = torch.concatenate((self.state, other.state))
-        result._actions = torch.concatenate((self.action, other.action))
-        result._rewards = torch.concatenate((self.reward, other.reward))
-        result._next_states = torch.concatenate((self.next_state, other.next_state))
-        result._absorbing = torch.concatenate((self.absorbing, other.absorbing))
-        result._last = torch.concatenate((self.last, other.last))
-        result._last[len(self) - 1] = True
-        result._len = len(self) + len(other)
-
-        if self.is_stateful:
-            result._policy_states = torch.concatenate((self.policy_state, other.policy_state))
-            result._policy_next_states = torch.concatenate((self.policy_next_state, other.policy_next_state))
+        result._arrays = [torch.concatenate((array[:self._len], other_array[:len(other)]))
+                          for array, other_array in zip(self._arrays, other._arrays)]
+        result._len = self._len + len(other)
 
         return result
 
-    @property
-    def state(self):
-        return self._states[:len(self)]
+    def column(self, index=None):
+        if index is None:
+            assert self.n_columns == 1
+            index = 0
+        return self._arrays[index][:self._len]
 
     @property
-    def action(self):
-        return self._actions[:len(self)]
+    def columns(self):
+        return [array[:self._len] for array in self._arrays]
 
     @property
-    def reward(self):
-        return self._rewards[:len(self)]
+    def n_columns(self):
+        return len(self._arrays)
 
-    @property
-    def next_state(self):
-        return self._next_states[:len(self)]
+    def n_episodes(self, last_index):
+        last = self.column(last_index)
 
-    @property
-    def absorbing(self):
-        return self._absorbing[:len(self)]
+        if len(last) == 0:
+            return 0
 
-    @property
-    def last(self):
-        return self._last[:len(self)]
+        n_episodes = last.sum()
 
-    @property
-    def policy_state(self):
-        return self._policy_states[:len(self)]
-
-    @property
-    def policy_next_state(self):
-        return self._policy_next_states[:len(self)]
-
-    @property
-    def is_stateful(self):
-        return self._policy_states is not None
-
-    @property
-    def mask(self):
-        return self._mask[:len(self)]
-
-    @mask.setter
-    def mask(self, new_mask):
-        self._mask[:len(self)] = new_mask
-
-    @property
-    def n_episodes(self):
-        n_episodes = self.last.sum()
-
-        if not self.last[-1]:
+        if not last[-1]:
             n_episodes += 1
 
         return n_episodes
 
     def _add_all_save_attr(self):
         self._add_save_attr(
-            _state_type='primitive',
-            _action_type='primitive',
             _device='primitive',
-            _states='torch',
-            _actions='torch',
-            _rewards='torch',
-            _next_states='torch',
-            _absorbing='torch',
-            _last='torch',
-            _policy_states='numpy',
-            _policy_next_states='numpy',
+            _arrays='torch',
+            _n_envs='primitive',
             _len='primitive'
         )

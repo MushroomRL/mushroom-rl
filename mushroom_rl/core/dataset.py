@@ -2,6 +2,7 @@ import numpy as np
 import math
 
 from collections import defaultdict
+from enum import IntEnum
 
 import torch
 
@@ -15,12 +16,15 @@ from mushroom_rl.utils.episodes import split_episodes
 
 
 class DatasetInfo(MushroomObject):
-    def __init__(self, backend, device, horizon, gamma, state_shape, state_dtype, action_shape, action_dtype,
-                 policy_state_shape, n_envs=1):
-        assert backend == "torch" or device is None
+    def __init__(self, env_backend, agent_backend, env_device, agent_device, horizon, gamma, state_shape, state_dtype,
+                 action_shape, action_dtype, policy_state_shape, n_envs=1):
+        assert env_backend == "torch" or env_device is None
+        assert agent_backend == "torch" or agent_device is None
 
-        self.backend = backend
-        self.device = device
+        self.env_backend = env_backend
+        self.agent_backend = agent_backend
+        self.env_device = env_device
+        self.agent_device = agent_device
         self.horizon = horizon
         self.gamma = gamma
         self.state_shape = state_shape
@@ -33,7 +37,10 @@ class DatasetInfo(MushroomObject):
         super().__init__()
 
         self._add_save_attr(
-            backend='primitive',
+            env_backend='primitive',
+            agent_backend='primitive',
+            env_device='primitive',
+            agent_device='primitive',
             gamma='primitive',
             horizon='primitive',
             state_shape='primitive',
@@ -48,12 +55,30 @@ class DatasetInfo(MushroomObject):
     def is_agent_stateful(self):
         return self.policy_state_shape is not None
 
+    @property
+    def env_array_backend(self):
+        return ArrayBackend.get_array_backend(self.env_backend)
+
+    @property
+    def agent_array_backend(self):
+        return ArrayBackend.get_array_backend(self.agent_backend)
+
+    @property
+    def policy_backend(self):
+        """
+        Backend used to store the policy state. Its arrays live in the agent backend, but the storage strategy
+        follows the env: a list (infinite-horizon) env keeps the policy state growable too.
+
+        """
+        return 'list' if self.env_backend == 'list' else self.agent_backend
+
     @staticmethod
     def create_dataset_info(mdp_info, agent_info, n_envs=1, device=None):
-        backend = mdp_info.backend
+        env_backend = mdp_info.backend
         if not np.isfinite(mdp_info.horizon):
-            assert backend != 'torch', "Infinite-horizon collection is not supported for the torch backend."
-            backend = 'list'
+            assert env_backend != 'torch', "Infinite-horizon collection is not supported for the torch backend."
+            env_backend = 'list'
+        env_device = device if env_backend == 'torch' else None
         horizon = mdp_info.horizon
         gamma = mdp_info.gamma
         state_shape = mdp_info.observation_space.shape
@@ -61,14 +86,16 @@ class DatasetInfo(MushroomObject):
         action_shape = mdp_info.action_space.shape
         action_dtype = mdp_info.action_space.data_type
         policy_state_shape = agent_info.policy_state_shape
+        agent_device = device if agent_info.backend == 'torch' else None
 
-        return DatasetInfo(backend, device, horizon, gamma, state_shape, state_dtype,
-                           action_shape, action_dtype, policy_state_shape, n_envs)
+        return DatasetInfo(env_backend, agent_info.backend, env_device, agent_device, horizon, gamma,
+                           state_shape, state_dtype, action_shape, action_dtype, policy_state_shape, n_envs=n_envs)
 
     @staticmethod
     def create_replay_memory_info(mdp_info, agent_info, store_policy_state=True, device=None):
         backend = agent_info.backend
         array_backend = ArrayBackend.get_array_backend(backend)
+        device = device if backend == 'torch' else None
         horizon = mdp_info.horizon
         gamma = mdp_info.gamma
         state_shape = mdp_info.observation_space.shape
@@ -77,73 +104,119 @@ class DatasetInfo(MushroomObject):
         action_dtype = array_backend.to_backend_dtype(mdp_info.action_space.data_type)
         policy_state_shape = agent_info.policy_state_shape if store_policy_state else None
 
-        return DatasetInfo(backend, device, horizon, gamma, state_shape, state_dtype,
+        return DatasetInfo(backend, backend, device, device, horizon, gamma, state_shape, state_dtype,
                            action_shape, action_dtype, policy_state_shape)
 
 
 class Dataset(MushroomObject):
+    class _Field(IntEnum):
+        STATE = 0
+        ACTION = 1
+        REWARD = 2
+        NEXT_STATE = 3
+        ABSORBING = 4
+        LAST = 5
+
+    class _PolicyField(IntEnum):
+        POLICY_STATE = 0
+        POLICY_NEXT_STATE = 1
+
     def __init__(self, dataset_info, n_steps=None, n_episodes=None, core_counts_episodes=False):
         assert (n_steps is not None and n_episodes is None) or (n_steps is None and n_episodes is not None)
 
-        self._array_backend = ArrayBackend.get_array_backend(dataset_info.backend)
+        self._dataset_info = dataset_info
 
         info_n_envs = min(n_episodes, dataset_info.n_envs) if n_episodes else dataset_info.n_envs
         vectorized = dataset_info.n_envs > 1
-        self._info = ExtraInfo(info_n_envs, dataset_info.backend, dataset_info.device, vectorized=vectorized)
-        self._episode_info = ExtraInfo(info_n_envs, dataset_info.backend, dataset_info.device, vectorized=vectorized)
+        self._info = ExtraInfo(info_n_envs, dataset_info.env_backend, dataset_info.env_device, vectorized=vectorized)
+        self._episode_info = ExtraInfo(info_n_envs, dataset_info.env_backend, dataset_info.env_device,
+                                       vectorized=vectorized)
         self._theta_list = list()
 
-        if dataset_info.backend == 'list':
-            self._data = ListDataset(dataset_info.is_agent_stateful, vectorized)
+        n_envs = (min(n_episodes, dataset_info.n_envs) if n_episodes else dataset_info.n_envs) if vectorized else None
+
+        self._base_shape = self._compute_base_shape(dataset_info, n_steps, n_episodes, core_counts_episodes)
+
+        env_shapes, env_dtypes = self._env_specs(dataset_info, self._base_shape)
+        self._data = self._make_container(dataset_info.env_backend, env_shapes, env_dtypes,
+                                          dataset_info.env_device, n_envs)
+
+        if dataset_info.is_agent_stateful:
+            policy_shapes, policy_dtypes = self._policy_specs(dataset_info, self._base_shape)
+            self._policy_data = self._make_container(dataset_info.policy_backend, policy_shapes, policy_dtypes,
+                                                     dataset_info.agent_device, n_envs)
         else:
-            if n_steps is not None:
-                n_samples = n_steps
-            else:
-                horizon = dataset_info.horizon
-                assert np.isfinite(horizon)
-
-                n_samples = horizon * n_episodes
-
-            if dataset_info.n_envs == 1:
-                base_shape = (n_samples,)
-                mask_shape = None
-            elif n_episodes:
-                horizon = dataset_info.horizon
-                x = math.ceil(n_episodes / dataset_info.n_envs)
-                base_shape = (x * horizon, min(n_episodes, dataset_info.n_envs))
-                mask_shape = base_shape
-            elif core_counts_episodes:
-                base_shape = (math.ceil(n_samples / dataset_info.n_envs) + 1 + dataset_info.horizon,
-                              dataset_info.n_envs)
-                mask_shape = base_shape
-            else:
-                base_shape = (math.ceil(n_samples / dataset_info.n_envs) + 1, dataset_info.n_envs)
-                mask_shape = base_shape
-
-            state_shape = base_shape + dataset_info.state_shape
-            action_shape = base_shape + dataset_info.action_shape
-            reward_shape = base_shape
-
-            if dataset_info.is_agent_stateful:
-                policy_state_shape = base_shape + dataset_info.policy_state_shape
-            else:
-                policy_state_shape = None
-
-            if dataset_info.backend == 'numpy':
-                self._data = NumpyDataset(dataset_info.state_dtype, state_shape,
-                                          dataset_info.action_dtype, action_shape,
-                                          reward_shape, base_shape,
-                                          policy_state_shape, mask_shape)
-            else:
-                self._data = TorchDataset(dataset_info.state_dtype, state_shape,
-                                          dataset_info.action_dtype, action_shape, reward_shape, base_shape,
-                                          policy_state_shape, mask_shape, device=dataset_info.device)
-
-        self._dataset_info = dataset_info
+            self._policy_data = None
 
         super().__init__()
 
         self._add_all_save_attr()
+
+    @staticmethod
+    def _compute_base_shape(dataset_info, n_steps, n_episodes, core_counts_episodes):
+        if dataset_info.env_backend == 'list':
+            return None
+
+        if n_steps is not None:
+            n_samples = n_steps
+        else:
+            horizon = dataset_info.horizon
+            assert np.isfinite(horizon)
+            n_samples = horizon * n_episodes
+
+        if dataset_info.n_envs == 1:
+            return (n_samples,)
+        elif n_episodes:
+            horizon = dataset_info.horizon
+            x = math.ceil(n_episodes / dataset_info.n_envs)
+            return (x * horizon, min(n_episodes, dataset_info.n_envs))
+        elif core_counts_episodes:
+            return (math.ceil(n_samples / dataset_info.n_envs) + 1 + dataset_info.horizon, dataset_info.n_envs)
+        else:
+            return (math.ceil(n_samples / dataset_info.n_envs) + 1, dataset_info.n_envs)
+
+    @staticmethod
+    def _env_specs(dataset_info, base_shape):
+        backend = dataset_info.env_array_backend
+        base = base_shape if base_shape is not None else ()
+        state_shape = base + dataset_info.state_shape
+        action_shape = base + dataset_info.action_shape
+
+        shapes = [state_shape, action_shape, base, state_shape, base, base]
+        dtypes = [backend.to_backend_dtype(dataset_info.state_dtype),
+                  backend.to_backend_dtype(dataset_info.action_dtype),
+                  backend.to_backend_dtype(float),
+                  backend.to_backend_dtype(dataset_info.state_dtype),
+                  backend.to_backend_dtype(bool),
+                  backend.to_backend_dtype(bool)]
+        return shapes, dtypes
+
+    @staticmethod
+    def _policy_specs(dataset_info, base_shape):
+        backend = dataset_info.agent_array_backend
+        base = base_shape if base_shape is not None else ()
+        policy_shape = base + dataset_info.policy_state_shape
+
+        shapes = [policy_shape, policy_shape]
+        dtypes = [backend.to_backend_dtype(float), backend.to_backend_dtype(float)]
+        return shapes, dtypes
+
+    @property
+    def _array_backend(self):
+        return self._dataset_info.env_array_backend
+
+    @property
+    def _policy_array_backend(self):
+        return self._dataset_info.agent_array_backend
+
+    @staticmethod
+    def _make_container(backend_name, shapes, dtypes, device=None, n_envs=None):
+        if backend_name == 'numpy':
+            return NumpyDataset(shapes, dtypes, n_envs=n_envs)
+        elif backend_name == 'torch':
+            return TorchDataset(shapes, dtypes, device=device, n_envs=n_envs)
+        else:
+            return ListDataset(len(shapes), n_envs=n_envs)
 
     @classmethod
     def generate(cls, mdp_info, agent_info, n_steps=None, n_episodes=None, n_envs=1, core_counts_episodes=False):
@@ -165,15 +238,13 @@ class Dataset(MushroomObject):
         """
         new_dataset = cls.__new__(cls)
 
-        if dataset is not None:
-            new_dataset._array_backend = dataset._array_backend
-            new_dataset._dataset_info = dataset._dataset_info
-        else:
-            new_dataset._dataset_info = None
+        new_dataset._dataset_info = dataset._dataset_info if dataset is not None else None
 
+        new_dataset._base_shape = None
         new_dataset._info = None
         new_dataset._episode_info = None
         new_dataset._data = None
+        new_dataset._policy_data = None
         new_dataset._theta_list = None
 
         new_dataset._add_all_save_attr()
@@ -183,7 +254,7 @@ class Dataset(MushroomObject):
     @classmethod
     def from_array(cls, states, actions, rewards, next_states, absorbings, lasts,
                    policy_state=None, policy_next_state=None, info=None, episode_info=None, theta_list=None,
-                   horizon=None, gamma=0.99, backend='numpy', device=None):
+                   horizon=None, gamma=0.99, backend='numpy', policy_backend=None, device=None):
         """
         Creates a dataset of transitions from the provided arrays.
 
@@ -201,7 +272,8 @@ class Dataset(MushroomObject):
             theta_list (list, None): list of policy parameters;
             horizon (int, None): horizon of the mdp;
             gamma (float, 0.99): discount factor;
-            backend (str, 'numpy'): backend to be used by the dataset.
+            backend (str, 'numpy'): backend to be used by the dataset;
+            policy_backend (str, None): backend to be used for the policy state arrays; defaults to ``backend``.
 
         Returns:
             The list of transitions.
@@ -211,6 +283,9 @@ class Dataset(MushroomObject):
 
         if policy_state is not None:
             assert len(states) == len(policy_state) == len(policy_next_state)
+
+        if policy_backend is None:
+            policy_backend = backend
 
         dataset = cls.create_raw_instance()
 
@@ -229,16 +304,14 @@ class Dataset(MushroomObject):
         else:
             dataset._theta_list = theta_list
 
-        dataset._array_backend = ArrayBackend.get_array_backend(backend)
-        if backend == 'numpy':
-            dataset._data = NumpyDataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
-                                                    policy_state, policy_next_state)
-        elif backend == 'torch':
-            dataset._data = TorchDataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
-                                                    policy_state, policy_next_state)
+        env_class = cls._container_class(backend)
+        dataset._data = env_class.from_array([states, actions, rewards, next_states, absorbings, lasts])
+
+        if policy_state is not None:
+            policy_class = cls._container_class(policy_backend)
+            dataset._policy_data = policy_class.from_array([policy_state, policy_next_state])
         else:
-            dataset._data = ListDataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
-                                                   policy_state, policy_next_state)
+            dataset._policy_data = None
 
         state_shape = cls._infer_shape(states)
         action_shape = cls._infer_shape(actions)
@@ -246,13 +319,27 @@ class Dataset(MushroomObject):
         action_dtype = cls._infer_dtype(actions)
         policy_state_shape = None if policy_state is None else cls._infer_shape(policy_state)
 
-        dataset._dataset_info = DatasetInfo(backend, device, horizon, gamma, state_shape, state_dtype,
-                                            action_shape, action_dtype, policy_state_shape)
+        dataset._dataset_info = DatasetInfo(backend, policy_backend, device, None, horizon, gamma,
+                                            state_shape, state_dtype, action_shape, action_dtype, policy_state_shape)
 
         return dataset
 
+    @staticmethod
+    def _container_class(backend_name):
+        if backend_name == 'numpy':
+            return NumpyDataset
+        elif backend_name == 'torch':
+            return TorchDataset
+        else:
+            return ListDataset
+
+    def _store_step(self, step):
+        self._data.append(*step[:len(self._Field)])
+        if self._policy_data is not None:
+            self._policy_data.append(*step[len(self._Field):])
+
     def append(self, step, info):
-        self._data.append(*step)
+        self._store_step(step)
         self._info.append(info)
 
     def append_batch(self, other):
@@ -264,6 +351,8 @@ class Dataset(MushroomObject):
 
         """
         self._data.append_batch(other._data)
+        if self._policy_data is not None:
+            self._policy_data.append_batch(other._policy_data)
         self._info += other._info
 
     def append_episode_info(self, info):
@@ -284,6 +373,8 @@ class Dataset(MushroomObject):
         self._info.clear()
 
         self._data.clear()
+        if self._policy_data is not None:
+            self._policy_data.clear()
 
     def get_view(self, index, copy=False):
         dataset = self.create_raw_instance(dataset=self)
@@ -291,6 +382,7 @@ class Dataset(MushroomObject):
         dataset._info = self._info.get_view(index, copy)
         dataset._episode_info = self._episode_info.get_view(index, copy)
         dataset._data = self._data.get_view(index, copy)
+        dataset._policy_data = self._policy_data.get_view(index, copy) if self._policy_data is not None else None
         dataset._theta_list = []
 
         return dataset
@@ -314,6 +406,9 @@ class Dataset(MushroomObject):
         result._episode_info = self._episode_info + other._episode_info
         result._theta_list = self._theta_list + other._theta_list
         result._data = self._data + other._data
+        result._policy_data = (self._policy_data + other._policy_data) if self._policy_data is not None else None
+
+        result._data.column(self._Field.LAST)[len(self) - 1] = True
 
         return result
 
@@ -322,35 +417,35 @@ class Dataset(MushroomObject):
 
     @property
     def state(self):
-        return self._data.state
+        return self._data.column(self._Field.STATE)
 
     @property
     def action(self):
-        return self._data.action
+        return self._data.column(self._Field.ACTION)
 
     @property
     def reward(self):
-        return self._data.reward
+        return self._data.column(self._Field.REWARD)
 
     @property
     def next_state(self):
-        return self._data.next_state
+        return self._data.column(self._Field.NEXT_STATE)
 
     @property
     def absorbing(self):
-        return self._data.absorbing
+        return self._data.column(self._Field.ABSORBING)
 
     @property
     def last(self):
-        return self._data.last
+        return self._data.column(self._Field.LAST)
 
     @property
     def policy_state(self):
-        return self._data.policy_state
+        return self._policy_data.column(self._PolicyField.POLICY_STATE)
 
     @property
     def policy_next_state(self):
-        return self._data.policy_next_state
+        return self._policy_data.column(self._PolicyField.POLICY_NEXT_STATE)
 
     @property
     def info(self):
@@ -385,7 +480,7 @@ class Dataset(MushroomObject):
 
     @property
     def n_episodes(self):
-        return self._data.n_episodes
+        return self._data.n_episodes(self._Field.LAST)
 
     @property
     def undiscounted_return(self):
@@ -401,7 +496,7 @@ class Dataset(MushroomObject):
 
     @property
     def is_stateful(self):
-        return self._data.is_stateful
+        return self._policy_data is not None
 
     def parse(self, to=None):
         """
@@ -419,18 +514,18 @@ class Dataset(MushroomObject):
 
     def parse_policy_state(self, to=None):
         """
-        Return the dataset as set of arrays.
+        Return the policy state arrays of the dataset.
 
         Args:
-            to (str, None):  the backend to be used for the returned arrays. By default, the dataset backend is used.
+            to (str, None): the backend to be used for the returned arrays. By default, the policy's backend is used.
 
         Returns:
-            A tuple containing the arrays that define the dataset, i.e. state, action, next state, absorbing and last
+            A tuple containing the policy state and policy next state arrays.
 
         """
         if to is None:
-            to = self._array_backend.get_backend_name()
-        return self._convert(self.policy_state, self.policy_next_state, to=to)
+            to = self._policy_array_backend.get_backend_name()
+        return self._convert(self.policy_state, self.policy_next_state, to=to, backend=self._policy_array_backend)
 
     def to_backend(self, backend):
         """
@@ -443,14 +538,15 @@ class Dataset(MushroomObject):
             A new Dataset in the requested backend, or ``self`` if the backend already matches.
 
         """
-        if self._array_backend.get_backend_name() == backend:
+        if self._array_backend.get_backend_name() == backend \
+                and self._policy_array_backend.get_backend_name() == backend:
             return self
         state, action, reward, next_state, absorbing, last = self.parse(to=backend)
         policy_state, policy_next_state = (self.parse_policy_state(to=backend) if self.is_stateful else (None, None))
         return Dataset.from_array(state, action, reward, next_state, absorbing, last,
                                   policy_state=policy_state, policy_next_state=policy_next_state,
                                   info=self._info, episode_info=self._episode_info,
-                                  theta_list=self._theta_list, backend=backend)
+                                  theta_list=self._theta_list, backend=backend, policy_backend=backend)
 
     def select_first_episodes(self, n_episodes):
         """
@@ -521,7 +617,7 @@ class Dataset(MushroomObject):
 
         if len(r_ep.shape) == 1:
             r_ep = self._array_backend.expand_dims(r_ep, 0)
-        if self._dataset_info.backend == 'torch':
+        if self._dataset_info.env_backend == 'torch':
             js = self._array_backend.zeros(r_ep.shape[0], dtype=r_ep.dtype, device=r_ep.device)
         else:
             js = self._array_backend.zeros(r_ep.shape[0], dtype=r_ep.dtype)
@@ -563,13 +659,14 @@ class Dataset(MushroomObject):
         else:
             return 0, 0, 0, 0, 0
 
-    def _convert(self, *arrays, to='numpy'):
+    def _convert(self, *arrays, to='numpy', backend=None):
+        backend = backend if backend is not None else self._array_backend
         if to == 'numpy':
-            return self._array_backend.arrays_to_numpy(*arrays)
+            return backend.arrays_to_numpy(*arrays)
         elif to == 'torch':
-            return self._array_backend.arrays_to_torch(*arrays)
+            return backend.arrays_to_torch(*arrays)
         elif to == 'list':
-            return self._array_backend.arrays_to_list(*arrays)
+            return backend.arrays_to_list(*arrays)
         else:
             raise NotImplementedError
 
@@ -579,7 +676,8 @@ class Dataset(MushroomObject):
             _episode_info='mushroom',
             _theta_list='pickle',
             _data='mushroom',
-            _array_backend='primitive',
+            _policy_data='mushroom',
+            _base_shape='primitive',
             _dataset_info='mushroom'
         )
 
@@ -612,13 +710,19 @@ class VectorizedDataset(Dataset):
     def __init__(self, dataset_info, n_steps=None, n_episodes=None, core_counts_episodes=False):
         super().__init__(dataset_info, n_steps, n_episodes, core_counts_episodes)
 
+        mask_shape = self._base_shape if self._base_shape is not None else ()
+        self._mask_data = self._make_container(dataset_info.env_backend, [mask_shape],
+                                               [self._array_backend.to_backend_dtype(bool)],
+                                               dataset_info.env_device, self._data._n_envs)
+
         self._initialize_theta_list(self._dataset_info.n_envs)
 
     def append(self, step, info):
         raise RuntimeError("Trying to use append on a vectorized dataset")
 
     def append_vectorized(self, step, info, mask):
-        self._data.append(*step, mask=mask)
+        self._store_step(step)
+        self._mask_data.append(mask)
         self._info.append(info)
 
     def append_theta_vectorized(self, theta, mask):
@@ -631,20 +735,33 @@ class VectorizedDataset(Dataset):
         n_carry_forward_steps = 0
 
         residual_data = None
+        residual_policy_data = None
+        residual_mask_data = None
         if n_steps_per_fit is not None:
-            n_steps_dataset = self._data.mask.sum().item()
+            n_steps_dataset = self.mask.sum().item()
 
             if n_steps_dataset > n_steps_per_fit:
                 n_extra_steps = n_steps_dataset - n_steps_per_fit
                 n_parallel_steps = int(np.ceil(n_extra_steps / self._dataset_info.n_envs))
                 view_size = slice(-n_parallel_steps, None)
+
                 residual_data = self._data.get_view(view_size, copy=True)
-                mask = residual_data.mask
+                if self._policy_data is not None:
+                    residual_policy_data = self._policy_data.get_view(view_size, copy=True)
+                residual_mask_data = self._mask_data.get_view(view_size, copy=True)
+
+                mask = self._array_backend.as_array(residual_mask_data.column())
                 original_shape = mask.shape
                 mask = mask.flatten()
                 true_indices = self._array_backend.where(mask)[0]
                 mask[true_indices[n_extra_steps:]] = False
-                residual_data.mask = mask.reshape(original_shape)
+
+                mask_column = residual_mask_data.column()
+                new_mask = mask.reshape(original_shape)
+                if isinstance(mask_column, list):
+                    mask_column[:] = list(new_mask)
+                else:
+                    mask_column[:] = new_mask
 
                 residual_info = self._info.get_view(view_size, copy=True)
                 residual_episode_info = self._episode_info.get_view(view_size, copy=True)
@@ -652,10 +769,13 @@ class VectorizedDataset(Dataset):
                 n_carry_forward_steps = mask.sum()
 
         super().clear()
+        self._mask_data.clear()
         self._initialize_theta_list(n_envs)
 
         if n_steps_per_fit is not None and residual_data is not None:
             self._data = residual_data
+            self._policy_data = residual_policy_data
+            self._mask_data = residual_mask_data
             self._info = residual_info
             self._episode_info = residual_episode_info
 
@@ -665,24 +785,25 @@ class VectorizedDataset(Dataset):
         if len(self) == 0:
             return None
 
-        mask = self._data.mask
+        mask = self.mask
 
-        states = self._array_backend.pack_padded_sequence(self._data.state, mask)
-        actions = self._array_backend.pack_padded_sequence(self._data.action, mask)
-        rewards = self._array_backend.pack_padded_sequence(self._data.reward, mask)
-        next_states = self._array_backend.pack_padded_sequence(self._data.next_state, mask)
-        absorbings = self._array_backend.pack_padded_sequence(self._data.absorbing, mask)
+        states = self._array_backend.pack_padded_sequence(self.state, mask)
+        actions = self._array_backend.pack_padded_sequence(self.action, mask)
+        rewards = self._array_backend.pack_padded_sequence(self.reward, mask)
+        next_states = self._array_backend.pack_padded_sequence(self.next_state, mask)
+        absorbings = self._array_backend.pack_padded_sequence(self.absorbing, mask)
 
-        last_padded = self._array_backend.as_array(self._data.last)
+        last_padded = self._array_backend.as_array(self.last)
         last_padded[-1, :] = True
         lasts = self._array_backend.pack_padded_sequence(last_padded, mask)
 
         policy_state = None
         policy_next_state = None
 
-        if self._data.is_stateful:
-            policy_state = self._array_backend.pack_padded_sequence(self._data.policy_state, mask)
-            policy_next_state = self._array_backend.pack_padded_sequence(self._data.policy_next_state, mask)
+        if self.is_stateful:
+            policy_mask = self._policy_array_backend.convert_to_backend(self._array_backend, mask)
+            policy_state = self._policy_array_backend.pack_padded_sequence(self.policy_state, policy_mask)
+            policy_next_state = self._policy_array_backend.pack_padded_sequence(self.policy_next_state, policy_mask)
 
         if n_steps_per_fit is not None:
             states = states[:n_steps_per_fit]
@@ -692,7 +813,7 @@ class VectorizedDataset(Dataset):
             absorbings = absorbings[:n_steps_per_fit]
             lasts = lasts[:n_steps_per_fit]
 
-            if self._data.is_stateful:
+            if self.is_stateful:
                 policy_state = policy_state[:n_steps_per_fit]
                 policy_next_state = policy_next_state[:n_steps_per_fit]
 
@@ -705,7 +826,13 @@ class VectorizedDataset(Dataset):
                                   policy_state=policy_state, policy_next_state=policy_next_state,
                                   info=flat_info, episode_info=flat_episode_info, theta_list=flat_theta_list,
                                   horizon=self._dataset_info.horizon, gamma=self._dataset_info.gamma,
-                                  backend=self._array_backend.get_backend_name())
+                                  backend=self._array_backend.get_backend_name(),
+                                  policy_backend=self._policy_array_backend.get_backend_name())
+
+    def get_view(self, index, copy=False):
+        dataset = super().get_view(index, copy)
+        dataset._mask_data = self._mask_data.get_view(index, copy)
+        return dataset
 
     def _flatten_theta_list(self):
         flat_theta_list = list()
@@ -722,4 +849,10 @@ class VectorizedDataset(Dataset):
 
     @property
     def mask(self):
-        return self._data.mask
+        return self._array_backend.as_array(self._mask_data.column())
+
+    def _add_all_save_attr(self):
+        super()._add_all_save_attr()
+        self._add_save_attr(
+            _mask_data='mushroom'
+        )
