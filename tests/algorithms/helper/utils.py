@@ -205,8 +205,10 @@ class TestUtils:
         Compare two dataset classes
         """
 
-        res = this.backend == that.backend
-        res &= this.device == that.device
+        res = this.env_backend == that.env_backend
+        res &= this.agent_backend == that.agent_backend
+        res &= this.env_device == that.env_device
+        res &= this.agent_device == that.agent_device
         res &= this.horizon == that.horizon
         res &= this.gamma == that.gamma
         res &= this.state_shape == that.state_shape
@@ -224,7 +226,7 @@ class TestUtils:
         Compare two dataset classes
         """
 
-        res = this._array_backend == that._array_backend
+        res = this._dataset_info.env_array_backend == that._dataset_info.env_array_backend
         res &= cls.eq_dataset_info(this._dataset_info, that._dataset_info)
 
         # res &= this._info == that._info TODO fix this equality check

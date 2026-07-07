@@ -30,7 +30,7 @@ class TrueOnlineSARSALambda(TD):
         self._q_old = None
 
         self._add_save_attr(
-            _q_old='numpy',
+            _q_old='none',
             _lambda='mushroom',
             e='numpy'
         )

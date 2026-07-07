@@ -1,186 +1,120 @@
 from copy import deepcopy
 
-import numpy as np
-
 from mushroom_rl.core.mushroom_object import MushroomObject
 
 
 class ListDataset(MushroomObject):
-    def __init__(self, is_stateful, is_vectorized):
-        self._dataset = list()
-        self._policy_dataset = list()
-        self._is_stateful = is_stateful
+    """
+    Growable storage using plain Python lists. It grows without pre-allocation (which allows collecting episodes of
+    unbounded/infinite horizon) and can hold ragged or non-array content. Holds an ordered list of equal-length columns
+    (one list per column).
 
-        if is_vectorized:
-            self._mask = list()
-        else:
-            self._mask = None
+    """
+    def __init__(self, n_columns, n_envs=None):
+        self._columns = [list() for _ in range(n_columns)]
+        self._n_envs = n_envs
 
         self._add_all_save_attr()
 
     @classmethod
-    def create_new_instance(cls, dataset):
+    def create_new_instance(cls, dataset=None):
         """
-        Creates an empty instance of the Dataset and populates essential data structures
+        Creates an empty instance of the dataset and populates essential data structures.
 
         Args:
-            dataset (ListDataset): a template dataset to be used to create the new instance.
+            dataset (ListDataset, None): a template dataset to be used to create the new instance.
 
         Returns:
             A new empty instance of the dataset.
 
         """
-
         new_dataset = cls.__new__(cls)
 
-        new_dataset._dataset = None
-        new_dataset._policy_dataset = None
-        new_dataset._is_stateful = dataset._is_stateful
-        new_dataset._mask = None
+        new_dataset._columns = None
+        new_dataset._n_envs = dataset._n_envs if dataset is not None else None
 
         new_dataset._add_all_save_attr()
 
         return new_dataset
 
     @classmethod
-    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts, policy_states=None,
-                   policy_next_states=None):
-        is_stateful = (policy_states is not None) and (policy_next_states is not None)
+    def from_array(cls, arrays):
+        dataset = cls.create_new_instance()
 
-        dataset = cls(is_stateful, False)
-
-        if dataset._is_stateful:
-            for s, a, r, ss, ab, last, ps, pss in zip(states, actions, rewards, next_states, absorbings, lasts,
-                                                      policy_states, policy_next_states):
-                dataset.append(s, a, float(r), ss, bool(ab), bool(last), ps, pss)
-        else:
-            for s, a, r, ss, ab, last in zip(states, actions, rewards, next_states, absorbings, lasts):
-                dataset.append(s, a, float(r), ss, bool(ab), bool(last))
+        dataset._columns = [list(array) for array in arrays]
 
         return dataset
 
     def __len__(self):
-        return len(self._dataset)
+        return len(self._columns[0])
 
-    def append(self, *step, mask=None):
-        step_copy = deepcopy(step)
-        self._dataset.append(step_copy[:6])
-        if self._is_stateful:
-            self._policy_dataset.append(step_copy[6:])
-
-        if mask is not None:
-            self._mask.append(mask)
+    def append(self, *values):
+        for column, value in zip(self._columns, values):
+            column.append(deepcopy(value if self._n_envs is None else value[:self._n_envs]))
 
     def append_batch(self, other):
-        if self._is_stateful:
-            for step, ps in zip(other._dataset, other._policy_dataset):
-                self.append(*step, *ps)
-        else:
-            for step in other._dataset:
-                self.append(*step)
+        for column, other_column in zip(self._columns, other.data):
+            column.extend(deepcopy(other_column))
 
     def clear(self):
-        self._dataset = list()
-        self._policy_dataset = list()
-        if self._mask is not None:
-            self._mask = list()
+        self._columns = [list() for _ in range(self.n_columns)]
 
     def get_view(self, index, copy=False):
         view = self.create_new_instance(self)
 
         if isinstance(index, (int, slice)):
-            view._dataset = self._dataset[index]
+            view._columns = [column[index] for column in self._columns]
         else:
-            view._dataset = [self._dataset[i] for i in index]
-
-        if self._mask is not None:
-            if isinstance(index, (int, slice)):
-                view._mask = self._mask[index]
-            else:
-                view._mask = [self._mask[i] for i in index]
+            view._columns = [[column[i] for i in index] for column in self._columns]
 
         if copy:
-            return view.copy()
-        else:
-            return view
+            view._columns = deepcopy(view._columns)
+
+        return view
 
     def __getitem__(self, index):
-        return self._dataset[index]
+        return tuple(column[index] for column in self._columns)
 
     def __add__(self, other):
         result = self.create_new_instance(self)
-        result._dataset = self._dataset + other._dataset
-        result._policy_dataset = self._policy_dataset + other._policy_dataset
 
-        last_step = self._dataset[-1]
-        result._dataset[len(self) - 1] = last_step[:-1] + (True,)
+        result._columns = [column + other_column
+                           for column, other_column in zip(self._columns, other.data)]
 
         return result
 
-    @property
-    def state(self):
-        return [step[0] for step in self._dataset]
+    def column(self, index=None):
+        if index is None:
+            assert self.n_columns == 1
+            index = 0
+        return self._columns[index]
 
     @property
-    def action(self):
-        return [step[1] for step in self._dataset]
+    def data(self):
+        return list(self._columns)
 
     @property
-    def reward(self):
-        return [step[2] for step in self._dataset]
+    def n_columns(self):
+        return len(self._columns)
 
     @property
-    def next_state(self):
-        return [step[3] for step in self._dataset]
+    def n_envs(self):
+        return self._n_envs
 
-    @property
-    def absorbing(self):
-        return [step[4] for step in self._dataset]
+    def n_episodes(self, last_index):
+        last = self.column(last_index)
 
-    @property
-    def last(self):
-        return [step[5] for step in self._dataset]
-
-    @property
-    def policy_state(self):
-        return [step[0] for step in self._policy_dataset]
-
-    @property
-    def policy_next_state(self):
-        return [step[1] for step in self._policy_dataset]
-
-    @property
-    def is_stateful(self):
-        return self._is_stateful
-
-    @property
-    def mask(self):
-        if self._mask is None:
-            return None
-        return np.array(self._mask)
-
-    @mask.setter
-    def mask(self, new_mask):
-        self._mask = list(new_mask)
-
-    @property
-    def n_episodes(self):
-        if len(self._dataset) == 0:
+        if len(last) == 0:
             return 0
 
-        n_episodes = 0
-        for sample in self._dataset:
-            if sample[5] is True:
-                n_episodes += 1
-        if self._dataset[-1][5] is not True:
+        n_episodes = sum(1 for value in last if value)
+
+        if not last[-1]:
             n_episodes += 1
 
         return n_episodes
 
     def _add_all_save_attr(self):
         self._add_save_attr(
-            _dataset='pickle',
-            _policy_dataset='pickle',
-            _is_stateful='primitive'
+            _columns='pickle'
         )
-
