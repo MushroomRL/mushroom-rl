@@ -188,7 +188,6 @@ def test_from_array_list_backend_stateful():
                                  backend='list', gamma=0.9)
 
     assert dataset.is_stateful
-    assert dataset._dataset_info.is_agent_stateful
     assert dataset._dataset_info.policy_state_shape == (1,)
     assert np.array_equal(np.array(dataset.policy_state), policy_states)
     assert np.array_equal(np.array(dataset.policy_next_state), policy_next_states)

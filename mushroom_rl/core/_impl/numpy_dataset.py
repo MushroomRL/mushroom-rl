@@ -14,8 +14,6 @@ class NumpyDataset(MushroomObject):
         self._n_envs = n_envs
         self._len = 0
 
-        super().__init__()
-
         self._add_all_save_attr()
 
     @classmethod
@@ -61,7 +59,7 @@ class NumpyDataset(MushroomObject):
     def append_batch(self, other):
         n = len(other)
         i = self._len
-        for array, column in zip(self._arrays, other.columns):
+        for array, column in zip(self._arrays, other.data):
             array[i:i + n] = column
         self._len += n
 
@@ -107,12 +105,16 @@ class NumpyDataset(MushroomObject):
         return self._arrays[index][:self._len]
 
     @property
-    def columns(self):
+    def data(self):
         return [array[:self._len] for array in self._arrays]
 
     @property
     def n_columns(self):
         return len(self._arrays)
+
+    @property
+    def n_envs(self):
+        return self._n_envs
 
     def n_episodes(self, last_index):
         last = self.column(last_index)
@@ -129,7 +131,7 @@ class NumpyDataset(MushroomObject):
 
     def _add_all_save_attr(self):
         self._add_save_attr(
-            _arrays='pickle',
+            _arrays='numpy',
             _n_envs='primitive',
             _len='primitive'
         )

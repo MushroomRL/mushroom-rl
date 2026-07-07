@@ -49,5 +49,5 @@ def test_vectorized_dataset_clear_residual_carry():
 
     assert int(n_carry) == 2
     assert len(dataset) == 1
-    assert dataset._policy_data is not None
+    assert dataset._agent_data is not None
     assert dataset.mask.sum() == 2

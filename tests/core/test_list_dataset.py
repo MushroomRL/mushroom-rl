@@ -25,7 +25,7 @@ def test_list_dataset_from_array_columns():
     assert np.array_equal(np.array(dataset.column(0)), columns[0])
     assert dataset.column(2) == list(columns[2])
     assert dataset.column(5)[-1] == 1.0
-    assert len(dataset.columns) == 6
+    assert len(dataset.data) == 6
 
 
 def test_list_dataset_append_and_len():

@@ -19,7 +19,7 @@ def test_numpy_dataset_append_and_column():
     assert np.array_equal(dataset.column(0), np.array([[0.0, 1.0], [2.0, 3.0]]))
     assert np.array_equal(dataset.column(1), np.array([0.5, 1.5]))
     assert np.array_equal(dataset.column(2), np.array([False, True]))
-    assert len(dataset.columns) == 3
+    assert len(dataset.data) == 3
 
 
 def test_numpy_dataset_getitem_step():

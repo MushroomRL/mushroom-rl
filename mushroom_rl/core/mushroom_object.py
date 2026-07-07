@@ -133,7 +133,8 @@ class MushroomObject(object):
             return None
 
         if object_type is list:
-            return cls._load_list(zip_file, folder, primitive_dictionary['len'])
+            return cls._load_list(zip_file, folder, primitive_dictionary['len'],
+                                  primitive_dictionary['method'])
         else:
             loaded_object = object_type.__new__(object_type)
             setattr(loaded_object, '_save_attributes', save_attributes)
@@ -148,15 +149,13 @@ class MushroomObject(object):
 
                 if method == 'primitive' and att in primitive_dictionary:
                     setattr(loaded_object, att, primitive_dictionary[att])
-                elif file_name in zip_file.namelist() or \
-                        (method == 'mushroom' and mandatory):
+                elif file_name in zip_file.namelist():
                     load_method = getattr(cls, '_load_{}'.format(method))
-                    if load_method is None:
-                        raise NotImplementedError('Method _load_{} is not'
-                                                  'implemented'.format(method))
                     att_val = load_method(zip_file, file_name)
                     setattr(loaded_object, att, att_val)
-
+                elif MushroomObject._is_saved_list(zip_file, file_name):
+                    att_val = MushroomObject.load_zip(zip_file, file_name)
+                    setattr(loaded_object, att, att_val)
                 else:
                     setattr(loaded_object, att, None)
 
@@ -264,13 +263,21 @@ class MushroomObject(object):
            return name
 
     @staticmethod
-    def _load_list(zip_file, folder, length):
+    def _is_saved_list(zip_file, name):
+        return MushroomObject._append_folder(name, 'config') in zip_file.namelist()
+
+    @staticmethod
+    def _load_list(zip_file, folder, length, method):
         loaded_list = list()
 
+        load_method = getattr(MushroomObject, '_load_{}'.format(method))
+
         for i in range(length):
-            element_folder = MushroomObject._append_folder(folder, str(i))
-            loaded_element = MushroomObject.load_zip(zip_file, element_folder)
-            loaded_list.append(loaded_element)
+            element_name = MushroomObject._append_folder(folder, str(i))
+            if MushroomObject._is_saved_list(zip_file, element_name):
+                loaded_list.append(MushroomObject.load_zip(zip_file, element_name))
+            else:
+                loaded_list.append(load_method(zip_file, element_name))
 
         return loaded_list
 
@@ -309,9 +316,12 @@ class MushroomObject(object):
 
     @staticmethod
     def _save_numpy(zip_file, name, obj, folder, **_):
-        path = MushroomObject._append_folder(folder, name)
-        with zip_file.open(path, 'w') as f:
-            np.save(f, obj)
+        if isinstance(obj, list):
+            MushroomObject._save_list(zip_file, name, obj, folder, 'numpy')
+        else:
+            path = MushroomObject._append_folder(folder, name)
+            with zip_file.open(path, 'w') as f:
+                np.save(f, obj)
 
     @staticmethod
     def _save_torch(zip_file, name, obj, folder, **_):
@@ -328,21 +338,26 @@ class MushroomObject(object):
 
     @staticmethod
     def _save_mushroom(zip_file, name, obj, folder, full_save):
-        new_folder = MushroomObject._append_folder(folder, name)
         if isinstance(obj, list):
-            config_data = dict(
-                type=list,
-                save_attributes=dict(),
-                logger_attributes=dict(),
-                primitive_dictionary=dict(len=len(obj))
-            )
-
-            MushroomObject._save_pickle(zip_file, 'config', config_data, folder=new_folder)
-            for i, element in enumerate(obj):
-                element_folder = MushroomObject._append_folder(new_folder, str(i))
-                element.save_zip(zip_file, full_save=full_save, folder=element_folder)
+            MushroomObject._save_list(zip_file, name, obj, folder, 'mushroom', full_save)
         else:
+            new_folder = MushroomObject._append_folder(folder, name)
             obj.save_zip(zip_file, full_save=full_save, folder=new_folder)
+
+    @staticmethod
+    def _save_list(zip_file, name, obj, folder, method, full_save=False):
+        new_folder = MushroomObject._append_folder(folder, name)
+        config_data = dict(
+            type=list,
+            save_attributes=dict(),
+            logger_attributes=dict(),
+            primitive_dictionary=dict(len=len(obj), method=method)
+        )
+        MushroomObject._save_pickle(zip_file, 'config', config_data, folder=new_folder)
+
+        save_method = getattr(MushroomObject, '_save_{}'.format(method))
+        for i, element in enumerate(obj):  # a nested list recurses via the method's own list guard
+            save_method(zip_file, str(i), element, folder=new_folder, full_save=full_save)
 
     @staticmethod
     def _get_serialization_method(class_name):

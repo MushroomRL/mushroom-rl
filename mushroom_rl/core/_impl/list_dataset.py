@@ -14,8 +14,6 @@ class ListDataset(MushroomObject):
         self._columns = [list() for _ in range(n_columns)]
         self._n_envs = n_envs
 
-        super().__init__()
-
         self._add_all_save_attr()
 
     @classmethod
@@ -55,7 +53,7 @@ class ListDataset(MushroomObject):
             column.append(deepcopy(value if self._n_envs is None else value[:self._n_envs]))
 
     def append_batch(self, other):
-        for column, other_column in zip(self._columns, other.columns):
+        for column, other_column in zip(self._columns, other.data):
             column.extend(deepcopy(other_column))
 
     def clear(self):
@@ -81,7 +79,7 @@ class ListDataset(MushroomObject):
         result = self.create_new_instance(self)
 
         result._columns = [column + other_column
-                           for column, other_column in zip(self._columns, other.columns)]
+                           for column, other_column in zip(self._columns, other.data)]
 
         return result
 
@@ -92,12 +90,16 @@ class ListDataset(MushroomObject):
         return self._columns[index]
 
     @property
-    def columns(self):
+    def data(self):
         return list(self._columns)
 
     @property
     def n_columns(self):
         return len(self._columns)
+
+    @property
+    def n_envs(self):
+        return self._n_envs
 
     def n_episodes(self, last_index):
         last = self.column(last_index)

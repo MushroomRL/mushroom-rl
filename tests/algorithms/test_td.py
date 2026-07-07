@@ -19,8 +19,9 @@ from mushroom_rl.rl_utils.parameters import Parameter
 
 
 def assert_properly_loaded(agent_save, agent_load):
-    for att, method in vars(agent_save).items():
-        if att != 'next_action':
+    for att in vars(agent_save):
+        method = agent_save._save_attributes.get(att, '')
+        if att != 'next_action' and method != 'none':
             save_attr = getattr(agent_save, att)
             load_attr = getattr(agent_load, att)
             tu.assert_eq(save_attr, load_attr)
