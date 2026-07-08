@@ -1,19 +1,23 @@
 For Mushroom 2.0:
-    * add history_length support to SequenceReplayMemory (frame stacking + BPTT simultaneously) and necessary framework level support.
-    * fix basis functions
-        - vectorize if possible, using vmap if allowed
-        - simplify interface, improving facade pattern
-    * reorganize example folder
-    * linting as much as possible
     * network cleanups
         - fix RecurrentCriticNetwork: dim_env_state should be derived from input_shape instead of being a
           separate constructor argument (then add its docstring)
         - remove the AtariNetwork.n_features class variable and the related assert in AtariFeatureNetwork;
           derive the feature size from output_shape instead of hardcoding it
+    * fix basis functions
+        - vectorize if possible, using vmap if allowed
+        - simplify interface, improving facade pattern
     * deterministic policy evaluation
+    * reorganize example folder
+        - decide whether to keep maintaining the igibson and habitat examples (uninstallable deps, stale
+          replay-memory API); possibly move them to a separate repository
+    * linting as much as possible
 
 
 For Mushroom 2.1:
+    * HistoryManager subclass for complex per-stream specifications
+      - the base HistoryManager handles only the `offset` option; delegate richer specs to a subclass
+        (strides, structured/general lookbacks)
     * vectorize _compute_n_step_return in AbstractReplayMemory
     * fix MellowMax parameter class
     * handle ExtraInfo correctly in ReplayMemory

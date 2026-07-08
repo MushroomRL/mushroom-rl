@@ -14,7 +14,7 @@ class PrioritizedReplayMemory(ReplayMemory):
 
     """
     def __init__(self, mdp_info, agent_info, initial_size, max_size, alpha, beta, epsilon=.01,
-                 history_length=1, n_steps_return=1, store_policy_state=False):
+                 history_manager=None, n_steps_return=1, store_policy_state=False):
         """
         Constructor.
 
@@ -26,7 +26,8 @@ class PrioritizedReplayMemory(ReplayMemory):
             alpha (float): prioritization coefficient;
             beta ([float, Parameter]): importance sampling coefficient;
             epsilon (float, .01): small value to avoid zero probabilities;
-            history_length (int, 1): number of consecutive observations per sample;
+            history_manager (HistoryManager, None): the manager used by the agent to assemble the stacked observation,
+                reused offline so that the stacked observation matches the one built online;
             n_steps_return (int, 1): number of steps used for the n-step return.
 
         """
@@ -34,7 +35,7 @@ class PrioritizedReplayMemory(ReplayMemory):
         self._beta = to_parameter(beta)
         self._epsilon = epsilon
 
-        super().__init__(mdp_info, agent_info, initial_size, max_size, history_length, n_steps_return,
+        super().__init__(mdp_info, agent_info, initial_size, max_size, history_manager, n_steps_return,
                          store_policy_state)
 
         self._add_save_attr(
@@ -96,6 +97,9 @@ class PrioritizedReplayMemory(ReplayMemory):
 
         for i, s in enumerate(samples):
             idx, p = self._tree.get(s)
+            # reject anchors whose stacked observation would cross the write head, redrawing over the whole tree
+            while self._crosses_write_head(idx - self._max_size + 1):
+                idx, p = self._tree.get(np.random.uniform(0, total_p))
             idxs[i] = idx
             priorities[i] = p
             data_idxs[i] = idx - self._max_size + 1
@@ -107,10 +111,12 @@ class PrioritizedReplayMemory(ReplayMemory):
         data_idxs = ArrayBackend.convert(data_idxs, to=self._agent_info.backend)
 
         if self._history_length > 1:
-            state_out, nstate_out = self._get_with_history(data_idxs)
+            state_out, next_state_out, _ = self._history_manager.build_transition_windows_circular_buffer(
+                self._dataset.state, self._dataset.next_state, self._dataset.action,
+                self._dataset.last, data_idxs, len(self._dataset), self._full, self._max_size)
             batch = self._dataset[data_idxs]
             _, action, reward, _, absorbing, last = batch.parse()
-            return state_out, action, reward, nstate_out, absorbing, last, idxs, is_weight
+            return state_out, action, reward, next_state_out, absorbing, last, idxs, is_weight
         elif self._dataset.is_stateful:
             return *self._dataset[data_idxs].parse(), \
                    *self._dataset[data_idxs].parse_policy_state(), idxs, is_weight

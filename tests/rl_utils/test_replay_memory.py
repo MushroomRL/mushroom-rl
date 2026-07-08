@@ -1,8 +1,10 @@
 import numpy as np
+import pytest
 import torch
 
 from mushroom_rl.core import MDPInfo, AgentInfo, Dataset
 from mushroom_rl.core.spaces import Box, Discrete
+from mushroom_rl.core.history_manager import HistoryManager
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory, SequenceReplayMemory, PrioritizedReplayMemory
 from mushroom_rl.rl_utils.parameters import LinearParameter
 
@@ -308,6 +310,109 @@ def test_sequence_replay_memory_episode_boundary():
         assert lengths[0] <= episode_length
 
 
+def test_sequence_replay_memory_history_composition():
+    obs_shape = (4,)
+    act_shape = (2,)
+    policy_state_shape = (8,)
+    truncation_length = 3
+    history_length = 2
+    n = 15
+    n_samples = 3
+
+    rng = np.random.RandomState(1)
+    dataset, *_ = make_dataset(n, rng, obs_shape, act_shape,
+                               policy_state_shape=policy_state_shape, episode_ends=[14])
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info(policy_state_shape=policy_state_shape)
+    history_manager = HistoryManager.from_infos(mdp_info, agent_info, history_length=history_length)
+    rm = SequenceReplayMemory(mdp_info, agent_info, initial_size=5, max_size=100,
+                              truncation_length=truncation_length, history_manager=history_manager)
+    rm.add(dataset)
+
+    np.random.seed(5)
+    s_seq, a_seq, r_seq, ss_seq, ab_seq, last_seq, ps_seq, nps_seq, pa_seq, lengths = rm.get(n_samples)
+
+    np.random.seed(5)
+    expected_idxs = np.random.randint(0, rm.size, (n_samples,))
+
+    assert s_seq.shape == (n_samples, truncation_length, history_length, *obs_shape)
+    assert ps_seq.shape == (n_samples, truncation_length, *policy_state_shape)
+
+    for k, idx in enumerate(expected_idxs):
+        idx = int(idx)
+        begin = max(idx - truncation_length + 1, 0)
+        length = idx + 1 - begin
+        assert lengths[k] == length
+        assert np.allclose(s_seq[k, :length, history_length - 1], rm._dataset.state[begin:idx + 1])
+        for t in range(length):
+            anchor = begin + t
+            if anchor - 1 >= 0:
+                assert np.allclose(s_seq[k, t, 0], rm._dataset.state[anchor - 1])
+            else:
+                assert np.allclose(s_seq[k, t, 0], 0.0)
+
+
+def test_sequence_replay_memory_history_reduced_sampling_across_write_head():
+    obs_shape = (1,)
+    act_shape = (1,)
+    policy_state_shape = (2,)
+    history_length = 2
+    truncation_length = 3
+    max_size = 6
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info(policy_state_shape=policy_state_shape)
+    history_manager = HistoryManager.from_infos(mdp_info, agent_info, history_length=history_length)
+    rm = SequenceReplayMemory(mdp_info, agent_info, initial_size=1, max_size=max_size,
+                              truncation_length=truncation_length, history_manager=history_manager)
+
+    # one continuous episode (no last flags) longer than the buffer, so it wraps around the write head
+    for v in range(9):
+        s = np.array([[float(v)]])
+        rm.add(Dataset.from_array(s, np.zeros((1, 1)), np.zeros(1), s + 0.5, np.zeros(1), np.zeros(1),
+                                  policy_state=np.zeros((1, *policy_state_shape)),
+                                  policy_next_state=np.zeros((1, *policy_state_shape)), backend='numpy'))
+
+    assert rm._full and rm._idx == 3          # chronological values are [3, 4, 5, 6, 7, 8], the oldest is 3
+
+    np.random.seed(0)
+    s_seq, a_seq, r_seq, ss_seq, ab_seq, last_seq, ps_seq, nps_seq, pa_seq, lengths = rm.get(200)
+
+    for k, length in enumerate(lengths):
+        current = s_seq[k, :length, history_length - 1, 0]
+        # the sequence is a single contiguous trajectory: consecutive timesteps differ by exactly one, and the
+        # temporal length is truncated at the write head instead of stitching in unrelated frames
+        assert np.allclose(current[1:] - current[:-1], 1.0)
+        # each timestep's frame-stack is contiguous too, so it never crosses the write head
+        assert np.allclose(s_seq[k, :length, 1, 0] - s_seq[k, :length, 0, 0], 1.0)
+        # the oldest sample can never be rebuilt as an anchor's current frame, so is never sampled as one
+        assert not np.any(current == 3.0)
+
+
+def test_history_manager_from_infos_none():
+    mdp_info = make_mdp_info((4,), (2,))
+    agent_info = make_agent_info()
+
+    assert HistoryManager.from_infos(mdp_info, agent_info, history_length=1) is None
+    assert HistoryManager.from_infos(mdp_info, agent_info, history_length=3) is not None
+    assert HistoryManager.from_infos(mdp_info, agent_info, action_history_length=1) is not None
+    assert HistoryManager.from_infos(mdp_info, agent_info, action_history_length=2) is not None
+
+
+def test_replay_memory_rejects_exogenous_history_stream():
+    mdp_info = make_mdp_info((4,), (2,))
+    agent_info = make_agent_info()
+    history_manager = HistoryManager(mdp_info, agent_info, obs_history_length=3,
+                                     extra_buffers={'command': dict(length=2, shape=(1,), dtype=float)})
+
+    with pytest.raises(AssertionError):
+        ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50, history_manager=history_manager)
+
+    obs_action_manager = HistoryManager.from_infos(mdp_info, agent_info, history_length=3, action_history_length=1)
+    ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50, history_manager=obs_action_manager)
+
+
 def test_prioritized_replay_memory_add_get():
     obs_shape = (4,)
     act_shape = (2,)
@@ -429,7 +534,8 @@ def test_replay_memory_history():
 
     mdp_info = make_mdp_info(obs_shape, act_shape)
     agent_info = make_agent_info()
-    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50, history_length=history_length)
+    history_manager = HistoryManager.from_infos(mdp_info, agent_info, history_length=history_length)
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50, history_manager=history_manager)
     rm.add(dataset)
 
     np.random.seed(7)
@@ -442,6 +548,37 @@ def test_replay_memory_history():
     assert a.shape == (4, *act_shape)
     assert np.allclose(s[:, history_length - 1], states[expected_idxs])
     assert np.allclose(ss[:, history_length - 1], next_states[expected_idxs])
+
+
+def test_replay_memory_history_reduced_sampling_excludes_write_head():
+    obs_shape = (1,)
+    act_shape = (1,)
+    history_length = 3
+    max_size = 5
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info()
+    history_manager = HistoryManager.from_infos(mdp_info, agent_info, history_length=history_length)
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=1, max_size=max_size, history_manager=history_manager)
+
+    # one continuous episode (no last flags) longer than the buffer, so it wraps around the write head
+    for v in range(8):
+        s = np.array([[float(v)]])
+        rm.add(Dataset.from_array(s, np.zeros((1, 1)), np.zeros(1), s + 0.5, np.zeros(1), np.zeros(1),
+                                  backend='numpy'))
+
+    assert rm._full and rm._idx == 3          # chronological order of positions is [3, 4, 0, 1, 2] -> values [3..7]
+
+    np.random.seed(0)
+    s, a, r, ss, ab, last = rm.get(200)
+
+    # each stacked observation must be a contiguous chronological window: since the whole buffer is a single
+    # continuous episode, consecutive stacked frames must differ by exactly one (no write-head crossing)
+    assert np.allclose(s[:, 1:, 0] - s[:, :-1, 0], 1.0)
+
+    # the (history_length - 1) oldest samples (values 3 and 4) can never be rebuilt, so must never be sampled
+    anchors = s[:, history_length - 1, 0]
+    assert not np.any(np.isin(anchors, [3.0, 4.0]))
 
 
 def test_replay_memory_wrap_after_full():

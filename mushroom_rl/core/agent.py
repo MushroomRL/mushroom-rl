@@ -28,7 +28,8 @@ class Agent(MushroomObject):
 
     """
 
-    def __init__(self, mdp_info, policy, is_episodic=False, backend='numpy', history_length=1):
+    def __init__(self, mdp_info, policy, is_episodic=False, backend='numpy', history_length=None,
+                 action_history_length=None, history_manager=None):
         """
         Constructor.
 
@@ -37,11 +38,19 @@ class Agent(MushroomObject):
             policy (Policy): the policy followed by the agent;
             is_episodic (bool, False): whether the agent is learning in an episodic fashion or not;
             backend (str, 'numpy'): array backend to be used by the algorithm;
-            history_length (int, 1): number of observations stacked as input to the policy. When greater than 1 the
+            history_length (int, None): number of observations stacked as input to the policy. When greater than 1 the
                 agent builds a :class:`~mushroom_rl.core.history_manager.HistoryManager` that assembles the stacked
                 observation on the fly; the history is reconstructable and never stored as policy state.
+            action_history_length (int, None): number of previous actions stacked as input to the policy. When greater
+                than 0 the :class:`~mushroom_rl.core.history_manager.HistoryManager` also assembles the stacked
+                previous actions on the fly.
+            history_manager (HistoryManager, None): an already built history manager to use, mutually exclusive with
+                ``history_length`` and ``action_history_length``.
 
         """
+        assert history_manager is None or (history_length is None and action_history_length is None), \
+            "Pass either a history_manager or the history lengths, not both."
+
         self.mdp_info = mdp_info
         self._info = AgentInfo(
             is_episodic=is_episodic,
@@ -50,10 +59,15 @@ class Agent(MushroomObject):
         )
         self.policy = policy
         self.next_action = None
+        self._last_action = None
         self._agent_backend = ArrayBackend.get_array_backend(backend)
         self._env_backend = ArrayBackend.get_array_backend(self.mdp_info.backend)
 
-        self._history_manager = self._build_history_manager(history_length)
+        if history_manager is not None:
+            self._history_manager = history_manager
+        else:
+            self._history_manager = HistoryManager.from_infos(self.mdp_info, self._info, history_length,
+                                                              action_history_length)
 
         self._core_preprocessors = list()
         self._agent_preprocessors = list()
@@ -63,6 +77,7 @@ class Agent(MushroomObject):
         self._add_save_attr(
             policy='mushroom',
             next_action='none',
+            _last_action='none',
             mdp_info='mushroom',
             _info='mushroom',
             _history_manager='mushroom',
@@ -99,13 +114,20 @@ class Agent(MushroomObject):
             state = self._convert_to_agent_backend(state)
             state = self._agent_preprocess(state)
 
+            policy_kwargs = dict()
             if self._history_manager is not None:
-                state = self._history_manager(state)
+                history_input = dict()
+                if self._history_manager.uses_action:
+                    history_input['action_history'] = self._last_action
+                state, policy_kwargs = self._history_manager(state, **history_input)
 
-            action = self.policy.draw_action(state)
+            action = self.policy.draw_action(state, **policy_kwargs)
         else:
-            action = self.next_action
+            action = self._convert_to_agent_backend(self.next_action)
             self.next_action = None
+
+        if self._history_manager is not None and self._history_manager.uses_action:
+            self._last_action = action
 
         return self._convert_to_env_backend(action)
 
@@ -133,6 +155,7 @@ class Agent(MushroomObject):
         """
         if self._history_manager is not None:
             self._history_manager.reset()
+            self._last_action = None
 
         return self.policy.reset(), None
 
@@ -151,6 +174,8 @@ class Agent(MushroomObject):
         """
         if self._history_manager is not None:
             self._history_manager.reset_vectorized(start_mask)
+            if self._history_manager.uses_action and self._last_action is not None:
+                self._last_action[self._agent_backend.convert(start_mask)] = 0
 
         return self.policy.reset_vectorized(start_mask), None
 
@@ -191,13 +216,6 @@ class Agent(MushroomObject):
 
         """
         return self._core_preprocessors
-
-    def _build_history_manager(self, history_length):
-        if history_length > 1:
-            obs_shape = self.mdp_info.observation_space.shape
-            obs_dtype = self.mdp_info.observation_space.data_type
-            return HistoryManager(history_length, obs_shape, obs_dtype, self._env_backend, self._agent_backend)
-        return None
 
     def _convert_to_env_backend(self, array):
         return self._env_backend.convert_to_backend(self._agent_backend, array)
@@ -244,3 +262,13 @@ class Agent(MushroomObject):
 
         """
         return self._history_manager.history_length if self._history_manager is not None else 1
+
+    @property
+    def history_manager(self):
+        """
+        The :class:`~mushroom_rl.core.history_manager.HistoryManager` used to assemble the policy input, or ``None``
+        when no history is used. It can be injected into a replay memory so that the offline context matches the one
+        built online.
+
+        """
+        return self._history_manager

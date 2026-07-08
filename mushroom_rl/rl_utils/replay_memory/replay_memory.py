@@ -8,7 +8,7 @@ class ReplayMemory(MushroomObject):
 
     """
     def __init__(self, mdp_info, agent_info, initial_size, max_size,
-                 history_length=1, n_steps_return=1, store_policy_state=False):
+                 history_manager=None, n_steps_return=1, store_policy_state=False, return_extra=False):
         """
         Constructor.
 
@@ -17,21 +17,29 @@ class ReplayMemory(MushroomObject):
             agent_info (AgentInfo): information about the agent;
             initial_size (int): initial size of the replay buffer;
             max_size (int): maximum size of the replay buffer;
-            history_length (int, 1): number of consecutive observations returned per sample;
+            history_manager (HistoryManager, None): the manager used by the agent to assemble the stacked observation,
+                reused offline so that the stacked observation matches the one built online;
             n_steps_return (int, 1): number of steps used for the n-step return;
             store_policy_state (bool, False): whether the policy internal state is stored in the replay memory. When
                 ``False``, no policy-state buffer is allocated and the policy state of the added datasets is dropped;
-                a stateless algorithm should leave it ``False`` even if its policy is stateful.
+                a stateless algorithm should leave it ``False`` even if its policy is stateful;
+            return_extra (bool, False): whether :meth:`get` appends, as a trailing element, the ``extra_data``
+                dictionary of the history windows not delivered in-band in the state, keyed as the online policy
+                keyword arguments. When ``False`` these streams are not returned.
 
         """
         assert agent_info.backend in ["numpy", "torch"], \
             f"{agent_info.backend} backend currently not supported in the replay memory class."
+        assert history_manager is None or not history_manager.exogenous_streams, \
+            "The replay memory cannot rebuild exogenous history streams offline, " \
+            f"got {sorted(history_manager.exogenous_streams)}."
 
         self._initial_size = initial_size
         self._max_size = max_size
-        self._history_length = history_length
+        self._history_manager = history_manager
         self._n_steps_return = n_steps_return
         self._store_policy_state = store_policy_state
+        self._return_extra = return_extra
         self._mdp_info = mdp_info
         self._agent_info = agent_info
 
@@ -43,15 +51,29 @@ class ReplayMemory(MushroomObject):
         self._add_save_attr(
             _initial_size='primitive',
             _max_size='primitive',
-            _history_length='primitive',
+            _history_manager='mushroom',
             _n_steps_return='primitive',
             _store_policy_state='primitive',
+            _return_extra='primitive',
             _mdp_info='mushroom',
             _agent_info='mushroom',
             _idx='primitive!',
             _full='primitive!',
             _dataset='mushroom!',
         )
+
+    @property
+    def _history_length(self):
+        return self._history_manager.history_length if self._history_manager is not None else 1
+
+    @property
+    def _max_reach(self):
+        """
+        The deepest backward reach across all history streams, i.e. how many of the oldest samples of a full buffer are
+        excluded from sampling so that no window is rebuilt across the write head. It is 0 when no history is used.
+
+        """
+        return self._history_manager.max_reach if self._history_manager is not None else 0
 
     def add(self, dataset):
         """
@@ -89,20 +111,55 @@ class ReplayMemory(MushroomObject):
             The requested number of samples.
 
         """
-        idxs = self._dataset.array_backend.randint(0, len(self._dataset), (n_samples,))
+        idxs = self._sample_idxs(n_samples)
+        batch = self._dataset[idxs]
+        state, action, reward, next_state, absorbing, last = batch.parse()
 
-        if self._history_length > 1:
-            state_out, nstate_out = self._get_with_history(idxs)
-            batch = self._dataset[idxs]
-            _, action, reward, _, absorbing, last = batch.parse()
-            return state_out, action, reward, nstate_out, absorbing, last
+        extra = dict()
+        if self._history_manager is not None:
+            state, next_state, extra = self._history_manager.build_transition_windows_circular_buffer(
+                self._dataset.state, self._dataset.next_state, self._dataset.action,
+                self._dataset.last, idxs, len(self._dataset), self._full, self._max_size)
 
-        dataset_batch = self._dataset[idxs]
+        out = [state, action, reward, next_state, absorbing, last]
 
         if self._dataset.is_stateful:
-            return *dataset_batch.parse(), *dataset_batch.parse_policy_state()
-        else:
-            return dataset_batch.parse()
+            out += list(batch.parse_policy_state())
+
+        if self._return_extra:
+            out.append(extra)
+
+        return tuple(out)
+
+    def _sample_idxs(self, n_samples):
+        """
+        Sample buffer indices to read, excluding anchors for which a valid stacked observation cannot be rebuilt.
+
+        When the buffer is full and a history is used, the ``max_reach`` oldest samples are skipped: their earlier
+        entries have already been overwritten, so walking back from them would cross the write head and stitch together
+        entries from unrelated trajectory segments.
+
+        Args:
+            n_samples (int): the number of indices to sample.
+
+        Returns:
+            The sampled buffer indices.
+
+        """
+        backend = self._dataset.array_backend
+        if self._max_reach > 0 and self._full:
+            offsets = backend.randint(self._max_reach, self._max_size, (n_samples,))
+            return (self._idx + offsets) % self._max_size
+        return backend.randint(0, len(self._dataset), (n_samples,))
+
+    def _crosses_write_head(self, idx):
+        """
+        Whether a window anchored at buffer position ``idx`` would cross the write head of a full buffer, i.e. ``idx``
+        is one of the ``max_reach`` oldest samples whose earlier entries were overwritten.
+
+        """
+        return self._max_reach > 0 and self._full and \
+            (idx - self._idx) % self._max_size < self._max_reach
 
     def reset(self):
         """
@@ -272,58 +329,6 @@ class ReplayMemory(MushroomObject):
             self._idx = rest
 
         return positions
-
-    def _get_with_history(self, idxs):
-        """
-        Retrieve state and next-state observations with history stacking for the given indices.
-
-        Args:
-            idxs (array): buffer indices to retrieve.
-
-        Returns:
-            A tuple ``(state_out, next_state_out)`` where each array has shape
-            ``(n_samples, history_length, *obs_shape)``.
-
-        """
-        state_out = self._build_history(idxs, self._dataset.state)
-        nstate_out = self._build_history(idxs, self._dataset.next_state)
-        return state_out, nstate_out
-
-    def _build_history(self, anchor_idxs, buffer):
-        """
-        Build a stacked observation history for each anchor index by walking backwards
-        through the circular buffer up to ``history_length`` steps, stopping at episode boundaries.
-
-        Args:
-            anchor_idxs (array): buffer indices to use as the most-recent observation;
-            buffer (array): the observation buffer to read from (state or next_state).
-
-        Returns:
-            An array of shape ``(n_samples, history_length, *obs_shape)`` with older observations at lower channel
-            indices and the anchor observation at index ``history_length - 1``.
-
-        """
-        dataset = self._dataset
-        is_full = self._full
-        h = self._history_length
-        obs_shape = buffer.shape[1:]
-        obs_dtype = buffer.dtype
-        n_samples = len(anchor_idxs)
-        out = self._dataset.array_backend.zeros(n_samples, h, *obs_shape, dtype=obs_dtype)
-
-        for k, anchor in enumerate(anchor_idxs):
-            for t in range(h):
-                pos = anchor - t
-                if not is_full and (pos < 0 or pos >= len(dataset)):
-                    break
-                buf = pos % self._max_size
-                out[k, h - 1 - t] = buffer[buf]
-                if t < h - 1:
-                    prev = (pos - 1) % self._max_size
-                    if (not is_full and pos == 0) or dataset.last[prev]:
-                        break
-
-        return out
 
     def _post_load(self):
         if self._full is None:

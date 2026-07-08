@@ -55,7 +55,7 @@ class AbstractDQN(Agent):
             if isinstance(replay_memory, dict):
                 self._replay_memory = replay_memory["class"](
                     mdp_info, self.info, initial_replay_size, max_replay_size,
-                    history_length=self.history_length, **replay_memory["params"])
+                    history_manager=self.history_manager, **replay_memory["params"])
             else:
                 self._replay_memory = replay_memory
 
@@ -66,7 +66,7 @@ class AbstractDQN(Agent):
         else:
             self._replay_memory = ReplayMemory(
                 mdp_info, self.info, initial_replay_size, max_replay_size,
-                history_length=self.history_length)
+                history_manager=self.history_manager)
             self._fit = self._fit_standard
 
         self._n_updates = 0

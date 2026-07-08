@@ -1,6 +1,9 @@
 import numpy as np
+import pytest
 
-from mushroom_rl.core import Agent, Core
+from mushroom_rl.core import Agent, Core, MDPInfo, AgentInfo
+from mushroom_rl.core.spaces import Box, Discrete
+from mushroom_rl.core.history_manager import HistoryManager
 from mushroom_rl.environments import Atari
 
 from mushroom_rl.policy import Policy
@@ -22,6 +25,22 @@ class DummyAgent(Agent):
 
     def fit(self, dataset):
         pass
+
+
+def test_agent_history_manager_mutually_exclusive():
+    obs_space = Box(np.full((4,), -1.0), np.full((4,), 1.0), (4,))
+    act_space = Discrete(3)
+    mdp_info = MDPInfo(obs_space, act_space, gamma=0.99, horizon=100, backend='numpy')
+    policy = RandomDiscretePolicy(act_space.n)
+
+    agent_info = AgentInfo(is_episodic=False, policy_state_shape=None, backend='numpy')
+    history_manager = HistoryManager(mdp_info, agent_info, obs_history_length=3)
+
+    agent = Agent(mdp_info, policy, history_manager=history_manager)
+    assert agent.history_manager is history_manager
+
+    with pytest.raises(AssertionError):
+        Agent(mdp_info, policy, history_length=3, history_manager=history_manager)
 
 
 def test_core():

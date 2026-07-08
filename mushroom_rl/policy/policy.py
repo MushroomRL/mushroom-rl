@@ -27,12 +27,14 @@ class Policy(MushroomObject):
         """
         raise NotImplementedError
 
-    def draw_action(self, state):
+    def draw_action(self, state, **kwargs):
         """
         Sample an action in ``state`` using the policy.
 
         Args:
-            state: the state where the agent is.
+            state: the state where the agent is;
+            **kwargs: additional per-timestep conditioning inputs assembled by the agent; policies that do not
+                consume them can ignore the keyword arguments.
 
         Returns:
             The action sampled from the policy.
@@ -123,7 +125,7 @@ class StatefulPolicy(Policy):
     def policy_state(self, value):
         self._policy_state = None if value is None else ArrayBackend.get_array_backend_from(value).copy(value)
 
-    def draw_action(self, state, policy_state=None):
+    def draw_action(self, state, policy_state=None, **kwargs):
         """
         Sample an action in ``state`` using the policy.
 
@@ -133,27 +135,30 @@ class StatefulPolicy(Policy):
         Args:
             state: the state where the agent is;
             policy_state (None): the internal state of the policy. If ``None``, the stored internal state is used and
-                updated.
+                updated;
+            **kwargs: additional per-timestep conditioning inputs assembled by the agent; policies that do not
+                consume them can ignore the keyword arguments.
 
         Returns:
             The action sampled from the policy.
 
         """
         if policy_state is None:
-            action, self._policy_state = self._draw_action(state, self._policy_state)
+            action, self._policy_state = self._draw_action(state, self._policy_state, **kwargs)
         else:
-            action, _ = self._draw_action(state, policy_state)
+            action, _ = self._draw_action(state, policy_state, **kwargs)
 
         return action
 
-    def _draw_action(self, state, policy_state):
+    def _draw_action(self, state, policy_state, **kwargs):
         """
         Sample an action in ``state`` given the policy state, returning the next policy state. This is the functional
         core of :meth:`draw_action` and must not mutate the internal state.
 
         Args:
             state: the state where the agent is;
-            policy_state: the internal state of the policy.
+            policy_state: the internal state of the policy;
+            **kwargs: additional per-timestep conditioning inputs.
 
         Returns:
             A tuple containing the sampled action and the next policy state.
