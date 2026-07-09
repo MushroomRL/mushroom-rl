@@ -1,9 +1,10 @@
 How to stack a history of observations
 ======================================
 
-Many problems are not fully observable from a single observation: the agent needs a short window of the
-recent past to act well, e.g. a stack of the last few frames to perceive velocities, or the last few actions
-it took. In MushroomRL this windowing is handled by the
+In many problems a single observation does not give enough information about the state of the environment, and
+the agent must rely on a short window of the recent past to take the optimal action, e.g. a stack of the last
+few frames to
+perceive velocities, or the last few actions it took. In MushroomRL this windowing is handled by the
 :class:`~mushroom_rl.core.history_manager.HistoryManager`, an object that assembles the per-timestep **context**
 fed to the policy, i.e. the stacked window of the most recent entries of one or more streams.
 
@@ -34,14 +35,15 @@ A history manager holds an ordered set of named **streams**. Each stream is desc
 By default, two streams are handled automatically:
 
 - ``obs`` — the reserved observation stream; stacks the last ``history_length`` observations with ``offset`` 0
-  (its window ends at the current step), and is delivered *in band*, replacing the ``state`` passed to the policy;
+  (its window ends at the current step), and is passed to the policy in place of the ``state`` argument;
 - ``action_history`` — stacks the last ``action_history_length`` actions with ``offset`` 1 (its window ends one
-  step behind, since the current action has not been taken yet), and is delivered as a keyword argument.
+  step behind, since the current action has not been taken yet), and is passed to the policy as a keyword argument.
 
 The two are orthogonal: either can be active on its own, or both together, and each keeps its own length. The
 usual way to build a manager is :meth:`~mushroom_rl.core.history_manager.HistoryManager.from_infos`, which reads
 the shapes and data types from the MDP and agent information and returns ``None`` when no stream is active
-(``history_length`` 1 and ``action_history_length`` 0). Here we build it explicitly to see it in isolation:
+(``history_length`` 1 and ``action_history_length`` 0). In the following we construct a manager directly and
+exercise it, to illustrate its behaviour:
 
 .. literalinclude:: code/history_manager.py
    :lines: 1-17
@@ -96,8 +98,7 @@ wrapped-around buffer, taking positions modulo the buffer size and stopping at t
 Sequence vs. window
 -------------------
 
-It is worth distinguishing two lengths that are easy to conflate, because they live on different axes and
-**compose orthogonally**:
+The window and the sequence are two distinct concepts that should not be confused:
 
 - the **window** is the history-stacking length of a *single* timestep — ``history_length`` observations (or
   ``action_history_length`` actions) glued together to form the input at that step. This is what the history
@@ -107,8 +108,8 @@ It is worth distinguishing two lengths that are easy to conflate, because they l
   :class:`~mushroom_rl.rl_utils.replay_memory.SequenceReplayMemory` and ``PPO_BPTT``). This is a property of how
   the replay memory samples, not of the history manager.
 
-The two are independent. With a ``history_length`` greater than 1, each timestep of a sampled sequence is
-itself a stacked window, so the sampled states have shape
+The two act on separate axes and **compose orthogonally**. With a ``history_length`` greater than 1, each
+timestep of a sampled sequence is itself a stacked window, so the sampled states have shape
 ``(n_samples, truncation_length, history_length, *obs_shape)``, collapsing to
 ``(n_samples, truncation_length, *obs_shape)`` when no observation stacking is used. The sequence axis is
 contributed by the replay memory and the window axis by the history manager, and each may be enabled
