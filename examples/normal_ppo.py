@@ -55,7 +55,7 @@ def experiment(env_class, num_envs, n_epochs, n_steps, n_steps_per_fit,
     eps_ppo = 0.2
     lam = 0.95
     std_0 = 1.0
-
+    ent_coeff = 0.01
     hyperparams = dict(
         env=env_class.__name__,
         num_envs=num_envs,
@@ -69,6 +69,7 @@ def experiment(env_class, num_envs, n_epochs, n_steps, n_steps_per_fit,
         n_features=n_features,
         n_epochs_policy=n_epochs_policy,
         eps_ppo=eps_ppo,
+        ent_coeff=ent_coeff,
         lam=lam,
         std_0=std_0,
     )
@@ -110,6 +111,7 @@ def experiment(env_class, num_envs, n_epochs, n_steps, n_steps_per_fit,
         batch_size=batch_size,
         eps_ppo=eps_ppo,
         lam=lam,
+        ent_coeff=ent_coeff,
         critic_params=critic_params,
     )
 
