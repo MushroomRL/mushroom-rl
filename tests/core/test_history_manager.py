@@ -106,7 +106,7 @@ def test_online_offline_equivalence():
     last = np.zeros(5)
     last[-1] = 1.0
     anchors = np.arange(5)
-    offline = hm.build_history_circular_buffer('obs', states, last, anchors, size=5, full=False, max_size=50)
+    offline = hm.build_history_circular_buffer('obs_history', states, last, anchors, size=5, full=False, max_size=50)
 
     assert offline.shape == (5, history_length, *obs_shape)
     assert np.allclose(online, offline)
@@ -128,7 +128,7 @@ def test_online_offline_equivalence_across_episodes():
         online.append(hm(states[t])[0])
     online = np.stack(online)
 
-    offline = hm.build_history_circular_buffer('obs', states, last, np.arange(5), size=5, full=False, max_size=50)
+    offline = hm.build_history_circular_buffer('obs_history', states, last, np.arange(5), size=5, full=False, max_size=50)
 
     assert np.allclose(online, offline)
     # the second episode (starting at index 3) is zero-padded, never stitched to the first episode
@@ -143,7 +143,7 @@ def test_build_history_batch_stops_at_episode_boundary():
     last[2] = 1.0
 
     hm = _make_manager(history_length=history_length, obs_shape=(2,))
-    offline = hm.build_history_circular_buffer('obs', states, last, np.array([4]), size=5, full=False, max_size=50)
+    offline = hm.build_history_circular_buffer('obs_history', states, last, np.array([4]), size=5, full=False, max_size=50)
 
     assert np.allclose(offline[0], np.array([[0.0, 0.0], states[3], states[4]]))
 
@@ -159,10 +159,12 @@ def test_action_only_stream():
     assert kwargs_0['action_history'].shape == (2, 2)
     assert np.allclose(kwargs_0['action_history'], 0.0)
 
-    _, kwargs_1 = hm(action_history=np.array([1.0, 1.0]))
+    hm.record_action(np.array([1.0, 1.0]))
+    _, kwargs_1 = hm()
     assert np.allclose(kwargs_1['action_history'], np.array([[0.0, 0.0], [1.0, 1.0]]))
 
-    _, kwargs_2 = hm(action_history=np.array([2.0, 2.0]))
+    hm.record_action(np.array([2.0, 2.0]))
+    _, kwargs_2 = hm()
     assert np.allclose(kwargs_2['action_history'], np.array([[1.0, 1.0], [2.0, 2.0]]))
 
 
@@ -212,7 +214,8 @@ def test_multi_stream_splits_state_and_action():
                         extra_buffers={'action_history': dict(length=2, shape=(1,), dtype=float)})
     hm.reset()
 
-    state, kwargs = hm(np.array([1.0, 1.0]), action_history=np.array([5.0]))
+    hm.record_action(np.array([5.0]))
+    state, kwargs = hm(np.array([1.0, 1.0]))
 
     assert set(kwargs.keys()) == {'action_history'}
     assert state.shape == (3, 2)
@@ -236,11 +239,10 @@ def test_previous_action_online_offline_equivalence():
     hm = _make_action_manager(action_history_length=2)
     hm.reset()
     online = []
-    previous = None
     for t in range(5):
-        _, kwargs = hm(action_history=previous)
+        _, kwargs = hm()
         online.append(kwargs['action_history'])
-        previous = actions[t]
+        hm.record_action(actions[t])
     online = np.stack(online)
 
     offline = hm.build_history('action_history', actions, last, np.arange(5))
@@ -269,8 +271,8 @@ def test_build_history_all_anchors_matches_indexed_obs():
     last[2] = 1.0
 
     hm = _make_manager(history_length=history_length, obs_shape=(1,))
-    indexed = hm.build_history('obs', states, last, np.arange(6))
-    all_anchors = hm.build_history('obs', states, last)
+    indexed = hm.build_history('obs_history', states, last, np.arange(6))
+    all_anchors = hm.build_history('obs_history', states, last)
 
     assert all_anchors.shape == (6, history_length, 1)
     assert np.allclose(indexed, all_anchors)
@@ -296,11 +298,10 @@ def test_action_history_length_one_squeezed():
     hm = _make_action_manager(action_history_length=1)
     hm.reset()
     online = []
-    previous = None
     for t in range(4):
-        _, kwargs = hm(action_history=previous)
+        _, kwargs = hm()
         online.append(kwargs['action_history'])
-        previous = actions[t]
+        hm.record_action(actions[t])
     online = np.stack(online)
 
     offline = hm.build_history('action_history', actions, last, np.arange(4))

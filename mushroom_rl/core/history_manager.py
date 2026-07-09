@@ -10,10 +10,13 @@ class HistoryManager(MushroomObject):
     The context is a deterministic function of the observed trajectory, hence it is always reconstructable from the
     stored transitions and is not part of the (latent) policy state. The manager holds an ordered set of named streams,
     each with its own stacking length and an ``offset`` telling how many steps behind the current one its window ends
-    (0 for the observation, 1 for the previous action). The reserved ``obs`` stream is delivered in-band as the policy
-    ``state``; every other stream is returned as a keyword argument. At least one stream must be active.
+    (0 for the observation, 1 for the previous action). The two reserved streams are sourced by the manager itself: the
+    ``obs_history`` stream from the ``state`` passed to :meth:`__call__` (delivered in-band as the policy ``state``)
+    and the ``action_history`` stream from the last action recorded through :meth:`record_action`. Any further stream
+    is fed as a keyword argument to :meth:`__call__` and returned under its own name. At least one stream must be
+    active.
 
-    The manager works entirely in the agent backend and is a pure stacker: online it stacks whatever it is fed, and the
+    The manager works entirely in the agent backend. Online it stacks the most recent entry of each stream, and the
     same stacking rule is exposed offline through :meth:`build_history` (regular buffer) and
     :meth:`build_history_circular_buffer` (circular replay buffer), so the window built while interacting with the
     environment and the one rebuilt from a stored buffer are guaranteed to match. Each per-step window is
@@ -46,17 +49,19 @@ class HistoryManager(MushroomObject):
         self._agent_backend = ArrayBackend.get_array_backend(agent_info.backend)
         self._stream_specs = dict()
         self._buffers = None
+        self._last_action = None
         self._vectorized = False
 
         self._add_save_attr(
             _agent_backend='primitive',
             _stream_specs='primitive',
             _buffers='none',
+            _last_action='none',
             _vectorized='primitive'
         )
 
         if obs_history_length > 1:
-            self.add_stream('obs', obs_history_length, mdp_info.observation_space.shape,
+            self.add_stream('obs_history', obs_history_length, mdp_info.observation_space.shape,
                             mdp_info.observation_space.data_type)
         for name, spec in (extra_buffers or dict()).items():
             self.add_stream(name, **spec)
@@ -69,8 +74,8 @@ class HistoryManager(MushroomObject):
         this method allows building a manager and adding buffers programmatically.
 
         Args:
-            name (str): the name under which the stream's window is returned by :meth:`__call__` (``obs`` is reserved
-                for the in-band observation stream);
+            name (str): the name under which the stream's window is returned by :meth:`__call__` (``obs_history`` is
+                reserved for the in-band observation stream);
             length (int): number of entries stacked in the stream's window;
             shape (tuple): shape of a single entry of the stream;
             dtype: data type of the stream, converted to the agent backend;
@@ -118,7 +123,7 @@ class HistoryManager(MushroomObject):
         The number of observations stacked as policy input, or 1 when the observation stream is not active.
 
         """
-        return self._stream_specs['obs']['length'] if 'obs' in self._stream_specs else 1
+        return self._stream_specs['obs_history']['length'] if 'obs_history' in self._stream_specs else 1
 
     @property
     def uses_action(self):
@@ -144,7 +149,7 @@ class HistoryManager(MushroomObject):
         offline from a replay memory, so a manager carrying them is rejected when injected into one.
 
         """
-        return set(self._stream_specs) - {'obs', 'action_history'}
+        return set(self._stream_specs) - {'obs_history', 'action_history'}
 
     @property
     def max_reach(self):
@@ -163,6 +168,7 @@ class HistoryManager(MushroomObject):
 
         """
         self._vectorized = False
+        self._last_action = None
         self._buffers = {name: self._agent_backend.zeros(spec['length'] - 1, *spec['shape'], dtype=spec['dtype'])
                          for name, spec in self._stream_specs.items()}
 
@@ -183,22 +189,26 @@ class HistoryManager(MushroomObject):
             self._buffers = {name: self._agent_backend.zeros(n_envs, spec['length'] - 1, *spec['shape'],
                                                              dtype=spec['dtype'])
                              for name, spec in self._stream_specs.items()}
+            self._last_action = None
         else:
             start_mask = self._agent_backend.convert(start_mask)
             for buffer in self._buffers.values():
                 buffer[start_mask] = 0
+            if self.uses_action and self._last_action is not None:
+                self._last_action[start_mask] = 0
 
     def __call__(self, state=None, **extra):
         """
         Append the current entries to the buffers and return the per-timestep context split for the policy call: the
         observation input to be passed positionally as ``state`` and a dictionary of the additional conditioning
-        streams to be forwarded as keyword arguments. The reserved ``obs`` stream, when active, replaces ``state`` with
-        its stacked window; otherwise the raw ``state`` is passed through unchanged. Each other stream is forwarded
-        under its own name (the previous-action stream under ``action_history``).
+        streams to be forwarded as keyword arguments. The reserved ``obs_history`` stream, when active, replaces
+        ``state`` with its stacked window; otherwise the raw ``state`` is passed through unchanged. The
+        ``action_history`` stream is sourced from the last action recorded through :meth:`record_action`. Each
+        remaining stream is forwarded under its own name.
 
         Args:
             state: the current observation, already in the agent backend, consumed by the observation stream;
-            **extra: the current value of each non-observation stream, keyed by its name and already in the agent
+            **extra: the current value of each further (exogenous) stream, keyed by its name and already in the agent
                 backend; a stream whose value is not provided is zero-padded for that step.
 
         Returns:
@@ -209,11 +219,29 @@ class HistoryManager(MushroomObject):
         """
         windows = dict()
         for name in self._stream_specs:
-            value = state if name == 'obs' else extra.get(name)
+            if name == 'obs_history':
+                value = state
+            elif name == 'action_history':
+                value = self._last_action
+            else:
+                value = extra.get(name)
             windows[name] = self._stack(name, value)
-        if 'obs' in self._stream_specs:
-            return windows.pop('obs'), windows
+        if 'obs_history' in self._stream_specs:
+            return windows.pop('obs_history'), windows
         return state, windows
+
+    def record_action(self, action):
+        """
+        Record the action just drawn by the agent so that it becomes the most recent entry of the ``action_history``
+        window at the next step (its ``offset`` 1). Called by the agent after every ``draw_action``; a no-op when the
+        previous-action stream is not active.
+
+        Args:
+            action: the action just drawn, already in the agent backend.
+
+        """
+        if self.uses_action:
+            self._last_action = action
 
     def _shift(self, array, k):
         """
@@ -418,16 +446,16 @@ class HistoryManager(MushroomObject):
         # bound to and returned in the extra dictionary; a ``None`` anchor reconstructs a whole regular buffer
         columns = dict(action_history=actions)  # column each non-observation stream is bound to
 
-        if 'obs' in self._stream_specs:
-            state = self._rebuild_stream('obs', states, last, anchor_idxs, size, full, max_size)
-            next_state = self._rebuild_stream('obs', next_states, last, anchor_idxs, size, full, max_size)
+        if 'obs_history' in self._stream_specs:
+            state = self._rebuild_stream('obs_history', states, last, anchor_idxs, size, full, max_size)
+            next_state = self._rebuild_stream('obs_history', next_states, last, anchor_idxs, size, full, max_size)
         elif anchor_idxs is None:
             state, next_state = states, next_states
         else:
             state, next_state = states[anchor_idxs], next_states[anchor_idxs]
 
         extra = {name: self._rebuild_stream(name, columns[name], last, anchor_idxs, size, full, max_size)
-                 for name in self._stream_specs if name != 'obs'}
+                 for name in self._stream_specs if name != 'obs_history'}
         return state, next_state, extra
 
     def _stack(self, name, value):

@@ -3,10 +3,9 @@ How to stack a history of observations
 
 In many problems a single observation does not give enough information about the state of the environment, and
 the agent must rely on a short window of the recent past to take the optimal action, e.g. a stack of the last
-few frames to
-perceive velocities, or the last few actions it took. In MushroomRL this windowing is handled by the
-:class:`~mushroom_rl.core.history_manager.HistoryManager`, an object that assembles the per-timestep **context**
-fed to the policy, i.e. the stacked window of the most recent entries of one or more streams.
+few frames to perceive velocities, or the last few actions it took. In MushroomRL this windowing is handled by
+the :class:`~mushroom_rl.core.history_manager.HistoryManager`, an object that assembles the per-timestep
+**context** fed to the policy, i.e. the stacked window of the most recent entries of one or more streams.
 
 The context is kept deliberately separate from the *latent* policy state (see the
 :doc:`../mushroom_rl.policy` documentation). The distinction is what a quantity depends on:
@@ -34,7 +33,7 @@ A history manager holds an ordered set of named **streams**. Each stream is desc
 
 By default, two streams are handled automatically:
 
-- ``obs`` — the reserved observation stream; stacks the last ``history_length`` observations with ``offset`` 0
+- ``obs_history`` — the reserved observation stream; stacks the last ``history_length`` observations with ``offset`` 0
   (its window ends at the current step), and is passed to the policy in place of the ``state`` argument;
 - ``action_history`` — stacks the last ``action_history_length`` actions with ``offset`` 1 (its window ends one
   step behind, since the current action has not been taken yet), and is passed to the policy as a keyword argument.
@@ -61,19 +60,22 @@ under the hood.
 Stacking online
 ---------------
 
-While the agent interacts with the environment, the manager is a pure stacker: at every step it is fed the
-current entries, appends them to its internal buffers, and returns the stacked windows. Calling it returns a
-tuple ``(state, policy_kwargs)`` ready to be used as ``policy.draw_action(state, **policy_kwargs)``: the
-observation window takes the place of ``state``, and every other stream is returned under its own name. A stream
-whose value is not provided for a step is zero-padded, and :meth:`~mushroom_rl.core.history_manager.HistoryManager.reset`
-clears the buffers at the start of an episode, so the first windows are zero-padded from the left.
+While the agent interacts with the environment, the manager stacks the streams one step at a time. At each step
+it is called with the current observation, appends the entries to its internal buffers, and returns a tuple
+``(state, policy_kwargs)`` ready to be used as ``policy.draw_action(state, **policy_kwargs)``: the observation
+window takes the place of ``state``, and every other stream is returned under its own name. The ``action_history``
+stream is not passed in; the action drawn at each step is instead reported back through
+:meth:`~mushroom_rl.core.history_manager.HistoryManager.record_action`, and the manager uses it as the most recent
+entry of the window at the next step (realizing its ``offset`` 1). A stream whose value is not yet available is
+zero-padded, and :meth:`~mushroom_rl.core.history_manager.HistoryManager.reset` clears the buffers at the start of
+an episode, so the first windows are zero-padded from the left.
 
 .. literalinclude:: code/history_manager.py
-   :lines: 19-28
+   :lines: 19-27
 
-Running this prints the windows growing step by step. Note the effect of the ``offset``: at step 3 the ``obs``
-window ends at the current observation (``offset`` 0), whereas the ``action_history`` window ends one step behind
-(``offset`` 1), so it holds the actions of steps 1 and 2, not the action about to be taken.
+Running this prints the windows growing step by step. Note the effect of the ``offset``: at step 3 the
+``obs_history`` window ends at the current observation (``offset`` 0), whereas the ``action_history`` window ends
+one step behind (``offset`` 1), so it holds the actions of steps 1 and 2, not the action about to be taken.
 
 Reconstructing offline
 ----------------------
@@ -85,13 +87,12 @@ boundaries (given by the ``last`` flags) or at the start of the buffer, zero-pad
 Feeding it the transition columns of a dataset reproduces *exactly* the windows assembled online:
 
 .. literalinclude:: code/history_manager.py
-   :lines: 30-39
+   :lines: 29-38
 
-The offline ``obs`` and ``action_history`` windows match the online ones step for step. The agent injects the
-manager into the replay memory (via :attr:`~mushroom_rl.core.Agent.history_manager`), and the memory rebuilds the
-stacked context for the sampled transitions with the same rule used to collect them, without ever storing the
-redundant stacked windows. The
-circular replay-buffer variant,
+The offline ``obs_history`` and ``action_history`` windows match the online ones step for step. The agent injects
+the manager into the replay memory (via :attr:`~mushroom_rl.core.Agent.history_manager`), and the memory rebuilds
+the stacked context for the sampled transitions with the same rule used to collect them, without ever storing the
+redundant stacked windows. The circular replay-buffer variant,
 :meth:`~mushroom_rl.core.history_manager.HistoryManager.build_history_circular_buffer`, does the same for a
 wrapped-around buffer, taking positions modulo the buffer size and stopping at the write head.
 

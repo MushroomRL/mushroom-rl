@@ -18,21 +18,20 @@ print('max_reach:', history.max_reach)
 
 # Online stacking
 history.reset()
-prev_action = np.zeros(1)
 for t in range(4):
     obs = np.full(2, t, dtype=float)
-    state, policy_kwargs = history(obs, action_history=prev_action)
+    state, policy_kwargs = history(obs)
     print(f'--- step {t} ---')
     print('obs window:\n', state)
     print('action_history window:\n', policy_kwargs['action_history'])
-    prev_action = np.full(1, t)
+    history.record_action(np.full(1, t))
 
 # Offline reconstruction
 states = np.stack([np.full(2, t, dtype=float) for t in range(4)])
 actions = np.stack([np.full(1, t, dtype=float) for t in range(4)])
 last = np.zeros(4, dtype=bool)
 
-obs_windows = history.build_history('obs', states, last)
+obs_windows = history.build_history('obs_history', states, last)
 action_windows = history.build_history('action_history', actions, last)
 print('=== offline ===')
 print('obs windows:\n', obs_windows)

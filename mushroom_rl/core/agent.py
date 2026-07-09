@@ -59,7 +59,6 @@ class Agent(MushroomObject):
         )
         self.policy = policy
         self.next_action = None
-        self._last_action = None
         self._agent_backend = ArrayBackend.get_array_backend(backend)
         self._env_backend = ArrayBackend.get_array_backend(self.mdp_info.backend)
 
@@ -77,7 +76,6 @@ class Agent(MushroomObject):
         self._add_save_attr(
             policy='mushroom',
             next_action='none',
-            _last_action='none',
             mdp_info='mushroom',
             _info='mushroom',
             _history_manager='mushroom',
@@ -116,18 +114,15 @@ class Agent(MushroomObject):
 
             policy_kwargs = dict()
             if self._history_manager is not None:
-                history_input = dict()
-                if self._history_manager.uses_action:
-                    history_input['action_history'] = self._last_action
-                state, policy_kwargs = self._history_manager(state, **history_input)
+                state, policy_kwargs = self._history_manager(state)
 
             action = self.policy.draw_action(state, **policy_kwargs)
         else:
             action = self._convert_to_agent_backend(self.next_action)
             self.next_action = None
 
-        if self._history_manager is not None and self._history_manager.uses_action:
-            self._last_action = action
+        if self._history_manager is not None:
+            self._history_manager.record_action(action)
 
         return self._convert_to_env_backend(action)
 
@@ -155,7 +150,6 @@ class Agent(MushroomObject):
         """
         if self._history_manager is not None:
             self._history_manager.reset()
-            self._last_action = None
 
         return self.policy.reset(), None
 
@@ -174,8 +168,6 @@ class Agent(MushroomObject):
         """
         if self._history_manager is not None:
             self._history_manager.reset_vectorized(start_mask)
-            if self._history_manager.uses_action and self._last_action is not None:
-                self._last_action[self._agent_backend.convert(start_mask)] = 0
 
         return self.policy.reset_vectorized(start_mask), None
 

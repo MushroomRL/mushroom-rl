@@ -124,7 +124,7 @@ class PPO_BPTT(OnPolicyDeepAC):
                     states, next_states, actions, last)
                 prev_actions = extra.get('action_history')
                 if self._history_manager.history_length > 1:
-                    states_old = self._history_manager.build_history('obs', states_old, last)
+                    states_old = self._history_manager.build_history('obs_history', states_old, last)
 
             s_old = torch.empty(len(states), self._truncation_length, *states_old.shape[1:])
             s = torch.empty(len(states), self._truncation_length, *states.shape[1:])
