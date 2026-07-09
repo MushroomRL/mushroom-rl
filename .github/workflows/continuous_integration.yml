@@ -35,6 +35,8 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. Project style uses a 120-char line length
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+    - name: Log CPU model
+      run: lscpu | grep "Model name"
     - name: Test with pytest
       run: |
         pytest --cov=mushroom_rl --cov-report=xml
