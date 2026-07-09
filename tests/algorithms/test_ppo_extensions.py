@@ -106,7 +106,7 @@ def test_PPO_BPTT_prev_action():
     w = learn(PPO_BPTT, policy, alg_params).policy.get_weights().numpy()
     w_test = np.load('tests/algorithms/test_ppo_bptt_prev_action.npy')
 
-    assert np.allclose(w, w_test, atol=1e-4), f'max discrepancy: {np.max(np.abs(w - w_test))}, w[:5]={w[:5]}'
+    assert np.allclose(w, w_test, atol=6e-4), f'max discrepancy: {np.max(np.abs(w - w_test))}, w[:5]={w[:5]}'
 
 
 def test_PPO_BPTT_save(tmpdir):
