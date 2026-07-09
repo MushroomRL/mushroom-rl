@@ -91,15 +91,14 @@ class PPO_BPTT(OnPolicyDeepAC):
             lengths = self._transform_to_sequences(state_old, state, policy_state, action, next_state,
                                                    policy_next_state, last, absorbing)
 
-        policy_kwargs = dict(action_history=prev_action_seq) if self._uses_prev_action else dict()
-
         v_target, adv = self.compute_gae(self._V, state_seq, policy_state_seq, state_next_seq, policy_next_state_seq,
                                          lengths, reward, absorbing, last, self.mdp_info.gamma, self._lambda(),
-                                         action_history=prev_action_seq if self._uses_prev_action else None,
+                                         action_history=prev_action_seq,
                                          next_action_history=act_seq if self._uses_prev_action else None)
         adv = (adv - torch.mean(adv)) / (torch.std(adv) + 1e-8)
 
-        old_pol_dist = self.policy.distribution(state_old_seq, policy_state_seq, lengths, **policy_kwargs)
+        old_pol_dist = self.policy.distribution(state_old_seq, policy_state_seq, lengths,
+                                                action_history=prev_action_seq)
         old_log_p = old_pol_dist.log_prob(action)[:, None].detach()
 
         critic_args = (state_seq, policy_state_seq, lengths)
@@ -195,13 +194,12 @@ class PPO_BPTT(OnPolicyDeepAC):
             for batch in batches:
                 if self._uses_prev_action:
                     obs_i, pi_h_i, act_i, length_i, adv_i, old_log_p_i, prev_action_i = batch
-                    policy_kwargs = dict(action_history=prev_action_i)
                 else:
                     obs_i, pi_h_i, act_i, length_i, adv_i, old_log_p_i = batch
-                    policy_kwargs = dict()
+                    prev_action_i = None
                 self._optimizer.zero_grad()
                 prob_ratio = torch.exp(
-                    self.policy.log_prob(obs_i, act_i, pi_h_i, length_i, **policy_kwargs) - old_log_p_i
+                    self.policy.log_prob(obs_i, act_i, pi_h_i, length_i, action_history=prev_action_i) - old_log_p_i
                 )
                 clipped_ratio = torch.clamp(prob_ratio, 1 - self._eps_ppo(), 1 + self._eps_ppo.get_value())
                 loss = -torch.mean(torch.min(prob_ratio * adv_i, clipped_ratio * adv_i))
@@ -214,9 +212,8 @@ class PPO_BPTT(OnPolicyDeepAC):
             with torch.no_grad():
                 logging_verr = self._V.loss_fit
 
-                policy_kwargs = dict(action_history=prev_action) if self._uses_prev_action else dict()
                 logging_ent = self.policy.entropy(x)
-                new_pol_dist = self.policy.distribution(x, pi_h, lengths, **policy_kwargs)
+                new_pol_dist = self.policy.distribution(x, pi_h, lengths, action_history=prev_action)
                 logging_kl = torch.mean(torch.distributions.kl.kl_divergence(new_pol_dist, old_pol_dist))
                 avg_rwd = dataset.undiscounted_return.mean().item()
                 msg = "Iteration {}:\n\t\t\t\trewards {} vf_loss {}\n\t\t\t\tentropy {}  kl {}".format(

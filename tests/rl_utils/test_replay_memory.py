@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 import torch
 
 from mushroom_rl.core import MDPInfo, AgentInfo, Dataset
@@ -444,17 +443,28 @@ def test_history_manager_from_infos_none():
     assert HistoryManager.from_infos(mdp_info, agent_info, action_history_length=2) is not None
 
 
-def test_replay_memory_rejects_exogenous_history_stream():
-    mdp_info = make_mdp_info((4,), (2,))
+def test_replay_memory_rebuilds_only_stored_streams():
+    obs_shape = (4,)
+    act_shape = (2,)
+    n = 10
+
+    rng = np.random.RandomState(0)
+    dataset, *_ = make_dataset(n, rng, obs_shape, act_shape)
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
     agent_info = make_agent_info()
     history_manager = HistoryManager(mdp_info, agent_info, obs_history_length=3,
                                      extra_buffers={'command': dict(length=2, shape=(1,), dtype=float)})
 
-    with pytest.raises(AssertionError):
-        ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50, history_manager=history_manager)
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50, history_manager=history_manager,
+                      return_extra=True)
+    rm.add(dataset)
 
-    obs_action_manager = HistoryManager.from_infos(mdp_info, agent_info, history_length=3, action_history_length=1)
-    ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50, history_manager=obs_action_manager)
+    np.random.seed(0)
+    s, a, r, ss, ab, last, extra = rm.get(4)
+
+    assert s.shape == (4, 3, *obs_shape)
+    assert 'command' not in extra
 
 
 def test_prioritized_replay_memory_add_get():

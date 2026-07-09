@@ -142,16 +142,6 @@ class HistoryManager(MushroomObject):
         return self._stream_specs['action_history']['length'] if self.uses_action else 0
 
     @property
-    def exogenous_streams(self):
-        """
-        Names of the active streams that are not derived from a stored transition column, i.e. neither the observation
-        stream nor the reserved ``action_history`` stream. These streams are fed online only and cannot be rebuilt
-        offline from a replay memory, so a manager carrying them is rejected when injected into one.
-
-        """
-        return set(self._stream_specs) - {'obs_history', 'action_history'}
-
-    @property
     def max_reach(self):
         """
         The deepest backward reach across all streams, i.e. the maximum of ``offset + length - 1``. A full circular
@@ -208,7 +198,7 @@ class HistoryManager(MushroomObject):
 
         Args:
             state: the current observation, already in the agent backend, consumed by the observation stream;
-            **extra: the current value of each further (exogenous) stream, keyed by its name and already in the agent
+            **extra: the current value of each other stream, keyed by its name and already in the agent
                 backend; a stream whose value is not provided is zero-padded for that step.
 
         Returns:
@@ -243,18 +233,6 @@ class HistoryManager(MushroomObject):
         if self.uses_action:
             self._last_action = action
 
-    def _shift(self, array, k):
-        """
-        Shift ``array`` down by ``k`` rows along its first axis, filling the first ``k`` rows with zeros, i.e. row
-        ``i`` of the result is row ``i - k`` of ``array`` (zero when ``i < k``). Used to walk the whole buffer at once
-        without materializing an index array.
-
-        """
-        shifted = self._agent_backend.zeros(*array.shape, dtype=array.dtype)
-        if k < array.shape[0]:
-            shifted[k:] = array[:array.shape[0] - k]
-        return shifted
-
     def build_history(self, name, buffer, last, anchor_idxs=None):
         """
         Rebuild the ``name`` stream window offline for a batch of anchor indices, reading from a regular (non-circular)
@@ -266,8 +244,9 @@ class HistoryManager(MushroomObject):
         the anchor is within ``offset`` steps of its trajectory start the window would reach into the previous episode,
         so it is zeroed instead, matching the online reset at every episode start.
 
-        When ``anchor_idxs`` is ``None`` the window of every timestep of the buffer is rebuilt, and the walk advances by
-        plain row shifts instead of gathering, so no index array is allocated.
+        When ``anchor_idxs`` is ``None`` every timestep of the buffer is an anchor (i.e. ``0..size-1``) and each
+        backward step is a uniform row shift done by slicing; otherwise the explicit anchors are gathered through
+        :meth:`build_history_circular_buffer` (a regular buffer is the never-wrapped ``full=False`` case).
 
         Args:
             name (str): the stream to rebuild, providing its length and offset;
@@ -281,54 +260,31 @@ class HistoryManager(MushroomObject):
             entries at lower indices.
 
         """
+        size = buffer.shape[0]
+        if anchor_idxs is not None:
+            return self.build_history_circular_buffer(name, buffer, last, anchor_idxs, size, full=False, max_size=size)
+
         spec = self._stream_specs[name]
         length, offset = spec['length'], spec['offset']
         backend = self._agent_backend
-        size = buffer.shape[0]
 
-        if anchor_idxs is None:
-            mask_shape = (size,) + (1,) * (len(buffer.shape) - 1)
-            out = backend.zeros(size, length, *buffer.shape[1:], dtype=buffer.dtype)
-            active = backend.ones(size, dtype=bool)
-            for t in range(length):
-                shift = offset + t
-                in_range = backend.ones(size, dtype=bool)
-                in_range[:shift] = False
-                valid = active & in_range
-                out[:, length - 1 - t] = backend.where(valid.reshape(mask_shape), self._shift(buffer, shift),
-                                                       out[:, length - 1 - t])
-                boundary = self._shift(last, shift + 1) > 0     # row i: last[i - shift - 1] > 0
-                if shift < size:
-                    boundary[shift] = True                      # row i == shift: the walk reached the anchor's start
-                active = valid & ~boundary
-
-            if offset > 0:
-                mask = backend.zeros(size, dtype=bool)
-                for d in range(1, offset + 1):
-                    mask = mask | (self._shift(last, d) > 0)
-                out[mask] = 0
-            if length == 1:
-                out = out[:, 0]
-            return out
-
-        n_samples = len(anchor_idxs)
-        mask_shape = (n_samples,) + (1,) * (len(buffer.shape) - 1)
-        out = backend.zeros(n_samples, length, *buffer.shape[1:], dtype=buffer.dtype)
-
-        walk_anchors = anchor_idxs - offset
-        active = backend.ones(n_samples, dtype=bool)
+        out = backend.zeros(size, length, *buffer.shape[1:], dtype=buffer.dtype)
+        active = backend.ones(size, dtype=bool)
         for t in range(length):
-            pos = walk_anchors - t
-            valid = active & (pos >= 0) & (pos < size)
-            gather = buffer[backend.clip(pos, 0, size - 1)]
-            out[:, length - 1 - t] = backend.where(valid.reshape(mask_shape), gather, out[:, length - 1 - t])
-            boundary = (pos == 0) | ((pos > 0) & (last[backend.clip(pos - 1, 0, size - 1)] > 0))
-            active = valid & ~boundary
+            shift = offset + t
+            if shift >= size:
+                break
+            row_mask = active[shift:].reshape((-1,) + (1,) * (len(buffer.shape) - 1))
+            out[shift:, length - 1 - t] = backend.where(row_mask, buffer[:size - shift], out[shift:, length - 1 - t])
+            boundary = backend.zeros(size, dtype=bool)
+            boundary[shift] = True
+            boundary[shift + 1:] = last[:size - shift - 1] > 0
+            active = active & ~boundary
 
         if offset > 0:
-            mask = (anchor_idxs >= 1) & (last[backend.clip(anchor_idxs - 1, 0, size - 1)] > 0)
-            for d in range(2, offset + 1):
-                mask = mask | ((anchor_idxs >= d) & (last[backend.clip(anchor_idxs - d, 0, size - 1)] > 0))
+            mask = backend.zeros(size, dtype=bool)
+            for d in range(1, offset + 1):
+                mask[d:] = mask[d:] | (last[:size - d] > 0)
             out[mask] = 0
         if length == 1:
             out = out[:, 0]
@@ -407,7 +363,16 @@ class HistoryManager(MushroomObject):
             remaining stream windows keyed by name (see the online policy keyword arguments of :meth:`__call__`).
 
         """
-        return self._transition_windows(states, next_states, actions, last)
+        if 'obs_history' in self._stream_specs:
+            state = self.build_history('obs_history', states, last)
+            next_state = self.build_history('obs_history', next_states, last)
+        else:
+            state, next_state = states, next_states
+
+        extra = dict()
+        if self.uses_action:
+            extra['action_history'] = self.build_history('action_history', actions, last)
+        return state, next_state, extra
 
     def build_transition_windows_circular_buffer(self, states, next_states, actions, last, anchor_idxs, size, full,
                                                  max_size):
@@ -431,31 +396,17 @@ class HistoryManager(MushroomObject):
             remaining stream windows keyed by name.
 
         """
-        return self._transition_windows(states, next_states, actions, last, anchor_idxs, size, full, max_size)
-
-    def _rebuild_stream(self, name, buffer, last, anchor_idxs, size, full, max_size):
-        # dispatch one stream's reconstruction to the regular builder (whole buffer) or the circular one (anchors)
-        if anchor_idxs is None:
-            return self.build_history(name, buffer, last)
-        return self.build_history_circular_buffer(name, buffer, last, anchor_idxs, size, full, max_size)
-
-    def _transition_windows(self, states, next_states, actions, last, anchor_idxs=None, size=None, full=False,
-                            max_size=None):
-        # shared assembly for the two transition builders: the observation stream is stacked from the state and
-        # next-state columns (or gathered as is when inactive), every other stream is read from the column it is
-        # bound to and returned in the extra dictionary; a ``None`` anchor reconstructs a whole regular buffer
-        columns = dict(action_history=actions)  # column each non-observation stream is bound to
-
         if 'obs_history' in self._stream_specs:
-            state = self._rebuild_stream('obs_history', states, last, anchor_idxs, size, full, max_size)
-            next_state = self._rebuild_stream('obs_history', next_states, last, anchor_idxs, size, full, max_size)
-        elif anchor_idxs is None:
-            state, next_state = states, next_states
+            state = self.build_history_circular_buffer('obs_history', states, last, anchor_idxs, size, full, max_size)
+            next_state = self.build_history_circular_buffer('obs_history', next_states, last, anchor_idxs, size, full,
+                                                            max_size)
         else:
             state, next_state = states[anchor_idxs], next_states[anchor_idxs]
 
-        extra = {name: self._rebuild_stream(name, columns[name], last, anchor_idxs, size, full, max_size)
-                 for name in self._stream_specs if name != 'obs_history'}
+        extra = dict()
+        if self.uses_action:
+            extra['action_history'] = self.build_history_circular_buffer('action_history', actions, last, anchor_idxs,
+                                                                         size, full, max_size)
         return state, next_state, extra
 
     def _stack(self, name, value):

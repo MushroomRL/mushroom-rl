@@ -30,9 +30,6 @@ class ReplayMemory(MushroomObject):
         """
         assert agent_info.backend in ["numpy", "torch"], \
             f"{agent_info.backend} backend currently not supported in the replay memory class."
-        assert history_manager is None or not history_manager.exogenous_streams, \
-            "The replay memory cannot rebuild exogenous history streams offline, " \
-            f"got {sorted(history_manager.exogenous_streams)}."
 
         self._initial_size = initial_size
         self._max_size = max_size
