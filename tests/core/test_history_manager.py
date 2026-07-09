@@ -128,7 +128,8 @@ def test_online_offline_equivalence_across_episodes():
         online.append(hm(states[t])[0])
     online = np.stack(online)
 
-    offline = hm.build_history_circular_buffer('obs_history', states, last, np.arange(5), size=5, full=False, max_size=50)
+    offline = hm.build_history_circular_buffer('obs_history', states, last, np.arange(5),
+                                               size=5, full=False, max_size=50)
 
     assert np.allclose(online, offline)
     # the second episode (starting at index 3) is zero-padded, never stitched to the first episode
@@ -143,7 +144,8 @@ def test_build_history_batch_stops_at_episode_boundary():
     last[2] = 1.0
 
     hm = _make_manager(history_length=history_length, obs_shape=(2,))
-    offline = hm.build_history_circular_buffer('obs_history', states, last, np.array([4]), size=5, full=False, max_size=50)
+    offline = hm.build_history_circular_buffer('obs_history', states, last, np.array([4]),
+                                               size=5, full=False, max_size=50)
 
     assert np.allclose(offline[0], np.array([[0.0, 0.0], states[3], states[4]]))
 
@@ -262,6 +264,32 @@ def test_previous_action_zeroed_at_trajectory_start():
     # index 2 starts a new trajectory: its previous action is zeroed, not stitched to the first episode
     assert np.allclose(offline[2], np.array([[0.0], [0.0]]))
     assert np.allclose(offline[3], np.array([[0.0], [2.0]]))
+
+
+def test_previous_action_online_offline_equivalence_across_episodes():
+    actions = np.arange(5, dtype=float).reshape(5, 1)
+    last = np.zeros(5)
+    last[2] = 1.0                       # first episode ends at index 2, second starts at index 3
+
+    hm = _make_action_manager(action_history_length=2)
+
+    online = []
+    hm.reset()
+    for t in range(5):
+        if t > 0 and last[t - 1]:       # a new episode starts: the agent resets the manager
+            hm.reset()
+        _, kwargs = hm()
+        online.append(kwargs['action_history'])
+        hm.record_action(actions[t])
+    online = np.stack(online)
+
+    offline = hm.build_history('action_history', actions, last, np.arange(5))
+
+    assert online.shape == (5, 2, 1)
+    assert np.allclose(online, offline)
+    # the second episode does not stitch the first episode's actions into its previous-action window
+    assert np.allclose(online[3], np.array([[0.0], [0.0]]))
+    assert np.allclose(online[4], np.array([[0.0], [3.0]]))
 
 
 def test_build_history_all_anchors_matches_indexed_obs():

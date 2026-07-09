@@ -269,7 +269,7 @@ def test_sequence_replay_memory_shapes_and_values():
 
     n_samples = 2
     np.random.seed(3)
-    s_seq, a_seq, r_seq, ss_seq, ab_seq, last_seq, ps_seq, nps_seq, pa_seq, lengths = rm.get(n_samples)
+    s_seq, a_seq, r_seq, ss_seq, ab_seq, last_seq, ps_seq, nps_seq, lengths = rm.get(n_samples)
 
     expected_idxs = np.array([10, 24])
     expected_lengths = [5, 5]
@@ -331,7 +331,7 @@ def test_sequence_replay_memory_history_composition():
     rm.add(dataset)
 
     np.random.seed(5)
-    s_seq, a_seq, r_seq, ss_seq, ab_seq, last_seq, ps_seq, nps_seq, pa_seq, lengths = rm.get(n_samples)
+    s_seq, a_seq, r_seq, ss_seq, ab_seq, last_seq, ps_seq, nps_seq, lengths = rm.get(n_samples)
 
     np.random.seed(5)
     expected_idxs = np.random.randint(0, rm.size, (n_samples,))
@@ -351,6 +351,50 @@ def test_sequence_replay_memory_history_composition():
                 assert np.allclose(s_seq[k, t, 0], rm._dataset.state[anchor - 1])
             else:
                 assert np.allclose(s_seq[k, t, 0], 0.0)
+
+
+def test_sequence_replay_memory_action_history_return_extra():
+    obs_shape = (4,)
+    act_shape = (2,)
+    policy_state_shape = (8,)
+    truncation_length = 4
+    action_history_length = 2
+    n = 15
+    n_samples = 3
+
+    rng = np.random.RandomState(2)
+    dataset, *_ = make_dataset(n, rng, obs_shape, act_shape,
+                               policy_state_shape=policy_state_shape, episode_ends=[14])
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info(policy_state_shape=policy_state_shape)
+    history_manager = HistoryManager.from_infos(mdp_info, agent_info, action_history_length=action_history_length)
+    rm = SequenceReplayMemory(mdp_info, agent_info, initial_size=5, max_size=100,
+                              truncation_length=truncation_length, history_manager=history_manager, return_extra=True)
+    rm.add(dataset)
+
+    np.random.seed(7)
+    *_, lengths, extra = rm.get(n_samples)
+
+    np.random.seed(7)
+    expected_idxs = np.random.randint(0, rm.size, (n_samples,))
+
+    prev_actions = extra['action_history']
+    assert prev_actions.shape == (n_samples, truncation_length, action_history_length, *act_shape)
+
+    for k, idx in enumerate(expected_idxs):
+        idx = int(idx)
+        begin = max(idx - truncation_length + 1, 0)
+        length = idx + 1 - begin
+        assert lengths[k] == length
+        for t in range(length):
+            anchor = begin + t
+            for j in range(action_history_length):
+                src = anchor - (action_history_length - j)
+                if src >= 0:
+                    assert np.allclose(prev_actions[k, t, j], rm._dataset.action[src])
+                else:
+                    assert np.allclose(prev_actions[k, t, j], 0.0)
 
 
 def test_sequence_replay_memory_history_reduced_sampling_across_write_head():
@@ -377,7 +421,7 @@ def test_sequence_replay_memory_history_reduced_sampling_across_write_head():
     assert rm._full and rm._idx == 3          # chronological values are [3, 4, 5, 6, 7, 8], the oldest is 3
 
     np.random.seed(0)
-    s_seq, a_seq, r_seq, ss_seq, ab_seq, last_seq, ps_seq, nps_seq, pa_seq, lengths = rm.get(200)
+    s_seq, a_seq, r_seq, ss_seq, ab_seq, last_seq, ps_seq, nps_seq, lengths = rm.get(200)
 
     for k, length in enumerate(lengths):
         current = s_seq[k, :length, history_length - 1, 0]
