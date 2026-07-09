@@ -149,15 +149,6 @@ class ReplayMemory(MushroomObject):
             return (self._idx + offsets) % self._max_size
         return backend.randint(0, len(self._dataset), (n_samples,))
 
-    def _crosses_write_head(self, idx):
-        """
-        Whether a window anchored at buffer position ``idx`` would cross the write head of a full buffer, i.e. ``idx``
-        is one of the ``max_reach`` oldest samples whose earlier entries were overwritten.
-
-        """
-        return self._max_reach > 0 and self._full and \
-            (idx - self._idx) % self._max_size < self._max_reach
-
     def reset(self):
         """
         Reset the replay memory.

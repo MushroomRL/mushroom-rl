@@ -14,7 +14,7 @@ class PrioritizedReplayMemory(ReplayMemory):
 
     """
     def __init__(self, mdp_info, agent_info, initial_size, max_size, alpha, beta, epsilon=.01,
-                 history_manager=None, n_steps_return=1, store_policy_state=False):
+                 history_manager=None, n_steps_return=1, store_policy_state=False, return_extra=False):
         """
         Constructor.
 
@@ -28,7 +28,10 @@ class PrioritizedReplayMemory(ReplayMemory):
             epsilon (float, .01): small value to avoid zero probabilities;
             history_manager (HistoryManager, None): the manager used by the agent to assemble the stacked observation,
                 reused offline so that the stacked observation matches the one built online;
-            n_steps_return (int, 1): number of steps used for the n-step return.
+            n_steps_return (int, 1): number of steps used for the n-step return;
+            store_policy_state (bool, False): whether the policy internal state is stored in the replay memory;
+            return_extra (bool, False): whether :meth:`get` appends the ``extra_data`` dictionary of the history
+                windows not delivered in-band in the state, inserted just before the ``idxs``/``is_weight`` pair.
 
         """
         self._alpha = alpha
@@ -36,7 +39,7 @@ class PrioritizedReplayMemory(ReplayMemory):
         self._epsilon = epsilon
 
         super().__init__(mdp_info, agent_info, initial_size, max_size, history_manager, n_steps_return,
-                         store_policy_state)
+                         store_policy_state, return_extra)
 
         self._add_save_attr(
             _alpha='primitive',
@@ -72,6 +75,20 @@ class PrioritizedReplayMemory(ReplayMemory):
         positions = self._write_to_buffer(dataset)
         tree_idxs = ArrayBackend.convert(positions, to='numpy') + self._max_size - 1
         self._tree.update(tree_idxs, ArrayBackend.convert(p, to='numpy'))
+        self._mask_write_head()
+
+    def _mask_write_head(self):
+        """
+        Mask the leaves of the ``max_reach`` oldest samples of a full buffer so that they are never sampled: an anchor
+        at one of these positions would rebuild a window across the write head, stitching together entries from
+        unrelated trajectory segments. Their true priorities need not be preserved, as each masked leaf is overwritten
+        with a fresh priority before the write head laps back to it. A no-op until the buffer is full or when no history
+        is used.
+
+        """
+        if self._max_reach > 0 and self._full:
+            positions = (self._idx + np.arange(self._max_reach)) % self._max_size
+            self._tree.mask(positions + self._max_size - 1)
 
     def get(self, n_samples):
         """
@@ -81,12 +98,13 @@ class PrioritizedReplayMemory(ReplayMemory):
             n_samples (int): the number of samples to return.
 
         Returns:
-            The requested number of samples.
+            The requested number of samples, followed by the tree indices and importance-sampling weights of the drawn
+            transitions. When ``return_extra`` is set, the ``extra_data`` dictionary assembled by the history manager is
+            inserted just before this trailing pair.
 
         """
         idxs = np.zeros(n_samples, dtype=int)
         priorities = np.zeros(n_samples, dtype=float)
-        data_idxs = np.zeros(n_samples, dtype=int)
 
         total_p = self._tree.total_p
         segment = total_p / n_samples
@@ -96,32 +114,29 @@ class PrioritizedReplayMemory(ReplayMemory):
         )
 
         for i, s in enumerate(samples):
-            idx, p = self._tree.get(s)
-            # reject anchors whose stacked observation would cross the write head, redrawing over the whole tree
-            while self._crosses_write_head(idx - self._max_size + 1):
-                idx, p = self._tree.get(np.random.uniform(0, total_p))
-            idxs[i] = idx
-            priorities[i] = p
-            data_idxs[i] = idx - self._max_size + 1
+            idxs[i], priorities[i] = self._tree.get(s)
 
-        sampling_probabilities = priorities / self._tree.total_p
-        is_weight = (self.size * sampling_probabilities) ** -self._beta()
+        is_weight = (self.size * priorities / total_p) ** -self._beta()
         is_weight /= is_weight.max()
 
-        data_idxs = ArrayBackend.convert(data_idxs, to=self._agent_info.backend)
+        data_idxs = ArrayBackend.convert(idxs - self._max_size + 1, to=self._agent_info.backend)
+        batch = self._dataset[data_idxs]
+        state, action, reward, next_state, absorbing, last = batch.parse()
 
-        if self._history_length > 1:
-            state_out, next_state_out, _ = self._history_manager.build_transition_windows_circular_buffer(
+        extra = dict()
+        if self._history_manager is not None:
+            state, next_state, extra = self._history_manager.build_transition_windows_circular_buffer(
                 self._dataset.state, self._dataset.next_state, self._dataset.action,
                 self._dataset.last, data_idxs, len(self._dataset), self._full, self._max_size)
-            batch = self._dataset[data_idxs]
-            _, action, reward, _, absorbing, last = batch.parse()
-            return state_out, action, reward, next_state_out, absorbing, last, idxs, is_weight
-        elif self._dataset.is_stateful:
-            return *self._dataset[data_idxs].parse(), \
-                   *self._dataset[data_idxs].parse_policy_state(), idxs, is_weight
-        else:
-            return *self._dataset[data_idxs].parse(), idxs, is_weight
+
+        out = [state, action, reward, next_state, absorbing, last]
+        if self._dataset.is_stateful:
+            out += list(batch.parse_policy_state())
+        if self._return_extra:
+            out.append(extra)
+        out += [idxs, is_weight]
+
+        return tuple(out)
 
     def reset(self):
         super().reset()

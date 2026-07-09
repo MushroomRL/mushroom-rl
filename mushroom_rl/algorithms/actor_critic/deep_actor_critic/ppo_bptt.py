@@ -114,9 +114,7 @@ class PPO_BPTT(OnPolicyDeepAC):
     def _transform_to_sequences(self, states_old, states, policy_states, actions, next_states, policy_next_states,
                                 last, absorbing):
         with torch.no_grad():
-            # process every timestep through the history manager once, before sequencing: the observation columns
-            # are stacked when an observation history is active (an identity gather otherwise) and the
-            # previous-action window is rebuilt in the same pass, so the loop below only has to slice the results
+            # preprocessing of history inputs
             prev_actions = None
             if self._history_manager is not None:
                 states, next_states, extra = self._history_manager.build_transition_windows(
@@ -125,6 +123,7 @@ class PPO_BPTT(OnPolicyDeepAC):
                 if self._history_manager.history_length > 1:
                     states_old = self._history_manager.build_history('obs_history', states_old, last)
 
+            # array preallocation
             s_old = torch.empty(len(states), self._truncation_length, *states_old.shape[1:])
             s = torch.empty(len(states), self._truncation_length, *states.shape[1:])
             ps = torch.empty(len(states), policy_states.shape[-1])

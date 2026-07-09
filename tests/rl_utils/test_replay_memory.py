@@ -549,6 +549,43 @@ def test_prioritized_replay_memory_max_priority_after_add():
     assert np.isclose(rm.max_priority, 3.0)
 
 
+def test_prioritized_replay_memory_history_masks_write_head():
+    obs_shape = (1,)
+    act_shape = (1,)
+    history_length = 3
+    max_size = 5
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info()
+    history_manager = HistoryManager.from_infos(mdp_info, agent_info, history_length=history_length)
+
+    beta = LinearParameter(1.0, threshold_value=0.0, n=100)
+    rm = PrioritizedReplayMemory(mdp_info, agent_info, initial_size=1, max_size=max_size,
+                                 alpha=0.6, beta=beta, history_manager=history_manager)
+
+    # one continuous episode (no last flags) longer than the buffer, so it wraps around the write head
+    for v in range(8):
+        s = np.array([[float(v)]])
+        rm.add(Dataset.from_array(s, np.zeros((1, 1)), np.zeros(1), s + 0.5, np.zeros(1), np.zeros(1),
+                                  backend='numpy'), np.ones(1))
+
+    assert rm._full and rm._idx == 3          # chronological order of positions is [3, 4, 0, 1, 2] -> values [3..7]
+
+    # the (history_length - 1) oldest samples occupy positions [3, 4], which are zeroed in the tree
+    assert np.isclose(rm._tree._tree[3 + max_size - 1], 0.0)
+    assert np.isclose(rm._tree._tree[4 + max_size - 1], 0.0)
+
+    np.random.seed(0)
+    s, a, r, ss, ab, last, idxs, is_weight = rm.get(200)
+
+    # each stacked observation must be a contiguous chronological window (no write-head crossing)
+    assert np.allclose(s[:, 1:, 0] - s[:, :-1, 0], 1.0)
+
+    # the (history_length - 1) oldest samples (values 3 and 4) can never be rebuilt, so must never be sampled
+    anchors = s[:, history_length - 1, 0]
+    assert not np.any(np.isin(anchors, [3.0, 4.0]))
+
+
 def test_replay_memory_torch_uint8_obs():
     np.random.seed(42)
 
