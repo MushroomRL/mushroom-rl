@@ -79,11 +79,8 @@ class PrioritizedReplayMemory(ReplayMemory):
 
     def _mask_write_head(self):
         """
-        Mask the leaves of the ``max_reach`` oldest samples of a full buffer so that they are never sampled: an anchor
-        at one of these positions would rebuild a window across the write head, stitching together entries from
-        unrelated trajectory segments. Their true priorities need not be preserved, as each masked leaf is overwritten
-        with a fresh priority before the write head laps back to it. A no-op until the buffer is full or when no history
-        is used.
+        Exclude from sampling the ``max_reach`` oldest samples of a full buffer, whose stacked observation would be
+        rebuilt across the write head. A no-op until the buffer is full or when no history is used.
 
         """
         if self._max_reach > 0 and self._full:
