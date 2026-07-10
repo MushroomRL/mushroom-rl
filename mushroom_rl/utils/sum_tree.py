@@ -77,6 +77,24 @@ class SumTree(MushroomObject):
                 self._masked[i] = True
                 self._propagate_mask(i)
 
+    @property
+    def max_p(self):
+        """
+        Returns:
+            The maximum priority among the ones in the tree.
+
+        """
+        return self._tree[-self._max_size:].max()
+
+    @property
+    def total_p(self):
+        """
+        Returns:
+            The sum of the priorities in the tree, i.e. the value of the root node.
+
+        """
+        return self._tree[0]
+
     def _propagate(self, delta, idx):
         parent_idx = (idx - 1) // 2
         self._tree[parent_idx] += delta
@@ -112,21 +130,3 @@ class SumTree(MushroomObject):
             return self._retrieve(s, left)
         else:
             return self._retrieve(s - self._tree[left], right)
-
-    @property
-    def max_p(self):
-        """
-        Returns:
-            The maximum priority among the ones in the tree.
-
-        """
-        return self._tree[-self._max_size:].max()
-
-    @property
-    def total_p(self):
-        """
-        Returns:
-            The sum of the priorities in the tree, i.e. the value of the root node.
-
-        """
-        return self._tree[0]

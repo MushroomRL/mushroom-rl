@@ -209,6 +209,28 @@ class Agent(MushroomObject):
         """
         return self._core_preprocessors
 
+    @property
+    def info(self):
+        return self._info
+
+    @property
+    def history_length(self):
+        """
+        The number of observations stacked as policy input, ``1`` when no history is used.
+
+        """
+        return self._history_manager.history_length if self._history_manager is not None else 1
+
+    @property
+    def history_manager(self):
+        """
+        The :class:`~mushroom_rl.core.history_manager.HistoryManager` used to assemble the policy input, or ``None``
+        when no history is used. It can be injected into a replay memory so that the offline context matches the one
+        built online.
+
+        """
+        return self._history_manager
+
     def _convert_to_env_backend(self, array):
         return self._env_backend.convert_to_backend(self._agent_backend, array)
 
@@ -242,25 +264,3 @@ class Agent(MushroomObject):
             p.update(state)
             if i < len(self._agent_preprocessors):
                 state = p(state)
-
-    @property
-    def info(self):
-        return self._info
-
-    @property
-    def history_length(self):
-        """
-        The number of observations stacked as policy input, ``1`` when no history is used.
-
-        """
-        return self._history_manager.history_length if self._history_manager is not None else 1
-
-    @property
-    def history_manager(self):
-        """
-        The :class:`~mushroom_rl.core.history_manager.HistoryManager` used to assemble the policy input, or ``None``
-        when no history is used. It can be injected into a replay memory so that the offline context matches the one
-        built online.
-
-        """
-        return self._history_manager

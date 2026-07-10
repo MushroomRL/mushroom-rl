@@ -118,18 +118,6 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
             _log_std_max='mushroom'
         )
 
-    def _draw_action(self, state, policy_state, action_history=None):
-        with torch.no_grad():
-            state, policy_state, action_history = self._pad_state(state, policy_state, action_history)
-            lengths = torch.ones(state.shape[0], dtype=torch.long)
-
-            kwargs = dict(action_history=action_history) if action_history is not None else dict()
-
-            dist, next_policy_state = self.distribution_and_policy_state(state, policy_state, lengths, **kwargs)
-            action = dist.sample()
-
-            return action, next_policy_state
-
     def draw_with_log_prob(self, state, policy_state, lengths, **kwargs):
         dist, next_policy_state = self.distribution_and_policy_state(state, policy_state, lengths, **kwargs)
         action = dist.rsample()
@@ -184,6 +172,18 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
         self._policy_state[start_mask] = 0.
 
         return self._policy_state
+
+    def _draw_action(self, state, policy_state, action_history=None):
+        with torch.no_grad():
+            state, policy_state, action_history = self._pad_state(state, policy_state, action_history)
+            lengths = torch.ones(state.shape[0], dtype=torch.long)
+
+            kwargs = dict(action_history=action_history) if action_history is not None else dict()
+
+            dist, next_policy_state = self.distribution_and_policy_state(state, policy_state, lengths, **kwargs)
+            action = dist.sample()
+
+            return action, next_policy_state
 
     def _pad_state(self, state, policy_state, action_history=None):
         # shape the single online observation, and any per-timestep conditioning input, into the

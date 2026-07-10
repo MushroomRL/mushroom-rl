@@ -18,7 +18,10 @@ For Mushroom 2.1:
     * HistoryManager subclass for complex per-stream specifications
       - the base HistoryManager handles only the `offset` option; delegate richer specs to a subclass
         (strides, structured/general lookbacks)
-    * vectorize _compute_n_step_return in AbstractReplayMemory
+    * Improve replay memory:
+        - vectorize _compute_n_step_return
+        - vectorize SequenceReplayMemory.get
+        - remove host-device sync each iteration (int(c_anchor)/int(boundary[...])) in SequenceReplayMemory for the frame-stacking path
     * fix MellowMax parameter class
     * handle ExtraInfo correctly in ReplayMemory
       - currently ignored in circular-buffer phase; info is never read back during sampling

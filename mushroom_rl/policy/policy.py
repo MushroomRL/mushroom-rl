@@ -150,22 +150,6 @@ class StatefulPolicy(Policy):
 
         return action
 
-    def _draw_action(self, state, policy_state, **kwargs):
-        """
-        Sample an action in ``state`` given the policy state, returning the next policy state. This is the functional
-        core of :meth:`draw_action` and must not mutate the internal state.
-
-        Args:
-            state: the state where the agent is;
-            policy_state: the internal state of the policy;
-            **kwargs: additional per-timestep conditioning inputs.
-
-        Returns:
-            A tuple containing the sampled action and the next policy state.
-
-        """
-        raise NotImplementedError
-
     def reset(self):
         """
         Reset the internal state of the policy at the beginning of an episode. Implementations must set
@@ -198,6 +182,22 @@ class StatefulPolicy(Policy):
 
         """
         self._policy_state = None
+
+    def _draw_action(self, state, policy_state, **kwargs):
+        """
+        Sample an action in ``state`` given the policy state, returning the next policy state. This is the functional
+        core of :meth:`draw_action` and must not mutate the internal state.
+
+        Args:
+            state: the state where the agent is;
+            policy_state: the internal state of the policy;
+            **kwargs: additional per-timestep conditioning inputs.
+
+        Returns:
+            A tuple containing the sampled action and the next policy state.
+
+        """
+        raise NotImplementedError
 
 
 class HasWeights:

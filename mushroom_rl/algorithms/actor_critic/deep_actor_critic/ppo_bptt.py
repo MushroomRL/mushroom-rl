@@ -111,6 +111,51 @@ class PPO_BPTT(OnPolicyDeepAC):
         self._log_info(dataset, state_seq, policy_state_seq, lengths, old_pol_dist, prev_action_seq)
         self._iter += 1
 
+    @staticmethod
+    def compute_gae(V, s, pi_h, ss, pi_hn, lengths, r, absorbing, last, gamma, lam,
+                    action_history=None, next_action_history=None):
+        """
+        Function to compute Generalized Advantage Estimation (GAE)
+        and new value function target over a dataset.
+
+        "High-Dimensional Continuous Control Using Generalized
+        Advantage Estimation".
+        Schulman J. et al.. 2016.
+
+        Args:
+            V (Regressor): the current value function regressor;
+            s (torch.Tensor): the set of states in which we want
+                to evaluate the advantage;
+            ss (torch.Tensor): the set of next states in which we want
+                to evaluate the advantage;
+            r (torch.Tensor): the reward obtained in each transition
+                from state s to state ss;
+            absorbing (torch.Tensor): an array of boolean flags indicating
+                if the reached state is absorbing;
+            last (torch.Tensor): an array of boolean flags indicating
+                if the reached state is the last of the trajectory;
+            gamma (float): the discount factor of the considered problem;
+            lam (float): the value for the lamba coefficient used by GEA
+                algorithm.
+        Returns:
+            The new estimate for the value function of the next state
+            and the estimated generalized advantage.
+        """
+        with torch.no_grad():
+            v = V(s, pi_h, lengths=lengths, action_history=action_history)
+            v_next = V(ss, pi_hn, lengths=lengths, action_history=next_action_history)
+            gen_adv = torch.empty_like(v)
+            for rev_k in range(len(v)):
+                k = len(v) - rev_k - 1
+                if last[k] or rev_k == 0:
+                    gen_adv[k] = r[k] - v[k]
+                    if not absorbing[k]:
+                        gen_adv[k] += gamma * v_next[k]
+                else:
+                    gen_adv[k] = r[k] + gamma * v_next[k] - v[k] + gamma * lam * gen_adv[k + 1]
+
+            return gen_adv + v, gen_adv
+
     def _transform_to_sequences(self, states_old, states, policy_states, actions, next_states, policy_next_states,
                                 last, absorbing):
         with torch.no_grad():
@@ -229,48 +274,3 @@ class PPO_BPTT(OnPolicyDeepAC):
     def _post_load(self):
         if self._optimizer is not None:
             TorchUtils.update_optimizer_parameters(self._optimizer, list(self.policy.parameters()))
-
-    @staticmethod
-    def compute_gae(V, s, pi_h, ss, pi_hn, lengths, r, absorbing, last, gamma, lam,
-                    action_history=None, next_action_history=None):
-        """
-        Function to compute Generalized Advantage Estimation (GAE)
-        and new value function target over a dataset.
-
-        "High-Dimensional Continuous Control Using Generalized
-        Advantage Estimation".
-        Schulman J. et al.. 2016.
-
-        Args:
-            V (Regressor): the current value function regressor;
-            s (torch.Tensor): the set of states in which we want
-                to evaluate the advantage;
-            ss (torch.Tensor): the set of next states in which we want
-                to evaluate the advantage;
-            r (torch.Tensor): the reward obtained in each transition
-                from state s to state ss;
-            absorbing (torch.Tensor): an array of boolean flags indicating
-                if the reached state is absorbing;
-            last (torch.Tensor): an array of boolean flags indicating
-                if the reached state is the last of the trajectory;
-            gamma (float): the discount factor of the considered problem;
-            lam (float): the value for the lamba coefficient used by GEA
-                algorithm.
-        Returns:
-            The new estimate for the value function of the next state
-            and the estimated generalized advantage.
-        """
-        with torch.no_grad():
-            v = V(s, pi_h, lengths=lengths, action_history=action_history)
-            v_next = V(ss, pi_hn, lengths=lengths, action_history=next_action_history)
-            gen_adv = torch.empty_like(v)
-            for rev_k in range(len(v)):
-                k = len(v) - rev_k - 1
-                if last[k] or rev_k == 0:
-                    gen_adv[k] = r[k] - v[k]
-                    if not absorbing[k]:
-                        gen_adv[k] += gamma * v_next[k]
-                else:
-                    gen_adv[k] = r[k] + gamma * v_next[k] - v[k] + gamma * lam * gen_adv[k + 1]
-
-            return gen_adv + v, gen_adv
