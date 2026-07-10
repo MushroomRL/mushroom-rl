@@ -59,19 +59,6 @@ class ReplayMemory(MushroomObject):
             _dataset='mushroom!',
         )
 
-    @property
-    def _history_length(self):
-        return self._history_manager.history_length if self._history_manager is not None else 1
-
-    @property
-    def _max_reach(self):
-        """
-        The deepest backward reach across all history streams, i.e. how many of the oldest samples of a full buffer are
-        excluded from sampling so that no window is rebuilt across the write head. It is 0 when no history is used.
-
-        """
-        return self._history_manager.max_reach if self._history_manager is not None else 0
-
     def add(self, dataset):
         """
         Add elements to the replay memory.
@@ -109,45 +96,7 @@ class ReplayMemory(MushroomObject):
 
         """
         idxs = self._sample_idxs(n_samples)
-        batch = self._dataset[idxs]
-        state, action, reward, next_state, absorbing, last = batch.parse()
-
-        extra = dict()
-        if self._history_manager is not None:
-            state, next_state, extra = self._history_manager.build_transition_windows_circular_buffer(
-                self._dataset.state, self._dataset.next_state, self._dataset.action,
-                self._dataset.last, idxs, len(self._dataset), self._full, self._max_size)
-
-        out = [state, action, reward, next_state, absorbing, last]
-
-        if self._dataset.is_stateful:
-            out += list(batch.parse_policy_state())
-
-        if self._return_extra:
-            out.append(extra)
-
-        return tuple(out)
-
-    def _sample_idxs(self, n_samples):
-        """
-        Sample buffer indices to read, excluding anchors for which a valid stacked observation cannot be rebuilt.
-
-        When the buffer is full and a history is used, the ``max_reach`` oldest samples are skipped: their earlier
-        entries have already been overwritten, so walking back from them would cross the write head and stitch together
-        entries from unrelated trajectory segments.
-
-        Args:
-            n_samples (int): the number of indices to sample.
-
-        Returns:
-            The sampled buffer indices.
-
-        """
-        backend = self._dataset.array_backend
-        if self._max_reach > 0 and self._full:
-            offsets = backend.randint(self._max_reach, self._max_size, (n_samples,))
-            return (self._idx + offsets) % self._max_size
-        return backend.randint(0, len(self._dataset), (n_samples,))
+        return tuple(self._assemble_batch(idxs))
 
     def reset(self):
         """
@@ -176,6 +125,75 @@ class ReplayMemory(MushroomObject):
 
         """
         return self.size >= self._initial_size
+
+    @property
+    def _history_length(self):
+        return self._history_manager.history_length if self._history_manager is not None else 1
+
+    @property
+    def _max_reach(self):
+        """
+        The deepest backward reach across all history streams, i.e. how many of the oldest samples of a full buffer are
+        excluded from sampling so that no window is rebuilt across the write head. It is 0 when no history is used.
+
+        """
+        return self._history_manager.max_reach if self._history_manager is not None else 0
+
+    def _assemble_batch(self, idxs):
+        """
+        Read the transitions at the given buffer indices and assemble the batch.
+        When a history is used the stacked observation windows are rebuilt from the buffer. The policy states
+        are appended when stored, followed by the ``extra_data`` dictionary of the out-of-band history windows when
+        ``return_extra`` is set.
+
+        Args:
+            idxs: the buffer indices of the transitions to read.
+
+        Returns:
+            The list of arrays forming the sampled batch.
+
+        """
+        extra = dict()
+        if self._history_manager is not None:
+            state, next_state, extra = self._history_manager.build_transition_windows_circular_buffer(
+                self._dataset.state, self._dataset.next_state, self._dataset.action,
+                self._dataset.last, idxs, len(self._dataset), self._full, self._max_size)
+            action, reward = self._dataset.action[idxs], self._dataset.reward[idxs]
+            absorbing, last = self._dataset.absorbing[idxs], self._dataset.last[idxs]
+            policy_state = [self._dataset.policy_state[idxs], self._dataset.policy_next_state[idxs]] \
+                if self._dataset.is_stateful else []
+        else:
+            batch = self._dataset[idxs]
+            state, action, reward, next_state, absorbing, last = batch.parse()
+            policy_state = list(batch.parse_policy_state()) if self._dataset.is_stateful else []
+
+        out = [state, action, reward, next_state, absorbing, last, *policy_state]
+
+        if self._return_extra:
+            out.append(extra)
+
+        return out
+
+    def _sample_idxs(self, n_samples):
+        """
+        Sample buffer indices to read, excluding anchors for which a valid stacked observation cannot be rebuilt.
+
+        When the buffer is full and a history is used, the ``max_reach`` oldest samples are skipped: their earlier
+        entries have already been overwritten, so walking back from them would cross the write head and stitch together
+        entries from unrelated trajectory segments.
+
+        Args:
+            n_samples (int): the number of indices to sample.
+
+        Returns:
+            The sampled buffer indices.
+
+        """
+        backend = self._dataset.array_backend
+        if self._max_reach > 0 and self._full:
+            offsets = backend.randint(self._max_reach, self._max_size, (n_samples,))
+            return (self._idx + offsets) % self._max_size
+        return backend.randint(0, len(self._dataset), (n_samples,))
 
     def _compute_n_step_return(self, state, action, reward, next_state, absorbing, last,
                                policy_state=None, policy_next_state=None, priority=None):

@@ -498,6 +498,37 @@ def test_prioritized_replay_memory_add_get():
     assert np.allclose(r, r_test)
 
 
+def test_prioritized_replay_memory_add_default_priority():
+    obs_shape = (4,)
+    act_shape = (2,)
+    n = 10
+
+    rng = np.random.RandomState(11)
+    dataset, *_ = make_dataset(n, rng, obs_shape, act_shape)
+    dataset2, *_ = make_dataset(n, rng, obs_shape, act_shape)
+
+    beta = LinearParameter(1.0, threshold_value=0.0, n=100)
+    rm = PrioritizedReplayMemory(make_mdp_info(obs_shape, act_shape), make_agent_info(),
+                                 initial_size=1, max_size=50, alpha=0.6, beta=beta)
+    rm.add(dataset)
+
+    assert np.isclose(rm.max_priority, 1.0)
+    assert np.isclose(rm._tree.total_p, 10.0)
+
+    np.random.seed(3)
+    *_, idxs, _ = rm.get(4)
+    rm.update(np.full(4, 5.0), idxs)
+
+    expected_max = (5.0 + 0.01) ** 0.6
+    assert np.isclose(rm.max_priority, expected_max)
+
+    total_before = rm._tree.total_p
+    rm.add(dataset2)
+
+    assert np.isclose(rm._tree.max_p, expected_max)
+    assert np.isclose(rm._tree.total_p, total_before + n * expected_max)
+
+
 def test_prioritized_replay_memory_update_changes_priorities():
     obs_shape = (4,)
     act_shape = (2,)

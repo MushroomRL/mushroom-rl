@@ -411,24 +411,27 @@ class HistoryManager(MushroomObject):
 
     def _stack(self, name, value):
         spec = self._stream_specs[name]
-        length = spec['length']
-        stacked, self._buffers[name] = self._append(self._buffers[name], value, spec['shape'], spec['dtype'])
-        if length == 1:
+        value = self._missing_value_to_zero(name, value)
+        stacked = self._append(name, value)
+        if spec['length'] == 1:
             stacked = stacked[:, 0] if self._vectorized else stacked[0]
         return stacked
 
-    def _append(self, buffer, value, shape, dtype):
-        if value is None:
-            if self._vectorized:
-                value = self._agent_backend.zeros(buffer.shape[0], *shape, dtype=dtype)
-            else:
-                value = self._agent_backend.zeros(*shape, dtype=dtype)
+    def _missing_value_to_zero(self, name, value):
+        if value is not None:
+            return value
+        spec = self._stream_specs[name]
+        if self._vectorized:
+            return self._agent_backend.zeros(self._buffers[name].shape[0], *spec['shape'], dtype=spec['dtype'])
+        return self._agent_backend.zeros(*spec['shape'], dtype=spec['dtype'])
 
+    def _append(self, name, value):
+        buffer = self._buffers[name]
         if self._vectorized:
             stacked = self._agent_backend.concatenate([buffer, value[:, None]], dim=1)
-            new_buffer = self._agent_backend.copy(stacked[:, 1:])
+            buffer[:] = stacked[:, 1:]
         else:
             stacked = self._agent_backend.concatenate([buffer, value[None]], dim=0)
-            new_buffer = self._agent_backend.copy(stacked[1:])
+            buffer[:] = stacked[1:]
 
-        return stacked, new_buffer
+        return stacked

@@ -48,17 +48,22 @@ class PrioritizedReplayMemory(ReplayMemory):
             _tree='mushroom'
         )
 
-    def add(self, dataset, p):
+    def add(self, dataset, p=None):
         """
         Add elements to the replay memory.
 
         Args:
             dataset (Dataset): dataset whose transitions will be added to the replay memory;
-            p (Array): priority of each sample in the dataset.
+            p (Array, None): priority of each sample in the dataset. When ``None``, each new transition is inserted
+                with the current maximum priority (:attr:`max_priority`), so that it is sampled at least once before
+                its priority is corrected from its temporal-difference error.
 
         """
         assert not self._dataset.is_stateful or dataset.is_stateful, \
             "The replay memory is configured to store the policy state, but the dataset does not provide it."
+
+        if p is None:
+            p = self._dataset.array_backend.full((len(dataset),), self.max_priority)
 
         if self._n_steps_return > 1:
             state, action, reward, next_state, absorbing, last = dataset.parse(to=self._agent_info.backend)
@@ -76,16 +81,6 @@ class PrioritizedReplayMemory(ReplayMemory):
         tree_idxs = ArrayBackend.convert(positions, to='numpy') + self._max_size - 1
         self._tree.update(tree_idxs, ArrayBackend.convert(p, to='numpy'))
         self._mask_write_head()
-
-    def _mask_write_head(self):
-        """
-        Exclude from sampling the ``max_reach`` oldest samples of a full buffer, whose stacked observation would be
-        rebuilt across the write head. A no-op until the buffer is full or when no history is used.
-
-        """
-        if self._max_reach > 0 and self._full:
-            positions = (self._idx + np.arange(self._max_reach)) % self._max_size
-            self._tree.mask(positions + self._max_size - 1)
 
     def get(self, n_samples):
         """
@@ -117,20 +112,7 @@ class PrioritizedReplayMemory(ReplayMemory):
         is_weight /= is_weight.max()
 
         data_idxs = ArrayBackend.convert(idxs - self._max_size + 1, to=self._agent_info.backend)
-        batch = self._dataset[data_idxs]
-        state, action, reward, next_state, absorbing, last = batch.parse()
-
-        extra = dict()
-        if self._history_manager is not None:
-            state, next_state, extra = self._history_manager.build_transition_windows_circular_buffer(
-                self._dataset.state, self._dataset.next_state, self._dataset.action,
-                self._dataset.last, data_idxs, len(self._dataset), self._full, self._max_size)
-
-        out = [state, action, reward, next_state, absorbing, last]
-        if self._dataset.is_stateful:
-            out += list(batch.parse_policy_state())
-        if self._return_extra:
-            out.append(extra)
+        out = self._assemble_batch(data_idxs)
         out += [idxs, is_weight]
 
         return tuple(out)
@@ -153,9 +135,6 @@ class PrioritizedReplayMemory(ReplayMemory):
         p = self._get_priority(error)
         self._tree.update(idx, p)
 
-    def _get_priority(self, error):
-        return (np.abs(error) + self._epsilon) ** self._alpha
-
     @property
     def max_priority(self):
         """
@@ -164,3 +143,16 @@ class PrioritizedReplayMemory(ReplayMemory):
 
         """
         return self._tree.max_p if self.initialized else 1.
+
+    def _mask_write_head(self):
+        """
+        Exclude from sampling the ``max_reach`` oldest samples of a full buffer, whose stacked observation would be
+        rebuilt across the write head. A no-op until the buffer is full or when no history is used.
+
+        """
+        if self._max_reach > 0 and self._full:
+            positions = (self._idx + np.arange(self._max_reach)) % self._max_size
+            self._tree.mask(positions + self._max_size - 1)
+
+    def _get_priority(self, error):
+        return (np.abs(error) + self._epsilon) ** self._alpha
