@@ -1,5 +1,3 @@
-
-# normal_ppo.py
 import numpy as np
 import torch
 import torch.nn as nn
@@ -24,9 +22,15 @@ class Network(nn.Module):
         self._h2 = nn.Linear(n_features, n_features)
         self._h3 = nn.Linear(n_features, n_output)
 
-        nn.init.xavier_uniform_(self._h1.weight, gain=nn.init.calculate_gain("relu") / 10)
-        nn.init.xavier_uniform_(self._h2.weight, gain=nn.init.calculate_gain("relu") / 10)
-        nn.init.xavier_uniform_(self._h3.weight, gain=nn.init.calculate_gain("linear") / 10)
+        nn.init.xavier_uniform_(
+            self._h1.weight, gain=nn.init.calculate_gain("relu") / 10
+        )
+        nn.init.xavier_uniform_(
+            self._h2.weight, gain=nn.init.calculate_gain("relu") / 10
+        )
+        nn.init.xavier_uniform_(
+            self._h3.weight, gain=nn.init.calculate_gain("linear") / 10
+        )
 
         if torch.cuda.is_available():
             self.to("cuda")
@@ -40,8 +44,15 @@ class Network(nn.Module):
         return self._h3(x)
 
 
-def experiment(env_class, num_envs, n_epochs, n_steps, n_steps_per_fit,
-               n_episodes_test, save_agent=False):
+def experiment(
+    env_class,
+    num_envs,
+    n_epochs,
+    n_steps,
+    n_steps_per_fit,
+    n_episodes_test,
+    save_agent=False,
+):
 
     np.random.seed()
 
@@ -50,7 +61,7 @@ def experiment(env_class, num_envs, n_epochs, n_steps, n_steps_per_fit,
     actor_lr = 1e-4
     critic_lr = 1e-3
     n_features = 64
-    batch_size = 64
+    batch_size = 1024
     n_epochs_policy = 10
     eps_ppo = 0.2
     lam = 0.95
@@ -92,8 +103,7 @@ def experiment(env_class, num_envs, n_epochs, n_steps, n_steps_per_fit,
 
     critic_params = dict(
         network=Network,
-        optimizer={"class": optim.Adam,
-                   "params": {"lr": critic_lr}},
+        optimizer={"class": optim.Adam, "params": {"lr": critic_lr}},
         loss=F.mse_loss,
         n_features=n_features,
         batch_size=batch_size,
@@ -198,7 +208,7 @@ def experiment(env_class, num_envs, n_epochs, n_steps, n_steps_per_fit,
 if __name__ == "__main__":
     experiment(
         env_class=AntWarp,
-        num_envs=1024,
+        num_envs=4096,
         n_epochs=50,
         n_steps=300000,
         n_steps_per_fit=30000,
