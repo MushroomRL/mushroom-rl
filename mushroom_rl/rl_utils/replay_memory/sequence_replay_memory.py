@@ -53,7 +53,7 @@ class SequenceReplayMemory(ReplayMemory):
 
         """
         backend = self._dataset.array_backend
-        h = self._history_length
+        h = self._history_manager.history_length
         max_size = self._max_size
         obs_shape = self._mdp_info.observation_space.shape
         obs_dtype = backend.to_backend_dtype(self._mdp_info.observation_space.data_type)
@@ -61,7 +61,7 @@ class SequenceReplayMemory(ReplayMemory):
 
         start = self._idx if self._full else 0
         size = self.size
-        min_offset = self._max_reach if self._full else 0
+        min_offset = self._history_manager.max_reach if self._full else 0
 
         stacked_shape = (h, *obs_shape) if h > 1 else obs_shape
         s = backend.zeros(n_samples, self._truncation_length, *stacked_shape, dtype=obs_dtype)

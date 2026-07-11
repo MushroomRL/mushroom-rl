@@ -96,7 +96,8 @@ class ReplayMemory(MushroomObject):
         """
         self._idx = 0
         self._full = False
-        dataset_info = DatasetInfo.create_replay_memory_info(self._mdp_info, self._agent_info, self._store_policy_state)
+        dataset_info = DatasetInfo.create_replay_memory_info(self._mdp_info, self._agent_info,
+                                                              self._store_policy_state)
         self._dataset = Dataset(dataset_info, n_steps=self._max_size)
 
     @property
@@ -116,19 +117,6 @@ class ReplayMemory(MushroomObject):
 
         """
         return self.size >= self._initial_size
-
-    @property
-    def _history_length(self):
-        return self._history_manager.history_length
-
-    @property
-    def _max_reach(self):
-        """
-        The deepest backward reach across all history streams, i.e. how many of the oldest samples of a full buffer are
-        excluded from sampling so that no window is rebuilt across the write head. It is 0 when no history is used.
-
-        """
-        return self._history_manager.max_reach
 
     def _assemble_batch(self, idxs):
         """
@@ -173,7 +161,7 @@ class ReplayMemory(MushroomObject):
         """
         backend = self._dataset.array_backend
         size = len(self._dataset)
-        if self._max_reach == 0 and self._n_steps_return == 1:
+        if self._history_manager.max_reach == 0 and self._n_steps_return == 1:
             return backend.randint(0, size, (n_samples,))
         idxs = backend.arange(0, size)
         valid = idxs[~self._compute_mask(idxs)]
@@ -192,12 +180,13 @@ class ReplayMemory(MushroomObject):
             The affected buffer positions, or ``None`` when no masking is in use.
 
         """
-        if self._max_reach == 0 and self._n_steps_return == 1:
+        if self._history_manager.max_reach == 0 and self._n_steps_return == 1:
             return None
 
         backend = self._dataset.array_backend
         size = len(self._dataset)
-        window_length = len(positions) + (self._n_steps_return - 1) + (self._max_reach if self._full else 0)
+        history_reserve = self._history_manager.max_reach if self._full else 0
+        window_length = len(positions) + (self._n_steps_return - 1) + history_reserve
         raw = (positions[0] - (self._n_steps_return - 1)) + backend.arange(0, window_length)
         if self._full:
             return raw % self._max_size
@@ -223,8 +212,8 @@ class ReplayMemory(MushroomObject):
                 self._dataset.reward, self._dataset.absorbing, self._dataset.last, anchor_idxs, self._mdp_info.gamma,
                 self._n_steps_return, len(self._dataset), self._full, self._max_size, self._idx)
             mask = mask | ~valid
-        if self._max_reach > 0 and self._full:
-            mask = mask | ((anchor_idxs - self._idx) % self._max_size < self._max_reach)
+        if self._history_manager.max_reach > 0 and self._full:
+            mask = mask | ((anchor_idxs - self._idx) % self._max_size < self._history_manager.max_reach)
         return mask
 
     def _write_to_buffer(self, dataset):
