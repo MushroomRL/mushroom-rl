@@ -1,6 +1,7 @@
 import numpy as np
+import torch
 
-from mushroom_rl.core import MDPInfo, AgentInfo
+from mushroom_rl.core import MDPInfo, AgentInfo, Dataset
 from mushroom_rl.core.spaces import Box
 from mushroom_rl.core.history_manager import HistoryManager
 
@@ -153,7 +154,7 @@ def test_build_history_batch_stops_at_episode_boundary():
 def test_action_only_stream():
     mdp_info, agent_info = _make_infos()
     hm = HistoryManager(mdp_info, agent_info,
-                        extra_buffers={'action_history': dict(length=2, shape=(2,), dtype=float)})
+                        extra_buffers={'action_history': {'length': 2, 'shape': (2,), 'dtype': float}})
     hm.reset()
 
     state_0, kwargs_0 = hm()
@@ -173,7 +174,7 @@ def test_action_only_stream():
 def test_extra_buffer_stream():
     mdp_info, agent_info = _make_infos(obs_shape=(2,))
     hm = HistoryManager(mdp_info, agent_info, obs_history_length=2,
-                        extra_buffers={'command': dict(length=3, shape=(1,), dtype=float)})
+                        extra_buffers={'command': {'length': 3, 'shape': (1,), 'dtype': float}})
     hm.reset()
 
     state, kwargs = hm(np.array([1.0, 1.0]), command=np.array([7.0]))
@@ -191,7 +192,7 @@ def test_extra_buffer_stream():
 
 def test_extra_only_manager():
     mdp_info, agent_info = _make_infos()
-    hm = HistoryManager(mdp_info, agent_info, extra_buffers={'foo': dict(length=2, shape=(1,), dtype=float)})
+    hm = HistoryManager(mdp_info, agent_info, extra_buffers={'foo': {'length': 2, 'shape': (1,), 'dtype': float}})
     hm.reset()
 
     state, kwargs = hm(foo=np.array([5.0]))
@@ -202,18 +203,18 @@ def test_extra_only_manager():
 def test_uses_action_reflects_action_history_stream():
     mdp_info, agent_info = _make_infos()
     hm_action = HistoryManager(mdp_info, agent_info,
-                               extra_buffers={'action_history': dict(length=2, shape=(1,), dtype=float)})
+                               extra_buffers={'action_history': {'length': 2, 'shape': (1,), 'dtype': float}})
     assert hm_action.uses_action
 
     hm_other = HistoryManager(mdp_info, agent_info,
-                              extra_buffers={'command': dict(length=2, shape=(1,), dtype=float)})
+                              extra_buffers={'command': {'length': 2, 'shape': (1,), 'dtype': float}})
     assert not hm_other.uses_action
 
 
 def test_multi_stream_splits_state_and_action():
     mdp_info, agent_info = _make_infos(obs_shape=(2,))
     hm = HistoryManager(mdp_info, agent_info, obs_history_length=3,
-                        extra_buffers={'action_history': dict(length=2, shape=(1,), dtype=float)})
+                        extra_buffers={'action_history': {'length': 2, 'shape': (1,), 'dtype': float}})
     hm.reset()
 
     hm.record_action(np.array([5.0]))
@@ -229,8 +230,8 @@ def test_multi_stream_splits_state_and_action():
 def _make_action_manager(action_history_length):
     mdp_info, agent_info = _make_infos(act_shape=(1,))
     return HistoryManager(mdp_info, agent_info,
-                          extra_buffers={'action_history': dict(length=action_history_length, shape=(1,),
-                                                                dtype=float, offset=1)})
+                          extra_buffers={'action_history': {'length': action_history_length, 'shape': (1,),
+                                                                  'dtype': float, 'offset': 1}})
 
 
 def test_previous_action_online_offline_equivalence():
@@ -338,3 +339,178 @@ def test_action_history_length_one_squeezed():
     assert offline.shape == (4, 1)
     assert np.allclose(online, offline)
     assert np.allclose(online, np.array([[0.0], [0.0], [1.0], [2.0]]))
+
+
+def _make_dataset(states, actions, rewards, next_states, absorbing, last, gamma=0.99, backend='numpy'):
+    return Dataset.from_array(states, actions, rewards, next_states, absorbing, last,
+                              horizon=100, gamma=gamma, backend=backend)
+
+
+def test_parse_history_full_dataset():
+    mdp_info, agent_info = _make_infos(obs_shape=(2,), act_shape=(1,))
+    hm = HistoryManager(mdp_info, agent_info, obs_history_length=2,
+                        extra_buffers={'action_history': {'length': 2, 'shape': (1,), 'dtype': float, 'offset': 1}})
+
+    states = np.array([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0], [3.0, 3.0]])
+    actions = np.array([[10.0], [11.0], [12.0], [13.0]])
+    rewards = np.array([0.1, 0.2, 0.3, 0.4])
+    next_states = np.array([[1.0, 1.0], [2.0, 2.0], [3.0, 3.0], [4.0, 4.0]])
+    absorbing = np.array([0.0, 0.0, 0.0, 1.0])
+    last = np.array([0.0, 0.0, 0.0, 1.0])
+    dataset = _make_dataset(states, actions, rewards, next_states, absorbing, last)
+
+    state, action, reward, next_state, absorb, lst, extra = hm.parse_history(dataset)
+
+    assert state.shape == (4, 2, 2)
+    assert np.allclose(state, np.array([[[0.0, 0.0], [0.0, 0.0]],
+                                        [[0.0, 0.0], [1.0, 1.0]],
+                                        [[1.0, 1.0], [2.0, 2.0]],
+                                        [[2.0, 2.0], [3.0, 3.0]]]))
+    assert np.allclose(action, actions)
+    assert np.allclose(reward, rewards)
+    assert np.allclose(next_state, np.array([[[0.0, 0.0], [1.0, 1.0]],
+                                             [[1.0, 1.0], [2.0, 2.0]],
+                                             [[2.0, 2.0], [3.0, 3.0]],
+                                             [[3.0, 3.0], [4.0, 4.0]]]))
+    assert np.allclose(absorb, absorbing)
+    assert np.allclose(lst, last)
+    assert set(extra.keys()) == {'action_history'}
+    assert np.allclose(extra['action_history'], np.array([[[0.0], [0.0]],
+                                                          [[0.0], [10.0]],
+                                                          [[10.0], [11.0]],
+                                                          [[11.0], [12.0]]]))
+
+
+def test_parse_history_no_active_stream_passes_through():
+    mdp_info, agent_info = _make_infos(obs_shape=(2,), act_shape=(1,))
+    hm = HistoryManager(mdp_info, agent_info)
+
+    states = np.array([[0.0, 0.0], [1.0, 1.0]])
+    actions = np.array([[10.0], [11.0]])
+    rewards = np.array([0.1, 0.2])
+    next_states = np.array([[1.0, 1.0], [2.0, 2.0]])
+    absorbing = np.array([0.0, 1.0])
+    last = np.array([0.0, 1.0])
+    dataset = _make_dataset(states, actions, rewards, next_states, absorbing, last)
+
+    state, action, reward, next_state, absorb, lst, extra = hm.parse_history(dataset)
+
+    assert extra == {}
+    assert np.allclose(state, states)
+    assert np.allclose(next_state, next_states)
+
+
+def test_parse_history_to_backend_argument():
+    mdp_info, agent_info = _make_infos(obs_shape=(2,), act_shape=(1,))
+    hm = HistoryManager(mdp_info, agent_info, obs_history_length=2,
+                        extra_buffers={'action_history': {'length': 2, 'shape': (1,), 'dtype': float, 'offset': 1}})
+
+    states = np.array([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0], [3.0, 3.0]])
+    actions = np.array([[10.0], [11.0], [12.0], [13.0]])
+    rewards = np.array([0.1, 0.2, 0.3, 0.4])
+    next_states = np.array([[1.0, 1.0], [2.0, 2.0], [3.0, 3.0], [4.0, 4.0]])
+    absorbing = np.array([0.0, 0.0, 0.0, 1.0])
+    last = np.array([0.0, 0.0, 0.0, 1.0])
+    dataset = _make_dataset(states, actions, rewards, next_states, absorbing, last)
+
+    state, action, reward, next_state, absorb, lst, extra = hm.parse_history(dataset, to='torch')
+
+    assert isinstance(state, torch.Tensor)
+    assert isinstance(extra['action_history'], torch.Tensor)
+    assert torch.allclose(state, torch.tensor([[[0.0, 0.0], [0.0, 0.0]],
+                                               [[0.0, 0.0], [1.0, 1.0]],
+                                               [[1.0, 1.0], [2.0, 2.0]],
+                                               [[2.0, 2.0], [3.0, 3.0]]]))
+    assert torch.allclose(extra['action_history'], torch.tensor([[[0.0], [0.0]],
+                                                                 [[0.0], [10.0]],
+                                                                 [[10.0], [11.0]],
+                                                                 [[11.0], [12.0]]]))
+
+
+def test_parse_nstep_history_single_episode():
+    mdp_info, agent_info = _make_infos(obs_shape=(1,), act_shape=(1,))
+    hm = HistoryManager(mdp_info, agent_info)
+
+    states = np.arange(6, dtype=float).reshape(6, 1)
+    actions = np.arange(6, dtype=float).reshape(6, 1)
+    rewards = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+    next_states = states + 1.0
+    absorbing = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0])
+    last = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0])
+    dataset = _make_dataset(states, actions, rewards, next_states, absorbing, last, gamma=0.5)
+
+    state, action, reward, next_state, absorb, lst, extra = hm.parse_nstep_history(dataset, gamma=0.5,
+                                                                                   n_steps_return=3)
+
+    assert np.allclose(reward, np.array([2.75, 4.5, 6.25, 8.0, 8.0, 6.0]))
+    assert np.allclose(next_state.ravel(), np.array([3.0, 4.0, 5.0, 6.0, 6.0, 6.0]))
+    assert np.allclose(absorb, np.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]))
+    assert np.allclose(lst, np.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]))
+    assert np.array_equal(extra['endpoint'], np.array([2, 3, 4, 5, 5, 5]))
+    assert np.allclose(action, actions)
+
+
+def test_parse_nstep_history_anchor_idxs_subset():
+    mdp_info, agent_info = _make_infos(obs_shape=(1,), act_shape=(1,))
+    hm = HistoryManager(mdp_info, agent_info)
+
+    states = np.arange(6, dtype=float).reshape(6, 1)
+    actions = np.arange(6, dtype=float).reshape(6, 1)
+    rewards = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+    next_states = states + 1.0
+    absorbing = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0])
+    last = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0])
+    dataset = _make_dataset(states, actions, rewards, next_states, absorbing, last, gamma=0.5)
+
+    anchors = np.array([0, 3])
+    state, action, reward, next_state, absorb, lst, extra = hm.parse_nstep_history(dataset, gamma=0.5,
+                                                                                   n_steps_return=3,
+                                                                                   anchor_idxs=anchors)
+
+    assert np.allclose(reward, np.array([2.75, 8.0]))
+    assert np.allclose(next_state.ravel(), np.array([3.0, 6.0]))
+    assert np.allclose(absorb, np.array([0.0, 1.0]))
+    assert np.array_equal(extra['endpoint'], np.array([2, 5]))
+
+
+def test_parse_nstep_history_n_steps_return_one_matches_immediate_transition():
+    mdp_info, agent_info = _make_infos(obs_shape=(1,), act_shape=(1,))
+    hm = HistoryManager(mdp_info, agent_info)
+
+    states = np.arange(6, dtype=float).reshape(6, 1)
+    actions = np.arange(6, dtype=float).reshape(6, 1)
+    rewards = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+    next_states = states + 1.0
+    absorbing = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0])
+    last = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0])
+    dataset = _make_dataset(states, actions, rewards, next_states, absorbing, last, gamma=0.5)
+
+    state, action, reward, next_state, absorb, lst, extra = hm.parse_nstep_history(dataset, gamma=0.5,
+                                                                                   n_steps_return=1)
+
+    assert np.allclose(reward, rewards)
+    assert np.allclose(next_state.ravel(), next_states.ravel())
+    assert np.array_equal(extra['endpoint'], np.arange(6))
+
+
+def test_parse_nstep_history_stops_at_episode_boundary():
+    mdp_info, agent_info = _make_infos(obs_shape=(1,), act_shape=(1,))
+    hm = HistoryManager(mdp_info, agent_info)
+
+    states = np.arange(5, dtype=float).reshape(5, 1)
+    actions = np.arange(5, dtype=float).reshape(5, 1)
+    rewards = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    next_states = states + 1.0
+    absorbing = np.array([0.0, 0.0, 1.0, 0.0, 0.0])   # first episode ends (absorbing) at index 2
+    last = np.array([0.0, 0.0, 1.0, 0.0, 0.0])
+    dataset = _make_dataset(states, actions, rewards, next_states, absorbing, last, gamma=0.5)
+
+    state, action, reward, next_state, absorb, lst, extra = hm.parse_nstep_history(dataset, gamma=0.5,
+                                                                                   n_steps_return=3)
+
+    assert np.allclose(reward, np.array([2.75, 3.5, 3.0, 6.5, 5.0]))
+    assert np.allclose(next_state.ravel(), np.array([3.0, 3.0, 3.0, 5.0, 5.0]))
+    assert np.array_equal(extra['endpoint'], np.array([2, 2, 2, 4, 4]))
+    # anchors 0 and 1 never stitch the n-step return past the terminal transition of the first episode
+    assert np.allclose(absorb, np.array([1.0, 1.0, 1.0, 0.0, 0.0]))
+    assert np.allclose(lst, np.array([1.0, 1.0, 1.0, 0.0, 0.0]))

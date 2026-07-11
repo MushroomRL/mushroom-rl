@@ -8,10 +8,6 @@ For Mushroom 2.0:
         - vectorize if possible, using vmap if allowed
         - simplify interface, improving facade pattern
     * deterministic policy evaluation
-    * HistoryManager parse_* API follow-up
-        - add direct unit tests for parse_history / parse_nstep_history (full-tuple Dataset parse, to= backend
-          argument, n-step-return-over-a-dataset)
-        - document the parse_* interface and the n-step-return-over-a-dataset feature in tutorial 7
     * reorganize example folder
         - decide whether to keep maintaining the igibson and habitat examples (uninstallable deps, stale
           replay-memory API); possibly move them to a separate repository

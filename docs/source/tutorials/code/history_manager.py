@@ -1,6 +1,6 @@
 import numpy as np
 
-from mushroom_rl.core import MDPInfo, AgentInfo, Box
+from mushroom_rl.core import MDPInfo, AgentInfo, Box, Dataset
 from mushroom_rl.core.history_manager import HistoryManager
 
 # MDP and agent info
@@ -16,23 +16,54 @@ print('history_length:', history.history_length)
 print('action_history_length:', history.action_history_length)
 print('max_reach:', history.max_reach)
 
-# Online stacking
-history.reset()
-for t in range(4):
-    obs = np.full(2, t, dtype=float)
-    state, policy_kwargs = history(obs)
-    print(f'--- step {t} ---')
-    print('obs window:\n', state)
-    print('action_history window:\n', policy_kwargs['action_history'])
-    history.record_action(np.full(1, t))
-
-# Offline reconstruction
+# Sample dataset, used below both to drive the online stacking and for the offline reconstruction
 states = np.stack([np.full(2, t, dtype=float) for t in range(4)])
 actions = np.stack([np.full(1, t, dtype=float) for t in range(4)])
+rewards = np.arange(4, dtype=float)
+next_states = np.stack([np.full(2, t, dtype=float) for t in range(1, 5)])
+absorbing = np.zeros(4, dtype=bool)
 last = np.zeros(4, dtype=bool)
+dataset = Dataset.from_array(states, actions, rewards, next_states, absorbing, last,
+                             horizon=100, gamma=0.99, backend='numpy')
 
-obs_windows = history.build_history('obs_history', states, last)
-action_windows = history.build_history('action_history', actions, last)
-print('=== offline ===')
-print('obs windows:\n', obs_windows)
-print('action_history windows:\n', action_windows)
+# Online stacking
+print('#' * 40)
+print('online')
+history.reset()
+for t in range(len(dataset)):
+    obs = dataset.state[t]  # simulates the observation returned by env.step() at this timestep
+    state, policy_kwargs = history(obs)
+    print('-' * 40)
+    print(f'step {t}:')
+    print('obs window:\n', state)
+    print('action_history window:\n', policy_kwargs['action_history'])
+    history.record_action(dataset.action[t])
+
+# Offline reconstruction
+obs_windows = history.build_history('obs_history', dataset.state, dataset.last)
+action_windows = history.build_history('action_history', dataset.action, dataset.last)
+print('#' * 40)
+print('offline')
+for t in range(len(dataset)):
+    print('-' * 40)
+    print(f'step {t}:')
+    print('obs window:\n', obs_windows[t])
+    print('action_history window:\n', action_windows[t])
+
+# Parsing a whole dataset at once
+state, action, reward, next_state, absorbing, last, extra = history.parse_history(dataset)
+print('#' * 40)
+print('parse_history')
+for t in range(len(dataset)):
+    print('-' * 40)
+    print(f'step {t}:')
+    print('state window:\n', state[t])
+    print('action_history window:\n', extra['action_history'][t])
+
+# n-step return folded into the parse
+_, _, nstep_reward, nstep_next_state, nstep_absorbing, nstep_last, nstep_extra = \
+    history.parse_nstep_history(dataset, gamma=0.9, n_steps_return=2)
+print('#' * 40)
+print('parse_nstep_history (n_steps_return=2)')
+print('n-step reward:\n', nstep_reward)
+print('endpoint:\n', nstep_extra['endpoint'])

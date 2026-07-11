@@ -57,6 +57,17 @@ and/or ``action_history_length`` as constructor parameters and forward them to t
 policy call and the replay memory). The rest of this tutorial uses the manager directly only to show what happens
 under the hood.
 
+A sample dataset
+----------------
+
+The rest of this tutorial replays a small four-step, single-episode :class:`~mushroom_rl.core.Dataset` built from
+plain arrays: the same transitions first drive the manager one step at a time below (as an agent would while
+acting), then get fed back to it in bulk further down, to show that the offline reconstruction and the
+whole-dataset parse reproduce *exactly* the same windows.
+
+.. literalinclude:: code/history_manager.py
+   :lines: 19-27
+
 Stacking online
 ---------------
 
@@ -68,10 +79,12 @@ stream is not passed in; the action drawn at each step is instead reported back 
 :meth:`~mushroom_rl.core.history_manager.HistoryManager.record_action`, and the manager uses it as the most recent
 entry of the window at the next step (realizing its ``offset`` 1). A stream whose value is not yet available is
 zero-padded, and :meth:`~mushroom_rl.core.history_manager.HistoryManager.reset` clears the buffers at the start of
-an episode, so the first windows are zero-padded from the left.
+an episode, so the first windows are zero-padded from the left. Here there is no real environment to step, so at
+each iteration ``obs`` simulates the observation an ``env.step()`` call would have returned, simply read off the
+sample dataset built above:
 
 .. literalinclude:: code/history_manager.py
-   :lines: 19-27
+   :lines: 29-40
 
 Running this prints the windows growing step by step. Note the effect of the ``offset``: at step 3 the
 ``obs_history`` window ends at the current observation (``offset`` 0), whereas the ``action_history`` window ends
@@ -84,10 +97,11 @@ The same stacking rule is exposed offline through
 :meth:`~mushroom_rl.core.history_manager.HistoryManager.build_history`, which rebuilds one window per timestep
 from a stored buffer, walking backwards from each anchor up to the stream length and stopping at episode
 boundaries (given by the ``last`` flags) or at the start of the buffer, zero-padding the missing older entries.
-Feeding it the transition columns of a dataset reproduces *exactly* the windows assembled online:
+Feeding it the same dataset's ``state``, ``action`` and ``last`` columns reproduces *exactly* the windows
+assembled online:
 
 .. literalinclude:: code/history_manager.py
-   :lines: 29-38
+   :lines: 42-51
 
 The offline ``obs_history`` and ``action_history`` windows match the online ones step for step. The agent injects
 the manager into the replay memory (via :attr:`~mushroom_rl.core.Agent.history_manager`), and the memory rebuilds
@@ -95,6 +109,49 @@ the stacked context for the sampled transitions with the same rule used to colle
 redundant stacked windows. The circular replay-buffer variant,
 :meth:`~mushroom_rl.core.history_manager.HistoryManager.build_history_circular_buffer`, does the same for a
 wrapped-around buffer, taking positions modulo the buffer size and stopping at the write head.
+
+Parsing a dataset
+------------------
+
+An algorithm that trains off a whole :class:`~mushroom_rl.core.Dataset` rebuilds the history windows for the
+whole dataset at once through
+:meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_history`, the history-aware analog of
+:meth:`~mushroom_rl.core.Dataset.parse`. It returns the same seven-tuple ``(state, action, reward, next_state,
+absorbing, last, extra)``: ``state`` and ``next_state`` carry the stacked ``obs_history`` window (or the raw
+observation, unchanged, when the stream is not active) in place of the single-step observation, and ``extra`` maps
+every other active stream (e.g. ``action_history``) to its window, exactly as returned by
+:meth:`~mushroom_rl.core.history_manager.HistoryManager.__call__` while acting. ``action``, ``reward``, ``absorbing``
+and ``last`` are the raw per-transition values, not stacked. As with :meth:`~mushroom_rl.core.Dataset.parse`, the
+``to`` argument picks the backend of the returned arrays, defaulting to the manager's own agent backend:
+
+.. literalinclude:: code/history_manager.py
+   :lines: 53-61
+
+``PPO_BPTT`` is one such algorithm: it calls :meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_history`
+once per ``fit`` to get the stacked states and previous-action windows of the whole collected dataset before
+slicing them into the truncated sequences it trains on.
+
+The n-step return over a dataset
+---------------------------------
+
+:meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_nstep_history` folds the n-step return into the same
+parse: the reward becomes the discounted sum of the next ``n_steps_return`` rewards and ``next_state``, ``absorbing``
+and ``last`` are taken at its bootstrap **endpoint** — the transition ``n_steps_return`` steps ahead, or the terminal
+transition when the episode ends earlier — while ``state`` and the other streams (e.g. ``action_history``) stay at
+the current step. The endpoint index of each transition, needed by an agent that wants to bootstrap off it directly,
+is returned under ``extra['endpoint']``. The return never crosses an episode boundary: it stops and bootstraps at the
+terminal transition instead of stitching in rewards from the next episode.
+
+.. literalinclude:: code/history_manager.py
+   :lines: 63-69
+
+With ``gamma`` 0.9 and ``n_steps_return`` 2, the reward of a transition becomes ``r_t + 0.9 * r_{t+1}`` and its
+endpoint is ``t + 1``, except for the last transition of the dataset, which has no further step to look ahead to and
+falls back to its own immediate reward and index. This is the same computation
+:class:`~mushroom_rl.rl_utils.replay_memory.ReplayMemory` performs (through
+:meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_nstep_history_circular_buffer`, its circular-buffer
+counterpart) when it is built with ``n_steps_return`` greater than 1, so that n-step DQN-style targets and history
+stacking compose transparently.
 
 Sequence vs. window
 -------------------
