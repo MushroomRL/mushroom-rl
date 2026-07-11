@@ -64,8 +64,6 @@ class PPO_BPTT(OnPolicyDeepAC):
         super().__init__(mdp_info, policy, backend='torch', history_length=history_length,
                          action_history_length=action_history_length)
 
-        self._uses_prev_action = self._history_manager is not None and self._history_manager.uses_action
-
         self._add_save_attr(
             _critic_fit_params='pickle',
             _n_epochs_policy='mushroom',
@@ -77,24 +75,24 @@ class PPO_BPTT(OnPolicyDeepAC):
             _V='mushroom',
             _iter='primitive',
             _dim_env_state='primitive',
-            _truncation_length='primitive',
-            _uses_prev_action='primitive'
+            _truncation_length='primitive'
         )
         self._add_logger_attr('_V', group='critic')
 
     def fit(self, dataset):
-        state, action, reward, next_state, absorbing, last = dataset.parse(to='torch')
+        state, action, reward, next_state, absorbing, last, extra = self._history_manager.parse_history(dataset)
         state, next_state, state_old = self._preprocess_state(state, next_state)
+        prev_action = extra.get('action_history')
 
         policy_state, policy_next_state = dataset.parse_policy_state(to='torch')
         state_old_seq, state_seq, policy_state_seq, act_seq, state_next_seq, policy_next_state_seq, prev_action_seq, \
             lengths = self._transform_to_sequences(state_old, state, policy_state, action, next_state,
-                                                   policy_next_state, last, absorbing)
+                                                   policy_next_state, prev_action, last, absorbing)
 
         v_target, adv = self.compute_gae(self._V, state_seq, policy_state_seq, state_next_seq, policy_next_state_seq,
                                          lengths, reward, absorbing, last, self.mdp_info.gamma, self._lambda(),
                                          action_history=prev_action_seq,
-                                         next_action_history=act_seq if self._uses_prev_action else None)
+                                         next_action_history=act_seq if self._history_manager.uses_action else None)
         adv = (adv - torch.mean(adv)) / (torch.std(adv) + 1e-8)
 
         old_pol_dist = self.policy.distribution(state_old_seq, policy_state_seq, lengths,
@@ -102,7 +100,7 @@ class PPO_BPTT(OnPolicyDeepAC):
         old_log_p = old_pol_dist.log_prob(action)[:, None].detach()
 
         critic_args = (state_seq, policy_state_seq, lengths)
-        critic_args += (prev_action_seq,) if self._uses_prev_action else ()
+        critic_args += (prev_action_seq,) if self._history_manager.uses_action else ()
         self._V.fit(*critic_args, v_target, **self._critic_fit_params)
 
         self._update_policy(state_seq, policy_state_seq, action, lengths, adv, old_log_p, prev_action_seq)
@@ -157,17 +155,8 @@ class PPO_BPTT(OnPolicyDeepAC):
             return gen_adv + v, gen_adv
 
     def _transform_to_sequences(self, states_old, states, policy_states, actions, next_states, policy_next_states,
-                                last, absorbing):
+                                prev_actions, last, absorbing):
         with torch.no_grad():
-            # preprocessing of history inputs
-            prev_actions = None
-            if self._history_manager is not None:
-                states, next_states, extra = self._history_manager.build_transition_windows(
-                    states, next_states, actions, last)
-                prev_actions = extra.get('action_history')
-                if self._history_manager.history_length > 1:
-                    states_old = self._history_manager.build_history('obs_history', states_old, last)
-
             # array preallocation
             s_old = torch.empty(len(states), self._truncation_length, *states_old.shape[1:])
             s = torch.empty(len(states), self._truncation_length, *states.shape[1:])
@@ -176,7 +165,7 @@ class PPO_BPTT(OnPolicyDeepAC):
             ss = torch.empty(len(states), self._truncation_length, *next_states.shape[1:])
             pss = torch.empty(len(states), policy_states.shape[-1])
             pa = torch.empty(len(states), self._truncation_length, *prev_actions.shape[1:]) \
-                if self._uses_prev_action else None
+                if self._history_manager.uses_action else None
             lengths = torch.empty(len(states), dtype=torch.long)
 
             for i in range(len(states)):
@@ -219,7 +208,7 @@ class PPO_BPTT(OnPolicyDeepAC):
                 ss[i] = padded_next_states
                 pss[i] = policy_next_states[begin_seq]
 
-                if self._uses_prev_action:
+                if self._history_manager.uses_action:
                     prev_action_seq = prev_actions[begin_seq:end_seq]
                     pa[i] = torch.concatenate([prev_action_seq,
                                                torch.zeros((self._truncation_length - prev_action_seq.shape[0],
@@ -231,12 +220,12 @@ class PPO_BPTT(OnPolicyDeepAC):
 
     def _update_policy(self, obs, pi_h, act, lengths, adv, old_log_p, prev_action):
         for epoch in range(self._n_epochs_policy()):
-            if self._uses_prev_action:
+            if self._history_manager.uses_action:
                 batches = minibatch_generator(self._batch_size(), obs, pi_h, act, lengths, adv, old_log_p, prev_action)
             else:
                 batches = minibatch_generator(self._batch_size(), obs, pi_h, act, lengths, adv, old_log_p)
             for batch in batches:
-                if self._uses_prev_action:
+                if self._history_manager.uses_action:
                     obs_i, pi_h_i, act_i, length_i, adv_i, old_log_p_i, prev_action_i = batch
                 else:
                     obs_i, pi_h_i, act_i, length_i, adv_i, old_log_p_i = batch

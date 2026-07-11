@@ -62,25 +62,15 @@ class PrioritizedReplayMemory(ReplayMemory):
         assert not self._dataset.is_stateful or dataset.is_stateful, \
             "The replay memory is configured to store the policy state, but the dataset does not provide it."
 
+        dataset = dataset.to_backend(self._agent_info.backend)
+
         if p is None:
             p = self._dataset.array_backend.full((len(dataset),), self.max_priority)
-
-        if self._n_steps_return > 1:
-            state, action, reward, next_state, absorbing, last = dataset.parse(to=self._agent_info.backend)
-            policy_state, policy_next_state = (dataset.parse_policy_state(to=self._agent_info.backend)
-                                               if self._dataset.is_stateful else (None, None))
-            result = self._compute_n_step_return(state, action, reward, next_state, absorbing, last,
-                                                 policy_state, policy_next_state, priority=p)
-            if result is None:
-                return
-            dataset, p = result
-        else:
-            dataset = dataset.to_backend(self._agent_info.backend)
 
         positions = self._write_to_buffer(dataset)
         tree_idxs = ArrayBackend.convert(positions, to='numpy') + self._max_size - 1
         self._tree.update(tree_idxs, ArrayBackend.convert(p, to='numpy'))
-        self._mask_write_head()
+        self._sync_tree_mask(self._affected_window(positions))
 
     def get(self, n_samples):
         """
@@ -144,15 +134,22 @@ class PrioritizedReplayMemory(ReplayMemory):
         """
         return self._tree.max_p if self.initialized else 1.
 
-    def _mask_write_head(self):
+    def _sync_tree_mask(self, window):
         """
-        Exclude from sampling the ``max_reach`` oldest samples of a full buffer, whose stacked observation would be
-        rebuilt across the write head. A no-op until the buffer is full or when no history is used.
+        Mirror the sampling mask of ``window`` (see :meth:`_compute_mask`) into the sum tree: mask the leaves that are
+        excluded and unmask the ones that are sampleable. Both tree operations are idempotent and the leaf keeps its
+        true priority while masked, so this is a plain copy of the mask over the affected leaves.
+
+        Args:
+            window: the buffer positions whose mask changed (see :meth:`_affected_window`), or ``None`` when no masking
+                is in use.
 
         """
-        if self._max_reach > 0 and self._full:
-            positions = (self._idx + np.arange(self._max_reach)) % self._max_size
-            self._tree.mask(positions + self._max_size - 1)
+        if window is not None:
+            leaves = ArrayBackend.convert(window, to='numpy') + self._max_size - 1
+            desired = ArrayBackend.convert(self._compute_mask(window), to='numpy')
+            self._tree.mask(leaves[desired])
+            self._tree.unmask(leaves[~desired])
 
     def _get_priority(self, error):
         return (np.abs(error) + self._epsilon) ** self._alpha

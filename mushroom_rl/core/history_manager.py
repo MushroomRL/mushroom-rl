@@ -13,8 +13,9 @@ class HistoryManager(MushroomObject):
     (0 for the observation, 1 for the previous action). The two reserved streams are sourced by the manager itself: the
     ``obs_history`` stream from the ``state`` passed to :meth:`__call__` (delivered in-band as the policy ``state``)
     and the ``action_history`` stream from the last action recorded through :meth:`record_action`. Any further stream
-    is fed as a keyword argument to :meth:`__call__` and returned under its own name. At least one stream must be
-    active.
+    is fed as a keyword argument to :meth:`__call__` and returned under its own name. With no active stream the manager
+    is the identity context: it passes the ``state`` through unchanged and returns no keyword arguments, so an agent
+    that does no stacking can hold one unconditionally instead of a ``None``.
 
     The manager works entirely in the agent backend. Online it stacks the most recent entry of each stream, and the
     same stacking rule is exposed offline through :meth:`build_history` (regular buffer) and
@@ -66,8 +67,6 @@ class HistoryManager(MushroomObject):
         for name, spec in (extra_buffers or dict()).items():
             self.add_stream(name, **spec)
 
-        assert self._stream_specs, "HistoryManager requires at least one active stream."
-
     def add_stream(self, name, length, shape, dtype, offset=0, **options):
         """
         Register a named stream to be stacked by the manager. Streams are usually declared through the constructor, but
@@ -89,7 +88,8 @@ class HistoryManager(MushroomObject):
     @classmethod
     def from_infos(cls, mdp_info, agent_info, history_length=None, action_history_length=None):
         """
-        Build a manager from the MDP and agent information, returning ``None`` when no stream is active. The
+        Build a manager from the MDP and agent information. When neither stream is active the returned manager is the
+        identity context (no stacking), so callers can always hold a manager rather than a ``None``. The
         previous-action stream, when requested, is registered as the reserved ``action_history`` named stream with
         ``offset`` 1, deriving its shape and data type from the action space.
 
@@ -100,15 +100,11 @@ class HistoryManager(MushroomObject):
             action_history_length (int, None): number of previous actions stacked as policy input.
 
         Returns:
-            The :class:`HistoryManager` instance, or ``None`` if neither the observation nor the action stream is
-            active.
+            The :class:`HistoryManager` instance.
 
         """
         history_length = 1 if history_length is None else history_length
         action_history_length = 0 if action_history_length is None else action_history_length
-
-        if history_length <= 1 and action_history_length <= 0:
-            return None
 
         extra_buffers = dict()
         if action_history_length > 0:
@@ -223,17 +219,17 @@ class HistoryManager(MushroomObject):
     def record_action(self, action):
         """
         Record the action just drawn by the agent so that it becomes the most recent entry of the ``action_history``
-        window at the next step (its ``offset`` 1). Called by the agent after every ``draw_action``; a no-op when the
-        previous-action stream is not active.
+        window at the next step (its ``offset`` 1). Called by the agent after every ``draw_action``. The last action
+        is always kept (it is cheap and available for custom logging), even when the previous-action stream is not
+        active and it is not stacked into any window.
 
         Args:
             action: the action just drawn, already in the agent backend.
 
         """
-        if self.uses_action:
-            self._last_action = action
+        self._last_action = action
 
-    def build_history(self, name, buffer, last, anchor_idxs=None):
+    def build_history(self, name, buffer, last, anchor_idxs=None, backend=None):
         """
         Rebuild the ``name`` stream window offline for a batch of anchor indices, reading from a regular (non-circular)
         buffer such as an in-memory dataset. Each window is built by walking backwards from its anchor up to the stream
@@ -253,20 +249,23 @@ class HistoryManager(MushroomObject):
             buffer: the buffer to read from;
             last: the ``last`` flags of the buffer, used to stop at episode boundaries;
             anchor_idxs (None): buffer indices of the current step of each window; when ``None`` every timestep of the
-                buffer is an anchor.
+                buffer is an anchor;
+            backend (ArrayBackend, None): the backend used to allocate the window; when ``None`` the agent backend is
+                used.
 
         Returns:
             An array of shape ``(n_samples, length, *entry_shape)`` (squeezed along ``length`` when it is 1), with older
             entries at lower indices.
 
         """
+        backend = backend or self._agent_backend
         size = buffer.shape[0]
         if anchor_idxs is not None:
-            return self.build_history_circular_buffer(name, buffer, last, anchor_idxs, size, full=False, max_size=size)
+            return self.build_history_circular_buffer(name, buffer, last, anchor_idxs, size, full=False, max_size=size,
+                                                      backend=backend)
 
         spec = self._stream_specs[name]
         length, offset = spec['length'], spec['offset']
-        backend = self._agent_backend
 
         out = backend.zeros(size, length, *buffer.shape[1:], dtype=buffer.dtype)
         active = backend.ones(size, dtype=bool)
@@ -290,7 +289,7 @@ class HistoryManager(MushroomObject):
             out = out[:, 0]
         return out
 
-    def build_history_circular_buffer(self, name, buffer, last, anchor_idxs, size, full, max_size):
+    def build_history_circular_buffer(self, name, buffer, last, anchor_idxs, size, full, max_size, backend=None):
         """
         Same as :meth:`build_history`, but reading from a circular replay buffer: positions are taken modulo the buffer
         size, the walk stops both at episode boundaries and at the buffer limits (the start of a not-yet-wrapped buffer,
@@ -304,7 +303,9 @@ class HistoryManager(MushroomObject):
             anchor_idxs: buffer indices of the current step of each window;
             size (int): the number of valid entries currently stored in the buffer;
             full (bool): whether the circular buffer has wrapped around;
-            max_size (int): the maximum size of the circular buffer.
+            max_size (int): the maximum size of the circular buffer;
+            backend (ArrayBackend, None): the backend used to allocate the window; when ``None`` the agent backend is
+                used.
 
         Returns:
             An array of shape ``(n_samples, length, *entry_shape)`` (squeezed along ``length`` when it is 1), with older
@@ -313,7 +314,7 @@ class HistoryManager(MushroomObject):
         """
         spec = self._stream_specs[name]
         length, offset = spec['length'], spec['offset']
-        backend = self._agent_backend
+        backend = backend or self._agent_backend
         n_samples = len(anchor_idxs)
         mask_shape = (n_samples,) + (1,) * (len(buffer.shape) - 1)
         out = backend.zeros(n_samples, length, *buffer.shape[1:], dtype=buffer.dtype)
@@ -346,67 +347,216 @@ class HistoryManager(MushroomObject):
             out = out[:, 0]
         return out
 
-    def build_transition_windows(self, states, next_states, actions, last):
+    def parse_history(self, dataset, to=None):
         """
-        Rebuild every automatically-handled window of a full regular buffer (e.g. an in-memory dataset), one window
-        per timestep, from its state, next-state and action columns. See
-        :meth:`build_transition_windows_circular_buffer` for the circular replay-buffer variant.
+        Parse a dataset into its arrays, the analog of :meth:`Dataset.parse` with the history stacking rules applied:
+        the state and next-state windows replace the raw observations with the stack of their most recent entries, i.e.
+        the temporal context fed to the policy, and the window of every other active stream (e.g. the previous actions)
+        is returned aside.
 
         Args:
-            states: the state column of the buffer;
-            next_states: the next-state column of the buffer;
-            actions: the action column of the buffer;
-            last: the ``last`` flags of the buffer, used to stop at episode boundaries.
+            dataset (Dataset): the dataset to parse;
+            to (str, None): the backend of the returned arrays; when ``None`` the agent backend is used.
 
         Returns:
-            A tuple ``(state, next_state, extra)`` with the state and next-state windows and a dictionary of the
-            remaining stream windows keyed by name (see the online policy keyword arguments of :meth:`__call__`).
+            The tuple ``(state, action, reward, next_state, absorbing, last, extra)``, as :meth:`Dataset.parse` plus a
+            dictionary mapping every other active stream name to its window; ``state`` and ``next_state`` carry the
+            stacked windows. A stream stacking a single entry collapses to the raw value.
 
         """
+        backend = ArrayBackend.get_array_backend(to) if to else self._agent_backend
+        dataset = dataset.to_backend(backend.get_backend_name())
+        states, actions, reward = dataset.state, dataset.action, dataset.reward
+        next_states, absorbing, last = dataset.next_state, dataset.absorbing, dataset.last
+
         if 'obs_history' in self._stream_specs:
-            state = self.build_history('obs_history', states, last)
-            next_state = self.build_history('obs_history', next_states, last)
+            state = self.build_history('obs_history', states, last, backend=backend)
+            next_state = self.build_history('obs_history', next_states, last, backend=backend)
         else:
             state, next_state = states, next_states
 
         extra = dict()
         if self.uses_action:
-            extra['action_history'] = self.build_history('action_history', actions, last)
-        return state, next_state, extra
+            extra['action_history'] = self.build_history('action_history', actions, last, backend=backend)
+        return state, actions, reward, next_state, absorbing, last, extra
 
-    def build_transition_windows_circular_buffer(self, states, next_states, actions, last, anchor_idxs, size, full,
-                                                 max_size):
+    def parse_history_circular_buffer(self, dataset, anchor_idxs, size, full, max_size, to=None):
         """
-        Rebuild every automatically-handled window for a batch of anchors of a circular replay buffer, from its state,
-        next-state and action columns. Same result as :meth:`build_transition_windows`, reading the circular buffer at
-        ``anchor_idxs`` (see :meth:`build_history_circular_buffer` for the ``size``/``full``/``max_size`` arguments).
+        Parse the transitions at ``anchor_idxs`` of a dataset stored in a circular replay buffer, as in
+        :meth:`parse_history`. A circular buffer overwrites its oldest entry once full, so a window is read modulo the
+        capacity and is never stitched across the write head.
 
         Args:
-            states: the state column of the buffer;
-            next_states: the next-state column of the buffer;
-            actions: the action column of the buffer;
-            last: the ``last`` flags of the buffer, used to stop at episode boundaries;
-            anchor_idxs: buffer indices of the current step of each transition;
-            size (int): the number of valid entries currently stored in the buffer;
-            full (bool): whether the circular buffer has wrapped around;
-            max_size (int): the maximum size of the circular buffer.
+            dataset (Dataset): the dataset to parse;
+            anchor_idxs: the buffer position of each transition to parse;
+            size (int): the number of entries currently stored;
+            full (bool): whether the buffer has wrapped around;
+            max_size (int): the buffer capacity;
+            to (str, None): the backend of the returned arrays; when ``None`` the agent backend is used.
 
         Returns:
-            A tuple ``(state, next_state, extra)`` with the state and next-state windows and a dictionary of the
-            remaining stream windows keyed by name.
+            The tuple ``(state, action, reward, next_state, absorbing, last, extra)``, as in :meth:`parse_history`.
 
         """
+        backend = ArrayBackend.get_array_backend(to) if to else self._agent_backend
+        dataset = dataset.to_backend(backend.get_backend_name())
+        state, next_state, extra = self._transition_history(dataset.state, dataset.next_state, dataset.action,
+                                                            dataset.last, anchor_idxs, anchor_idxs, size, full,
+                                                            max_size, backend)
+        return (state, dataset.action[anchor_idxs], dataset.reward[anchor_idxs], next_state,
+                dataset.absorbing[anchor_idxs], dataset.last[anchor_idxs], extra)
+
+    def parse_nstep_return(self, reward, absorbing, last, anchor_idxs=None, gamma=1., n_steps_return=1, backend=None):
+        """
+        Compute the n-step return of a batch of transitions. The n-step return of a transition is the discounted sum of
+        the rewards collected over the next ``n_steps_return`` steps; its bootstrap target is the transition
+        ``n_steps_return`` steps ahead (the endpoint), or the terminal transition if the episode ends earlier.
+
+        Args:
+            reward: the reward of each transition;
+            absorbing: the absorbing flag of each transition;
+            last: the episode-boundary flags of the buffer;
+            anchor_idxs (None): the buffer position of each transition; when ``None`` every stored transition is used;
+            gamma (float, 1.): the discount factor;
+            n_steps_return (int, 1): the number of steps summed in the return;
+            backend (ArrayBackend, None): the backend used to allocate the arrays; when ``None`` the agent backend is
+                used.
+
+        Returns:
+            The tuple ``(endpoint, reduced_reward, valid)``: the index of the bootstrap transition, the discounted
+            n-step reward, and whether the n-step return is well defined (``False`` when the window would cross a
+            truncated episode). ``endpoint`` and ``reduced_reward`` are meaningful only where ``valid``.
+
+        """
+        backend = backend or self._agent_backend
+        size = len(reward)
+        if anchor_idxs is None:
+            anchor_idxs = backend.arange(0, size)
+        return self.parse_nstep_return_circular_buffer(reward, absorbing, last, anchor_idxs, gamma, n_steps_return,
+                                                       size, full=False, max_size=size, write_head=size,
+                                                       backend=backend)
+
+    def parse_nstep_return_circular_buffer(self, reward, absorbing, last, anchor_idxs, gamma, n_steps_return, size,
+                                           full, max_size, write_head, backend=None):
+        """
+        Compute the n-step return of a batch of transitions stored in a circular replay buffer, as in
+        :meth:`parse_nstep_return`. An absorbing terminal ends the return early and is the bootstrap target; a
+        non-absorbing truncation, or a window reaching past the newest stored transition (the write head), makes the
+        transition invalid.
+
+        Args:
+            reward: the reward column of the buffer;
+            absorbing: the absorbing column of the buffer;
+            last: the episode-boundary flags of the buffer;
+            anchor_idxs: the buffer position of each transition;
+            gamma (float): the discount factor;
+            n_steps_return (int): the number of steps summed in the return;
+            size (int): the number of entries currently stored;
+            full (bool): whether the buffer has wrapped around;
+            max_size (int): the buffer capacity;
+            write_head (int): the next write position; the newest stored transition is the one before it;
+            backend (ArrayBackend, None): the backend used to allocate the arrays; when ``None`` the agent backend is
+                used.
+
+        Returns:
+            The tuple ``(endpoint, reduced_reward, valid)``, as in :meth:`parse_nstep_return`.
+
+        """
+        backend = backend or self._agent_backend
+        n_samples = len(anchor_idxs)
+        max_offset = (write_head - 1 - anchor_idxs) % max_size if full else size - 1 - anchor_idxs
+        offset = backend.zeros(n_samples, dtype=int)
+        acc = reward[anchor_idxs] * gamma ** 0
+        active = backend.ones(n_samples, dtype=bool)
+        valid = backend.ones(n_samples, dtype=bool)
+        for t in range(1, n_steps_return):
+            prev = (anchor_idxs + (t - 1)) % max_size if full else backend.clip(anchor_idxs + (t - 1), 0, size - 1)
+            stop = active & (last[prev] > 0)
+            valid = valid & ~(stop & (absorbing[prev] <= 0))
+            active = active & ~stop
+            ran_off = active & (t > max_offset)
+            valid = valid & ~ran_off
+            active = active & ~ran_off
+            cur = (anchor_idxs + t) % max_size if full else backend.clip(anchor_idxs + t, 0, size - 1)
+            offset = backend.where(active, backend.zeros(n_samples, dtype=int) + t, offset)
+            acc = backend.where(active, acc + gamma ** t * reward[cur], acc)
+        endpoint = (anchor_idxs + offset) % max_size if full else anchor_idxs + offset
+        return endpoint, acc, valid
+
+    def parse_nstep_history(self, dataset, gamma=1., n_steps_return=1, anchor_idxs=None, to=None):
+        """
+        Parse a dataset into its n-step arrays, i.e. :meth:`parse_history` with the n-step return folded in: the reward
+        becomes the discounted n-step reward and the next-state window, the absorbing and the last flags belong to the
+        n-ahead endpoint, while the state and previous-action windows belong to the current step.
+
+        Args:
+            dataset (Dataset): the dataset to parse;
+            gamma (float, 1.): the discount factor;
+            n_steps_return (int, 1): the number of steps summed in the return;
+            anchor_idxs (None): the buffer position of each transition; when ``None`` every stored transition is used;
+            to (str, None): the backend of the returned arrays; when ``None`` the agent backend is used.
+
+        Returns:
+            The tuple ``(state, action, reward, next_state, absorbing, last, extra)``, as in
+            :meth:`parse_nstep_history_circular_buffer`.
+
+        """
+        size = len(dataset)
+        if anchor_idxs is None:
+            backend = ArrayBackend.get_array_backend(to) if to else self._agent_backend
+            anchor_idxs = backend.arange(0, size)
+        return self.parse_nstep_history_circular_buffer(dataset, anchor_idxs, gamma, n_steps_return, size,
+                                                        full=False, max_size=size, write_head=size, to=to)
+
+    def parse_nstep_history_circular_buffer(self, dataset, anchor_idxs, gamma, n_steps_return, size, full, max_size,
+                                            write_head, to=None):
+        """
+        Parse the transitions at ``anchor_idxs`` of a dataset stored in a circular replay buffer into their n-step
+        arrays, as in :meth:`parse_nstep_history`.
+
+        Args:
+            dataset (Dataset): the dataset to parse;
+            anchor_idxs: the buffer position of each transition;
+            gamma (float): the discount factor;
+            n_steps_return (int): the number of steps summed in the return;
+            size (int): the number of entries currently stored;
+            full (bool): whether the buffer has wrapped around;
+            max_size (int): the buffer capacity;
+            write_head (int): the next write position of the buffer;
+            to (str, None): the backend of the returned arrays; when ``None`` the agent backend is used.
+
+        Returns:
+            The tuple ``(state, action, reward, next_state, absorbing, last, extra)``, as :meth:`parse_history` but with
+            the discounted n-step reward and the endpoint next-state, absorbing and last. The endpoint indices are
+            provided under ``extra['endpoint']``.
+
+        """
+        backend = ArrayBackend.get_array_backend(to) if to else self._agent_backend
+        dataset = dataset.to_backend(backend.get_backend_name())
+        endpoint, reduced_reward, _ = self.parse_nstep_return_circular_buffer(
+            dataset.reward, dataset.absorbing, dataset.last, anchor_idxs, gamma, n_steps_return, size, full, max_size,
+            write_head, backend=backend)
+        state, next_state, extra = self._transition_history(dataset.state, dataset.next_state, dataset.action,
+                                                            dataset.last, anchor_idxs, endpoint, size, full, max_size,
+                                                            backend)
+        extra['endpoint'] = endpoint
+        return (state, dataset.action[anchor_idxs], reduced_reward, next_state,
+                dataset.absorbing[endpoint], dataset.last[endpoint], extra)
+
+    def _transition_history(self, states, next_states, actions, last, anchor_idxs, next_anchor_idxs, size, full,
+                            max_size, backend):
         if 'obs_history' in self._stream_specs:
-            state = self.build_history_circular_buffer('obs_history', states, last, anchor_idxs, size, full, max_size)
-            next_state = self.build_history_circular_buffer('obs_history', next_states, last, anchor_idxs, size, full,
-                                                            max_size)
+            state = self.build_history_circular_buffer('obs_history', states, last, anchor_idxs, size, full, max_size,
+                                                       backend=backend)
+            next_state = self.build_history_circular_buffer('obs_history', next_states, last, next_anchor_idxs, size,
+                                                            full, max_size, backend=backend)
         else:
-            state, next_state = states[anchor_idxs], next_states[anchor_idxs]
+            state, next_state = states[anchor_idxs], next_states[next_anchor_idxs]
 
         extra = dict()
         if self.uses_action:
             extra['action_history'] = self.build_history_circular_buffer('action_history', actions, last, anchor_idxs,
-                                                                         size, full, max_size)
+                                                                         size, full, max_size, backend=backend)
         return state, next_state, extra
 
     def _stack(self, name, value):

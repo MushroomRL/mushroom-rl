@@ -45,7 +45,8 @@ class SumTree(MushroomObject):
 
     def update(self, idx, priorities):
         """
-        Update the priorities at the given tree indices.
+        Update the priorities at the given tree indices. The new priority is always stored in the leaf; it contributes
+        to the sampling sums unless the leaf is masked, in which case writing a fresh priority also includes it again.
 
         Args:
             idx (np.ndarray): tree indices;
@@ -53,9 +54,9 @@ class SumTree(MushroomObject):
 
         """
         for i, p in zip(idx, priorities):
-            delta = p - self._tree[i]
+            contribution = 0. if self._masked[i] else self._tree[i]
             self._tree[i] = p
-            self._propagate(delta, i)
+            self._propagate(p - contribution, i)
             if self._masked[i]:
                 self._masked[i] = False
                 self._propagate_mask(i)
@@ -63,18 +64,32 @@ class SumTree(MushroomObject):
     def mask(self, idx):
         """
         Exclude the leaves at the given tree indices from sampling, so :meth:`get` never returns them and they carry no
-        weight in ``total_p``. A leaf is included again as soon as :meth:`update` writes a fresh priority to it.
+        weight in ``total_p``. Only the ancestor sums are updated as if the leaf were zero; the leaf keeps its priority
+        so that :meth:`unmask` restores it. Idempotent: masking an already-masked leaf is a no-op.
 
         Args:
             idx (np.ndarray): tree indices of the leaves to exclude from sampling.
 
         """
         for i in idx:
-            delta = -self._tree[i]
-            self._tree[i] = 0.
-            self._propagate(delta, i)
             if not self._masked[i]:
+                self._propagate(-self._tree[i], i)
                 self._masked[i] = True
+                self._propagate_mask(i)
+
+    def unmask(self, idx):
+        """
+        Include the leaves at the given tree indices in sampling again, adding their kept priority back into the
+        ancestor sums. Idempotent: unmasking a leaf that is not masked is a no-op.
+
+        Args:
+            idx (np.ndarray): tree indices of the leaves to include in sampling again.
+
+        """
+        for i in idx:
+            if self._masked[i]:
+                self._propagate(self._tree[i], i)
+                self._masked[i] = False
                 self._propagate_mask(i)
 
     @property
@@ -84,7 +99,8 @@ class SumTree(MushroomObject):
             The maximum priority among the ones in the tree.
 
         """
-        return self._tree[-self._max_size:].max()
+        leaves = self._tree[-self._max_size:]
+        return np.where(self._masked[-self._max_size:], 0., leaves).max()
 
     @property
     def total_p(self):

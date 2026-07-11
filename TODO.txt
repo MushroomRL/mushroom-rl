@@ -8,6 +8,10 @@ For Mushroom 2.0:
         - vectorize if possible, using vmap if allowed
         - simplify interface, improving facade pattern
     * deterministic policy evaluation
+    * HistoryManager parse_* API follow-up
+        - add direct unit tests for parse_history / parse_nstep_history (full-tuple Dataset parse, to= backend
+          argument, n-step-return-over-a-dataset)
+        - document the parse_* interface and the n-step-return-over-a-dataset feature in tutorial 7
     * reorganize example folder
         - decide whether to keep maintaining the igibson and habitat examples (uninstallable deps, stale
           replay-memory API); possibly move them to a separate repository
@@ -19,7 +23,6 @@ For Mushroom 2.1:
       - the base HistoryManager handles only the `offset` option; delegate richer specs to a subclass
         (strides, structured/general lookbacks)
     * Improve replay memory:
-        - vectorize _compute_n_step_return
         - vectorize SequenceReplayMemory.get
         - remove host-device sync each iteration (int(c_anchor)/int(boundary[...])) in SequenceReplayMemory for the frame-stacking path
     * fix MellowMax parameter class

@@ -112,17 +112,14 @@ class Agent(MushroomObject):
             state = self._convert_to_agent_backend(state)
             state = self._agent_preprocess(state)
 
-            policy_kwargs = dict()
-            if self._history_manager is not None:
-                state, policy_kwargs = self._history_manager(state)
+            state, policy_kwargs = self._history_manager(state)
 
             action = self.policy.draw_action(state, **policy_kwargs)
         else:
             action = self._convert_to_agent_backend(self.next_action)
             self.next_action = None
 
-        if self._history_manager is not None:
-            self._history_manager.record_action(action)
+        self._history_manager.record_action(action)
 
         return self._convert_to_env_backend(action)
 
@@ -148,8 +145,7 @@ class Agent(MushroomObject):
             A tuple containing the policy initial state and, optionally, the policy parameters
 
         """
-        if self._history_manager is not None:
-            self._history_manager.reset()
+        self._history_manager.reset()
 
         return self.policy.reset(), None
 
@@ -166,8 +162,7 @@ class Agent(MushroomObject):
             A tuple containing the policy initial states and, optionally, the policy parameters
 
         """
-        if self._history_manager is not None:
-            self._history_manager.reset_vectorized(start_mask)
+        self._history_manager.reset_vectorized(start_mask)
 
         return self.policy.reset_vectorized(start_mask), None
 
@@ -219,14 +214,12 @@ class Agent(MushroomObject):
         The number of observations stacked as policy input, ``1`` when no history is used.
 
         """
-        return self._history_manager.history_length if self._history_manager is not None else 1
+        return self._history_manager.history_length
 
     @property
     def history_manager(self):
         """
-        The :class:`~mushroom_rl.core.history_manager.HistoryManager` used to assemble the policy input, or ``None``
-        when no history is used. It can be injected into a replay memory so that the offline context matches the one
-        built online.
+        The :class:`~mushroom_rl.core.history_manager.HistoryManager` used to assemble the policy input.
 
         """
         return self._history_manager

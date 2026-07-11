@@ -42,7 +42,6 @@ class Rainbow(AbstractCategoricalDQN):
 
         self._n_steps_return = n_steps_return
         self._sigma_coeff = sigma_coeff
-        self._pending = None
 
         params['replay_memory'] = {"class": PrioritizedReplayMemory,
                                    "params": dict(alpha=alpha_coeff, beta=beta,
@@ -52,14 +51,10 @@ class Rainbow(AbstractCategoricalDQN):
 
         self._add_save_attr(
             _n_steps_return='primitive',
-            _sigma_coeff='primitive',
-            _pending='none'
+            _sigma_coeff='primitive'
         )
 
     def fit(self, dataset):
-        if self._pending is not None:
-            dataset = self._pending + dataset
-        self._pending = dataset[-(self._n_steps_return - 1):] if self._n_steps_return > 1 else None
         initial_priority = torch.ones(len(dataset), device=TorchUtils.get_device()) * self._replay_memory.max_priority
         self._replay_memory.add(dataset, initial_priority)
         if self._replay_memory.initialized:
@@ -73,7 +68,7 @@ class Rainbow(AbstractCategoricalDQN):
                 q_next = self.approximator.predict(next_state, **self._predict_params)
                 a_max = torch.argmax(q_next, 1).unsqueeze(1)
                 gamma = self.mdp_info.gamma ** self._n_steps_return * ~absorbing
-                p_next = self.target_approximator.predict(next_state, a_max, get_distribution=True, 
+                p_next = self.target_approximator.predict(next_state, a_max, get_distribution=True,
                                                           **self._predict_params)
                 m = self._categorical_projection(reward, gamma, p_next)
 

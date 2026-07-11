@@ -155,13 +155,85 @@ def test_replay_memory_n_steps_return():
     rm = ReplayMemory(mdp_info, agent_info, initial_size=1, max_size=50, n_steps_return=n_steps)
     rm.add(dataset)
 
-    assert rm.size == n - n_steps + 1
+    assert rm.size == n
 
-    expected_reward = 1.0 + gamma + gamma ** 2
-    assert np.allclose(rm._dataset.reward[:rm.size], expected_reward)
+    np.random.seed(0)
+    s, a, r, ss, ab, last = rm.get(32)
 
-    assert np.allclose(rm._dataset.next_state[0], next_states[n_steps - 1])
-    assert np.allclose(rm._dataset.next_state[rm.size - 1], next_states[n - 1])
+    anchors = np.array([np.where(np.all(states == row, axis=1))[0][0] for row in s])
+
+    assert set(anchors.tolist()) == set(range(n - n_steps + 1))
+    assert np.allclose(r, 1.0 + gamma + gamma ** 2)
+    assert np.allclose(ss, next_states[anchors + n_steps - 1])
+    assert np.allclose(ab, absorbings[anchors + n_steps - 1])
+    assert np.allclose(last, lasts[anchors + n_steps - 1])
+
+
+def test_replay_memory_n_steps_history_absorbing():
+    obs_shape = (1,)
+    act_shape = (1,)
+    history_length = 3
+    n_steps = 2
+    gamma = 0.9
+    length = 7
+
+    values = np.arange(length, dtype=float).reshape(-1, 1)
+    next_values = values + 1
+    rewards = np.ones(length)
+    absorbings = np.zeros(length)
+    absorbings[-1] = 1.0
+    lasts = np.zeros(length)
+    lasts[-1] = 1.0
+    dataset = Dataset.from_array(values, np.zeros((length, 1)), rewards, next_values, absorbings, lasts)
+
+    mdp_info = make_mdp_info(obs_shape, act_shape, gamma=gamma)
+    agent_info = make_agent_info()
+    history_manager = HistoryManager.from_infos(mdp_info, agent_info, history_length=history_length)
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=1, max_size=50,
+                      history_manager=history_manager, n_steps_return=n_steps)
+    rm.add(dataset)
+
+    np.random.seed(0)
+    s, a, r, ss, ab, last = rm.get(200)
+    anchors = s[:, history_length - 1, 0].astype(int)
+
+    for anchor in range(history_length - 1, length):
+        rows = anchors == anchor
+        if rows.any():
+            assert np.allclose(s[rows][:, :, 0], np.arange(anchor - history_length + 1, anchor + 1))
+
+    absorbing_rows = anchors == length - 2
+    assert absorbing_rows.any()
+    assert np.allclose(r[absorbing_rows], 1.0 + gamma)
+    assert np.allclose(ab[absorbing_rows], 1.0)
+    assert np.allclose(ss[absorbing_rows][:, :, 0], np.array([length - 2, length - 1, length]))
+
+
+def test_replay_memory_n_steps_truncation_masked():
+    obs_shape = (1,)
+    act_shape = (1,)
+    n_steps = 3
+    length = 10
+
+    values = np.arange(length, dtype=float).reshape(-1, 1)
+    rewards = np.ones(length)
+    absorbings = np.zeros(length)
+    absorbings[9] = 1.0
+    lasts = np.zeros(length)
+    lasts[4] = 1.0
+    lasts[9] = 1.0
+    dataset = Dataset.from_array(values, np.zeros((length, 1)), rewards, values + 1, absorbings, lasts)
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info()
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=1, max_size=50, n_steps_return=n_steps)
+    rm.add(dataset)
+
+    np.random.seed(0)
+    s, a, r, ss, ab, last = rm.get(500)
+    sampled = set(s[:, 0].astype(int).tolist())
+
+    assert sampled == set(range(length)) - {3, 4}
 
 
 def test_replay_memory_stateful():
@@ -433,14 +505,44 @@ def test_sequence_replay_memory_history_reduced_sampling_across_write_head():
         assert not np.any(current == 3.0)
 
 
-def test_history_manager_from_infos_none():
+def test_history_manager_from_infos_identity():
     mdp_info = make_mdp_info((4,), (2,))
     agent_info = make_agent_info()
 
-    assert HistoryManager.from_infos(mdp_info, agent_info, history_length=1) is None
-    assert HistoryManager.from_infos(mdp_info, agent_info, history_length=3) is not None
-    assert HistoryManager.from_infos(mdp_info, agent_info, action_history_length=1) is not None
-    assert HistoryManager.from_infos(mdp_info, agent_info, action_history_length=2) is not None
+    identity = HistoryManager.from_infos(mdp_info, agent_info, history_length=1)
+    assert identity.history_length == 1
+    assert not identity.uses_action
+    assert identity.max_reach == 0
+
+    assert HistoryManager.from_infos(mdp_info, agent_info, history_length=3).history_length == 3
+    assert HistoryManager.from_infos(mdp_info, agent_info, action_history_length=1).uses_action
+    assert HistoryManager.from_infos(mdp_info, agent_info, action_history_length=2).action_history_length == 2
+
+
+def test_history_manager_parse_nstep_return_dataset():
+    obs_shape = (2,)
+    act_shape = (1,)
+    n_steps, gamma, n = 3, 0.9, 8
+
+    mdp_info = make_mdp_info(obs_shape, act_shape, gamma=gamma)
+    agent_info = make_agent_info()
+    history_manager = HistoryManager.from_infos(mdp_info, agent_info)
+
+    reward = np.ones(n)
+    absorbing = np.zeros(n)
+    absorbing[7] = 1.0
+    last = np.zeros(n)
+    last[4] = 1.0
+    last[7] = 1.0
+
+    endpoint, reduced_reward, valid = history_manager.parse_nstep_return(reward, absorbing, last, gamma=gamma,
+                                                                         n_steps_return=n_steps)
+
+    full_return = 1.0 + gamma + gamma ** 2
+    assert np.array_equal(valid, np.array([True, True, True, False, False, True, True, True]))
+    assert np.array_equal(endpoint[valid], np.array([2, 3, 4, 7, 7, 7]))
+    assert np.allclose(reduced_reward[valid], np.array([full_return, full_return, full_return, full_return,
+                                                        1.0 + gamma, 1.0]))
 
 
 def test_replay_memory_rebuilds_only_stored_streams():
@@ -602,9 +704,9 @@ def test_prioritized_replay_memory_history_masks_write_head():
 
     assert rm._full and rm._idx == 3          # chronological order of positions is [3, 4, 0, 1, 2] -> values [3..7]
 
-    # the (history_length - 1) oldest samples occupy positions [3, 4], which are zeroed in the tree
-    assert np.isclose(rm._tree._tree[3 + max_size - 1], 0.0)
-    assert np.isclose(rm._tree._tree[4 + max_size - 1], 0.0)
+    # the (history_length - 1) oldest samples occupy positions [3, 4], which are masked in the tree
+    assert rm._tree._masked[3 + max_size - 1]
+    assert rm._tree._masked[4 + max_size - 1]
 
     np.random.seed(0)
     s, a, r, ss, ab, last, idxs, is_weight = rm.get(200)

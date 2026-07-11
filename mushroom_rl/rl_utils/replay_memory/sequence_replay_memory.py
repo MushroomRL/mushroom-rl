@@ -59,8 +59,6 @@ class SequenceReplayMemory(ReplayMemory):
         obs_dtype = backend.to_backend_dtype(self._mdp_info.observation_space.data_type)
         action_dtype = backend.to_backend_dtype(self._mdp_info.action_space.data_type)
 
-        build_extra = self._return_extra and self._history_manager is not None
-
         start = self._idx if self._full else 0
         size = self.size
         min_offset = self._max_reach if self._full else 0
@@ -91,30 +89,25 @@ class SequenceReplayMemory(ReplayMemory):
 
             length = c_anchor - c_begin + 1
             positions = (start + backend.arange(c_begin, c_anchor + 1)) % max_size
-            anchor = (start + c_anchor) % max_size
 
-            if self._history_manager is not None:
-                state_seq, next_state_seq, extra = self._history_manager.build_transition_windows_circular_buffer(
-                    self._dataset.state, self._dataset.next_state, self._dataset.action,
-                    self._dataset.last, positions, len(self._dataset), self._full, self._max_size)
-            else:
-                state_seq, next_state_seq, extra = (self._dataset.state[positions],
-                                                    self._dataset.next_state[positions], dict())
+            state_seq, action_seq, reward_seq, next_state_seq, absorbing_seq, last_seq, extra = \
+                self._history_manager.parse_history_circular_buffer(
+                    self._dataset, positions, len(self._dataset), self._full, self._max_size)
 
             s[num, :length] = state_seq
             ss[num, :length] = next_state_seq
-            a[num, :length] = self._dataset.action[positions]
+            a[num, :length] = action_seq
             ps[num, :length] = self._dataset.policy_state[positions]
             nps[num, :length] = self._dataset.policy_next_state[positions]
-            if build_extra:
+            if self._return_extra:
                 for name, value in extra.items():
                     if name not in extra_buffers:
                         extra_buffers[name] = backend.zeros(n_samples, self._truncation_length, *value.shape[1:],
                                                             dtype=value.dtype)
                     extra_buffers[name][num, :length] = value
-            r[num] = self._dataset.reward[anchor]
-            ab[num] = self._dataset.absorbing[anchor]
-            last[num] = self._dataset.last[anchor]
+            r[num] = reward_seq[-1]
+            ab[num] = absorbing_seq[-1]
+            last[num] = last_seq[-1]
 
             lengths.append(length)
 
