@@ -10,9 +10,9 @@ from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments.mujoco_warp_envs import AntWarp
 from mushroom_rl.policy import GaussianTorchPolicy
 
-# from mushroom_rl.utils import TorchUtils
+from mushroom_rl.utils import TorchUtils
 
-# TorchUtils.set_default_device("cuda:0")
+TorchUtils.set_default_device("cuda:0")
 
 
 class Network(nn.Module):
