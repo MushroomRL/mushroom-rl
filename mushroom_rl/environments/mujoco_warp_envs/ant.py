@@ -132,11 +132,10 @@ class AntWarp(MuJoCoWarp):
         return obs
 
     def _is_finite(self, obs):
-        qpos = self._data_wp.qpos.numpy()
-        qvel = self._data_wp.qvel.numpy()
-        states = np.concatenate([qpos, qvel], axis=1)
-        finite_np = np.isfinite(states).all(axis=1)
-        return torch.as_tensor(finite_np, device=obs.device)
+        qpos = wp.to_torch(self._data_wp.qpos)   # zero-copy torch view on gpu
+        qvel = wp.to_torch(self._data_wp.qvel)
+        states = torch.cat([qpos, qvel], dim=1)
+        return torch.isfinite(states).all(dim=1)
 
     def _is_within_z_range(self, obs):
         """Check if Z position of torso is within the healthy range."""
@@ -173,21 +172,21 @@ class AntWarp(MuJoCoWarp):
     def setup(self, env_indices, obs):
         """Reset with noise on qpos (uniform) and qvel (gaussian) for the given environments."""
         super().setup(env_indices, obs)
-
-        qpos_np = self._data_wp.qpos.numpy().copy()
-        qvel_np = self._data_wp.qvel.numpy().copy()
-
-        qpos_np[env_indices] += np.random.uniform(
-            -self._reset_noise_scale, self._reset_noise_scale,
-            (len(env_indices), self._model.nq),
-        )
-        qvel_np[env_indices] += self._reset_noise_scale * np.random.standard_normal(
-            (len(env_indices), self._model.nv),
-        )
-
-        self._data_wp.qpos.assign(qpos_np)
-        self._data_wp.qvel.assign(qvel_np)
-
+        
+        qpos = wp.to_torch(self._data_wp.qpos)
+        qvel = wp.to_torch(self._data_wp.qvel)
+        
+        device = qpos.device
+        idx = torch.as_tensor(env_indices, device=device, dtype=torch.long) \
+              if not isinstance(env_indices, torch.Tensor) else env_indices.to(device).long()
+        
+        n = len(env_indices)
+        noise_pos = (torch.rand(n, self._model.nq, device=device) * 2 - 1) * self._reset_noise_scale
+        noise_vel = torch.randn(n, self._model.nv, device=device) * self._reset_noise_scale
+        
+        qpos[idx] += noise_pos
+        qvel[idx] += noise_vel
+        
         self._mj_warp.forward(self._model_wp, self._data_wp)
 
     def _create_info_dictionary(self, obs):
@@ -201,7 +200,6 @@ class AntWarp(MuJoCoWarp):
         }
 
     def get_states(self):
-        """Return the position and velocity joint states of the model, batched."""
-        qpos = self._data_wp.qpos.numpy()
-        qvel = self._data_wp.qvel.numpy()
-        return np.concatenate([qpos, qvel], axis=1)
+        qpos = wp.to_torch(self._data_wp.qpos)
+        qvel = wp.to_torch(self._data_wp.qvel)
+        return torch.cat([qpos, qvel], dim=1)
