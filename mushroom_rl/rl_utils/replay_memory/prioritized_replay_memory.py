@@ -14,7 +14,7 @@ class PrioritizedReplayMemory(ReplayMemory):
 
     """
     def __init__(self, mdp_info, agent_info, initial_size, max_size, alpha, beta, epsilon=.01,
-                 history_length=1, n_steps_return=1, store_policy_state=False):
+                 history_manager=None, n_steps_return=1, store_policy_state=False, return_extra=False):
         """
         Constructor.
 
@@ -26,16 +26,20 @@ class PrioritizedReplayMemory(ReplayMemory):
             alpha (float): prioritization coefficient;
             beta ([float, Parameter]): importance sampling coefficient;
             epsilon (float, .01): small value to avoid zero probabilities;
-            history_length (int, 1): number of consecutive observations per sample;
-            n_steps_return (int, 1): number of steps used for the n-step return.
+            history_manager (HistoryManager, None): the manager used by the agent to assemble the stacked observation,
+                reused offline so that the stacked observation matches the one built online;
+            n_steps_return (int, 1): number of steps used for the n-step return;
+            store_policy_state (bool, False): whether the policy internal state is stored in the replay memory;
+            return_extra (bool, False): whether :meth:`get` appends the ``extra_data`` dictionary of the history
+                windows not delivered in-band in the state, inserted just before the ``idxs``/``is_weight`` pair.
 
         """
         self._alpha = alpha
         self._beta = to_parameter(beta)
         self._epsilon = epsilon
 
-        super().__init__(mdp_info, agent_info, initial_size, max_size, history_length, n_steps_return,
-                         store_policy_state)
+        super().__init__(mdp_info, agent_info, initial_size, max_size, history_manager, n_steps_return,
+                         store_policy_state, return_extra)
 
         self._add_save_attr(
             _alpha='primitive',
@@ -44,33 +48,29 @@ class PrioritizedReplayMemory(ReplayMemory):
             _tree='mushroom'
         )
 
-    def add(self, dataset, p):
+    def add(self, dataset, p=None):
         """
         Add elements to the replay memory.
 
         Args:
             dataset (Dataset): dataset whose transitions will be added to the replay memory;
-            p (Array): priority of each sample in the dataset.
+            p (Array, None): priority of each sample in the dataset. When ``None``, each new transition is inserted
+                with the current maximum priority (:attr:`max_priority`), so that it is sampled at least once before
+                its priority is corrected from its temporal-difference error.
 
         """
         assert not self._dataset.is_stateful or dataset.is_stateful, \
             "The replay memory is configured to store the policy state, but the dataset does not provide it."
 
-        if self._n_steps_return > 1:
-            state, action, reward, next_state, absorbing, last = dataset.parse(to=self._agent_info.backend)
-            policy_state, policy_next_state = (dataset.parse_policy_state(to=self._agent_info.backend)
-                                               if self._dataset.is_stateful else (None, None))
-            result = self._compute_n_step_return(state, action, reward, next_state, absorbing, last,
-                                                 policy_state, policy_next_state, priority=p)
-            if result is None:
-                return
-            dataset, p = result
-        else:
-            dataset = dataset.to_backend(self._agent_info.backend)
+        dataset = dataset.to_backend(self._agent_info.backend)
+
+        if p is None:
+            p = self._dataset.array_backend.full((len(dataset),), self.max_priority)
 
         positions = self._write_to_buffer(dataset)
         tree_idxs = ArrayBackend.convert(positions, to='numpy') + self._max_size - 1
         self._tree.update(tree_idxs, ArrayBackend.convert(p, to='numpy'))
+        self._sync_tree_mask(self._affected_window(positions))
 
     def get(self, n_samples):
         """
@@ -80,12 +80,13 @@ class PrioritizedReplayMemory(ReplayMemory):
             n_samples (int): the number of samples to return.
 
         Returns:
-            The requested number of samples.
+            The requested number of samples, followed by the tree indices and importance-sampling weights of the drawn
+            transitions. When ``return_extra`` is set, the ``extra_data`` dictionary assembled by the history manager is
+            inserted just before this trailing pair.
 
         """
         idxs = np.zeros(n_samples, dtype=int)
         priorities = np.zeros(n_samples, dtype=float)
-        data_idxs = np.zeros(n_samples, dtype=int)
 
         total_p = self._tree.total_p
         segment = total_p / n_samples
@@ -95,27 +96,16 @@ class PrioritizedReplayMemory(ReplayMemory):
         )
 
         for i, s in enumerate(samples):
-            idx, p = self._tree.get(s)
-            idxs[i] = idx
-            priorities[i] = p
-            data_idxs[i] = idx - self._max_size + 1
+            idxs[i], priorities[i] = self._tree.get(s)
 
-        sampling_probabilities = priorities / self._tree.total_p
-        is_weight = (self.size * sampling_probabilities) ** -self._beta()
+        is_weight = (self.size * priorities / total_p) ** -self._beta()
         is_weight /= is_weight.max()
 
-        data_idxs = ArrayBackend.convert(data_idxs, to=self._agent_info.backend)
+        data_idxs = ArrayBackend.convert(idxs - self._max_size + 1, to=self._agent_info.backend)
+        out = self._assemble_batch(data_idxs)
+        out += [idxs, is_weight]
 
-        if self._history_length > 1:
-            state_out, nstate_out = self._get_with_history(data_idxs)
-            batch = self._dataset[data_idxs]
-            _, action, reward, _, absorbing, last = batch.parse()
-            return state_out, action, reward, nstate_out, absorbing, last, idxs, is_weight
-        elif self._dataset.is_stateful:
-            return *self._dataset[data_idxs].parse(), \
-                   *self._dataset[data_idxs].parse_policy_state(), idxs, is_weight
-        else:
-            return *self._dataset[data_idxs].parse(), idxs, is_weight
+        return tuple(out)
 
     def reset(self):
         super().reset()
@@ -135,9 +125,6 @@ class PrioritizedReplayMemory(ReplayMemory):
         p = self._get_priority(error)
         self._tree.update(idx, p)
 
-    def _get_priority(self, error):
-        return (np.abs(error) + self._epsilon) ** self._alpha
-
     @property
     def max_priority(self):
         """
@@ -146,3 +133,23 @@ class PrioritizedReplayMemory(ReplayMemory):
 
         """
         return self._tree.max_p if self.initialized else 1.
+
+    def _sync_tree_mask(self, window):
+        """
+        Mirror the sampling mask of ``window`` (see :meth:`_compute_mask`) into the sum tree: mask the leaves that are
+        excluded and unmask the ones that are sampleable. Both tree operations are idempotent and the leaf keeps its
+        true priority while masked, so this is a plain copy of the mask over the affected leaves.
+
+        Args:
+            window: the buffer positions whose mask changed (see :meth:`_affected_window`), or ``None`` when no masking
+                is in use.
+
+        """
+        if window is not None:
+            leaves = ArrayBackend.convert(window, to='numpy') + self._max_size - 1
+            desired = ArrayBackend.convert(self._compute_mask(window), to='numpy')
+            self._tree.mask(leaves[desired])
+            self._tree.unmask(leaves[~desired])
+
+    def _get_priority(self, error):
+        return (np.abs(error) + self._epsilon) ** self._alpha

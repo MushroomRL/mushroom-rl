@@ -21,7 +21,7 @@ def learn(alg, policy, alg_params):
     return agent
 
 
-def make_bptt_setup():
+def make_bptt_setup(use_prev_action=False):
     n_features, n_hidden = 4, 4
     dim_env_state, dim_action = 2, 1  # InvertedPendulum
 
@@ -35,6 +35,7 @@ def make_bptt_setup():
         rnn_type='gru',
         dim_env_state=dim_env_state,
         dim_action=dim_action,
+        use_prev_action=use_prev_action,
     )
 
     alg_params = dict(
@@ -50,9 +51,11 @@ def make_bptt_setup():
             rnn_type='gru',
             dim_env_state=dim_env_state,
             dim_action=dim_action,
+            use_prev_action=use_prev_action,
         ),
         n_epochs_policy=2, batch_size=64, eps_ppo=.2, lam=.95,
         dim_env_state=dim_env_state,
+        action_history_length=1 if use_prev_action else 0,
     )
 
     return policy, alg_params
@@ -92,6 +95,18 @@ def test_PPO_BPTT():
     w_test = np.load('tests/algorithms/test_ppo_bptt.npy')
 
     assert np.allclose(w, w_test, atol=1e-4), f'max discrepancy: {np.max(np.abs(w - w_test))}, w[:5]={w[:5]}'
+
+
+def test_PPO_BPTT_prev_action():
+    np.random.seed(1)
+    torch.manual_seed(1)
+    torch.cuda.manual_seed(1)
+    policy, alg_params = make_bptt_setup(use_prev_action=True)
+
+    w = learn(PPO_BPTT, policy, alg_params).policy.get_weights().numpy()
+    w_test = np.load('tests/algorithms/test_ppo_bptt_prev_action.npy')
+
+    assert np.allclose(w, w_test, atol=6e-4), f'max discrepancy: {np.max(np.abs(w - w_test))}, w[:5]={w[:5]}'
 
 
 def test_PPO_BPTT_save(tmpdir):

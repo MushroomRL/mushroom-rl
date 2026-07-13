@@ -33,7 +33,8 @@ def experiment(
         rnn_type: str = "gru",
         n_hidden_features: int = 128,
         num_hidden_layers: int = 1,
-        truncation_length: int = 5
+        truncation_length: int = 5,
+        use_prev_action: bool = True
 ):
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -57,6 +58,7 @@ def experiment(
                                           n_hidden_features=n_hidden_features,
                                           num_hidden_layers=num_hidden_layers,
                                           dim_env_state=dim_env_state,
+                                          use_prev_action=use_prev_action,
                                           std_0=std_0)
 
     # setup critic
@@ -74,7 +76,8 @@ def experiment(
                          rnn_type=rnn_type,
                          num_hidden_layers=num_hidden_layers,
                          dim_env_state=mdp.info.observation_space.shape[0],
-                         dim_action=dim_action
+                         dim_action=dim_action,
+                         use_prev_action=use_prev_action
                          )
 
     alg_params = dict(actor_optimizer={'class':  optim.Adam,
@@ -85,7 +88,8 @@ def experiment(
                       dim_env_state=dim_env_state,
                       eps_ppo=clip_eps_ppo,
                       lam=gae_lambda,
-                      truncation_length=truncation_length
+                      truncation_length=truncation_length,
+                      action_history_length=1 if use_prev_action else 0
                       )
 
     # Create the agent

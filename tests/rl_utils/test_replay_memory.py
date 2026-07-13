@@ -3,6 +3,7 @@ import torch
 
 from mushroom_rl.core import MDPInfo, AgentInfo, Dataset
 from mushroom_rl.core.spaces import Box, Discrete
+from mushroom_rl.core.history_manager import HistoryManager
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory, SequenceReplayMemory, PrioritizedReplayMemory
 from mushroom_rl.rl_utils.parameters import LinearParameter
 
@@ -154,13 +155,85 @@ def test_replay_memory_n_steps_return():
     rm = ReplayMemory(mdp_info, agent_info, initial_size=1, max_size=50, n_steps_return=n_steps)
     rm.add(dataset)
 
-    assert rm.size == n - n_steps + 1
+    assert rm.size == n
 
-    expected_reward = 1.0 + gamma + gamma ** 2
-    assert np.allclose(rm._dataset.reward[:rm.size], expected_reward)
+    np.random.seed(0)
+    s, a, r, ss, ab, last = rm.get(32)
 
-    assert np.allclose(rm._dataset.next_state[0], next_states[n_steps - 1])
-    assert np.allclose(rm._dataset.next_state[rm.size - 1], next_states[n - 1])
+    anchors = np.array([np.where(np.all(states == row, axis=1))[0][0] for row in s])
+
+    assert set(anchors.tolist()) == set(range(n - n_steps + 1))
+    assert np.allclose(r, 1.0 + gamma + gamma ** 2)
+    assert np.allclose(ss, next_states[anchors + n_steps - 1])
+    assert np.allclose(ab, absorbings[anchors + n_steps - 1])
+    assert np.allclose(last, lasts[anchors + n_steps - 1])
+
+
+def test_replay_memory_n_steps_history_absorbing():
+    obs_shape = (1,)
+    act_shape = (1,)
+    history_length = 3
+    n_steps = 2
+    gamma = 0.9
+    length = 7
+
+    values = np.arange(length, dtype=float).reshape(-1, 1)
+    next_values = values + 1
+    rewards = np.ones(length)
+    absorbings = np.zeros(length)
+    absorbings[-1] = 1.0
+    lasts = np.zeros(length)
+    lasts[-1] = 1.0
+    dataset = Dataset.from_array(values, np.zeros((length, 1)), rewards, next_values, absorbings, lasts)
+
+    mdp_info = make_mdp_info(obs_shape, act_shape, gamma=gamma)
+    agent_info = make_agent_info()
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info, history_length=history_length)
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=1, max_size=50,
+                      history_manager=history_manager, n_steps_return=n_steps)
+    rm.add(dataset)
+
+    np.random.seed(0)
+    s, a, r, ss, ab, last = rm.get(200)
+    anchors = s[:, history_length - 1, 0].astype(int)
+
+    for anchor in range(history_length - 1, length):
+        rows = anchors == anchor
+        if rows.any():
+            assert np.allclose(s[rows][:, :, 0], np.arange(anchor - history_length + 1, anchor + 1))
+
+    absorbing_rows = anchors == length - 2
+    assert absorbing_rows.any()
+    assert np.allclose(r[absorbing_rows], 1.0 + gamma)
+    assert np.allclose(ab[absorbing_rows], 1.0)
+    assert np.allclose(ss[absorbing_rows][:, :, 0], np.array([length - 2, length - 1, length]))
+
+
+def test_replay_memory_n_steps_truncation_masked():
+    obs_shape = (1,)
+    act_shape = (1,)
+    n_steps = 3
+    length = 10
+
+    values = np.arange(length, dtype=float).reshape(-1, 1)
+    rewards = np.ones(length)
+    absorbings = np.zeros(length)
+    absorbings[9] = 1.0
+    lasts = np.zeros(length)
+    lasts[4] = 1.0
+    lasts[9] = 1.0
+    dataset = Dataset.from_array(values, np.zeros((length, 1)), rewards, values + 1, absorbings, lasts)
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info()
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=1, max_size=50, n_steps_return=n_steps)
+    rm.add(dataset)
+
+    np.random.seed(0)
+    s, a, r, ss, ab, last = rm.get(500)
+    sampled = set(s[:, 0].astype(int).tolist())
+
+    assert sampled == set(range(length)) - {3, 4}
 
 
 def test_replay_memory_stateful():
@@ -267,7 +340,7 @@ def test_sequence_replay_memory_shapes_and_values():
 
     n_samples = 2
     np.random.seed(3)
-    s_seq, a_seq, r_seq, ss_seq, ab_seq, last_seq, ps_seq, nps_seq, pa_seq, lengths = rm.get(n_samples)
+    s_seq, a_seq, r_seq, ss_seq, ab_seq, last_seq, ps_seq, nps_seq, lengths = rm.get(n_samples)
 
     expected_idxs = np.array([10, 24])
     expected_lengths = [5, 5]
@@ -308,6 +381,225 @@ def test_sequence_replay_memory_episode_boundary():
         assert lengths[0] <= episode_length
 
 
+def test_sequence_replay_memory_history_composition():
+    obs_shape = (4,)
+    act_shape = (2,)
+    policy_state_shape = (8,)
+    truncation_length = 3
+    history_length = 2
+    n = 15
+    n_samples = 3
+
+    rng = np.random.RandomState(1)
+    dataset, *_ = make_dataset(n, rng, obs_shape, act_shape,
+                               policy_state_shape=policy_state_shape, episode_ends=[14])
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info(policy_state_shape=policy_state_shape)
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info, history_length=history_length)
+    rm = SequenceReplayMemory(mdp_info, agent_info, initial_size=5, max_size=100,
+                              truncation_length=truncation_length, history_manager=history_manager)
+    rm.add(dataset)
+
+    np.random.seed(5)
+    s_seq, a_seq, r_seq, ss_seq, ab_seq, last_seq, ps_seq, nps_seq, lengths = rm.get(n_samples)
+
+    np.random.seed(5)
+    expected_idxs = np.random.randint(0, rm.size, (n_samples,))
+
+    assert s_seq.shape == (n_samples, truncation_length, history_length, *obs_shape)
+    assert ps_seq.shape == (n_samples, truncation_length, *policy_state_shape)
+
+    for k, idx in enumerate(expected_idxs):
+        idx = int(idx)
+        begin = max(idx - truncation_length + 1, 0)
+        length = idx + 1 - begin
+        assert lengths[k] == length
+        assert np.allclose(s_seq[k, :length, history_length - 1], rm._dataset.state[begin:idx + 1])
+        for t in range(length):
+            anchor = begin + t
+            if anchor - 1 >= 0:
+                assert np.allclose(s_seq[k, t, 0], rm._dataset.state[anchor - 1])
+            else:
+                assert np.allclose(s_seq[k, t, 0], 0.0)
+
+
+def test_sequence_replay_memory_action_history_return_extra():
+    obs_shape = (4,)
+    act_shape = (2,)
+    policy_state_shape = (8,)
+    truncation_length = 4
+    action_history_length = 2
+    n = 15
+    n_samples = 3
+
+    rng = np.random.RandomState(2)
+    dataset, *_ = make_dataset(n, rng, obs_shape, act_shape,
+                               policy_state_shape=policy_state_shape, episode_ends=[14])
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info(policy_state_shape=policy_state_shape)
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info, action_history_length=action_history_length)
+    rm = SequenceReplayMemory(mdp_info, agent_info, initial_size=5, max_size=100,
+                              truncation_length=truncation_length, history_manager=history_manager, return_extra=True)
+    rm.add(dataset)
+
+    np.random.seed(7)
+    *_, lengths, extra = rm.get(n_samples)
+
+    np.random.seed(7)
+    expected_idxs = np.random.randint(0, rm.size, (n_samples,))
+
+    prev_actions = extra['action_history']
+    assert prev_actions.shape == (n_samples, truncation_length, action_history_length, *act_shape)
+
+    for k, idx in enumerate(expected_idxs):
+        idx = int(idx)
+        begin = max(idx - truncation_length + 1, 0)
+        length = idx + 1 - begin
+        assert lengths[k] == length
+        for t in range(length):
+            anchor = begin + t
+            for j in range(action_history_length):
+                src = anchor - (action_history_length - j)
+                if src >= 0:
+                    assert np.allclose(prev_actions[k, t, j], rm._dataset.action[src])
+                else:
+                    assert np.allclose(prev_actions[k, t, j], 0.0)
+
+
+def test_sequence_replay_memory_history_reduced_sampling_across_write_head():
+    obs_shape = (1,)
+    act_shape = (1,)
+    policy_state_shape = (2,)
+    history_length = 2
+    truncation_length = 3
+    max_size = 6
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info(policy_state_shape=policy_state_shape)
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info, history_length=history_length)
+    rm = SequenceReplayMemory(mdp_info, agent_info, initial_size=1, max_size=max_size,
+                              truncation_length=truncation_length, history_manager=history_manager)
+
+    # one continuous episode (no last flags) longer than the buffer, so it wraps around the write head
+    for v in range(9):
+        s = np.array([[float(v)]])
+        rm.add(Dataset.from_array(s, np.zeros((1, 1)), np.zeros(1), s + 0.5, np.zeros(1), np.zeros(1),
+                                  policy_state=np.zeros((1, *policy_state_shape)),
+                                  policy_next_state=np.zeros((1, *policy_state_shape)), backend='numpy'))
+
+    assert rm._full and rm._idx == 3          # chronological values are [3, 4, 5, 6, 7, 8], the oldest is 3
+
+    np.random.seed(0)
+    s_seq, a_seq, r_seq, ss_seq, ab_seq, last_seq, ps_seq, nps_seq, lengths = rm.get(200)
+
+    for k, length in enumerate(lengths):
+        current = s_seq[k, :length, history_length - 1, 0]
+        # the sequence is a single contiguous trajectory: consecutive timesteps differ by exactly one, and the
+        # temporal length is truncated at the write head instead of stitching in unrelated frames
+        assert np.allclose(current[1:] - current[:-1], 1.0)
+        # each timestep's frame-stack is contiguous too, so it never crosses the write head
+        assert np.allclose(s_seq[k, :length, 1, 0] - s_seq[k, :length, 0, 0], 1.0)
+        # the oldest sample can never be rebuilt as an anchor's current frame, so is never sampled as one
+        assert not np.any(current == 3.0)
+
+
+def test_history_manager_default_streams_identity():
+    mdp_info = make_mdp_info((4,), (2,))
+    agent_info = make_agent_info()
+
+    identity = HistoryManager.default_streams(mdp_info, agent_info, history_length=1)
+    assert identity.history_length == 1
+    assert not identity.uses_action
+    assert identity.max_reach == 0
+
+    assert HistoryManager.default_streams(mdp_info, agent_info, history_length=3).history_length == 3
+    assert HistoryManager.default_streams(mdp_info, agent_info, action_history_length=1).uses_action
+    assert HistoryManager.default_streams(mdp_info, agent_info, action_history_length=2).action_history_length == 2
+
+
+def test_history_manager_nstep_return_dataset():
+    obs_shape = (2,)
+    act_shape = (1,)
+    n_steps, gamma, n = 3, 0.9, 8
+
+    mdp_info = make_mdp_info(obs_shape, act_shape, gamma=gamma)
+    agent_info = make_agent_info()
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info)
+
+    reward = np.ones(n)
+    absorbing = np.zeros(n)
+    absorbing[7] = 1.0
+    last = np.zeros(n)
+    last[4] = 1.0
+    last[7] = 1.0
+
+    valid = history_manager.nstep_valid(absorbing, last, n_steps_return=n_steps)
+    reduced_reward, anchor, endpoint = history_manager.build_nstep_return(
+        reward, absorbing, last, gamma=gamma, n_steps_return=n_steps)
+
+    full_return = 1.0 + gamma + gamma ** 2
+    assert np.array_equal(valid, np.array([True, True, True, False, False, True, True, True]))
+    assert np.array_equal(anchor, np.array([0, 1, 2, 5, 6, 7]))
+    assert np.array_equal(endpoint, np.array([2, 3, 4, 7, 7, 7]))
+    assert np.allclose(reduced_reward, np.array([full_return, full_return, full_return, full_return,
+                                                 1.0 + gamma, 1.0]))
+
+
+def test_build_nstep_return_slicing_matches_circular_buffer():
+    obs_shape = (2,)
+    act_shape = (1,)
+    size = 20
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info()
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info)
+
+    rng = np.random.RandomState(0)
+    reward = rng.randn(size)
+    last = np.zeros(size)
+    last[np.array([4, 9, 10, 17])] = 1.0
+    absorbing = np.zeros(size)
+    absorbing[np.array([9, 17])] = 1.0
+    anchor_idxs = np.arange(size)
+
+    for n_steps in [1, 2, 3, 5]:
+        for gamma in [1.0, 0.9]:
+            reduced, anchor, endpoint = history_manager.build_nstep_return(
+                reward, absorbing, last, gamma=gamma, n_steps_return=n_steps)
+            reduced_buf, anchor_buf, endpoint_buf = history_manager.build_nstep_return_circular_buffer(
+                reward, absorbing, last, anchor_idxs, gamma, n_steps, size, full=False, max_size=size,
+                write_head=size)
+            assert np.array_equal(anchor, anchor_buf)
+            assert np.array_equal(endpoint, endpoint_buf)
+            assert np.array_equal(reduced, reduced_buf)
+
+
+def test_replay_memory_rebuilds_only_stored_streams():
+    obs_shape = (4,)
+    act_shape = (2,)
+    n = 10
+
+    rng = np.random.RandomState(0)
+    dataset, *_ = make_dataset(n, rng, obs_shape, act_shape)
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info()
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info, history_length=3)
+    history_manager.add_stream('command', length=2, shape=(1,), dtype=float)
+
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50, history_manager=history_manager,
+                      return_extra=True)
+    rm.add(dataset)
+
+    np.random.seed(0)
+    s, a, r, ss, ab, last, extra = rm.get(4)
+
+    assert s.shape == (4, 3, *obs_shape)
+    assert 'command' not in extra
+
+
 def test_prioritized_replay_memory_add_get():
     obs_shape = (4,)
     act_shape = (2,)
@@ -337,6 +629,37 @@ def test_prioritized_replay_memory_add_get():
 
     assert np.allclose(s, s_test)
     assert np.allclose(r, r_test)
+
+
+def test_prioritized_replay_memory_add_default_priority():
+    obs_shape = (4,)
+    act_shape = (2,)
+    n = 10
+
+    rng = np.random.RandomState(11)
+    dataset, *_ = make_dataset(n, rng, obs_shape, act_shape)
+    dataset2, *_ = make_dataset(n, rng, obs_shape, act_shape)
+
+    beta = LinearParameter(1.0, threshold_value=0.0, n=100)
+    rm = PrioritizedReplayMemory(make_mdp_info(obs_shape, act_shape), make_agent_info(),
+                                 initial_size=1, max_size=50, alpha=0.6, beta=beta)
+    rm.add(dataset)
+
+    assert np.isclose(rm.max_priority, 1.0)
+    assert np.isclose(rm._tree.total_p, 10.0)
+
+    np.random.seed(3)
+    *_, idxs, _ = rm.get(4)
+    rm.update(np.full(4, 5.0), idxs)
+
+    expected_max = (5.0 + 0.01) ** 0.6
+    assert np.isclose(rm.max_priority, expected_max)
+
+    total_before = rm._tree.total_p
+    rm.add(dataset2)
+
+    assert np.isclose(rm._tree.max_p, expected_max)
+    assert np.isclose(rm._tree.total_p, total_before + n * expected_max)
 
 
 def test_prioritized_replay_memory_update_changes_priorities():
@@ -390,6 +713,43 @@ def test_prioritized_replay_memory_max_priority_after_add():
     assert np.isclose(rm.max_priority, 3.0)
 
 
+def test_prioritized_replay_memory_history_masks_write_head():
+    obs_shape = (1,)
+    act_shape = (1,)
+    history_length = 3
+    max_size = 5
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info()
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info, history_length=history_length)
+
+    beta = LinearParameter(1.0, threshold_value=0.0, n=100)
+    rm = PrioritizedReplayMemory(mdp_info, agent_info, initial_size=1, max_size=max_size,
+                                 alpha=0.6, beta=beta, history_manager=history_manager)
+
+    # one continuous episode (no last flags) longer than the buffer, so it wraps around the write head
+    for v in range(8):
+        s = np.array([[float(v)]])
+        rm.add(Dataset.from_array(s, np.zeros((1, 1)), np.zeros(1), s + 0.5, np.zeros(1), np.zeros(1),
+                                  backend='numpy'), np.ones(1))
+
+    assert rm._full and rm._idx == 3          # chronological order of positions is [3, 4, 0, 1, 2] -> values [3..7]
+
+    # the (history_length - 1) oldest samples occupy positions [3, 4], which are masked in the tree
+    assert rm._tree._masked[3 + max_size - 1]
+    assert rm._tree._masked[4 + max_size - 1]
+
+    np.random.seed(0)
+    s, a, r, ss, ab, last, idxs, is_weight = rm.get(200)
+
+    # each stacked observation must be a contiguous chronological window (no write-head crossing)
+    assert np.allclose(s[:, 1:, 0] - s[:, :-1, 0], 1.0)
+
+    # the (history_length - 1) oldest samples (values 3 and 4) can never be rebuilt, so must never be sampled
+    anchors = s[:, history_length - 1, 0]
+    assert not np.any(np.isin(anchors, [3.0, 4.0]))
+
+
 def test_replay_memory_torch_uint8_obs():
     np.random.seed(42)
 
@@ -429,7 +789,8 @@ def test_replay_memory_history():
 
     mdp_info = make_mdp_info(obs_shape, act_shape)
     agent_info = make_agent_info()
-    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50, history_length=history_length)
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info, history_length=history_length)
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50, history_manager=history_manager)
     rm.add(dataset)
 
     np.random.seed(7)
@@ -442,6 +803,37 @@ def test_replay_memory_history():
     assert a.shape == (4, *act_shape)
     assert np.allclose(s[:, history_length - 1], states[expected_idxs])
     assert np.allclose(ss[:, history_length - 1], next_states[expected_idxs])
+
+
+def test_replay_memory_history_reduced_sampling_excludes_write_head():
+    obs_shape = (1,)
+    act_shape = (1,)
+    history_length = 3
+    max_size = 5
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info()
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info, history_length=history_length)
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=1, max_size=max_size, history_manager=history_manager)
+
+    # one continuous episode (no last flags) longer than the buffer, so it wraps around the write head
+    for v in range(8):
+        s = np.array([[float(v)]])
+        rm.add(Dataset.from_array(s, np.zeros((1, 1)), np.zeros(1), s + 0.5, np.zeros(1), np.zeros(1),
+                                  backend='numpy'))
+
+    assert rm._full and rm._idx == 3          # chronological order of positions is [3, 4, 0, 1, 2] -> values [3..7]
+
+    np.random.seed(0)
+    s, a, r, ss, ab, last = rm.get(200)
+
+    # each stacked observation must be a contiguous chronological window: since the whole buffer is a single
+    # continuous episode, consecutive stacked frames must differ by exactly one (no write-head crossing)
+    assert np.allclose(s[:, 1:, 0] - s[:, :-1, 0], 1.0)
+
+    # the (history_length - 1) oldest samples (values 3 and 4) can never be rebuilt, so must never be sampled
+    anchors = s[:, history_length - 1, 0]
+    assert not np.any(np.isin(anchors, [3.0, 4.0]))
 
 
 def test_replay_memory_wrap_after_full():

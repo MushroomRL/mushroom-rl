@@ -5,7 +5,6 @@ import torch
 from mushroom_rl.core import Agent
 from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory, ReplayMemory
 from mushroom_rl.rl_utils.parameters import to_parameter
-from mushroom_rl.utils.torch_utils import TorchUtils
 
 
 class AbstractDQN(Agent):
@@ -55,7 +54,7 @@ class AbstractDQN(Agent):
             if isinstance(replay_memory, dict):
                 self._replay_memory = replay_memory["class"](
                     mdp_info, self.info, initial_replay_size, max_replay_size,
-                    history_length=self.history_length, **replay_memory["params"])
+                    history_manager=self.history_manager, **replay_memory["params"])
             else:
                 self._replay_memory = replay_memory
 
@@ -66,7 +65,7 @@ class AbstractDQN(Agent):
         else:
             self._replay_memory = ReplayMemory(
                 mdp_info, self.info, initial_replay_size, max_replay_size,
-                history_length=self.history_length)
+                history_manager=self.history_manager)
             self._fit = self._fit_standard
 
         self._n_updates = 0
@@ -118,8 +117,7 @@ class AbstractDQN(Agent):
             self.approximator.fit(state, action, q, **self._fit_params)
 
     def _fit_prioritized(self, dataset):
-        initial_priority = torch.ones(len(dataset), device=TorchUtils.get_device()) * self._replay_memory.max_priority
-        self._replay_memory.add(dataset, initial_priority)
+        self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
             state, action, reward, next_state, absorbing, *_, idxs, is_weight = \
                 self._replay_memory.get(self._batch_size())
