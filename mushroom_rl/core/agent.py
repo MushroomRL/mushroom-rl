@@ -65,8 +65,8 @@ class Agent(MushroomObject):
         if history_manager is not None:
             self._history_manager = history_manager
         else:
-            self._history_manager = HistoryManager.from_infos(self.mdp_info, self._info, history_length,
-                                                              action_history_length)
+            self._history_manager = HistoryManager.default_streams(self.mdp_info, self._info, history_length,
+                                                                   action_history_length)
 
         self._core_preprocessors = list()
         self._agent_preprocessors = list()

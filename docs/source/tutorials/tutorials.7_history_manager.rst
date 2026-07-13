@@ -39,10 +39,10 @@ By default, two streams are handled automatically:
   step behind, since the current action has not been taken yet), and is passed to the policy as a keyword argument.
 
 The two are orthogonal: either can be active on its own, or both together, and each keeps its own length. The
-usual way to build a manager is :meth:`~mushroom_rl.core.history_manager.HistoryManager.from_infos`, which reads
-the shapes and data types from the MDP and agent information and returns ``None`` when no stream is active
-(``history_length`` 1 and ``action_history_length`` 0). In the following we construct a manager directly and
-exercise it, to illustrate its behaviour:
+usual way to build a manager is :meth:`~mushroom_rl.core.history_manager.HistoryManager.default_streams`, which
+reads the shapes and data types of the two reserved streams from the MDP and agent information and returns an
+identity manager (no stacking) when no stream is active (``history_length`` 1 and ``action_history_length`` 0).
+In the following we construct a manager directly and exercise it, to illustrate its behaviour:
 
 .. literalinclude:: code/history_manager.py
    :lines: 1-17
@@ -146,8 +146,9 @@ terminal transition instead of stitching in rewards from the next episode.
    :lines: 63-69
 
 With ``gamma`` 0.9 and ``n_steps_return`` 2, the reward of a transition becomes ``r_t + 0.9 * r_{t+1}`` and its
-endpoint is ``t + 1``, except for the last transition of the dataset, which has no further step to look ahead to and
-falls back to its own immediate reward and index. This is the same computation
+endpoint is ``t + 1``. Only the transitions whose n-step return is well-defined are returned: the last transition of
+the dataset has no further step to look ahead to, so it is dropped (its surviving anchor index is returned under
+``extra['anchor']``). This is the same computation
 :class:`~mushroom_rl.rl_utils.replay_memory.ReplayMemory` performs (through
 :meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_nstep_history_circular_buffer`, its circular-buffer
 counterpart) when it is built with ``n_steps_return`` greater than 1, so that n-step DQN-style targets and history

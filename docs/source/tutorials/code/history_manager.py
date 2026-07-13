@@ -10,7 +10,7 @@ mdp_info = MDPInfo(observation_space, action_space, gamma=0.99, horizon=100)
 agent_info = AgentInfo(is_episodic=False, policy_state_shape=None, backend='numpy')
 
 # History manager
-history = HistoryManager.from_infos(mdp_info, agent_info, history_length=3, action_history_length=2)
+history = HistoryManager.default_streams(mdp_info, agent_info, history_length=3, action_history_length=2)
 
 print('history_length:', history.history_length)
 print('action_history_length:', history.action_history_length)

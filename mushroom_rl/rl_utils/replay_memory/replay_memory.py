@@ -35,7 +35,7 @@ class ReplayMemory(MushroomObject):
         self._initial_size = initial_size
         self._max_size = max_size
         self._history_manager = history_manager if history_manager is not None \
-            else HistoryManager.from_infos(mdp_info, agent_info)
+            else HistoryManager.default_streams(mdp_info, agent_info)
         self._n_steps_return = n_steps_return
         self._store_policy_state = store_policy_state
         self._return_extra = return_extra
@@ -97,7 +97,7 @@ class ReplayMemory(MushroomObject):
         self._idx = 0
         self._full = False
         dataset_info = DatasetInfo.create_replay_memory_info(self._mdp_info, self._agent_info,
-                                                              self._store_policy_state)
+                                                             self._store_policy_state)
         self._dataset = Dataset(dataset_info, n_steps=self._max_size)
 
     @property
@@ -136,9 +136,10 @@ class ReplayMemory(MushroomObject):
         state, action, reward, next_state, absorbing, last, extra = \
             self._history_manager.parse_nstep_history_circular_buffer(
                 ds, idxs, self._mdp_info.gamma, self._n_steps_return, len(ds), self._full, self._max_size, self._idx)
+        anchor = extra.pop('anchor')
         endpoint = extra.pop('endpoint')
 
-        policy_state = [ds.policy_state[idxs], ds.policy_next_state[endpoint]] if ds.is_stateful else []
+        policy_state = [ds.policy_state[anchor], ds.policy_next_state[endpoint]] if ds.is_stateful else []
 
         out = [state, action, reward, next_state, absorbing, last, *policy_state]
 
@@ -208,9 +209,9 @@ class ReplayMemory(MushroomObject):
         backend = self._dataset.array_backend
         mask = backend.zeros(len(anchor_idxs), dtype=bool)
         if self._n_steps_return > 1:
-            *_, valid = self._history_manager.parse_nstep_return_circular_buffer(
-                self._dataset.reward, self._dataset.absorbing, self._dataset.last, anchor_idxs, self._mdp_info.gamma,
-                self._n_steps_return, len(self._dataset), self._full, self._max_size, self._idx)
+            valid = self._history_manager.nstep_valid_circular_buffer(
+                self._dataset.absorbing, self._dataset.last, anchor_idxs, self._n_steps_return,
+                len(self._dataset), self._full, self._max_size, self._idx)
             mask = mask | ~valid
         if self._history_manager.max_reach > 0 and self._full:
             mask = mask | ((anchor_idxs - self._idx) % self._max_size < self._history_manager.max_reach)

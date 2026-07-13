@@ -188,7 +188,7 @@ def test_replay_memory_n_steps_history_absorbing():
 
     mdp_info = make_mdp_info(obs_shape, act_shape, gamma=gamma)
     agent_info = make_agent_info()
-    history_manager = HistoryManager.from_infos(mdp_info, agent_info, history_length=history_length)
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info, history_length=history_length)
     rm = ReplayMemory(mdp_info, agent_info, initial_size=1, max_size=50,
                       history_manager=history_manager, n_steps_return=n_steps)
     rm.add(dataset)
@@ -396,7 +396,7 @@ def test_sequence_replay_memory_history_composition():
 
     mdp_info = make_mdp_info(obs_shape, act_shape)
     agent_info = make_agent_info(policy_state_shape=policy_state_shape)
-    history_manager = HistoryManager.from_infos(mdp_info, agent_info, history_length=history_length)
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info, history_length=history_length)
     rm = SequenceReplayMemory(mdp_info, agent_info, initial_size=5, max_size=100,
                               truncation_length=truncation_length, history_manager=history_manager)
     rm.add(dataset)
@@ -439,7 +439,7 @@ def test_sequence_replay_memory_action_history_return_extra():
 
     mdp_info = make_mdp_info(obs_shape, act_shape)
     agent_info = make_agent_info(policy_state_shape=policy_state_shape)
-    history_manager = HistoryManager.from_infos(mdp_info, agent_info, action_history_length=action_history_length)
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info, action_history_length=action_history_length)
     rm = SequenceReplayMemory(mdp_info, agent_info, initial_size=5, max_size=100,
                               truncation_length=truncation_length, history_manager=history_manager, return_extra=True)
     rm.add(dataset)
@@ -478,7 +478,7 @@ def test_sequence_replay_memory_history_reduced_sampling_across_write_head():
 
     mdp_info = make_mdp_info(obs_shape, act_shape)
     agent_info = make_agent_info(policy_state_shape=policy_state_shape)
-    history_manager = HistoryManager.from_infos(mdp_info, agent_info, history_length=history_length)
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info, history_length=history_length)
     rm = SequenceReplayMemory(mdp_info, agent_info, initial_size=1, max_size=max_size,
                               truncation_length=truncation_length, history_manager=history_manager)
 
@@ -505,28 +505,28 @@ def test_sequence_replay_memory_history_reduced_sampling_across_write_head():
         assert not np.any(current == 3.0)
 
 
-def test_history_manager_from_infos_identity():
+def test_history_manager_default_streams_identity():
     mdp_info = make_mdp_info((4,), (2,))
     agent_info = make_agent_info()
 
-    identity = HistoryManager.from_infos(mdp_info, agent_info, history_length=1)
+    identity = HistoryManager.default_streams(mdp_info, agent_info, history_length=1)
     assert identity.history_length == 1
     assert not identity.uses_action
     assert identity.max_reach == 0
 
-    assert HistoryManager.from_infos(mdp_info, agent_info, history_length=3).history_length == 3
-    assert HistoryManager.from_infos(mdp_info, agent_info, action_history_length=1).uses_action
-    assert HistoryManager.from_infos(mdp_info, agent_info, action_history_length=2).action_history_length == 2
+    assert HistoryManager.default_streams(mdp_info, agent_info, history_length=3).history_length == 3
+    assert HistoryManager.default_streams(mdp_info, agent_info, action_history_length=1).uses_action
+    assert HistoryManager.default_streams(mdp_info, agent_info, action_history_length=2).action_history_length == 2
 
 
-def test_history_manager_parse_nstep_return_dataset():
+def test_history_manager_nstep_return_dataset():
     obs_shape = (2,)
     act_shape = (1,)
     n_steps, gamma, n = 3, 0.9, 8
 
     mdp_info = make_mdp_info(obs_shape, act_shape, gamma=gamma)
     agent_info = make_agent_info()
-    history_manager = HistoryManager.from_infos(mdp_info, agent_info)
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info)
 
     reward = np.ones(n)
     absorbing = np.zeros(n)
@@ -535,14 +535,45 @@ def test_history_manager_parse_nstep_return_dataset():
     last[4] = 1.0
     last[7] = 1.0
 
-    endpoint, reduced_reward, valid = history_manager.parse_nstep_return(reward, absorbing, last, gamma=gamma,
-                                                                         n_steps_return=n_steps)
+    valid = history_manager.nstep_valid(absorbing, last, n_steps_return=n_steps)
+    reduced_reward, anchor, endpoint = history_manager.build_nstep_return(
+        reward, absorbing, last, gamma=gamma, n_steps_return=n_steps)
 
     full_return = 1.0 + gamma + gamma ** 2
     assert np.array_equal(valid, np.array([True, True, True, False, False, True, True, True]))
-    assert np.array_equal(endpoint[valid], np.array([2, 3, 4, 7, 7, 7]))
-    assert np.allclose(reduced_reward[valid], np.array([full_return, full_return, full_return, full_return,
-                                                        1.0 + gamma, 1.0]))
+    assert np.array_equal(anchor, np.array([0, 1, 2, 5, 6, 7]))
+    assert np.array_equal(endpoint, np.array([2, 3, 4, 7, 7, 7]))
+    assert np.allclose(reduced_reward, np.array([full_return, full_return, full_return, full_return,
+                                                 1.0 + gamma, 1.0]))
+
+
+def test_build_nstep_return_slicing_matches_circular_buffer():
+    obs_shape = (2,)
+    act_shape = (1,)
+    size = 20
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info()
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info)
+
+    rng = np.random.RandomState(0)
+    reward = rng.randn(size)
+    last = np.zeros(size)
+    last[np.array([4, 9, 10, 17])] = 1.0
+    absorbing = np.zeros(size)
+    absorbing[np.array([9, 17])] = 1.0
+    anchor_idxs = np.arange(size)
+
+    for n_steps in [1, 2, 3, 5]:
+        for gamma in [1.0, 0.9]:
+            reduced, anchor, endpoint = history_manager.build_nstep_return(
+                reward, absorbing, last, gamma=gamma, n_steps_return=n_steps)
+            reduced_buf, anchor_buf, endpoint_buf = history_manager.build_nstep_return_circular_buffer(
+                reward, absorbing, last, anchor_idxs, gamma, n_steps, size, full=False, max_size=size,
+                write_head=size)
+            assert np.array_equal(anchor, anchor_buf)
+            assert np.array_equal(endpoint, endpoint_buf)
+            assert np.array_equal(reduced, reduced_buf)
 
 
 def test_replay_memory_rebuilds_only_stored_streams():
@@ -555,8 +586,8 @@ def test_replay_memory_rebuilds_only_stored_streams():
 
     mdp_info = make_mdp_info(obs_shape, act_shape)
     agent_info = make_agent_info()
-    history_manager = HistoryManager(mdp_info, agent_info, obs_history_length=3,
-                                     extra_buffers={'command': dict(length=2, shape=(1,), dtype=float)})
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info, history_length=3)
+    history_manager.add_stream('command', length=2, shape=(1,), dtype=float)
 
     rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50, history_manager=history_manager,
                       return_extra=True)
@@ -690,7 +721,7 @@ def test_prioritized_replay_memory_history_masks_write_head():
 
     mdp_info = make_mdp_info(obs_shape, act_shape)
     agent_info = make_agent_info()
-    history_manager = HistoryManager.from_infos(mdp_info, agent_info, history_length=history_length)
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info, history_length=history_length)
 
     beta = LinearParameter(1.0, threshold_value=0.0, n=100)
     rm = PrioritizedReplayMemory(mdp_info, agent_info, initial_size=1, max_size=max_size,
@@ -758,7 +789,7 @@ def test_replay_memory_history():
 
     mdp_info = make_mdp_info(obs_shape, act_shape)
     agent_info = make_agent_info()
-    history_manager = HistoryManager.from_infos(mdp_info, agent_info, history_length=history_length)
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info, history_length=history_length)
     rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50, history_manager=history_manager)
     rm.add(dataset)
 
@@ -782,7 +813,7 @@ def test_replay_memory_history_reduced_sampling_excludes_write_head():
 
     mdp_info = make_mdp_info(obs_shape, act_shape)
     agent_info = make_agent_info()
-    history_manager = HistoryManager.from_infos(mdp_info, agent_info, history_length=history_length)
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info, history_length=history_length)
     rm = ReplayMemory(mdp_info, agent_info, initial_size=1, max_size=max_size, history_manager=history_manager)
 
     # one continuous episode (no last flags) longer than the buffer, so it wraps around the write head

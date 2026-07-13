@@ -5,7 +5,6 @@ import torch
 from mushroom_rl.algorithms.value.dqn.categorical_dqn import AbstractCategoricalDQN
 from mushroom_rl.approximators.parametric.networks import RainbowNetwork
 from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
-from mushroom_rl.utils.torch_utils import TorchUtils
 
 
 class Rainbow(AbstractCategoricalDQN):
@@ -55,8 +54,7 @@ class Rainbow(AbstractCategoricalDQN):
         )
 
     def fit(self, dataset):
-        initial_priority = torch.ones(len(dataset), device=TorchUtils.get_device()) * self._replay_memory.max_priority
-        self._replay_memory.add(dataset, initial_priority)
+        self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
             state, action, reward, next_state, absorbing, *_, idxs, is_weight = \
                 self._replay_memory.get(self._batch_size())

@@ -16,7 +16,7 @@ def _make_infos(obs_shape=(2,), act_shape=(1,)):
 
 def _make_manager(history_length=3, obs_shape=(2,)):
     mdp_info, agent_info = _make_infos(obs_shape=obs_shape)
-    return HistoryManager(mdp_info, agent_info, obs_history_length=history_length)
+    return HistoryManager.default_streams(mdp_info, agent_info, history_length=history_length)
 
 
 def test_history_length_property():
@@ -152,9 +152,8 @@ def test_build_history_batch_stops_at_episode_boundary():
 
 
 def test_action_only_stream():
-    mdp_info, agent_info = _make_infos()
-    hm = HistoryManager(mdp_info, agent_info,
-                        extra_buffers={'action_history': {'length': 2, 'shape': (2,), 'dtype': float}})
+    _, agent_info = _make_infos()
+    hm = HistoryManager(agent_info, streams={'action_history': {'length': 2, 'shape': (2,), 'dtype': float}})
     hm.reset()
 
     state_0, kwargs_0 = hm()
@@ -173,8 +172,8 @@ def test_action_only_stream():
 
 def test_extra_buffer_stream():
     mdp_info, agent_info = _make_infos(obs_shape=(2,))
-    hm = HistoryManager(mdp_info, agent_info, obs_history_length=2,
-                        extra_buffers={'command': {'length': 3, 'shape': (1,), 'dtype': float}})
+    hm = HistoryManager.default_streams(mdp_info, agent_info, history_length=2)
+    hm.add_stream('command', length=3, shape=(1,), dtype=float)
     hm.reset()
 
     state, kwargs = hm(np.array([1.0, 1.0]), command=np.array([7.0]))
@@ -191,8 +190,8 @@ def test_extra_buffer_stream():
 
 
 def test_extra_only_manager():
-    mdp_info, agent_info = _make_infos()
-    hm = HistoryManager(mdp_info, agent_info, extra_buffers={'foo': {'length': 2, 'shape': (1,), 'dtype': float}})
+    _, agent_info = _make_infos()
+    hm = HistoryManager(agent_info, streams={'foo': {'length': 2, 'shape': (1,), 'dtype': float}})
     hm.reset()
 
     state, kwargs = hm(foo=np.array([5.0]))
@@ -202,19 +201,16 @@ def test_extra_only_manager():
 
 def test_uses_action_reflects_action_history_stream():
     mdp_info, agent_info = _make_infos()
-    hm_action = HistoryManager(mdp_info, agent_info,
-                               extra_buffers={'action_history': {'length': 2, 'shape': (1,), 'dtype': float}})
+    hm_action = HistoryManager.default_streams(mdp_info, agent_info, action_history_length=2)
     assert hm_action.uses_action
 
-    hm_other = HistoryManager(mdp_info, agent_info,
-                              extra_buffers={'command': {'length': 2, 'shape': (1,), 'dtype': float}})
+    hm_other = HistoryManager(agent_info, streams={'command': {'length': 2, 'shape': (1,), 'dtype': float}})
     assert not hm_other.uses_action
 
 
 def test_multi_stream_splits_state_and_action():
     mdp_info, agent_info = _make_infos(obs_shape=(2,))
-    hm = HistoryManager(mdp_info, agent_info, obs_history_length=3,
-                        extra_buffers={'action_history': {'length': 2, 'shape': (1,), 'dtype': float}})
+    hm = HistoryManager.default_streams(mdp_info, agent_info, history_length=3, action_history_length=2)
     hm.reset()
 
     hm.record_action(np.array([5.0]))
@@ -229,9 +225,7 @@ def test_multi_stream_splits_state_and_action():
 
 def _make_action_manager(action_history_length):
     mdp_info, agent_info = _make_infos(act_shape=(1,))
-    return HistoryManager(mdp_info, agent_info,
-                          extra_buffers={'action_history': {'length': action_history_length, 'shape': (1,),
-                                                                  'dtype': float, 'offset': 1}})
+    return HistoryManager.default_streams(mdp_info, agent_info, action_history_length=action_history_length)
 
 
 def test_previous_action_online_offline_equivalence():
@@ -348,8 +342,7 @@ def _make_dataset(states, actions, rewards, next_states, absorbing, last, gamma=
 
 def test_parse_history_full_dataset():
     mdp_info, agent_info = _make_infos(obs_shape=(2,), act_shape=(1,))
-    hm = HistoryManager(mdp_info, agent_info, obs_history_length=2,
-                        extra_buffers={'action_history': {'length': 2, 'shape': (1,), 'dtype': float, 'offset': 1}})
+    hm = HistoryManager.default_streams(mdp_info, agent_info, history_length=2, action_history_length=2)
 
     states = np.array([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0], [3.0, 3.0]])
     actions = np.array([[10.0], [11.0], [12.0], [13.0]])
@@ -383,7 +376,7 @@ def test_parse_history_full_dataset():
 
 def test_parse_history_no_active_stream_passes_through():
     mdp_info, agent_info = _make_infos(obs_shape=(2,), act_shape=(1,))
-    hm = HistoryManager(mdp_info, agent_info)
+    hm = HistoryManager.default_streams(mdp_info, agent_info)
 
     states = np.array([[0.0, 0.0], [1.0, 1.0]])
     actions = np.array([[10.0], [11.0]])
@@ -402,8 +395,7 @@ def test_parse_history_no_active_stream_passes_through():
 
 def test_parse_history_to_backend_argument():
     mdp_info, agent_info = _make_infos(obs_shape=(2,), act_shape=(1,))
-    hm = HistoryManager(mdp_info, agent_info, obs_history_length=2,
-                        extra_buffers={'action_history': {'length': 2, 'shape': (1,), 'dtype': float, 'offset': 1}})
+    hm = HistoryManager.default_streams(mdp_info, agent_info, history_length=2, action_history_length=2)
 
     states = np.array([[0.0, 0.0], [1.0, 1.0], [2.0, 2.0], [3.0, 3.0]])
     actions = np.array([[10.0], [11.0], [12.0], [13.0]])
@@ -429,7 +421,7 @@ def test_parse_history_to_backend_argument():
 
 def test_parse_nstep_history_single_episode():
     mdp_info, agent_info = _make_infos(obs_shape=(1,), act_shape=(1,))
-    hm = HistoryManager(mdp_info, agent_info)
+    hm = HistoryManager.default_streams(mdp_info, agent_info)
 
     states = np.arange(6, dtype=float).reshape(6, 1)
     actions = np.arange(6, dtype=float).reshape(6, 1)
@@ -452,7 +444,7 @@ def test_parse_nstep_history_single_episode():
 
 def test_parse_nstep_history_anchor_idxs_subset():
     mdp_info, agent_info = _make_infos(obs_shape=(1,), act_shape=(1,))
-    hm = HistoryManager(mdp_info, agent_info)
+    hm = HistoryManager.default_streams(mdp_info, agent_info)
 
     states = np.arange(6, dtype=float).reshape(6, 1)
     actions = np.arange(6, dtype=float).reshape(6, 1)
@@ -475,7 +467,7 @@ def test_parse_nstep_history_anchor_idxs_subset():
 
 def test_parse_nstep_history_n_steps_return_one_matches_immediate_transition():
     mdp_info, agent_info = _make_infos(obs_shape=(1,), act_shape=(1,))
-    hm = HistoryManager(mdp_info, agent_info)
+    hm = HistoryManager.default_streams(mdp_info, agent_info)
 
     states = np.arange(6, dtype=float).reshape(6, 1)
     actions = np.arange(6, dtype=float).reshape(6, 1)
@@ -495,7 +487,7 @@ def test_parse_nstep_history_n_steps_return_one_matches_immediate_transition():
 
 def test_parse_nstep_history_stops_at_episode_boundary():
     mdp_info, agent_info = _make_infos(obs_shape=(1,), act_shape=(1,))
-    hm = HistoryManager(mdp_info, agent_info)
+    hm = HistoryManager.default_streams(mdp_info, agent_info)
 
     states = np.arange(5, dtype=float).reshape(5, 1)
     actions = np.arange(5, dtype=float).reshape(5, 1)
@@ -508,9 +500,10 @@ def test_parse_nstep_history_stops_at_episode_boundary():
     state, action, reward, next_state, absorb, lst, extra = hm.parse_nstep_history(dataset, gamma=0.5,
                                                                                    n_steps_return=3)
 
-    assert np.allclose(reward, np.array([2.75, 3.5, 3.0, 6.5, 5.0]))
-    assert np.allclose(next_state.ravel(), np.array([3.0, 3.0, 3.0, 5.0, 5.0]))
-    assert np.array_equal(extra['endpoint'], np.array([2, 2, 2, 4, 4]))
-    # anchors 0 and 1 never stitch the n-step return past the terminal transition of the first episode
-    assert np.allclose(absorb, np.array([1.0, 1.0, 1.0, 0.0, 0.0]))
-    assert np.allclose(lst, np.array([1.0, 1.0, 1.0, 0.0, 0.0]))
+    assert np.array_equal(extra['anchor'], np.array([0, 1, 2]))
+    assert np.allclose(reward, np.array([2.75, 3.5, 3.0]))
+    assert np.allclose(next_state.ravel(), np.array([3.0, 3.0, 3.0]))
+    assert np.array_equal(extra['endpoint'], np.array([2, 2, 2]))
+    assert np.allclose(absorb, np.array([1.0, 1.0, 1.0]))
+    assert np.allclose(lst, np.array([1.0, 1.0, 1.0]))
+    assert np.allclose(action.ravel(), np.array([0.0, 1.0, 2.0]))

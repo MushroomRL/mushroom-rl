@@ -34,7 +34,7 @@ def test_agent_history_manager_mutually_exclusive():
     policy = RandomDiscretePolicy(act_space.n)
 
     agent_info = AgentInfo(is_episodic=False, policy_state_shape=None, backend='numpy')
-    history_manager = HistoryManager(mdp_info, agent_info, obs_history_length=3)
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info, history_length=3)
 
     agent = Agent(mdp_info, policy, history_manager=history_manager)
     assert agent.history_manager is history_manager
