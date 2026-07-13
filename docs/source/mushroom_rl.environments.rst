@@ -62,21 +62,6 @@ Gymnasium
     :private-members:
     :show-inheritance:
 
-Habitat
-~~~~~~~
-
-.. autoclass:: mushroom_rl.environments.habitat_env.Habitat
-    :members:
-    :private-members:
-    :show-inheritance:
-
-.. autoclass:: mushroom_rl.environments.habitat_env.HabitatNavigationWrapper
-    :members:
-
-.. autoclass:: mushroom_rl.environments.habitat_env.HabitatRearrangeWrapper
-    :members:
-
-
 Inverted pendulum
 ~~~~~~~~~~~~~~~~~
 

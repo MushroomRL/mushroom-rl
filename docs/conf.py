@@ -210,7 +210,7 @@ epub_exclude_files = ['search.html']
 
 autodoc_member_order = 'bysource'
 autodoc_mock_imports = ['torch', 'scipy', 'sklearn', 'ale_py', 'pybullet', 'pybullet_data', 'pybullet_utils',
-                        'dm_control', 'minigrid', 'mujoco', 'glfw', 'habitat', 'habitat_baselines', 'habitat_sim',
+                        'dm_control', 'minigrid', 'mujoco', 'glfw',
                         'omni', 'omniisaacgymenvs']
 add_module_names = False
 
