@@ -83,8 +83,8 @@ def test_actor_network_orthogonal_init():
     assert np.allclose(w, expected_w, atol=1e-6)
     out = net(x).detach().numpy()
     expected_out = np.array([[-0.49445415, 0.15632166],
-                              [-0.39369154, 0.19581775],
-                              [-0.48856848, 0.09151582]])
+                             [-0.39369154, 0.19581775],
+                             [-0.48856848, 0.09151582]])
     assert np.allclose(out, expected_out, atol=1e-6)
 
 
@@ -186,7 +186,7 @@ def test_recurrent_actor_network():
     lengths = torch.tensor([5, 3, 4])
     net = RecurrentActorNetwork(
         (dim_env,), [(dim_action,), (16,)],
-        n_features=32, dim_env_state=dim_env,
+        n_features=32,
         rnn_type='gru', n_hidden_features=16, num_hidden_layers=1
     )
     a, h = net(state, policy_state, lengths)
@@ -208,7 +208,7 @@ def test_recurrent_critic_network():
     lengths = torch.tensor([5, 3, 4])
     net = RecurrentCriticNetwork(
         (dim_env,), (1,),
-        dim_env_state=dim_env, dim_action=dim_action,
+        dim_action=dim_action,
         rnn_type='gru', n_hidden_features=16, n_features=32, num_hidden_layers=1
     )
     q = net(state, policy_state, lengths).detach().numpy()
@@ -226,8 +226,8 @@ def test_categorical_network_q_values():
     net = CategoricalNetwork((4,), (3,), ActorNetwork, n_atoms=5, v_min=-2.0, v_max=2.0, n_features=16)
     out = net(_make_input()).detach().numpy()
     expected = np.array([[-0.51802474,  0.28390205,  0.58237356],
-                         [-0.58266914,  0.33951604,  0.6862249 ],
-                         [-0.5961043 ,  0.28076124,  0.56525505]], dtype=np.float32)
+                         [-0.58266914,  0.33951604,  0.6862249],
+                         [-0.5961043,  0.28076124,  0.56525505]], dtype=np.float32)
     assert out.shape == (3, 3)
     assert np.allclose(out, expected, atol=1e-6)
 
@@ -256,8 +256,8 @@ def test_categorical_network_distribution_action():
     net = CategoricalNetwork((4,), (3,), ActorNetwork, n_atoms=5, v_min=-2.0, v_max=2.0, n_features=16)
     action = torch.tensor([[1], [0], [1]])
     out = net(_make_input(), action=action, get_distribution=True).detach().numpy()
-    expected = np.array([[0.15402764, 0.1284764 , 0.12098037, 0.47259742, 0.12391815],
-                         [0.25159165, 0.34750757, 0.21702139, 0.09973714, 0.0841423 ],
+    expected = np.array([[0.15402764, 0.1284764, 0.12098037, 0.47259742, 0.12391815],
+                         [0.25159165, 0.34750757, 0.21702139, 0.09973714, 0.0841423],
                          [0.13659264, 0.15124373, 0.12118733, 0.47676253, 0.11421385]], dtype=np.float32)
     assert out.shape == (3, 5)
     assert np.allclose(out, expected, atol=1e-6)
@@ -267,9 +267,9 @@ def test_dueling_network_avg_advantage():
     torch.manual_seed(42)
     net = DuelingNetwork((4,), (3,), ActorNetwork, n_features=16, avg_advantage=True)
     out = net(_make_input()).detach().numpy()
-    expected = np.array([[0.3997159 , 1.6865444 , 1.3915153 ],
-                         [0.25348338, 1.7411749 , 1.3661271 ],
-                         [0.7645298 , 1.6136137 , 1.4106592 ]], dtype=np.float32)
+    expected = np.array([[0.3997159, 1.6865444, 1.3915153],
+                         [0.25348338, 1.7411749, 1.3661271],
+                         [0.7645298, 1.6136137, 1.4106592]], dtype=np.float32)
     assert out.shape == (3, 3)
     assert np.allclose(out, expected, atol=1e-6)
 
@@ -288,9 +288,9 @@ def test_dueling_network_max_advantage():
     torch.manual_seed(42)
     net = DuelingNetwork((4,), (3,), ActorNetwork, n_features=16, avg_advantage=False)
     out = net(_make_input()).detach().numpy()
-    expected = np.array([[-0.12756991,  1.1592586 ,  0.86422944],
-                         [-0.36742973,  1.1202618 ,  0.745214  ],
-                         [ 0.41385043,  1.2629343 ,  1.0599798 ]], dtype=np.float32)
+    expected = np.array([[-0.12756991,  1.1592586,  0.86422944],
+                         [-0.36742973,  1.1202618,  0.745214],
+                         [0.41385043,  1.2629343,  1.0599798]], dtype=np.float32)
     assert out.shape == (3, 3)
     assert np.allclose(out, expected, atol=1e-6)
 
@@ -300,8 +300,8 @@ def test_noisy_network_q_values():
     net = NoisyNetwork((4,), (3,), ActorNetwork, n_features=16)
     torch.manual_seed(7)
     out = net(_make_input()).detach().numpy()
-    expected = np.array([[-0.5709262 ,  0.02239636,  0.23186919],
-                         [-0.6771615 , -0.10194737,  0.27086547],
+    expected = np.array([[-0.5709262,  0.02239636,  0.23186919],
+                         [-0.6771615, -0.10194737,  0.27086547],
                          [-0.53037447, -0.19845623,  0.12485565]], dtype=np.float32)
     assert out.shape == (3, 3)
     assert np.allclose(out, expected, atol=1e-6)
@@ -330,9 +330,9 @@ def test_quantile_network_mean_q():
     torch.manual_seed(42)
     net = QuantileNetwork((4,), (3,), ActorNetwork, n_quantiles=8, n_features=16)
     out = net(_make_input()).detach().numpy()
-    expected = np.array([[ 0.42744595, -0.05222861, -0.10590004],
-                         [ 0.49662584, -0.00288994, -0.07939427],
-                         [ 0.32411247, -0.03606144, -0.10962137]], dtype=np.float32)
+    expected = np.array([[0.42744595, -0.05222861, -0.10590004],
+                         [0.49662584, -0.00288994, -0.07939427],
+                         [0.32411247, -0.03606144, -0.10962137]], dtype=np.float32)
     assert out.shape == (3, 3)
     assert np.allclose(out, expected, atol=1e-6)
 
@@ -351,8 +351,8 @@ def test_quantile_network_quantiles():
     torch.manual_seed(42)
     net = QuantileNetwork((4,), (3,), ActorNetwork, n_quantiles=8, n_features=16)
     out = net(_make_input(), get_quantiles=True).detach().numpy()
-    expected_first = np.array([-0.04285797,  0.8221601 , -0.14703047, -0.02267686,
-                                 0.7050508 ,  1.1124958 ,  0.42521736,  0.56720877], dtype=np.float32)
+    expected_first = np.array([-0.04285797,  0.8221601, -0.14703047, -0.02267686,
+                              0.7050508,  1.1124958,  0.42521736,  0.56720877], dtype=np.float32)
     assert out.shape == (3, 3, 8)
     assert np.allclose(out[0, 0], expected_first, atol=1e-6)
 
@@ -362,12 +362,12 @@ def test_quantile_network_quantiles_action():
     net = QuantileNetwork((4,), (3,), ActorNetwork, n_quantiles=8, n_features=16)
     action = torch.tensor([[1], [0], [1]])
     out = net(_make_input(), action=action, get_quantiles=True).detach().numpy()
-    expected = np.array([[-1.2687702 ,  0.03837946,  0.53966427, -0.278058  , -0.03144249,
-                           0.3364426 ,  0.8223977 , -0.57644224],
-                         [-0.19876304,  1.1473985 , -0.21926138,  0.13285962,  0.6010809 ,
-                           1.3654819 ,  0.5616405 ,  0.5825697 ],
-                         [-1.3488653 , -0.06751481,  0.2811662 , -0.3109569 ,  0.49284717,
-                           0.49418762,  1.0214559 , -0.85081136]], dtype=np.float32)
+    expected = np.array([[-1.2687702,  0.03837946,  0.53966427, -0.278058, -0.03144249,
+                          0.3364426,  0.8223977, -0.57644224],
+                         [-0.19876304,  1.1473985, -0.21926138,  0.13285962,  0.6010809,
+                          1.3654819,  0.5616405,  0.5825697],
+                         [-1.3488653, -0.06751481,  0.2811662, -0.3109569,  0.49284717,
+                          0.49418762,  1.0214559, -0.85081136]], dtype=np.float32)
     assert out.shape == (3, 8)
     assert np.allclose(out, expected, atol=1e-6)
 
@@ -377,9 +377,9 @@ def test_rainbow_network_q_values():
     net = RainbowNetwork((4,), (3,), ActorNetwork, n_atoms=5, v_min=-2.0, v_max=2.0, n_features=16, sigma_coeff=0.5)
     torch.manual_seed(7)
     out = net(_make_input()).detach().numpy()
-    expected = np.array([[ 0.22634576,  0.15971707, -0.0171884 ],
-                         [ 0.29433823,  0.25769186,  0.07344408],
-                         [ 0.24938956,  0.26661745, -0.04909211]], dtype=np.float32)
+    expected = np.array([[0.22634576,  0.15971707, -0.0171884],
+                         [0.29433823,  0.25769186,  0.07344408],
+                         [0.24938956,  0.26661745, -0.04909211]], dtype=np.float32)
     assert out.shape == (3, 3)
     assert np.allclose(out, expected, atol=1e-6)
 
@@ -411,8 +411,8 @@ def test_rainbow_network_distribution_action():
     action = torch.tensor([[1], [0], [1]])
     torch.manual_seed(7)
     out = net(_make_input(), action=action, get_distribution=True).detach().numpy()
-    expected = np.array([[0.09477784, 0.1908969 , 0.32020912, 0.24806263, 0.14605351],
-                         [0.10430492, 0.15184514, 0.1780674 , 0.47677174, 0.08901073],
-                         [0.09133542, 0.14836444, 0.3161716 , 0.2906044 , 0.15352415]], dtype=np.float32)
+    expected = np.array([[0.09477784, 0.1908969, 0.32020912, 0.24806263, 0.14605351],
+                         [0.10430492, 0.15184514, 0.1780674, 0.47677174, 0.08901073],
+                         [0.09133542, 0.14836444, 0.3161716, 0.2906044, 0.15352415]], dtype=np.float32)
     assert out.shape == (3, 5)
     assert np.allclose(out, expected, atol=1e-6)

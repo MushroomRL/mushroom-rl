@@ -10,15 +10,31 @@ class RecurrentActorNetwork(nn.Module):
     ``output_shape`` must be ``[action_shape, policy_state_shape]``.
 
     """
-    def __init__(self, input_shape, output_shape, n_features, dim_env_state, rnn_type,
+    def __init__(self, input_shape, output_shape, n_features, rnn_type,
                  n_hidden_features, num_hidden_layers=1, use_prev_action=False, **kwargs):
+        """
+        Constructor.
+
+        Args:
+            input_shape (tuple): shape of the input (the state);
+            output_shape (list): the network has two outputs, so this must be
+                ``[action_shape, policy_state_shape]``;
+            n_features (int): size of the layers feeding into and out of the recurrent layer;
+            rnn_type (str): type of recurrent layer, see ``TorchUtils.get_recurrent_network``;
+            n_hidden_features (int): size of the recurrent layer's hidden state;
+            num_hidden_layers (int, 1): number of stacked recurrent layers;
+            use_prev_action (bool, False): whether the previous action is concatenated to the
+                observation of each timestep;
+            **kwargs: other parameters (unused).
+
+        """
         super().__init__()
 
         assert isinstance(output_shape, list) and len(output_shape) == 2, \
             'RecurrentActorNetwork requires output_shape=[action_shape, policy_state_shape].'
 
+        dim_env_state = input_shape[0]
         dim_action = output_shape[0][0]
-        self._dim_env_state = dim_env_state
         self._num_hidden_layers = num_hidden_layers
         self._n_hidden_features = n_hidden_features
         self._use_prev_action = use_prev_action
@@ -71,15 +87,37 @@ class RecurrentActorNetwork(nn.Module):
 
 
 class RecurrentCriticNetwork(nn.Module):
-    def __init__(self, input_shape, output_shape, dim_env_state, dim_action, rnn_type,
+    """
+    Recurrent critic network, returning the value function of the input sequence.
+
+    """
+    def __init__(self, input_shape, output_shape, dim_action, rnn_type,
                  n_hidden_features=128, n_features=128, num_hidden_layers=1,
                  hidden_state_treatment='zero_initial', use_prev_action=False, **kwargs):
+        """
+        Constructor.
+
+        Args:
+            input_shape (tuple): shape of the input (the state);
+            output_shape (tuple): shape of the output (the value function);
+            dim_action (int): dimensionality of the action space;
+            rnn_type (str): type of recurrent layer, see ``TorchUtils.get_recurrent_network``;
+            n_hidden_features (int, 128): size of the recurrent layer's hidden state;
+            n_features (int, 128): size of the layers feeding into and out of the recurrent layer;
+            num_hidden_layers (int, 1): number of stacked recurrent layers;
+            hidden_state_treatment (str, 'zero_initial'): either ``'zero_initial'``, to start the
+                recurrent layer from a zero hidden state, or ``'use_policy_hidden_state'``, to start it
+                from the policy's hidden state instead;
+            use_prev_action (bool, False): whether the previous action is concatenated to the
+                observation of each timestep;
+            **kwargs: other parameters (unused).
+
+        """
         super().__init__()
 
         assert hidden_state_treatment in ['zero_initial', 'use_policy_hidden_state']
 
-        self._dim_env_state = dim_env_state
-        self._dim_action = dim_action
+        dim_env_state = input_shape[0]
         self._use_policy_hidden_states = hidden_state_treatment == 'use_policy_hidden_state'
         self._num_hidden_layers = num_hidden_layers
         self._n_hidden_features = n_hidden_features

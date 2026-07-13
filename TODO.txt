@@ -1,7 +1,5 @@
 For Mushroom 2.0:
     * network cleanups
-        - fix RecurrentCriticNetwork: dim_env_state should be derived from input_shape instead of being a
-          separate constructor argument (then add its docstring)
         - remove the AtariNetwork.n_features class variable and the related assert in AtariFeatureNetwork;
           derive the feature size from output_shape instead of hardcoding it
     * fix basis functions
@@ -24,3 +22,9 @@ For Mushroom 2.1:
       - currently ignored in circular-buffer phase; info is never read back during sampling
     * vectorized env rendering
       - render a single window by default instead of one per active env; optionally a grid viewer compositing all envs
+    * RecurrentTorchApproximator: a TorchApproximator subclass owning the recurrent-network contract
+      - declared policy_state_shape
+      - declared action-history width
+      - the sequence-dimension padding rule
+      - lengths defaulting for the single-sample case
+      - remove StatefulTorchPolicy._pad_state

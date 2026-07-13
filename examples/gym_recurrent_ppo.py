@@ -57,25 +57,22 @@ def experiment(
                                           rnn_type=rnn_type,
                                           n_hidden_features=n_hidden_features,
                                           num_hidden_layers=num_hidden_layers,
-                                          dim_env_state=dim_env_state,
                                           use_prev_action=use_prev_action,
                                           std_0=std_0)
 
     # setup critic
-    input_shape_critic = (mdp.info.observation_space.shape[0]+2*n_hidden_features,)
     critic_params = dict(network=RecurrentCriticNetwork,
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': lr_critic,
                                                'weight_decay': 0.0}},
                          loss=torch.nn.MSELoss(),
                          batch_size=batch_size_critic,
-                         input_shape=input_shape_critic,
+                         input_shape=(dim_env_state,),
                          output_shape=(1,),
                          n_features=128,
                          n_hidden_features=n_hidden_features,
                          rnn_type=rnn_type,
                          num_hidden_layers=num_hidden_layers,
-                         dim_env_state=mdp.info.observation_space.shape[0],
                          dim_action=dim_action,
                          use_prev_action=use_prev_action
                          )

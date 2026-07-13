@@ -33,7 +33,6 @@ def make_bptt_setup(use_prev_action=False):
         n_features=n_features,
         n_hidden_features=n_hidden,
         rnn_type='gru',
-        dim_env_state=dim_env_state,
         dim_action=dim_action,
         use_prev_action=use_prev_action,
     )
@@ -49,7 +48,6 @@ def make_bptt_setup(use_prev_action=False):
             n_features=n_features,
             n_hidden_features=n_hidden,
             rnn_type='gru',
-            dim_env_state=dim_env_state,
             dim_action=dim_action,
             use_prev_action=use_prev_action,
         ),
