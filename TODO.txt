@@ -9,8 +9,8 @@ For Mushroom 2.0:
         - simplify interface, improving facade pattern
     * deterministic policy evaluation
     * reorganize example folder
-        - decide whether to keep maintaining the igibson and habitat examples (uninstallable deps, stale
-          replay-memory API); possibly move them to a separate repository
+        - decide whether to keep maintaining the habitat example (uninstallable deps, stale
+          replay-memory API); possibly move it to a separate repository
     * linting as much as possible
 
 

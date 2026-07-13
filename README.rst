@@ -77,35 +77,15 @@ Below is the code that you need to run to install the Plots dependencies:
 To use dm_control MushroomRL interface, install ``dm_control`` following the instruction that can
 be found `here <https://github.com/deepmind/dm_control>`_
 
-Using Habitat and iGibson with MushroomRL
------------------------------------------
+Using Habitat with MushroomRL
+-----------------------------
 
-`Habitat <https://aihabitat.org/>`__ and `iGibson <http://svl.stanford.edu/igibson/>`__
-are simulation platforms providing realistic and sensory-rich learning environments.
+`Habitat <https://aihabitat.org/>`__ is a simulation platform providing realistic
+and sensory-rich learning environments.
 In MushroomRL, the agent's default observations are RGB images, but RGBD,
 agent sensory data, and other information can also be used.
 
-    If you have previous versions of iGibson or Habitat already installed, we recommend to remove them and do clean installs.
-
-iGibson Installation
-^^^^^^^^^^^^^^^^^^^^
-Follow the `official guide <http://svl.stanford.edu/igibson/#install_env>`__ and install its
-`assets <http://svl.stanford.edu/igibson/docs/assets.html>`__ and
-`datasets <http://svl.stanford.edu/igibson/docs/dataset.html>`__.
-
-For ``<MUSHROOM_RL PATH>/mushroom-rl/examples/igibson_dqn.py`` you need to run
-
-.. code:: shell
-
-    python -m igibson.utils.assets_utils --download_assets
-    python -m igibson.utils.assets_utils --download_demo_data
-    python -m igibson.utils.assets_utils --download_ig_dataset
-
-You can also use `third party datasets <https://github.com/StanfordVL/iGibson/tree/master/igibson/utils/data_utils/ext_scene>`__.
-
-The scene details are defined in a YAML file, that needs to be passed to the agent.
-See ``<IGIBSON PATH>/igibson/test/test_house.YAML`` for an example.
-
+    If you have a previous version of Habitat already installed, we recommend to remove it and do a clean install.
 
 Habitat Installation
 ^^^^^^^^^^^^^^^^^^^^

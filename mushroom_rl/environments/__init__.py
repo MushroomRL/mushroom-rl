@@ -29,14 +29,6 @@ except ImportError:
     pass
 
 try:
-    iGibson = None
-    from .igibson_env import iGibson
-    iGibson.register()
-except ImportError:
-    import logging
-    logging.disable(logging.NOTSET)
-
-try:
     Habitat = None
     from .habitat_env import Habitat
     Habitat.register()

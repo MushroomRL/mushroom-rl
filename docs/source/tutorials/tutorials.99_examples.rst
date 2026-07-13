@@ -69,7 +69,6 @@ Others Examples (Environment and Tools)
 - `Using Dataset Plotting callback and State Normalization <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/plotting_and_normalization.py>`_
 - `Habitat Navigation Task with DQN <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/habitat/habitat_nav_dqn.py>`_
 - `Habitat Rearrange Task with SAC from Pixel and Shared Network  <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/habitat/habitat_rearrange_sac.py>`_
-- `iGibson with DQN <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/igibson_dqn.py>`_
 
 
 

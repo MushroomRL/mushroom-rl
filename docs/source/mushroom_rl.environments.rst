@@ -77,14 +77,6 @@ Habitat
     :members:
 
 
-iGibson
-~~~~~~~
-
-.. autoclass:: mushroom_rl.environments.igibson_env.iGibson
-    :members:
-    :private-members:
-    :show-inheritance:
-
 Inverted pendulum
 ~~~~~~~~~~~~~~~~~
 
