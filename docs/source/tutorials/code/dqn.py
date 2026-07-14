@@ -58,7 +58,7 @@ approximator_params = dict(
     input_shape=input_shape,
     output_shape=(mdp.info.action_space.n,),
     n_actions=mdp.info.action_space.n,
-    n_features=AtariNetwork.n_features,
+    n_features=512,
     optimizer=optimizer,
     loss=F.smooth_l1_loss
 )

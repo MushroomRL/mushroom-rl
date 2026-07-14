@@ -8,14 +8,15 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-from mushroom_rl.algorithms.value import AveragedDQN, CategoricalDQN, DQN,\
+from mushroom_rl.algorithms.value import AveragedDQN, CategoricalDQN, DQN, \
     DoubleDQN, MaxminDQN, DuelingDQN, NoisyDQN, Rainbow
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.core import Core, Logger
-from mushroom_rl.environments import *
+from mushroom_rl.environments import MiniGridRGB
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.rl_utils.parameters import LinearParameter, Parameter
 from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
+from mushroom_rl.utils.torch_utils import TorchUtils
 
 """
 This script runs MiniGrid tasks with DQN.
@@ -24,40 +25,19 @@ This script runs MiniGrid tasks with DQN.
 
 
 class Network(nn.Module):
-    n_features = 512
-
-    def __init__(self, input_shape, output_shape, obs_high=255., **kwargs):
+    def __init__(self, input_shape, output_shape, n_features=512, obs_high=255., **kwargs):
         super().__init__()
 
-        n_input = input_shape[0]
         n_output = output_shape[0]
 
-        self._obs_high = obs_high
+        self._phi = FeatureNetwork(input_shape, (n_features,), obs_high=obs_high)
+        self._h5 = nn.Linear(n_features, n_output)
 
-        self._h1 = nn.Conv2d(n_input, 32, kernel_size=3, stride=2, padding=1)
-        self._h2 = nn.Conv2d(32, 32, kernel_size=3, stride=2, padding=1)
-        self._h3 = nn.Conv2d(32, 32, kernel_size=3, stride=2, padding=1)
-        dummy_obs = torch.zeros(1, *input_shape)
-        conv_out_size = np.prod(self._h3(self._h2(self._h1(dummy_obs))).shape)
-        self._h4 = nn.Linear(conv_out_size, self.n_features)
-        self._h5 = nn.Linear(self.n_features, n_output)
-
-        nn.init.xavier_uniform_(self._h1.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h2.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h3.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h4.weight,
-                                gain=nn.init.calculate_gain('relu'))
         nn.init.xavier_uniform_(self._h5.weight,
                                 gain=nn.init.calculate_gain('linear'))
 
     def forward(self, state, action=None):
-        h = F.relu(self._h1(state.float() / self._obs_high))
-        h = F.relu(self._h2(h))
-        h = F.relu(self._h3(h))
-        h = F.relu(self._h4(h.view(state.shape[0], -1)))
+        h = self._phi(state)
         q = self._h5(h)
 
         if action is None:
@@ -69,21 +49,21 @@ class Network(nn.Module):
 
 
 class FeatureNetwork(nn.Module):
-    n_features = 512
-
     def __init__(self, input_shape, output_shape, obs_high=255., **kwargs):
         super().__init__()
 
         n_input = input_shape[0]
+        n_output = output_shape[0]
 
         self._obs_high = obs_high
 
         self._h1 = nn.Conv2d(n_input, 32, kernel_size=3, stride=2, padding=1)
         self._h2 = nn.Conv2d(32, 32, kernel_size=3, stride=2, padding=1)
         self._h3 = nn.Conv2d(32, 32, kernel_size=3, stride=2, padding=1)
-        dummy_obs = torch.zeros(1, *input_shape)
-        conv_out_size = np.prod(self._h3(self._h2(self._h1(dummy_obs))).shape)
-        self._h4 = nn.Linear(conv_out_size, self.n_features)
+
+        conv_out_size = TorchUtils.compute_flat_output_size(nn.Sequential(self._h1, self._h2, self._h3),
+                                                            input_shape)
+        self._h4 = nn.Linear(conv_out_size, n_output)
 
         nn.init.xavier_uniform_(self._h1.weight,
                                 gain=nn.init.calculate_gain('relu'))
@@ -98,9 +78,7 @@ class FeatureNetwork(nn.Module):
         h = F.relu(self._h1(state.float() / self._obs_high))
         h = F.relu(self._h2(h))
         h = F.relu(self._h3(h))
-        h = F.relu(self._h4(h.view(state.shape[0], -1)))
-
-        return h
+        return F.relu(self._h4(h.view(state.shape[0], -1)))
 
 
 def print_epoch(epoch, logger):
@@ -125,9 +103,9 @@ def experiment():
 
     arg_env = parser.add_argument_group('Environment')
     arg_env.add_argument("--name",
-                          type=str,
-                          default='MiniGrid-Empty-5x5-v0',
-                          help='Gymnasium ID of the MiniGrid environment.')
+                         type=str,
+                         default='MiniGrid-Empty-5x5-v0',
+                         help='Gymnasium ID of the MiniGrid environment.')
 
     arg_mem = parser.add_argument_group('Replay Memory')
     arg_mem.add_argument("--initial-replay-size", type=int, default=5000,
@@ -310,7 +288,7 @@ def experiment():
             input_shape=stacked_input_shape,
             output_shape=(mdp.info.action_space.n,),
             n_actions=mdp.info.action_space.n,
-            n_features=Network.n_features,
+            n_features=512,
             obs_high=float(mdp.info.observation_space.high.max()),
             optimizer=optimizer
         )

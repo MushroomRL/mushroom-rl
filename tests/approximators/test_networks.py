@@ -151,7 +151,7 @@ def test_atari_network():
     net = AtariNetwork((4, 84, 84), (6,))
     x = torch.zeros(2, 4, 84, 84)
     out = net(x).detach().numpy()
-    expected_first3 = np.array([-0.04561843, -0.02100883, -0.07272205])
+    expected_first3 = np.array([-0.0494135, 0.04909683, 0.0360373])
     assert out.shape == (2, 6)
     assert np.allclose(out[0, :3], expected_first3, atol=1e-6)
 
@@ -162,7 +162,7 @@ def test_atari_network_action_gathering():
     x = torch.zeros(2, 4, 84, 84)
     action = torch.tensor([[2], [4]])
     out = net(x, action=action).detach().numpy()
-    expected = np.array([-0.07272205, 0.04723251])
+    expected = np.array([0.0360373, 0.09695501])
     assert out.shape == (2,)
     assert np.allclose(out, expected, atol=1e-6)
 

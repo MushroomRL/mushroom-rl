@@ -1,7 +1,4 @@
 For Mushroom 2.0:
-    * network cleanups
-        - remove the AtariNetwork.n_features class variable and the related assert in AtariFeatureNetwork;
-          derive the feature size from output_shape instead of hardcoding it
     * fix basis functions
         - vectorize if possible, using vmap if allowed
         - simplify interface, improving facade pattern

@@ -1,8 +1,10 @@
+import math
+from copy import deepcopy
+
 import torch
 import torch.nn as nn
 import torch.nn.modules.activation as _activation_module
 import torch.nn.modules.rnn as _rnn_module
-import numpy as np
 
 
 class TorchUtils(object):
@@ -83,8 +85,8 @@ class TorchUtils(object):
 
         for p in parameters:
             if p.grad is not None:
-               p.grad.detach_()
-               p.grad.zero_()
+                p.grad.detach_()
+                p.grad.zero_()
 
     @staticmethod
     def get_gradient(params):
@@ -216,6 +218,42 @@ class TorchUtils(object):
                              f"Available: {_rnn_module.__all__}")
         idx = rnn_lc.index(rnn_lower)
         return getattr(_rnn_module, _rnn_module.__all__[idx])
+
+    @staticmethod
+    def compute_output_shape(module, input_shape):
+        """
+        Computes the output shape of a module for a given input shape, without running any real
+        computation or consuming random state.
+
+        Args:
+            module (nn.Module): the module whose output shape has to be computed;
+            input_shape (tuple): the shape of a single, unbatched input.
+
+        Returns:
+            The shape of a single, unbatched output, as a tuple.
+
+        """
+        meta_module = deepcopy(module).to('meta')
+        dummy_input = torch.zeros(1, *input_shape, device='meta')
+        output = meta_module(dummy_input)
+
+        return tuple(output.shape[1:])
+
+    @staticmethod
+    def compute_flat_output_size(module, input_shape):
+        """
+        Computes the flattened output size of a module for a given input shape, without running any
+        real computation or consuming random state.
+
+        Args:
+            module (nn.Module): the module whose output size has to be computed;
+            input_shape (tuple): the shape of a single, unbatched input.
+
+        Returns:
+            The size of a single, unbatched, flattened output, as an integer.
+
+        """
+        return math.prod(TorchUtils.compute_output_shape(module, input_shape))
 
     @staticmethod
     def update_optimizer_parameters(optimizer, new_parameters):
