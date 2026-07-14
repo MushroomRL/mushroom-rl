@@ -22,21 +22,22 @@ class TorchApproximator(Approximator):
 
     def __new__(cls, input_shape=None, output_shape=None, network=None, optimizer=None, loss=None,
                 batch_size=0, n_fit_targets=1, reinitialize=False, dropout=False, quiet=True,
-                n_models=None, **params):
+                n_models=None, action_history_shape=None, kwargs_shape=None, **params):
         if cls is TorchApproximator and n_models is not None and n_models > 1:
             instance = MushroomObject.__new__(TorchEnsemble)
             TorchEnsemble.__init__(instance, input_shape=input_shape, output_shape=output_shape,
                                    network=network, optimizer=optimizer, loss=loss,
                                    batch_size=batch_size, n_fit_targets=n_fit_targets,
                                    reinitialize=reinitialize, dropout=dropout, quiet=quiet,
-                                   n_models=n_models, **params)
+                                   n_models=n_models, action_history_shape=action_history_shape,
+                                   kwargs_shape=kwargs_shape, **params)
             return instance
         else:
             return MushroomObject.__new__(cls)
 
     def __init__(self, input_shape, output_shape, network, optimizer=None, loss=None, batch_size=0,
                  n_fit_targets=1, reinitialize=False, dropout=False, quiet=True, n_models=None,
-                 **params):
+                 action_history_shape=None, kwargs_shape=None, **params):
         """
         Constructor.
 
@@ -65,6 +66,13 @@ class TorchApproximator(Approximator):
                 train;
             quiet (bool, True): if False, shows two progress bars, one for
                 epochs and one for the minibatches;
+            action_history_shape (tuple, None): the per-timestep shape of the ``action_history``
+                keyword input, when the network consumes the previous action. Convenience shortcut
+                for ``kwargs_shape={'action_history': action_history_shape}``;
+            kwargs_shape (dict, None): mapping ``{name: shape}`` declaring keyword inputs of the
+                network. Declared keyword inputs are batch-padded by ``predict`` exactly like the
+                positional inputs, and each shape is forwarded to the network constructor under the
+                ``{name}_shape`` keyword (e.g. ``action_history`` -> ``action_history_shape``);
             **params: dictionary of parameters needed to construct the
                 network.
 
@@ -76,7 +84,13 @@ class TorchApproximator(Approximator):
 
         self._input_ndims = [len(s) for s in input_shape] if isinstance(input_shape, list) else [len(input_shape)]
 
-        self.network = network(input_shape, output_shape, dropout=dropout, **params)
+        kwargs_shape = dict(kwargs_shape) if kwargs_shape is not None else dict()
+        if action_history_shape is not None:
+            kwargs_shape['action_history'] = action_history_shape
+        self._kwargs_ndims = {name: len(shape) for name, shape in kwargs_shape.items()}
+
+        network_shape_kwargs = {f'{name}_shape': shape for name, shape in kwargs_shape.items()}
+        self.network = network(input_shape, output_shape, dropout=dropout, **network_shape_kwargs, **params)
         self.network.to(TorchUtils.get_device())
 
         if dropout:
@@ -93,8 +107,9 @@ class TorchApproximator(Approximator):
                                      self._fit_epoch, self._compute_val_loss, self._store_loss, quiet)
 
         self._add_save_attr(
-            _parse_output='primitive',
+            _parse_output='none',
             _input_ndims='primitive',
+            _kwargs_ndims='primitive',
             network='torch',
             _optimizer='torch',
             _loss='pickle',
@@ -103,6 +118,9 @@ class TorchApproximator(Approximator):
         )
 
     def _post_load(self):
+        n_outputs = len(self._output_shape) if isinstance(self._output_shape, list) else 1
+        self._parse_output = self._parse_single_output if n_outputs == 1 else self._parse_multi_output
+
         if self._optimizer is not None:
             TorchUtils.update_optimizer_parameters(self._optimizer, list(self.network.parameters()))
         self._trainer.set_callbacks(self._fit_epoch, self._compute_val_loss, self._store_loss)
@@ -117,11 +135,14 @@ class TorchApproximator(Approximator):
 
     def predict(self, *args, **kwargs):
         """
-        Predict.
+        Predict. The positional inputs and the keyword inputs declared via ``kwargs_shape`` /
+        ``action_history_shape`` are batch-padded when a single (unbatched) sample is provided. A declared
+        keyword input that is not passed raises a ``KeyError``.
 
         Args:
             *args: input;
-            **kwargs: other parameters used by the predict method of the regressor.
+            **kwargs: other parameters used by the predict method of the network, including any declared
+                keyword input.
 
         Returns:
             The predictions of the model.
@@ -130,6 +151,10 @@ class TorchApproximator(Approximator):
         n_declared = len(self._input_ndims)
         args = [a.unsqueeze(0) if i < n_declared and a.ndim == self._input_ndims[i] else a
                 for i, a in enumerate(args)]
+        for name, ndim in self._kwargs_ndims.items():
+            value = kwargs[name]
+            if value.ndim == ndim:
+                kwargs[name] = value.unsqueeze(0)
         return self._parse_output(self.network(*args, **kwargs))
 
     def fit(self, *args, n_epochs=None, weights=None, epsilon=None, patience=1, validation_split=1., **kwargs):
@@ -443,7 +468,8 @@ class TorchEnsemble(Ensemble):
         if self._trainer.batch_size > 0:
             batches = ensemble_minibatch_generator(self._trainer.batch_size, n_models, *args)
         else:
-            batches = [[torch.as_tensor(a, device=TorchUtils.get_device()).unsqueeze(0).expand(n_models, *a.shape) for a in args]]
+            batches = [[torch.as_tensor(a, device=TorchUtils.get_device()).unsqueeze(0).expand(n_models, *a.shape)
+                        for a in args]]
 
         loss_current = []
         for batch in batches:

@@ -5,7 +5,7 @@ from itertools import chain
 
 from mushroom_rl.policy.policy import StatefulPolicy
 from mushroom_rl.policy.torch_policy import TorchPolicy
-from mushroom_rl.approximators.parametric import TorchApproximator
+from mushroom_rl.approximators.parametric import RecurrentTorchApproximator
 from mushroom_rl.utils.torch_utils import TorchUtils
 from mushroom_rl.rl_utils.parameters import to_parameter
 
@@ -18,14 +18,14 @@ class StatefulTorchPolicy(StatefulPolicy, TorchPolicy):
     ``lengths`` explicitly, so they never depend on the stored one.
 
     """
-    def draw_with_log_prob(self, state, policy_state, lengths, **kwargs):
+    def draw_with_log_prob(self, state, policy_state, lengths=None, **kwargs):
         """
         Sample an action using the reparametrization trick and compute its log probability.
 
         Args:
             state (torch.Tensor): the set of states where the action is sampled;
             policy_state (torch.Tensor): the policy internal states;
-            lengths (torch.Tensor): the length of each input sequence;
+            lengths (torch.Tensor, None): the length of each input sequence, defaulted to ones when None;
             **kwargs: additional per-timestep conditioning inputs.
 
         Returns:
@@ -34,7 +34,7 @@ class StatefulTorchPolicy(StatefulPolicy, TorchPolicy):
         """
         raise NotImplementedError
 
-    def log_prob(self, state, action, policy_state, lengths, **kwargs):
+    def log_prob(self, state, action, policy_state, lengths=None, **kwargs):
         """
         Compute the logarithm of the probability of taking ``action`` in ``state``.
 
@@ -42,7 +42,7 @@ class StatefulTorchPolicy(StatefulPolicy, TorchPolicy):
             state (torch.Tensor): set of states;
             action (torch.Tensor): set of actions;
             policy_state (torch.Tensor): the policy internal states;
-            lengths (torch.Tensor): the length of each input sequence;
+            lengths (torch.Tensor, None): the length of each input sequence, defaulted to ones when None;
             **kwargs: additional per-timestep conditioning inputs.
 
         Returns:
@@ -51,14 +51,14 @@ class StatefulTorchPolicy(StatefulPolicy, TorchPolicy):
         """
         raise NotImplementedError
 
-    def distribution(self, state, policy_state, lengths, **kwargs):
+    def distribution(self, state, policy_state, lengths=None, **kwargs):
         """
         Compute the policy distribution in the given states.
 
         Args:
             state (torch.Tensor): the set of states where the distribution is computed;
             policy_state (torch.Tensor): the policy internal states;
-            lengths (torch.Tensor): the length of each input sequence;
+            lengths (torch.Tensor, None): the length of each input sequence, defaulted to ones when None;
             **kwargs: additional per-timestep conditioning inputs.
 
         Returns:
@@ -97,8 +97,9 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
 
         self._action_dim = output_shape[0]
 
-        self._mu = TorchApproximator(input_shape=input_shape, output_shape=[output_shape, policy_state_shape],
-                                     network=network, **params)
+        self._mu = RecurrentTorchApproximator(input_shape=input_shape,
+                                              output_shape=[output_shape, policy_state_shape],
+                                              network=network, policy_state_shape=policy_state_shape, **params)
         self._predict_params = dict()
 
         log_sigma_init = torch.ones(self._action_dim, device=TorchUtils.get_device()) \
@@ -118,27 +119,27 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
             _log_std_max='mushroom'
         )
 
-    def draw_with_log_prob(self, state, policy_state, lengths, **kwargs):
+    def draw_with_log_prob(self, state, policy_state, lengths=None, **kwargs):
         dist, next_policy_state = self.distribution_and_policy_state(state, policy_state, lengths, **kwargs)
         action = dist.rsample()
 
         return action, dist.log_prob(action)[:, None], next_policy_state
 
-    def log_prob(self, state, action, policy_state, lengths, **kwargs):
+    def log_prob(self, state, action, policy_state, lengths=None, **kwargs):
         return self.distribution(state, policy_state, lengths, **kwargs).log_prob(action)[:, None]
 
     def entropy(self, state=None):
         return self._action_dim / 2 * torch.log(torch.tensor(2 * torch.pi * torch.e)) + torch.sum(self._log_sigma)
 
-    def distribution(self, state, policy_state, lengths, **kwargs):
+    def distribution(self, state, policy_state, lengths=None, **kwargs):
         mu, sigma, _ = self.get_mean_and_covariance_and_policy_state(state, policy_state, lengths, **kwargs)
         return torch.distributions.MultivariateNormal(loc=mu, covariance_matrix=sigma)
 
-    def distribution_and_policy_state(self, state, policy_state, lengths, **kwargs):
+    def distribution_and_policy_state(self, state, policy_state, lengths=None, **kwargs):
         mu, sigma, policy_state = self.get_mean_and_covariance_and_policy_state(state, policy_state, lengths, **kwargs)
         return torch.distributions.MultivariateNormal(loc=mu, covariance_matrix=sigma), policy_state
 
-    def get_mean_and_covariance_and_policy_state(self, state, policy_state, lengths, **kwargs):
+    def get_mean_and_covariance_and_policy_state(self, state, policy_state, lengths=None, **kwargs):
         mu, next_hidden_state = self._mu(state, policy_state, lengths=lengths, **kwargs, **self._predict_params)
 
         log_sigma = torch.clamp(self._log_sigma, self._log_std_min(), self._log_std_max())
@@ -175,25 +176,8 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
 
     def _draw_action(self, state, policy_state, action_history=None):
         with torch.no_grad():
-            state, policy_state, action_history = self._pad_state(state, policy_state, action_history)
-            lengths = torch.ones(state.shape[0], dtype=torch.long)
-
-            kwargs = dict(action_history=action_history) if action_history is not None else dict()
-
-            dist, next_policy_state = self.distribution_and_policy_state(state, policy_state, lengths, **kwargs)
+            dist, next_policy_state = self.distribution_and_policy_state(state, policy_state,
+                                                                         action_history=action_history)
             action = dist.sample()
 
             return action, next_policy_state
-
-    def _pad_state(self, state, policy_state, action_history=None):
-        # shape the single online observation, and any per-timestep conditioning input, into the
-        # ``(batch, sequence, feature)`` layout the recurrent network expects, with a length-1 sequence
-        if state.ndim == len(self._mu.input_shape):
-            state = state.unsqueeze(0)
-            policy_state = policy_state.unsqueeze(0)
-            if action_history is not None:
-                action_history = action_history.unsqueeze(0)
-        state = state.unsqueeze(1)
-        if action_history is not None:
-            action_history = action_history.unsqueeze(1)
-        return state, policy_state, action_history

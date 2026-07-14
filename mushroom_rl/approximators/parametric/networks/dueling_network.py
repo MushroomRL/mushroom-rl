@@ -38,7 +38,7 @@ class DuelingNetwork(nn.Module):
         nn.init.xavier_uniform_(self._V.weight,
                                 gain=nn.init.calculate_gain('linear'))
 
-    def forward(self, state, action=None):
+    def forward(self, state, action=None, **kwargs):
         features = self._phi(state)
 
         advantage = self._A(features)

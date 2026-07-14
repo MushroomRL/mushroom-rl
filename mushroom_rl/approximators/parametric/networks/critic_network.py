@@ -62,7 +62,7 @@ class CriticNetwork(nn.Module):
             TorchUtils.init_weights(layer, hidden_gain, weights_init, bias_init)
         TorchUtils.init_weights(self._layers[-1], output_gain, weights_init, bias_init)
 
-    def forward(self, state, action):
+    def forward(self, state, action, **kwargs):
         x = torch.cat((state.float(), action.float()), dim=1)
         for layer in self._layers[:-1]:
             x = self._activation(layer(x))

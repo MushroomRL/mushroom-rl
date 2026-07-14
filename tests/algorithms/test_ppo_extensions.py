@@ -33,8 +33,7 @@ def make_bptt_setup(use_prev_action=False):
         n_features=n_features,
         n_hidden_features=n_hidden,
         rnn_type='gru',
-        dim_action=dim_action,
-        use_prev_action=use_prev_action,
+        action_history_shape=(dim_action,) if use_prev_action else None,
     )
 
     alg_params = dict(
@@ -45,11 +44,11 @@ def make_bptt_setup(use_prev_action=False):
             loss=F.mse_loss,
             input_shape=(dim_env_state,),
             output_shape=(1,),
+            policy_state_shape=(n_hidden,),
             n_features=n_features,
             n_hidden_features=n_hidden,
             rnn_type='gru',
-            dim_action=dim_action,
-            use_prev_action=use_prev_action,
+            action_history_shape=(dim_action,) if use_prev_action else None,
         ),
         n_epochs_policy=2, batch_size=64, eps_ppo=.2, lam=.95,
         dim_env_state=dim_env_state,

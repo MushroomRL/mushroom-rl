@@ -1,7 +1,7 @@
 import torch
 
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OnPolicyDeepAC
-from mushroom_rl.approximators.parametric import TorchApproximator
+from mushroom_rl.approximators.parametric import RecurrentTorchApproximator
 from mushroom_rl.utils.torch_utils import TorchUtils
 from mushroom_rl.utils.minibatches import minibatch_generator
 from mushroom_rl.rl_utils.parameters import to_parameter
@@ -54,7 +54,7 @@ class PPO_BPTT(OnPolicyDeepAC):
         self._lambda = to_parameter(lam)
         self._ent_coeff = to_parameter(ent_coeff)
 
-        self._V = TorchApproximator(**critic_params)
+        self._V = RecurrentTorchApproximator(**critic_params)
 
         self._truncation_length = truncation_length
         self._dim_env_state = dim_env_state

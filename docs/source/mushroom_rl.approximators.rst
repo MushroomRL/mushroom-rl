@@ -91,6 +91,14 @@ Torch Approximator
     :private-members:
     :show-inheritance:
 
+Recurrent Torch Approximator
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: mushroom_rl.approximators.parametric.recurrent_torch_approximator
+    :members:
+    :private-members:
+    :show-inheritance:
+
 Networks
 ~~~~~~~~
 

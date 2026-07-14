@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from mushroom_rl.core import Logger
 from mushroom_rl.approximators.parametric import TorchApproximator
@@ -30,6 +31,30 @@ def test_predict_single_sample_multidim_input():
     batch = torch.rand(5, 4, 8)
     out_batch = approximator.predict(batch)
     assert out_batch.shape == (5, 3)
+
+
+def test_predict_kwargs_shape_batch_padding_and_fail_fast():
+    torch.manual_seed(1)
+
+    class KwargNet(nn.Module):
+        def __init__(self, input_shape, output_shape, extra_shape=None, **kwargs):
+            super().__init__()
+            self._h = nn.Linear(input_shape[0] + extra_shape[0], output_shape[0])
+
+        def forward(self, x, extra=None):
+            return self._h(torch.cat([x, extra], dim=-1))
+
+    approximator = TorchApproximator(input_shape=(4,), output_shape=(2,), network=KwargNet,
+                                     kwargs_shape={'extra': (3,)})
+
+    out_single = approximator.predict(torch.rand(4), extra=torch.rand(3))
+    assert out_single.shape == (2,)
+
+    out_batch = approximator.predict(torch.rand(5, 4), extra=torch.rand(5, 3))
+    assert out_batch.shape == (5, 2)
+
+    with pytest.raises(KeyError):
+        approximator.predict(torch.rand(4))
 
 
 def test_torch_ensemble_logger(tmpdir):
@@ -117,40 +142,40 @@ def test_torch_ensemble_predict():
     x_test = torch.rand(5, 4)
 
     y_mean = approximator.predict(x_test, prediction='mean').detach().numpy()
-    y_mean_exp = np.array([[ 3.6242208e-01, -3.8994253e-02], [-7.2021288e-04,  1.4174472e-01],
-                           [ 7.6367331e-01, -2.5443366e-01], [ 7.0005685e-01, -5.4735202e-02],
-                           [ 2.3372100e-01,  3.9389334e-03]])
+    y_mean_exp = np.array([[3.6242208e-01, -3.8994253e-02], [-7.2021288e-04, 1.4174472e-01],
+                           [7.6367331e-01, -2.5443366e-01], [7.0005685e-01, -5.4735202e-02],
+                           [2.3372100e-01, 3.9389334e-03]])
     assert np.allclose(y_mean, y_mean_exp)
 
     y_min = approximator.predict(x_test, prediction='min').detach().numpy()
-    y_min_exp = np.array([[-0.96762663, -0.7917408 ], [-0.77063906,  0.00266981],
-                          [ 0.14815213, -1.1048715 ], [-0.17288272, -0.9199739 ],
-                          [-0.9468446 , -0.5513398 ]])
+    y_min_exp = np.array([[-0.96762663, -0.7917408], [-0.77063906, 0.00266981],
+                          [0.14815213, -1.1048715], [-0.17288272, -0.9199739],
+                          [-0.9468446, -0.5513398]])
     assert np.allclose(y_min, y_min_exp)
 
     y_max = approximator.predict(x_test, prediction='max').detach().numpy()
-    y_max_exp = np.array([[1.53127   , 0.35895473], [0.84040344, 0.21462242],
-                          [1.3279692 , 0.28780013], [1.6225293 , 0.58951503],
-                          [1.2630175 , 0.43326783]])
+    y_max_exp = np.array([[1.53127, 0.35895473], [0.84040344, 0.21462242],
+                          [1.3279692, 0.28780013], [1.6225293, 0.58951503],
+                          [1.2630175, 0.43326783]])
     assert np.allclose(y_max, y_max_exp)
 
     y_sum = approximator.predict(x_test, prediction='sum').detach().numpy()
-    y_sum_exp = np.array([[ 1.0872662e+00, -1.1698276e-01], [-2.1606386e-03,  4.2523414e-01],
-                          [ 2.2910199e+00, -7.6330101e-01], [ 2.1001706e+00, -1.6420561e-01],
-                          [ 7.0116299e-01,  1.1816800e-02]])
+    y_sum_exp = np.array([[1.0872662e+00, -1.1698276e-01], [-2.1606386e-03, 4.2523414e-01],
+                          [2.2910199e+00, -7.6330101e-01], [2.1001706e+00, -1.6420561e-01],
+                          [7.0116299e-01, 1.1816800e-02]])
     assert np.allclose(y_sum, y_sum_exp)
 
     y_idx0 = approximator.predict(x_test, idx=0).detach().numpy()
-    y_idx0_exp = np.array([[1.53127   ,  0.35895473], [0.84040344,  0.00266981],
-                           [1.3279692 ,  0.28780013], [1.6225293 ,  0.58951503],
-                           [1.2630175 ,  0.12988877]])
+    y_idx0_exp = np.array([[1.53127, 0.35895473], [0.84040344, 0.00266981],
+                           [1.3279692, 0.28780013], [1.6225293, 0.58951503],
+                           [1.2630175, 0.12988877]])
     assert np.allclose(y_idx0, y_idx0_exp)
 
     y_stacked = approximator.predict(x_test)
     assert y_stacked.shape == (3, 5, 2)
-    y_stacked0_exp = np.array([[1.53127   ,  0.35895473], [0.84040344,  0.00266981],
-                               [1.3279692 ,  0.28780013], [1.6225293 ,  0.58951503],
-                               [1.2630175 ,  0.12988877]])
+    y_stacked0_exp = np.array([[1.53127, 0.35895473], [0.84040344, 0.00266981],
+                               [1.3279692, 0.28780013], [1.6225293, 0.58951503],
+                               [1.2630175, 0.12988877]])
     assert np.allclose(y_stacked[0].detach().numpy(), y_stacked0_exp)
 
 
@@ -170,9 +195,9 @@ def test_torch_ensemble_full_batch():
 
     x_test = torch.rand(5, 4)
     y_out = approximator.predict(x_test, prediction='mean')
-    y_out_exp = torch.tensor([[-0.0140205 ,  0.49749446],
-                               [ 0.20315261,  0.88453037],
-                               [ 0.18861724,  0.6976128 ],
-                               [ 0.045397  ,  0.5313599 ],
-                               [ 0.41143703,  0.6998553 ]])
+    y_out_exp = torch.tensor([[-0.0140205, 0.49749446],
+                              [0.20315261, 0.88453037],
+                              [0.18861724, 0.6976128],
+                              [0.045397, 0.5313599],
+                              [0.41143703, 0.6998553]])
     assert torch.allclose(y_out, y_out_exp)

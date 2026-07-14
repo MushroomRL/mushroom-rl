@@ -201,20 +201,49 @@ def test_recurrent_actor_network():
 
 def test_recurrent_critic_network():
     torch.manual_seed(42)
-    dim_env, dim_action = 4, 2
+    dim_env = 4
     batch, seq_len = 3, 5
     state = torch.randn(batch, seq_len, dim_env)
     policy_state = torch.zeros(batch, 1, 16)
     lengths = torch.tensor([5, 3, 4])
     net = RecurrentCriticNetwork(
         (dim_env,), (1,),
-        dim_action=dim_action,
         rnn_type='gru', n_hidden_features=16, n_features=32, num_hidden_layers=1
     )
     q = net(state, policy_state, lengths).detach().numpy()
     expected = np.array([-1.7422979, -1.1620455, -1.4952478])
     assert q.shape == (batch,)
     assert np.allclose(q, expected, atol=1e-5)
+
+
+def test_recurrent_network_flatten_stacked_inputs():
+    torch.manual_seed(42)
+    dim_env, dim_action = 4, 2
+    history_length, action_history_length = 3, 2
+    batch, seq_len = 3, 5
+    state = torch.randn(batch, seq_len, history_length, dim_env)
+    action_history = torch.randn(batch, seq_len, action_history_length, dim_action)
+    policy_state = torch.zeros(batch, 1, 16)
+    lengths = torch.tensor([5, 3, 4])
+
+    actor = RecurrentActorNetwork(
+        (history_length, dim_env), [(dim_action,), (16,)],
+        n_features=32, rnn_type='gru', n_hidden_features=16, num_hidden_layers=1,
+        action_history_shape=(action_history_length, dim_action)
+    )
+    assert actor._h1_o.in_features == history_length * dim_env + action_history_length * dim_action
+    a, h = actor(state, policy_state, lengths, action_history=action_history)
+    assert a.shape == (batch, dim_action)
+    assert h.shape == (batch, 1, 16)
+
+    critic = RecurrentCriticNetwork(
+        (history_length, dim_env), (1,),
+        rnn_type='gru', n_hidden_features=16, n_features=32, num_hidden_layers=1,
+        action_history_shape=(action_history_length, dim_action)
+    )
+    assert critic._h1_o.in_features == history_length * dim_env + action_history_length * dim_action
+    q = critic(state, policy_state, lengths, action_history=action_history)
+    assert q.shape == (batch,)
 
 
 def _make_input():

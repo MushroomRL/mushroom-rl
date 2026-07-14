@@ -57,7 +57,7 @@ def experiment(
                                           rnn_type=rnn_type,
                                           n_hidden_features=n_hidden_features,
                                           num_hidden_layers=num_hidden_layers,
-                                          use_prev_action=use_prev_action,
+                                          action_history_shape=(dim_action,) if use_prev_action else None,
                                           std_0=std_0)
 
     # setup critic
@@ -69,12 +69,12 @@ def experiment(
                          batch_size=batch_size_critic,
                          input_shape=(dim_env_state,),
                          output_shape=(1,),
+                         policy_state_shape=(n_hidden_features,),
                          n_features=128,
                          n_hidden_features=n_hidden_features,
                          rnn_type=rnn_type,
                          num_hidden_layers=num_hidden_layers,
-                         dim_action=dim_action,
-                         use_prev_action=use_prev_action
+                         action_history_shape=(dim_action,) if use_prev_action else None
                          )
 
     alg_params = dict(actor_optimizer={'class':  optim.Adam,

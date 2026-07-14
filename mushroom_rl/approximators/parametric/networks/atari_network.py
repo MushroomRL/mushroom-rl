@@ -37,7 +37,7 @@ class AtariNetwork(nn.Module):
         nn.init.xavier_uniform_(self._h4.weight, gain=nn.init.calculate_gain('relu'))
         nn.init.xavier_uniform_(self._h5.weight, gain=nn.init.calculate_gain('linear'))
 
-    def forward(self, state, action=None):
+    def forward(self, state, action=None, **kwargs):
         h = F.relu(self._h1(state.float() / 255.))
         h = F.relu(self._h2(h))
         h = F.relu(self._h3(h))
@@ -67,8 +67,8 @@ class AtariFeatureNetwork(nn.Module):
 
         """
         super().__init__()
-        
-        assert output_shape[0] == AtariNetwork.n_features #FIXME this has to be removed
+
+        assert output_shape[0] == AtariNetwork.n_features  # FIXME this has to be removed
 
         n_input = input_shape[0]
 
@@ -82,7 +82,7 @@ class AtariFeatureNetwork(nn.Module):
         nn.init.xavier_uniform_(self._h3.weight, gain=nn.init.calculate_gain('relu'))
         nn.init.xavier_uniform_(self._h4.weight, gain=nn.init.calculate_gain('relu'))
 
-    def forward(self, state, action=None):
+    def forward(self, state, action=None, **kwargs):
         h = F.relu(self._h1(state.float() / 255.))
         h = F.relu(self._h2(h))
         h = F.relu(self._h3(h))

@@ -12,7 +12,7 @@ class SimpleGRUNetwork(nn.Module):
         self._rnn = nn.GRU(input_shape[0], n_hidden, batch_first=True)
         self._fc = nn.Linear(n_hidden, output_shape[0][0])
 
-    def forward(self, state, policy_state, lengths):
+    def forward(self, state, policy_state, lengths, **kwargs):
         h0 = policy_state.float().view(1, -1, self._n_hidden)
         out, next_h = self._rnn(state.float(), h0)
         next_h = next_h.squeeze(0)
@@ -79,7 +79,7 @@ def test_recurrent_policy_draw_action():
 
     action_test = torch.tensor([1.2770035, 0.48390746])
     new_ps_test = torch.tensor([-0.13474981,  0.16390274,  0.04836516, -0.00375814,
-                                 -0.05680789,  0.06481361,  0.22528732, -0.00479783])
+                                -0.05680789,  0.06481361,  0.22528732, -0.00479783])
 
     assert action.shape == (n_action,)
     assert new_policy_state.shape == (n_hidden,)
@@ -127,8 +127,8 @@ def test_recurrent_policy_log_prob():
     log_prob = policy.log_prob(state, action, policy_state, lengths)
 
     log_prob_test = torch.tensor([[-1.9125082],
-                                   [-1.9125082],
-                                   [-1.9125082]])
+                                  [-1.9125082],
+                                  [-1.9125082]])
 
     assert log_prob.shape == (batch, 1)
     assert torch.allclose(log_prob[0], log_prob[1])

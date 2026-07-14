@@ -47,7 +47,7 @@ class RainbowNetwork(nn.Module):
         self._pa = nn.ModuleList([NoisyNetwork.NoisyLinear(n_features, n_atoms, sigma_coeff)
                                   for _ in range(self._n_output)])
 
-    def forward(self, state, action=None, get_distribution=False):
+    def forward(self, state, action=None, get_distribution=False, **kwargs):
         features = self._phi(state)
 
         a_pv = self._pv(features)

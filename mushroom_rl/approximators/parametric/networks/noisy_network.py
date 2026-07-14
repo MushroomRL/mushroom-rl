@@ -98,7 +98,7 @@ class NoisyNetwork(nn.Module):
 
         self._Q = self.NoisyLinear(n_features, self._n_output)
 
-    def forward(self, state, action=None):
+    def forward(self, state, action=None, **kwargs):
         features = self._phi(state)
         q = self._Q(features)
         if action is None:

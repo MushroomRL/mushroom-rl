@@ -36,7 +36,7 @@ class QuantileNetwork(nn.Module):
             nn.init.xavier_uniform_(self._quant[i].weight,
                                     gain=nn.init.calculate_gain('linear'))
 
-    def forward(self, state, action=None, get_quantiles=False):
+    def forward(self, state, action=None, get_quantiles=False, **kwargs):
         features = self._phi(state)
 
         a_quant = [self._quant[i](features) for i in range(self._n_output)]

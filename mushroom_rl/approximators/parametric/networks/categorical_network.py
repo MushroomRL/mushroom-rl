@@ -48,7 +48,7 @@ class CategoricalNetwork(nn.Module):
             nn.init.xavier_uniform_(self._p[i].weight,
                                     gain=nn.init.calculate_gain('linear'))
 
-    def forward(self, state, action=None, get_distribution=False):
+    def forward(self, state, action=None, get_distribution=False, **kwargs):
         features = self._phi(state)
 
         a_p = [F.softmax(self._p[i](features), -1) for i in range(self._n_output)]
