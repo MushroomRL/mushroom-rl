@@ -9,6 +9,7 @@ from mushroom_rl.algorithms.actor_critic import DDPG
 from mushroom_rl.core import Core
 from mushroom_rl.environments.dm_control_env import DMControl
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy
+from mushroom_rl.utils.torch_utils import TorchUtils
 
 """
 Simple script to run DMControl walker stand-up task from pixels with DDPG.
@@ -30,8 +31,8 @@ class CriticNetwork(nn.Module):
         self._h1 = nn.Conv2d(n_input_obs, 32, kernel_size=8, stride=3)
         self._h2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self._h3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
-        dummy_obs = torch.zeros(1, *input_shape[0])
-        conv_out_size = np.prod(self._h3(self._h2(self._h1(dummy_obs))).shape)
+        conv_out_size = TorchUtils.compute_flat_output_size(nn.Sequential(self._h1, self._h2, self._h3),
+                                                            input_shape[0])
         self._h4 = nn.Linear(conv_out_size + n_input_act, n_features)
         self._h5 = nn.Linear(n_features, n_output)
 
@@ -67,8 +68,8 @@ class ActorNetwork(nn.Module):
         self._h1 = nn.Conv2d(n_input, 32, kernel_size=8, stride=3)
         self._h2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self._h3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
-        dummy_obs = torch.zeros(1, *input_shape)
-        conv_out_size = np.prod(self._h3(self._h2(self._h1(dummy_obs))).shape)
+        conv_out_size = TorchUtils.compute_flat_output_size(nn.Sequential(self._h1, self._h2, self._h3),
+                                                            input_shape)
         self._h4 = nn.Linear(conv_out_size, n_features)
         self._h5 = nn.Linear(n_features, n_output)
 
