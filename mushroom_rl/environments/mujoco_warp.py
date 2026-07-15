@@ -1,7 +1,7 @@
 import mujoco
 import mujoco_warp as mj_warp
 import torch
-import numpy as np
+
 import warp as wp
 from dm_control import mjcf
 
@@ -152,31 +152,15 @@ class MuJoCoWarp(VectorizedEnvironment):
         )
 
     def reset_all(self, env_mask, state=None):
-        device = TorchUtils.get_device()
-
-        # env_mask can arrive as numpy or cuda torch tensor. Normalize to torch bool on target device.
-
-        # torch.where on bool mask returns tuple of index tensors; take first dim.
         env_indices = torch.where(env_mask)[0]
 
-        # reset_data expects a warp bool array of shape (nworld,). Build it via torch on gpu.
-        reset_mask_t = torch.zeros(self._num_envs, dtype=torch.bool, device=device)
+        reset_mask_t = torch.zeros(
+            self._num_envs, dtype=torch.bool, device=env_mask.device
+        )
         reset_mask_t[env_indices] = True
-
-        try:
-            reset_mask = wp.from_torch(reset_mask_t)
-        except (AttributeError, TypeError, RuntimeError):
-            # Fallback for warp versions that don't support bool wp.from_torch
-            reset_mask = self._wp.zeros(
-                self._num_envs, dtype=self._wp.bool, device="cuda:0"
-            )
-            reset_np = reset_mask.numpy()
-            reset_np[env_indices.cpu().numpy()] = True
-            reset_mask.assign(reset_np)
+        reset_mask = wp.from_torch(reset_mask_t)
 
         self._mj_warp.reset_data(self._model_wp, self._data_wp, reset=reset_mask)
-
-        # Pass torch env_indices to setup — subclasses should handle both types.
         self.setup(env_indices, state)
 
         obs = self._create_observation(self.obs_helper.build_obs(self._data_wp))
@@ -185,8 +169,7 @@ class MuJoCoWarp(VectorizedEnvironment):
         if self._obs is None:
             self._obs = obs.clone()
         else:
-            mask_on_obs = env_mask.to(self._obs.device)
-            self._obs[mask_on_obs] = obs[mask_on_obs]
+            self._obs[env_mask] = obs[env_mask]
 
         info = self._create_info_dictionary(obs)
         return obs.clone(), info
@@ -211,7 +194,7 @@ class MuJoCoWarp(VectorizedEnvironment):
             self._viewer = None
 
     def seed(self, seed):
-        np.random.seed(seed)
+
         torch.manual_seed(seed)
 
     # ------------------------------------------------------------------
@@ -389,42 +372,67 @@ class MuJoCoWarp(VectorizedEnvironment):
     def _check_collision(self, group1, group2):
         ids1 = self.collision_groups[group1]
         ids2 = self.collision_groups[group2]
+        device = TorchUtils.get_device()
 
-        ncon = int(self._data_wp.ncollision.numpy()[0])
+        ncon = int(wp.to_torch(self._data_wp.ncollision)[0].item())
         if ncon == 0:
-            return np.zeros(self._num_envs, dtype=bool)
+            return torch.zeros(self._num_envs, dtype=torch.bool, device=device)
 
-        geom_np = self._data_wp.contact.geom.numpy()[:ncon]
-        worldid_np = self._data_wp.contact.worldid.numpy()[:ncon]
+        geom = wp.to_torch(self._data_wp.contact.geom)[:ncon]  # (ncon, 2)
+        worldid = wp.to_torch(self._data_wp.contact.worldid)[:ncon]  # (ncon,)
 
-        result = np.zeros(self._num_envs, dtype=bool)
-        for con_i in range(ncon):
-            env_id = int(worldid_np[con_i])
-            if result[env_id]:
-                continue
-            g1, g2 = int(geom_np[con_i, 0]), int(geom_np[con_i, 1])
-            if (g1 in ids1 and g2 in ids2) or (g1 in ids2 and g2 in ids1):
-                result[env_id] = True
+        # Build boolean lookup tensors: which geom ids belong to each group
+        ngeoms = self._model.ngeom
+        ids1_mask = torch.zeros(ngeoms, dtype=torch.bool, device=device)
+        ids2_mask = torch.zeros(ngeoms, dtype=torch.bool, device=device)
+        ids1_mask[list(ids1)] = True
+        ids2_mask[list(ids2)] = True
+
+        g1 = geom[:, 0].long()
+        g2 = geom[:, 1].long()
+
+        # Match either direction
+        match = (ids1_mask[g1] & ids2_mask[g2]) | (
+            ids1_mask[g2] & ids2_mask[g1]
+        )  # (ncon,)
+
+        # Scatter into per-env result: any match in world_id sets that env to True
+        result = torch.zeros(self._num_envs, dtype=torch.bool, device=device)
+        if match.any():
+            matched_envs = worldid[match].long()
+            result[matched_envs] = True
         return result
 
     def _get_collision_force(self, group1, group2):
         ids1 = self.collision_groups[group1]
         ids2 = self.collision_groups[group2]
+        device = TorchUtils.get_device()
 
-        ncon = int(self._data_wp.ncollision.numpy()[0])
-        result = np.zeros((self._num_envs, 6), dtype=np.float64)
+        ncon = int(wp.to_torch(self._data_wp.ncollision)[0].item())
+        result = torch.zeros((self._num_envs, 6), dtype=torch.float64, device=device)
         if ncon == 0:
             return result
 
-        geom_np = self._data_wp.contact.geom.numpy()[:ncon]
-        worldid_np = self._data_wp.contact.worldid.numpy()[:ncon]
-        frame_np = self._data_wp.contact.frame.numpy()[:ncon]
+        geom = wp.to_torch(self._data_wp.contact.geom)[:ncon]  # (ncon, 2)
+        worldid = wp.to_torch(self._data_wp.contact.worldid)[:ncon]  # (ncon,)
+        frame = wp.to_torch(self._data_wp.contact.frame)[:ncon]  # (ncon, ...)
 
-        for con_i in range(ncon):
-            env_id = int(worldid_np[con_i])
-            g1, g2 = int(geom_np[con_i, 0]), int(geom_np[con_i, 1])
-            if (g1 in ids1 and g2 in ids2) or (g1 in ids2 and g2 in ids1):
-                result[env_id] = frame_np[con_i, :6]
+        ngeoms = self._model.ngeom
+        ids1_mask = torch.zeros(ngeoms, dtype=torch.bool, device=device)
+        ids2_mask = torch.zeros(ngeoms, dtype=torch.bool, device=device)
+        ids1_mask[list(ids1)] = True
+        ids2_mask[list(ids2)] = True
+
+        g1 = geom[:, 0].long()
+        g2 = geom[:, 1].long()
+        match = (ids1_mask[g1] & ids2_mask[g2]) | (ids1_mask[g2] & ids2_mask[g1])
+
+        if match.any():
+            matched_worldids = worldid[match].long()
+            matched_frames = frame[match, :6].to(result.dtype)
+            # scatter: overwrites; if multiple matches per env, last one wins (matches original behavior)
+            result[matched_worldids] = matched_frames
+
         return result
 
     # ------------------------------------------------------------------
