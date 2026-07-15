@@ -12,20 +12,6 @@ from mushroom_rl.utils.torch_utils import TorchUtils
 from mushroom_rl.environments.mujoco import MuJoCo
 
 
-def _to_torch_mask(mask, device):
-    """Coerce env_mask to a torch bool tensor on the given device."""
-    if isinstance(mask, torch.Tensor):
-        return mask.to(device=device, dtype=torch.bool)
-    return torch.as_tensor(mask, device=device, dtype=torch.bool)
-
-
-def _to_torch_indices(indices, device):
-    """Coerce env_indices to a torch long tensor on the given device."""
-    if isinstance(indices, torch.Tensor):
-        return indices.to(device=device, dtype=torch.long)
-    return torch.as_tensor(indices, device=device, dtype=torch.long)
-
-
 class MuJoCoWarp(VectorizedEnvironment):
     """
     Class to create N parallel environments using MuJoCo Warp for GPU-accelerated batch simulation.
@@ -157,11 +143,11 @@ class MuJoCoWarp(VectorizedEnvironment):
         self._obs = cur_obs.clone()
 
         out_device = TorchUtils.get_device()
-        env_mask_t = _to_torch_mask(env_mask, cur_obs.device)
+
         return (
             self._modify_observation(cur_obs).to(out_device),
             reward.to(out_device),
-            (absorbing & env_mask_t).to(out_device),
+            (absorbing & env_mask).to(out_device),
             info,
         )
 
@@ -169,10 +155,9 @@ class MuJoCoWarp(VectorizedEnvironment):
         device = TorchUtils.get_device()
 
         # env_mask can arrive as numpy or cuda torch tensor. Normalize to torch bool on target device.
-        env_mask_t = _to_torch_mask(env_mask, device)
 
         # torch.where on bool mask returns tuple of index tensors; take first dim.
-        env_indices = torch.where(env_mask_t)[0]
+        env_indices = torch.where(env_mask)[0]
 
         # reset_data expects a warp bool array of shape (nworld,). Build it via torch on gpu.
         reset_mask_t = torch.zeros(self._num_envs, dtype=torch.bool, device=device)
@@ -200,7 +185,7 @@ class MuJoCoWarp(VectorizedEnvironment):
         if self._obs is None:
             self._obs = obs.clone()
         else:
-            mask_on_obs = env_mask_t.to(self._obs.device)
+            mask_on_obs = env_mask.to(self._obs.device)
             self._obs[mask_on_obs] = obs[mask_on_obs]
 
         info = self._create_info_dictionary(obs)
@@ -290,7 +275,6 @@ class MuJoCoWarp(VectorizedEnvironment):
         ctrl = wp.to_torch(self._data_wp.ctrl)
         device = ctrl.device
 
-        env_mask_t = _to_torch_mask(env_mask, device)
         ctrl_action_t = (
             ctrl_action
             if isinstance(ctrl_action, torch.Tensor)
@@ -302,7 +286,7 @@ class MuJoCoWarp(VectorizedEnvironment):
 
         # In-place update via torch view. If wp.to_torch returns a copy on your warp version,
         # replace with explicit assign pattern (see comment below).
-        ctrl[env_mask_t] = ctrl_action_t[env_mask_t][:, action_indices_t]
+        ctrl[env_mask] = ctrl_action_t[env_mask][:, action_indices_t]
 
         # Fallback if the above doesn't propagate to warp memory:
         # ctrl_new = wp.to_torch(self._data_wp.ctrl).clone()
@@ -326,8 +310,6 @@ class MuJoCoWarp(VectorizedEnvironment):
 
         if env_indices is None:
             env_indices = torch.arange(self._num_envs, device=device, dtype=torch.long)
-        else:
-            env_indices = _to_torch_indices(env_indices, device)
 
         value_t = (
             value
