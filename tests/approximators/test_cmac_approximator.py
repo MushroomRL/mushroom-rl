@@ -21,7 +21,6 @@ def test_cmac_approximator():
 
     x = np.random.rand(2, 2)
     y_hat = approximator.predict(x)
-    y_true = np.array([np.sin(x.dot(k1) * 2 * np.pi), np.sin(x.dot(k2) * 2 * np.pi)]).T
 
     y_test = np.array([[-0.73581504,  0.90877225],
                        [-0.95854488, -0.72429239]])
@@ -46,3 +45,20 @@ def test_cmac_approximator():
 
     assert np.array_equal(random_weights, random_weight_new)
     assert not np.any(np.equal(random_weights, old_weights))
+
+
+def test_cmac_approximator_outside():
+    np.random.seed(1)
+
+    x = np.random.rand(1000, 2)
+    k = np.random.rand(2)
+    y = np.sin(x.dot(k) * 2 * np.pi)
+
+    tilings = Tiles.generate(10, [10, 10], np.zeros(2), np.ones(2))
+    approximator = CMAC(tilings=tilings)
+    approximator.fit(x, y)
+
+    y_hat = approximator.predict(np.array([[.5, .5], [10., 10.], [-3., .5]]))
+
+    assert not np.allclose(y_hat[0], 0.)
+    assert np.array_equal(y_hat[1:], np.zeros(2))

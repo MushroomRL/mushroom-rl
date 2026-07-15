@@ -35,7 +35,7 @@ def experiment():
     for i in s1:
         for j in s2:
             basis.append(GaussianRBF(np.array([i, j]), np.array([1.])))
-    features = Features(basis_list=basis)
+    features = Features(basis)
 
     fit_params = dict()
     approximator_params = dict(input_shape=(features.size,),

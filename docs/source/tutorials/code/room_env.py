@@ -128,7 +128,7 @@ if __name__ == '__main__':
     tilings = Tiles.generate(n_tilings, [10, 10],
                              env.info.observation_space.low,
                              env.info.observation_space.high)
-    features = Features(tilings=tilings)
+    features = Features(tilings)
 
     learning_rate = Parameter(.1 / n_tilings)
 

@@ -39,7 +39,7 @@ class LinearApproximator(Approximator):
 
         self._add_save_attr(
             _w='numpy',
-            _phi='pickle'
+            _phi='mushroom'
         )
 
     def fit(self, x, y, **fit_params):
@@ -49,15 +49,6 @@ class LinearApproximator(Approximator):
     def predict(self, x, **predict_params):
         phi = np.atleast_2d(self.phi(x))
         return np.atleast_1d((phi @ self._w.T).squeeze())
-
-    @property
-    def weights_size(self):
-        """
-        Returns:
-            The size of the array of weights.
-
-        """
-        return self._w.size
 
     def get_weights(self):
         """
@@ -120,3 +111,12 @@ class LinearApproximator(Approximator):
                 df[start:stop] = self.phi(state)
 
             return df
+
+    @property
+    def weights_size(self):
+        """
+        Returns:
+            The size of the array of weights.
+
+        """
+        return self._w.size

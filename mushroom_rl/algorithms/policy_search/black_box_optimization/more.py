@@ -29,7 +29,6 @@ class MORE(BlackBoxOptimization):
             kappa ([float, Parameter]): regularization parameter for the entropy decrease.
 
         """
-
         self.eps = to_parameter(eps)
         self.h0 = to_parameter(h0)
         self.kappa = to_parameter(kappa)
@@ -37,11 +36,11 @@ class MORE(BlackBoxOptimization):
         assert isinstance(distribution, GaussianCholeskyDistribution)
 
         poly_basis_quadratic = PolynomialBasis().generate(2, policy.weights_size)
-        self.phi_quadratic_ = Features(basis_list=poly_basis_quadratic)
+        self.phi_quadratic_ = Features(poly_basis_quadratic)
         self.regressor_quadratic = LinearApproximator(input_shape=(len(poly_basis_quadratic),), output_shape=(1,))
 
         poly_basis_linear = PolynomialBasis().generate(1, policy.weights_size)
-        self.phi_linear_ = Features(basis_list=poly_basis_linear)
+        self.phi_linear_ = Features(poly_basis_linear)
         self.regressor_linear = LinearApproximator(input_shape=(len(poly_basis_linear),), output_shape=(1,))
 
         super().__init__(mdp_info, distribution, policy)
@@ -50,14 +49,13 @@ class MORE(BlackBoxOptimization):
             eps='primitive',
             h0='primitive',
             kappa='primitive',
-            phi_quadratic_='pickle',
+            phi_quadratic_='mushroom',
             regressor_quadratic='mushroom',
-            phi_linear_='pickle',
+            phi_linear_='mushroom',
             regressor_linear='mushroom'
         )
 
     def _update(self, Jep, theta, context):
-        
         beta = self.kappa() * (self.distribution.entropy() - self.h0()) + self.h0()
 
         n = len(self.distribution._mu)
@@ -68,38 +66,37 @@ class MORE(BlackBoxOptimization):
         sig_t = chol_sig_empty.dot(chol_sig_empty.T)
 
         R, r, r_0 = self._fit_quadratic_surrogate(theta, Jep, n)
-        
+
         eta_omg_start = np.ones(2)
         res = minimize(MORE._dual_function, eta_omg_start,
-                       bounds=((np.finfo(np.float32).eps, np.inf),(np.finfo(np.float32).eps, np.inf)),
+                       bounds=((np.finfo(np.float32).eps, np.inf), (np.finfo(np.float32).eps, np.inf)),
                        args=(sig_t, mu_t, R, r, r_0, self.eps(), beta, n),
                        method=None)
 
         eta_opt, omg_opt = res.x[0], res.x[1]
-        
+
         mu_t1, sig_t1 = MORE._closed_form_mu_t1_sig_t1(sig_t, mu_t, R, r, eta_opt, omg_opt)
 
         dist_params = np.concatenate((mu_t1.flatten(), np.linalg.cholesky(sig_t1)[np.tril_indices(n)].flatten()))
         self.distribution.set_parameters(dist_params)
-    
-    def _fit_quadratic_surrogate(self, theta, Jep, n):
 
+    def _fit_quadratic_surrogate(self, theta, Jep, n):
         Jep = (Jep - np.mean(Jep, keepdims=True, axis=0)) / np.std(Jep, keepdims=True, axis=0)
-        
+
         features_quadratic = self.phi_quadratic_(theta)
-        self.regressor_quadratic.fit(features_quadratic, Jep)        
+        self.regressor_quadratic.fit(features_quadratic, Jep)
         beta = self.regressor_quadratic.get_weights()
 
-        R = np.zeros((n,n ))
+        R = np.zeros((n, n))
         uid = np.triu_indices(n)
         R[uid] = beta[1 + n:]
         R.T[uid] = R[uid]
-        
+
         w, v = np.linalg.eig(R)
         w[w >= 0.0] = -1e-12
         R = v @ np.diag(w) @ v.T
         R = 0.5 * (R + R.T)
-        
+
         features_linear = self.phi_linear_(theta)
         aux = Jep - np.einsum('nk,kh,nh->n', theta, R, theta)
         self.regressor_linear.fit(features_linear, aux)
@@ -109,15 +106,16 @@ class MORE(BlackBoxOptimization):
         r = beta[1:][:, np.newaxis]
 
         return R, r, r_0
-    
+
     @staticmethod
     def _dual_function(lag_array, Q, b, R, r, r_0, eps, kappa, n):
         eta, omg = lag_array[0], lag_array[1]
         F, f = MORE._get_F_f(Q, b, R, r, eta)
-        slogdet_0 = np.linalg.slogdet( (2*np.pi) * Q )
-        slogdet_1 = np.linalg.slogdet( (2*np.pi) * (eta + omg) * F )
-        term1 = (f.T @ F @ f) - eta * (b.T @ np.linalg.inv(Q) @ b) - eta * slogdet_0[1] + (eta + omg) * slogdet_1[1] + r_0
-        
+        slogdet_0 = np.linalg.slogdet((2 * np.pi) * Q)
+        slogdet_1 = np.linalg.slogdet((2 * np.pi) * (eta + omg) * F)
+        term1 = (f.T @ F @ f) - eta * (b.T @ np.linalg.inv(Q) @ b) - eta * slogdet_0[1] \
+            + (eta + omg) * slogdet_1[1] + r_0
+
         return eta * eps - omg * kappa + 0.5 * term1[0]
 
     @staticmethod
@@ -125,7 +123,7 @@ class MORE(BlackBoxOptimization):
         F, f = MORE._get_F_f(Q, b, R, r, eta)
         mu_t1 = F @ f
         sig_t1 = F * (eta + omg)
-        
+
         return mu_t1, sig_t1
 
     @staticmethod
@@ -133,5 +131,5 @@ class MORE(BlackBoxOptimization):
         Q_inv = np.linalg.inv(Q)
         F = np.linalg.inv(eta * Q_inv - 2. * R)
         f = eta * Q_inv @ b + r
-        
+
         return F, f

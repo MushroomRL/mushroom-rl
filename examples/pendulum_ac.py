@@ -120,12 +120,12 @@ def experiment(n_epochs, n_episodes):
                              mdp.info.observation_space.low,
                              mdp.info.observation_space.high + 1e-3)
 
-    phi = Features(tilings=tilings)
+    phi = Features(tilings)
 
     tilings_v = tilings + Tiles.generate(1, [1, 1],
                                          mdp.info.observation_space.low,
                                          mdp.info.observation_space.high + 1e-3)
-    psi = Features(tilings=tilings_v)
+    psi = Features(tilings_v)
 
     input_shape = (phi.size,)
 

@@ -1,7 +1,9 @@
 import numpy as np
 
+from .basis_function import BasisFunction
 
-class FourierBasis:
+
+class FourierBasis(BasisFunction):
     r"""
     Class implementing Fourier basis functions. The value of the feature
     is computed using the formula:
@@ -18,28 +20,21 @@ class FourierBasis:
         Constructor.
 
         Args:
-            low (np.ndarray): vector of minimum values of the input variables;
-            delta (np.ndarray): vector of the maximum difference between two values of the input variables, i.e.
+            low (Array): vector of minimum values of the input variables;
+            delta (Array): vector of the maximum difference between two values of the input variables, i.e.
                 delta = high - low;
-            c (np.ndarray): vector of weights for the state variables;
+            c (Array): vector of weights for the state variables;
             dimensions (list, None): list of the dimensions of the input to be considered by the feature.
 
         """
-        self._low = low
-        self._delta = delta
-        self._dim = dimensions
-        self._c = c
+        self._low, self._delta, self._c = self._to_numpy(low, delta, c)
 
-    def __call__(self, x):
-        if self._dim is not None:
-            x = x[self._dim]
+        super().__init__(dimensions)
 
-        s = (x - self._low) / self._delta
+        self._add_save_attr(_low='numpy', _delta='numpy', _c='numpy')
 
-        return np.cos(np.pi*s.dot(self._c))
-
-    def __str__(self):
-        return str(self._c)
+    def __repr__(self):
+        return f'FourierBasis(c={np.array2string(self._c)})'
 
     @staticmethod
     def generate(low, high, n, dimensions=None):
@@ -47,8 +42,8 @@ class FourierBasis:
         Factory method to build a set of fourier basis.
 
         Args:
-            low (np.ndarray): vector of minimum values of the input variables;
-            high (np.ndarray): vector of maximum values of the input variables;
+            low (Array): vector of minimum values of the input variables;
+            high (Array): vector of maximum values of the input variables;
             n (int): number of harmonics to consider for each state variable
             dimensions (list, None): list of the dimensions of the input to be
                 considered by the features.
@@ -57,8 +52,10 @@ class FourierBasis:
             The list of the generated fourier basis functions.
 
         """
+        low, high = BasisFunction._to_numpy(low, high)
+
         if dimensions is not None:
-            assert(len(low) == len(dimensions))
+            assert len(low) == len(dimensions)
 
         input_size = len(low)
         delta = high - low
@@ -76,3 +73,8 @@ class FourierBasis:
             basis_list.append(FourierBasis(low, delta, c, dimensions))
 
         return basis_list
+
+    def _compute(self, x):
+        s = (x - self._low) / self._delta
+
+        return np.cos(np.pi*s.dot(self._c))

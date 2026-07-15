@@ -3,7 +3,7 @@ import numpy as np
 from mushroom_rl.algorithms.value.td import TD
 from mushroom_rl.approximators import QApproximator
 from mushroom_rl.approximators.parametric import LinearApproximator
-from mushroom_rl.features import get_action_features
+from mushroom_rl.features import Features
 from mushroom_rl.rl_utils.parameters import to_parameter
 
 
@@ -37,9 +37,15 @@ class TrueOnlineSARSALambda(TD):
 
         super().__init__(mdp_info, policy, Q, learning_rate)
 
+    def episode_start(self, initial_state, episode_info):
+        self._q_old = None
+        self.e = np.zeros(self.Q.weights_size)
+
+        return super().episode_start(initial_state, episode_info)
+
     def _update(self, state, action, reward, next_state, absorbing):
         phi_state = self.Q.model.phi(state)
-        phi_state_action = get_action_features(phi_state, action, self.mdp_info.action_space.n)
+        phi_state_action = Features.get_action_features(phi_state, action, self.mdp_info.action_space.n)
         q_current = self.Q.predict(state, action)
 
         if self._q_old is None:
@@ -61,9 +67,3 @@ class TrueOnlineSARSALambda(TD):
         self.Q.set_weights(theta)
 
         self._q_old = q_next
-
-    def episode_start(self, initial_state, episode_info):
-        self._q_old = None
-        self.e = np.zeros(self.Q.weights_size)
-
-        return super().episode_start(initial_state, episode_info)

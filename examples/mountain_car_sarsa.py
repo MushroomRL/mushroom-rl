@@ -32,7 +32,7 @@ def experiment(alpha):
     tilings = Tiles.generate(n_tilings, [10, 10],
                              mdp.info.observation_space.low,
                              mdp.info.observation_space.high)
-    features = Features(tilings=tilings)
+    features = Features(tilings)
 
     learning_rate = Parameter(alpha / n_tilings)
 

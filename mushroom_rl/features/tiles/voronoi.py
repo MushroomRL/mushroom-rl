@@ -1,26 +1,36 @@
 import numpy as np
 
+from .abstract_tiles import AbstractTiles
 
-class VoronoiTiles:
+
+class VoronoiTiles(AbstractTiles):
     """
     Class implementing voronoi tiling. For each point in the state space,
     this class can be used to compute the index of the corresponding tile.
 
     """
-    def __init__(self, prototypes):
+    def __init__(self, prototypes, state_components=None):
         """
         Constructor.
 
         Args:
-            prototypes (list): list of prototypes to compute the partition.
+            prototypes (Array): array of prototypes to compute the partition;
+            state_components (list, None): list of the dimensions of the input to be considered by the tiling. The
+                number of elements must match the dimensionality of ``prototypes``.
 
         """
-        self._prototypes = prototypes
+        self._prototypes = self._to_numpy(prototypes)
 
-    def __call__(self, x):
-        dist = np.linalg.norm(self._prototypes - x, axis=1)
+        super().__init__(state_components)
 
-        return np.argmin(dist)
+        self._add_save_attr(_prototypes='numpy')
+
+    def __repr__(self):
+        name = f'VoronoiTiles(n_prototypes={self.size}'
+        if self._state_components is not None:
+            name += f', state_components={self._state_components}'
+
+        return name + ')'
 
     @staticmethod
     def generate(n_tilings, n_prototypes, low=None, high=None, mu=None, sigma=None):
@@ -89,3 +99,8 @@ class VoronoiTiles:
     @property
     def size(self):
         return len(self._prototypes)
+
+    def _compute(self, x):
+        dist = np.linalg.norm(x[:, np.newaxis, :] - self._prototypes, axis=-1)
+
+        return np.argmin(dist, axis=-1)

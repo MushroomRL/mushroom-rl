@@ -1,7 +1,9 @@
 import numpy as np
 
+from .abstract_tiles import AbstractTiles
 
-class Tiles:
+
+class Tiles(AbstractTiles):
     """
     Class implementing rectangular tiling. For each point in the state space,
     this class can be used to compute the index of the corresponding tile.
@@ -27,40 +29,34 @@ class Tiles:
             self._range = [x_range]
 
         if isinstance(n_tiles, list):
-            assert(len(n_tiles) == len(self._range))
+            assert len(n_tiles) == len(self._range)
 
             self._n_tiles = n_tiles
         else:
             self._n_tiles = [n_tiles] * len(self._range)
 
-        self._state_components = state_components
+        super().__init__(state_components)
 
         if self._state_components is not None:
-            assert(len(self._state_components) == len(self._range))
+            assert len(self._state_components) == len(self._range)
 
         self._size = 1
 
         for s in self._n_tiles:
             self._size *= s
 
-    def __call__(self, x):
+        self._add_save_attr(
+            _range='primitive',
+            _n_tiles='primitive',
+            _size='primitive'
+        )
+
+    def __repr__(self):
+        name = f'Tiles(n_tiles={self._n_tiles}, range={np.round(self._range, 3).tolist()}'
         if self._state_components is not None:
-            x = x[self._state_components]
+            name += f', state_components={self._state_components}'
 
-        multiplier = 1
-        tile_index = 0
-
-        for i, (r, N) in enumerate(zip(self._range, self._n_tiles)):
-            if r[0] <= x[i] < r[1]:
-                width = r[1] - r[0]
-                component_index = int(np.floor(N * (x[i] - r[0]) / width))
-                tile_index += component_index * multiplier
-                multiplier *= N
-            else:
-                tile_index = None
-                break
-
-        return tile_index
+        return name + ')'
 
     @staticmethod
     def generate(n_tilings, n_tiles, low, high, uniform=False):
@@ -102,9 +98,9 @@ class Tiles:
         # Unit shift displacement vector
         shift = 1 if uniform else 2 * np.arange(len(low)) + 1
 
-        # Length of the sides of the tiles, l
+        # Length of the sides of the tiles
         be = (n_tilings - 1) / n_tilings
-        l = L / (np.array(n_tiles) - be)
+        tile_side = L / (np.array(n_tiles) - be)
 
         # Generate the list of tilings
         tilings = list()
@@ -114,8 +110,8 @@ class Tiles:
             v = (i * shift) % n_tilings
 
             # Min, max of the coordinates of the i-th tiling
-            x_min = low + (-n_tilings + 1 + v) / n_tilings * l
-            x_max = x_min + l * n_tiles
+            x_min = low + (-n_tilings + 1 + v) / n_tilings * tile_side
+            x_max = x_min + tile_side * n_tiles
 
             # Rearrange x_min, x_max and append new tiling to the list
             x_range = [[x, y] for x, y in zip(x_min, x_max)]
@@ -126,3 +122,18 @@ class Tiles:
     @property
     def size(self):
         return self._size
+
+    def _compute(self, x):
+        multiplier = 1
+        tile_index = np.zeros(x.shape[0], dtype=int)
+        inside = np.ones(x.shape[0], dtype=bool)
+
+        for i, (r, N) in enumerate(zip(self._range, self._n_tiles)):
+            inside &= (r[0] <= x[:, i]) & (x[:, i] < r[1])
+
+            width = r[1] - r[0]
+            component_index = np.floor(N * (x[:, i] - r[0]) / width).astype(int)
+            tile_index += component_index * multiplier
+            multiplier *= N
+
+        return np.where(inside, tile_index, -1)

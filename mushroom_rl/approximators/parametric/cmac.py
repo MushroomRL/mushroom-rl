@@ -22,7 +22,7 @@ class CMAC(LinearApproximator):
             **kwargs: other params of the approximator.
 
         """
-        phi = Features(tilings=tilings)
+        phi = Features(tilings)
         self._n = len(tilings)
 
         super().__init__(weights=weights, input_shape=(phi.size,), output_shape=output_shape, phi=phi)
@@ -66,14 +66,10 @@ class CMAC(LinearApproximator):
             The predictions of the model.
 
         """
-        prediction = np.ones((x.shape[0], self._w.shape[0]))
         indexes = self._phi.compute_indexes(x)
 
-        if x.shape[0] == 1:
-            indexes = list([indexes])
-
-        for i, idx in enumerate(indexes):
-            prediction[i] = np.sum(self._w[:, idx], axis=-1)
+        w = self._w[:, indexes]
+        prediction = np.where(indexes >= 0, w, 0.).sum(-1).T
 
         return prediction.squeeze()
 

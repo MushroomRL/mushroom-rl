@@ -21,7 +21,7 @@ n_tilings = 10
 tilings = Tiles.generate(n_tilings, [10, 10],
                          mdp.info.observation_space.low,
                          mdp.info.observation_space.high)
-features = Features(tilings=tilings)
+features = Features(tilings)
 
 # Agent
 learning_rate = Parameter(.1 / n_tilings)

@@ -30,7 +30,7 @@ def learn_copdac_q():
                              mdp.info.observation_space.low,
                              mdp.info.observation_space.high + 1e-3)
 
-    phi = Features(tilings=tilings)
+    phi = Features(tilings)
 
     input_shape = (phi.size,)
 
@@ -45,7 +45,7 @@ def learn_copdac_q():
     core = Core(agent, mdp)
 
     core.learn(n_episodes=2, n_episodes_per_fit=1)
-    
+
     return agent
 
 

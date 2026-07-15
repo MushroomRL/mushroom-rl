@@ -5,21 +5,20 @@ import itertools
 
 import mushroom_rl
 from mushroom_rl.core import MDPInfo, AgentInfo, Dataset
+from mushroom_rl.core.spaces import Discrete
 from mushroom_rl.policy.td_policy import TDPolicy
 from mushroom_rl.policy.torch_policy import TorchPolicy
 from mushroom_rl.policy.policy import HasWeights
-from mushroom_rl.rl_utils.replay_memory import ReplayMemory, PrioritizedReplayMemory
-from mushroom_rl.approximators.approximator import Approximator, Ensemble
-from mushroom_rl.approximators.q_approximator import QApproximator
 from mushroom_rl.policy.noise_policy import OrnsteinUhlenbeckPolicy
-from mushroom_rl.features._implementations.tiles_features import TilesFeatures
-from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter
-from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer, SGDOptimizer, AdamOptimizer
 from mushroom_rl.distributions.gaussian import GaussianDiagonalDistribution
 from mushroom_rl.approximators.table import Table
-from mushroom_rl.core.spaces import Discrete
-from mushroom_rl.features._implementations.functional_features import FunctionalFeatures
-from mushroom_rl.features._implementations.basis_features import BasisFeatures
+from mushroom_rl.approximators.approximator import Approximator, Ensemble
+from mushroom_rl.approximators.q_approximator import QApproximator
+from mushroom_rl.rl_utils.replay_memory import ReplayMemory, PrioritizedReplayMemory
+from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter
+from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer, SGDOptimizer, AdamOptimizer
+
+from mushroom_rl.features._impl import TilesFeatures, FunctionalFeatures, BasisFeatures
 
 
 class TestUtils:
