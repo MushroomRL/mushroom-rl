@@ -45,7 +45,7 @@ class ArrayBackend(object):
             The :class:`ArrayBackend` subclass registered under ``backend_name``.
 
         """
-        assert type(backend_name) == str, f"Backend has to be string, not {type(backend_name).__name__}."
+        assert isinstance(backend_name, str), f"Backend has to be string, not {type(backend_name).__name__}."
         if backend_name == 'numpy':
             return NumpyBackend
         elif backend_name == 'torch':
@@ -78,16 +78,24 @@ class ArrayBackend(object):
     @classmethod
     def check_device(cls, device):
         """
+        Validate the device requested by the caller and resolve the device to be used.
+
         Args:
-            device: device requested by the caller.
+            device: device requested by the caller, or ``None`` to use the default one.
+
+        Returns:
+            The device to be used, i.e. ``None`` for the backends that do not support devices. Backends that
+            do support devices (i.e. :class:`TorchBackend`) override this method to resolve their default
+            device instead of raising.
 
         Raises:
-            ValueError: if ``device`` is not ``None``. Only backends that support devices (i.e.
-                :class:`TorchBackend`) override this check to accept a non-``None`` device.
+            ValueError: if ``device`` is not ``None`` and the backend does not support devices.
 
         """
         if device is not None:
             raise ValueError(f"Device can not be set for {cls.get_backend_name()} backend.")
+
+        return None
 
     @classmethod
     def convert(cls, *arrays, to=None, backend=None):
@@ -114,7 +122,7 @@ class ArrayBackend(object):
         elif to == 'torch':
             return backend.arrays_to_torch(*arrays) if len(arrays) > 1 else backend.arrays_to_torch(*arrays)[0]
         else:
-            return NotImplementedError
+            raise NotImplementedError(f"Conversion to the {to} backend is not supported.")
 
     @staticmethod
     def convert_to_backend(backend, array):
@@ -274,55 +282,6 @@ class ArrayBackend(object):
         """
         raise NotImplementedError
 
-    @staticmethod
-    def concatenate(list_of_arrays, dim):
-        """
-        Args:
-            list_of_arrays: a list of arrays to concatenate;
-            dim: dimension along which the arrays are concatenated.
-
-        Returns:
-            The arrays in ``list_of_arrays`` concatenated along ``dim``.
-
-        """
-        raise NotImplementedError
-
-    @staticmethod
-    def flatten(array):
-        """
-        Merge the first two axes of an array into a single leading axis, grouping the result by the second
-        axis and ordering it by the first axis within each group (i.e. all entries with index 0 along the
-        second axis, in order of their index along the first axis, then all entries with index 1 along the
-        second axis, ...). This differs from a plain row-major reshape, which would order elements by the
-        first axis first.
-
-        Args:
-            array: an array of shape ``(A, B, ...)``.
-
-        Returns:
-            ``array`` reshaped to ``(A * B, ...)``.
-
-        """
-        raise NotImplementedError
-
-    @staticmethod
-    def pack_padded_sequence(array, mask):
-        """
-        Select the entries of an array marked by a boolean mask over its first two axes, and concatenate them
-        into a single leading axis, grouped by the second axis and ordered by the first axis within each
-        group (i.e. all selected entries with index 0 along the second axis, in order of their index along
-        the first axis, then all selected entries with index 1 along the second axis, ...).
-
-        Args:
-            array: an array of shape ``(A, B, ...)``;
-            mask: a boolean array of shape ``(A, B)`` marking the entries of ``array`` to keep.
-
-        Returns:
-            The entries of ``array`` selected by ``mask``, concatenated in the order described above.
-
-        """
-        raise NotImplementedError
-
     @classmethod
     def zeros(cls, *dims, dtype, device=None):
         """
@@ -375,6 +334,22 @@ class ArrayBackend(object):
 
         Returns:
             A new array with the same shape as ``array``, filled with ones.
+
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def arange(start, stop, step=1, dtype=None, device=None):
+        """
+        Args:
+            start: start of the interval;
+            stop: end of the interval (exclusive);
+            step (1): spacing between values;
+            dtype (None): data type of the array;
+            device (None): device the array should be allocated on. Only meaningful for :class:`TorchBackend`.
+
+        Returns:
+            An array with evenly spaced values within the given interval.
 
         """
         raise NotImplementedError
@@ -517,6 +492,55 @@ class ArrayBackend(object):
 
         Returns:
             The arrays in ``lst`` stacked along a new dimension ``dim``.
+
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def concatenate(list_of_arrays, dim):
+        """
+        Args:
+            list_of_arrays: a list of arrays to concatenate;
+            dim: dimension along which the arrays are concatenated.
+
+        Returns:
+            The arrays in ``list_of_arrays`` concatenated along ``dim``.
+
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def flatten(array):
+        """
+        Merge the first two axes of an array into a single leading axis, grouping the result by the second
+        axis and ordering it by the first axis within each group (i.e. all entries with index 0 along the
+        second axis, in order of their index along the first axis, then all entries with index 1 along the
+        second axis, ...). This differs from a plain row-major reshape, which would order elements by the
+        first axis first.
+
+        Args:
+            array: an array of shape ``(A, B, ...)``.
+
+        Returns:
+            ``array`` reshaped to ``(A * B, ...)``.
+
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def pack_padded_sequence(array, mask):
+        """
+        Select the entries of an array marked by a boolean mask over its first two axes, and concatenate them
+        into a single leading axis, grouped by the second axis and ordered by the first axis within each
+        group (i.e. all selected entries with index 0 along the second axis, in order of their index along
+        the first axis, then all selected entries with index 1 along the second axis, ...).
+
+        Args:
+            array: an array of shape ``(A, B, ...)``;
+            mask: a boolean array of shape ``(A, B)`` marking the entries of ``array`` to keep.
+
+        Returns:
+            The entries of ``array`` selected by ``mask``, concatenated in the order described above.
 
         """
         raise NotImplementedError
@@ -760,21 +784,6 @@ class ArrayBackend(object):
         """
         raise NotImplementedError
 
-    @staticmethod
-    def arange(start, stop, step=1, dtype=None, device=None):
-        """
-        Args:
-            start: start of the interval;
-            stop: end of the interval (exclusive);
-            step (1): spacing between values;
-            dtype (None): data type of the array;
-            device (None): device the array should be allocated on. Only meaningful for :class:`TorchBackend`.
-
-        Returns:
-            An array with evenly spaced values within the given interval.
-
-        """
-        raise NotImplementedError
 
 class NumpyBackend(ArrayBackend):
     """
@@ -845,23 +854,6 @@ class NumpyBackend(ArrayBackend):
     def full(shape, value):
         return np.full(shape, value)
 
-    @staticmethod
-    def concatenate(list_of_arrays, dim=0):
-        return np.concatenate(list_of_arrays, axis=dim)
-
-    @staticmethod
-    def flatten(array):
-        shape = array.shape
-        new_shape = (shape[0] * shape[1],) + shape[2:]
-        return array.reshape(new_shape, order='F')
-
-    @staticmethod
-    def pack_padded_sequence(array, mask):
-        shape = array.shape
-
-        new_shape = (shape[0] * shape[1],) + shape[2:]
-        return array.reshape(new_shape, order='F')[mask.flatten(order='F')]
-
     @classmethod
     def zeros(cls, *dims, dtype=float, device=None):
         cls.check_device(device)
@@ -881,6 +873,11 @@ class NumpyBackend(ArrayBackend):
     def ones_like(cls, array, dtype=float, device=None):
         cls.check_device(device)
         return np.ones_like(array, dtype=dtype)
+
+    @classmethod
+    def arange(cls, start, stop, step=1, dtype=None, device=None):
+        cls.check_device(device)
+        return np.arange(start, stop, step, dtype=dtype)
 
     @staticmethod
     def masked_init(mask, values):
@@ -927,6 +924,23 @@ class NumpyBackend(ArrayBackend):
     @staticmethod
     def stack(lst, dim):
         return np.stack(lst, axis=dim)
+
+    @staticmethod
+    def concatenate(list_of_arrays, dim=0):
+        return np.concatenate(list_of_arrays, axis=dim)
+
+    @staticmethod
+    def flatten(array):
+        shape = array.shape
+        new_shape = (shape[0] * shape[1],) + shape[2:]
+        return array.reshape(new_shape, order='F')
+
+    @staticmethod
+    def pack_padded_sequence(array, mask):
+        shape = array.shape
+
+        new_shape = (shape[0] * shape[1],) + shape[2:]
+        return array.reshape(new_shape, order='F')[mask.flatten(order='F')]
 
     @staticmethod
     def where(cond, x=None, y=None):
@@ -995,7 +1009,7 @@ class NumpyBackend(ArrayBackend):
 
     @classmethod
     def randint(cls, low, high, size, device=None):
-        assert type(size) == tuple
+        assert isinstance(size, tuple)
         cls.check_device(device)
         return np.random.randint(low, high, size)
 
@@ -1007,10 +1021,6 @@ class NumpyBackend(ArrayBackend):
     def uniform(low, high):
         return np.random.uniform(low, high)
 
-    @classmethod
-    def arange(cls, start, stop, step=1, dtype=None, device=None):
-        cls.check_device(device)
-        return np.arange(start, stop, step, dtype=dtype)
 
 class TorchBackend(ArrayBackend):
     """
@@ -1037,6 +1047,10 @@ class TorchBackend(ArrayBackend):
     @staticmethod
     def get_backend_serialization():
         return 'torch'
+
+    @classmethod
+    def check_device(cls, device):
+        return TorchUtils.get_device() if device is None else device
 
     @staticmethod
     def convert_to_backend(backend, array):
@@ -1071,41 +1085,23 @@ class TorchBackend(ArrayBackend):
             return dtype
         return cls._DTYPE_MAP[np.dtype(dtype)]
 
-    @staticmethod
-    def empty(shape, device=None):
-        device = TorchUtils.get_device() if device is None else device
+    @classmethod
+    def empty(cls, shape, device=None):
+        device = cls.check_device(device)
         return torch.empty(shape, device=device)
 
     @staticmethod
     def full(shape, value):
         return torch.full(shape, value).to(device=TorchUtils.get_device())
 
-    @staticmethod
-    def concatenate(list_of_arrays, dim=0):
-        return torch.concat(list_of_arrays, dim=dim)
-
-    @staticmethod
-    def flatten(array):
-        shape = array.shape
-        new_shape = (shape[0]*shape[1], ) + shape[2:]
-        return array.transpose(0, 1).reshape(new_shape)
-
-    @staticmethod
-    def pack_padded_sequence(array, mask):
-        shape = array.shape
-
-        new_shape = (shape[0]*shape[1], ) + shape[2:]
-
-        return array.transpose(0, 1).reshape(new_shape)[mask.transpose(0, 1).flatten()]
-
     @classmethod
     def zeros(cls, *dims, dtype=torch.float32, device=None):
-        device = TorchUtils.get_device() if device is None else device
+        device = cls.check_device(device)
         return torch.zeros(*dims, dtype=dtype, device=device)
 
     @classmethod
     def ones(cls, *dims, dtype=torch.float32, device=None):
-        device = TorchUtils.get_device() if device is None else device
+        device = cls.check_device(device)
         return torch.ones(*dims, dtype=dtype, device=device)
 
     @classmethod
@@ -1117,6 +1113,11 @@ class TorchBackend(ArrayBackend):
     def ones_like(cls, array, dtype=torch.float32, device=None):
         device = array.device if device is None else device
         return torch.ones_like(array, dtype=dtype, device=device)
+
+    @classmethod
+    def arange(cls, start, stop, step=1, dtype=None, device=None):
+        device = cls.check_device(device)
+        return torch.arange(start, stop, step, dtype=dtype, device=device)
 
     @staticmethod
     def masked_init(mask, values):
@@ -1166,6 +1167,24 @@ class TorchBackend(ArrayBackend):
     @staticmethod
     def stack(lst, dim):
         return torch.stack(lst, dim=dim)
+
+    @staticmethod
+    def concatenate(list_of_arrays, dim=0):
+        return torch.concat(list_of_arrays, dim=dim)
+
+    @staticmethod
+    def flatten(array):
+        shape = array.shape
+        new_shape = (shape[0]*shape[1], ) + shape[2:]
+        return array.transpose(0, 1).reshape(new_shape)
+
+    @staticmethod
+    def pack_padded_sequence(array, mask):
+        shape = array.shape
+
+        new_shape = (shape[0]*shape[1], ) + shape[2:]
+
+        return array.transpose(0, 1).reshape(new_shape)[mask.transpose(0, 1).flatten()]
 
     @staticmethod
     def where(cond, x=None, y=None):
@@ -1227,14 +1246,14 @@ class TorchBackend(ArrayBackend):
     def logical_and(x, y):
         return torch.logical_and(x, y)
 
-    @staticmethod
-    def rand(*dims, device=None):
-        device = TorchUtils.get_device() if device is None else device
+    @classmethod
+    def rand(cls, *dims, device=None):
+        device = cls.check_device(device)
         return torch.rand(dims, device=device)
 
-    @staticmethod
-    def randint(low, high, size, device=None):
-        device = TorchUtils.get_device() if device is None else device
+    @classmethod
+    def randint(cls, low, high, size, device=None):
+        device = cls.check_device(device)
         return torch.randint(low, high, size, device=device)
 
     @staticmethod
@@ -1247,10 +1266,6 @@ class TorchBackend(ArrayBackend):
         high = torch.as_tensor(high, device=TorchUtils.get_device())
         return low + (high - low) * torch.rand_like(low)
 
-    @classmethod
-    def arange(cls, start, stop, step=1, dtype=None, device=None):
-        device = TorchUtils.get_device() if device is None else device
-        return torch.arange(start, stop, step, dtype=dtype, device=device)
 
 class ListBackend(ArrayBackend):
     """
@@ -1309,25 +1324,6 @@ class ListBackend(ArrayBackend):
             return value
         return [ListBackend.full(shape[1:], value) for _ in range(shape[0])]
 
-    @staticmethod
-    def concatenate(list_of_arrays, dim=0):
-        result = []
-        for array in list_of_arrays:
-            result += list(array)
-        return result
-
-    @staticmethod
-    def flatten(array):
-        n_steps = len(array)
-        n_envs = len(array[0])
-        return [array[s][e] for e in range(n_envs) for s in range(n_steps)]
-
-    @staticmethod
-    def pack_padded_sequence(array, mask):
-        n_steps = len(array)
-        n_envs = mask.shape[1]
-        return [array[s][e] for e in range(n_envs) for s in range(n_steps) if mask[s, e]]
-
     @classmethod
     def zeros(cls, *dims, dtype=float, device=None):
         cls.check_device(device)
@@ -1347,6 +1343,11 @@ class ListBackend(ArrayBackend):
     def ones_like(cls, array, dtype=float, device=None):
         cls.check_device(device)
         return NumpyBackend.ones_like(array, dtype=dtype)
+
+    @classmethod
+    def arange(cls, start, stop, step=1, dtype=None, device=None):
+        cls.check_device(device)
+        return NumpyBackend.arange(start, stop, step, dtype=dtype)
 
     @staticmethod
     def masked_init(mask, values):
@@ -1394,6 +1395,25 @@ class ListBackend(ArrayBackend):
     @staticmethod
     def stack(lst, dim):
         return NumpyBackend.stack(lst, dim)
+
+    @staticmethod
+    def concatenate(list_of_arrays, dim=0):
+        result = []
+        for array in list_of_arrays:
+            result += list(array)
+        return result
+
+    @staticmethod
+    def flatten(array):
+        n_steps = len(array)
+        n_envs = len(array[0])
+        return [array[s][e] for e in range(n_envs) for s in range(n_steps)]
+
+    @staticmethod
+    def pack_padded_sequence(array, mask):
+        n_steps = len(array)
+        n_envs = mask.shape[1]
+        return [array[s][e] for e in range(n_envs) for s in range(n_steps) if mask[s, e]]
 
     @staticmethod
     def where(cond, x=None, y=None):
@@ -1468,8 +1488,3 @@ class ListBackend(ArrayBackend):
     @staticmethod
     def uniform(low, high):
         return NumpyBackend.uniform(low, high)
-
-    @classmethod
-    def arange(cls, start, stop, step=1, dtype=None, device=None):
-        cls.check_device(device)
-        return NumpyBackend.arange(start, stop, step, dtype=dtype)
