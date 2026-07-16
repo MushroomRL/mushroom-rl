@@ -11,7 +11,7 @@ from mushroom_rl.rl_utils.parameters import Parameter
 """
 This script aims to replicate the experiments on the Car on Hill MDP as
 presented in:
-"Tree-Based Batch Mode Reinforcement Learning", Ernst D. et al. 2005. 
+"Tree-Based Batch Mode Reinforcement Learning", Ernst D. et al. 2005.
 
 """
 
@@ -49,9 +49,6 @@ def experiment():
     core.learn(n_episodes=1000, n_episodes_per_fit=1000)
 
     # Test
-    test_epsilon = Parameter(0.)
-    agent.policy.set_epsilon(test_epsilon)
-
     initial_states = np.zeros((289, 2))
     cont = 0
     for i in range(-8, 9):
@@ -59,10 +56,10 @@ def experiment():
             initial_states[cont, :] = [0.125 * i, 0.375 * j]
             cont += 1
 
-    dataset = core.evaluate(initial_states=initial_states)
+    dataset = core.evaluate(initial_states=initial_states, greedy=True)
 
     # Render
-    core.evaluate(n_episodes=3, render=True)
+    core.evaluate(n_episodes=3, render=True, greedy=True)
 
     return np.mean(dataset.discounted_return)
 

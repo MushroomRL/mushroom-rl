@@ -90,6 +90,23 @@ def test_squashed_gaussian_affine_term():
     assert torch.isclose(log_prob_scaled, log_prob_unit - torch.log(torch.tensor(2.)) * 2, atol=1e-5)
 
 
+def test_squashed_gaussian_median():
+    low = torch.tensor([-2., -2.])
+    high = torch.tensor([2., 2.])
+    dist = SquashedGaussian(torch.tensor([0.5, -0.3]), torch.ones(2), low, high)
+
+    median = dist.median
+
+    assert torch.all(median >= low) and torch.all(median <= high)
+    assert torch.allclose(median, torch.tensor([0.92423431, -0.58262521]), atol=1e-6)
+
+
+def test_categorical_wrapper_mode():
+    wrapper = CategoricalWrapper(torch.tensor([[0.1, 0.9], [0.8, 0.2]]))
+
+    assert torch.equal(wrapper.mode, torch.tensor([1, 0]))
+
+
 def test_categorical_wrapper_squeezes():
     wrapper = CategoricalWrapper(torch.tensor([[0.1, 0.9], [0.8, 0.2]]))
     log_prob = wrapper.log_prob(torch.tensor([[1], [0]]))

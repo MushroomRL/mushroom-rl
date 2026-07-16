@@ -1,5 +1,3 @@
-import numpy as np
-
 from mushroom_rl.core import Agent
 from mushroom_rl.policy import VectorPolicy
 
@@ -30,34 +28,32 @@ class BlackBoxOptimization(Agent):
                (distribution.is_contextual and context_builder is not None)
         self.distribution = distribution
         self._context_builder = ContextBuilder() if context_builder is None else context_builder
-        self._deterministic = False
 
         super().__init__(mdp_info, policy, is_episodic=True, backend=backend)
 
         self._add_save_attr(
             distribution='mushroom',
-            _context_builder='mushroom',
-            _deterministic='primitive'
+            _context_builder='mushroom'
         )
         self._add_logger_attr('distribution', group='distribution')
 
-    def episode_start(self, initial_state, episode_info):
+    def episode_start(self, initial_state, episode_info, greedy=False):
         if isinstance(self.policy, VectorPolicy):
             self.policy = self.policy.get_flat_policy()
 
         context = self._context_builder(initial_state, **episode_info)
 
-        if self._deterministic:
+        if greedy:
             theta = self.distribution.mean(context)
         else:
             theta = self.distribution.sample(context)
         self.policy.set_weights(theta)
 
-        policy_state, _ = super().episode_start(initial_state, episode_info)
+        policy_state, _ = super().episode_start(initial_state, episode_info, greedy)
 
         return policy_state, theta
 
-    def episode_start_vectorized(self, initial_states, episode_info, start_mask):
+    def episode_start_vectorized(self, initial_states, episode_info, start_mask, greedy=False):
         n_envs = len(start_mask)
         if not isinstance(self.policy, VectorPolicy):
             self.policy = VectorPolicy(self.policy, n_envs)
@@ -72,7 +68,7 @@ class BlackBoxOptimization(Agent):
             if context is not None:
                 context = context[start_mask]
 
-            draw = self.distribution.mean if self._deterministic else self.distribution.sample
+            draw = self.distribution.mean if greedy else self.distribution.sample
             theta[start_mask] = self._agent_backend.from_list(
                 [draw(context[i] if context is not None else None) for i in range(n_starts)])
 
@@ -99,9 +95,6 @@ class BlackBoxOptimization(Agent):
         if self._logger:
             self._logger.log_training(J=Jep.mean().item())
             self._logger.advance_step()
-
-    def set_deterministic(self, deterministic=True):
-        self._deterministic = deterministic
 
     def _update(self, Jep, theta, context):
         """

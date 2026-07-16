@@ -52,12 +52,9 @@ def experiment():
     core.learn(n_episodes=500, n_episodes_per_fit=500)
 
     # Test
-    test_epsilon = Parameter(0.)
-    agent.policy.set_epsilon(test_epsilon)
+    dataset = core.evaluate(n_episodes=1, quiet=True, greedy=True)
 
-    dataset = core.evaluate(n_episodes=1, quiet=True)
-
-    core.evaluate(n_steps=100, render=True)
+    core.evaluate(n_steps=100, render=True, greedy=True)
 
     return np.mean(dataset.episodes_length)
 

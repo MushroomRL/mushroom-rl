@@ -55,11 +55,11 @@ class StochasticAC(Agent):
         )
         self._add_logger_attr(_alpha_theta='theta', _alpha_v='v', group='alpha')
 
-    def episode_start(self, initial_state, episode_info):
+    def episode_start(self, initial_state, episode_info, greedy=False):
         self._e_v = np.zeros(self._V.weights_size)
         self._e_theta = np.zeros(self.policy.weights_size)
 
-        return super().episode_start(initial_state, episode_info)
+        return super().episode_start(initial_state, episode_info, greedy)
 
     def fit(self, dataset):
         for step in dataset:

@@ -26,7 +26,6 @@ def experiment(n_epochs, n_steps, n_steps_test):
 
     # Policy
     epsilon = LinearParameter(value=1., threshold_value=.01, n=5000)
-    epsilon_test = Parameter(value=0.)
     epsilon_random = Parameter(value=1.)
     pi = EpsGreedy(epsilon=epsilon_random, backend='torch')
 
@@ -62,22 +61,20 @@ def experiment(n_epochs, n_steps, n_steps_test):
     core.learn(n_steps=initial_replay_size, n_steps_per_fit=initial_replay_size)
 
     # RUN
-    pi.set_epsilon(epsilon_test)
-    dataset = core.evaluate(n_steps=n_steps_test, render=False)
+    dataset = core.evaluate(n_steps=n_steps_test, render=False, greedy=True)
     R = np.mean(dataset.undiscounted_return)
     logger.epoch_info(0, R=R)
 
+    pi.set_epsilon(epsilon)
     for n in trange(n_epochs):
-        pi.set_epsilon(epsilon)
         core.learn(n_steps=n_steps, n_steps_per_fit=train_frequency)
-        pi.set_epsilon(epsilon_test)
-        dataset = core.evaluate(n_steps=n_steps_test, render=False)
+        dataset = core.evaluate(n_steps=n_steps_test, render=False, greedy=True)
         R = np.mean(dataset.undiscounted_return)
         logger.epoch_info(n + 1, R=R)
 
     logger.info('Press a button to visualize acrobot')
     input()
-    core.evaluate(n_episodes=5, render=True)
+    core.evaluate(n_episodes=5, render=True, greedy=True)
 
 
 if __name__ == '__main__':

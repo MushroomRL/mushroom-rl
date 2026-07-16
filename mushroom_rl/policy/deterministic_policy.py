@@ -41,6 +41,9 @@ class DeterministicPolicy(Policy, HasWeights):
         return 1. if np.array_equal(action, policy_action) else 0.
 
     def draw_action(self, state):
+        return self.draw_action_greedy(state)
+
+    def draw_action_greedy(self, state):
         return self._approximator(state, **self._predict_params)
 
     def set_weights(self, weights):

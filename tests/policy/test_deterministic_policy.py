@@ -34,3 +34,5 @@ def test_deterministic_policy():
     a_stored = np.array([-0.24029878, -0.55175323])
     action = pi.draw_action(s_test_1)
     assert np.allclose(action, a_stored)
+
+    assert np.allclose(pi.draw_action_greedy(s_test_1), action)

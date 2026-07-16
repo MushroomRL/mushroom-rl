@@ -28,6 +28,24 @@ def test_univariate_gaussian():
         assert np.allclose(exact_diff, numerical_diff)
 
 
+def test_gaussian_greedy():
+    np.random.seed(42)
+    n_dims = 5
+    sigma = np.eye(2)
+
+    approximator = LinearApproximator(input_shape=(n_dims,), output_shape=(2,))
+
+    pi = GaussianPolicy(approximator, sigma)
+    pi.set_weights(np.random.rand(pi.weights_size))
+
+    state = np.random.randn(n_dims)
+
+    mean = pi.draw_action_greedy(state)
+
+    assert np.allclose(mean, approximator.predict(state))
+    assert np.allclose(pi.draw_action_greedy(state), mean)
+
+
 def test_multivariate_gaussian():
     np.random.seed(42)
     n_dims = 5

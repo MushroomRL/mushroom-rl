@@ -47,6 +47,20 @@ class TDPolicy(Policy):
         """
         return self._approximator
 
+    def _greedy_action(self, state):
+        """
+        Return the greedy action in ``state``, i.e. the argmax of the Q-function, breaking ties uniformly at random.
+
+        """
+        with torch.no_grad():
+            q = self._approximator.predict(state, **self._predict_params)
+        max_a = self._backend.nonzero(q == q.max()).ravel()
+
+        if len(max_a) > 1:
+            max_a = max_a[self._backend.randint(0, len(max_a), (1,))]
+
+        return max_a
+
 
 class EpsGreedy(TDPolicy):
     """
@@ -93,16 +107,12 @@ class EpsGreedy(TDPolicy):
 
     def draw_action(self, state):
         if not self._backend.rand() < self._epsilon(state):
-            with torch.no_grad():
-                q = self._approximator.predict(state, **self._predict_params)
-            max_a = self._backend.nonzero(q == q.max()).ravel()
-
-            if len(max_a) > 1:
-                max_a = max_a[self._backend.randint(0, len(max_a), (1,))]
-
-            return max_a
+            return self._greedy_action(state)
 
         return self._backend.randint(0, self._n_actions, (1,))
+
+    def draw_action_greedy(self, state):
+        return self._greedy_action(state)
 
     def set_epsilon(self, epsilon):
         """
@@ -168,6 +178,9 @@ class Boltzmann(TDPolicy):
 
     def draw_action(self, state):
         return self._backend.multinomial(self(state))
+
+    def draw_action_greedy(self, state):
+        return self._greedy_action(state)
 
     def set_beta(self, beta):
         """

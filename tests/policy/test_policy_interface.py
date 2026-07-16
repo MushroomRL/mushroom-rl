@@ -14,6 +14,7 @@ def test_policy_interface():
     tmp = Policy()
     abstract_method_tester(tmp.__call__, NotImplementedError, None, None)
     abstract_method_tester(tmp.draw_action, NotImplementedError, None)
+    abstract_method_tester(tmp.draw_action_greedy, NotImplementedError, None)
     assert tmp.reset() is None
     assert tmp.reset_vectorized(None) is None
     assert not tmp.is_stateful

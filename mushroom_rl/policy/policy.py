@@ -42,6 +42,23 @@ class Policy(MushroomObject):
         """
         raise NotImplementedError
 
+    def draw_action_greedy(self, state, **kwargs):
+        """
+        Return the greedy action in ``state``, used during greedy evaluation. This is the mode
+        of the policy (e.g. the mean of a Gaussian, the argmax of a softmax). Policies that do not define a
+        greedy action must not override this method.
+
+        Args:
+            state: the state where the agent is;
+            **kwargs: additional per-timestep conditioning inputs assembled by the agent; policies that do not
+                consume them can ignore the keyword arguments.
+
+        Returns:
+            The greedy action of the policy.
+
+        """
+        raise NotImplementedError("'{}' does not define a greedy action.".format(type(self).__name__))
+
     def reset(self):
         """
         Useful when the policy needs a special initialization at the beginning of an episode.
@@ -150,6 +167,29 @@ class StatefulPolicy(Policy):
 
         return action
 
+    def draw_action_greedy(self, state, policy_state=None, **kwargs):
+        """
+        Return the greedy action in ``state``, used during greedy evaluation. The internal
+        state is threaded exactly as in :meth:`draw_action`: when ``policy_state`` is ``None`` the stored state is used
+        and updated, otherwise the given state is used and the internal one is left untouched.
+
+        Args:
+            state: the state where the agent is;
+            policy_state (None): the internal state of the policy. If ``None``, the stored internal state is used and
+                updated;
+            **kwargs: additional per-timestep conditioning inputs assembled by the agent.
+
+        Returns:
+            The greedy action of the policy.
+
+        """
+        if policy_state is None:
+            action, self._policy_state = self._draw_action_greedy(state, self._policy_state, **kwargs)
+        else:
+            action, _ = self._draw_action_greedy(state, policy_state, **kwargs)
+
+        return action
+
     def reset(self):
         """
         Reset the internal state of the policy at the beginning of an episode. Implementations must set
@@ -198,6 +238,23 @@ class StatefulPolicy(Policy):
 
         """
         raise NotImplementedError
+
+    def _draw_action_greedy(self, state, policy_state, **kwargs):
+        """
+        Return the greedy action in ``state`` given the policy state, returning the next policy state. This is
+        the functional core of :meth:`draw_action_greedy` and must not mutate the internal state. Policies that
+        do not define a greedy action must not override this method.
+
+        Args:
+            state: the state where the agent is;
+            policy_state: the internal state of the policy;
+            **kwargs: additional per-timestep conditioning inputs.
+
+        Returns:
+            A tuple containing the greedy action and the next policy state.
+
+        """
+        raise NotImplementedError("'{}' does not define a greedy action.".format(type(self).__name__))
 
 
 class HasWeights:

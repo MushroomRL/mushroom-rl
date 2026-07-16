@@ -1,5 +1,6 @@
 import numpy as np
 
+from mushroom_rl.core import HasNextAction
 from mushroom_rl.algorithms.value.td import TD
 from mushroom_rl.approximators.table import Table
 from mushroom_rl.rl_utils.parameters import to_parameter
@@ -7,24 +8,20 @@ from mushroom_rl.rl_utils.parameters import to_parameter
 
 class RQLearning(TD):
     """
-    RQ-Learning algorithm.
+    RQ-Learning algorithm, off-policy version.
     "Exploiting Structure and Uncertainty of Bellman Updates in Markov Decision Processes".
     Tateo D. et al. 2017.
 
     """
-    def __init__(self, mdp_info, policy, learning_rate, off_policy=False,
-                 beta=None, delta=None):
+    def __init__(self, mdp_info, policy, learning_rate, beta=None, delta=None):
         """
         Constructor.
 
         Args:
-            off_policy (bool, False): whether to use the off policy setting or
-                the online one;
             beta ([float, Parameter], None): beta coefficient;
             delta ([float, Parameter], None): delta coefficient.
 
         """
-        self.off_policy = off_policy
         if delta is not None and beta is None:
             self.delta = to_parameter(delta)
             self.beta = None
@@ -39,7 +36,6 @@ class RQLearning(TD):
         self.R_tilde = Table(mdp_info.size)
 
         self._add_save_attr(
-            off_policy='primitive',
             delta='mushroom',
             beta='mushroom',
             Q_tilde='mushroom',
@@ -75,9 +71,16 @@ class RQLearning(TD):
             The weighted estimator value in 'next_state'.
 
         """
-        if self.off_policy:
-            return np.max(self.Q[next_state, :])
-        else:
-            self.next_action = self.draw_action(next_state)
+        return np.max(self.Q[next_state, :])
 
-            return self.Q[next_state, self.next_action]
+
+class RQLearningOnPolicy(HasNextAction, RQLearning):
+    """
+    RQ-Learning algorithm, on-policy version. The next-state value is estimated on the action drawn by the policy
+    (cached and executed at the next step) instead of the greedy one.
+
+    """
+    def _next_q(self, next_state):
+        self._next_action = self.draw_action(next_state)
+
+        return self.Q[next_state, self._next_action]

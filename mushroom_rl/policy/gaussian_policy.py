@@ -19,6 +19,9 @@ class AbstractGaussianPolicy(Policy, HasGradient):
 
         return np.random.multivariate_normal(mu, sigma)
 
+    def draw_action_greedy(self, state):
+        return self._compute_multivariate_gaussian(state)[0]
+
 
 class GaussianPolicy(AbstractGaussianPolicy):
     """

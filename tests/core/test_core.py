@@ -43,6 +43,48 @@ def test_agent_history_manager_mutually_exclusive():
         Agent(mdp_info, policy, history_length=3, history_manager=history_manager)
 
 
+class GreedyDummyPolicy(Policy):
+    def draw_action(self, state):
+        return np.array([np.random.randint(4)])
+
+    def draw_action_greedy(self, state):
+        return np.array([1])
+
+
+class GreedyDummyAgent(Agent):
+    def __init__(self, mdp_info):
+        super().__init__(mdp_info, GreedyDummyPolicy())
+
+    def fit(self, dataset):
+        pass
+
+
+def test_core_greedy_evaluation():
+    from mushroom_rl.environments import GridWorld
+
+    mdp = GridWorld(height=3, width=3, goal=(2, 2), start=(0, 0))
+
+    core = Core(GreedyDummyAgent(mdp.info), mdp)
+
+    dataset = core.evaluate(n_steps=10, quiet=True, greedy=True)
+    assert np.all(np.array(dataset.action) == 1)
+
+    np.random.seed(0)
+    dataset_stochastic = core.evaluate(n_steps=10, quiet=True)
+    assert not np.all(np.array(dataset_stochastic.action) == 1)
+
+
+def test_core_greedy_evaluation_unsupported():
+    from mushroom_rl.environments import GridWorld
+
+    mdp = GridWorld(height=3, width=3, goal=(2, 2), start=(0, 0))
+
+    core = Core(DummyAgent(mdp.info), mdp)
+
+    with pytest.raises(NotImplementedError):
+        core.evaluate(n_steps=5, quiet=True, greedy=True)
+
+
 def test_core():
     mdp = Atari(name='ALE/Breakout-v5', repeat_action_probability=0.0)
 

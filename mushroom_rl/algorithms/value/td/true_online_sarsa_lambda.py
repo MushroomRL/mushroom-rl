@@ -1,5 +1,6 @@
 import numpy as np
 
+from mushroom_rl.core import HasNextAction
 from mushroom_rl.algorithms.value.td import TD
 from mushroom_rl.approximators import QApproximator
 from mushroom_rl.approximators.parametric import LinearApproximator
@@ -7,7 +8,7 @@ from mushroom_rl.features import Features
 from mushroom_rl.rl_utils.parameters import to_parameter
 
 
-class TrueOnlineSARSALambda(TD):
+class TrueOnlineSARSALambda(HasNextAction, TD):
     """
     True Online SARSA(lambda) with linear function approximation.
     "True Online TD(lambda)"
@@ -37,11 +38,11 @@ class TrueOnlineSARSALambda(TD):
 
         super().__init__(mdp_info, policy, Q, learning_rate)
 
-    def episode_start(self, initial_state, episode_info):
+    def episode_start(self, initial_state, episode_info, greedy=False):
         self._q_old = None
         self.e = np.zeros(self.Q.weights_size)
 
-        return super().episode_start(initial_state, episode_info)
+        return super().episode_start(initial_state, episode_info, greedy)
 
     def _update(self, state, action, reward, next_state, absorbing):
         phi_state = self.Q.model.phi(state)
@@ -57,8 +58,8 @@ class TrueOnlineSARSALambda(TD):
         self.e = (self.mdp_info.gamma * self._lambda() * self.e +
                   alpha * (1. - self.mdp_info.gamma * self._lambda.get_value() * e_phi) * phi_state_action)
 
-        self.next_action = self.draw_action(next_state)
-        q_next = self.Q.predict(next_state, self.next_action) if not absorbing else 0.
+        self._next_action = self.draw_action(next_state)
+        q_next = self.Q.predict(next_state, self._next_action) if not absorbing else 0.
 
         delta = reward + self.mdp_info.gamma * q_next - self._q_old
 

@@ -72,6 +72,25 @@ def test_eps_greedy_torch():
     assert a.item() == 0
 
 
+def test_eps_greedy_greedy_action():
+    np.random.seed(42)
+    eps = Parameter(0.1)
+    pi = EpsGreedy(eps)
+
+    Q = Table((10, 3))
+    Q.table = np.random.randn(10, 3)
+
+    pi.set_q(Q)
+
+    s = np.array([2])
+
+    a = pi.draw_action_greedy(s)
+    assert a.item() == 0
+
+    for _ in range(5):
+        assert pi.draw_action_greedy(s).item() == 0
+
+
 def test_boltzmann():
     np.random.seed(42)
     beta = Parameter(0.1)
@@ -126,6 +145,25 @@ def test_boltzmann_torch():
     a = pi.draw_action(s)
     assert isinstance(a, torch.Tensor)
     assert a.item() == 2
+
+
+def test_boltzmann_greedy():
+    np.random.seed(42)
+    beta = Parameter(0.1)
+    pi = Boltzmann(beta)
+
+    Q = Table((10, 3))
+    Q.table = np.random.randn(10, 3)
+
+    pi.set_q(Q)
+
+    s = np.array([2])
+
+    a = pi.draw_action_greedy(s)
+    assert a.item() == 0
+
+    for _ in range(5):
+        assert pi.draw_action_greedy(s).item() == 0
 
 
 def test_mellowmax():

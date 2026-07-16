@@ -559,7 +559,7 @@ def test_r_learning_save(tmpdir):
 def test_rq_learning():
     pi, mdp, _ = initialize()
 
-    agent = RQLearning(mdp.info, pi, Parameter(.1), beta=Parameter(.5))
+    agent = RQLearningOnPolicy(mdp.info, pi, Parameter(.1), beta=Parameter(.5))
 
     core = Core(agent, mdp)
 
@@ -573,7 +573,7 @@ def test_rq_learning():
 
     assert np.allclose(agent.Q.table, test_q)
 
-    agent = RQLearning(mdp.info, pi, Parameter(.1), delta=Parameter(.5))
+    agent = RQLearningOnPolicy(mdp.info, pi, Parameter(.1), delta=Parameter(.5))
 
     core = Core(agent, mdp)
 
@@ -587,8 +587,7 @@ def test_rq_learning():
 
     assert np.allclose(agent.Q.table, test_q)
 
-    agent = RQLearning(mdp.info, pi, Parameter(.1), off_policy=True,
-                       beta=Parameter(.5))
+    agent = RQLearning(mdp.info, pi, Parameter(.1), beta=Parameter(.5))
 
     core = Core(agent, mdp)
 
@@ -602,8 +601,7 @@ def test_rq_learning():
 
     assert np.allclose(agent.Q.table, test_q)
 
-    agent = RQLearning(mdp.info, pi, Parameter(.1), off_policy=True,
-                       delta=Parameter(.5))
+    agent = RQLearning(mdp.info, pi, Parameter(.1), delta=Parameter(.5))
 
     core = Core(agent, mdp)
 
@@ -618,12 +616,36 @@ def test_rq_learning():
     assert np.allclose(agent.Q.table, test_q)
 
 
+def test_has_next_action_reset():
+    pi, mdp, _ = initialize()
+
+    agent = SARSA(mdp.info, pi, Parameter(.1))
+
+    core = Core(agent, mdp)
+
+    core.learn(n_steps=50, n_steps_per_fit=1, quiet=True)
+
+    assert agent._next_action is None
+
+    agent._next_action = np.array([1])
+    agent.episode_start(mdp.reset()[0], {})
+    assert agent._next_action is None
+
+    agent._next_action = np.array([1])
+    agent.stop()
+    assert agent._next_action is None
+
+    dataset = core.evaluate(n_episodes=1, quiet=True, greedy=True)
+
+    assert len(dataset) > 0
+
+
 def test_rq_learning_save(tmpdir):
     agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
     pi, mdp, _ = initialize()
 
-    agent_save = RQLearning(mdp.info, pi, Parameter(.1), beta=Parameter(.5))
+    agent_save = RQLearningOnPolicy(mdp.info, pi, Parameter(.1), beta=Parameter(.5))
 
     core = Core(agent_save, mdp)
 

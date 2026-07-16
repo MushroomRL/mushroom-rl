@@ -50,7 +50,7 @@ def experiment(alg, params, n_epochs, fit_per_epoch, ep_per_fit):
     for i in trange(n_epochs, leave=False):
         core.learn(n_episodes=fit_per_epoch * ep_per_fit,
                    n_episodes_per_fit=ep_per_fit)
-        dataset_eval = core.evaluate(n_episodes=ep_per_fit)
+        dataset_eval = core.evaluate(n_episodes=ep_per_fit, greedy=True)
         J = np.mean(dataset_eval.discounted_return)
         logger.epoch_info(i+1, J=J, distribution_parameters=distribution.get_parameters())
 
@@ -59,7 +59,7 @@ if __name__ == '__main__':
     optimizer = AdaptiveOptimizer(eps=0.05)
 
     algs = [REPS, RWR, PGPE, ConstrainedREPS, MORE]
-    params = [{'eps': 0.5}, {'beta': 0.7}, {'optimizer': optimizer}, {'eps':0.5, 'kappa':5}, {'eps': 0.5}]
+    params = [{'eps': 0.5}, {'beta': 0.7}, {'optimizer': optimizer}, {'eps': 0.5, 'kappa': 5}, {'eps': 0.5}]
 
     for alg, params in zip(algs, params):
         experiment(alg, params, n_epochs=4, fit_per_epoch=10, ep_per_fit=100)

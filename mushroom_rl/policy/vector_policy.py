@@ -32,6 +32,13 @@ class VectorPolicy(Policy, HasWeights):
 
         return np.array(actions)
 
+    def draw_action_greedy(self, state):
+        actions = list()
+        for i, policy in enumerate(self._policy_vector):
+            actions.append(policy.draw_action_greedy(state[i]))
+
+        return np.array(actions)
+
     def set_n(self, n_envs):
         if len(self) > n_envs:
             self._policy_vector = self._policy_vector[:n_envs]

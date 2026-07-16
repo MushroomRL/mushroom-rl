@@ -1,5 +1,4 @@
 For Mushroom 2.0:
-    * deterministic policy evaluation
     * reorganize example folder
     * linting as much as possible
 
