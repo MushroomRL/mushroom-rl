@@ -1,29 +1,31 @@
 import numpy as np
 
+from .basis_function import BasisFunction
 
-class PolynomialBasis:
+
+class PolynomialBasis(BasisFunction):
     r"""
     Class implementing polynomial basis functions. The value of the feature
     is computed using the formula:
-    
+
     .. math::
         \prod X_i^{d_i}
 
-    where :math:`X~ is the input and :math:`d` is the vector of the exponents of the polynomial.
+    where :math:`X` is the input and :math:`d` is the vector of the exponents of the polynomial.
 
     """
     def __init__(self, dimensions=None, degrees=None, low=None, high=None):
         """
-        Constructor. If both parameters are None, the constant feature is built.
+        Constructor. If both ``dimensions`` and ``degrees`` are None, the constant feature is built.
 
         Args:
             dimensions (list, None): list of the dimensions of the input to be considered by the feature;
             degrees (list, None): list of the degrees of each dimension to be considered by the feature.
                 It must match the number of elements of ``dimensions``;
-            low (np.ndarray, None): array specifying the lower bound of the action space, used to normalize the
-                state between -1 and 1;
-            high (np.ndarray, None): array specifying the lower bound of the action space, used to normalize the
-                state between -1 and 1;
+            low (Array, None): array specifying the lower bound of the input, used to normalize it between
+                -1 and 1;
+            high (Array, None): array specifying the upper bound of the input, used to normalize it between
+                -1 and 1.
 
         """
         assert (dimensions is None and degrees is None) or (
@@ -31,42 +33,83 @@ class PolynomialBasis:
 
         assert (low is None and high is None) or (low is not None and high is not None)
 
-        self._dim = dimensions
         self._deg = degrees
 
         if low is not None:
-            self._mean = (low + high) / 2
-            self._delta = (high - low) / 2
+            low, high = self._to_numpy(low, high)
+
+            mean = (low + high) / 2
+            delta = (high - low) / 2
+
+            if dimensions is not None:
+                mean = mean[dimensions]
+                delta = delta[dimensions]
+
+            self._mean = mean
+            self._delta = delta
         else:
             self._mean = None
+            self._delta = None
 
-    def __call__(self, x):
+        super().__init__(dimensions)
 
-        if self._dim is None:
-            return 1
+        self._add_save_attr(_deg='primitive', _mean='numpy', _delta='numpy')
 
-        out = 1
-        x_n = self._normalize(x)
+    def __repr__(self):
+        if self._deg is None:
+            return 'PolynomialBasis(1)'
+
+        name = ''
         for i, d in zip(self._dim, self._deg):
-            out *= x_n[i]**d
+            if name:
+                name += '*'
+            name += f'x[{i}]'
+            if d > 1:
+                name += f'^{d}'
 
-        return out
+        return f'PolynomialBasis({name})'
+
+    @staticmethod
+    def generate(max_degree, input_size, low=None, high=None):
+        """
+        Factory method to build a polynomial of order ``max_degree`` based on
+        the first ``input_size`` dimensions of the input.
+
+        Args:
+            max_degree (int): maximum degree of the polynomial;
+            input_size (int): size of the input;
+            low (Array, None): array specifying the lower bound of the input, used to normalize it between
+                -1 and 1;
+            high (Array, None): array specifying the upper bound of the input, used to normalize it between
+                -1 and 1.
+
+        Returns:
+            The list of the generated polynomial basis functions.
+
+        """
+        assert (max_degree >= 0)
+        assert (input_size > 0)
+
+        basis_list = [PolynomialBasis()]
+
+        for e in PolynomialBasis._compute_exponents(max_degree, input_size):
+            dims = np.reshape(np.argwhere(e != 0), -1)
+            degs = e[e != 0]
+
+            basis_list.append(PolynomialBasis(dims, degs, low, high))
+
+        return basis_list
+
+    def _compute(self, x):
+        if self._deg is None:
+            return np.ones(x.shape[0])
+
+        return np.prod(self._normalize(x)**self._deg, axis=-1)
 
     def _normalize(self, x):
         if self._mean is not None:
             return (x - self._mean) / self._delta
         return x
-
-    def __str__(self):
-        if self._deg is None:
-            return '1'
-
-        name = ''
-        for i, d in zip(self._dim, self._deg):
-            name += 'x[' + str(i) + ']'
-            if d > 1:
-                name += '^' + str(d)
-        return name
 
     @staticmethod
     def _compute_exponents(order, n_variables):
@@ -98,34 +141,3 @@ class PolynomialBasis:
                         break
                 yield pattern
             pattern[-1] = 0
-
-    @staticmethod
-    def generate(max_degree, input_size, low=None, high=None):
-        """
-        Factory method to build a polynomial of order ``max_degree`` based on
-        the first ``input_size`` dimensions of the input.
-
-        Args:
-            max_degree (int): maximum degree of the polynomial;
-            input_size (int): size of the input;
-            low (np.ndarray, None): array specifying the lower bound of the action space, used to normalize the
-                state between -1 and 1;
-            high (np.ndarray, None): array specifying the lower bound of the action space, used to normalize the
-                state between -1 and 1;
-
-        Returns:
-            The list of the generated polynomial basis functions.
-
-        """
-        assert (max_degree >= 0)
-        assert (input_size > 0)
-
-        basis_list = [PolynomialBasis()]
-
-        for e in PolynomialBasis._compute_exponents(max_degree, input_size):
-            dims = np.reshape(np.argwhere(e != 0), -1)
-            degs = e[e != 0]
-
-            basis_list.append(PolynomialBasis(dims, degs, low, high))
-
-        return basis_list

@@ -1,3 +1,5 @@
-from .features import Features, get_action_features
+from .features import Features
+from .basis import BasisFunction
+from .tiles import AbstractTiles
 
-__all__ = ['Features', 'get_action_features']
+__all__ = ['Features', 'BasisFunction', 'AbstractTiles']

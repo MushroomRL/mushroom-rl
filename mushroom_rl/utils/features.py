@@ -10,10 +10,10 @@ def uniform_grid(n_centers, low, high, eta=0.25, cyclic=False):
 
     Args:
          n_centers (list): number of centers of each dimension;
-         low (np.ndarray): lowest value for each dimension;
-         high (np.ndarray): highest value for each dimension;
+         low (Array): lowest value for each dimension;
+         high (Array): highest value for each dimension;
          eta (float, 0.25): overlap between two radial basis functions;
-         cyclic (bool, False): whether the state space is a ring or not
+         cyclic (bool, False): whether the input space is a ring or not.
 
     Returns:
         The uniformly spaced grid and the width vector.
@@ -23,45 +23,21 @@ def uniform_grid(n_centers, low, high, eta=0.25, cyclic=False):
 
     n_features = len(low)
     w = np.zeros(n_features)
-    c = list()
-    tot_points = 1
+    centers = list()
+
     for i, n in enumerate(n_centers):
         start = low[i]
         end = high[i]
-        # m = abs(start - end) / n
+
         if n == 1:
             w[i] = abs(end - start) / 2
-            c_i = (start + end) / 2.
-            c.append(np.array([c_i]))
+            centers.append(np.array([(start + end) / 2.]))
         else:
-            if cyclic:
-                end_new = end - abs(end-start) / n
-            else:
-                end_new = end
+            end_new = end - abs(end - start) / n if cyclic else end
             w[i] = (1 + eta) * abs(end_new - start) / n
-            c_i = np.linspace(start, end_new, n)
-            c.append(c_i)
-        tot_points *= n
+            centers.append(np.linspace(start, end_new, n))
 
-    n_rows = 1
-    n_cols = 0
-
-    grid = np.zeros((tot_points, n_features))
-
-    for discrete_values in c:
-        i1 = 0
-        dim = len(discrete_values)
-
-        for i in range(dim):
-            for r in range(n_rows):
-                idx_r = r + i * n_rows
-                for c in range(n_cols):
-                    grid[idx_r, c] = grid[r, c]
-                grid[idx_r, n_cols] = discrete_values[i1]
-
-            i1 += 1
-
-        n_cols += 1
-        n_rows *= len(discrete_values)
+    mesh = np.meshgrid(*centers, indexing='ij')
+    grid = np.stack([m.ravel(order='F') for m in mesh], axis=-1)
 
     return grid, w

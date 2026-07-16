@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 
 """
-This script aims to replicate the experiments on the Ship Steering MDP 
+This script aims to replicate the experiments on the Ship Steering MDP
 using policy gradient algorithms.
 
 """
@@ -43,8 +43,8 @@ def experiment(alg, params, n_epochs, fit_per_epoch, ep_per_fit, ep_test):
     tilings = Tiles.generate(n_tilings=n_tilings, n_tiles=n_tiles, low=low,
                              high=high)
 
-    phi = Features(tilings=tilings)
-    input_shape = (phi.size,)
+    phi = Features(tilings)
+    input_shape = mdp.info.observation_space.shape
 
     approximator = LinearApproximator(input_shape=input_shape,
                                       output_shape=mdp.info.action_space.shape, phi=phi)

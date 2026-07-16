@@ -2,7 +2,7 @@ import numpy as np
 
 from mushroom_rl.algorithms.value.batch_td import BatchTD
 from mushroom_rl.approximators.parametric import LinearApproximator
-from mushroom_rl.features import get_action_features
+from mushroom_rl.features import Features
 from mushroom_rl.rl_utils.parameters import to_parameter
 
 
@@ -33,7 +33,7 @@ class LSPI(BatchTD):
         phi_state = self.approximator.model.phi(state)
         phi_next_state = self.approximator.model.phi(next_state)
 
-        phi_state_action = get_action_features(phi_state, action, self.mdp_info.action_space.n)
+        phi_state_action = Features.get_action_features(phi_state, action, self.mdp_info.action_space.n)
 
         norm = np.inf
         while norm > self._epsilon():
@@ -42,7 +42,8 @@ class LSPI(BatchTD):
                 q *= 1 - absorbing.reshape(-1, 1)
 
             next_action = np.argmax(q, axis=1).reshape(-1, 1)
-            phi_next_state_next_action = get_action_features(phi_next_state, next_action, self.mdp_info.action_space.n)
+            phi_next_state_next_action = Features.get_action_features(phi_next_state, next_action,
+                                                                      self.mdp_info.action_space.n)
 
             tmp = phi_state_action - self.mdp_info.gamma * phi_next_state_next_action
             A = phi_state_action.T.dot(tmp)

@@ -5,9 +5,13 @@ from mushroom_rl.features import Features
 from mushroom_rl.policy.dmp import DMP
 
 
+def _repeat_features(z):
+    return np.repeat(z, 4, axis=-1)
+
+
 def _make_dmp(action_dim=1, goal=None):
     n_features = 4
-    phi = Features(n_outputs=n_features, function=lambda z: np.repeat(z, n_features, axis=-1))
+    phi = Features(n_outputs=n_features, function=_repeat_features)
     mu = LinearApproximator(input_shape=(n_features,), output_shape=(action_dim,))
     if goal is None:
         goal = np.ones(action_dim)
@@ -116,3 +120,21 @@ def test_call_matches_deterministic_action():
 
     assert pi(state, action, pi.policy_state) == 1.0
     assert pi(state, action + 1.0, pi.policy_state) == 0.0
+
+
+def test_serialization(tmpdir):
+    np.random.seed(1)
+    pi = _make_dmp(action_dim=1)
+    pi.set_weights(np.arange(pi.weights_size, dtype=float))
+    state = np.zeros(1)
+
+    path = tmpdir / 'dmp.msh'
+    pi.save(path)
+    loaded = DMP.load(path)
+
+    assert np.allclose(loaded.get_weights(), pi.get_weights())
+
+    pi.reset()
+    loaded.reset()
+    for _ in range(5):
+        assert np.allclose(pi.draw_action(state), loaded.draw_action(state))

@@ -6,7 +6,7 @@ Tensors
     :private-members:
     :show-inheritance:
 
-.. automodule:: mushroom_rl.features.tensors.basis_tensor
+.. automodule:: mushroom_rl.features.tensors.radial_basis_tensor
     :members:
     :private-members:
     :show-inheritance:

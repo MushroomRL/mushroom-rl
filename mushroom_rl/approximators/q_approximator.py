@@ -13,7 +13,7 @@ class QApproximator(Approximator):
 
     """
 
-    def __new__(cls, approximator=None, n_actions=None, output_shape=(1,), n_models=1, **kwargs):
+    def __new__(cls, approximator=None, n_actions=None, input_shape=None, output_shape=(1,), n_models=1, **kwargs):
         if cls is not QApproximator:
             return MushroomObject.__new__(cls)
         if n_models > 1:
@@ -35,7 +35,7 @@ class QApproximatorSimple(QApproximator):
 
     """
 
-    def __init__(self, approximator, n_actions, output_shape=(1,), n_models=1, input_shape=None,
+    def __init__(self, approximator, n_actions, input_shape=None, output_shape=(1,), n_models=1,
                  **params):
         """
         Constructor.
@@ -43,8 +43,8 @@ class QApproximatorSimple(QApproximator):
         Args:
             approximator (class): the model class to approximate the Q-function;
             n_actions (int): number of actions;
-            output_shape (tuple, (1,)): shape of the output of the model;
             input_shape (tuple, None): shape of the input of the model;
+            output_shape (tuple, (1,)): shape of the output of the model;
             **params: other parameters passed to the approximator.
 
         """
@@ -170,7 +170,7 @@ class QApproximatorAction(QApproximator):
 
     """
 
-    def __init__(self, approximator, n_actions, output_shape=(1,), n_models=1, input_shape=None,
+    def __init__(self, approximator, n_actions, input_shape=None, output_shape=(1,), n_models=1,
                  **params):
         """
         Constructor.
@@ -178,8 +178,8 @@ class QApproximatorAction(QApproximator):
         Args:
             approximator (class): the model class to approximate the Q-function of each action;
             n_actions (int): number of actions, determines the number of models created;
-            output_shape (tuple, (1,)): shape of the output of each model;
             input_shape (tuple, None): shape of the input of each model;
+            output_shape (tuple, (1,)): shape of the output of each model;
             **params: other parameters passed to each model.
 
         """
@@ -320,13 +320,15 @@ class QApproximatorEnsemble(QApproximator, Ensemble):
 
     """
 
-    def __init__(self, approximator, n_actions, output_shape=(1,), n_models=1, prediction='mean', **params):
+    def __init__(self, approximator, n_actions, input_shape=None, output_shape=(1,), n_models=1,
+                 prediction='mean', **params):
         """
         Constructor.
 
         Args:
             approximator (class): the model class for each ensemble member;
             n_actions (int): number of actions;
+            input_shape (tuple, None): shape of the input of each model;
             output_shape (tuple, (1,)): shape of the output of each model;
             n_models (int): number of models in the ensemble;
             prediction (str, 'mean'): aggregation mode across models.
@@ -335,6 +337,8 @@ class QApproximatorEnsemble(QApproximator, Ensemble):
 
         """
         assert n_actions >= 2 and n_models > 1
+        if input_shape is not None:
+            params['input_shape'] = input_shape
         Ensemble.__init__(self, QApproximator, n_models, prediction=prediction,
                           approximator=approximator, n_actions=n_actions,
                           output_shape=output_shape, **params)

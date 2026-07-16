@@ -1,17 +1,14 @@
 import torch
 import torch.nn as nn
 
-from mushroom_rl.utils.torch_utils import TorchUtils
-
 
 class ConstantTensor(nn.Module):
     """
     Pytorch module to implement a constant function (always one).
 
     """
-
     def forward(self, x):
-        return torch.ones(x.shape[0], 1).to(TorchUtils.get_device())
+        return torch.ones(*x.shape[:-1], 1, device=x.device)
 
     @property
     def size(self):

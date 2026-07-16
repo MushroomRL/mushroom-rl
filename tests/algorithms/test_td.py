@@ -1,7 +1,6 @@
 import numpy as np
 
 import torch
-import torch.nn.functional as F
 
 from datetime import datetime
 from helper.utils import TestUtils as tu
@@ -27,13 +26,10 @@ def assert_properly_loaded(agent_save, agent_load):
             tu.assert_eq(save_attr, load_attr)
 
 
-
-
 def initialize():
     np.random.seed(1)
     torch.manual_seed(1)
-    return EpsGreedy(Parameter(1)), GridWorld(2, 2, start=(0, 0), goal=(1, 1)),\
-           PuddleWorld(horizon=1000)
+    return EpsGreedy(Parameter(1)), GridWorld(2, 2, start=(0, 0), goal=(1, 1)), PuddleWorld(horizon=1000)
 
 
 def test_q_learning():
@@ -320,10 +316,10 @@ def test_sarsa_lambda_continuous_linear():
     tilings = Tiles.generate(n_tilings, [2, 2],
                              mdp_continuous.info.observation_space.low,
                              mdp_continuous.info.observation_space.high)
-    features = Features(tilings=tilings)
+    features = Features(tilings)
 
     approximator_params = dict(
-        input_shape=(features.size,),
+        input_shape=mdp_continuous.info.observation_space.shape,
         output_shape=(mdp_continuous.info.action_space.n,),
         n_actions=mdp_continuous.info.action_space.n,
         phi=features
@@ -337,9 +333,9 @@ def test_sarsa_lambda_continuous_linear():
     core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
 
     test_w = np.array([-82.31759493, 0., -82.67048958, 0., -107.74658538,
-                        0., -105.56482617, 0., -72.24653201, 0.,
-                        -73.05283658, 0., -116.89230496, 0., -106.48877521,
-                        0., -99.50640198,  0., -92.73162587, 0.])
+                       0., -105.56482617, 0., -72.24653201, 0.,
+                       -73.05283658, 0., -116.89230496, 0., -106.48877521,
+                       0., -99.50640198, 0., -92.73162587, 0.])
 
     assert np.allclose(agent.Q.get_weights(), test_w)
 
@@ -353,10 +349,10 @@ def test_sarsa_lambda_continuous_linear_save(tmpdir):
     tilings = Tiles.generate(n_tilings, [2, 2],
                              mdp_continuous.info.observation_space.low,
                              mdp_continuous.info.observation_space.high)
-    features = Features(tilings=tilings)
+    features = Features(tilings)
 
     approximator_params = dict(
-        input_shape=(features.size,),
+        input_shape=mdp_continuous.info.observation_space.shape,
         output_shape=(mdp_continuous.info.action_space.n,),
         n_actions=mdp_continuous.info.action_space.n,
         phi=features,
@@ -469,10 +465,10 @@ def test_true_online_sarsa_lambda():
     tilings = Tiles.generate(n_tilings, [2, 2],
                              mdp_continuous.info.observation_space.low,
                              mdp_continuous.info.observation_space.high)
-    features = Features(tilings=tilings)
+    features = Features(tilings)
 
     approximator_params = dict(
-        input_shape=(features.size,),
+        input_shape=mdp_continuous.info.observation_space.shape,
         output_shape=(mdp_continuous.info.action_space.n,),
         n_actions=mdp_continuous.info.action_space.n,
         phi=features,
@@ -504,10 +500,10 @@ def test_true_online_sarsa_lambda_save(tmpdir):
     tilings = Tiles.generate(n_tilings, [2, 2],
                              mdp_continuous.info.observation_space.low,
                              mdp_continuous.info.observation_space.high)
-    features = Features(tilings=tilings)
+    features = Features(tilings)
 
     approximator_params = dict(
-        input_shape=(features.size,),
+        input_shape=mdp_continuous.info.observation_space.shape,
         output_shape=(mdp_continuous.info.action_space.n,),
         n_actions=mdp_continuous.info.action_space.n,
         phi=features,

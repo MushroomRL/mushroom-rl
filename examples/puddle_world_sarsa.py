@@ -21,10 +21,8 @@ def experiment(alpha, quiet):
     logger.info('Environment: PuddleWorld')
     logger.info('Experiment Algorithm: TrueOnlineSARSALambda')
 
-
     # MDP
     mdp = PuddleWorld(horizon=1000)
-
 
     # Policy
     epsilon = Parameter(value=0.1)
@@ -35,11 +33,11 @@ def experiment(alpha, quiet):
     tilings = Tiles.generate(n_tilings, [10, 10],
                              mdp.info.observation_space.low,
                              mdp.info.observation_space.high)
-    features = Features(tilings=tilings)
+    features = Features(tilings)
 
     learning_rate = Parameter(alpha / n_tilings)
 
-    approximator_params = dict(input_shape=(features.size,),
+    approximator_params = dict(input_shape=mdp.info.observation_space.shape,
                                output_shape=(mdp.info.action_space.n,),
                                n_actions=mdp.info.action_space.n,
                                phi=features)
@@ -66,7 +64,6 @@ def experiment(alpha, quiet):
 
     if not quiet:
         core.evaluate(n_episodes=5, render=True, quiet=True)
-
 
     return np.mean(dataset.undiscounted_return)
 

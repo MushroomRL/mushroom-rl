@@ -26,14 +26,14 @@ def test_imports():
     import mushroom_rl.environments.generators
 
     try:
-        import mujoco
+        import mujoco  # noqa: F401
     except ImportError:
         pass
     else:
         import mushroom_rl.environments.mujoco_envs
 
     import mushroom_rl.features
-    import mushroom_rl.features._implementations
+    import mushroom_rl.features._impl
     import mushroom_rl.features.basis
     import mushroom_rl.features.tensors
     import mushroom_rl.features.tiles
@@ -42,5 +42,4 @@ def test_imports():
 
     import mushroom_rl.solvers
 
-    import mushroom_rl.utils
-
+    import mushroom_rl.utils  # noqa: F401

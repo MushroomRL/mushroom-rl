@@ -128,11 +128,11 @@ if __name__ == '__main__':
     tilings = Tiles.generate(n_tilings, [10, 10],
                              env.info.observation_space.low,
                              env.info.observation_space.high)
-    features = Features(tilings=tilings)
+    features = Features(tilings)
 
     learning_rate = Parameter(.1 / n_tilings)
 
-    approximator_params = dict(input_shape=(features.size,),
+    approximator_params = dict(input_shape=env.info.observation_space.shape,
                                output_shape=(env.info.action_space.n,),
                                n_actions=env.info.action_space.n,
                                phi=features)

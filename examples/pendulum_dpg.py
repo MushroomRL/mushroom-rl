@@ -110,9 +110,9 @@ def experiment(n_epochs, n_episodes):
                              mdp.info.observation_space.low,
                              mdp.info.observation_space.high + 1e-3)
 
-    phi = Features(tilings=tilings)
+    phi = Features(tilings)
 
-    input_shape = (phi.size,)
+    input_shape = mdp.info.observation_space.shape
 
     mu = LinearApproximator(input_shape=input_shape,
                             output_shape=mdp.info.action_space.shape,

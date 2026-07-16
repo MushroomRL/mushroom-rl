@@ -6,9 +6,13 @@ from mushroom_rl.features import Features
 from mushroom_rl.policy.promps import ProMP
 
 
+def _repeat_features(z):
+    return np.repeat(z, 5, axis=-1)
+
+
 def _make_promp(duration=10, action_dim=2, sigma=None, periodic=False):
     n_features = 5
-    phi = Features(n_outputs=n_features, function=lambda z: np.repeat(z, n_features, axis=-1))
+    phi = Features(n_outputs=n_features, function=_repeat_features)
     mu = LinearApproximator(input_shape=(n_features,), output_shape=(action_dim,))
     return ProMP(mu, phi, duration, sigma=sigma, periodic=periodic)
 
@@ -161,3 +165,20 @@ def test_call_density():
     pi.set_weights(np.zeros(pi.weights_size))
     value = pi(np.zeros(2), np.zeros(2), np.array([0]))
     assert np.allclose(value, multivariate_normal.pdf(np.zeros(2), np.zeros(2), np.eye(2)))
+
+
+def test_serialization(tmpdir):
+    np.random.seed(1)
+    pi = _make_promp(duration=10, action_dim=2, sigma=None)
+    pi.set_weights(np.arange(pi.weights_size, dtype=float))
+
+    path = tmpdir / 'promp.msh'
+    pi.save(path)
+    loaded = ProMP.load(path)
+
+    assert np.allclose(loaded.get_weights(), pi.get_weights())
+
+    pi.reset()
+    loaded.reset()
+    for _ in range(4):
+        assert np.allclose(pi.draw_action(np.zeros(2)), loaded.draw_action(np.zeros(2)))

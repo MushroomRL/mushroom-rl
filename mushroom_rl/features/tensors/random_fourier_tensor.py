@@ -1,13 +1,12 @@
 import torch
 import torch.nn as nn
 
-from mushroom_rl.features.tensors import ConstantTensor
 from mushroom_rl.utils.torch_utils import TorchUtils
 
-import numpy as np
+from .constant_tensor import ConstantTensor
 
 
-class RandomFourierBasis(nn.Module):
+class RandomFourierTensor(nn.Module):
     r"""
     Class implementing Random Fourier basis functions. The value of the feature is computed using the formula:
 
@@ -28,35 +27,37 @@ class RandomFourierBasis(nn.Module):
         Constructor.
 
         Args:
-            P (np.ndarray): weights matrix, every weight should be drawn from a normal distribution;
-            phi (np.ndarray): bias vector, every weight should be drawn from a uniform distribution in the interval
-                :math: `[-\pi, \pi)`;
+            P (Array): weights matrix, every weight should be drawn from a normal distribution;
+            phi (Array): bias vector, every weight should be drawn from a uniform distribution in the interval
+                :math:`[-\pi, \pi)`;
             nu (float):  bandwidth parameter, it should be chosen approximately as the average pairwise distances
                 between different observation vectors.
 
         """
-        self._P = TorchUtils.to_float_tensor(P)
-        self._phi = TorchUtils.to_float_tensor(phi)
+        super().__init__()
+
+        self.register_buffer('_P', TorchUtils.to_float_tensor(P))
+        self.register_buffer('_phi', TorchUtils.to_float_tensor(phi))
         self._nu = nu
 
-        super().__init__()
+    def extra_repr(self):
+        return f'n_output={self.size}, nu={self._nu}'
 
     def forward(self, x):
         return torch.sin(x @ self._P / self._nu + self._phi)
 
-    def __str__(self):
-        return str(self._P) + ' ' + str(self._phi)
-
     @staticmethod
-    def generate(nu, n_output, input_size,  use_bias=True):
+    def generate(nu, n_output, input_size, use_bias=True):
         """
         Factory method to build random fourier basis. Includes a constant tensor into the output.
 
         Args:
-            nu (float):  bandwidth parameter, it should be chosen approximately as the average pairwise distances
-                between different observation vectors.
+            nu (float): bandwidth parameter, it should be chosen approximately as the average pairwise distances
+                between different observation vectors;
             n_output (int): number of basis to use;
-            input_size (int): size of the input.
+            input_size (int): size of the input;
+            use_bias (bool, True): whether to append a constant tensor to the output or not. The constant tensor
+                counts as one of the ``n_output`` basis.
 
         Returns:
             The list of the generated fourier basis functions.
@@ -65,10 +66,10 @@ class RandomFourierBasis(nn.Module):
         if use_bias:
             n_output -= 1
 
-        P = np.random.randn(input_size, n_output)
-        phi = np.random.uniform(-np.pi, np.pi, n_output)
+        P = torch.randn(input_size, n_output)
+        phi = torch.rand(n_output) * 2 * torch.pi - torch.pi
 
-        tensor_list = [RandomFourierBasis(P, phi, nu)]
+        tensor_list = [RandomFourierTensor(P, phi, nu)]
 
         if use_bias:
             tensor_list.append(ConstantTensor())

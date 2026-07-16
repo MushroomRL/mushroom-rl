@@ -1,5 +1,5 @@
-from .basis_tensor import GenericBasisTensor, GaussianRBFTensor, VonMisesBFTensor
+from .radial_basis_tensor import RadialBasisTensor, GaussianRBFTensor, VonMisesTensor
 from .constant_tensor import ConstantTensor
-from .random_fourier_tensor import RandomFourierBasis
+from .random_fourier_tensor import RandomFourierTensor
 
-__all_ = ['GenericBasisTensor', 'GaussianRBFTensor',  'VonMisesBFTensor', 'ConstantTensor', 'RandomFourierBasis']
+__all__ = ['RadialBasisTensor', 'GaussianRBFTensor', 'VonMisesTensor', 'ConstantTensor', 'RandomFourierTensor']

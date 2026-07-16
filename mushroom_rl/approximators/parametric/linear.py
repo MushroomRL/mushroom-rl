@@ -8,38 +8,34 @@ class LinearApproximator(Approximator):
     This class implements a linear approximator.
 
     """
-    def __init__(self, weights=None, input_shape=None, output_shape=(1,), phi=None, **kwargs):
+    def __init__(self, input_shape, output_shape=(1,), phi=None, **kwargs):
         """
         Constructor.
 
         Args:
-             weights (np.ndarray): array of weights to initialize the weights of the approximator;
-             input_shape (np.ndarray, None): the shape of the input of the model;
-             output_shape (np.ndarray, (1,)): the shape of the output of the model;
-             phi (object, None): features to extract from the state;
+             input_shape (tuple): the shape of the input of the model. If ``phi`` is given, the input is
+                featurized internally, so the number of weights is given by the size of ``phi`` and not by
+                this shape;
+             output_shape (tuple, (1,)): the shape of the output of the model;
+             phi (Features, None): features to extract from the state;
              **kwargs: other params of the approximator.
 
         """
         super().__init__(input_shape=input_shape, output_shape=output_shape)
 
+        assert isinstance(input_shape, tuple) and isinstance(output_shape, tuple)
         assert len(input_shape) == 1 and len(output_shape) == 1
 
-        input_dim = input_shape[0]
+        feature_dim = phi.size if phi is not None else input_shape[0]
         output_dim = output_shape[0]
 
-        if weights is not None:
-            self._w = weights.reshape((output_dim, -1))
-        elif input_dim is not None:
-            self._w = np.zeros((output_dim, input_dim))
-        else:
-            raise ValueError('You should specify the initial parameter vector'
-                             ' or the input dimension')
+        self._w = np.zeros((output_dim, feature_dim))
 
         self._phi = phi
 
         self._add_save_attr(
             _w='numpy',
-            _phi='pickle'
+            _phi='mushroom'
         )
 
     def fit(self, x, y, **fit_params):
@@ -49,15 +45,6 @@ class LinearApproximator(Approximator):
     def predict(self, x, **predict_params):
         phi = np.atleast_2d(self.phi(x))
         return np.atleast_1d((phi @ self._w.T).squeeze())
-
-    @property
-    def weights_size(self):
-        """
-        Returns:
-            The size of the array of weights.
-
-        """
-        return self._w.size
 
     def get_weights(self):
         """
@@ -120,3 +107,12 @@ class LinearApproximator(Approximator):
                 df[start:stop] = self.phi(state)
 
             return df
+
+    @property
+    def weights_size(self):
+        """
+        Returns:
+            The size of the array of weights.
+
+        """
+        return self._w.size

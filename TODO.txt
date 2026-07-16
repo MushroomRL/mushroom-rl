@@ -1,7 +1,4 @@
 For Mushroom 2.0:
-    * fix basis functions
-        - vectorize if possible, using vmap if allowed
-        - simplify interface, improving facade pattern
     * deterministic policy evaluation
     * reorganize example folder
     * linting as much as possible
