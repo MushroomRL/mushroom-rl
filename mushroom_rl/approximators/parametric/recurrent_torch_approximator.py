@@ -15,39 +15,32 @@ class RecurrentTorchApproximator(TorchApproximator):
 
     """
 
-    def __new__(cls, input_shape=None, output_shape=None, network=None, policy_state_shape=None,
-                optimizer=None, loss=None, batch_size=0, n_fit_targets=1, reinitialize=False, dropout=False,
-                quiet=True, n_models=None, action_history_shape=None, **params):
+    def __new__(cls, *args, n_models=None, **kwargs):
         if cls is RecurrentTorchApproximator and n_models is not None and n_models > 1:
             instance = MushroomObject.__new__(RecurrentTorchEnsemble)
-            RecurrentTorchEnsemble.__init__(instance, input_shape=input_shape, output_shape=output_shape,
-                                            network=network, policy_state_shape=policy_state_shape,
-                                            optimizer=optimizer, loss=loss, batch_size=batch_size,
-                                            n_fit_targets=n_fit_targets, reinitialize=reinitialize,
-                                            dropout=dropout, quiet=quiet, n_models=n_models,
-                                            action_history_shape=action_history_shape, **params)
+            RecurrentTorchEnsemble.__init__(instance, *args, n_models=n_models, **kwargs)
             return instance
         else:
             return MushroomObject.__new__(cls)
 
-    def __init__(self, input_shape, output_shape, network, policy_state_shape, optimizer=None, loss=None,
+    def __init__(self, network, input_shape, output_shape, policy_state_shape, optimizer=None, loss=None,
                  batch_size=0, n_fit_targets=1, reinitialize=False, dropout=False, quiet=True, n_models=None,
                  action_history_shape=None, **params):
         """
         Constructor.
 
         Args:
+            network (torch.nn.Module): the recurrent network class to use;
             input_shape (tuple): the per-timestep shape of the observation;
             output_shape (tuple, list): shape of the output of the network. A list of shape tuples for a
                 network returning several tensors (e.g. an actor returning ``[action, next_policy_state]``);
-            network (torch.nn.Module): the recurrent network class to use;
             policy_state_shape (tuple): the shape of the recurrent hidden state carried as policy state;
             action_history_shape (tuple, None): the per-timestep shape of the previous-action input, when the
                 network consumes the action history;
             **params: parameters forwarded to :class:`TorchApproximator` and the network constructor.
 
         """
-        super().__init__(input_shape, output_shape, network, optimizer=optimizer, loss=loss,
+        super().__init__(network, input_shape, output_shape, optimizer=optimizer, loss=loss,
                          batch_size=batch_size, n_fit_targets=n_fit_targets, reinitialize=reinitialize,
                          dropout=dropout, quiet=quiet, action_history_shape=action_history_shape, **params)
 
@@ -103,7 +96,7 @@ class RecurrentTorchEnsemble(Ensemble):
 
     """
 
-    def __init__(self, input_shape, output_shape, network, policy_state_shape, optimizer=None, loss=None,
+    def __init__(self, network, input_shape, output_shape, policy_state_shape, optimizer=None, loss=None,
                  batch_size=0, n_fit_targets=1, reinitialize=False, dropout=False, quiet=True, n_models=None,
                  prediction=None, action_history_shape=None, **params):
         """

@@ -20,28 +20,22 @@ class TorchApproximator(Approximator):
 
     """
 
-    def __new__(cls, input_shape=None, output_shape=None, network=None, optimizer=None, loss=None,
-                batch_size=0, n_fit_targets=1, reinitialize=False, dropout=False, quiet=True,
-                n_models=None, action_history_shape=None, kwargs_shape=None, **params):
+    def __new__(cls, *args, n_models=None, **kwargs):
         if cls is TorchApproximator and n_models is not None and n_models > 1:
             instance = MushroomObject.__new__(TorchEnsemble)
-            TorchEnsemble.__init__(instance, input_shape=input_shape, output_shape=output_shape,
-                                   network=network, optimizer=optimizer, loss=loss,
-                                   batch_size=batch_size, n_fit_targets=n_fit_targets,
-                                   reinitialize=reinitialize, dropout=dropout, quiet=quiet,
-                                   n_models=n_models, action_history_shape=action_history_shape,
-                                   kwargs_shape=kwargs_shape, **params)
+            TorchEnsemble.__init__(instance, *args, n_models=n_models, **kwargs)
             return instance
         else:
             return MushroomObject.__new__(cls)
 
-    def __init__(self, input_shape, output_shape, network, optimizer=None, loss=None, batch_size=0,
+    def __init__(self, network, input_shape, output_shape, optimizer=None, loss=None, batch_size=0,
                  n_fit_targets=1, reinitialize=False, dropout=False, quiet=True, n_models=None,
                  action_history_shape=None, kwargs_shape=None, **params):
         """
         Constructor.
 
         Args:
+            network (torch.nn.Module): the network class to use;
             input_shape (tuple, list): shape of the input of the network. A plain tuple for a
                 single-input network, or a list of shape tuples (one per positional input) for a
                 network that takes several distinct inputs (e.g. a critic taking ``state`` and
@@ -50,7 +44,6 @@ class TorchApproximator(Approximator):
                 single-output network, or a list of shape tuples (one per output tensor) for a
                 network whose ``forward`` returns several tensors; the number of outputs to parse
                 is derived from this, not passed separately;
-            network (torch.nn.Module): the network class to use;
             optimizer (dict): the optimizer used for every fit step;
             loss (torch.nn.functional): the loss function to optimize in the
                 fit method;
@@ -327,20 +320,20 @@ class TorchEnsemble(Ensemble):
 
     """
 
-    def __init__(self, input_shape, output_shape, network, optimizer=None, loss=None, batch_size=0,
+    def __init__(self, network, input_shape, output_shape, optimizer=None, loss=None, batch_size=0,
                  n_fit_targets=1, reinitialize=False, dropout=False, quiet=True, n_models=None,
                  prediction=None, **params):
         """
         Constructor.
 
         Args:
+            network (torch.nn.Module): the network class to use;
             input_shape (tuple, list): shape of the input of the network. A plain tuple for a
                 single-input network, or a list of shape tuples (one per positional input) for a
                 network that takes several distinct inputs;
             output_shape (tuple, list): shape of the output of the network. A plain tuple for a
                 single-output network, or a list of shape tuples (one per output tensor) for a
                 network whose ``forward`` returns several tensors;
-            network (torch.nn.Module): the network class to use;
             optimizer (dict): the optimizer used for every fit step;
             loss (torch.nn.functional): the loss function to optimize in the fit method;
             batch_size (int, 0): the size of each minibatch. If 0, the whole dataset is fed to
