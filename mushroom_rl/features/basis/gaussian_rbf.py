@@ -10,7 +10,7 @@ class GaussianRBF(BasisFunction):
     Class implementing Gaussian radial basis functions. The value of the feature is computed using the formula:
 
     .. math::
-        \sum \dfrac{(X_i - \mu_i)^2}{\sigma_i}
+        e^{-\sum \dfrac{(X_i - \mu_i)^2}{\sigma_i}}
 
     where :math:`X` is the input, :math:`\mu` is the mean vector and :math:`\sigma` is the scale parameter vector.
 
@@ -45,11 +45,12 @@ class GaussianRBF(BasisFunction):
         Factory method to build uniformly spaced gaussian radial basis functions with `eta` overlap.
 
         Args:
-            n_centers (list): list of the number of radial basis functions to be used for each dimension.
-            low (Array): lowest value for each dimension;
-            high (Array): highest value for each dimension;
-            dimensions (list, None): list of the dimensions of the input to be considered by the feature. The number of
-                dimensions must match the number of elements in ``n_centers`` and ``low``;
+            n_centers (list): list of the number of radial basis functions to be used for each selected dimension,
+                in the same order they are declared in ``dimensions``;
+            low (Array): lowest value for each dimension of the whole input;
+            high (Array): highest value for each dimension of the whole input;
+            dimensions (list, None): list of the dimensions of the input to be considered by the feature. If None,
+                every dimension of the input is used;
             eta (float, 0.25): percentage of overlap between the features.
 
         Returns:
@@ -58,10 +59,12 @@ class GaussianRBF(BasisFunction):
         """
         low, high = BasisFunction._to_numpy(low, high)
 
-        n_features = len(low)
-        assert len(n_centers) == n_features
         assert len(low) == len(high)
-        assert dimensions is None or n_features == len(dimensions)
+
+        if dimensions is not None:
+            low, high = low[dimensions], high[dimensions]
+
+        assert len(n_centers) == len(low)
 
         grid, w = uniform_grid(n_centers, low, high, eta)
 

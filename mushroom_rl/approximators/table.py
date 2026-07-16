@@ -8,7 +8,7 @@ class Table(Approximator):
     Table approximator. Used for discrete state and action spaces.
 
     """
-    def __init__(self, shape, initial_value=0., dtype=None):
+    def __init__(self, shape, initial_value=0., dtype=None, **kwargs):
         """
         Constructor.
 
@@ -17,6 +17,7 @@ class Table(Approximator):
             initial_value (float, 0.): the initial value for each entry of the
                 tabular regressor.
             dtype ([int, float], None): the dtype of the table array.
+            **kwargs: other params of the approximator.
 
         """
         super().__init__(input_shape=(1,), output_shape=(1,))
@@ -55,10 +56,9 @@ class Table(Approximator):
         Predict the output of the table given an input.
 
         Args:
-            *z (list): list of input of the model. If the table is a Q-table,
-            this list may contain states or states and actions depending
-                on whether the call requires to predict all q-values or only
-                one q-value corresponding to the provided action;
+            *z: list of input of the model. If the table is a Q-table, this list may contain states or states and
+                actions depending on whether the call requires to predict all q-values or only one q-value
+                corresponding to the provided action.
 
         Returns:
             The table prediction.
@@ -101,4 +101,3 @@ class Table(Approximator):
 
         """
         return self.table.shape
-

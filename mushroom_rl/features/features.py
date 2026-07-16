@@ -1,5 +1,3 @@
-import numpy as np
-
 import torch.nn as nn
 
 from mushroom_rl.core.array_backend import ArrayBackend
@@ -27,7 +25,8 @@ class Features(MushroomObject):
         feature_list ([object, list], None): single object or list of tilings, basis functions or tensor basis;
         n_outputs (int, None): dimensionality of the feature mapping;
         function (object, None): a callable function to be used as feature mapping. Only needed when using a
-            functional mapping;
+            functional mapping. The raw input is passed to it as it is, so it must handle both a single 1-D
+            input and a 2-D batch;
         backend (str, 'numpy'): the backend of the computed features, i.e. ``'numpy'`` or ``'torch'``.
 
     """
@@ -36,6 +35,10 @@ class Features(MushroomObject):
             return MushroomObject.__new__(cls)
 
         if feature_list is not None:
+            if n_outputs is not None or function is not None:
+                raise ValueError('The feature_list and the functional mapping arguments (n_outputs, function) are '
+                                 'mutually exclusive.')
+
             feature_list = Features._as_list(feature_list)
 
             if len(feature_list) == 0:
@@ -79,7 +82,7 @@ class Features(MushroomObject):
         computation, and the features are converted into the backend selected at construction after it.
 
         Args:
-            *x (list): the raw input.
+            *x: the raw input.
 
         Returns:
             The features vector computed from the raw input.
@@ -105,36 +108,41 @@ class Features(MushroomObject):
         ``len(phi_state)`` * (``action`` + 1) that are filled with `phi_state`. This
         is used to compute state-action features.
 
+        Both a single feature vector and a batch of them are supported. A batch of a single sample is collapsed
+        into a single feature vector, consistently with the features computation. The state-action features are
+        computed in the backend of ``phi_state``.
+
         Args:
-            phi_state (np.ndarray): the feature of the state;
-            action (np.ndarray): the action whose features have to be computed;
+            phi_state (Array): the feature of the state, or a batch of them;
+            action (Array): the action whose features have to be computed, or a batch of them;
             n_actions (int): the number of actions.
 
         Returns:
             The state-action features.
 
         """
+        if action.shape[0] == 1:
+            phi_state = phi_state.reshape(-1)
+            action = action.reshape(-1)
+
+        backend = ArrayBackend.get_array_backend_from(phi_state)
+        n_features = phi_state.shape[-1]
+
         if len(phi_state.shape) > 1:
             assert phi_state.shape[0] == action.shape[0]
 
-            phi = np.ones((phi_state.shape[0], n_actions * phi_state[0].size))
-            i = 0
-            for s, a in zip(phi_state, action):
-                start = s.size * int(a[0])
-                stop = start + s.size
+            n_samples = phi_state.shape[0]
 
-                phi_sa = np.zeros(n_actions * s.size)
-                phi_sa[start:stop] = s
+            phi = backend.zeros(n_samples, n_actions * n_features)
+            rows = backend.arange(0, n_samples).reshape(-1, 1)
+            columns = action.reshape(-1, 1) * n_features + backend.arange(0, n_features).reshape(1, -1)
 
-                phi[i] = phi_sa
-
-                i += 1
+            phi[rows, columns] = phi_state
         else:
-            start = phi_state.size * action[0]
-            stop = start + phi_state.size
+            start = int(action[0]) * n_features
 
-            phi = np.zeros(n_actions * phi_state.size)
-            phi[start:stop] = phi_state
+            phi = backend.zeros(n_actions * n_features)
+            phi[start:start + n_features] = phi_state
 
         return phi
 

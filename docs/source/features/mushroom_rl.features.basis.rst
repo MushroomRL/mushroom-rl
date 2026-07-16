@@ -1,6 +1,14 @@
 Basis
 =====
 
+Basis function interface
+------------------------
+
+.. automodule:: mushroom_rl.features.basis.basis_function
+    :members:
+    :private-members:
+    :show-inheritance:
+
 Fourier
 -------
 

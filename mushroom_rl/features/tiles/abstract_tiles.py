@@ -7,23 +7,23 @@ class AbstractTiles(MushroomObject):
     Base class for the tiles. A tiling maps a point of the state space to the index of the corresponding tile.
 
     """
-    def __init__(self, state_components=None):
+    def __init__(self, dimensions=None):
         """
         Constructor.
 
         Args:
-            state_components (list, None): list of the dimensions of the input to be considered by the tiling. If
-                None, every dimension of the input is used.
+            dimensions (list, None): list of the dimensions of the input to be considered by the tiling. If None,
+                every dimension of the input is used.
 
         """
-        self._state_components = state_components
+        self._dim = dimensions
 
-        self._add_save_attr(_state_components='primitive')
+        self._add_save_attr(_dim='primitive')
 
     def __call__(self, x):
         """
         Compute the index of the tile corresponding to each input point, considering only the dimensions of the
-        input selected by ``state_components``.
+        input selected by ``dimensions``.
 
         Args:
             x (np.ndarray): input batch with shape ``(n_samples, n_dimensions)``.
@@ -50,7 +50,7 @@ class AbstractTiles(MushroomObject):
         dimensions.
 
         Args:
-            x (np.ndarray): input batch with shape ``(n_samples, len(state_components))``.
+            x (np.ndarray): input batch with shape ``(n_samples, len(dimensions))``.
 
         Returns:
             The index of the corresponding tile for each sample, with shape ``(n_samples,)``, or ``-1`` for the
@@ -60,8 +60,8 @@ class AbstractTiles(MushroomObject):
         raise NotImplementedError
 
     def _select(self, x):
-        if self._state_components is not None:
-            return x[:, self._state_components]
+        if self._dim is not None:
+            return x[:, self._dim]
 
         return x
 

@@ -44,7 +44,7 @@ def experiment(alg, params, n_epochs, fit_per_epoch, ep_per_fit, ep_test):
                              high=high)
 
     phi = Features(tilings)
-    input_shape = (phi.size,)
+    input_shape = mdp.info.observation_space.shape
 
     approximator = LinearApproximator(input_shape=input_shape,
                                       output_shape=mdp.info.action_space.shape, phi=phi)

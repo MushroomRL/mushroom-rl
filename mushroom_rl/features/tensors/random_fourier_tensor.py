@@ -29,7 +29,7 @@ class RandomFourierTensor(nn.Module):
         Args:
             P (Array): weights matrix, every weight should be drawn from a normal distribution;
             phi (Array): bias vector, every weight should be drawn from a uniform distribution in the interval
-                :math: `[-\pi, \pi)`;
+                :math:`[-\pi, \pi)`;
             nu (float):  bandwidth parameter, it should be chosen approximately as the average pairwise distances
                 between different observation vectors.
 
@@ -47,15 +47,17 @@ class RandomFourierTensor(nn.Module):
         return torch.sin(x @ self._P / self._nu + self._phi)
 
     @staticmethod
-    def generate(nu, n_output, input_size,  use_bias=True):
+    def generate(nu, n_output, input_size, use_bias=True):
         """
         Factory method to build random fourier basis. Includes a constant tensor into the output.
 
         Args:
-            nu (float):  bandwidth parameter, it should be chosen approximately as the average pairwise distances
-                between different observation vectors.
+            nu (float): bandwidth parameter, it should be chosen approximately as the average pairwise distances
+                between different observation vectors;
             n_output (int): number of basis to use;
-            input_size (int): size of the input.
+            input_size (int): size of the input;
+            use_bias (bool, True): whether to append a constant tensor to the output or not. The constant tensor
+                counts as one of the ``n_output`` basis.
 
         Returns:
             The list of the generated fourier basis functions.

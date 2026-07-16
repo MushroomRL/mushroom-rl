@@ -1,5 +1,6 @@
 import numpy as np
 
+import pytest
 import torch
 
 from mushroom_rl.features import Features
@@ -65,18 +66,110 @@ def test_tiles_voronoi():
             assert features.size == y[i].size
 
 
-def test_tiles_state_components():
+def test_tiles_dimensions():
     np.random.seed(1)
 
     x = np.random.rand(4, 3)
     prototypes = np.random.rand(5, 2)
 
-    tiles = Tiles([[0., 1.], [0., 1.]], [3, 3], state_components=[0, 2])
-    voronoi = VoronoiTiles(prototypes, state_components=[0, 2])
+    tiles = Tiles([[0., 1.], [-1., 2.], [0., 1.]], [3, 3], dimensions=[0, 2])
+    voronoi = VoronoiTiles(prototypes, dimensions=[0, 2])
 
     assert np.array_equal(tiles(x), np.array([1, 0, 3, 7]))
     assert np.array_equal(tiles(x), Tiles([[0., 1.], [0., 1.]], [3, 3])(x[:, [0, 2]]))
     assert np.array_equal(voronoi(x), VoronoiTiles(prototypes)(x[:, [0, 2]]))
+
+
+def test_tiles_dimensions_mismatch():
+    np.random.seed(1)
+
+    prototypes = np.random.rand(5, 2)
+
+    with pytest.raises(AssertionError):
+        Tiles([[0., 1.], [0., 1.]], [3, 3], dimensions=[0, 1, 2])
+
+    with pytest.raises(AssertionError):
+        VoronoiTiles(prototypes, dimensions=[0, 1, 2])
+
+    with pytest.raises(AssertionError):
+        Tiles([[0., 1.], [0., 1.], [0., 1.]], [3, 3, 3], dimensions=[0, 2])
+
+
+def test_tiles_generate_dimensions():
+    np.random.seed(1)
+
+    x = np.random.rand(4, 3)
+    low, high = np.array([0., -1., 0.]), np.array([1., 2., 1.])
+
+    tilings = Tiles.generate(3, [3, 3], low, high, dimensions=[0, 2])
+    reference = Tiles.generate(3, [3, 3], low[[0, 2]], high[[0, 2]])
+
+    assert len(tilings) == 3
+
+    for tiling, reference_tiling in zip(tilings, reference):
+        assert tiling.size == 9
+        assert np.array_equal(tiling(x), reference_tiling(x[:, [0, 2]]))
+
+    features = Features(tilings)
+
+    assert features.size == 27
+    assert features(x).shape == (4, 27)
+
+    with pytest.raises(AssertionError):
+        Tiles.generate(3, [3, 3, 3], low, high, dimensions=[0, 2])
+
+
+def test_basis_generate_dimensions():
+    np.random.seed(1)
+
+    x = np.random.rand(4, 3)
+    low, high = np.array([0., -9., 0.]), np.array([1., 9., 1.])
+
+    generators = [
+        lambda a, b, d: GaussianRBF.generate([3, 3], a, b, dimensions=d),
+        lambda a, b, d: FourierBasis.generate(a, b, 2, dimensions=d),
+        lambda a, b, d: GaussianRBFTensor.generate([3, 3], a, b, dimensions=d)
+    ]
+
+    for generator in generators:
+        features = Features(generator(low, high, [0, 2]))
+        reference = Features(generator(low[[0, 2]], high[[0, 2]], None))
+
+        assert features.size == 9
+        assert np.allclose(np.asarray(features(x)), np.asarray(reference(x[:, [0, 2]])))
+
+    with pytest.raises(AssertionError):
+        GaussianRBF.generate([3, 3, 3], low, high, dimensions=[0, 2])
+
+
+def test_voronoi_generate_dimensions():
+    np.random.seed(1)
+
+    x = np.random.rand(4, 3)
+
+    tilings = VoronoiTiles.generate(2, 5, low=np.array([0., -9., 0.]), high=np.array([1., 9., 1.]),
+                                    dimensions=[0, 2])
+
+    assert len(tilings) == 2
+
+    for tiling in tilings:
+        assert tiling.size == 5
+
+    features = Features(tilings)
+
+    assert features.size == 10
+    assert features(x).shape == (4, 10)
+
+    np.random.seed(2)
+    gaussian = VoronoiTiles.generate(2, 5, mu=np.zeros(2), sigma=np.ones(2), dimensions=[0, 2])
+    np.random.seed(2)
+    reference = VoronoiTiles.generate(2, 5, mu=np.zeros(2), sigma=np.ones(2))
+
+    for tiling, reference_tiling in zip(gaussian, reference):
+        assert np.array_equal(tiling(x), reference_tiling(x[:, [0, 2]]))
+
+    with pytest.raises(AssertionError):
+        VoronoiTiles.generate(2, 5, mu=np.zeros(3), sigma=np.ones(3), dimensions=[0, 2])
 
 
 def test_tiles_outside():
@@ -202,11 +295,19 @@ def test_generate_torch_bounds():
         lambda a, b: GaussianRBF.generate([2, 2], a, b),
         lambda a, b: FourierBasis.generate(a, b, 2),
         lambda a, b: PolynomialBasis.generate(2, 2, a, b),
-        lambda a, b: GaussianRBFTensor.generate([2, 2], a, b)
+        lambda a, b: GaussianRBFTensor.generate([2, 2], a, b),
+        lambda a, b: Tiles.generate(2, [3, 3], a, b)
     ]
 
     for generate in generators:
         assert np.allclose(Features(generate(low_torch, high_torch))(x), Features(generate(low, high))(x))
+
+    np.random.seed(1)
+    voronoi_torch = VoronoiTiles.generate(2, 5, low=low_torch, high=high_torch)
+    np.random.seed(1)
+    voronoi_numpy = VoronoiTiles.generate(2, 5, low=low, high=high)
+
+    assert np.allclose(Features(voronoi_torch)(x), Features(voronoi_numpy)(x))
 
 
 def test_basis_repr():
@@ -230,8 +331,8 @@ def test_tiles_repr():
     high = np.array([1., .5])
 
     assert repr(Tiles([[0., 1.], [-.5, .5]], [3, 3])) == 'Tiles(n_tiles=[3, 3], range=[[0.0, 1.0], [-0.5, 0.5]])'
-    assert repr(Tiles([[0., 1.], [-.5, .5]], [3, 3], state_components=[0, 2])) == \
-           'Tiles(n_tiles=[3, 3], range=[[0.0, 1.0], [-0.5, 0.5]], state_components=[0, 2])'
+    assert repr(Tiles([[0., 1.], [2., 3.], [-.5, .5]], [3, 3], dimensions=[0, 2])) == \
+           'Tiles(n_tiles=[3, 3], range=[[0.0, 1.0], [-0.5, 0.5]], dimensions=[0, 2])'
     assert repr(Tiles.generate(2, [3, 3], low, high)[0]) == \
            'Tiles(n_tiles=[3, 3], range=[[-0.2, 1.0], [-0.7, 0.5]])'
     assert repr(VoronoiTiles.generate(2, 10, low=low, high=high)[0]) == 'VoronoiTiles(n_prototypes=10)'
@@ -362,6 +463,28 @@ def test_single_feature():
         assert features(x[0]).shape == (features.size,)
 
 
+def test_batch_shape_all_features():
+    np.random.seed(1)
+    low = np.array([0., -.5])
+    high = np.array([1., .5])
+
+    x = np.random.rand(4, 2) + [0., -.5]
+
+    features_list = [
+        Features(GaussianRBF.generate([3, 3], low, high)),
+        Features(Tiles.generate(2, [3, 3], low, high)),
+        Features(GaussianRBFTensor.generate([3, 3], low, high)),
+        Features(n_outputs=2),
+        Features(n_outputs=1, function=lambda z: np.sum(z, axis=-1, keepdims=True))
+    ]
+
+    for features in features_list:
+        assert features(x).shape == (4, features.size)
+        assert features(x[:1]).shape == (features.size,)
+        assert features(x[0]).shape == (features.size,)
+        assert np.allclose(np.asarray(features(x[:1])), np.asarray(features(x[0])))
+
+
 def test_dispatch_errors():
     low = np.array([0., -.5])
     high = np.array([1., .5])
@@ -369,7 +492,8 @@ def test_dispatch_errors():
     rbf = GaussianRBF.generate([3, 3], low, high)[0]
     rbf_tensor = GaussianRBFTensor.generate([3, 3], low, high)[0]
 
-    for bad_args, bad_kwargs in [(([rbf, rbf_tensor],), {}), (([],), {}), ((), {})]:
+    for bad_args, bad_kwargs in [(([rbf, rbf_tensor],), {}), (([],), {}), ((), {}),
+                                 (([rbf],), dict(n_outputs=5)), (([rbf],), dict(function=lambda z: z))]:
         try:
             Features(*bad_args, **bad_kwargs)
             assert False
@@ -510,6 +634,24 @@ def test_to_torch_module():
     assert torch.any(x.grad != 0.)
 
 
+def test_to_torch_module_sequence():
+    torch.manual_seed(1)
+    low = np.array([0., -.5])
+    high = np.array([1., .5])
+
+    tensor_list = GaussianRBFTensor.generate([3, 3], low, high) + VonMisesTensor.generate([3, 3], low, high) \
+        + RandomFourierTensor.generate(2.5, 4, 2)
+
+    features = Features(tensor_list)
+    module = features.to_torch_module()
+
+    x = torch.rand(4, 7, 2)
+    y = module(x)
+
+    assert y.shape == (4, 7, features.size)
+    assert torch.allclose(y, module(x.reshape(-1, 2)).reshape(4, 7, features.size))
+
+
 def test_to_torch_module_not_implemented():
     low = np.array([0., -.5])
     high = np.array([1., .5])
@@ -541,6 +683,28 @@ def test_get_action_features_batch():
 
     assert np.allclose(phi_state_action, np.array([[1., 2., 0., 0., 0., 0.],
                                                    [0., 0., 0., 0., 3., 4.]]))
+
+
+def test_get_action_features_single_sample_batch():
+    action = np.array([[1]])
+
+    assert np.allclose(Features.get_action_features(np.array([[1., 2.]]), action, 3),
+                       np.array([0., 0., 1., 2., 0., 0.]))
+    assert np.allclose(Features.get_action_features(np.array([1., 2.]), action, 3),
+                       np.array([0., 0., 1., 2., 0., 0.]))
+
+
+def test_get_action_features_torch():
+    phi_state_action = Features.get_action_features(torch.tensor([[1., 2.], [3., 4.]]), torch.tensor([[0], [2]]), 3)
+
+    assert isinstance(phi_state_action, torch.Tensor)
+    assert torch.allclose(phi_state_action, torch.tensor([[1., 2., 0., 0., 0., 0.],
+                                                          [0., 0., 0., 0., 3., 4.]]))
+
+    assert torch.allclose(Features.get_action_features(torch.tensor([1., 2.]), torch.tensor([1]), 3),
+                          torch.tensor([0., 0., 1., 2., 0., 0.]))
+    assert torch.allclose(Features.get_action_features(torch.tensor([[1., 2.]]), torch.tensor([[1]]), 3),
+                          torch.tensor([0., 0., 1., 2., 0., 0.]))
 
 
 def test_serialization(tmpdir):

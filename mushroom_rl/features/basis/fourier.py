@@ -9,10 +9,11 @@ class FourierBasis(BasisFunction):
     is computed using the formula:
 
     .. math::
-        \sum \cos{\pi(X - m)/\Delta c}
+        \cos{\left(\pi \sum_i \dfrac{(X_i - m_i)}{\Delta_i} c_i\right)}
 
-    where :math:`X` is the input, m is the vector of the minumum input values (for each dimensions) , :math:`\Delta` is
-    the vector of differences between maximum and minumun values for the variables.
+    where :math:`X` is the input, :math:`m` is the vector of the minimum input values (for each dimension),
+    :math:`\Delta` is the vector of differences between maximum and minimum values for the variables and
+    :math:`c` is the vector of weights.
 
     """
     def __init__(self, low, delta, c, dimensions=None):
@@ -42,11 +43,11 @@ class FourierBasis(BasisFunction):
         Factory method to build a set of fourier basis.
 
         Args:
-            low (Array): vector of minimum values of the input variables;
-            high (Array): vector of maximum values of the input variables;
-            n (int): number of harmonics to consider for each state variable
-            dimensions (list, None): list of the dimensions of the input to be
-                considered by the features.
+            low (Array): vector of minimum values of each variable of the whole input;
+            high (Array): vector of maximum values of each variable of the whole input;
+            n (int): number of harmonics to consider for each selected input variable;
+            dimensions (list, None): list of the dimensions of the input to be considered by the features. If
+                None, every dimension of the input is used.
 
         Returns:
             The list of the generated fourier basis functions.
@@ -54,8 +55,10 @@ class FourierBasis(BasisFunction):
         """
         low, high = BasisFunction._to_numpy(low, high)
 
+        assert len(low) == len(high)
+
         if dimensions is not None:
-            assert len(low) == len(dimensions)
+            low, high = low[dimensions], high[dimensions]
 
         input_size = len(low)
         delta = high - low

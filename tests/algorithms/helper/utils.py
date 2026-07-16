@@ -301,8 +301,8 @@ class TestUtils:
             res &= a == b
         for a, b in zip(this._n_tiles, that._n_tiles):
             res &= a == b
-        if this._state_components is not None and that._state_components is not None:
-            for a, b in zip(this._state_components, that._state_components):
+        if this._dim is not None and that._dim is not None:
+            for a, b in zip(this._dim, that._dim):
                 res &= a == b
         return res
 

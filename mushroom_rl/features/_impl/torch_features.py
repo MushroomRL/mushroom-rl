@@ -17,7 +17,7 @@ class TorchFeatures(Features):
             self._phi = nn.ModuleList(tensor_list)
 
         def forward(self, x):
-            return torch.cat([phi(x) for phi in self._phi], dim=1)
+            return torch.cat([phi(x) for phi in self._phi], dim=-1)
 
         @property
         def size(self):
@@ -41,7 +41,7 @@ class TorchFeatures(Features):
         with torch.no_grad():
             y = self._phi(torch.atleast_2d(x))
 
-        if x.dim() == 1:
-            return y.squeeze(0)
+        if y.shape[0] == 1:
+            return y[0]
 
         return y

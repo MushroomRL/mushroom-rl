@@ -132,7 +132,7 @@ if __name__ == '__main__':
 
     learning_rate = Parameter(.1 / n_tilings)
 
-    approximator_params = dict(input_shape=(features.size,),
+    approximator_params = dict(input_shape=env.info.observation_space.shape,
                                output_shape=(env.info.action_space.n,),
                                n_actions=env.info.action_space.n,
                                phi=features)

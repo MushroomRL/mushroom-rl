@@ -10,10 +10,10 @@ def uniform_grid(n_centers, low, high, eta=0.25, cyclic=False):
 
     Args:
          n_centers (list): number of centers of each dimension;
-         low (np.ndarray): lowest value for each dimension;
-         high (np.ndarray): highest value for each dimension;
+         low (Array): lowest value for each dimension;
+         high (Array): highest value for each dimension;
          eta (float, 0.25): overlap between two radial basis functions;
-         cyclic (bool, False): whether the state space is a ring or not
+         cyclic (bool, False): whether the input space is a ring or not.
 
     Returns:
         The uniformly spaced grid and the width vector.

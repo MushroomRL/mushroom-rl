@@ -11,21 +11,21 @@ class PolynomialBasis(BasisFunction):
     .. math::
         \prod X_i^{d_i}
 
-    where :math:`X~ is the input and :math:`d` is the vector of the exponents of the polynomial.
+    where :math:`X` is the input and :math:`d` is the vector of the exponents of the polynomial.
 
     """
     def __init__(self, dimensions=None, degrees=None, low=None, high=None):
         """
-        Constructor. If both parameters are None, the constant feature is built.
+        Constructor. If both ``dimensions`` and ``degrees`` are None, the constant feature is built.
 
         Args:
             dimensions (list, None): list of the dimensions of the input to be considered by the feature;
             degrees (list, None): list of the degrees of each dimension to be considered by the feature.
                 It must match the number of elements of ``dimensions``;
-            low (Array, None): array specifying the lower bound of the action space, used to normalize the
-                state between -1 and 1;
-            high (Array, None): array specifying the upper bound of the action space, used to normalize the
-                state between -1 and 1;
+            low (Array, None): array specifying the lower bound of the input, used to normalize it between
+                -1 and 1;
+            high (Array, None): array specifying the upper bound of the input, used to normalize it between
+                -1 and 1.
 
         """
         assert (dimensions is None and degrees is None) or (
@@ -78,10 +78,10 @@ class PolynomialBasis(BasisFunction):
         Args:
             max_degree (int): maximum degree of the polynomial;
             input_size (int): size of the input;
-            low (Array, None): array specifying the lower bound of the action space, used to normalize the
-                state between -1 and 1;
-            high (Array, None): array specifying the upper bound of the action space, used to normalize the
-                state between -1 and 1;
+            low (Array, None): array specifying the lower bound of the input, used to normalize it between
+                -1 and 1;
+            high (Array, None): array specifying the upper bound of the input, used to normalize it between
+                -1 and 1.
 
         Returns:
             The list of the generated polynomial basis functions.

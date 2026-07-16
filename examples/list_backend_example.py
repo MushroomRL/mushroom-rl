@@ -45,7 +45,7 @@ def experiment(alpha):
 
     learning_rate = Parameter(alpha / n_tilings)
 
-    approximator_params = dict(input_shape=(features.size,),
+    approximator_params = dict(input_shape=mdp.info.observation_space.shape,
                                output_shape=(mdp.info.action_space.n,),
                                n_actions=mdp.info.action_space.n,
                                phi=features)

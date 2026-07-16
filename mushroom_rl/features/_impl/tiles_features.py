@@ -18,7 +18,7 @@ class TilesFeatures(Features):
         Compute the index of the active tile of every tiling, for each sample of the raw input.
 
         Args:
-            *args (list): the raw input.
+            *args: the raw input.
 
         Returns:
             The index of the active tile of every tiling, with shape ``(n_samples, n_tilings)``, or ``-1`` for the

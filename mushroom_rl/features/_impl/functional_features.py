@@ -15,7 +15,9 @@ class FunctionalFeatures(Features):
         return self._n_outputs
 
     def _compute(self, x):
-        if self._function is not None:
-            return self._function(x)
+        y = self._function(x) if self._function is not None else x
 
-        return x
+        if y.ndim > 1 and y.shape[0] == 1:
+            return y[0]
+
+        return y

@@ -1,6 +1,9 @@
 import numpy as np
+import pytest
 
 from mushroom_rl.approximators.parametric import LinearApproximator
+from mushroom_rl.features import Features
+from mushroom_rl.features.basis import PolynomialBasis
 
 
 def test_linear_approximator():
@@ -41,3 +44,44 @@ def test_linear_approximator():
 
     assert np.array_equal(random_weights, random_weight_new)
     assert not np.any(np.equal(random_weights, old_weights))
+
+
+def test_linear_approximator_features():
+    np.random.seed(1)
+
+    phi = Features(PolynomialBasis.generate(2, 2))
+    approximator = LinearApproximator(input_shape=(2,), output_shape=(3,), phi=phi)
+
+    assert approximator.input_shape == (2,)
+    assert approximator.output_shape == (3,)
+    assert approximator.weights_size == 3 * phi.size
+
+    x = np.random.rand(1000, 2)
+    k = np.random.rand(2, 3)
+    y = x.dot(k) + np.random.randn(1000, 3) * 0.1
+
+    approximator.fit(x, y)
+
+    x_test = np.random.rand(2, 2)
+    y_hat = approximator.predict(x_test)
+    y_test = np.array([[0.13414133, 0.18289077, 0.30560392],
+                       [0.18201813, 0.25354858, 0.33424068]])
+
+    assert np.allclose(y_hat, y_test)
+
+    derivative = approximator.diff(x_test[0])
+
+    assert derivative.shape == (approximator.weights_size, 3)
+    assert np.array_equal(derivative[:phi.size, 0], phi(x_test[0]))
+    assert not np.any(derivative[phi.size:, 0])
+
+
+def test_linear_approximator_errors():
+    with pytest.raises(TypeError):
+        LinearApproximator()
+
+    with pytest.raises(AssertionError):
+        LinearApproximator(input_shape=[(2,), (3,)], output_shape=(1,))
+
+    with pytest.raises(AssertionError):
+        LinearApproximator(input_shape=(2, 3), output_shape=(1,))

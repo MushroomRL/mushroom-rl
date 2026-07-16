@@ -8,7 +8,7 @@ class ConstantTensor(nn.Module):
 
     """
     def forward(self, x):
-        return torch.ones(x.shape[0], 1, device=x.device)
+        return torch.ones(*x.shape[:-1], 1, device=x.device)
 
     @property
     def size(self):

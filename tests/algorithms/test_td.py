@@ -319,7 +319,7 @@ def test_sarsa_lambda_continuous_linear():
     features = Features(tilings)
 
     approximator_params = dict(
-        input_shape=(features.size,),
+        input_shape=mdp_continuous.info.observation_space.shape,
         output_shape=(mdp_continuous.info.action_space.n,),
         n_actions=mdp_continuous.info.action_space.n,
         phi=features
@@ -352,7 +352,7 @@ def test_sarsa_lambda_continuous_linear_save(tmpdir):
     features = Features(tilings)
 
     approximator_params = dict(
-        input_shape=(features.size,),
+        input_shape=mdp_continuous.info.observation_space.shape,
         output_shape=(mdp_continuous.info.action_space.n,),
         n_actions=mdp_continuous.info.action_space.n,
         phi=features,
@@ -468,7 +468,7 @@ def test_true_online_sarsa_lambda():
     features = Features(tilings)
 
     approximator_params = dict(
-        input_shape=(features.size,),
+        input_shape=mdp_continuous.info.observation_space.shape,
         output_shape=(mdp_continuous.info.action_space.n,),
         n_actions=mdp_continuous.info.action_space.n,
         phi=features,
@@ -503,7 +503,7 @@ def test_true_online_sarsa_lambda_save(tmpdir):
     features = Features(tilings)
 
     approximator_params = dict(
-        input_shape=(features.size,),
+        input_shape=mdp_continuous.info.observation_space.shape,
         output_shape=(mdp_continuous.info.action_space.n,),
         n_actions=mdp_continuous.info.action_space.n,
         phi=features,

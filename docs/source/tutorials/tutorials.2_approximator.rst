@@ -34,6 +34,25 @@ the approximated function can be obtained:
 .. literalinclude:: code/approximator.py
    :lines: 18-
 
+Features and input shape
+------------------------
+
+Instead of building the features by hand, a ``Features`` object can be given to the approximator
+through the ``phi`` parameter. The approximator then featurizes its input internally, so ``fit``
+and ``predict`` are called with the raw input:
+
+.. code-block:: python
+
+    phi = Features(PolynomialBasis.generate(1, 1))
+    approximator = LinearApproximator(input_shape=(1,), output_shape=(1,), phi=phi)
+    approximator.fit(x, y)
+
+``input_shape`` always describes the input of the model, i.e. what is passed to ``fit`` and
+``predict``. When ``phi`` is given, the number of weights is determined by the size of the
+features, not by ``input_shape``: the approximator above holds two weights, one per polynomial
+feature, even though its input is one-dimensional. ``input_shape`` must be a tuple, as an
+approximator takes a single input.
+
 Q-function approximation
 ------------------------
 
@@ -79,7 +98,7 @@ simply set ``output_shape`` to ``(1,)``:
 
 .. code-block:: python
 
-   approximator_params = dict(input_shape=(features.size,),
+   approximator_params = dict(input_shape=mdp.info.observation_space.shape,
                               output_shape=(1,),
                               n_actions=mdp.info.action_space.n,
                               phi=features)
