@@ -87,6 +87,26 @@ def test_recurrent_policy_draw_action():
     assert torch.allclose(new_policy_state, new_ps_test, atol=1e-5)
 
 
+def test_recurrent_policy_draw_action_greedy():
+    n_state, n_action, n_hidden = 4, 2, 8
+    policy = make_policy(n_state, n_action, n_hidden)
+
+    state = torch.tensor([0.1, -0.2, 0.3, -0.4])
+    policy.reset()
+
+    action = policy.draw_action_greedy(state)
+    new_policy_state = policy.policy_state
+
+    action_test = torch.tensor([0.25209162, 0.26158917])
+    new_ps_test = torch.tensor([-0.13474981,  0.16390274,  0.04836516, -0.00375814,
+                                -0.05680789,  0.06481361,  0.22528732, -0.00479783])
+
+    assert action.shape == (n_action,)
+    assert new_policy_state.shape == (n_hidden,)
+    assert torch.allclose(action, action_test, atol=1e-5)
+    assert torch.allclose(new_policy_state, new_ps_test, atol=1e-5)
+
+
 def test_recurrent_policy_entropy():
     policy = make_policy()
 

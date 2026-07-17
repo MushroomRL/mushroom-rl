@@ -229,6 +229,8 @@ class BoltzmannTorchPolicy(TorchPolicy):
 
     def draw_action(self, state):
         with torch.no_grad():
+            self._beta.update(state.numpy())
+
             return self.distribution(state).sample().unsqueeze(-1)
 
     def draw_action_greedy(self, state):
@@ -245,7 +247,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
         return torch.mean(self.distribution(state).entropy())
 
     def distribution(self, state):
-        logits = self._logits(state, **self._predict_params) * self._beta(state.numpy())
+        logits = self._logits(state, **self._predict_params) * self._beta.get_value(state.numpy())
         return CategoricalWrapper(logits)
 
     def set_weights(self, weights):

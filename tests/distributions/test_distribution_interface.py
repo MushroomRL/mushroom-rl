@@ -1,13 +1,11 @@
+import pytest
+
 from mushroom_rl.distributions import Distribution
 
 
 def abstract_method_tester(f, *args):
-    try:
+    with pytest.raises(NotImplementedError):
         f(*args)
-    except NotImplementedError:
-        pass
-    else:
-        assert False
 
 
 def test_distribution_interface():
@@ -24,9 +22,5 @@ def test_distribution_interface():
     abstract_method_tester(tmp.get_parameters)
     abstract_method_tester(tmp.set_parameters, None)
 
-    try:
+    with pytest.raises(NotImplementedError):
         tmp.parameters_size
-    except NotImplementedError:
-        pass
-    else:
-        assert False

@@ -186,6 +186,6 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
         with torch.no_grad():
             dist, next_policy_state = self.distribution_and_policy_state(state, policy_state,
                                                                          action_history=action_history)
-            action = dist.mode
+            action = dist.mean
 
             return action, next_policy_state

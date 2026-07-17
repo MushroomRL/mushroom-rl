@@ -2,7 +2,7 @@ import numpy as np
 from mushroom_rl.policy.policy import Policy, HasWeights
 
 
-class DeterministicPolicy(Policy, HasWeights):
+class DeterministicPolicy(HasWeights, Policy):
     """
     Simple parametric policy representing a deterministic policy. As
     deterministic policies are degenerate probability functions where all

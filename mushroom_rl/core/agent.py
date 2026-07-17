@@ -307,10 +307,20 @@ class HasNextAction:
 
     def __init_subclass__(cls, is_mixin=False, **kwargs):
         super().__init_subclass__(**kwargs)
-        if not is_mixin and not issubclass(cls, Agent):
+        if is_mixin:
+            return
+
+        if not issubclass(cls, Agent):
             raise TypeError(
                 "'{}' uses the HasNextAction mixin but does not inherit from Agent. HasNextAction must be combined "
                 "with an Agent subclass (intermediate mixins must pass is_mixin=True).".format(cls.__name__)
+            )
+
+        if cls.__mro__.index(Agent) < cls.__mro__.index(HasNextAction):
+            raise TypeError(
+                "'{}' resolves Agent before the HasNextAction mixin, so Agent shadows every method the mixin "
+                "provides and the next-action machinery is silently disabled. List the mixin first, e.g. "
+                "'class {}(HasNextAction, ...)'.".format(cls.__name__, cls.__name__)
             )
 
     def draw_action(self, state):
@@ -327,6 +337,11 @@ class HasNextAction:
         self._next_action = None
 
         return super().episode_start(initial_state, episode_info, greedy)
+
+    def episode_start_vectorized(self, initial_states, episode_info, start_mask, greedy=False):
+        self._next_action = None
+
+        return super().episode_start_vectorized(initial_states, episode_info, start_mask, greedy)
 
     def stop(self):
         self._next_action = None

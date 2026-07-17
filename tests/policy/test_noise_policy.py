@@ -1,5 +1,7 @@
 import torch
 
+import pytest
+
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import LinearNetwork
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy, ClippedGaussianPolicy
@@ -28,12 +30,8 @@ def test_ornstein_uhlenbeck_policy():
     action_test = torch.tensor([-0.7114595175,  1.1141412258])
     assert torch.allclose(action, action_test)
 
-    try:
+    with pytest.raises(NotImplementedError):
         pi(state, action)
-    except NotImplementedError:
-        pass
-    else:
-        assert False
 
 
 def test_ornstein_uhlenbeck_greedy():
@@ -100,12 +98,8 @@ def test_clipped_gaussian_policy():
     action_test = torch.tensor([0.4926533699, 1.0])
     assert torch.allclose(action, action_test)
 
-    try:
+    with pytest.raises(NotImplementedError):
         pi(state, action)
-    except NotImplementedError:
-        pass
-    else:
-        assert False
 
 
 def test_clipped_gaussian_greedy():

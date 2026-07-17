@@ -10,7 +10,7 @@ from mushroom_rl.algorithms.policy_search import PGPE, REPS, ConstrainedREPS, RW
 from mushroom_rl.core import Core, MultiprocessEnvironment
 from mushroom_rl.approximators.parametric import LinearApproximator, TorchApproximator
 from mushroom_rl.approximators.parametric.networks import LinearNetwork
-from mushroom_rl.distributions import GaussianDiagonalDistribution, GaussianCholeskyDistribution,\
+from mushroom_rl.distributions import GaussianDiagonalDistribution, GaussianCholeskyDistribution, \
     DiagonalGaussianTorchDistribution
 from mushroom_rl.environments import LQR
 from mushroom_rl.policy import DeterministicPolicy
@@ -72,6 +72,56 @@ def learn_vectorized(alg, **alg_params):
         mdp.close_all()
 
     return agent
+
+
+def test_black_box_evaluate_greedy_uses_distribution_mean():
+    np.random.seed(1)
+    torch.manual_seed(1)
+
+    mdp = LQR.generate(dimensions=2)
+
+    approximator = LinearApproximator(input_shape=mdp.info.observation_space.shape,
+                                      output_shape=mdp.info.action_space.shape)
+    policy = DeterministicPolicy(approximator)
+    n = policy.weights_size
+    mu, sigma = np.zeros(n), 1e-1 * np.ones(n)
+    distribution = GaussianDiagonalDistribution(mu, sigma)
+
+    agent = REPS(mdp.info, distribution, policy, eps=.7)
+    core = Core(agent, mdp)
+
+    dataset = core.evaluate(n_episodes=3, greedy=True, quiet=True)
+
+    expected_theta = distribution.mean()
+    for theta in dataset.theta_list:
+        assert np.allclose(theta, expected_theta)
+
+
+def test_black_box_evaluate_vectorized_greedy_uses_distribution_mean():
+    np.random.seed(1)
+    torch.manual_seed(1)
+
+    mdp = MultiprocessEnvironment(LQR, dimensions=2, n_envs=5, use_generator=True)
+
+    approximator = LinearApproximator(input_shape=mdp.info.observation_space.shape,
+                                      output_shape=mdp.info.action_space.shape)
+    policy = DeterministicPolicy(mu=approximator)
+
+    mu = np.zeros(policy.weights_size)
+    sigma = 1e-1 * np.ones(policy.weights_size)
+    distribution = GaussianDiagonalDistribution(mu, sigma)
+
+    agent = REPS(mdp.info, distribution, policy, eps=.7)
+    core = Core(agent, mdp)
+
+    try:
+        dataset = core.evaluate(n_episodes=5, greedy=True, quiet=True)
+    finally:
+        mdp.close_all()
+
+    expected_theta = distribution.mean()
+    for theta in dataset.theta_list:
+        assert np.allclose(theta, expected_theta)
 
 
 def test_RWR():

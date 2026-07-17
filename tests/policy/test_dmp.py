@@ -65,6 +65,21 @@ def test_draw_action_dynamics():
     assert np.allclose(a3, np.array([7.475e-05]))
 
 
+def test_draw_action_greedy_matches_draw_action():
+    np.random.seed(1)
+    pi = _make_dmp(action_dim=1)
+    state = np.zeros(1)
+
+    pi.reset()
+    a1 = pi.draw_action_greedy(state)
+    a2 = pi.draw_action_greedy(state)
+    a3 = pi.draw_action_greedy(state)
+
+    assert np.allclose(a1, np.array([0.0]))
+    assert np.allclose(a2, np.array([2.5e-05]))
+    assert np.allclose(a3, np.array([7.475e-05]))
+
+
 def test_draw_action_explicit_state_does_not_mutate_or_advance():
     np.random.seed(1)
     pi = _make_dmp(action_dim=1)

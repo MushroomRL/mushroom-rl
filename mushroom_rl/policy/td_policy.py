@@ -165,7 +165,7 @@ class Boltzmann(TDPolicy):
         state = args[0]
         with torch.no_grad():
             q = self._approximator.predict(state, **self._predict_params)
-        q_beta = q * self._beta(state)
+        q_beta = q * self._beta.get_value(state)
         q_beta -= q_beta.max()
         qs = self._backend.exp(q_beta)
 
@@ -177,6 +177,8 @@ class Boltzmann(TDPolicy):
             return qs / qs.sum()
 
     def draw_action(self, state):
+        self._beta.update(state)
+
         return self._backend.multinomial(self(state))
 
     def draw_action_greedy(self, state):
@@ -228,12 +230,25 @@ class Mellowmax(Boltzmann):
                 _beta_max='primitive',
             )
 
-        def __call__(self, state):
+        def __call__(self, *idx, **kwargs):
+            # beta is a function of the state, so the scalar index stripping of Parameter.__call__ must not apply
+            self.update(*idx, **kwargs)
+
+            return self.get_value(*idx, **kwargs)
+
+        def update(self, *idx, **kwargs):
+            self._omega.update(*idx, **kwargs)
+
+            super().update(*idx, **kwargs)
+
+        def _compute(self, *idx, **kwargs):
+            state = idx[0]
+            omega = self._omega.get_value(state)
+
             with torch.no_grad():
                 q = self._outer._approximator.predict(state, **self._outer._predict_params)
             q = ArrayBackend.convert(q, to='numpy')
-            mm = (logsumexp(q * self._omega(state)) - np.log(
-                q.size)) / self._omega(state)
+            mm = (logsumexp(q * omega) - np.log(q.size)) / omega
 
             def f(beta):
                 v = q - mm

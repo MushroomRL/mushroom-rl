@@ -4,7 +4,7 @@ from mushroom_rl.policy.policy import Policy, HasGradient
 from scipy.stats import multivariate_normal
 
 
-class AbstractGaussianPolicy(Policy, HasGradient):
+class AbstractGaussianPolicy(HasGradient, Policy):
     """
     Abstract class of Gaussian policies.
 

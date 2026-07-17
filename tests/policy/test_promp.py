@@ -78,6 +78,25 @@ def test_draw_action_stochastic():
     assert np.allclose(pi.policy_state, 1)
 
 
+def test_draw_action_greedy_returns_mean_without_noise():
+    np.random.seed(42)
+    pi = _make_promp(duration=10, action_dim=2, sigma=np.eye(2) * 0.01)
+    pi.policy_state = np.array([0])
+    action = pi.draw_action_greedy(np.zeros(2))
+    assert np.allclose(action, np.zeros(2))
+    assert np.allclose(pi.policy_state, 1)
+
+
+def test_draw_action_greedy_matches_draw_action_when_deterministic():
+    np.random.seed(1)
+    pi = _make_promp(duration=10, action_dim=2, sigma=None)
+    pi.set_weights(np.ones(pi.weights_size))
+    pi.policy_state = np.array([5])
+    action = pi.draw_action_greedy(np.zeros(2))
+    assert np.allclose(action, np.array([2.5, 2.5]))
+    assert np.allclose(pi.policy_state, 6)
+
+
 def test_update_time_increments():
     np.random.seed(1)
     pi = _make_promp(duration=10)

@@ -4,7 +4,7 @@ from scipy.stats import multivariate_normal
 from mushroom_rl.policy.policy import StatefulPolicy, HasWeights
 
 
-class ProMP(StatefulPolicy, HasWeights):
+class ProMP(HasWeights, StatefulPolicy):
     """
     Class representing a Probabilistic Movement Primitive (ProMP). Specifically, this class represents the low-level
     gaussian time-dependant policy.

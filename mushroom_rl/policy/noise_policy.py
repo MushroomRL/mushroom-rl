@@ -4,7 +4,7 @@ import numpy as np
 from mushroom_rl.policy.policy import Policy, StatefulPolicy, HasWeights
 
 
-class OrnsteinUhlenbeckPolicy(StatefulPolicy, HasWeights):
+class OrnsteinUhlenbeckPolicy(HasWeights, StatefulPolicy):
     """
     Ornstein-Uhlenbeck process as implemented in:
     https://github.com/openai/baselines/blob/master/baselines/ddpg/noise.py.
@@ -84,7 +84,7 @@ class OrnsteinUhlenbeckPolicy(StatefulPolicy, HasWeights):
         return self._policy_state
 
 
-class ClippedGaussianPolicy(Policy, HasWeights):
+class ClippedGaussianPolicy(HasWeights, Policy):
     """
     Clipped Gaussian policy, as used in:
 

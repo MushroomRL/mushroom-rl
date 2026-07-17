@@ -3,7 +3,7 @@ import numpy as np
 from mushroom_rl.policy.policy import StatefulPolicy, HasWeights
 
 
-class DMP(StatefulPolicy, HasWeights):
+class DMP(HasWeights, StatefulPolicy):
     """
     Class representing a Dynamic Movement Primitive (DMP).
 

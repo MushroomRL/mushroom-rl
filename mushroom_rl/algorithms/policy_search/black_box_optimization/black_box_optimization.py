@@ -74,7 +74,7 @@ class BlackBoxOptimization(Agent):
 
             self.policy.set_weights(theta)
 
-        policy_states = self.policy.reset_vectorized(start_mask)
+        policy_states, _ = super().episode_start_vectorized(initial_states, episode_info, start_mask, greedy)
 
         return policy_states, theta
 
