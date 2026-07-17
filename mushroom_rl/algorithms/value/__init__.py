@@ -5,6 +5,6 @@ from .td import *
 __all__ = ['FQI', 'DoubleFQI', 'BoostedFQI', 'LSPI', 'AbstractDQN', 'DQN', 'DoubleDQN',
            'AveragedDQN', 'CategoricalDQN', 'DuelingDQN', 'NoisyDQN', 'QuantileDQN',
            'MaxminDQN', 'Rainbow', 'QLearning', 'QLambda', 'DoubleQLearning', 'WeightedQLearning',
-           'MaxminQLearning', 'SpeedyQLearning', 'RLearning', 'RQLearning',
+           'MaxminQLearning', 'SpeedyQLearning', 'RLearning', 'RQLearning', 'RQLearningOnPolicy',
            'SARSA', 'SARSALambda', 'SARSALambdaContinuous', 'ExpectedSARSA',
            'TrueOnlineSARSALambda']

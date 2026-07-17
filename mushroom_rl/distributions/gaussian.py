@@ -41,7 +41,7 @@ class GaussianDistribution(Distribution):
         return multivariate_normal.pdf(theta, self._mu, self._sigma)
 
     def mean(self, context=None):
-        return self._mu
+        return self._mu.copy()
 
     def entropy(self, context=None):
         n_dims = len(self._mu)
@@ -59,16 +59,16 @@ class GaussianDistribution(Distribution):
 
     def con_wmle(self, theta, weights, eps, *args):
         n_dims = len(self._mu)
-        mu =self._mu
+        mu = self._mu
         sigma = self._sigma
-        
+
         eta_start = np.array([1000])
         res = minimize(GaussianDistribution._lagrangian_eta, eta_start,
                        bounds=((np.finfo(np.float32).eps, np.inf),),
                        args=(weights, theta, mu, sigma, n_dims, eps),
                        method='SLSQP')
-        
-        eta_opt  = res.x[0]
+
+        eta_opt = res.x[0]
 
         self._mu = GaussianDistribution._compute_mu_from_lagrangian(weights, theta, mu, eta_opt)
 
@@ -94,18 +94,20 @@ class GaussianDistribution(Distribution):
 
     @staticmethod
     def _compute_mu_from_lagrangian(weights, theta, mu, eta):
-        
+
         weights_sum = np.sum(weights)
 
         mu_new = (weights @ theta + eta * mu) / (weights_sum + eta)
-        
+
         return mu_new
 
     @staticmethod
-    def _kl_constraint(mu, mu_new, sigma, sigma_new, sigma_inv, sigma_new_inv, logdet_sigma, logdet_sigma_new, n_dims):
-        
-        return 0.5*(np.trace(sigma_new_inv@sigma) - n_dims + logdet_sigma_new - logdet_sigma + (mu_new - mu).T @ sigma_new_inv @ (mu_new - mu))
-    
+    def _kl_constraint(mu, mu_new, sigma, sigma_new, sigma_inv, sigma_new_inv, logdet_sigma, logdet_sigma_new,
+                       n_dims):
+
+        return 0.5 * (np.trace(sigma_new_inv @ sigma) - n_dims + logdet_sigma_new - logdet_sigma
+                      + (mu_new - mu).T @ sigma_new_inv @ (mu_new - mu))
+
     @staticmethod
     def _entropy(logdet_sigma, n_dims):
         c = n_dims * np.log(2*np.pi)
@@ -118,16 +120,18 @@ class GaussianDistribution(Distribution):
         eta = lag_array[0]
 
         mu_new = GaussianDistribution._compute_mu_from_lagrangian(weights, theta, mu, eta)
-        
+
         sigma_inv = np.linalg.inv(sigma)
 
         (sign_sigma, logdet_sigma) = np.linalg.slogdet(sigma)
 
         c = n_dims * np.log(2*np.pi)
 
-        sum1 = np.sum([w_i * (-0.5 * (theta_i - mu_new)[:,np.newaxis].T @ sigma_inv @ (theta_i -  mu_new)[:,np.newaxis] - 0.5 * logdet_sigma - 0.5 * c) for w_i, theta_i in zip(weights, theta)])
-        sum2 = eta * (eps - GaussianDistribution._kl_constraint(mu, mu_new, sigma, sigma, sigma_inv, sigma_inv, logdet_sigma, logdet_sigma, n_dims))
-        
+        sum1 = np.sum([w_i * (-0.5 * (theta_i - mu_new)[:, np.newaxis].T @ sigma_inv @ (theta_i - mu_new)[:, np.newaxis]
+                              - 0.5 * logdet_sigma - 0.5 * c) for w_i, theta_i in zip(weights, theta)])
+        sum2 = eta * (eps - GaussianDistribution._kl_constraint(mu, mu_new, sigma, sigma, sigma_inv, sigma_inv,
+                                                                logdet_sigma, logdet_sigma, n_dims))
+
         return sum1 + sum2
 
 
@@ -147,7 +151,7 @@ class GaussianDiagonalDistribution(Distribution):
                 variable of the distribution.
 
         """
-        assert(len(std.shape) == 1)
+        assert len(std.shape) == 1
         self._mu = mu
         self._std = std
 
@@ -171,7 +175,7 @@ class GaussianDiagonalDistribution(Distribution):
         return multivariate_normal.pdf(theta, self._mu, sigma)
 
     def mean(self, context=None):
-        return self._mu
+        return self._mu.copy()
 
     def entropy(self, context=None):
         n_dims = len(self._mu)
@@ -202,13 +206,14 @@ class GaussianDiagonalDistribution(Distribution):
 
         eta_omg_start = np.array([1000, 0])
         res = minimize(GaussianDiagonalDistribution._lagrangian_eta_omega, eta_omg_start,
-                       bounds=((np.finfo(np.float32).eps, np.inf),(np.finfo(np.float32).eps, np.inf)),
+                       bounds=((np.finfo(np.float32).eps, np.inf), (np.finfo(np.float32).eps, np.inf)),
                        args=(weights, theta, mu, sigma, n_dims, eps, kappa),
                        method='SLSQP')
 
         eta_opt, omg_opt = res.x[0], res.x[1]
 
-        self._mu, self._std = GaussianDiagonalDistribution._compute_mu_sigma_from_lagrangian(weights, theta, mu, sigma, eta_opt, omg_opt)
+        self._mu, self._std = GaussianDiagonalDistribution._compute_mu_sigma_from_lagrangian(
+            weights, theta, mu, sigma, eta_opt, omg_opt)
 
         self._log()
 
@@ -253,18 +258,20 @@ class GaussianDiagonalDistribution(Distribution):
         weights_sum = np.sum(weights)
 
         mu_new = (weights @ theta + eta * mu) / (weights_sum + eta)
-        sigma_new = np.sqrt( ( np.sum([w_i * (theta_i-mu_new)**2 for theta_i, w_i in zip(theta, weights)], axis=0) + eta*sigma**2 + eta*(mu_new - mu)**2 ) / ( weights_sum + eta - omg ) )
+        sigma_new = np.sqrt((np.sum([w_i * (theta_i - mu_new)**2 for theta_i, w_i in zip(theta, weights)], axis=0)
+                             + eta * sigma**2 + eta * (mu_new - mu)**2) / (weights_sum + eta - omg))
 
         return mu_new, sigma_new
 
     @staticmethod
     def _kl_constraint(mu, mu_new, sigma, sigma_new, sigma_inv, sigma_new_inv, logdet_sigma, logdet_sigma_new, n_dims):
-        return 0.5*(np.trace(sigma_new_inv@sigma) - n_dims + logdet_sigma_new - logdet_sigma + (mu_new - mu).T @ sigma_new_inv @ (mu_new - mu))
-    
+        return 0.5 * (np.trace(sigma_new_inv @ sigma) - n_dims + logdet_sigma_new - logdet_sigma
+                      + (mu_new - mu).T @ sigma_new_inv @ (mu_new - mu))
+
     @staticmethod
     def _entropy(logdet_sigma, n_dims):
         c = n_dims * np.log(2*np.pi)
-        
+
         return 0.5 * (logdet_sigma + c + n_dims)
 
     @staticmethod
@@ -272,8 +279,9 @@ class GaussianDiagonalDistribution(Distribution):
 
         eta, omg = lag_array[0], lag_array[1]
 
-        mu_new, sigma_new = GaussianDiagonalDistribution._compute_mu_sigma_from_lagrangian(weights, theta, mu, sigma, eta, omg)
-        
+        mu_new, sigma_new = GaussianDiagonalDistribution._compute_mu_sigma_from_lagrangian(
+            weights, theta, mu, sigma, eta, omg)
+
         sigma = np.diag(sigma**2)
         sigma_new = np.diag(sigma_new**2)
 
@@ -285,11 +293,16 @@ class GaussianDiagonalDistribution(Distribution):
 
         c = n_dims * np.log(2*np.pi)
 
-        sum1 = np.sum([w_i * (-0.5*(theta_i - mu_new)[:,np.newaxis].T @ sigma_new_inv @ (theta_i -  mu_new)[:,np.newaxis] - 0.5 * logdet_sigma_new - c/2) for w_i, theta_i in zip(weights, theta)])
-        
-        sum2 = eta * (eps - GaussianDiagonalDistribution._kl_constraint(mu, mu_new, sigma, sigma_new, sigma_inv, sigma_new_inv, logdet_sigma, logdet_sigma_new, n_dims))
-        
-        sum3 = omg * (GaussianDiagonalDistribution._entropy(logdet_sigma_new, n_dims) - ( GaussianDiagonalDistribution._entropy(logdet_sigma, n_dims) - kappa ) )
+        sum1 = np.sum([w_i * (-0.5 * (theta_i - mu_new)[:, np.newaxis].T
+                              @ sigma_new_inv @ (theta_i - mu_new)[:, np.newaxis]
+                              - 0.5 * logdet_sigma_new - c / 2) for w_i, theta_i in zip(weights, theta)])
+
+        sum2 = eta * (eps - GaussianDiagonalDistribution._kl_constraint(mu, mu_new, sigma, sigma_new, sigma_inv,
+                                                                        sigma_new_inv, logdet_sigma,
+                                                                        logdet_sigma_new, n_dims))
+
+        sum3 = omg * (GaussianDiagonalDistribution._entropy(logdet_sigma_new, n_dims)
+                      - (GaussianDiagonalDistribution._entropy(logdet_sigma, n_dims) - kappa))
 
         return sum1 + sum2 + sum3
 
@@ -334,7 +347,7 @@ class GaussianCholeskyDistribution(Distribution):
         return multivariate_normal.pdf(theta, self._mu, sigma)
 
     def mean(self, context=None):
-        return self._mu
+        return self._mu.copy()
 
     def entropy(self, context=None):
         n_dims = len(self._mu)
@@ -363,18 +376,19 @@ class GaussianCholeskyDistribution(Distribution):
 
     def con_wmle(self, theta, weights, eps, kappa):
         n_dims = len(self._mu)
-        mu =self._mu
+        mu = self._mu
         sigma = self._chol_sigma.dot(self._chol_sigma.T)
-        
+
         eta_omg_start = np.array([1000, 0])
         res = minimize(GaussianCholeskyDistribution._lagrangian_eta_omega, eta_omg_start,
-                       bounds=((np.finfo(np.float32).eps, np.inf),(np.finfo(np.float32).eps, np.inf)),
+                       bounds=((np.finfo(np.float32).eps, np.inf), (np.finfo(np.float32).eps, np.inf)),
                        args=(weights, theta, mu, sigma, n_dims, eps, kappa),
                        method='SLSQP')
-        
-        eta_opt, omg_opt  = res.x[0], res.x[1]
 
-        mu_new, sigma_new = GaussianCholeskyDistribution._compute_mu_sigma_from_lagrangian(weights, theta, mu, sigma, eta_opt, omg_opt)
+        eta_opt, omg_opt = res.x[0], res.x[1]
+
+        mu_new, sigma_new = GaussianCholeskyDistribution._compute_mu_sigma_from_lagrangian(
+            weights, theta, mu, sigma, eta_opt, omg_opt)
 
         self._mu, self._chol_sigma = mu_new, np.linalg.cholesky(sigma_new)
 
@@ -426,21 +440,23 @@ class GaussianCholeskyDistribution(Distribution):
 
     @staticmethod
     def _compute_mu_sigma_from_lagrangian(weights, theta, mu, sigma, eta, omg):
-        
+
         weights_sum = np.sum(weights)
 
         mu_new = (weights @ theta + eta * mu) / (weights_sum + eta)
-        
+
         sigmawa = (theta - mu_new).T @ np.diag(weights) @ (theta - mu_new)
-        sigma_new = (sigmawa + eta * sigma + eta * (mu_new - mu)[:, np.newaxis] @ (mu_new - mu)[:, np.newaxis].T) / (weights_sum + eta - omg)
-        
+        sigma_new = ((sigmawa + eta * sigma + eta * (mu_new - mu)[:, np.newaxis] @ (mu_new - mu)[:, np.newaxis].T)
+                     / (weights_sum + eta - omg))
+
         return mu_new, sigma_new
 
     @staticmethod
     def _kl_constraint(mu, mu_new, sigma, sigma_new, sigma_inv, sigma_new_inv, logdet_sigma, logdet_sigma_new, n_dims):
-        
-        return 0.5*(np.trace(sigma_new_inv@sigma) - n_dims + logdet_sigma_new - logdet_sigma + (mu_new - mu).T @ sigma_new_inv @ (mu_new - mu))
-    
+
+        return 0.5 * (np.trace(sigma_new_inv @ sigma) - n_dims + logdet_sigma_new - logdet_sigma
+                      + (mu_new - mu).T @ sigma_new_inv @ (mu_new - mu))
+
     @staticmethod
     def _entropy(logdet_sigma, n_dims):
         c = n_dims * np.log(2*np.pi)
@@ -452,8 +468,9 @@ class GaussianCholeskyDistribution(Distribution):
 
         eta, omg = lag_array[0], lag_array[1]
 
-        mu_new, sigma_new = GaussianCholeskyDistribution._compute_mu_sigma_from_lagrangian(weights, theta, mu, sigma, eta, omg)
-        
+        mu_new, sigma_new = GaussianCholeskyDistribution._compute_mu_sigma_from_lagrangian(
+            weights, theta, mu, sigma, eta, omg)
+
         sigma_inv = np.linalg.inv(sigma)
         sigma_new_inv = np.linalg.inv(sigma_new)
 
@@ -462,10 +479,15 @@ class GaussianCholeskyDistribution(Distribution):
 
         c = n_dims * np.log(2*np.pi)
 
-        sum1 = np.sum([w_i * (-0.5 * (theta_i - mu_new)[:,np.newaxis].T @ sigma_new_inv @ (theta_i -  mu_new)[:,np.newaxis] - 0.5 * logdet_sigma_new - 0.5 * c) for w_i, theta_i in zip(weights, theta)])
-        
-        sum2 = eta * (eps - GaussianCholeskyDistribution._kl_constraint(mu, mu_new, sigma, sigma_new, sigma_inv, sigma_new_inv, logdet_sigma, logdet_sigma_new, n_dims))
-        
-        sum3 = omg * (GaussianCholeskyDistribution._entropy(logdet_sigma_new, n_dims) - ( GaussianCholeskyDistribution._entropy(logdet_sigma, n_dims) - kappa ) )
+        sum1 = np.sum([w_i * (-0.5 * (theta_i - mu_new)[:, np.newaxis].T
+                              @ sigma_new_inv @ (theta_i - mu_new)[:, np.newaxis]
+                              - 0.5 * logdet_sigma_new - 0.5 * c) for w_i, theta_i in zip(weights, theta)])
+
+        sum2 = eta * (eps - GaussianCholeskyDistribution._kl_constraint(mu, mu_new, sigma, sigma_new, sigma_inv,
+                                                                        sigma_new_inv, logdet_sigma,
+                                                                        logdet_sigma_new, n_dims))
+
+        sum3 = omg * (GaussianCholeskyDistribution._entropy(logdet_sigma_new, n_dims)
+                      - (GaussianCholeskyDistribution._entropy(logdet_sigma, n_dims) - kappa))
 
         return sum1 + sum2 + sum3

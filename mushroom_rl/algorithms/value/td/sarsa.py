@@ -1,8 +1,9 @@
+from mushroom_rl.core import HasNextAction
 from mushroom_rl.algorithms.value.td import TD
 from mushroom_rl.approximators.table import Table
 
 
-class SARSA(TD):
+class SARSA(HasNextAction, TD):
     """
     SARSA algorithm.
 
@@ -15,8 +16,8 @@ class SARSA(TD):
     def _update(self, state, action, reward, next_state, absorbing):
         q_current = self.Q[state, action]
 
-        self.next_action = self.draw_action(next_state)
-        q_next = self.Q[next_state, self.next_action] if not absorbing else 0.
+        self._next_action = self.draw_action(next_state)
+        q_next = self.Q[next_state, self._next_action] if not absorbing else 0.
 
         self.Q[state, action] = q_current + self._alpha(state, action) * (
             reward + self.mdp_info.gamma * q_next - q_current)

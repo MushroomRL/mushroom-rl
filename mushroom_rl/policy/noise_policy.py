@@ -4,7 +4,7 @@ import numpy as np
 from mushroom_rl.policy.policy import Policy, StatefulPolicy, HasWeights
 
 
-class OrnsteinUhlenbeckPolicy(StatefulPolicy, HasWeights):
+class OrnsteinUhlenbeckPolicy(HasWeights, StatefulPolicy):
     """
     Ornstein-Uhlenbeck process as implemented in:
     https://github.com/openai/baselines/blob/master/baselines/ddpg/noise.py.
@@ -55,6 +55,12 @@ class OrnsteinUhlenbeckPolicy(StatefulPolicy, HasWeights):
 
             return mu + x, x
 
+    def _draw_action_greedy(self, state, policy_state):
+        with torch.no_grad():
+            mu = self._approximator.predict(state, **self._predict_params)
+
+            return mu, policy_state
+
     def set_weights(self, weights):
         self._approximator.set_weights(weights)
 
@@ -78,7 +84,7 @@ class OrnsteinUhlenbeckPolicy(StatefulPolicy, HasWeights):
         return self._policy_state
 
 
-class ClippedGaussianPolicy(Policy, HasWeights):
+class ClippedGaussianPolicy(HasWeights, Policy):
     """
     Clipped Gaussian policy, as used in:
 
@@ -131,6 +137,12 @@ class ClippedGaussianPolicy(Policy, HasWeights):
             action_raw = distribution.sample()
 
             return torch.clip(action_raw, self._low, self._high)
+
+    def draw_action_greedy(self, state):
+        with torch.no_grad():
+            mu = self._approximator.predict(state, **self._predict_params).reshape(-1)
+
+            return torch.clip(mu, self._low, self._high)
 
     def set_weights(self, weights):
         self._approximator.set_weights(weights)

@@ -3,7 +3,7 @@ import numpy as np
 from mushroom_rl.policy.policy import StatefulPolicy, HasWeights
 
 
-class DMP(StatefulPolicy, HasWeights):
+class DMP(HasWeights, StatefulPolicy):
     """
     Class representing a Dynamic Movement Primitive (DMP).
 
@@ -55,6 +55,9 @@ class DMP(StatefulPolicy, HasWeights):
         return 1.0 if np.allclose(y, action) else 0.0
 
     def _draw_action(self, state, policy_state):
+        return self._draw_action_greedy(state, policy_state)
+
+    def _draw_action_greedy(self, state, policy_state):
         next_policy_state, y = self.update_system(state, policy_state)
 
         return y, next_policy_state

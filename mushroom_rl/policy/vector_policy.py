@@ -4,7 +4,7 @@ from copy import deepcopy
 from mushroom_rl.policy.policy import Policy, HasWeights
 
 
-class VectorPolicy(Policy, HasWeights):
+class VectorPolicy(HasWeights, Policy):
     """
     Policy wrapping a vector of independent copies of a base policy, each one with its own weights. It is used by
     black-box optimization algorithms to evaluate a population of parameterizations in parallel, one per environment.
@@ -29,6 +29,13 @@ class VectorPolicy(Policy, HasWeights):
         actions = list()
         for i, policy in enumerate(self._policy_vector):
             actions.append(policy.draw_action(state[i]))
+
+        return np.array(actions)
+
+    def draw_action_greedy(self, state):
+        actions = list()
+        for i, policy in enumerate(self._policy_vector):
+            actions.append(policy.draw_action_greedy(state[i]))
 
         return np.array(actions)
 

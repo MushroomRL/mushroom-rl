@@ -79,7 +79,8 @@ class Core(object):
 
         self._run(dataset, n_steps, n_episodes, render, quiet, record)
 
-    def evaluate(self, initial_states=None, n_steps=None, n_episodes=None, render=False, quiet=False, record=False):
+    def evaluate(self, initial_states=None, n_steps=None, n_episodes=None, render=False, quiet=False, record=False,
+                 greedy=False):
         """
         This function moves the agent in the environment using its policy.
         The agent is moved for a provided number of steps, episodes, or from a set of initial states for the whole
@@ -92,7 +93,9 @@ class Core(object):
             render (bool, False): whether to render the environment or not;
             quiet (bool, False): whether to show the progress bar or not;
             record (bool, False): whether to record a video of the environment or not. If True, also the render flag
-                should be set to True.
+                should be set to True;
+            greedy (bool, False): whether the agent acts greedily, using the mode of its policy instead of
+                sampling. Requires the policy to define a greedy action.
 
         Returns:
             The collected dataset.
@@ -107,7 +110,7 @@ class Core(object):
         n_episodes_dataset = len(initial_states) if initial_states is not None else n_episodes
         dataset = self._prepare_dataset(n_steps, n_episodes_dataset, n_episodes is not None)
 
-        return self._run(dataset, n_steps, n_episodes, render, quiet, record, initial_states)
+        return self._run(dataset, n_steps, n_episodes, render, quiet, record, initial_states, greedy)
 
     def set_logger(self, logger):
         """
@@ -143,7 +146,7 @@ class Core(object):
         """
         raise NotImplementedError
 
-    def _run(self, dataset, n_steps, n_episodes, render, quiet, record, initial_states=None):
+    def _run(self, dataset, n_steps, n_episodes, render, quiet, record, initial_states=None, greedy=False):
         raise NotImplementedError
 
     def _preprocess(self, state):
@@ -176,17 +179,19 @@ class SequentialCore(Core):
         return Dataset.generate(self.env.info, self.agent.info, n_steps, n_episodes,
                                 core_counts_episodes=core_counts_episodes)
 
-    def _run(self, dataset, n_steps, n_episodes, render, quiet, record, initial_states=None):
+    def _run(self, dataset, n_steps, n_episodes, render, quiet, record, initial_states=None, greedy=False):
         self._core_logic.initialize_run(n_steps, n_episodes, initial_states, quiet)
+
+        draw_action = self.agent.draw_action_greedy if greedy else self.agent.draw_action
 
         last = True
         while self._core_logic.move_required():
             if last:
-                self._reset(initial_states)
+                self._reset(initial_states, greedy)
                 if self.agent.info.is_episodic:
                     dataset.append_theta(self._current_theta)
 
-            sample, step_info = self._step(render, record)
+            sample, step_info = self._step(draw_action, render, record)
 
             self.callback_step(sample)
             last = self._core_logic.after_step(sample[5])
@@ -211,11 +216,12 @@ class SequentialCore(Core):
         dataset.episode_info.parse()
         return dataset
 
-    def _step(self, render, record):
+    def _step(self, draw_action, render, record):
         """
         Single step.
 
         Args:
+            draw_action (callable): the agent method used to draw the action (stochastic or greedy);
             render (bool): whether to render or not.
 
         Returns:
@@ -223,7 +229,7 @@ class SequentialCore(Core):
             state, the absorbing flag of the reached state and the last step flag.
 
         """
-        action = self.agent.draw_action(self._state)
+        action = draw_action(self._state)
         next_state, reward, absorbing, step_info = self.env.step(action)
 
         if render:
@@ -246,7 +252,7 @@ class SequentialCore(Core):
 
         return (state, action, reward, next_state, absorbing, last, policy_state, policy_next_state), step_info
 
-    def _reset(self, initial_states):
+    def _reset(self, initial_states, greedy=False):
         """
         Reset the state of the agent.
 
@@ -255,8 +261,7 @@ class SequentialCore(Core):
 
         state, episode_info = self.env.reset(initial_state)
         self._state = self._preprocess(state)
-        self._policy_state, self._current_theta = self.agent.episode_start(self._state, episode_info)
-        self.agent.next_action = None
+        self._policy_state, self._current_theta = self.agent.episode_start(self._state, episode_info, greedy)
 
         self._episode_steps = 0
 
@@ -284,8 +289,10 @@ class VectorizedCore(Core):
         return VectorizedDataset.generate(self.env.info, self.agent.info, n_steps, n_episodes,
                                           self.env.number, core_counts_episodes)
 
-    def _run(self, dataset, n_steps, n_episodes, render, quiet, record, initial_states=None):
+    def _run(self, dataset, n_steps, n_episodes, render, quiet, record, initial_states=None, greedy=False):
         self._core_logic.initialize_run(n_steps, n_episodes, initial_states, quiet)
+
+        draw_action = self.agent.draw_action_greedy if greedy else self.agent.draw_action
 
         last = self._core_logic.converter.ones(self.env.number, dtype=bool)
         mask = None
@@ -294,12 +301,12 @@ class VectorizedCore(Core):
         while self._core_logic.move_required():
             if need_reset:
                 mask = self._core_logic.get_mask(last)
-                current_theta, reset_mask = self._reset(initial_states, last, mask)
+                current_theta, reset_mask = self._reset(initial_states, last, mask, greedy)
 
                 if self.agent.info.is_episodic and reset_mask.any():
                     dataset.append_theta_vectorized(current_theta, reset_mask)
 
-            samples, step_infos = self._step(render, record, mask)
+            samples, step_infos = self._step(draw_action, render, record, mask)
 
             self.callback_step(samples)
             completed = self._core_logic.after_step(samples[5] & mask)
@@ -328,11 +335,12 @@ class VectorizedCore(Core):
 
         return dataset.flatten()
 
-    def _step(self, render, record, mask):
+    def _step(self, draw_action, render, record, mask):
         """
         Single step.
 
         Args:
+            draw_action (callable): the agent method used to draw the action (stochastic or greedy);
             render (bool): whether to render or not.
 
         Returns:
@@ -341,7 +349,7 @@ class VectorizedCore(Core):
             of the reached states and the last step flags.
 
         """
-        action = self.agent.draw_action(self._state)
+        action = draw_action(self._state)
 
         next_state, rewards, absorbing, step_info = self.env.step_all(mask, action)
 
@@ -365,7 +373,7 @@ class VectorizedCore(Core):
 
         return (state, action, rewards, next_state, absorbing, last, policy_state, policy_next_state), step_info
 
-    def _reset(self, initial_states, last, mask):
+    def _reset(self, initial_states, last, mask, greedy=False):
         """
         Reset the states of the agent.
 
@@ -377,9 +385,9 @@ class VectorizedCore(Core):
         state, episode_info = self.env.reset_all(reset_mask, initial_state)
 
         self._state = self._preprocess(state)
-        policy_state, current_theta = self.agent.episode_start_vectorized(self._state, episode_info, reset_mask)
+        policy_state, current_theta = self.agent.episode_start_vectorized(self._state, episode_info, reset_mask,
+                                                                          greedy)
         self._policy_state = policy_state
-        self.agent.next_action = None
 
         if self._episode_steps is None:
             self._episode_steps = self._core_logic.converter.zeros(self.env.number, dtype=int)

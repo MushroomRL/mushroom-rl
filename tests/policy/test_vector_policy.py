@@ -11,7 +11,7 @@ def _make_gaussian_policy(state_dim=3, action_dim=2):
     return GaussianPolicy(mu, np.eye(action_dim))
 
 
-class _StatefulPolicy(StatefulPolicy, HasWeights):
+class _StatefulPolicy(HasWeights, StatefulPolicy):
     def __init__(self, reset_value):
         super().__init__(policy_state_shape=(reset_value.shape[0],))
         self._reset_value = reset_value.copy()
@@ -20,6 +20,9 @@ class _StatefulPolicy(StatefulPolicy, HasWeights):
 
     def _draw_action(self, state, policy_state):
         return self._w.copy(), policy_state + 1.0
+
+    def _draw_action_greedy(self, state, policy_state):
+        return self._w.copy(), policy_state + 2.0
 
     def reset(self):
         self._policy_state = self._reset_value.copy()
@@ -84,6 +87,19 @@ def test_draw_action_stateless_uses_per_env_weights():
     assert np.allclose(actions, np.array([[0.44122749], [-0.33087015]]))
 
 
+def test_draw_action_greedy_stateless_uses_per_env_weights():
+    np.random.seed(5)
+    n_envs = 2
+    pi = _make_gaussian_policy(state_dim=2, action_dim=1)
+    vpi = VectorPolicy(pi, n_envs)
+
+    vpi.set_weights(np.stack([np.array([5.0, 0.0]), np.array([-5.0, 0.0])]))
+
+    actions = vpi.draw_action_greedy(np.ones((n_envs, 2)))
+
+    assert np.allclose(actions, np.array([[5.0], [-5.0]]))
+
+
 def test_draw_action_stateful_advances_wrapped_state():
     np.random.seed(1)
     n_envs = 3
@@ -96,6 +112,32 @@ def test_draw_action_stateful_advances_wrapped_state():
     assert actions.shape == (n_envs, 3)
     for i in range(n_envs):
         assert np.allclose(vpi._policy_vector[i].policy_state, np.array([8.0, 9.0]))
+
+
+def test_draw_action_greedy_stateful_advances_wrapped_state():
+    np.random.seed(1)
+    n_envs = 3
+    pi = _StatefulPolicy(np.array([7.0, 8.0]))
+    vpi = VectorPolicy(pi, n_envs)
+
+    vpi.reset()
+    actions = vpi.draw_action_greedy(np.zeros((n_envs, 4)))
+
+    assert actions.shape == (n_envs, 3)
+    for i in range(n_envs):
+        assert np.allclose(vpi._policy_vector[i].policy_state, np.array([9.0, 10.0]))
+
+
+def test_stateful_policy_draw_action_greedy_explicit_state_does_not_mutate():
+    pi = _StatefulPolicy(np.array([7.0, 8.0]))
+    pi.reset()
+    internal_state_before = pi.policy_state.copy()
+
+    explicit_state = np.array([1.0, 2.0])
+    action = pi.draw_action_greedy(np.zeros(4), explicit_state)
+
+    assert np.allclose(action, pi._w)
+    assert np.allclose(pi.policy_state, internal_state_before)
 
 
 def test_set_n_grow():

@@ -4,7 +4,7 @@ from scipy.stats import multivariate_normal
 from mushroom_rl.policy.policy import StatefulPolicy, HasWeights
 
 
-class ProMP(StatefulPolicy, HasWeights):
+class ProMP(HasWeights, StatefulPolicy):
     """
     Class representing a Probabilistic Movement Primitive (ProMP). Specifically, this class represents the low-level
     gaussian time-dependant policy.
@@ -59,16 +59,21 @@ class ProMP(StatefulPolicy, HasWeights):
             return multivariate_normal.pdf(action, mu, self._chol_sigma @ self._chol_sigma.T)
 
     def _draw_action(self, state, policy_state):
+        if self._chol_sigma is None:
+            return self._draw_action_greedy(state, policy_state)
+
+        mu, next_policy_state = self._draw_action_greedy(state, policy_state)
+
+        return mu + np.random.randn(*mu.shape) @ self._chol_sigma.T, next_policy_state
+
+    def _draw_action_greedy(self, state, policy_state):
         z = self._compute_phase(state, policy_state)
 
         mu = self._approximator(self._phi(z))
 
         next_policy_state = self.update_time(state, policy_state)
 
-        if self._chol_sigma is None:
-            return mu, next_policy_state
-        else:
-            return mu + np.random.randn(*mu.shape) @ self._chol_sigma.T, next_policy_state
+        return mu, next_policy_state
 
     def update_time(self, state, policy_state):
         """

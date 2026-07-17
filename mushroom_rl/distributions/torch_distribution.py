@@ -38,7 +38,7 @@ class AbstractGaussianTorchDistribution(Distribution):
 
     def mean(self, context=None):
         mu, _ = self._get_mean_and_chol(context)
-        return mu
+        return mu.clone()
 
     def entropy(self, context=None):
         dist = self.distribution(context)

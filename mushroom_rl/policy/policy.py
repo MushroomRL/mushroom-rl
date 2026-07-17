@@ -42,6 +42,23 @@ class Policy(MushroomObject):
         """
         raise NotImplementedError
 
+    def draw_action_greedy(self, state, **kwargs):
+        """
+        Return the greedy action in ``state``, used during greedy evaluation. This is the mode
+        of the policy (e.g. the mean of a Gaussian, the argmax of a softmax). Policies that do not define a
+        greedy action must not override this method.
+
+        Args:
+            state: the state where the agent is;
+            **kwargs: additional per-timestep conditioning inputs assembled by the agent; policies that do not
+                consume them can ignore the keyword arguments.
+
+        Returns:
+            The greedy action of the policy.
+
+        """
+        raise NotImplementedError("'{}' does not define a greedy action.".format(type(self).__name__))
+
     def reset(self):
         """
         Useful when the policy needs a special initialization at the beginning of an episode.
@@ -150,6 +167,30 @@ class StatefulPolicy(Policy):
 
         return action
 
+    def draw_action_greedy(self, state, policy_state=None, **kwargs):
+        """
+        Return the greedy action in ``state``, used during greedy evaluation.
+
+        When ``policy_state`` is not provided, the policy uses its internal state. When it is provided, the policy uses
+        the given state and leaves the internal one untouched (functional evaluation). How the internal state evolves
+        is policy dependent.
+
+        Args:
+            state: the state where the agent is;
+            policy_state (None): the internal state of the policy. If ``None``, the stored internal state is used;
+            **kwargs: additional per-timestep conditioning inputs assembled by the agent.
+
+        Returns:
+            The greedy action of the policy.
+
+        """
+        if policy_state is None:
+            action, self._policy_state = self._draw_action_greedy(state, self._policy_state, **kwargs)
+        else:
+            action, _ = self._draw_action_greedy(state, policy_state, **kwargs)
+
+        return action
+
     def reset(self):
         """
         Reset the internal state of the policy at the beginning of an episode. Implementations must set
@@ -199,21 +240,47 @@ class StatefulPolicy(Policy):
         """
         raise NotImplementedError
 
+    def _draw_action_greedy(self, state, policy_state, **kwargs):
+        """
+        Return the greedy action in ``state`` given the policy state, returning the next policy state. This is
+        the functional core of :meth:`draw_action_greedy` and must not mutate the internal state. Policies that
+        do not define a greedy action must not override this method.
+
+        Args:
+            state: the state where the agent is;
+            policy_state: the internal state of the policy;
+            **kwargs: additional per-timestep conditioning inputs.
+
+        Returns:
+            A tuple containing the greedy action and the next policy state.
+
+        """
+        raise NotImplementedError("'{}' does not define a greedy action.".format(type(self).__name__))
+
 
 class HasWeights:
     """
-    Mixin adding a set of trainable parameters (the policy weights) to a policy. It is meant to be combined with a
-    :class:`Policy` subclass (e.g. ``class MyPolicy(Policy, HasWeights)`` or
-    ``class MyPolicy(StatefulPolicy, HasWeights)``); on its own it is not a policy. If the policy is also
+    Mixin adding a set of trainable parameters (the policy weights) to a policy. It must be combined with a
+    :class:`Policy` subclass and placed before it in the base list (e.g. ``class MyPolicy(HasWeights, Policy)`` or
+    ``class MyPolicy(HasWeights, StatefulPolicy)``); on its own it is not a policy. If the policy is also
     differentiable, use :class:`HasGradient` instead.
 
     """
     def __init_subclass__(cls, is_mixin=False, **kwargs):
         super().__init_subclass__(**kwargs)
-        if not is_mixin and not issubclass(cls, Policy):
+        if is_mixin:
+            return
+
+        if not issubclass(cls, Policy):
             raise TypeError(
                 "'{}' uses the HasWeights mixin but does not inherit from Policy. HasWeights and HasGradient can only "
                 "be combined with a Policy subclass (intermediate mixins must pass is_mixin=True).".format(cls.__name__)
+            )
+
+        if cls.__mro__.index(Policy) < cls.__mro__.index(HasWeights):
+            raise TypeError(
+                "'{}' resolves Policy before the HasWeights mixin. Mixins must be listed first, e.g. "
+                "'class {}(HasWeights, Policy)'.".format(cls.__name__, cls.__name__)
             )
 
     def set_weights(self, weights):

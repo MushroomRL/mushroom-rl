@@ -1,11 +1,12 @@
 import numpy as np
 
+from mushroom_rl.core import HasNextAction
 from mushroom_rl.algorithms.value.td import TD
 from mushroom_rl.approximators import QApproximator
 from mushroom_rl.rl_utils.parameters import to_parameter
 
 
-class SARSALambdaContinuous(TD):
+class SARSALambdaContinuous(HasNextAction, TD):
     """
     Continuous version of SARSA(lambda) algorithm.
 
@@ -38,8 +39,8 @@ class SARSALambdaContinuous(TD):
 
         self.e = self.mdp_info.gamma * self._lambda() * self.e + self.Q.diff(state, action)
 
-        self.next_action = self.draw_action(next_state)
-        q_next = self.Q.predict(next_state, self.next_action) if not absorbing else 0.
+        self._next_action = self.draw_action(next_state)
+        q_next = self.Q.predict(next_state, self._next_action) if not absorbing else 0.
 
         delta = reward + self.mdp_info.gamma * q_next - q_current
 
@@ -47,7 +48,7 @@ class SARSALambdaContinuous(TD):
         theta += alpha * delta * self.e
         self.Q.set_weights(theta)
 
-    def episode_start(self, initial_state, episode_info):
+    def episode_start(self, initial_state, episode_info, greedy=False):
         self.e = np.zeros(self.Q.weights_size)
 
-        return super().episode_start(initial_state, episode_info)
+        return super().episode_start(initial_state, episode_info, greedy)

@@ -47,6 +47,20 @@ class TDPolicy(Policy):
         """
         return self._approximator
 
+    def _greedy_action(self, state):
+        """
+        Return the greedy action in ``state``, i.e. the argmax of the Q-function, breaking ties uniformly at random.
+
+        """
+        with torch.no_grad():
+            q = self._approximator.predict(state, **self._predict_params)
+        max_a = self._backend.nonzero(q == q.max()).ravel()
+
+        if len(max_a) > 1:
+            max_a = max_a[self._backend.randint(0, len(max_a), (1,))]
+
+        return max_a
+
 
 class EpsGreedy(TDPolicy):
     """
@@ -93,16 +107,12 @@ class EpsGreedy(TDPolicy):
 
     def draw_action(self, state):
         if not self._backend.rand() < self._epsilon(state):
-            with torch.no_grad():
-                q = self._approximator.predict(state, **self._predict_params)
-            max_a = self._backend.nonzero(q == q.max()).ravel()
-
-            if len(max_a) > 1:
-                max_a = max_a[self._backend.randint(0, len(max_a), (1,))]
-
-            return max_a
+            return self._greedy_action(state)
 
         return self._backend.randint(0, self._n_actions, (1,))
+
+    def draw_action_greedy(self, state):
+        return self._greedy_action(state)
 
     def set_epsilon(self, epsilon):
         """
@@ -155,7 +165,7 @@ class Boltzmann(TDPolicy):
         state = args[0]
         with torch.no_grad():
             q = self._approximator.predict(state, **self._predict_params)
-        q_beta = q * self._beta(state)
+        q_beta = q * self._beta.get_value(state)
         q_beta -= q_beta.max()
         qs = self._backend.exp(q_beta)
 
@@ -167,7 +177,12 @@ class Boltzmann(TDPolicy):
             return qs / qs.sum()
 
     def draw_action(self, state):
+        self._beta.update(state)
+
         return self._backend.multinomial(self(state))
+
+    def draw_action_greedy(self, state):
+        return self._greedy_action(state)
 
     def set_beta(self, beta):
         """
@@ -215,12 +230,25 @@ class Mellowmax(Boltzmann):
                 _beta_max='primitive',
             )
 
-        def __call__(self, state):
+        def __call__(self, *idx, **kwargs):
+            # beta is a function of the state, so the scalar index stripping of Parameter.__call__ must not apply
+            self.update(*idx, **kwargs)
+
+            return self.get_value(*idx, **kwargs)
+
+        def update(self, *idx, **kwargs):
+            self._omega.update(*idx, **kwargs)
+
+            super().update(*idx, **kwargs)
+
+        def _compute(self, *idx, **kwargs):
+            state = idx[0]
+            omega = self._omega.get_value(state)
+
             with torch.no_grad():
                 q = self._outer._approximator.predict(state, **self._outer._predict_params)
             q = ArrayBackend.convert(q, to='numpy')
-            mm = (logsumexp(q * self._omega(state)) - np.log(
-                q.size)) / self._omega(state)
+            mm = (logsumexp(q * omega) - np.log(q.size)) / omega
 
             def f(beta):
                 v = q - mm

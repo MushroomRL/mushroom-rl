@@ -29,8 +29,7 @@ core = Core(agent, mdp)
 
 core.learn(n_episodes=1000, n_episodes_per_fit=1000)
 
-pi.set_epsilon(Parameter(0.))
 initial_state = np.array([[-.5, 0.]])
-dataset = core.evaluate(initial_states=initial_state)
+dataset = core.evaluate(initial_states=initial_state, greedy=True)
 
 print(f'J: {dataset.discounted_return.item()}')

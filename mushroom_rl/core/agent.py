@@ -58,7 +58,6 @@ class Agent(MushroomObject):
             backend=backend
         )
         self.policy = policy
-        self.next_action = None
         self._agent_backend = ArrayBackend.get_array_backend(backend)
         self._env_backend = ArrayBackend.get_array_backend(self.mdp_info.backend)
 
@@ -75,7 +74,6 @@ class Agent(MushroomObject):
 
         self._add_save_attr(
             policy='mushroom',
-            next_action='none',
             mdp_info='mushroom',
             _info='mushroom',
             _history_manager='mushroom',
@@ -97,9 +95,8 @@ class Agent(MushroomObject):
 
     def draw_action(self, state):
         """
-        Return the action to execute in the given state. It is the action returned by the policy or the action set by
-        the algorithm (e.g. in the case of SARSA). When the policy is stateful, its internal state is updated and can
-        be read through :meth:`get_policy_state`.
+        Return the action to execute in the given state, sampled from the policy. When the policy is stateful, its
+        internal state is updated and can be read through the :attr:`policy_state` property.
 
         Args:
             state: the state where the agent is.
@@ -108,20 +105,21 @@ class Agent(MushroomObject):
             The action to be executed.
 
         """
-        if self.next_action is None:
-            state = self._convert_to_agent_backend(state)
-            state = self._agent_preprocess(state)
+        return self._draw(state, self.policy.draw_action)
 
-            state, policy_kwargs = self._history_manager(state)
+    def draw_action_greedy(self, state):
+        """
+        Return the greedy action to execute in the given state, used during greedy evaluation.
+        When the policy is stateful, its internal state is updated exactly as in :meth:`draw_action`.
 
-            action = self.policy.draw_action(state, **policy_kwargs)
-        else:
-            action = self._convert_to_agent_backend(self.next_action)
-            self.next_action = None
+        Args:
+            state: the state where the agent is.
 
-        self._history_manager.record_action(action)
+        Returns:
+            The greedy action to be executed.
 
-        return self._convert_to_env_backend(action)
+        """
+        return self._draw(state, self.policy.draw_action_greedy)
 
     @property
     def policy_state(self):
@@ -133,13 +131,15 @@ class Agent(MushroomObject):
             return self.policy.policy_state
         return None
 
-    def episode_start(self, initial_state, episode_info):
+    def episode_start(self, initial_state, episode_info, greedy=False):
         """
         Called by the Core when a new episode starts.
 
         Args:
             initial_state (Array): vector representing the initial state of the environment.
-            episode_info (dict): a dictionary containing the information at reset, such as context.
+            episode_info (dict): a dictionary containing the information at reset, such as context;
+            greedy (bool, False): whether the episode is run in greedy evaluation mode. Ignored by
+                stateless and step-based agents; episodic agents use it to draw the greedy policy parameters.
 
         Returns:
             A tuple containing the policy initial state and, optionally, the policy parameters
@@ -149,14 +149,16 @@ class Agent(MushroomObject):
 
         return self.policy.reset(), None
 
-    def episode_start_vectorized(self, initial_states, episode_info, start_mask):
+    def episode_start_vectorized(self, initial_states, episode_info, start_mask, greedy=False):
         """
         Called by the Core at the start of a new episode when using a vectorized environment.
 
         Args:
             initial_states (Array): the initial states of the environment.
             episode_info (dict): a dictionary containing the information at reset, such as context;
-            start_mask (Array): boolean mask to select the environments that are starting a new episode
+            start_mask (Array): boolean mask to select the environments that are starting a new episode;
+            greedy (bool, False): whether the episode is run in greedy evaluation mode. Ignored by
+                stateless and step-based agents; episodic agents use it to draw the greedy policy parameters.
 
         Returns:
             A tuple containing the policy initial states and, optionally, the policy parameters
@@ -224,6 +226,31 @@ class Agent(MushroomObject):
         """
         return self._history_manager
 
+    def _draw(self, state, policy_draw):
+        """
+        Shared body of :meth:`draw_action` and :meth:`draw_action_greedy`: convert and preprocess the state,
+        assemble the policy input through the history manager, query the policy via ``policy_draw`` (the stochastic or
+        greedy policy method), record the action and convert it back to the environment backend.
+
+        Args:
+            state: the state where the agent is;
+            policy_draw (callable): the policy method used to draw the action.
+
+        Returns:
+            The action to be executed.
+
+        """
+        state = self._convert_to_agent_backend(state)
+        state = self._agent_preprocess(state)
+
+        state, policy_kwargs = self._history_manager(state)
+
+        action = policy_draw(state, **policy_kwargs)
+
+        self._history_manager.record_action(action)
+
+        return self._convert_to_env_backend(action)
+
     def _convert_to_env_backend(self, array):
         return self._env_backend.convert_to_backend(self._agent_backend, array)
 
@@ -257,3 +284,66 @@ class Agent(MushroomObject):
             p.update(state)
             if i < len(self._agent_preprocessors):
                 state = p(state)
+
+
+class HasNextAction:
+    """
+    Agent-level mixin adding the *next-action* machinery used by on-policy algorithms (e.g. the SARSA family). Such
+    algorithms must execute the same action they used to build the bootstrapped target: they draw it inside their
+    update and cache it in ``self._next_action``, and the following :meth:`~mushroom_rl.core.Agent.draw_action`
+    returns the cached action instead of sampling a fresh one. Deterministic evaluation never caches, so
+    :meth:`~mushroom_rl.core.Agent.draw_action_greedy` is left untouched.
+
+    It must be combined with an :class:`Agent` subclass and placed before it in the base list, e.g.
+    ``class SARSA(HasNextAction, TD)``; on its own it is not an agent.
+
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._next_action = None
+
+        self._add_save_attr(_next_action='none')
+
+    def __init_subclass__(cls, is_mixin=False, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if is_mixin:
+            return
+
+        if not issubclass(cls, Agent):
+            raise TypeError(
+                "'{}' uses the HasNextAction mixin but does not inherit from Agent. HasNextAction must be combined "
+                "with an Agent subclass (intermediate mixins must pass is_mixin=True).".format(cls.__name__)
+            )
+
+        if cls.__mro__.index(Agent) < cls.__mro__.index(HasNextAction):
+            raise TypeError(
+                "'{}' resolves Agent before the HasNextAction mixin, so Agent shadows every method the mixin "
+                "provides and the next-action machinery is silently disabled. List the mixin first, e.g. "
+                "'class {}(HasNextAction, ...)'.".format(cls.__name__, cls.__name__)
+            )
+
+    def draw_action(self, state):
+        if self._next_action is None:
+            return super().draw_action(state)
+
+        action = self._convert_to_agent_backend(self._next_action)
+        self._next_action = None
+        self._history_manager.record_action(action)
+
+        return self._convert_to_env_backend(action)
+
+    def episode_start(self, initial_state, episode_info, greedy=False):
+        self._next_action = None
+
+        return super().episode_start(initial_state, episode_info, greedy)
+
+    def episode_start_vectorized(self, initial_states, episode_info, start_mask, greedy=False):
+        self._next_action = None
+
+        return super().episode_start_vectorized(initial_states, episode_info, start_mask, greedy)
+
+    def stop(self):
+        self._next_action = None
+
+        super().stop()

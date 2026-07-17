@@ -41,7 +41,7 @@ class DummyEpisodicAgent(Agent):
     def fit(self, dataset):
         assert len(dataset.theta_list) == 5
 
-    def episode_start_vectorized(self, initial_states, episode_info, start_mask):
+    def episode_start_vectorized(self, initial_states, episode_info, start_mask, greedy=False):
         n_envs = len(start_mask)
         current_count = self._counter
         self._counter += 1
@@ -51,6 +51,38 @@ class DummyEpisodicAgent(Agent):
             return None, np.ones((n_envs, 2)) * current_count
         else:
             raise NotImplementedError
+
+
+class GreedyDummyPolicy(Policy):
+    def __init__(self, action_shape, backend):
+        self._dim = action_shape[0]
+        self._backend = backend
+        super().__init__()
+
+    def draw_action(self, state):
+        if self._backend == 'torch':
+            return torch.randn(state.shape[0], self._dim)
+        elif self._backend == 'numpy':
+            return np.random.randn(state.shape[0], self._dim)
+        else:
+            raise NotImplementedError
+
+    def draw_action_greedy(self, state):
+        if self._backend == 'torch':
+            return torch.ones(state.shape[0], self._dim)
+        elif self._backend == 'numpy':
+            return np.ones((state.shape[0], self._dim))
+        else:
+            raise NotImplementedError
+
+
+class GreedyDummyAgent(Agent):
+    def __init__(self, mdp_info, backend):
+        policy = GreedyDummyPolicy(mdp_info.action_space.shape, backend)
+        super().__init__(mdp_info, policy, backend=backend)
+
+    def fit(self, dataset):
+        pass
 
 
 class DummyVecEnv(VectorizedEnvironment):
@@ -191,6 +223,31 @@ def run_exp_initial_states(env_backend, agent_backend):
 
     assert len(init_states) == 7
     assert sorted(tuple(row) for row in init_states) == sorted(tuple(row) for row in initial_states)
+
+
+def run_exp_greedy(env_backend, agent_backend):
+    torch.random.manual_seed(42)
+    np.random.seed(42)
+
+    env = DummyVecEnv(env_backend)
+    agent = GreedyDummyAgent(env.info, agent_backend)
+
+    core = Core(agent, env)
+
+    dataset = core.evaluate(n_steps=50, quiet=True, greedy=True)
+    actions = dataset.array_backend.to_numpy(dataset.action)
+    assert np.all(actions == 1.0)
+
+    dataset_stochastic = core.evaluate(n_steps=50, quiet=True)
+    actions_stochastic = dataset_stochastic.array_backend.to_numpy(dataset_stochastic.action)
+    assert not np.all(actions_stochastic == 1.0)
+
+
+def test_vectorized_core_greedy_evaluation():
+    run_exp_greedy(env_backend='torch', agent_backend='torch')
+    run_exp_greedy(env_backend='torch', agent_backend='numpy')
+    run_exp_greedy(env_backend='numpy', agent_backend='torch')
+    run_exp_greedy(env_backend='numpy', agent_backend='numpy')
 
 
 def test_vectorized_core():

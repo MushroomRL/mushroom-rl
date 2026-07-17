@@ -494,11 +494,8 @@ def test_dispatch_errors():
 
     for bad_args, bad_kwargs in [(([rbf, rbf_tensor],), {}), (([],), {}), ((), {}),
                                  (([rbf],), dict(n_outputs=5)), (([rbf],), dict(function=lambda z: z))]:
-        try:
+        with pytest.raises(ValueError):
             Features(*bad_args, **bad_kwargs)
-            assert False
-        except ValueError:
-            pass
 
 
 def test_functional():
@@ -587,11 +584,8 @@ def test_backend_not_supported():
 
     features = Features(GaussianRBF.generate([3, 3], low, high), backend='list')
 
-    try:
+    with pytest.raises(NotImplementedError):
         features(np.random.rand(4, 2))
-        assert False
-    except NotImplementedError:
-        pass
 
 
 def test_torch_backend():
@@ -659,11 +653,8 @@ def test_to_torch_module_not_implemented():
     for features in [Features(GaussianRBF.generate([3, 3], low, high)),
                      Features(Tiles.generate(3, [3, 3], low, high)),
                      Features(n_outputs=2)]:
-        try:
+        with pytest.raises(NotImplementedError):
             features.to_torch_module()
-            assert False
-        except NotImplementedError:
-            pass
 
 
 def test_get_action_features():

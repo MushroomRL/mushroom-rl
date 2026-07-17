@@ -152,6 +152,10 @@ class GaussianTorchPolicy(TorchPolicy):
         with torch.no_grad():
             return self.distribution(state).sample()
 
+    def draw_action_greedy(self, state):
+        with torch.no_grad():
+            return self.distribution(state).mean
+
     def draw_with_log_prob(self, state):
         dist = self.distribution(state)
         a = dist.rsample()
@@ -225,7 +229,13 @@ class BoltzmannTorchPolicy(TorchPolicy):
 
     def draw_action(self, state):
         with torch.no_grad():
+            self._beta.update(state.numpy())
+
             return self.distribution(state).sample().unsqueeze(-1)
+
+    def draw_action_greedy(self, state):
+        with torch.no_grad():
+            return self.distribution(state).mode.unsqueeze(-1)
 
     def draw_with_log_prob(self, state):
         raise NotImplementedError("The Boltzmann policy cannot be sampled with the reparametrization trick.")
@@ -237,7 +247,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
         return torch.mean(self.distribution(state).entropy())
 
     def distribution(self, state):
-        logits = self._logits(state, **self._predict_params) * self._beta(state.numpy())
+        logits = self._logits(state, **self._predict_params) * self._beta.get_value(state.numpy())
         return CategoricalWrapper(logits)
 
     def set_weights(self, weights):
@@ -297,6 +307,10 @@ class SquashedGaussianTorchPolicy(TorchPolicy):
     def draw_action(self, state):
         with torch.no_grad():
             return self.distribution(state).sample()
+
+    def draw_action_greedy(self, state):
+        with torch.no_grad():
+            return self.distribution(state).median
 
     def draw_with_log_prob(self, state):
         return self.distribution(state).rsample_and_log_prob()

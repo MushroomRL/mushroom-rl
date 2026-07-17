@@ -3,19 +3,17 @@ import torch.nn as nn
 
 import numpy as np
 
+import pytest
+
 from mushroom_rl.policy.torch_policy import TorchPolicy, GaussianTorchPolicy, BoltzmannTorchPolicy, \
     SquashedGaussianTorchPolicy
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.rl_utils.parameters import Parameter
+from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter
 
 
 def abstract_method_tester(f, *args):
-    try:
+    with pytest.raises(NotImplementedError):
         f(*args)
-    except NotImplementedError:
-        pass
-    else:
-        assert False
 
 
 class Network(nn.Module):
@@ -75,6 +73,20 @@ def test_gaussian_torch_policy():
     assert np.allclose(entropy.item(), entropy_test)
 
 
+def test_gaussian_torch_policy_greedy():
+    np.random.seed(42)
+    torch.manual_seed(42)
+    pi = GaussianTorchPolicy(Network, (3,), (2,), n_features=50)
+
+    state = torch.as_tensor(np.random.rand(4, 3))
+
+    action = pi.draw_action_greedy(state)
+    assert action.shape == (4, 2)
+    assert not action.requires_grad
+    assert torch.allclose(action, pi.distribution(state).mean)
+    assert torch.allclose(action, pi.draw_action_greedy(state))
+
+
 def test_boltzmann_torch_policy():
     np.random.seed(42)
     torch.manual_seed(42)
@@ -96,6 +108,41 @@ def test_boltzmann_torch_policy():
     assert np.allclose(entropy.item(), entropy_test)
 
     abstract_method_tester(pi.draw_with_log_prob, state)
+
+
+def test_boltzmann_torch_policy_greedy():
+    np.random.seed(42)
+    torch.manual_seed(42)
+    beta = Parameter(1.0)
+    pi = BoltzmannTorchPolicy(Network, (3,), (2,), beta, n_features=50)
+
+    state = torch.as_tensor(np.random.rand(3, 3))
+
+    action = pi.draw_action_greedy(state)
+    assert action.shape == (3, 1)
+    assert torch.equal(action, pi.distribution(state).mode.unsqueeze(-1))
+    assert torch.equal(action, pi.draw_action_greedy(state))
+
+
+def test_boltzmann_torch_policy_consumes_beta_only_on_draw_action():
+    np.random.seed(42)
+    torch.manual_seed(42)
+    beta = LinearParameter(value=5., threshold_value=1., n=100)
+    pi = BoltzmannTorchPolicy(Network, (3,), (2,), beta, n_features=50)
+
+    state = torch.as_tensor(np.random.rand(3, 3))
+
+    for _ in range(50):
+        pi.draw_action_greedy(state)
+    pi.entropy(state)
+    pi.log_prob(state, torch.tensor([[0], [1], [0]]))
+
+    assert beta.get_value() == 5.
+
+    for _ in range(10):
+        pi.draw_action(state)
+
+    assert np.allclose(beta.get_value(), 4.6)
 
 
 def test_squashed_gaussian_torch_policy():
@@ -139,3 +186,23 @@ def test_squashed_gaussian_torch_policy():
     assert np.allclose(entropy.item(), entropy_test, atol=1e-5)
 
     assert pi.distribution(state).__class__.__name__ == 'SquashedGaussian'
+
+
+def test_squashed_gaussian_torch_policy_greedy():
+    np.random.seed(42)
+    torch.manual_seed(42)
+
+    mu_approximator = TorchApproximator(input_shape=(3,), output_shape=(2,), network=Network, n_features=50)
+    sigma_approximator = TorchApproximator(input_shape=(3,), output_shape=(2,), network=Network, n_features=50)
+    min_a = np.array([-2., -2.])
+    max_a = np.array([2., 2.])
+    pi = SquashedGaussianTorchPolicy(mu_approximator, sigma_approximator, min_a, max_a, -20, 2)
+
+    state = torch.as_tensor(np.random.rand(5, 3))
+
+    action = pi.draw_action_greedy(state)
+    assert action.shape == (5, 2)
+    assert not action.requires_grad
+    assert torch.all(action >= torch.as_tensor(min_a)) and torch.all(action <= torch.as_tensor(max_a))
+    assert torch.allclose(action, pi.distribution(state).median)
+    assert torch.allclose(action, pi.draw_action_greedy(state))

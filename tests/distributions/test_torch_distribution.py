@@ -94,3 +94,19 @@ def test_cholesky_get_set_parameters():
     rho = dist.get_parameters().detach().clone()
     dist.set_parameters(rho)
     assert torch.allclose(dist.get_parameters().detach(), rho)
+
+
+def test_mean_does_not_expose_internal_state():
+    mu = torch.tensor([1., 2.])
+
+    for dist in [DiagonalGaussianTorchDistribution(mu.clone(), torch.ones(2)),
+                 CholeskyGaussianTorchDistribution(mu.clone(), torch.eye(2))]:
+        mean = dist.mean()
+
+        assert torch.allclose(mean, mu)
+        assert mean.data_ptr() != dist._mu.data_ptr()
+
+        with torch.no_grad():
+            dist._mu[:] = 99.
+
+        assert torch.allclose(mean, mu)

@@ -47,6 +47,15 @@ class SquashedGaussian(TransformedDistribution):
 
         super().__init__(base, transforms, validate_args=validate_args)
 
+    @property
+    def median(self):
+        """
+        The median of the squashed distribution, i.e. the base Gaussian mean pushed through the tanh and affine
+        transforms.
+
+        """
+        return torch.tanh(self.base_dist.mean) * self._delta + self._central
+
     def log_prob(self, value):
         a_squashed = torch.clamp((value - self._central) / self._delta, -1. + self._eps, 1. - self._eps)
         value = a_squashed * self._delta + self._central

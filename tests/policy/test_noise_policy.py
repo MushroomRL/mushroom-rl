@@ -1,5 +1,7 @@
 import torch
 
+import pytest
+
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import LinearNetwork
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy, ClippedGaussianPolicy
@@ -28,12 +30,28 @@ def test_ornstein_uhlenbeck_policy():
     action_test = torch.tensor([-0.7114595175,  1.1141412258])
     assert torch.allclose(action, action_test)
 
-    try:
+    with pytest.raises(NotImplementedError):
         pi(state, action)
-    except NotImplementedError:
-        pass
-    else:
-        assert False
+
+
+def test_ornstein_uhlenbeck_greedy():
+    torch.manual_seed(42)
+
+    mu = TorchApproximator(network=LinearNetwork, input_shape=(5,), output_shape=(2,))
+    pi = OrnsteinUhlenbeckPolicy(mu, sigma=torch.ones(1) * .2, theta=.15, dt=1e-2)
+
+    w = torch.randn(pi.weights_size)
+    pi.set_weights(w)
+
+    state = torch.randn(5)
+
+    pi.reset()
+
+    action = pi.draw_action_greedy(state)
+    action_test = torch.tensor([-0.7066923380, 1.1151391268])
+    assert torch.allclose(action, action_test)
+
+    assert torch.allclose(pi.draw_action_greedy(state), action_test)
 
 
 def test_ornstein_uhlenbeck_vectorized():
@@ -80,11 +98,26 @@ def test_clipped_gaussian_policy():
     action_test = torch.tensor([0.4926533699, 1.0])
     assert torch.allclose(action, action_test)
 
-    try:
+    with pytest.raises(NotImplementedError):
         pi(state, action)
-    except NotImplementedError:
-        pass
-    else:
-        assert False
 
-# TODO Missing test for clipped gaussian!
+
+def test_clipped_gaussian_greedy():
+    torch.manual_seed(1)
+
+    low = -torch.ones(2)
+    high = torch.ones(2)
+
+    mu = TorchApproximator(network=LinearNetwork, input_shape=(5,), output_shape=(2,))
+    pi = ClippedGaussianPolicy(mu, torch.eye(2), low, high)
+
+    w = torch.randn(pi.weights_size)
+    pi.set_weights(w)
+
+    state = torch.randn(5)
+
+    action = pi.draw_action_greedy(state)
+    action_test = torch.tensor([-1.0, 1.0])
+    assert torch.allclose(action, action_test)
+
+    assert torch.allclose(pi.draw_action_greedy(state), action_test)
