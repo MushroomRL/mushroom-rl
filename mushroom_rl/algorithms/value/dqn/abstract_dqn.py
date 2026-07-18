@@ -111,8 +111,7 @@ class AbstractDQN(Agent):
                 reward = torch.clip(reward, -1, 1)
 
             with torch.no_grad():
-                q_next = self._next_q(next_state, absorbing)
-                q = reward + self.mdp_info.gamma * q_next
+                q = self._compute_target(state, reward, next_state, absorbing)
 
             self.approximator.fit(state, action, q, **self._fit_params)
 
@@ -126,8 +125,7 @@ class AbstractDQN(Agent):
                 reward = torch.clip(reward, -1, 1)
 
             with torch.no_grad():
-                q_next = self._next_q(next_state, absorbing)
-                q = reward + self.mdp_info.gamma * q_next
+                q = self._compute_target(state, reward, next_state, absorbing)
                 td_error = q - self.approximator.predict(state, action, **self._predict_params)
 
             self._replay_memory.update(td_error, idxs)
@@ -146,6 +144,10 @@ class AbstractDQN(Agent):
 
         """
         self.target_approximator.set_weights(self.approximator.get_weights())
+
+    def _compute_target(self, state, reward, next_state, absorbing):
+        q_next = self._next_q(next_state, absorbing)
+        return reward + self.mdp_info.gamma * q_next
 
     def _next_q(self, next_state, absorbing):
         """
