@@ -8,9 +8,12 @@ from mushroom_rl.approximators.table import Table
 class DoubleSORQLearning(TD):
     """
     Double Successive Over-Relaxation Q-Learning algorithm.
-    "Double Successive Over-Relaxation Q-Learning with an Extension to Deep
-    Reinforcement Learning".
-    Shreyas S. R. 2025.
+
+    References:
+        S. R. Shreyas, "Double Successive Over-Relaxation Q-Learning With an
+        Extension to Deep Reinforcement Learning," IEEE Transactions on Neural
+        Networks and Learning Systems, vol. 36, no. 10, pp. 19467-19472, 2025.
+        doi: 10.1109/TNNLS.2025.3576581.
 
     """
     def __init__(self, mdp_info, policy, learning_rate, relaxation_factor):
