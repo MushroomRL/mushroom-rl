@@ -43,8 +43,6 @@ Deep Critic-Only
 ----------------
 - `Acrobot with DQN <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/acrobot_dqn.py>`_
 - `Acrobot with DSOR-DQN <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/acrobot_dsor_dqn.py>`_
-- ``neural_maximization_bias_benchmark.py``: neural maximization-bias comparison using the published
-  1,000-run results
 - `Minigrid with DQN <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/minigrid_dqn.py>`_
 - `Atari <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/atari_dqn.py>`_
 
