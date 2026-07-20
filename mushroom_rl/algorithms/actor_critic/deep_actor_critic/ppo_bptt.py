@@ -45,14 +45,14 @@ class PPO_BPTT(OnPolicyDeepAC):
         """
         self._critic_fit_params = dict(n_epochs=10) if critic_fit_params is None else critic_fit_params
 
-        self._n_epochs_policy = Parameter.make(n_epochs_policy)
-        self._batch_size = Parameter.make(batch_size)
-        self._eps_ppo = Parameter.make(eps_ppo)
+        self._n_epochs_policy = Parameter.make(n_epochs_policy, backend='torch')
+        self._batch_size = Parameter.make(batch_size, backend='torch')
+        self._eps_ppo = Parameter.make(eps_ppo, backend='torch')
 
         self._optimizer = actor_optimizer['class'](policy.parameters(), **actor_optimizer['params'])
 
-        self._lambda = Parameter.make(lam)
-        self._ent_coeff = Parameter.make(ent_coeff)
+        self._lambda = Parameter.make(lam, backend='torch')
+        self._ent_coeff = Parameter.make(ent_coeff, backend='torch')
 
         self._V = RecurrentTorchApproximator(**critic_params)
 

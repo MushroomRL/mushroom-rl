@@ -50,9 +50,9 @@ class SAC(DeepAC):
         """
         self._critic_fit_params = dict() if critic_fit_params is None else critic_fit_params
 
-        self._batch_size = Parameter.make(batch_size)
-        self._warmup_transitions = Parameter.make(warmup_transitions)
-        self._tau = Parameter.make(tau)
+        self._batch_size = Parameter.make(batch_size, backend='torch')
+        self._warmup_transitions = Parameter.make(warmup_transitions, backend='torch')
+        self._tau = Parameter.make(tau, backend='torch')
 
         self._use_log_alpha_loss = use_log_alpha_loss
 

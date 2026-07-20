@@ -38,7 +38,7 @@ class A2C(DeepAC):
         """
         self._critic_fit_params = dict() if critic_fit_params is None else critic_fit_params
 
-        self._entropy_coeff = Parameter.make(ent_coeff)
+        self._entropy_coeff = Parameter.make(ent_coeff, backend='torch')
 
         self._V = TorchApproximator(**critic_params)
 

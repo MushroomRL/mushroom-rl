@@ -218,7 +218,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
         self._predict_params = dict()
 
         self._logits = TorchApproximator(input_shape=input_shape, output_shape=output_shape, network=network, **params)
-        self._beta = Parameter.make(beta)
+        self._beta = Parameter.make(beta, backend='torch')
 
         self._add_save_attr(
             _action_dim='primitive',
@@ -229,7 +229,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
 
     def draw_action(self, state):
         with torch.no_grad():
-            self._beta.update(state.numpy())
+            self._beta.update(state)
 
             return self.distribution(state).sample().unsqueeze(-1)
 
@@ -247,7 +247,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
         return torch.mean(self.distribution(state).entropy())
 
     def distribution(self, state):
-        logits = self._logits(state, **self._predict_params) * self._beta.get_value(state.numpy())
+        logits = self._logits(state, **self._predict_params) * self._beta.get_value(state)
         return CategoricalWrapper(logits)
 
     def set_weights(self, weights):
@@ -260,7 +260,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
         return self._logits.parameters()
 
     def set_beta(self, beta):
-        self._beta = Parameter.make(beta)
+        self._beta = Parameter.make(beta, backend='torch')
 
 
 class SquashedGaussianTorchPolicy(TorchPolicy):
@@ -289,8 +289,8 @@ class SquashedGaussianTorchPolicy(TorchPolicy):
         self._min_a = TorchUtils.to_float_tensor(min_a)
         self._max_a = TorchUtils.to_float_tensor(max_a)
 
-        self._log_std_min = Parameter.make(log_std_min)
-        self._log_std_max = Parameter.make(log_std_max)
+        self._log_std_min = Parameter.make(log_std_min, backend='torch')
+        self._log_std_max = Parameter.make(log_std_max, backend='torch')
 
         self._eps = 1e-6
 

@@ -324,6 +324,7 @@ class TestUtils:
         res = this._initial_value == that._initial_value
         res &= this._shape == that._shape
         res &= this._log_full == that._log_full
+        res &= this._backend == that._backend
         return res
 
     @classmethod

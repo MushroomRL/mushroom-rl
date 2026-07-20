@@ -43,8 +43,8 @@ class TD3(DDPG):
                 of the critic approximator.
 
         """
-        self._noise_std = Parameter.make(noise_std)
-        self._noise_clip = Parameter.make(noise_clip)
+        self._noise_std = Parameter.make(noise_std, backend='torch')
+        self._noise_clip = Parameter.make(noise_clip, backend='torch')
 
         if 'n_models' in critic_params.keys():
             assert critic_params['n_models'] >= 2

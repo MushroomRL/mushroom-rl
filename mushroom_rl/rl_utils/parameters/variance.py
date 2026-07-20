@@ -9,7 +9,8 @@ class VarianceParameter(VariableParameter):
     parameter is expected.
 
     """
-    def __init__(self, value, exponential=False, min_value=None, tol=1., shape=None, log_full=False):
+    def __init__(self, value, exponential=False, min_value=None, tol=1., shape=None, log_full=False,
+                 backend='numpy'):
         """
         Constructor.
 
@@ -26,7 +27,7 @@ class VarianceParameter(VariableParameter):
         self._x2 = self._make_approximator(table_shape)
         self._parameter_value = self._make_approximator(table_shape)
 
-        super().__init__(value, min_value=min_value, shape=shape, log_full=log_full)
+        super().__init__(value, min_value=min_value, shape=shape, log_full=log_full, backend=backend)
 
         self._add_save_attr(
             _exponential='primitive',
@@ -52,6 +53,7 @@ class VarianceParameter(VariableParameter):
                 depends on another parameter value.
 
         """
+        args = self._to_numpy(args)
         x = target
 
         # compute parameter value
@@ -111,7 +113,8 @@ class WindowedVarianceParameter(VariableParameter):
     the variance is computed in a window interval.
 
     """
-    def __init__(self, value, exponential=False, min_value=None, tol=1., window=100, shape=None, log_full=False):
+    def __init__(self, value, exponential=False, min_value=None, tol=1., window=100, shape=None, log_full=False,
+                 backend='numpy'):
         """
         Constructor.
 
@@ -139,7 +142,7 @@ class WindowedVarianceParameter(VariableParameter):
             _parameter_value='mushroom',
         )
 
-        super().__init__(value, min_value=min_value, shape=shape, log_full=log_full)
+        super().__init__(value, min_value=min_value, shape=shape, log_full=log_full, backend=backend)
 
     def _compute(self, *args, **kwargs):
         return self._parameter_value[args]
@@ -156,6 +159,7 @@ class WindowedVarianceParameter(VariableParameter):
                 depends on another parameter value.
 
         """
+        args = self._to_numpy(args)
         x = target
 
         # compute parameter value

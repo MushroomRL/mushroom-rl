@@ -46,7 +46,7 @@ class AbstractDQN(Agent):
         self._fit_params = dict() if fit_params is None else fit_params
         self._predict_params = dict() if predict_params is None else predict_params
 
-        self._batch_size = Parameter.make(batch_size)
+        self._batch_size = Parameter.make(batch_size, backend='torch')
         self._clip_reward = clip_reward
         self._target_update_frequency = target_update_frequency
 

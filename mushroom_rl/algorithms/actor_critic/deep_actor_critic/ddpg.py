@@ -67,9 +67,9 @@ class DDPG(DeepAC):
 
         super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
 
-        self._batch_size = Parameter.make(batch_size)
-        self._tau = Parameter.make(tau)
-        self._policy_delay = Parameter.make(policy_delay)
+        self._batch_size = Parameter.make(batch_size, backend='torch')
+        self._tau = Parameter.make(tau, backend='torch')
+        self._policy_delay = Parameter.make(policy_delay, backend='torch')
         self._fit_count = 0
 
         self._replay_memory = ReplayMemory(mdp_info, self.info, initial_replay_size, max_replay_size)

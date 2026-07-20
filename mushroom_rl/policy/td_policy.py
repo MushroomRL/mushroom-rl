@@ -80,7 +80,7 @@ class EpsGreedy(TDPolicy):
         """
         super().__init__(backend)
 
-        self._epsilon = Parameter.make(epsilon)
+        self._epsilon = Parameter.make(epsilon, backend=backend)
 
         self._add_save_attr(_epsilon='mushroom')
         self._add_logger_attr(_epsilon='epsilon', group='policy')
@@ -123,7 +123,7 @@ class EpsGreedy(TDPolicy):
             probability of performing a random actions in the current step.
 
         """
-        self._epsilon = Parameter.make(epsilon)
+        self._epsilon = Parameter.make(epsilon, backend=self._backend.get_backend_name())
 
     def update(self, *args):
         """
@@ -156,7 +156,7 @@ class Boltzmann(TDPolicy):
 
         """
         super().__init__(backend)
-        self._beta = Parameter.make(beta)
+        self._beta = Parameter.make(beta, backend=backend)
 
         self._add_save_attr(_beta='mushroom')
         self._add_logger_attr(_beta='beta', group='policy')
@@ -192,7 +192,7 @@ class Boltzmann(TDPolicy):
             beta ((float, Parameter)): the inverse of the temperature distribution.
 
         """
-        self._beta = Parameter.make(beta)
+        self._beta = Parameter.make(beta, backend=self._backend.get_backend_name())
 
     def update(self, *args):
         """
@@ -211,14 +211,14 @@ class Mellowmax(Boltzmann):
     """
     Mellowmax policy.
     "An Alternative Softmax Operator for Reinforcement Learning". Asadi K. and
-    Littman M.L.. 2017.
+    Littman M.L. 2017.
 
     """
     class MellowmaxParameter(Parameter):
-        def __init__(self, outer, omega, beta_min, beta_max):
-            super().__init__(0.)
+        def __init__(self, outer, omega, beta_min, beta_max, backend='numpy'):
+            super().__init__(0., backend=backend)
 
-            self._omega = omega
+            self._omega = Parameter.make(omega, backend=backend)
             self._outer = outer
             self._beta_min = beta_min
             self._beta_max = beta_max
@@ -273,7 +273,7 @@ class Mellowmax(Boltzmann):
             backend (str, 'numpy'): name of the array backend used by the policy.
 
         """
-        beta_mellow = self.MellowmaxParameter(self, omega, beta_min, beta_max)
+        beta_mellow = self.MellowmaxParameter(self, omega, beta_min, beta_max, backend)
 
         super().__init__(beta_mellow, backend)
 

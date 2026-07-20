@@ -46,15 +46,15 @@ class TRPO(OnPolicyDeepAC):
         """
         self._critic_fit_params = dict(n_epochs=5) if critic_fit_params is None else critic_fit_params
 
-        self._n_epochs_line_search = Parameter.make(n_epochs_line_search)
-        self._n_epochs_cg = Parameter.make(n_epochs_cg)
-        self._cg_damping = Parameter.make(cg_damping)
-        self._cg_residual_tol = Parameter.make(cg_residual_tol)
+        self._n_epochs_line_search = Parameter.make(n_epochs_line_search, backend='torch')
+        self._n_epochs_cg = Parameter.make(n_epochs_cg, backend='torch')
+        self._cg_damping = Parameter.make(cg_damping, backend='torch')
+        self._cg_residual_tol = Parameter.make(cg_residual_tol, backend='torch')
 
-        self._max_kl = Parameter.make(max_kl)
-        self._ent_coeff = Parameter.make(ent_coeff)
+        self._max_kl = Parameter.make(max_kl, backend='torch')
+        self._ent_coeff = Parameter.make(ent_coeff, backend='torch')
 
-        self._lambda = Parameter.make(lam)
+        self._lambda = Parameter.make(lam, backend='torch')
 
         self._V = TorchApproximator(**critic_params)
 

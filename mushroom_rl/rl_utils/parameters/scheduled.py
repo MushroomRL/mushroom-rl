@@ -15,7 +15,7 @@ class LinearParameter(VariableParameter):
     the upper or lower threshold for the parameter.
 
     """
-    def __init__(self, value, threshold_value, n, shape=None, log_full=False):
+    def __init__(self, value, threshold_value, n, shape=None, log_full=False, backend='numpy'):
         """
         Constructor.
 
@@ -26,15 +26,16 @@ class LinearParameter(VariableParameter):
             shape (tuple, None): shape of the matrix of parameters; this shape can be used to have a single
                 parameter for each state or state-action tuple. If None, the parameter is a scalar;
             log_full (bool, False): if True, the parameter is logged even when it is non-scalar (it holds more
-                than one value).
+                than one value);
+            backend (str, 'numpy'): array backend the parameter's inputs are given in.
 
         """
         self._coeff = (threshold_value - value) / n
 
         if self._coeff >= 0:
-            super().__init__(value=value, max_value=threshold_value, shape=shape, log_full=log_full)
+            super().__init__(value=value, max_value=threshold_value, shape=shape, log_full=log_full, backend=backend)
         else:
-            super().__init__(value=value, min_value=threshold_value, shape=shape, log_full=log_full)
+            super().__init__(value=value, min_value=threshold_value, shape=shape, log_full=log_full, backend=backend)
 
         self._add_save_attr(_coeff='primitive')
 
@@ -53,7 +54,7 @@ class DecayParameter(VariableParameter):
     arbitrary exponent.
 
     """
-    def __init__(self, value, exp=1., min_value=None, max_value=None, shape=None, log_full=False):
+    def __init__(self, value, exp=1., min_value=None, max_value=None, shape=None, log_full=False, backend='numpy'):
         """
         Constructor.
 
@@ -65,12 +66,14 @@ class DecayParameter(VariableParameter):
             shape (tuple, None): shape of the matrix of parameters; this shape can be used to have a single
                 parameter for each state or state-action tuple. If None, the parameter is a scalar;
             log_full (bool, False): if True, the parameter is logged even when it is non-scalar (it holds more
-                than one value).
+                than one value);
+            backend (str, 'numpy'): array backend the parameter's inputs are given in.
 
         """
         self._exp = exp
 
-        super().__init__(value=value, min_value=min_value, max_value=max_value, shape=shape, log_full=log_full)
+        super().__init__(value=value, min_value=min_value, max_value=max_value, shape=shape, log_full=log_full,
+                         backend=backend)
 
         self._add_save_attr(_exp='primitive')
 

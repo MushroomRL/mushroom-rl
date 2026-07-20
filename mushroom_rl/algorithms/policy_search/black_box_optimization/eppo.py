@@ -24,10 +24,10 @@ class ePPO(BlackBoxOptimization):
         assert hasattr(distribution, 'parameters')
 
         self._optimizer = optimizer['class'](distribution.parameters(), **optimizer['params'])
-        self._n_epochs_policy = Parameter.make(n_epochs_policy)
-        self._batch_size = Parameter.make(batch_size)
-        self._eps_ppo = Parameter.make(eps_ppo)
-        self._ent_coeff = Parameter.make(ent_coeff)
+        self._n_epochs_policy = Parameter.make(n_epochs_policy, backend='torch')
+        self._batch_size = Parameter.make(batch_size, backend='torch')
+        self._eps_ppo = Parameter.make(eps_ppo, backend='torch')
+        self._ent_coeff = Parameter.make(ent_coeff, backend='torch')
 
         super().__init__(mdp_info, distribution, policy, context_builder=context_builder, backend='torch')
 

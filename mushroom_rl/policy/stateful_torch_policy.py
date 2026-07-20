@@ -107,8 +107,8 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
 
         self._log_sigma = nn.Parameter(log_sigma_init)
 
-        self._log_std_min = Parameter.make(log_std_min)
-        self._log_std_max = Parameter.make(log_std_max)
+        self._log_std_min = Parameter.make(log_std_min, backend='torch')
+        self._log_std_max = Parameter.make(log_std_max, backend='torch')
 
         self._add_save_attr(
             _action_dim='primitive',

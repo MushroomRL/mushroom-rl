@@ -3,6 +3,7 @@ import math
 import numpy as np
 
 from mushroom_rl.core.mushroom_object import MushroomObject
+from mushroom_rl.core.array_backend import ArrayBackend
 from mushroom_rl.approximators.table import Table
 
 
@@ -13,7 +14,7 @@ class Parameter(MushroomObject):
     tuple.
 
     """
-    def __init__(self, value, shape=None, log_full=False):
+    def __init__(self, value, shape=None, log_full=False, backend='numpy'):
         """
         Constructor.
 
@@ -23,17 +24,21 @@ class Parameter(MushroomObject):
                 parameter for each state or state-action tuple. If None, the parameter is a scalar;
             log_full (bool, False): if True, the parameter is logged even when it is non-scalar (it holds more
                 than one value). By default, non-scalar parameters are not logged, as logging a per-state or
-                per-state-action value on every update is too expensive.
+                per-state-action value on every update is too expensive;
+            backend (str, 'numpy'): array backend the parameter's inputs are given in; the inputs are
+                converted to numpy before indexing a non-scalar parameter.
 
         """
         self._initial_value = value
         self._shape = shape
         self._log_full = log_full
+        self._backend = ArrayBackend.get_array_backend(backend)
 
         self._add_save_attr(
             _initial_value='primitive',
             _shape='primitive',
             _log_full='primitive',
+            _backend='primitive',
         )
 
     def __call__(self, *args, **kwargs):
@@ -77,20 +82,33 @@ class Parameter(MushroomObject):
         """
         self._log(*args, **kwargs)
 
+    def set_backend(self, backend):
+        """
+        Set the array backend the parameter's inputs are given in.
+
+        Args:
+            backend (str): name of the array backend.
+
+        """
+        self._backend = ArrayBackend.get_array_backend(backend)
+
     @staticmethod
-    def make(x):
+    def make(x, backend='numpy'):
         """
         Args:
-            x ([float, Parameter]): the value to convert to a parameter, if it is not one already.
+            x ([float, Parameter]): the value to convert to a parameter, if it is not one already;
+            backend (str, 'numpy'): array backend to assign to the parameter.
 
         Returns:
-            ``x`` unchanged if it is already a ``Parameter``, otherwise a constant ``Parameter`` wrapping it.
+            ``x`` with its backend set to ``backend`` if it is already a ``Parameter``, otherwise a constant
+            ``Parameter`` wrapping it in the given backend.
 
         """
         if isinstance(x, Parameter):
+            x.set_backend(backend)
             return x
         else:
-            return Parameter(x)
+            return Parameter(x, backend=backend)
 
     def _compute(self, *args, **kwargs):
         """
@@ -100,8 +118,20 @@ class Parameter(MushroomObject):
         """
         return self._initial_value
 
+    def _to_numpy(self, args):
+        """
+        Convert the indexing inputs to numpy, the backend of the underlying storage. Scalar parameters ignore
+        the index and are returned untouched. Override (together with ``_make_approximator``) to back the
+        parameter with a store that expects a different backend, e.g. a neural network.
+
+        """
+        if self._is_scalar:
+            return args
+
+        return tuple(a if isinstance(a, np.ndarray) else self._backend.to_numpy(a) for a in args)
+
     def _log(self, *args, **kwargs):
-        should_log = self._logger is not None and (self._log_full or math.prod(self.shape) == 1)
+        should_log = self._logger is not None and (self._log_full or self._is_scalar)
         if should_log:
             name = self._log_label or 'value'
             value = float(np.squeeze(self.get_value(*args, **kwargs)))
@@ -115,6 +145,15 @@ class Parameter(MushroomObject):
 
         """
         return self._shape if self._shape is not None else (1,)
+
+    @property
+    def _is_scalar(self):
+        """
+        Returns:
+            Whether the parameter holds a single value (so the index is ignored).
+
+        """
+        return math.prod(self.shape) == 1
 
     @property
     def initial_value(self):
@@ -132,8 +171,8 @@ class VariableParameter(Parameter):
     visit counter on top of :class:`Parameter`, used by the formula implemented by subclasses.
 
     """
-    def __init__(self, value, min_value=None, max_value=None, shape=None, log_full=False):
-        super().__init__(value, shape=shape, log_full=log_full)
+    def __init__(self, value, min_value=None, max_value=None, shape=None, log_full=False, backend='numpy'):
+        super().__init__(value, shape=shape, log_full=log_full, backend=backend)
 
         self._min_value = min_value
         self._max_value = max_value
@@ -146,6 +185,7 @@ class VariableParameter(Parameter):
         )
 
     def get_value(self, *args, **kwargs):
+        args = self._to_numpy(args)
         new_value = super().get_value(*args, n=self._n_updates[args], **kwargs)
 
         if self._min_value is None and self._max_value is None:
@@ -154,6 +194,7 @@ class VariableParameter(Parameter):
             return np.clip(new_value, self._min_value, self._max_value)
 
     def update(self, *args, **kwargs):
+        args = self._to_numpy(args)
         self._n_updates[args] += 1
 
         super().update(*args, **kwargs)
