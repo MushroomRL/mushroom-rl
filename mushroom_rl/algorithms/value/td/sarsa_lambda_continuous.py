@@ -3,7 +3,7 @@ import numpy as np
 from mushroom_rl.core import HasNextAction
 from mushroom_rl.algorithms.value.td import TD
 from mushroom_rl.approximators import QApproximator
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class SARSALambdaContinuous(HasNextAction, TD):
@@ -23,7 +23,7 @@ class SARSALambdaContinuous(HasNextAction, TD):
 
         Q = QApproximator(approximator, **approximator_params)
         self.e = np.zeros(Q.weights_size)
-        self._lambda = to_parameter(lambda_coeff)
+        self._lambda = Parameter.make(lambda_coeff)
 
         self._add_save_attr(
             _lambda='primitive',

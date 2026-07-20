@@ -1,7 +1,7 @@
 import numpy as np
 
 from mushroom_rl.core import ArrayBackend
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 from mushroom_rl.utils.sum_tree import SumTree
 
 from mushroom_rl.rl_utils.replay_memory.replay_memory import ReplayMemory
@@ -35,7 +35,7 @@ class PrioritizedReplayMemory(ReplayMemory):
 
         """
         self._alpha = alpha
-        self._beta = to_parameter(beta)
+        self._beta = Parameter.make(beta)
         self._epsilon = epsilon
 
         super().__init__(mdp_info, agent_info, initial_size, max_size, history_manager, n_steps_return,

@@ -2,7 +2,7 @@ import numpy as np
 from tqdm import trange
 
 from mushroom_rl.algorithms.value.batch_td import BatchTD
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class FQI(BatchTD):
@@ -22,7 +22,7 @@ class FQI(BatchTD):
             quiet (bool, False): whether to show the progress bar or not.
 
         """
-        self._n_iterations = to_parameter(n_iterations)
+        self._n_iterations = Parameter.make(n_iterations)
         self._quiet = quiet
         self._target = None
 

@@ -8,7 +8,7 @@ from mushroom_rl.policy import SquashedGaussianTorchPolicy
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory
 from mushroom_rl.utils.torch_utils import TorchUtils
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 from copy import deepcopy
 from itertools import chain
@@ -50,9 +50,9 @@ class SAC(DeepAC):
         """
         self._critic_fit_params = dict() if critic_fit_params is None else critic_fit_params
 
-        self._batch_size = to_parameter(batch_size)
-        self._warmup_transitions = to_parameter(warmup_transitions)
-        self._tau = to_parameter(tau)
+        self._batch_size = Parameter.make(batch_size)
+        self._warmup_transitions = Parameter.make(warmup_transitions)
+        self._tau = Parameter.make(tau)
 
         self._use_log_alpha_loss = use_log_alpha_loss
 
@@ -83,8 +83,7 @@ class SAC(DeepAC):
 
         self._alpha_optim = optim.Adam([self._log_alpha], lr=lr_alpha)
 
-        policy_parameters = chain(actor_mu_approximator.parameters(),
-                                  actor_sigma_approximator.parameters())
+        policy_parameters = chain(actor_mu_approximator.parameters(), actor_sigma_approximator.parameters())
 
         super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
 
@@ -117,12 +116,8 @@ class SAC(DeepAC):
                 alpha_loss = self._update_alpha(log_prob.detach())
 
                 if self._logger:
-                    self._logger.log_training('actor',
-                                              loss=loss.item(),
-                                              entropy=-log_prob.mean().item())
-                    self._logger.log_training('alpha',
-                                              value=self._alpha.item(),
-                                              loss=alpha_loss.item())
+                    self._logger.log_training('actor', loss=loss.item(), entropy=-log_prob.mean().item())
+                    self._logger.log_training('alpha', value=self._alpha.item(), loss=alpha_loss.item())
 
             q_next = self._next_q(next_state, absorbing)
             q = reward + self.mdp_info.gamma * q_next

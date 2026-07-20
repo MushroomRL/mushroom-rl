@@ -1,12 +1,11 @@
 import torch
-import torch.nn.functional as F
 
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OnPolicyDeepAC
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.torch_utils import TorchUtils
 from mushroom_rl.utils.minibatches import minibatch_generator
 from mushroom_rl.rl_utils.value_functions import compute_gae
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class PPO(OnPolicyDeepAC):
@@ -41,14 +40,14 @@ class PPO(OnPolicyDeepAC):
         """
         self._critic_fit_params = dict(n_epochs=10) if critic_fit_params is None else critic_fit_params
 
-        self._n_epochs_policy = to_parameter(n_epochs_policy)
-        self._batch_size = to_parameter(batch_size)
-        self._eps_ppo = to_parameter(eps_ppo)
+        self._n_epochs_policy = Parameter.make(n_epochs_policy)
+        self._batch_size = Parameter.make(batch_size)
+        self._eps_ppo = Parameter.make(eps_ppo)
 
         self._optimizer = actor_optimizer['class'](policy.parameters(), **actor_optimizer['params'])
 
-        self._lambda = to_parameter(lam)
-        self._ent_coeff = to_parameter(ent_coeff)
+        self._lambda = Parameter.make(lam)
+        self._ent_coeff = Parameter.make(ent_coeff)
 
         self._V = TorchApproximator(**critic_params)
 
@@ -57,7 +56,7 @@ class PPO(OnPolicyDeepAC):
         super().__init__(mdp_info, policy, backend='torch')
 
         self._add_save_attr(
-            _critic_fit_params='pickle', 
+            _critic_fit_params='pickle',
             _n_epochs_policy='mushroom',
             _batch_size='mushroom',
             _eps_ppo='mushroom',
@@ -93,8 +92,7 @@ class PPO(OnPolicyDeepAC):
 
     def _update_policy(self, obs, act, adv, old_log_p):
         for epoch in range(self._n_epochs_policy()):
-            for obs_i, act_i, adv_i, old_log_p_i in minibatch_generator(
-                    self._batch_size(), obs, act, adv, old_log_p):
+            for obs_i, act_i, adv_i, old_log_p_i in minibatch_generator(self._batch_size(), obs, act, adv, old_log_p):
                 self._optimizer.zero_grad()
                 prob_ratio = torch.exp(self.policy.log_prob(obs_i, act_i) - old_log_p_i)
                 clipped_ratio = torch.clamp(prob_ratio, 1 - self._eps_ppo(), 1 + self._eps_ppo.get_value())
@@ -118,9 +116,7 @@ class PPO(OnPolicyDeepAC):
                 self._logger.info(msg)
                 self._logger.weak_line()
 
-                self._logger.log_training('actor',
-                                          entropy=logging_ent.item(),
-                                          kl=logging_kl.item())
+                self._logger.log_training('actor', entropy=logging_ent.item(), kl=logging_kl.item())
                 self._logger.advance_step()
 
     def _post_load(self):

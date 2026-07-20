@@ -3,7 +3,7 @@ import numpy as np
 from mushroom_rl.core import Agent
 from mushroom_rl.approximators.parametric import LinearApproximator
 
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class COPDAC_Q(Agent):
@@ -31,9 +31,9 @@ class COPDAC_Q(Agent):
         self._mu = mu
         self._psi = value_function_features
 
-        self._alpha_theta = to_parameter(alpha_theta)
-        self._alpha_omega = to_parameter(alpha_omega)
-        self._alpha_v = to_parameter(alpha_v)
+        self._alpha_theta = Parameter.make(alpha_theta)
+        self._alpha_omega = Parameter.make(alpha_omega)
+        self._alpha_v = Parameter.make(alpha_v)
 
         if self._psi is not None:
             input_shape = (self._psi.size,)
@@ -70,8 +70,7 @@ class COPDAC_Q(Agent):
             omega = self._A.get_weights()
 
             delta = r + self.mdp_info.gamma * q_next - self._Q(s, a)
-            delta_theta = self._alpha_theta(s, a) * \
-                          omega.dot(grad_mu_s.T).dot(grad_mu_s)
+            delta_theta = self._alpha_theta(s, a) * omega.dot(grad_mu_s.T).dot(grad_mu_s)
             delta_omega = self._alpha_omega(s, a) * delta * self._nu(s, a)
             delta_v = self._alpha_v(s, a) * delta * s_psi
 
@@ -90,8 +89,7 @@ class COPDAC_Q(Agent):
     def _Q(self, state, action):
         state_psi = self._psi(state) if self._psi is not None else state
 
-        return self._V(state_psi).item() + self._A(self._nu(state,
-                                                            action)).item()
+        return self._V(state_psi).item() + self._A(self._nu(state, action)).item()
 
     def _nu(self, state, action):
         grad_mu = np.atleast_2d(self._mu.diff(state))

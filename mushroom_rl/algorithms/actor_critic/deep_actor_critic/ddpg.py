@@ -1,8 +1,7 @@
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DeepAC
-from mushroom_rl.policy import Policy
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory
-from mushroom_rl.rl_utils.parameters import Parameter, to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 from copy import deepcopy
 
@@ -68,9 +67,9 @@ class DDPG(DeepAC):
 
         super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
 
-        self._batch_size = to_parameter(batch_size)
-        self._tau = to_parameter(tau)
-        self._policy_delay = to_parameter(policy_delay)
+        self._batch_size = Parameter.make(batch_size)
+        self._tau = Parameter.make(tau)
+        self._policy_delay = Parameter.make(policy_delay)
         self._fit_count = 0
 
         self._replay_memory = ReplayMemory(mdp_info, self.info, initial_replay_size, max_replay_size)

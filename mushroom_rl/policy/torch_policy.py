@@ -7,7 +7,7 @@ from mushroom_rl.policy import Policy
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.torch_utils import TorchUtils
 from mushroom_rl.utils.torch_distributions import CategoricalWrapper, SquashedGaussian
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 from itertools import chain
 
@@ -218,7 +218,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
         self._predict_params = dict()
 
         self._logits = TorchApproximator(input_shape=input_shape, output_shape=output_shape, network=network, **params)
-        self._beta = to_parameter(beta)
+        self._beta = Parameter.make(beta)
 
         self._add_save_attr(
             _action_dim='primitive',
@@ -260,7 +260,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
         return self._logits.parameters()
 
     def set_beta(self, beta):
-        self._beta = to_parameter(beta)
+        self._beta = Parameter.make(beta)
 
 
 class SquashedGaussianTorchPolicy(TorchPolicy):
@@ -289,8 +289,8 @@ class SquashedGaussianTorchPolicy(TorchPolicy):
         self._min_a = TorchUtils.to_float_tensor(min_a)
         self._max_a = TorchUtils.to_float_tensor(max_a)
 
-        self._log_std_min = to_parameter(log_std_min)
-        self._log_std_max = to_parameter(log_std_max)
+        self._log_std_min = Parameter.make(log_std_min)
+        self._log_std_max = Parameter.make(log_std_max)
 
         self._eps = 1e-6
 

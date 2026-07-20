@@ -5,7 +5,7 @@ from mushroom_rl.algorithms.value.td import TD
 from mushroom_rl.approximators import QApproximator
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.features import Features
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class TrueOnlineSARSALambda(HasNextAction, TD):
@@ -27,7 +27,7 @@ class TrueOnlineSARSALambda(HasNextAction, TD):
 
         Q = QApproximator(LinearApproximator, **approximator_params)
         self.e = np.zeros(Q.weights_size)
-        self._lambda = to_parameter(lambda_coeff)
+        self._lambda = Parameter.make(lambda_coeff)
         self._q_old = None
 
         self._add_save_attr(

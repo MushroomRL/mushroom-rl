@@ -1,14 +1,9 @@
+import math
+
 import numpy as np
 
 from mushroom_rl.core.mushroom_object import MushroomObject
 from mushroom_rl.approximators.table import Table
-
-
-def to_parameter(x):
-    if isinstance(x, Parameter):
-        return x
-    else:
-        return Parameter(x)
 
 
 class Parameter(MushroomObject):
@@ -18,108 +13,108 @@ class Parameter(MushroomObject):
     tuple.
 
     """
-    def __init__(self, value, min_value=None, max_value=None, size=(1,), log_table=False):
+    def __init__(self, value, shape=None, log_full=False):
         """
         Constructor.
 
         Args:
             value (float): initial value of the parameter;
-            min_value (float, None): minimum value that the parameter can reach when decreasing;
-            max_value (float, None): maximum value that the parameter can reach when increasing;
-            size (tuple, (1,)): shape of the matrix of parameters; this shape can be used to have a single parameter for
-                each state or state-action tuple.
-            log_table (bool, False): if True, the parameter is logged also when it is backed by a table with more than
-                one element. By default tabular parameters are not logged, as logging a per-state or per-state-action
-                value on every update is too expensive.
+            shape (tuple, None): shape of the matrix of parameters; this shape can be used to have a single
+                parameter for each state or state-action tuple. If None, the parameter is a scalar;
+            log_full (bool, False): if True, the parameter is logged even when it is non-scalar (it holds more
+                than one value). By default, non-scalar parameters are not logged, as logging a per-state or
+                per-state-action value on every update is too expensive.
 
         """
         self._initial_value = value
-        self._min_value = min_value
-        self._max_value = max_value
-        self._n_updates = Table(size)
-        self._log_table = log_table
+        self._shape = shape
+        self._log_full = log_full
 
         self._add_save_attr(
             _initial_value='primitive',
-            _min_value='primitive',
-            _max_value='primitive',
-            _n_updates='mushroom',
-            _log_table='primitive',
+            _shape='primitive',
+            _log_full='primitive',
         )
 
-    def __call__(self, *idx, **kwargs):
+    def __call__(self, *args, **kwargs):
         """
-        Update and return the parameter in the provided index.
+        Update and return the parameter at the provided point.
 
         Args:
-             *idx (list): index of the parameter to return.
+             *args: point at which the parameter is evaluated (e.g. the state or state-action index for a
+                tabular parameter; ignored for a scalar one).
 
         Returns:
-            The updated parameter in the provided index.
+            The updated parameter at the provided point.
 
         """
-        if self._n_updates.table.size == 1:
-            idx = list()
+        self.update(*args, **kwargs)
 
-        self.update(*idx, **kwargs)
+        return self.get_value(*args, **kwargs)
 
-        return self.get_value(*idx, **kwargs)
-
-    def get_value(self, *idx, **kwargs):
+    def get_value(self, *args, **kwargs):
         """
-        Return the current value of the parameter in the provided index.
+        Return the current value of the parameter at the provided point.
 
         Args:
-            *idx (list): index of the parameter to return.
+            *args: point at which the parameter is evaluated (e.g. the state or state-action index for a
+                tabular parameter; ignored for a scalar one).
 
         Returns:
-            The current value of the parameter in the provided index.
+            The current value of the parameter at the provided point.
 
         """
-        new_value = self._compute(*idx, **kwargs)
+        return self._compute(*args, **kwargs)
 
-        if self._min_value is None and self._max_value is None:
-            return new_value
+    def update(self, *args, **kwargs):
+        """
+        Update the internal state of the parameter at the provided point.
+
+        Args:
+            *args: point at which the parameter is updated (e.g. the state or state-action index for a
+                tabular parameter; ignored for a scalar one).
+
+        """
+        self._log(*args, **kwargs)
+
+    @staticmethod
+    def make(x):
+        """
+        Args:
+            x ([float, Parameter]): the value to convert to a parameter, if it is not one already.
+
+        Returns:
+            ``x`` unchanged if it is already a ``Parameter``, otherwise a constant ``Parameter`` wrapping it.
+
+        """
+        if isinstance(x, Parameter):
+            return x
         else:
-            return np.clip(new_value, self._min_value, self._max_value)
+            return Parameter(x)
 
-    def _compute(self, *idx, **kwargs):
+    def _compute(self, *args, **kwargs):
         """
         Returns:
-            The value of the parameter in the provided index.
+            The value of the parameter at the provided point.
 
         """
         return self._initial_value
 
-    def update(self, *idx, **kwargs):
-        """
-        Updates the number of visit of the parameter in the provided index.
-
-        Args:
-            *idx (list): index of the parameter whose number of visits has to be updated.
-
-        """
-        self._n_updates[idx] += 1
-
-        self._log(*idx, **kwargs)
-
-    def _log(self, *idx, **kwargs):
-        if self._logger is None:
-            return
-        if self._n_updates.table.size != 1 and not self._log_table:
-            return
-
-        name = self._log_label or 'value'
-        self._logger.log_training(self._log_prefix, **{name: float(np.squeeze(self.get_value(*idx, **kwargs)))})
+    def _log(self, *args, **kwargs):
+        should_log = self._logger is not None and (self._log_full or math.prod(self.shape) == 1)
+        if should_log:
+            name = self._log_label or 'value'
+            value = float(np.squeeze(self.get_value(*args, **kwargs)))
+            self._logger.log_training(self._log_prefix, **{name: value})
 
     @property
     def shape(self):
         """
         Returns:
-            The shape of the table of parameters.
+            The shape of the parameter.
 
         """
-        return self._n_updates.table.shape
+        return self._shape if self._shape is not None else (1,)
 
     @property
     def initial_value(self):
@@ -131,7 +126,55 @@ class Parameter(MushroomObject):
         return self._initial_value
 
 
-class LinearParameter(Parameter):
+class VariableParameter(Parameter):
+    """
+    Base class for parameters whose value depends on the number of times they have been used. Adds a per-index
+    visit counter on top of :class:`Parameter`, used by the formula implemented by subclasses.
+
+    """
+    def __init__(self, value, min_value=None, max_value=None, shape=None, log_full=False):
+        super().__init__(value, shape=shape, log_full=log_full)
+
+        self._min_value = min_value
+        self._max_value = max_value
+        self._n_updates = self._make_approximator(shape if shape is not None else (1,))
+
+        self._add_save_attr(
+            _min_value='primitive',
+            _max_value='primitive',
+            _n_updates='mushroom',
+        )
+
+    def get_value(self, *args, **kwargs):
+        new_value = super().get_value(*args, n=self._n_updates[args], **kwargs)
+
+        if self._min_value is None and self._max_value is None:
+            return new_value
+        else:
+            return np.clip(new_value, self._min_value, self._max_value)
+
+    def update(self, *args, **kwargs):
+        self._n_updates[args] += 1
+
+        super().update(*args, **kwargs)
+
+    def _make_approximator(self, shape, dtype=None):
+        """
+        Build the approximator backing this parameter's per-point statistics. Returns a :class:`Table` by
+        default; override to use a different approximator.
+
+        Args:
+            shape (tuple): shape of the approximator;
+            dtype ([int, float], None): dtype of the approximator.
+
+        Returns:
+            The approximator, a :class:`Table` by default.
+
+        """
+        return Table(shape, dtype=dtype)
+
+
+class LinearParameter(VariableParameter):
     r"""
     This class implements a linearly changing parameter according to the number of times it has been used.
     The parameter changes following the formula:
@@ -143,7 +186,7 @@ class LinearParameter(Parameter):
     the upper or lower threshold for the parameter.
 
     """
-    def __init__(self, value, threshold_value, n, size=(1,), log_table=False):
+    def __init__(self, value, threshold_value, n, shape=None, log_full=False):
         """
         Constructor.
 
@@ -151,26 +194,26 @@ class LinearParameter(Parameter):
             value (float): initial value of the parameter;
             threshold_value (float, None): minimum or maximum value that the parameter can reach;
             n (int): number of time steps needed to reach the threshold value;
-            size (tuple, (1,)): shape of the matrix of parameters; this shape can be used to have a single parameter for
-                each state or state-action tuple.
-            log_table (bool, False): if True, the parameter is logged also when it is backed by a table with more than
-                one element.
+            shape (tuple, None): shape of the matrix of parameters; this shape can be used to have a single
+                parameter for each state or state-action tuple. If None, the parameter is a scalar;
+            log_full (bool, False): if True, the parameter is logged even when it is non-scalar (it holds more
+                than one value).
 
         """
         self._coeff = (threshold_value - value) / n
 
         if self._coeff >= 0:
-            super().__init__(value, None, threshold_value, size, log_table)
+            super().__init__(value=value, max_value=threshold_value, shape=shape, log_full=log_full)
         else:
-            super().__init__(value, threshold_value, None, size, log_table)
+            super().__init__(value=value, min_value=threshold_value, shape=shape, log_full=log_full)
 
         self._add_save_attr(_coeff='primitive')
 
-    def _compute(self, *idx, **kwargs):
-        return self._coeff * self._n_updates[idx] + self._initial_value
+    def _compute(self, *args, n, **kwargs):
+        return self._coeff * n + self._initial_value
 
 
-class DecayParameter(Parameter):
+class DecayParameter(VariableParameter):
     r"""
     This class implements a decaying parameter. The decay follows the formula:
 
@@ -181,7 +224,7 @@ class DecayParameter(Parameter):
     arbitrary exponent.
 
     """
-    def __init__(self, value, exp=1., min_value=None, max_value=None, size=(1,), log_table=False):
+    def __init__(self, value, exp=1., min_value=None, max_value=None, shape=None, log_full=False):
         """
         Constructor.
 
@@ -190,20 +233,19 @@ class DecayParameter(Parameter):
             exp (float, 1.): exponent for the step decay;
             min_value (float, None): minimum value that the parameter can reach when decreasing;
             max_value (float, None): maximum value that the parameter can reach when increasing;
-            size (tuple, (1,)): shape of the matrix of parameters; this shape can be used to have a single parameter for
-                each state or state-action tuple.
-            log_table (bool, False): if True, the parameter is logged also when it is backed by a table with more than
-                one element.
+            shape (tuple, None): shape of the matrix of parameters; this shape can be used to have a single
+                parameter for each state or state-action tuple. If None, the parameter is a scalar;
+            log_full (bool, False): if True, the parameter is logged even when it is non-scalar (it holds more
+                than one value).
 
         """
         self._exp = exp
 
-        super().__init__(value, min_value, max_value, size, log_table)
+        super().__init__(value=value, min_value=min_value, max_value=max_value, shape=shape, log_full=log_full)
 
         self._add_save_attr(_exp='primitive')
 
-    def _compute(self, *idx, **kwargs):
-        n = np.maximum(self._n_updates[idx], 1)
+    def _compute(self, *args, n, **kwargs):
+        n = np.maximum(n, 1)
 
         return self._initial_value / n ** self._exp
-

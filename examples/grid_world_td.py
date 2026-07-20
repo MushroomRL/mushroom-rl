@@ -31,11 +31,11 @@ def experiment(algorithm_class, exp):
     mdp = GridWorldVanHasselt()
 
     # Policy
-    epsilon = DecayParameter(value=1, exp=.5, size=mdp.info.observation_space.size)
+    epsilon = DecayParameter(value=1, exp=.5, shape=mdp.info.observation_space.size)
     pi = EpsGreedy(epsilon=epsilon)
 
     # Agent
-    learning_rate = DecayParameter(value=1, exp=exp, size=mdp.info.size)
+    learning_rate = DecayParameter(value=1, exp=exp, shape=mdp.info.size)
     algorithm_params = dict(learning_rate=learning_rate)
     agent = algorithm_class(mdp.info, pi, **algorithm_params)
 

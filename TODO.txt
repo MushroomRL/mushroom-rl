@@ -10,7 +10,6 @@ For Mushroom 2.1:
     * Improve replay memory:
         - vectorize SequenceReplayMemory.get
         - remove host-device sync each iteration (int(c_anchor)/int(boundary[...])) in SequenceReplayMemory for the frame-stacking path
-    * fix MellowMax parameter class
     * handle ExtraInfo correctly in ReplayMemory
       - currently ignored in circular-buffer phase; info is never read back during sampling
     * vectorized env rendering

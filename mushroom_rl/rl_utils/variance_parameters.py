@@ -1,17 +1,15 @@
 import numpy as np
 
-from mushroom_rl.rl_utils.parameters import Parameter
-from mushroom_rl.approximators.table import Table
+from mushroom_rl.rl_utils.parameters import VariableParameter
 
 
-class VarianceParameter(Parameter):
+class VarianceParameter(VariableParameter):
     """
     Abstract class to implement variance-dependent parameters. A ``target``
     parameter is expected.
 
     """
-    def __init__(self, value, exponential=False, min_value=None, tol=1.,
-                 size=(1,), log_table=False):
+    def __init__(self, value, exponential=False, min_value=None, tol=1., shape=None, log_full=False):
         """
         Constructor.
 
@@ -22,12 +20,13 @@ class VarianceParameter(Parameter):
         """
         self._exponential = exponential
         self._tol = tol
-        self._weights_var = Table(size)
-        self._x = Table(size)
-        self._x2 = Table(size)
-        self._parameter_value = Table(size)
+        table_shape = shape if shape is not None else (1,)
+        self._weights_var = self._make_approximator(table_shape)
+        self._x = self._make_approximator(table_shape)
+        self._x2 = self._make_approximator(table_shape)
+        self._parameter_value = self._make_approximator(table_shape)
 
-        super().__init__(value, min_value, size, log_table=log_table)
+        super().__init__(value, min_value=min_value, shape=shape, log_full=log_full)
 
         self._add_save_attr(
             _exponential='primitive',
@@ -38,46 +37,42 @@ class VarianceParameter(Parameter):
             _parameter_value='mushroom',
         )
 
-    def _compute(self, *idx, **kwargs):
-        return self._parameter_value[idx]
+    def _compute(self, *args, **kwargs):
+        return self._parameter_value[args]
 
-    def update(self, *idx, **kwargs):
+    def update(self, *args, target, factor=1., **kwargs):
         """
-        Updates the value of the parameter in the provided index.
+        Updates the value of the parameter at the provided point.
 
         Args:
-            *idx (list): index of the parameter whose number of visits has to be
-                updated.
-            target (float): Value of the target variable;
-            factor (float): Multiplicative factor for the parameter value, useful
-                when the parameter depend on another parameter value.
+            *args: point at which the parameter is updated (e.g. the state or state-action index for a
+                tabular parameter; ignored for a scalar one);
+            target (float): value of the target variable;
+            factor (float, 1.): multiplicative factor for the parameter value, useful when the parameter
+                depends on another parameter value.
 
         """
-        x = kwargs['target']
-        factor = kwargs.get('factor', 1.)
+        x = target
 
         # compute parameter value
-        n = self._n_updates[idx]
-        self._n_updates[idx] += 1
+        n = self._n_updates[args]
+        self._n_updates[args] += 1
 
         if n < 2:
             parameter_value = self._initial_value
         else:
-            var = n * (self._x2[idx] - self._x[idx] ** 2) / (n - 1.)
-            var_estimator = var * self._weights_var[idx]
-            parameter_value = self._compute_parameter(var_estimator,
-                                                      sigma_process=var,
-                                                      index=idx)
+            var = n * (self._x2[args] - self._x[args] ** 2) / (n - 1.)
+            var_estimator = var * self._weights_var[args]
+            parameter_value = self._compute_parameter(var_estimator, sigma_process=var, index=args)
 
         # update state
-        self._x[idx] += (x - self._x[idx]) / self._n_updates[idx]
-        self._x2[idx] += (x ** 2 - self._x2[idx]) / self._n_updates[idx]
-        self._weights_var[idx] = (
-            1. - factor * parameter_value) ** 2 * self._weights_var[idx] + (
-            factor * parameter_value) ** 2
-        self._parameter_value[idx] = parameter_value
+        self._x[args] += (x - self._x[args]) / self._n_updates[args]
+        self._x2[args] += (x ** 2 - self._x2[args]) / self._n_updates[args]
+        self._weights_var[args] = ((1. - factor * parameter_value) ** 2 * self._weights_var[args]
+                                   + (factor * parameter_value) ** 2)
+        self._parameter_value[args] = parameter_value
 
-        self._log(*idx, **kwargs)
+        self._log(*args, **kwargs)
 
     def _compute_parameter(self, sigma, **kwargs):
         raise NotImplementedError('VarianceParameter is an abstract class.')
@@ -109,15 +104,14 @@ class VarianceDecreasingParameter(VarianceParameter):
             return 1. / (sigma + self._tol)
 
 
-class WindowedVarianceParameter(Parameter):
+class WindowedVarianceParameter(VariableParameter):
     """
     Abstract class to implement variance-dependent parameters. A ``target``
     parameter is expected. differently from the "Variance Parameter" class
     the variance is computed in a window interval.
 
     """
-    def __init__(self, value, exponential=False, min_value=None, tol=1.,
-                 window=100, size=(1,), log_table=False):
+    def __init__(self, value, exponential=False, min_value=None, tol=1., window=100, shape=None, log_full=False):
         """
         Constructor.
 
@@ -128,11 +122,12 @@ class WindowedVarianceParameter(Parameter):
         """
         self._exponential = exponential
         self._tol = tol
-        self._weights_var = Table(size)
-        self._samples = Table(size + (window,))
-        self._index = Table(size, dtype=int)
+        table_shape = shape if shape is not None else (1,)
+        self._weights_var = self._make_approximator(table_shape)
+        self._samples = self._make_approximator(table_shape + (window,))
+        self._index = self._make_approximator(table_shape, dtype=int)
         self._window = window
-        self._parameter_value = Table(size)
+        self._parameter_value = self._make_approximator(table_shape)
 
         self._add_save_attr(
             _exponential='primitive',
@@ -144,61 +139,56 @@ class WindowedVarianceParameter(Parameter):
             _parameter_value='mushroom',
         )
 
-        super(WindowedVarianceParameter, self).__init__(value, min_value, size, log_table=log_table)
+        super().__init__(value, min_value=min_value, shape=shape, log_full=log_full)
 
-    def _compute(self, *idx, **kwargs):
-        return self._parameter_value[idx]
+    def _compute(self, *args, **kwargs):
+        return self._parameter_value[args]
 
-    def update(self, *idx, **kwargs):
+    def update(self, *args, target, factor=1., **kwargs):
         """
-        Updates the value of the parameter in the provided index.
+        Updates the value of the parameter at the provided point.
 
         Args:
-            *idx (list): index of the parameter whose number of visits has to be
-                updated.
-            target (float): Value of the target variable;
-            factor (float): Multiplicative factor for the parameter value, useful
-                when the parameter depend on another parameter value.
+            *args: point at which the parameter is updated (e.g. the state or state-action index for a
+                tabular parameter; ignored for a scalar one);
+            target (float): value of the target variable;
+            factor (float, 1.): multiplicative factor for the parameter value, useful when the parameter
+                depends on another parameter value.
 
         """
-        x = kwargs['target']
-        factor = kwargs.get('factor', 1.)
+        x = target
 
         # compute parameter value
-        n = self._n_updates[idx]
-        self._n_updates[idx] += 1
+        n = self._n_updates[args]
+        self._n_updates[args] += 1
 
         if n < 2:
             parameter_value = self._initial_value
         else:
-            samples = self._samples[idx]
+            samples = self._samples[args]
 
             if n < self._window:
                 samples = samples[:int(n)]
 
             var = np.var(samples)
-            var_estimator = var * self._weights_var[idx]
-            parameter_value = self._compute_parameter(var_estimator,
-                                                      sigma_process=var,
-                                                      index=idx)
+            var_estimator = var * self._weights_var[args]
+            parameter_value = self._compute_parameter(var_estimator, sigma_process=var, index=args)
 
         # update state
-        index = np.array([self._index[idx]], dtype=int)
-        self._samples[idx + (index,)] = x
-        self._index[idx] += 1
-        if self._index[idx] >= self._window:
-            self._index[idx] = 0
+        index = np.array([self._index[args]], dtype=int)
+        self._samples[args + (index,)] = x
+        self._index[args] += 1
+        if self._index[args] >= self._window:
+            self._index[args] = 0
 
-        self._weights_var[idx] = (
-            1. - factor*parameter_value) ** 2 * self._weights_var[idx] + (
-            factor * parameter_value) ** 2
-        self._parameter_value[idx] = parameter_value
+        self._weights_var[args] = ((1. - factor*parameter_value) ** 2 * self._weights_var[args] +
+                                   (factor * parameter_value) ** 2)
+        self._parameter_value[args] = parameter_value
 
-        self._log(*idx, **kwargs)
+        self._log(*args, **kwargs)
 
     def _compute_parameter(self, sigma, **kwargs):
-        raise NotImplementedError(
-            'WindowedVarianceParameter is an abstract class.')
+        raise NotImplementedError('WindowedVarianceParameter is an abstract class.')
 
 
 class WindowedVarianceIncreasingParameter(WindowedVarianceParameter):

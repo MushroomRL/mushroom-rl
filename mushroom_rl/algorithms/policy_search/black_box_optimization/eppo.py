@@ -2,7 +2,7 @@ import torch
 
 from mushroom_rl.algorithms.policy_search.black_box_optimization import BlackBoxOptimization
 from mushroom_rl.utils.minibatches import minibatch_generator
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class ePPO(BlackBoxOptimization):
@@ -24,10 +24,10 @@ class ePPO(BlackBoxOptimization):
         assert hasattr(distribution, 'parameters')
 
         self._optimizer = optimizer['class'](distribution.parameters(), **optimizer['params'])
-        self._n_epochs_policy = to_parameter(n_epochs_policy)
-        self._batch_size = to_parameter(batch_size)
-        self._eps_ppo = to_parameter(eps_ppo)
-        self._ent_coeff = to_parameter(ent_coeff)
+        self._n_epochs_policy = Parameter.make(n_epochs_policy)
+        self._batch_size = Parameter.make(batch_size)
+        self._eps_ppo = Parameter.make(eps_ppo)
+        self._ent_coeff = Parameter.make(ent_coeff)
 
         super().__init__(mdp_info, distribution, policy, context_builder=context_builder, backend='torch')
 

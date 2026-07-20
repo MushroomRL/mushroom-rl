@@ -4,7 +4,7 @@ from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OnPolicyDeepAC
 from mushroom_rl.approximators.parametric import RecurrentTorchApproximator
 from mushroom_rl.utils.torch_utils import TorchUtils
 from mushroom_rl.utils.minibatches import minibatch_generator
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class PPO_BPTT(OnPolicyDeepAC):
@@ -45,14 +45,14 @@ class PPO_BPTT(OnPolicyDeepAC):
         """
         self._critic_fit_params = dict(n_epochs=10) if critic_fit_params is None else critic_fit_params
 
-        self._n_epochs_policy = to_parameter(n_epochs_policy)
-        self._batch_size = to_parameter(batch_size)
-        self._eps_ppo = to_parameter(eps_ppo)
+        self._n_epochs_policy = Parameter.make(n_epochs_policy)
+        self._batch_size = Parameter.make(batch_size)
+        self._eps_ppo = Parameter.make(eps_ppo)
 
         self._optimizer = actor_optimizer['class'](policy.parameters(), **actor_optimizer['params'])
 
-        self._lambda = to_parameter(lam)
-        self._ent_coeff = to_parameter(ent_coeff)
+        self._lambda = Parameter.make(lam)
+        self._ent_coeff = Parameter.make(ent_coeff)
 
         self._V = RecurrentTorchApproximator(**critic_params)
 
@@ -255,9 +255,7 @@ class PPO_BPTT(OnPolicyDeepAC):
                 self._logger.info(msg)
                 self._logger.weak_line()
 
-                self._logger.log_training('actor',
-                                          entropy=logging_ent.item(),
-                                          kl=logging_kl.item())
+                self._logger.log_training('actor', entropy=logging_ent.item(), kl=logging_kl.item())
                 self._logger.advance_step()
 
     def _post_load(self):

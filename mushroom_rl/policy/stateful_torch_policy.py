@@ -7,7 +7,7 @@ from mushroom_rl.policy.policy import StatefulPolicy
 from mushroom_rl.policy.torch_policy import TorchPolicy
 from mushroom_rl.approximators.parametric import RecurrentTorchApproximator
 from mushroom_rl.utils.torch_utils import TorchUtils
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class StatefulTorchPolicy(StatefulPolicy, TorchPolicy):
@@ -107,8 +107,8 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
 
         self._log_sigma = nn.Parameter(log_sigma_init)
 
-        self._log_std_min = to_parameter(log_std_min)
-        self._log_std_max = to_parameter(log_std_max)
+        self._log_std_min = Parameter.make(log_std_min)
+        self._log_std_max = Parameter.make(log_std_max)
 
         self._add_save_attr(
             _action_dim='primitive',

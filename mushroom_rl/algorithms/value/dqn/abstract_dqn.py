@@ -4,7 +4,7 @@ import torch
 
 from mushroom_rl.core import Agent
 from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory, ReplayMemory
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class AbstractDQN(Agent):
@@ -46,7 +46,7 @@ class AbstractDQN(Agent):
         self._fit_params = dict() if fit_params is None else fit_params
         self._predict_params = dict() if predict_params is None else predict_params
 
-        self._batch_size = to_parameter(batch_size)
+        self._batch_size = Parameter.make(batch_size)
         self._clip_reward = clip_reward
         self._target_update_frequency = target_update_frequency
 
@@ -132,8 +132,7 @@ class AbstractDQN(Agent):
 
             self._replay_memory.update(td_error, idxs)
 
-            self.approximator.fit(state, action, q, weights=is_weight,
-                                  **self._fit_params)
+            self.approximator.fit(state, action, q, weights=is_weight, **self._fit_params)
 
     def _initialize_regressors(self, approximator, apprx_params_train, apprx_params_target):
         self.approximator = approximator(**apprx_params_train)

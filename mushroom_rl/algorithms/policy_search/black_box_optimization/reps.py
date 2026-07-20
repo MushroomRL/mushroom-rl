@@ -3,7 +3,7 @@ import numpy as np
 from scipy.optimize import minimize
 
 from mushroom_rl.algorithms.policy_search.black_box_optimization import BlackBoxOptimization
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class REPS(BlackBoxOptimization):
@@ -18,14 +18,13 @@ class REPS(BlackBoxOptimization):
         Constructor.
 
         Args:
-            eps ([float, Parameter]): the maximum admissible value for the Kullback-Leibler
-                divergence between the new distribution and the
-                previous one at each update step.
+            eps ([float, Parameter]): the maximum admissible value for the Kullback-Leibler divergence
+                between the new distribution and the previous one at each update step.
 
         """
         assert not distribution.is_contextual
 
-        self._eps = to_parameter(eps)
+        self._eps = Parameter.make(eps)
 
         super().__init__(mdp_info, distribution, policy)
 

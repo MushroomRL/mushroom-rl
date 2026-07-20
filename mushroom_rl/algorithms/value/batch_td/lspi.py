@@ -3,7 +3,7 @@ import numpy as np
 from mushroom_rl.algorithms.value.batch_td import BatchTD
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.features import Features
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class LSPI(BatchTD):
@@ -21,7 +21,7 @@ class LSPI(BatchTD):
             epsilon ([float, Parameter], 1e-2): termination coefficient.
 
         """
-        self._epsilon = to_parameter(epsilon)
+        self._epsilon = Parameter.make(epsilon)
 
         self._add_save_attr(_epsilon='mushroom')
 

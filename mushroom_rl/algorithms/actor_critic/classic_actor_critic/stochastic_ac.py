@@ -3,7 +3,7 @@ import numpy as np
 from mushroom_rl.core import Agent
 from mushroom_rl.approximators.parametric import LinearApproximator
 
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class StochasticAC(Agent):
@@ -27,10 +27,10 @@ class StochasticAC(Agent):
         """
         self._psi = value_function_features
 
-        self._alpha_theta = to_parameter(alpha_theta)
-        self._alpha_v = to_parameter(alpha_v)
+        self._alpha_theta = Parameter.make(alpha_theta)
+        self._alpha_v = Parameter.make(alpha_v)
 
-        self._lambda = to_parameter(lambda_par)
+        self._lambda = Parameter.make(lambda_par)
 
         super().__init__(mdp_info, policy)
 
@@ -113,7 +113,7 @@ class StochasticAC_AVG(StochasticAC):
         """
         super().__init__(mdp_info, policy, alpha_theta, alpha_v, lambda_par,  value_function_features)
 
-        self._alpha_r = to_parameter(alpha_r)
+        self._alpha_r = Parameter.make(alpha_r)
         self._r_bar = 0
 
         self._add_save_attr(_alpha_r='mushroom', _r_bar='primitive')

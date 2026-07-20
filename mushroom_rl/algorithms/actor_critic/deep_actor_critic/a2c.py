@@ -3,7 +3,7 @@ import torch
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DeepAC
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.rl_utils.value_functions import compute_advantage_montecarlo
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 from copy import deepcopy
 
@@ -38,15 +38,14 @@ class A2C(DeepAC):
         """
         self._critic_fit_params = dict() if critic_fit_params is None else critic_fit_params
 
-        self._entropy_coeff = to_parameter(ent_coeff)
+        self._entropy_coeff = Parameter.make(ent_coeff)
 
         self._V = TorchApproximator(**critic_params)
 
         if 'clipping' not in actor_optimizer and max_grad_norm is not None:
             actor_optimizer = deepcopy(actor_optimizer)
             clipping_params = dict(max_norm=max_grad_norm, norm_type=2)
-            actor_optimizer['clipping'] = dict(
-                method=torch.nn.utils.clip_grad_norm_, params=clipping_params)
+            actor_optimizer['clipping'] = dict(method=torch.nn.utils.clip_grad_norm_, params=clipping_params)
 
         super().__init__(mdp_info, policy, actor_optimizer, policy.parameters())
 
@@ -60,18 +59,14 @@ class A2C(DeepAC):
     def fit(self, dataset):
         state, action, reward, next_state, absorbing, last = dataset.parse(to='torch')
 
-        v, adv = compute_advantage_montecarlo(self._V, state, next_state,
-                                              reward, absorbing, last,
-                                              self.mdp_info.gamma)
+        v, adv = compute_advantage_montecarlo(self._V, state, next_state, reward, absorbing, last, self.mdp_info.gamma)
         self._V.fit(state, v, **self._critic_fit_params)
 
         loss = self._loss(state, action, adv)
         self._optimize_actor_parameters(loss)
 
         if self._logger:
-            self._logger.log_training('actor',
-                                      loss=loss.item(),
-                                      entropy=self.policy.entropy(state).item())
+            self._logger.log_training('actor', loss=loss.item(), entropy=self.policy.entropy(state).item())
             self._logger.advance_step()
 
     def _loss(self, state, action, adv):

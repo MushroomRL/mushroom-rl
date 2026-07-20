@@ -1,8 +1,7 @@
 import torch
 
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DDPG
-from mushroom_rl.policy import Policy
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class TD3(DDPG):
@@ -44,8 +43,8 @@ class TD3(DDPG):
                 of the critic approximator.
 
         """
-        self._noise_std = to_parameter(noise_std)
-        self._noise_clip = to_parameter(noise_clip)
+        self._noise_std = Parameter.make(noise_std)
+        self._noise_clip = Parameter.make(noise_clip)
 
         if 'n_models' in critic_params.keys():
             assert critic_params['n_models'] >= 2
