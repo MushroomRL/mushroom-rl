@@ -15,8 +15,8 @@ from mushroom_rl.approximators.table import Table
 from mushroom_rl.approximators.approximator import Approximator, Ensemble
 from mushroom_rl.approximators.q_approximator import QApproximator
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory, PrioritizedReplayMemory
-from mushroom_rl.rl_utils.parameters import Parameter, VariableParameter, LinearParameter, DecayParameter
-from mushroom_rl.rl_utils.variance_parameters import VarianceParameter, WindowedVarianceParameter
+from mushroom_rl.rl_utils.parameters import Parameter, VariableParameter, LinearParameter, DecayParameter, \
+    VarianceParameter, WindowedVarianceParameter
 from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer, SGDOptimizer, AdamOptimizer
 
 from mushroom_rl.features._impl import TilesFeatures, FunctionalFeatures, BasisFeatures

@@ -22,7 +22,28 @@ Optimizers
 Parameters
 ----------
 
-.. automodule:: mushroom_rl.rl_utils.parameters
+A parameter is a value used by an algorithm, such as a learning rate or an exploration coefficient. It can be
+a scalar or, when a ``shape`` is given, a table holding one value per state or state-action tuple. Two
+families build on top of the base classes: *scheduled* parameters, whose value evolves with the number of
+updates, and *variance* parameters, whose value adapts to the observed variance of a target signal.
+
+.. automodule:: mushroom_rl.rl_utils.parameters.parameter
+    :members:
+    :private-members:
+    :show-inheritance:
+
+Scheduled parameters
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: mushroom_rl.rl_utils.parameters.scheduled
+    :members:
+    :private-members:
+    :show-inheritance:
+
+Variance parameters
+~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: mushroom_rl.rl_utils.parameters.variance
     :members:
     :private-members:
     :show-inheritance:
@@ -64,14 +85,6 @@ Value Functions
 ---------------
 
 .. automodule:: mushroom_rl.rl_utils.value_functions
-    :members:
-    :private-members:
-    :show-inheritance:
-
-Variance parameters
--------------------
-
-.. automodule:: mushroom_rl.rl_utils.variance_parameters
     :members:
     :private-members:
     :show-inheritance:

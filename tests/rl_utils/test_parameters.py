@@ -1,7 +1,7 @@
 import numpy as np
 
 from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter, DecayParameter
-from mushroom_rl.rl_utils.variance_parameters import VarianceIncreasingParameter
+from mushroom_rl.rl_utils.parameters import VarianceIncreasingParameter
 from mushroom_rl.policy import EpsGreedy, Mellowmax
 
 

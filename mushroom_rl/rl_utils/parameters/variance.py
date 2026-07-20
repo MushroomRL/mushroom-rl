@@ -1,6 +1,6 @@
 import numpy as np
 
-from mushroom_rl.rl_utils.parameters import VariableParameter
+from mushroom_rl.rl_utils.parameters.parameter import VariableParameter
 
 
 class VarianceParameter(VariableParameter):
