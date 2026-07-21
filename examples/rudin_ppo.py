@@ -64,12 +64,12 @@ def experiment(
     actor_lr = 1e-4
     critic_lr = 5e-4
     n_features = 256
-    batch_size = 512
+    batch_size = 2048
     n_epochs_policy = 10
     eps_ppo = 0.2
     lam = 0.95
     std_0 = 1.0
-    ent_coeff = 0.01
+    ent_coeff = 0.05
     clip_grad_norm = 1.0
     schedule = "adaptive"
     desired_kl = 0.02
@@ -225,6 +225,6 @@ if __name__ == "__main__":
         n_epochs=25,
         n_steps=600000,
         n_steps_per_fit=64000,
-        n_episodes_test=10,
+        n_episodes_test=5,
         save_agent=True,
     )
