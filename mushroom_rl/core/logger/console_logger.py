@@ -108,19 +108,27 @@ class ConsoleLogger(object):
         """
         self._logger.exception(msg)
 
-    def strong_line(self):
+    def strong_line(self, debug=False, length=80):
         """
         Log a line of #
 
-        """
-        self.info('###################################################################################################')
+        Args:
+            debug (bool, False): whether to log the line with DEBUG level instead of INFO;
+            length (int, 80): number of characters of the line.
 
-    def weak_line(self):
+        """
+        self._log_line('#' * length, debug)
+
+    def weak_line(self, debug=False, length=80):
         """
         Log a line of -
 
+        Args:
+            debug (bool, False): whether to log the line with DEBUG level instead of INFO;
+            length (int, 80): number of characters of the line.
+
         """
-        self.info('---------------------------------------------------------------------------------------------------')
+        self._log_line('-' * length, debug)
 
     def epoch_info(self, epoch, **kwargs):
         """
@@ -140,3 +148,9 @@ class ConsoleLogger(object):
 
     def __del__(self):
         self._logger.handlers.clear()
+
+    def _log_line(self, msg, debug):
+        if debug:
+            self.debug(msg)
+        else:
+            self.info(msg)

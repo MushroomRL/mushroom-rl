@@ -45,6 +45,18 @@ using the standard Python ``logging`` levels:
     logger = Logger('tutorial', results_dir='/tmp/logs', log_console=True,
                     console_log_level=logging.DEBUG, file_log_level=logging.DEBUG)
 
+The algorithms log their per-iteration diagnostics (rewards, value function loss, entropy, KL divergence)
+with the ``debug`` level, so they are hidden by default and lowering ``console_log_level`` as above is the
+way to see them on the console.
+
+The ``strong_line`` and ``weak_line`` separators accept the same distinction through a ``debug`` flag, so
+that a separator can be logged at the level of the block it separates, together with a ``length`` argument
+to control the number of characters:
+
+.. code-block:: python
+
+    logger.weak_line(debug=True, length=40)
+
 We can also log to terminal the exceptions. Using this method, instead of a raw print, you can manage
 correctly the exception output without breaking any ``tqdm`` progress bar (see below), and the exception
 text will be saved in the console log files (if console logging is active).

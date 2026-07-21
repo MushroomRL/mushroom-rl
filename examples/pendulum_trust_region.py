@@ -2,6 +2,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 import numpy as np
+import logging
 from tqdm import trange
 
 from mushroom_rl.core import Core, Logger
@@ -12,9 +13,10 @@ from mushroom_rl.approximators.parametric.networks import ActorNetwork
 
 
 def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, n_episodes_test,
-               alg_params, policy_params):
+               alg_params, policy_params, debug=True):
 
-    logger = Logger(alg.__name__, results_dir=None)
+    console_logging_level = logging.DEBUG if debug else logging.INFO
+    logger = Logger(alg.__name__, results_dir=None, console_log_level=console_logging_level)
     logger.strong_line()
     logger.info('Experiment Algorithm: ' + alg.__name__)
 
@@ -64,6 +66,7 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
 
 
 if __name__ == '__main__':
+    debug = True
     max_kl = .015
 
     policy_params = dict(
@@ -95,4 +98,4 @@ if __name__ == '__main__':
         experiment(alg=alg, env_id='Pendulum-v1', horizon=200, gamma=.99,
                    n_epochs=40, n_steps=30000, n_steps_per_fit=3000,
                    n_episodes_test=25, alg_params=alg_params,
-                   policy_params=policy_params)
+                   policy_params=policy_params, debug=debug)

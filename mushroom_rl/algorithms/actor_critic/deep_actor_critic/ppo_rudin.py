@@ -4,6 +4,7 @@ from mushroom_rl.algorithms.actor_critic.deep_actor_critic import PPO
 from mushroom_rl.utils.minibatches import minibatch_generator
 from mushroom_rl.rl_utils.value_functions import compute_gae
 
+
 class RudinPPO(PPO):
     """
     Extended PPO algorithm Introducing gradient clipping and adaptive learning rate based on KL divergence.
@@ -12,12 +13,10 @@ class RudinPPO(PPO):
 
     """
 
-    def __init__(self, mdp_info, policy, actor_optimizer, critic_params,
-                 n_epochs_policy, batch_size, eps_ppo, lam, ent_coeff=0.0,
-                 critic_fit_params=None, clip_grad_norm=1., schedule='adaptive', desired_kl=0.01):
-        super().__init__(mdp_info, policy, actor_optimizer, critic_params,
-                            n_epochs_policy, batch_size, eps_ppo, lam, ent_coeff,
-                            critic_fit_params)
+    def __init__(self, mdp_info, policy, actor_optimizer, critic_params, n_epochs_policy, batch_size, eps_ppo, lam,
+                 ent_coeff=0.0, critic_fit_params=None, clip_grad_norm=1., schedule='adaptive', desired_kl=0.01):
+        super().__init__(mdp_info, policy, actor_optimizer, critic_params, n_epochs_policy, batch_size, eps_ppo,
+                         lam, ent_coeff, critic_fit_params)
 
         self._clip_grad_norm = clip_grad_norm
         self._schedule = schedule
@@ -34,6 +33,8 @@ class RudinPPO(PPO):
         )
 
     def fit(self, dataset):
+        self._log_iteration_start()
+
         state, action, reward, next_state, absorbing, last = dataset.parse(to='torch')
         state, next_state, state_old = self._preprocess_state(state, next_state)
 
@@ -52,14 +53,11 @@ class RudinPPO(PPO):
 
         self._update_policy(state, action, adv, old_log_p, state, old_pol_dist)
 
-        # Print fit information
         self._log_info(dataset, state, old_pol_dist)
-        self._iter += 1
 
     def _update_policy(self, obs, act, adv, old_log_p, state, old_pol_dist):
         for epoch in range(self._n_epochs_policy()):
-            for obs_i, act_i, adv_i, old_log_p_i in minibatch_generator(
-                    self._batch_size(), obs, act, adv, old_log_p):
+            for obs_i, act_i, adv_i, old_log_p_i in minibatch_generator(self._batch_size(), obs, act, adv, old_log_p):
                 with torch.inference_mode():
                     new_pol_dist = self.policy.distribution(state)
                     kl = torch.mean(torch.distributions.kl.kl_divergence(old_pol_dist, new_pol_dist))
@@ -83,7 +81,7 @@ class RudinPPO(PPO):
             if kl > 2.0 * self._desired_kl:
                 self._actor_learning_rate = max(1e-5, self._actor_learning_rate / 1.5)
                 self._critic_learning_rate = max(1e-5, self._critic_learning_rate / 1.5)
-            elif 0.0 < kl  < 0.5 * self._desired_kl:
+            elif 0.0 < kl < 0.5 * self._desired_kl:
                 self._actor_learning_rate = min(1e-2, self._actor_learning_rate * 1.5)
                 self._critic_learning_rate = min(1e-2, self._critic_learning_rate * 1.5)
 
