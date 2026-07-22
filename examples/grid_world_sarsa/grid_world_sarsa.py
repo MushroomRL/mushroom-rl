@@ -2,7 +2,7 @@ import argparse
 
 import numpy as np
 
-from mushroom_rl.algorithms.value import SARSA
+from mushroom_rl.algorithms.value import SARSALambda
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import GridWorld, Taxi
 from mushroom_rl.policy import EpsGreedy
@@ -11,20 +11,22 @@ from mushroom_rl.solvers.dynamic_programming import value_iteration
 
 
 """
-Simple script to solve a grid world or the taxi problem with SARSA.
+Simple script to solve a grid world or the taxi problem with SARSA(lambda).
 
 Both environments are finite MDPs, so the return of the optimal policy can be computed exactly with value iteration
-and used as a reference for the learned one. On the taxi problem SARSA settles for a much lower return than the
-optimal one: picking up every passenger before reaching the goal is hard to discover with a fixed exploration rate.
+and used as a reference for the learned one. The grid world needs no eligibility trace, and is solved by the plain
+SARSA recovered with lambda set to zero. The taxi problem does: the goal reward has to travel back past the pick ups,
+and a one step update leaves the agent collecting a single passenger. A long trace carries the reward along the whole
+trajectory, and the optimal route is found on a good share of the runs.
 
 """
 
 
-def experiment(mdp, n_steps):
+def experiment(mdp, n_steps, lambda_coeff):
     logger = Logger(type(mdp).__name__, results_dir=None)
     logger.strong_line()
     logger.info('Environment: ' + type(mdp).__name__)
-    logger.info('Experiment Algorithm: ' + SARSA.__name__)
+    logger.info('Experiment Algorithm: ' + SARSALambda.__name__)
 
     # Policy
     epsilon = Parameter(value=.1)
@@ -32,7 +34,7 @@ def experiment(mdp, n_steps):
 
     # Agent
     learning_rate = Parameter(value=.1)
-    agent = SARSA(mdp.info, pi, learning_rate)
+    agent = SARSALambda(mdp.info, pi, learning_rate, lambda_coeff)
 
     # Core
     core = Core(agent, mdp)
@@ -68,8 +70,8 @@ if __name__ == '__main__':
     np.random.seed()
 
     if args.env == 'grid_world':
-        mdp, n_steps = GridWorld.from_file('grid.txt', prob=.9), 20000
+        mdp, n_steps, lambda_coeff = GridWorld.from_file('grid.txt', prob=.9), 20000, 0.
     else:
-        mdp, n_steps = Taxi.from_file('taxi.txt', goal_rewards=(0, 1, 5)), 100000
+        mdp, n_steps, lambda_coeff = Taxi.from_file('taxi.txt', goal_rewards=(0, 1, 5)), 100000, .95
 
-    experiment(mdp, n_steps)
+    experiment(mdp, n_steps, lambda_coeff)
