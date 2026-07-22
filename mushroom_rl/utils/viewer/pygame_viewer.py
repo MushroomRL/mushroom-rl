@@ -339,16 +339,19 @@ class Viewer:
 
     def background_image(self, img):
         """
-        Use the given image as background for the window, rescaling it
-        appropriately.
+        Use the given image as background of the environment, rescaling it appropriately. The image covers the
+        environment rather than the whole window, so that it stays aligned with everything else that is drawn.
 
         Args:
             img: the image to be used.
 
         """
+        offset = (self._margin * self._scale).astype(int)
+        size = self._size - 2 * offset
+
         surf = pygame.surfarray.make_surface(img)
-        surf = pygame.transform.smoothscale(surf, self.size)
-        self.screen.blit(surf, (0, 0))
+        surf = pygame.transform.smoothscale(surf, size)
+        self.screen.blit(surf, offset)
 
     def function(self, x_s, x_e, f, n_points=100,  width=1, color=(255, 255, 255)):
         """

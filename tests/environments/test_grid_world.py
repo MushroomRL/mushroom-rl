@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pytest
 
@@ -8,6 +10,8 @@ from mushroom_rl.environments.simple_chain import SimpleChain
 from mushroom_rl.environments.taxi import Taxi
 from mushroom_rl.solvers.dynamic_programming import value_iteration, policy_iteration
 from mushroom_rl.utils.viewer import Viewer
+
+os.environ['SDL_VIDEODRIVER'] = 'dummy'
 
 
 def test_from_size_matches_from_file(tmp_path):
@@ -196,6 +200,23 @@ def test_viewer_margin_centres_the_grid():
 
     assert np.allclose(exact._margin, [0., 0.])
     assert np.allclose(padded._margin, [0., .75])
+
+
+def test_background_image_covers_the_environment_not_the_window():
+    image = np.full((64, 64, 3), 255.)
+
+    padded = Viewer(2, 20, min_scale=40)
+    padded.background_image(image)
+    padded_columns = np.argwhere(padded.get_frame().any(-1))[:, 1]
+    padded.close()
+
+    exact = Viewer(10, 10, min_scale=40)
+    exact.background_image(image)
+    exact_columns = np.argwhere(exact.get_frame().any(-1))[:, 1]
+    exact.close()
+
+    assert padded_columns.min() == 196 and padded_columns.max() == 303
+    assert exact_columns.min() == 0 and exact_columns.max() == 499
 
 
 def test_cell_center():
