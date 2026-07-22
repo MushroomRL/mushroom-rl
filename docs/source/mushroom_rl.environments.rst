@@ -1,14 +1,9 @@
 Environments
 ============
 
-In mushroom_rl we distinguish between two different types of environment classes:
-
-- proper environments
-- generators
-
-While environments directly implement the ``Environment`` interface, generators
-are a set of methods used to generate finite markov chains that represent a
-specific environment  e.g., grid worlds.
+All environments implement the ``Environment`` interface. Some of them, e.g. grid worlds, are finite Markov Decision
+Processes: they extend the ``FiniteMDP`` class, exposing the transition probability matrix, the reward matrix and the
+initial state distribution, so that they can also be solved with the dynamic programming solvers.
 
 
 Environments
@@ -50,6 +45,11 @@ Grid World
 ~~~~~~~~~~
 
 .. automodule:: mushroom_rl.environments.grid_world
+    :members:
+    :private-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.environments.grid_world_van_hasselt
     :members:
     :private-members:
     :show-inheritance:
@@ -302,21 +302,10 @@ Omni Isaac Gym
     :private-members:
     :show-inheritance:
 
-Generators
-----------
-
-Grid world
-~~~~~~~~~~
-
-.. automodule:: mushroom_rl.environments.generators.grid_world
-    :members:
-    :private-members:
-    :show-inheritance:
-
 Simple chain
 ~~~~~~~~~~~~
 
-.. automodule:: mushroom_rl.environments.generators.simple_chain
+.. automodule:: mushroom_rl.environments.simple_chain
     :members:
     :private-members:
     :show-inheritance:
@@ -324,7 +313,7 @@ Simple chain
 Taxi
 ~~~~
 
-.. automodule:: mushroom_rl.environments.generators.taxi
+.. automodule:: mushroom_rl.environments.taxi
     :members:
     :private-members:
     :show-inheritance:

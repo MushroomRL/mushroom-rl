@@ -11,7 +11,7 @@ def test_collect_dataset():
     np.random.seed(42)
     callback = CollectDataset()
 
-    mdp = GridWorld(4, 4, (2, 2))
+    mdp = GridWorld.from_size(4, 4, (2, 2), goal_reward=10.)
 
     eps = Parameter(0.1)
     pi = EpsGreedy(eps)
@@ -35,7 +35,7 @@ def test_collect_dataset():
 
 def test_collect_Q():
     np.random.seed(42)
-    mdp = GridWorld(3, 3, (2, 2))
+    mdp = GridWorld.from_size(3, 3, (2, 2), goal_reward=10.)
 
     eps = Parameter(0.1)
     pi = EpsGreedy(eps)
@@ -49,7 +49,7 @@ def test_collect_Q():
 
     core.learn(n_steps=1000, n_steps_per_fit=1, quiet=True)
 
-    V_test = np.array([2.89138932, 0.59676854, 1.83726064, 5.85391026])
+    V_test = np.array([3.17651767, 6.45911513, 1.18433269, 0.78816385])
     V = callback_q.get()[-1]
 
     assert np.allclose(V[0, :], V_test)
@@ -62,7 +62,7 @@ def test_collect_Q():
 
 def test_collect_parameter():
     np.random.seed(42)
-    mdp = GridWorld(3, 3, (2, 2))
+    mdp = GridWorld.from_size(3, 3, (2, 2), goal_reward=10.)
 
     eps = DecayParameter(value=1, exp=.5, shape=mdp.info.observation_space.size)
     pi = EpsGreedy(eps)
@@ -73,12 +73,9 @@ def test_collect_parameter():
 
     core = Core(agent, mdp, callbacks_fit=[callback_eps])
 
-    core.learn(n_steps=10, n_steps_per_fit=1, quiet=True)
+    core.learn(n_steps=30, n_steps_per_fit=1, quiet=True)
 
-    eps_test = np.array([1.0, 1.0, 1.0, 1.0, 0.7071067811865475, 0.7071067811865475, 0.7071067811865475,
-                         0.7071067811865475, 0.7071067811865475, 0.5773502691896258])
+    eps_test = np.array([1.0] * 14 + [0.7071067811865475] * 10 + [0.5773502691896258] * 3 + [0.5] * 3)
     eps = callback_eps.get()
-
-    print(eps)
 
     assert np.allclose(eps, eps_test)

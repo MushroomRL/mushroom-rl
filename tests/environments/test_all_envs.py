@@ -4,9 +4,10 @@ from mushroom_rl.environments.atari import Atari
 from mushroom_rl.environments.minigrid_env import MiniGrid, MiniGridRGB
 from mushroom_rl.environments.car_on_hill import CarOnHill
 from mushroom_rl.environments.cart_pole import CartPole
-from mushroom_rl.environments.generators import generate_grid_world,\
-    generate_simple_chain, generate_taxi
-from mushroom_rl.environments.grid_world import GridWorld, GridWorldVanHasselt
+from mushroom_rl.environments.grid_world import GridWorld
+from mushroom_rl.environments.grid_world_van_hasselt import GridWorldVanHasselt
+from mushroom_rl.environments.simple_chain import SimpleChain
+from mushroom_rl.environments.taxi import Taxi
 from mushroom_rl.environments.inverted_pendulum import InvertedPendulum
 from mushroom_rl.environments.lqr import LQR
 from mushroom_rl.environments.puddle_world import PuddleWorld
@@ -37,6 +38,7 @@ def test_atari():
     ns_test = np.load('tests/environments/test_atari_1.npy')
 
     assert np.allclose(ns, ns_test)
+
 
 def test_car_on_hill():
     np.random.seed(1)
@@ -82,25 +84,26 @@ def test_cartpole():
 
 def test_finite_mdp():
     np.random.seed(1)
-    mdp = generate_simple_chain(state_n=5, goal_states=[2], prob=.8, rew=1,
-                                gamma=.9)
+    mdp = SimpleChain(n_states=5, goal_states=[2], prob=.8, goal_reward=1, gamma=.9)
     mdp.reset()
+    mdp.render()
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
+    mdp.render()
 
     assert ns == 4
 
 
 def test_grid_world():
     np.random.seed(1)
-    mdp = GridWorld(start=(0, 0), goal=(2, 2), height=3, width=3)
+    mdp = GridWorld.from_size(start=(0, 0), goal=(2, 2), height=3, width=3)
     mdp.reset()
     mdp.render()
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
     mdp.render()
 
-    assert ns == 5
+    assert ns == 3
 
     np.random.seed(1)
     mdp = GridWorldVanHasselt()
@@ -108,10 +111,10 @@ def test_grid_world():
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
 
-    assert ns == 2
+    assert ns == 3
 
     np.random.seed(5)
-    mdp = generate_grid_world('tests/environments/grid.txt', .9, 1, -1)
+    mdp = GridWorld.from_file('tests/environments/grid.txt', prob=.9)
     mdp.reset()
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
@@ -130,7 +133,7 @@ def test_gymnasium():
         states.append(ns)
         snapshots.append(np.copy(ns))
     _assert_step_returns_not_mutated(states, snapshots)
-    ns_test = np.array([0.9996687, -0.02573896,  0.9839331 , -0.17853762, -0.17821608,0.5534913])
+    ns_test = np.array([0.9996687, -0.02573896, 0.9839331, -0.17853762, -0.17821608, 0.5534913])
 
     assert np.allclose(ns, ns_test)
 
@@ -259,11 +262,13 @@ def test_ship_steering():
 
 def test_taxi():
     np.random.seed(1)
-    mdp = generate_taxi('tests/environments/taxi.txt')
+    mdp = Taxi.from_file('tests/environments/taxi.txt')
     mdp.reset()
+    mdp.render()
     for i in range(10):
         ns, r, ab, _ = mdp.step([np.random.randint(mdp.info.action_space.n)])
-    ns_test = 5
+    mdp.render()
+    ns_test = 4
 
     assert np.allclose(ns, ns_test)
 

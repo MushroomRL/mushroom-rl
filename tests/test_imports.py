@@ -23,7 +23,6 @@ def test_imports():
     import mushroom_rl.distributions
 
     import mushroom_rl.environments
-    import mushroom_rl.environments.generators
 
     try:
         import mujoco  # noqa: F401

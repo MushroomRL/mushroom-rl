@@ -21,19 +21,19 @@ def generate_dataset(mdp, n_episodes):
 
 def test_dataset():
     np.random.seed(42)
-    mdp = GridWorld(3, 3, (2, 2))
+    mdp = GridWorld.from_size(3, 3, (2, 2), goal_reward=10.)
     dataset = generate_dataset(mdp, 10)
 
     assert dataset.n_episodes == 10
 
     J = dataset.compute_J(mdp.info.gamma)
-    J_test = np.array([4.304672100000001, 2.287679245496101, 3.138105960900001,  0.13302794647291147,
-                       7.290000000000001,   1.8530201888518416, 1.3508517176729928, 0.011790184577738602,
-                       1.3508517176729928, 7.290000000000001])
+    J_test = np.array([5.3144100000000005, 5.3144100000000005, 6.561, 0.25031555049932436,
+                       1.6677181699666577, 3.486784401000001, 1.0941898913151242, 3.874204890000001,
+                       1.5009463529699918, 0.033813919135227306])
     assert np.allclose(J, J_test)
 
     L = dataset.episodes_length
-    L_test = np.array([9, 15, 12, 42, 4, 17, 20, 65, 20, 4])
+    L_test = np.array([7, 7, 5, 36, 18, 11, 22, 10, 19, 55])
     assert np.array_equal(L, L_test)
 
     dataset_ep = dataset.select_first_episodes(3)
@@ -45,10 +45,10 @@ def test_dataset():
 
     samples = dataset.select_random_samples(2)
     s, a, r, ss, ab, last = samples.parse()
-    s_test = np.array([[5.], [6.]])
-    a_test = np.array([[3.], [0.]])
+    s_test = np.array([[1.], [2.]])
+    a_test = np.array([[0.], [3.]])
     r_test = np.zeros(2)
-    ss_test = np.array([[5], [3]])
+    ss_test = np.array([[1], [2]])
     ab_test = np.zeros(2)
     last_test = np.zeros(2)
     assert np.array_equal(s, s_test)
@@ -62,19 +62,19 @@ def test_dataset():
     s0_test = np.zeros((10, 1))
     assert np.array_equal(s0, s0_test)
 
-    index = np.sum(L_test[:2]) + L_test[2]//2
+    index = np.sum(L_test[:3]) + L_test[3]//2
     min_J, max_J, mean_J, median_J, n_episodes = dataset[:index].compute_metrics(mdp.info.gamma)
-    assert min_J == 2.287679245496101
-    assert max_J == 4.304672100000001
-    assert mean_J == 3.296175672748051
-    assert median_J == 3.296175672748051
-    assert n_episodes == 2
+    assert min_J == 5.3144100000000005
+    assert max_J == 6.561
+    assert mean_J == 5.72994
+    assert median_J == 5.3144100000000005
+    assert n_episodes == 3
 
 
 def test_dataset_creation():
     np.random.seed(42)
 
-    mdp = GridWorld(3, 3, (2, 2))
+    mdp = GridWorld.from_size(3, 3, (2, 2), goal_reward=10.)
     dataset = generate_dataset(mdp, 5)
 
     parsed = tuple(dataset.parse())
@@ -107,7 +107,7 @@ def test_dataset_creation():
 def test_dataset_loading(tmpdir):
     np.random.seed(42)
 
-    mdp = GridWorld(3, 3, (2, 2))
+    mdp = GridWorld.from_size(3, 3, (2, 2), goal_reward=10.)
     dataset = generate_dataset(mdp, 20)
 
     path = tmpdir / 'dataset_test.msh'
@@ -118,11 +118,11 @@ def test_dataset_loading(tmpdir):
     assert vars(dataset).keys() == vars(new_dataset).keys()
 
     assert np.array_equal(dataset.state, new_dataset.state) and \
-            np.array_equal(dataset.action, new_dataset.action) and \
-            np.array_equal(dataset.reward, new_dataset.reward) and \
-            np.array_equal(dataset.next_state, new_dataset.next_state) and \
-            np.array_equal(dataset.absorbing, new_dataset.absorbing) and \
-            np.array_equal(dataset.last, new_dataset.last)
+           np.array_equal(dataset.action, new_dataset.action) and \
+           np.array_equal(dataset.reward, new_dataset.reward) and \
+           np.array_equal(dataset.next_state, new_dataset.next_state) and \
+           np.array_equal(dataset.absorbing, new_dataset.absorbing) and \
+           np.array_equal(dataset.last, new_dataset.last)
 
     assert dataset._dataset_info.gamma == new_dataset._dataset_info.gamma
 
@@ -130,10 +130,11 @@ def test_dataset_loading(tmpdir):
     for key in dataset.info:
         assert np.array_equal(dataset.info[key], new_dataset.info[key])
 
+
 def test_list_dataset_compute_j_metrics():
     np.random.seed(42)
 
-    mdp = GridWorld(3, 3, (2, 2))
+    mdp = GridWorld.from_size(3, 3, (2, 2), goal_reward=10.)
     dataset = generate_dataset(mdp, 5)
 
     parsed = tuple(dataset.parse())

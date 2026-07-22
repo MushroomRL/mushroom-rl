@@ -40,7 +40,7 @@ def experiment(algorithm_class, exp):
     agent = algorithm_class(mdp.info, pi, **algorithm_params)
 
     # Algorithm
-    start = mdp.convert_to_int(mdp._start, mdp._width)
+    start = np.argwhere(mdp.mu > 0).ravel()
     collect_max_Q = CollectMaxQ(agent.Q, start)
     collect_dataset = CollectDataset()
     callbacks = [collect_dataset, collect_max_Q]
@@ -58,7 +58,7 @@ def experiment(algorithm_class, exp):
 if __name__ == '__main__':
     n_experiment = 10000
 
-    logger = Logger('grid_world_td', results_dir='./logs')
+    logger = Logger('grid_world_van_hasselt', results_dir='./logs')
     logger.strong_line()
     logger.info('Experiment Algorithm: ' + QLearning.__name__)
 
