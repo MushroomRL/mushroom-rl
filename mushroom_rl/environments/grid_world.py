@@ -17,7 +17,7 @@ class GridWorld(FiniteMDP):
     Every step of the construction of the Markov Decision Process is a method of this class, so that a different grid
     world can be obtained by subclassing and overriding the interesting ones: ``_build_legend`` to add new symbols,
     ``_build_layers`` to stack more configurations of the world, and ``_compute_probabilities``, ``_compute_reward``
-    and ``_compute_mu`` to change the dynamics, the reward and the initial state distribution.
+    and ``_compute_iota`` to change the dynamics, the reward and the initial state distribution.
 
     """
     def __init__(self, grid_map, prob=1., goal_reward=1., hole_reward=-1., gamma=.9, horizon=100, dt=1e-1,
@@ -50,7 +50,7 @@ class GridWorld(FiniteMDP):
 
         transition_probabilities = self._compute_probabilities()
         reward = self._compute_reward()
-        initial_distribution = self._compute_mu()
+        initial_distribution = self._compute_iota()
 
         _, height, width = grid_map.shape
 
@@ -117,7 +117,8 @@ class GridWorld(FiniteMDP):
 
     def _compute_probabilities(self):
         """
-        Compute the transition probability matrix of the grid world.
+        Compute the transition probability matrix of the grid world. The cells marked as terminal in the map are
+        absorbing, so they loop on themselves whatever the action.
 
         Returns:
             The transition probability matrix.
@@ -127,7 +128,9 @@ class GridWorld(FiniteMDP):
         prob = np.zeros((n_states, len(self._directions), n_states))
 
         for state, cell in enumerate(self._cell_list):
-            if not self._marked_as_terminal(cell):
+            if self._marked_as_terminal(cell):
+                prob[state, :, state] = 1.
+            else:
                 for action, direction in enumerate(self._directions):
                     next_cell = self._next_cell(cell, direction)
 
@@ -157,7 +160,7 @@ class GridWorld(FiniteMDP):
 
         return reward
 
-    def _compute_mu(self):
+    def _compute_iota(self):
         """
         Compute the initial state distribution of the grid world, uniform among the starting cells. The episode always
         begins in the first layer of the map, which is therefore the initial configuration of the world.
@@ -235,7 +238,7 @@ class GridWorld(FiniteMDP):
     def _marked_as_terminal(self, cell):
         """
         Check whether the given cell is marked as terminal in the map, i.e. reaching it ends the episode. This reads
-        the map legend, and is what leaves the cell without outgoing transitions when the dynamics are built.
+        the map legend, and is what makes the cell absorbing when the dynamics are built.
 
         Args:
             cell (np.ndarray): the (layer, row, column) of the cell.

@@ -68,7 +68,9 @@ class Taxi(GridWorld):
         transition_probabilities = np.zeros((n_states, len(self._directions), n_states))
 
         for state, cell in enumerate(self._cell_list):
-            if not self._marked_as_terminal(cell):
+            if self._marked_as_terminal(cell):
+                transition_probabilities[state, :, state] = 1.
+            else:
                 for action, direction in enumerate(self._directions):
                     self._add_move(transition_probabilities, state, action, cell, direction, self._prob)
 

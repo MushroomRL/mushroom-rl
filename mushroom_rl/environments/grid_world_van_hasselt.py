@@ -51,7 +51,7 @@ class GridWorldVanHasselt(GridWorld):
     def _compute_probabilities(self):
         """
         Compute the transition probability matrix. The goal cell is absorbing for the grid world, so it comes back
-        without transitions and every action taken in it is sent to the terminal state.
+        looping on itself, and every action taken in it is sent to the terminal state instead.
 
         Returns:
             The transition probability matrix.
@@ -62,6 +62,7 @@ class GridWorldVanHasselt(GridWorld):
         # the terminal state shares its cell with the goal, so the state map resolves it back to the goal
         goal_state = self._get_state_id(self._cell_list[-1])
 
+        transition_probabilities[goal_state] = 0.
         transition_probabilities[goal_state, :, -1] = 1.
 
         return transition_probabilities

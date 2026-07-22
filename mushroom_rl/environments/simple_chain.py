@@ -16,7 +16,7 @@ class SimpleChain(FiniteMDP):
     rows, reading like text.
 
     """
-    def __init__(self, n_states, goal_states, prob, goal_reward, mu=None, gamma=.9, horizon=100, dt=1e-1,
+    def __init__(self, n_states, goal_states, prob, goal_reward, iota=None, gamma=.9, horizon=100, dt=1e-1,
                  **viewer_params):
         """
         Constructor.
@@ -26,14 +26,14 @@ class SimpleChain(FiniteMDP):
             goal_states (list): list of the states giving a reward;
             prob (float): probability of success of an action;
             goal_reward (float): reward obtained when reaching a goal state;
-            mu (np.ndarray, None): initial state probability distribution;
+            iota (np.ndarray, None): initial state probability distribution;
             gamma (float, .9): discount factor;
             horizon (int, 100): the horizon;
             dt (float, 1e-1): the control timestep of the environment;
             **viewer_params: parameters forwarded to the viewer, e.g. its size bounds (see ``Viewer``).
 
         """
-        assert mu is None or len(mu) == n_states
+        assert iota is None or len(iota) == n_states
 
         self._n_states = n_states
         self._goal_states = goal_states
@@ -43,7 +43,7 @@ class SimpleChain(FiniteMDP):
         transition_probabilities = self._compute_probabilities()
         reward = self._compute_reward()
 
-        super().__init__(transition_probabilities, reward, mu, gamma, horizon, dt, **viewer_params)
+        super().__init__(transition_probabilities, reward, iota, gamma, horizon, dt, **viewer_params)
 
     def _compute_probabilities(self):
         """

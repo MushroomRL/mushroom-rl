@@ -41,7 +41,7 @@ def experiment(mdp, n_steps, lambda_coeff):
 
     # Optimal return, computed by dynamic programming on the transition and reward matrices
     value_optimal = value_iteration(mdp.p, mdp.r, mdp.info.gamma, 1e-8)
-    logger.info(f'J optimal: {mdp.mu.dot(value_optimal)}')
+    logger.info(f'J optimal: {mdp.iota.dot(value_optimal)}')
 
     # Visualize initial policy
     core.evaluate(n_steps=50, render=True)

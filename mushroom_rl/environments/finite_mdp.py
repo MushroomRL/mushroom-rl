@@ -9,8 +9,38 @@ from mushroom_rl.utils.viewer import Viewer
 
 
 class FiniteMDP(Environment):
-    """
+    r"""
     Finite Markov Decision Process.
+
+    A Markov Decision Process is the tuple
+
+    .. math::
+        \langle \mathcal{S}, \mathcal{A}, \mathcal{R}, \mathcal{P}, \iota, \gamma \rangle
+
+    where :math:`\mathcal{S}` is the space of the states of the process, :math:`\mathcal{A}` is the space of the
+    actions the agent can take, :math:`\mathcal{R}(s, a, s')` is the reward given for taking the action :math:`a` in
+    the state :math:`s` and landing in the state :math:`s'`, :math:`\mathcal{P}(s'|s, a)` is the probability of that
+    transition, :math:`\iota` is the initial state distribution, giving the probability of beginning an episode in
+    each state, and :math:`\gamma` is the discount factor weighting how much a future reward is worth now.
+
+    Both spaces are finite, :math:`\mathcal{S} = \{0, \dots, n_{\mathcal{S}} - 1\}` and
+    :math:`\mathcal{A} = \{0, \dots, n_{\mathcal{A}} - 1\}`, so a state and an action are indexes and the process is
+    stored in the arrays ``p``, ``r`` and ``iota``:
+
+    .. math::
+        p_{s a s'} = \mathcal{P}(s'|s, a), \qquad r_{s a s'} = \mathcal{R}(s, a, s'), \qquad \iota_s = \iota(s)
+
+    where :math:`\sum_{s' \in \mathcal{S}} p_{s a s'} = 1` for every :math:`s \in \mathcal{S}` and
+    :math:`a \in \mathcal{A}`.
+
+    A state :math:`\bar{s} \in \mathcal{S}` is absorbing when
+
+    .. math::
+        \mathcal{P}(\bar{s}|\bar{s}, a) = 1 \qquad \forall a \in \mathcal{A}
+
+    i.e. it is a sink state. By definition an absorbing state collects no reward,
+    :math:`\mathcal{R}(\bar{s}, a, s') = 0`, hence its value is zero and the episode is cut when it is reached. This
+    class enforces the definition, zeroing the rows of ``r`` of every absorbing state of ``p``.
 
     A finite MDP is drawn as a grid of cells: by default the states are laid out on a grid that fills the screen,
     wrapping like text, and the agent's cell is highlighted. A subclass can change the layout by passing
@@ -19,14 +49,14 @@ class FiniteMDP(Environment):
     dictionary rather than by dedicated viewer classes.
 
     """
-    def __init__(self, p, rew, mu=None, gamma=.9, horizon=np.inf, dt=1e-1, viewer_shape=None, **viewer_params):
+    def __init__(self, p, rew, iota=None, gamma=.9, horizon=np.inf, dt=1e-1, viewer_shape=None, **viewer_params):
         """
         Constructor.
 
         Args:
             p (np.ndarray): transition probability matrix;
             rew (np.ndarray): reward matrix;
-            mu (np.ndarray, None): initial state probability distribution;
+            iota (np.ndarray, None): initial state probability distribution;
             gamma (float, .9): discount factor;
             horizon (int, np.inf): the horizon;
             dt (float, 1e-1): the control timestep of the environment;
@@ -37,12 +67,17 @@ class FiniteMDP(Environment):
 
         """
         assert p.shape == rew.shape
-        assert mu is None or p.shape[0] == mu.size
+        assert iota is None or p.shape[0] == iota.size
+        assert np.allclose(p.sum(axis=2), 1.), 'The transitions of every state and action must sum to one.'
 
         # MDP parameters
         self.p = p
         self.r = rew
-        self.mu = mu
+        self.iota = iota
+
+        # absorbing states give no reward
+        states = np.arange(p.shape[0])
+        self.r[(p[states, :, states] == 1.).all(axis=1)] = 0.
 
         # Visualization
         self._style = self._build_style()
@@ -72,9 +107,9 @@ class FiniteMDP(Environment):
 
     def reset(self, state=None):
         if state is None:
-            if self.mu is not None:
+            if self.iota is not None:
                 self._state = np.array(
-                    [np.random.choice(self.mu.size, p=self.mu)])
+                    [np.random.choice(self.iota.size, p=self.iota)])
             else:
                 self._state = np.array([np.random.choice(self.p.shape[0])])
         else:
@@ -85,7 +120,7 @@ class FiniteMDP(Environment):
     def step(self, action):
         p = self.p[self._state[0], action[0], :]
         next_state = np.array([np.random.choice(p.size, p=p)])
-        absorbing = not np.any(self.p[next_state[0]])
+        absorbing = np.all(self.p[next_state[0], :, next_state[0]] == 1.).item()
         reward = self.r[self._state[0], action[0], next_state[0]]
 
         self._state = next_state

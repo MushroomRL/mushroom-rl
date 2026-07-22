@@ -40,7 +40,7 @@ def experiment(algorithm_class, exp):
     agent = algorithm_class(mdp.info, pi, **algorithm_params)
 
     # Algorithm
-    start = np.argwhere(mdp.mu > 0).ravel()
+    start = np.argwhere(mdp.iota > 0).ravel()
     collect_max_Q = CollectMaxQ(agent.Q, start)
     collect_dataset = CollectDataset()
     callbacks = [collect_dataset, collect_max_Q]

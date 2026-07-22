@@ -25,9 +25,9 @@ def test_from_size_matches_from_file(tmp_path):
 
     assert np.array_equal(from_file.grid_map, from_size.grid_map)
     assert np.array_equal(from_file.cell_list, from_size.cell_list)
-    assert np.allclose(from_file.p, from_size.p)
-    assert np.allclose(from_file.r, from_size.r)
-    assert np.allclose(from_file.mu, from_size.mu)
+    assert np.array_equal(from_file.p, from_size.p)
+    assert np.array_equal(from_file.r, from_size.r)
+    assert np.array_equal(from_file.iota, from_size.iota)
 
 
 def test_missing_trailing_newline(tmp_path):
@@ -51,9 +51,34 @@ def test_walls_and_holes():
     hole = np.argwhere((mdp.cell_list == [0, 1, 3]).all(axis=1)).item()
     goal = np.argwhere((mdp.cell_list == [0, 4, 1]).all(axis=1)).item()
 
-    assert not np.any(mdp.p[hole])
-    assert not np.any(mdp.p[goal])
-    assert np.allclose(mdp.p[0, 0, 0], 1.)
+    assert (mdp.p[hole, :, hole] == 1.).all()
+    assert (mdp.p[goal, :, goal] == 1.).all()
+    assert mdp.p[0, 0, 0] == 1.
+
+
+def test_absorbing_states():
+    mdp = GridWorld.from_size(height=3, width=3, goal=(2, 2), start=(0, 0))
+
+    states = np.arange(mdp.info.observation_space.n)
+    absorbing = (mdp.p[states, :, states] == 1.).all(axis=1)
+
+    assert (mdp.p.sum(axis=2) == 1.).all()
+    assert np.array_equal(np.argwhere(absorbing).ravel(), np.array([8]))
+    assert not np.any(mdp.r[8])
+
+    mdp.reset(np.array([5]))
+    _, reward, absorbing, _ = mdp.step(np.array([1]))
+
+    assert absorbing and reward == 1.
+
+    next_state, reward, absorbing, _ = mdp.step(np.array([0]))
+
+    assert next_state.item() == 8 and absorbing and reward == 0.
+
+
+def test_transitions_not_summing_to_one():
+    with pytest.raises(AssertionError):
+        FiniteMDP(np.zeros((3, 2, 3)), np.zeros((3, 2, 3)))
 
 
 def test_unknown_symbol(tmp_path):
@@ -104,15 +129,16 @@ def test_van_hasselt():
     assert mdp.info.observation_space.n == 10
     assert len(mdp.cell_list) == mdp.info.observation_space.n
     assert mdp._get_state_id(np.array([0, 0, 2])) == 2
-    assert np.allclose(mdp.r[0, 0, 0], -1.)
-    assert np.allclose(mdp.r[2, 0, 9], 5.)
-    assert np.allclose(mdp.p[2, 0, 9], 1.)
-    assert not np.any(mdp.p[9])
+    assert mdp.r[0, 0, 0] == -1.
+    assert mdp.r[2, 0, 9] == 5.
+    assert mdp.p[2, 0, 9] == 1.
+    assert (mdp.p[9, :, 9] == 1.).all()
+    assert not np.any(mdp.r[9])
 
     value = value_iteration(mdp.p, mdp.r, mdp.info.gamma, 1e-12)
     gamma = mdp.info.gamma
 
-    assert np.allclose(value[np.argmax(mdp.mu)], 5 * gamma ** 4 - sum(gamma ** k for k in range(4)))
+    assert np.allclose(value[np.argmax(mdp.iota)], 5 * gamma ** 4 - sum(gamma ** k for k in range(4)))
 
     rewards = []
     mdp.reset(np.array([6]))
@@ -132,13 +158,13 @@ def test_taxi_passengers():
     assert mdp.grid_map.shape == (8, 6, 7)
     assert mdp.info.observation_space.n == 252
 
-    start = np.argmax(mdp.mu)
+    start = np.argmax(mdp.iota)
     passenger = np.argwhere((mdp.cell_list == [1, 0, 2]).all(axis=1)).item()
     below_passenger = np.argwhere((mdp.cell_list == [0, 1, 2]).all(axis=1)).item()
 
-    assert np.allclose(mdp.cell_list[start], [0, 0, 0])
-    assert np.allclose(mdp.p[below_passenger, 0, passenger], .9)
-    assert np.allclose(mdp.p.sum(axis=2)[np.any(mdp.p, axis=(1, 2))], 1.)
+    assert np.array_equal(mdp.cell_list[start], [0, 0, 0])
+    assert mdp.p[below_passenger, 0, passenger] == .9
+    assert (mdp.p.sum(axis=2) == 1.).all()
     assert np.array_equal(np.unique(mdp.r), np.array([0., 1., 3., 15.]))
 
 
@@ -149,7 +175,7 @@ def test_taxi_from_size():
     assert mdp.info.observation_space.n == 32
     assert np.array_equal(np.unique(mdp.grid_map), np.array(['.', 'G', 'P', 'S']))
     assert np.array_equal(np.unique(mdp.r), np.array([0., 1., 5.]))
-    assert np.allclose(mdp.p.sum(axis=2)[np.any(mdp.p, axis=(1, 2))], 1.)
+    assert (mdp.p.sum(axis=2) == 1.).all()
 
 
 def test_taxi_passenger_on_occupied_cell():
@@ -167,11 +193,11 @@ def test_simple_chain():
 
     assert mdp.info.observation_space.n == 5
     assert mdp.info.action_space.n == 2
-    assert np.allclose(mdp.p.sum(axis=2), 1.)
-    assert np.allclose(mdp.p[0, 1, 0], 1.)
-    assert np.allclose(mdp.p[4, 0, 4], 1.)
-    assert np.allclose(mdp.r[1, 0, 2], 1.)
-    assert np.allclose(mdp.r[2, 0, 2], 0.)
+    assert (mdp.p.sum(axis=2) == 1.).all()
+    assert mdp.p[0, 1, 0] == 1.
+    assert mdp.p[4, 0, 4] == 1.
+    assert mdp.r[1, 0, 2] == 1.
+    assert mdp.r[2, 0, 2] == 0.
 
 
 def test_viewer_window_size():
@@ -242,8 +268,8 @@ def test_simple_chain_wrapping():
 
 
 def test_finite_mdp_default_viewer():
-    short = FiniteMDP(np.zeros((6, 2, 6)), np.zeros((6, 2, 6)))
-    wrapped = FiniteMDP(np.zeros((600, 2, 600)), np.zeros((600, 2, 600)))
+    short = FiniteMDP(np.full((6, 2, 6), 1 / 6), np.zeros((6, 2, 6)))
+    wrapped = FiniteMDP(np.full((600, 2, 600), 1 / 600), np.zeros((600, 2, 600)))
 
     assert short._n_rows == 1 and short._n_columns == 6
     assert short._viewer.size == (500, 100)
