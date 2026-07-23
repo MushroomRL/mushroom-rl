@@ -39,7 +39,7 @@ def experiment(policy, value):
     n_steps = 300000
     core.learn(n_steps=n_steps, n_steps_per_fit=1, quiet=True)
 
-    return np.sum(np.array(collect_dataset.get())[:, 2]) / float(n_steps)
+    return collect_dataset.get().reward.sum() / n_steps
 
 
 if __name__ == '__main__':
