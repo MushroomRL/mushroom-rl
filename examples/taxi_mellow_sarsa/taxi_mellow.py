@@ -20,7 +20,7 @@ def experiment(policy, value):
     np.random.seed()
 
     # MDP
-    mdp = Taxi.from_file('grid.txt')
+    mdp = Taxi.generate()
 
     # Policy
     pi = policy(Parameter(value=value))

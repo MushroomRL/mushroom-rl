@@ -16,18 +16,18 @@ class Taxi(GridWorld):
 
     This problem is inspired from:
     "Bayesian Q-Learning". Dearden R. et al. 1998.
+    "An Alternative Softmax Operator for Reinforcement Learning". Asadi K. et al. 2017.
 
     """
-    def __init__(self, grid_map, prob=.9, goal_rewards=(0, 1, 3, 15), gamma=.99, horizon=5000, dt=1e-1,
-                 **viewer_params):
+    def __init__(self, grid_map, goal_rewards, prob=.9, gamma=.99, horizon=5000, dt=1e-1, **viewer_params):
         """
         Constructor.
 
         Args:
             grid_map (np.ndarray): (n_layers, height, width) array of symbols describing the map;
+            goal_rewards (tuple): reward obtained when reaching the goal, indexed by the number of collected
+                passengers, so that it has one entry more than the passengers on the map;
             prob (float, .9): probability of success of an action;
-            goal_rewards (tuple, (0, 1, 3, 15)): reward obtained when reaching the goal, indexed by the number of
-                collected passengers;
             gamma (float, .99): discount factor;
             horizon (int, 5000): the horizon;
             dt (float, 1e-1): the control timestep of the environment;
@@ -43,28 +43,52 @@ class Taxi(GridWorld):
         super().__init__(grid_map, prob=prob, gamma=gamma, horizon=horizon, dt=dt, **viewer_params)
 
     @classmethod
-    def generate(cls, height=5, width=5, goal=(4, 4), start=(0, 0), passengers=((0, 4), (4, 0)),
-                 goal_rewards=(0, 1, 5), **kwargs):
+    def generate(cls, height=None, width=None, goal=None, start=(0, 0), passengers=None, **kwargs):
         """
-        Build a simple version of the taxi problem, an empty square grid with the goal in the corner opposite to the
-        starting cell and a passenger waiting in each of the two remaining corners. The problem of the paper has
-        walls, which no empty grid can reproduce, and is built from a map file instead.
+        Build the standard version of the taxi problem, the maze with three passengers of the papers. When the size of
+        the grid is given, build an empty rectangular grid instead, with the goal in the corner opposite to the
+        starting cell and a passenger waiting in each of the two remaining corners.
+
+        The rewards of the maze are the ones of the papers, while a generated grid gives ``2 ** collected - 1``, so
+        that every extra passenger doubles the reward it adds.
 
         Args:
-            height (int, 5): height of the grid;
-            width (int, 5): width of the grid;
-            goal (tuple, (4, 4)): 2D coordinates of the goal cell;
+            height (int, None): height of the grid, None to build the maze;
+            width (int, None): width of the grid, None to build the maze;
+            goal (tuple, None): 2D coordinates of the goal cell, None to place it in the corner opposite to the
+                starting cell;
             start (tuple, (0, 0)): 2D coordinates of the starting cell;
-            passengers (tuple, ((0, 4), (4, 0))): 2D coordinates of every passenger;
-            goal_rewards (tuple, (0, 1, 5)): reward obtained when reaching the goal, indexed by the number of
-                collected passengers;
+            passengers (tuple, None): 2D coordinates of every passenger, None to place one in each of the two
+                corners left free by the starting and the goal cells;
             **kwargs: the parameters of the constructor.
 
         Returns:
-            A simple taxi problem.
+            The standard taxi problem, or the taxi problem of the given size.
 
         """
-        return cls.from_size(height, width, goal, start, passengers, goal_rewards=goal_rewards, **kwargs)
+        if height is None and width is None:
+            maze = ['S#P.#.G',
+                    '.#..#..',
+                    '.......',
+                    '##...##',
+                    '......P',
+                    'P.....#']
+
+            kwargs.setdefault('goal_rewards', (0, 1, 3, 15))
+
+            return cls(cls._build_layers(np.array([list(row) for row in maze])), **kwargs)
+
+        assert height is not None and width is not None, 'Both the dimensions of the grid are needed.'
+
+        if goal is None:
+            goal = (height - 1, width - 1)
+
+        if passengers is None:
+            passengers = ((0, width - 1), (height - 1, 0))
+
+        kwargs.setdefault('goal_rewards', tuple(2 ** collected - 1 for collected in range(len(passengers) + 1)))
+
+        return cls.from_size(height, width, goal, start, passengers, **kwargs)
 
     @classmethod
     def from_size(cls, height, width, goal, start=(0, 0), passengers=(), **kwargs):
@@ -89,21 +113,15 @@ class Taxi(GridWorld):
 
         return cls(grid_map, **kwargs)
 
-    def _compute_probabilities(self):
-        n_states = len(self._cell_list)
-        transition_probabilities = np.zeros((n_states, len(self._directions), n_states))
+    def _compute_action_probabilities(self, cell, direction):
+        probabilities = np.zeros(len(self._cell_list))
 
-        for state, cell in enumerate(self._cell_list):
-            if self._marked_as_terminal(cell):
-                transition_probabilities[state, :, state] = 1.
-            else:
-                for action, direction in enumerate(self._directions):
-                    self._add_move(transition_probabilities, state, action, cell, direction, self._prob)
+        self._add_move(probabilities, cell, direction, self._prob)
 
-                    for slip in self._perpendicular_directions(direction):
-                        self._add_move(transition_probabilities, state, action, cell, slip, (1. - self._prob) * .5)
+        for slip in self._perpendicular_directions(direction):
+            self._add_move(probabilities, cell, slip, (1. - self._prob) * .5)
 
-        return transition_probabilities
+        return probabilities
 
     def _compute_reward(self):
         n_states = len(self._cell_list)
@@ -125,23 +143,21 @@ class Taxi(GridWorld):
 
         return next_cell
 
-    def _add_move(self, transition_probabilities, state, action, cell, direction, prob):
+    def _add_move(self, probabilities, cell, direction, prob):
         """
-        Add to the transition probability matrix the outcome of moving in the given direction.
+        Add the outcome of moving in the given direction to the probability of every state being the next one.
 
         Args:
-            transition_probabilities (np.ndarray): the transition probability matrix to fill;
-            state (int): the state the taxi moves from;
-            action (int): the action the taxi takes;
+            probabilities (np.ndarray): the probability of every state being the next one, to fill;
             cell (np.ndarray): the (layer, row, column) of the current cell;
             direction (np.ndarray): the 2D displacement of the move;
             prob (float): the probability of this outcome.
 
         """
         next_cell = self._next_cell(cell, direction)
-        next_state = state if next_cell is None else self._get_state_id(next_cell)
+        next_state = self._get_state_id(cell if next_cell is None else next_cell)
 
-        transition_probabilities[state, action, next_state] += prob
+        probabilities[next_state] += prob
 
     def _passenger_index(self, position):
         """

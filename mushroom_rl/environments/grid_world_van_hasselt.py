@@ -58,7 +58,7 @@ class GridWorldVanHasselt(GridWorld):
         return state, reward, absorbing, info
 
     @classmethod
-    def generate(cls, height=3, width=3, goal=(0, 2), start=(2, 0), **kwargs):
+    def generate(cls, height=3, width=3, goal=None, start=None, **kwargs):
         """
         Build the grid world of the paper, an empty square grid with the goal in the top right corner and the
         starting cell in the bottom left one.
@@ -66,14 +66,20 @@ class GridWorldVanHasselt(GridWorld):
         Args:
             height (int, 3): height of the grid;
             width (int, 3): width of the grid;
-            goal (tuple, (0, 2)): 2D coordinates of the goal cell;
-            start (tuple, (2, 0)): 2D coordinates of the starting cell;
+            goal (tuple, None): 2D coordinates of the goal cell, None to place it in the top right corner;
+            start (tuple, None): 2D coordinates of the starting cell, None to place it in the bottom left corner;
             **kwargs: the parameters of the constructor.
 
         Returns:
             The grid world of the paper.
 
         """
+        if goal is None:
+            goal = (0, width - 1)
+
+        if start is None:
+            start = (height - 1, 0)
+
         return cls.from_size(height, width, goal, start, **kwargs)
 
     def _compute_probabilities(self):

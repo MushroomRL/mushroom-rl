@@ -183,7 +183,8 @@ class Viewer:
     def grid(self, n_rows, n_columns, color=(255, 255, 255), width=1):
         """
         Draw the lines of a grid of cells over the environment, border included, so that a grid of ``n_rows`` by
-        ``n_columns`` unit cells covers the ``[0, n_columns] x [0, n_rows]`` region.
+        ``n_columns`` unit cells covers the ``[0, n_columns] x [0, n_rows]`` region. The border is drawn just inside
+        that region, so that it stays visible when the environment fills the window.
 
         Args:
             n_rows (int): number of rows of cells;
@@ -192,11 +193,16 @@ class Viewer:
             width (int, 1): width of the lines.
 
         """
-        for row in range(n_rows + 1):
+        for row in range(1, n_rows):
             self.line(np.array([0, row]), np.array([n_columns, row]), color, width)
 
-        for column in range(n_columns + 1):
+        for column in range(1, n_columns):
             self.line(np.array([column, 0]), np.array([column, n_rows]), color, width)
+
+        top_left = self._transform(np.array([0, n_rows]))
+        bottom_right = self._transform(np.array([n_columns, 0]))
+
+        pygame.draw.rect(self.screen, color, pygame.Rect(top_left, bottom_right - top_left), width)
 
     def square(self, center, angle, edge, color=(255, 255, 255), width=0):
         """

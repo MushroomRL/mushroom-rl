@@ -1,6 +1,6 @@
 import numpy as np
 from pathlib import Path
-from pytest import importorskip
+from pytest import importorskip, warns
 from mushroom_rl.core import Logger
 from mushroom_rl.core.dataset import Dataset
 
@@ -233,7 +233,9 @@ def test_video_logger_ignores_missing_frames(tmpdir):
     logger = Logger('test_video', results_dir=tmpdir)
 
     logger.set_video_fps(30)
-    logger.record_frame(None)
+
+    with warns(UserWarning, match='The environment drew nothing'):
+        logger.record_frame(None)
 
     assert logger.video_recorder is None
     assert logger.stop_recording() is None

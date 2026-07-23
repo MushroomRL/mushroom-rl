@@ -16,16 +16,16 @@ class SimpleChain(FiniteMDP):
     rows, reading like text.
 
     """
-    def __init__(self, n_states, goal_states, prob, goal_reward, iota=None, gamma=.9, horizon=100, dt=1e-1,
-                 **viewer_params):
+    def __init__(self, n_states=5, goal_states=(2,), prob=.8, goal_reward=1., iota=None, gamma=.9, horizon=100,
+                 dt=1e-1, **viewer_params):
         """
         Constructor.
 
         Args:
-            n_states (int): number of states of the chain;
-            goal_states (list): list of the states giving a reward;
-            prob (float): probability of success of an action;
-            goal_reward (float): reward obtained when reaching a goal state;
+            n_states (int, 5): number of states of the chain;
+            goal_states (tuple, (2,)): the states giving a reward;
+            prob (float, .8): probability of success of an action;
+            goal_reward (float, 1.): reward obtained when reaching a goal state;
             iota (np.ndarray, None): initial state probability distribution;
             gamma (float, .9): discount factor;
             horizon (int, 100): the horizon;

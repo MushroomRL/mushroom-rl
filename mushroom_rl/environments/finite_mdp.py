@@ -68,7 +68,8 @@ class FiniteMDP(Environment):
         """
         assert p.shape == rew.shape
         assert iota is None or p.shape[0] == iota.size
-        assert np.allclose(p.sum(axis=2), 1.), 'The transitions of every state and action must sum to one.'
+
+        self._state = None
 
         # MDP parameters
         self.p = p.copy()
@@ -76,6 +77,13 @@ class FiniteMDP(Environment):
         self.iota = iota if iota is None else iota.copy()
 
         self._enforce_absorbing()
+
+        atol = np.sqrt(np.finfo(np.float64).eps)
+
+        assert np.all(np.abs(self.p.sum(axis=2) - 1.) <= atol), \
+            'The transitions of every state and action must sum to one.'
+        assert self.iota is None or np.abs(self.iota.sum() - 1.) <= atol, \
+            'The initial state distribution must sum to one.'
 
         # Visualization
         self._style = self._build_style()
@@ -85,7 +93,7 @@ class FiniteMDP(Environment):
         assert viewer_params['min_scale'] >= 1, 'An environment unit must take at least one pixel.'
 
         if viewer_shape is None:
-            n_columns = min(p.shape[0], viewer_params.get('max_width', 1920) // viewer_params['min_scale'])
+            n_columns = min(p.shape[0], max(1, viewer_params.get('max_width', 1920) // viewer_params['min_scale']))
             viewer_shape = (math.ceil(p.shape[0] / n_columns), n_columns)
 
         self._n_rows, self._n_columns = viewer_shape
@@ -99,8 +107,6 @@ class FiniteMDP(Environment):
         # MDP properties
         observation_space = Discrete(p.shape[0])
         action_space = Discrete(p.shape[1])
-        horizon = horizon
-        gamma = gamma
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
         super().__init__(mdp_info)

@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pytest
 
+from mushroom_rl.core import Environment
 from mushroom_rl.environments.finite_mdp import FiniteMDP
 from mushroom_rl.environments.grid_world import GridWorld
 from mushroom_rl.environments.grid_world_van_hasselt import GridWorldVanHasselt
@@ -204,8 +205,19 @@ def test_van_hasselt_two_goals(tmp_path):
         GridWorldVanHasselt.from_file(str(path))
 
 
+def test_generate_derives_the_corners():
+    grid_world = GridWorld.generate(height=4, width=5)
+    van_hasselt = GridWorldVanHasselt.generate(height=4, width=5)
+
+    assert np.array_equal(np.argwhere(grid_world.grid_map[0] == 'S'), [[0, 0]])
+    assert np.array_equal(np.argwhere(grid_world.grid_map[0] == 'G'), [[3, 4]])
+
+    assert np.array_equal(np.argwhere(van_hasselt.grid_map[0] == 'S'), [[3, 0]])
+    assert np.array_equal(np.argwhere(van_hasselt.grid_map[0] == 'G'), [[0, 4]])
+
+
 def test_taxi_passengers():
-    mdp = Taxi.from_file('tests/environments/taxi.txt')
+    mdp = Taxi.generate()
 
     assert mdp.grid_map.shape == (8, 6, 7)
     assert mdp.info.observation_space.n == 252
@@ -230,6 +242,20 @@ def test_taxi_from_size():
     assert (mdp.p.sum(axis=2) == 1.).all()
 
 
+def test_taxi_generate_derives_the_layout():
+    mdp = Taxi.generate(height=4, width=5)
+
+    assert np.array_equal(np.argwhere(mdp.grid_map[0] == 'S'), [[0, 0]])
+    assert np.array_equal(np.argwhere(mdp.grid_map[0] == 'G'), [[3, 4]])
+    assert np.array_equal(np.argwhere(mdp.grid_map[0] == 'P'), [[0, 4], [3, 0]])
+    assert np.array_equal(np.unique(mdp.r), np.array([0., 1., 3.]))
+
+
+def test_taxi_generate_needs_both_dimensions():
+    with pytest.raises(AssertionError):
+        Taxi.generate(height=4)
+
+
 def test_taxi_passenger_on_occupied_cell():
     with pytest.raises(AssertionError):
         Taxi.from_size(height=3, width=3, goal=(2, 2), passengers=((0, 0),), goal_rewards=(0, 1))
@@ -237,7 +263,7 @@ def test_taxi_passenger_on_occupied_cell():
 
 def test_taxi_wrong_rewards():
     with pytest.raises(AssertionError):
-        Taxi.from_file('tests/environments/taxi.txt', goal_rewards=(0, 1))
+        Taxi.generate(goal_rewards=(0, 1))
 
 
 def test_simple_chain():
@@ -297,6 +323,19 @@ def test_background_image_covers_the_environment_not_the_window():
     assert exact_columns.min() == 0 and exact_columns.max() == 499
 
 
+def test_grid_draws_every_border():
+    viewer = Viewer(5, 5, min_scale=40)
+    viewer.grid(5, 5)
+    frame = viewer.get_frame()
+    viewer.close()
+
+    rows = [row for row in range(frame.shape[0]) if frame[row].all()]
+    columns = [column for column in range(frame.shape[1]) if frame[:, column].all()]
+
+    assert rows == [0, 100, 200, 300, 400, 499]
+    assert columns == [0, 100, 200, 300, 400, 499]
+
+
 def test_cell_of_skips_the_walls():
     mdp = GridWorld.from_file('tests/environments/grid.txt', prob=.9)
 
@@ -313,6 +352,15 @@ def test_cell_center():
 
     assert np.allclose(mdp._cell_center(0, 0), [.5, 2.5])
     assert np.allclose(mdp._cell_center(2, 2), [2.5, .5])
+
+
+def test_simple_chain_defaults():
+    mdp = Environment.make('SimpleChain')
+    reference = SimpleChain(n_states=5, goal_states=[2], prob=.8, goal_reward=1.)
+
+    assert np.array_equal(mdp.p, reference.p)
+    assert np.array_equal(mdp.r, reference.r)
+    assert mdp.info.observation_space.n == 5 and mdp.info.action_space.n == 2
 
 
 def test_simple_chain_wrapping():

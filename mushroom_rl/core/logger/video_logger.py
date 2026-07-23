@@ -1,3 +1,5 @@
+import warnings
+
 from mushroom_rl.utils.record import VideoRecorder
 
 
@@ -42,6 +44,8 @@ class VideoLogger(object):
 
         """
         if frame is None:
+            warnings.warn('The environment drew nothing, the frame is not recorded.')
+
             return
 
         if self._recorder is None:

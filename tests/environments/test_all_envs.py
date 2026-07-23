@@ -262,7 +262,7 @@ def test_ship_steering():
 
 def test_taxi():
     np.random.seed(1)
-    mdp = Taxi.from_file('tests/environments/taxi.txt')
+    mdp = Taxi.generate()
     mdp.reset()
     mdp.render()
     for i in range(10):

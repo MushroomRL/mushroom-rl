@@ -58,7 +58,7 @@ class GridWorld(FiniteMDP):
                          viewer_shape=(height, width), **viewer_params)
 
     @classmethod
-    def generate(cls, height=3, width=3, goal=(2, 2), start=(0, 0), **kwargs):
+    def generate(cls, height=3, width=3, goal=None, start=(0, 0), **kwargs):
         """
         Build the standard version of the grid world, an empty square grid with the goal in the corner opposite to
         the starting cell.
@@ -66,7 +66,8 @@ class GridWorld(FiniteMDP):
         Args:
             height (int, 3): height of the grid;
             width (int, 3): width of the grid;
-            goal (tuple, (2, 2)): 2D coordinates of the goal cell;
+            goal (tuple, None): 2D coordinates of the goal cell, None to place it in the corner opposite to the
+                starting cell;
             start (tuple, (0, 0)): 2D coordinates of the starting cell;
             **kwargs: the parameters of the constructor.
 
@@ -74,6 +75,9 @@ class GridWorld(FiniteMDP):
             The standard grid world.
 
         """
+        if goal is None:
+            goal = (height - 1, width - 1)
+
         return cls.from_size(height, width, goal, start, **kwargs)
 
     @classmethod
@@ -151,17 +155,34 @@ class GridWorld(FiniteMDP):
                 prob[state, :, state] = 1.
             else:
                 for action, direction in enumerate(self._directions):
-                    next_cell = self._next_cell(cell, direction)
-
-                    if next_cell is None:
-                        prob[state, action, state] = 1.
-                    else:
-                        next_state = self._get_state_id(next_cell)
-
-                        prob[state, action, state] += 1. - self._prob
-                        prob[state, action, next_state] += self._prob
+                    prob[state, action] = self._compute_action_probabilities(cell, direction)
 
         return prob
+
+    def _compute_action_probabilities(self, cell, direction):
+        """
+        Compute the probability of reaching every state when taking an action in a cell. Override it to change what
+        an action can do, e.g. to let it slip in a direction other than the intended one.
+
+        Args:
+            cell (np.ndarray): the (layer, row, column) of the current cell;
+            direction (np.ndarray): the 2D displacement of the action.
+
+        Returns:
+            The probability of every state being the next one.
+
+        """
+        probabilities = np.zeros(len(self._cell_list))
+        state = self._get_state_id(cell)
+        next_cell = self._next_cell(cell, direction)
+
+        if next_cell is None:
+            probabilities[state] = 1.
+        else:
+            probabilities[state] += 1. - self._prob
+            probabilities[self._get_state_id(next_cell)] += self._prob
+
+        return probabilities
 
     def _compute_reward(self):
         """
