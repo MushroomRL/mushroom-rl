@@ -319,7 +319,9 @@ class GridWorld(FiniteMDP):
     @classmethod
     def _read_map(cls, path):
         """
-        Read a text file into an array of symbols, checking that every symbol is known.
+        Read a text file into an array of symbols, checking that the map is rectangular and that every symbol is
+        known. Blank lines are allowed at the end of the file only, so that a blank line left in the middle of a map
+        is reported rather than closing the gap it leaves.
 
         Args:
             path (str): the path of the file containing the map.
@@ -329,7 +331,16 @@ class GridWorld(FiniteMDP):
 
         """
         with open(path, 'r') as grid_file:
-            rows = [list(line.rstrip('\n')) for line in grid_file if line.strip()]
+            text = grid_file.read().rstrip('\n')
+
+        assert text, 'The map is empty.'
+
+        rows = [list(row) for row in text.split('\n')]
+        width = max(len(row) for row in rows)
+
+        for number, row in enumerate(rows, 1):
+            if len(row) != width:
+                raise ValueError(f'Row {number} of the map is {len(row)} cells long instead of {width}.')
 
         grid_map = np.array(rows)
 

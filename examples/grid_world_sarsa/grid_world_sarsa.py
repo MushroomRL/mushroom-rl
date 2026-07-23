@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 
 import numpy as np
 
@@ -69,9 +70,11 @@ if __name__ == '__main__':
 
     np.random.seed()
 
+    maps = Path(__file__).resolve().parent
+
     if args.env == 'grid_world':
-        mdp, n_steps, lambda_coeff = GridWorld.from_file('grid.txt', prob=.9), 20000, 0.
+        mdp, n_steps, lambda_coeff = GridWorld.from_file(maps / 'grid.txt', prob=.9), 20000, 0.
     else:
-        mdp, n_steps, lambda_coeff = Taxi.from_file('taxi.txt', goal_rewards=(0, 1, 5)), 100000, .95
+        mdp, n_steps, lambda_coeff = Taxi.from_file(maps / 'taxi.txt', goal_rewards=(0, 1, 5)), 100000, .95
 
     experiment(mdp, n_steps, lambda_coeff)

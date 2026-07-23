@@ -1,5 +1,9 @@
 For Mushroom 2.0:
     * reorganize example folder
+      - Use logger everywhere.
+      - agree on where results go: double_chain writes into a logs/ folder next to the script, while taxi_mellow and
+        minigrid_dqn write into the current working directory
+      - try to simplify experiments functions
     * linting as much as possible
 
 

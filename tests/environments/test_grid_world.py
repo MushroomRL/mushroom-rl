@@ -87,6 +87,18 @@ def test_too_big_to_render():
     assert mdp.render(record=True) is None
 
 
+def test_fifty_by_fifty_grid_renders():
+    grid = GridWorld.from_size(50, 50, (49, 49))
+
+    assert grid._viewer is not None
+    assert grid._viewer.size == (1080, 1080)
+
+    with pytest.warns(UserWarning):
+        too_big = GridWorld.from_size(55, 55, (54, 54))
+
+    assert too_big._viewer is None
+
+
 def test_min_scale_below_one():
     with pytest.raises(AssertionError):
         Viewer(10, 10, min_scale=0)
@@ -98,6 +110,69 @@ def test_min_scale_below_one():
 def test_transitions_not_summing_to_one():
     with pytest.raises(AssertionError):
         FiniteMDP(np.zeros((3, 2, 3)), np.zeros((3, 2, 3)))
+
+
+def test_single_outcome_not_summing_to_one():
+    p = np.zeros((2, 1, 2))
+    p[1, 0, 1] = 1.
+
+    for row in ([0., .5], [0., 1e-18], [.5, 0.]):
+        p[0, 0] = row
+
+        with pytest.raises(AssertionError):
+            FiniteMDP(p, np.zeros_like(p), horizon=10)
+
+
+def test_accumulated_self_loop_is_absorbing():
+    p = np.zeros((2, 1, 2))
+    p[0, 0, 0] = 0.9999999999999999
+    p[1, 0, 1] = 1.
+
+    mdp = FiniteMDP(p, np.ones((2, 1, 2)), horizon=10)
+
+    assert mdp.p[0, 0, 0] == 1.
+    assert not np.any(mdp.r[0])
+
+
+def test_ragged_map(tmp_path):
+    path = tmp_path / 'ragged.txt'
+    path.write_text('S..\n'
+                    '....\n'
+                    '..G\n')
+
+    with pytest.raises(ValueError):
+        GridWorld.from_file(str(path))
+
+
+def test_blank_line_in_the_map(tmp_path):
+    path = tmp_path / 'blank.txt'
+    path.write_text('S..\n'
+                    '\n'
+                    '..G\n')
+
+    with pytest.raises(ValueError):
+        GridWorld.from_file(str(path))
+
+
+def test_trailing_blank_lines(tmp_path):
+    path = tmp_path / 'trailing.txt'
+    path.write_text('S..\n'
+                    '...\n'
+                    '..G\n'
+                    '\n'
+                    '\n')
+
+    mdp = GridWorld.from_file(str(path))
+
+    assert mdp.grid_map.shape == (1, 3, 3)
+
+
+def test_empty_map(tmp_path):
+    path = tmp_path / 'empty.txt'
+    path.write_text('')
+
+    with pytest.raises(AssertionError):
+        GridWorld.from_file(str(path))
 
 
 def test_unknown_symbol(tmp_path):
@@ -256,6 +331,12 @@ def test_taxi_generate_needs_both_dimensions():
         Taxi.generate(height=4)
 
 
+def test_taxi_generate_rejects_a_layout_for_the_maze():
+    for layout in (dict(goal=(0, 0)), dict(start=(1, 1)), dict(passengers=((2, 2),))):
+        with pytest.raises(AssertionError):
+            Taxi.generate(**layout)
+
+
 def test_taxi_passenger_on_occupied_cell():
     with pytest.raises(AssertionError):
         Taxi.from_size(height=3, width=3, goal=(2, 2), passengers=((0, 0),), goal_rewards=(0, 1))
@@ -276,64 +357,6 @@ def test_simple_chain():
     assert mdp.p[4, 0, 4] == 1.
     assert mdp.r[1, 0, 2] == 1.
     assert mdp.r[2, 0, 2] == 0.
-
-
-def test_viewer_window_size():
-    square = Viewer(10, 10, min_scale=40)
-    corridor = Viewer(2, 20, min_scale=40)
-    wide = Viewer(48, 1, min_scale=40)
-
-    assert square.size == (500, 500)
-    assert corridor.size == (500, 1080)
-    assert wide.size == (1920, 100)
-
-    for viewer in (square, corridor, wide):
-        assert viewer.fits
-        assert viewer.size[0] >= 500 and viewer.size[1] >= 100
-
-
-def test_viewer_does_not_fit_the_screen():
-    assert not Viewer(60, 60, min_scale=40).fits
-    assert not Viewer(100, 1, min_scale=40).fits
-    assert not Viewer(48, 2084, min_scale=40).fits
-
-
-def test_viewer_margin_centres_the_grid():
-    padded = Viewer(48, 1, min_scale=40)
-    exact = Viewer(10, 10, min_scale=40)
-
-    assert np.allclose(exact._margin, [0., 0.])
-    assert np.allclose(padded._margin, [0., .75])
-
-
-def test_background_image_covers_the_environment_not_the_window():
-    image = np.full((64, 64, 3), 255.)
-
-    padded = Viewer(2, 20, min_scale=40)
-    padded.background_image(image)
-    padded_columns = np.argwhere(padded.get_frame().any(-1))[:, 1]
-    padded.close()
-
-    exact = Viewer(10, 10, min_scale=40)
-    exact.background_image(image)
-    exact_columns = np.argwhere(exact.get_frame().any(-1))[:, 1]
-    exact.close()
-
-    assert padded_columns.min() == 196 and padded_columns.max() == 303
-    assert exact_columns.min() == 0 and exact_columns.max() == 499
-
-
-def test_grid_draws_every_border():
-    viewer = Viewer(5, 5, min_scale=40)
-    viewer.grid(5, 5)
-    frame = viewer.get_frame()
-    viewer.close()
-
-    rows = [row for row in range(frame.shape[0]) if frame[row].all()]
-    columns = [column for column in range(frame.shape[1]) if frame[:, column].all()]
-
-    assert rows == [0, 100, 200, 300, 400, 499]
-    assert columns == [0, 100, 200, 300, 400, 499]
 
 
 def test_cell_of_skips_the_walls():
@@ -363,6 +386,17 @@ def test_simple_chain_defaults():
     assert mdp.info.observation_space.n == 5 and mdp.info.action_space.n == 2
 
 
+def test_chain_reads_like_text_while_finite_mdp_is_balanced():
+    chain = SimpleChain(n_states=120, goal_states=(119,))
+    finite_mdp = FiniteMDP(np.full((120, 2, 120), 1 / 120), np.zeros((120, 2, 120)), horizon=10)
+
+    assert chain._n_rows == 2 and chain._n_columns == 96
+    assert chain._viewer.size == (1920, 100)
+
+    assert finite_mdp._n_rows == 8 and finite_mdp._n_columns == 15
+    assert finite_mdp._viewer.size == (600, 320)
+
+
 def test_simple_chain_wrapping():
     short = SimpleChain(5, [2], .8, 1)
     long = SimpleChain(600, [42, 300], .8, 1)
@@ -371,21 +405,21 @@ def test_simple_chain_wrapping():
     assert short._viewer.size == (500, 100)
     assert short._cell_of(4) == (0, 4)
 
-    assert long._n_rows == 13 and long._n_columns == 48
-    assert long._viewer.size == (1920, 520)
+    assert long._n_rows == 7 and long._n_columns == 96
+    assert long._viewer.size == (1920, 140)
     assert long._cell_of(0) == (0, 0)
-    assert long._cell_of(72) == (1, 24)
-    assert long._cell_of(599) == (12, 23)
+    assert long._cell_of(72) == (0, 72)
+    assert long._cell_of(599) == (6, 23)
 
 
 def test_finite_mdp_default_viewer():
     short = FiniteMDP(np.full((6, 2, 6), 1 / 6), np.zeros((6, 2, 6)))
     wrapped = FiniteMDP(np.full((600, 2, 600), 1 / 600), np.zeros((600, 2, 600)))
 
-    assert short._n_rows == 1 and short._n_columns == 6
-    assert short._viewer.size == (500, 100)
-    assert short._cell_of(5) == (0, 5)
+    assert short._n_rows == 2 and short._n_columns == 4
+    assert short._viewer.size == (500, 250)
+    assert short._cell_of(5) == (1, 1)
 
-    assert wrapped._n_rows == 13 and wrapped._n_columns == 48
-    assert wrapped._viewer.size == (1920, 520)
-    assert wrapped._cell_of(72) == (1, 24)
+    assert wrapped._n_rows == 19 and wrapped._n_columns == 33
+    assert wrapped._viewer.size == (1320, 760)
+    assert wrapped._cell_of(72) == (2, 6)

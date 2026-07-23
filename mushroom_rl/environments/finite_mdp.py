@@ -88,13 +88,15 @@ class FiniteMDP(Environment):
         # Visualization
         self._style = self._build_style()
 
-        viewer_params.setdefault('min_scale', 40)
+        viewer_params.setdefault('ideal_scale', 40)
+        viewer_params.setdefault('min_scale', 20)
 
         assert viewer_params['min_scale'] >= 1, 'An environment unit must take at least one pixel.'
 
         if viewer_shape is None:
-            n_columns = min(p.shape[0], max(1, viewer_params.get('max_width', 1920) // viewer_params['min_scale']))
-            viewer_shape = (math.ceil(p.shape[0] / n_columns), n_columns)
+            viewer_shape = self._build_viewer_shape(p.shape[0], viewer_params.get('max_width', 1920),
+                                                    viewer_params.get('max_height', 1080),
+                                                    viewer_params['min_scale'])
 
         self._n_rows, self._n_columns = viewer_shape
         self._viewer = Viewer(self._n_columns, self._n_rows, **viewer_params)
@@ -151,16 +153,22 @@ class FiniteMDP(Environment):
 
     def _enforce_absorbing(self):
         """
-        Make the process obey the definition of an absorbing state. An outcome that is the only one an action can
-        lead to is given probability exactly one, so that a state looping on itself is recognised as absorbing
+        Make the process obey the definition of an absorbing state. An action whose only outcome is the state it is
+        taken in is given probability exactly one, so that a state looping on itself is recognised as absorbing
         however the probabilities that built it were rounded, and every absorbing state is stripped of its reward.
-        Override it to keep a different convention.
+        A row that does not already describe a self-loop is left untouched, so that a malformed process is rejected
+        rather than repaired. Override it to keep a different convention.
 
         """
-        certain = np.count_nonzero(self.p, axis=2) == 1
-        self.p[certain] = self.p[certain] > 0.
-
         states = np.arange(self.p.shape[0])
+        atol = np.sqrt(np.finfo(np.float64).eps)
+
+        self_loop = self.p[states, :, states]
+        certain = (np.count_nonzero(self.p, axis=2) == 1) & (np.abs(self_loop - 1.) <= atol)
+
+        self_loop[certain] = 1.
+        self.p[states, :, states] = self_loop
+
         self.r[(self.p[states, :, states] == 1.).all(axis=1)] = 0.
 
     def _draw(self):
@@ -199,6 +207,27 @@ class FiniteMDP(Environment):
 
         """
         return divmod(state, self._n_columns)
+
+    @staticmethod
+    def _build_viewer_shape(n_states, max_width, max_height, min_scale):
+        """
+        Lay the states out on a grid as close as possible to the shape of the screen, so that the cells are as large
+        as the screen allows. Override it to arrange the states differently, e.g. to read them like a line of text.
+
+        Args:
+            n_states (int): the number of states to lay out;
+            max_width (int): the width of the screen, in pixels;
+            max_height (int): the height of the screen, in pixels;
+            min_scale (int): the fewest pixels a cell may take.
+
+        Returns:
+            The number of rows and columns of the grid of cells.
+
+        """
+        n_columns = min(n_states, max(1, max_width // min_scale),
+                        math.ceil(math.sqrt(n_states * max_width / max_height)))
+
+        return math.ceil(n_states / n_columns), n_columns
 
     @classmethod
     def _build_style(cls):

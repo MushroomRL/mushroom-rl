@@ -81,35 +81,44 @@ class Viewer:
 
     """
     def __init__(self, env_width, env_height, min_width=500, min_height=100, max_width=1920,
-                 max_height=1080, min_scale=1, background=(0, 0, 0)):
+                 max_height=1080, ideal_scale=None, min_scale=1, background=(0, 0, 0)):
         """
         Constructor.
 
         The window is sized to fit the environment, keeping the two axes at the same scale so that the drawing is not
-        distorted. The scale is at least ``min_scale`` pixels per environment unit, so that a world made of many small
-        units (e.g. the cells of a grid) stays visible; a world that then does not fit the screen has ``fits`` set to
-        False. An environment smaller than ``min_width`` by ``min_height`` is centred on a window of that size.
+        distorted. The scale is raised until the environment fills the minimum window and takes at least
+        ``ideal_scale`` pixels per unit, then lowered until it fits the maximum window, each bound acting on its own
+        axis. An environment that ends up drawn at fewer than ``min_scale`` pixels per unit is too small to read, so
+        a world made of many small units (e.g. the cells of a grid) has ``fits`` set to False rather than being
+        shrunk further. An environment smaller than the minimum window is centred on it.
 
         Args:
             env_width (float): the x dimension limit of the desired environment;
             env_height (float): the y dimension limit of the desired environment;
-            min_width (int, 500): the window is at least this wide, in pixels;
-            min_height (int, 100): the window is at least this tall, in pixels;
-            max_width (int, 1920): the environment must fit in this width to be drawable, in pixels;
-            max_height (int, 1080): the environment must fit in this height to be drawable, in pixels;
-            min_scale (int, 1): the fewest pixels an environment unit may take;
+            min_width (int, 500): the environment is scaled to be at least this wide, in pixels;
+            min_height (int, 100): the environment is scaled to be at least this tall, in pixels;
+            max_width (int, 1920): the environment is scaled to fit in this width, in pixels;
+            max_height (int, 1080): the environment is scaled to fit in this height, in pixels;
+            ideal_scale (int, None): the pixels an environment unit takes when the screen has room for them, None to
+                ask for no more than the fewest;
+            min_scale (int, 1): the fewest pixels an environment unit may take to be drawable;
             background (tuple, (0, 0, 0)): background color of the screen.
 
         """
         assert min_scale >= 1, 'An environment unit must take at least one pixel.'
 
-        scale = max(min_width / env_width, min_scale)
-        scale = min(scale, max(max_height / env_height, min_scale))
+        if ideal_scale is None:
+            ideal_scale = min_scale
+
+        assert ideal_scale >= min_scale, 'An environment unit cannot ideally take fewer pixels than it may take.'
+
+        scale = max(min_width / env_width, min_height / env_height, ideal_scale)
+        scale = min(scale, max_width / env_width, max_height / env_height)
+
+        self._fits = scale >= min_scale
 
         width = scale * env_width
         height = scale * env_height
-
-        self._fits = width <= max_width and height <= max_height
 
         width = int(max(width, min_width))
         height = int(max(height, min_height))

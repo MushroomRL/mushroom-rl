@@ -43,7 +43,7 @@ class Taxi(GridWorld):
         super().__init__(grid_map, prob=prob, gamma=gamma, horizon=horizon, dt=dt, **viewer_params)
 
     @classmethod
-    def generate(cls, height=None, width=None, goal=None, start=(0, 0), passengers=None, **kwargs):
+    def generate(cls, height=None, width=None, goal=None, start=None, passengers=None, **kwargs):
         """
         Build the standard version of the taxi problem, the maze with three passengers of the papers. When the size of
         the grid is given, build an empty rectangular grid instead, with the goal in the corner opposite to the
@@ -57,7 +57,7 @@ class Taxi(GridWorld):
             width (int, None): width of the grid, None to build the maze;
             goal (tuple, None): 2D coordinates of the goal cell, None to place it in the corner opposite to the
                 starting cell;
-            start (tuple, (0, 0)): 2D coordinates of the starting cell;
+            start (tuple, None): 2D coordinates of the starting cell, None to place it in the top left corner;
             passengers (tuple, None): 2D coordinates of every passenger, None to place one in each of the two
                 corners left free by the starting and the goal cells;
             **kwargs: the parameters of the constructor.
@@ -67,6 +67,9 @@ class Taxi(GridWorld):
 
         """
         if height is None and width is None:
+            assert goal is None and start is None and passengers is None, \
+                'The layout of the maze is fixed, give the size of the grid to lay out a new one.'
+
             maze = ['S#P.#.G',
                     '.#..#..',
                     '.......',
@@ -82,6 +85,9 @@ class Taxi(GridWorld):
 
         if goal is None:
             goal = (height - 1, width - 1)
+
+        if start is None:
+            start = (0, 0)
 
         if passengers is None:
             passengers = ((0, width - 1), (height - 1, 0))
