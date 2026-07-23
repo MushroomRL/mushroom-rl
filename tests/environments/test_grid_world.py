@@ -307,6 +307,22 @@ def test_taxi_passengers():
     assert np.array_equal(np.unique(mdp.r), np.array([0., 1., 3., 15.]))
 
 
+def test_taxi_slips_perpendicular():
+    mdp = Taxi.from_size(height=3, width=3, goal=(2, 2), goal_rewards=(0,))
+
+    center = np.argwhere((mdp.cell_list == [0, 1, 1]).all(axis=1)).item()
+    up = np.argwhere((mdp.cell_list == [0, 0, 1]).all(axis=1)).item()
+    left = np.argwhere((mdp.cell_list == [0, 1, 0]).all(axis=1)).item()
+    right = np.argwhere((mdp.cell_list == [0, 1, 2]).all(axis=1)).item()
+
+    expected = np.zeros(mdp.info.observation_space.n)
+    expected[up] = .9
+    expected[left] = .05
+    expected[right] = .05
+
+    assert np.allclose(mdp.p[center, 0], expected)
+
+
 def test_taxi_from_size():
     mdp = Taxi.from_size(height=3, width=3, goal=(2, 2), passengers=((0, 2), (2, 0)), goal_rewards=(0, 1, 5))
 

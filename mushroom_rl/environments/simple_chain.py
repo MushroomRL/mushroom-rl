@@ -86,17 +86,6 @@ class SimpleChain(FiniteMDP):
 
         return reward
 
-    @staticmethod
-    def _build_viewer_shape(n_states, max_width, max_height, min_scale):
-        """
-        Lay the chain out on a single row, wrapping onto as many rows as it takes when it is too long to fit the
-        width of the screen, so that it is read like a line of text.
-
-        """
-        n_columns = min(n_states, max(1, max_width // min_scale))
-
-        return math.ceil(n_states / n_columns), n_columns
-
     def _draw(self):
         """
         Draw the chain, painting the goal states on top of the default grid of cells and the agent.
@@ -113,3 +102,14 @@ class SimpleChain(FiniteMDP):
         style['goal_color'] = (0, 255, 0)
 
         return style
+
+    @staticmethod
+    def _build_viewer_shape(n_states, max_width, max_height, min_scale):
+        """
+        Lay the chain out on a single row, wrapping onto as many rows as it takes when it is too long to fit the
+        width of the screen, so that it is read like a line of text.
+
+        """
+        n_columns = min(n_states, max(1, max_width // min_scale))
+
+        return math.ceil(n_states / n_columns), n_columns

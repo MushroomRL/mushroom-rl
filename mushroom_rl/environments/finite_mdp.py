@@ -208,6 +208,18 @@ class FiniteMDP(Environment):
         """
         return divmod(state, self._n_columns)
 
+    @classmethod
+    def _build_style(cls):
+        """
+        Build the colors and sizes used to draw the environment. Override it, merging the result of the base class, to
+        change the way the environment looks.
+
+        Returns:
+            A dictionary describing the drawing.
+
+        """
+        return dict(agent_color=(0, 0, 255), grid_color=(255, 255, 255), agent_radius=.4, line_width=1)
+
     @staticmethod
     def _build_viewer_shape(n_states, max_width, max_height, min_scale):
         """
@@ -228,15 +240,3 @@ class FiniteMDP(Environment):
                         math.ceil(math.sqrt(n_states * max_width / max_height)))
 
         return math.ceil(n_states / n_columns), n_columns
-
-    @classmethod
-    def _build_style(cls):
-        """
-        Build the colors and sizes used to draw the environment. Override it, merging the result of the base class, to
-        change the way the environment looks.
-
-        Returns:
-            A dictionary describing the drawing.
-
-        """
-        return dict(agent_color=(0, 0, 255), grid_color=(255, 255, 255), agent_radius=.4, line_width=1)
