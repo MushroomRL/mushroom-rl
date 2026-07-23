@@ -76,6 +76,24 @@ def test_absorbing_states():
     assert next_state.item() == 8 and absorbing and reward == 0.
 
 
+def test_too_big_to_render():
+    with pytest.warns(UserWarning):
+        mdp = FiniteMDP(np.full((2, 1, 2), .5), np.zeros((2, 1, 2)), viewer_shape=(100, 100))
+
+    mdp.reset()
+
+    assert mdp.render() is None
+    assert mdp.render(record=True) is None
+
+
+def test_min_scale_below_one():
+    with pytest.raises(AssertionError):
+        Viewer(10, 10, min_scale=0)
+
+    with pytest.raises(AssertionError):
+        FiniteMDP(np.full((6, 2, 6), 1 / 6), np.zeros((6, 2, 6)), min_scale=0)
+
+
 def test_transitions_not_summing_to_one():
     with pytest.raises(AssertionError):
         FiniteMDP(np.zeros((3, 2, 3)), np.zeros((3, 2, 3)))
@@ -150,6 +168,40 @@ def test_van_hasselt():
 
     assert set(rewards[:-1]).issubset({-12., 10.})
     assert absorbing and rewards[-1] == 5.
+
+
+def test_van_hasselt_from_map(tmp_path):
+    path = tmp_path / 'walls.txt'
+    path.write_text('S#.\n'
+                    '.#.\n'
+                    '..G\n')
+
+    mdp = GridWorldVanHasselt.from_file(str(path))
+
+    assert mdp.info.observation_space.n == 8
+    assert np.array_equal(mdp.cell_list[-1], [0, 2, 2])
+    assert (mdp.p[mdp._get_state_id(np.array([0, 2, 2])), :, -1] == 1.).all()
+    assert not np.any(mdp.r[-1])
+
+
+def test_van_hasselt_hole(tmp_path):
+    path = tmp_path / 'hole.txt'
+    path.write_text('S.*\n'
+                    '...\n'
+                    '..G\n')
+
+    with pytest.raises(AssertionError):
+        GridWorldVanHasselt.from_file(str(path))
+
+
+def test_van_hasselt_two_goals(tmp_path):
+    path = tmp_path / 'two_goals.txt'
+    path.write_text('S.G\n'
+                    '...\n'
+                    '..G\n')
+
+    with pytest.raises(AssertionError):
+        GridWorldVanHasselt.from_file(str(path))
 
 
 def test_taxi_passengers():
@@ -243,6 +295,17 @@ def test_background_image_covers_the_environment_not_the_window():
 
     assert padded_columns.min() == 196 and padded_columns.max() == 303
     assert exact_columns.min() == 0 and exact_columns.max() == 499
+
+
+def test_cell_of_skips_the_walls():
+    mdp = GridWorld.from_file('tests/environments/grid.txt', prob=.9)
+
+    assert mdp._cell_of(0) == (1, 1)
+    assert mdp._cell_of(5) == (2, 3)
+    assert mdp._cell_of(10) == (4, 3)
+
+    for state in range(mdp.info.observation_space.n):
+        assert mdp._cell_of(state) == tuple(mdp.cell_list[state, 1:])
 
 
 def test_cell_center():

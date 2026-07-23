@@ -81,7 +81,7 @@ class Viewer:
 
     """
     def __init__(self, env_width, env_height, min_width=500, min_height=100, max_width=1920,
-                 max_height=1080, min_scale=0, background=(0, 0, 0)):
+                 max_height=1080, min_scale=1, background=(0, 0, 0)):
         """
         Constructor.
 
@@ -97,10 +97,12 @@ class Viewer:
             min_height (int, 100): the window is at least this tall, in pixels;
             max_width (int, 1920): the environment must fit in this width to be drawable, in pixels;
             max_height (int, 1080): the environment must fit in this height to be drawable, in pixels;
-            min_scale (int, 0): the fewest pixels an environment unit may take;
+            min_scale (int, 1): the fewest pixels an environment unit may take;
             background (tuple, (0, 0, 0)): background color of the screen.
 
         """
+        assert min_scale >= 1, 'An environment unit must take at least one pixel.'
+
         scale = max(min_width / env_width, min_scale)
         scale = min(scale, max(max_height / env_height, min_scale))
 

@@ -5,10 +5,6 @@ All environments implement the ``Environment`` interface. Some of them, e.g. gri
 Processes: they extend the ``FiniteMDP`` class, exposing the transition probability matrix, the reward matrix and the
 initial state distribution, so that they can also be solved with the dynamic programming solvers.
 
-
-Environments
-------------
-
 Atari
 ~~~~~
 

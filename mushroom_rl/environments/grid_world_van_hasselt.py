@@ -19,7 +19,8 @@ class GridWorldVanHasselt(GridWorld):
     gives the true optimal value function.
 
     """
-    def __init__(self, height=3, width=3, goal=(0, 2), start=(2, 0), gamma=.95, horizon=np.inf, dt=1e-1):
+    def __init__(self, height=3, width=3, goal=(0, 2), start=(2, 0), gamma=.95, horizon=np.inf, dt=1e-1,
+                 grid_map=None, **viewer_params):
         """
         Constructor.
 
@@ -30,15 +31,23 @@ class GridWorldVanHasselt(GridWorld):
             start (tuple, (2, 0)): 2D coordinates of the starting cell;
             gamma (float, .95): discount factor;
             horizon (int, np.inf): the horizon;
-            dt (float, 1e-1): the control timestep of the environment.
+            dt (float, 1e-1): the control timestep of the environment;
+            grid_map (np.ndarray, None): (n_layers, height, width) array of symbols describing the map. When it is
+                given, it replaces the grid built from the size, the goal and the starting cell. The reward of this
+                environment leaves no room for a hole, and the terminal state is reached from a single goal cell;
+            **viewer_params: parameters forwarded to the viewer, e.g. its size bounds (see ``Viewer``).
 
         """
         self._step_rewards = np.array([-12., 10.])
 
-        base_map = self._build_grid(height, width, goal, start)
-        grid_map = self._build_layers(base_map)
+        if grid_map is None:
+            base_map = self._build_grid(height, width, goal, start)
+            grid_map = self._build_layers(base_map)
 
-        super().__init__(grid_map, goal_reward=5., gamma=gamma, horizon=horizon, dt=dt)
+        assert np.count_nonzero(grid_map == 'G') == 1, 'The map must contain exactly one goal cell.'
+        assert not np.any(grid_map == '*'), 'The map must not contain holes.'
+
+        super().__init__(grid_map, goal_reward=5., gamma=gamma, horizon=horizon, dt=dt, **viewer_params)
 
     def step(self, action):
         state, reward, absorbing, info = super().step(action)
@@ -47,6 +56,25 @@ class GridWorldVanHasselt(GridWorld):
             reward = np.random.choice(self._step_rewards)
 
         return state, reward, absorbing, info
+
+    @classmethod
+    def generate(cls, height=3, width=3, goal=(0, 2), start=(2, 0), **kwargs):
+        """
+        Build the grid world of the paper, an empty square grid with the goal in the top right corner and the
+        starting cell in the bottom left one.
+
+        Args:
+            height (int, 3): height of the grid;
+            width (int, 3): width of the grid;
+            goal (tuple, (0, 2)): 2D coordinates of the goal cell;
+            start (tuple, (2, 0)): 2D coordinates of the starting cell;
+            **kwargs: the parameters of the constructor.
+
+        Returns:
+            The grid world of the paper.
+
+        """
+        return cls.from_size(height, width, goal, start, **kwargs)
 
     def _compute_probabilities(self):
         """

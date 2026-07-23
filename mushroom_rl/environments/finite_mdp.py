@@ -12,10 +12,10 @@ class FiniteMDP(Environment):
     r"""
     Finite Markov Decision Process.
 
-    A Markov Decision Process is the tuple
+    A Markov Decision Process :math:`\mathcal{M}` is the tuple
 
     .. math::
-        \langle \mathcal{S}, \mathcal{A}, \mathcal{R}, \mathcal{P}, \iota, \gamma \rangle
+        \mathcal{M} = \langle \mathcal{S}, \mathcal{A}, \mathcal{R}, \mathcal{P}, \iota, \gamma \rangle
 
     where :math:`\mathcal{S}` is the space of the states of the process, :math:`\mathcal{A}` is the space of the
     actions the agent can take, :math:`\mathcal{R}(s, a, s')` is the reward given for taking the action :math:`a` in
@@ -23,8 +23,8 @@ class FiniteMDP(Environment):
     transition, :math:`\iota` is the initial state distribution, giving the probability of beginning an episode in
     each state, and :math:`\gamma` is the discount factor weighting how much a future reward is worth now.
 
-    Both spaces are finite, :math:`\mathcal{S} = \{0, \dots, n_{\mathcal{S}} - 1\}` and
-    :math:`\mathcal{A} = \{0, \dots, n_{\mathcal{A}} - 1\}`, so a state and an action are indexes and the process is
+    Both spaces are finite, :math:`\mathcal{S} = \{0, \dots, |\mathcal{S}| - 1\}` and
+    :math:`\mathcal{A} = \{0, \dots, |\mathcal{A}| - 1\}`, so a state and an action are indexes and the process is
     stored in the arrays ``p``, ``r`` and ``iota``:
 
     .. math::
@@ -71,18 +71,18 @@ class FiniteMDP(Environment):
         assert np.allclose(p.sum(axis=2), 1.), 'The transitions of every state and action must sum to one.'
 
         # MDP parameters
-        self.p = p
-        self.r = rew
-        self.iota = iota
+        self.p = p.copy()
+        self.r = rew.copy()
+        self.iota = iota if iota is None else iota.copy()
 
-        # absorbing states give no reward
-        states = np.arange(p.shape[0])
-        self.r[(p[states, :, states] == 1.).all(axis=1)] = 0.
+        self._enforce_absorbing()
 
         # Visualization
         self._style = self._build_style()
 
         viewer_params.setdefault('min_scale', 40)
+
+        assert viewer_params['min_scale'] >= 1, 'An environment unit must take at least one pixel.'
 
         if viewer_shape is None:
             n_columns = min(p.shape[0], viewer_params.get('max_width', 1920) // viewer_params['min_scale'])
@@ -142,6 +142,20 @@ class FiniteMDP(Environment):
     def stop(self):
         if self._viewer is not None:
             self._viewer.close()
+
+    def _enforce_absorbing(self):
+        """
+        Make the process obey the definition of an absorbing state. An outcome that is the only one an action can
+        lead to is given probability exactly one, so that a state looping on itself is recognised as absorbing
+        however the probabilities that built it were rounded, and every absorbing state is stripped of its reward.
+        Override it to keep a different convention.
+
+        """
+        certain = np.count_nonzero(self.p, axis=2) == 1
+        self.p[certain] = self.p[certain] > 0.
+
+        states = np.arange(self.p.shape[0])
+        self.r[(self.p[states, :, states] == 1.).all(axis=1)] = 0.
 
     def _draw(self):
         """

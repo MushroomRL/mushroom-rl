@@ -58,6 +58,25 @@ class GridWorld(FiniteMDP):
                          viewer_shape=(height, width), **viewer_params)
 
     @classmethod
+    def generate(cls, height=3, width=3, goal=(2, 2), start=(0, 0), **kwargs):
+        """
+        Build the standard version of the grid world, an empty square grid with the goal in the corner opposite to
+        the starting cell.
+
+        Args:
+            height (int, 3): height of the grid;
+            width (int, 3): width of the grid;
+            goal (tuple, (2, 2)): 2D coordinates of the goal cell;
+            start (tuple, (0, 0)): 2D coordinates of the starting cell;
+            **kwargs: the parameters of the constructor.
+
+        Returns:
+            The standard grid world.
+
+        """
+        return cls.from_size(height, width, goal, start, **kwargs)
+
+    @classmethod
     def from_file(cls, path, **kwargs):
         """
         Build a grid world reading the map from a text file. Every line of the file is a row of the grid, and the grid
@@ -74,7 +93,7 @@ class GridWorld(FiniteMDP):
         base_map = cls._read_map(path)
         grid_map = cls._build_layers(base_map)
 
-        return cls(grid_map, **kwargs)
+        return cls(grid_map=grid_map, **kwargs)
 
     @classmethod
     def from_size(cls, height, width, goal, start=(0, 0), **kwargs):
@@ -95,7 +114,7 @@ class GridWorld(FiniteMDP):
         base_map = cls._build_grid(height, width, goal, start)
         grid_map = cls._build_layers(base_map)
 
-        return cls(grid_map, **kwargs)
+        return cls(grid_map=grid_map, **kwargs)
 
     @property
     def grid_map(self):
@@ -181,11 +200,11 @@ class GridWorld(FiniteMDP):
 
     def _draw(self):
         """
-        Draw the map of the layer the agent is in, coloring every cell according to its symbol, then the grid lines
-        and the agent.
+        Draw the map of the layer the agent is in, coloring every cell according to its symbol, on top of which the
+        grid of cells and the agent are drawn.
 
         """
-        layer, row, column = self._cell_list[self._state.item()]
+        layer = self._cell_list[self._state.item(), 0]
 
         for cell_row in range(self._n_rows):
             for cell_column in range(self._n_columns):
@@ -194,8 +213,21 @@ class GridWorld(FiniteMDP):
                 if color is not None:
                     self._viewer.square(self._cell_center(cell_row, cell_column), 0, 1, color)
 
-        self._viewer.grid(self._n_rows, self._n_columns, self._style['grid_color'], self._style['line_width'])
-        self._viewer.circle(self._cell_center(row, column), self._style['agent_radius'], self._style['agent_color'])
+        super()._draw()
+
+    def _cell_of(self, state):
+        """
+        Convert a state into the (row, column) of the cell drawing it, reading it from the map rather than from the
+        position of the state in the grid, because the cells that are not a state, e.g. the walls, are skipped.
+
+        Args:
+            state (int): the state of the environment.
+
+        Returns:
+            The row and the column of the cell.
+
+        """
+        return tuple(self._cell_list[state, 1:])
 
     def _next_cell(self, cell, direction):
         """

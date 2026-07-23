@@ -1,5 +1,6 @@
 import cv2
 
+
 class CV2Viewer:
     """
     Simple viewer to display rendered images using cv2.

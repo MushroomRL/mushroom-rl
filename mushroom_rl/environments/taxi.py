@@ -18,7 +18,8 @@ class Taxi(GridWorld):
     "Bayesian Q-Learning". Dearden R. et al. 1998.
 
     """
-    def __init__(self, grid_map, prob=.9, goal_rewards=(0, 1, 3, 15), gamma=.99, horizon=5000, dt=1e-1):
+    def __init__(self, grid_map, prob=.9, goal_rewards=(0, 1, 3, 15), gamma=.99, horizon=5000, dt=1e-1,
+                 **viewer_params):
         """
         Constructor.
 
@@ -29,7 +30,8 @@ class Taxi(GridWorld):
                 collected passengers;
             gamma (float, .99): discount factor;
             horizon (int, 5000): the horizon;
-            dt (float, 1e-1): the control timestep of the environment.
+            dt (float, 1e-1): the control timestep of the environment;
+            **viewer_params: parameters forwarded to the viewer, e.g. its size bounds (see ``Viewer``).
 
         """
         self._passenger_positions = np.argwhere(grid_map[0] == 'P')
@@ -38,7 +40,31 @@ class Taxi(GridWorld):
         assert len(goal_rewards) == len(self._passenger_positions) + 1, \
             'A reward must be given for every possible number of collected passengers.'
 
-        super().__init__(grid_map, prob=prob, gamma=gamma, horizon=horizon, dt=dt)
+        super().__init__(grid_map, prob=prob, gamma=gamma, horizon=horizon, dt=dt, **viewer_params)
+
+    @classmethod
+    def generate(cls, height=5, width=5, goal=(4, 4), start=(0, 0), passengers=((0, 4), (4, 0)),
+                 goal_rewards=(0, 1, 5), **kwargs):
+        """
+        Build a simple version of the taxi problem, an empty square grid with the goal in the corner opposite to the
+        starting cell and a passenger waiting in each of the two remaining corners. The problem of the paper has
+        walls, which no empty grid can reproduce, and is built from a map file instead.
+
+        Args:
+            height (int, 5): height of the grid;
+            width (int, 5): width of the grid;
+            goal (tuple, (4, 4)): 2D coordinates of the goal cell;
+            start (tuple, (0, 0)): 2D coordinates of the starting cell;
+            passengers (tuple, ((0, 4), (4, 0))): 2D coordinates of every passenger;
+            goal_rewards (tuple, (0, 1, 5)): reward obtained when reaching the goal, indexed by the number of
+                collected passengers;
+            **kwargs: the parameters of the constructor.
+
+        Returns:
+            A simple taxi problem.
+
+        """
+        return cls.from_size(height, width, goal, start, passengers, goal_rewards=goal_rewards, **kwargs)
 
     @classmethod
     def from_size(cls, height, width, goal, start=(0, 0), passengers=(), **kwargs):

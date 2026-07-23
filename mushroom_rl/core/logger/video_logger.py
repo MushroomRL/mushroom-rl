@@ -34,12 +34,16 @@ class VideoLogger(object):
 
     def record_frame(self, frame):
         """
-        Record a single frame. The recorder is created lazily on the first call.
+        Record a single frame. An environment that draws nothing records nothing. The recorder is created lazily on
+        the first frame that is actually recorded.
 
         Args:
-            frame: the frame to record (np.ndarray, H x W x RGB).
+            frame: the frame to record (np.ndarray, H x W x RGB), or None when the environment drew nothing.
 
         """
+        if frame is None:
+            return
+
         if self._recorder is None:
             self._build_recorder()
 
