@@ -3,7 +3,7 @@ from joblib import Parallel, delayed
 
 from mushroom_rl.algorithms.value import SARSA
 from mushroom_rl.core import Core
-from mushroom_rl.environments.generators.taxi import generate_taxi
+from mushroom_rl.environments import Taxi
 from mushroom_rl.policy import Boltzmann, EpsGreedy, Mellowmax
 from mushroom_rl.utils.callbacks import CollectDataset
 from mushroom_rl.rl_utils.parameters import Parameter
@@ -11,8 +11,7 @@ from mushroom_rl.rl_utils.parameters import Parameter
 
 """
 This script aims to replicate the experiments on the Taxi MDP as presented in:
-"An Alternative Softmax Operator for Reinforcement Learning", Asadi K. et al..
-2017. 
+"An Alternative Softmax Operator for Reinforcement Learning", Asadi K. et al. 2017.
 
 """
 
@@ -21,7 +20,7 @@ def experiment(policy, value):
     np.random.seed()
 
     # MDP
-    mdp = generate_taxi('grid.txt')
+    mdp = Taxi.generate()
 
     # Policy
     pi = policy(Parameter(value=value))
@@ -40,7 +39,7 @@ def experiment(policy, value):
     n_steps = 300000
     core.learn(n_steps=n_steps, n_steps_per_fit=1, quiet=True)
 
-    return np.sum(np.array(collect_dataset.get())[:, 2]) / float(n_steps)
+    return collect_dataset.get().reward.sum() / n_steps
 
 
 if __name__ == '__main__':

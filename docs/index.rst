@@ -39,69 +39,42 @@ Basic run example
 -----------------
 Solve a discrete MDP in few a lines. Firstly, create a **MDP**:
 
-::
-
-    from mushroom_rl.environments import GridWorld
-
-    mdp = GridWorld(width=3, height=3, goal=(2, 2), start=(0, 0))
+.. literalinclude:: source/tutorials/code/basic_run.py
+   :lines: 1-3
 
 Then, an epsilon-greedy **policy** with:
 
-::
+.. literalinclude:: source/tutorials/code/basic_run.py
+   :lines: 5-9
 
-    from mushroom_rl.policy import EpsGreedy
-    from mushroom_rl.rl_utils.parameters import Parameter
-
-    epsilon = Parameter(value=1.)
-    policy = EpsGreedy(epsilon=epsilon)
-                                
 Eventually, the **agent** is:
 
-::
+.. literalinclude:: source/tutorials/code/basic_run.py
+   :lines: 11-14
 
-    from mushroom_rl.algorithms.value import QLearning
+Learn:
 
-    learning_rate = Parameter(value=.6)
-    agent = QLearning(mdp.info, policy, learning_rate)
-
-Learn: 
-
-::
-
-    from mushroom_rl.core import Core
-
-    core = Core(agent, mdp)
-    core.learn(n_steps=10000, n_steps_per_fit=1)
+.. literalinclude:: source/tutorials/code/basic_run.py
+   :lines: 16-19
 
 Print final Q-table:
 
-::
-
-    import numpy as np
-
-    shape = agent.Q.shape
-    q = np.zeros(shape)
-    for i in range(shape[0]):
-        for j in range(shape[1]):
-            state = np.array([i])
-            action = np.array([j])
-            q[i, j] = agent.Q.predict(state, action)
-    print(q)
-
+.. literalinclude:: source/tutorials/code/basic_run.py
+   :lines: 21-30
 
 Results in:
 
 ::
 
-    [[  6.561   7.29    6.561   7.29 ]
-     [  7.29    8.1     6.561   8.1  ]
-     [  8.1     9.      7.29    8.1  ]
-     [  6.561   8.1     7.29    8.1  ]
-     [  7.29    9.      7.29    9.   ]
-     [  8.1    10.      8.1     9.   ]
-     [  7.29    8.1     8.1     9.   ]
-     [  8.1     9.      8.1    10.   ]
-     [  0.      0.      0.      0.   ]]
+    [[0.6561 0.729  0.6561 0.729 ]
+     [0.729  0.81   0.6561 0.81  ]
+     [0.81   0.9    0.729  0.81  ]
+     [0.6561 0.81   0.729  0.81  ]
+     [0.729  0.9    0.729  0.9   ]
+     [0.81   1.     0.81   0.9   ]
+     [0.729  0.81   0.81   0.9   ]
+     [0.81   0.9    0.81   1.    ]
+     [0.     0.     0.     0.    ]]
 
 where the Q-values of each action of the MDP are stored for each rows
 representing a state of the MDP.

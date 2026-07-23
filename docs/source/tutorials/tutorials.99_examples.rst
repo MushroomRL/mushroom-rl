@@ -13,8 +13,9 @@ Finite MDPs with Temporal Difference
 
 - `Simple Chain <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/simple_chain_qlearning.py>`_
 - `Double Chain <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/double_chain_q_learning/double_chain.py>`_
-- `Grid World <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/grid_world_td.py>`_
-- `Taxi <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/taxi_mellow_sarsa/taxi_mellow.py>`_
+- `Grid World and Taxi with SARSA(lambda) <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/grid_world_sarsa/grid_world_sarsa.py>`_
+- `Grid World of Van Hasselt <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/grid_world_van_hasselt.py>`_
+- `Taxi with Mellowmax <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/taxi_mellow_sarsa/taxi_mellow.py>`_
 
 
 TD with function approximation

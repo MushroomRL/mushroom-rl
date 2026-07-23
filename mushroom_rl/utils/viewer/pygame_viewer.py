@@ -5,7 +5,6 @@ if 'PYGAME_HIDE_SUPPORT_PROMPT' not in os.environ:
 import pygame
 import time
 import numpy as np
-import cv2
 
 
 class ImageViewer:
@@ -13,7 +12,7 @@ class ImageViewer:
     Interface to pygame for visualizing plain images.
 
     """
-    def __init__(self, size, dt, headless = False):
+    def __init__(self, size, dt, headless=False):
         """
         Constructor.
 
@@ -39,7 +38,7 @@ class ImageViewer:
         """
         if self._headless:
             return
-        
+
         if not self._initialized:
             pygame.init()
             self._initialized = True
@@ -77,25 +76,59 @@ class Viewer:
     """
     Interface to pygame for visualizing mushroom native environments.
 
+    Not only it can visualize images, but also contains many methods to draw primitives in the environment, allowing to
+    easily build rendering of environments with a few lines of code.
+
     """
-    def __init__(self, env_width, env_height, width=500, height=500,
-                 background=(0, 0, 0)):
+    def __init__(self, env_width, env_height, min_width=500, min_height=100, max_width=1920,
+                 max_height=1080, ideal_scale=None, min_scale=1, background=(0, 0, 0)):
         """
         Constructor.
 
+        The window is sized to fit the environment, keeping the two axes at the same scale so that the drawing is not
+        distorted. The scale is raised until the environment fills the minimum window and takes at least
+        ``ideal_scale`` pixels per unit, then lowered until it fits the maximum window, each bound acting on its own
+        axis. An environment that ends up drawn at fewer than ``min_scale`` pixels per unit is too small to read, so
+        a world made of many small units (e.g. the cells of a grid) has ``fits`` set to False rather than being
+        shrunk further. An environment smaller than the minimum window is centred on it.
+
         Args:
-            env_width (float): The x dimension limit of the desired environment;
-            env_height (float): The y dimension limit of the desired environment;
-            width (int, 500): width of the environment window;
-            height (int, 500): height of the environment window;
+            env_width (float): the x dimension limit of the desired environment;
+            env_height (float): the y dimension limit of the desired environment;
+            min_width (int, 500): the environment is scaled to be at least this wide, in pixels;
+            min_height (int, 100): the environment is scaled to be at least this tall, in pixels;
+            max_width (int, 1920): the environment is scaled to fit in this width, in pixels;
+            max_height (int, 1080): the environment is scaled to fit in this height, in pixels;
+            ideal_scale (int, None): the pixels an environment unit takes when the screen has room for them, None to
+                ask for no more than the fewest;
+            min_scale (int, 1): the fewest pixels an environment unit may take to be drawable;
             background (tuple, (0, 0, 0)): background color of the screen.
 
         """
+        assert min_scale >= 1, 'An environment unit must take at least one pixel.'
+
+        if ideal_scale is None:
+            ideal_scale = min_scale
+
+        assert ideal_scale >= min_scale, 'An environment unit cannot ideally take fewer pixels than it may take.'
+
+        scale = max(min_width / env_width, min_height / env_height, ideal_scale)
+        scale = min(scale, max_width / env_width, max_height / env_height)
+
+        self._fits = scale >= min_scale
+
+        width = scale * env_width
+        height = scale * env_height
+
+        width = int(max(width, min_width))
+        height = int(max(height, min_height))
+
         self._size = (width, height)
         self._width = width
         self._height = height
         self._screen = None
-        self._ratio = np.array([width / env_width, height / env_height])
+        self._scale = scale
+        self._margin = np.array([(width / scale - env_width) / 2, (height / scale - env_height) / 2])
         self._background = background
 
         self._initialized = False
@@ -129,6 +162,17 @@ class Viewer:
         """
         return self._size
 
+    @property
+    def fits(self):
+        """
+        Property.
+
+        Returns:
+            Whether the environment fits the screen, and can therefore be drawn.
+
+        """
+        return self._fits
+
     def line(self, start, end, color=(255, 255, 255), width=1):
         """
         Draw a line on the screen.
@@ -144,6 +188,30 @@ class Viewer:
         end = self._transform(end)
 
         pygame.draw.line(self.screen, color, start, end, width)
+
+    def grid(self, n_rows, n_columns, color=(255, 255, 255), width=1):
+        """
+        Draw the lines of a grid of cells over the environment, border included, so that a grid of ``n_rows`` by
+        ``n_columns`` unit cells covers the ``[0, n_columns] x [0, n_rows]`` region. The border is drawn just inside
+        that region, so that it stays visible when the environment fills the window.
+
+        Args:
+            n_rows (int): number of rows of cells;
+            n_columns (int): number of columns of cells;
+            color (tuple, (255, 255, 255)): color of the lines;
+            width (int, 1): width of the lines.
+
+        """
+        for row in range(1, n_rows):
+            self.line(np.array([0, row]), np.array([n_columns, row]), color, width)
+
+        for column in range(1, n_columns):
+            self.line(np.array([column, 0]), np.array([column, n_rows]), color, width)
+
+        top_left = self._transform(np.array([0, n_rows]))
+        bottom_right = self._transform(np.array([n_columns, 0]))
+
+        pygame.draw.rect(self.screen, color, pygame.Rect(top_left, bottom_right - top_left), width)
 
     def square(self, center, angle, edge, color=(255, 255, 255), width=0):
         """
@@ -201,7 +269,7 @@ class Viewer:
 
         """
         center = self._transform(center)
-        radius = int(radius * self._ratio[0])
+        radius = int(radius * self._scale)
         pygame.draw.circle(self.screen, color, center, radius, width)
 
     def arrow_head(self, center, scale, angle, color=(255, 255, 255)):
@@ -272,7 +340,7 @@ class Viewer:
         angle_start = 0 if torque > 0 else np.pi / 2
         radius = abs(torque) / max_torque * max_radius
 
-        r = int(radius * self._ratio[0])
+        r = int(radius * self._scale)
         if r != 0:
             c = self._transform(center)
             rect = pygame.Rect(c[0] - r, c[1] - r, 2 * r, 2 * r)
@@ -288,16 +356,19 @@ class Viewer:
 
     def background_image(self, img):
         """
-        Use the given image as background for the window, rescaling it
-        appropriately.
+        Use the given image as background of the environment, rescaling it appropriately. The image covers the
+        environment rather than the whole window, so that it stays aligned with everything else that is drawn.
 
         Args:
             img: the image to be used.
 
         """
+        offset = (self._margin * self._scale).astype(int)
+        size = self._size - 2 * offset
+
         surf = pygame.surfarray.make_surface(img)
-        surf = pygame.transform.smoothscale(surf, self.size)
-        self.screen.blit(surf, (0, 0))
+        surf = pygame.transform.smoothscale(surf, size)
+        self.screen.blit(surf, offset)
 
     def function(self, x_s, x_e, f, n_points=100,  width=1, color=(255, 255, 255)):
         """
@@ -317,7 +388,7 @@ class Viewer:
         x = np.linspace(x_s, x_e, n_points)
         y = f(x)
 
-        points = [self._transform([a, b]) for a, b in zip(x,y)]
+        points = [self._transform([a, b]) for a, b in zip(x, y)]
         pygame.draw.lines(self.screen, color, False, points, width)
 
     @staticmethod
@@ -358,74 +429,10 @@ class Viewer:
         pygame.display.quit()
 
     def _transform(self, p):
-        return np.array([p[0] * self._ratio[0],
-                         self._height - p[1] * self._ratio[1]]).astype(int)
+        return np.array([(p[0] + self._margin[0]) * self._scale,
+                         self._height - (p[1] + self._margin[1]) * self._scale]).astype(int)
 
     @staticmethod
     def _rotate(p, theta):
         return np.array([np.cos(theta) * p[0] - np.sin(theta) * p[1],
                          np.sin(theta) * p[0] + np.cos(theta) * p[1]])
-
-
-class CV2Viewer:
-
-    """
-    Simple viewer to display rendered images using cv2.
-
-    """
-
-    def __init__(self, window_name, dt, width, height):
-        self._window_name = window_name
-        self._dt = dt
-        self._created_viewer = False
-        self._width = width
-        self._height = height
-
-    def display(self, img):
-        """
-        Displays an image.
-
-        Args:
-            img (np.array): Image to display
-
-        """
-
-        # display image the first time
-        if not self._created_viewer:
-            # Removes toolbar and status bar
-            cv2.namedWindow(self._window_name, flags=cv2.WINDOW_GUI_NORMAL)
-            cv2.resizeWindow(self._window_name, self._width, self._height)
-            cv2.imshow(self._window_name, cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
-            self._wait()
-            self._created_viewer = True
-
-        # if the window is not closed yet, display another image
-        elif not self._window_was_closed():
-            cv2.imshow(self._window_name, cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
-            self._wait()
-
-        # window was closed, interrupt simulation
-        else:
-            exit()
-
-    def _wait(self):
-        """
-        Wait for the specified amount of time. Time is supposed to be in milliseconds.
-
-        """
-        wait_time = int(self._dt * 1000)
-        cv2.waitKey(wait_time)
-
-    def _window_was_closed(self):
-        """
-        Check if a window was closed.
-
-        Returns:
-            True if the window was closed.
-
-        """
-        return cv2.getWindowProperty(self._window_name, cv2.WND_PROP_VISIBLE) == 0
-
-    def close(self):
-        if self._created_viewer:
-            cv2.destroyWindow(self._window_name)

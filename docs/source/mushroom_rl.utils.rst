@@ -75,7 +75,12 @@ Torch
 Viewer
 ------
 
-.. automodule:: mushroom_rl.utils.viewer
+.. automodule:: mushroom_rl.utils.viewer.pygame_viewer
+    :members:
+    :private-members:
+    :show-inheritance:
+
+.. automodule:: mushroom_rl.utils.viewer.opencv_viewer
     :members:
     :private-members:
     :show-inheritance:

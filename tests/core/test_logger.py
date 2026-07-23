@@ -1,6 +1,6 @@
 import numpy as np
 from pathlib import Path
-from pytest import importorskip
+from pytest import importorskip, warns
 from mushroom_rl.core import Logger
 from mushroom_rl.core.dataset import Dataset
 
@@ -206,7 +206,7 @@ def test_wandb_append_offline(tmpdir):
 
     assert logger_append.wandb_active
     assert logger_append._wandb_run.id == run_id
-    assert logger_append._n_fit == 0 # offline mode cannot restore the run
+    assert logger_append._n_fit == 0  # offline mode cannot restore the run
 
     logger_append.log_training(loss=5.0)
     logger_append.advance_step()
@@ -227,6 +227,18 @@ def test_video_logger_lazy_creation(tmpdir):
     assert logger.video_recorder is not None
 
     logger.stop_recording()
+
+
+def test_video_logger_ignores_missing_frames(tmpdir):
+    logger = Logger('test_video', results_dir=tmpdir)
+
+    logger.set_video_fps(30)
+
+    with warns(UserWarning, match='The environment drew nothing'):
+        logger.record_frame(None)
+
+    assert logger.video_recorder is None
+    assert logger.stop_recording() is None
 
 
 def test_video_logger_custom_recorder():

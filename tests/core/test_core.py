@@ -62,7 +62,7 @@ class GreedyDummyAgent(Agent):
 def test_core_greedy_evaluation():
     from mushroom_rl.environments import GridWorld
 
-    mdp = GridWorld(height=3, width=3, goal=(2, 2), start=(0, 0))
+    mdp = GridWorld.from_size(height=3, width=3, goal=(2, 2), start=(0, 0))
 
     core = Core(GreedyDummyAgent(mdp.info), mdp)
 
@@ -77,7 +77,7 @@ def test_core_greedy_evaluation():
 def test_core_greedy_evaluation_unsupported():
     from mushroom_rl.environments import GridWorld
 
-    mdp = GridWorld(height=3, width=3, goal=(2, 2), start=(0, 0))
+    mdp = GridWorld.from_size(height=3, width=3, goal=(2, 2), start=(0, 0))
 
     core = Core(DummyAgent(mdp.info), mdp)
 
