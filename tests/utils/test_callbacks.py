@@ -7,6 +7,17 @@ from mushroom_rl.utils.callbacks import CollectDataset, CollectQ, CollectMaxQ, C
 import numpy as np
 
 
+def episode_lengths_from_flags(last_flags):
+    lengths = list()
+    length = 0
+    for flag in last_flags:
+        length += 1
+        if flag:
+            lengths.append(length)
+            length = 0
+    return lengths
+
+
 def test_collect_dataset():
     np.random.seed(42)
     callback = CollectDataset()
@@ -18,7 +29,12 @@ def test_collect_dataset():
     alpha = Parameter(0.2)
     agent = SARSA(mdp.info, pi, alpha)
 
-    core = Core(agent, mdp, callbacks_fit=[callback])
+    last_flags = list()
+
+    def record_last(sample):
+        last_flags.append(bool(sample[5]))
+
+    core = Core(agent, mdp, callbacks_fit=[callback], callback_step=record_last)
 
     core.learn(n_steps=10, n_steps_per_fit=1, quiet=True)
 
@@ -28,9 +44,41 @@ def test_collect_dataset():
     dataset = callback.get()
     assert len(dataset) == 15
 
+    assert np.array_equal(dataset.last, np.array(last_flags))
+    assert dataset.n_episodes == sum(last_flags) + (0 if last_flags[-1] else 1)
+    assert np.array_equal(dataset.episodes_length, np.array(episode_lengths_from_flags(last_flags)))
+
     callback.clean()
     dataset = callback.get()
     assert len(dataset) == 0
+
+
+def test_collect_dataset_small_initial_capacity():
+    np.random.seed(42)
+    callback = CollectDataset(initial_capacity=2)
+
+    mdp = GridWorld.from_size(4, 4, (2, 2), goal_reward=10.)
+
+    eps = Parameter(0.1)
+    pi = EpsGreedy(eps)
+    alpha = Parameter(0.2)
+    agent = SARSA(mdp.info, pi, alpha)
+
+    last_flags = list()
+
+    def record_last(sample):
+        last_flags.append(bool(sample[5]))
+
+    core = Core(agent, mdp, callbacks_fit=[callback], callback_step=record_last)
+
+    core.learn(n_steps=20, n_steps_per_fit=1, quiet=True)
+
+    dataset = callback.get()
+    assert len(dataset) == 20
+    assert dataset.capacity >= 20
+    assert np.array_equal(dataset.last, np.array(last_flags))
+    assert dataset.n_episodes == sum(last_flags) + (0 if last_flags[-1] else 1)
+    assert np.array_equal(dataset.episodes_length, np.array(episode_lengths_from_flags(last_flags)))
 
 
 def test_collect_Q():

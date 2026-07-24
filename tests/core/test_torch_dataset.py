@@ -77,6 +77,55 @@ def test_torch_dataset_append_batch():
     assert torch.equal(a.column(1), torch.tensor([0.0, 1.0, 2.0]))
 
 
+def test_torch_dataset_capacity():
+    dataset = make_dataset(capacity=5)
+    dataset.append(torch.tensor([0.0, 0.0]), 0.0, False)
+
+    assert dataset.capacity == 5
+
+
+def test_torch_dataset_append_batch_past_capacity_raises():
+    a = make_dataset(capacity=2)
+    a.append(torch.tensor([0.0, 0.0]), 0.0, False)
+    a.append(torch.tensor([1.0, 1.0]), 1.0, True)
+    b = make_dataset(capacity=2)
+    b.append(torch.tensor([2.0, 2.0]), 2.0, True)
+
+    caught = False
+    try:
+        a.append_batch(b)
+    except AssertionError:
+        caught = True
+    assert caught
+
+
+def test_torch_dataset_reserve_grows_and_preserves():
+    dataset = make_dataset(capacity=2)
+    dataset.append(torch.tensor([0.0, 1.0]), 0.5, False)
+    dataset.append(torch.tensor([2.0, 3.0]), 1.5, True)
+
+    dataset.reserve(6)
+
+    assert dataset.capacity == 6
+    assert len(dataset) == 2
+    assert torch.equal(dataset.column(0), torch.tensor([[0.0, 1.0], [2.0, 3.0]]))
+    assert torch.equal(dataset.column(1), torch.tensor([0.5, 1.5]))
+    assert torch.equal(dataset.column(2), torch.tensor([False, True]))
+
+    dataset.append(torch.tensor([4.0, 5.0]), 2.5, True)
+    assert len(dataset) == 3
+    assert torch.equal(dataset.column(1), torch.tensor([0.5, 1.5, 2.5]))
+
+
+def test_torch_dataset_reserve_noop_when_enough():
+    dataset = make_dataset(capacity=8)
+    dataset.append(torch.tensor([0.0, 0.0]), 0.0, False)
+
+    dataset.reserve(4)
+
+    assert dataset.capacity == 8
+
+
 def test_torch_dataset_n_episodes():
     dataset = make_dataset()
     for i in range(4):
