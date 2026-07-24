@@ -44,6 +44,9 @@ class ListDataset(MushroomObject):
     def reserve(self, capacity):
         pass
 
+    def compact(self, start):
+        self._columns = [column[start:] for column in self._columns]
+
     def get_view(self, index, copy=False):
         view = self.create_new_instance(self)
 

@@ -58,6 +58,12 @@ class NumpyDataset(MushroomObject):
                 new_arrays.append(buffer)
             self._arrays = new_arrays
 
+    def compact(self, start):
+        n = self._len - start
+        for array in self._arrays:
+            array[:n] = array[start:start + n]
+        self._len = n
+
     def get_view(self, index, copy=False):
         view = self.create_new_instance(self)
 

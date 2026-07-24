@@ -22,9 +22,6 @@ class CollectDataset(Callback):
         self._initial_capacity = initial_capacity
 
     def __call__(self, dataset):
-        if isinstance(dataset, VectorizedDataset):
-            dataset = dataset.flatten()
-
         if self._dataset is None:
             self._dataset = dataset.copy()
             self._dataset.reserve(self._initial_capacity)
@@ -39,4 +36,6 @@ class CollectDataset(Callback):
         self._dataset.clear()
 
     def get(self):
+        if isinstance(self._dataset, VectorizedDataset):
+            return self._dataset.flatten()
         return self._dataset

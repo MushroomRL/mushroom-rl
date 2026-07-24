@@ -10,7 +10,7 @@ from mushroom_rl.core.mushroom_object import MushroomObject
 from mushroom_rl.core.array_backend import ArrayBackend
 from mushroom_rl.core.extra_info import ExtraInfo
 
-from ._impl import *
+from ._impl import NumpyDataset, TorchDataset, ListDataset
 
 from mushroom_rl.utils.episodes import split_episodes
 
@@ -872,76 +872,89 @@ class VectorizedDataset(Dataset):
             if mask[i]:
                 self._theta_list[i].append(theta[i])
 
-    def clear(self, n_steps_per_fit=None):
+    def consume(self, n_steps):
         """
-        Clear the dataset. When ``n_steps_per_fit`` is given and more than that many (masked) steps were
-        collected, the surplus tail is carried forward into the freshly cleared dataset so the next fit starts
-        with it.
+        Split off the first ``n_steps`` steps in collection (row-major) order (or all of them when ``n_steps``
+        is ``None``): return a lightweight vectorized dataset that shares this one's data but whose mask keeps
+        only those consumed steps, and mark those same steps inactive in this dataset's own mask so that only the
+        leftover remains active.
 
         Args:
-            n_steps_per_fit (int, None): number of steps consumed by the fit; the rest is carried forward.
+            n_steps (int, None): number of steps to consume.
 
         Returns:
-            The number of steps carried forward.
+            A vectorized dataset masked to the consumed steps.
+
+        """
+        backend = self._dataset_info.env_array_backend
+        mask = self.mask
+        active = backend.where(mask.reshape(-1))[0]
+        n_steps = len(active) if n_steps is None else n_steps
+        assert 0 <= n_steps <= len(active)
+
+        consumed_mask = backend.copy(mask)
+        consumed_mask.reshape(-1)[active[n_steps:]] = False
+
+        leftover_mask = backend.copy(mask)
+        leftover_mask.reshape(-1)[active[:n_steps]] = False
+        mask_column = self._mask_data.column()
+        if isinstance(mask_column, list):
+            mask_column[:] = list(leftover_mask)
+        else:
+            mask_column[:] = leftover_mask
+
+        view = self.create_raw_instance(dataset=self)
+        view._info = self._info
+        view._episode_info = self._episode_info
+        view._theta_list = self._theta_list
+        view._data = self._data
+        view._agent_data = self._agent_data
+        view._mask_data = self._mask_data.from_array([consumed_mask])
+
+        return view
+
+    def clear(self, keep_leftovers=False):
+        """
+        Clear the dataset. By default, the whole dataset is wiped. With ``keep_leftovers=True`` the steps still
+        active after a :meth:`consume` (the leftover the fit did not consume) are compacted to the front and
+        kept, so the next fit starts with them.
+
+        Args:
+            keep_leftovers (bool, False): whether to keep the leftover steps instead of wiping everything.
+
+        Returns:
+            The number of steps kept.
 
         """
         n_envs = len(self._theta_list)
-        n_carry_forward_steps = 0
 
-        residual_data = None
-        residual_agent_data = None
-        residual_mask_data = None
-        if n_steps_per_fit is not None:
-            n_steps_dataset = self.mask.sum().item()
+        if keep_leftovers:
+            backend = self._dataset_info.env_array_backend
+            row_active = backend.sum(self.mask, dim=1)
+            n_carry = int(row_active.sum().item())
 
-            if n_steps_dataset > n_steps_per_fit:
-                n_extra_steps = n_steps_dataset - n_steps_per_fit
-                n_parallel_steps = int(np.ceil(n_extra_steps / self._dataset_info.n_envs))
-                view_size = slice(-n_parallel_steps, None)
-
-                residual_data = self._data.get_view(view_size, copy=True)
+            if n_carry > 0:
+                split_row = len(row_active) - int((row_active > 0).sum().item())
+                self._data.compact(split_row)
                 if self._agent_data is not None:
-                    residual_agent_data = self._agent_data.get_view(view_size, copy=True)
-                residual_mask_data = self._mask_data.get_view(view_size, copy=True)
+                    self._agent_data.compact(split_row)
+                self._mask_data.compact(split_row)
+                self._info = self._info.get_view(slice(split_row, None), copy=True)
+                self._episode_info = self._episode_info.get_view(slice(split_row, None), copy=True)
+                self._initialize_theta_list(n_envs)
 
-                mask = self._dataset_info.env_array_backend.as_array(residual_mask_data.column())
-                original_shape = mask.shape
-                mask = mask.flatten()
-                true_indices = self._dataset_info.env_array_backend.where(mask)[0]
-                mask[true_indices[n_extra_steps:]] = False
-
-                mask_column = residual_mask_data.column()
-                new_mask = mask.reshape(original_shape)
-                if isinstance(mask_column, list):
-                    mask_column[:] = list(new_mask)
-                else:
-                    mask_column[:] = new_mask
-
-                residual_info = self._info.get_view(view_size, copy=True)
-                residual_episode_info = self._episode_info.get_view(view_size, copy=True)
-
-                n_carry_forward_steps = mask.sum()
+                return n_carry
 
         super().clear()
         self._mask_data.clear()
         self._initialize_theta_list(n_envs)
 
-        if n_steps_per_fit is not None and residual_data is not None:
-            self._data = residual_data
-            self._agent_data = residual_agent_data
-            self._mask_data = residual_mask_data
-            self._info = residual_info
-            self._episode_info = residual_episode_info
+        return 0
 
-        return n_carry_forward_steps
-
-    def flatten(self, n_steps_per_fit=None):
+    def flatten(self):
         """
         Turn the padded per-environment data into a flat :class:`Dataset`, dropping the inactive entries via the
         mask and concatenating the environments end to end.
-
-        Args:
-            n_steps_per_fit (int, None): if given, keep only the first this many flattened steps.
 
         Returns:
             A flat :class:`Dataset`, or ``None`` if the dataset is empty.
@@ -972,18 +985,6 @@ class VectorizedDataset(Dataset):
             policy_state = agent_backend.pack_padded_sequence(self.policy_state, policy_mask)
             policy_next_state = agent_backend.pack_padded_sequence(self.policy_next_state, policy_mask)
 
-        if n_steps_per_fit is not None:
-            states = states[:n_steps_per_fit]
-            actions = actions[:n_steps_per_fit]
-            rewards = rewards[:n_steps_per_fit]
-            next_states = next_states[:n_steps_per_fit]
-            absorbings = absorbings[:n_steps_per_fit]
-            lasts = lasts[:n_steps_per_fit]
-
-            if self.is_stateful:
-                policy_state = policy_state[:n_steps_per_fit]
-                policy_next_state = policy_next_state[:n_steps_per_fit]
-
         flat_theta_list = self._flatten_theta_list()
 
         flat_info = self._info.flatten(mask)
@@ -1000,6 +1001,13 @@ class VectorizedDataset(Dataset):
         dataset = super().get_view(index, copy)
         dataset._mask_data = self._mask_data.get_view(index, copy)
         return dataset
+
+    @property
+    def capacity(self):
+        capacity = super().capacity
+        if capacity is None:
+            return None
+        return min(capacity, self._mask_data.capacity)
 
     @property
     def mask(self):

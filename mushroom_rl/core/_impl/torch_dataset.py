@@ -62,6 +62,13 @@ class TorchDataset(MushroomObject):
                 new_arrays.append(buffer)
             self._arrays = new_arrays
 
+    def compact(self, start):
+        n = self._len - start
+        for array in self._arrays:
+            # torch forbids an overlapping in-place copy, so clone the source when the ranges overlap
+            array[:n] = array[start:start + n] if start >= n else array[start:start + n].clone()
+        self._len = n
+
     def get_view(self, index, copy=False):
         view = self.create_new_instance(self)
 
