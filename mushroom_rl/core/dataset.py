@@ -239,7 +239,7 @@ class Dataset(MushroomObject):
 
         result._info = self._info + other._info
         result._episode_info = self._episode_info + other._episode_info
-        result._theta_list = self._theta_list + other._theta_list
+        result._theta_list = self._merge_theta_list(other)
         result._data = self._data + other._data
         result._agent_data = (self._agent_data + other._agent_data) if self._agent_data is not None else None
 
@@ -252,7 +252,7 @@ class Dataset(MushroomObject):
 
         self.append_batch(other)
         self._episode_info += other._episode_info
-        self._theta_list += other._theta_list
+        self._theta_list = self._merge_theta_list(other)
 
         return self
 
@@ -692,6 +692,9 @@ class Dataset(MushroomObject):
         if self._agent_data is not None:
             self._agent_data.append(*step[len(self._Field):])
 
+    def _merge_theta_list(self, other):
+        return self._theta_list + other._theta_list
+
     def _convert(self, *arrays, to='numpy', backend=None):
         backend = backend if backend is not None else self._dataset_info.env_array_backend
         if to == 'numpy':
@@ -824,8 +827,22 @@ class VectorizedDataset(Dataset):
 
         self._initialize_theta_list(self._dataset_info.n_envs)
 
+    def __add__(self, other):
+        result = super().__add__(other)
+        result._mask_data = self._mask_data + other._mask_data
+
+        return result
+
     def append(self, step, info):
         raise RuntimeError("Trying to use append on a vectorized dataset")
+
+    def append_batch(self, other):
+        super().append_batch(other)
+        self._mask_data.append_batch(other._mask_data)
+
+    def reserve(self, capacity):
+        super().reserve(capacity)
+        self._mask_data.reserve(capacity)
 
     def append_vectorized(self, step, info, mask):
         """
@@ -943,7 +960,7 @@ class VectorizedDataset(Dataset):
         next_states = env_backend.pack_padded_sequence(self.next_state, mask)
         absorbings = env_backend.pack_padded_sequence(self.absorbing, mask)
 
-        last_padded = env_backend.as_array(self.last)
+        last_padded = env_backend.copy(env_backend.as_array(self.last))
         last_padded[-1, :] = True
         lasts = env_backend.pack_padded_sequence(last_padded, mask)
 
@@ -991,6 +1008,9 @@ class VectorizedDataset(Dataset):
 
         """
         return self._dataset_info.env_array_backend.as_array(self._mask_data.column())
+
+    def _merge_theta_list(self, other):
+        return [theta + other_theta for theta, other_theta in zip(self._theta_list, other._theta_list)]
 
     def _flatten_theta_list(self):
         flat_theta_list = list()
