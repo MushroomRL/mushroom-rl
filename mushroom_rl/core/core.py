@@ -54,7 +54,9 @@ class Core(object):
         This function moves the agent in the environment and fits the policy using the collected samples.
         The agent can be moved for a given number of steps or a given number of episodes and, independently of this
         choice, the policy can be fitted after a given number of steps or a given number of episodes.
-        The environment is reset at the beginning of the learning process.
+        The environment is reset at the beginning of the learning process. If ``n_steps``/``n_episodes`` is not an
+        exact multiple of ``n_steps_per_fit``/``n_episodes_per_fit``, the trailing samples collected after the last
+        fit are discarded rather than triggering a final, undersized fit.
 
         Args:
             n_steps (int, None): number of steps to move the agent;
