@@ -62,14 +62,14 @@ def experiment(
     mdp = env_class(num_envs=num_envs)
 
     actor_lr = 1e-4
-    critic_lr = 5e-4
-    n_features = 256
-    batch_size = 512
+    critic_lr = 1e-3
+    n_features = 64
+    batch_size = 1024
     n_epochs_policy = 10
     eps_ppo = 0.2
     lam = 0.95
     std_0 = 1.0
-    ent_coeff = 0.02
+    ent_coeff = 0.01
     hyperparams = dict(
         env=env_class.__name__,
         num_envs=num_envs,
@@ -212,9 +212,9 @@ if __name__ == "__main__":
     experiment(
         env_class=AntWarp,
         num_envs=4000,  # --> make full number, i.e 8000?
-        n_epochs=25,  # --> half it
-        n_steps=600000,  # --> double the n_steps
-        n_steps_per_fit=64000,  # num_envs * 8
+        n_epochs=50,  # --> half it
+        n_steps=300000,  # --> double the n_steps
+        n_steps_per_fit=30000,  # num_envs * 8
         n_episodes_test=5,
         save_agent=False,
     )
