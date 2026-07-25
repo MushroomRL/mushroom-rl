@@ -34,7 +34,7 @@ class MuJoCoWarp(VectorizedEnvironment):
         nconmax=None,
         njmax=None,
         use_graph_capture=False,
-        warmup_steps = 3,
+        warmup_steps=3,
         **viewer_params,
     ):
         self._mj_warp = mj_warp
@@ -55,7 +55,7 @@ class MuJoCoWarp(VectorizedEnvironment):
         self._obs = None
 
         self._use_graph_capture = use_graph_capture
-        self._warmup_steps = warmup_steps 
+        self._warmup_steps = warmup_steps
         self._sim_step_graph = None
 
         self._model_wp = mj_warp.put_model(self._model)
@@ -132,8 +132,7 @@ class MuJoCoWarp(VectorizedEnvironment):
 
             self._simulation_pre_step()
 
-            for _ in range(self._n_substeps):
-                self._mj_warp.step(self._model_wp, self._data_wp)
+            self.step_graph()
 
             self._simulation_post_step()
 
@@ -162,16 +161,15 @@ class MuJoCoWarp(VectorizedEnvironment):
                 self._mj_warp.step(self._model_wp, self._data_wp)
             return
         if self._sim_step_graph is None:
-                for _ in range(self._warmup_steps):
-                    for _ in range(self._n_substeps):
-                        self._mj_warp.step(self._model_wp, self._data_wp)
-                with self._wp.ScopedCapture() as cap:
-                    for _ in range(self._n_substeps):
-                        self._mj_warp.step(self._model_wp, self._data_wp)
-                self._sim_step_graph = cap.graph
+            for _ in range(self._warmup_steps):
+                for _ in range(self._n_substeps):
+                    self._mj_warp.step(self._model_wp, self._data_wp)
+            with self._wp.ScopedCapture() as cap:
+                for _ in range(self._n_substeps):
+                    self._mj_warp.step(self._model_wp, self._data_wp)
+            self._sim_step_graph = cap.graph
 
         self._wp.capture_launch(self._sim_step_graph)
-
 
     def reset_all(self, env_mask, state=None):
         env_indices = torch.where(env_mask)[0]
