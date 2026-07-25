@@ -3,9 +3,8 @@ import mujoco_warp as mj_warp
 import torch
 
 import warp as wp
-from dm_control import mjcf
 
-from mushroom_rl.core import VectorizedEnvironment, MDPInfo, ArrayBackend
+from mushroom_rl.core import VectorizedEnvironment, MDPInfo
 from mushroom_rl.core.spaces import Box
 from mushroom_rl.utils.mujoco import ObservationHelper, ObservationType, MujocoViewer
 from mushroom_rl.utils.torch_utils import TorchUtils
@@ -34,6 +33,8 @@ class MuJoCoWarp(VectorizedEnvironment):
         max_joint_vel=None,
         nconmax=None,
         njmax=None,
+        use_graph_capture=False,
+        warmup_steps = 3,
         **viewer_params,
     ):
         self._mj_warp = mj_warp
@@ -52,6 +53,10 @@ class MuJoCoWarp(VectorizedEnvironment):
         self._viewer_params = viewer_params
         self._viewer = None
         self._obs = None
+
+        self._use_graph_capture = use_graph_capture
+        self._warmup_steps = warmup_steps 
+        self._sim_step_graph = None
 
         self._model_wp = mj_warp.put_model(self._model)
         self._data_wp = mj_warp.make_data(
@@ -150,6 +155,23 @@ class MuJoCoWarp(VectorizedEnvironment):
             (absorbing & env_mask).to(out_device),
             info,
         )
+
+    def step_graph(self):
+        if not self._use_graph_capture:
+            for _ in range(self._n_substeps):
+                self._mj_warp.step(self._model_wp, self._data_wp)
+            return
+        if self._sim_step_graph is None:
+                for _ in range(self._warmup_steps):
+                    for _ in range(self._n_substeps):
+                        self._mj_warp.step(self._model_wp, self._data_wp)
+                with self._wp.ScopedCapture() as cap:
+                    for _ in range(self._n_substeps):
+                        self._mj_warp.step(self._model_wp, self._data_wp)
+                self._sim_step_graph = cap.graph
+
+        self._wp.capture_launch(self._sim_step_graph)
+
 
     def reset_all(self, env_mask, state=None):
         env_indices = torch.where(env_mask)[0]
