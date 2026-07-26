@@ -212,7 +212,7 @@ if __name__ == "__main__":
     experiment(
         env_class=AntWarp,
         num_envs=4000,  # --> make full number, i.e 8000?
-        n_epochs=50,  # --> half it
+        n_epochs=5,  # --> half it
         n_steps=300000,  # --> double the n_steps
         n_steps_per_fit=30000,  # num_envs * 8
         n_episodes_test=5,

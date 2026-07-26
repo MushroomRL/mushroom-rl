@@ -33,7 +33,7 @@ class MuJoCoWarp(VectorizedEnvironment):
         max_joint_vel=None,
         nconmax=None,
         njmax=None,
-        use_graph_capture=False,
+        use_graph_capture=True,
         warmup_steps=3,
         **viewer_params,
     ):
@@ -62,6 +62,15 @@ class MuJoCoWarp(VectorizedEnvironment):
         self._data_wp = mj_warp.make_data(
             self._model, nworld=num_envs, nconmax=nconmax, njmax=njmax
         )
+
+        self._reset_mask_t = torch.zeros(
+            self._num_envs, dtype=torch.bool, device=TorchUtils.get_device()
+        )
+        self._reset_mask_wp = wp.from_torch(self._reset_mask_t)
+
+        self._reset_graph = None
+        self._reset_build_count = 0  # diagnostic
+        self._reset_launch_count = 0  # diagnostic
 
         _tmp_data = mujoco.MjData(self._model)
         self._action_indices = MuJoCo.get_action_indices(
@@ -174,13 +183,11 @@ class MuJoCoWarp(VectorizedEnvironment):
     def reset_all(self, env_mask, state=None):
         env_indices = torch.where(env_mask)[0]
 
-        reset_mask_t = torch.zeros(
-            self._num_envs, dtype=torch.bool, device=env_mask.device
-        )
-        reset_mask_t[env_indices] = True
-        reset_mask = wp.from_torch(reset_mask_t)
-
-        self._mj_warp.reset_data(self._model_wp, self._data_wp, reset=reset_mask)
+        self._reset_mask_t.zero_()
+        self._reset_mask_t[env_indices] = True
+        # self._mj_warp.reset_data(self._model_wp, self._data_wp, reset=self._reset_mask_wp)
+        self._reset_data(self._reset_mask_wp)
+        # self._mj_warp.reset_data(self._model_wp, self._data_wp, reset=reset_mask)
         self.setup(env_indices, state)
 
         obs = self._create_observation(self.obs_helper.build_obs(self._data_wp))
@@ -193,6 +200,28 @@ class MuJoCoWarp(VectorizedEnvironment):
 
         info = self._create_info_dictionary(obs)
         return obs.clone(), info
+
+    def _reset_data(self, reset_mask_wp):
+        if not self._use_graph_capture:
+            self._mj_warp.reset_data(self._model_wp, self._data_wp, reset=reset_mask_wp)
+            return
+
+        if self._reset_graph is None:
+            self._reset_build_count += 1
+            print(f"[reset] building graph (build_count={self._reset_build_count})")
+            for _ in range(self._warmup_steps):
+                self._mj_warp.reset_data(
+                    self._model_wp, self._data_wp, reset=reset_mask_wp
+                )
+            with self._wp.ScopedCapture() as cap:
+                self._mj_warp.reset_data(
+                    self._model_wp, self._data_wp, reset=reset_mask_wp
+                )
+            self._reset_graph = cap.graph
+            print(f"[reset] graph built")
+
+        self._reset_launch_count += 1
+        self._wp.capture_launch(self._reset_graph)
 
     def render_all(self, env_mask, record=False):
         if self._viewer is None:
