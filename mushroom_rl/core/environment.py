@@ -1,5 +1,4 @@
 import warnings
-import numpy as np
 
 from mushroom_rl.core.mushroom_object import MushroomObject
 from mushroom_rl.core.array_backend import ArrayBackend
@@ -70,10 +69,19 @@ class Environment(object):
         Register an environment in the environment list.
 
         """
-        env_name = cls.__name__
+        env_name = cls.name()
 
         if env_name not in Environment._registered_envs:
             Environment._registered_envs[env_name] = cls
+
+    @classmethod
+    def name(cls):
+        """
+        Returns:
+            The name of the class.
+
+        """
+        return cls.__name__
 
     @staticmethod
     def list_registered():
