@@ -1,8 +1,14 @@
+import json
 import numpy as np
+import torch.optim as optim
 from pathlib import Path
 from pytest import importorskip, warns
+from mushroom_rl.algorithms.value import QLearning
 from mushroom_rl.core import Logger
 from mushroom_rl.core.dataset import Dataset
+from mushroom_rl.environments import SimpleChain
+from mushroom_rl.policy import EpsGreedy
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 def test_logger(tmpdir):
@@ -357,3 +363,76 @@ def test_log_video_wandb_offline(tmpdir):
     logger.log_video(0)
 
     logger.finish()
+
+
+def test_log_hyperparameters(tmpdir):
+    logger = Logger('test_params', results_dir=tmpdir)
+
+    logger.log_hyperparameters(gamma=0.99, horizon=200, name='experiment')
+
+    with open(tmpdir / 'test_params' / 'params.json') as params_file:
+        params = json.load(params_file)
+
+    assert params == dict(gamma=0.99, horizon=200, name='experiment')
+
+
+def test_log_hyperparameters_seed(tmpdir):
+    logger = Logger('test_params', results_dir=tmpdir, seed=42)
+
+    logger.log_hyperparameters(gamma=0.99)
+
+    assert (tmpdir / 'test_params' / 'params-42.json').exists()
+    assert not (tmpdir / 'test_params' / 'params.json').exists()
+
+
+def test_log_hyperparameters_no_results_dir():
+    logger = Logger('test_params', results_dir=None)
+
+    logger.log_hyperparameters(gamma=0.99)
+
+
+def test_log_hyperparameters_non_serializable(tmpdir):
+    logger = Logger('test_params', results_dir=tmpdir)
+
+    logger.log_hyperparameters(optimizer=optim.Adam)
+
+    with open(tmpdir / 'test_params' / 'params.json') as params_file:
+        params = json.load(params_file)
+
+    assert params['optimizer'] == str(optim.Adam)
+
+
+def test_log_experiment_info(tmpdir):
+    logger = Logger('test_info', results_dir=tmpdir)
+    mdp = SimpleChain(n_states=5, goal_states=[2])
+
+    logger.log_experiment_info(QLearning, mdp, gamma=0.9, n_steps=100)
+
+    with open(tmpdir / 'test_info' / 'params.json') as params_file:
+        params = json.load(params_file)
+
+    assert params == dict(gamma=0.9, n_steps=100)
+
+
+def test_log_experiment_info_instance(tmpdir):
+    logger = Logger('test_info', results_dir=tmpdir)
+    mdp = SimpleChain(n_states=5, goal_states=[2])
+    agent = QLearning(mdp.info, EpsGreedy(epsilon=Parameter(value=.1)), Parameter(value=.1))
+
+    logger.log_experiment_info(agent, mdp)
+
+    with open(tmpdir / 'test_info' / 'params.json') as params_file:
+        params = json.load(params_file)
+
+    assert params == dict()
+
+
+def test_log_experiment_info_no_mdp(tmpdir):
+    logger = Logger('test_info', results_dir=tmpdir)
+
+    logger.log_experiment_info(QLearning, n_epochs=3)
+
+    with open(tmpdir / 'test_info' / 'params.json') as params_file:
+        params = json.load(params_file)
+
+    assert params == dict(n_epochs=3)

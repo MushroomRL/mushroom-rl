@@ -1,7 +1,6 @@
 import re
+import json
 import numpy as np
-
-from pathlib import Path
 
 
 class DataLogger(object):
@@ -92,6 +91,22 @@ class DataLogger(object):
             path = results_dir / filename
 
             np.save(path, data)
+
+    def log_hyperparameters(self, **hyperparams):
+        """
+        Store the experiment hyperparameters on disk, as a ``params.json`` file inside the logging
+        directory, so that a results folder describes the run that produced it. If no results directory
+        is set, the call has no effect.
+
+        Args:
+            **hyperparams: set of named hyperparameters describing the experiment.
+
+        """
+        if self._results_dir is not None:
+            path = self._get_folder() / f'params{self._suffix}.json'
+
+            with open(path, 'w') as params_file:
+                json.dump(hyperparams, params_file, indent=4, default=str)
 
     def log_agent(self, agent, epoch=None, full_save=False):
         """

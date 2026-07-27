@@ -97,6 +97,31 @@ class Logger(DataLogger, ConsoleLogger, VideoLogger, WandbLogger):
 
         WandbLogger.__init__(self, wandb_kwargs, base_results_dir, log_dir=results_dir, append=append)
 
+    def log_experiment_info(self, agent, mdp=None, **hyperparams):
+        """
+        Log the header of an experiment: the algorithm name, the environment name and the experiment
+        hyperparameters. The hyperparameters are also stored on disk through ``log_hyperparameters``.
+
+        Args:
+            agent (Agent, class): the agent used by the experiment, either the class or an instance;
+            mdp (Environment, None): the environment used by the experiment, either the class or an
+                instance. If None, no environment line is logged;
+            **hyperparams: set of named hyperparameters describing the experiment.
+
+        """
+        self.strong_line()
+        self.info('Experiment Algorithm: ' + agent.name())
+
+        if mdp is not None:
+            self.info('Environment: ' + mdp.name())
+
+        for name, value in hyperparams.items():
+            self.info(f'{name}: {value}')
+
+        self.weak_line()
+
+        self.log_hyperparameters(**hyperparams)
+
     def log_training(self, prefix=None, **kwargs):
         """
         Log a set of named training metrics. The values are logged to wandb under the

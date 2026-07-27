@@ -3,6 +3,7 @@ from copy import deepcopy
 
 import torch
 import torch.nn as nn
+import torch.optim as optim
 import torch.nn.modules.activation as _activation_module
 import torch.nn.modules.rnn as _rnn_module
 
@@ -218,6 +219,52 @@ class TorchUtils(object):
                              f"Available: {_rnn_module.__all__}")
         idx = rnn_lc.index(rnn_lower)
         return getattr(_rnn_module, _rnn_module.__all__[idx])
+
+    @staticmethod
+    def get_optimizer(name, learning_rate, eps=None, decay=None):
+        """
+        Returns the dictionary describing a torch optimizer, as expected by the approximators, from a
+        string name.
+
+        Args:
+            name (str): name of the optimizer (case-insensitive), among ``'adam'``, ``'adadelta'``,
+                ``'rmsprop'`` and ``'rmspropcentered'``;
+            learning_rate (float): the learning rate of the optimizer;
+            eps (float, None): the epsilon term of the optimizer. If None, the torch default is used;
+            decay (float, None): the smoothing constant of the rmsprop variants. If None, the torch
+                default is used.
+
+        Returns:
+            The dictionary with the optimizer class and its parameters.
+
+        Raises:
+            ValueError: if the string does not match any of the supported optimizers.
+
+        """
+        params = dict(lr=learning_rate)
+
+        if eps is not None:
+            params['eps'] = eps
+
+        name_lower = name.lower()
+
+        if name_lower == 'adam':
+            optimizer_class = optim.Adam
+        elif name_lower == 'adadelta':
+            optimizer_class = optim.Adadelta
+        elif name_lower in ('rmsprop', 'rmspropcentered'):
+            optimizer_class = optim.RMSprop
+
+            if decay is not None:
+                params['alpha'] = decay
+
+            if name_lower == 'rmspropcentered':
+                params['centered'] = True
+        else:
+            raise ValueError(f"Cannot find optimizer '{name}'. "
+                             f"Available: ['adam', 'adadelta', 'rmsprop', 'rmspropcentered']")
+
+        return {'class': optimizer_class, 'params': params}
 
     @staticmethod
     def compute_output_shape(module, input_shape):
