@@ -36,12 +36,6 @@ except ImportError:
     pass
 
 try:
-    OmniIsaacGymEnv = None
-    from .omni_isaac_gym_env import OmniIsaacGymEnv
-except ImportError:
-    pass
-
-try:
     PyBullet = None
     from .pybullet import PyBullet
     from .pybullet_envs import *

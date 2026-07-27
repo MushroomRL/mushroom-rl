@@ -290,14 +290,6 @@ Isaac Sim
     :private-members:
     :show-inheritance:
 
-Omni Isaac Gym
-~~~~~~~~~~~~~~
-
-.. automodule:: mushroom_rl.environments.omni_isaac_gym_env
-    :members:
-    :private-members:
-    :show-inheritance:
-
 Simple chain
 ~~~~~~~~~~~~
 

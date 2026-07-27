@@ -1,9 +1,7 @@
 [run]
 omit =
-    mushroom_rl/utils/isaac_utils.py
     mushroom_rl/utils/isaac_sim/*
     mushroom_rl/environments/isaacsim_env.py
-    mushroom_rl/environments/omni_isaac_gym_env.py
     mushroom_rl/environments/isaacsim_envs/*
     mushroom_rl/utils/mujoco/viewer.py
     mushroom_rl/utils/pybullet/viewer.py
