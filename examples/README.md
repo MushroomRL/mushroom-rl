@@ -7,7 +7,7 @@ directory:
 python examples/algorithms/value/simple_chain_qlearning.py
 ```
 
-The examples are grouped by *purpose*, not by algorithm family:
+The examples are grouped as follows:
 
 | Folder                          | Contents                                                 |
 |---------------------------------|----------------------------------------------------------|
@@ -31,6 +31,11 @@ the examples do not care about the current working directory.
 ## Conventions
 
 Every example follows the same shape: a module docstring stating what it shows, an `experiment()` function
-holding the run, a `parse_args()` function for the command line, and a `__main__` block wiring the two
-together. Common options are `--seed` (omit it for a non-reproducible run) and `--no-render` (skip the
-visualisation, needed on a headless machine).
+holding the run, and a `__main__` block that sets the hyperparameters and calls it. `experiment()` takes a
+`seed` as its last argument, so a script can be reproduced by importing it and passing one.
+ 
+Some scripts allow to pass command line arguments. Those scripts carry a `parse_args()` function next to `experiment()`.
+
+Each script builds the environment first and the `Logger` right after, so that `log_experiment_info` can
+name both the algorithm and the environment; the per-epoch metrics then go through `log_evaluation`, which
+prints them and, when the logger has a results directory, writes them to disk.
