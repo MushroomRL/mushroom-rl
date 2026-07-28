@@ -1,9 +1,10 @@
-import os
+"""
+This script shows how to use the observation normalization preprocessor and the dataset plotting callback.
 
-from mushroom_rl.rl_utils.preprocessors import MinMaxPreprocessor
-from mushroom_rl.utils.callbacks import PlotDataset
-
+"""
 import numpy as np
+
+from tqdm import trange
 
 from mushroom_rl.algorithms.policy_search import REINFORCE
 from mushroom_rl.approximators.parametric import LinearApproximator
@@ -11,28 +12,21 @@ from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import LQR
 from mushroom_rl.policy import StateStdGaussianPolicy
 from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer
-
-from tqdm import tqdm
-
-
-"""
-This script shows how to use preprocessors and plot callback.
-
-"""
-
-tqdm.monitor_interval = 0
+from mushroom_rl.rl_utils.preprocessors import MinMaxPreprocessor
+from mushroom_rl.utils.callbacks import PlotDataset
 
 
-def experiment(n_epochs, n_iterations, ep_per_run):
-    np.random.seed()
-
-    logger = Logger('plot_and_norm_example', results_dir=None)
-    logger.strong_line()
-    logger.info('Plotting and normalization example')
+def experiment(n_epochs, n_iterations, ep_per_run, seed=None):
+    np.random.seed(seed)
 
     # MDP
     mdp = LQR.generate(dimensions=2, max_pos=10., max_action=5., episodic=True)
 
+    logger = Logger('plotting_and_normalization', results_dir=None)
+    logger.log_experiment_info(REINFORCE, mdp, n_epochs=n_epochs, n_iterations=n_iterations,
+                               ep_per_run=ep_per_run)
+
+    # Policy
     approximator = LinearApproximator(input_shape=mdp.info.observation_space.shape,
                                       output_shape=mdp.info.action_space.shape)
 
@@ -45,27 +39,24 @@ def experiment(n_epochs, n_iterations, ep_per_run):
     policy = StateStdGaussianPolicy(approximator, sigma)
 
     # Agent
-    optimizer = AdaptiveOptimizer(eps=.01)
-    algorithm_params = dict(optimizer=optimizer)
-    agent = REINFORCE(mdp.info, policy, **algorithm_params)
+    agent = REINFORCE(mdp.info, policy, optimizer=AdaptiveOptimizer(eps=.01))
 
-    # normalization callback
-    prepro = MinMaxPreprocessor(mdp_info=mdp.info)
-    agent.add_core_preprocessor(prepro)
+    # normalization preprocessor
+    agent.add_core_preprocessor(MinMaxPreprocessor(mdp_info=mdp.info))
 
     # plotting callback
     plotter = PlotDataset(mdp.info, obs_normalized=True)
 
     # Train
-    core = Core(agent, mdp, callback_step=plotter)
+    core = Core(agent, mdp, logger=logger, callback_step=plotter)
 
-    # training loop
-    for n in range(n_epochs):
+    for n in trange(n_epochs, leave=False):
         core.learn(n_episodes=n_iterations * ep_per_run,
                    n_episodes_per_fit=ep_per_run)
         dataset = core.evaluate(n_episodes=ep_per_run, render=False)
-        J = np.mean(dataset.discounted_return)
-        logger.epoch_info(n+1, J=J)
+        J = dataset.discounted_return.mean()
+
+        logger.log_evaluation(n + 1, J=J)
 
 
 if __name__ == '__main__':

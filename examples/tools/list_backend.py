@@ -1,13 +1,3 @@
-import numpy as np
-
-from mushroom_rl.algorithms.value import TrueOnlineSARSALambda
-from mushroom_rl.core import Core, Logger
-from mushroom_rl.environments import Gymnasium
-from mushroom_rl.features import Features
-from mushroom_rl.features.tiles import Tiles
-from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.rl_utils.parameters import Parameter
-
 """
 This script runs the Mountain Car experiment on the ``'list'`` dataset backend.
 
@@ -19,18 +9,27 @@ An environment can also request this backend directly by declaring ``'list'`` in
 convenient when its states or actions are structured, non-array objects.
 
 """
+import numpy as np
+
+from mushroom_rl.algorithms.value import TrueOnlineSARSALambda
+from mushroom_rl.core import Core, Logger
+from mushroom_rl.environments import Gymnasium
+from mushroom_rl.features import Features
+from mushroom_rl.features.tiles import Tiles
+from mushroom_rl.policy import EpsGreedy
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
-def experiment(alpha):
-    logger = Logger('ListBackendExperiment', results_dir=None)
-    logger.strong_line()
-    logger.info('Mountain Car with infinite horizon and list dataset backend')
-    logger.weak_line()
-
-    np.random.seed(0)
+def experiment(alpha, n_episodes, n_steps_test, seed=0):
+    np.random.seed(seed)
 
     # MDP
     mdp = Gymnasium(name='MountainCar-v0', horizon=np.inf, gamma=1.)
+    mdp.seed(seed)
+
+    logger = Logger('list_backend', results_dir=None)
+    logger.log_experiment_info(TrueOnlineSARSALambda, mdp, alpha=alpha, n_episodes=n_episodes,
+                               n_steps_test=n_steps_test)
 
     # Policy
     epsilon = Parameter(value=0.)
@@ -57,12 +56,14 @@ def experiment(alpha):
                                   **algorithm_params)
 
     # Algorithm
-    core = Core(agent, mdp)
+    core = Core(agent, mdp, logger=logger)
 
     # Evaluate
-    logger.info('- Evaluating random policy for 10000 steps')
-    dataset = core.evaluate(n_steps=10000, render=False)
-    logger.info(f'R: {dataset.undiscounted_return.mean()}')
+    logger.info(f'- Evaluating the random policy for {n_steps_test} steps')
+    dataset = core.evaluate(n_steps=n_steps_test, render=False)
+    R = dataset.undiscounted_return.mean()
+    logger.info(f'R: {R}')
+
     episode_length = dataset.episodes_length
     if len(episode_length) > 0:
         logger.info(f'completed episodes: {len(episode_length)}, mean episode length: {episode_length.mean()}')
@@ -70,17 +71,19 @@ def experiment(alpha):
         logger.info(f'episode length: {len(dataset)}, episode not completed')
 
     # Train
-    logger.info('- Learning for 100 episodes')
-    core.learn(n_episodes=100, n_steps_per_fit=1, render=False)
-    logger.info('- Evaluating for one episode')
+    logger.info(f'- Learning for {n_episodes} episodes')
+    core.learn(n_episodes=n_episodes, n_steps_per_fit=1, render=False)
+
+    # Visualize the final policy
+    logger.info('- Evaluating the learned policy for one episode')
     dataset = core.evaluate(n_episodes=1, render=True)
-    logger.info(f'R: {dataset.undiscounted_return.mean()}')
+    R = dataset.undiscounted_return.mean()
+    logger.info(f'R: {R}')
     logger.info(f'episode length: {dataset.episodes_length.item()}')
 
-    backend = dataset.array_backend.get_backend_name()
     logger.weak_line()
-    logger.info(f'dataset backend: {backend}')
+    logger.info(f'dataset backend: {dataset.array_backend.get_backend_name()}')
 
 
 if __name__ == '__main__':
-    experiment(alpha=.1)
+    experiment(alpha=.1, n_episodes=100, n_steps_test=10000)
