@@ -149,7 +149,7 @@ class FrameRecorder:
 
 def test_core_record_evaluate():
     mdp = RenderingEnv(horizon=5)
-    logger = Logger('test_core_record', results_dir=None, recorder_class=FrameRecorder)
+    logger = Logger('test_core_record_evaluate', results_dir=None, recorder_class=FrameRecorder)
     core = Core(DummyAgent(mdp.info), mdp, logger=logger)
 
     assert core.agent.logger is logger
@@ -166,7 +166,7 @@ def test_core_record_evaluate():
 
 def test_core_record_learn():
     mdp = RenderingEnv(horizon=4)
-    logger = Logger('test_core_record', results_dir=None, recorder_class=FrameRecorder)
+    logger = Logger('test_core_record_learn', results_dir=None, recorder_class=FrameRecorder)
     core = Core(DummyAgent(mdp.info), mdp, logger=logger)
 
     core.learn(n_steps=4, n_steps_per_fit=4, render=True, record=True, quiet=True)
@@ -190,7 +190,7 @@ def test_core_record_without_logger():
 
 def test_core_record_without_render():
     mdp = RenderingEnv(horizon=5)
-    logger = Logger('test_core_record', results_dir=None, recorder_class=FrameRecorder)
+    logger = Logger('test_core_record_without_render', results_dir=None, recorder_class=FrameRecorder)
     core = Core(DummyAgent(mdp.info), mdp, logger=logger)
 
     with pytest.raises(AssertionError):
