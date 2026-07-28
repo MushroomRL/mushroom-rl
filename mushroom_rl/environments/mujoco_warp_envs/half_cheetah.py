@@ -1,7 +1,5 @@
-import numpy as np
 import torch
 import warp as wp
-import mujoco
 from pathlib import Path
 
 from mushroom_rl.environments.mujoco_warp import MuJoCoWarp
@@ -25,16 +23,19 @@ class HalfCheetahWarp(MuJoCoWarp):
         reset_noise_scale=0.1,
         n_substeps=5,
         exclude_current_positions_from_observation=True,
+        use_graph_capture=True,
+        warmup_steps=3,
         nconmax=200,
         njmax=200,
         **viewer_params,
     ):
-        """
-        Constructor.
-
-        """
+        """Constructor."""
         xml_path = (
-            Path(__file__).resolve().parent.parent / "mujoco_envs" / "data" / "half_cheetah" / "model.xml"
+            Path(__file__).resolve().parent.parent
+            / "mujoco_envs"
+            / "data"
+            / "half_cheetah"
+            / "model.xml"
         ).as_posix()
 
         actuation_spec = ["bthigh", "bshin", "bfoot", "fthigh", "fshin", "ffoot"]
@@ -80,6 +81,8 @@ class HalfCheetahWarp(MuJoCoWarp):
             actuation_spec=actuation_spec,
             additional_data_spec=additional_data_spec,
             n_substeps=n_substeps,
+            use_graph_capture=use_graph_capture,
+            warmup_steps=warmup_steps,
             nconmax=nconmax,
             njmax=njmax,
             **viewer_params,
@@ -107,8 +110,10 @@ class HalfCheetahWarp(MuJoCoWarp):
         torso_vel = self._read_data("torso_vel")
         forward_r = self._forward_reward_weight * torso_vel[:, 3]
 
-        action_t = torch.as_tensor(action, dtype=forward_r.dtype, device=forward_r.device)
-        ctrl_cost = self._ctrl_cost_weight * (action_t ** 2).sum(dim=-1)
+        action_t = torch.as_tensor(
+            action, dtype=forward_r.dtype, device=forward_r.device
+        )
+        ctrl_cost = self._ctrl_cost_weight * (action_t**2).sum(dim=-1)
 
         return forward_r - ctrl_cost
 
@@ -116,20 +121,26 @@ class HalfCheetahWarp(MuJoCoWarp):
         """Reset with small uniform noise on qpos and qvel for the given environments."""
         super().setup(env_indices, obs)
 
-        qpos_np = self._data_wp.qpos.numpy().copy()
-        qvel_np = self._data_wp.qvel.numpy().copy()
+        qpos = wp.to_torch(self._data_wp.qpos)
+        qvel = wp.to_torch(self._data_wp.qvel)
 
-        qpos_np[env_indices] += np.random.uniform(
-            -self._reset_noise_scale, self._reset_noise_scale,
-            (len(env_indices), self._model.nq),
-        )
-        qvel_np[env_indices] += np.random.uniform(
-            -self._reset_noise_scale, self._reset_noise_scale,
-            (len(env_indices), self._model.nv),
+        device = qpos.device
+        idx = (
+            torch.as_tensor(env_indices, device=device, dtype=torch.long)
+            if not isinstance(env_indices, torch.Tensor)
+            else env_indices.to(device).long()
         )
 
-        self._data_wp.qpos.assign(qpos_np)
-        self._data_wp.qvel.assign(qvel_np)
+        n = idx.shape[0]
+        noise_pos = (
+            torch.rand(n, self._model.nq, device=device) * 2 - 1
+        ) * self._reset_noise_scale
+        noise_vel = (
+            torch.randn(n, self._model.nv, device=device) * self._reset_noise_scale
+        )
+
+        qpos[idx] += noise_pos
+        qvel[idx] += noise_vel
 
         self._mj_warp.forward(self._model_wp, self._data_wp)
 
