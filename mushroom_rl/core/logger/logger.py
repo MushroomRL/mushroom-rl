@@ -110,10 +110,10 @@ class Logger(DataLogger, ConsoleLogger, VideoLogger, WandbLogger):
 
         """
         self.strong_line()
-        self.info('Experiment Algorithm: ' + agent.name())
+        self.info('Experiment Algorithm: ' + self._object_name(agent))
 
         if mdp is not None:
-            self.info('Environment: ' + mdp.name())
+            self.info('Environment: ' + self._object_name(mdp))
 
         for name, value in hyperparams.items():
             self.info(f'{name}: {value}')
@@ -191,3 +191,18 @@ class Logger(DataLogger, ConsoleLogger, VideoLogger, WandbLogger):
             video = self._recorded_videos[-1]
 
         self.log_wandb_video(wandb_name, video, epoch)
+
+    @staticmethod
+    def _object_name(obj):
+        """
+        Return the name identifying the given object. An instance is described by its full name, which
+        also states which environment or task it was built with, while a class only knows its own name.
+
+        Args:
+            obj (object, class): the object to be named.
+
+        Returns:
+            The name of the object.
+
+        """
+        return obj.name() if isinstance(obj, type) else obj.full_name()

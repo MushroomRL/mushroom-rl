@@ -36,6 +36,8 @@ def _env_worker(remote, env_class, use_generator, args, kwargs):
                 remote.send(None)
             elif cmd == 'info':
                 remote.send(env.info)
+            elif cmd == 'full_name':
+                remote.send(env.full_name())
             elif cmd == 'seed':
                 env.seed(int(data))
                 remote.send(None)
@@ -85,12 +87,27 @@ class MultiprocessEnvironment(VectorizedEnvironment):
         self._remotes[0].send(('info', None))
         mdp_info = self._remotes[0].recv()
 
+        self._remotes[0].send(('full_name', None))
+        self._env_name = self._remotes[0].recv()
+
         super().__init__(mdp_info, n_envs)
 
         self._state_shape = (n_envs,) + self.info.observation_space.shape
         self._reward_shape = (n_envs,)
         self._absorbing_shape = (n_envs,)
         self._states = np.empty(self._state_shape)
+
+    def full_name(self):
+        """
+        Return a name identifying this environment and the one it runs copies of, joined by the same '.'
+        separator used by the other environments wrapping a family of tasks. The wrapped name is the full
+        name of a worker environment, so that the task it was built with is named as well.
+
+        Returns:
+            The name of the environment.
+
+        """
+        return f'{self.name()}.{self._env_name}'
 
     def reset_all(self, env_mask, state=None):
         for i, remote in enumerate(self._remotes):

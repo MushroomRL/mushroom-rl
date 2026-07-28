@@ -10,6 +10,7 @@ import cv2
 
 gym.register_envs(ale_py)
 
+
 class Atari(Environment):
     """
     The Atari environment as presented in:
@@ -19,12 +20,12 @@ class Atari(Environment):
     """
     def __init__(self,
                  name,
-                 width = 84,
-                 height = 84,
-                 full_action_space = False,
-                 repeat_action_probability = 0.25,
-                 frameskip = 4,
-                 headless = False
+                 width=84,
+                 height=84,
+                 full_action_space=False,
+                 repeat_action_probability=0.25,
+                 frameskip=4,
+                 headless=False
                  ):
         """
         Constructor.
@@ -46,7 +47,7 @@ class Atari(Environment):
                             render_mode='rgb_array'
                             )
 
-        self.name = name
+        self.game_name = name
         self.state_height, self.state_width = (height, width)
         self.n_skipped_frames = frameskip
         self._headless = headless
@@ -70,6 +71,9 @@ class Atari(Environment):
         self.state_ = None
 
         super().__init__(mdp_info)
+
+    def full_name(self):
+        return f'{self.name()}.{self.game_name}'
 
     def seed(self, seed):
         self._seed = seed
@@ -111,7 +115,7 @@ class Atari(Environment):
         self.n_steps += 1
 
         return self.state_, reward, absorbing, info
-    
+
     def pool_and_resize(self) -> np.ndarray:
         np.maximum(self.screen_buffer[0], self.screen_buffer[1], out=self.screen_buffer[0])
 
@@ -132,7 +136,7 @@ class Atari(Environment):
             return img
         else:
             return None
-    
+
     def stop(self):
         self.env.close()
         self._viewer.close()

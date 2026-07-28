@@ -40,6 +40,7 @@ class Gymnasium(Environment):
         self._first = True
         self._headless = headless
         self._viewer = None
+        self._env_name = name
 
         self.env = gym.make(name, render_mode='rgb_array', **env_args) # always rgb_array render mode
 
@@ -72,6 +73,9 @@ class Gymnasium(Environment):
         self._seed = None
 
         super().__init__(mdp_info)
+
+    def full_name(self):
+        return f'{self.name()}.{self._env_name}'
 
     def seed(self, seed):
         self._seed = seed

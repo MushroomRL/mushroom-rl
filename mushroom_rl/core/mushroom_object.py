@@ -171,6 +171,17 @@ class MushroomObject(object):
         """
         return cls.__name__
 
+    def full_name(self):
+        """
+        Return a name identifying the specific object, and not only its class. Subclasses standing for a
+        family of objects override this method to append what distinguishes the instance.
+
+        Returns:
+            The name of the object.
+
+        """
+        return self.name()
+
     def set_logger(self, logger, prefix=None, label=None):
         """
         Attach a logger to the object so that its relevant quantities are logged. The ``prefix``
