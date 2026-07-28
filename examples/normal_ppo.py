@@ -11,6 +11,8 @@ from mushroom_rl.policy import GaussianTorchPolicy
 
 from mushroom_rl.utils import TorchUtils
 
+import argparse
+
 TorchUtils.set_default_device("cuda:0")
 
 
@@ -219,14 +221,21 @@ def experiment(
 
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--seed", type=int, default=1)
+    parser.add_argument("--num_envs", type=int, default=4000)
+
+    args = parser.parse_args()
     experiment(
         env_class=AntWarp,
-        num_envs=4000,  # --> make full number, i.e 8000?
+        num_envs=args.num_envs,  # --> make full number, i.e 8000?
         n_epochs=50,  # --> half it
         n_steps=300000,  # --> double the n_steps
         n_steps_per_fit=30000,  # num_envs * 8
         n_episodes_test=5,
         use_graph_capture=True,
-        seed=1,
+        seed=args.seed,
         save_agent=False,
     )
