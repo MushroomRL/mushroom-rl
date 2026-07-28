@@ -303,3 +303,31 @@ def test_minigrid_rgb():
     ns_test = np.load('tests/environments/test_minigrid_2.npy')
 
     assert np.allclose(ns, ns_test)
+
+
+def test_minigrid_seed():
+    mdp = MiniGrid('MiniGrid-DoorKey-5x5-v0')
+    mdp.seed(5)
+    first_run = [mdp.reset()[0] for _ in range(3)]
+
+    mdp = MiniGrid('MiniGrid-DoorKey-5x5-v0')
+    mdp.seed(5)
+    second_run = [mdp.reset()[0] for _ in range(3)]
+
+    mdp = MiniGrid('MiniGrid-DoorKey-5x5-v0')
+    mdp.seed(6)
+    other_run = [mdp.reset()[0] for _ in range(3)]
+
+    for first, second in zip(first_run, second_run):
+        assert np.array_equal(first, second)
+
+    assert not all(np.array_equal(first, other) for first, other in zip(first_run, other_run))
+
+
+def test_minigrid_fixed_seed_overrides_seed():
+    mdp = MiniGrid('MiniGrid-DoorKey-5x5-v0', fixed_seed=5)
+    mdp.seed(6)
+    states = [mdp.reset()[0] for _ in range(3)]
+
+    for state in states[1:]:
+        assert np.array_equal(states[0], state)

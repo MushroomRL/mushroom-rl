@@ -1,8 +1,28 @@
 from multiprocessing import Pipe, Process, cpu_count
 
 import numpy as np
+import torch
 
+from mushroom_rl.core.environment import Environment
 from mushroom_rl.core.vectorized_env import VectorizedEnvironment
+
+
+def _seed_worker(env, seed):
+    """
+    Seed the random generators of the worker process, and the environment itself when it provides its own
+    seeding. The worker is forked from the main process, so it starts with a copy of its generators:
+    reseeding them is what keeps the copies of the environment from producing the very same trajectory.
+
+    """
+    if seed is None:
+        np.random.seed(None)
+        torch.seed()
+    else:
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+
+    if type(env).seed is not Environment.seed:
+        env.seed(seed)
 
 
 def _env_worker(remote, env_class, use_generator, args, kwargs):
@@ -11,6 +31,8 @@ def _env_worker(remote, env_class, use_generator, args, kwargs):
         env = env_class.generate(*args, **kwargs)
     else:
         env = env_class(*args, **kwargs)
+
+    _seed_worker(env, None)
 
     try:
         while True:
@@ -39,7 +61,7 @@ def _env_worker(remote, env_class, use_generator, args, kwargs):
             elif cmd == 'full_name':
                 remote.send(env.full_name())
             elif cmd == 'seed':
-                env.seed(int(data))
+                _seed_worker(env, data)
                 remote.send(None)
             elif cmd == 'close':
                 break
@@ -164,8 +186,17 @@ class MultiprocessEnvironment(VectorizedEnvironment):
         return np.array(frames)
 
     def seed(self, seed):
-        for remote in self._remotes:
-            remote.send(('seed', seed))
+        """
+        Set the seed of every parallel copy of the environment. Each copy is given a different seed, derived
+        from the given one, so that the copies do not generate the same trajectory.
+
+        Args:
+            seed (int, None): the value of the seed. If None, the random number generators of the copies are
+                left untouched.
+
+        """
+        for i, remote in enumerate(self._remotes):
+            remote.send(('seed', seed if seed is None else seed + i))
 
         for remote in self._remotes:
             remote.recv()

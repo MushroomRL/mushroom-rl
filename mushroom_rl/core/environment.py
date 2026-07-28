@@ -152,7 +152,8 @@ class Environment(object):
         Set the seed of the environment.
 
         Args:
-            seed (float): the value of the seed.
+            seed (int, None): the value of the seed. If None, the random number generator of the environment
+                is left untouched.
 
         """
         warnings.warn('This environment has no custom seed. The call will have no effect. '
