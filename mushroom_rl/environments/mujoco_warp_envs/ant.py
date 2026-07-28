@@ -1,7 +1,5 @@
-import numpy as np
 import torch
 import warp as wp
-import mujoco
 from pathlib import Path
 
 from mushroom_rl.environments.mujoco_warp import MuJoCoWarp
@@ -40,7 +38,11 @@ class AntWarp(MuJoCoWarp):
 
         """
         xml_path = (
-            Path(__file__).resolve().parent.parent / "mujoco_envs" / "data" / "ant" / "model.xml"
+            Path(__file__).resolve().parent.parent
+            / "mujoco_envs"
+            / "data"
+            / "ant"
+            / "model.xml"
         ).as_posix()
 
         actuation_spec = [
@@ -132,7 +134,7 @@ class AntWarp(MuJoCoWarp):
         return obs
 
     def _is_finite(self, obs):
-        qpos = wp.to_torch(self._data_wp.qpos)   # zero-copy torch view on gpu
+        qpos = wp.to_torch(self._data_wp.qpos)  # zero-copy torch view on gpu
         qvel = wp.to_torch(self._data_wp.qvel)
         states = torch.cat([qpos, qvel], dim=1)
         return torch.isfinite(states).all(dim=1)
@@ -151,20 +153,24 @@ class AntWarp(MuJoCoWarp):
 
     def reward(self, obs, action, next_obs, absorbing):
         healthy = self._is_healthy(next_obs)
-        healthy_r = (healthy | self._terminate_when_unhealthy).float() * self._healthy_reward
+        healthy_r = (
+            healthy | self._terminate_when_unhealthy
+        ).float() * self._healthy_reward
 
         torso_vel = self._read_data("torso_vel")
         forward_r = self._forward_reward_weight * torso_vel[:, 3]
 
-        action_t = torch.as_tensor(action, dtype=healthy_r.dtype, device=healthy_r.device)
-        ctrl_cost = self._ctrl_cost_weight * (action_t ** 2).sum(dim=-1)
+        action_t = torch.as_tensor(
+            action, dtype=healthy_r.dtype, device=healthy_r.device
+        )
+        ctrl_cost = self._ctrl_cost_weight * (action_t**2).sum(dim=-1)
 
         cost = ctrl_cost
         if self._use_contact_forces:
             collision_force = self.obs_helper.get_from_obs(next_obs, "collision_force")
             lo, hi = self._contact_force_range
             clipped = torch.clamp(collision_force, lo, hi)
-            contact_cost = self._contact_cost_weight * (clipped ** 2).sum(dim=-1)
+            contact_cost = self._contact_cost_weight * (clipped**2).sum(dim=-1)
             cost = cost + contact_cost
 
         return healthy_r + forward_r - cost
@@ -172,26 +178,35 @@ class AntWarp(MuJoCoWarp):
     def setup(self, env_indices, obs):
         """Reset with noise on qpos (uniform) and qvel (gaussian) for the given environments."""
         super().setup(env_indices, obs)
-        
+
         qpos = wp.to_torch(self._data_wp.qpos)
         qvel = wp.to_torch(self._data_wp.qvel)
-        
+
         device = qpos.device
-        idx = torch.as_tensor(env_indices, device=device, dtype=torch.long) \
-              if not isinstance(env_indices, torch.Tensor) else env_indices.to(device).long()
-        
+        idx = (
+            torch.as_tensor(env_indices, device=device, dtype=torch.long)
+            if not isinstance(env_indices, torch.Tensor)
+            else env_indices.to(device).long()
+        )
+
         n = len(env_indices)
-        noise_pos = (torch.rand(n, self._model.nq, device=device) * 2 - 1) * self._reset_noise_scale
-        noise_vel = torch.randn(n, self._model.nv, device=device) * self._reset_noise_scale
-        
+        noise_pos = (
+            torch.rand(n, self._model.nq, device=device) * 2 - 1
+        ) * self._reset_noise_scale
+        noise_vel = (
+            torch.randn(n, self._model.nv, device=device) * self._reset_noise_scale
+        )
+
         qpos[idx] += noise_pos
         qvel[idx] += noise_vel
-        
+
         self._mj_warp.forward(self._model_wp, self._data_wp)
 
     def _create_info_dictionary(self, obs):
         healthy = self._is_healthy(obs)
-        healthy_r = (healthy | self._terminate_when_unhealthy).float() * self._healthy_reward
+        healthy_r = (
+            healthy | self._terminate_when_unhealthy
+        ).float() * self._healthy_reward
         torso_vel = self._read_data("torso_vel")
         forward_r = self._forward_reward_weight * torso_vel[:, 3]
         return {
