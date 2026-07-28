@@ -16,7 +16,8 @@ class RWR(BlackBoxOptimization):
         Constructor.
 
         Args:
-            beta ([float, Parameter]): the temperature for the exponential reward transformation.
+            beta ([float, Parameter]): the inverse of the temperature of the exponential reward
+                transformation. The higher it is, the more the update concentrates on the best episodes.
 
         """
         assert not distribution.is_contextual
