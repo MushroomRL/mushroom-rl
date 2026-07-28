@@ -33,7 +33,7 @@ class MuJoCoWarp(VectorizedEnvironment):
         max_joint_vel=None,
         nconmax=None,
         njmax=None,
-        use_graph_capture=True,
+        use_graph_capture=False,
         warmup_steps=3,
         **viewer_params,
     ):
