@@ -1,13 +1,11 @@
-import numpy as np
 import torch
 import warp as wp
-import mujoco
 from pathlib import Path
-
 
 from mushroom_rl.environments.mujoco_warp import MuJoCoWarp
 from mushroom_rl.environments.mujoco import ObservationType
 from mushroom_rl.core.spaces import Box
+
 
 class Walker2DWarp(MuJoCoWarp):
     """
@@ -29,19 +27,22 @@ class Walker2DWarp(MuJoCoWarp):
         reset_noise_scale=5e-3,
         exclude_current_positions_from_observation=True,
         n_substeps=4,
+        use_graph_capture=True,
+        warmup_steps=3,
         nconmax=200,
         njmax=200,
         **viewer_params,
     ):
-
-        """
-        Constructor.
-
-        """
+        """Constructor."""
 
         xml_path = (
-            Path(__file__).resolve().parent.parent/ "mujoco_envs" / "data" / "walker_2d" / "model.xml"
+            Path(__file__).resolve().parent.parent
+            / "mujoco_envs"
+            / "data"
+            / "walker_2d"
+            / "model.xml"
         ).as_posix()
+
         actuation_spec = [
             "thigh_joint",
             "leg_joint",
@@ -87,7 +88,6 @@ class Walker2DWarp(MuJoCoWarp):
             exclude_current_positions_from_observation
         )
 
-        
         super().__init__(
             num_envs=num_envs,
             xml_file=xml_path,
@@ -97,6 +97,8 @@ class Walker2DWarp(MuJoCoWarp):
             actuation_spec=actuation_spec,
             additional_data_spec=additional_data_spec,
             n_substeps=n_substeps,
+            use_graph_capture=use_graph_capture,
+            warmup_steps=warmup_steps,
             nconmax=nconmax,
             njmax=njmax,
             **viewer_params,
@@ -104,7 +106,7 @@ class Walker2DWarp(MuJoCoWarp):
 
     def _modify_mdp_info(self, mdp_info):
         if not self._exclude_current_positions_from_observation:
-            self.obs_helper.remove_obs("x_pos", 0)
+            self.obs_helper.add_obs("x_pos", 1)
         mdp_info = super()._modify_mdp_info(mdp_info)
         mdp_info.observation_space = Box(*self.obs_helper.get_obs_limits())
         return mdp_info
@@ -118,7 +120,7 @@ class Walker2DWarp(MuJoCoWarp):
 
         if not self._exclude_current_positions_from_observation:
             x_pos = self._read_data("x_pos")
-            obs = torch.cat([obs, x_pos], dim = 1)
+            obs = torch.cat([obs, x_pos], dim=1)
         return obs
 
     def _is_within_z_range(self, obs):
@@ -126,72 +128,72 @@ class Walker2DWarp(MuJoCoWarp):
         min_z, max_z = self._healthy_z_range
         z_position = self.obs_helper.get_from_obs(obs, "z_pos")[:, 0]
         return (z_position > min_z) & (z_position < max_z)
-    def _is_within_angle_range(self,obs):
+
+    def _is_within_angle_range(self, obs):
         """Check if y-angle of torso is within the healthy range."""
         min_angle, max_angle = self._healthy_angle_range
         y_angle = self.obs_helper.get_from_obs(obs, "y_pos")[:, 0]
         return (y_angle > min_angle) & (y_angle < max_angle)
 
-
     def is_absorbing(self, obs):
         return self._terminate_when_unhealthy & ~self._is_healthy(obs)
-
 
     def _is_healthy(self, obs):
         is_within_z_range = self._is_within_z_range(obs)
         is_within_angle_range = self._is_within_angle_range(obs)
         return is_within_z_range & is_within_angle_range
- 
-
-
 
     def reward(self, obs, action, next_obs, absorbing):
-       
         healthy = self._is_healthy(next_obs)
-        healthy_r = (healthy | self._terminate_when_unhealthy).float() * self._healthy_reward
+        healthy_r = (
+            healthy | self._terminate_when_unhealthy
+        ).float() * self._healthy_reward
 
-        torso_vel = self._read_data("torso_vel")   
+        torso_vel = self._read_data("torso_vel")
         forward_r = self._forward_reward_weight * torso_vel[:, 3]
 
-        action_t = torch.as_tensor(action, dtype=healthy_r.dtype, device=healthy_r.device)
-        ctrl_cost = self._ctrl_cost_weight * (action_t ** 2).sum(dim=-1)
+        action_t = torch.as_tensor(
+            action, dtype=healthy_r.dtype, device=healthy_r.device
+        )
+        ctrl_cost = self._ctrl_cost_weight * (action_t**2).sum(dim=-1)
 
         return healthy_r + forward_r - ctrl_cost
 
-
- 
     def setup(self, env_indices, obs):
         """Reset with small uniform noise on qpos and qvel for the given environments."""
         super().setup(env_indices, obs)
 
-        qpos_np = self._data_wp.qpos.numpy().copy()
-        qvel_np = self._data_wp.qvel.numpy().copy()
+        qpos = wp.to_torch(self._data_wp.qpos)
+        qvel = wp.to_torch(self._data_wp.qvel)
 
-        qpos_np[env_indices] += np.random.uniform(
-            -self._reset_noise_scale, self._reset_noise_scale,
-            (len(env_indices), self._model.nq),
-        )
-        qvel_np[env_indices] += np.random.uniform(
-            -self._reset_noise_scale, self._reset_noise_scale,
-            (len(env_indices), self._model.nv),
+        device = qpos.device
+        idx = (
+            torch.as_tensor(env_indices, device=device, dtype=torch.long)
+            if not isinstance(env_indices, torch.Tensor)
+            else env_indices.to(device).long()
         )
 
-        self._data_wp.qpos.assign(qpos_np)
-        self._data_wp.qvel.assign(qvel_np)
+        n = idx.shape[0]
+        noise_pos = (
+            torch.rand(n, self._model.nq, device=device) * 2 - 1
+        ) * self._reset_noise_scale
+        noise_vel = (
+            torch.randn(n, self._model.nv, device=device) * self._reset_noise_scale
+        )
+
+        qpos[idx] += noise_pos
+        qvel[idx] += noise_vel
 
         self._mj_warp.forward(self._model_wp, self._data_wp)
 
-
     def _create_info_dictionary(self, obs):
         healthy = self._is_healthy(obs)
-        healthy_r = (healthy | self._terminate_when_unhealthy).float() * self._healthy_reward
+        healthy_r = (
+            healthy | self._terminate_when_unhealthy
+        ).float() * self._healthy_reward
         torso_vel = self._read_data("torso_vel")
         forward_r = self._forward_reward_weight * torso_vel[:, 3]
         return {
             "healthy_reward": healthy_r,
             "forward_reward": forward_r,
         }
-
-
-
-
