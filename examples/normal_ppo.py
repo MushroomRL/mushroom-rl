@@ -54,12 +54,20 @@ def experiment(
     n_steps,
     n_steps_per_fit,
     n_episodes_test,
+    use_graph_capture=False,
+    seed=None,
     save_agent=False,
 ):
 
-    torch.random.seed()
+    if seed is None:
+        seed = torch.seed()
+    else:
+        torch.manual_seed(seed)
 
-    mdp = env_class(num_envs=num_envs)
+    mdp = env_class(
+        num_envs=num_envs,
+        use_graph_capture=use_graph_capture,
+    )
 
     actor_lr = 1e-4
     critic_lr = 1e-3
@@ -85,6 +93,8 @@ def experiment(
         eps_ppo=eps_ppo,
         ent_coeff=ent_coeff,
         lam=lam,
+        seed=seed,
+        use_graph_capture=use_graph_capture,
         std_0=std_0,
     )
 
@@ -212,12 +222,11 @@ if __name__ == "__main__":
     experiment(
         env_class=AntWarp,
         num_envs=4000,  # --> make full number, i.e 8000?
-        n_epochs=5,  # --> half it
+        n_epochs=50,  # --> half it
         n_steps=300000,  # --> double the n_steps
         n_steps_per_fit=30000,  # num_envs * 8
         n_episodes_test=5,
+        use_graph_capture=True,
+        seed=1,
         save_agent=False,
     )
-    # Problem 1: we have diff performance with diff horizon, and worse performance when increasing num_envs.
-    # Problem 2: GPU utilization. Two reasons: the env could be too easy thus the memory is much more than what we need to do computation in the env, so scale won't help. Then the algorithm computation but it shouldn't be too much of an issue in the evaluation. Third reason: could be that Warp kernels are not efficient enough. I should have that step vectorized,
-    # Reason: we have basically different horizons at every fit. If we use the same horizon, we should see that with more env we either learn faster or got better R. We're seeing the opposite now because we're using less data. Keep batch size consistent and same.
