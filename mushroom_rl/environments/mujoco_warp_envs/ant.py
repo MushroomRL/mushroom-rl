@@ -29,7 +29,7 @@ class AntWarp(MuJoCoWarp):
         n_substeps=5,
         exclude_current_positions_from_observation=True,
         use_contact_forces=False,
-        use_graph_capture=True,
+        use_graph_capture=False,
         nconmax=200,
         njmax=200,
         **viewer_params,
