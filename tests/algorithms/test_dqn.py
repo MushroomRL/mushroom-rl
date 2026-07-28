@@ -9,11 +9,10 @@ from datetime import datetime
 from helper.utils import TestUtils as tu
 
 from mushroom_rl.core import Core, Agent, Logger
-from mushroom_rl.algorithms.value import DQN, DoubleDQN, AveragedDQN,\
+from mushroom_rl.algorithms.value import DQN, DoubleDQN, AveragedDQN, \
     MaxminDQN, DuelingDQN, CategoricalDQN, QuantileDQN, NoisyDQN, Rainbow
-from mushroom_rl.environments import *
+from mushroom_rl.environments import CartPole
 from mushroom_rl.policy import EpsGreedy
-from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter
 from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
 from mushroom_rl.approximators.parametric.networks import QNetwork
@@ -25,6 +24,14 @@ class FeatureNetwork(nn.Module):
 
     def forward(self, state, action=None):
         return torch.squeeze(state, 1).float()
+
+
+def get_variant_params(alg):
+    variant_params = {CategoricalDQN: dict(n_atoms=2, v_min=-1, v_max=1),
+                      Rainbow: dict(n_atoms=2, v_min=-1, v_max=1),
+                      QuantileDQN: dict(n_quantiles=2)}
+
+    return variant_params.get(alg, dict())
 
 
 def learn(alg, alg_params, logger=None):
@@ -52,18 +59,8 @@ def learn(alg, alg_params, logger=None):
                                )
 
     # Agent
-    if alg not in [DuelingDQN, QuantileDQN, CategoricalDQN, NoisyDQN, Rainbow]:
-        agent = alg(mdp.info, pi, TorchApproximator,
-                    approximator_params=approximator_params, **alg_params)
-    elif alg in [CategoricalDQN, Rainbow]:
-        agent = alg(mdp.info, pi, approximator_params=approximator_params,
-                    n_atoms=2, v_min=-1, v_max=1, **alg_params)
-    elif alg in [QuantileDQN]:
-        agent = alg(mdp.info, pi, approximator_params=approximator_params,
-                    n_quantiles=2, **alg_params)
-    else:
-        agent = alg(mdp.info, pi, approximator_params=approximator_params,
-                    **alg_params)
+    agent = alg(mdp.info, pi, approximator_params=approximator_params,
+                **get_variant_params(alg), **alg_params)
 
     if logger is not None:
         agent.set_logger(logger)
