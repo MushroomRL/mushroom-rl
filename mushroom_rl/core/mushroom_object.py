@@ -212,6 +212,15 @@ class MushroomObject(object):
         """
         return deepcopy(self)
 
+    @property
+    def logger(self):
+        """
+        Returns:
+            The logger attached to the object with ``set_logger``, or None if no logger has been attached.
+
+        """
+        return self._logger
+
     def _add_save_attr(self, **attr_dict):
         """
         Add attributes that should be saved for an agent.

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from mushroom_rl.core import Agent, Core, MDPInfo, AgentInfo
+from mushroom_rl.core import Agent, Core, Environment, Logger, MDPInfo, AgentInfo
 from mushroom_rl.core.spaces import Box, Discrete
 from mushroom_rl.core.history_manager import HistoryManager
 from mushroom_rl.environments import Atari
@@ -110,3 +110,91 @@ def test_core():
     assert len(info_lives) == 20
     assert np.all(info_lives == lives_gt)
     assert len(dataset) == 20
+
+
+class RenderingEnv(Environment):
+    def __init__(self, horizon):
+        observation_space = Box(0, 1, shape=(1,))
+        action_space = Discrete(2)
+        mdp_info = MDPInfo(observation_space, action_space, 0.99, horizon, dt=0.02, backend='numpy')
+
+        self.render_flags = list()
+
+        super().__init__(mdp_info)
+
+    def reset(self, state=None):
+        return np.zeros(1), {}
+
+    def step(self, action):
+        return np.zeros(1), 0.0, False, {}
+
+    def render(self, record=False):
+        self.render_flags.append(record)
+
+        return np.full((2, 2, 3), len(self.render_flags), dtype=np.uint8) if record else None
+
+
+class FrameRecorder:
+    def __init__(self, fps=None):
+        self.fps = fps
+        self.frames = list()
+        self.n_stops = 0
+
+    def __call__(self, frame):
+        self.frames.append(frame)
+
+    def stop(self):
+        self.n_stops += 1
+
+
+def test_core_record_evaluate():
+    mdp = RenderingEnv(horizon=5)
+    logger = Logger('test_core_record', results_dir=None, recorder_class=FrameRecorder)
+    core = Core(DummyAgent(mdp.info), mdp, logger=logger)
+
+    assert core.agent.logger is logger
+
+    core.evaluate(n_episodes=1, render=True, record=True, quiet=True)
+
+    assert mdp.render_flags == [True] * 5
+    assert len(logger.video_recorder.frames) == 5
+    assert np.all(logger.video_recorder.frames[0] == 1)
+    assert np.all(logger.video_recorder.frames[4] == 5)
+    assert logger.video_recorder.fps == 50
+    assert logger.video_recorder.n_stops == 1
+
+
+def test_core_record_learn():
+    mdp = RenderingEnv(horizon=4)
+    logger = Logger('test_core_record', results_dir=None, recorder_class=FrameRecorder)
+    core = Core(DummyAgent(mdp.info), mdp, logger=logger)
+
+    core.learn(n_steps=4, n_steps_per_fit=4, render=True, record=True, quiet=True)
+
+    assert len(logger.video_recorder.frames) == 4
+    assert logger.video_recorder.n_stops == 1
+
+
+def test_core_record_without_logger():
+    mdp = RenderingEnv(horizon=5)
+    core = Core(DummyAgent(mdp.info), mdp)
+
+    assert core.agent.logger is None
+
+    with pytest.raises(AssertionError):
+        core.evaluate(n_episodes=1, render=True, record=True, quiet=True)
+
+    with pytest.raises(AssertionError):
+        core.learn(n_steps=5, n_steps_per_fit=5, render=True, record=True, quiet=True)
+
+
+def test_core_record_without_render():
+    mdp = RenderingEnv(horizon=5)
+    logger = Logger('test_core_record', results_dir=None, recorder_class=FrameRecorder)
+    core = Core(DummyAgent(mdp.info), mdp, logger=logger)
+
+    with pytest.raises(AssertionError):
+        core.evaluate(n_episodes=1, record=True, quiet=True)
+
+    with pytest.raises(AssertionError):
+        core.learn(n_steps=5, n_steps_per_fit=5, record=True, quiet=True)
