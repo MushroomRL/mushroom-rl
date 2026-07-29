@@ -31,7 +31,7 @@ class AveragedDQN(AbstractDQN):
     def _initialize_regressors(self, approximator, apprx_params_train,
                                apprx_params_target):
         self.approximator = approximator(**apprx_params_train)
-        self.target_approximator = approximator(n_models=self._n_approximators, prediction=None,
+        self.target_approximator = approximator(n_models=self._n_approximators, prediction='all',
                                                 **apprx_params_target)
         w = self.approximator.get_weights()
         self.target_approximator.set_weights(w.repeat(self._n_approximators, 1))

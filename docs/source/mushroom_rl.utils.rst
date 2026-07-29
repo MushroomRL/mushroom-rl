@@ -56,17 +56,17 @@ Record
 Torch
 -----
 
-.. automodule:: mushroom_rl.utils.torch_utils
+.. automodule:: mushroom_rl.utils.torch_utils.torch_utils
     :members:
     :private-members:
     :show-inheritance:
 
-.. automodule:: mushroom_rl.utils.torch_distributions
+.. automodule:: mushroom_rl.utils.torch_utils.torch_distributions
     :members:
     :private-members:
     :show-inheritance:
 
-.. automodule:: mushroom_rl.utils.torch_training
+.. automodule:: mushroom_rl.utils.torch_utils.torch_training
     :members:
     :private-members:
     :show-inheritance:

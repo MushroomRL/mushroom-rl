@@ -6,7 +6,16 @@ from .numerical_gradient import numerical_diff_dist, numerical_diff_function, nu
 from .minibatches import minibatch_number, minibatch_generator, ensemble_minibatch_generator
 from .plot import plot_mean_conf, get_mean_and_confidence
 from .record import VideoRecorder
-from .torch_utils import TorchUtils
-from .torch_distributions import CategoricalWrapper, SquashedGaussian
-from .torch_training import TorchTrainer
+from .torch_utils import TorchUtils, CategoricalWrapper, SquashedGaussian, TorchTrainer
 from .viewer import Viewer, CV2Viewer, ImageViewer
+
+__all__ = ['normalize_angle_positive', 'normalize_angle', 'shortest_angular_distance',
+           'quat_to_euler', 'euler_to_quat', 'euler_to_mat', 'mat_to_euler',
+           'get_root_dir', 'get_log_dir', 'get_data_dir', 'select_class',
+           'uniform_grid',
+           'numerical_diff_dist', 'numerical_diff_function', 'numerical_diff_policy',
+           'minibatch_number', 'minibatch_generator', 'ensemble_minibatch_generator',
+           'plot_mean_conf', 'get_mean_and_confidence',
+           'VideoRecorder',
+           'TorchUtils', 'CategoricalWrapper', 'SquashedGaussian', 'TorchTrainer',
+           'Viewer', 'CV2Viewer', 'ImageViewer']
