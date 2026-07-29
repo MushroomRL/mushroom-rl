@@ -1,7 +1,3 @@
-import math
-import random
-from pathlib import Path
-
 import mujoco
 import numpy as np
 
@@ -155,11 +151,10 @@ class Panda(MuJoCo):
         obs = np.concatenate([obs, gripper_rot])
         return obs
 
-    def _get_contact_force(self, group1, group2, contact_force_range):
-        collision_force = self._get_collision_force(group1, group2)
-        contact_force = np.clip(collision_force, *contact_force_range)
-        contact_force = np.sum(np.square(contact_force), keepdims=True)
-        return contact_force
+    def _get_contact_force(self, group1, group2):
+        # Only the first three components are the contact force: the remaining three hold torques, which MuJoCo
+        # populates only for contacts with condim > 3
+        return self._get_collision_force(group1, group2)[:3]
 
     def _load_keyframe(self, name):
         keyframe = self._model.keyframe(name)
@@ -169,7 +164,8 @@ class Panda(MuJoCo):
         super().setup(obs)
         self._load_keyframe(self._keyframe)
 
-    # Gravity compensation implementation adapted from https://colab.research.google.com/drive/1zlsplgSyk59hxnw3kOJMIxAXuwxXqOHD?usp=sharing
+    # Gravity compensation implementation adapted from
+    # https://colab.research.google.com/drive/1zlsplgSyk59hxnw3kOJMIxAXuwxXqOHD?usp=sharing
     def get_body_children_ids(self, body_id):
         return [
             i
