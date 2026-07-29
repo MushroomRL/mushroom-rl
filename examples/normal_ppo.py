@@ -6,7 +6,12 @@ from tqdm import trange
 
 from mushroom_rl.algorithms.actor_critic import PPO
 from mushroom_rl.core import Core, Logger
-from mushroom_rl.environments.mujoco_warp_envs import AntWarp
+from mushroom_rl.environments.mujoco_warp_envs import (
+    AntWarp,
+    HopperWarp,
+    HalfCheetahWarp,
+    Walker2DWarp,
+)
 from mushroom_rl.policy import GaussianTorchPolicy
 
 from mushroom_rl.utils import TorchUtils
@@ -101,7 +106,7 @@ def experiment(
     )
 
     wandb_kwargs = Logger.default_wandb_kwargs(
-        "mushroom_rl_wandb_example",
+        f"mushroom_rl_{env_class.__name__}_seed_{seed}",
         config=hyperparams,
         name=PPO.__name__,
     )
@@ -223,19 +228,22 @@ def experiment(
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-
+    # parser.add_argument("--env_class", type=str, default="AntWarp")
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--num_envs", type=int, default=4000)
 
-    args = parser.parse_args()
-    experiment(
-        env_class=AntWarp,
-        num_envs=args.num_envs,  # --> make full number, i.e 8000?
-        n_epochs=50,  # --> half it
-        n_steps=300000,  # --> double the n_steps
-        n_steps_per_fit=30000,  # num_envs * 8
-        n_episodes_test=5,
-        use_graph_capture=True,
-        seed=args.seed,
-        save_agent=False,
-    )
+    classes = [HopperWarp, Walker2DWarp, HalfCheetahWarp]
+
+    for environment_class in classes:
+        args = parser.parse_args()
+        experiment(
+            env_class=environment_class,
+            num_envs=args.num_envs,  # --> make full number, i.e 8000?
+            n_epochs=50,  # --> half it
+            n_steps=300000,  # --> double the n_steps
+            n_steps_per_fit=30000,  # num_envs * 8
+            n_episodes_test=5,
+            use_graph_capture=True,
+            seed=args.seed,
+            save_agent=False,
+        )
