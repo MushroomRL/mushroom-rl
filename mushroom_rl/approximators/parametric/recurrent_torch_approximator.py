@@ -75,6 +75,14 @@ class RecurrentTorchApproximator(TorchApproximator):
 
         return self._parse_output(self.network(state, policy_state, lengths, **kwargs))
 
+    def diff(self, *args, **kwargs):
+        """
+        Not supported: ``diff`` follows the feedforward calling convention, which does not carry the sequence
+        lengths a recurrent network needs.
+
+        """
+        raise NotImplementedError('diff is not supported by recurrent approximators.')
+
     @staticmethod
     def _pad_sequence(x, ndim):
         if x.ndim == ndim:
@@ -98,14 +106,14 @@ class RecurrentTorchEnsemble(Ensemble):
 
     def __init__(self, network, input_shape, output_shape, policy_state_shape, optimizer=None, loss=None,
                  batch_size=0, n_fit_targets=1, reinitialize=False, dropout=False, quiet=True, n_models=None,
-                 prediction=None, action_history_shape=None, **params):
+                 prediction='mean', action_history_shape=None, **params):
         """
         Constructor.
 
         Args:
             n_models (int): number of models in the ensemble;
-            prediction (str, None): how to aggregate predictions across models. One of ``'mean'``, ``'min'``,
-                ``'max'``, ``'sum'``, or ``None`` to return all predictions;
+            prediction (str, 'mean'): how to aggregate predictions across models. One of ``'mean'``, ``'min'``,
+                ``'max'``, ``'sum'``, or ``'all'`` to return all predictions;
             **params: parameters forwarded to each :class:`RecurrentTorchApproximator`.
 
         """

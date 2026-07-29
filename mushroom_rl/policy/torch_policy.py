@@ -5,8 +5,7 @@ import torch.nn as nn
 
 from mushroom_rl.policy import Policy
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.utils.torch_utils import TorchUtils
-from mushroom_rl.utils.torch_distributions import CategoricalWrapper, SquashedGaussian
+from mushroom_rl.utils.torch_utils import TorchUtils, CategoricalWrapper, SquashedGaussian
 from mushroom_rl.rl_utils.parameters import Parameter
 
 from itertools import chain
@@ -267,7 +266,7 @@ class SquashedGaussianTorchPolicy(TorchPolicy):
     """
     Torch policy implementing a Gaussian policy squashed by a tanh and remapped to a bounded action range, as used
     by the Soft Actor-Critic algorithm. The squashing and the corresponding change-of-variables are handled by the
-    :class:`~mushroom_rl.utils.torch_distributions.SquashedGaussian` distribution.
+    :class:`~mushroom_rl.utils.torch_utils.torch_distributions.SquashedGaussian` distribution.
 
     """
     def __init__(self, mu_approximator, sigma_approximator, min_a, max_a, log_std_min, log_std_max):

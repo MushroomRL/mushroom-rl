@@ -18,3 +18,10 @@ For Mushroom 2.1:
       - currently ignored in circular-buffer phase; info is never read back during sampling
     * vectorized env rendering
       - render a single window by default instead of one per active env; optionally a grid viewer compositing all envs
+    * implement diff properly for recurrent approximators
+      - TorchApproximator.diff is written for the feedforward calling convention, so it fails on
+        RecurrentTorchApproximator: `lengths` is padded to 2-D and breaks pack_padded_sequence, `lengths` is not
+        defaulted to ones as predict does, and the observation gets only the batch pad instead of the batch and
+        sequence pads applied by _pad_sequence
+      - multi-output networks (e.g. RecurrentActorNetwork, returning action and next hidden state) are rejected by
+        an assertion, since there is no single matrix packing gradients of outputs of different shape

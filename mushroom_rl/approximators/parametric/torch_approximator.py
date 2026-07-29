@@ -7,8 +7,7 @@ from torch.func import stack_module_state, functional_call, vmap, grad
 from mushroom_rl.core.mushroom_object import MushroomObject
 from mushroom_rl.approximators.approximator import Approximator, Ensemble
 from mushroom_rl.utils.minibatches import minibatch_generator, ensemble_minibatch_generator
-from mushroom_rl.utils.torch_utils import TorchUtils
-from mushroom_rl.utils.torch_training import TorchTrainer
+from mushroom_rl.utils.torch_utils import TorchUtils, TorchTrainer
 
 
 class TorchApproximator(Approximator):
@@ -118,6 +117,17 @@ class TorchApproximator(Approximator):
             TorchUtils.update_optimizer_parameters(self._optimizer, list(self.network.parameters()))
         self._trainer.set_callbacks(self._fit_epoch, self._compute_val_loss, self._store_loss)
 
+    def _pad_inputs(self, args, kwargs):
+        n_declared = len(self._input_ndims)
+        args = [a.unsqueeze(0) if i < n_declared and a.ndim == self._input_ndims[i] else a
+                for i, a in enumerate(args)]
+        for name, ndim in self._kwargs_ndims.items():
+            value = kwargs[name]
+            if value.ndim == ndim:
+                kwargs[name] = value.unsqueeze(0)
+
+        return args, kwargs
+
     @staticmethod
     def _parse_single_output(out):
         return out.squeeze(0)
@@ -141,13 +151,8 @@ class TorchApproximator(Approximator):
             The predictions of the model.
 
         """
-        n_declared = len(self._input_ndims)
-        args = [a.unsqueeze(0) if i < n_declared and a.ndim == self._input_ndims[i] else a
-                for i, a in enumerate(args)]
-        for name, ndim in self._kwargs_ndims.items():
-            value = kwargs[name]
-            if value.ndim == ndim:
-                kwargs[name] = value.unsqueeze(0)
+        args, kwargs = self._pad_inputs(args, kwargs)
+
         return self._parse_output(self.network(*args, **kwargs))
 
     def fit(self, *args, n_epochs=None, weights=None, epsilon=None, patience=1, validation_split=1., **kwargs):
@@ -281,7 +286,12 @@ class TorchApproximator(Approximator):
 
     def diff(self, *args, **kwargs):
         """
-        Compute the derivative of the output w.r.t. ``state``, and ``action`` if provided.
+        Compute the derivative of the output w.r.t. ``state``, and ``action`` if provided. The positional
+        inputs and the keyword inputs declared via ``kwargs_shape`` / ``action_history_shape`` are
+        batch-padded when a single (unbatched) sample is provided, exactly as by ``predict``. Positional
+        inputs beyond the declared ones, such as the ``action`` a Q-network gathers with, carry no declared
+        rank and are padded to two dimensions instead. Only single-output networks are supported, since
+        there is no single matrix packing the gradients of outputs of different shape.
 
         Args:
             *args: input;
@@ -291,9 +301,13 @@ class TorchApproximator(Approximator):
             The derivative of the output w.r.t. ``state``, and ``action`` if provided.
 
         """
-        torch_args = [torch.atleast_2d(x) for x in args]
+        assert not isinstance(self._output_shape, list), 'diff is not supported by multi-output networks.'
 
-        y_hat = self.network(*torch_args, **kwargs)
+        n_declared = len(self._input_ndims)
+        args, kwargs = self._pad_inputs(args, kwargs)
+        args = args[:n_declared] + [torch.atleast_2d(a) for a in args[n_declared:]]
+
+        y_hat = self.network(*args, **kwargs)
         n_outs = 1 if len(y_hat.shape) == 0 else y_hat.shape[-1]
         y_hat = y_hat.view(-1, n_outs)
 
@@ -322,7 +336,7 @@ class TorchEnsemble(Ensemble):
 
     def __init__(self, network, input_shape, output_shape, optimizer=None, loss=None, batch_size=0,
                  n_fit_targets=1, reinitialize=False, dropout=False, quiet=True, n_models=None,
-                 prediction=None, **params):
+                 prediction='mean', action_history_shape=None, kwargs_shape=None, **params):
         """
         Constructor.
 
@@ -343,8 +357,15 @@ class TorchEnsemble(Ensemble):
             dropout (bool, False): if True, dropout is applied only during train;
             quiet (bool, True): if False, shows a progress bar over epochs;
             n_models (int): number of models in the ensemble;
-            prediction (str, None): how to aggregate predictions across models. One of
-                ``'mean'``, ``'min'``, ``'max'``, ``'sum'``, or ``None`` to return all predictions;
+            prediction (str, 'mean'): how to aggregate predictions across models. One of ``'mean'``,
+                ``'min'``, ``'max'``, ``'sum'``, or ``'all'`` to return all predictions;
+            action_history_shape (tuple, None): the per-timestep shape of the ``action_history``
+                keyword input, when the network consumes the previous action. Convenience shortcut
+                for ``kwargs_shape={'action_history': action_history_shape}``;
+            kwargs_shape (dict, None): mapping ``{name: shape}`` declaring keyword inputs of the
+                network. Declared keyword inputs are batch-padded by ``predict`` exactly like the
+                positional inputs, and each shape is forwarded to the network constructor under the
+                ``{name}_shape`` keyword (e.g. ``action_history`` -> ``action_history_shape``);
             **params: dictionary of parameters needed to construct the network.
 
         """
@@ -352,7 +373,15 @@ class TorchEnsemble(Ensemble):
                          input_shape=input_shape, output_shape=output_shape, network=network,
                          optimizer=optimizer, loss=loss, batch_size=batch_size,
                          n_fit_targets=n_fit_targets, reinitialize=reinitialize,
-                         dropout=dropout, quiet=quiet, **params)
+                         dropout=dropout, quiet=quiet, action_history_shape=action_history_shape,
+                         kwargs_shape=kwargs_shape, **params)
+
+        self._input_ndims = [len(s) for s in input_shape] if isinstance(input_shape, list) else [len(input_shape)]
+
+        kwargs_shape = dict(kwargs_shape) if kwargs_shape is not None else dict()
+        if action_history_shape is not None:
+            kwargs_shape['action_history'] = action_history_shape
+        self._kwargs_ndims = {name: len(shape) for name, shape in kwargs_shape.items()}
 
         self._base_model = deepcopy(self._models[0].network).to('meta').eval()
         self._params, self._buffers = stack_module_state([m.network for m in self._models])
@@ -360,7 +389,11 @@ class TorchEnsemble(Ensemble):
                                      self._fit_epoch, self._compute_val_loss,
                                      self._store_loss, quiet)
 
-        self._add_save_attr(_trainer='mushroom')
+        self._add_save_attr(
+            _input_ndims='primitive',
+            _kwargs_ndims='primitive',
+            _trainer='mushroom',
+        )
 
     def _sync_params(self):
         if any(m._dirty for m in self._models):
@@ -369,50 +402,64 @@ class TorchEnsemble(Ensemble):
                 m._dirty = False
 
     def _post_load(self):
+        super()._post_load()
+
         self._base_model = deepcopy(self._models[0].network).to('meta').eval()
         for m in self._models:
             m._dirty = True
         self._sync_params()
         self._trainer.set_callbacks(self._fit_epoch, self._compute_val_loss, self._store_loss)
 
-    def predict(self, *args, idx=None, prediction=None, **kwargs):
+    def _parse_single_output(self, out, prediction, compute_variance):
+        return self._aggregate(out.squeeze(1), prediction, compute_variance)
+
+    def _parse_multi_output(self, out, prediction, compute_variance):
+        return tuple(self._aggregate(o.squeeze(1), prediction, compute_variance) for o in out)
+
+    def predict(self, *args, idx=None, prediction=None, compute_variance=False, **kwargs):
         """
-        Predict.
+        Predict. The positional inputs and the keyword inputs declared via ``kwargs_shape`` /
+        ``action_history_shape`` are batch-padded when a single (unbatched) sample is provided, exactly as by
+        a single model. A declared keyword input that is not passed raises a ``KeyError``.
 
         Args:
             *args: input;
             idx (int, None): if provided, use only the model at that index;
-            prediction (str, None): aggregation mode, overrides the constructor default.
-                One of ``'mean'``, ``'min'``, ``'max'``, ``'sum'``, or ``None`` to return all;
-            **kwargs: other parameters used by the predict method of the regressor.
+            prediction (str, None): aggregation mode, overrides the constructor default. One of ``'mean'``,
+                ``'min'``, ``'max'``, ``'sum'``, or ``'all'`` to return all predictions. ``None`` uses the
+                constructor default;
+            compute_variance (bool, False): if ``True``, also return the variance across models.
+            **kwargs: other parameters used by the predict method of the regressor, including any declared
+                keyword input.
 
         Returns:
-            The predictions of the model, aggregated according to ``prediction``.
+            The predictions of the model, aggregated according to ``prediction``. An aggregated prediction has
+            the same shape as the prediction of a single model, while an un-aggregated one carries an
+            additional leading model axis. If ``compute_variance`` is ``True``, a list
+            ``[predictions, variance]`` is returned instead.
 
         """
+        assert not compute_variance or prediction != 'all'
         if idx is not None:
             return self._models[idx].predict(*args, **kwargs)
 
         self._sync_params()
-        torch_args = tuple(torch.atleast_2d(torch.as_tensor(x, device=TorchUtils.get_device())) for x in args)
+
+        n_declared = len(self._input_ndims)
+        torch_args = tuple(torch.as_tensor(x, device=TorchUtils.get_device()) for x in args)
+        torch_args = tuple(a.unsqueeze(0) if i < n_declared and a.ndim == self._input_ndims[i] else a
+                           for i, a in enumerate(torch_args))
+        for name, ndim in self._kwargs_ndims.items():
+            value = kwargs[name]
+            if value.ndim == ndim:
+                kwargs[name] = value.unsqueeze(0)
 
         def fwd(params, buffers):
             return functional_call(self._base_model, (params, buffers), torch_args, kwargs=kwargs)
 
-        predictions = vmap(fwd)(self._params, self._buffers)
-
         prediction = prediction if prediction is not None else self._prediction
-        if prediction is None:
-            return predictions
-        if prediction == 'mean':
-            return predictions.mean(0)
-        elif prediction == 'min':
-            return predictions.min(0).values
-        elif prediction == 'max':
-            return predictions.max(0).values
-        elif prediction == 'sum':
-            return predictions.sum(0)
-        raise ValueError
+
+        return self._parse_output(vmap(fwd)(self._params, self._buffers), prediction, compute_variance)
 
     def fit(self, *args, idx=None, n_epochs=None, weights=None, epsilon=None, patience=1,
             validation_split=1., **kwargs):
