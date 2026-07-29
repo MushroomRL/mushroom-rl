@@ -1,3 +1,4 @@
+import cv2
 import json
 import logging
 import numpy as np
@@ -10,10 +11,28 @@ from mushroom_rl.core.dataset import Dataset
 from mushroom_rl.environments import SimpleChain
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.rl_utils.parameters import Parameter
+from mushroom_rl.utils.record import VideoRecorder, VectorizedVideoRecorder
 
 
 def release_logger_name(log_id):
     logging.getLogger(log_id).handlers.clear()
+
+
+def read_frame_values(path):
+    capture = cv2.VideoCapture(str(path))
+    values = list()
+
+    while True:
+        read, frame = capture.read()
+
+        if not read:
+            break
+
+        values.append(frame.mean())
+
+    capture.release()
+
+    return values
 
 
 def test_logger(tmpdir):
@@ -267,10 +286,10 @@ def test_video_logger_ignores_missing_frames(tmpdir):
 
 def test_video_logger_custom_recorder():
     class FrameRecorder:
-        def __init__(self, fps=None):
+        def __init__(self, fps=None, **kwargs):
             self.frames = []
 
-        def __call__(self, frame):
+        def __call__(self, frame, mask=None):
             self.frames.append(frame)
 
         def stop(self):
@@ -293,10 +312,10 @@ def test_video_logger_custom_recorder():
 
 def test_video_logger_set_fps():
     class FrameRecorder:
-        def __init__(self, fps=None):
+        def __init__(self, fps=None, **kwargs):
             self.fps = fps
 
-        def __call__(self, frame):
+        def __call__(self, frame, mask=None):
             pass
 
         def stop(self):
@@ -340,6 +359,84 @@ def test_video_logger_append(tmpdir):
     release_logger_name('test_video_logger_append')
     logger_append = Logger('test_video_logger_append', results_dir=tmpdir, fps=30, append=True)
     assert logger_append.recorded_videos == [path]
+
+
+def test_video_logger_vectorized_dispatch(tmpdir):
+    logger = Logger('test_video_logger_vectorized_dispatch', results_dir=tmpdir, fps=30)
+
+    frames = np.zeros((2, 100, 100, 3), dtype=np.uint8)
+    logger.record_frame(frames, np.array([True, True]))
+
+    assert isinstance(logger.video_recorder, VectorizedVideoRecorder)
+
+    logger.stop_recording()
+
+    release_logger_name('test_video_logger_vectorized_dispatch')
+    logger_single = Logger('test_video_logger_vectorized_dispatch', results_dir=tmpdir, fps=30)
+
+    logger_single.record_frame(np.zeros((100, 100, 3), dtype=np.uint8))
+
+    assert isinstance(logger_single.video_recorder, VideoRecorder)
+    assert not isinstance(logger_single.video_recorder, VectorizedVideoRecorder)
+
+    logger_single.stop_recording()
+
+
+def test_video_logger_vectorized_concatenation(tmpdir):
+    logger = Logger('test_video_logger_vectorized_concatenation', results_dir=tmpdir, fps=30)
+
+    for step in range(1, 4):
+        frames = np.stack([np.full((100, 100, 3), 10 * (3 * env + step), dtype=np.uint8) for env in range(3)])
+        logger.record_frame(frames, np.array([True, True, True]))
+
+    path = logger.stop_recording()
+
+    assert path.name == 'recording.mp4'
+    assert logger.recorded_videos == [path]
+
+    video_dir = Path(tmpdir) / 'test_video_logger_vectorized_concatenation' / 'videos'
+    assert list(video_dir.rglob('*.mp4')) == [path]
+    assert not list(video_dir.rglob('*.mkv'))
+    assert path.stat().st_size > 0
+
+    values = read_frame_values(path)
+
+    assert len(values) == 9
+    assert all(value > 0 for value in values)
+
+
+def test_video_logger_vectorized_partial_mask(tmpdir):
+    logger = Logger('test_video_logger_vectorized_partial_mask', results_dir=tmpdir, fps=30)
+
+    first = np.stack([np.full((100, 100, 3), value, dtype=np.uint8) for value in (10, 20, 30)])
+    logger.record_frame(first, np.array([True, True, True]))
+
+    second = np.stack([np.full((100, 100, 3), value, dtype=np.uint8) for value in (40, 50)])
+    logger.record_frame(second, np.array([True, False, True]))
+
+    path = logger.stop_recording()
+
+    values = read_frame_values(path)
+
+    assert len(values) == 5
+    assert all(value > 0 for value in values)
+
+
+def test_video_logger_vectorized_reuse(tmpdir):
+    logger = Logger('test_video_logger_vectorized_reuse', results_dir=tmpdir, fps=30)
+
+    frames = np.zeros((2, 100, 100, 3), dtype=np.uint8)
+
+    logger.record_frame(frames, np.array([True, True]))
+    first = logger.stop_recording()
+
+    logger.record_frame(frames, np.array([True, True]))
+    second = logger.stop_recording()
+
+    assert first.name == 'recording.mp4'
+    assert second.name == 'recording-1.mp4'
+    assert logger.recorded_videos == [first, second]
+    assert logger.stop_recording() is None
 
 
 def test_log_dataset(tmpdir):

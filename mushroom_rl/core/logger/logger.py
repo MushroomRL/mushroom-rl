@@ -46,8 +46,8 @@ class Logger(DataLogger, ConsoleLogger, VideoLogger, WandbLogger):
                 ``log`` method are also stored on disk as numpy arrays (only if a
                 results directory is set);
             recorder_class (class, None): the class used to record video. By default,
-                the ``VideoRecorder`` class is used. The class must implement the
-                ``__call__`` and ``stop`` methods;
+                the ``VideoRecorder`` class is used, and any class implementing its
+                interface can be used instead;
             fps (int, None): frames per second for video recording. If None, the
                 value is set automatically by ``Core.set_logger`` from the environment;
             recorder_kwargs (dict, None): additional keyword arguments forwarded to

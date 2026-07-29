@@ -361,7 +361,7 @@ class VectorizedCore(Core):
             frame = self.env.render_all(mask, record=record)
 
             if record:
-                self.agent.logger.record_frame(frame)
+                self.agent.logger.record_frame(frame, mask)
 
         last = absorbing | (self._episode_steps >= self.env.info.horizon)
 
