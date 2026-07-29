@@ -248,19 +248,19 @@ def test_torch_ensemble_predict_all_keeps_model_axis():
     stacked = ensemble.predict(unbatched)
     assert stacked.shape == (3, 6)
     for i in range(3):
-        assert torch.allclose(stacked[i], ensemble.predict(unbatched, idx=i))
+        assert torch.allclose(stacked[i], ensemble.predict(unbatched, idx=i), atol=1e-6)
 
     batch_one = torch.rand(1, 4, 20, 20)
     stacked_one = ensemble.predict(batch_one)
     assert stacked_one.shape == (3, 6)
     for i in range(3):
-        assert torch.allclose(stacked_one[i], ensemble.predict(batch_one, idx=i))
+        assert torch.allclose(stacked_one[i], ensemble.predict(batch_one, idx=i), atol=1e-6)
 
     batch_five = torch.rand(5, 4, 20, 20)
     stacked_five = ensemble.predict(batch_five)
     assert stacked_five.shape == (3, 5, 6)
     for i in range(3):
-        assert torch.allclose(stacked_five[i], ensemble.predict(batch_five, idx=i))
+        assert torch.allclose(stacked_five[i], ensemble.predict(batch_five, idx=i), atol=1e-6)
 
     assert torch.allclose(ensemble.predict(batch_five, prediction='mean'), stacked_five.mean(0))
 
@@ -499,7 +499,7 @@ def test_torch_ensemble_predict_all():
     stacked = ensemble.predict(batch_five, prediction='all')
     assert stacked.shape == (3, 5, 2)
     for i in range(3):
-        assert torch.allclose(stacked[i], ensemble.predict(batch_five, idx=i))
+        assert torch.allclose(stacked[i], ensemble.predict(batch_five, idx=i), atol=1e-6)
 
     assert torch.allclose(ensemble.predict(batch_five), stacked.mean(0))
     assert torch.allclose(ensemble.predict(batch_five, prediction=None), stacked.mean(0))

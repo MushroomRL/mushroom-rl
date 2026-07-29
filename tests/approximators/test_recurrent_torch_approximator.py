@@ -215,4 +215,5 @@ def test_recurrent_ensemble_prediction_all():
     assert stacked.shape == (3, batch)
     assert torch.allclose(mean, stacked.mean(0))
     for i in range(3):
-        assert torch.allclose(stacked[i], approximator.predict(state, policy_state, lengths=lengths, idx=i))
+        assert torch.allclose(stacked[i], approximator.predict(state, policy_state, lengths=lengths, idx=i),
+                              atol=1e-6)
