@@ -9,13 +9,13 @@ class AveragedDQN(AbstractDQN):
     Anschel O. et al. 2017.
 
     """
-    def __init__(self, mdp_info, policy, approximator=TorchApproximator, n_approximators=2, **params):
+    def __init__(self, mdp_info, policy, approximator=TorchApproximator, n_approximators=5, **params):
         """
         Constructor.
 
         Args:
             approximator (class, TorchApproximator): the approximator to use to fit the Q-function;
-            n_approximators (int, 2): the number of target approximators to store.
+            n_approximators (int, 5): the number of target approximators to store.
 
         """
         assert n_approximators > 1
