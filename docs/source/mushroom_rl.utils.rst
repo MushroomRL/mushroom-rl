@@ -8,6 +8,15 @@ Angles
     :members:
     :show-inheritance:
 
+Experiments
+-----------
+
+.. automodule:: mushroom_rl.utils.experiments
+    :members:
+    :private-members:
+    :show-inheritance:
+
+
 Features
 --------
 

@@ -104,7 +104,7 @@ For instance, to run a quick experiment with one of the provided example scripts
 
 .. code:: shell
 
-    python3 examples/car_on_hill_fqi.py
+    python3 examples/papers/car_on_hill_fqi.py
 
 Cite MushroomRL
 ===============

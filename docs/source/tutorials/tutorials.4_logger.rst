@@ -205,7 +205,7 @@ While the numpy evaluation logging is typically driven by the experiment script,
 meant to be driven from inside the algorithms, which log their internal metrics (e.g. losses, entropy, KL
 divergence) during the fit, once the logger is attached to the agent through the ``Core`` (via
 ``set_logger`` or the constructor) as shown above. A complete runnable example with metric logging is
-available in ``examples/wandb_logging.py``.
+available in ``examples/tools/wandb_logging.py``.
 
 When the logger is attached, it is automatically forwarded down the agent's loggable components, so that
 their relevant quantities are logged under a hierarchy of grouped metric names without any extra code: the
