@@ -5,5 +5,5 @@ omit =
     mushroom_rl/environments/isaacsim_envs/*
     mushroom_rl/utils/mujoco/viewer.py
     mushroom_rl/utils/pybullet/viewer.py
-    mushroom_rl/utils/plots/*
-    mushroom_rl/utils/callbacks/plot_dataset.py
+    mushroom_rl/utils/monitors/*
+    mushroom_rl/utils/callbacks/dataset_monitor.py

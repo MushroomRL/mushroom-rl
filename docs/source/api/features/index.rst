@@ -41,14 +41,17 @@ of a three-dimensional observation space:
     tilings = Tiles.generate(10, [10, 10], mdp.info.observation_space.low,
                              mdp.info.observation_space.high, dimensions=[0, 2])
 
-.. automodule:: mushroom_rl.features.features
-    :private-members:
+.. autosummary::
+   :nosignatures:
 
-The documentation for every feature type can be found here:
+   ~mushroom_rl.features.features.Features
+
+The ``Features`` interface and the documentation for every feature type can be found here:
 
 .. toctree::
    :maxdepth: 1
 
+   features
    basis
    tensors
    tiles

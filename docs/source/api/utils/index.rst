@@ -19,7 +19,8 @@ implemented.
    torch_utils
    viewer
    callbacks
-   plots
+   monitors
+   plot
    mujoco
    pybullet
    isaac_sim

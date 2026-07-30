@@ -42,7 +42,7 @@ missing from ``Environment.list_registered()`` means its extra is not installed.
    "``mujoco``", "The MuJoCo environments, and the DeepMind Control Suite"
    "``bullet``", "The PyBullet environments"
    "``box2d``", "The Box2D Gymnasium environments"
-   "``plots``", "The live plotting windows (:doc:`api/utils/plots`)"
+   "``monitors``", "The live plotting windows (:doc:`api/utils/monitors`)"
    "``wandb``", "Logging to Weights & Biases"
    "``all``", "Everything above **except** ``box2d`` and ``bullet``"
 

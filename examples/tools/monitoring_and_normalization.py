@@ -1,5 +1,5 @@
 """
-This script shows how to use the observation normalization preprocessor and the dataset plotting callback.
+This script shows how to use the observation normalization preprocessor and the dataset monitoring callback.
 
 """
 import numpy as np
@@ -13,7 +13,7 @@ from mushroom_rl.environments import LQR
 from mushroom_rl.policy import StateStdGaussianPolicy
 from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer
 from mushroom_rl.rl_utils.preprocessors import MinMaxPreprocessor
-from mushroom_rl.utils.callbacks import PlotDataset
+from mushroom_rl.utils.callbacks import DatasetMonitor
 
 
 def experiment(n_epochs, n_iterations, ep_per_run, seed=None):
@@ -22,7 +22,7 @@ def experiment(n_epochs, n_iterations, ep_per_run, seed=None):
     # MDP
     mdp = LQR.generate(dimensions=2, max_pos=10., max_action=5., episodic=True)
 
-    logger = Logger('plotting_and_normalization', results_dir=None)
+    logger = Logger('monitoring_and_normalization', results_dir=None)
     logger.log_experiment_info(REINFORCE, mdp, n_epochs=n_epochs, n_iterations=n_iterations,
                                ep_per_run=ep_per_run)
 
@@ -44,11 +44,11 @@ def experiment(n_epochs, n_iterations, ep_per_run, seed=None):
     # normalization preprocessor
     agent.add_core_preprocessor(MinMaxPreprocessor(mdp_info=mdp.info))
 
-    # plotting callback
-    plotter = PlotDataset(mdp.info, obs_normalized=True)
+    # monitoring callback
+    monitor = DatasetMonitor(mdp.info, obs_normalized=True)
 
     # Train
-    core = Core(agent, mdp, logger=logger, callback_step=plotter)
+    core = Core(agent, mdp, logger=logger, callback_step=monitor)
 
     for n in trange(n_epochs, leave=False):
         core.learn(n_episodes=n_iterations * ep_per_run,

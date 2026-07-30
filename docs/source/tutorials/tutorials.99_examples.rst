@@ -107,6 +107,6 @@ Others Examples (Tools)
 
 - `Logging, Weights & Biases and Video Recording <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/tools/wandb_logging.py>`_
 - `Video Recording of a Vectorized Environment <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/tools/multiprocess_env_recording.py>`_
-- `Using Dataset Plotting callback and State Normalization <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/tools/plotting_and_normalization.py>`_
+- `Using Dataset Monitoring callback and State Normalization <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/tools/monitoring_and_normalization.py>`_
 - `Using the list Dataset backend <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/tools/list_backend.py>`_
 - `Using the Finite MDP Viewer <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/tools/gridworld_viewer.py>`_

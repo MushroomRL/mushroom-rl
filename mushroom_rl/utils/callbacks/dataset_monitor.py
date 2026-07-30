@@ -1,12 +1,12 @@
 import numpy as np
 
 from mushroom_rl.utils.callbacks.callback import Callback
-from mushroom_rl.utils.plots import DataBuffer, Window, Actions,\
-    LenOfEpisodeTraining, Observations, RewardPerEpisode, RewardPerStep
+from mushroom_rl.utils.monitors import DataBuffer, Window, Actions, LenOfEpisodeTraining, Observations, \
+    RewardPerEpisode, RewardPerStep
 from mushroom_rl.core.spaces import Box
 
 
-class PlotDataset(Callback):
+class DatasetMonitor(Callback):
     """
     This callback is used for plotting the values of the actions, observations,
     reward per step, reward per episode, episode length only for the training.
@@ -70,7 +70,7 @@ class PlotDataset(Callback):
                         dotted_limits.append(True)
                     else:
                         dotted_limits.append(False)
-                        
+
                     high_mdp[i] = 1
                     low_mdp[i] = -1
         else:

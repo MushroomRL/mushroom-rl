@@ -85,13 +85,18 @@ representing a state of the MDP.
 .. toctree::
    :caption: Getting started
    :maxdepth: 1
+   :titlesonly:
+   :hidden:
 
+   What is MushroomRL <self>
    source/installation
+   source/contents
 
 
 .. toctree::
    :caption: Tutorials
    :maxdepth: 2
+   :hidden:
 
    source/tutorials/tutorials.0_experiments
    source/tutorials/tutorials.1_advanced
@@ -108,6 +113,7 @@ representing a state of the MDP.
 .. toctree::
    :caption: API
    :maxdepth: 2
+   :hidden:
 
    source/api/core/index
    source/api/algorithms/index

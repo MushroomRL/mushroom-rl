@@ -68,11 +68,11 @@ For ubuntu>20.04, you may need to install pygame and gym dependencies:
 
 Notice that you still need to install some of these dependencies for different operating systems, e.g. swig for macOS 
 
-Below is the code that you need to run to install the Plots dependencies:
+Below is the code that you need to run to install the live monitors dependencies:
 
 .. code:: shell
 
-    pip install mushroom-rl[plots]
+    pip install mushroom-rl[monitors]
 
 The `dm_control <https://github.com/deepmind/dm_control>`_ interface does not need a separate installation:
 ``dm_control`` is installed together with ``MuJoCo`` by the ``mujoco`` extra.

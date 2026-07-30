@@ -28,7 +28,7 @@ extras = {
     'box2d': ['box2d-py'],
     'bullet': ['pybullet'],
     'mujoco': ['mujoco>=3.11', 'dm_control>=1.0.44'],
-    'plots': ['pyqtgraph', 'PySide6'],
+    'monitors': ['pyqtgraph', 'PySide6'],
     'wandb': ['wandb']
 }
 
