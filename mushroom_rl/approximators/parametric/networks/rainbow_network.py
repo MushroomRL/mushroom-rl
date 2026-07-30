@@ -58,9 +58,7 @@ class RainbowNetwork(nn.Module):
         softmax = F.softmax(a_pv + a_pa - mean_a_pa, dim=-1)
 
         if not get_distribution:
-            q = torch.empty(softmax.shape[:-1])
-            for i in range(softmax.shape[0]):
-                q[i] = softmax[i] @ self._a_values
+            q = softmax @ self._a_values
 
             if action is not None:
                 return torch.squeeze(q.gather(1, action))

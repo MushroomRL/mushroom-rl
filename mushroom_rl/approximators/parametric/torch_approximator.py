@@ -336,7 +336,8 @@ class TorchEnsemble(Ensemble):
 
     def __init__(self, network, input_shape, output_shape, optimizer=None, loss=None, batch_size=0,
                  n_fit_targets=1, reinitialize=False, dropout=False, quiet=True, n_models=None,
-                 prediction='mean', action_history_shape=None, kwargs_shape=None, **params):
+                 prediction='mean', randomness='different', action_history_shape=None,
+                 kwargs_shape=None, **params):
         """
         Constructor.
 
@@ -359,6 +360,10 @@ class TorchEnsemble(Ensemble):
             n_models (int): number of models in the ensemble;
             prediction (str, 'mean'): how to aggregate predictions across models. One of ``'mean'``,
                 ``'min'``, ``'max'``, ``'sum'``, or ``'all'`` to return all predictions;
+            randomness (str, 'different'): how random operations inside the network (e.g. the noise of a
+                noisy layer, or dropout) behave across the models of the ensemble. ``'different'`` draws
+                independent randomness per model, ``'same'`` shares a single draw across all models, and
+                ``'error'`` forbids random operations altogether;
             action_history_shape (tuple, None): the per-timestep shape of the ``action_history``
                 keyword input, when the network consumes the previous action. Convenience shortcut
                 for ``kwargs_shape={'action_history': action_history_shape}``;
@@ -376,6 +381,7 @@ class TorchEnsemble(Ensemble):
                          dropout=dropout, quiet=quiet, action_history_shape=action_history_shape,
                          kwargs_shape=kwargs_shape, **params)
 
+        self._randomness = randomness
         self._input_ndims = [len(s) for s in input_shape] if isinstance(input_shape, list) else [len(input_shape)]
 
         kwargs_shape = dict(kwargs_shape) if kwargs_shape is not None else dict()
@@ -390,6 +396,7 @@ class TorchEnsemble(Ensemble):
                                      self._store_loss, quiet)
 
         self._add_save_attr(
+            _randomness='primitive',
             _input_ndims='primitive',
             _kwargs_ndims='primitive',
             _trainer='mushroom',
@@ -459,7 +466,8 @@ class TorchEnsemble(Ensemble):
 
         prediction = prediction if prediction is not None else self._prediction
 
-        return self._parse_output(vmap(fwd)(self._params, self._buffers), prediction, compute_variance)
+        return self._parse_output(vmap(fwd, randomness=self._randomness)(self._params, self._buffers),
+                                  prediction, compute_variance)
 
     def fit(self, *args, idx=None, n_epochs=None, weights=None, epsilon=None, patience=1,
             validation_split=1., **kwargs):
@@ -548,7 +556,7 @@ class TorchEnsemble(Ensemble):
             all_data = all_data + (stacked_w,)
 
         per_model_grads, per_model_losses = vmap(
-            grad(compute_loss, has_aux=True)
+            grad(compute_loss, has_aux=True), randomness=self._randomness
         )(self._params, self._buffers, *all_data)
 
         for i, m in enumerate(self._models):
@@ -579,7 +587,7 @@ class TorchEnsemble(Ensemble):
             return trainer.compute_loss_from_output(y_hat, y_targets, weights)
 
         with torch.no_grad():
-            losses = vmap(compute_loss)(self._params, self._buffers)
+            losses = vmap(compute_loss, randomness=self._randomness)(self._params, self._buffers)
         return float(losses.mean().item())
 
     def _store_loss(self, losses):

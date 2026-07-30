@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import torch
 import torch.nn as nn
@@ -34,7 +35,7 @@ def get_variant_params(alg):
     return variant_params.get(alg, dict())
 
 
-def learn(alg, alg_params, logger=None):
+def learn(alg, alg_params, logger=None, n_models=None, randomness=None):
     # MDP
     mdp = CartPole()
     np.random.seed(1)
@@ -57,6 +58,12 @@ def learn(alg, alg_params, logger=None):
                                n_features=2,
                                n_layers=0
                                )
+
+    if n_models is not None:
+        approximator_params['n_models'] = n_models
+
+    if randomness is not None:
+        approximator_params['randomness'] = randomness
 
     # Agent
     agent = alg(mdp.info, pi, approximator_params=approximator_params,
@@ -316,6 +323,24 @@ def test_categorical_dqn_save(tmpdir):
         tu.assert_eq(save_attr, load_attr)
 
 
+def test_categorical_dqn_ensemble():
+    params = dict(batch_size=50, initial_replay_size=100,
+                  max_replay_size=5000, target_update_frequency=50)
+    approximator = learn(CategoricalDQN, params, n_models=2).approximator
+
+    w = approximator.get_weights()
+    w_test = torch.tensor([[0.99830014, 0.30862880, -0.38377142, -0.66719884, -0.72498733,
+                            0.48335490, -0.13292903, -0.45644495, -0.46482500, -0.01319471,
+                            0.13840525, 0.09260134, 0.68031740, 0.62151283, -1.14746261,
+                            0.80342537, 0.03018998, 0.06947609],
+                           [-0.42118350, -0.20138900, -1.10992527, -0.51682109, -0.73422748,
+                            -0.27915561, 0.73996288, -0.22297402, 1.14453173, 0.90700752,
+                            0.63015109, -0.23550124, 0.01245439, -0.74631345, 0.67602193,
+                            0.30892509, -0.44027597, 0.27289289]])
+
+    assert torch.allclose(w, w_test, rtol=1e-4)
+
+
 def test_quantile_dqn():
     params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=5000, target_update_frequency=50)
@@ -380,6 +405,34 @@ def test_noisy_dqn_save(tmpdir):
         tu.assert_eq(save_attr, load_attr)
 
 
+def test_noisy_dqn_ensemble():
+    params = dict(batch_size=50, initial_replay_size=100,
+                  max_replay_size=5000, target_update_frequency=50)
+    approximator = learn(NoisyDQN, params, n_models=2).approximator
+
+    w = approximator.get_weights()
+    w_test = torch.tensor([[-0.31128243, 0.56742239, 0.14685135, -0.16481605, -0.61745375,
+                            0.41514882, 0.14010701, 0.09320547, 0.18906650, -0.19923376,
+                            0.00755294, -0.13527167, 0.30086264, 0.40413558, 0.29461730,
+                            0.41600201, 0.40639064, 0.29105210, 0.14933082, 0.07377291,
+                            0.54131001, 0.39827541, 0.42120215, 0.28398669],
+                           [0.06294403, 0.76217669, 0.69013655, -1.15468574, -0.24574728,
+                            -0.16705115, 0.39663973, 0.20313065, 0.71676534, 0.42320797,
+                            -0.66667509, -0.64505261, 0.31736046, 0.33818042, 0.39665458,
+                            0.30461195, 0.33025485, 0.36893621, -0.27435872, 0.59338033,
+                            -0.16370605, 0.41478497, 0.31813756, 0.30946082]])
+
+    assert torch.allclose(w, w_test, rtol=1e-4)
+
+
+def test_ensemble_randomness_error():
+    params = dict(batch_size=50, initial_replay_size=100,
+                  max_replay_size=5000, target_update_frequency=50)
+
+    with pytest.raises(RuntimeError):
+        learn(NoisyDQN, params, n_models=2, randomness='error')
+
+
 def test_rainbow():
     params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=500, target_update_frequency=50, n_steps_return=3,
@@ -415,3 +468,34 @@ def test_rainbow_save(tmpdir):
         load_attr = getattr(agent_load, att)
 
         tu.assert_eq(save_attr, load_attr)
+
+
+def test_rainbow_ensemble():
+    params = dict(batch_size=50, initial_replay_size=100,
+                  max_replay_size=500, target_update_frequency=50, n_steps_return=3,
+                  alpha_coeff=.6, beta=LinearParameter(.4, threshold_value=1, n=500 // 5))
+    approximator = learn(Rainbow, params, n_models=2).approximator
+
+    w = approximator.get_weights()
+    w_test = torch.tensor([[0.43343487, -0.24157998, -0.20616950, 0.26137239, 0.41191459,
+                            0.41725552, 0.29342473, 0.28889030, -0.58864588, 0.34701362,
+                            0.42389163, 0.28162596, -0.12972784, 0.37265050, 0.08255789,
+                            -0.09949530, 0.36673626, 0.36744103, 0.33211154, 0.33214206,
+                            0.19507907, 0.03592752, 0.35160932, 0.35001242, 0.32032481,
+                            -0.20727010, -0.11362395, -0.13194911, 0.41250587, 0.42320812,
+                            0.29844806, 0.28985339, 0.10554177, -0.00587574, 0.35386574,
+                            0.35319650, 0.55448818, 0.15291481, -0.19969003, -0.35993519,
+                            0.29050288, 0.28959396, 0.41448954, 0.41392374, -0.12040639,
+                            -0.30311960, 0.35375032, 0.35277450],
+                           [-0.16890033, 0.09132323, 0.36383507, 0.32687274, 0.40145576,
+                            0.40328500, 0.30427882, 0.30017641, -0.61432797, 0.36144501,
+                            0.42256466, 0.28260523, 0.12719125, 0.59734005, 0.53708172,
+                            -0.57088166, 0.29141295, 0.28852940, 0.41864398, 0.42291117,
+                            -0.60810453, -0.40527865, 0.40775761, 0.29062709, 0.68221945,
+                            -0.05159308, 0.24131249, -0.39478955, 0.40739870, 0.41463229,
+                            0.29969510, 0.29482204, 0.63608932, -0.24143942, 0.29797107,
+                            0.40838188, 0.55214882, 0.03277899, -0.39438787, 0.33905768,
+                            0.37543702, 0.37882078, 0.33214301, 0.32873160, -0.39521536,
+                            0.22783215, 0.33246726, 0.37022114]])
+
+    assert torch.allclose(w, w_test, rtol=1e-4)
