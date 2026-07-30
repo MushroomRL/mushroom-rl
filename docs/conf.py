@@ -34,6 +34,7 @@ from mushroom_rl import __version__
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
     'sphinx.ext.doctest',
     'sphinx.ext.todo',
@@ -146,10 +147,6 @@ latex_elements = {
     #
     # 'figure_align': 'htbp',
     'inputenc': '\\usepackage[utf8x]{inputenc}',
-    'preamble': r'''
-\DeclareUnicodeCharacter{9989}{\checkmark}
-\DeclareUnicodeCharacter{10060}{X}
-''',
     'makeindex': '\\usepackage[columns=1]{idxlayout}\\makeindex',
     'printindex': '\\def\\twocolumn[#1]{#1}\\footnotesize\\raggedright\\printindex',
 }
@@ -209,18 +206,20 @@ epub_exclude_files = ['search.html']
 # -- Options for autodoc ---------------------------------------------------
 
 autodoc_member_order = 'bysource'
-autodoc_mock_imports = ['torch', 'scipy', 'sklearn', 'ale_py', 'pybullet', 'pybullet_data', 'pybullet_utils',
+autodoc_mock_imports = ['scipy', 'sklearn', 'ale_py', 'pybullet', 'pybullet_data', 'pybullet_utils',
                         'dm_control', 'minigrid', 'mujoco', 'glfw',
-                        'omni']
+                        'omni', 'pyqtgraph', 'PySide6']
 add_module_names = False
 
-
-# Low-level serialization helpers hidden from the API documentation.
-_UNDOCUMENTED_MEMBERS = {
-    '_join_prefix', '_append_folder', '_get_serialization_method',
-    '_load_list', '_load_pickle', '_load_numpy', '_load_torch', '_load_json', '_load_mushroom',
-    '_save_pickle', '_save_numpy', '_save_torch', '_save_json', '_save_mushroom',
+autodoc_default_options = {
+    'members': True,
+    'show-inheritance': True,
 }
+
+
+# torch.nn.Module members that MushroomRL overrides without documenting. Autodoc would fall back to the inherited
+# docstring, which documents PyTorch rather than MushroomRL.
+_UNDOCUMENTED_MEMBERS = {'forward', 'extra_repr'}
 
 
 # Interface methods documented only on their defining base class, not on every override.
@@ -241,6 +240,11 @@ def skip(app, what, name, obj, skip, options):
 def setup(app):
     app.connect("autodoc-skip-member", skip)
     app.add_css_file('theme_overrides.css')
+
+
+# -- Options for autosummary -----------------------------------------------
+
+autosummary_generate = False
 
 
 # -- Options for intersphinx ---------------------------------------------------

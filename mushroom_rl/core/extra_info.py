@@ -4,9 +4,11 @@ from collections import UserDict
 from mushroom_rl.core.array_backend import ArrayBackend
 from mushroom_rl.core.mushroom_object import MushroomObject
 
+
 class ExtraInfo(MushroomObject, UserDict):
     """
-    A class to collect and parse step information
+    A class to collect and parse step information.
+
     """
     def __init__(self, n_envs, backend, device=None, vectorized=None):
         """
@@ -24,8 +26,8 @@ class ExtraInfo(MushroomObject, UserDict):
         self._device = device
 
         self._storage = []
-        self._key_mapping = {} # maps keys for future output to key paths
-        self._shape_mapping = {} # maps keys to additional shapes for arrays
+        self._key_mapping = {}  # maps keys for future output to key paths
+        self._shape_mapping = {}  # maps keys to additional shapes for arrays
         self._structured_storage = {}
         super().__init__()
         self._add_all_save_attr()
@@ -71,7 +73,7 @@ class ExtraInfo(MushroomObject, UserDict):
 
         target_backend = ArrayBackend.get_array_backend(to)
 
-        #create key mapping
+        # create key mapping
         for step_data in self._storage:
             if isinstance(step_data, dict):
                 self._update_key_mapping(step_data, not self._vectorized)
@@ -168,11 +170,11 @@ class ExtraInfo(MushroomObject, UserDict):
                                                                 self._array_backend, other._array_backend)
         info.data = self._concatenate_dictionary(self.data, other.data, self._array_backend, other._array_backend)
 
-        #combine key_mapping
+        # combine key_mapping
         info._key_mapping = self._key_mapping.copy()
         info._key_mapping.update(other._key_mapping)
 
-        #combine shape_mapping
+        # combine shape_mapping
         info._shape_mapping = self._shape_mapping.copy()
         info._shape_mapping.update(other._shape_mapping)
 
@@ -198,7 +200,7 @@ class ExtraInfo(MushroomObject, UserDict):
             shape = (intended_length_array1,) + array2_backend.shape(array2)[1:]
             array1 = array1_backend.full(shape, array1_backend.none())
         if array2 is None:
-            shape = (intended_length_array2, ) +  array1_backend.shape(array1)[1:]
+            shape = (intended_length_array2, ) + array1_backend.shape(array1)[1:]
             array2 = array2_backend.full(shape, array2_backend.none())
         array2 = array1_backend.convert(array2, backend=array2_backend)
         return array1_backend.concatenate((array1, array2))
@@ -231,7 +233,6 @@ class ExtraInfo(MushroomObject, UserDict):
             array2 = dict2[key] if key in dict2 else None
             r[key] = self._concatenate_array(array1, array2, array_length_dict1, array_length_dict2, backend1, backend2)
         return r
-
 
     def copy(self):
         info = ExtraInfo(self._n_envs, self._array_backend.get_backend_name(), self._device,
@@ -320,7 +321,7 @@ class ExtraInfo(MushroomObject, UserDict):
             structure_element, parent_keys = stack.pop()
             assert isinstance(structure_element, dict)
 
-            #Iterate over the dict
+            # Iterate over the dict
             for key, value in structure_element.items():
                 key_path = parent_keys + [key]
 

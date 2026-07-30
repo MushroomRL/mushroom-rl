@@ -41,7 +41,7 @@ You can do a minimal installation of ``MushroomRL`` with:
 
 .. code:: shell
 
-    pip3 install mushroom_rl
+    pip install mushroom-rl
 
 Installing everything
 ---------------------
@@ -55,7 +55,7 @@ You can install everything by running:
 
 .. code:: shell
 
-    pip3 install mushroom_rl[all]
+    pip install mushroom-rl[all]
 
 This will install every dependency of MushroomRL, except Box2D and PyBullet.
 For ubuntu>20.04, you may need to install pygame and gym dependencies:
@@ -72,10 +72,10 @@ Below is the code that you need to run to install the Plots dependencies:
 
 .. code:: shell
 
-    pip3 install mushroom_rl[plots]
+    pip install mushroom-rl[plots]
 
-To use dm_control MushroomRL interface, install ``dm_control`` following the instruction that can
-be found `here <https://github.com/deepmind/dm_control>`_
+The `dm_control <https://github.com/deepmind/dm_control>`_ interface does not need a separate installation:
+``dm_control`` is installed together with ``MuJoCo`` by the ``mujoco`` extra.
 
 Editable Installation
 ---------------------
@@ -84,13 +84,13 @@ You can also perform a local editable installation by using:
 
 .. code:: shell
 
-    pip install --no-use-pep517 -e .
+    pip install -e .
 
 To install also optional dependencies:
 
 .. code:: shell
 
-    pip install --no-use-pep517 -e .[all]
+    pip install -e .[all]
 
 
 

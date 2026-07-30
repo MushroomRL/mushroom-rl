@@ -1,3 +1,5 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 opencv-python
 numpy
 matplotlib
@@ -5,3 +7,4 @@ joblib
 tqdm
 gymnasium
 sphinx-rtd-theme
+torch

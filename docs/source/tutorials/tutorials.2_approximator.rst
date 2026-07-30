@@ -66,10 +66,10 @@ Algorithms that accept a parametric ``approximator`` class (e.g. ``SARSALambdaCo
 jointly. ``QApproximatorAction`` trains a separate model per action and is useful when per-action function complexity
 differs.
 
-Example
-~~~~~~~
+Solving Mountain Car with SARSA(λ)
+----------------------------------
 
-The following example trains a SARSA(λ) agent on the MountainCar environment using tile-coded features and a
+The following example trains a SARSA(λ) agent on the Mountain Car environment using tile-coded features and a
 ``LinearApproximator``.
 
 First, the MDP, the policy and the features are set up:

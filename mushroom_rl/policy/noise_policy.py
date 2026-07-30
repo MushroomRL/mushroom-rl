@@ -6,10 +6,10 @@ from mushroom_rl.policy.policy import Policy, StatefulPolicy, HasWeights
 
 class OrnsteinUhlenbeckPolicy(HasWeights, StatefulPolicy):
     """
-    Ornstein-Uhlenbeck process as implemented in:
-    https://github.com/openai/baselines/blob/master/baselines/ddpg/noise.py.
+    Exploration policy adding temporally correlated noise drawn from an Ornstein-Uhlenbeck process.
 
-    This policy is commonly used in the Deep Deterministic Policy Gradient algorithm.
+    This policy is commonly used in the Deep Deterministic Policy Gradient algorithm. The process is implemented
+    as in https://github.com/openai/baselines/blob/master/baselines/ddpg/noise.py.
 
     """
     def __init__(self, mu, sigma, theta, dt, x0=None):
@@ -86,10 +86,11 @@ class OrnsteinUhlenbeckPolicy(HasWeights, StatefulPolicy):
 
 class ClippedGaussianPolicy(HasWeights, Policy):
     """
-    Clipped Gaussian policy, as used in:
+    Gaussian policy whose sampled action is clipped to a given action range.
 
+    This policy was introduced used in:
     "Addressing Function Approximation Error in Actor-Critic Methods".
-    Fujimoto S. et al.. 2018.
+    Fujimoto S. et al. 2018.
 
     This is a non-differentiable policy for continuous action spaces.
     The policy samples an action in every state following a gaussian distribution, where the mean is computed in the
