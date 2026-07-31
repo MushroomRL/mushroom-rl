@@ -99,6 +99,7 @@ def parse_args():
                         help='the trust region algorithm to run')
     parser.add_argument('--no-render', action='store_false', dest='render', help='skip the final visualization')
     parser.add_argument('--use-cuda', action='store_true', help='run on the GPU instead of the CPU')
+    parser.add_argument('--debug', action='store_true', help='show debug information in the terminal')
 
     return parser.parse_args()
 
@@ -128,5 +129,5 @@ if __name__ == '__main__':
 
     experiment(alg=alg, env_id='Pendulum-v1', horizon=200, gamma=.99,
                n_epochs=40, n_steps=30000, n_steps_per_fit=3000,
-               n_episodes_test=25, alg_params=alg_params,
-               policy_params=policy_params, render=args.render, use_cuda=args.use_cuda)
+               n_episodes_test=25, alg_params=alg_params, policy_params=policy_params,
+               debug=args.debug, render=args.render, use_cuda=args.use_cuda)
