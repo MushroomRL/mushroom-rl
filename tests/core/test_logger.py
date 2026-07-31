@@ -546,7 +546,7 @@ def test_log_hyperparameters_functions(tmpdir):
 
     assert params['activation'] == 'torch.nn.functional.relu'
     assert params['method'] == 'torch.optim.adam.Adam.step'
-    assert params['alpha'].startswith('<mushroom_rl.rl_utils.parameters.parameter.Parameter object at ')
+    assert params['alpha'] == 'Parameter'
 
 
 def test_log_experiment_info(tmpdir):
