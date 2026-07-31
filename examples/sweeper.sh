@@ -11,7 +11,7 @@ set -euo pipefail
 
 # Defaults; override via env vars
 SEEDS="${SEEDS:-1 2 3 4 5}"
-ENVS="${ENVS:-hopper walker_2d half_cheetah ant}"
+ENVS="${ENVS:-hopper walker_2d}"
 NUM_ENVS="${NUM_ENVS:-4000}"
 N_EPOCHS="${N_EPOCHS:-50}"
 WANDB_PROJECT_PREFIX="${WANDB_PROJECT_PREFIX:-mushroom}"

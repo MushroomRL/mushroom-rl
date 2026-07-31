@@ -86,13 +86,13 @@ def experiment(
 
     actor_lr = 1e-4
     critic_lr = 1e-3
-    n_features = 64
+    n_features = 256
     batch_size = 1024
     n_epochs_policy = 10
     eps_ppo = 0.2
     lam = 0.95
-    std_0 = 1.0
-    ent_coeff = 0.01
+    std_0 = 0.3
+    ent_coeff = 0
 
     hyperparams = dict(
         env=env_class.__name__,
