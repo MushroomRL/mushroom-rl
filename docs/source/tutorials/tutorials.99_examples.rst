@@ -91,7 +91,7 @@ Continuous Control From Pixels
 Vectorized Environments
 -----------------------
 
-- `Parallel Pendulums with Trust Region approaches <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/environments/multiprocess_environment/pendulum_trust_region.py>`_
+- `Parallel Pendulums with Trust Region approaches <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/environments/multiprocess_environment/gym_pendulum_trust_region.py>`_
 - `Parallel Segways with BBO <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/environments/multiprocess_environment/segway_bbo.py>`_
 - `IsaacSim CartPole with PPO <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/environments/isaacsim/cartpole_ppo.py>`_
 - `IsaacSim Unitree A1 with PPO <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/environments/isaacsim/a1_rudin_ppo.py>`_
