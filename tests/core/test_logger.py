@@ -3,6 +3,7 @@ import json
 import logging
 import numpy as np
 import torch.optim as optim
+import torch.nn.functional as F
 from pathlib import Path
 from pytest import importorskip, raises, warns
 from mushroom_rl.algorithms.value import QLearning
@@ -533,6 +534,19 @@ def test_log_hyperparameters_nested_classes(tmpdir):
                           optimizers=['torch.optim.adam.Adam', 'torch.optim.sgd.SGD'],
                           pair=['torch.optim.rmsprop.RMSprop', 3],
                           n_features=64)
+
+
+def test_log_hyperparameters_functions(tmpdir):
+    logger = Logger('test_log_hyperparameters_functions', results_dir=tmpdir)
+
+    logger.log_hyperparameters(activation=F.relu, method=optim.Adam.step, alpha=Parameter(value=.1))
+
+    with open(tmpdir / 'test_log_hyperparameters_functions' / 'params.json') as params_file:
+        params = json.load(params_file)
+
+    assert params['activation'] == 'torch.nn.functional.relu'
+    assert params['method'] == 'torch.optim.adam.Adam.step'
+    assert params['alpha'].startswith('<mushroom_rl.rl_utils.parameters.parameter.Parameter object at ')
 
 
 def test_log_experiment_info(tmpdir):

@@ -179,7 +179,8 @@ class DataLogger(object):
     def _format_hyperparameter(value):
         """
         Convert a hyperparameter value into a representation suitable for logging, replacing every class
-        it contains by its full name. Dictionaries, lists and tuples are converted element-wise.
+        and function it contains by its full name. Dictionaries, lists and tuples are converted
+        element-wise.
 
         Args:
             value (object): the hyperparameter value to be converted.
@@ -188,7 +189,7 @@ class DataLogger(object):
             The converted hyperparameter value.
 
         """
-        if isinstance(value, type):
+        if callable(value) and hasattr(value, '__module__') and hasattr(value, '__qualname__'):
             return f'{value.__module__}.{value.__qualname__}'
         elif isinstance(value, dict):
             return {name: DataLogger._format_hyperparameter(item) for name, item in value.items()}
