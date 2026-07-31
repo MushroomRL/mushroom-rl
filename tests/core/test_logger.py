@@ -515,7 +515,24 @@ def test_log_hyperparameters_non_serializable(tmpdir):
     with open(tmpdir / 'test_log_hyperparameters_non_serializable' / 'params.json') as params_file:
         params = json.load(params_file)
 
-    assert params['optimizer'] == str(optim.Adam)
+    assert params['optimizer'] == 'torch.optim.adam.Adam'
+
+
+def test_log_hyperparameters_nested_classes(tmpdir):
+    logger = Logger('test_log_hyperparameters_nested_classes', results_dir=tmpdir)
+
+    logger.log_hyperparameters(optimizer={'class': optim.Adam, 'params': dict(lr=3e-4)},
+                               optimizers=[optim.Adam, optim.SGD],
+                               pair=(optim.RMSprop, 3),
+                               n_features=64)
+
+    with open(tmpdir / 'test_log_hyperparameters_nested_classes' / 'params.json') as params_file:
+        params = json.load(params_file)
+
+    assert params == dict(optimizer={'class': 'torch.optim.adam.Adam', 'params': dict(lr=3e-4)},
+                          optimizers=['torch.optim.adam.Adam', 'torch.optim.sgd.SGD'],
+                          pair=['torch.optim.rmsprop.RMSprop', 3],
+                          n_features=64)
 
 
 def test_log_experiment_info(tmpdir):

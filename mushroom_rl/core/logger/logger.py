@@ -116,7 +116,7 @@ class Logger(DataLogger, ConsoleLogger, VideoLogger, WandbLogger):
             self.info('Environment: ' + self._object_name(mdp))
 
         for name, value in hyperparams.items():
-            self.info(f'{name}: {value}')
+            self.info(f'{name}: {self._format_hyperparameter(value)}')
 
         self.weak_line()
 
