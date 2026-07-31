@@ -13,8 +13,8 @@ Split by the three families of `mushroom_rl.algorithms`.
 | [`simple_chain_qlearning.py`](value/simple_chain_qlearning.py) | Q-Learning                                         | SimpleChain                              |
 | [`grid_world_sarsa.py`](value/grid_world_sarsa.py)             | SARSA(λ)                                           | GridWorld or Taxi, selected with `--env` |
 | [`puddle_world_sarsa.py`](value/puddle_world_sarsa.py)         | True Online SARSA(λ) with tile coding              | PuddleWorld                              |
-| [`mountain_car_sarsa.py`](value/mountain_car_sarsa.py)         | True Online SARSA(λ) with tile coding              | MountainCar                              |
-| [`acrobot_dqn.py`](value/acrobot_dqn.py)                       | DQN                                                | Acrobot                                  |
+| [`gym_mountain_car_sarsa.py`](value/gym_mountain_car_sarsa.py) | True Online SARSA(λ) with tile coding              | MountainCar                              |
+| [`gym_acrobot_dqn.py`](value/gym_acrobot_dqn.py)               | DQN                                                | Acrobot                                  |
 | [`minigrid_dqn.py`](value/minigrid_dqn.py)                     | DQN and its variants, selected on the command line | MiniGrid, from pixels                    |
 
 `grid_world_sarsa.py` also computes the optimal return exactly with value iteration, and reports it next to the learned

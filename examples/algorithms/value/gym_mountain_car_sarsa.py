@@ -1,5 +1,11 @@
+"""
+Simple script to solve the Mountain Car problem with True Online SARSA(lambda) and tile coding.
+
+The environment, the tile coding and the trace decay follow the mountain car setup used in:
+"True Online TD(lambda)". Seijen H. V. et al. 2014.
+
+"""
 import numpy as np
-from joblib import Parallel, delayed
 
 from mushroom_rl.algorithms.value import TrueOnlineSARSALambda
 from mushroom_rl.core import Core, Logger
@@ -9,19 +15,16 @@ from mushroom_rl.features.tiles import Tiles
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.rl_utils.parameters import Parameter
 
-"""
-This script aims to replicate the experiments on the Mountain Car MDP as
-presented in:
-"True Online TD(lambda)". Seijen H. V. et al.. 2014.
 
-"""
-
-
-def experiment(alpha):
-    np.random.seed()
+def experiment(alpha, n_episodes, seed=0):
+    np.random.seed(seed)
 
     # MDP
     mdp = Gymnasium(name='MountainCar-v0', horizon=int(1e4), gamma=1., headless=False)
+    mdp.seed(seed)
+
+    logger = Logger(TrueOnlineSARSALambda.name(), results_dir=None)
+    logger.log_experiment_info(TrueOnlineSARSALambda, mdp, alpha=alpha, n_episodes=n_episodes)
 
     # Policy
     epsilon = Parameter(value=0.)
@@ -48,24 +51,16 @@ def experiment(alpha):
                                   **algorithm_params)
 
     # Algorithm
-    core = Core(agent, mdp)
+    core = Core(agent, mdp, logger=logger)
 
     # Train
-    core.learn(n_episodes=40, n_steps_per_fit=1, render=False)
+    core.learn(n_episodes=n_episodes, n_steps_per_fit=1, render=False)
+
+    # Visualize the final policy
     dataset = core.evaluate(n_episodes=1, render=True)
 
-    return np.mean(dataset.undiscounted_return)
+    logger.info(f'R: {dataset.undiscounted_return.mean()}')
 
 
 if __name__ == '__main__':
-    n_experiment = 1
-
-    logger = Logger(TrueOnlineSARSALambda.__name__, results_dir=None)
-    logger.strong_line()
-    logger.info('Experiment Algorithm: ' + TrueOnlineSARSALambda.__name__)
-
-    alpha = .1
-    Js = Parallel(
-        n_jobs=-1)(delayed(experiment)(alpha) for _ in range(n_experiment))
-
-    logger.info('J: %f' % np.mean(Js))
+    experiment(alpha=.1, n_episodes=40)

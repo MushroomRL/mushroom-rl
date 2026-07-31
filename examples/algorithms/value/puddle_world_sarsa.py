@@ -1,5 +1,10 @@
+"""
+Simple script to solve the Puddle World problem with True Online SARSA(lambda) and tile coding.
+
+"""
 import numpy as np
-from joblib import Parallel, delayed
+
+from tqdm import trange
 
 from mushroom_rl.algorithms.value import TrueOnlineSARSALambda
 from mushroom_rl.core import Core, Logger
@@ -9,20 +14,15 @@ from mushroom_rl.features.tiles import Tiles
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.rl_utils.parameters import Parameter
 
-from tqdm import trange
 
-
-def experiment(alpha, quiet):
-    np.random.seed()
-
-    # Logger
-    logger = Logger('PuddleWorld_TrueOnlineSARSALambda', results_dir=None)
-    logger.strong_line()
-    logger.info('Environment: PuddleWorld')
-    logger.info('Experiment Algorithm: TrueOnlineSARSALambda')
+def experiment(alpha, n_epochs, n_steps, seed=None):
+    np.random.seed(seed)
 
     # MDP
     mdp = PuddleWorld(horizon=1000)
+
+    logger = Logger(TrueOnlineSARSALambda.name(), results_dir=None)
+    logger.log_experiment_info(TrueOnlineSARSALambda, mdp, alpha=alpha, n_epochs=n_epochs, n_steps=n_steps)
 
     # Policy
     epsilon = Parameter(value=0.1)
@@ -48,28 +48,24 @@ def experiment(alpha, quiet):
     agent = TrueOnlineSARSALambda(mdp.info, pi, approximator_params=approximator_params, **algorithm_params)
 
     # Algorithm
-    core = Core(agent, mdp)
+    core = Core(agent, mdp, logger=logger)
 
     # Train
     dataset = core.evaluate(n_episodes=5, render=False)
-    J = np.mean(dataset.discounted_return)
+    J = dataset.discounted_return.mean()
 
-    logger.epoch_info(0, J=J)
+    logger.log_evaluation(0, J=J)
 
-    for epoch in trange(10, leave=False, disable=quiet):
-        core.learn(n_steps=5000, n_steps_per_fit=1, render=False)
-        dataset = core.evaluate(n_episodes=5, render=False, quiet=quiet)
-        J = np.mean(dataset.discounted_return)
-        logger.epoch_info(epoch + 1, J=J)
+    for epoch in trange(n_epochs, leave=False):
+        core.learn(n_steps=n_steps, n_steps_per_fit=1, render=False)
+        dataset = core.evaluate(n_episodes=5, render=False)
+        J = dataset.discounted_return.mean()
 
-    if not quiet:
-        core.evaluate(n_episodes=5, render=True, quiet=True)
+        logger.log_evaluation(epoch + 1, J=J)
 
-    return np.mean(dataset.undiscounted_return)
+    # Visualize the final policy
+    core.evaluate(n_episodes=5, render=True, quiet=True)
 
 
 if __name__ == '__main__':
-    n_experiment = 1
-
-    alpha = .1
-    Js = Parallel(n_jobs=-1)(delayed(experiment)(alpha, n_experiment > 1) for _ in range(n_experiment))
+    experiment(alpha=.1, n_epochs=10, n_steps=5000)

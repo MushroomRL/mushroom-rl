@@ -1,3 +1,7 @@
+"""
+Simple script to solve a simple chain with Q-Learning.
+
+"""
 import numpy as np
 
 from mushroom_rl.algorithms.value import QLearning
@@ -7,21 +11,14 @@ from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.rl_utils.parameters import Parameter
 
 
-"""
-Simple script to solve a simple chain with Q-Learning.
-
-"""
-
-
-def experiment():
-    np.random.seed()
-
-    logger = Logger(QLearning.__name__, results_dir=None)
-    logger.strong_line()
-    logger.info('Experiment Algorithm: ' + QLearning.__name__)
+def experiment(n_steps, seed=None):
+    np.random.seed(seed)
 
     # MDP
     mdp = SimpleChain(n_states=5, goal_states=[2], prob=.8, goal_reward=1, gamma=.9)
+
+    logger = Logger(QLearning.name(), results_dir=None)
+    logger.log_experiment_info(QLearning, mdp, n_steps=n_steps)
 
     # Policy
     epsilon = Parameter(value=.15)
@@ -29,31 +26,28 @@ def experiment():
 
     # Agent
     learning_rate = Parameter(value=.2)
-    algorithm_params = dict(learning_rate=learning_rate)
-    agent = QLearning(mdp.info, pi, **algorithm_params)
+    agent = QLearning(mdp.info, pi, learning_rate=learning_rate)
 
     # Core
-    core = Core(agent, mdp)
+    core = Core(agent, mdp, logger=logger)
 
     # Visualize initial policy
     core.evaluate(n_steps=100, render=True)
 
     # Initial policy Evaluation
     dataset = core.evaluate(n_steps=1000)
-    J = np.mean(dataset.discounted_return)
-    logger.info(f'J start: {J}')
+    logger.info(f'J start: {dataset.discounted_return.mean()}')
 
     # Train
-    core.learn(n_steps=10000, n_steps_per_fit=1)
+    core.learn(n_steps=n_steps, n_steps_per_fit=1)
 
     # Final Policy Evaluation
     dataset = core.evaluate(n_steps=1000)
-    J = np.mean(dataset.discounted_return)
-    logger.info(f'J final: {J}')
+    logger.info(f'J final: {dataset.discounted_return.mean()}')
 
     # Visualize final policy
     core.evaluate(n_steps=100, render=True)
 
 
 if __name__ == '__main__':
-    experiment()
+    experiment(n_steps=10000)

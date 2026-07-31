@@ -33,7 +33,7 @@ the examples do not care about the current working directory.
 Every example follows the same shape: a module docstring stating what it shows, an `experiment()` function
 holding the run, and a `__main__` block that sets the hyperparameters and calls it. `experiment()` takes a
 `seed` as its last argument, so a script can be reproduced by importing it and passing one.
- 
+
 Some scripts allow to pass command line arguments. Those scripts carry a `parse_args()` function next to `experiment()`.
 
 Each script builds the environment first and the `Logger` right after, so that `log_experiment_info` can

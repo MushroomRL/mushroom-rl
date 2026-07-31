@@ -8,4 +8,4 @@ several examples and so that moving a script does not break it. Scripts resolve 
 `get_data_dir(__file__)` from `mushroom_rl.utils`, which locates it from the script's own position, so they
 work from any working directory.
 
-Only inputs belong here. Anything a run produces goes to `../logs/`.
+Only inputs belong here. Anything a run produces goes to the `experiment/logs/` folder.
