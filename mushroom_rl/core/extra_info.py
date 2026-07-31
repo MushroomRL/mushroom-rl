@@ -1,6 +1,7 @@
 import numbers
 from copy import deepcopy
 from collections import UserDict
+
 from mushroom_rl.core.array_backend import ArrayBackend
 from mushroom_rl.core.mushroom_object import MushroomObject
 
@@ -63,7 +64,7 @@ class ExtraInfo(MushroomObject, UserDict):
         Parse the stored information into a flat dictionary of arrays
 
         Args:
-            to (str): the backend to be used for the returned arrays, 'torch' or 'numpy'.
+            to (str, None): the backend to be used for the returned arrays, 'torch' or 'numpy'.
 
         Returns:
             dict: Flat dictionary containing an array for every property of the step information
@@ -74,24 +75,10 @@ class ExtraInfo(MushroomObject, UserDict):
         target_backend = ArrayBackend.get_array_backend(to)
 
         # create key mapping
-        for step_data in self._storage:
-            if isinstance(step_data, dict):
-                self._update_key_mapping(step_data, not self._vectorized)
-            elif isinstance(step_data, list):
-                for env_data in step_data:
-                    assert isinstance(env_data, dict)
-                    self._update_key_mapping(env_data, True)
+        self._create_key_mapping()
 
         # calculate the size for the array
-        if self._structured_storage:
-            length_structured_storage = len(self._structured_storage[next(iter(self._structured_storage.keys()))])
-        else:
-            length_structured_storage = 0
-
-        if self._vectorized:
-            size = (len(self._storage) + length_structured_storage, self._n_envs)
-        else:
-            size = (len(self._storage) + length_structured_storage, )
+        length_structured_storage, size = self._compute_storage_sizes()
 
         # create output dictionary with empty arrays
         output = {
@@ -101,12 +88,18 @@ class ExtraInfo(MushroomObject, UserDict):
 
         # fill output with elements stored in structured storage
         if self._structured_storage:
-            for key in output:
-                index = length_structured_storage
-                value = self._convert(self._structured_storage[key], to)
-                output[key][:index] = value
+            self._update_from_structured_storage(output, length_structured_storage, to)
 
         # fill output with elements stored in storage
+        self._update_from_storage(output, length_structured_storage, to)
+
+        self._structured_storage = {key: value for key, value in output.items()}
+        self._storage = []
+        self._array_backend = target_backend
+
+        self.data = output
+
+    def _update_from_storage(self, output, length_structured_storage, to):
         for index, step_data in enumerate(self._storage):
             index = index + length_structured_storage
             if isinstance(step_data, dict):
@@ -114,11 +107,32 @@ class ExtraInfo(MushroomObject, UserDict):
             elif isinstance(step_data, list):
                 self._append_list_to_output(output, step_data, index, to)
 
-        self._structured_storage = {key: value for key, value in output.items()}
-        self._storage = []
-        self._array_backend = target_backend
+    def _update_from_structured_storage(self, output, length_structured_storage, to):
+        for key in output:
+            index = length_structured_storage
+            value = self._convert(self._structured_storage[key], to)
+            output[key][:index] = value
 
-        self.data = output
+    def _compute_storage_sizes(self):
+        if self._structured_storage:
+            length_structured_storage = len(self._structured_storage[next(iter(self._structured_storage.keys()))])
+        else:
+            length_structured_storage = 0
+
+        if self._vectorized:
+            size = (len(self._storage) + length_structured_storage, self._n_envs)
+        else:
+            size = (len(self._storage) + length_structured_storage,)
+        return length_structured_storage, size
+
+    def _create_key_mapping(self):
+        for step_data in self._storage:
+            if isinstance(step_data, dict):
+                self._update_key_mapping(step_data, not self._vectorized)
+            elif isinstance(step_data, list):
+                for env_data in step_data:
+                    assert isinstance(env_data, dict)
+                    self._update_key_mapping(env_data, True)
 
     def flatten(self, mask=None):
         """
