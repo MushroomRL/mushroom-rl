@@ -1,19 +1,28 @@
+"""
+Simple script to solve the Inverted Pendulum problem with the average reward stochastic actor critic and tile
+coding.
+
+The value function, the mean and the standard deviation of the policy are drawn at every epoch, so that their
+shaping over the state space can be followed during the run.
+
+"""
+import argparse
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
+from tqdm import trange
+
 from mushroom_rl.algorithms.actor_critic import StochasticAC_AVG
 from mushroom_rl.core import Core, Logger
-from mushroom_rl.environments import *
+from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.features import Features
 from mushroom_rl.features.tiles import Tiles
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.policy import StateLogStdGaussianPolicy
 from mushroom_rl.utils.callbacks import CollectDataset
 from mushroom_rl.rl_utils.parameters import Parameter
-
-from tqdm import tqdm, trange
-tqdm.monitor_interval = 0
 
 
 class Display:
@@ -100,16 +109,15 @@ class Display:
         return vv, mm, ss
 
 
-def experiment(n_epochs, n_episodes):
-    np.random.seed()
-
-    logger = Logger(StochasticAC_AVG.__name__, results_dir=None)
-    logger.strong_line()
-    logger.info('Experiment Algorithm: ' + StochasticAC_AVG.__name__)
+def experiment(n_epochs, n_episodes, render=True, seed=None):
+    np.random.seed(seed)
 
     # MDP
     n_steps = 5000
     mdp = InvertedPendulum(horizon=n_steps)
+
+    logger = Logger(StochasticAC_AVG.name(), results_dir=None)
+    logger.log_experiment_info(StochasticAC_AVG, mdp, n_epochs=n_epochs, n_episodes=n_episodes)
 
     # Agent
     n_tilings = 11
@@ -153,24 +161,32 @@ def experiment(n_epochs, n_episodes):
                                mdp.info.observation_space.low,
                                mdp.info.observation_space.high,
                                psi)
-    core = Core(agent, mdp, callbacks_fit=[dataset_callback],
+    core = Core(agent, mdp, logger=logger, callbacks_fit=[dataset_callback],
                 callback_step=display_callback.pump)
 
     for i in trange(n_epochs, leave=False):
         core.learn(n_episodes=n_episodes,
                    n_steps_per_fit=1, render=False)
-        J = dataset_callback.get().undiscounted_return
+        R = dataset_callback.get().undiscounted_return.sum() / n_steps / n_episodes
         dataset_callback.clean()
         display_callback()
-        logger.epoch_info(i+1, R_mean=np.sum(J) / n_steps/n_episodes)
 
-    logger.info('Press a button to visualize the pendulum...')
-    input()
-    core.evaluate(n_steps=n_steps, render=True)
+        logger.log_evaluation(i + 1, R_mean=R)
+
+    if render:
+        logger.info('Press a button to visualize the pendulum')
+        input()
+        core.evaluate(n_steps=n_steps, render=True)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--no-render', action='store_false', dest='render', help='skip the final visualization')
+
+    return parser.parse_args()
 
 
 if __name__ == '__main__':
-    n_epochs = 24
-    n_episodes = 5
+    args = parse_args()
 
-    experiment(n_epochs, n_episodes)
+    experiment(n_epochs=24, n_episodes=5, render=args.render)

@@ -1,29 +1,48 @@
+"""
+Simple script to solve the Pendulum problem with DDPG and TD3.
+
+"""
+import argparse
+
 import numpy as np
 
 import torch
 import torch.optim as optim
 import torch.nn.functional as F
 
+from tqdm import trange
+
 from mushroom_rl.algorithms.actor_critic import DDPG, TD3
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import Gymnasium
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy
+from mushroom_rl.utils import select_class
 from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNetwork
+from mushroom_rl.utils.torch_utils import TorchUtils
 
-from tqdm import trange
+
+def get_algorithms():
+    return [DDPG, TD3]
 
 
-def experiment(alg, n_epochs, n_steps, n_steps_test):
-    np.random.seed()
+def experiment(alg, n_epochs, n_steps, n_steps_test, render=True, use_cuda=False, seed=None):
+    np.random.seed(seed)
+    if seed is not None:
+        torch.manual_seed(seed)
 
-    logger = Logger(alg.__name__, results_dir=None)
-    logger.strong_line()
-    logger.info('Experiment Algorithm: ' + alg.__name__)
+    if use_cuda:
+        assert torch.cuda.is_available(), 'CUDA was requested, but it is not available on this machine.'
+
+    TorchUtils.set_default_device('cuda:0' if use_cuda else 'cpu')
 
     # MDP
     horizon = 200
     gamma = 0.99
     mdp = Gymnasium('Pendulum-v1', horizon, gamma, headless=False)
+    mdp.seed(seed)
+
+    logger = Logger(alg.name(), results_dir=None)
+    logger.log_experiment_info(alg, mdp, n_epochs=n_epochs, n_steps=n_steps, n_steps_test=n_steps_test)
 
     # Policy
     policy_class = OrnsteinUhlenbeckPolicy
@@ -61,33 +80,46 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
                 initial_replay_size, max_replay_size, tau)
 
     # Algorithm
-    core = Core(agent, mdp)
+    core = Core(agent, mdp, logger=logger)
 
     core.learn(n_steps=initial_replay_size, n_steps_per_fit=initial_replay_size)
 
     # RUN
     dataset = core.evaluate(n_steps=n_steps_test, render=False)
-    J = np.mean(dataset.discounted_return)
-    R = np.mean(dataset.undiscounted_return)
 
-    logger.epoch_info(0, J=J, R=R)
+    J = dataset.discounted_return.mean()
+    R = dataset.undiscounted_return.mean()
+
+    logger.log_evaluation(0, J=J, R=R)
 
     for n in trange(n_epochs, leave=False):
         core.learn(n_steps=n_steps, n_steps_per_fit=1)
         dataset = core.evaluate(n_steps=n_steps_test, render=False)
 
-        J = np.mean(dataset.discounted_return)
-        R = np.mean(dataset.undiscounted_return)
+        J = dataset.discounted_return.mean()
+        R = dataset.undiscounted_return.mean()
 
-        logger.epoch_info(n+1, J=J, R=R)
+        logger.log_evaluation(n + 1, J=J, R=R)
 
-    logger.info('Press a button to visualize pendulum')
-    input()
-    core.evaluate(n_episodes=5, render=True)
+    if render:
+        logger.info('Press a button to visualize the pendulum')
+        input()
+        core.evaluate(n_episodes=5, render=True)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--alg', choices=[alg.name() for alg in get_algorithms()], default=DDPG.name(),
+                        help='the algorithm to run')
+    parser.add_argument('--no-render', action='store_false', dest='render', help='skip the final visualization')
+
+    parser.add_argument('--use-cuda', action='store_true', help='run on the GPU instead of the CPU')
+
+    return parser.parse_args()
 
 
 if __name__ == '__main__':
-    algs = [DDPG, TD3]
+    args = parse_args()
+    alg = select_class(args.alg, get_algorithms())
 
-    for alg in algs:
-        experiment(alg=alg, n_epochs=40, n_steps=1000, n_steps_test=2000)
+    experiment(alg=alg, n_epochs=40, n_steps=1000, n_steps_test=2000, render=args.render, use_cuda=args.use_cuda)
