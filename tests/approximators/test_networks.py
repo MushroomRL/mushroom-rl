@@ -8,6 +8,7 @@ from mushroom_rl.approximators.parametric.networks import (
     CriticNetwork,
     AtariNetwork,
     AtariFeatureNetwork,
+    RecurrentNetwork,
     RecurrentActorNetwork,
     RecurrentCriticNetwork,
     CategoricalNetwork,
@@ -185,7 +186,7 @@ def test_recurrent_actor_network():
     policy_state = torch.zeros(batch, 1, 16)
     lengths = torch.tensor([5, 3, 4])
     net = RecurrentActorNetwork(
-        (dim_env,), [(dim_action,), (16,)],
+        (dim_env,), [(dim_action,), (1, 16)],
         n_features=32,
         rnn_type='gru', n_hidden_features=16, num_hidden_layers=1
     )
@@ -227,7 +228,7 @@ def test_recurrent_network_flatten_stacked_inputs():
     lengths = torch.tensor([5, 3, 4])
 
     actor = RecurrentActorNetwork(
-        (history_length, dim_env), [(dim_action,), (16,)],
+        (history_length, dim_env), [(dim_action,), (1, 16)],
         n_features=32, rnn_type='gru', n_hidden_features=16, num_hidden_layers=1,
         action_history_shape=(action_history_length, dim_action)
     )
@@ -445,3 +446,94 @@ def test_rainbow_network_distribution_action():
                          [0.09133542, 0.14836444, 0.3161716, 0.2906044, 0.15352415]], dtype=np.float32)
     assert out.shape == (3, 5)
     assert np.allclose(out, expected, atol=1e-6)
+
+
+def test_recurrent_network_policy_state_shape():
+    assert RecurrentNetwork.compute_policy_state_shape('rnn', 16) == (1, 16)
+    assert RecurrentNetwork.compute_policy_state_shape('gru', 16) == (1, 16)
+    assert RecurrentNetwork.compute_policy_state_shape('lstm', 16) == (2, 1, 16)
+    assert RecurrentNetwork.compute_policy_state_shape('gru', 16, 2) == (2, 16)
+    assert RecurrentNetwork.compute_policy_state_shape('lstm', 16, 2) == (2, 2, 16)
+
+
+def test_recurrent_actor_network_lstm():
+    torch.manual_seed(42)
+    dim_env, dim_action, n_hidden = 4, 2, 16
+    batch, seq_len = 3, 5
+    state = torch.randn(batch, seq_len, dim_env)
+    lengths = torch.tensor([5, 3, 4])
+    policy_state_shape = RecurrentNetwork.compute_policy_state_shape('lstm', n_hidden)
+    policy_state = torch.zeros(batch, *policy_state_shape)
+    net = RecurrentActorNetwork(
+        (dim_env,), [(dim_action,), policy_state_shape],
+        n_features=32, rnn_type='lstm', n_hidden_features=n_hidden, num_hidden_layers=1
+    )
+    a, h = net(state, policy_state, lengths)
+    expected = np.array([[-0.10944132, -0.14960153],
+                         [-0.11054352, -0.1527866],
+                         [-0.11130438, -0.15049723]], dtype=np.float32)
+    assert a.shape == (batch, dim_action)
+    assert h.shape == (batch, 2, 1, n_hidden)
+    assert np.allclose(a.detach().numpy(), expected, atol=1e-6)
+
+
+def test_recurrent_critic_network_lstm():
+    torch.manual_seed(42)
+    dim_env, n_hidden = 4, 16
+    batch, seq_len = 3, 5
+    state = torch.randn(batch, seq_len, dim_env)
+    lengths = torch.tensor([5, 3, 4])
+    policy_state_shape = RecurrentNetwork.compute_policy_state_shape('lstm', n_hidden)
+    policy_state = torch.zeros(batch, *policy_state_shape)
+    net = RecurrentCriticNetwork(
+        (dim_env,), (1,), rnn_type='lstm', n_hidden_features=n_hidden, n_features=32,
+        num_hidden_layers=1, hidden_state_treatment='use_policy_hidden_state'
+    )
+    q = net(state, policy_state, lengths)
+    expected = np.array([1.9283445, 0.17133498, 2.3065667], dtype=np.float32)
+    assert q.shape == (batch,)
+    assert np.allclose(q.detach().numpy(), expected, atol=1e-5)
+
+
+def test_recurrent_critic_network_lstm_zero_initial():
+    torch.manual_seed(42)
+    dim_env, n_hidden = 4, 16
+    batch, seq_len = 3, 5
+    state = torch.randn(batch, seq_len, dim_env)
+    lengths = torch.tensor([5, 3, 4])
+    policy_state = torch.zeros(batch, *RecurrentNetwork.compute_policy_state_shape('lstm', n_hidden))
+    net = RecurrentCriticNetwork(
+        (dim_env,), (1,), rnn_type='lstm', n_hidden_features=n_hidden, n_features=32,
+        num_hidden_layers=1, hidden_state_treatment='zero_initial'
+    )
+    q = net(state, policy_state, lengths)
+    assert q.shape == (batch,)
+
+
+def test_recurrent_network_multi_layer():
+    torch.manual_seed(42)
+    dim_env, dim_action, n_hidden, num_layers = 4, 2, 16, 2
+    batch, seq_len = 3, 5
+    state = torch.randn(batch, seq_len, dim_env)
+    lengths = torch.tensor([5, 3, 4])
+    policy_state_shape = RecurrentNetwork.compute_policy_state_shape('lstm', n_hidden, num_layers)
+    policy_state = torch.zeros(batch, *policy_state_shape)
+    actor = RecurrentActorNetwork(
+        (dim_env,), [(dim_action,), policy_state_shape],
+        n_features=32, rnn_type='lstm', n_hidden_features=n_hidden, num_hidden_layers=num_layers
+    )
+    a, h = actor(state, policy_state, lengths)
+    expected_a = np.array([[0.03022202, -0.07594116],
+                           [0.03093306, -0.07375497],
+                           [0.02881197, -0.07773496]], dtype=np.float32)
+    assert h.shape == (batch, 2, num_layers, n_hidden)
+    assert np.allclose(a.detach().numpy(), expected_a, atol=1e-6)
+
+    critic = RecurrentCriticNetwork(
+        (dim_env,), (1,), rnn_type='lstm', n_hidden_features=n_hidden, n_features=32,
+        num_hidden_layers=num_layers, hidden_state_treatment='use_policy_hidden_state'
+    )
+    q = critic(state, policy_state, lengths)
+    expected_q = np.array([1.0538795, 0.7622827, -0.9266093], dtype=np.float32)
+    assert q.shape == (batch,)
+    assert np.allclose(q.detach().numpy(), expected_q, atol=1e-5)

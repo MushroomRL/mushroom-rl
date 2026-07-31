@@ -153,16 +153,19 @@ class PPO_BPTT(OnPolicyDeepAC):
 
     def _transform_to_sequences(self, states_old, states, policy_states, actions, next_states, policy_next_states,
                                 prev_actions, last, absorbing):
+        device = TorchUtils.get_device()
+
         with torch.no_grad():
             # array preallocation
-            s_old = torch.empty(len(states), self._truncation_length, *states_old.shape[1:])
-            s = torch.empty(len(states), self._truncation_length, *states.shape[1:])
-            ps = torch.empty(len(states), policy_states.shape[-1])
-            a = torch.empty(len(actions), self._truncation_length, *actions.shape[1:])
-            ss = torch.empty(len(states), self._truncation_length, *next_states.shape[1:])
-            pss = torch.empty(len(states), policy_states.shape[-1])
-            pa = torch.empty(len(states), self._truncation_length, *prev_actions.shape[1:]) \
+            s_old = torch.empty(len(states), self._truncation_length, *states_old.shape[1:], device=device)
+            s = torch.empty(len(states), self._truncation_length, *states.shape[1:], device=device)
+            ps = torch.empty(len(states), *policy_states.shape[1:], device=device)
+            a = torch.empty(len(actions), self._truncation_length, *actions.shape[1:], device=device)
+            ss = torch.empty(len(states), self._truncation_length, *next_states.shape[1:], device=device)
+            pss = torch.empty(len(states), *policy_states.shape[1:], device=device)
+            pa = torch.empty(len(states), self._truncation_length, *prev_actions.shape[1:], device=device) \
                 if self._history_manager.uses_action else None
+            # the sequence lengths stay on the CPU, as pack_padded_sequence requires
             lengths = torch.empty(len(states), dtype=torch.long)
 
             for i in range(len(states)):
@@ -187,16 +190,16 @@ class PPO_BPTT(OnPolicyDeepAC):
                 length_seq = len(states_seq)
                 padded_states_old = torch.concatenate([states_old_seq,
                                                        torch.zeros((self._truncation_length - states_old_seq.shape[0],
-                                                                    *states_old_seq.shape[1:]))])
+                                                                    *states_old_seq.shape[1:]), device=device)])
                 padded_states = torch.concatenate([states_seq,
                                                    torch.zeros((self._truncation_length - states_seq.shape[0],
-                                                                *states_seq.shape[1:]))])
+                                                                *states_seq.shape[1:]), device=device)])
                 padded_next_states = torch.concatenate([next_states_seq,
                                                         torch.zeros((self._truncation_length - next_states_seq.shape[0],
-                                                                     *next_states_seq.shape[1:]))])
+                                                                     *next_states_seq.shape[1:]), device=device)])
                 padded_action_seq = torch.concatenate([actions_seq,
                                                        torch.zeros((self._truncation_length - actions_seq.shape[0],
-                                                                    *actions_seq.shape[1:]))])
+                                                                    *actions_seq.shape[1:]), device=device)])
 
                 s_old[i] = padded_states_old
                 s[i] = padded_states
@@ -209,7 +212,7 @@ class PPO_BPTT(OnPolicyDeepAC):
                     prev_action_seq = prev_actions[begin_seq:end_seq]
                     pa[i] = torch.concatenate([prev_action_seq,
                                                torch.zeros((self._truncation_length - prev_action_seq.shape[0],
-                                                            *prev_action_seq.shape[1:]))])
+                                                            *prev_action_seq.shape[1:]), device=device)])
 
                 lengths[i] = length_seq
 

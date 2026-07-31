@@ -212,10 +212,9 @@ class TorchApproximator(Approximator):
         else:
             weights = None
 
-        torch_args = [torch.as_tensor(x, device=TorchUtils.get_device()) for x in batch]
-        x = torch_args[:-self._trainer.n_fit_targets]
+        x = batch[:-self._trainer.n_fit_targets]
         y_hat = self.network(*x, **network_kwargs)
-        y = [y_i.clone().detach().to(TorchUtils.get_device()) for y_i in torch_args[-self._trainer.n_fit_targets:]]
+        y = [y_i.clone().detach() for y_i in batch[-self._trainer.n_fit_targets:]]
 
         return self._trainer.compute_loss_from_output(y_hat, y, weights)
 

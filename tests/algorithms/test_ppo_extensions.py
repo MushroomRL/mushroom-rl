@@ -21,7 +21,7 @@ def learn(alg, policy, alg_params):
     return agent
 
 
-def make_bptt_setup(use_prev_action=False):
+def make_bptt_setup(use_prev_action=False, rnn_type='gru', num_hidden_layers=1):
     n_features, n_hidden = 4, 4
     dim_env_state, dim_action = 2, 1  # InvertedPendulum
 
@@ -29,10 +29,10 @@ def make_bptt_setup(use_prev_action=False):
         network=RecurrentActorNetwork,
         input_shape=(dim_env_state,),
         output_shape=(dim_action,),
-        policy_state_shape=(n_hidden,),
         n_features=n_features,
         n_hidden_features=n_hidden,
-        rnn_type='gru',
+        rnn_type=rnn_type,
+        num_hidden_layers=num_hidden_layers,
         action_history_shape=(dim_action,) if use_prev_action else None,
     )
 
@@ -44,10 +44,10 @@ def make_bptt_setup(use_prev_action=False):
             loss=F.mse_loss,
             input_shape=(dim_env_state,),
             output_shape=(1,),
-            policy_state_shape=(n_hidden,),
             n_features=n_features,
             n_hidden_features=n_hidden,
-            rnn_type='gru',
+            rnn_type=rnn_type,
+            num_hidden_layers=num_hidden_layers,
             action_history_shape=(dim_action,) if use_prev_action else None,
         ),
         n_epochs_policy=2, batch_size=64, eps_ppo=.2, lam=.95,
@@ -146,3 +146,27 @@ def test_RudinPPO_save(tmpdir):
 
     for att in vars(agent_save):
         tu.assert_eq(getattr(agent_save, att), getattr(agent_load, att))
+
+
+def test_PPO_BPTT_lstm():
+    np.random.seed(1)
+    torch.manual_seed(1)
+    torch.cuda.manual_seed(1)
+    policy, alg_params = make_bptt_setup(rnn_type='lstm')
+
+    agent = learn(PPO_BPTT, policy, alg_params)
+
+    assert agent.policy.policy_state_shape == (2, 1, 4)
+    assert torch.all(torch.isfinite(agent.policy.get_weights()))
+
+
+def test_PPO_BPTT_multi_layer():
+    np.random.seed(1)
+    torch.manual_seed(1)
+    torch.cuda.manual_seed(1)
+    policy, alg_params = make_bptt_setup(num_hidden_layers=2)
+
+    agent = learn(PPO_BPTT, policy, alg_params)
+
+    assert agent.policy.policy_state_shape == (2, 4)
+    assert torch.all(torch.isfinite(agent.policy.get_weights()))

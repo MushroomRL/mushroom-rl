@@ -9,8 +9,8 @@ from mushroom_rl.approximators.parametric.networks import RecurrentActorNetwork,
 
 def _make_recurrent_actor_approximator(dim_env, dim_action, n_hidden, action_history_shape=None):
     return RecurrentTorchApproximator(
-        input_shape=(dim_env,), output_shape=[(dim_action,), (n_hidden,)],
-        network=RecurrentActorNetwork, policy_state_shape=(n_hidden,),
+        input_shape=(dim_env,), output_shape=(dim_action,),
+        network=RecurrentActorNetwork,
         n_features=8, rnn_type='gru', n_hidden_features=n_hidden, num_hidden_layers=1,
         action_history_shape=action_history_shape
     )
@@ -21,7 +21,7 @@ def test_recurrent_approximator_single_sample_padding():
     dim_env, dim_action, n_hidden = 4, 2, 6
     approximator = _make_recurrent_actor_approximator(dim_env, dim_action, n_hidden)
 
-    action, next_state = approximator.predict(torch.randn(dim_env), torch.zeros(n_hidden))
+    action, next_state = approximator.predict(torch.randn(dim_env), torch.zeros(1, n_hidden))
     assert action.shape == (dim_action,)
     assert next_state.shape == (1, n_hidden)
 
@@ -31,7 +31,7 @@ def test_recurrent_approximator_vectorized_padding():
     dim_env, dim_action, n_hidden, n_envs = 4, 2, 6, 3
     approximator = _make_recurrent_actor_approximator(dim_env, dim_action, n_hidden)
 
-    action, next_state = approximator.predict(torch.randn(n_envs, dim_env), torch.zeros(n_envs, n_hidden))
+    action, next_state = approximator.predict(torch.randn(n_envs, dim_env), torch.zeros(n_envs, 1, n_hidden))
     assert action.shape == (n_envs, dim_action)
     assert next_state.shape == (n_envs, 1, n_hidden)
 
@@ -42,7 +42,7 @@ def test_recurrent_approximator_training_passthrough():
     approximator = _make_recurrent_actor_approximator(dim_env, dim_action, n_hidden)
 
     lengths = torch.tensor([4, 2, 3, 4, 1])
-    action, next_state = approximator.predict(torch.randn(batch, seq, dim_env), torch.zeros(batch, n_hidden),
+    action, next_state = approximator.predict(torch.randn(batch, seq, dim_env), torch.zeros(batch, 1, n_hidden),
                                               lengths=lengths)
     assert action.shape == (batch, dim_action)
     assert next_state.shape == (batch, 1, n_hidden)
@@ -53,7 +53,7 @@ def test_recurrent_approximator_lengths_default_matches_explicit():
     dim_env, dim_action, n_hidden = 4, 2, 6
     approximator = _make_recurrent_actor_approximator(dim_env, dim_action, n_hidden)
 
-    state, policy_state = torch.randn(dim_env), torch.zeros(n_hidden)
+    state, policy_state = torch.randn(dim_env), torch.zeros(1, n_hidden)
     default_action, _ = approximator.predict(state, policy_state)
     explicit_action, _ = approximator.predict(state, policy_state, lengths=torch.ones(1, dtype=torch.long))
     assert torch.allclose(default_action, explicit_action)
@@ -65,7 +65,7 @@ def test_recurrent_approximator_action_history_padding():
     approximator = _make_recurrent_actor_approximator(dim_env, dim_action, n_hidden,
                                                       action_history_shape=(dim_action,))
 
-    action, next_state = approximator.predict(torch.randn(dim_env), torch.zeros(n_hidden),
+    action, next_state = approximator.predict(torch.randn(dim_env), torch.zeros(1, n_hidden),
                                               action_history=torch.randn(dim_action))
     assert action.shape == (dim_action,)
     assert next_state.shape == (1, n_hidden)
@@ -78,7 +78,7 @@ def test_recurrent_approximator_missing_action_history_raises():
                                                       action_history_shape=(dim_action,))
 
     with pytest.raises(KeyError):
-        approximator.predict(torch.randn(dim_env), torch.zeros(n_hidden))
+        approximator.predict(torch.randn(dim_env), torch.zeros(1, n_hidden))
 
 
 def test_recurrent_ensemble():
@@ -87,7 +87,7 @@ def test_recurrent_ensemble():
 
     approximator = RecurrentTorchApproximator(
         input_shape=(dim_env,), output_shape=(1,), network=RecurrentCriticNetwork,
-        policy_state_shape=(n_hidden,), n_models=3, prediction='all', n_features=8, rnn_type='gru',
+        n_models=3, prediction='all', n_features=8, rnn_type='gru',
         n_hidden_features=n_hidden, num_hidden_layers=1,
         optimizer={'class': optim.Adam, 'params': {}}, loss=F.mse_loss, batch_size=0, quiet=True
     )
@@ -95,7 +95,7 @@ def test_recurrent_ensemble():
     assert len(approximator) == 3
 
     state = torch.randn(batch, seq, dim_env)
-    policy_state = torch.zeros(batch, n_hidden)
+    policy_state = torch.zeros(batch, 1, n_hidden)
     lengths = torch.tensor([5, 4, 3, 5, 2, 4, 1, 5])
     target = torch.randn(batch)
 
@@ -117,13 +117,13 @@ def test_recurrent_ensemble_multi_output():
     dim_env, dim_action, n_hidden, batch, seq = 4, 2, 6, 8, 5
 
     ensemble = RecurrentTorchApproximator(
-        input_shape=(dim_env,), output_shape=[(dim_action,), (n_hidden,)], network=RecurrentActorNetwork,
-        policy_state_shape=(n_hidden,), n_models=3, n_features=8, rnn_type='gru',
+        input_shape=(dim_env,), output_shape=(dim_action,), network=RecurrentActorNetwork,
+        n_models=3, n_features=8, rnn_type='gru',
         n_hidden_features=n_hidden, num_hidden_layers=1
     )
 
     state = torch.randn(batch, seq, dim_env)
-    policy_state = torch.zeros(batch, n_hidden)
+    policy_state = torch.zeros(batch, 1, n_hidden)
     lengths = torch.tensor([5, 4, 3, 5, 2, 4, 1, 5])
 
     action, next_policy_state = ensemble.predict(state, policy_state, lengths=lengths)
@@ -152,13 +152,13 @@ def test_recurrent_ensemble_multi_output_after_save_load(tmpdir):
     dim_env, dim_action, n_hidden, batch, seq = 4, 2, 6, 8, 5
 
     ensemble = RecurrentTorchApproximator(
-        input_shape=(dim_env,), output_shape=[(dim_action,), (n_hidden,)], network=RecurrentActorNetwork,
-        policy_state_shape=(n_hidden,), n_models=3, n_features=8, rnn_type='gru',
+        input_shape=(dim_env,), output_shape=(dim_action,), network=RecurrentActorNetwork,
+        n_models=3, n_features=8, rnn_type='gru',
         n_hidden_features=n_hidden, num_hidden_layers=1
     )
 
     state = torch.randn(batch, seq, dim_env)
-    policy_state = torch.zeros(batch, n_hidden)
+    policy_state = torch.zeros(batch, 1, n_hidden)
     lengths = torch.tensor([5, 4, 3, 5, 2, 4, 1, 5])
     expected_action, expected_state = ensemble.predict(state, policy_state, lengths=lengths)
 
@@ -182,11 +182,11 @@ def test_recurrent_approximator_diff_not_supported():
     approximator = _make_recurrent_actor_approximator(dim_env, dim_action, n_hidden)
     ensemble = RecurrentTorchApproximator(
         input_shape=(dim_env,), output_shape=(1,), network=RecurrentCriticNetwork,
-        policy_state_shape=(n_hidden,), n_models=3, n_features=8, rnn_type='gru',
+        n_models=3, n_features=8, rnn_type='gru',
         n_hidden_features=n_hidden, num_hidden_layers=1
     )
 
-    state, policy_state = torch.randn(dim_env), torch.zeros(n_hidden)
+    state, policy_state = torch.randn(dim_env), torch.zeros(1, n_hidden)
     with pytest.raises(NotImplementedError):
         approximator.diff(state, policy_state)
 
@@ -200,12 +200,12 @@ def test_recurrent_ensemble_prediction_all():
 
     approximator = RecurrentTorchApproximator(
         input_shape=(dim_env,), output_shape=(1,), network=RecurrentCriticNetwork,
-        policy_state_shape=(n_hidden,), n_models=3, prediction='mean', n_features=8, rnn_type='gru',
+        n_models=3, prediction='mean', n_features=8, rnn_type='gru',
         n_hidden_features=n_hidden, num_hidden_layers=1
     )
 
     state = torch.randn(batch, seq, dim_env)
-    policy_state = torch.zeros(batch, n_hidden)
+    policy_state = torch.zeros(batch, 1, n_hidden)
     lengths = torch.tensor([5, 4, 3, 5, 2, 4, 1, 5])
 
     mean = approximator.predict(state, policy_state, lengths=lengths)
