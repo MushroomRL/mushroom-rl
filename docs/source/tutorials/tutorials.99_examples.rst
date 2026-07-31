@@ -40,8 +40,8 @@ Value-Based Algorithms
 - `Simple Chain with Q-Learning <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/value/simple_chain_qlearning.py>`_
 - `Grid World and Taxi with SARSA(lambda) <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/value/grid_world_sarsa.py>`_
 - `Puddle World with True Online SARSA(lambda) <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/value/puddle_world_sarsa.py>`_
-- `Mountain Car with True Online SARSA(lambda) <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/value/mountain_car_sarsa.py>`_
-- `Acrobot with DQN <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/value/acrobot_dqn.py>`_
+- `Mountain Car with True Online SARSA(lambda) <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/value/gym_mountain_car_sarsa.py>`_
+- `Acrobot with DQN <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/value/gym_acrobot_dqn.py>`_
 - `MiniGrid with DQN and its variants <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/value/minigrid_dqn.py>`_
 
 
@@ -49,8 +49,8 @@ Classical Policy Search and Actor-Critic
 ----------------------------------------
 
 - `LQR with Policy Gradient <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/policy_search/lqr_pg.py>`_
-- `Pendulum with Stochastic Actor-Critic <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/actor_critic/pendulum_ac.py>`_
-- `Pendulum with Deterministic Actor-Critic <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/actor_critic/pendulum_dpg.py>`_
+- `Pendulum with Stochastic Actor-Critic <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/actor_critic/inverted_pendulum_ac.py>`_
+- `Pendulum with Deterministic Actor-Critic <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/actor_critic/inverted_pendulum_dpg.py>`_
 
 
 Black Box Optimization
@@ -65,11 +65,11 @@ Black Box Optimization
 Deep Actor-Critic
 -----------------
 
-- `Pendulum with A2C <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/actor_critic/pendulum_a2c.py>`_
-- `Acrobot with A2C <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/actor_critic/acrobot_a2c.py>`_
-- `Pendulum with Trust Region approaches <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/actor_critic/pendulum_trust_region.py>`_
-- `Pendulum with Deterministic Gradient <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/actor_critic/pendulum_ddpg.py>`_
-- `Pendulum with SAC <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/actor_critic/pendulum_sac.py>`_
+- `Pendulum with A2C <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/actor_critic/gym_pendulum_a2c.py>`_
+- `Acrobot with A2C <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/actor_critic/gym_acrobot_a2c.py>`_
+- `Pendulum with Trust Region approaches <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/actor_critic/gym_pendulum_trust_region.py>`_
+- `Pendulum with Deterministic Gradient <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/actor_critic/gym_pendulum_ddpg.py>`_
+- `Pendulum with SAC <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/actor_critic/gym_pendulum_sac.py>`_
 - `HalfCheetah with Recurrent PPO <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/algorithms/actor_critic/gym_recurrent_ppo.py>`_
 
 
