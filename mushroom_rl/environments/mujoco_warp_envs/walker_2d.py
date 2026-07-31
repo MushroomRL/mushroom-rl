@@ -10,7 +10,6 @@ from mushroom_rl.core.spaces import Box
 class Walker2DWarp(MuJoCoWarp):
     """
     Mujoco WARP simulation of Walker2d task based on the Hopper environment.
-
     """
 
     def __init__(
@@ -27,14 +26,13 @@ class Walker2DWarp(MuJoCoWarp):
         reset_noise_scale=5e-3,
         exclude_current_positions_from_observation=True,
         n_substeps=4,
-        use_graph_capture=True,
-        warmup_steps=3,
         nconmax=200,
         njmax=200,
         **viewer_params,
     ):
-        """Constructor."""
-
+        """
+        Constructor.
+        """
         xml_path = (
             Path(__file__).resolve().parent.parent
             / "mujoco_envs"
@@ -97,14 +95,15 @@ class Walker2DWarp(MuJoCoWarp):
             actuation_spec=actuation_spec,
             additional_data_spec=additional_data_spec,
             n_substeps=n_substeps,
-            use_graph_capture=use_graph_capture,
-            warmup_steps=warmup_steps,
             nconmax=nconmax,
             njmax=njmax,
             **viewer_params,
         )
 
     def _modify_mdp_info(self, mdp_info):
+        # NOTE: original file said `remove_obs("x_pos", 0)` here but x_pos was
+        # never added to observation_spec above — only to additional_data_spec.
+        # Matching the hopper pattern (add_obs conditionally) instead.
         if not self._exclude_current_positions_from_observation:
             self.obs_helper.add_obs("x_pos", 1)
         mdp_info = super()._modify_mdp_info(mdp_info)
@@ -135,13 +134,11 @@ class Walker2DWarp(MuJoCoWarp):
         y_angle = self.obs_helper.get_from_obs(obs, "y_pos")[:, 0]
         return (y_angle > min_angle) & (y_angle < max_angle)
 
+    def _is_healthy(self, obs):
+        return self._is_within_z_range(obs) & self._is_within_angle_range(obs)
+
     def is_absorbing(self, obs):
         return self._terminate_when_unhealthy & ~self._is_healthy(obs)
-
-    def _is_healthy(self, obs):
-        is_within_z_range = self._is_within_z_range(obs)
-        is_within_angle_range = self._is_within_angle_range(obs)
-        return is_within_z_range & is_within_angle_range
 
     def reward(self, obs, action, next_obs, absorbing):
         healthy = self._is_healthy(next_obs)
@@ -160,7 +157,11 @@ class Walker2DWarp(MuJoCoWarp):
         return healthy_r + forward_r - ctrl_cost
 
     def setup(self, env_indices, obs):
-        """Reset with small uniform noise on qpos and qvel for the given environments."""
+        """Reset with uniform noise on qpos and qvel for the given environments.
+
+        GPU-native to avoid host-device roundtrips and to keep buffers stable
+        for graph capture compatibility.
+        """
         super().setup(env_indices, obs)
 
         qpos = wp.to_torch(self._data_wp.qpos)
@@ -173,13 +174,13 @@ class Walker2DWarp(MuJoCoWarp):
             else env_indices.to(device).long()
         )
 
-        n = idx.shape[0]
+        n = len(env_indices)
         noise_pos = (
             torch.rand(n, self._model.nq, device=device) * 2 - 1
         ) * self._reset_noise_scale
         noise_vel = (
-            torch.randn(n, self._model.nv, device=device) * self._reset_noise_scale
-        )
+            torch.rand(n, self._model.nv, device=device) * 2 - 1
+        ) * self._reset_noise_scale
 
         qpos[idx] += noise_pos
         qvel[idx] += noise_vel

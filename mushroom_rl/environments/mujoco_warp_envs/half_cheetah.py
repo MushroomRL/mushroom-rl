@@ -10,7 +10,6 @@ from mushroom_rl.core.spaces import Box
 class HalfCheetahWarp(MuJoCoWarp):
     """
     Mujoco WARP simulation of the HalfCheetah task.
-
     """
 
     def __init__(
@@ -23,13 +22,13 @@ class HalfCheetahWarp(MuJoCoWarp):
         reset_noise_scale=0.1,
         n_substeps=5,
         exclude_current_positions_from_observation=True,
-        use_graph_capture=True,
-        warmup_steps=3,
         nconmax=200,
         njmax=200,
         **viewer_params,
     ):
-        """Constructor."""
+        """
+        Constructor.
+        """
         xml_path = (
             Path(__file__).resolve().parent.parent
             / "mujoco_envs"
@@ -81,8 +80,6 @@ class HalfCheetahWarp(MuJoCoWarp):
             actuation_spec=actuation_spec,
             additional_data_spec=additional_data_spec,
             n_substeps=n_substeps,
-            use_graph_capture=use_graph_capture,
-            warmup_steps=warmup_steps,
             nconmax=nconmax,
             njmax=njmax,
             **viewer_params,
@@ -118,7 +115,11 @@ class HalfCheetahWarp(MuJoCoWarp):
         return forward_r - ctrl_cost
 
     def setup(self, env_indices, obs):
-        """Reset with small uniform noise on qpos and qvel for the given environments."""
+        """Reset with uniform noise on qpos and qvel for the given environments.
+
+        GPU-native to avoid host-device roundtrips and to keep buffers stable
+        for graph capture compatibility.
+        """
         super().setup(env_indices, obs)
 
         qpos = wp.to_torch(self._data_wp.qpos)
@@ -131,13 +132,13 @@ class HalfCheetahWarp(MuJoCoWarp):
             else env_indices.to(device).long()
         )
 
-        n = idx.shape[0]
+        n = len(env_indices)
         noise_pos = (
             torch.rand(n, self._model.nq, device=device) * 2 - 1
         ) * self._reset_noise_scale
         noise_vel = (
-            torch.randn(n, self._model.nv, device=device) * self._reset_noise_scale
-        )
+            torch.rand(n, self._model.nv, device=device) * 2 - 1
+        ) * self._reset_noise_scale
 
         qpos[idx] += noise_pos
         qvel[idx] += noise_vel

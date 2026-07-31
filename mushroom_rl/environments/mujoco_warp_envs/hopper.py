@@ -33,8 +33,6 @@ class HopperWarp(MuJoCoWarp):
         reset_noise_scale=5e-3,
         n_substeps=4,
         exclude_current_positions_from_observation=True,
-        use_graph_capture=True,
-        warmup_steps=3,
         nconmax=200,
         njmax=200,
         **viewer_params,
@@ -89,8 +87,6 @@ class HopperWarp(MuJoCoWarp):
             num_envs=num_envs,
             n_substeps=n_substeps,
             additional_data_spec=additional_data_spec,
-            use_graph_capture=use_graph_capture,
-            warmup_steps=warmup_steps,
             nconmax=nconmax,
             njmax=njmax,
             **viewer_params,
@@ -105,7 +101,6 @@ class HopperWarp(MuJoCoWarp):
 
     def _create_observation(self, obs):
         obs = obs.clone()
-
         obs[:, self.obs_helper.joint_vel_idx] = torch.clamp(
             obs[:, self.obs_helper.joint_vel_idx], -10.0, 10.0
         )
@@ -158,7 +153,11 @@ class HopperWarp(MuJoCoWarp):
         return healthy_r + forward_r - ctrl_cost
 
     def setup(self, env_indices, obs):
-        """Reset with small uniform noise on qpos and qvel for the given environments."""
+        """Reset with uniform noise on qpos and qvel for the given environments.
+
+        GPU-native to avoid host-device roundtrips and to keep buffers stable
+        for graph capture compatibility.
+        """
         super().setup(env_indices, obs)
 
         qpos = wp.to_torch(self._data_wp.qpos)
@@ -171,13 +170,14 @@ class HopperWarp(MuJoCoWarp):
             else env_indices.to(device).long()
         )
 
-        n = idx.shape[0]
+        n = len(env_indices)
+        # Hopper uses uniform noise on both qpos and qvel (matches openai gym reference)
         noise_pos = (
             torch.rand(n, self._model.nq, device=device) * 2 - 1
         ) * self._reset_noise_scale
         noise_vel = (
-            torch.randn(n, self._model.nv, device=device) * self._reset_noise_scale
-        )
+            torch.rand(n, self._model.nv, device=device) * 2 - 1
+        ) * self._reset_noise_scale
 
         qpos[idx] += noise_pos
         qvel[idx] += noise_vel
