@@ -189,7 +189,9 @@ class DataLogger(object):
             The converted hyperparameter value.
 
         """
-        if callable(value) and hasattr(value, '__module__') and hasattr(value, '__qualname__'):
+        if hasattr(value, 'full_name') and callable(value.full_name):
+            return value.full_name()
+        elif callable(value) and hasattr(value, '__module__') and hasattr(value, '__qualname__'):
             return f'{value.__module__}.{value.__qualname__}'
         elif isinstance(value, dict):
             return {name: DataLogger._format_hyperparameter(item) for name, item in value.items()}
