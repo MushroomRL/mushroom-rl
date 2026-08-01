@@ -5,6 +5,7 @@ For Mushroom 2.0:
         minigrid_dqn write into the current working directory
       - try to simplify experiments functions
     * linting as much as possible
+    * After release: Put back latest as default readthedocs config and as default badge in the main readme.rts
 
 
 For Mushroom 2.1:

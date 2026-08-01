@@ -6,8 +6,8 @@ MushroomRL
    :target: https://github.com/MushroomRL/mushroom-rl/actions/workflows/continuous_integration.yml
    :alt: Continuous Integration
 
-.. image:: https://readthedocs.org/projects/mushroomrl/badge/?version=latest
-   :target: https://mushroomrl.readthedocs.io/en/latest/?badge=latest
+.. image:: https://readthedocs.org/projects/mushroomrl/badge/?version=dev
+   :target: https://mushroomrl.readthedocs.io/en/dev/?badge=dev
    :alt: Documentation Status
 
 .. image:: https://qlty.sh/gh/MushroomRL/projects/mushroom-rl/maintainability.svg
