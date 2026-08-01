@@ -21,7 +21,7 @@
 # sys.path.insert(0, os.path.abspath('.'))
 
 from mushroom_rl import __version__
-
+import datetime
 
 # -- General configuration ------------------------------------------------
 
@@ -57,9 +57,11 @@ source_suffix = {'.rst': 'restructuredtext'}
 master_doc = 'index'
 
 # General information about the project.
-project = u'MushroomRL'
-copyright = u'2018-2021 Carlo D\'Eramo, Davide Tateo'
-author = u'Carlo D\'Eramo'
+project = 'MushroomRL'
+current_year = datetime.datetime.now().year
+copyright = f'2018-{current_year}, Carlo D\'Eramo, Davide Tateo'
+author = 'Davide Tateo, Carlo D\'Eramo'
+
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
