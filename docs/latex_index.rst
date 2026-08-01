@@ -2,23 +2,20 @@
 MushroomRL
 ==========
 
-.. include:: source/mushroom.rst
+Getting Started
+===============
 
 .. toctree::
-   :caption: Getting started
-   :maxdepth: 1
-   :titlesonly:
-   :hidden:
-
-   What is MushroomRL <self>
-   source/installation
-   source/contents
-
-
-.. toctree::
-   :caption: Tutorials
    :maxdepth: 2
-   :hidden:
+
+   source/mushroom
+   source/installation
+
+Tutorials
+=========
+
+.. toctree::
+   :maxdepth: 2
 
    source/tutorials/tutorials.0_experiments
    source/tutorials/tutorials.1_advanced
@@ -31,11 +28,11 @@ MushroomRL
    source/tutorials/tutorials.8_history_manager
    source/tutorials/tutorials.99_examples
 
+API Reference
+=============
 
 .. toctree::
-   :caption: API
    :maxdepth: 2
-   :hidden:
 
    source/api/core/index
    source/api/algorithms/index

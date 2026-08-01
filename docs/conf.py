@@ -133,22 +133,21 @@ htmlhelp_basename = 'MushroomRLdoc'
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
-    # The paper size ('letterpaper' or 'a4paper').
-    #
-    # 'papersize': 'letterpaper',
-
-    # The font size ('10pt', '11pt' or '12pt').
-    #
-    # 'pointsize': '10pt',
-
-    # Additional stuff for the LaTeX preamble.
-    #
-    # 'preamble': '',
-
-    # Latex figure (float) alignment
-    #
-    # 'figure_align': 'htbp',
-    'inputenc': '\\usepackage[utf8x]{inputenc}',
+    'papersize': 'letterpaper',
+    'pointsize': '10pt',
+    'preamble': r'''
+        \usepackage{seqsplit}
+        \usepackage{microtype}
+        \PassOptionsToPackage{hyphens}{url}
+        \usepackage{newunicodechar}
+        \newunicodechar{Λ}{\ensuremath{\Lambda}}
+        \newunicodechar{λ}{\ensuremath{\lambda}}
+        \usepackage{etoolbox}
+        \makeatletter
+        \@addtoreset{chapter}{part}
+        \makeatother
+    ''',
+    'inputenc': '\\usepackage[utf8]{inputenc}',
     'makeindex': '\\usepackage[columns=1]{idxlayout}\\makeindex',
     'printindex': '\\def\\twocolumn[#1]{#1}\\footnotesize\\raggedright\\printindex',
 }
@@ -156,9 +155,19 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
+# 1. Promote your captions (Getting started, Tutorials, API) to LaTeX \part{} dividers
+latex_toplevel_sectioning = "part"
+
+# 2. Add True as the 6th tuple element
 latex_documents = [
-    (master_doc, 'MushroomRL.tex', u'MushroomRL Documentation',
-     u'Carlo D\'Eramo, Davide Tateo', 'manual'),
+    (
+        "latex_index",
+        "MushroomRL.tex",
+        "MushroomRL Documentation",
+        "Davide Tateo, Carlo D'Eramo",
+        "manual",
+        False,
+    ),
 ]
 
 
@@ -238,11 +247,21 @@ def skip(app, what, name, obj, skip, options):
         return False
     return skip
 
+def configure_builder(app):
+    if 'latex' in app.builder.name:
+        app.config.exclude_patterns.append('index.rst')
+        app.config.master_doc = 'latex_index'
+    else:
+        app.config.exclude_patterns.append('latex_index.rst')
 
 def setup(app):
+    app.connect('builder-inited', configure_builder)
     app.connect("autodoc-skip-member", skip)
     app.add_css_file('theme_overrides.css')
 
+
+# -- Options for modindex -----------------------------------------------
+modindex_common_prefix = ['mushroom_rl.']
 
 # -- Options for autosummary -----------------------------------------------
 

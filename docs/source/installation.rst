@@ -101,7 +101,7 @@ by some Gymnasium environments and the installation may fail otherwise. For Atar
 separately, otherwise the creation of Atari environments may fail. OpenCV should be installed too.
 Installing MushroomRL in a Conda environment is generally safe.
 
-To check if the installation has been successful, try to run the basic example on the :doc:`../index` page.
+To check if the installation has been successful, try to run the basic example.
 
 MushroomRL is well-tested on Linux. If you are using another OS, you may run into issues that
 we are still not aware of. In that case, please do not hesitate to send us an email at mushroom4rl@gmail.com.
