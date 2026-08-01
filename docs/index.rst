@@ -47,3 +47,4 @@ MushroomRL
    source/api/rl_utils/index
    source/api/utils/index
    source/api/solvers/index
+   modindex

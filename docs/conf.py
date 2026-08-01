@@ -123,6 +123,7 @@ html_sidebars = {
 }
 
 html_show_sourcelink = False
+html_use_index = False
 
 # -- Options for HTMLHelp output ------------------------------------------
 
