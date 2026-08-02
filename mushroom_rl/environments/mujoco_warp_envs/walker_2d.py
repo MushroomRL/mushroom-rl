@@ -30,9 +30,6 @@ class Walker2DWarp(MuJoCoWarp):
         njmax=200,
         **viewer_params,
     ):
-        """
-        Constructor.
-        """
         xml_path = (
             Path(__file__).resolve().parent.parent
             / "mujoco_envs"
@@ -72,7 +69,6 @@ class Walker2DWarp(MuJoCoWarp):
 
         additional_data_spec = [
             ("x_pos", "rootx", ObservationType.JOINT_POS),
-            ("torso_vel", "torso", ObservationType.BODY_VEL_WORLD),
         ]
 
         self._forward_reward_weight = forward_reward_weight
@@ -101,9 +97,6 @@ class Walker2DWarp(MuJoCoWarp):
         )
 
     def _modify_mdp_info(self, mdp_info):
-        # NOTE: original file said `remove_obs("x_pos", 0)` here but x_pos was
-        # never added to observation_spec above — only to additional_data_spec.
-        # Matching the hopper pattern (add_obs conditionally) instead.
         if not self._exclude_current_positions_from_observation:
             self.obs_helper.add_obs("x_pos", 1)
         mdp_info = super()._modify_mdp_info(mdp_info)
@@ -112,27 +105,28 @@ class Walker2DWarp(MuJoCoWarp):
 
     def _create_observation(self, obs):
         obs = obs.clone()
-
-        obs[:, self.obs_helper.joint_vel_idx] = torch.clamp(
-            obs[:, self.obs_helper.joint_vel_idx], -10.0, 10.0
-        )
-
+        # Walker: 8 position obs (z, y, thigh, leg, foot, thigh_left, leg_left,
+        # foot_left) then 9 velocity obs (x_vel, z_vel, y_vel + 6 joint vels).
+        # Clip all velocities including root vels — matches cpu Hopper's [5:]
+        # pattern, scaled to walker's observation layout.
+        obs[:, 8:] = torch.clamp(obs[:, 8:], -10.0, 10.0)
         if not self._exclude_current_positions_from_observation:
             x_pos = self._read_data("x_pos")
             obs = torch.cat([obs, x_pos], dim=1)
         return obs
 
     def _is_within_z_range(self, obs):
-        """Check if Z position of torso is within the healthy range."""
         min_z, max_z = self._healthy_z_range
         z_position = self.obs_helper.get_from_obs(obs, "z_pos")[:, 0]
         return (z_position > min_z) & (z_position < max_z)
 
     def _is_within_angle_range(self, obs):
-        """Check if y-angle of torso is within the healthy range."""
         min_angle, max_angle = self._healthy_angle_range
         y_angle = self.obs_helper.get_from_obs(obs, "y_pos")[:, 0]
-        return (y_angle > min_angle) & (y_angle < max_angle)
+        # Wrap to [-pi, pi] before comparison — defensive against somersault
+        # accumulation that we hit debugging hopper.
+        y_wrapped = torch.atan2(torch.sin(y_angle), torch.cos(y_angle))
+        return (y_wrapped > min_angle) & (y_wrapped < max_angle)
 
     def _is_healthy(self, obs):
         return self._is_within_z_range(obs) & self._is_within_angle_range(obs)
@@ -146,8 +140,11 @@ class Walker2DWarp(MuJoCoWarp):
             healthy | self._terminate_when_unhealthy
         ).float() * self._healthy_reward
 
-        torso_vel = self._read_data("torso_vel")
-        forward_r = self._forward_reward_weight * torso_vel[:, 3]
+        # qvel[0] = rootx generalized velocity = world-frame linear x velocity.
+        # Ground truth. Do NOT use torso_vel/cvel — body-local in mujoco_warp,
+        # sign flips under torso pitch. Verified during hopper debugging.
+        qvel = wp.to_torch(self._data_wp.qvel)
+        forward_r = self._forward_reward_weight * qvel[:, 0]
 
         action_t = torch.as_tensor(
             action, dtype=healthy_r.dtype, device=healthy_r.device
@@ -157,11 +154,7 @@ class Walker2DWarp(MuJoCoWarp):
         return healthy_r + forward_r - ctrl_cost
 
     def setup(self, env_indices, obs):
-        """Reset with uniform noise on qpos and qvel for the given environments.
-
-        GPU-native to avoid host-device roundtrips and to keep buffers stable
-        for graph capture compatibility.
-        """
+        """Reset with uniform noise on qpos and qvel for the given environments."""
         super().setup(env_indices, obs)
 
         qpos = wp.to_torch(self._data_wp.qpos)
@@ -175,6 +168,10 @@ class Walker2DWarp(MuJoCoWarp):
         )
 
         n = len(env_indices)
+        if n == 0:
+            self._mj_warp.forward(self._model_wp, self._data_wp)
+            return
+
         noise_pos = (
             torch.rand(n, self._model.nq, device=device) * 2 - 1
         ) * self._reset_noise_scale
@@ -192,8 +189,8 @@ class Walker2DWarp(MuJoCoWarp):
         healthy_r = (
             healthy | self._terminate_when_unhealthy
         ).float() * self._healthy_reward
-        torso_vel = self._read_data("torso_vel")
-        forward_r = self._forward_reward_weight * torso_vel[:, 3]
+        qvel = wp.to_torch(self._data_wp.qvel)
+        forward_r = self._forward_reward_weight * qvel[:, 0]
         return {
             "healthy_reward": healthy_r,
             "forward_reward": forward_r,
