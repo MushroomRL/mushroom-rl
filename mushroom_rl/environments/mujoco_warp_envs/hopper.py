@@ -63,7 +63,6 @@ class HopperWarp(MuJoCoWarp):
 
         additional_data_spec = [
             ("x_pos", "rootx", ObservationType.JOINT_POS),
-            ("torso_vel", "torso", ObservationType.BODY_VEL_WORLD),
         ]
 
         self._forward_reward_weight = forward_reward_weight
@@ -92,6 +91,9 @@ class HopperWarp(MuJoCoWarp):
             **viewer_params,
         )
 
+        # after super().__init__() in __init__:
+        # in __init__ after super().__init__():
+
     def _modify_mdp_info(self, mdp_info):
         if not self._exclude_current_positions_from_observation:
             self.obs_helper.add_obs("x_pos", 1)
@@ -101,9 +103,7 @@ class HopperWarp(MuJoCoWarp):
 
     def _create_observation(self, obs):
         obs = obs.clone()
-        obs[:, self.obs_helper.joint_vel_idx] = torch.clamp(
-            obs[:, self.obs_helper.joint_vel_idx], -10.0, 10.0
-        )
+        obs[:, 5:] = torch.clamp(obs[:, 5:], -10.0, 10.0)
         if not self._exclude_current_positions_from_observation:
             x_pos = self._read_data("x_pos")
             obs = torch.cat([obs, x_pos], dim=-1)
@@ -114,17 +114,26 @@ class HopperWarp(MuJoCoWarp):
         qpos = wp.to_torch(self._data_wp.qpos)
         qvel = wp.to_torch(self._data_wp.qvel)
         state = torch.cat([qpos, qvel], dim=-1)
-        return ((state > min_s) & (state < max_s)).all(dim=-1)
+        result = ((state > min_s) & (state < max_s)).all(dim=-1)
+        return result
 
     def _is_within_z_range(self, obs):
         min_z, max_z = self._healthy_z_range
         z_pos = self.obs_helper.get_from_obs(obs, "z_pos")[:, 0]
-        return (z_pos > min_z) & (z_pos < max_z)
+        result = (z_pos > min_z) & (z_pos < max_z)
+
+        return result
 
     def _is_within_angle_range(self, obs):
         min_a, max_a = self._healthy_angle_range
         y_angle = self.obs_helper.get_from_obs(obs, "y_pos")[:, 0]
-        return (y_angle > min_a) & (y_angle < max_a)
+        # Wrap angle to [-pi, pi] before comparison. Without wrapping, a hopper
+        # that somersaults gets angle=4.5rad and is permanently outside the
+        # (-0.2, 0.2) range even after physically returning upright.
+        y_wrapped = torch.atan2(torch.sin(y_angle), torch.cos(y_angle))
+        result = (y_wrapped > min_a) & (y_wrapped < max_a)
+
+        return result
 
     def _is_healthy(self, obs):
         return (
@@ -142,8 +151,10 @@ class HopperWarp(MuJoCoWarp):
             healthy | self._terminate_when_unhealthy
         ).float() * self._healthy_reward
 
-        torso_vel = self._read_data("torso_vel")
-        forward_r = self._forward_reward_weight * torso_vel[:, 3]
+        # qvel[0] is rootx generalized velocity — world-frame linear x velocity
+        # for hopper's kinematic tree. Ground truth, no frame ambiguity.
+        qvel = wp.to_torch(self._data_wp.qvel)
+        forward_r = self._forward_reward_weight * qvel[:, 0]
 
         action_t = torch.as_tensor(
             action, dtype=healthy_r.dtype, device=healthy_r.device
@@ -171,7 +182,10 @@ class HopperWarp(MuJoCoWarp):
         )
 
         n = len(env_indices)
-        # Hopper uses uniform noise on both qpos and qvel (matches openai gym reference)
+        if n == 0:
+            self._mj_warp.forward(self._model_wp, self._data_wp)
+            return
+
         noise_pos = (
             torch.rand(n, self._model.nq, device=device) * 2 - 1
         ) * self._reset_noise_scale
@@ -189,8 +203,8 @@ class HopperWarp(MuJoCoWarp):
         healthy_r = (
             healthy | self._terminate_when_unhealthy
         ).float() * self._healthy_reward
-        torso_vel = self._read_data("torso_vel")
-        forward_r = self._forward_reward_weight * torso_vel[:, 3]
+        qvel = wp.to_torch(self._data_wp.qvel)
+        forward_r = self._forward_reward_weight * qvel[:, 0]
         return {
             "healthy_reward": healthy_r,
             "forward_reward": forward_r,
