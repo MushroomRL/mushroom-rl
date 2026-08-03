@@ -106,7 +106,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--env', choices=[env.name() for env in get_environments()], default=Ant.name(),
                         help='the locomotion environment to solve')
-    parser.add_argument('--no-render', action='store_true', help='skip the final visualization')
+    parser.add_argument('--no-render', action='store_false', dest='render', help='skip the final visualization')
     parser.add_argument('--use-cuda', action='store_true', help='run on the GPU instead of the CPU')
 
     return parser.parse_args()
@@ -117,4 +117,4 @@ if __name__ == '__main__':
     env = select_class(args.env, get_environments())
 
     experiment(env=env, n_epochs=50, n_steps=30000, n_steps_per_fit=2000, n_episodes_test=10,
-               render=not args.no_render, use_cuda=args.use_cuda)
+               render=args.render, use_cuda=args.use_cuda)

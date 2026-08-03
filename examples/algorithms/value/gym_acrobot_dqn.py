@@ -96,7 +96,7 @@ def experiment(n_epochs, n_steps, n_steps_test, render=True, use_cuda=False, see
 
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--no-render', action='store_true', help='skip the final visualization')
+    parser.add_argument('--no-render', action='store_false', dest='render', help='skip the final visualization')
     parser.add_argument('--use-cuda', action='store_true', help='run on the GPU instead of the CPU')
 
     return parser.parse_args()
@@ -105,4 +105,4 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
 
-    experiment(n_epochs=20, n_steps=1000, n_steps_test=2000, render=not args.no_render, use_cuda=args.use_cuda)
+    experiment(n_epochs=20, n_steps=1000, n_steps_test=2000, render=args.render, use_cuda=args.use_cuda)

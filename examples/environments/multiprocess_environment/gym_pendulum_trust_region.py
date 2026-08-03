@@ -102,10 +102,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--alg', choices=[alg.name() for alg in get_algorithms()], default=PPO.name(),
                         help='the trust region algorithm to run')
-    parser.add_argument('--no-render', action='store_true', help='skip the final visualization')
-
-    parser.add_argument('--use-cuda', action='store_true',
-                        help='run on the GPU instead of the CPU')
+    parser.add_argument('--no-render', action='store_false', dest='render', help='skip the final visualization')
+    parser.add_argument('--use-cuda', action='store_true', help='run on the GPU instead of the CPU')
 
     return parser.parse_args()
 
@@ -135,4 +133,4 @@ if __name__ == '__main__':
     experiment(alg=alg, env_id='Pendulum-v1', horizon=200, gamma=.99,
                n_epochs=40, n_steps=30000, n_steps_per_fit=3000,
                n_episodes_test=25, alg_params=parameters[alg],
-               policy_params=policy_params, n_envs=15, render=not args.no_render, use_cuda=args.use_cuda)
+               policy_params=policy_params, n_envs=15, render=args.render, use_cuda=args.use_cuda)
