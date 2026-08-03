@@ -8,7 +8,7 @@ import mujoco
 
 class BallInACup(MuJoCo):
     """
-    Mujoco simulation of Ball In A Cup task, using Barret WAM robot.
+    MuJoCo simulation of Ball In A Cup task, using Barret WAM robot.
 
     """
     def __init__(self):

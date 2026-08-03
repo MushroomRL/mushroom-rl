@@ -10,6 +10,10 @@ from mushroom_rl.environments.mujoco_envs.panda import Panda
 
 
 class Pick(Panda):
+    """
+    Pick task with a Panda Robot.
+
+    """
     def __init__(
         self,
         gamma=0.99,
@@ -23,9 +27,7 @@ class Pick(Panda):
         contact_force_range=(-1.0, 1.0),
         **viewer_params,
     ):
-        xml_path = (
-            Path(__file__).resolve().parent / "data" / "panda" / "pick.xml"
-        ).as_posix()
+        xml_path = (Path(__file__).resolve().parent / "data" / "panda" / "pick.xml").as_posix()
 
         additional_data_spec = [
             ("cube_pose", "cube", ObservationType.JOINT_POS),
@@ -198,4 +200,5 @@ class Pick(Panda):
         info["cube_z_pos"] = self._read_data("cube_pose")[2]
         info["ctrl_cost"] = self._get_ctrl_cost(action)
         info["contact_cost"] = self._get_contact_cost(obs)
+
         return info

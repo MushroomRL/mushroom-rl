@@ -10,6 +10,10 @@ from mushroom_rl.environments.mujoco_envs.panda import Panda
 
 
 class PegInsertion(Panda):
+    """
+    Peg insertion task with a Panda Robot.
+
+    """
     def __init__(
         self,
         gamma=0.99,
@@ -195,4 +199,5 @@ class PegInsertion(Panda):
         info["rotation_reward"] = self._get_rotation_reward(obs)
         info["ctrl_cost"] = self._get_ctrl_cost(action)
         info["contact_cost"] = self._get_contact_cost(obs)
+
         return info

@@ -7,6 +7,10 @@ from mushroom_rl.utils.quaternions import mat_to_quat
 
 
 class Panda(MuJoCo):
+    """
+    Base class for MuJoCo environments based on the Franka Emika Panda robot.
+
+    """
 
     def __init__(
         self,
@@ -164,8 +168,6 @@ class Panda(MuJoCo):
         super().setup(obs)
         self._load_keyframe(self._keyframe)
 
-    # Gravity compensation implementation adapted from
-    # https://colab.research.google.com/drive/1zlsplgSyk59hxnw3kOJMIxAXuwxXqOHD?usp=sharing
     def get_body_children_ids(self, body_id):
         return [
             i
@@ -183,10 +185,7 @@ class Panda(MuJoCo):
             stack += self.get_body_children_ids(body_id)
         return body_ids
 
-    def gravity_compensation(
-        self,
-        subtree_body_id,
-    ):
+    def gravity_compensation(self, subtree_body_id):
         self._data.qfrc_applied[:] = 0.0
         jac = np.empty((3, self._model.nv))
         total_mass = self._model.body_subtreemass[subtree_body_id]

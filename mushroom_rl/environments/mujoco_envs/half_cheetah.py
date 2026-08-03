@@ -9,8 +9,11 @@ from mushroom_rl.core.spaces import Box
 
 class HalfCheetah(MuJoCo):
     """
-    The HalfCheetah MuJoCo environment as presented in:
+    The HalfCheetah MuJoCo environment.
+
+    As presented in:
     "A Cat-Like Robot Real-Time Learning to Run". Pawel Wawrzynski. 2009.
+
     """
 
     def __init__(
@@ -125,6 +128,6 @@ class HalfCheetah(MuJoCo):
     def _create_info_dictionary(self, obs, action):
         info = {
             "forward_reward": self._get_forward_reward(),
+            "ctrl_cost": self._get_ctrl_cost(action)
         }
-        info["ctrl_cost"] = self._get_ctrl_cost(action)
         return info

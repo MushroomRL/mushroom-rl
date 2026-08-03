@@ -9,6 +9,10 @@ from mushroom_rl.environments.mujoco_envs.panda import Panda
 
 
 class Push(Panda):
+    """
+    Push task with a Panda Robot.
+
+    """
     def __init__(
         self,
         gamma=0.99,
@@ -22,9 +26,7 @@ class Push(Panda):
         **viewer_params,
     ):
 
-        xml_path = (
-            Path(__file__).resolve().parent / "data" / "panda" / "push.xml"
-        ).as_posix()
+        xml_path = (Path(__file__).resolve().parent / "data" / "panda" / "push.xml").as_posix()
 
         actuation_spec = [
             "actuator1",
@@ -162,4 +164,5 @@ class Push(Panda):
         info["cube_goal_distance_reward"] = self._get_cube_goal_distance_reward(obs)
         info["ctrl_cost"] = self._get_ctrl_cost(action)
         info["contact_cost"] = self._get_contact_cost(obs)
+
         return info

@@ -11,7 +11,10 @@ from mushroom_rl.environments.mujoco_envs.panda import Panda
 
 
 class Reach(Panda):
+    """
+    Reach task with a Panda Robot.
 
+    """
     def __init__(
         self,
         gamma=0.99,
@@ -23,9 +26,7 @@ class Reach(Panda):
         **viewer_params,
     ):
 
-        xml_path = (
-            Path(__file__).resolve().parent / "data" / "panda" / "reach.xml"
-        ).as_posix()
+        xml_path = (Path(__file__).resolve().parent / "data" / "panda" / "reach.xml").as_posix()
 
         actuation_spec = [
             "actuator1",
@@ -128,18 +129,13 @@ class Reach(Panda):
 
     def _create_info_dictionary(self, obs, action):
         info = super()._create_info_dictionary(obs, action)
-        info["gripper_goal_distance"] = np.linalg.norm(
-            self.obs_helper.get_from_obs(obs, "rel_goal_pos")
-        )
+        info["gripper_goal_distance"] = np.linalg.norm(self.obs_helper.get_from_obs(obs, "rel_goal_pos"))
         info["gripper_goal_rotation"] = quaternion_distance(
             self.obs_helper.get_from_obs(obs, "gripper_rot"),
             self.obs_helper.get_from_obs(obs, "goal_rot"),
         )
-        info["gripper_goal_distance_reward"] = self._get_gripper_goal_distance_reward(
-            obs
-        )
-        info["gripper_goal_rotation_reward"] = self._get_gripper_goal_rotation_reward(
-            obs
-        )
+        info["gripper_goal_distance_reward"] = self._get_gripper_goal_distance_reward(obs)
+        info["gripper_goal_rotation_reward"] = self._get_gripper_goal_rotation_reward(obs)
         info["ctrl_cost"] = self._get_ctrl_cost(action)
+
         return info
