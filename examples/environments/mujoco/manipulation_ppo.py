@@ -1,26 +1,51 @@
+"""
+This script shows how to run the MushroomRL MuJoCo manipulation environments, solving them with PPO.
+
+The observations of these tasks live on rather different scales, so the agent standardizes them with a
+running mean and variance preprocessor.
+
+"""
+import argparse
+
 import numpy as np
+import torch
 import torch.nn.functional as F
 import torch.optim as optim
+
+from tqdm import trange
 
 from mushroom_rl.algorithms.actor_critic import PPO
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import Reach, Push, Pick, PegInsertion
 from mushroom_rl.policy import GaussianTorchPolicy
 from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
+from mushroom_rl.utils import select_class
 from mushroom_rl.approximators.parametric.networks import ActorNetwork
+from mushroom_rl.utils.torch_utils import TorchUtils
 
-from tqdm import trange
+
+def get_environments():
+    return [Reach, Push, Pick, PegInsertion]
 
 
-def experiment(env, n_epochs, n_steps, n_episodes_test):
-    np.random.seed()
+def experiment(env, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, render=True, use_cuda=False, seed=None):
+    np.random.seed(seed)
+    if seed is not None:
+        torch.manual_seed(seed)
 
-    logger = Logger(PPO.__name__, results_dir=None)
-    logger.strong_line()
-    logger.info("Experiment Algorithm: " + PPO.__name__)
+    if use_cuda:
+        assert torch.cuda.is_available(), 'CUDA was requested, but it is not available on this machine.'
 
+    TorchUtils.set_default_device('cuda:0' if use_cuda else 'cpu')
+
+    # MDP
     mdp = env()
 
+    logger = Logger(f'{PPO.name()}_{mdp.name()}', results_dir=None)
+    logger.log_experiment_info(PPO, mdp, n_epochs=n_epochs, n_steps=n_steps,
+                               n_steps_per_fit=n_steps_per_fit, n_episodes_test=n_episodes_test)
+
+    # Settings
     actor_lr = 3e-4
     critic_lr = 3e-4
     n_features = 64
@@ -29,76 +54,79 @@ def experiment(env, n_epochs, n_steps, n_episodes_test):
     eps = 0.2
     lam = 0.95
     std_0 = 1.0
-    n_steps_per_fit = 2000
 
-    critic_params = dict(
-        network=ActorNetwork,
-        optimizer={"class": optim.Adam, "params": {"lr": critic_lr}},
-        loss=F.mse_loss,
-        n_features=n_features,
-        activation='tanh',
-        weights_init='orthogonal',
-        bias_init='zeros',
-        batch_size=batch_size,
-        input_shape=mdp.info.observation_space.shape,
-        output_shape=(1,),
-    )
+    # Policy
+    policy = GaussianTorchPolicy(ActorNetwork,
+                                 mdp.info.observation_space.shape,
+                                 mdp.info.action_space.shape,
+                                 std_0=std_0,
+                                 n_features=n_features,
+                                 activation='tanh',
+                                 weights_init='orthogonal',
+                                 bias_init='zeros')
 
-    alg_params = dict(
-        actor_optimizer={"class": optim.Adam, "params": {"lr": actor_lr}},
-        n_epochs_policy=n_epochs_policy,
-        batch_size=batch_size,
-        eps_ppo=eps,
-        lam=lam,
-        critic_params=critic_params,
-    )
+    # Agent
+    critic_params = dict(network=ActorNetwork,
+                         optimizer={'class': optim.Adam, 'params': {'lr': critic_lr}},
+                         loss=F.mse_loss,
+                         n_features=n_features,
+                         activation='tanh',
+                         weights_init='orthogonal',
+                         bias_init='zeros',
+                         batch_size=batch_size,
+                         input_shape=mdp.info.observation_space.shape,
+                         output_shape=(1,))
 
-    policy_params = dict(
-        std_0=std_0,
-        n_features=n_features,
-        activation='tanh',
-        weights_init='orthogonal',
-        bias_init='zeros',
-    )
+    agent = PPO(mdp.info, policy, critic_params=critic_params,
+                actor_optimizer={'class': optim.Adam, 'params': {'lr': actor_lr}},
+                n_epochs_policy=n_epochs_policy,
+                batch_size=batch_size,
+                eps_ppo=eps,
+                lam=lam)
 
-    policy = GaussianTorchPolicy(
-        ActorNetwork,
-        mdp.info.observation_space.shape,
-        mdp.info.action_space.shape,
-        **policy_params,
-    )
+    agent.add_core_preprocessor(StandardizationPreprocessor(mdp.info))
 
-    agent = PPO(mdp.info, policy, **alg_params)
+    # Algorithm
+    core = Core(agent, mdp, logger=logger)
 
-    standardization_preprocessor = StandardizationPreprocessor(mdp.info)
-    agent.add_core_preprocessor(standardization_preprocessor)
-
-    core = Core(agent, mdp)
-
+    # RUN
     dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
 
-    J = np.mean(dataset.discounted_return)
-    R = np.mean(dataset.undiscounted_return)
+    J = dataset.discounted_return.mean()
+    R = dataset.undiscounted_return.mean()
     E = agent.policy.entropy().item()
 
-    logger.epoch_info(0, J=J, R=R, entropy=E)
+    logger.log_evaluation(0, J=J, R=R, entropy=E)
 
     for it in trange(n_epochs, leave=False):
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit)
         dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
 
-        J = np.mean(dataset.discounted_return)
-        R = np.mean(dataset.undiscounted_return)
+        J = dataset.discounted_return.mean()
+        R = dataset.undiscounted_return.mean()
         E = agent.policy.entropy().item()
 
-        logger.epoch_info(it + 1, J=J, R=R, entropy=E)
+        logger.log_evaluation(it + 1, J=J, R=R, entropy=E)
 
-    logger.info("Press a button to visualize")
-    input()
-    core.evaluate(n_episodes=5, render=True)
+    if render:
+        logger.info('Press a button to visualize the robot')
+        input()
+        core.evaluate(n_episodes=5, render=True)
 
 
-if __name__ == "__main__":
-    envs = [Reach, Push, Pick, PegInsertion]
-    for env in envs:
-        experiment(env, n_epochs=50, n_steps=100_000, n_episodes_test=10)
+def parse_args():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--env', choices=[env.name() for env in get_environments()], default=Reach.name(),
+                        help='the manipulation task to solve')
+    parser.add_argument('--no-render', action='store_true', help='skip the final visualization')
+    parser.add_argument('--use-cuda', action='store_true', help='run on the GPU instead of the CPU')
+
+    return parser.parse_args()
+
+
+if __name__ == '__main__':
+    args = parse_args()
+    env = select_class(args.env, get_environments())
+
+    experiment(env=env, n_epochs=50, n_steps=100_000, n_steps_per_fit=2000, n_episodes_test=10,
+               render=not args.no_render, use_cuda=args.use_cuda)

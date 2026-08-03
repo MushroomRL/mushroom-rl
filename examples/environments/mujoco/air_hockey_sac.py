@@ -1,28 +1,41 @@
+"""
+This script shows how to run the MushroomRL Air Hockey environment, solving the hitting task with SAC.
+
+"""
+import argparse
+
 import numpy as np
 
 import torch
 import torch.optim as optim
 import torch.nn.functional as F
 
+from tqdm import trange
+
 from mushroom_rl.algorithms.actor_critic import SAC
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments.mujoco_envs.air_hockey import AirHockeyHit
 from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNetwork
+from mushroom_rl.utils.torch_utils import TorchUtils
 
-from tqdm import trange
 
+def experiment(n_epochs, n_steps, n_steps_test, render=True, use_cuda=False, seed=None):
+    np.random.seed(seed)
+    if seed is not None:
+        torch.manual_seed(seed)
 
-def experiment(alg, n_epochs, n_steps, n_steps_test):
-    np.random.seed()
+    if use_cuda:
+        assert torch.cuda.is_available(), 'CUDA was requested, but it is not available on this machine.'
 
-    logger = Logger(alg.__name__, results_dir=None)
-    logger.strong_line()
-    logger.info('Experiment Algorithm: ' + alg.__name__)
+    TorchUtils.set_default_device('cuda:0' if use_cuda else 'cpu')
 
     # MDP
     horizon = 120
     gamma = 0.99
     mdp = AirHockeyHit(n_intermediate_steps=4, gamma=gamma, horizon=horizon)
+
+    logger = Logger(SAC.name(), results_dir=None)
+    logger.log_experiment_info(SAC, mdp, n_epochs=n_epochs, n_steps=n_steps, n_steps_test=n_steps_test)
 
     # Settings
     initial_replay_size = 5000
@@ -45,56 +58,60 @@ def experiment(alg, n_epochs, n_steps, n_steps_test):
                               output_shape=mdp.info.action_space.shape)
 
     actor_optimizer = {'class': optim.Adam,
-                       'params': {'lr': 5e-4}}
+                       'params': {'lr': 1e-4}}
 
     critic_input_shape = [actor_input_shape, mdp.info.action_space.shape]
     critic_params = dict(network=CriticNetwork,
                          optimizer={'class': optim.Adam,
-                                    'params': {'lr': 5e-4}},
+                                    'params': {'lr': 1e-4}},
                          loss=F.mse_loss,
                          n_features=n_features,
                          input_shape=critic_input_shape,
                          output_shape=(1,))
 
     # Agent
-    agent = alg(mdp.info, actor_mu_params, actor_sigma_params,
-                actor_optimizer, critic_params, batch_size, initial_replay_size,
-                max_replay_size, warmup_transitions, tau, lr_alpha,
-                critic_fit_params=None)
+    agent = SAC(mdp.info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params,
+                batch_size, initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha)
 
     # Algorithm
-    core = Core(agent, mdp)
+    core = Core(agent, mdp, logger=logger)
 
     # RUN
     dataset = core.evaluate(n_steps=n_steps_test, render=False)
 
-    J = np.mean(dataset.discounted_return)
-    R = np.mean(dataset.undiscounted_return)
+    J = dataset.discounted_return.mean()
+    R = dataset.undiscounted_return.mean()
     E = agent.policy.entropy(torch.from_numpy(dataset.state)).item()
 
-    logger.epoch_info(0, J=J, R=R, entropy=E)
+    logger.log_evaluation(0, J=J, R=R, entropy=E)
 
-    core.learn(n_steps=initial_replay_size, n_steps_per_fit=initial_replay_size, quiet=True)
+    core.learn(n_steps=initial_replay_size, n_steps_per_fit=initial_replay_size)
 
     for n in trange(n_epochs, leave=False):
-        core.learn(n_steps=n_steps, n_steps_per_fit=1, quiet=True)
-        dataset = core.evaluate(n_steps=n_steps_test, render=False, quiet=True)
+        core.learn(n_steps=n_steps, n_steps_per_fit=1)
+        dataset = core.evaluate(n_steps=n_steps_test, render=False)
 
-        J = np.mean(dataset.discounted_return)
-        R = np.mean(dataset.undiscounted_return)
+        J = dataset.discounted_return.mean()
+        R = dataset.undiscounted_return.mean()
         E = agent.policy.entropy(torch.from_numpy(dataset.state)).item()
 
-        logger.epoch_info(n+1, J=J, R=R, entropy=E)
+        logger.log_evaluation(n + 1, J=J, R=R, entropy=E)
 
-    logger.info('Press a button to visualize')
-    input()
-    core.evaluate(n_episodes=5, render=True)
+    if render:
+        logger.info('Press a button to visualize the air hockey table')
+        input()
+        core.evaluate(n_episodes=5, render=True)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--no-render', action='store_true', help='skip the final visualization')
+    parser.add_argument('--use-cuda', action='store_true',  help='run on the GPU instead of the CPU')
+
+    return parser.parse_args()
 
 
 if __name__ == '__main__':
-    algs = [
-        SAC
-    ]
+    args = parse_args()
 
-    for alg in algs:
-        experiment(alg=alg, n_epochs=100, n_steps=4000, n_steps_test=3000)
+    experiment(n_epochs=100, n_steps=4000, n_steps_test=3000, render=not args.no_render, use_cuda=args.use_cuda)
