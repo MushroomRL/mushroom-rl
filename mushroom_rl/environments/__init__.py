@@ -1,6 +1,7 @@
 try:
     Atari = None
     from .atari import Atari
+
     Atari.register()
 except ImportError:
     pass
@@ -8,6 +9,7 @@ except ImportError:
 try:
     Gymnasium = None
     from .gymnasium_env import Gymnasium
+
     Gymnasium.register()
 except ImportError:
     pass
@@ -15,6 +17,7 @@ except ImportError:
 try:
     DMControl = None
     from .dm_control_env import DMControl
+
     DMControl.register()
 except ImportError:
     pass
@@ -23,6 +26,7 @@ try:
     MiniGrid = None
     MiniGridRGB = None
     from .minigrid_env import MiniGrid, MiniGridRGB
+
     MiniGrid.register()
     MiniGridRGB.register()
 except ImportError:
@@ -32,13 +36,6 @@ try:
     MuJoCo = None
     from .mujoco import MuJoCo, MultiMuJoCo
     from .mujoco_envs import *
-except ImportError:
-    pass
-
-
-try:
-    OmniIsaacGymEnv = None
-    from .omni_isaac_gym_env import OmniIsaacGymEnv
 except ImportError:
     pass
 
@@ -56,37 +53,49 @@ except ImportError:
     pass
 
 from .car_on_hill import CarOnHill
+
 CarOnHill.register()
 
 from .cart_pole import CartPole
+
 CartPole.register()
 
 from .finite_mdp import FiniteMDP
+
 FiniteMDP.register()
 
 from .grid_world import GridWorld
+
 GridWorld.register()
 
 from .grid_world_van_hasselt import GridWorldVanHasselt
+
 GridWorldVanHasselt.register()
 
 from .inverted_pendulum import InvertedPendulum
+
 InvertedPendulum.register()
 
 from .lqr import LQR
+
 LQR.register()
 
 from .puddle_world import PuddleWorld
+
 PuddleWorld.register()
 
 from .segway import Segway
+
 Segway.register()
 
 from .ship_steering import ShipSteering
+
 ShipSteering.register()
 
 from .simple_chain import SimpleChain
+
 SimpleChain.register()
 
 from .taxi import Taxi
+
 Taxi.register()
