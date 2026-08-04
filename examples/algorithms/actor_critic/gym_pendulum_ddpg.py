@@ -16,9 +16,9 @@ from mushroom_rl.algorithms.actor_critic import DDPG, TD3
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import Gymnasium
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy
-from mushroom_rl.utils import select_class
 from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNetwork
 from mushroom_rl.utils.torch_utils import TorchUtils
+from mushroom_rl.utils.experiments import select_class
 
 
 def get_algorithms():
@@ -112,8 +112,8 @@ def parse_args():
     parser.add_argument('--alg', choices=[alg.name() for alg in get_algorithms()], default=DDPG.name(),
                         help='the algorithm to run')
     parser.add_argument('--no-render', action='store_false', dest='render', help='skip the final visualization')
-
     parser.add_argument('--use-cuda', action='store_true', help='run on the GPU instead of the CPU')
+    parser.add_argument('--seed', type=int, default=None, help='seed of the experiment, random when not given')
 
     return parser.parse_args()
 
@@ -122,4 +122,5 @@ if __name__ == '__main__':
     args = parse_args()
     alg = select_class(args.alg, get_algorithms())
 
-    experiment(alg=alg, n_epochs=40, n_steps=1000, n_steps_test=2000, render=args.render, use_cuda=args.use_cuda)
+    experiment(alg=alg, n_epochs=40, n_steps=1000, n_steps_test=2000, render=args.render, use_cuda=args.use_cuda,
+               seed=args.seed)

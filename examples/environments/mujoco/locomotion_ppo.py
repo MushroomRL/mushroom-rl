@@ -108,6 +108,7 @@ def parse_args():
                         help='the locomotion environment to solve')
     parser.add_argument('--no-render', action='store_false', dest='render', help='skip the final visualization')
     parser.add_argument('--use-cuda', action='store_true', help='run on the GPU instead of the CPU')
+    parser.add_argument('--seed', type=int, default=None, help='seed of the experiment, random when not given')
 
     return parser.parse_args()
 
@@ -117,4 +118,4 @@ if __name__ == '__main__':
     env = select_class(args.env, get_environments())
 
     experiment(env=env, n_epochs=50, n_steps=30000, n_steps_per_fit=2000, n_episodes_test=10,
-               render=args.render, use_cuda=args.use_cuda)
+               render=args.render, use_cuda=args.use_cuda, seed=args.seed)

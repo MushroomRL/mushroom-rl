@@ -38,8 +38,8 @@ class LinearNetwork(nn.Module):
 
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--use-cuda', action='store_true',
-                        help='run on the GPU instead of the CPU')
+    parser.add_argument('--use-cuda', action='store_true', help='run on the GPU instead of the CPU')
+    parser.add_argument('--seed', type=int, default=None, help='seed of the experiment, random when not given')
 
     return parser.parse_args()
 
@@ -105,4 +105,4 @@ if __name__ == '__main__':
                        eps_ppo=5e-2)
 
     experiment(eppo_params, n_epochs=20, n_episodes=100, n_ep_per_fit=25, n_ep_test=25,
-               use_cuda=args.use_cuda)
+               use_cuda=args.use_cuda, seed=args.seed)

@@ -18,7 +18,7 @@ import numpy as np
 from mushroom_rl.core import Agent, Core, Logger, MultiprocessEnvironment
 from mushroom_rl.environments import CarOnHill
 from mushroom_rl.policy import Policy
-from mushroom_rl.utils import get_log_dir
+from mushroom_rl.utils.experiments import get_log_dir
 
 
 class RandomPolicy(Policy):

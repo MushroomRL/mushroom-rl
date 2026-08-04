@@ -18,15 +18,15 @@ from mushroom_rl.environments import Gymnasium
 from mushroom_rl.algorithms.actor_critic import PPO_BPTT
 from mushroom_rl.policy import RecurrentGaussianTorchPolicy
 from mushroom_rl.approximators.parametric.networks import RecurrentActorNetwork, RecurrentCriticNetwork
-from mushroom_rl.utils import get_log_dir
 from mushroom_rl.utils.torch_utils import TorchUtils
+from mushroom_rl.utils.experiments import get_log_dir
 
 
 def experiment(env, horizon, gamma, n_epochs, n_steps_per_epoch, n_steps_per_fit, n_episodes_test,
                lr_actor=0.001, lr_critic=0.001, batch_size_actor=32, batch_size_critic=32,
                n_epochs_policy=10, clip_eps_ppo=0.05, gae_lambda=0.95, std_0=0.5, rnn_type='gru',
                n_hidden_features=128, num_hidden_layers=1, truncation_length=5, use_prev_action=True,
-               use_cuda=False, seed=0):
+               use_cuda=False, seed=None):
     np.random.seed(seed)
     if seed is not None:
         torch.manual_seed(seed)
@@ -114,6 +114,7 @@ def experiment(env, horizon, gamma, n_epochs, n_steps_per_epoch, n_steps_per_fit
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--use-cuda', action='store_true', help='run on the GPU instead of the CPU')
+    parser.add_argument('--seed', type=int, default=None, help='seed of the experiment, random when not given')
 
     return parser.parse_args()
 
@@ -122,4 +123,4 @@ if __name__ == '__main__':
     args = parse_args()
 
     experiment(env='HalfCheetah-v5', horizon=1000, gamma=0.99, n_epochs=300, n_steps_per_epoch=50000,
-               n_steps_per_fit=2000, n_episodes_test=10, use_cuda=args.use_cuda)
+               n_steps_per_fit=2000, n_episodes_test=10, use_cuda=args.use_cuda, seed=args.seed)

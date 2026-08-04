@@ -19,7 +19,7 @@ from mushroom_rl.environments import GridWorld, Taxi
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.rl_utils.parameters import Parameter
 from mushroom_rl.solvers.dynamic_programming import value_iteration
-from mushroom_rl.utils import get_data_dir
+from mushroom_rl.utils.experiments import get_data_dir
 
 
 def build_mdp(env):
@@ -81,6 +81,7 @@ def experiment(env, seed=None):
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--env', choices=['grid_world', 'taxi'], default='grid_world', help='the environment to solve')
+    parser.add_argument('--seed', type=int, default=None, help='seed of the experiment, random when not given')
 
     return parser.parse_args()
 
@@ -88,4 +89,4 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
 
-    experiment(args.env)
+    experiment(args.env, seed=args.seed)

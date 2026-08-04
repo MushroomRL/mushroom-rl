@@ -93,6 +93,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--no-render', action='store_false', dest='render', help='skip the final visualization')
     parser.add_argument('--use-cuda', action='store_true', help='run on the GPU instead of the CPU')
+    parser.add_argument('--seed', type=int, default=None, help='seed of the experiment, random when not given')
 
     return parser.parse_args()
 
@@ -101,4 +102,4 @@ if __name__ == '__main__':
     args = parse_args()
 
     experiment(n_epochs=40, n_steps=1000, n_steps_per_fit=5, n_steps_test=2000,
-               render=args.render, use_cuda=args.use_cuda)
+               render=args.render, use_cuda=args.use_cuda, seed=args.seed)

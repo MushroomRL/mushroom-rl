@@ -182,6 +182,7 @@ def experiment(n_epochs, n_episodes, render=True, seed=None):
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--no-render', action='store_false', dest='render', help='skip the final visualization')
+    parser.add_argument('--seed', type=int, default=None, help='seed of the experiment, random when not given')
 
     return parser.parse_args()
 
@@ -189,4 +190,4 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
 
-    experiment(n_epochs=24, n_episodes=5, render=args.render)
+    experiment(n_epochs=24, n_episodes=5, render=args.render, seed=args.seed)

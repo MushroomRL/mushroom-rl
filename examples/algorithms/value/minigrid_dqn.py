@@ -16,8 +16,8 @@ from mushroom_rl.environments import MiniGridRGB
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.rl_utils.parameters import LinearParameter, Parameter
 from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
-from mushroom_rl.utils import get_log_dir, select_class
 from mushroom_rl.utils.torch_utils import TorchUtils
+from mushroom_rl.utils.experiments import get_log_dir, select_class
 
 
 class Network(nn.Module):
@@ -205,7 +205,7 @@ def evaluate(core, logger, epoch, test_episodes, args):
     return score
 
 
-def experiment(args, seed=0):
+def experiment(args, seed=None):
     np.random.seed(seed)
     if seed is not None:
         torch.manual_seed(seed)
@@ -284,7 +284,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
 
     arg_env = parser.add_argument_group('Environment')
-    arg_env.add_argument("--name", type=str, default='MiniGrid-Empty-5x5-v0', help='Gymnasium ID of the MiniGrid environment.')
+    arg_env.add_argument("--name", type=str, default='MiniGrid-Empty-5x5-v0',
+                         help='Gymnasium ID of the MiniGrid environment.')
 
     arg_mem = parser.add_argument_group('Replay Memory')
     arg_mem.add_argument("--initial-replay-size", type=int, default=5_000, help='Initial size of the replay memory.')
@@ -354,10 +355,13 @@ def parse_args():
     arg_utils.add_argument('--debug', action='store_true',
                            help='Flag specifying whether the script has to be run in debug mode.')
 
+    arg_utils.add_argument('--seed', type=int, default=None,
+                           help='Seed of the experiment. Random when not given.')
+
     return parser.parse_args()
 
 
 if __name__ == '__main__':
     args = parse_args()
 
-    experiment(args)
+    experiment(args, seed=args.seed)

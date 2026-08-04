@@ -21,8 +21,8 @@ from tqdm import trange
 from mushroom_rl.algorithms.actor_critic import SAC
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import Gymnasium
-from mushroom_rl.utils import get_log_dir
 from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNetwork
+from mushroom_rl.utils.experiments import get_log_dir
 
 
 def build_agent(mdp, batch_size, initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha,
@@ -144,6 +144,8 @@ def parse_args():
                         help='log directory of a previous run, whose best agent is the one to start from')
     parser.add_argument('--save', action='store_true',
                         help='save the best agent of the run, as agent-best.msh in the log directory')
+    parser.add_argument('--seed', type=int, default=None,
+                        help='seed of the experiment, random when not given')
 
     return parser.parse_args()
 
@@ -151,4 +153,4 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
 
-    experiment(n_epochs=40, n_steps=1000, n_steps_test=2000, save_agent=args.save, agent_dir=args.load)
+    experiment(n_epochs=40, n_steps=1000, n_steps_test=2000, save_agent=args.save, agent_dir=args.load, seed=args.seed)

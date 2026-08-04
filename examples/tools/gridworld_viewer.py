@@ -47,7 +47,7 @@ import numpy as np
 
 from mushroom_rl.core import Logger
 from mushroom_rl.environments import FiniteMDP, GridWorld, GridWorldVanHasselt, SimpleChain, Taxi
-from mushroom_rl.utils import get_data_dir
+from mushroom_rl.utils.experiments import get_data_dir
 
 
 def build_random_walk(n_states, prob=.9):
