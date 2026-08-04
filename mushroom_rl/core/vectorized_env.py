@@ -1,5 +1,3 @@
-import numpy as np
-
 from mushroom_rl.core.environment import Environment
 from mushroom_rl.core.array_backend import ArrayBackend
 

@@ -6,8 +6,5 @@ These are all batch TD methods, learning the Q-Function using a dataset of inter
 Instead of a single update per transition, they refit the whole Q-function on the dataset at every iteration, which
 makes them a natural fit for the sklearn-style approximators exposed through ``QApproximator``.
 
-.. autoclass:: mushroom_rl.algorithms.value.batch_td.BatchTD
-    :private-members:
-
 .. automodule:: mushroom_rl.algorithms.value.batch_td
     :private-members:
