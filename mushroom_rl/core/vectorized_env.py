@@ -14,11 +14,43 @@ class VectorizedEnvironment(Environment):
         super().__init__(mdp_info)
 
     def reset(self, state=None):
-        env_mask = ArrayBackend.get_array_backend(self._mdp_info.backend).zeros(self._n_envs, dtype=bool)
+        """
+        Reset the state of the default environment, leaving the other copies untouched.
+
+        Args:
+            state (np.ndarray, None): the optional initial state to impose to the default environment.
+
+        Returns:
+            The states of all the environments, and a list of episode info dictionaries, one per environment.
+            Only the entries of the default environment are updated by this call.
+
+        """
+        arraybackend = ArrayBackend.get_array_backend(self._mdp_info.backend)
+        env_mask = arraybackend.zeros(self._n_envs, dtype=bool)
         env_mask[self._default_env] = True
-        return self.reset_all(env_mask, state)
+
+        if state is not None:
+            states = arraybackend.zeros(self._n_envs, *arraybackend.shape(state))
+            states[self._default_env] = state
+        else:
+            states = None
+
+        return self.reset_all(env_mask, states)
 
     def step(self, action):
+        """
+        Move the default environment from its current state according to the action, leaving the other copies
+        untouched.
+
+        Args:
+            action (np.ndarray): the action to execute in the default environment.
+
+        Returns:
+            The states reached by all the environments, the rewards obtained, the absorbing flags, and a list of
+            step info dictionaries, one per environment. Only the entries of the default environment are updated
+            by this call.
+
+        """
         arraybackend = ArrayBackend.get_array_backend(self._mdp_info.backend)
         env_mask = arraybackend.zeros(self._n_envs, dtype=bool)
         env_mask[self._default_env] = True
@@ -26,7 +58,7 @@ class VectorizedEnvironment(Environment):
         actions = arraybackend.zeros(self._n_envs, *arraybackend.shape(action))
         actions[self._default_env] = action
 
-        return self.step_all(env_mask, action)
+        return self.step_all(env_mask, actions)
 
     def render(self, record=False):
         env_mask = ArrayBackend.get_array_backend(self._mdp_info.backend).zeros(self._n_envs, dtype=bool)

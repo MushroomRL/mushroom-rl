@@ -7,69 +7,114 @@ from mushroom_rl.core.environment import Environment
 from mushroom_rl.core.vectorized_env import VectorizedEnvironment
 
 
-def _seed_worker(env, seed):
+class _EnvWorker:
     """
-    Seed the random generators of the worker process, and the environment itself when it provides its own
-    seeding. The worker is forked from the main process, so it starts with a copy of its generators:
-    reseeding them is what keeps the copies of the environment from producing the very same trajectory.
+    Body of a worker process: it owns one copy of the environment and serves the commands received on the
+    pipe, sending back the result of each one, until it is told to close.
 
     """
-    if seed is None:
-        np.random.seed(None)
-        torch.seed()
-    else:
-        np.random.seed(seed)
-        torch.manual_seed(seed)
+    def __init__(self, remote, env_class, use_generator, args, kwargs):
+        """
+        Constructor.
 
-    if type(env).seed is not Environment.seed:
-        env.seed(seed)
+        Args:
+            remote (Connection): the worker end of the pipe connected to the main process;
+            env_class (class): the environment class to be used;
+            use_generator (bool): whether to use the generator to build the environment or not;
+            args (tuple): the positional arguments to give to the constructor or to the generator of the class;
+            kwargs (dict): the keyword arguments to give to the constructor or to the generator of the class;
 
+        """
+        self._remote = remote
 
-def _env_worker(remote, env_class, use_generator, args, kwargs):
+        if use_generator:
+            self._env = env_class.generate(*args, **kwargs)
+        else:
+            self._env = env_class(*args, **kwargs)
 
-    if use_generator:
-        env = env_class.generate(*args, **kwargs)
-    else:
-        env = env_class(*args, **kwargs)
+        self._handlers = dict(
+            step=self._step,
+            reset=self._reset,
+            render=self._render,
+            stop=self._stop,
+            info=self._info,
+            full_name=self._full_name,
+            seed=self._seed
+        )
 
-    _seed_worker(env, None)
+        self._seed()
 
-    try:
-        while True:
-            cmd, data = remote.recv()
+    @classmethod
+    def run(cls, remote, env_class, use_generator, args, kwargs):
+        """
+        Entry point of a worker process: build the worker, then serve the commands sent by the main process
+        until it asks to close. The environment is constructed here, and not in the main process, so that every
+        copy lives in the process that steps it.
 
-            if cmd == 'step':
-                action = data
-                res = env.step(action)
-                remote.send(res)
-            elif cmd == 'reset':
-                if data is not None:
-                    init_states = data[0]
-                else:
-                    init_states = None
-                res = env.reset(init_states)
-                remote.send(res)
-            elif cmd == 'render':
-                record = data
-                res = env.render(record=record)
-                remote.send(res)
-            elif cmd in 'stop':
-                env.stop()
-                remote.send(None)
-            elif cmd == 'info':
-                remote.send(env.info)
-            elif cmd == 'full_name':
-                remote.send(env.full_name())
-            elif cmd == 'seed':
-                _seed_worker(env, data)
-                remote.send(None)
-            elif cmd == 'close':
-                break
-            else:
-                print(f'cmd {cmd}')
-                raise NotImplementedError()
-    finally:
-        remote.close()
+        Args:
+            remote (Connection): the worker end of the pipe connected to the main process;
+            env_class (class): the environment class to be used;
+            use_generator (bool): whether to use the generator to build the environment or not;
+            args (tuple): the positional arguments to give to the constructor or to the generator of the class;
+            kwargs (dict): the keyword arguments to give to the constructor or to the generator of the class;
+
+        """
+        cls(remote, env_class, use_generator, args, kwargs)._serve()
+
+    def _serve(self):
+        """
+        Serve the commands received on the pipe until the 'close' one arrives, replying to each of them.
+
+        """
+        try:
+            while True:
+                cmd, data = self._remote.recv()
+
+                if cmd == 'close':
+                    break
+
+                handler = self._handlers.get(cmd)
+                if handler is None:
+                    raise NotImplementedError(f'Unknown command {cmd}')
+
+                self._remote.send(handler(data))
+        finally:
+            self._remote.close()
+
+    def _step(self, action):
+        return self._env.step(action)
+
+    def _reset(self, state):
+        return self._env.reset(state)
+
+    def _render(self, record):
+        return self._env.render(record=record)
+
+    def _stop(self, _):
+        self._env.stop()
+
+    def _info(self, _):
+        return self._env.info
+
+    def _full_name(self, _):
+        return self._env.full_name()
+
+    def _seed(self, seed=None):
+        """
+        Seed the random generators of the worker process, and the environment itself when it provides its own
+        seeding. The worker is forked from the main process, so it starts with a copy of its generators:
+        reseeding them is what keeps the copies of the environment from producing the very same trajectory.
+
+        """
+        if seed is None:
+            np.random.seed(None)
+            torch.seed()
+        else:
+            np.random.seed(seed)
+            torch.manual_seed(seed)
+
+        if type(self._env).seed is not Environment.seed:
+            self._env.seed(seed)
 
 
 class MultiprocessEnvironment(VectorizedEnvironment):
@@ -100,7 +145,8 @@ class MultiprocessEnvironment(VectorizedEnvironment):
         self._processes = list()
 
         for work_remote in self._work_remotes:
-            worker_process = Process(target=_env_worker, args=(work_remote, env_class, use_generator, args, kwargs))
+            worker_process = Process(target=_EnvWorker.run,
+                                     args=(work_remote, env_class, use_generator, args, kwargs))
             self._processes.append(worker_process)
 
         for p in self._processes:
