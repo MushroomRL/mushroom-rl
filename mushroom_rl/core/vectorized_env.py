@@ -75,7 +75,7 @@ class VectorizedEnvironment(Environment):
             state: set of initial states to impose to the environment.
 
         Returns:
-            The initial states of all environments and a listy of episode info dictionaries
+            The initial states of all environments and a list of episode info dictionaries
 
         """
         raise NotImplementedError
@@ -89,7 +89,7 @@ class VectorizedEnvironment(Environment):
             action: set of actions to execute.
 
         Returns:
-            The initial states of all environments and a listy of step info dictionaries
+            The initial states of all environments and a list of step info dictionaries
 
         """
         raise NotImplementedError
