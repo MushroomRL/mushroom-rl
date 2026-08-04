@@ -1,29 +1,27 @@
+"""
+Simple script to solve a double chain with Q-Learning and some of its variants.
+The considered double chain is the one presented in:
+"Relative Entropy Policy Search". Peters J. et al. 2010.
+
+"""
 import numpy as np
 from joblib import Parallel, delayed
-from pathlib import Path
 
 from mushroom_rl.algorithms.value import QLearning, DoubleQLearning, \
     WeightedQLearning, SpeedyQLearning
-from mushroom_rl.core import Core
+from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import FiniteMDP
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.utils.callbacks import CollectQ
 from mushroom_rl.rl_utils.parameters import Parameter, DecayParameter
+from mushroom_rl.utils.experiments import get_data_dir, get_log_dir
 
 
-"""
-Simple script to solve a double chain with Q-Learning and some of its variants.
-The considered double chain is the one presented in:
-"Relative Entropy Policy Search". Peters J. et al.. 2010.
-
-"""
-
-
-def experiment(algorithm_class, exp):
-    np.random.seed()
+def experiment(algorithm_class, exp, seed):
+    np.random.seed(seed)
 
     # MDP
-    path = Path(__file__).resolve().parent / 'chain_structure'
+    path = get_data_dir(__file__) / 'double_chain'
     p = np.load(path / 'p.npy')
     rew = np.load(path / 'rew.npy')
     mdp = FiniteMDP(p, rew, gamma=.9)
@@ -34,37 +32,32 @@ def experiment(algorithm_class, exp):
 
     # Agent
     learning_rate = DecayParameter(value=1., exp=exp, shape=mdp.info.size)
-    algorithm_params = dict(learning_rate=learning_rate)
-    agent = algorithm_class(mdp.info, pi, **algorithm_params)
+    agent = algorithm_class(mdp.info, pi, learning_rate=learning_rate)
 
     # Algorithm
     collect_Q = CollectQ(agent.Q)
-    callbacks = [collect_Q]
-    core = Core(agent, mdp, callbacks)
+    core = Core(agent, mdp, callbacks_fit=[collect_Q])
 
     # Train
     core.learn(n_steps=20000, n_steps_per_fit=1, quiet=True)
 
-    Qs = collect_Q.get()
-
-    return Qs
+    return collect_Q.get()
 
 
 if __name__ == '__main__':
     n_experiment = 5
+    algorithms = [QLearning, DoubleQLearning, WeightedQLearning, SpeedyQLearning]
+    exponents = [1, .51]
 
-    names = {1: '1', .51: '51', QLearning: 'Q', DoubleQLearning: 'DQ', WeightedQLearning: 'WQ', SpeedyQLearning: 'SPQ'}
+    logger = Logger('double_chain_q_learning', results_dir=get_log_dir(__file__))
+    logger.log_experiment_info(QLearning, n_experiment=n_experiment, exponents=exponents)
 
-    log_path = Path(__file__).resolve().parent / 'logs'
+    for exp in exponents:
+        for algorithm_class in algorithms:
+            logger.info(f'Algorithm: {algorithm_class.name()}, decay exponent: {exp}')
 
-    log_path.mkdir(parents=True, exist_ok=True)
+            out = Parallel(n_jobs=1)(delayed(experiment)(algorithm_class, exp, seed)
+                                     for seed in range(n_experiment))
+            Qs = np.array(out).mean(0)
 
-    for e in [1, .51]:
-        for a in [QLearning, DoubleQLearning, WeightedQLearning, SpeedyQLearning]:
-            out = Parallel(n_jobs=1)(delayed(experiment)(a, e) for _ in range(n_experiment))
-            Qs = np.array([o for o in out])
-
-            Qs = np.mean(Qs, 0)
-
-            filename = names[a] + names[e] + '.npy'
-            np.save(log_path / filename, Qs[:, 0, 0])
+            logger.log_numpy_array(**{f'{algorithm_class.name()}_{exp}': Qs[:, 0, 0]})
