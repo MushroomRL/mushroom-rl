@@ -1,5 +1,5 @@
 import numpy as np
-from mushroom_rl.rl_utils.variance_parameters import (
+from mushroom_rl.rl_utils.parameters import (
     VarianceIncreasingParameter, VarianceDecreasingParameter,
     WindowedVarianceIncreasingParameter
 )

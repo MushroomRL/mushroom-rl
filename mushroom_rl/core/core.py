@@ -54,7 +54,9 @@ class Core(object):
         This function moves the agent in the environment and fits the policy using the collected samples.
         The agent can be moved for a given number of steps or a given number of episodes and, independently of this
         choice, the policy can be fitted after a given number of steps or a given number of episodes.
-        The environment is reset at the beginning of the learning process.
+        The environment is reset at the beginning of the learning process. If ``n_steps``/``n_episodes`` is not an
+        exact multiple of ``n_steps_per_fit``/``n_episodes_per_fit``, the trailing samples collected after the last
+        fit are discarded rather than triggering a final, undersized fit.
 
         Args:
             n_steps (int, None): number of steps to move the agent;
@@ -71,7 +73,7 @@ class Core(object):
         """
         assert (render and record) or (not record), "To record, the render flag must be set to true"
         if record:
-            assert self.agent.logger is not None, "To record, a logger must be set on the agent via set_logger"
+            assert self.agent.logger is not None, "To record, a logger must be set via Core.set_logger"
 
         self._core_logic.initialize_learn(n_steps_per_fit, n_episodes_per_fit)
 
@@ -103,7 +105,7 @@ class Core(object):
         """
         assert (render and record) or (not record), "To record, the render flag must be set to true"
         if record:
-            assert self.agent.logger is not None, "To record, a logger must be set on the agent via set_logger"
+            assert self.agent.logger is not None, "To record, a logger must be set via Core.set_logger"
 
         self._core_logic.initialize_evaluate()
 
@@ -317,13 +319,13 @@ class VectorizedCore(Core):
             need_reset = completed > 0
 
             if self._core_logic.fit_required():
-                fit_dataset = dataset.flatten(self._core_logic.n_steps_per_fit)
-                self.agent.fit(fit_dataset)
+                consumed = dataset.consume(self._core_logic.n_steps_per_fit)
+                self.agent.fit(consumed.flatten())
 
                 for c in self.callbacks_fit:
-                    c(dataset)
+                    c(consumed)
 
-                n_carry_forward_steps = dataset.clear(self._core_logic.n_steps_per_fit)
+                n_carry_forward_steps = dataset.clear(keep_leftovers=True)
                 last = self._core_logic.after_fit_vectorized(last, n_carry_forward_steps)
                 if self._core_logic.n_episodes_per_fit is not None:
                     need_reset = True
@@ -359,7 +361,7 @@ class VectorizedCore(Core):
             frame = self.env.render_all(mask, record=record)
 
             if record:
-                self.agent.logger.record_frame(frame)
+                self.agent.logger.record_frame(frame, mask)
 
         last = absorbing | (self._episode_steps >= self.env.info.horizon)
 

@@ -3,7 +3,7 @@ import numpy as np
 from mushroom_rl.core import HasNextAction
 from mushroom_rl.algorithms.value.td import TD
 from mushroom_rl.approximators.table import Table
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class RQLearning(TD):
@@ -23,11 +23,11 @@ class RQLearning(TD):
 
         """
         if delta is not None and beta is None:
-            self.delta = to_parameter(delta)
+            self.delta = Parameter.make(delta)
             self.beta = None
         elif delta is None and beta is not None:
             self.delta = None
-            self.beta = to_parameter(beta)
+            self.beta = Parameter.make(beta)
         else:
             raise ValueError('delta or beta parameters needed.')
 
@@ -46,8 +46,7 @@ class RQLearning(TD):
 
     def _update(self, state, action, reward, next_state, absorbing):
         alpha = self._alpha(state, action, target=reward)
-        self.R_tilde[state, action] += alpha * (reward - self.R_tilde[
-            state, action])
+        self.R_tilde[state, action] += alpha * (reward - self.R_tilde[state, action])
 
         if not absorbing:
             q_next = self._next_q(next_state)

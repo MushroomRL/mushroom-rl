@@ -1,8 +1,8 @@
 __extras__ = []
 
 try:
-    from mushroom_rl.utils.callbacks.plot_dataset import PlotDataset
-    __extras__.append('PlotDataset')
+    from mushroom_rl.utils.callbacks.dataset_monitor import DatasetMonitor
+    __extras__.append('DatasetMonitor')
 except ImportError:
     pass
 

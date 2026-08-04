@@ -170,8 +170,8 @@ def compute_lqr_V_gaussian_policy_gradient_K(s, lqr, K, Sigma):
 
         dPi = vec_dPi.reshape(Q.shape)
 
-        dJ[:, i] = np.einsum('...k,kl,...l->...', s, dPi, s).reshape(-1, 1) \
-                   + gamma * np.trace(Sigma @ B.T @ dPi @ B) / (1.0 - gamma)
+        dJ[:, i] = np.einsum('...k,kl,...l->...', s, dPi, s).reshape(-1, 1) + \
+            gamma * np.trace(Sigma @ B.T @ dPi @ B) / (1.0 - gamma)
 
     return -dJ
 

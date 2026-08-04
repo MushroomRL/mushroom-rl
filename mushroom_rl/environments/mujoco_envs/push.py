@@ -9,6 +9,10 @@ from mushroom_rl.environments.mujoco_envs.panda import Panda
 
 
 class Push(Panda):
+    """
+    Push task with a Panda Robot.
+
+    """
     def __init__(
         self,
         gamma=0.99,
@@ -22,9 +26,7 @@ class Push(Panda):
         **viewer_params,
     ):
 
-        xml_path = (
-            Path(__file__).resolve().parent / "data" / "panda" / "push.xml"
-        ).as_posix()
+        xml_path = (Path(__file__).resolve().parent / "data" / "panda" / "push.xml").as_posix()
 
         actuation_spec = [
             "actuator1",
@@ -69,7 +71,8 @@ class Push(Panda):
 
         self.obs_helper.add_obs("rel_cube_pos", 3)
         self.obs_helper.add_obs("rel_goal_pos", 3)
-        self.obs_helper.add_obs("contact_force", 1)
+        self.obs_helper.add_obs("robot_contact_force", 3)
+        self.obs_helper.add_obs("gripper_contact_force", 3)
 
         mdp_info.observation_space = Box(*self.obs_helper.get_obs_limits())
         return mdp_info
@@ -84,11 +87,10 @@ class Push(Panda):
 
         rel_cube_pos = cube_pos - gripper_pos
         rel_goal_pos = goal_pos - cube_pos
-        contact_force = self._get_contact_force(
-            "robot", "table", self._contact_force_range
-        ) + self._get_contact_force("gripper", "table", self._contact_force_range)
+        robot_contact_force = self._get_contact_force("robot", "table")
+        gripper_contact_force = self._get_contact_force("gripper", "table")
 
-        obs = np.concatenate([obs, rel_cube_pos, rel_goal_pos, contact_force])
+        obs = np.concatenate([obs, rel_cube_pos, rel_goal_pos, robot_contact_force, gripper_contact_force])
         return obs
 
     def _get_gripper_cube_distance_reward(self, obs):
@@ -106,8 +108,11 @@ class Push(Panda):
         return self._ctrl_cost_weight * ctrl_cost
 
     def _get_contact_cost(self, obs):
-        contact_force = self.obs_helper.get_from_obs(obs, "contact_force")
-        return self._contact_cost_weight * contact_force
+        robot_contact_force = self.obs_helper.get_from_obs(obs, "robot_contact_force")
+        gripper_contact_force = self.obs_helper.get_from_obs(obs, "gripper_contact_force")
+        robot_cost = np.sum(np.square(np.clip(robot_contact_force, *self._contact_force_range)))
+        gripper_cost = np.sum(np.square(np.clip(gripper_contact_force, *self._contact_force_range)))
+        return self._contact_cost_weight * (robot_cost + gripper_cost).item()
 
     def reward(self, obs, action, next_obs, absorbing):
         gripper_cube_distance_reward = self._get_gripper_cube_distance_reward(obs)
@@ -159,4 +164,5 @@ class Push(Panda):
         info["cube_goal_distance_reward"] = self._get_cube_goal_distance_reward(obs)
         info["ctrl_cost"] = self._get_ctrl_cost(action)
         info["contact_cost"] = self._get_contact_cost(obs)
+
         return info

@@ -1,6 +1,7 @@
 import torch
 from mushroom_rl.utils.episodes import split_episodes, unsplit_episodes
 
+
 def compute_advantage_montecarlo(V, s, ss, r, absorbing, last, gamma):
     """
     Function to estimate the advantage and new value function target
@@ -39,6 +40,7 @@ def compute_advantage_montecarlo(V, s, ss, r, absorbing, last, gamma):
         adv = q - v
 
         return q[:, None], adv[:, None]
+
 
 def compute_advantage(V, s, ss, r, absorbing, gamma):
     """
@@ -106,9 +108,12 @@ def compute_gae(V, s, ss, r, absorbing, last, gamma, lam):
         for rev_k in range(v_ep.shape[-1]):
             k = v_ep.shape[-1] - rev_k - 1
             if rev_k == 0:
-                gen_adv_ep[..., k] = r_ep[..., k] - v_ep[..., k] + (1 - absorbing_ep[..., k].int()) * gamma * v_next_ep[..., k]
+                gen_adv_ep[..., k] = r_ep[..., k] - v_ep[..., k] + \
+                                     (1 - absorbing_ep[..., k].int()) * gamma * v_next_ep[..., k]
             else:
-                gen_adv_ep[..., k] = r_ep[..., k] - v_ep[..., k] + (1 - absorbing_ep[..., k].int()) * gamma * v_next_ep[..., k] + gamma * lam * gen_adv_ep[..., k + 1]
+                gen_adv_ep[..., k] = r_ep[..., k] - v_ep[..., k] + \
+                                     (1 - absorbing_ep[..., k].int()) * gamma * v_next_ep[..., k] + \
+                                     gamma * lam * gen_adv_ep[..., k + 1]
 
         gen_adv = unsplit_episodes(last, gen_adv_ep).unsqueeze(-1)
 

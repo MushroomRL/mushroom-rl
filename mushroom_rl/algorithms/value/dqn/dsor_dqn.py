@@ -1,6 +1,7 @@
 import torch
 
 from mushroom_rl.algorithms.value.dqn import DoubleDQN
+from mushroom_rl.approximators.parametric import TorchApproximator
 
 
 class DSORDQN(DoubleDQN):
@@ -14,8 +15,8 @@ class DSORDQN(DoubleDQN):
         doi: 10.1109/TNNLS.2025.3576581.
 
     """
-    def __init__(self, mdp_info, policy, approximator, relaxation_factor,
-                 **params):
+    def __init__(self, mdp_info, policy, approximator=TorchApproximator, *,
+                 relaxation_factor, **params):
         """
         Constructor.
 

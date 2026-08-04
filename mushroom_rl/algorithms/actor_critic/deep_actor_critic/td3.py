@@ -1,8 +1,8 @@
 import torch
 
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DDPG
-from mushroom_rl.policy import Policy
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
+from mushroom_rl.utils.torch_utils import TorchUtils
 
 
 class TD3(DDPG):
@@ -44,8 +44,8 @@ class TD3(DDPG):
                 of the critic approximator.
 
         """
-        self._noise_std = to_parameter(noise_std)
-        self._noise_clip = to_parameter(noise_clip)
+        self._noise_std = Parameter.make(noise_std, backend='torch')
+        self._noise_clip = Parameter.make(noise_clip, backend='torch')
 
         if 'n_models' in critic_params.keys():
             assert critic_params['n_models'] >= 2
@@ -84,8 +84,8 @@ class TD3(DDPG):
         eps = torch.randn_like(a) * self._noise_std()
         eps_clipped = torch.clamp(eps, -self._noise_clip(), self._noise_clip.get_value())
 
-        low = torch.from_numpy(self.mdp_info.action_space.low)
-        high = torch.from_numpy(self.mdp_info.action_space.high)
+        low = torch.as_tensor(self.mdp_info.action_space.low, device=TorchUtils.get_device())
+        high = torch.as_tensor(self.mdp_info.action_space.high, device=TorchUtils.get_device())
         a_smoothed = torch.clamp(a + eps_clipped, low, high)
 
         q = self._target_critic_approximator.predict(next_state, a_smoothed,

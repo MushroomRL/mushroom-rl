@@ -34,12 +34,6 @@ try:
     from .mujoco_envs import *
 except ImportError:
     pass
-    
-try:
-    OmniIsaacGymEnv = None
-    from .omni_isaac_gym_env import OmniIsaacGymEnv
-except ImportError:
-    pass
 
 try:
     PyBullet = None
@@ -54,8 +48,6 @@ try:
 except ImportError:
     pass
 
-from .generators.simple_chain import generate_simple_chain
-
 from .car_on_hill import CarOnHill
 CarOnHill.register()
 
@@ -65,8 +57,10 @@ CartPole.register()
 from .finite_mdp import FiniteMDP
 FiniteMDP.register()
 
-from .grid_world import GridWorld, GridWorldVanHasselt
+from .grid_world import GridWorld
 GridWorld.register()
+
+from .grid_world_van_hasselt import GridWorldVanHasselt
 GridWorldVanHasselt.register()
 
 from .inverted_pendulum import InvertedPendulum
@@ -83,3 +77,9 @@ Segway.register()
 
 from .ship_steering import ShipSteering
 ShipSteering.register()
+
+from .simple_chain import SimpleChain
+SimpleChain.register()
+
+from .taxi import Taxi
+Taxi.register()

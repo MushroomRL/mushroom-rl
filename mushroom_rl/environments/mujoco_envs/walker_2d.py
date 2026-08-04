@@ -8,7 +8,7 @@ from mushroom_rl.core.spaces import Box
 
 class Walker2D(MuJoCo):
     """
-    Mujoco simulation of Walker2d task based on the Hopper environment.
+    MuJoCo simulation of Walker2D task.
 
     """
 
@@ -107,13 +107,19 @@ class Walker2D(MuJoCo):
         return obs
 
     def _is_within_z_range(self, obs):
-        """Check if Z position of torso is within the healthy range."""
+        """
+        Check if Z position of torso is within the healthy range.
+
+        """
         z_position = self.obs_helper.get_from_obs(obs, "z_pos").item()
         min_z, max_z = self._healthy_z_range
         return min_z < z_position < max_z
 
     def _is_within_angle_range(self, obs):
-        """Check if y-angle of torso is within the healthy range."""
+        """
+        Check if y-angle of torso is within the healthy range.
+
+        """
         y_angle = self.obs_helper.get_from_obs(obs, "y_pos").item()
         min_angle, max_angle = self._healthy_angle_range
         return min_angle < y_angle < max_angle
@@ -127,7 +133,10 @@ class Walker2D(MuJoCo):
         return is_within_z_range and is_within_angle_range
 
     def _get_healthy_reward(self, obs):
-        """Return the healthy reward if the agent is healthy, else 0."""
+        """
+        Return the healthy reward if the agent is healthy, else 0.
+
+        """
         return (
             self._is_healthy(obs) or self._terminate_when_unhealthy
         ) * self._healthy_reward
@@ -137,7 +146,10 @@ class Walker2D(MuJoCo):
         return self._forward_reward_weight * forward_reward
 
     def _get_ctrl_cost(self, action):
-        """Return the control cost."""
+        """
+        Return the control cost.
+
+        """
         ctrl_cost = np.sum(np.square(action))
         return self._ctrl_cost_weight * ctrl_cost
 
@@ -167,6 +179,7 @@ class Walker2D(MuJoCo):
         info = {
             "healthy_reward": self._get_healthy_reward(obs),
             "forward_reward": self._get_forward_reward(),
+            "ctrl_cost": self._get_ctrl_cost(action)
         }
-        info["ctrl_cost"] = self._get_ctrl_cost(action)
+
         return info

@@ -3,7 +3,7 @@ import numpy as np
 from mushroom_rl.algorithms.value.td import TD
 from mushroom_rl.approximators.table import Table
 
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class RLearning(TD):
@@ -23,7 +23,7 @@ class RLearning(TD):
         """
         Q = Table(mdp_info.size)
         self._rho = 0.
-        self._beta = to_parameter(beta)
+        self._beta = Parameter.make(beta)
 
         self._add_save_attr(_rho='primitive', _beta='mushroom')
 

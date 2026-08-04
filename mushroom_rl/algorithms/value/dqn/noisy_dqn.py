@@ -12,14 +12,18 @@ class NoisyDQN(DQN):
     Fortunato M. et al. 2018.
 
     """
-    def __init__(self, mdp_info, policy, approximator_params, **params):
+    def __init__(self, mdp_info, policy, approximator_params, sigma_coeff=.5, **params):
         """
         Constructor.
+
+        Args:
+            sigma_coeff (float, .5): sigma0 coefficient for noise initialization in noisy layers.
 
         """
         features_network = approximator_params['network']
         params['approximator_params'] = deepcopy(approximator_params)
         params['approximator_params']['network'] = NoisyNetwork
         params['approximator_params']['features_network'] = features_network
+        params['approximator_params']['sigma_coeff'] = sigma_coeff
 
         super().__init__(mdp_info, policy, TorchApproximator, **params)

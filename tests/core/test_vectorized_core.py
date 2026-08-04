@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from mushroom_rl.core import Agent, Core, VectorizedEnvironment, MDPInfo, Box
+from mushroom_rl.core import Agent, ArrayBackend, Core, VectorizedEnvironment, MDPInfo, Box
 from mushroom_rl.policy import Policy
 from mushroom_rl.utils import TorchUtils
 
@@ -241,6 +241,28 @@ def run_exp_greedy(env_backend, agent_backend):
     dataset_stochastic = core.evaluate(n_steps=50, quiet=True)
     actions_stochastic = dataset_stochastic.array_backend.to_numpy(dataset_stochastic.action)
     assert not np.all(actions_stochastic == 1.0)
+
+
+def run_exp_default_env(env_backend):
+    env = DummyVecEnv(env_backend)
+
+    default_env = 3
+    env.set_default_env(default_env)
+
+    array_backend = ArrayBackend.get_array_backend(env_backend)
+    initial_state = array_backend.from_list([4., 5., 6.])
+    action = array_backend.from_list([1., 1.])
+
+    state, _ = env.reset(initial_state)
+    next_state, _, _, _ = env.step(action)
+
+    assert np.array_equal(array_backend.to_numpy(state[default_env]), np.array([4., 5., 6.]))
+    assert np.array_equal(array_backend.to_numpy(next_state[default_env]), np.array([3., 4., 5.]))
+
+
+def test_vectorized_env_default_env_interface():
+    run_exp_default_env(env_backend='torch')
+    run_exp_default_env(env_backend='numpy')
 
 
 def test_vectorized_core_greedy_evaluation():

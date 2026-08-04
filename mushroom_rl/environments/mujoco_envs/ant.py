@@ -8,9 +8,11 @@ import mujoco
 
 class Ant(MuJoCo):
     """
-    The Ant MuJoCo environment as presented in:
-    "High-Dimensional Continuous Control Using Generalized Advantage Estimation". John Schulman et. al.. 2015.
-    and implemented in Gymnasium
+    The Ant MuJoCo environment.
+
+    As presented in:
+    "High-Dimensional Continuous Control Using Generalized Advantage Estimation". John Schulman et al. 2015.
+
     """
 
     def __init__(
@@ -34,9 +36,7 @@ class Ant(MuJoCo):
         Constructor.
 
         """
-        xml_path = (
-            Path(__file__).resolve().parent / "data" / "ant" / "model.xml"
-        ).as_posix()
+        xml_path = (Path(__file__).resolve().parent / "data" / "ant" / "model.xml").as_posix()
 
         # This order is correct as specified in gymnasium
         actuation_spec = [
@@ -175,10 +175,7 @@ class Ant(MuJoCo):
             -self._reset_noise_scale, self._reset_noise_scale, size=self._model.nq
         )
 
-        self._data.qvel[:] = (
-            self._data.qvel
-            + self._reset_noise_scale * np.random.standard_normal(self._model.nv)
-        )
+        self._data.qvel[:] = self._data.qvel + self._reset_noise_scale * np.random.standard_normal(self._model.nv)
 
     def setup(self, obs):
         super().setup(obs)
@@ -191,12 +188,17 @@ class Ant(MuJoCo):
         info = {
             "healthy_reward": self._get_healthy_reward(obs),
             "forward_reward": self._get_forward_reward(),
+            "ctrl_cost": self._get_ctrl_cost(action)
         }
-        info["ctrl_cost"] = self._get_ctrl_cost(action)
+
         if self._use_contact_forces:
             info["contact_cost"] = self._get_contact_cost(obs)
+
         return info
 
     def get_states(self):
-        """Return the position and velocity joint states of the model"""
+        """
+        Return the position and velocity joint states of the model
+
+        """
         return np.concatenate([self._data.qpos.flat, self._data.qvel.flat])

@@ -2,6 +2,7 @@ import numpy as np
 import torch
 
 from mushroom_rl.core import Core, Dataset
+from mushroom_rl.core.extra_info import ExtraInfo
 from mushroom_rl.algorithms.value import SARSA
 from mushroom_rl.environments import GridWorld
 from mushroom_rl.rl_utils.parameters import Parameter
@@ -21,19 +22,19 @@ def generate_dataset(mdp, n_episodes):
 
 def test_dataset():
     np.random.seed(42)
-    mdp = GridWorld(3, 3, (2, 2))
+    mdp = GridWorld.from_size(3, 3, (2, 2), goal_reward=10.)
     dataset = generate_dataset(mdp, 10)
 
     assert dataset.n_episodes == 10
 
     J = dataset.compute_J(mdp.info.gamma)
-    J_test = np.array([4.304672100000001, 2.287679245496101, 3.138105960900001,  0.13302794647291147,
-                       7.290000000000001,   1.8530201888518416, 1.3508517176729928, 0.011790184577738602,
-                       1.3508517176729928, 7.290000000000001])
+    J_test = np.array([5.3144100000000005, 5.3144100000000005, 6.561, 0.25031555049932436,
+                       1.6677181699666577, 3.486784401000001, 1.0941898913151242, 3.874204890000001,
+                       1.5009463529699918, 0.033813919135227306])
     assert np.allclose(J, J_test)
 
     L = dataset.episodes_length
-    L_test = np.array([9, 15, 12, 42, 4, 17, 20, 65, 20, 4])
+    L_test = np.array([7, 7, 5, 36, 18, 11, 22, 10, 19, 55])
     assert np.array_equal(L, L_test)
 
     dataset_ep = dataset.select_first_episodes(3)
@@ -45,10 +46,10 @@ def test_dataset():
 
     samples = dataset.select_random_samples(2)
     s, a, r, ss, ab, last = samples.parse()
-    s_test = np.array([[5.], [6.]])
-    a_test = np.array([[3.], [0.]])
+    s_test = np.array([[1.], [2.]])
+    a_test = np.array([[0.], [3.]])
     r_test = np.zeros(2)
-    ss_test = np.array([[5], [3]])
+    ss_test = np.array([[1], [2]])
     ab_test = np.zeros(2)
     last_test = np.zeros(2)
     assert np.array_equal(s, s_test)
@@ -62,19 +63,19 @@ def test_dataset():
     s0_test = np.zeros((10, 1))
     assert np.array_equal(s0, s0_test)
 
-    index = np.sum(L_test[:2]) + L_test[2]//2
+    index = np.sum(L_test[:3]) + L_test[3]//2
     min_J, max_J, mean_J, median_J, n_episodes = dataset[:index].compute_metrics(mdp.info.gamma)
-    assert min_J == 2.287679245496101
-    assert max_J == 4.304672100000001
-    assert mean_J == 3.296175672748051
-    assert median_J == 3.296175672748051
-    assert n_episodes == 2
+    assert min_J == 5.3144100000000005
+    assert max_J == 6.561
+    assert mean_J == 5.72994
+    assert median_J == 5.3144100000000005
+    assert n_episodes == 3
 
 
 def test_dataset_creation():
     np.random.seed(42)
 
-    mdp = GridWorld(3, 3, (2, 2))
+    mdp = GridWorld.from_size(3, 3, (2, 2), goal_reward=10.)
     dataset = generate_dataset(mdp, 5)
 
     parsed = tuple(dataset.parse())
@@ -107,7 +108,7 @@ def test_dataset_creation():
 def test_dataset_loading(tmpdir):
     np.random.seed(42)
 
-    mdp = GridWorld(3, 3, (2, 2))
+    mdp = GridWorld.from_size(3, 3, (2, 2), goal_reward=10.)
     dataset = generate_dataset(mdp, 20)
 
     path = tmpdir / 'dataset_test.msh'
@@ -118,11 +119,11 @@ def test_dataset_loading(tmpdir):
     assert vars(dataset).keys() == vars(new_dataset).keys()
 
     assert np.array_equal(dataset.state, new_dataset.state) and \
-            np.array_equal(dataset.action, new_dataset.action) and \
-            np.array_equal(dataset.reward, new_dataset.reward) and \
-            np.array_equal(dataset.next_state, new_dataset.next_state) and \
-            np.array_equal(dataset.absorbing, new_dataset.absorbing) and \
-            np.array_equal(dataset.last, new_dataset.last)
+           np.array_equal(dataset.action, new_dataset.action) and \
+           np.array_equal(dataset.reward, new_dataset.reward) and \
+           np.array_equal(dataset.next_state, new_dataset.next_state) and \
+           np.array_equal(dataset.absorbing, new_dataset.absorbing) and \
+           np.array_equal(dataset.last, new_dataset.last)
 
     assert dataset._dataset_info.gamma == new_dataset._dataset_info.gamma
 
@@ -130,10 +131,11 @@ def test_dataset_loading(tmpdir):
     for key in dataset.info:
         assert np.array_equal(dataset.info[key], new_dataset.info[key])
 
+
 def test_list_dataset_compute_j_metrics():
     np.random.seed(42)
 
-    mdp = GridWorld(3, 3, (2, 2))
+    mdp = GridWorld.from_size(3, 3, (2, 2), goal_reward=10.)
     dataset = generate_dataset(mdp, 5)
 
     parsed = tuple(dataset.parse())
@@ -244,7 +246,7 @@ def test_dataset_policy_backend_split():
     assert np.array_equal(ps_np, policy_states)
 
 
-def test_dataset_add_marks_boundary_last():
+def test_dataset_add_leaves_last_untouched():
     n = 3
     states = np.arange(n * 2).reshape(n, 2).astype(float)
     actions = np.arange(n).reshape(n, 1).astype(float)
@@ -258,8 +260,135 @@ def test_dataset_add_marks_boundary_last():
     result = a + b
 
     assert len(result) == 2 * n
-    assert bool(result.last[n - 1])
-    assert not bool(a.last[n - 1])
+    assert np.array_equal(result.last, np.zeros(2 * n, dtype=bool))
+    assert np.array_equal(a.last, np.zeros(n, dtype=bool))
+    assert np.array_equal(b.last, np.zeros(n, dtype=bool))
+
+
+def build_info_dataset(n, first_reward, capacity):
+    states = np.arange(n * 2).reshape(n, 2).astype(float)
+    actions = np.arange(n).reshape(n, 1).astype(float)
+    rewards = np.arange(n).astype(float) + first_reward
+    next_states = states + 1
+    absorbings = np.zeros(n, dtype=bool)
+    lasts = np.zeros(n, dtype=bool)
+    lasts[-1] = True
+
+    info = ExtraInfo(1, 'numpy')
+    for i in range(n):
+        info.append({'idx': float(i + first_reward)})
+    episode_info = ExtraInfo(1, 'numpy')
+    episode_info.append({'ep': float(first_reward)})
+    theta_list = [np.array([float(first_reward)])]
+
+    dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
+                                 info=info, episode_info=episode_info, theta_list=theta_list, gamma=0.9)
+    dataset.reserve(capacity)
+    return dataset
+
+
+def parsed_info(extra_info, key):
+    extra_info.parse()
+    return extra_info[key]
+
+
+def test_dataset_iadd_matches_add_in_place():
+    a = build_info_dataset(3, 0.0, capacity=8)
+    b = build_info_dataset(2, 10.0, capacity=8)
+
+    reference = a + b
+
+    a += b
+
+    assert len(a) == 5
+    assert np.array_equal(a.last, reference.last)
+    assert np.array_equal(a.reward, reference.reward)
+    assert np.array_equal(parsed_info(a.info, 'idx'), parsed_info(reference.info, 'idx'))
+    assert np.array_equal(parsed_info(a.episode_info, 'ep'), parsed_info(reference.episode_info, 'ep'))
+    assert np.array_equal(np.array(a.theta_list), np.array(reference.theta_list))
+
+
+def test_dataset_iadd_in_place_when_capacity_available():
+    a = build_info_dataset(3, 0.0, capacity=8)
+    b = build_info_dataset(2, 10.0, capacity=8)
+
+    original = a
+    a += b
+
+    assert a is original
+    assert len(a) == 5
+
+
+def test_dataset_iadd_falls_back_when_over_capacity():
+    a = build_info_dataset(3, 0.0, capacity=3)
+    b = build_info_dataset(2, 10.0, capacity=3)
+
+    reference = a + b
+
+    original = a
+    a += b
+
+    assert a is not original
+    assert len(a) == 5
+    assert np.array_equal(a.last, reference.last)
+    assert np.array_equal(a.reward, reference.reward)
+    assert np.array_equal(parsed_info(a.info, 'idx'), parsed_info(reference.info, 'idx'))
+    assert np.array_equal(parsed_info(a.episode_info, 'ep'), parsed_info(reference.episode_info, 'ep'))
+
+
+def test_dataset_capacity_and_reserve():
+    a = build_info_dataset(3, 0.0, capacity=4)
+
+    assert a.capacity == 4
+
+    a.reserve(2)
+    assert a.capacity == 4
+
+    a.reserve(16)
+    assert a.capacity == 16
+    assert len(a) == 3
+    assert np.array_equal(a.reward, np.array([0.0, 1.0, 2.0]))
+
+
+def test_dataset_capacity_none_for_list_backend():
+    states = np.arange(6).reshape(3, 2).astype(float)
+    actions = np.zeros((3, 1))
+    rewards = np.ones(3)
+    absorbings = np.zeros(3, dtype=bool)
+    lasts = np.array([False, False, True])
+
+    dataset = Dataset.from_array(states, actions, rewards, states, absorbings, lasts,
+                                 backend='list', gamma=0.9)
+
+    assert dataset.capacity is None
+    dataset.reserve(100)
+    assert dataset.capacity is None
+    assert len(dataset) == 3
+
+
+def test_dataset_reserve_grows_agent_data():
+    n = 4
+    states = np.arange(n * 2).reshape(n, 2).astype(float)
+    actions = np.arange(n).reshape(n, 1).astype(float)
+    rewards = np.arange(n).astype(float)
+    next_states = states + 1
+    absorbings = np.zeros(n, dtype=bool)
+    lasts = np.array([False, False, False, True])
+    policy_states = np.arange(n).reshape(n, 1).astype(float)
+    policy_next_states = policy_states + 1
+
+    dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
+                                 policy_state=policy_states, policy_next_state=policy_next_states,
+                                 backend='numpy', policy_backend='torch', gamma=0.9)
+
+    assert dataset.capacity == n
+
+    dataset.reserve(16)
+
+    assert dataset.capacity == 16
+    assert dataset._agent_data.capacity == 16
+    assert torch.equal(dataset.policy_state, torch.from_numpy(policy_states))
+    assert torch.equal(dataset.policy_next_state, torch.from_numpy(policy_next_states))
 
 
 def test_dataset_save_load_policy_split(tmpdir):

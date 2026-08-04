@@ -40,7 +40,7 @@ logger.weak_line()
 
 # Logging learning process
 from mushroom_rl.core import Core
-from mushroom_rl.environments.generators import generate_simple_chain
+from mushroom_rl.environments import SimpleChain
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.algorithms.value import QLearning
 from mushroom_rl.rl_utils.parameters import Parameter
@@ -50,7 +50,7 @@ import numpy as np
 
 
 # Setup simple learning environment
-mdp = generate_simple_chain(state_n=5, goal_states=[2], prob=.8, rew=1, gamma=.9)
+mdp = SimpleChain(n_states=5, goal_states=[2], prob=.8, goal_reward=1, gamma=.9)
 epsilon = Parameter(value=.15)
 pi = EpsGreedy(epsilon=epsilon)
 agent = QLearning(mdp.info, pi, learning_rate=Parameter(value=.2))

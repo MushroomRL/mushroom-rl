@@ -92,6 +92,55 @@ def test_numpy_dataset_append_batch():
     assert np.array_equal(a.column(1), np.array([0.0, 1.0, 2.0]))
 
 
+def test_numpy_dataset_capacity():
+    dataset = make_dataset(capacity=5)
+    dataset.append(np.array([0.0, 0.0]), 0.0, False)
+
+    assert dataset.capacity == 5
+
+
+def test_numpy_dataset_append_batch_past_capacity_raises():
+    a = make_dataset(capacity=2)
+    a.append(np.array([0.0, 0.0]), 0.0, False)
+    a.append(np.array([1.0, 1.0]), 1.0, True)
+    b = make_dataset(capacity=2)
+    b.append(np.array([2.0, 2.0]), 2.0, True)
+
+    caught = False
+    try:
+        a.append_batch(b)
+    except AssertionError:
+        caught = True
+    assert caught
+
+
+def test_numpy_dataset_reserve_grows_and_preserves():
+    dataset = make_dataset(capacity=2)
+    dataset.append(np.array([0.0, 1.0]), 0.5, False)
+    dataset.append(np.array([2.0, 3.0]), 1.5, True)
+
+    dataset.reserve(6)
+
+    assert dataset.capacity == 6
+    assert len(dataset) == 2
+    assert np.array_equal(dataset.column(0), np.array([[0.0, 1.0], [2.0, 3.0]]))
+    assert np.array_equal(dataset.column(1), np.array([0.5, 1.5]))
+    assert np.array_equal(dataset.column(2), np.array([False, True]))
+
+    dataset.append(np.array([4.0, 5.0]), 2.5, True)
+    assert len(dataset) == 3
+    assert np.array_equal(dataset.column(1), np.array([0.5, 1.5, 2.5]))
+
+
+def test_numpy_dataset_reserve_noop_when_enough():
+    dataset = make_dataset(capacity=8)
+    dataset.append(np.array([0.0, 0.0]), 0.0, False)
+
+    dataset.reserve(4)
+
+    assert dataset.capacity == 8
+
+
 def test_numpy_dataset_n_episodes():
     dataset = make_dataset()
     for i in range(4):

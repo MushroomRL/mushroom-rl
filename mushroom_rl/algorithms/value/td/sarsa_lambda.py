@@ -2,7 +2,7 @@ from mushroom_rl.core import HasNextAction
 from mushroom_rl.algorithms.value.td import TD
 from mushroom_rl.rl_utils.eligibility_trace import EligibilityTrace
 from mushroom_rl.approximators.table import Table
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class SARSALambda(HasNextAction, TD):
@@ -20,7 +20,7 @@ class SARSALambda(HasNextAction, TD):
 
         """
         Q = Table(mdp_info.size)
-        self._lambda = to_parameter(lambda_coeff)
+        self._lambda = Parameter.make(lambda_coeff)
 
         self.e = EligibilityTrace(Q.shape, trace)
         self._add_save_attr(

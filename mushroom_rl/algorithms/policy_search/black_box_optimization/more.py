@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import minimize
 
 from mushroom_rl.algorithms.policy_search.black_box_optimization import BlackBoxOptimization
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.features import Features
 from mushroom_rl.features.basis.polynomial import PolynomialBasis
@@ -22,16 +22,15 @@ class MORE(BlackBoxOptimization):
 
         Args:
             distribution (GaussianCholeskyDistribution): the distribution of policy parameters.
-            eps ([float, Parameter]): the maximum admissible value for the Kullback-Leibler
-                divergence between the new distribution and the
-                previous one at each update step.
+            eps ([float, Parameter]): the maximum admissible value for the Kullback-Leibler divergence
+                between the new distribution and the previous one at each update step.
             h0 ([float, Parameter]): minimum exploration policy.
             kappa ([float, Parameter]): regularization parameter for the entropy decrease.
 
         """
-        self.eps = to_parameter(eps)
-        self.h0 = to_parameter(h0)
-        self.kappa = to_parameter(kappa)
+        self.eps = Parameter.make(eps)
+        self.h0 = Parameter.make(h0)
+        self.kappa = Parameter.make(kappa)
 
         assert isinstance(distribution, GaussianCholeskyDistribution)
 

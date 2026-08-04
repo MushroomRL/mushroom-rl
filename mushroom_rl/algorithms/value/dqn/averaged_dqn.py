@@ -1,6 +1,5 @@
-import torch
-
 from mushroom_rl.algorithms.value.dqn import AbstractDQN
+from mushroom_rl.approximators.parametric import TorchApproximator
 
 
 class AveragedDQN(AbstractDQN):
@@ -10,13 +9,13 @@ class AveragedDQN(AbstractDQN):
     Anschel O. et al. 2017.
 
     """
-    def __init__(self, mdp_info, policy, approximator, n_approximators,
-                 **params):
+    def __init__(self, mdp_info, policy, approximator=TorchApproximator, n_approximators=5, **params):
         """
         Constructor.
 
         Args:
-            n_approximators (int): the number of target approximators to store.
+            approximator (class, TorchApproximator): the approximator to use to fit the Q-function;
+            n_approximators (int, 5): the number of target approximators to store.
 
         """
         assert n_approximators > 1
@@ -32,7 +31,7 @@ class AveragedDQN(AbstractDQN):
     def _initialize_regressors(self, approximator, apprx_params_train,
                                apprx_params_target):
         self.approximator = approximator(**apprx_params_train)
-        self.target_approximator = approximator(n_models=self._n_approximators, prediction=None,
+        self.target_approximator = approximator(n_models=self._n_approximators, prediction='all',
                                                 **apprx_params_target)
         w = self.approximator.get_weights()
         self.target_approximator.set_weights(w.repeat(self._n_approximators, 1))

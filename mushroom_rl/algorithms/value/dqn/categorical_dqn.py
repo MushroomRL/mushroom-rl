@@ -73,17 +73,17 @@ class AbstractCategoricalDQN(AbstractDQN):
         bell_a = (reward.unsqueeze(1) + gamma_z).clip(self._v_min, self._v_max)
 
         b = (bell_a - self._v_min) / self._delta
-        l = torch.floor(b).long()
-        u = torch.ceil(b).long()
+        low_b = torch.floor(b).long()
+        upp_b = torch.ceil(b).long()
 
         m = torch.zeros(len(reward), self._n_atoms, device=TorchUtils.get_device())
         rows = torch.arange(len(m), device=TorchUtils.get_device())
         for i in range(self._n_atoms):
-            l[:, i][(u[:, i] > 0) & (l[:, i] == u[:, i])] -= 1
-            u[:, i][(l[:, i] < (self._n_atoms - 1)) & (l[:, i] == u[:, i])] += 1
+            low_b[:, i][(upp_b[:, i] > 0) & (low_b[:, i] == upp_b[:, i])] -= 1
+            upp_b[:, i][(low_b[:, i] < (self._n_atoms - 1)) & (low_b[:, i] == upp_b[:, i])] += 1
 
-            m[rows, l[:, i]] += p_next[:, i] * (u[:, i] - b[:, i])
-            m[rows, u[:, i]] += p_next[:, i] * (b[:, i] - l[:, i])
+            m[rows, low_b[:, i]] += p_next[:, i] * (upp_b[:, i] - b[:, i])
+            m[rows, upp_b[:, i]] += p_next[:, i] * (b[:, i] - low_b[:, i])
 
         return m
 
@@ -129,7 +129,7 @@ class CategoricalDQN(AbstractCategoricalDQN):
                 q_next = self.target_approximator.predict(next_state, **self._predict_params)
                 a_max = torch.argmax(q_next, 1).unsqueeze(1)
                 gamma = self.mdp_info.gamma * ~absorbing
-                p_next = self.target_approximator.predict(next_state, a_max, get_distribution=True, 
+                p_next = self.target_approximator.predict(next_state, a_max, get_distribution=True,
                                                           **self._predict_params)
                 m = self._categorical_projection(reward, gamma, p_next)
 

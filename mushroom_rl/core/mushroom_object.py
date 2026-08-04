@@ -84,8 +84,7 @@ class MushroomObject(object):
                                     full_save=full_save, folder=folder)
                     else:
                         raise NotImplementedError(
-                            "Method _save_{} is not implemented for class '{}'".
-                                format(method, self.__class__.__name__)
+                            f"Method _save_{method} is not implemented for class '{self.name()}'"
                         )
 
         config_data = dict(
@@ -163,6 +162,26 @@ class MushroomObject(object):
 
             return loaded_object
 
+    @classmethod
+    def name(cls):
+        """
+        Returns:
+            The name of the class.
+
+        """
+        return cls.__name__
+
+    def full_name(self):
+        """
+        Return a name identifying the specific object, and not only its class. Subclasses standing for a
+        family of objects override this method to append what distinguishes the instance.
+
+        Returns:
+            The name of the object.
+
+        """
+        return self.name()
+
     def set_logger(self, logger, prefix=None, label=None):
         """
         Attach a logger to the object so that its relevant quantities are logged. The ``prefix``
@@ -192,6 +211,15 @@ class MushroomObject(object):
 
         """
         return deepcopy(self)
+
+    @property
+    def logger(self):
+        """
+        Returns:
+            The logger attached to the object with ``set_logger``, or None if no logger has been attached.
+
+        """
+        return self._logger
 
     def _add_save_attr(self, **attr_dict):
         """
@@ -258,9 +286,9 @@ class MushroomObject(object):
     @staticmethod
     def _append_folder(folder, name):
         if folder:
-           return folder + '/' + name
+            return folder + '/' + name
         else:
-           return name
+            return name
 
     @staticmethod
     def _is_saved_list(zip_file, name):
@@ -294,11 +322,12 @@ class MushroomObject(object):
     @staticmethod
     def _load_torch(zip_file, name):
         with zip_file.open(name, 'r') as f:
-            #modern versions of torch require weights_only to be explicitly set to False
+            # modern versions of torch require weights_only to be explicitly set to False
             if 'weights_only' in inspect.signature(torch.load).parameters:
                 return torch.load(f, map_location=TorchUtils.get_device(), weights_only=False)
             else:
                 return torch.load(f, map_location=TorchUtils.get_device())
+
     @staticmethod
     def _load_json(zip_file, name):
         with zip_file.open(name, 'r') as f:
@@ -365,4 +394,3 @@ class MushroomObject(object):
             return 'mushroom'
         else:
             return 'pickle'
-

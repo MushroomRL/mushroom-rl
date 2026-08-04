@@ -8,8 +8,11 @@ from mushroom_rl.core.spaces import Box
 
 class Hopper(MuJoCo):
     """
-    The Hopper MuJoCo environment as presented in:
-    "Infinite-Horizon Model Predictive Control for Periodic Tasks with Contacts". Tom Erez et. al.. 2012.
+    The Hopper MuJoCo environment.
+
+    As presented in:
+    "Infinite-Horizon Model Predictive Control for Periodic Tasks with Contacts". Tom Erez et al. 2012.
+
     """
 
     def __init__(
@@ -96,36 +99,54 @@ class Hopper(MuJoCo):
         return obs
 
     def _is_within_state_range(self):
-        """Check if state variables are within the healthy range."""
+        """
+        Check if state variables are within the healthy range.
+
+        """
         state = self.get_states()
         min_state, max_state = self._healthy_state_range
         return np.all(np.logical_and(min_state < state, state < max_state))
 
     def _is_within_z_range(self, obs):
-        """Check if Z position of torso is within the healthy range."""
+        """
+        Check if Z position of torso is within the healthy range.
+
+        """
         z_pos = self.obs_helper.get_from_obs(obs, "z_pos").item()
         min_z, max_z = self._healthy_z_range
         return min_z < z_pos < max_z
 
     def _is_within_angle_range(self, obs):
-        """Check if Y angle of torso is within the healthy range."""
+        """
+        Check if Y angle of torso is within the healthy range.
+
+        """
         y_angle = self.obs_helper.get_from_obs(obs, "y_pos").item()
         min_angle, max_angle = self._healthy_angle_range
         return min_angle < y_angle < max_angle
 
     def _is_healthy(self, obs):
-        """Check if the agent is healthy."""
+        """
+        Check if the agent is healthy.
+
+        """
         is_within_state_range = self._is_within_state_range()
         is_within_z_range = self._is_within_z_range(obs)
         is_within_angle_range = self._is_within_angle_range(obs)
         return is_within_state_range and is_within_z_range and is_within_angle_range
 
     def is_absorbing(self, obs):
-        """Return True if the agent is unhealthy and terminate_when_unhealthy is True."""
+        """
+        Return True if the agent is unhealthy and terminate_when_unhealthy is True.
+
+        """
         return self._terminate_when_unhealthy and not self._is_healthy(obs)
 
     def _get_healthy_reward(self, obs):
-        """Return the healthy reward if the agent is healthy, else 0."""
+        """
+        Return the healthy reward if the agent is healthy, else 0.
+
+        """
         return (
             self._is_healthy(obs) or self._terminate_when_unhealthy
         ) * self._healthy_reward
@@ -135,7 +156,10 @@ class Hopper(MuJoCo):
         return self._forward_reward_weight * forward_reward
 
     def _get_ctrl_cost(self, action):
-        """Return the control cost."""
+        """
+        Return the control cost.
+
+        """
         ctrl_cost = np.sum(np.square(action))
         return self._ctrl_cost_weight * ctrl_cost
 
@@ -171,5 +195,8 @@ class Hopper(MuJoCo):
         return info
 
     def get_states(self):
-        """Return the position and velocity joint states of the model"""
+        """
+        Return the position and velocity joint states of the model
+
+        """
         return np.concatenate([self._data.qpos.flat, self._data.qvel.flat])

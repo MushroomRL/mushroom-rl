@@ -5,9 +5,8 @@ import torch.nn as nn
 
 from mushroom_rl.policy import Policy
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.utils.torch_utils import TorchUtils
-from mushroom_rl.utils.torch_distributions import CategoricalWrapper, SquashedGaussian
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.utils.torch_utils import TorchUtils, CategoricalWrapper, SquashedGaussian
+from mushroom_rl.rl_utils.parameters import Parameter
 
 from itertools import chain
 
@@ -218,7 +217,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
         self._predict_params = dict()
 
         self._logits = TorchApproximator(input_shape=input_shape, output_shape=output_shape, network=network, **params)
-        self._beta = to_parameter(beta)
+        self._beta = Parameter.make(beta, backend='torch')
 
         self._add_save_attr(
             _action_dim='primitive',
@@ -229,7 +228,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
 
     def draw_action(self, state):
         with torch.no_grad():
-            self._beta.update(state.numpy())
+            self._beta.update(state)
 
             return self.distribution(state).sample().unsqueeze(-1)
 
@@ -247,7 +246,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
         return torch.mean(self.distribution(state).entropy())
 
     def distribution(self, state):
-        logits = self._logits(state, **self._predict_params) * self._beta.get_value(state.numpy())
+        logits = self._logits(state, **self._predict_params) * self._beta.get_value(state)
         return CategoricalWrapper(logits)
 
     def set_weights(self, weights):
@@ -260,14 +259,14 @@ class BoltzmannTorchPolicy(TorchPolicy):
         return self._logits.parameters()
 
     def set_beta(self, beta):
-        self._beta = to_parameter(beta)
+        self._beta = Parameter.make(beta, backend='torch')
 
 
 class SquashedGaussianTorchPolicy(TorchPolicy):
     """
     Torch policy implementing a Gaussian policy squashed by a tanh and remapped to a bounded action range, as used
     by the Soft Actor-Critic algorithm. The squashing and the corresponding change-of-variables are handled by the
-    :class:`~mushroom_rl.utils.torch_distributions.SquashedGaussian` distribution.
+    :class:`~mushroom_rl.utils.torch_utils.torch_distributions.SquashedGaussian` distribution.
 
     """
     def __init__(self, mu_approximator, sigma_approximator, min_a, max_a, log_std_min, log_std_max):
@@ -289,8 +288,8 @@ class SquashedGaussianTorchPolicy(TorchPolicy):
         self._min_a = TorchUtils.to_float_tensor(min_a)
         self._max_a = TorchUtils.to_float_tensor(max_a)
 
-        self._log_std_min = to_parameter(log_std_min)
-        self._log_std_max = to_parameter(log_std_max)
+        self._log_std_min = Parameter.make(log_std_min, backend='torch')
+        self._log_std_max = Parameter.make(log_std_max, backend='torch')
 
         self._eps = 1e-6
 

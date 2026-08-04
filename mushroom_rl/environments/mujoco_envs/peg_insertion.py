@@ -10,9 +10,13 @@ from mushroom_rl.environments.mujoco_envs.panda import Panda
 
 
 class PegInsertion(Panda):
+    """
+    Peg insertion task with a Panda Robot.
+
+    """
     def __init__(
         self,
-         gamma=0.99,
+        gamma=0.99,
         horizon=300,
         alignment_reward_weight=1.0,
         insertion_reward_weight=15.0,
@@ -76,7 +80,8 @@ class PegInsertion(Panda):
         self.obs_helper.add_obs("peg_rot", 4)
         self.obs_helper.add_obs("rel_goal_pos", 3)
         self.obs_helper.add_obs("goal_rot", 4)
-        self.obs_helper.add_obs("collision_force", 1)
+        self.obs_helper.add_obs("robot_collision_force", 3)
+        self.obs_helper.add_obs("gripper_collision_force", 3)
         mdp_info.observation_space = Box(*self.obs_helper.get_obs_limits())
         return mdp_info
 
@@ -91,9 +96,8 @@ class PegInsertion(Panda):
 
         rel_peg_pos = peg_pos - gripper_pos
         rel_goal_pos = goal_pos - peg_pos
-        collision_force = self._get_contact_force(
-            "robot", "table", self._contact_force_range
-        ) + self._get_contact_force("gripper", "table", self._contact_force_range)
+        robot_collision_force = self._get_contact_force("robot", "table")
+        gripper_collision_force = self._get_contact_force("gripper", "table")
 
         obs = np.concatenate(
             [
@@ -102,13 +106,14 @@ class PegInsertion(Panda):
                 peg_rot,
                 rel_goal_pos,
                 goal_rot,
-                collision_force,
+                robot_collision_force,
+                gripper_collision_force,
             ]
         )
         return obs
 
     def _is_aligned(self, obs):
-        rel_xy_goal_pos = self.obs_helper.get_from_obs(self._obs, "rel_goal_pos")[:2]
+        rel_xy_goal_pos = self.obs_helper.get_from_obs(obs, "rel_goal_pos")[:2]
         alignment = np.linalg.norm(rel_xy_goal_pos)
         return alignment < 0.0025
 
@@ -143,8 +148,11 @@ class PegInsertion(Panda):
         return self._ctrl_cost_weight * ctrl_cost
 
     def _get_contact_cost(self, obs):
-        collision_force = self.obs_helper.get_from_obs(obs, "collision_force")
-        return self._contact_cost_weight * collision_force
+        robot_collision_force = self.obs_helper.get_from_obs(obs, "robot_collision_force")
+        gripper_collision_force = self.obs_helper.get_from_obs(obs, "gripper_collision_force")
+        robot_cost = np.sum(np.square(np.clip(robot_collision_force, *self._contact_force_range)))
+        gripper_cost = np.sum(np.square(np.clip(gripper_collision_force, *self._contact_force_range)))
+        return self._contact_cost_weight * (robot_cost + gripper_cost).item()
 
     def reward(self, obs, action, next_obs, absorbing):
         alignment_reward = self._get_alignment_reward(next_obs)
@@ -191,4 +199,5 @@ class PegInsertion(Panda):
         info["rotation_reward"] = self._get_rotation_reward(obs)
         info["ctrl_cost"] = self._get_ctrl_cost(action)
         info["contact_cost"] = self._get_contact_cost(obs)
+
         return info

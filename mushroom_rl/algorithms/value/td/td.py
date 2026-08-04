@@ -1,5 +1,3 @@
-import numpy as np
-
 from mushroom_rl.core import Agent
 
 

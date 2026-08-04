@@ -6,7 +6,7 @@ from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OnPolicyDeepAC
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.torch_utils import TorchUtils
 from mushroom_rl.rl_utils.value_functions import compute_gae
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class TRPO(OnPolicyDeepAC):
@@ -46,26 +46,24 @@ class TRPO(OnPolicyDeepAC):
         """
         self._critic_fit_params = dict(n_epochs=5) if critic_fit_params is None else critic_fit_params
 
-        self._n_epochs_line_search = to_parameter(n_epochs_line_search)
-        self._n_epochs_cg = to_parameter(n_epochs_cg)
-        self._cg_damping = to_parameter(cg_damping)
-        self._cg_residual_tol = to_parameter(cg_residual_tol)
+        self._n_epochs_line_search = Parameter.make(n_epochs_line_search, backend='torch')
+        self._n_epochs_cg = Parameter.make(n_epochs_cg, backend='torch')
+        self._cg_damping = Parameter.make(cg_damping, backend='torch')
+        self._cg_residual_tol = Parameter.make(cg_residual_tol, backend='torch')
 
-        self._max_kl = to_parameter(max_kl)
-        self._ent_coeff = to_parameter(ent_coeff)
+        self._max_kl = Parameter.make(max_kl, backend='torch')
+        self._ent_coeff = Parameter.make(ent_coeff, backend='torch')
 
-        self._lambda = to_parameter(lam)
+        self._lambda = Parameter.make(lam, backend='torch')
 
         self._V = TorchApproximator(**critic_params)
-
-        self._iter = 1
 
         self._old_policy = None
 
         super().__init__(mdp_info, policy, backend=backend)
 
         self._add_save_attr(
-            _critic_fit_params='pickle', 
+            _critic_fit_params='pickle',
             _n_epochs_line_search='mushroom',
             _n_epochs_cg='mushroom',
             _cg_damping='mushroom',
@@ -74,12 +72,13 @@ class TRPO(OnPolicyDeepAC):
             _ent_coeff='mushroom',
             _lambda='mushroom',
             _V='mushroom',
-            _old_policy='mushroom',
-            _iter='primitive'
+            _old_policy='mushroom'
         )
         self._add_logger_attr('_V', group='critic')
 
     def fit(self, dataset):
+        self._log_iteration_start()
+
         state, action, reward, next_state, absorbing, last = dataset.parse(to='torch')
         state, next_state, state_old = self._preprocess_state(state, next_state)
 
@@ -113,9 +112,7 @@ class TRPO(OnPolicyDeepAC):
         # VF update
         self._V.fit(state, v_target, **self._critic_fit_params)
 
-        # Print fit information
         self._log_info(dataset, state, old_pol_dist)
-        self._iter += 1
 
     def _fisher_vector_product(self, p, obs, old_pol_dist):
         kl = self._compute_kl(obs, old_pol_dist)
@@ -186,24 +183,3 @@ class TRPO(OnPolicyDeepAC):
         J = torch.mean(ratio * adv)
 
         return J + self._ent_coeff() * self.policy.entropy(obs)
-
-    def _log_info(self, dataset, x, old_pol_dist):
-        if self._logger:
-            logging_verr = self._V.loss_fit
-
-            logging_ent = self.policy.entropy(x)
-            new_pol_dist = self.policy.distribution(x)
-            logging_kl = torch.mean(
-                torch.distributions.kl.kl_divergence(old_pol_dist, new_pol_dist)
-            )
-            avg_rwd = dataset.undiscounted_return.mean().item()
-            msg = "Iteration {}:\n\t\t\t\trewards {} vf_loss {}\n\t\t\t\tentropy {}  kl {}".format(
-                self._iter, avg_rwd, logging_verr, logging_ent, logging_kl)
-
-            self._logger.info(msg)
-            self._logger.weak_line()
-
-            self._logger.log_training('actor',
-                                      entropy=logging_ent.item(),
-                                      kl=logging_kl.item())
-            self._logger.advance_step()

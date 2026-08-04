@@ -78,7 +78,7 @@ class NoisyNetwork(nn.Module):
                 self.in_features, self.out_features, self.mu_bias, self.sigma_bias is not None
             )
 
-    def __init__(self, input_shape, output_shape, features_network, n_features, **kwargs):
+    def __init__(self, input_shape, output_shape, features_network, n_features, sigma_coeff=.5, **kwargs):
         """
         Constructor.
 
@@ -87,6 +87,7 @@ class NoisyNetwork(nn.Module):
             output_shape (tuple): shape of the output (the number of actions);
             features_network (nn.Module): the network used to compute the features;
             n_features (int): number of features extracted by the features network;
+            sigma_coeff (float, .5): scaling coefficient for the initial noise standard deviation;
             **kwargs: parameters forwarded to the features network.
 
         """
@@ -96,7 +97,7 @@ class NoisyNetwork(nn.Module):
         self._phi = features_network(input_shape, (n_features,),
                                      n_features=n_features, **kwargs)
 
-        self._Q = self.NoisyLinear(n_features, self._n_output)
+        self._Q = self.NoisyLinear(n_features, self._n_output, sigma_coeff)
 
     def forward(self, state, action=None, **kwargs):
         features = self._phi(state)

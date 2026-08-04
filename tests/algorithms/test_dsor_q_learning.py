@@ -67,7 +67,7 @@ def test_dsor_dqn_with_unit_relaxation_is_double_dqn_target():
 
 
 def test_double_sor_q_learning_update(monkeypatch):
-    mdp = GridWorld(2, 2, start=(0, 0), goal=(1, 1))
+    mdp = GridWorld.generate(2, 2, start=(0, 0), goal=(1, 1))
     policy = EpsGreedy(Parameter(1.))
     agent = DoubleSORQLearning(
         mdp.info, policy, Parameter(.5), relaxation_factor=1.2)

@@ -86,7 +86,7 @@ class QuantileDQN(AbstractDQN):
             with torch.no_grad():
                 q_next = self.target_approximator.predict(next_state, **self._predict_params)
                 a_max = torch.argmax(q_next, 1).unsqueeze(1)
-                quant_next = self.target_approximator.predict(next_state, a_max, get_quantiles=True, 
+                quant_next = self.target_approximator.predict(next_state, a_max, get_quantiles=True,
                                                               **self._predict_params)
                 quant_next *= (~absorbing).unsqueeze(1)
                 quant = reward.unsqueeze(1) + self.mdp_info.gamma * quant_next

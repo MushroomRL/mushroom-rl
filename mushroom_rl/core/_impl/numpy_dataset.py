@@ -16,6 +16,92 @@ class NumpyDataset(MushroomObject):
 
         self._add_all_save_attr()
 
+    def __len__(self):
+        return self._len
+
+    def __getitem__(self, index):
+        return tuple(array[index] for array in self._arrays)
+
+    def __add__(self, other):
+        result = self.create_new_instance(self)
+
+        result._arrays = [np.concatenate((array[:self._len], other_array[:len(other)]))
+                          for array, other_array in zip(self._arrays, other._arrays)]
+        result._len = self._len + len(other)
+
+        return result
+
+    def append(self, *values):
+        i = self._len
+        for array, value in zip(self._arrays, values):
+            array[i] = value if self._n_envs is None else value[:self._n_envs]
+        self._len += 1
+
+    def append_batch(self, other):
+        n = len(other)
+        i = self._len
+        assert i + n <= self.capacity
+        for array, column in zip(self._arrays, other.data):
+            array[i:i + n] = column
+        self._len += n
+
+    def clear(self):
+        self._arrays = [np.empty_like(array) for array in self._arrays]
+        self._len = 0
+
+    def reserve(self, capacity):
+        if capacity > self.capacity:
+            new_arrays = list()
+            for array in self._arrays:
+                buffer = np.empty((capacity,) + array.shape[1:], dtype=array.dtype)
+                buffer[:self._len] = array[:self._len]
+                new_arrays.append(buffer)
+            self._arrays = new_arrays
+
+    def compact(self, start):
+        n = self._len - start
+        for array in self._arrays:
+            array[:n] = array[start:start + n]
+        self._len = n
+
+    def get_view(self, index, copy=False):
+        view = self.create_new_instance(self)
+
+        if copy:
+            view._arrays = list()
+            new_len = 0
+            for array in self._arrays:
+                buffer = np.empty_like(array)
+                sliced = array[:self._len][index, ...]
+                new_len = sliced.shape[0]
+                buffer[:new_len] = sliced
+                view._arrays.append(buffer)
+            view._len = new_len
+        else:
+            view._arrays = [array[:self._len][index, ...] for array in self._arrays]
+            view._len = view._arrays[0].shape[0]
+
+        return view
+
+    def column(self, index=None):
+        if index is None:
+            assert self.n_columns == 1
+            index = 0
+        return self._arrays[index][:self._len]
+
+    def n_episodes(self, last_index):
+        last = self.column(last_index)
+
+        if len(last) == 0:
+            return 0
+
+        n_episodes = last.sum()
+
+        if not last[-1]:
+            n_episodes += 1
+
+        return n_episodes
+
     @classmethod
     def create_new_instance(cls, dataset=None):
         """
@@ -47,63 +133,6 @@ class NumpyDataset(MushroomObject):
 
         return dataset
 
-    def __len__(self):
-        return self._len
-
-    def append(self, *values):
-        i = self._len
-        for array, value in zip(self._arrays, values):
-            array[i] = value if self._n_envs is None else value[:self._n_envs]
-        self._len += 1
-
-    def append_batch(self, other):
-        n = len(other)
-        i = self._len
-        for array, column in zip(self._arrays, other.data):
-            array[i:i + n] = column
-        self._len += n
-
-    def clear(self):
-        self._arrays = [np.empty_like(array) for array in self._arrays]
-        self._len = 0
-
-    def get_view(self, index, copy=False):
-        view = self.create_new_instance(self)
-
-        if copy:
-            view._arrays = list()
-            new_len = 0
-            for array in self._arrays:
-                buffer = np.empty_like(array)
-                sliced = array[:self._len][index, ...]
-                new_len = sliced.shape[0]
-                buffer[:new_len] = sliced
-                view._arrays.append(buffer)
-            view._len = new_len
-        else:
-            view._arrays = [array[:self._len][index, ...] for array in self._arrays]
-            view._len = view._arrays[0].shape[0]
-
-        return view
-
-    def __getitem__(self, index):
-        return tuple(array[index] for array in self._arrays)
-
-    def __add__(self, other):
-        result = self.create_new_instance(self)
-
-        result._arrays = [np.concatenate((array[:self._len], other_array[:len(other)]))
-                          for array, other_array in zip(self._arrays, other._arrays)]
-        result._len = self._len + len(other)
-
-        return result
-
-    def column(self, index=None):
-        if index is None:
-            assert self.n_columns == 1
-            index = 0
-        return self._arrays[index][:self._len]
-
     @property
     def data(self):
         return [array[:self._len] for array in self._arrays]
@@ -116,18 +145,9 @@ class NumpyDataset(MushroomObject):
     def n_envs(self):
         return self._n_envs
 
-    def n_episodes(self, last_index):
-        last = self.column(last_index)
-
-        if len(last) == 0:
-            return 0
-
-        n_episodes = last.sum()
-
-        if not last[-1]:
-            n_episodes += 1
-
-        return n_episodes
+    @property
+    def capacity(self):
+        return self._arrays[0].shape[0]
 
     def _add_all_save_attr(self):
         self._add_save_attr(

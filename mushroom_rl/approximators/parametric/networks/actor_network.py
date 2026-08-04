@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 
 from mushroom_rl.utils.torch_utils import TorchUtils

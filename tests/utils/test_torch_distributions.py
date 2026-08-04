@@ -1,6 +1,6 @@
 import torch
 
-from mushroom_rl.utils.torch_distributions import SquashedGaussian, CategoricalWrapper
+from mushroom_rl.utils.torch_utils import SquashedGaussian, CategoricalWrapper
 
 
 def test_squashed_gaussian_bounds_and_consistency():

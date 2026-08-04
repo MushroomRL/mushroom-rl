@@ -1,6 +1,7 @@
 import torch
 
 from mushroom_rl.algorithms.value.dqn import DQN
+from mushroom_rl.approximators.parametric import TorchApproximator
 
 
 class MaxminDQN(DQN):
@@ -10,12 +11,13 @@ class MaxminDQN(DQN):
     Lan Q. et al. 2020.
 
     """
-    def __init__(self, mdp_info, policy, approximator, n_approximators, **params):
+    def __init__(self, mdp_info, policy, approximator=TorchApproximator, n_approximators=2, **params):
         """
         Constructor.
 
         Args:
-            n_approximators (int): the number of approximators in the ensemble.
+            approximator (class, TorchApproximator): the approximator to use to fit the Q-function;
+            n_approximators (int, 2): the number of approximators in the ensemble.
 
         """
         assert n_approximators > 1

@@ -45,9 +45,12 @@ def test_vectorized_dataset_clear_residual_carry():
     dataset = VectorizedDataset(make_info(), n_steps=10)
     append_steps(dataset, 3)
 
-    n_carry = dataset.clear(n_steps_per_fit=4)
+    dataset.consume(5)
+    n_carry = dataset.clear(keep_leftovers=True)
 
-    assert int(n_carry) == 2
+    assert int(n_carry) == 1
     assert len(dataset) == 1
     assert dataset._agent_data is not None
-    assert dataset.mask.sum() == 2
+    assert dataset.mask.sum() == 1
+    assert np.array_equal(dataset.mask, np.array([[False, True]]))
+    assert np.array_equal(dataset.state[0], np.full((2, 2), 2.0))

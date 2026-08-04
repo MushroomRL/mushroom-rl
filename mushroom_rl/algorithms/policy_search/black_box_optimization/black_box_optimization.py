@@ -19,8 +19,8 @@ class BlackBoxOptimization(Agent):
         Args:
             distribution (Distribution): the distribution of policy parameters;
             policy (HasWeights): the policy to use;
-            context_builder (ContextBuilder, None): class used to compute the context variables from initial state and
-                the episode_info dictionary;
+            context_builder (ContextBuilder, None): class used to compute the context variables from initial
+                state and the episode_info dictionary;
             backend (str, 'numpy'): the backend used by the algorithm.
 
         """
@@ -103,10 +103,8 @@ class BlackBoxOptimization(Agent):
         proper update.
 
         Args:
-            Jep (np.ndarray): a vector containing the J of the considered
-                trajectories;
-            theta (np.ndarray): a matrix of policy parameters of the considered
-                trajectories.
+            Jep (np.ndarray): a vector containing the J of the considered trajectories;
+            theta (np.ndarray): a matrix of policy parameters of the considered trajectories.
 
         """
         raise NotImplementedError('BlackBoxOptimization is an abstract class')

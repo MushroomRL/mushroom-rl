@@ -110,6 +110,21 @@ def test_list_dataset_add():
     assert dataset_a.column(5) == [0.0, 0.0, 0.0]
 
 
+def test_list_dataset_capacity_is_none():
+    dataset = ListDataset.from_array(build_columns(3))
+
+    assert dataset.capacity is None
+
+
+def test_list_dataset_reserve_is_noop():
+    dataset = ListDataset.from_array(build_columns(3))
+
+    dataset.reserve(100)
+
+    assert len(dataset) == 3
+    assert dataset.capacity is None
+
+
 def test_list_dataset_column_single():
     dataset = ListDataset(1)
     dataset.append(np.array([True, False]))

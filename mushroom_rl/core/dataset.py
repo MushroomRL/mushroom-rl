@@ -10,7 +10,7 @@ from mushroom_rl.core.mushroom_object import MushroomObject
 from mushroom_rl.core.array_backend import ArrayBackend
 from mushroom_rl.core.extra_info import ExtraInfo
 
-from ._impl import *
+from ._impl import NumpyDataset, TorchDataset, ListDataset
 
 from mushroom_rl.utils.episodes import split_episodes
 
@@ -76,22 +76,6 @@ class DatasetInfo(MushroomObject):
             n_envs='primitive'
         )
 
-    @property
-    def env_array_backend(self):
-        """
-        The :class:`ArrayBackend` of the environment data.
-
-        """
-        return ArrayBackend.get_array_backend(self.env_backend)
-
-    @property
-    def agent_array_backend(self):
-        """
-        The :class:`ArrayBackend` of the agent (policy state) data.
-
-        """
-        return ArrayBackend.get_array_backend(self.agent_backend)
-
     @staticmethod
     def create_dataset_info(mdp_info, agent_info, n_envs=1, device=None):
         """
@@ -154,6 +138,22 @@ class DatasetInfo(MushroomObject):
 
         return DatasetInfo(backend, backend, device, device, horizon, gamma, state_shape, state_dtype,
                            action_shape, action_dtype, policy_state_shape)
+
+    @property
+    def env_array_backend(self):
+        """
+        The :class:`ArrayBackend` of the environment data.
+
+        """
+        return ArrayBackend.get_array_backend(self.env_backend)
+
+    @property
+    def agent_array_backend(self):
+        """
+        The :class:`ArrayBackend` of the agent (policy state) data.
+
+        """
+        return ArrayBackend.get_array_backend(self.agent_backend)
 
 
 class Dataset(MushroomObject):
@@ -226,183 +226,38 @@ class Dataset(MushroomObject):
 
         self._add_all_save_attr()
 
-    @staticmethod
-    def _compute_base_shape(dataset_info, n_steps, n_episodes, core_counts_episodes):
-        if dataset_info.env_backend == 'list':
-            return None
-
-        if n_steps is not None:
-            n_samples = n_steps
+    def __getitem__(self, index):
+        if isinstance(index, (slice, np.ndarray, torch.Tensor)):
+            return self.get_view(index)
+        elif isinstance(index, int) and index < len(self._data):
+            return self._data[index]
         else:
-            horizon = dataset_info.horizon
-            assert np.isfinite(horizon)
-            n_samples = horizon * n_episodes
+            raise IndexError
 
-        if dataset_info.n_envs == 1:
-            return (n_samples,)
-        elif n_episodes:
-            horizon = dataset_info.horizon
-            x = math.ceil(n_episodes / dataset_info.n_envs)
-            return (x * horizon, min(n_episodes, dataset_info.n_envs))
-        elif core_counts_episodes:
-            return (math.ceil(n_samples / dataset_info.n_envs) + 1 + dataset_info.horizon, dataset_info.n_envs)
-        else:
-            return (math.ceil(n_samples / dataset_info.n_envs) + 1, dataset_info.n_envs)
+    def __add__(self, other):
+        result = self.create_raw_instance(dataset=self)
 
-    @staticmethod
-    def _env_specs(dataset_info, base_shape):
-        backend = dataset_info.env_array_backend
-        base = base_shape if base_shape is not None else ()
-        state_shape = base + dataset_info.state_shape
-        action_shape = base + dataset_info.action_shape
+        result._info = self._info + other._info
+        result._episode_info = self._episode_info + other._episode_info
+        result._theta_list = self._merge_theta_list(other)
+        result._data = self._data + other._data
+        result._agent_data = (self._agent_data + other._agent_data) if self._agent_data is not None else None
 
-        shapes = [state_shape, action_shape, base, state_shape, base, base]
-        dtypes = [backend.to_backend_dtype(dataset_info.state_dtype),
-                  backend.to_backend_dtype(dataset_info.action_dtype),
-                  backend.to_backend_dtype(float),
-                  backend.to_backend_dtype(dataset_info.state_dtype),
-                  backend.to_backend_dtype(bool),
-                  backend.to_backend_dtype(bool)]
-        return shapes, dtypes
+        return result
 
-    @staticmethod
-    def _policy_specs(dataset_info, base_shape):
-        backend = dataset_info.agent_array_backend
-        base = base_shape if base_shape is not None else ()
-        policy_shape = base + dataset_info.policy_state_shape
+    def __iadd__(self, other):
+        capacity = self._data.capacity
+        if capacity is not None and len(self) + len(other) > capacity:
+            return self + other
 
-        shapes = [policy_shape, policy_shape]
-        dtypes = [backend.to_backend_dtype(float), backend.to_backend_dtype(float)]
-        return shapes, dtypes
+        self.append_batch(other)
+        self._episode_info += other._episode_info
+        self._theta_list = self._merge_theta_list(other)
 
-    @staticmethod
-    def _make_container(backend_name, shapes, dtypes, device=None, n_envs=None):
-        if backend_name == 'numpy':
-            return NumpyDataset(shapes, dtypes, n_envs=n_envs)
-        elif backend_name == 'torch':
-            return TorchDataset(shapes, dtypes, device=device, n_envs=n_envs)
-        else:
-            return ListDataset(len(shapes), n_envs=n_envs)
+        return self
 
-    @classmethod
-    def generate(cls, mdp_info, agent_info, n_steps=None, n_episodes=None, n_envs=1, core_counts_episodes=False):
-        dataset_info = DatasetInfo.create_dataset_info(mdp_info, agent_info, n_envs)
-
-        return cls(dataset_info, n_steps, n_episodes, core_counts_episodes)
-
-    @classmethod
-    def create_raw_instance(cls, dataset=None):
-        """
-        Creates an empty instance of the Dataset and populates essential data structures
-
-        Args:
-            dataset (Dataset, None): a template dataset to be used to create the new instance.
-
-        Returns:
-            A new empty instance of the dataset.
-
-        """
-        new_dataset = cls.__new__(cls)
-
-        new_dataset._dataset_info = dataset._dataset_info if dataset is not None else None
-
-        new_dataset._base_shape = None
-        new_dataset._info = None
-        new_dataset._episode_info = None
-        new_dataset._data = None
-        new_dataset._agent_data = None
-        new_dataset._theta_list = None
-
-        new_dataset._add_all_save_attr()
-
-        return new_dataset
-
-    @classmethod
-    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts,
-                   policy_state=None, policy_next_state=None, info=None, episode_info=None, theta_list=None,
-                   horizon=None, gamma=0.99, backend='numpy', policy_backend=None, device=None):
-        """
-        Creates a dataset of transitions from the provided arrays.
-
-        Args:
-            states (array): array of states;
-            actions (array): array of actions;
-            rewards (array): array of rewards;
-            next_states (array): array of next_states;
-            absorbings (array): array of absorbing flags;
-            lasts (array): array of last flags;
-            policy_state (array, None): array of policy internal states;
-            policy_next_state (array, None): array of next policy internal states;
-            info (dict, None): dictiornay of step info;
-            episode_info (dict, None): dictiornary of episode info;
-            theta_list (list, None): list of policy parameters;
-            horizon (int, None): horizon of the mdp;
-            gamma (float, 0.99): discount factor;
-            backend (str, 'numpy'): backend to be used by the dataset;
-            policy_backend (str, None): backend to be used for the policy state arrays; defaults to ``backend``.
-
-        Returns:
-            The list of transitions.
-
-        """
-        assert len(states) == len(actions) == len(rewards) == len(next_states) == len(absorbings) == len(lasts)
-
-        if policy_state is not None:
-            assert len(states) == len(policy_state) == len(policy_next_state)
-
-        if policy_backend is None:
-            policy_backend = backend
-
-        dataset = cls.create_raw_instance()
-
-        if info is None:
-            dataset._info = ExtraInfo(1, backend)
-        else:
-            dataset._info = info.copy()
-
-        if episode_info is None:
-            dataset._episode_info = ExtraInfo(1, backend)
-        else:
-            dataset._episode_info = episode_info.copy()
-
-        if theta_list is None:
-            dataset._theta_list = list()
-        else:
-            dataset._theta_list = theta_list
-
-        env_class = cls._container_class(backend)
-        dataset._data = env_class.from_array([states, actions, rewards, next_states, absorbings, lasts])
-
-        if policy_state is not None:
-            policy_class = cls._container_class(policy_backend)
-            dataset._agent_data = policy_class.from_array([policy_state, policy_next_state])
-        else:
-            dataset._agent_data = None
-
-        state_shape = cls._infer_shape(states)
-        action_shape = cls._infer_shape(actions)
-        state_dtype = cls._infer_dtype(states)
-        action_dtype = cls._infer_dtype(actions)
-        policy_state_shape = None if policy_state is None else cls._infer_shape(policy_state)
-
-        dataset._dataset_info = DatasetInfo(backend, policy_backend, device, None, horizon, gamma,
-                                            state_shape, state_dtype, action_shape, action_dtype, policy_state_shape)
-
-        return dataset
-
-    @staticmethod
-    def _container_class(backend_name):
-        if backend_name == 'numpy':
-            return NumpyDataset
-        elif backend_name == 'torch':
-            return TorchDataset
-        else:
-            return ListDataset
-
-    def _store_step(self, step):
-        self._data.append(*step[:len(self._Field)])
-        if self._agent_data is not None:
-            self._agent_data.append(*step[len(self._Field):])
+    def __len__(self):
+        return len(self._data)
 
     def append(self, step, info):
         self._store_step(step)
@@ -410,7 +265,8 @@ class Dataset(MushroomObject):
 
     def append_batch(self, other):
         """
-        Append all transitions from another dataset without copying data.
+        Append the transitions of another dataset in place without copying data. Only the transition data is merged
+        (env data, policy state and step info); the per-episode information and the policy parameters are not updated.
 
         Args:
             other (Dataset): dataset whose transitions will be appended.
@@ -420,6 +276,20 @@ class Dataset(MushroomObject):
         if self._agent_data is not None:
             self._agent_data.append_batch(other._agent_data)
         self._info += other._info
+
+    def reserve(self, capacity):
+        """
+        Ensure the dataset can hold at least ``capacity`` transitions, reallocating a larger buffer and copying
+        the stored transitions across when needed. It is a no-op when the buffer is already large enough or
+        unbounded (list backend).
+
+        Args:
+            capacity (int): the minimum number of transitions the dataset must be able to hold.
+
+        """
+        self._data.reserve(capacity)
+        if self._agent_data is not None:
+            self._agent_data.reserve(capacity)
 
     def append_episode_info(self, info):
         self._append_info(self._episode_info, info)
@@ -456,113 +326,6 @@ class Dataset(MushroomObject):
     def item(self):
         assert len(self) == 1
         return self[0]
-
-    def __getitem__(self, index):
-        if isinstance(index, (slice, np.ndarray, torch.Tensor)):
-            return self.get_view(index)
-        elif isinstance(index, int) and index < len(self._data):
-            return self._data[index]
-        else:
-            raise IndexError
-
-    def __add__(self, other):
-        result = self.create_raw_instance(dataset=self)
-
-        result._info = self._info + other._info
-        result._episode_info = self._episode_info + other._episode_info
-        result._theta_list = self._theta_list + other._theta_list
-        result._data = self._data + other._data
-        result._agent_data = (self._agent_data + other._agent_data) if self._agent_data is not None else None
-
-        result._data.column(self._Field.LAST)[len(self) - 1] = True
-
-        return result
-
-    def __len__(self):
-        return len(self._data)
-
-    @property
-    def state(self):
-        return self._data.column(self._Field.STATE)
-
-    @property
-    def action(self):
-        return self._data.column(self._Field.ACTION)
-
-    @property
-    def reward(self):
-        return self._data.column(self._Field.REWARD)
-
-    @property
-    def next_state(self):
-        return self._data.column(self._Field.NEXT_STATE)
-
-    @property
-    def absorbing(self):
-        return self._data.column(self._Field.ABSORBING)
-
-    @property
-    def last(self):
-        return self._data.column(self._Field.LAST)
-
-    @property
-    def policy_state(self):
-        return self._agent_data.column(self._PolicyField.POLICY_STATE)
-
-    @property
-    def policy_next_state(self):
-        return self._agent_data.column(self._PolicyField.POLICY_NEXT_STATE)
-
-    @property
-    def info(self):
-        return self._info
-
-    @property
-    def episode_info(self):
-        return self._episode_info
-
-    @property
-    def theta_list(self):
-        return self._theta_list
-
-    @property
-    def episodes_length(self):
-        """
-        Compute the length of each episode in the dataset.
-
-        Returns:
-            An array with the length of each episode in the dataset.
-
-        """
-        lengths = list()
-        length = 0
-        for sample in self:
-            length += 1
-            if sample[-1] == 1:
-                lengths.append(length)
-                length = 0
-
-        return self._dataset_info.env_array_backend.as_array(lengths)
-
-    @property
-    def n_episodes(self):
-        return self._data.n_episodes(self._Field.LAST)
-
-    @property
-    def undiscounted_return(self):
-        return self.compute_J()
-
-    @property
-    def discounted_return(self):
-        return self.compute_J(self._dataset_info.gamma)
-
-    @property
-    def array_backend(self):
-        return self._dataset_info.env_array_backend
-
-    @property
-    def is_stateful(self):
-        return self._agent_data is not None
 
     def parse(self, to=None):
         """
@@ -727,6 +490,211 @@ class Dataset(MushroomObject):
         else:
             return 0, 0, 0, 0, 0
 
+    @classmethod
+    def generate(cls, mdp_info, agent_info, n_steps=None, n_episodes=None, n_envs=1, core_counts_episodes=False):
+        dataset_info = DatasetInfo.create_dataset_info(mdp_info, agent_info, n_envs)
+
+        return cls(dataset_info, n_steps, n_episodes, core_counts_episodes)
+
+    @classmethod
+    def create_raw_instance(cls, dataset=None):
+        """
+        Creates an empty instance of the Dataset and populates essential data structures
+
+        Args:
+            dataset (Dataset, None): a template dataset to be used to create the new instance.
+
+        Returns:
+            A new empty instance of the dataset.
+
+        """
+        new_dataset = cls.__new__(cls)
+
+        new_dataset._dataset_info = dataset._dataset_info if dataset is not None else None
+
+        new_dataset._base_shape = None
+        new_dataset._info = None
+        new_dataset._episode_info = None
+        new_dataset._data = None
+        new_dataset._agent_data = None
+        new_dataset._theta_list = None
+
+        new_dataset._add_all_save_attr()
+
+        return new_dataset
+
+    @classmethod
+    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts,
+                   policy_state=None, policy_next_state=None, info=None, episode_info=None, theta_list=None,
+                   horizon=None, gamma=0.99, backend='numpy', policy_backend=None, device=None):
+        """
+        Creates a dataset of transitions from the provided arrays.
+
+        Args:
+            states (array): array of states;
+            actions (array): array of actions;
+            rewards (array): array of rewards;
+            next_states (array): array of next_states;
+            absorbings (array): array of absorbing flags;
+            lasts (array): array of last flags;
+            policy_state (array, None): array of policy internal states;
+            policy_next_state (array, None): array of next policy internal states;
+            info (dict, None): dictiornay of step info;
+            episode_info (dict, None): dictiornary of episode info;
+            theta_list (list, None): list of policy parameters;
+            horizon (int, None): horizon of the mdp;
+            gamma (float, 0.99): discount factor;
+            backend (str, 'numpy'): backend to be used by the dataset;
+            policy_backend (str, None): backend to be used for the policy state arrays; defaults to ``backend``.
+
+        Returns:
+            The list of transitions.
+
+        """
+        assert len(states) == len(actions) == len(rewards) == len(next_states) == len(absorbings) == len(lasts)
+
+        if policy_state is not None:
+            assert len(states) == len(policy_state) == len(policy_next_state)
+
+        if policy_backend is None:
+            policy_backend = backend
+
+        dataset = cls.create_raw_instance()
+
+        if info is None:
+            dataset._info = ExtraInfo(1, backend)
+        else:
+            dataset._info = info.copy()
+
+        if episode_info is None:
+            dataset._episode_info = ExtraInfo(1, backend)
+        else:
+            dataset._episode_info = episode_info.copy()
+
+        if theta_list is None:
+            dataset._theta_list = list()
+        else:
+            dataset._theta_list = theta_list
+
+        env_class = cls._container_class(backend)
+        dataset._data = env_class.from_array([states, actions, rewards, next_states, absorbings, lasts])
+
+        if policy_state is not None:
+            policy_class = cls._container_class(policy_backend)
+            dataset._agent_data = policy_class.from_array([policy_state, policy_next_state])
+        else:
+            dataset._agent_data = None
+
+        state_shape = cls._infer_shape(states)
+        action_shape = cls._infer_shape(actions)
+        state_dtype = cls._infer_dtype(states)
+        action_dtype = cls._infer_dtype(actions)
+        policy_state_shape = None if policy_state is None else cls._infer_shape(policy_state)
+
+        dataset._dataset_info = DatasetInfo(backend, policy_backend, device, None, horizon, gamma,
+                                            state_shape, state_dtype, action_shape, action_dtype, policy_state_shape)
+
+        return dataset
+
+    @property
+    def state(self):
+        return self._data.column(self._Field.STATE)
+
+    @property
+    def action(self):
+        return self._data.column(self._Field.ACTION)
+
+    @property
+    def reward(self):
+        return self._data.column(self._Field.REWARD)
+
+    @property
+    def next_state(self):
+        return self._data.column(self._Field.NEXT_STATE)
+
+    @property
+    def absorbing(self):
+        return self._data.column(self._Field.ABSORBING)
+
+    @property
+    def last(self):
+        return self._data.column(self._Field.LAST)
+
+    @property
+    def policy_state(self):
+        return self._agent_data.column(self._PolicyField.POLICY_STATE)
+
+    @property
+    def policy_next_state(self):
+        return self._agent_data.column(self._PolicyField.POLICY_NEXT_STATE)
+
+    @property
+    def info(self):
+        return self._info
+
+    @property
+    def episode_info(self):
+        return self._episode_info
+
+    @property
+    def theta_list(self):
+        return self._theta_list
+
+    @property
+    def episodes_length(self):
+        """
+        Compute the length of each episode in the dataset.
+
+        Returns:
+            An array with the length of each episode in the dataset.
+
+        """
+        lengths = list()
+        length = 0
+        for sample in self:
+            length += 1
+            if sample[-1] == 1:
+                lengths.append(length)
+                length = 0
+
+        return self._dataset_info.env_array_backend.as_array(lengths)
+
+    @property
+    def n_episodes(self):
+        return self._data.n_episodes(self._Field.LAST)
+
+    @property
+    def undiscounted_return(self):
+        return self.compute_J()
+
+    @property
+    def discounted_return(self):
+        return self.compute_J(self._dataset_info.gamma)
+
+    @property
+    def array_backend(self):
+        return self._dataset_info.env_array_backend
+
+    @property
+    def is_stateful(self):
+        return self._agent_data is not None
+
+    @property
+    def capacity(self):
+        """
+        The number of transitions the dataset can hold, or ``None`` when it grows without bound (list backend).
+
+        """
+        return self._data.capacity
+
+    def _store_step(self, step):
+        self._data.append(*step[:len(self._Field)])
+        if self._agent_data is not None:
+            self._agent_data.append(*step[len(self._Field):])
+
+    def _merge_theta_list(self, other):
+        return self._theta_list + other._theta_list
+
     def _convert(self, *arrays, to='numpy', backend=None):
         backend = backend if backend is not None else self._dataset_info.env_array_backend
         if to == 'numpy':
@@ -748,6 +716,73 @@ class Dataset(MushroomObject):
             _base_shape='primitive',
             _dataset_info='mushroom'
         )
+
+    @staticmethod
+    def _compute_base_shape(dataset_info, n_steps, n_episodes, core_counts_episodes):
+        if dataset_info.env_backend == 'list':
+            return None
+
+        if n_steps is not None:
+            n_samples = n_steps
+        else:
+            horizon = dataset_info.horizon
+            assert np.isfinite(horizon)
+            n_samples = horizon * n_episodes
+
+        if dataset_info.n_envs == 1:
+            return (n_samples,)
+        elif n_episodes:
+            horizon = dataset_info.horizon
+            x = math.ceil(n_episodes / dataset_info.n_envs)
+            return (x * horizon, min(n_episodes, dataset_info.n_envs))
+        elif core_counts_episodes:
+            return (math.ceil(n_samples / dataset_info.n_envs) + 1 + dataset_info.horizon, dataset_info.n_envs)
+        else:
+            return (math.ceil(n_samples / dataset_info.n_envs) + 1, dataset_info.n_envs)
+
+    @staticmethod
+    def _env_specs(dataset_info, base_shape):
+        backend = dataset_info.env_array_backend
+        base = base_shape if base_shape is not None else ()
+        state_shape = base + dataset_info.state_shape
+        action_shape = base + dataset_info.action_shape
+
+        shapes = [state_shape, action_shape, base, state_shape, base, base]
+        dtypes = [backend.to_backend_dtype(dataset_info.state_dtype),
+                  backend.to_backend_dtype(dataset_info.action_dtype),
+                  backend.to_backend_dtype(float),
+                  backend.to_backend_dtype(dataset_info.state_dtype),
+                  backend.to_backend_dtype(bool),
+                  backend.to_backend_dtype(bool)]
+        return shapes, dtypes
+
+    @staticmethod
+    def _policy_specs(dataset_info, base_shape):
+        backend = dataset_info.agent_array_backend
+        base = base_shape if base_shape is not None else ()
+        policy_shape = base + dataset_info.policy_state_shape
+
+        shapes = [policy_shape, policy_shape]
+        dtypes = [backend.to_backend_dtype(float), backend.to_backend_dtype(float)]
+        return shapes, dtypes
+
+    @staticmethod
+    def _make_container(backend_name, shapes, dtypes, device=None, n_envs=None):
+        if backend_name == 'numpy':
+            return NumpyDataset(shapes, dtypes, n_envs=n_envs)
+        elif backend_name == 'torch':
+            return TorchDataset(shapes, dtypes, device=device, n_envs=n_envs)
+        else:
+            return ListDataset(len(shapes), n_envs=n_envs)
+
+    @staticmethod
+    def _container_class(backend_name):
+        if backend_name == 'numpy':
+            return NumpyDataset
+        elif backend_name == 'torch':
+            return TorchDataset
+        else:
+            return ListDataset
 
     @staticmethod
     def _append_info(info, step_info):
@@ -792,8 +827,22 @@ class VectorizedDataset(Dataset):
 
         self._initialize_theta_list(self._dataset_info.n_envs)
 
+    def __add__(self, other):
+        result = super().__add__(other)
+        result._mask_data = self._mask_data + other._mask_data
+
+        return result
+
     def append(self, step, info):
         raise RuntimeError("Trying to use append on a vectorized dataset")
+
+    def append_batch(self, other):
+        super().append_batch(other)
+        self._mask_data.append_batch(other._mask_data)
+
+    def reserve(self, capacity):
+        super().reserve(capacity)
+        self._mask_data.reserve(capacity)
 
     def append_vectorized(self, step, info, mask):
         """
@@ -823,76 +872,89 @@ class VectorizedDataset(Dataset):
             if mask[i]:
                 self._theta_list[i].append(theta[i])
 
-    def clear(self, n_steps_per_fit=None):
+    def consume(self, n_steps):
         """
-        Clear the dataset. When ``n_steps_per_fit`` is given and more than that many (masked) steps were
-        collected, the surplus tail is carried forward into the freshly cleared dataset so the next fit starts
-        with it.
+        Split off the first ``n_steps`` steps in collection (row-major) order (or all of them when ``n_steps``
+        is ``None``): return a lightweight vectorized dataset that shares this one's data but whose mask keeps
+        only those consumed steps, and mark those same steps inactive in this dataset's own mask so that only the
+        leftover remains active.
 
         Args:
-            n_steps_per_fit (int, None): number of steps consumed by the fit; the rest is carried forward.
+            n_steps (int, None): number of steps to consume.
 
         Returns:
-            The number of steps carried forward.
+            A vectorized dataset masked to the consumed steps.
+
+        """
+        backend = self._dataset_info.env_array_backend
+        mask = self.mask
+        active = backend.where(mask.reshape(-1))[0]
+        n_steps = len(active) if n_steps is None else n_steps
+        assert 0 <= n_steps <= len(active)
+
+        consumed_mask = backend.copy(mask)
+        consumed_mask.reshape(-1)[active[n_steps:]] = False
+
+        leftover_mask = backend.copy(mask)
+        leftover_mask.reshape(-1)[active[:n_steps]] = False
+        mask_column = self._mask_data.column()
+        if isinstance(mask_column, list):
+            mask_column[:] = list(leftover_mask)
+        else:
+            mask_column[:] = leftover_mask
+
+        view = self.create_raw_instance(dataset=self)
+        view._info = self._info
+        view._episode_info = self._episode_info
+        view._theta_list = self._theta_list
+        view._data = self._data
+        view._agent_data = self._agent_data
+        view._mask_data = self._mask_data.from_array([consumed_mask])
+
+        return view
+
+    def clear(self, keep_leftovers=False):
+        """
+        Clear the dataset. By default, the whole dataset is wiped. With ``keep_leftovers=True`` the steps still
+        active after a :meth:`consume` (the leftover the fit did not consume) are compacted to the front and
+        kept, so the next fit starts with them.
+
+        Args:
+            keep_leftovers (bool, False): whether to keep the leftover steps instead of wiping everything.
+
+        Returns:
+            The number of steps kept.
 
         """
         n_envs = len(self._theta_list)
-        n_carry_forward_steps = 0
 
-        residual_data = None
-        residual_agent_data = None
-        residual_mask_data = None
-        if n_steps_per_fit is not None:
-            n_steps_dataset = self.mask.sum().item()
+        if keep_leftovers:
+            backend = self._dataset_info.env_array_backend
+            row_active = backend.sum(self.mask, dim=1)
+            n_carry = int(row_active.sum().item())
 
-            if n_steps_dataset > n_steps_per_fit:
-                n_extra_steps = n_steps_dataset - n_steps_per_fit
-                n_parallel_steps = int(np.ceil(n_extra_steps / self._dataset_info.n_envs))
-                view_size = slice(-n_parallel_steps, None)
-
-                residual_data = self._data.get_view(view_size, copy=True)
+            if n_carry > 0:
+                split_row = len(row_active) - int((row_active > 0).sum().item())
+                self._data.compact(split_row)
                 if self._agent_data is not None:
-                    residual_agent_data = self._agent_data.get_view(view_size, copy=True)
-                residual_mask_data = self._mask_data.get_view(view_size, copy=True)
+                    self._agent_data.compact(split_row)
+                self._mask_data.compact(split_row)
+                self._info = self._info.get_view(slice(split_row, None), copy=True)
+                self._episode_info = self._episode_info.get_view(slice(split_row, None), copy=True)
+                self._initialize_theta_list(n_envs)
 
-                mask = self._dataset_info.env_array_backend.as_array(residual_mask_data.column())
-                original_shape = mask.shape
-                mask = mask.flatten()
-                true_indices = self._dataset_info.env_array_backend.where(mask)[0]
-                mask[true_indices[n_extra_steps:]] = False
-
-                mask_column = residual_mask_data.column()
-                new_mask = mask.reshape(original_shape)
-                if isinstance(mask_column, list):
-                    mask_column[:] = list(new_mask)
-                else:
-                    mask_column[:] = new_mask
-
-                residual_info = self._info.get_view(view_size, copy=True)
-                residual_episode_info = self._episode_info.get_view(view_size, copy=True)
-
-                n_carry_forward_steps = mask.sum()
+                return n_carry
 
         super().clear()
         self._mask_data.clear()
         self._initialize_theta_list(n_envs)
 
-        if n_steps_per_fit is not None and residual_data is not None:
-            self._data = residual_data
-            self._agent_data = residual_agent_data
-            self._mask_data = residual_mask_data
-            self._info = residual_info
-            self._episode_info = residual_episode_info
+        return 0
 
-        return n_carry_forward_steps
-
-    def flatten(self, n_steps_per_fit=None):
+    def flatten(self):
         """
         Turn the padded per-environment data into a flat :class:`Dataset`, dropping the inactive entries via the
         mask and concatenating the environments end to end.
-
-        Args:
-            n_steps_per_fit (int, None): if given, keep only the first this many flattened steps.
 
         Returns:
             A flat :class:`Dataset`, or ``None`` if the dataset is empty.
@@ -911,7 +973,7 @@ class VectorizedDataset(Dataset):
         next_states = env_backend.pack_padded_sequence(self.next_state, mask)
         absorbings = env_backend.pack_padded_sequence(self.absorbing, mask)
 
-        last_padded = env_backend.as_array(self.last)
+        last_padded = env_backend.copy(env_backend.as_array(self.last))
         last_padded[-1, :] = True
         lasts = env_backend.pack_padded_sequence(last_padded, mask)
 
@@ -922,18 +984,6 @@ class VectorizedDataset(Dataset):
             policy_mask = agent_backend.convert_to_backend(env_backend, mask)
             policy_state = agent_backend.pack_padded_sequence(self.policy_state, policy_mask)
             policy_next_state = agent_backend.pack_padded_sequence(self.policy_next_state, policy_mask)
-
-        if n_steps_per_fit is not None:
-            states = states[:n_steps_per_fit]
-            actions = actions[:n_steps_per_fit]
-            rewards = rewards[:n_steps_per_fit]
-            next_states = next_states[:n_steps_per_fit]
-            absorbings = absorbings[:n_steps_per_fit]
-            lasts = lasts[:n_steps_per_fit]
-
-            if self.is_stateful:
-                policy_state = policy_state[:n_steps_per_fit]
-                policy_next_state = policy_next_state[:n_steps_per_fit]
 
         flat_theta_list = self._flatten_theta_list()
 
@@ -952,6 +1002,24 @@ class VectorizedDataset(Dataset):
         dataset._mask_data = self._mask_data.get_view(index, copy)
         return dataset
 
+    @property
+    def capacity(self):
+        capacity = super().capacity
+        if capacity is None:
+            return None
+        return min(capacity, self._mask_data.capacity)
+
+    @property
+    def mask(self):
+        """
+        Boolean mask marking, for every stored step, which environments were active.
+
+        """
+        return self._dataset_info.env_array_backend.as_array(self._mask_data.column())
+
+    def _merge_theta_list(self, other):
+        return [theta + other_theta for theta, other_theta in zip(self._theta_list, other._theta_list)]
+
     def _flatten_theta_list(self):
         flat_theta_list = list()
 
@@ -964,14 +1032,6 @@ class VectorizedDataset(Dataset):
         self._theta_list = list()
         for i in range(n_envs):
             self._theta_list.append(list())
-
-    @property
-    def mask(self):
-        """
-        Boolean mask marking, for every stored step, which environments were active.
-
-        """
-        return self._dataset_info.env_array_backend.as_array(self._mask_data.column())
 
     def _add_all_save_attr(self):
         super()._add_all_save_attr()

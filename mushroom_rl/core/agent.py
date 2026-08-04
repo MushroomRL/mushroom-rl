@@ -105,7 +105,7 @@ class Agent(MushroomObject):
             The action to be executed.
 
         """
-        return self._draw(state, self.policy.draw_action)
+        return self._draw_action_impl(state, self.policy.draw_action)
 
     def draw_action_greedy(self, state):
         """
@@ -119,7 +119,7 @@ class Agent(MushroomObject):
             The greedy action to be executed.
 
         """
-        return self._draw(state, self.policy.draw_action_greedy)
+        return self._draw_action_impl(state, self.policy.draw_action_greedy)
 
     @property
     def policy_state(self):
@@ -226,7 +226,7 @@ class Agent(MushroomObject):
         """
         return self._history_manager
 
-    def _draw(self, state, policy_draw):
+    def _draw_action_impl(self, state, policy_draw):
         """
         Shared body of :meth:`draw_action` and :meth:`draw_action_greedy`: convert and preprocess the state,
         assemble the policy input through the history manager, query the policy via ``policy_draw`` (the stochastic or

@@ -17,7 +17,11 @@ class MiniGridBase(Gymnasium):
         self.env.unwrapped.max_steps = self.info.horizon + 1
 
     def reset(self, state=None):
-        obs, info = self.env.reset(seed=self._fixed_seed)
+        seed = self._seed if self._fixed_seed is None else self._fixed_seed
+        self._seed = None
+
+        obs, info = self.env.reset(seed=seed)
+
         return self._preprocess_frame(obs), info
 
     def step(self, action):

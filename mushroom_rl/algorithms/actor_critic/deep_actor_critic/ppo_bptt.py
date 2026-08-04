@@ -4,7 +4,7 @@ from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OnPolicyDeepAC
 from mushroom_rl.approximators.parametric import RecurrentTorchApproximator
 from mushroom_rl.utils.torch_utils import TorchUtils
 from mushroom_rl.utils.minibatches import minibatch_generator
-from mushroom_rl.rl_utils.parameters import to_parameter
+from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class PPO_BPTT(OnPolicyDeepAC):
@@ -45,21 +45,19 @@ class PPO_BPTT(OnPolicyDeepAC):
         """
         self._critic_fit_params = dict(n_epochs=10) if critic_fit_params is None else critic_fit_params
 
-        self._n_epochs_policy = to_parameter(n_epochs_policy)
-        self._batch_size = to_parameter(batch_size)
-        self._eps_ppo = to_parameter(eps_ppo)
+        self._n_epochs_policy = Parameter.make(n_epochs_policy, backend='torch')
+        self._batch_size = Parameter.make(batch_size, backend='torch')
+        self._eps_ppo = Parameter.make(eps_ppo, backend='torch')
 
         self._optimizer = actor_optimizer['class'](policy.parameters(), **actor_optimizer['params'])
 
-        self._lambda = to_parameter(lam)
-        self._ent_coeff = to_parameter(ent_coeff)
+        self._lambda = Parameter.make(lam, backend='torch')
+        self._ent_coeff = Parameter.make(ent_coeff, backend='torch')
 
         self._V = RecurrentTorchApproximator(**critic_params)
 
         self._truncation_length = truncation_length
         self._dim_env_state = dim_env_state
-
-        self._iter = 1
 
         super().__init__(mdp_info, policy, backend='torch', history_length=history_length,
                          action_history_length=action_history_length)
@@ -73,13 +71,14 @@ class PPO_BPTT(OnPolicyDeepAC):
             _optimizer='torch',
             _lambda='mushroom',
             _V='mushroom',
-            _iter='primitive',
             _dim_env_state='primitive',
             _truncation_length='primitive'
         )
         self._add_logger_attr('_V', group='critic')
 
     def fit(self, dataset):
+        self._log_iteration_start()
+
         state, action, reward, next_state, absorbing, last, extra = self._history_manager.parse_history(dataset)
         state, next_state, state_old = self._preprocess_state(state, next_state)
         prev_action = extra.get('action_history')
@@ -105,9 +104,7 @@ class PPO_BPTT(OnPolicyDeepAC):
 
         self._update_policy(state_seq, policy_state_seq, action, lengths, adv, old_log_p, prev_action_seq)
 
-        # Print fit information
-        self._log_info(dataset, state_seq, policy_state_seq, lengths, old_pol_dist, prev_action_seq)
-        self._iter += 1
+        self._log_info(dataset, state_seq, old_pol_dist, policy_state_seq, lengths, action_history=prev_action_seq)
 
     @staticmethod
     def compute_gae(V, s, pi_h, ss, pi_hn, lengths, r, absorbing, last, gamma, lam,
@@ -156,16 +153,19 @@ class PPO_BPTT(OnPolicyDeepAC):
 
     def _transform_to_sequences(self, states_old, states, policy_states, actions, next_states, policy_next_states,
                                 prev_actions, last, absorbing):
+        device = TorchUtils.get_device()
+
         with torch.no_grad():
             # array preallocation
-            s_old = torch.empty(len(states), self._truncation_length, *states_old.shape[1:])
-            s = torch.empty(len(states), self._truncation_length, *states.shape[1:])
-            ps = torch.empty(len(states), policy_states.shape[-1])
-            a = torch.empty(len(actions), self._truncation_length, *actions.shape[1:])
-            ss = torch.empty(len(states), self._truncation_length, *next_states.shape[1:])
-            pss = torch.empty(len(states), policy_states.shape[-1])
-            pa = torch.empty(len(states), self._truncation_length, *prev_actions.shape[1:]) \
+            s_old = torch.empty(len(states), self._truncation_length, *states_old.shape[1:], device=device)
+            s = torch.empty(len(states), self._truncation_length, *states.shape[1:], device=device)
+            ps = torch.empty(len(states), *policy_states.shape[1:], device=device)
+            a = torch.empty(len(actions), self._truncation_length, *actions.shape[1:], device=device)
+            ss = torch.empty(len(states), self._truncation_length, *next_states.shape[1:], device=device)
+            pss = torch.empty(len(states), *policy_states.shape[1:], device=device)
+            pa = torch.empty(len(states), self._truncation_length, *prev_actions.shape[1:], device=device) \
                 if self._history_manager.uses_action else None
+            # the sequence lengths stay on the CPU, as pack_padded_sequence requires
             lengths = torch.empty(len(states), dtype=torch.long)
 
             for i in range(len(states)):
@@ -190,16 +190,16 @@ class PPO_BPTT(OnPolicyDeepAC):
                 length_seq = len(states_seq)
                 padded_states_old = torch.concatenate([states_old_seq,
                                                        torch.zeros((self._truncation_length - states_old_seq.shape[0],
-                                                                    *states_old_seq.shape[1:]))])
+                                                                    *states_old_seq.shape[1:]), device=device)])
                 padded_states = torch.concatenate([states_seq,
                                                    torch.zeros((self._truncation_length - states_seq.shape[0],
-                                                                *states_seq.shape[1:]))])
+                                                                *states_seq.shape[1:]), device=device)])
                 padded_next_states = torch.concatenate([next_states_seq,
                                                         torch.zeros((self._truncation_length - next_states_seq.shape[0],
-                                                                     *next_states_seq.shape[1:]))])
+                                                                     *next_states_seq.shape[1:]), device=device)])
                 padded_action_seq = torch.concatenate([actions_seq,
                                                        torch.zeros((self._truncation_length - actions_seq.shape[0],
-                                                                    *actions_seq.shape[1:]))])
+                                                                    *actions_seq.shape[1:]), device=device)])
 
                 s_old[i] = padded_states_old
                 s[i] = padded_states
@@ -212,7 +212,7 @@ class PPO_BPTT(OnPolicyDeepAC):
                     prev_action_seq = prev_actions[begin_seq:end_seq]
                     pa[i] = torch.concatenate([prev_action_seq,
                                                torch.zeros((self._truncation_length - prev_action_seq.shape[0],
-                                                            *prev_action_seq.shape[1:]))])
+                                                            *prev_action_seq.shape[1:]), device=device)])
 
                 lengths[i] = length_seq
 
@@ -231,34 +231,13 @@ class PPO_BPTT(OnPolicyDeepAC):
                     obs_i, pi_h_i, act_i, length_i, adv_i, old_log_p_i = batch
                     prev_action_i = None
                 self._optimizer.zero_grad()
-                prob_ratio = torch.exp(
-                    self.policy.log_prob(obs_i, act_i, pi_h_i, length_i, action_history=prev_action_i) - old_log_p_i
-                )
+                log_p = self.policy.log_prob(obs_i, act_i, pi_h_i, length_i, action_history=prev_action_i)
+                prob_ratio = torch.exp(log_p - old_log_p_i)
                 clipped_ratio = torch.clamp(prob_ratio, 1 - self._eps_ppo(), 1 + self._eps_ppo.get_value())
                 loss = -torch.mean(torch.min(prob_ratio * adv_i, clipped_ratio * adv_i))
                 loss -= self._ent_coeff()*self.policy.entropy(obs_i)
                 loss.backward()
                 self._optimizer.step()
-
-    def _log_info(self, dataset, x, pi_h, lengths, old_pol_dist, prev_action):
-        if self._logger:
-            with torch.no_grad():
-                logging_verr = self._V.loss_fit
-
-                logging_ent = self.policy.entropy(x)
-                new_pol_dist = self.policy.distribution(x, pi_h, lengths, action_history=prev_action)
-                logging_kl = torch.mean(torch.distributions.kl.kl_divergence(new_pol_dist, old_pol_dist))
-                avg_rwd = dataset.undiscounted_return.mean().item()
-                msg = "Iteration {}:\n\t\t\t\trewards {} vf_loss {}\n\t\t\t\tentropy {}  kl {}".format(
-                    self._iter, avg_rwd, logging_verr, logging_ent, logging_kl)
-
-                self._logger.info(msg)
-                self._logger.weak_line()
-
-                self._logger.log_training('actor',
-                                          entropy=logging_ent.item(),
-                                          kl=logging_kl.item())
-                self._logger.advance_step()
 
     def _post_load(self):
         if self._optimizer is not None:

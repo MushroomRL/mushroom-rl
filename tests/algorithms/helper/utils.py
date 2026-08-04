@@ -15,7 +15,8 @@ from mushroom_rl.approximators.table import Table
 from mushroom_rl.approximators.approximator import Approximator, Ensemble
 from mushroom_rl.approximators.q_approximator import QApproximator
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory, PrioritizedReplayMemory
-from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter
+from mushroom_rl.rl_utils.parameters import Parameter, VariableParameter, LinearParameter, DecayParameter, \
+    VarianceParameter, WindowedVarianceParameter
 from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer, SGDOptimizer, AdamOptimizer
 
 from mushroom_rl.features._impl import TilesFeatures, FunctionalFeatures, BasisFeatures
@@ -69,10 +70,18 @@ class TestUtils:
             assert cls.eq_ornstein_uhlenbeck_policy(this, that)
         elif cls._check_type(this, that, TilesFeatures):
             assert cls.eq_tiles_features(this, that)
-        elif cls._check_type(this, that, Parameter):
-            assert cls.eq_parameter(this, that)
         elif cls._check_type(this, that, LinearParameter):
             assert cls.eq_linear_parameter(this, that)
+        elif cls._check_type(this, that, DecayParameter):
+            assert cls.eq_decay_parameter(this, that)
+        elif cls._check_type(this, that, WindowedVarianceParameter):
+            assert cls.eq_windowed_variance_parameter(this, that)
+        elif cls._check_type(this, that, VarianceParameter):
+            assert cls.eq_variance_parameter(this, that)
+        elif cls._check_type(this, that, VariableParameter):
+            assert cls.eq_variable_parameter(this, that)
+        elif cls._check_type(this, that, Parameter):
+            assert cls.eq_parameter(this, that)
         elif cls._check_type(this, that, AdaptiveOptimizer):
             assert cls.eq_adaptive_optimizer(this, that)
         elif cls._check_type(this, that, SGDOptimizer):
@@ -313,6 +322,18 @@ class TestUtils:
         """
 
         res = this._initial_value == that._initial_value
+        res &= this._shape == that._shape
+        res &= this._log_full == that._log_full
+        res &= this._backend == that._backend
+        return res
+
+    @classmethod
+    def eq_variable_parameter(cls, this, that):
+        """
+        Compare two VariableParameter objects for equality
+        """
+
+        res = cls.eq_parameter(this, that)
         res &= this._min_value == that._min_value
         res &= this._max_value == that._max_value
         res &= cls._eq_numpy(this._n_updates.table, that._n_updates.table)
@@ -324,8 +345,49 @@ class TestUtils:
         Compare two LinearParameter objects for equality
         """
 
-        res = cls.eq_parameter(this, that)
+        res = cls.eq_variable_parameter(this, that)
         res &= this._coeff == that._coeff
+        return res
+
+    @classmethod
+    def eq_decay_parameter(cls, this, that):
+        """
+        Compare two DecayParameter objects for equality
+        """
+
+        res = cls.eq_variable_parameter(this, that)
+        res &= this._exp == that._exp
+        return res
+
+    @classmethod
+    def eq_variance_parameter(cls, this, that):
+        """
+        Compare two VarianceParameter objects for equality
+        """
+
+        res = cls.eq_variable_parameter(this, that)
+        res &= this._exponential == that._exponential
+        res &= this._tol == that._tol
+        res &= cls._eq_numpy(this._weights_var.table, that._weights_var.table)
+        res &= cls._eq_numpy(this._x.table, that._x.table)
+        res &= cls._eq_numpy(this._x2.table, that._x2.table)
+        res &= cls._eq_numpy(this._parameter_value.table, that._parameter_value.table)
+        return res
+
+    @classmethod
+    def eq_windowed_variance_parameter(cls, this, that):
+        """
+        Compare two WindowedVarianceParameter objects for equality
+        """
+
+        res = cls.eq_variable_parameter(this, that)
+        res &= this._exponential == that._exponential
+        res &= this._tol == that._tol
+        res &= this._window == that._window
+        res &= cls._eq_numpy(this._weights_var.table, that._weights_var.table)
+        res &= cls._eq_numpy(this._samples.table, that._samples.table)
+        res &= cls._eq_numpy(this._index.table, that._index.table)
+        res &= cls._eq_numpy(this._parameter_value.table, that._parameter_value.table)
         return res
 
     @classmethod

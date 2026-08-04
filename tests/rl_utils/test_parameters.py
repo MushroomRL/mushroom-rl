@@ -1,7 +1,9 @@
 import numpy as np
+import torch
 
+from mushroom_rl.core.array_backend import NumpyBackend, TorchBackend
 from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter, DecayParameter
-from mushroom_rl.rl_utils.variance_parameters import VarianceIncreasingParameter
+from mushroom_rl.rl_utils.parameters import VarianceIncreasingParameter
 from mushroom_rl.policy import EpsGreedy, Mellowmax
 
 
@@ -39,7 +41,7 @@ def test_scalar_parameter_default_label():
 
 def test_tabular_parameter_not_logged_by_default():
     logger = FakeLogger()
-    p = Parameter(0.5, size=(3, 3))
+    p = Parameter(0.5, shape=(3, 3))
     p.set_logger(logger, 'lr')
 
     p(1, 2)
@@ -49,7 +51,7 @@ def test_tabular_parameter_not_logged_by_default():
 
 def test_tabular_parameter_logged_when_forced():
     logger = FakeLogger()
-    p = Parameter(0.5, size=(3, 3), log_table=True)
+    p = Parameter(0.5, shape=(3, 3), log_full=True)
     p.set_logger(logger, 'lr')
 
     p(1, 2)
@@ -59,7 +61,7 @@ def test_tabular_parameter_logged_when_forced():
 
 def test_degenerate_table_parameter_is_logged():
     logger = FakeLogger()
-    p = Parameter(0.5, size=(1, 1))
+    p = Parameter(0.5, shape=(1, 1))
     p.set_logger(logger, 'lr')
 
     p()
@@ -110,6 +112,19 @@ def test_variance_parameter_logs_on_update():
     assert np.isclose(logger.calls[0]['lr/value'], 0.5)
 
 
+def test_variance_parameter_with_shape_tracks_indices_independently():
+    p = VarianceIncreasingParameter(value=1., tol=1., shape=(2,))
+
+    p.update(0, target=1.0)
+    p.update(0, target=2.0)
+    p.update(0, target=1.0)
+
+    p.update(1, target=5.0)
+
+    assert np.isclose(p.get_value(0), 0.3333333333333333)
+    assert np.isclose(p.get_value(1), 1.0)
+
+
 def test_eps_greedy_forwards_logger():
     logger = FakeLogger()
     pi = EpsGreedy(Parameter(0.1))
@@ -130,12 +145,51 @@ def test_mellowmax_set_logger_does_not_log():
 
 
 def test_parameter_serialization_roundtrip(tmpdir):
-    p = Parameter(0.5, size=(2, 2), log_table=True)
+    p = Parameter(0.5, shape=(2, 2), log_full=True)
     path = str(tmpdir / 'param.msh')
     p.save(path)
 
     p2 = Parameter.load(path)
 
-    assert p2._log_table is True
+    assert p2._log_full is True
     assert p2._logger is None
     p2(0, 0)
+
+
+def test_scalar_parameter_ignores_torch_index():
+    p = LinearParameter(1.0, threshold_value=0.0, n=10, backend='torch')
+
+    assert np.isclose(p(torch.tensor([3])), 0.9)
+
+
+def test_tabular_parameter_converts_torch_index():
+    p = LinearParameter(1.0, threshold_value=0.0, n=10, shape=(3,), backend='torch')
+
+    p.update(torch.tensor([1]))
+    p.update(torch.tensor([1]))
+
+    assert np.isclose(float(np.ravel(p.get_value(torch.tensor([1])))[0]), 0.8)
+    assert np.isclose(float(np.ravel(p.get_value(torch.tensor([0])))[0]), 1.0)
+
+
+def test_make_and_set_backend():
+    p = Parameter.make(0.5, backend='torch')
+    assert p._backend is TorchBackend
+
+    q = Parameter(0.5)
+    assert Parameter.make(q, backend='torch')._backend is TorchBackend
+
+    q.set_backend('numpy')
+    assert q._backend is NumpyBackend
+
+
+def test_torch_backend_parameter_serialization_roundtrip(tmpdir):
+    p = LinearParameter(1.0, threshold_value=0.0, n=10, shape=(2,), backend='torch')
+    p.update(torch.tensor([0]))
+    path = str(tmpdir / 'param.msh')
+    p.save(path)
+
+    p2 = Parameter.load(path)
+
+    assert p2._backend is TorchBackend
+    assert np.isclose(float(np.ravel(p2.get_value(torch.tensor([0])))[0]), 0.9)

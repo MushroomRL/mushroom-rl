@@ -8,7 +8,8 @@ class ObservationType(Enum):
     """
     An enum indicating the type of data that should be added to the observation
     of the environment, can be Joint-/Body-/Site- positions, rotations, and velocities.
-    The Observation have the following returns:
+    The Observation have the following returns::
+
         BODY_POS: (3,) x, y, z position of the body
         BODY_ROT: (4,) quaternion of the body
         BODY_VEL: (6,) first angular velocity around x, y, z. Then linear velocity for x, y, z, in local frame

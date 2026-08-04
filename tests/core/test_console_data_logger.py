@@ -33,8 +33,22 @@ def test_console_logger_lines(tmp_path):
 
     content = _strip_timestamps((tmp_path / 'test_lines.log').read_text())
     assert content == (
-        '[INFO] ###################################################################################################\n'
-        '[INFO] ---------------------------------------------------------------------------------------------------\n'
+        '[INFO] ################################################################################\n'
+        '[INFO] --------------------------------------------------------------------------------\n'
+    )
+
+
+def test_console_logger_lines_debug_and_length(tmp_path):
+    logger = ConsoleLogger('test_lines_debug', log_dir=tmp_path)
+    logger.strong_line(debug=True, length=10)
+    logger.weak_line(debug=True)
+    logger.weak_line(length=5)
+
+    content = _strip_timestamps((tmp_path / 'test_lines_debug.log').read_text())
+    assert content == (
+        '[DEBUG] ##########\n'
+        '[DEBUG] --------------------------------------------------------------------------------\n'
+        '[INFO] -----\n'
     )
 
 

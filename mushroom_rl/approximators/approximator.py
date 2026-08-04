@@ -117,8 +117,9 @@ class Ensemble(Approximator):
         Args:
             model (class): the model class to use for each element of the ensemble;
             n_models (int): number of models in the ensemble;
-            prediction (str, 'mean'): the type of prediction to make across models.
-                One of ``'mean'``, ``'sum'``, ``'min'``, ``'max'``;
+            prediction (str, 'mean'): the type of prediction to make across models. One of
+                ``'mean'``, ``'sum'``, ``'min'``, ``'max'``, or ``'all'`` to return all
+                predictions;
             backend (str, 'numpy'): array backend to use;
             **params: parameters dictionary to create each model.
 
@@ -132,10 +133,18 @@ class Ensemble(Approximator):
         for _ in range(n_models):
             self._models.append(model(**params))
 
+        n_outputs = len(self._output_shape) if isinstance(self._output_shape, list) else 1
+        self._parse_output = self._parse_single_output if n_outputs == 1 else self._parse_multi_output
+
         self._add_save_attr(
             _models=self._get_serialization_method(model),
-            _prediction='primitive'
+            _prediction='primitive',
+            _parse_output='none'
         )
+
+    def _post_load(self):
+        n_outputs = len(self._output_shape) if isinstance(self._output_shape, list) else 1
+        self._parse_output = self._parse_single_output if n_outputs == 1 else self._parse_multi_output
 
     def __len__(self):
         return len(self._models)
@@ -168,53 +177,36 @@ class Ensemble(Approximator):
             idx (int, None): index of the model to use for prediction. If ``None``, all models
                 are used and aggregated according to ``prediction``;
             prediction (str, None): aggregation mode, overrides the constructor default.
-                One of ``'mean'``, ``'sum'``, ``'min'``, ``'max'``, or ``None`` to return
-                all predictions stacked along axis 0;
-            compute_variance (bool, False): if ``True``, also return the variance across models;
+                One of ``'mean'``, ``'sum'``, ``'min'``, ``'max'``, or ``'all'`` to return all
+                predictions stacked along axis 0. ``None`` uses the constructor default;
+            compute_variance (bool, False): if ``True``, also return the variance across models.
             **predict_params: other parameters passed to each model's predict method.
 
         Returns:
-            The stacked predictions along axis 0 if ``prediction`` is ``None``, the aggregated
-            predictions otherwise, or a list ``[predictions, variance]`` if
-            ``compute_variance`` is ``True``.
+            The stacked predictions along axis 0 if the predictions are not aggregated, the
+            aggregated predictions otherwise, or a list ``[predictions, variance]`` if
+            ``compute_variance`` is ``True``. A model declaring several outputs returns a tuple
+            carrying one such result per output.
 
         """
+        assert not compute_variance or prediction != 'all'
+
         if idx is None:
             idx = list(range(len(self)))
 
         if isinstance(idx, int):
             try:
-                results = self[idx].predict(*z, **predict_params)
+                return self[idx].predict(*z, **predict_params)
             except NotFittedError:
                 raise NotFittedError
-        else:
-            predictions = list()
-            for i in idx:
-                try:
-                    predictions.append(self[i].predict(*z, **predict_params))
-                except NotFittedError:
-                    raise NotFittedError
 
-            prediction = prediction if prediction is not None else self._prediction
-            predictions = self._backend.stack(predictions, 0)
+        output_list = list()
+        for i in idx:
+            output_list.append(self[i].predict(*z, **predict_params))
 
-            if prediction is None:
-                return predictions
-            elif prediction == 'mean':
-                results = predictions.mean(0)
-            elif prediction == 'sum':
-                results = predictions.sum(0)
-            elif prediction == 'min':
-                results = self._backend.min(predictions, 0)
-            elif prediction == 'max':
-                results = self._backend.max(predictions, 0)
-            else:
-                raise ValueError
+        prediction = prediction if prediction is not None else self._prediction
 
-            if compute_variance:
-                results = [results, predictions.var(0)]
-
-        return results
+        return self._parse_output(output_list, prediction, compute_variance)
 
     def set_logger(self, logger, prefix=None, label=None):
         """
@@ -251,3 +243,26 @@ class Ensemble(Approximator):
                 m.reset()
         except AttributeError:
             raise NotImplementedError('Attempt to reset weights of a non-parametric regressor.')
+
+    def _parse_single_output(self, output_list, prediction, compute_variance):
+        return self._aggregate(self._backend.stack(output_list, 0), prediction, compute_variance)
+
+    def _parse_multi_output(self, output_list, prediction, compute_variance):
+        return tuple(self._aggregate(self._backend.stack(p, 0), prediction, compute_variance)
+                     for p in zip(*output_list))
+
+    def _aggregate(self, predictions, prediction, compute_variance):
+        if prediction == 'all':
+            return predictions
+        elif prediction == 'mean':
+            results = predictions.mean(0)
+        elif prediction == 'sum':
+            results = predictions.sum(0)
+        elif prediction == 'min':
+            results = self._backend.min(predictions, 0)
+        elif prediction == 'max':
+            results = self._backend.max(predictions, 0)
+        else:
+            raise ValueError
+
+        return [results, predictions.var(0)] if compute_variance else results

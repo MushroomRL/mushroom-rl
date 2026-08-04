@@ -27,19 +27,17 @@ class Table(Approximator):
 
     def __getitem__(self, args):
         if self.table.size == 1:
-            return self.table[0]
+            return self.table.flat[0]
         else:
-            idx = tuple([
-                a[0] if isinstance(a, np.ndarray) else a for a in args])
+            idx = tuple([a[0] if isinstance(a, np.ndarray) else a for a in args])
 
             return self.table[idx]
 
     def __setitem__(self, args, value):
         if self.table.size == 1:
-            self.table[0] = value
+            self.table.flat[0] = value
         else:
-            idx = tuple([
-                a[0] if isinstance(a, np.ndarray) else a for a in args])
+            idx = tuple([a[0] if isinstance(a, np.ndarray) else a for a in args])
             self.table[idx] = value
 
     def fit(self, x, y):
