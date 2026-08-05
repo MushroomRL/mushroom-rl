@@ -5,6 +5,7 @@ from mushroom_rl.core.spaces import Box
 from mushroom_rl.environments.mujoco_envs.air_hockey.base import AirHockeyBase
 from mushroom_rl.utils.mujoco import forward_kinematics
 
+
 class AirHockeyDouble(AirHockeyBase):
     """
     Base class for two agents air hockey tasks.
@@ -69,11 +70,9 @@ class AirHockeyDouble(AirHockeyBase):
     def _modify_observation(self, obs):
         new_obs = obs.copy()
         self._puck_2d_in_robot_frame(self.obs_helper.get_from_obs(new_obs, "puck_pos"), self.agents[0]["frame"])
-
-        self._puck_2d_in_robot_frame(self.obs_helper.get_from_obs(new_obs, "puck_vel"), self.agents[0]["frame"], type='vel')
-
+        self._puck_2d_in_robot_frame(self.obs_helper.get_from_obs(new_obs, "puck_vel"), self.agents[0]["frame"],
+                                     type='vel')
         self._puck_2d_in_robot_frame(self.obs_helper.get_from_obs(new_obs, "robot_2/puck_pos"), self.agents[1]["frame"])
-
         self._puck_2d_in_robot_frame(self.obs_helper.get_from_obs(new_obs, "robot_2/puck_vel"), self.agents[1]["frame"],
                                      type='vel')
 
@@ -116,7 +115,7 @@ class AirHockeyDouble(AirHockeyBase):
         return np.append(obs, [self.robot_1_hit, self.robot_2_hit, self.has_bounce])
 
     def _create_info_dictionary(self, obs, action):
-        constraints = {"agent-1": {}, "agent-2":{}}
+        constraints = {"agent-1": {}, "agent-2": {}}
 
         for i, key in enumerate(constraints.keys()):
 
@@ -140,13 +139,17 @@ class AirHockeyDouble(AirHockeyBase):
 
             # joint_pos_constraint: stay within the robots joint position limits
             constraints[key]["joint_pos_constraints"] = np.zeros(6)
-            constraints[key]["joint_pos_constraints"][:3] = q_vel - self.obs_helper.get_joint_pos_limits()[1][i * 3: (i+1) * 3]
-            constraints[key]["joint_pos_constraints"][3:] = self.obs_helper.get_joint_pos_limits()[0][i * 3: (i+1) * 3] - q_vel
+            constraints[key]["joint_pos_constraints"][:3] = \
+                q_vel - self.obs_helper.get_joint_pos_limits()[1][i * 3: (i+1) * 3]
+            constraints[key]["joint_pos_constraints"][3:] = \
+                self.obs_helper.get_joint_pos_limits()[0][i * 3: (i+1) * 3] - q_vel
 
             # joint_vel_constraint: stay within the robots joint velocity limits
             constraints[key]["joint_vel_constraints"] = np.zeros(6)
-            constraints[key]["joint_vel_constraints"][:3] = q_vel - self.obs_helper.get_joint_vel_limits()[1][i * 3: (i+1) * 3]
-            constraints[key]["joint_vel_constraints"][3:] = self.obs_helper.get_joint_vel_limits()[0][i * 3: (i+1) * 3] - q_vel
+            constraints[key]["joint_vel_constraints"][:3] = \
+                q_vel - self.obs_helper.get_joint_vel_limits()[1][i * 3: (i+1) * 3]
+            constraints[key]["joint_vel_constraints"][3:] = \
+                self.obs_helper.get_joint_vel_limits()[0][i * 3: (i+1) * 3] - q_vel
 
         return constraints
 

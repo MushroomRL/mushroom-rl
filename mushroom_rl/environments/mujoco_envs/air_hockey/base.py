@@ -45,8 +45,7 @@ class AirHockeyBase(MuJoCo):
                           ("rim_short_sides", ["rim_home_l", "rim_home_r", "rim_away_l", "rim_away_r"])]
 
         if 1 <= self.n_agents <= 2:
-            scene = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey",
-                                      "single.xml")
+            scene = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey", "single.xml")
 
             action_spec += ["planar_robot_1/joint_1", "planar_robot_1/joint_2", "planar_robot_1/joint_3"]
             observation_spec += [("robot_1/joint_1_pos", "planar_robot_1/joint_1", ObservationType.JOINT_POS),
@@ -82,14 +81,14 @@ class AirHockeyBase(MuJoCo):
         else:
             raise ValueError('n_agents should be 1 or 2')
 
-
         self.env_spec = dict()
         self.env_spec['table'] = {"length": 1.96, "width": 1.02, "height": -0.189, "goal": 0.25}
         self.env_spec['puck'] = {"radius": 0.03165}
         self.env_spec['mallet'] = {"radius": 0.05}
 
         # Load just the robot model for to use for kinematics
-        robot_path = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey", "planar_robot_1.xml")
+        robot_path = os.path.join(os.path.dirname(os.path.abspath(path_robots)),
+                                  "data", "air_hockey", "planar_robot_1.xml")
 
         self.robot_model = mujoco.MjModel.from_xml_path(robot_path)
         # Move robot to zero pos

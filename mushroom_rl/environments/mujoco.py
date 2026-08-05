@@ -3,7 +3,7 @@ import numpy as np
 from dm_control import mjcf
 from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.core.spaces import Box
-from mushroom_rl.utils.mujoco import *
+from mushroom_rl.utils.mujoco import ObservationHelper, ObservationType, MujocoViewer
 
 
 class MuJoCo(Environment):
@@ -521,11 +521,11 @@ class MuJoCo(Environment):
             Mujoco model.
 
         """
-        if type(xml_file) == mjcf.element.RootElement:
+        if isinstance(xml_file, mjcf.element.RootElement):
             # load from xml handle
             model = mujoco.MjModel.from_xml_string(xml=xml_file.to_xml_string(),
                                                    assets=xml_file.get_assets())
-        elif type(xml_file) == str:
+        elif isinstance(xml_file, str):
             # load from path
             model = mujoco.MjModel.from_xml_path(xml_file)
         else:

@@ -104,4 +104,3 @@ class AirHockeyHit(AirHockeySingle):
         r -= self.action_penalty * np.linalg.norm(action)
 
         return r
-

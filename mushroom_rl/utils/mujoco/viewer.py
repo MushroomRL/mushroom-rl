@@ -143,7 +143,7 @@ class MujocoViewer:
         self._hide_menu = hide_menu_on_startup
 
         if geom_group_visualization_on_startup is not None:
-            assert type(geom_group_visualization_on_startup) == list or type(geom_group_visualization_on_startup) == int
+            assert isinstance(geom_group_visualization_on_startup, (list, int))
             if type(geom_group_visualization_on_startup) is not list:
                 geom_group_visualization_on_startup = [geom_group_visualization_on_startup]
             for group_id, _ in enumerate(self._scene_option.geomgroup):
