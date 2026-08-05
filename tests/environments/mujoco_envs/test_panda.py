@@ -2,10 +2,7 @@ import pytest
 
 pytest.importorskip("mushroom_rl.environments.mujoco_envs")
 
-from mushroom_rl.environments.mujoco_envs.reach import Reach
-from mushroom_rl.environments.mujoco_envs.pick import Pick
-from mushroom_rl.environments.mujoco_envs.push import Push
-from mushroom_rl.environments.mujoco_envs.peg_insertion import PegInsertion
+from mushroom_rl.environments.mujoco_envs.manipulation import Reach, Pick, Push, PegInsertion
 import numpy as np
 import random
 import torch

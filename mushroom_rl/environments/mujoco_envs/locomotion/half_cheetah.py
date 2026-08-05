@@ -32,7 +32,7 @@ class HalfCheetah(MuJoCo):
 
         """
         xml_path = (
-            Path(__file__).resolve().parent / "data" / "half_cheetah" / "model.xml"
+            Path(__file__).resolve().parent.parent / "data" / "half_cheetah" / "model.xml"
         ).as_posix()
         actuation_spec = ["bthigh", "bshin", "bfoot", "fthigh", "fshin", "ffoot"]
 

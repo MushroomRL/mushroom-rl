@@ -6,7 +6,7 @@ import mujoco
 from mushroom_rl.environments.mujoco import ObservationType
 from mushroom_rl.core.spaces import Box
 from mushroom_rl.utils.quaternions import quaternion_distance
-from mushroom_rl.environments.mujoco_envs.panda import Panda
+from mushroom_rl.environments.mujoco_envs.manipulation.panda import Panda
 
 
 class PegInsertion(Panda):
@@ -28,7 +28,7 @@ class PegInsertion(Panda):
         **viewer_params,
     ):
         xml_path = (
-            Path(__file__).resolve().parent / "data" / "panda" / "peg_insertion.xml"
+            Path(__file__).resolve().parent.parent / "data" / "panda" / "peg_insertion.xml"
         ).as_posix()
 
         actuation_spec = [

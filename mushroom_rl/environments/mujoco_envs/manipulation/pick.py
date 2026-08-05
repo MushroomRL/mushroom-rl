@@ -6,7 +6,7 @@ import mujoco
 from mushroom_rl.environments.mujoco import ObservationType
 from mushroom_rl.core.spaces import Box
 from mushroom_rl.utils.quaternions import quaternion_distance
-from mushroom_rl.environments.mujoco_envs.panda import Panda
+from mushroom_rl.environments.mujoco_envs.manipulation.panda import Panda
 
 
 class Pick(Panda):
@@ -27,7 +27,7 @@ class Pick(Panda):
         contact_force_range=(-1.0, 1.0),
         **viewer_params,
     ):
-        xml_path = (Path(__file__).resolve().parent / "data" / "panda" / "pick.xml").as_posix()
+        xml_path = (Path(__file__).resolve().parent.parent / "data" / "panda" / "pick.xml").as_posix()
 
         additional_data_spec = [
             ("cube_pose", "cube", ObservationType.JOINT_POS),

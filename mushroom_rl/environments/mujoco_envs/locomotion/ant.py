@@ -36,7 +36,7 @@ class Ant(MuJoCo):
         Constructor.
 
         """
-        xml_path = (Path(__file__).resolve().parent / "data" / "ant" / "model.xml").as_posix()
+        xml_path = (Path(__file__).resolve().parent.parent / "data" / "ant" / "model.xml").as_posix()
 
         # This order is correct as specified in gymnasium
         actuation_spec = [

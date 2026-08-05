@@ -5,7 +5,7 @@ import mujoco
 
 from mushroom_rl.environments.mujoco import ObservationType
 from mushroom_rl.core.spaces import Box
-from mushroom_rl.environments.mujoco_envs.panda import Panda
+from mushroom_rl.environments.mujoco_envs.manipulation.panda import Panda
 
 
 class Push(Panda):
@@ -26,7 +26,7 @@ class Push(Panda):
         **viewer_params,
     ):
 
-        xml_path = (Path(__file__).resolve().parent / "data" / "panda" / "push.xml").as_posix()
+        xml_path = (Path(__file__).resolve().parent.parent / "data" / "panda" / "push.xml").as_posix()
 
         actuation_spec = [
             "actuator1",

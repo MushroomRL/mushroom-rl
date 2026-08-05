@@ -127,8 +127,10 @@ def test_V_lqr_gaussian_policy_gradient_K():
 
     dJ = compute_lqr_V_gaussian_policy_gradient_K(s, lqr, K, Sigma)
 
-    f = lambda theta: compute_lqr_V_gaussian_policy(s, lqr, theta.reshape(K.shape), Sigma)
-    dJ_num = numerical_diff_function(f, K.reshape(-1))
+    def compute_v(theta):
+        return compute_lqr_V_gaussian_policy(s, lqr, theta.reshape(K.shape), Sigma)
+
+    dJ_num = numerical_diff_function(compute_v, K.reshape(-1))
 
     assert np.allclose(dJ, dJ_num)
 
@@ -157,8 +159,10 @@ def test_V_lqr_gaussian_policy_gradient_K_diff_dims():
 
     dJ = compute_lqr_V_gaussian_policy_gradient_K(s, lqr, K, Sigma)
 
-    f = lambda theta: compute_lqr_V_gaussian_policy(s, lqr, theta.reshape(K.shape), Sigma)
-    dJ_num = numerical_diff_function(f, K.reshape(-1))
+    def compute_v(theta):
+        return compute_lqr_V_gaussian_policy(s, lqr, theta.reshape(K.shape), Sigma)
+
+    dJ_num = numerical_diff_function(compute_v, K.reshape(-1))
 
     assert np.allclose(dJ, dJ_num)
 
@@ -179,7 +183,9 @@ def test_Q_lqr_gaussian_policy_gradient_K():
 
     dJ = compute_lqr_Q_gaussian_policy_gradient_K(s, a, lqr, K, Sigma)
 
-    f = lambda theta: compute_lqr_Q_gaussian_policy(s, a, lqr, theta.reshape(K.shape), Sigma)
-    dJ_num = numerical_diff_function(f, K.reshape(-1))
+    def compute_q(theta):
+        return compute_lqr_Q_gaussian_policy(s, a, lqr, theta.reshape(K.shape), Sigma)
+
+    dJ_num = numerical_diff_function(compute_q, K.reshape(-1))
 
     assert np.allclose(dJ, dJ_num)

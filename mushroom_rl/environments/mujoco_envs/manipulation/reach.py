@@ -7,7 +7,7 @@ from mushroom_rl.environments.mujoco import ObservationType
 from mushroom_rl.core.spaces import Box
 from mushroom_rl.utils.quaternions import quaternion_distance
 from mushroom_rl.utils.angles import euler_to_quat
-from mushroom_rl.environments.mujoco_envs.panda import Panda
+from mushroom_rl.environments.mujoco_envs.manipulation.panda import Panda
 
 
 class Reach(Panda):
@@ -26,7 +26,7 @@ class Reach(Panda):
         **viewer_params,
     ):
 
-        xml_path = (Path(__file__).resolve().parent / "data" / "panda" / "reach.xml").as_posix()
+        xml_path = (Path(__file__).resolve().parent.parent / "data" / "panda" / "reach.xml").as_posix()
 
         actuation_spec = [
             "actuator1",
