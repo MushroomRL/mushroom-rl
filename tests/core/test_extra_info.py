@@ -2,6 +2,7 @@ from mushroom_rl.core import ExtraInfo
 import torch
 import numpy as np
 
+
 def test_list_of_dict():
     info = ExtraInfo(6, 'numpy')
 
@@ -76,6 +77,7 @@ def test_list_of_dict():
     assert info["prop3_x"].dim() == 1 and info["prop3_x"].size(0) == 12
     assert info["prop3_y"].dim() == 1 and info["prop3_y"].size(0) == 12
 
+
 def test_dict_of_torch():
     info = ExtraInfo(4, 'torch')
     data1 = {
@@ -132,6 +134,7 @@ def test_dict_of_torch():
     assert info["prop2"].ndim == 2 and info["prop2"].shape[0] == 8 and info["prop2"].shape[1] == 2
     assert info["prop3_x"].ndim == 1 and info["prop3_x"].shape[0] == 8
 
+
 def test_empty_dict_in_list():
     info = ExtraInfo(3, 'torch')
 
@@ -162,6 +165,7 @@ def test_empty_dict_in_list():
     assert torch.isnan(info["prop1"][1]) and torch.isnan(info["prop2"][1])
     assert info["prop1"][2] == 102 and info["prop2"][2] == 202
 
+
 def test_empty_dict():
     info = ExtraInfo(2, 'numpy')
     data1 = {
@@ -188,6 +192,7 @@ def test_empty_dict():
     assert info["prop1"][3] == 101
     assert np.isnan(info["prop1"][4])
     assert info["prop1"][5] == 121
+
 
 def test_changing_properties_dict():
     info = ExtraInfo(2, 'numpy')
@@ -232,6 +237,7 @@ def test_changing_properties_dict():
     assert info["prop2"][4] == 211 and torch.isnan(info["prop3"][4]) and info["prop4"][4] == 411
     assert info["prop2"][5] == 221 and info["prop3"][5] == 321 and torch.isnan(info["prop4"][5])
 
+
 def test_one_environment():
     info = ExtraInfo(1, 'torch')
     data1 = {
@@ -270,6 +276,7 @@ def test_one_environment():
     assert prop2.dim() == 3 and prop2.size(0) == 3 and prop2.size(1) == 3 and prop2.size(2) == 2
     assert info["prop3"].dim() == 1 and info["prop3"].size(0) == 3
 
+
 def test_get_view_slice():
     info = ExtraInfo(3, 'torch')
     data1 = {
@@ -304,6 +311,7 @@ def test_get_view_slice():
     assert info["prop1"][2] == 101
     assert info["prop1"][3] == 111
 
+
 def test_get_view_array():
     info = ExtraInfo(3, 'torch')
     data1 = {
@@ -337,6 +345,7 @@ def test_get_view_array():
     assert info["prop1"][0] == 110
     assert info["prop1"][1] == 101
     assert info["prop1"][2] == 112
+
 
 def test_add():
     info1 = ExtraInfo(10, 'numpy')
@@ -394,6 +403,7 @@ def test_add():
             assert torch.isnan(info["prop2"][2 + i][j])
             assert info["prop3"][2 + i][j] == 300 + i*10 + j
 
+
 def test_clear():
     info = ExtraInfo(10, 'numpy')
     data1 = {
@@ -409,6 +419,7 @@ def test_clear():
     info.parse()
     info.clear()
     assert not info
+
 
 def test_flatten_with_mask():
     info = ExtraInfo(5, 'numpy')
@@ -439,7 +450,7 @@ def test_flatten_with_mask():
     assert np.array_equal(np.array([100, 110, 112, 104]), info["prop1"])
     assert np.array_equal(np.array([200, 210, 212, 204]), info["prop2"])
 
-    #Test if mask is permantly applied
+    # Test if mask is permantly applied
     info.parse()
     assert len(info) == 2
 

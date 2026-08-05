@@ -7,7 +7,7 @@ from helper.utils import TestUtils as tu
 from mushroom_rl.core import Agent
 from mushroom_rl.algorithms.value import BoostedFQI, DoubleFQI, FQI
 from mushroom_rl.core import Core
-from mushroom_rl.environments import *
+from mushroom_rl.environments import CarOnHill
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.rl_utils.parameters import Parameter
 

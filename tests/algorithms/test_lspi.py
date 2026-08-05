@@ -6,7 +6,7 @@ from helper.utils import TestUtils as tu
 from mushroom_rl.core import Agent
 from mushroom_rl.algorithms.value import LSPI
 from mushroom_rl.core import Core
-from mushroom_rl.environments import *
+from mushroom_rl.environments import CartPole
 from mushroom_rl.features import Features
 from mushroom_rl.features.basis import PolynomialBasis
 from mushroom_rl.policy import EpsGreedy

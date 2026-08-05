@@ -7,7 +7,7 @@ from mushroom_rl.approximators.parametric import LinearApproximator, TorchApprox
 from mushroom_rl.approximators.parametric.networks import LinearNetwork
 from mushroom_rl.rl_utils.value_functions import compute_gae, compute_advantage_montecarlo
 
-from mushroom_rl.utils.episodes import split_episodes, unsplit_episodes
+
 
 def test_compute_advantage_montecarlo():
     def advantage_montecarlo(V, s, ss, r, absorbing, last, gamma):
@@ -25,10 +25,11 @@ def test_compute_advantage_montecarlo():
 
             adv = q - v
             return q[:, None], adv[:, None]
-        
+
     torch.manual_seed(42)
     _value_functions_tester(compute_advantage_montecarlo, advantage_montecarlo, 0.99)
-    
+
+
 def test_compute_gae():
     def gae(V, s, ss, r, absorbing, last, gamma, lam):
         with torch.no_grad():
@@ -47,7 +48,8 @@ def test_compute_gae():
 
     torch.manual_seed(42)
     _value_functions_tester(compute_gae, gae, 0.99, 0.95)
-        
+
+
 def _value_functions_tester(test_fun, correct_fun, *args):
     mdp = Segway()
     V = TorchApproximator(input_shape=mdp.info.observation_space.shape, output_shape=(1,),
@@ -55,7 +57,7 @@ def _value_functions_tester(test_fun, correct_fun, *args):
                           optimizer={'class': torch.optim.Adam, 'params': {'lr': 0.001}})
 
     state, action, reward, next_state, absorbing, last = _get_episodes(mdp, 10)
-    
+
     correct_v, correct_adv = correct_fun(V, state, next_state, reward, absorbing, last, *args)
     v, adv = test_fun(V, state, next_state, reward, absorbing, last, *args)
 
@@ -70,13 +72,14 @@ def _value_functions_tester(test_fun, correct_fun, *args):
     assert torch.allclose(v, correct_v)
     assert torch.allclose(adv, correct_adv)
 
+
 def _get_episodes(mdp, n_episodes=100):
     mu = np.array([6.31154476, 3.32346271, 0.49648221])
-    
+
     approximator = LinearApproximator(input_shape=mdp.info.observation_space.shape,
                                       output_shape=mdp.info.action_space.shape,
                                       weights=mu)
-                             
+
     policy = DeterministicPolicy(approximator)
 
     agent = Agent(mdp.info, policy)

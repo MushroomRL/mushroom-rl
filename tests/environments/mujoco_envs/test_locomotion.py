@@ -1,3 +1,7 @@
+import pytest
+
+pytest.importorskip("mushroom_rl.environments.mujoco_envs")
+
 import numpy as np
 
 from mushroom_rl.environments import Ant, HalfCheetah, Hopper, Walker2D

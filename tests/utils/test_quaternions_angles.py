@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 from mushroom_rl.utils.angles import (
     normalize_angle_positive, normalize_angle, shortest_angular_distance,
     quat_to_euler, euler_to_quat, mat_to_euler, euler_to_mat

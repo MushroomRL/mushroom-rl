@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer, SGDOptimizer, AdamOptimizer
 
 

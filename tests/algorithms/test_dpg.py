@@ -6,7 +6,7 @@ from helper.utils import TestUtils as tu
 from mushroom_rl.core import Agent
 from mushroom_rl.algorithms.actor_critic import COPDAC_Q
 from mushroom_rl.core import Core
-from mushroom_rl.environments import *
+from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.features import Features
 from mushroom_rl.features.tiles import Tiles
 from mushroom_rl.approximators.parametric import LinearApproximator

@@ -83,7 +83,7 @@ def test_serialization(tmpdir):
     b = MushroomObject.load(tmpdir / 'test.msh')
 
     assert a == b
-    assert b.not_saved == None
+    assert b.not_saved is None
 
 
 def test_serialization_lists(tmpdir):
@@ -100,8 +100,8 @@ def test_serialization_lists(tmpdir):
     assert isinstance(b.torch_list, list) and isinstance(b.torch_list[0], torch.Tensor)
     assert isinstance(b.mushroom_list[0], DummyLeaf)
     assert isinstance(b.mushroom_nested[0], list) and isinstance(b.mushroom_nested[0][0], DummyLeaf)
-    
-    
+
+
 def test_serialization_cuda_cpu(tmpdir):
     if torch.cuda.is_available():
         TorchUtils.set_default_device('cuda')
@@ -112,9 +112,9 @@ def test_serialization_cuda_cpu(tmpdir):
         TorchUtils.set_default_device('cpu')
 
         assert a.torch_tensor.device.type == 'cuda'
-        
+
         b = MushroomObject.load(tmpdir / 'test.msh')
-        
+
         assert b.torch_tensor.device.type == 'cpu'
 
         assert a == b
@@ -138,10 +138,3 @@ def test_serialization_cpu_cuda(tmpdir):
         assert a == b
 
         TorchUtils.set_default_device('cpu')
-
-
-        
-        
-    
-
-

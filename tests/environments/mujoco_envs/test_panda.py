@@ -1,228 +1,228 @@
-try:
-    from mushroom_rl.environments.mujoco_envs.reach import Reach
-    from mushroom_rl.environments.mujoco_envs.pick import Pick
-    from mushroom_rl.environments.mujoco_envs.push import Push
-    from mushroom_rl.environments.mujoco_envs.peg_insertion import PegInsertion
-    import numpy as np
-    import random
-    import torch
+import pytest
 
-    def test_reach():
-        np.random.seed(42)
-        random.seed(42)
-        torch.manual_seed(42)
+pytest.importorskip("mushroom_rl.environments.mujoco_envs")
 
-        obs = []
-        mdp = Reach()
-        mdp.reset()
-        action = np.zeros(7)
+from mushroom_rl.environments.mujoco_envs.reach import Reach
+from mushroom_rl.environments.mujoco_envs.pick import Pick
+from mushroom_rl.environments.mujoco_envs.push import Push
+from mushroom_rl.environments.mujoco_envs.peg_insertion import PegInsertion
+import numpy as np
+import random
+import torch
 
-        for _ in range(20):
-            observation, _, _, _ = mdp.step(action)
-            assert len(observation) == len(mdp._mdp_info.observation_space.low)
-            assert len(observation) == len(mdp._mdp_info.observation_space.high)
-            obs.append(observation)
+def test_reach():
+    np.random.seed(42)
+    random.seed(42)
+    torch.manual_seed(42)
 
-        obs_test = np.load("tests/environments/mujoco_envs/reach_data.npy")
+    obs = []
+    mdp = Reach()
+    mdp.reset()
+    action = np.zeros(7)
 
-        assert np.allclose(obs, obs_test)
+    for _ in range(20):
+        observation, _, _, _ = mdp.step(action)
+        assert len(observation) == len(mdp._mdp_info.observation_space.low)
+        assert len(observation) == len(mdp._mdp_info.observation_space.high)
+        obs.append(observation)
 
-    def test_pick():
-        np.random.seed(42)
-        random.seed(42)
-        torch.manual_seed(42)
+    obs_test = np.load("tests/environments/mujoco_envs/reach_data.npy")
 
-        obs = []
-        mdp = Pick()
-        mdp.reset()
-        action = np.zeros(8)
+    assert np.allclose(obs, obs_test)
 
-        for _ in range(20):
-            observation, _, _, _ = mdp.step(action)
-            assert len(observation) == len(mdp._mdp_info.observation_space.low)
-            assert len(observation) == len(mdp._mdp_info.observation_space.high)
-            obs.append(observation)
+def test_pick():
+    np.random.seed(42)
+    random.seed(42)
+    torch.manual_seed(42)
 
-        obs_test = np.load("tests/environments/mujoco_envs/pick_data.npy")
+    obs = []
+    mdp = Pick()
+    mdp.reset()
+    action = np.zeros(8)
 
-        assert np.allclose(obs, obs_test)
+    for _ in range(20):
+        observation, _, _, _ = mdp.step(action)
+        assert len(observation) == len(mdp._mdp_info.observation_space.low)
+        assert len(observation) == len(mdp._mdp_info.observation_space.high)
+        obs.append(observation)
 
-    def test_push():
-        np.random.seed(42)
-        random.seed(42)
-        torch.manual_seed(42)
+    obs_test = np.load("tests/environments/mujoco_envs/pick_data.npy")
 
-        obs = []
-        mdp = Push()
-        mdp.reset()
-        action = np.zeros(7)
+    assert np.allclose(obs, obs_test)
 
-        for _ in range(20):
-            observation, _, _, _ = mdp.step(action)
-            assert len(observation) == len(mdp._mdp_info.observation_space.low)
-            assert len(observation) == len(mdp._mdp_info.observation_space.high)
-            obs.append(observation)
+def test_push():
+    np.random.seed(42)
+    random.seed(42)
+    torch.manual_seed(42)
 
-        obs_test = np.load("tests/environments/mujoco_envs/push_data.npy")
+    obs = []
+    mdp = Push()
+    mdp.reset()
+    action = np.zeros(7)
 
-        assert np.allclose(obs, obs_test)
+    for _ in range(20):
+        observation, _, _, _ = mdp.step(action)
+        assert len(observation) == len(mdp._mdp_info.observation_space.low)
+        assert len(observation) == len(mdp._mdp_info.observation_space.high)
+        obs.append(observation)
 
-    def test_peg_insertion():
-        np.random.seed(42)
-        random.seed(42)
-        torch.manual_seed(42)
+    obs_test = np.load("tests/environments/mujoco_envs/push_data.npy")
 
-        obs = []
-        mdp = PegInsertion()
-        mdp.reset()
-        action = np.zeros(7)
+    assert np.allclose(obs, obs_test)
 
-        for _ in range(20):
-            observation, _, _, _ = mdp.step(action)
-            assert len(observation) == len(mdp._mdp_info.observation_space.low)
-            assert len(observation) == len(mdp._mdp_info.observation_space.high)
-            obs.append(observation)
+def test_peg_insertion():
+    np.random.seed(42)
+    random.seed(42)
+    torch.manual_seed(42)
 
-        obs_test = np.load("tests/environments/mujoco_envs/peg_insertion_data.npy")
+    obs = []
+    mdp = PegInsertion()
+    mdp.reset()
+    action = np.zeros(7)
 
-        assert np.allclose(obs, obs_test)
+    for _ in range(20):
+        observation, _, _, _ = mdp.step(action)
+        assert len(observation) == len(mdp._mdp_info.observation_space.low)
+        assert len(observation) == len(mdp._mdp_info.observation_space.high)
+        obs.append(observation)
 
-    def test_push_reward():
-        np.random.seed(42)
-        random.seed(42)
-        torch.manual_seed(42)
+    obs_test = np.load("tests/environments/mujoco_envs/peg_insertion_data.npy")
 
-        mdp = Push()
-        mdp.reset()
-        action = np.zeros(7)
-        action[0] = 2.17
-        action[1] = 2.17
+    assert np.allclose(obs, obs_test)
 
-        rewards = []
-        contact_costs = []
-        robot_forces = []
-        gripper_forces = []
+def test_push_reward():
+    np.random.seed(42)
+    random.seed(42)
+    torch.manual_seed(42)
 
-        for _ in range(100):
-            observation, reward, _, info = mdp.step(action)
-            assert np.ndim(reward) == 0
-            rewards.append(reward)
-            contact_costs.append(info["contact_cost"])
-            robot_forces.append(mdp.obs_helper.get_from_obs(observation, "robot_contact_force").copy())
-            gripper_forces.append(mdp.obs_helper.get_from_obs(observation, "gripper_contact_force").copy())
+    mdp = Push()
+    mdp.reset()
+    action = np.zeros(7)
+    action[0] = 2.17
+    action[1] = 2.17
 
-        robot_forces = np.array(robot_forces)
-        gripper_forces = np.array(gripper_forces)
-        dual_contact_steps = np.sum(np.any(robot_forces != 0, axis=1) & np.any(gripper_forces != 0, axis=1))
+    rewards = []
+    contact_costs = []
+    robot_forces = []
+    gripper_forces = []
 
-        assert robot_forces.shape == (100, 3)
-        assert gripper_forces.shape == (100, 3)
-        assert dual_contact_steps == 43
-        assert np.sum(np.any(robot_forces != 0, axis=1)) == 52
-        assert np.sum(np.any(gripper_forces != 0, axis=1)) == 67
-        assert np.allclose(np.abs(robot_forces).max(), 368.51741001728493)
-        assert np.allclose(np.abs(gripper_forces).max(), 173.14783792360254)
-        assert np.allclose(np.sum(rewards), -119.28108591360848)
-        assert np.allclose(np.min(contact_costs), -0.0006)
-        assert np.allclose(np.sum(contact_costs), -0.035400174085850264)
+    for _ in range(100):
+        observation, reward, _, info = mdp.step(action)
+        assert np.ndim(reward) == 0
+        rewards.append(reward)
+        contact_costs.append(info["contact_cost"])
+        robot_forces.append(mdp.obs_helper.get_from_obs(observation, "robot_contact_force").copy())
+        gripper_forces.append(mdp.obs_helper.get_from_obs(observation, "gripper_contact_force").copy())
 
-    def test_pick_reward():
-        np.random.seed(42)
-        random.seed(42)
-        torch.manual_seed(42)
+    robot_forces = np.array(robot_forces)
+    gripper_forces = np.array(gripper_forces)
+    dual_contact_steps = np.sum(np.any(robot_forces != 0, axis=1) & np.any(gripper_forces != 0, axis=1))
 
-        mdp = Pick()
-        mdp.reset()
-        action = np.zeros(8)
-        action[0] = 2.17
-        action[1] = 2.17
+    assert robot_forces.shape == (100, 3)
+    assert gripper_forces.shape == (100, 3)
+    assert dual_contact_steps == 43
+    assert np.sum(np.any(robot_forces != 0, axis=1)) == 52
+    assert np.sum(np.any(gripper_forces != 0, axis=1)) == 67
+    assert np.allclose(np.abs(robot_forces).max(), 368.51741001728493)
+    assert np.allclose(np.abs(gripper_forces).max(), 173.14783792360254)
+    assert np.allclose(np.sum(rewards), -119.28108591360848)
+    assert np.allclose(np.min(contact_costs), -0.0006)
+    assert np.allclose(np.sum(contact_costs), -0.035400174085850264)
 
-        rewards = []
-        contact_costs = []
-        robot_forces = []
-        gripper_forces = []
+def test_pick_reward():
+    np.random.seed(42)
+    random.seed(42)
+    torch.manual_seed(42)
 
-        for _ in range(100):
-            observation, reward, _, info = mdp.step(action)
-            assert np.ndim(reward) == 0
-            rewards.append(reward)
-            contact_costs.append(info["contact_cost"])
-            robot_forces.append(mdp.obs_helper.get_from_obs(observation, "robot_contact_force").copy())
-            gripper_forces.append(mdp.obs_helper.get_from_obs(observation, "gripper_contact_force").copy())
+    mdp = Pick()
+    mdp.reset()
+    action = np.zeros(8)
+    action[0] = 2.17
+    action[1] = 2.17
 
-        robot_forces = np.array(robot_forces)
-        gripper_forces = np.array(gripper_forces)
-        dual_contact_steps = np.sum(np.any(robot_forces != 0, axis=1) & np.any(gripper_forces != 0, axis=1))
+    rewards = []
+    contact_costs = []
+    robot_forces = []
+    gripper_forces = []
 
-        assert robot_forces.shape == (100, 3)
-        assert gripper_forces.shape == (100, 3)
-        assert dual_contact_steps == 41
-        assert np.sum(np.any(robot_forces != 0, axis=1)) == 52
-        assert np.sum(np.any(gripper_forces != 0, axis=1)) == 65
-        assert np.allclose(np.abs(robot_forces).max(), 280.46010599025664)
-        assert np.allclose(np.abs(gripper_forces).max(), 344.9527000232645)
-        assert np.allclose(np.sum(rewards), 0.8374257001944749)
-        assert np.allclose(np.min(contact_costs), -0.0006)
-        assert np.allclose(np.sum(contact_costs), -0.035100000000000006)
+    for _ in range(100):
+        observation, reward, _, info = mdp.step(action)
+        assert np.ndim(reward) == 0
+        rewards.append(reward)
+        contact_costs.append(info["contact_cost"])
+        robot_forces.append(mdp.obs_helper.get_from_obs(observation, "robot_contact_force").copy())
+        gripper_forces.append(mdp.obs_helper.get_from_obs(observation, "gripper_contact_force").copy())
 
-    def test_peg_insertion_reward():
-        np.random.seed(42)
-        random.seed(42)
-        torch.manual_seed(42)
+    robot_forces = np.array(robot_forces)
+    gripper_forces = np.array(gripper_forces)
+    dual_contact_steps = np.sum(np.any(robot_forces != 0, axis=1) & np.any(gripper_forces != 0, axis=1))
 
-        mdp = PegInsertion()
-        mdp.reset()
-        action = np.zeros(7)
-        action[0] = 2.17
-        action[1] = 2.17
+    assert robot_forces.shape == (100, 3)
+    assert gripper_forces.shape == (100, 3)
+    assert dual_contact_steps == 41
+    assert np.sum(np.any(robot_forces != 0, axis=1)) == 52
+    assert np.sum(np.any(gripper_forces != 0, axis=1)) == 65
+    assert np.allclose(np.abs(robot_forces).max(), 280.46010599025664)
+    assert np.allclose(np.abs(gripper_forces).max(), 344.9527000232645)
+    assert np.allclose(np.sum(rewards), 0.8374257001944749)
+    assert np.allclose(np.min(contact_costs), -0.0006)
+    assert np.allclose(np.sum(contact_costs), -0.035100000000000006)
 
-        rewards = []
-        robot_forces = []
-        gripper_forces = []
+def test_peg_insertion_reward():
+    np.random.seed(42)
+    random.seed(42)
+    torch.manual_seed(42)
 
-        for _ in range(100):
-            observation, reward, _, info = mdp.step(action)
-            assert np.ndim(reward) == 0
-            rewards.append(reward)
-            robot_forces.append(mdp.obs_helper.get_from_obs(observation, "robot_collision_force").copy())
-            gripper_forces.append(mdp.obs_helper.get_from_obs(observation, "gripper_collision_force").copy())
+    mdp = PegInsertion()
+    mdp.reset()
+    action = np.zeros(7)
+    action[0] = 2.17
+    action[1] = 2.17
 
-        robot_forces = np.array(robot_forces)
-        gripper_forces = np.array(gripper_forces)
-        dual_contact_steps = np.sum(np.any(robot_forces != 0, axis=1) & np.any(gripper_forces != 0, axis=1))
+    rewards = []
+    robot_forces = []
+    gripper_forces = []
 
-        assert robot_forces.shape == (100, 3)
-        assert gripper_forces.shape == (100, 3)
-        assert dual_contact_steps == 23
-        assert np.sum(np.any(robot_forces != 0, axis=1)) == 49
-        assert np.sum(np.any(gripper_forces != 0, axis=1)) == 41
-        assert np.allclose(np.abs(robot_forces).max(), 489.6709347216338)
-        assert np.allclose(np.abs(gripper_forces).max(), 214.6805301749962)
-        assert np.allclose(np.sum(rewards), 4.085399761591603)
+    for _ in range(100):
+        observation, reward, _, info = mdp.step(action)
+        assert np.ndim(reward) == 0
+        rewards.append(reward)
+        robot_forces.append(mdp.obs_helper.get_from_obs(observation, "robot_collision_force").copy())
+        gripper_forces.append(mdp.obs_helper.get_from_obs(observation, "gripper_collision_force").copy())
 
-    def test_peg_insertion_alignment():
-        np.random.seed(42)
-        random.seed(42)
-        torch.manual_seed(42)
+    robot_forces = np.array(robot_forces)
+    gripper_forces = np.array(gripper_forces)
+    dual_contact_steps = np.sum(np.any(robot_forces != 0, axis=1) & np.any(gripper_forces != 0, axis=1))
 
-        mdp = PegInsertion()
-        observation = mdp.reset()[0]
+    assert robot_forces.shape == (100, 3)
+    assert gripper_forces.shape == (100, 3)
+    assert dual_contact_steps == 23
+    assert np.sum(np.any(robot_forces != 0, axis=1)) == 49
+    assert np.sum(np.any(gripper_forces != 0, axis=1)) == 41
+    assert np.allclose(np.abs(robot_forces).max(), 489.6709347216338)
+    assert np.allclose(np.abs(gripper_forces).max(), 214.6805301749962)
+    assert np.allclose(np.sum(rewards), 4.085399761591603)
 
-        aligned = observation.copy()
-        mdp.obs_helper.get_from_obs(aligned, "rel_goal_pos")[:] = [0.0, 0.0, 0.05]
+def test_peg_insertion_alignment():
+    np.random.seed(42)
+    random.seed(42)
+    torch.manual_seed(42)
 
-        misaligned = observation.copy()
-        mdp.obs_helper.get_from_obs(misaligned, "rel_goal_pos")[:] = [0.5, 0.5, 0.05]
+    mdp = PegInsertion()
+    observation = mdp.reset()[0]
 
-        mdp._obs = misaligned
+    aligned = observation.copy()
+    mdp.obs_helper.get_from_obs(aligned, "rel_goal_pos")[:] = [0.0, 0.0, 0.05]
 
-        assert mdp._is_aligned(aligned)
-        assert np.allclose(mdp._get_insertion_reward(aligned), 8.068242641099854)
+    misaligned = observation.copy()
+    mdp.obs_helper.get_from_obs(misaligned, "rel_goal_pos")[:] = [0.5, 0.5, 0.05]
 
-        mdp._obs = aligned
+    mdp._obs = misaligned
 
-        assert not mdp._is_aligned(misaligned)
-        assert np.allclose(mdp._get_insertion_reward(misaligned), 0.0)
+    assert mdp._is_aligned(aligned)
+    assert np.allclose(mdp._get_insertion_reward(aligned), 8.068242641099854)
 
-except ImportError:
-    pass
+    mdp._obs = aligned
+
+    assert not mdp._is_aligned(misaligned)
+    assert np.allclose(mdp._get_insertion_reward(misaligned), 0.0)

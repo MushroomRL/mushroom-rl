@@ -1,7 +1,9 @@
 from mushroom_rl.environments import LQR
-from mushroom_rl.solvers.lqr import *
+import numpy as np
+from mushroom_rl.solvers.lqr import (compute_lqr_feedback_gain, compute_lqr_P, compute_lqr_V, compute_lqr_Q,
+                                     compute_lqr_V_gaussian_policy, compute_lqr_Q_gaussian_policy,
+                                     compute_lqr_V_gaussian_policy_gradient_K, compute_lqr_Q_gaussian_policy_gradient_K)
 from mushroom_rl.utils.numerical_gradient import numerical_diff_function
-
 
 
 def test_lqr_solver_linear():
@@ -9,8 +11,8 @@ def test_lqr_solver_linear():
     K = compute_lqr_feedback_gain(lqr)
 
     K_test = np.array([[0.89908343, 0., 0.],
-                             [0., 0.24025307, 0.],
-                             [0., 0., 0.24025307]])
+                       [0., 0.24025307, 0.],
+                       [0., 0., 0.24025307]])
 
     assert np.allclose(K, K_test)
 
@@ -27,7 +29,7 @@ def test_P():
 
     P_test = np.array([[1.60755632, 0.78058807, 0.03219049],
                        [0.78058807, 1.67738666, 0.24905620],
-                       [0.03219049, 0.2490562 , 0.83697781]])
+                       [0.03219049, 0.2490562, 0.83697781]])
 
     assert np.allclose(P, P_test)
 
@@ -58,7 +60,7 @@ def test_V_lqr_gaussian_policy():
 
     s = np.array([1.0, 1.3, -0.3])
     V_lqg = compute_lqr_V_gaussian_policy(s, lqr, K, Sigma)
-    
+
     assert np.allclose(V_lqg, -28.39165320182624)
 
 
