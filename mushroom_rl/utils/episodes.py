@@ -1,5 +1,6 @@
 from mushroom_rl.core.array_backend import ArrayBackend
 
+
 def split_episodes(last, *arrays):
     """
     Split a array from shape (n_steps) to (n_episodes, max_episode_steps).
@@ -21,6 +22,7 @@ def split_episodes(last, *arrays):
 
     return episodes_arrays if len(episodes_arrays) > 1 else episodes_arrays[0]
 
+
 def unsplit_episodes(last, *episodes_arrays):
     """
     Unsplit a array from shape (n_episodes, max_episode_steps) to (n_steps).
@@ -37,6 +39,7 @@ def unsplit_episodes(last, *episodes_arrays):
         arrays.append(array)
 
     return arrays if len(arrays) > 1 else arrays[0]
+
 
 def _get_episode_idx(last, backend=None):
     if backend is None:

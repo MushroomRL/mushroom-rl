@@ -63,7 +63,8 @@ class MujocoViewer:
             geom_group_visualization_on_startup (int/list): int or list defining which geom group_ids should be
                 visualized on startup. If None, all are visualized.
             headless (bool): If True, render will be done in headless mode.
-            reference_frame_visualization_on_startup (int): Specifies the group of reference frames that should be visualized.
+            reference_frame_visualization_on_startup (int): Specifies the group of reference frames that should be
+                visualized.
 
         """
 
@@ -85,7 +86,7 @@ class MujocoViewer:
         self._headless = headless
         self._model = model
         self._font_scale = 100
-        
+
         if headless:
             # use the OpenGL render that is available on the machine
             self._opengl_context = self.setup_opengl_backend_headless(width, height)
@@ -105,9 +106,9 @@ class MujocoViewer:
             glfw.set_scroll_callback(self._window, self.scroll)
 
         self._set_mujoco_buffers()
-        
+
         if record and not headless:
-            # dont allow to change the window size to have equal frame size during recording
+            # don't allow to change the window size to have equal frame size during recording
             glfw.window_hint(glfw.RESIZABLE, False)
 
         self._viewport = mujoco.MjrRect(0, 0, self._width, self._height)
@@ -165,7 +166,6 @@ class MujocoViewer:
         self._scene = mujoco.MjvScene(model, 1000)
         self._context = mujoco.MjrContext(model, mujoco.mjtFontScale(self._font_scale))
 
-
     def mouse_button(self, window, button, act, mods):
         """
         Mouse button callback for glfw.
@@ -205,8 +205,8 @@ class MujocoViewer:
 
         width, height = glfw.get_window_size(self._window)
 
-        mod_shift = glfw.get_key(self._window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS or glfw.get_key(self._window,
-                                                                                                  glfw.KEY_RIGHT_SHIFT) == glfw.PRESS
+        mod_shift = (glfw.get_key(self._window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS or
+                     glfw.get_key(self._window, glfw.KEY_RIGHT_SHIFT) == glfw.PRESS)
 
         if self.button_right:
             action = mujoco.mjtMouse.mjMOUSE_MOVE_H if mod_shift else mujoco.mjtMouse.mjMOUSE_MOVE_V
@@ -323,7 +323,7 @@ class MujocoViewer:
         if width > _context.offWidth or height > _context.offHeight:
             width = max(width, self._model.vis.global_.offwidth)
             height = max(height, self._model.vis.global_.offheight)
-            
+
             if width != _context.offWidth or height != _context.offHeight:
                 self._model.vis.global_.offwidth = width
                 self._model.vis.global_.offheight = height
@@ -497,7 +497,7 @@ class MujocoViewer:
             topleft,
             "Camera mode:",
             self._camera_mode)
-        
+
         add_overlay(
             topleft,
             "Run speed = %.3f x real time" %
@@ -571,10 +571,9 @@ class MujocoViewer:
             assert cam_type in default_camera_params.keys(), f"Camera type \"{cam_type}\" is unknown. Allowed " \
                                                              f"camera types are {list(default_camera_params.keys())}."
             for param in camera_params[cam_type].keys():
-                assert param in default_camera_params[cam_type].keys(), f"Parameter \"{param}\" of camera type " \
-                                                                        f"\"{cam_type}\" is unknown. Allowed " \
-                                                                        f"parameters are" \
-                                                                        f" {list(default_camera_params[cam_type].keys())}"
+                assert param in default_camera_params[cam_type].keys(), \
+                    (f"Parameter \"{param}\" of camera type \"{cam_type}\" is unknown. "
+                     f"Allowed parameters are {list(default_camera_params[cam_type].keys())}")
 
         # add default parameters if not specified
         for cam_type in default_camera_params.keys():
@@ -600,7 +599,6 @@ class MujocoViewer:
         return dict(static=dict(distance=15.0, elevation=-45.0, azimuth=90.0, lookat=np.array([0.0, 0.0, 0.0])),
                     follow=dict(distance=3.5, elevation=0.0, azimuth=90.0),
                     top_static=dict(distance=5.0, elevation=-90.0, azimuth=90.0, lookat=np.array([0.0, 0.0, 0.0])))
-
 
     def setup_opengl_backend_headless(self, width, height):
 

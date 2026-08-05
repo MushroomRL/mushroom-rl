@@ -43,5 +43,3 @@ def plot_mean_conf(data, ax, color='blue', line='-', facecolor=None, alpha=0.4, 
 
     ax.plot(mean, color=color, linestyle=line, label=label)
     ax.fill_between(np.arange(np.size(mean)), upper_bound, lower_bound, facecolor=facecolor, alpha=alpha)
-
-

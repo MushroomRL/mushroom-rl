@@ -53,4 +53,3 @@ class CallbackList(Callback):
 
         """
         self._data_list = list()
-

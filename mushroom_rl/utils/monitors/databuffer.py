@@ -81,4 +81,3 @@ class DataBuffer(object):
 
         """
         self._tracking_enabled = status
-
