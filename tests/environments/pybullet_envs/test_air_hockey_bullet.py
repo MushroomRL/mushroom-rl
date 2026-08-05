@@ -2,7 +2,10 @@ import pytest
 
 pytest.importorskip("mushroom_rl.environments")
 
-from mushroom_rl.environments import AirHockeyDefendBullet, AirHockeyHitBullet, AirHockeyPrepareBullet, AirHockeyRepelBullet
+from mushroom_rl.environments import (
+    AirHockeyDefendBullet, AirHockeyHitBullet,
+    AirHockeyPrepareBullet, AirHockeyRepelBullet
+)
 import numpy as np
 
 

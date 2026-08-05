@@ -5,6 +5,7 @@ pytest.importorskip("mushroom_rl.environments.dm_control_env")
 from mushroom_rl.environments.dm_control_env import DMControl
 import numpy as np
 
+
 def test_dm_control():
     np.random.seed(1)
     mdp = DMControl('hopper', 'hop', 1000, .99, task_kwargs={'random': 1})

@@ -8,7 +8,6 @@ from mushroom_rl.approximators.parametric.networks import LinearNetwork
 from mushroom_rl.rl_utils.value_functions import compute_gae, compute_advantage_montecarlo
 
 
-
 def test_compute_advantage_montecarlo():
     def advantage_montecarlo(V, s, ss, r, absorbing, last, gamma):
         with torch.no_grad():

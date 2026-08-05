@@ -5,6 +5,7 @@ pytest.importorskip("mushroom_rl.environments.mujoco_envs")
 from mushroom_rl.environments.mujoco_envs import BallInACup
 import numpy as np
 
+
 def linear_movement(start, end, n_steps, i):
     t = np.minimum(1., float(i) / float(n_steps))
     return start + (end - start) * t
@@ -19,7 +20,7 @@ def test_ball_in_a_cup():
 
     obs_0, _ = env.reset()
 
-    for _ in [1,2]:
+    for _ in [1, 2]:
         obs, _ = env.reset()
 
         assert np.array_equal(obs, obs_0)
@@ -32,7 +33,7 @@ def test_ball_in_a_cup():
             pos_err = q_cmd - q_curr
 
             a = env._data.qfrc_bias[:7] + p_gains * pos_err - d_gains * qdot_cur
-            #a = np.zeros(7)
+            # a = np.zeros(7)
 
             # Check the observations
             assert np.allclose(obs[0:14:2], env._data.qpos[0:7])

@@ -10,6 +10,7 @@ import numpy as np
 import random
 import torch
 
+
 def test_reach():
     np.random.seed(42)
     random.seed(42)
@@ -29,6 +30,7 @@ def test_reach():
     obs_test = np.load("tests/environments/mujoco_envs/reach_data.npy")
 
     assert np.allclose(obs, obs_test)
+
 
 def test_pick():
     np.random.seed(42)
@@ -50,6 +52,7 @@ def test_pick():
 
     assert np.allclose(obs, obs_test)
 
+
 def test_push():
     np.random.seed(42)
     random.seed(42)
@@ -70,6 +73,7 @@ def test_push():
 
     assert np.allclose(obs, obs_test)
 
+
 def test_peg_insertion():
     np.random.seed(42)
     random.seed(42)
@@ -89,6 +93,7 @@ def test_peg_insertion():
     obs_test = np.load("tests/environments/mujoco_envs/peg_insertion_data.npy")
 
     assert np.allclose(obs, obs_test)
+
 
 def test_push_reward():
     np.random.seed(42)
@@ -129,6 +134,7 @@ def test_push_reward():
     assert np.allclose(np.min(contact_costs), -0.0006)
     assert np.allclose(np.sum(contact_costs), -0.035400174085850264)
 
+
 def test_pick_reward():
     np.random.seed(42)
     random.seed(42)
@@ -168,6 +174,7 @@ def test_pick_reward():
     assert np.allclose(np.min(contact_costs), -0.0006)
     assert np.allclose(np.sum(contact_costs), -0.035100000000000006)
 
+
 def test_peg_insertion_reward():
     np.random.seed(42)
     random.seed(42)
@@ -202,6 +209,7 @@ def test_peg_insertion_reward():
     assert np.allclose(np.abs(robot_forces).max(), 489.6709347216338)
     assert np.allclose(np.abs(gripper_forces).max(), 214.6805301749962)
     assert np.allclose(np.sum(rewards), 4.085399761591603)
+
 
 def test_peg_insertion_alignment():
     np.random.seed(42)
