@@ -22,7 +22,7 @@ class LQR(Environment):
         r_t = -\\left( x_t^TQx_t + u_t^TRu_t \\right)
 
     "Policy gradient approaches for multi-objective sequential decision making".
-    Parisi S., Pirotta M., Smacchia N., Bascetta L., Restelli M.. 2014
+    Parisi S., Pirotta M., Smacchia N., Bascetta L., Restelli M. 2014
 
     """
     def __init__(self, A, B, Q, R, max_pos=np.inf, max_action=np.inf,  random_init=False, episodic=False, gamma=0.9,
@@ -38,10 +38,10 @@ class LQR(Environment):
                 max_pos (float, np.inf): maximum value of the state;
                 max_action (float, np.inf): maximum value of the action;
                 random_init (bool, False): start from a random state;
-                episodic (bool, False): end the episode when the state goes over
-                the threshold;
+                episodic (bool, False): end the episode when the state goes over the threshold;
                 gamma (float, 0.9): discount factor;
                 horizon (int, 50): horizon of the env;
+                initial_state (np.ndarray, None): initial state of the environment;
                 dt (float, 0.1): the control timestep of the environment.
 
         """
@@ -76,28 +76,27 @@ class LQR(Environment):
                  index=0, scale=1.0, random_init=False, episodic=False,
                  gamma=.9, horizon=50, initial_state=None):
         """
-        Factory method that generates an lqr with identity dynamics and
-        symmetric reward matrices.
+        Factory method that generates an LQR with identity dynamics and symmetric reward matrices.
 
         Args:
-            dimensions (int): number of state-action dimensions;
-            s_dim (int): number of state dimensions;
-            a_dim (int): number of action dimensions;
+            dimensions (int, None): number of state-action dimensions;
+            s_dim (int, None): number of state dimensions;
+            a_dim (int, None): number of action dimensions;
             max_pos (float, np.inf): maximum value of the state;
             max_action (float, np.inf): maximum value of the action;
             eps (double, .1): reward matrix weights specifier;
             index (int, 0): selector for the principal state;
             scale (float, 1.0): scaling factor for the reward function;
             random_init (bool, False): start from a random state;
-            episodic (bool, False): end the episode when the state goes over the
-                threshold;
+            episodic (bool, False): end the episode when the state goes over the threshold;
             gamma (float, .9): discount factor;
-            horizon (int, 50): horizon of the env.
+            horizon (int, 50): horizon of the env;
+            initial_state (np.ndarray, None): initial state of the environment.
 
         """
-        assert dimensions != None or (s_dim != None and a_dim != None)
+        assert dimensions is not None or (s_dim is not None and a_dim is not None)
 
-        if s_dim == None or a_dim == None:
+        if s_dim is None or a_dim is None:
             s_dim = dimensions
             a_dim = dimensions
         A = np.eye(s_dim)

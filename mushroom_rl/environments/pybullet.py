@@ -4,7 +4,7 @@ import pybullet_data
 from pybullet_utils.bullet_client import BulletClient
 from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.core.spaces import Box
-from mushroom_rl.utils.pybullet import *
+from mushroom_rl.utils.pybullet import IndexMap, JointsHelper, PyBulletViewer
 
 
 class PyBullet(Environment):
@@ -327,4 +327,3 @@ class PyBullet(Environment):
     @property
     def dt(self):
         return self._timestep * self._n_intermediate_steps
-

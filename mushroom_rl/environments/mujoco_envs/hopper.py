@@ -187,11 +187,11 @@ class Hopper(MuJoCo):
 
     def _create_info_dictionary(self, obs, action):
         info = {
-            "healthy_reward": self._get_healthy_reward(obs), 
+            "healthy_reward": self._get_healthy_reward(obs),
             "forward_reward": self._get_forward_reward(),
             "ctrl_cost": self._get_ctrl_cost(action)
         }
-        
+
         return info
 
     def get_states(self):

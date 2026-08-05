@@ -64,9 +64,9 @@ class AirHockeyHitBullet(AirHockeySingleBullet):
         # width of table minus radius of puck
         effective_width = 0.51 - 0.03165
 
-        # Calculate bounce point by assuming incomming angle = outgoing angle
-        w = (abs(puck_pos[1]) * self.goal[0] + self.goal[1] * puck_pos[0] - effective_width * puck_pos[0] - effective_width *
-             self.goal[0]) / (abs(puck_pos[1]) + self.goal[1] - 2 * effective_width)
+        # Calculate bounce point by assuming incoming angle = outgoing angle
+        w = (abs(puck_pos[1]) * self.goal[0] + self.goal[1] * puck_pos[0] - effective_width * puck_pos[0] -
+             effective_width * self.goal[0]) / (abs(puck_pos[1]) + self.goal[1] - 2 * effective_width)
 
         side_point = np.array([w, np.copysign(effective_width, puck_pos[1])])
 
@@ -86,9 +86,9 @@ class AirHockeyHitBullet(AirHockeySingleBullet):
 
         # If puck is out of bounds
         if absorbing:
-            # If puck is in the enemy goal
+            # If puck is in the opponent goal
             if puck_pos[0] - self.env_spec['table']['length'] / 2 > 0 and \
-                    np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
+               np.abs(puck_pos[1]) - self.env_spec['table']['goal'] < 0:
                 r = 200
 
             # If mallet violates constraints, not used with safe exploration
@@ -160,4 +160,3 @@ class AirHockeyHitBullet(AirHockeySingleBullet):
     def _create_observation(self, state):
         obs = super(AirHockeyHitBullet, self)._create_observation(state)
         return np.append(obs, [self.has_hit])
-

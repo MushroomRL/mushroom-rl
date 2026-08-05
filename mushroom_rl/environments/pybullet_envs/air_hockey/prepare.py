@@ -64,7 +64,6 @@ class AirHockeyPrepareBullet(AirHockeySingleBullet):
         self.has_hit = False
         self.has_bounce = False
 
-
     def reward(self, state, action, next_state, absorbing):
         puck_pos = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_POS)[:2]
         puck_vel = self.get_sim_state(next_state, "puck", PyBulletObservationType.BODY_LIN_VEL)[:2]

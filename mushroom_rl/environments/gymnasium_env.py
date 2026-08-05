@@ -36,13 +36,12 @@ class Gymnasium(Environment):
         """
 
         # MDP creation
-        self._not_pybullet = True
         self._first = True
         self._headless = headless
         self._viewer = None
         self._env_name = name
 
-        self.env = gym.make(name, render_mode='rgb_array', **env_args) # always rgb_array render mode
+        self.env = gym.make(name, render_mode='rgb_array', **env_args)  # always rgb_array render mode
 
         if wrappers is not None:
             if wrappers_args is None:
@@ -94,16 +93,16 @@ class Gymnasium(Environment):
 
     def step(self, action):
         action = self._convert_action(action)
-        obs, reward, absorbing, _, info = self.env.step(action) #truncated flag is ignored
+        obs, reward, absorbing, _, info = self.env.step(action)  # truncated flag is ignored
 
         return np.atleast_1d(obs).copy(), reward, absorbing, info
 
     def render(self, record=False):
-        if self._first or self._not_pybullet:
+        if self._first:
             img = self.env.render()
 
             if self._first:
-                self._viewer =  ImageViewer((img.shape[1], img.shape[0]), self.info.dt, headless=self._headless)
+                self._viewer = ImageViewer((img.shape[1], img.shape[0]), self.info.dt, headless=self._headless)
 
             self._viewer.display(img)
 
@@ -118,11 +117,9 @@ class Gymnasium(Environment):
 
     def stop(self):
         try:
-            if self._not_pybullet:
-                self.env.close()
-                
-                if self._viewer is not None:
-                    self._viewer.close()
+            self.env.close()
+            if self._viewer is not None:
+                self._viewer.close()
         except:
             pass
 
@@ -130,7 +127,7 @@ class Gymnasium(Environment):
     def _set_horizon(env, horizon):
 
         while not hasattr(env, '_max_episode_steps') and env.env != env.unwrapped:
-                env = env.env
+            env = env.env
 
         if horizon is None:
             if hasattr(env, '_max_episode_steps'):
@@ -156,4 +153,3 @@ class Gymnasium(Environment):
             return Box(low=space.low, high=space.high, shape=space.shape)
         else:
             raise ValueError
-

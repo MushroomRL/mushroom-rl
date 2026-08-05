@@ -92,4 +92,3 @@ class BallInACup(MuJoCo):
     def linear_movement(start, end, n_steps, i):
         t = np.minimum(1., float(i) / float(n_steps))
         return start + (end - start) * t
-
