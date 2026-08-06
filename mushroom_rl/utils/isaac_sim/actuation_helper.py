@@ -42,7 +42,7 @@ class ActuationHelper:
         self._controlled_dofs = None
         self._controlled_joints = None
 
-    def set_up(self):
+    def initialize(self):
         """
         Resolves the controlled joints. Isaac Sim only names the degrees of freedom of an articulation once the
         simulation is running, so this cannot happen at construction.

@@ -1,3 +1,5 @@
+from . import _require_launched  # noqa: F401 -- raises if Isaac Sim hasn't been launched yet
+
 import numpy as np
 
 import omni.replicator.core as rep
@@ -45,13 +47,6 @@ class IsaacViewer:
         self._rgb_annot = rep.AnnotatorRegistry.get_annotator("rgb", do_array_copy=False, device="cuda")
         self._rgb_annot.attach(rp)
 
-    def refresh(self):
-        """
-        Renders the scene, keeping the Isaac Sim window up to date, without reading the frame back.
-
-        """
-        RenderingManager.render()
-
     def render(self):
         """
         Renders the scene and displays the frame.
@@ -80,6 +75,14 @@ class IsaacViewer:
         if self._image_viewer is not None:
             self._image_viewer.close()
             self._image_viewer = None
+
+    @staticmethod
+    def refresh():
+        """
+        Renders the scene, keeping the Isaac Sim window up to date, without reading the frame back.
+
+        """
+        RenderingManager.render()
 
     @property
     def render_product_size(self):
