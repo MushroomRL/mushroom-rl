@@ -1,5 +1,7 @@
 import sys
 
+import mushroom_rl.utils.isaac_sim._require_launched  # noqa: F401 -- raises if Isaac Sim hasn't been launched yet
+
 import torch
 import warp as wp
 
@@ -89,11 +91,11 @@ class IsaacSim(VectorizedEnvironment):
                                                                        self._physics_scene)
 
         self._actuation_helper = ActuationHelper(self._robots, actuation_spec, actuation_type)
-        self.observation_helper = ObservationHelper(observation_spec, additional_data_spec, num_envs, self._robots,
-                                                    views, self._env_pos, self._actuation_helper)
+        self._observation_helper = ObservationHelper(observation_spec, additional_data_spec, num_envs, self._robots,
+                                                     views, self._env_pos, self._actuation_helper)
         self._start_simulation()
 
-        observation_limits = self.observation_helper.compute_obs_limits()
+        observation_limits = self._observation_helper.compute_obs_limits()
         assert observation_limits[0].dtype == observation_limits[1].dtype
         observation_space = Box(*observation_limits, data_type=observation_limits[0].dtype)
 
@@ -146,7 +148,7 @@ class IsaacSim(VectorizedEnvironment):
 
             self._simulation_post_step()
 
-        cur_obs = self.observation_helper.observe()
+        cur_obs = self._observation_helper.observe()
         cur_obs = self._create_observation(cur_obs)
 
         self._step_finalize(env_indices)
@@ -181,7 +183,7 @@ class IsaacSim(VectorizedEnvironment):
         self._reset_env(env_indices)
         self.setup(env_indices, state)
 
-        obs = self.observation_helper.observe()
+        obs = self._observation_helper.observe()
         obs = self._create_observation(obs)
         if self._obs is None:
             self._obs = obs.clone()
@@ -272,10 +274,10 @@ class IsaacSim(VectorizedEnvironment):
         self._viewer.close()
 
         if not soft:
-            self.observation_helper.clear_consistent_properties()
+            self._observation_helper.clear_consistent_properties()
 
         self._robots.reset_to_default_state()
-        self.observation_helper.reapply_consistent_properties()
+        self._observation_helper.reapply_consistent_properties()
 
     @property
     def dt(self):
@@ -323,14 +325,11 @@ class IsaacSim(VectorizedEnvironment):
         assert self._robots.is_physics_tensor_entity_valid(), \
             "the robot articulation did not bind to the physics simulation"
 
-        self._actuation_helper.set_up()
-
-        # the contact views are built on the physics simulation view, which only exists once it is running
-        self._collision_helper.set_up()
-
         self._capture_default_state()
 
-        self.observation_helper.set_up()
+        self._actuation_helper.initialize()
+        self._collision_helper.initialize()
+        self._observation_helper.initialize()
 
     def _capture_default_state(self):
         """
@@ -397,7 +396,7 @@ class IsaacSim(VectorizedEnvironment):
     def _create_observation(self, obs):
         """
         This method can be overridden to create a custom observation. Should be used to append observation which have
-        been registered via observation_helper.add_obs(self, name, length, min_value, max_value)
+        been registered via _observation_helper.add_obs(self, name, length, min_value, max_value)
 
         Args:
             obs (torch.tensor): the generated observation

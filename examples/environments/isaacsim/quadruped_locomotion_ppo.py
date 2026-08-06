@@ -28,9 +28,9 @@ from mushroom_rl.approximators.parametric.networks import ActorNetwork
 # Isaac Sim has to be running before its environments can be imported
 IsaacLauncher.launch(headless=True)
 
-from mushroom_rl.environments.isaacsim_envs import A1Walking, HoneyBadgerWalking, SilverBadgerWalking
+from mushroom_rl.environments.isaacsim_envs import A1Isaac, HoneyBadgerIsaac, SilverBadgerIsaac
 
-ROBOTS = dict(a1=A1Walking, honey_badger=HoneyBadgerWalking, silver_badger=SilverBadgerWalking)
+ROBOTS = dict(a1=A1Isaac, honey_badger=HoneyBadgerIsaac, silver_badger=SilverBadgerIsaac)
 
 
 def parse_args():
