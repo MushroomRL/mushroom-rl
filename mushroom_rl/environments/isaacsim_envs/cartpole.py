@@ -36,14 +36,14 @@ class CartPoleIsaac(IsaacSim):
                          viewer_params=viewer_params)
 
     def reward(self, obs, action, next_obs, absorbing):
-        pole_joint_pos = self.observation_helper.get_from_obs(next_obs, "poleJointPos").squeeze()
-        cart_joint_pos = self.observation_helper.get_from_obs(next_obs, "cartJointPos").squeeze()
+        pole_joint_pos = self._observation_helper.get_from_obs(next_obs, "poleJointPos").squeeze()
+        cart_joint_pos = self._observation_helper.get_from_obs(next_obs, "cartJointPos").squeeze()
         reward = 1.0 - torch.abs(cart_joint_pos)
         reward = torch.where(absorbing, -torch.ones_like(pole_joint_pos), reward)
         return reward
 
     def is_absorbing(self, obs):
-        pole_joint_pos = self.observation_helper.get_from_obs(obs, "poleJointPos").squeeze()
+        pole_joint_pos = self._observation_helper.get_from_obs(obs, "poleJointPos").squeeze()
         ones = torch.ones_like(pole_joint_pos, dtype=bool)
         zeros = torch.zeros_like(pole_joint_pos, dtype=bool)
         dropped = torch.where(torch.abs(pole_joint_pos) > math.pi / 2, ones, zeros)
@@ -58,14 +58,13 @@ class CartPoleIsaac(IsaacSim):
         cart_joint_vel = 0.25 * (2.0 * torch.rand(num_environments, 1, device=TorchUtils.get_device()) - 1)
         pole_joint_vel = 0.05 * math.pi * (2.0 * torch.rand(num_environments, 1, device=TorchUtils.get_device()) - 1)
 
-        self.observation_helper.write_data("cartJointPos", cart_joint_pos, env_indices)
-        self.observation_helper.write_data("poleJointPos", pole_joint_pos, env_indices)
-        self.observation_helper.write_data("cartJointVel", cart_joint_vel, env_indices)
-        self.observation_helper.write_data("poleJointVel", pole_joint_vel, env_indices)
+        self._observation_helper.write_data("cartJointPos", cart_joint_pos, env_indices)
+        self._observation_helper.write_data("poleJointPos", pole_joint_pos, env_indices)
+        self._observation_helper.write_data("cartJointVel", cart_joint_vel, env_indices)
+        self._observation_helper.write_data("poleJointVel", pole_joint_vel, env_indices)
 
     def _create_info_dictionary(self, obs):
-        info = {}
-        info["cartPosition"] = self.observation_helper.read_data("cartPos")
-        info["polePosition"] = self.observation_helper.read_data("polePos")
-        info["poleAngularVelocity"] = self.observation_helper.read_data("poleAngVel")
+        info = {"cartPosition": self._observation_helper.read_data("cartPos"),
+                "polePosition": self._observation_helper.read_data("polePos"),
+                "poleAngularVelocity": self._observation_helper.read_data("poleAngVel")}
         return info

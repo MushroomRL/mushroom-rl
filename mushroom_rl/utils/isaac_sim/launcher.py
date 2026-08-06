@@ -1,5 +1,6 @@
 import atexit
 
+import isaacsim
 from isaacsim import SimulationApp
 
 
@@ -91,11 +92,32 @@ class IsaacLauncher:
             RuntimeError: If Isaac Sim has not been launched yet.
 
         """
-        if cls._app is None:
-            raise RuntimeError("Isaac Sim is not running: call IsaacLauncher.launch() before creating an "
-                               "environment.")
+        cls.require_running()
 
         return cls._app
+
+    @classmethod
+    def require_running(cls):
+        """
+        Guards a module against being imported before Isaac Sim is running.
+
+        Isaac's Carbonite framework only allows ``isaacsim.*`` submodules to be imported once the app is live, so
+        importing a module that does so too early fails deep inside Isaac's own machinery with an opaque
+        ``ModuleNotFoundError``. Modules that import such submodules should trigger this check first -- see
+        :mod:`mushroom_rl.utils.isaac_sim._require_launched` -- so the failure instead points back to the actual
+        cause.
+
+        Skipped when ``isaacsim`` itself is a Sphinx autodoc mock (``autodoc_mock_imports``): every downstream
+        ``isaacsim.*`` import then resolves harmlessly to a mock attribute instead of raising, so there is
+        nothing left for this check to guard against.
+
+        Raises:
+            RuntimeError: If Isaac Sim has not been launched yet.
+
+        """
+        if cls._app is None and not getattr(isaacsim, '__sphinx_mock__', False):
+            raise RuntimeError("Isaac Sim is not running: call IsaacLauncher.launch() before importing this "
+                               "module.")
 
     @classmethod
     def is_headless(cls):
