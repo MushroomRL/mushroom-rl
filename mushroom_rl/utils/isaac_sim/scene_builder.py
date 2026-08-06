@@ -1,6 +1,7 @@
+from . import _require_launched  # noqa: F401 -- raises if Isaac Sim hasn't been launched yet
+
 import math
 
-import numpy as np
 import torch
 import warp as wp
 
@@ -59,7 +60,7 @@ class SceneBuilder:
         self._ground_plane_friction = ground_plane_friction
         self._physics_material_spec = physics_material_spec
 
-        # The robot of environment i lives at <base>/env_i/Robot. Note the two pattern flavours: the
+        # The robot of environment 'i' lives at <base>/env_i/Robot. Note the two pattern flavors: the
         # isaacsim.core.experimental prims match prim paths as regular expressions, while the physics tensor
         # views underneath match them as wildcards.
         self._base_env_path = "/World/envs"
@@ -89,7 +90,7 @@ class SceneBuilder:
         """
         stage = stage_utils.get_current_stage()
 
-        self._create_light()
+        DistantLight("/World/defaultDistantLight").set_intensities(1000)
 
         # Define env_0
         stage_utils.add_reference_to_stage(self._usd_path, self._zero_env_robot_path)
@@ -167,7 +168,7 @@ class SceneBuilder:
                 global_paths=["/World/groundPlane"]
             )
 
-        return torch.tensor(np.float32(env_pos), device=TorchUtils.get_device())
+        return torch.tensor(env_pos, dtype=torch.float32, device=TorchUtils.get_device())
 
     def _create_views(self, stage, specifications, robots):
         """
@@ -213,18 +214,6 @@ class SceneBuilder:
                 restitutions=restitution
             )
             ground_plane.planes.apply_physics_materials(material)
-
-    def _create_light(self, prim_path="/World/defaultDistantLight", intensity=1000):
-        """
-        Create a default light source in the scene.
-
-        Args:
-            prim_path (str): Where to place the light on the stage.
-            intensity (float): The intensity of the light.
-
-        """
-        light = DistantLight(prim_path)
-        light.set_intensities(intensity)
 
     def _apply_physics_materials(self, values):
         """

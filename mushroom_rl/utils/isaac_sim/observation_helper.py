@@ -1,4 +1,3 @@
-from collections import namedtuple
 from enum import Enum
 
 import torch
@@ -6,23 +5,11 @@ import warp as wp
 
 from mushroom_rl.utils import TorchUtils
 
-_EnumInfo = namedtuple('_EnumInfo', 'category length accessor component keyword', defaults=(None, None))
-
 
 class ObservationType(Enum):
     """
     Enumeration for different types of observations in a simulation.
 
-    Each observation type is described by an ``_EnumInfo`` carrying:
-
-    - A category (`category`), either 'body', 'joint' or 'sub_body'.
-    - The length of the observation (`length`).
-    - The Isaac Sim call serving it (`accessor`), without the ``get_``/``set_`` prefix.
-    - For a type that is one component of a call returning several of them, which component it is on the
-      read side (`component`) and the keyword the setter takes it under on the write side (`keyword`).
-
-    A type whose value is assembled from every component of such a call declares neither, and
-    ``ObservationHelper`` combines them explicitly.
     """
 
     def __new__(cls, *args, **kwargs):
@@ -30,32 +17,32 @@ class ObservationType(Enum):
         obj._value_ = len(cls.__members__)  # Automatically assign ID based on current number of members
         return obj
 
-    BODY_POS = _EnumInfo('body', 3, 'world_poses', component=0)
-    BODY_ROT = _EnumInfo('body', 4, 'world_poses', component=1, keyword='orientations')
-    BODY_LIN_VEL = _EnumInfo('body', 3, 'velocities', component=0, keyword='linear_velocities')
-    BODY_ANG_VEL = _EnumInfo('body', 3, 'velocities', component=1, keyword='angular_velocities')
-    BODY_VEL = _EnumInfo('body', 6, 'velocities')  # combination of lin_vel and ang_vel
-    BODY_SCALE = _EnumInfo('body', 3, 'local_scales')
-    JOINT_POS = _EnumInfo('joint', 1, 'dof_positions')
-    JOINT_VEL = _EnumInfo('joint', 1, 'dof_velocities')
-    JOINT_GAIN = _EnumInfo('joint', 2, 'dof_gains')  # combination of stiffness and damping
-    JOINT_GAIN_STIFFNESS = _EnumInfo('joint', 1, 'dof_gains', component=0, keyword='stiffnesses')
-    JOINT_GAIN_DAMPING = _EnumInfo('joint', 1, 'dof_gains', component=1, keyword='dampings')
-    JOINT_DEFAULT_POS = _EnumInfo('joint', 1, 'default_state', component=4, keyword='dof_positions')
-    JOINT_MAX_EFFORT = _EnumInfo('joint', 1, 'dof_max_efforts')
-    JOINT_MAX_VELOCITY = _EnumInfo('joint', 1, 'dof_max_velocities')
-    JOINT_MAX_POS = _EnumInfo('joint', 2, 'dof_limits')  # combination of the lower and the upper limit
-    JOINT_ARMATURES = _EnumInfo('joint', 1, 'dof_armatures')
-    JOINT_FRICTION = _EnumInfo('joint', 3, 'dof_friction_properties')  # static, dynamic and viscous friction
-    JOINT_FRICTION_STATIC = _EnumInfo('joint', 1, 'dof_friction_properties', component=0, keyword='static_frictions')
-    JOINT_FRICTION_DYNAMIC = _EnumInfo('joint', 1, 'dof_friction_properties', component=1, keyword='dynamic_frictions')
-    JOINT_FRICTION_VISCOUS = _EnumInfo('joint', 1, 'dof_friction_properties', component=2, keyword='viscous_frictions')
-    JOINT_MEASURED_EFFORT = _EnumInfo('joint', 1, 'dof_projected_joint_forces')
-    SUB_BODY_INERTIA = _EnumInfo('sub_body', 9, 'link_inertias')
-    SUB_BODY_MASS = _EnumInfo('sub_body', 1, 'link_masses')
-    SUB_BODY_COM = _EnumInfo('sub_body', 7, 'link_coms')  # center of mass
-    SUB_BODY_COM_POS = _EnumInfo('sub_body', 3, 'link_coms', component=0, keyword='positions')
-    SUB_BODY_COM_ROT = _EnumInfo('sub_body', 4, 'link_coms', component=1, keyword='orientations')
+    BODY_POS = ('body', 3, 'world_poses', 0)
+    BODY_ROT = ('body', 4, 'world_poses', 1, 'orientations')
+    BODY_LIN_VEL = ('body', 3, 'velocities', 0, 'linear_velocities')
+    BODY_ANG_VEL = ('body', 3, 'velocities', 1, 'angular_velocities')
+    BODY_VEL = ('body', 6, 'velocities')  # combination of lin_vel and ang_vel
+    BODY_SCALE = ('body', 3, 'local_scales')
+    JOINT_POS = ('joint', 1, 'dof_positions')
+    JOINT_VEL = ('joint', 1, 'dof_velocities')
+    JOINT_GAIN = ('joint', 2, 'dof_gains')  # combination of stiffness and damping
+    JOINT_GAIN_STIFFNESS = ('joint', 1, 'dof_gains', 0, 'stiffnesses')
+    JOINT_GAIN_DAMPING = ('joint', 1, 'dof_gains', 1, 'dampings')
+    JOINT_DEFAULT_POS = ('joint', 1, 'default_state', 4, 'dof_positions')
+    JOINT_MAX_EFFORT = ('joint', 1, 'dof_max_efforts')
+    JOINT_MAX_VELOCITY = ('joint', 1, 'dof_max_velocities')
+    JOINT_MAX_POS = ('joint', 2, 'dof_limits')  # combination of the lower and the upper limit
+    JOINT_ARMATURES = ('joint', 1, 'dof_armatures')
+    JOINT_FRICTION = ('joint', 3, 'dof_friction_properties')  # static, dynamic and viscous friction
+    JOINT_FRICTION_STATIC = ('joint', 1, 'dof_friction_properties', 0, 'static_frictions')
+    JOINT_FRICTION_DYNAMIC = ('joint', 1, 'dof_friction_properties', 1, 'dynamic_frictions')
+    JOINT_FRICTION_VISCOUS = ('joint', 1, 'dof_friction_properties', 2, 'viscous_frictions')
+    JOINT_MEASURED_EFFORT = ('joint', 1, 'dof_projected_joint_forces')
+    SUB_BODY_INERTIA = ('sub_body', 9, 'link_inertias')
+    SUB_BODY_MASS = ('sub_body', 1, 'link_masses')
+    SUB_BODY_COM = ('sub_body', 7, 'link_coms')  # center of mass
+    SUB_BODY_COM_POS = ('sub_body', 3, 'link_coms', 0, 'positions')
+    SUB_BODY_COM_ROT = ('sub_body', 4, 'link_coms', 1, 'orientations')
 
     def __init__(self, category, length, accessor, component=None, keyword=None):
         """
@@ -72,20 +59,12 @@ class ObservationType(Enum):
             keyword (str, None): The keyword the setter takes that same component under, or None when the
                 setter takes the value positionally.
 
-        The keyword selecting the elements to act on within the prim, ``element_kwarg``, follows from the
-        category: bodies have no such keyword, joints take ``dof_indices`` and sub bodies ``link_indices``.
         """
         self.category = category
         self.length = length
         self.accessor = accessor
         self.component = component
         self.keyword = keyword
-        if self.is_joint():
-            self.element_kwarg = 'dof_indices'
-        elif self.is_sub_body():
-            self.element_kwarg = 'link_indices'
-        else:
-            self.element_kwarg = None
 
     def is_body(self):
         """
@@ -164,7 +143,7 @@ class ObservationHelper:
         self.obs_idx_map = self._compute_obs_idx_map()
         self.obs_types_idx_map = self._compute_type_idx_map()
 
-    def set_up(self):
+    def initialize(self):
         """
         Resolves the specifications into the accessors serving them, and reapplies the properties that survive a
         reset. Isaac Sim only names the joints and the bodies of a prim once the simulation is running, so this
@@ -257,7 +236,7 @@ class ObservationHelper:
         indices = self.obs_idx_map[name]
         return obs[:, indices]
 
-    def get_by_type_from_obs(self, obs, obs_type):
+    def get_from_obs_type(self, obs, obs_type):
         """
         Retrieves all data from obs of a specific observation type.
 
@@ -300,7 +279,7 @@ class ObservationHelper:
 
         """
         view, obs_type, element_idx = self._find_accessor(name)
-        return self.read_property(view, obs_type, element_idx=element_idx, env_indices=env_indices)
+        return self._read_property(view, obs_type, element_idx=element_idx, env_indices=env_indices)
 
     def write_data(self, name, value, env_indices=None, reapply_after_reset=False):
         """
@@ -315,10 +294,10 @@ class ObservationHelper:
 
         """
         view, obs_type, element_idx = self._find_accessor(name)
-        self.set_property(view, obs_type, value, element_idx=element_idx, env_indices=env_indices)
+        self._set_property(view, obs_type, value, element_idx=element_idx, env_indices=env_indices)
 
         if reapply_after_reset:
-            self._consistent_property_storage[name] = lambda: self.set_property(
+            self._consistent_property_storage[name] = lambda: self._set_property(
                 view, obs_type, value.clone(), element_idx=element_idx, env_indices=env_indices
             )
 
@@ -338,91 +317,7 @@ class ObservationHelper:
         """
         if element_idx is None and type.is_joint():
             element_idx = self._actuation_helper.controlled_dofs
-        self.set_property(self._robots, type, value, element_idx, env_indices)
-
-    def read_property(self, view, obs_type, element_idx=None, env_indices=None):
-        """
-        Retrieves a specific property from the given view based on the observation type.
-
-        The getter the observation type names is called once, and only the types whose value is not one of
-        the arrays it returns are post-processed explicitly.
-
-        Args:
-            view: The view object that provides access to simulation data.
-            obs_type (ObservationType): The type of observation to retrieve.
-            element_idx (warp.array, None): Indices of the joints or bodies for which to retrieve data, in
-                the form Isaac Sim returns them from ``get_dof_indices`` and ``get_link_indices``. Only used
-                for joint- and sub-body-related observation types.
-            env_indices (torch.Tensor, None): Indices of the environments for which to retrieve data.
-
-        Returns:
-            The requested property as a torch tensor.
-
-        """
-        indices = None if env_indices is None else wp.from_torch(env_indices.to(torch.int32))
-
-        if obs_type == ObservationType.JOINT_MAX_POS:
-            # the getter reads every joint of the articulation, the observation keeps the controlled ones
-            lower, upper = view.get_dof_limits()
-            dof_limits = torch.stack((wp.to_torch(lower), wp.to_torch(upper)), dim=2)
-            return dof_limits[:, self._actuation_helper.controlled_joints]
-
-        selection = self._selection(obs_type, indices, element_idx)
-        data = getattr(view, f'get_{obs_type.accessor}')(**selection)
-
-        if obs_type == ObservationType.BODY_POS:
-            env_pos = self._env_pos if env_indices is None else self._env_pos[env_indices]
-            return wp.to_torch(data[obs_type.component]) - env_pos
-        elif obs_type in (ObservationType.JOINT_GAIN, ObservationType.JOINT_FRICTION):
-            # one scalar per joint each, so the components stack into a new trailing axis
-            return torch.stack([wp.to_torch(component) for component in data], dim=-1)
-        elif obs_type in (ObservationType.BODY_VEL, ObservationType.SUB_BODY_COM):
-            # vectors each, so the components concatenate along the trailing axis
-            return torch.cat([wp.to_torch(component) for component in data], dim=-1)
-
-        return wp.to_torch(data if obs_type.component is None else data[obs_type.component])
-
-    def set_property(self, view, obs_type, value, element_idx=None, env_indices=None):
-        """
-        Sets the specified property values immediately.
-
-        Only the types whose value has to be split over several arguments of the setter the observation type
-        names are handled explicitly; the others are passed to it whole.
-
-        Args:
-            view: The isaac sim view where the properties should be set.
-            obs_type (ObservationType): The type of observation to update.
-            value (torch.Tensor): The new values to be assigned.
-            element_idx (warp.array, None): The joint or body indices to be updated, in the form Isaac Sim
-                returns them from ``get_dof_indices`` and ``get_link_indices``.
-            env_indices (torch.Tensor, None): The environment indices to apply the update.
-
-        """
-        if obs_type == ObservationType.JOINT_MEASURED_EFFORT:
-            raise NotImplementedError("Set function for measured effort doesn't exist in isaacsim.core.")
-
-        indices = None if env_indices is None else wp.from_torch(env_indices.to(torch.int32))
-        selection = self._selection(obs_type, indices, element_idx)
-        setter = getattr(view, f'set_{obs_type.accessor}')
-
-        if obs_type == ObservationType.BODY_POS:
-            setter(positions=wp.from_torch(value + self._env_pos[env_indices]), **selection)
-        elif obs_type == ObservationType.BODY_VEL:
-            setter(wp.from_torch(value[:, :3]), wp.from_torch(value[:, 3:]), **selection)
-        elif obs_type == ObservationType.JOINT_GAIN:
-            # stiffness is the proportional gain, damping the derivative one
-            setter(stiffnesses=wp.from_torch(value[:, :, 0]), dampings=wp.from_torch(value[:, :, 1]), **selection)
-        elif obs_type == ObservationType.JOINT_MAX_POS:
-            setter(lower=wp.from_torch(value[..., 0]), upper=wp.from_torch(value[..., 1]), **selection)
-        elif obs_type == ObservationType.JOINT_FRICTION:
-            setter(wp.from_torch(value[..., 0]), wp.from_torch(value[..., 1]), wp.from_torch(value[..., 2]),
-                   **selection)
-        elif obs_type == ObservationType.SUB_BODY_COM:
-            setter(positions=wp.from_torch(value[..., :3]), orientations=wp.from_torch(value[..., 3:]), **selection)
-        elif obs_type.keyword is None:
-            setter(wp.from_torch(value), **selection)
-        else:
-            setter(**{obs_type.keyword: wp.from_torch(value)}, **selection)
+        self._set_property(self._robots, type, value, element_idx, env_indices)
 
     def clear_consistent_properties(self, names=None):
         """
@@ -501,6 +396,90 @@ class ObservationHelper:
 
         return self._observers[name]
 
+    def _read_property(self, view, obs_type, element_idx=None, env_indices=None):
+        """
+        Retrieves a specific property from the given view based on the observation type.
+
+        The getter the observation type names is called once, and only the types whose value is not one of
+        the arrays it returns are post-processed explicitly.
+
+        Args:
+            view: The view object that provides access to simulation data.
+            obs_type (ObservationType): The type of observation to retrieve.
+            element_idx (warp.array, None): Indices of the joints or bodies for which to retrieve data, in
+                the form Isaac Sim returns them from ``get_dof_indices`` and ``get_link_indices``. Only used
+                for joint- and sub-body-related observation types.
+            env_indices (torch.Tensor, None): Indices of the environments for which to retrieve data.
+
+        Returns:
+            The requested property as a torch tensor.
+
+        """
+        indices = None if env_indices is None else wp.from_torch(env_indices.to(torch.int32))
+
+        if obs_type == ObservationType.JOINT_MAX_POS:
+            # the getter reads every joint of the articulation, the observation keeps the controlled ones
+            lower, upper = view.get_dof_limits()
+            dof_limits = torch.stack((wp.to_torch(lower), wp.to_torch(upper)), dim=2)
+            return dof_limits[:, self._actuation_helper.controlled_joints]
+
+        selection = self._accessor_kwargs(obs_type, indices, element_idx)
+        data = getattr(view, f'get_{obs_type.accessor}')(**selection)
+
+        if obs_type == ObservationType.BODY_POS:
+            env_pos = self._env_pos if env_indices is None else self._env_pos[env_indices]
+            return wp.to_torch(data[obs_type.component]) - env_pos
+        elif obs_type in (ObservationType.JOINT_GAIN, ObservationType.JOINT_FRICTION):
+            # one scalar per joint each, so the components stack into a new trailing axis
+            return torch.stack([wp.to_torch(component) for component in data], dim=-1)
+        elif obs_type in (ObservationType.BODY_VEL, ObservationType.SUB_BODY_COM):
+            # vectors each, so the components concatenate along the trailing axis
+            return torch.cat([wp.to_torch(component) for component in data], dim=-1)
+
+        return wp.to_torch(data if obs_type.component is None else data[obs_type.component])
+
+    def _set_property(self, view, obs_type, value, element_idx=None, env_indices=None):
+        """
+        Sets the specified property values immediately.
+
+        Only the types whose value has to be split over several arguments of the setter the observation type
+        names are handled explicitly; the others are passed to it whole.
+
+        Args:
+            view: The isaac sim view where the properties should be set.
+            obs_type (ObservationType): The type of observation to update.
+            value (torch.Tensor): The new values to be assigned.
+            element_idx (warp.array, None): The joint or body indices to be updated, in the form Isaac Sim
+                returns them from ``get_dof_indices`` and ``get_link_indices``.
+            env_indices (torch.Tensor, None): The environment indices to apply the update.
+
+        """
+        if obs_type == ObservationType.JOINT_MEASURED_EFFORT:
+            raise NotImplementedError("Set function for measured effort doesn't exist in isaacsim.core.")
+
+        indices = None if env_indices is None else wp.from_torch(env_indices.to(torch.int32))
+        selection = self._accessor_kwargs(obs_type, indices, element_idx)
+        setter = getattr(view, f'set_{obs_type.accessor}')
+
+        if obs_type == ObservationType.BODY_POS:
+            setter(positions=wp.from_torch(value + self._env_pos[env_indices]), **selection)
+        elif obs_type == ObservationType.BODY_VEL:
+            setter(wp.from_torch(value[:, :3]), wp.from_torch(value[:, 3:]), **selection)
+        elif obs_type == ObservationType.JOINT_GAIN:
+            # stiffness is the proportional gain, damping the derivative one
+            setter(stiffnesses=wp.from_torch(value[:, :, 0]), dampings=wp.from_torch(value[:, :, 1]), **selection)
+        elif obs_type == ObservationType.JOINT_MAX_POS:
+            setter(lower=wp.from_torch(value[..., 0]), upper=wp.from_torch(value[..., 1]), **selection)
+        elif obs_type == ObservationType.JOINT_FRICTION:
+            setter(wp.from_torch(value[..., 0]), wp.from_torch(value[..., 1]), wp.from_torch(value[..., 2]),
+                   **selection)
+        elif obs_type == ObservationType.SUB_BODY_COM:
+            setter(positions=wp.from_torch(value[..., :3]), orientations=wp.from_torch(value[..., 3:]), **selection)
+        elif obs_type.keyword is None:
+            setter(wp.from_torch(value), **selection)
+        else:
+            setter(**{obs_type.keyword: wp.from_torch(value)}, **selection)
+
     def _read_observations(self):
         """
         Retrieves the current observations from the simulation.
@@ -511,27 +490,8 @@ class ObservationHelper:
         """
         obs = {}
         for name, (view, obs_type, element_idx) in self._observers.items():
-            obs[name] = self.read_property(view, obs_type, element_idx=element_idx)
+            obs[name] = self._read_property(view, obs_type, element_idx=element_idx)
         return obs
-
-    def _as_bound(self, value, length):
-        """
-        Brings an observation bound into tensor form, broadcasting scalars over the observation length.
-
-        Args:
-            value (float, torch.tensor): The bound, either a single value or one value per element.
-            length (int): The length of the observation.
-
-        Returns:
-            A tensor of shape (length, ) holding the bound.
-
-        """
-        if torch.is_tensor(value):
-            return value.to(TorchUtils.get_device())
-        elif hasattr(value, "__len__"):
-            return torch.tensor(value, device=TorchUtils.get_device())
-
-        return torch.full((length, ), value, device=TorchUtils.get_device())
 
     def _compute_obs_idx_map(self):
         """
@@ -567,7 +527,7 @@ class ObservationHelper:
         return mapping
 
     @staticmethod
-    def _selection(obs_type, indices, element_idx):
+    def _accessor_kwargs(obs_type, indices, element_idx):
         """
         Builds the keywords selecting what a getter or a setter acts on.
 
@@ -580,7 +540,29 @@ class ObservationHelper:
             A dictionary of keyword arguments.
 
         """
-        if obs_type.element_kwarg is None:
+        if obs_type.is_joint():
+            return dict(indices=indices, dof_indices=element_idx)
+        elif obs_type.is_sub_body():
+            return dict(indices=indices, link_indices=element_idx)
+        else:
             return dict(indices=indices)
 
-        return {'indices': indices, obs_type.element_kwarg: element_idx}
+    @staticmethod
+    def _as_bound(value, length):
+        """
+        Brings an observation bound into tensor form, broadcasting scalars over the observation length.
+
+        Args:
+            value (float, torch.tensor): The bound, either a single value or one value per element.
+            length (int): The length of the observation.
+
+        Returns:
+            A tensor of shape (length, ) holding the bound.
+
+        """
+        if torch.is_tensor(value):
+            return value.to(TorchUtils.get_device())
+        elif hasattr(value, "__len__"):
+            return torch.tensor(value, device=TorchUtils.get_device())
+
+        return torch.full((length, ), value, device=TorchUtils.get_device())
