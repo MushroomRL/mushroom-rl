@@ -220,7 +220,7 @@ epub_exclude_files = ['search.html']
 autodoc_member_order = 'bysource'
 autodoc_mock_imports = ['scipy', 'sklearn', 'ale_py', 'pybullet', 'pybullet_data', 'pybullet_utils',
                         'dm_control', 'minigrid', 'mujoco', 'glfw', 'av', 'cv2',
-                        'omni', 'pyqtgraph', 'PySide6']
+                        'isaacsim', 'omni', 'pxr', 'warp', 'pyqtgraph', 'PySide6']
 add_module_names = False
 
 autodoc_default_options = {
@@ -248,12 +248,14 @@ def skip(app, what, name, obj, skip, options):
         return False
     return skip
 
+
 def configure_builder(app):
     if 'latex' in app.builder.name:
         app.config.exclude_patterns.append('index.rst')
         app.config.master_doc = 'latex_index'
     else:
         app.config.exclude_patterns.append('latex_index.rst')
+
 
 def setup(app):
     app.connect('builder-inited', configure_builder)

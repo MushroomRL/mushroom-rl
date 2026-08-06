@@ -1,0 +1,154 @@
+import atexit
+
+from isaacsim import SimulationApp
+
+
+class IsaacLauncher:
+    """
+    Owner of the Isaac Sim simulation app.
+
+    Isaac Sim's Carbonite framework only lets its modules be imported once the app is running, so everything
+    in MushroomRL's Isaac layer has to be imported *after* :meth:`launch` has been called::
+
+        from mushroom_rl.utils.isaac_sim import IsaacLauncher
+
+        IsaacLauncher.launch(headless=True)
+
+        from mushroom_rl.environments.isaacsim_envs import CartPoleIsaac
+
+    This class is the only part of the layer that can be imported before that point.
+
+    The app is a per-process singleton: it wraps ``omni.kit.app``, which is global to the process, and
+    starting a second one crashes the interpreter. There is correspondingly nothing to instantiate here --
+    the class is a namespace holding the one app, and every method is a classmethod. It also means the
+    settings that belong to the app rather than to a scene -- whether to open a window, and which physics
+    engine to simulate with -- are arguments of :meth:`launch` instead of arguments of the environments.
+
+    """
+    _app = None
+
+    def __new__(cls, *args, **kwargs):
+        """
+        Raises:
+            TypeError: Always. There is a single simulation app per process and the class holds it, so an
+                instance would carry no state of its own.
+
+        """
+        raise TypeError(f"{cls.__name__} cannot be instantiated: it holds the one simulation app of  the process. "
+                        f"Call {cls.__name__}.launch() on the class itself.")
+
+    @classmethod
+    def launch(cls, headless=True, physics_engine='physx'):
+        """
+        Starts Isaac Sim, so that its modules and the MushroomRL environments built on them can be imported.
+
+        Calling this a second time does nothing but return the running app: a process can only hold one.
+
+        Args:
+            headless (bool): Whether to run without a window.
+            physics_engine (str): The physics engine to simulate with, either 'physx' or 'newton'. Isaac Sim
+                documents Newton as experimental, and MushroomRL does not test it: the robot assets shipped
+                here are tuned for PhysX and the two engines do not produce the same dynamics.
+
+        Returns:
+            The running simulation app.
+
+        """
+        if cls._app is None:
+            cls._app = SimulationApp({"headless": headless, "hide_ui": False})
+            cls._apply_carb_settings(cls._app)
+            cls._select_physics_engine(physics_engine)
+
+            # SimulationApp registers a shutdown of its own, which warns that it had to close the app on our
+            # behalf. Registering afterward puts ours first, as atexit runs its callbacks in reverse order.
+            atexit.register(cls.shutdown)
+
+        return cls._app
+
+    @classmethod
+    def shutdown(cls):
+        """
+        Closes Isaac Sim. This ends the process: the app shuts the Carbonite framework down and terminates,
+        so nothing can be simulated afterward and Isaac Sim cannot be launched again. Since this is also
+        registered to run at exit, any ``atexit`` callback registered *before* :meth:`launch` is never
+        reached; register cleanups afterward, where they run first.
+
+        Does nothing if Isaac Sim is not running.
+
+        """
+        if cls._app is not None:
+            cls._app.close()
+
+    @classmethod
+    def get(cls):
+        """
+        Returns the running simulation app.
+
+        Returns:
+            The simulation app started by :meth:`launch`.
+
+        Raises:
+            RuntimeError: If Isaac Sim has not been launched yet.
+
+        """
+        if cls._app is None:
+            raise RuntimeError("Isaac Sim is not running: call IsaacLauncher.launch() before creating an "
+                               "environment.")
+
+        return cls._app
+
+    @classmethod
+    def is_headless(cls):
+        """
+        Returns:
+            Whether Isaac Sim was launched without a window.
+
+        """
+        return cls.get().config["headless"]
+
+    @staticmethod
+    def _apply_carb_settings(simulation_app):
+        """
+        Apply settings for optimization.
+
+        Args:
+            simulation_app: The running simulation app.
+
+        """
+        simulation_app.set_setting("/persistent/omnihydra/useSceneGraphInstancing", True)
+        simulation_app.set_setting("/physics/physxDispatcher", True)
+
+        simulation_app.set_setting("/physics/disableContactProcessing", True)
+        simulation_app.set_setting("/physics/collisionConeCustomGeometry", False)
+        simulation_app.set_setting("/physics/collisionCylinderCustomGeometry", False)
+
+        # default values from IsaacLab
+        simulation_app.set_setting("/rtx/translucency/enabled", False)
+        simulation_app.set_setting("/rtx/reflections/enabled", False)
+        simulation_app.set_setting("/rtx/indirectDiffuse/enabled", False)
+        simulation_app.set_setting("/rtx-transient/dlssg/enabled", False)
+        simulation_app.set_setting("/rtx/directLighting/enabled", True)
+        simulation_app.set_setting("/rtx/directLighting/sampledLighting/samplesPerPixel", 1)
+        simulation_app.set_setting("/rtx/shadows/enabled", True)
+        simulation_app.set_setting("/rtx/ambientOcclusion/enabled", False)
+
+    @staticmethod
+    def _select_physics_engine(physics_engine):
+        """
+        Makes the requested physics engine the active one.
+
+        Args:
+            physics_engine (str): The physics engine to simulate with, either 'physx' or 'newton'.
+
+        """
+        # this module has to be importable before Isaac Sim runs, since it is what starts it, so these two are
+        # the one place in the layer where an Isaac import cannot sit at the top of a file
+        import isaacsim.core.experimental.utils.app as app_utils
+        from isaacsim.core.simulation_manager import SimulationManager
+
+        if physics_engine != SimulationManager.get_active_physics_engine():
+            # Newton ships disabled outside its own launch script, so it has to be brought up by hand
+            if physics_engine == 'newton':
+                app_utils.enable_extension('isaacsim.physics.newton')
+                app_utils.enable_extension('isaacsim.physics.newton.tensors')
+            SimulationManager.switch_physics_engine(physics_engine)
