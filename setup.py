@@ -27,7 +27,8 @@ extras = {
     'minigrid': ['minigrid'],
     'box2d': ['box2d-py'],
     'bullet': ['pybullet'],
-    'mujoco': ['mujoco>=3.11', 'dm_control>=1.0.44'],
+    'mujoco': ['mujoco>=3.11'],
+    'dm_control': ['dm_control>=1.0.44'],
     'monitors': ['pyqtgraph', 'PySide6'],
     'wandb': ['wandb']
 }

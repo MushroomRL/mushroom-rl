@@ -74,9 +74,6 @@ Below is the code that you need to run to install the live monitors dependencies
 
     pip install mushroom-rl[monitors]
 
-The `dm_control <https://github.com/deepmind/dm_control>`_ interface does not need a separate installation:
-``dm_control`` is installed together with ``MuJoCo`` by the ``mujoco`` extra.
-
 Editable Installation
 ---------------------
 

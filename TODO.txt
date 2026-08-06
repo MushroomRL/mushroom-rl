@@ -4,10 +4,11 @@ For Mushroom 2.0:
     * Fix environment examples showing poor learning
         - dm_control
         - Mujoco: air hockey, manipulation, locomotion
-    * Fix or check properly paper exampleos missing:
+    * Fix or check properly paper examples missing:
         - MellowMax
         - Atari
-    * Update Mujoco viewer and mujoco class interface
+    * Update Mujoco class interface
+    * new Mujoco viewer need test on macOS.
     * Fix Mellowmax by clipping range, not returning beta=0
     * After release: Put back latest as default readthedocs config and as default badge in the main readme.rts
     * port Isaac to 6.0

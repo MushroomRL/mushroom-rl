@@ -54,7 +54,7 @@ registered only if that dependency imports successfully, so an environment missi
 
    "Atari", ":class:`~mushroom_rl.environments.atari.Atari`", "Box (image)", "Discrete", "``mushroom_rl[atari]``"
    "Gymnasium", ":class:`~mushroom_rl.environments.gymnasium_env.Gymnasium`", "task dependent", "task dependent", "``mushroom_rl[gymnasium]``"
-   "DMControl", ":class:`~mushroom_rl.environments.dm_control_env.DMControl`", "task dependent", "task dependent", "``mushroom_rl[mujoco]``"
+   "DMControl", ":class:`~mushroom_rl.environments.dm_control_env.DMControl`", "task dependent", "task dependent", "``mushroom_rl[dm_control]``"
    "MiniGrid", ":class:`~mushroom_rl.environments.minigrid_env.MiniGrid`", "Box (3, H, W)", "Discrete", "``mushroom_rl[minigrid]``"
    "MiniGridRGB", ":class:`~mushroom_rl.environments.minigrid_env.MiniGridRGB`", "Box (grayscale image)", "Discrete", "``mushroom_rl[minigrid]``"
 
