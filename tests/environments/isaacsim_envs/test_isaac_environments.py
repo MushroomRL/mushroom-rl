@@ -13,7 +13,7 @@ IsaacLauncher.launch(headless=True)
 TorchUtils.set_default_device("cuda:0")
 
 from mushroom_rl.environments.isaacsim_envs import CartPoleIsaac
-from mushroom_rl.environments.isaacsim_envs import A1Walking, HoneyBadgerWalking, SilverBadgerWalking
+from mushroom_rl.environments.isaacsim_envs import A1Isaac, HoneyBadgerIsaac, SilverBadgerIsaac
 
 
 def run_env(mdp, num_joints):
@@ -76,7 +76,7 @@ def test_a1():
     torch.manual_seed(1)
 
     n_envs = 2
-    mdp = A1Walking(n_envs, 1000)
+    mdp = A1Isaac(n_envs, 1000)
     mdp.seed(1)
 
     assert mdp.number == n_envs
@@ -92,7 +92,7 @@ def test_honey_badger():
     torch.manual_seed(1)
 
     n_envs = 2
-    mdp = HoneyBadgerWalking(n_envs, 1000)
+    mdp = HoneyBadgerIsaac(n_envs, 1000)
     mdp.seed(1)
 
     assert mdp.number == n_envs
@@ -108,7 +108,7 @@ def test_silver_badger():
     torch.manual_seed(1)
 
     n_envs = 2
-    mdp = SilverBadgerWalking(n_envs, 1000)
+    mdp = SilverBadgerIsaac(n_envs, 1000)
     mdp.seed(1)
 
     assert mdp.number == n_envs
@@ -117,3 +117,33 @@ def test_silver_badger():
     obs_test = np.load('tests/environments/isaacsim_envs/silver_badger_data.npy')
 
     assert np.allclose(obs, obs_test)
+
+
+def test_honey_badger_no_domain_randomization():
+    np.random.seed(1)
+    torch.manual_seed(1)
+
+    n_envs = 2
+    mdp = HoneyBadgerIsaac(n_envs, 1000, domain_randomization=False)
+    mdp.seed(1)
+
+    assert mdp.number == n_envs
+
+    obs = run_env(mdp, 12)
+
+    assert np.all(np.isfinite(obs))
+
+
+def test_silver_badger_no_domain_randomization():
+    np.random.seed(1)
+    torch.manual_seed(1)
+
+    n_envs = 2
+    mdp = SilverBadgerIsaac(n_envs, 1000, domain_randomization=False)
+    mdp.seed(1)
+
+    assert mdp.number == n_envs
+
+    obs = run_env(mdp, 13)
+
+    assert np.all(np.isfinite(obs))

@@ -1,3 +1,5 @@
+from . import _require_launched  # noqa: F401 -- raises if Isaac Sim hasn't been launched yet
+
 import torch
 import warp as wp
 
@@ -27,6 +29,7 @@ class CollisionHelper:
                 prim paths differently from ``isaacsim.core.experimental``.
             n_envs (int): Number of parallel environments.
             n_intermediate_steps (int): Number of intermediate control steps. Defaults to 1.
+
         """
         self._views = None
         self._collision_groups_indices = None
@@ -53,7 +56,7 @@ class CollisionHelper:
                 prim_utils.ensure_api(prim, PhysxSchema.PhysxRigidBodyAPI)
                 prim_utils.ensure_api(prim, PhysxSchema.PhysxContactReportAPI)
 
-    def set_up(self):
+    def initialize(self):
         """
         Sets up a contact-tracking view for all objects of all collision groups.
 
