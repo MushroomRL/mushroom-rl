@@ -1,6 +1,5 @@
-from pathlib import Path
-
 import torch
+from pathlib import Path
 
 from mushroom_rl.environments.isaacsim_envs.quadruped import QuadrupedIsaac
 from mushroom_rl.utils import TorchUtils
@@ -32,6 +31,15 @@ class A1Isaac(QuadrupedIsaac):
             0.1, 1., -1.5,
             -0.1, 1., -1.5
         ], device=device)
+        trunk_body = "trunk"
+        foot_bodies = ["/FL_foot", "/FR_foot", "/RL_foot", "/RR_foot"]
+        sub_bodies = [
+            "trunk",
+            "FL_hip", "FR_hip", "RL_hip", "RR_hip",
+            "FL_thigh", "FR_thigh", "RL_thigh", "RR_thigh",
+            "FL_calf", "FR_calf", "RL_calf", "RR_calf",
+            "FL_foot", "FR_foot", "RL_foot", "RR_foot"
+        ]
         observation_spec = [
             ("base_lin_vel", "", ObservationType.BODY_LIN_VEL, None),
             ("base_ang_vel", "", ObservationType.BODY_ANG_VEL, None),
@@ -54,42 +62,16 @@ class A1Isaac(QuadrupedIsaac):
         self._feet_ids = slice(1, 5)
         self._lower_bodies_ids = slice(5, None)
 
-        super().__init__(usd_path, action_spec, default_joint_angles, observation_spec, additional_data_spec,
-                         collision_groups, num_envs, horizon, domain_randomization, camera_position, camera_target)
+        super().__init__(usd_path, action_spec, default_joint_angles, trunk_body, foot_bodies, sub_bodies,
+                         observation_spec, additional_data_spec, collision_groups, num_envs, horizon,
+                         domain_randomization, camera_position, camera_target)
 
     def is_absorbing(self, obs):
         trunk_forces = self._collision_helper.get_net_contact_forces("body", dt=self._timestep)[:, self._trunk_idx, :]
         fallen = torch.norm(trunk_forces, dim=-1) > 1.
         return fallen
 
-    def _get_obs_normilization_vec(self):
-        v = torch.zeros(self._observation_helper.obs_length, device=TorchUtils.get_device())
-
-        lin_vel = self._observation_helper.obs_idx_map["base_lin_vel"]
-        ang_vel = self._observation_helper.obs_idx_map["base_ang_vel"]
-        joint_positions = self._observation_helper.obs_idx_map["joint_pos"]
-        joint_velocities = self._observation_helper.obs_idx_map["joint_vel"]
-        gravity = self._observation_helper.obs_idx_map["projected_gravity"]
-        commands = self._observation_helper.obs_idx_map["commands"]
-        actions = self._observation_helper.obs_idx_map["actions"]
-
-        v[lin_vel] = 2.0
-        v[ang_vel] = 0.25
-        v[joint_positions] = 1.00
-        v[joint_velocities] = 0.05
-        v[gravity] = 1.
-        v[commands[0:2]] = 2.0
-        v[commands[2]] = 0.25
-        v[actions] = 1.
-
-        return v
-
-    def _compute_torque(self, action, joint_vels, joint_pos):
-        actions_scaled = action * 0.25
-        self._torques = 20.0 * (actions_scaled + self._default_joint_angles - joint_pos) - 0.5 * joint_vels
-        self._torques = torch.clip(self._torques, -self._effort_limit, self._effort_limit)
-
-        return self._torques
+    # reward function -----------------------------------------------------------------------------------------
 
     def _reward_collision(self):
         # Penalize collisions on selected bodies

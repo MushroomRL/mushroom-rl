@@ -14,6 +14,7 @@ TorchUtils.set_default_device("cuda:0")
 
 from mushroom_rl.environments.isaacsim_envs import CartPoleIsaac
 from mushroom_rl.environments.isaacsim_envs import A1Isaac, HoneyBadgerIsaac, SilverBadgerIsaac
+from mushroom_rl.environments.isaacsim_envs.quadruped_randomizer import QuadrupedRandomizationParams
 
 
 def run_env(mdp, num_joints):
@@ -45,6 +46,29 @@ def run_env(mdp, num_joints):
     mdp.stop(soft=False)
 
     return obs.cpu().numpy()
+
+
+def test_randomization_params():
+    params = QuadrupedRandomizationParams()
+
+    assert params["torque_limit_factor"] == 0.3
+    assert params["joint_damping"] == (0.0, 0.3)
+    assert "add_p_gain" in params
+    assert "nominal_p_gain" not in params
+    assert "torque_limt_factor" not in params
+
+    overridden = QuadrupedRandomizationParams(torque_limit_factor=0.5, joint_damping=(0.1, 0.2))
+
+    assert overridden["torque_limit_factor"] == 0.5
+    assert overridden["joint_damping"] == (0.1, 0.2)
+    assert overridden["add_p_gain"] == (-3.0, 3.0)
+    assert params["torque_limit_factor"] == 0.3
+
+    with pytest.raises(ValueError):
+        QuadrupedRandomizationParams(torque_limt_factor=0.5)
+
+    with pytest.raises(KeyError):
+        params["torque_limt_factor"]
 
 
 def test_cartpole():
