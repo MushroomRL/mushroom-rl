@@ -25,7 +25,7 @@ registered only if that dependency imports successfully, so an environment missi
    external/index
    mujoco/index
    pybullet/index
-   isaacsim
+   isaacsim/index
 
 .. rubric:: Built-in
 
@@ -95,5 +95,4 @@ The Isaac Sim environments are **not** registered: ``mushroom_rl/environments/__
 ``isaacsim_envs``, so they are not reachable through :meth:`~mushroom_rl.core.Environment.make` and must be
 imported from their module explicitly, e.g.
 ``from mushroom_rl.environments.isaacsim_envs.cartpole import CartPoleIsaac``. They are vectorized environments:
-they
-step a batch of simulated copies at once, and are driven through the vectorized ``Core``.
+they step a batch of simulated copies at once, and are driven through the vectorized ``Core``.

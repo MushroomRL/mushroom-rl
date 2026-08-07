@@ -1,10 +1,10 @@
-from mushroom_rl.environments.isaacsim_env import IsaacSim
-from mushroom_rl.utils.isaac_sim import ObservationType
-from mushroom_rl.utils import TorchUtils
-
 import math
 import torch
 from pathlib import Path
+
+from mushroom_rl.environments.isaacsim_env import IsaacSim
+from mushroom_rl.utils.isaac_sim import ObservationType
+from mushroom_rl.utils import TorchUtils
 
 
 class CartPoleIsaac(IsaacSim):
