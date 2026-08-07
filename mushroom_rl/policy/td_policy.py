@@ -257,16 +257,22 @@ class Mellowmax(Boltzmann):
 
                 return beta
             except ValueError:
-                return 0.
+                return self._beta_max if f(self._beta_max) < 0. else self._beta_min
 
-    def __init__(self, omega, beta_min=-10., beta_max=10., backend='numpy'):
+    def __init__(self, omega, beta_min=0., beta_max=10., backend='numpy'):
         """
         Constructor.
+
+        The root giving beta is unique, but it is unbounded, while Brent's method needs a bracketing
+        interval: when the root falls outside ``[beta_min, beta_max]``, beta is clipped to the end of the
+        interval it lies beyond. With a positive omega the root is never negative, because mellowmax is at
+        least the mean of the values, so the interval starts at zero. Give a negative ``beta_min`` to search
+        for the root of a negative omega, whose operator approaches the minimum rather than the maximum.
 
         Args:
             omega (Parameter): the omega parameter of the policy from which beta
                 of the Boltzmann policy is computed;
-            beta_min (float, -10.): one end of the bracketing interval for
+            beta_min (float, 0.): one end of the bracketing interval for
                 minimization with Brent's method;
             beta_max (float, 10.): the other end of the bracketing interval for
                 minimization with Brent's method;

@@ -222,6 +222,57 @@ def test_mellowmax_parameter_is_a_parameter():
     assert np.allclose(pi._beta(s), 1.1733686853432355)
 
 
+def test_mellowmax_clips_beta_above_the_bracket():
+    pi = Mellowmax(Parameter(2.5))
+
+    Q = Table((1, 4))
+    Q.table = np.array([[0., 0., 0., 2e-11]])
+
+    pi.set_q(Q)
+
+    s = np.array([0])
+
+    assert pi._beta.get_value(s) == 10.
+
+    p_s = pi(s)
+    p_s_test = np.array([0.25, 0.25, 0.25, 0.25])
+    assert np.allclose(p_s, p_s_test)
+
+
+def test_mellowmax_clips_beta_below_the_bracket():
+    np.random.seed(42)
+    pi = Mellowmax(Parameter(1.), beta_min=1., beta_max=2.)
+
+    Q = Table((10, 3))
+    Q.table = np.random.randn(10, 3)
+
+    pi.set_q(Q)
+
+    s = np.array([2])
+
+    assert pi._beta.get_value(s) == 1.
+
+    p_s = pi(s)
+    p_s_test = np.array([0.63573931, 0.28231134, 0.08194935])
+    assert np.allclose(p_s, p_s_test)
+
+
+def test_mellowmax_beta_is_zero_on_a_flat_q():
+    pi = Mellowmax(Parameter(2.5))
+
+    Q = Table((1, 4))
+
+    pi.set_q(Q)
+
+    s = np.array([0])
+
+    assert pi._beta.get_value(s) == 0.
+
+    p_s = pi(s)
+    p_s_test = np.array([0.25, 0.25, 0.25, 0.25])
+    assert np.allclose(p_s, p_s_test)
+
+
 def test_boltzmann_consumes_beta_only_on_draw_action():
     np.random.seed(42)
     beta = LinearParameter(value=5., threshold_value=1., n=100)
