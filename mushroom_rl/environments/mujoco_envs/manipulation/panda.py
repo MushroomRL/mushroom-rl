@@ -1,8 +1,9 @@
 import mujoco
 import numpy as np
 
-from mushroom_rl.environments.mujoco import MuJoCo, ObservationType, MujocoViewer
+from mushroom_rl.environments.mujoco import MuJoCo, ObservationType
 from mushroom_rl.core.spaces import Box
+from mushroom_rl.utils.mujoco import MujocoViewer
 from mushroom_rl.utils.quaternions import mat_to_quat
 
 

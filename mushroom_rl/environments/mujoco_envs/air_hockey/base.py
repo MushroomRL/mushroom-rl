@@ -5,6 +5,7 @@ import mujoco
 
 from mushroom_rl.environments.mujoco import MuJoCo
 from mushroom_rl.environments.mujoco import ObservationType
+from mushroom_rl.utils.mujoco import MujocoViewer
 
 from mushroom_rl.environments.mujoco_envs import __file__ as path_robots
 
@@ -26,6 +27,8 @@ class AirHockeyBase(MuJoCo):
             obs_noise (bool, False): if True, the environment uses noisy observations.
 
         """
+        viewer_params.setdefault("camera_params", MujocoViewer.get_default_camera_params())
+        viewer_params["camera_params"]["top_static"].update(dict(distance=3.5))
 
         self.n_agents = n_agents
         self.env_noise = env_noise

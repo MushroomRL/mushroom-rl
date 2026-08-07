@@ -7,6 +7,10 @@ For Mushroom 2.0:
     * Fix or check properly paper examples missing:
         - MellowMax
         - Atari
+            - check MaxminDQN: mean_reward ~9.3 at 10M steps vs 36-42 for DQN/DoubleDQN/AveragedDQN
+              (atari_maxmin_dqn_10m, 2026-08-07). Min-over-ensemble is deliberately pessimistic per
+              Lan et al. 2020, so a slower start is expected, but this gap is large enough to be worth
+              a real look once all 9 variants are in, not just written off as the paper's expected effect
     * Update Mujoco class interface
     * new Mujoco viewer need test on macOS.
     * Fix Mellowmax by clipping range, not returning beta=0

@@ -180,10 +180,9 @@ class MujocoViewer:
         """
         self._handle.set_texts([
             (None, mujoco.mjtGridPos.mjGRID_TOPRIGHT,
-             "TAB\nSPACE\nALT\n[ / ]",
-             "MuJoCo controls\nPause\nCycle camera (%s)\nCycle camera (if defined by the model)" % self._camera_mode),
-            (None, mujoco.mjtGridPos.mjGRID_TOPRIGHT,
-             "\nS / F", "\nRun speed = %.3fx" % self._run_speed_factor)])
+             "TAB\nSPACE\nALT\nS / F",
+             "MuJoCo controls\nPause\nCycle camera viewpoint (%s)\n"
+             "Run speed = %.3fx" % (self._camera_mode, self._run_speed_factor))])
 
     def _launch_passive(self, data):
         """
@@ -239,8 +238,9 @@ class MujocoViewer:
 
     def _render_windowed(self, data, record):
         """
-        Refreshes the interactive window and, if requested, renders an offscreen frame alongside it
-        using the same camera/scene_option the window is currently showing.
+        Applies any pending camera-mode change (e.g. from the ALT key callback), refreshes the
+        interactive window and, if requested, renders an offscreen frame alongside it using the same
+        camera/scene_option the window is currently showing.
 
         Args:
             data: Mujoco data structure.
@@ -250,6 +250,7 @@ class MujocoViewer:
             The rendered frame if record is True, else None.
 
         """
+        self._set_camera(self._handle.cam)
         if not self._hide_overlay:
             self._create_overlay()
         self._handle.sync()
@@ -356,7 +357,7 @@ class MujocoViewer:
             Dictionary of dictionaries with default parameters for each camera type.
 
         """
-        return dict(static=dict(distance=15.0, elevation=-45.0, azimuth=90.0, lookat=np.array([0.0, 0.0, 0.0])),
+        return dict(static=dict(distance=5.0, elevation=-45.0, azimuth=90.0, lookat=np.array([0.0, 0.0, 0.0])),
                     follow=dict(distance=3.5, elevation=0.0, azimuth=90.0),
                     top_static=dict(distance=5.0, elevation=-90.0, azimuth=90.0, lookat=np.array([0.0, 0.0, 0.0])))
 
@@ -367,7 +368,7 @@ class MujocoViewer:
         requested size, if needed. Must run before any mujoco.Renderer is constructed for this model.
 
         Args:
-            model: Mujoco model whose vis.global_ offwidth/offheight may need growing.
+            model: Mujoco model whose ``vis.global_`` offwidth/offheight may need growing.
             width (int): Requested width.
             height (int): Requested height.
 
