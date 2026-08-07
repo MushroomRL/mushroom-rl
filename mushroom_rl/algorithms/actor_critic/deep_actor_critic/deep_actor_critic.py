@@ -81,7 +81,7 @@ class DeepAC(Agent):
 
     """
 
-    def __init__(self, mdp_info, policy, actor_optimizer, parameters, backend='torch'):
+    def __init__(self, mdp_info, policy, actor_optimizer, parameters, backend='torch', history_length=1):
         """
         Constructor.
 
@@ -89,6 +89,7 @@ class DeepAC(Agent):
             actor_optimizer (dict): parameters to specify the actor optimizer
                 algorithm;
             parameters (list): policy parameters to be optimized.
+            history_length (int, 1): number of consecutive observations stacked as policy input.
 
         """
         if actor_optimizer is not None:
@@ -104,7 +105,7 @@ class DeepAC(Agent):
                 self._clipping = actor_optimizer['clipping']['method']
                 self._clipping_params = actor_optimizer['clipping']['params']
 
-        super().__init__(mdp_info, policy, backend=backend)
+        super().__init__(mdp_info, policy, backend=backend, history_length=history_length)
 
         self._add_save_attr(
             _optimizer='torch',

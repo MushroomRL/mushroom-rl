@@ -27,15 +27,16 @@ class StateEmbedding(nn.Module):
     def __init__(self, input_shape):
         super().__init__()
 
-        self._obs_shape = input_shape
-        n_input = input_shape[0]
+        history_length, n_channels = input_shape[0], input_shape[1]
+        n_input = history_length * n_channels
+        self._obs_shape = (n_input,) + input_shape[2:]
 
         self._h1 = nn.Conv2d(n_input, 32, kernel_size=8, stride=3)
         self._h2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self._h3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
 
         conv_out_size = TorchUtils.compute_flat_output_size(nn.Sequential(self._h1, self._h2, self._h3),
-                                                            input_shape)
+                                                            self._obs_shape)
         self._output_shape = (conv_out_size,)
 
         nn.init.xavier_uniform_(self._h1.weight,
@@ -124,7 +125,7 @@ def experiment(n_epochs, n_steps, n_steps_test, render=True, use_cuda=False, see
     # MDP
     horizon = 500
     gamma = 0.99
-    mdp = DMControl('walker', 'stand', horizon, gamma, use_pixels=True)
+    mdp = DMControl('walker', 'stand', horizon, gamma, use_pixels=True, pixels_width=84, pixels_height=84)
 
     logger = Logger(DDPG.name(), results_dir=None)
     logger.log_experiment_info(DDPG, mdp, n_epochs=n_epochs, n_steps=n_steps, n_steps_test=n_steps_test)
@@ -136,12 +137,13 @@ def experiment(n_epochs, n_steps, n_steps_test, render=True, use_cuda=False, see
     # Settings
     initial_replay_size = 500
     max_replay_size = 5000
-    batch_size = 200
+    batch_size = 256
     n_features = 80
     tau = .001
+    history_length = 3
 
     # Approximator
-    embedding = StateEmbedding(mdp.info.observation_space.shape)
+    embedding = StateEmbedding((history_length,) + mdp.info.observation_space.shape)
 
     actor_input_shape = embedding.output_shape
     actor_params = dict(network=ActorNetwork,
@@ -151,12 +153,12 @@ def experiment(n_epochs, n_steps, n_steps_test, render=True, use_cuda=False, see
                         embedding=embedding)
 
     actor_optimizer = {'class': optim.Adam,
-                       'params': {'lr': 1e-5}}
+                       'params': {'lr': 1e-4}}
 
     critic_input_shape = [actor_input_shape, mdp.info.action_space.shape]
     critic_params = dict(network=CriticNetwork,
                          optimizer={'class': optim.Adam,
-                                    'params': {'lr': 1e-3}},
+                                    'params': {'lr': 1e-4}},
                          loss=F.mse_loss,
                          n_features=n_features,
                          input_shape=critic_input_shape,
@@ -167,7 +169,7 @@ def experiment(n_epochs, n_steps, n_steps_test, render=True, use_cuda=False, see
     agent = DDPG(mdp.info, policy_class, policy_params,
                  actor_params, actor_optimizer, critic_params,
                  batch_size, initial_replay_size, max_replay_size,
-                 tau)
+                 tau, history_length=history_length)
 
     # Algorithm
     core = Core(agent, mdp, logger=logger)

@@ -19,6 +19,12 @@ For Mushroom 2.0:
 
 
 For Mushroom 2.1:
+    * Add history_length (frame stacking) support to PPO, TRPO and A2C
+      - DDPG, SAC, TD3 and PPO_BPTT already support it (2026-08-07); PPO/TRPO/A2C's fit() calls
+        dataset.parse() directly instead of self._history_manager.parse_history(dataset), so just adding the
+        constructor parameter would break them (rollout would stack frames via draw_action, fit() would train
+        on raw unstacked states pulled from the dataset -> shape mismatch). PPO_BPTT's fit() is the reference
+        pattern to mirror for the fix.
     * HistoryManager subclass for complex per-stream specifications
       - the base HistoryManager handles only the `offset` option; delegate richer specs to a subclass
         (strides, structured/general lookbacks)

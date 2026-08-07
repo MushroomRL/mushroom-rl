@@ -15,7 +15,7 @@ class TD3(DDPG):
     def __init__(self, mdp_info, policy_class, policy_params, actor_params,
                  actor_optimizer, critic_params, batch_size,
                  initial_replay_size, max_replay_size, tau, policy_delay=2,
-                 noise_std=.2, noise_clip=.5, critic_fit_params=None):
+                 noise_std=.2, noise_clip=.5, critic_fit_params=None, history_length=1):
         """
         Constructor.
 
@@ -41,7 +41,8 @@ class TD3(DDPG):
             noise_clip ([float, Parameter], .5): maximum absolute value for policy smoothing
                 noise;
             critic_fit_params (dict, None): parameters of the fitting algorithm
-                of the critic approximator.
+                of the critic approximator;
+            history_length (int, 1): number of consecutive observations stacked as policy input.
 
         """
         self._noise_std = Parameter.make(noise_std, backend='torch')
@@ -53,7 +54,8 @@ class TD3(DDPG):
             critic_params['n_models'] = 2
 
         super().__init__(mdp_info, policy_class, policy_params, actor_params, actor_optimizer, critic_params,
-                         batch_size, initial_replay_size, max_replay_size, tau, policy_delay, critic_fit_params)
+                         batch_size, initial_replay_size, max_replay_size, tau, policy_delay, critic_fit_params,
+                         history_length=history_length)
 
         self._add_save_attr(
             _noise_std='mushroom',

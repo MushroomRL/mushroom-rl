@@ -17,7 +17,8 @@ class DDPG(DeepAC):
     def __init__(self, mdp_info, policy_class, policy_params,
                  actor_params, actor_optimizer, critic_params, batch_size,
                  initial_replay_size, max_replay_size, tau, policy_delay=1,
-                 critic_fit_params=None, actor_predict_params=None, critic_predict_params=None):
+                 critic_fit_params=None, actor_predict_params=None, critic_predict_params=None,
+                 history_length=1):
         """
         Constructor.
 
@@ -43,7 +44,8 @@ class DDPG(DeepAC):
             actor_predict_params (dict, None): parameters for the prediction with the
                 actor approximator;
             critic_predict_params (dict, None): parameters for the prediction with the
-                critic approximator.
+                critic approximator;
+            history_length (int, 1): number of consecutive observations stacked as policy input.
 
         """
         self._critic_fit_params = dict() if critic_fit_params is None else critic_fit_params
@@ -65,14 +67,15 @@ class DDPG(DeepAC):
 
         policy_parameters = self._actor_approximator.parameters()
 
-        super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
+        super().__init__(mdp_info, policy, actor_optimizer, policy_parameters, history_length=history_length)
 
         self._batch_size = Parameter.make(batch_size, backend='torch')
         self._tau = Parameter.make(tau, backend='torch')
         self._policy_delay = Parameter.make(policy_delay, backend='torch')
         self._fit_count = 0
 
-        self._replay_memory = ReplayMemory(mdp_info, self.info, initial_replay_size, max_replay_size)
+        self._replay_memory = ReplayMemory(mdp_info, self.info, initial_replay_size, max_replay_size,
+                                           history_manager=self.history_manager)
 
         self._add_save_attr(
             _critic_fit_params='pickle',
