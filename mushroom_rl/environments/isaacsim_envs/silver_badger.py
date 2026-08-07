@@ -1,6 +1,5 @@
-from pathlib import Path
-
 import torch
+from pathlib import Path
 
 from mushroom_rl.environments.isaacsim_envs.honey_badger import HoneyBadgerIsaac
 from mushroom_rl.utils import TorchUtils
@@ -34,6 +33,8 @@ class SilverBadgerIsaac(HoneyBadgerIsaac):
             0
         ], device=device)
         default_joint_max_vel = torch.tensor([25.] * 13, device=device)
+        trunk_body = "body"
+        foot_bodies = ["/fl_foot", "/fr_foot", "/rl_foot", "/rr_foot"]
         sub_bodies = [
             "body", "rear",
             "fl_l0", "fr_l0", "rl_l0", "rr_l0",
@@ -46,4 +47,5 @@ class SilverBadgerIsaac(HoneyBadgerIsaac):
             ("body", ["/body", "/rear", "/fl_l1", "/fr_l1", "/rl_l1", "/rr_l1"]),
             ("lower_body", ["/fl_l2", "/fr_l2", "/rl_l2", "/rr_l2"])
         ]
-        return usd_path, action_spec, default_joint_angles, default_joint_max_vel, sub_bodies, collision_groups
+        return usd_path, action_spec, default_joint_angles, default_joint_max_vel, trunk_body, foot_bodies, \
+            sub_bodies, collision_groups
