@@ -137,14 +137,35 @@ class IsaacLauncher:
             simulation_app: The running simulation app.
 
         """
-        simulation_app.set_setting("/persistent/omnihydra/useSceneGraphInstancing", True)
-        simulation_app.set_setting("/physics/physxDispatcher", True)
+        simulation_app.set_setting("/app/useFabricSceneDelegate", False)
+        simulation_app.set_setting("/app/runLoops/main/rateLimitEnabled", False)
 
+        simulation_app.set_setting("/persistent/omnihydra/useSceneGraphInstancing", True)
+        simulation_app.set_setting("/persistent/simulation/minFrameRate", 15)
+
+        simulation_app.set_setting("/exts/omni.replicator.core/Orchestrator/enabled", False)
+
+        simulation_app.set_setting("/metricsAssembler/changeListenerEnabled", False)
+
+        simulation_app.set_setting("/physics/physxDispatcher", True)
         simulation_app.set_setting("/physics/disableContactProcessing", True)
         simulation_app.set_setting("/physics/collisionConeCustomGeometry", False)
         simulation_app.set_setting("/physics/collisionCylinderCustomGeometry", False)
+        simulation_app.set_setting("/physics/fabricEnabled", True)
+        simulation_app.set_setting("/physics/updateToUsd", False)
+        simulation_app.set_setting("/physics/updateParticlesToUsd", False)
+        simulation_app.set_setting("/physics/updateVelocitiesToUsd", False)
+        simulation_app.set_setting("/physics/updateForceSensorsToUsd", False)
+        simulation_app.set_setting("/physics/outputVelocitiesLocalSpace", False)
+        simulation_app.set_setting("/physics/useFastCache", False)
+        simulation_app.set_setting("/physics/visualizationDisplayJoints", False)
+        simulation_app.set_setting("/physics/fabricUpdateTransformations", False)
+        simulation_app.set_setting("/physics/fabricUpdateVelocities", False)
+        simulation_app.set_setting("/physics/fabricUpdateForceSensors", False)
+        simulation_app.set_setting("/physics/fabricUpdateJointStates", False)
+        simulation_app.set_setting("/physics/fabricUseGPUInterop", True)
+        simulation_app.set_setting("/physics/resourcemonitor/timeBetweenQueries", 100)
 
-        # default values from IsaacLab
         simulation_app.set_setting("/rtx/translucency/enabled", False)
         simulation_app.set_setting("/rtx/reflections/enabled", False)
         simulation_app.set_setting("/rtx/indirectDiffuse/enabled", False)
