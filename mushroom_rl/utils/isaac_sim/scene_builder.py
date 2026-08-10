@@ -71,7 +71,7 @@ class SceneBuilder:
 
         self._prim_paths = None
 
-    def build(self, specifications, collision_helper, physics_scene):
+    def build(self, specifications, collision_helper):
         """
         Adds the robot specified by the usd path to the stage and clones it ``num_envs`` times, then creates
         the views used to read and write data.
@@ -81,7 +81,6 @@ class SceneBuilder:
                 which views have to be created.
             collision_helper (CollisionHelper): The helper tracking the contacts, prepared on the robot of
                 environment 0 before it is cloned.
-            physics_scene: The scene the simulation runs in, needed to filter collisions between environments.
 
         Returns:
             The articulation of the robots, the views to read and write with, indexed by the path they cover,
@@ -97,7 +96,7 @@ class SceneBuilder:
 
         collision_helper.prepare_env(stage)
 
-        env_pos = self._clone_envs(stage, physics_scene)
+        env_pos = self._clone_envs(stage)
 
         robots = Articulation(self._robot_regex, reset_xform_op_properties=False)
 
@@ -127,13 +126,12 @@ class SceneBuilder:
     def robot_glob(self):
         return self._robot_glob
 
-    def _clone_envs(self, stage, physics_scene):
+    def _clone_envs(self, stage):
         """
         Replicates the robot of environment 0 once per environment, laying the copies out on a grid.
 
         Args:
             stage: The stage the environments are cloned on.
-            physics_scene: The scene the simulation runs in, needed to filter collisions between environments.
 
         Returns:
             The origin of each environment, as a tensor.
@@ -157,16 +155,8 @@ class SceneBuilder:
             prim_paths=self._prim_paths,
             base_env_path=self._base_env_path,
             root_path=self._template_env_path + "_",
+            enable_env_ids=not self._collisions_between_envs
         )
-
-        # handle collisions between environments
-        if not self._collisions_between_envs:
-            cloner.filter_collisions(
-                physics_scene.path,
-                "/World/collisions",
-                self._prim_paths,
-                global_paths=["/World/groundPlane"]
-            )
 
         return torch.tensor(env_pos, dtype=torch.float32, device=TorchUtils.get_device())
 
