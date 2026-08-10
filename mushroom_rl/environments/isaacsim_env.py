@@ -27,7 +27,7 @@ class IsaacSim(VectorizedEnvironment):
     def __init__(self, usd_path, actuation_spec, observation_spec, num_envs, gamma, horizon,
                  timestep=None, n_substeps=1, n_intermediate_steps=1, additional_data_spec=None,
                  collision_groups=None, actuation_type=ActuationType.EFFORT, sim_params=None, scene_params=None,
-                 viewer_params=None):
+                 viewer_params=None, force_fabric_update=False):
         """
         Constructor.
 
@@ -62,9 +62,12 @@ class IsaacSim(VectorizedEnvironment):
                 :class:`~mushroom_rl.utils.isaac_sim.scene_builder.SceneBuilder`, which documents them.
             viewer_params (dict, None): The parameters of the camera looking at the scene, passed to
                 :class:`~mushroom_rl.utils.isaac_sim.viewer.IsaacViewer`, which documents them.
+            force_fabric_update (bool): If True, syncs Fabric after every intermediate step regardless of
+                headless mode, instead of only before the final viewer refresh.
 
         """
         self._headless = IsaacLauncher.is_headless()
+        self._force_fabric_update = force_fabric_update
 
         # Isaac Sim overrides sys.stderr, which breaks tqdm — restore the original
         sys.stderr = sys.__stderr__
@@ -87,8 +90,7 @@ class IsaacSim(VectorizedEnvironment):
         self._viewer = IsaacViewer(self.dt, **viewer_params)
 
         specifications = observation_spec + additional_data_spec
-        self._robots, views, self._env_pos = self._scene_builder.build(specifications, self._collision_helper,
-                                                                       self._physics_scene)
+        self._robots, views, self._env_pos = self._scene_builder.build(specifications, self._collision_helper)
 
         self._actuation_helper = ActuationHelper(self._robots, actuation_spec, actuation_type)
         self._observation_helper = ObservationHelper(observation_spec, additional_data_spec, num_envs, self._robots,
@@ -141,9 +143,11 @@ class IsaacSim(VectorizedEnvironment):
             self._simulation_pre_step()
 
             self._actuation_helper.apply(ctrl_action[env_indices], env_indices)
-            SimulationManager.step(steps=1, update_fabric=True)
+            is_last_intermediate_step = i == self._n_intermediate_steps - 1
+            update_fabric = self._force_fabric_update or (not self._headless and is_last_intermediate_step)
+            SimulationManager.step(steps=1, update_fabric=update_fabric)
 
-            if not self._headless and i == self._n_intermediate_steps - 1:
+            if not self._headless and is_last_intermediate_step:
                 self._viewer.refresh()
 
             self._simulation_post_step()
