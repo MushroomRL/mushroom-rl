@@ -20,7 +20,7 @@ class IsaacViewer:
 
     """
 
-    def __init__(self, dt, camera_position=(5, 0, 4), camera_target=(0, 0, 0), render_product_size=(1280, 720)):
+    def __init__(self, dt, camera_position=(5, 0, 4), camera_target=(0, 0, 0), render_product_size=(800, 600)):
         """
         Constructor.
 

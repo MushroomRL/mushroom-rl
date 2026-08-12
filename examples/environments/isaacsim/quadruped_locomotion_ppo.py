@@ -9,6 +9,7 @@ Unitree A1, the Honey Badger and the Silver Badger, the last of which adds a spi
 
 """
 import argparse
+import logging
 
 import numpy as np
 import torch
@@ -28,6 +29,9 @@ from mushroom_rl.approximators.parametric.networks import ActorNetwork
 # Isaac Sim has to be running before its environments can be imported
 IsaacLauncher.launch(headless=True)
 
+# mute an INFO log that garbles the tqdm bars
+logging.getLogger("isaacsim.asset.transformer.rules.utils").setLevel(logging.WARNING)
+
 from mushroom_rl.environments.isaacsim_envs import A1Isaac, HoneyBadgerIsaac, SilverBadgerIsaac
 
 ROBOTS = dict(a1=A1Isaac, honey_badger=HoneyBadgerIsaac, silver_badger=SilverBadgerIsaac)
@@ -36,12 +40,14 @@ ROBOTS = dict(a1=A1Isaac, honey_badger=HoneyBadgerIsaac, silver_badger=SilverBad
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--robot', choices=list(ROBOTS), default='a1', help='the quadruped to train')
+    parser.add_argument('--no-render', action='store_false', dest='render',
+                        help='skip rendering/recording the evaluations')
 
     return parser.parse_args()
 
 
 def experiment(alg, robot, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_params, policy_params,
-               n_envs=4096, horizon=1000, seed=None):
+               n_envs=4096, horizon=1000, render=True, seed=None):
     np.random.seed(seed)
     if seed is not None:
         torch.manual_seed(seed)
@@ -78,7 +84,7 @@ def experiment(alg, robot, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, 
     core = Core(agent, mdp, logger=logger)
 
     # RUN
-    dataset = core.evaluate(n_episodes=n_episodes_test, render=True, record=True)
+    dataset = core.evaluate(n_episodes=n_episodes_test, render=render, record=render)
 
     J = dataset.discounted_return.mean().item()
     R = dataset.undiscounted_return.mean().item()
@@ -91,7 +97,7 @@ def experiment(alg, robot, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, 
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit)
 
         # record the run only once every five epochs, to keep the videos to a manageable size
-        record = (it + 1) % 5 == 0 or it == n_epochs - 1
+        record = render and ((it + 1) % 5 == 0 or it == n_epochs - 1)
         dataset = core.evaluate(n_episodes=n_episodes_test, render=record, record=record)
 
         J = dataset.discounted_return.mean().item()
@@ -120,4 +126,4 @@ if __name__ == '__main__':
     policy_params = dict(std_0=1., n_features=[512, 256, 128], use_cuda=True)
 
     experiment(alg=RudinPPO, robot=args.robot, n_epochs=40, n_steps=4096 * 24 * 50, n_steps_per_fit=4096 * 24,
-               n_episodes_test=256, alg_params=ppo_params, policy_params=policy_params)
+               n_episodes_test=256, alg_params=ppo_params, policy_params=policy_params, render=args.render)
