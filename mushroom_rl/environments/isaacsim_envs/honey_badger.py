@@ -11,8 +11,7 @@ class HoneyBadgerIsaac(QuadrupedIsaac):
     A learning environment for training the Honey Badger quadroped to walk.
     Honey Badger is a Robot from MAB Robotics: https://www.mabrobotics.pl/
     """
-    def __init__(self, num_envs, horizon, domain_randomization=True, camera_pos=(105, 0, 4),
-                 camera_target=(95, 0, 0)):
+    def __init__(self, num_envs, horizon, domain_randomization=True, camera_pos=None, camera_target=None):
         usd_path, action_spec, default_joint_angles, default_joint_max_vel, trunk_body, foot_bodies, \
             sub_bodies, collision_groups = self._robot_config()
 

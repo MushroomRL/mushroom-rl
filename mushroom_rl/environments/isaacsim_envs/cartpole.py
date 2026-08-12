@@ -15,7 +15,7 @@ class CartPoleIsaac(IsaacSim):
     the horizontal.
 
     """
-    def __init__(self, num_envs, camera_pos=(20, 0, 4), camera_target=(10, 0, 0)):
+    def __init__(self, num_envs, camera_pos=None, camera_target=None):
         usd_path = str(Path(__file__).resolve().parent / "robots_usds/cartpole/cartpole.usd")
         action_spec = ["rail_cart_joint"]
         observation_spec = [

@@ -61,12 +61,12 @@ class IsaacSim(VectorizedEnvironment):
             scene_params (dict, None): The parameters describing the scene to simulate, passed to
                 :class:`~mushroom_rl.utils.isaac_sim.scene_builder.SceneBuilder`, which documents them.
             viewer_params (dict, None): The parameters of the camera looking at the scene, passed to
-                :class:`~mushroom_rl.utils.isaac_sim.viewer.IsaacViewer`, which documents them.
+                :class:`~mushroom_rl.utils.isaac_sim.viewer.IsaacViewer`, which documents them. The ``camera_target``
+                parameter defaults to env 0's position.
             force_fabric_update (bool): If True, syncs Fabric after every intermediate step regardless of
-                headless mode, instead of only before the final viewer refresh.
+                whether rendering is disabled, instead of only before the final viewer refresh.
 
         """
-        self._headless = IsaacLauncher.is_headless()
         self._force_fabric_update = force_fabric_update
 
         # Isaac Sim overrides sys.stderr, which breaks tqdm — restore the original
@@ -86,11 +86,14 @@ class IsaacSim(VectorizedEnvironment):
 
         self._setup_simulation(timestep, sim_params)
 
-        viewer_params = {} if viewer_params is None else viewer_params
-        self._viewer = IsaacViewer(self.dt, **viewer_params)
-
         specifications = observation_spec + additional_data_spec
         self._robots, views, self._env_pos = self._scene_builder.build(specifications, self._collision_helper)
+
+        viewer_params = {k: v for k, v in ({} if viewer_params is None else viewer_params).items() if v is not None}
+        env0 = tuple(self._env_pos[0].tolist())
+        viewer_params.setdefault('camera_position', (env0[0] + 5, env0[1], env0[2] + 2))
+        viewer_params.setdefault('camera_target', (env0[0] - 0.37, env0[1] + 2.5, env0[2] + 0.93))
+        self._viewer = IsaacViewer(self.dt, **viewer_params)
 
         self._actuation_helper = ActuationHelper(self._robots, actuation_spec, actuation_type)
         self._observation_helper = ObservationHelper(observation_spec, additional_data_spec, num_envs, self._robots,
@@ -99,6 +102,8 @@ class IsaacSim(VectorizedEnvironment):
 
         observation_limits = self._observation_helper.compute_obs_limits()
         assert observation_limits[0].dtype == observation_limits[1].dtype
+        self._extend_observation_spec()
+        observation_limits = self._observation_helper.obs_limits
         observation_space = Box(*observation_limits, data_type=observation_limits[0].dtype)
 
         action_limits = self._actuation_helper.get_action_limits()
@@ -144,11 +149,9 @@ class IsaacSim(VectorizedEnvironment):
 
             self._actuation_helper.apply(ctrl_action[env_indices], env_indices)
             is_last_intermediate_step = i == self._n_intermediate_steps - 1
-            update_fabric = self._force_fabric_update or (not self._headless and is_last_intermediate_step)
+            update_fabric = self._force_fabric_update or \
+                (not IsaacLauncher.is_rendering_disabled() and is_last_intermediate_step)
             SimulationManager.step(steps=1, update_fabric=update_fabric)
-
-            if not self._headless and is_last_intermediate_step:
-                self._viewer.refresh()
 
             self._simulation_post_step()
 
@@ -206,7 +209,17 @@ class IsaacSim(VectorizedEnvironment):
         Args:
             record (bool, False): If True, the function returns the rendered image data.
 
+        Raises:
+            RuntimeError: If ``record`` is True while rendering is disabled (see
+                :meth:`~mushroom_rl.utils.isaac_sim.IsaacLauncher.activate_rendering`).
+
         """
+        if IsaacLauncher.is_rendering_disabled():
+            if record:
+                raise RuntimeError("Cannot record: rendering is disabled. Call "
+                                   "IsaacLauncher.activate_rendering() first.")
+            return None
+
         data = self._viewer.render()
 
         return data if record else None
@@ -454,6 +467,16 @@ class IsaacSim(VectorizedEnvironment):
 
         """
         return action
+
+    def _extend_observation_spec(self):
+        """
+        This method can be overridden to register additional observations, via ``self._observation_helper
+        .add_obs(...)``, before the observation space is built from them. Runs after the limits of every
+        observation declared in ``observation_spec`` have been computed, so ``self._observation_helper
+        .obs_idx_map`` already indexes all of them. By default, does nothing.
+
+        """
+        pass
 
     def _modify_mdp_info(self, mdp_info):
         """
