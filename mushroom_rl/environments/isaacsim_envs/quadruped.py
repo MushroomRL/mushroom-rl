@@ -49,8 +49,10 @@ class QuadrupedIsaac(IsaacSim):
             horizon (int): The maximum horizon for the environment.
             domain_randomization (bool): Whether the domain randomization is enabled. The nominal control
                 parameters are set up either way, only their perturbation is switched off.
-            camera_position (tuple): The position of the camera looking at the scene.
-            camera_target (tuple): The point the camera looking at the scene points to.
+            camera_position (tuple, None): The position of the camera looking at the scene. ``None`` defaults
+                to looking at env 0, see :class:`~mushroom_rl.environments.isaacsim_env.IsaacSim`.
+            camera_target (tuple, None): The point the camera looking at the scene points to. ``None``
+                defaults to env 0's own position.
             default_joint_max_vel (torch.tensor, None): The nominal maximum velocity of every controlled
                 joint, overriding the one the simulation reports when given.
             nominal_p_gain (float): The proportional gain of the PD control law, before randomization.
@@ -227,16 +229,13 @@ class QuadrupedIsaac(IsaacSim):
 
     # construction-time hooks -------------------------------------------------------------------------------------
 
-    def _modify_mdp_info(self, mdp_info):
-        action_limits = (self._actuation_helper.get_joint_pos_limits() - self._default_joint_angles) \
-            / self._nominal_scaling_factor
-        mdp_info.action_space = Box(*action_limits, data_type=action_limits[0].dtype)
-
+    def _extend_observation_spec(self):
         self._observation_helper.add_obs("projected_gravity", 3, -1, 1)
         commands_upper = torch.tensor([1., 1., math.pi], device=TorchUtils.get_device())
         self._observation_helper.add_obs("commands", 3, -commands_upper, commands_upper)
-        self._observation_helper.add_obs("actions", len(self._action_spec), mdp_info.action_space.low,
-                                         mdp_info.action_space.high)
+
+        self._action_position_limits = self._compute_action_position_limits()
+        self._observation_helper.add_obs("actions", len(self._action_spec), *self._action_position_limits)
 
         if self._domain_randomization:
             self._add_domain_randomization_obs_spec()
@@ -245,15 +244,57 @@ class QuadrupedIsaac(IsaacSim):
         self._noise_scale_vec = self._get_noise_scale_vec()
         self._soft_joint_pos_limits = self._get_soft_joint_pos_limit()
 
-        obs_low, obs_high = self._observation_helper.obs_limits
+    def _modify_mdp_info(self, mdp_info):
+        mdp_info.action_space = self._build_action_space()
+        mdp_info.observation_space = self._build_observation_space(mdp_info.observation_space)
+
+        return mdp_info
+
+    def _compute_action_position_limits(self):
+        """
+        Computes the joint-position-relative action bounds: the controlled joints' position limits, offset
+        by the default pose and scaled down by the nominal action scaling factor.
+
+        Returns:
+            Two tensors: the first contains the lower limit, and the second contains the upper limit.
+
+        """
+        return (self._actuation_helper.get_joint_pos_limits() - self._default_joint_angles) \
+            / self._nominal_scaling_factor
+
+    def _build_action_space(self):
+        """
+        Builds the action space from the joint-position-relative bounds computed by
+        :meth:`_compute_action_position_limits`.
+
+        Returns:
+            The action space, as a :class:`~mushroom_rl.core.spaces.Box`.
+
+        """
+        action_limits = self._action_position_limits
+        return Box(*action_limits, data_type=action_limits[0].dtype)
+
+    def _build_observation_space(self, observation_space):
+        """
+        Builds the observation space by offsetting the joint position bounds to match the default-pose-relative
+        observation and rescaling and widening every bound the same way :meth:`_modify_observation` transforms
+        the runtime observation.
+
+        Args:
+            observation_space: the observation space computed from every registered observation, before this
+                transformation.
+
+        Returns:
+            The observation space, as a :class:`~mushroom_rl.core.spaces.Box`.
+
+        """
+        obs_low, obs_high = observation_space.low, observation_space.high
         joint_pos_indices = self._observation_helper.obs_idx_map["joint_pos"]
         obs_low[joint_pos_indices] -= self._default_joint_angles
         obs_high[joint_pos_indices] -= self._default_joint_angles
         new_obs_low = obs_low * self._normalization_obs_vec - self._noise_scale_vec
         new_obs_high = obs_high * self._normalization_obs_vec + self._noise_scale_vec
-        mdp_info.observation_space = Box(new_obs_low, new_obs_high, data_type=new_obs_high.dtype)
-
-        return mdp_info
+        return Box(new_obs_low, new_obs_high, data_type=new_obs_high.dtype)
 
     def _add_domain_randomization_obs_spec(self):
         """
