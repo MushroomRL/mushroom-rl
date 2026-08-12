@@ -27,6 +27,8 @@ class IsaacLauncher:
 
     """
     _app = None
+    _disable_rendering = None
+    _carb_overrides = None
 
     def __new__(cls, *args, **kwargs):
         """
@@ -39,29 +41,33 @@ class IsaacLauncher:
                         f"Call {cls.__name__}.launch() on the class itself.")
 
     @classmethod
-    def launch(cls, headless=True, physics_engine='physx'):
+    def launch(cls, headless=True, physics_engine='physx', disable_rendering=False, carb_settings=None):
         """
         Starts Isaac Sim, so that its modules and the MushroomRL environments built on them can be imported.
 
         Calling this a second time does nothing but return the running app: a process can only hold one.
 
         Args:
-            headless (bool): Whether to run without a window.
-            physics_engine (str): The physics engine to simulate with, either 'physx' or 'newton'. Isaac Sim
+            headless (bool, True): Whether to run without a window.
+            physics_engine (str, 'physx'): The physics engine to simulate with, either 'physx' or 'newton'. Isaac Sim
                 documents Newton as experimental, and MushroomRL does not test it: the robot assets shipped
                 here are tuned for PhysX and the two engines do not produce the same dynamics.
+            disable_rendering (booli, False): Whether to skip the carb settings that make the viewer/recorder show
+                live data (see :meth:`_apply_carb_settings`), independently of ``headless``.
+            carb_settings (dict, None): Overrides for the default carb settings applied at startup, see
+                :meth:`_apply_carb_settings`. Keys are carb setting paths (e.g. ``"/physics/fabricEnabled"``);
+                values override the corresponding default, and unknown keys are simply added.
 
         Returns:
             The running simulation app.
 
         """
         if cls._app is None:
-            cls._app = SimulationApp({"headless": headless, "hide_ui": False})
-            cls._apply_carb_settings(cls._app)
+            cls._app = SimulationApp({"headless": headless, "hide_ui": False, "renderer": "RaytracedLighting"})
+            cls._carb_overrides = carb_settings
+            cls.activate_rendering(not disable_rendering)
             cls._select_physics_engine(physics_engine)
 
-            # SimulationApp registers a shutdown of its own, which warns that it had to close the app on our
-            # behalf. Registering afterward puts ours first, as atexit runs its callbacks in reverse order.
             atexit.register(cls.shutdown)
 
         return cls._app
@@ -128,52 +134,88 @@ class IsaacLauncher:
         """
         return cls.get().config["headless"]
 
-    @staticmethod
-    def _apply_carb_settings(simulation_app):
+    @classmethod
+    def is_rendering_disabled(cls):
         """
-        Apply settings for optimization.
+        Returns:
+            Whether the carb settings that make the viewer/recorder show live data are currently off.
+
+        """
+        cls.require_running()
+
+        return cls._disable_rendering
+
+    @classmethod
+    def activate_rendering(cls, flag=True):
+        """
+        Toggles whether the viewer/recorder show live data, independently of ``headless``. Only affects
+        environments created *after* this call: Isaac Sim's render product is bound to whatever this was
+        at the time it was built, so an already-running environment keeps showing stale data regardless.
+
+        Args:
+            flag (bool, True): Whether to activate rendering (True) or deactivate it (False), i.e. whether
+                to apply the carb settings that make the viewer/recorder show live data, see
+                :meth:`_apply_carb_settings`.
+
+        """
+        cls.require_running()
+
+        cls._disable_rendering = not flag
+        cls._apply_carb_settings(cls._app, cls._disable_rendering, cls._carb_overrides)
+
+    @staticmethod
+    def _apply_carb_settings(simulation_app, disable_rendering, overrides=None):
+        """
+        Apply mushroom default settings for optimization.
 
         Args:
             simulation_app: The running simulation app.
+            disable_rendering (bool): Whether to skip the three groups above.
+            overrides (dict, None): Carb setting paths overriding the defaults below, or adding new ones.
 
         """
-        simulation_app.set_setting("/app/useFabricSceneDelegate", False)
-        simulation_app.set_setting("/app/runLoops/main/rateLimitEnabled", False)
+        headless = simulation_app.config["headless"]
+        settings = {
+            "/app/useFabricSceneDelegate": not disable_rendering,
+            "/app/runLoops/main/rateLimitEnabled": False,
+            "/persistent/omnihydra/useSceneGraphInstancing": True,
+            "/persistent/simulation/minFrameRate": 15,
+            "/exts/omni.replicator.core/Orchestrator/enabled": headless and not disable_rendering,
+            "/metricsAssembler/changeListenerEnabled": False,
+            "/physics/physxDispatcher": True,
+            "/physics/disableContactProcessing": True,
+            "/physics/collisionConeCustomGeometry": False,
+            "/physics/collisionCylinderCustomGeometry": False,
+            "/physics/fabricEnabled": True,
+            "/physics/updateToUsd": not disable_rendering,
+            "/physics/updateParticlesToUsd": not disable_rendering,
+            "/physics/updateVelocitiesToUsd": not disable_rendering,
+            "/physics/updateForceSensorsToUsd": not disable_rendering,
+            "/physics/outputVelocitiesLocalSpace": False,
+            "/physics/useFastCache": False,
+            "/physics/visualizationDisplayJoints": False,
+            "/physics/fabricUpdateTransformations": not disable_rendering,
+            "/physics/fabricUpdateVelocities": not disable_rendering,
+            "/physics/fabricUpdateForceSensors": not disable_rendering,
+            "/physics/fabricUpdateJointStates": not disable_rendering,
+            "/physics/fabricUseGPUInterop": True,
+            "/physics/resourcemonitor/timeBetweenQueries": 100,
+            "/rtx/hydra/readTransformsFromFabricInRenderDelegate": not disable_rendering,
+            "/rtx/translucency/enabled": False,
+            "/rtx/reflections/enabled": False,
+            "/rtx/indirectDiffuse/enabled": False,
+            "/rtx-transient/dlssg/enabled": False,
+            "/rtx/directLighting/enabled": True,
+            "/rtx/directLighting/sampledLighting/samplesPerPixel": 1,
+            "/rtx/shadows/enabled": True,
+            "/rtx/ambientOcclusion/enabled": False,
+        }
 
-        simulation_app.set_setting("/persistent/omnihydra/useSceneGraphInstancing", True)
-        simulation_app.set_setting("/persistent/simulation/minFrameRate", 15)
+        if overrides is not None:
+            settings.update(overrides)
 
-        simulation_app.set_setting("/exts/omni.replicator.core/Orchestrator/enabled", False)
-
-        simulation_app.set_setting("/metricsAssembler/changeListenerEnabled", False)
-
-        simulation_app.set_setting("/physics/physxDispatcher", True)
-        simulation_app.set_setting("/physics/disableContactProcessing", True)
-        simulation_app.set_setting("/physics/collisionConeCustomGeometry", False)
-        simulation_app.set_setting("/physics/collisionCylinderCustomGeometry", False)
-        simulation_app.set_setting("/physics/fabricEnabled", True)
-        simulation_app.set_setting("/physics/updateToUsd", False)
-        simulation_app.set_setting("/physics/updateParticlesToUsd", False)
-        simulation_app.set_setting("/physics/updateVelocitiesToUsd", False)
-        simulation_app.set_setting("/physics/updateForceSensorsToUsd", False)
-        simulation_app.set_setting("/physics/outputVelocitiesLocalSpace", False)
-        simulation_app.set_setting("/physics/useFastCache", False)
-        simulation_app.set_setting("/physics/visualizationDisplayJoints", False)
-        simulation_app.set_setting("/physics/fabricUpdateTransformations", False)
-        simulation_app.set_setting("/physics/fabricUpdateVelocities", False)
-        simulation_app.set_setting("/physics/fabricUpdateForceSensors", False)
-        simulation_app.set_setting("/physics/fabricUpdateJointStates", False)
-        simulation_app.set_setting("/physics/fabricUseGPUInterop", True)
-        simulation_app.set_setting("/physics/resourcemonitor/timeBetweenQueries", 100)
-
-        simulation_app.set_setting("/rtx/translucency/enabled", False)
-        simulation_app.set_setting("/rtx/reflections/enabled", False)
-        simulation_app.set_setting("/rtx/indirectDiffuse/enabled", False)
-        simulation_app.set_setting("/rtx-transient/dlssg/enabled", False)
-        simulation_app.set_setting("/rtx/directLighting/enabled", True)
-        simulation_app.set_setting("/rtx/directLighting/sampledLighting/samplesPerPixel", 1)
-        simulation_app.set_setting("/rtx/shadows/enabled", True)
-        simulation_app.set_setting("/rtx/ambientOcclusion/enabled", False)
+        for path, value in settings.items():
+            simulation_app.set_setting(path, value)
 
     @staticmethod
     def _select_physics_engine(physics_engine):

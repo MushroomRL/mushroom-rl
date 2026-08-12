@@ -14,8 +14,7 @@ class A1Isaac(QuadrupedIsaac):
     "Learning to Walk in Minutes Using Massively Parallel Deep Reinforcement Learning"
 
     """
-    def __init__(self, num_envs, horizon, domain_randomization=True, camera_position=(105, 0, 4),
-                 camera_target=(95, 0, 0)):
+    def __init__(self, num_envs, horizon, domain_randomization=True, camera_position=None, camera_target=None):
         usd_path = str(Path(__file__).resolve().parent / "robots_usds/a1/a1.usd")
         device = TorchUtils.get_device()
 

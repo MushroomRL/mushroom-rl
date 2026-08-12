@@ -9,7 +9,7 @@ from mushroom_rl.utils import TorchUtils
 from mushroom_rl.utils.isaac_sim import IsaacLauncher
 
 # Isaac Sim has to be running before its environments can be imported
-IsaacLauncher.launch(headless=True)
+IsaacLauncher.launch(headless=True, disable_rendering=True)
 TorchUtils.set_default_device("cuda:0")
 
 from mushroom_rl.environments.isaacsim_envs import CartPoleIsaac
