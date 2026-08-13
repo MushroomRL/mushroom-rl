@@ -129,7 +129,8 @@ class MuJoCoWarp(VectorizedEnvironment):
 
     def step_all(self, env_mask, action):
         action = self._preprocess_action(action)
-
+        if isinstance(action, torch.Tensor) and action.dim() == 1:
+            action = action.unsqueeze(0)
         self._step_init(self._obs, action)
 
         ctrl_action = None

@@ -61,8 +61,13 @@ class HopperWarp(MuJoCoWarp):
             ("foot_vel", "foot_joint", ObservationType.JOINT_VEL),
         ]
 
+        # Match vanilla Hopper's additional_data_spec exactly. torso_vel is
+        # BODY_VEL_WORLD (cvel of the torso body), which vanilla uses for the
+        # forward reward. Keeping the signal identical to vanilla is required
+        # for the warp/vanilla parity comparison.
         additional_data_spec = [
             ("x_pos", "rootx", ObservationType.JOINT_POS),
+            ("torso_vel", "torso", ObservationType.BODY_VEL_WORLD),
         ]
 
         self._forward_reward_weight = forward_reward_weight
@@ -90,9 +95,6 @@ class HopperWarp(MuJoCoWarp):
             njmax=njmax,
             **viewer_params,
         )
-
-        # after super().__init__() in __init__:
-        # in __init__ after super().__init__():
 
     def _modify_mdp_info(self, mdp_info):
         if not self._exclude_current_positions_from_observation:
@@ -151,10 +153,18 @@ class HopperWarp(MuJoCoWarp):
             healthy | self._terminate_when_unhealthy
         ).float() * self._healthy_reward
 
-        # qvel[0] is rootx generalized velocity — world-frame linear x velocity
-        # for hopper's kinematic tree. Ground truth, no frame ambiguity.
-        qvel = wp.to_torch(self._data_wp.qvel)
-        forward_r = self._forward_reward_weight * qvel[:, 0]
+        # Match vanilla Hopper exactly: forward reward = torso_vel[3], where
+        # torso_vel is BODY_VEL_WORLD (data.cvel[torso, :]).
+        # NOTE: This is CoM linear velocity of the torso in the world frame,
+        # NOT rootx slide velocity. The two differ by omega x r_com when the
+        # torso pitches. Vanilla uses this signal, so warp must too for a
+        # meaningful parity comparison.
+        # If matched-config sanity run still shows a J/R gap vs vanilla,
+        # investigate whether mujoco_warp's cvel semantics diverge from
+        # numpy mujoco's on the same state (that would be a warp-level bug,
+        # not a reward-design decision).
+        torso_vel = self._read_data("torso_vel")
+        forward_r = self._forward_reward_weight * torso_vel[:, 3]
 
         action_t = torch.as_tensor(
             action, dtype=healthy_r.dtype, device=healthy_r.device
@@ -203,8 +213,8 @@ class HopperWarp(MuJoCoWarp):
         healthy_r = (
             healthy | self._terminate_when_unhealthy
         ).float() * self._healthy_reward
-        qvel = wp.to_torch(self._data_wp.qvel)
-        forward_r = self._forward_reward_weight * qvel[:, 0]
+        torso_vel = self._read_data("torso_vel")
+        forward_r = self._forward_reward_weight * torso_vel[:, 3]
         return {
             "healthy_reward": healthy_r,
             "forward_reward": forward_r,
