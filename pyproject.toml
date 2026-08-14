@@ -12,6 +12,7 @@ dependencies = [
     "tqdm",
     "pygame-ce",
     "opencv-python>=4.7",
+    "av",
     "torch"
 ]
 requires-python = ">=3.11"

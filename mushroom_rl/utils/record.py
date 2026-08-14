@@ -1,4 +1,4 @@
-import cv2
+import av
 from pathlib import Path
 
 
@@ -14,7 +14,7 @@ class VideoRecorder(object):
         else:
             return object.__new__(cls)
 
-    def __init__(self, path=None, video_name=None, fps=None, codec='vp09', extension='.mp4', vectorized=False):
+    def __init__(self, path=None, video_name=None, fps=None, codec='libx264', extension='.mp4', vectorized=False):
         """
         Constructor.
 
@@ -22,7 +22,7 @@ class VideoRecorder(object):
             path: Path at which videos will be stored. Default is "./logs/videos".
             video_name: Name of the video without extension. Default is "recording".
             fps: Frame rate of the video. Default is 60.
-            codec: FourCC codec string for the video writer. Default is "vp09" (VP9).
+            codec: Name of the libavcodec encoder to use. Default is "libx264" (H.264).
             extension: Extension of the video file. It must be a container supported by the codec.
             vectorized: If True, construction dispatches to the recorder of a vectorized environment.
         """
@@ -36,7 +36,8 @@ class VideoRecorder(object):
         self._codec = codec
         self._extension = extension
 
-        self._video_writer = None
+        self._container = None
+        self._stream = None
         self._current_path = None
 
     def __call__(self, frame, mask=None):
@@ -48,7 +49,7 @@ class VideoRecorder(object):
         """
         assert frame is not None
 
-        self._write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+        self._write(frame)
 
     def stop(self):
         """
@@ -60,21 +61,27 @@ class VideoRecorder(object):
         """
         path = None
 
-        if self._video_writer is not None:
-            cv2.destroyAllWindows()
-            self._video_writer.release()
-            self._video_writer = None
+        if self._container is not None:
+            for packet in self._stream.encode():
+                self._container.mux(packet)
+
+            self._container.close()
+            self._container = None
+            self._stream = None
             self._counter += 1
             path = self._current_path
 
         return path
 
     def _write(self, frame):
-        if self._video_writer is None:
+        if self._container is None:
             height, width = frame.shape[:2]
             self._create_video_writer(height, width)
 
-        self._video_writer.write(frame)
+        av_frame = av.VideoFrame.from_ndarray(frame, format='rgb24')
+
+        for packet in self._stream.encode(av_frame):
+            self._container.mux(packet)
 
     def _create_video_writer(self, height, width):
         name = self._video_name
@@ -86,8 +93,17 @@ class VideoRecorder(object):
 
         self._current_path = self._path / name
 
-        fourcc = cv2.VideoWriter_fourcc(*self._codec)
-        self._video_writer = cv2.VideoWriter(str(self._current_path), fourcc, self._fps, (width, height))
+        self._container = av.open(str(self._current_path), mode='w')
+        self._stream = self._container.add_stream(self._codec, rate=self._fps, options=self._codec_options())
+        self._stream.width = width
+        self._stream.height = height
+        self._stream.pix_fmt = self._pixel_format()
+
+    def _codec_options(self):
+        return {'preset': 'veryfast'} if self._codec == 'libx264' else {}
+
+    def _pixel_format(self):
+        return 'bgr0' if self._codec == 'ffv1' else 'yuv420p'
 
 
 class VectorizedVideoRecorder(VideoRecorder):
@@ -150,19 +166,11 @@ class VectorizedVideoRecorder(VideoRecorder):
     def _record_env_frame(self, frame, env):
         if env not in self._recorders:
             self._recorders[env] = VideoRecorder(path=self._temp_path, video_name=f'env{env}', fps=self._fps,
-                                                 codec='FFV1', extension='.mkv')
+                                                 codec='ffv1', extension='.mkv')
 
         self._recorders[env](frame)
 
     def _append(self, temp_path):
-        capture = cv2.VideoCapture(str(temp_path))
-
-        while True:
-            read, frame = capture.read()
-
-            if not read:
-                break
-
-            self._write(frame)
-
-        capture.release()
+        with av.open(str(temp_path)) as container:
+            for frame in container.decode(video=0):
+                self._write(frame.to_ndarray(format='rgb24'))

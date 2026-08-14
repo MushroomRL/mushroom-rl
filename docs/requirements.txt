@@ -1,6 +1,5 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 
-opencv-python
 numpy
 matplotlib
 joblib
