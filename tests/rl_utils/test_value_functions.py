@@ -1,11 +1,44 @@
 import torch
 import numpy as np
+from mushroom_rl.core import MDPInfo, AgentInfo
+from mushroom_rl.core.spaces import Box
+from mushroom_rl.core.history_manager import HistoryManager
 from mushroom_rl.policy import DeterministicPolicy
 from mushroom_rl.environments.segway import Segway
 from mushroom_rl.core import Core, Agent
 from mushroom_rl.approximators.parametric import LinearApproximator, TorchApproximator
 from mushroom_rl.approximators.parametric.networks import LinearNetwork
-from mushroom_rl.rl_utils.value_functions import compute_gae, compute_advantage_montecarlo
+from mushroom_rl.rl_utils.value_functions import compute_gae, compute_advantage_montecarlo, _next_action_history
+
+
+def test_next_action_history_shift_across_episode_boundaries():
+    actions = torch.tensor([[10.], [11.], [12.], [13.], [14.]])
+    last = torch.tensor([0., 0., 1., 0., 1.])
+
+    act_space = Box(np.full((1,), -1.0), np.full((1,), 1.0), (1,))
+    obs_space = Box(np.full((1,), -1.0), np.full((1,), 1.0), (1,))
+    mdp_info = MDPInfo(obs_space, act_space, gamma=0.99, horizon=100, backend='torch')
+    agent_info = AgentInfo(is_episodic=False, policy_state_shape=None, backend='torch')
+    hm = HistoryManager.default_streams(mdp_info, agent_info, action_history_length=2)
+
+    action_history = hm.build_history('action_history', actions, last, torch.arange(5))
+    next_action_history = _next_action_history(action_history, actions, last)
+
+    # non-boundary rows reuse the next row of action_history verbatim; the row ending each episode (2 and 4,
+    # the latter also the last row of the buffer) is rebuilt by shifting the window and appending the action
+    # just taken, rather than reading into the next (unrelated) episode
+    expected = torch.tensor([[[0.], [10.]], [[10.], [11.]], [[11.], [12.]], [[0.], [13.]], [[13.], [14.]]])
+    assert next_action_history.shape == (5, 2, 1)
+    assert torch.allclose(next_action_history, expected)
+
+
+def test_next_action_history_length_one_is_the_action():
+    action_history = torch.tensor([[10.], [11.], [12.]])
+    action = torch.tensor([[10.], [11.], [12.]])
+    last = torch.tensor([0., 1., 1.])
+
+    next_action_history = _next_action_history(action_history, action, last)
+    assert torch.allclose(next_action_history, action)
 
 
 def test_compute_advantage_montecarlo():

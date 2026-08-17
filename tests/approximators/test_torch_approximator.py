@@ -57,6 +57,37 @@ def test_predict_kwargs_shape_batch_padding_and_fail_fast():
         approximator.predict(torch.rand(4))
 
 
+def test_fit_kwargs_shape_minibatch_alignment():
+    torch.manual_seed(3)
+
+    class KwargLinear(nn.Module):
+        def __init__(self, input_shape, output_shape, extra_shape=None, **kwargs):
+            super().__init__()
+            self._wx = nn.Parameter(torch.zeros(1))
+            self._we = nn.Parameter(torch.zeros(1))
+
+        def forward(self, x, extra=None):
+            return self._wx * x + self._we * extra
+
+    n = 200
+    x = torch.arange(n, dtype=torch.float32).unsqueeze(1) / n
+    extra = torch.arange(n, dtype=torch.float32).flip(0).unsqueeze(1) / n
+    target = 2. * x + 3. * extra
+
+    approximator = TorchApproximator(input_shape=(1,), output_shape=(1,), network=KwargLinear,
+                                     kwargs_shape={'extra': (1,)},
+                                     optimizer={'class': optim.Adam, 'params': {'lr': 0.05}},
+                                     loss=F.mse_loss, batch_size=16, quiet=True)
+
+    # a minibatch that shuffled x and extra independently (instead of together) would decorrelate extra from
+    # the target it is supposed to explain, since it is deliberately given the reverse order of x here, so
+    # weights only converge to (2, 3) if every minibatch keeps (x_i, extra_i, target_i) aligned by row
+    approximator.fit(x, target, extra=extra, n_epochs=300)
+
+    weights = approximator.get_weights()
+    assert torch.allclose(weights, torch.tensor([2., 3.]), atol=0.05), f"weights={weights}"
+
+
 def test_torch_ensemble_logger(tmpdir):
     torch.manual_seed(1)
 
@@ -331,6 +362,34 @@ def test_torch_ensemble_predict_kwargs_shape_batch_padding():
 
     with pytest.raises(KeyError):
         ensemble.predict(unbatched)
+
+
+def test_torch_ensemble_fit_kwargs_shape_minibatch_alignment():
+    torch.manual_seed(9)
+
+    class KwargLinear(nn.Module):
+        def __init__(self, input_shape, output_shape, extra_shape=None, **kwargs):
+            super().__init__()
+            self._wx = nn.Parameter(torch.zeros(1))
+            self._we = nn.Parameter(torch.zeros(1))
+
+        def forward(self, x, extra=None):
+            return self._wx * x + self._we * extra
+
+    n = 200
+    x = torch.arange(n, dtype=torch.float32).unsqueeze(1) / n
+    extra = torch.arange(n, dtype=torch.float32).flip(0).unsqueeze(1) / n
+    target = 2. * x + 3. * extra
+
+    ensemble = TorchApproximator(input_shape=(1,), output_shape=(1,), network=KwargLinear,
+                                 kwargs_shape={'extra': (1,)}, n_models=2,
+                                 optimizer={'class': optim.Adam, 'params': {'lr': 0.05}},
+                                 loss=F.mse_loss, batch_size=16, quiet=True)
+
+    ensemble.fit(x, target, extra=extra, n_epochs=300)
+
+    for weights in ensemble.get_weights():
+        assert torch.allclose(weights, torch.tensor([2., 3.]), atol=0.05), f"weights={weights}"
 
 
 def test_torch_ensemble_predict_after_save_load(tmpdir):

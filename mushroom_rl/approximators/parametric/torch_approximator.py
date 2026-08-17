@@ -167,7 +167,8 @@ class TorchApproximator(Approximator):
             epsilon (float, None): the coefficient used for early stopping;
             patience (float, 1.): the number of epochs to wait until stop the learning if not improving;
             validation_split (float, 1.): the percentage of the dataset to use as training set;
-            **kwargs: other parameters used by the fit method of the regressor.
+            **kwargs: other parameters used by the fit method of the regressor, including any keyword input
+                declared via ``kwargs_shape``/``action_history_shape``.
 
         """
         if self._trainer.reinitialize:
@@ -175,6 +176,10 @@ class TorchApproximator(Approximator):
 
         if self._trainer.dropout:
             self.network.train()
+
+        n_targets = self._trainer.n_fit_targets
+        kwargs_data = tuple(kwargs.pop(name) for name in self._kwargs_ndims)
+        args = args[:-n_targets] + kwargs_data + args[-n_targets:]
 
         self._trainer.fit(args, n_epochs, weights, epsilon, patience, validation_split, kwargs)
         self._dirty = True
@@ -212,9 +217,14 @@ class TorchApproximator(Approximator):
         else:
             weights = None
 
-        x = batch[:-self._trainer.n_fit_targets]
-        y_hat = self.network(*x, **network_kwargs)
-        y = [y_i.clone().detach() for y_i in batch[-self._trainer.n_fit_targets:]]
+        n_kwargs = len(self._kwargs_ndims)
+        x_end = len(batch) - self._trainer.n_fit_targets - n_kwargs
+        x = batch[:x_end]
+        kwargs_data = dict(zip(self._kwargs_ndims, batch[x_end:x_end + n_kwargs]))
+        y = batch[-self._trainer.n_fit_targets:]
+
+        y_hat = self.network(*x, **network_kwargs, **kwargs_data)
+        y = [y_i.clone().detach() for y_i in y]
 
         return self._trainer.compute_loss_from_output(y_hat, y, weights)
 
@@ -482,7 +492,8 @@ class TorchEnsemble(Ensemble):
             epsilon (float, None): the coefficient used for early stopping;
             patience (float, 1.): the number of epochs to wait until stop the learning if not improving;
             validation_split (float, 1.): the percentage of the dataset to use as training set;
-            **kwargs: other parameters used by the fit method of the regressor.
+            **kwargs: other parameters used by the fit method of the regressor, including any keyword input
+                declared via ``kwargs_shape``/``action_history_shape``.
 
         """
         if idx is not None:
@@ -499,6 +510,10 @@ class TorchEnsemble(Ensemble):
             self._base_model.train()
             for m in self._models:
                 m.network.train()
+
+        n_targets = self._trainer.n_fit_targets
+        kwargs_data = tuple(kwargs.pop(name) for name in self._kwargs_ndims)
+        args = args[:-n_targets] + kwargs_data + args[-n_targets:]
 
         self._trainer.fit(args, n_epochs, weights, epsilon, patience, validation_split, kwargs)
 
@@ -534,23 +549,30 @@ class TorchEnsemble(Ensemble):
             stacked_w = None
             stacked_data = stacked_batch
 
-        stacked_x = tuple(stacked_data[:-self._trainer.n_fit_targets])
+        n_kwargs = len(self._kwargs_ndims)
+        x_end = len(stacked_data) - self._trainer.n_fit_targets - n_kwargs
+        stacked_x = tuple(stacked_data[:x_end])
+        stacked_kwargs_data = tuple(stacked_data[x_end:x_end + n_kwargs])
         stacked_y = [yi.clone().detach() for yi in stacked_data[-self._trainer.n_fit_targets:]]
 
         base = self._base_model
         nx = len(stacked_x)
+        nk = len(stacked_kwargs_data)
         ny = len(stacked_y)
+        kwargs_names = tuple(self._kwargs_ndims)
         trainer = self._trainer
 
         def compute_loss(params, buffers, *data_w):
             x_in = data_w[:nx]
-            y_in = data_w[nx:nx + ny]
+            k_in = data_w[nx:nx + nk]
+            y_in = data_w[nx + nk:nx + nk + ny]
             w = data_w[-1] if stacked_w is not None else None
-            y_hat = functional_call(base, (params, buffers), x_in, kwargs=network_kwargs)
+            call_kwargs = {**network_kwargs, **dict(zip(kwargs_names, k_in))}
+            y_hat = functional_call(base, (params, buffers), x_in, kwargs=call_kwargs)
             loss = trainer.compute_loss_from_output(y_hat, list(y_in), w)
             return loss, loss
 
-        all_data = stacked_x + tuple(stacked_y)
+        all_data = stacked_x + stacked_kwargs_data + tuple(stacked_y)
         if stacked_w is not None:
             all_data = all_data + (stacked_w,)
 
@@ -575,14 +597,17 @@ class TorchEnsemble(Ensemble):
             weights = None
 
         torch_batch = [torch.as_tensor(x, device=TorchUtils.get_device()) for x in val_args]
-        x_inputs = tuple(torch_batch[:-self._trainer.n_fit_targets])
+        n_kwargs = len(self._kwargs_ndims)
+        x_end = len(torch_batch) - self._trainer.n_fit_targets - n_kwargs
+        x_inputs = tuple(torch_batch[:x_end])
+        kwargs_data = dict(zip(self._kwargs_ndims, torch_batch[x_end:x_end + n_kwargs]))
         y_targets = [yi.clone().detach() for yi in torch_batch[-self._trainer.n_fit_targets:]]
 
         base = self._base_model
         trainer = self._trainer
 
         def compute_loss(params, buffers):
-            y_hat = functional_call(base, (params, buffers), x_inputs, kwargs=network_kwargs)
+            y_hat = functional_call(base, (params, buffers), x_inputs, kwargs={**network_kwargs, **kwargs_data})
             return trainer.compute_loss_from_output(y_hat, y_targets, weights)
 
         with torch.no_grad():

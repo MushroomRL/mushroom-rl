@@ -98,9 +98,8 @@ class PPO_BPTT(OnPolicyDeepAC):
                                                 action_history=prev_action_seq)
         old_log_p = old_pol_dist.log_prob(action)[:, None].detach()
 
-        critic_args = (state_seq, policy_state_seq, lengths)
-        critic_args += (prev_action_seq,) if self._history_manager.uses_action else ()
-        self._V.fit(*critic_args, v_target, **self._critic_fit_params)
+        self._V.fit(state_seq, policy_state_seq, lengths, v_target, action_history=prev_action_seq,
+                    **self._critic_fit_params)
 
         self._update_policy(state_seq, policy_state_seq, action, lengths, adv, old_log_p, prev_action_seq)
 
@@ -219,17 +218,12 @@ class PPO_BPTT(OnPolicyDeepAC):
             return s_old, s, ps, a, ss, pss, pa, lengths
 
     def _update_policy(self, obs, pi_h, act, lengths, adv, old_log_p, prev_action):
+        tensors = (obs, pi_h, act, lengths, adv, old_log_p) if not self._history_manager.uses_action \
+            else (obs, pi_h, act, lengths, adv, old_log_p, prev_action)
         for epoch in range(self._n_epochs_policy()):
-            if self._history_manager.uses_action:
-                batches = minibatch_generator(self._batch_size(), obs, pi_h, act, lengths, adv, old_log_p, prev_action)
-            else:
-                batches = minibatch_generator(self._batch_size(), obs, pi_h, act, lengths, adv, old_log_p)
-            for batch in batches:
-                if self._history_manager.uses_action:
-                    obs_i, pi_h_i, act_i, length_i, adv_i, old_log_p_i, prev_action_i = batch
-                else:
-                    obs_i, pi_h_i, act_i, length_i, adv_i, old_log_p_i = batch
-                    prev_action_i = None
+            for batch in minibatch_generator(self._batch_size(), *tensors):
+                obs_i, pi_h_i, act_i, length_i, adv_i, old_log_p_i, *rest = batch
+                prev_action_i = rest[0] if rest else None
                 self._optimizer.zero_grad()
                 log_p = self.policy.log_prob(obs_i, act_i, pi_h_i, length_i, action_history=prev_action_i)
                 prob_ratio = torch.exp(log_p - old_log_p_i)

@@ -82,6 +82,64 @@ def make_rudin_setup():
     return policy, alg_params
 
 
+def make_rudin_history_setup(history_length):
+    dim_env_state, dim_action = 2, 1  # InvertedPendulum
+    window_shape = (history_length, dim_env_state)
+
+    policy = GaussianTorchPolicy(
+        ActorNetwork,
+        window_shape,
+        (dim_action,),
+        std_0=1., n_features=None, n_layers=0,
+    )
+
+    alg_params = dict(
+        actor_optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
+        critic_params=dict(
+            network=ActorNetwork,
+            optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
+            loss=F.mse_loss,
+            input_shape=window_shape, output_shape=(1,),
+            n_features=None, n_layers=0,
+        ),
+        n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95,
+        clip_grad_norm=1., schedule='adaptive', desired_kl=0.01,
+        history_length=history_length,
+    )
+
+    return policy, alg_params
+
+
+def make_rudin_action_history_setup(action_history_length):
+    dim_env_state, dim_action = 2, 1  # InvertedPendulum
+    action_history_shape = (dim_action,)
+
+    policy = GaussianTorchPolicy(
+        ActorNetwork,
+        (dim_env_state,),
+        (dim_action,),
+        std_0=1., n_features=None, n_layers=0,
+        action_history_shape=action_history_shape,
+    )
+
+    alg_params = dict(
+        actor_optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
+        critic_params=dict(
+            network=ActorNetwork,
+            optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
+            loss=F.mse_loss,
+            n_features=None, n_layers=0,
+            input_shape=(dim_env_state,), output_shape=(1,),
+            action_history_shape=action_history_shape,
+        ),
+        n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95,
+        clip_grad_norm=1., schedule='adaptive', desired_kl=0.01,
+        action_history_length=action_history_length,
+    )
+
+    return policy, alg_params
+
+
 def test_PPO_BPTT():
     np.random.seed(1)
     torch.manual_seed(1)
@@ -146,6 +204,34 @@ def test_RudinPPO_save(tmpdir):
 
     for att in vars(agent_save):
         tu.assert_eq(getattr(agent_save, att), getattr(agent_load, att))
+
+
+def test_RudinPPO_history_length():
+    np.random.seed(1)
+    torch.manual_seed(1)
+    torch.cuda.manual_seed(1)
+    policy, alg_params = make_rudin_history_setup(history_length=3)
+
+    agent = learn(RudinPPO, policy, alg_params)
+    w = agent.policy.get_weights()
+    w_test = torch.tensor([0.4686, 0.1263, -0.1158, 0.2544, 0.0432, 0.3357, -0.0864, -0.0024])
+
+    assert agent.history_length == 3
+    assert torch.allclose(w, w_test, atol=1e-4), f"actual={w}, expected={w_test}, diff={w - w_test}"
+
+
+def test_RudinPPO_action_history_length():
+    np.random.seed(1)
+    torch.manual_seed(1)
+    torch.cuda.manual_seed(1)
+    policy, alg_params = make_rudin_action_history_setup(action_history_length=1)
+
+    agent = learn(RudinPPO, policy, alg_params)
+    w = agent.policy.get_weights()
+    w_test = torch.tensor([-1.1555, 0.7321, -0.2495, 0.2686, -0.0024])
+
+    assert agent._history_manager.uses_action
+    assert torch.allclose(w, w_test, atol=1e-4), f"actual={w}, expected={w_test}, diff={w - w_test}"
 
 
 def test_PPO_BPTT_lstm():

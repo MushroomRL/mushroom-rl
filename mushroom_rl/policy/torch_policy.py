@@ -147,34 +147,35 @@ class GaussianTorchPolicy(TorchPolicy):
             _log_sigma='torch'
         )
 
-    def draw_action(self, state):
+    def draw_action(self, state, action_history=None):
         with torch.no_grad():
-            return self.distribution(state).sample()
+            return self.distribution(state, action_history=action_history).sample()
 
-    def draw_action_greedy(self, state):
+    def draw_action_greedy(self, state, action_history=None):
         with torch.no_grad():
-            return self.distribution(state).mean
+            return self.distribution(state, action_history=action_history).mean
 
-    def draw_with_log_prob(self, state):
-        dist = self.distribution(state)
+    def draw_with_log_prob(self, state, action_history=None):
+        dist = self.distribution(state, action_history=action_history)
         a = dist.rsample()
 
         return a, dist.log_prob(a).unsqueeze(-1)
 
-    def log_prob(self, state, action):
-        return self.distribution(state).log_prob(action).unsqueeze(-1)
+    def log_prob(self, state, action, action_history=None):
+        return self.distribution(state, action_history=action_history).log_prob(action).unsqueeze(-1)
 
     def entropy(self, state=None):
         return self._action_dim / 2 * torch.log(TorchUtils.to_float_tensor(2 * np.pi * np.e))\
                + torch.sum(self._log_sigma)
 
-    def distribution(self, state):
-        mu, chol_sigma = self.get_mean_and_chol(state)
+    def distribution(self, state, action_history=None):
+        mu, chol_sigma = self.get_mean_and_chol(state, action_history=action_history)
         return torch.distributions.MultivariateNormal(loc=mu, scale_tril=chol_sigma, validate_args=False)
 
-    def get_mean_and_chol(self, state):
+    def get_mean_and_chol(self, state, action_history=None):
         assert torch.all(torch.exp(self._log_sigma) > 0)
-        return self._mu(state, **self._predict_params), torch.diag(torch.exp(self._log_sigma))
+        mean = self._mu(state, action_history=action_history, **self._predict_params)
+        return mean, torch.diag(torch.exp(self._log_sigma))
 
     def set_weights(self, weights):
         log_sigma_data = TorchUtils.to_float_tensor(weights[-self._action_dim:])
