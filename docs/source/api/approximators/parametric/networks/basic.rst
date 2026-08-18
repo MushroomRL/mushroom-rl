@@ -6,7 +6,7 @@ does not call for anything more specific.
 
 .. automodule:: mushroom_rl.approximators.parametric.networks.linear_network
 
-.. automodule:: mushroom_rl.approximators.parametric.networks.actor_network
+.. automodule:: mushroom_rl.approximators.parametric.networks.feed_forward_network
 
 .. automodule:: mushroom_rl.approximators.parametric.networks.critic_network
 

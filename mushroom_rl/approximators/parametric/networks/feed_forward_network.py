@@ -6,11 +6,11 @@ import torch.nn as nn
 from mushroom_rl.utils.torch_utils import TorchUtils
 
 
-class ActorNetwork(nn.Module):
+class FeedForwardNetwork(nn.Module):
     """
-    Simple feedforward actor network mapping the ``state`` to the network output (e.g. the action). Any
-    non-flat input (e.g. a stacked observation history) is flattened into a single feature vector before
-    being fed to the first layer.
+    Simple feedforward network mapping a single ``state`` input to the network output (e.g. an action for a
+    policy head, or a scalar for a state-value critic). Any non-flat input (e.g. a stacked observation
+    history) is flattened into a single feature vector before being fed to the first layer.
 
     """
     def __init__(self, input_shape, output_shape, n_features, n_layers=2,
@@ -79,3 +79,12 @@ class ActorNetwork(nn.Module):
         for layer in self._layers[:-1]:
             x = self._activation(layer(x))
         return self._layers[-1](x)
+
+
+class ActorNetwork(FeedForwardNetwork):
+    """
+    Alias of :class:`FeedForwardNetwork`, kept for symmetry with
+    :class:`~mushroom_rl.approximators.parametric.networks.critic_network.CriticNetwork` when the network is
+    used as a policy head rather than a state-value critic.
+
+    """

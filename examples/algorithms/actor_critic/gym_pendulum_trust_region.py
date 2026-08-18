@@ -18,7 +18,7 @@ from mushroom_rl.algorithms.actor_critic import PPO, TRPO
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import Gymnasium
 from mushroom_rl.policy import GaussianTorchPolicy
-from mushroom_rl.approximators.parametric.networks import ActorNetwork
+from mushroom_rl.approximators.parametric.networks import FeedForwardNetwork, ActorNetwork
 from mushroom_rl.utils.torch_utils import TorchUtils
 from mushroom_rl.utils.experiments import select_class
 
@@ -55,7 +55,7 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
                                  **policy_params)
 
     # Agent
-    critic_params = dict(network=ActorNetwork,
+    critic_params = dict(network=FeedForwardNetwork,
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': 3e-4}},
                          loss=F.mse_loss,

@@ -10,7 +10,9 @@ from mushroom_rl.core import Agent, Core
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import PPO_BPTT, RudinPPO
 from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.policy import GaussianTorchPolicy, RecurrentGaussianTorchPolicy
-from mushroom_rl.approximators.parametric.networks import ActorNetwork, RecurrentActorNetwork, RecurrentCriticNetwork
+from mushroom_rl.approximators.parametric.networks import (
+    FeedForwardNetwork, ActorNetwork, RecurrentActorNetwork, RecurrentCriticNetwork
+)
 
 
 def learn(alg, policy, alg_params):
@@ -69,7 +71,7 @@ def make_rudin_setup():
     alg_params = dict(
         actor_optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
         critic_params=dict(
-            network=ActorNetwork,
+            network=FeedForwardNetwork,
             optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
             loss=F.mse_loss,
             n_features=None, n_layers=0,
@@ -96,7 +98,7 @@ def make_rudin_history_setup(history_length):
     alg_params = dict(
         actor_optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
         critic_params=dict(
-            network=ActorNetwork,
+            network=FeedForwardNetwork,
             optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
             loss=F.mse_loss,
             input_shape=window_shape, output_shape=(1,),
@@ -125,7 +127,7 @@ def make_rudin_action_history_setup(action_history_length):
     alg_params = dict(
         actor_optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
         critic_params=dict(
-            network=ActorNetwork,
+            network=FeedForwardNetwork,
             optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
             loss=F.mse_loss,
             n_features=None, n_layers=0,

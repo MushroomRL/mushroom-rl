@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 
 from mushroom_rl.approximators.parametric.networks import (
+    FeedForwardNetwork,
     ActorNetwork,
     QNetwork,
     CriticNetwork,
@@ -19,9 +20,9 @@ from mushroom_rl.approximators.parametric.networks import (
 )
 
 
-def test_actor_network_scalar_features():
+def test_feed_forward_network_scalar_features():
     torch.manual_seed(42)
-    net = ActorNetwork((4,), (2,), n_features=32)
+    net = FeedForwardNetwork((4,), (2,), n_features=32)
     x = torch.as_tensor(np.random.RandomState(0).rand(3, 4), dtype=torch.float32)
     out = net(x).detach().numpy()
     expected = np.array([[0.5220006, -0.20175238],
@@ -31,9 +32,9 @@ def test_actor_network_scalar_features():
     assert np.allclose(out, expected, atol=1e-6)
 
 
-def test_actor_network_list_features():
+def test_feed_forward_network_list_features():
     torch.manual_seed(42)
-    net = ActorNetwork((4,), (2,), n_features=[64, 32])
+    net = FeedForwardNetwork((4,), (2,), n_features=[64, 32])
     x = torch.as_tensor(np.random.RandomState(0).rand(3, 4), dtype=torch.float32)
     out = net(x).detach().numpy()
     expected = np.array([[-0.8190474, 0.40304738],
@@ -43,9 +44,9 @@ def test_actor_network_list_features():
     assert np.allclose(out, expected, atol=1e-6)
 
 
-def test_actor_network_n_layers():
+def test_feed_forward_network_n_layers():
     torch.manual_seed(42)
-    net = ActorNetwork((4,), (2,), n_features=32, n_layers=3)
+    net = FeedForwardNetwork((4,), (2,), n_features=32, n_layers=3)
     assert len(net._layers) == 4
     x = torch.as_tensor(np.random.RandomState(0).rand(3, 4), dtype=torch.float32)
     out = net(x).detach().numpy()
@@ -56,9 +57,9 @@ def test_actor_network_n_layers():
     assert np.allclose(out, expected, atol=1e-6)
 
 
-def test_actor_network_tanh():
+def test_feed_forward_network_tanh():
     torch.manual_seed(42)
-    net = ActorNetwork((4,), (2,), n_features=32, activation='tanh')
+    net = FeedForwardNetwork((4,), (2,), n_features=32, activation='tanh')
     x = torch.as_tensor(np.random.RandomState(0).rand(3, 4), dtype=torch.float32)
     out = net(x).detach().numpy()
     expected = np.array([[-1.261526, 0.84943783],
@@ -67,17 +68,17 @@ def test_actor_network_tanh():
     assert np.allclose(out, expected, atol=1e-6)
 
 
-def test_actor_network_gain_scale():
+def test_feed_forward_network_gain_scale():
     torch.manual_seed(42)
-    net = ActorNetwork((4,), (2,), n_features=32, gain_scale=0.1)
+    net = FeedForwardNetwork((4,), (2,), n_features=32, gain_scale=0.1)
     w = net._layers[0].weight[0, :2].detach().numpy()
     expected = np.array([-0.00551182, -0.03212874])
     assert np.allclose(w, expected, atol=1e-7)
 
 
-def test_actor_network_orthogonal_init():
+def test_feed_forward_network_orthogonal_init():
     torch.manual_seed(42)
-    net = ActorNetwork((4,), (2,), n_features=32, weights_init='orthogonal')
+    net = FeedForwardNetwork((4,), (2,), n_features=32, weights_init='orthogonal')
     x = torch.as_tensor(np.random.RandomState(0).rand(3, 4), dtype=torch.float32)
     w = net._layers[0].weight[0, :2].detach().numpy()
     expected_w = np.array([0.27986282, 0.06634405])
@@ -89,9 +90,9 @@ def test_actor_network_orthogonal_init():
     assert np.allclose(out, expected_out, atol=1e-6)
 
 
-def test_actor_network_zero_bias_init():
+def test_feed_forward_network_zero_bias_init():
     torch.manual_seed(42)
-    net = ActorNetwork((4,), (2,), n_features=32, bias_init='zeros')
+    net = FeedForwardNetwork((4,), (2,), n_features=32, bias_init='zeros')
     assert np.allclose(net._layers[0].bias.detach().numpy()[:4], np.zeros(4))
     x = torch.as_tensor(np.random.RandomState(0).rand(3, 4), dtype=torch.float32)
     out = net(x).detach().numpy()
@@ -101,14 +102,31 @@ def test_actor_network_zero_bias_init():
     assert np.allclose(out, expected, atol=1e-6)
 
 
-def test_actor_network_activation_class():
+def test_feed_forward_network_activation_class():
     torch.manual_seed(42)
-    net = ActorNetwork((4,), (2,), n_features=32, activation=nn.Tanh)
+    net = FeedForwardNetwork((4,), (2,), n_features=32, activation=nn.Tanh)
     x = torch.as_tensor(np.random.RandomState(0).rand(3, 4), dtype=torch.float32)
     out = net(x).detach().numpy()
     expected = np.array([[-1.261526, 0.84943783],
                          [-1.422259, 0.61180925],
                          [-1.3073331, 0.8145788]])
+    assert np.allclose(out, expected, atol=1e-6)
+
+
+def test_actor_network_is_feed_forward_network_subclass():
+    assert issubclass(ActorNetwork, FeedForwardNetwork)
+    assert ActorNetwork is not FeedForwardNetwork
+
+
+def test_actor_network_behaves_like_feed_forward_network():
+    torch.manual_seed(42)
+    net = ActorNetwork((4,), (2,), n_features=32)
+    x = torch.as_tensor(np.random.RandomState(0).rand(3, 4), dtype=torch.float32)
+    out = net(x).detach().numpy()
+    expected = np.array([[0.5220006, -0.20175238],
+                         [0.44349343, -0.2754168],
+                         [0.5436677, -0.1532542]])
+    assert out.shape == (3, 2)
     assert np.allclose(out, expected, atol=1e-6)
 
 

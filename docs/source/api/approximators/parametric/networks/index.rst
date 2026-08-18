@@ -9,7 +9,8 @@ approximator itself.
    :nosignatures:
 
    ~mushroom_rl.approximators.parametric.networks.linear_network.LinearNetwork
-   ~mushroom_rl.approximators.parametric.networks.actor_network.ActorNetwork
+   ~mushroom_rl.approximators.parametric.networks.feed_forward_network.FeedForwardNetwork
+   ~mushroom_rl.approximators.parametric.networks.feed_forward_network.ActorNetwork
    ~mushroom_rl.approximators.parametric.networks.critic_network.CriticNetwork
    ~mushroom_rl.approximators.parametric.networks.q_network.QNetwork
    ~mushroom_rl.approximators.parametric.networks.atari_network.AtariNetwork

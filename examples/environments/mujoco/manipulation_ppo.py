@@ -19,7 +19,7 @@ from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import Reach, Push, Pick, PegInsertion
 from mushroom_rl.policy import GaussianTorchPolicy
 from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
-from mushroom_rl.approximators.parametric.networks import ActorNetwork
+from mushroom_rl.approximators.parametric.networks import FeedForwardNetwork, ActorNetwork
 from mushroom_rl.utils.torch_utils import TorchUtils
 from mushroom_rl.utils.experiments import select_class
 
@@ -66,7 +66,7 @@ def experiment(env, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, render=
                                  bias_init='zeros')
 
     # Agent
-    critic_params = dict(network=ActorNetwork,
+    critic_params = dict(network=FeedForwardNetwork,
                          optimizer={'class': optim.Adam, 'params': {'lr': critic_lr}},
                          loss=F.mse_loss,
                          n_features=n_features,

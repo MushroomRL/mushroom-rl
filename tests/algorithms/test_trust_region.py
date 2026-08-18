@@ -12,7 +12,7 @@ from mushroom_rl.algorithms.actor_critic import PPO, TRPO
 from mushroom_rl.core import Core
 from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.policy import GaussianTorchPolicy
-from mushroom_rl.approximators.parametric.networks import ActorNetwork
+from mushroom_rl.approximators.parametric.networks import FeedForwardNetwork, ActorNetwork
 
 
 def learn(alg, alg_params):
@@ -21,7 +21,7 @@ def learn(alg, alg_params):
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
 
-    critic_params = dict(network=ActorNetwork,
+    critic_params = dict(network=FeedForwardNetwork,
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': 3e-4}},
                          loss=F.mse_loss,
@@ -56,7 +56,7 @@ def learn_history(alg, alg_params, history_length):
 
     window_shape = (history_length,) + mdp.info.observation_space.shape
 
-    critic_params = dict(network=ActorNetwork,
+    critic_params = dict(network=FeedForwardNetwork,
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': 3e-4}},
                          loss=F.mse_loss,
@@ -92,7 +92,7 @@ def learn_action_history(alg, alg_params, action_history_length):
 
     action_history_shape = mdp.info.action_space.shape
 
-    critic_params = dict(network=ActorNetwork,
+    critic_params = dict(network=FeedForwardNetwork,
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': 3e-4}},
                          loss=F.mse_loss,

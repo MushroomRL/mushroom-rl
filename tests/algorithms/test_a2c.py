@@ -13,7 +13,7 @@ from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.algorithms.actor_critic import A2C
 
 from mushroom_rl.policy import GaussianTorchPolicy
-from mushroom_rl.approximators.parametric.networks import ActorNetwork
+from mushroom_rl.approximators.parametric.networks import FeedForwardNetwork, ActorNetwork
 
 
 def learn_a2c():
@@ -24,7 +24,7 @@ def learn_a2c():
 
     policy_params = dict(std_0=1., n_features=None, n_layers=0)
 
-    critic_params = dict(network=ActorNetwork,
+    critic_params = dict(network=FeedForwardNetwork,
                          optimizer={'class': optim.RMSprop,
                                     'params': {'lr': 7e-4,
                                                'eps': 1e-5}},
@@ -64,7 +64,7 @@ def learn_a2c_history(history_length):
 
     policy_params = dict(std_0=1., n_features=None, n_layers=0)
 
-    critic_params = dict(network=ActorNetwork,
+    critic_params = dict(network=FeedForwardNetwork,
                          optimizer={'class': optim.RMSprop,
                                     'params': {'lr': 7e-4,
                                                'eps': 1e-5}},
@@ -105,7 +105,7 @@ def learn_a2c_action_history(action_history_length):
 
     policy_params = dict(std_0=1., n_features=None, n_layers=0, action_history_shape=action_history_shape)
 
-    critic_params = dict(network=ActorNetwork,
+    critic_params = dict(network=FeedForwardNetwork,
                          optimizer={'class': optim.RMSprop,
                                     'params': {'lr': 7e-4,
                                                'eps': 1e-5}},
