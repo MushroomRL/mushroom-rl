@@ -1,44 +1,34 @@
 import torch
 
-from isaacsim.core.utils.torch.maths import torch_rand_float
+from mushroom_rl.utils.isaac_sim.torch_maths import torch_rand_float
 
 from mushroom_rl.utils import TorchUtils
 
 
 class QuadrupedRandomizationParams:
     """
-    How far every physical and control parameter of a quadruped may stray from its nominal value.
+    Class for defining the domain randomization parameters of a quadruped.
 
-    The values are held in a dictionary rather than in one attribute each, so that a subclass can introduce
-    further randomization terms by extending :meth:`_default_values`, without the constructor having to grow a
-    keyword per term. Overriding an unknown name raises, so that a misspelled parameter fails loudly instead of
-    silently leaving the default in place.
+    .. rubric:: Disturbance, friction and latency
 
-    Three conventions run through the names: an ``add_`` prefix marks an additive offset drawn around the
-    nominal value, a ``_factor`` suffix marks a symmetric half-width applied multiplicatively, and everything
-    else is an absolute ``(low, high)`` bound.
-
-    The nominal values every range is centered on are not parameters of the randomization: they describe the
-    robot and its control law, so they belong to the environment and reach the randomizer through
-    ``nominal_values``.
-
-    .. rubric:: Disturbance, cadence and latency
+    The table below lists the parameters of the random pushes, the ground friction and the action latency.
 
     .. csv-table::
        :header: "Parameter", "Default", "Meaning"
        :widths: 30, 18, 52
 
-       "``push_probability``", "``1/750``", "Per-step chance an environment is pushed"
+       "``push_probability``", "``1/750``", "Per-step chance an environment is pushed, when no interval is set"
+       "``push_interval_range``", "``None``", "Range, in seconds, between two pushes of the same environment"
        "``push_min_episode_length``", "``50``", "Steps an environment must have been alive to be pushed"
        "``push_max_velocity``", "``1.``", "Half-width of the horizontal velocity the push imparts"
-       "``resample_probability``", "``0.0004``", "Per-step chance every parameter below is drawn again"
-       "``latency_resample_probability``", "``0.002``", "Per-step chance the actuation latency regime switches"
-       "``mixed_chance``", "``0.05``", "Chance the new regime redraws the delay at every single action"
-       "``max_delay_steps``", "``1``", "Largest number of steps an action can be delayed by"
+       "``static_friction``", "``(0.5, 1.25)``", "Static friction of the ground the robot walks on"
+       "``dynamic_friction``", "``(0.5, 0.5)``", "Dynamic friction of the ground the robot walks on"
+       "``mixed_chance``", "``0.05``", "Chance an episode redraws the delay at every single action"
+       "``max_delay_steps``", "``4``", "Largest number of physics steps an action can be delayed by"
 
     .. rubric:: Seen ranges
 
-    The values the agent is told about through its observation, so that it can adapt to them.
+    The table below lists the parameters exposed to the agent through the observation.
 
     .. csv-table::
        :header: "Parameter", "Default", "Meaning"
@@ -48,7 +38,6 @@ class QuadrupedRandomizationParams:
        instead of being drawn"
        "``add_trunk_mass``", "``(-0.8, 0.8)``", "Offset on the mass of the trunk"
        "``add_com_displacement``", "``(-0.0025, 0.0025)``", "Offset on the center of mass of the trunk"
-       "``foot_scaling``", "``(0.975, 1.025)``", "Scale of every foot"
        "``add_joint_nominal_position``", "``(-0.01, 0.01)``", "Offset on the nominal pose actions are relative
        to"
        "``torque_limit_factor``", "``0.3``", "Spread of the torque limit around its nominal value"
@@ -63,8 +52,8 @@ class QuadrupedRandomizationParams:
 
     .. rubric:: Unseen noise
 
-    The hidden mismatch stacked on top of the seen values, which the agent is never told about and can only be
-    robust to. Every entry but the last is a half-width around ``1``.
+    The table below lists the noise applied on top of the seen values, which is not exposed to the agent.
+    Every entry but the last is a half-width around ``1``.
 
     .. csv-table::
        :header: "Parameter", "Default", "Meaning"
@@ -72,7 +61,6 @@ class QuadrupedRandomizationParams:
 
        "``trunk_mass_factor``", "``0.25``", "Noise on the trunk mass reaching the simulation"
        "``trunk_com_factor``", "``0.25``", "Noise on the trunk center of mass"
-       "``foot_size_factor``", "``0.03``", "Noise on the foot scale"
        "``joint_damping_factor``", "``0.5``", "Noise on the joint damping"
        "``joint_stiffness_factor``", "``0.5``", "Noise on the joint stiffness"
        "``joint_armature_factor``", "``0.5``", "Noise on the joint armature"
@@ -103,6 +91,12 @@ class QuadrupedRandomizationParams:
     def __getitem__(self, name):
         return self._values[name]
 
+    def __setitem__(self, name, value):
+        if name not in self._values:
+            raise ValueError(f"unknown randomization parameter: {name}")
+
+        self._values[name] = value
+
     def __contains__(self, name):
         return name in self._values
 
@@ -116,12 +110,12 @@ class QuadrupedRandomizationParams:
         """
         return dict(
             push_probability=1. / 750., push_min_episode_length=50, push_max_velocity=1.,
-            resample_probability=0.0004,
-            latency_resample_probability=0.002, mixed_chance=0.05, max_delay_steps=1,
+            push_interval_range=None,
+            static_friction=(0.5, 1.25), dynamic_friction=(0.5, 0.5),
+            mixed_chance=0.05, max_delay_steps=4,
             stay_at_default_percentage=0.3,
             add_trunk_mass=(-0.8, 0.8),
             add_com_displacement=(-0.0025, 0.0025),
-            foot_scaling=(0.975, 1.025),
             add_joint_nominal_position=(-0.01, 0.01),
             torque_limit_factor=0.3,
             joint_velocity_factor=0.15,
@@ -134,7 +128,6 @@ class QuadrupedRandomizationParams:
             add_scaling_factor=(-0.03, 0.03),
             trunk_mass_factor=0.25,
             trunk_com_factor=0.25,
-            foot_size_factor=0.03,
             joint_damping_factor=0.5,
             joint_stiffness_factor=0.5,
             joint_armature_factor=0.5,
@@ -148,32 +141,19 @@ class QuadrupedRandomizationParams:
 
 class QuadrupedRandomizer:
     """
-    Which randomized parameters each parallel environment currently runs with, and how to draw them again.
+    Class for sampling and storing the domain randomization parameters of every parallel environment.
 
-    The parameters live in two layers. The *seen* layer is what the agent is told about through its
-    observation, so it can adapt to it. The *unseen* layer is a further, hidden mismatch stacked on top of the
-    seen one, which the agent is never told about and can only be robust to: the control law runs on unseen
-    gains, and the simulation is set up with unseen masses, sizes and joint properties. The two are drawn
-    separately, and the pairing is not one to one, since some parameters only have a seen layer.
-
-    Each layer is a dictionary keyed by parameter name, since that is how the environment consumes them: the
-    seen layer fills the observations one for one, and :meth:`resample` returns the properties to write into
-    the simulation in the same shape.
-
-    The randomizer never touches the simulation itself. It is built once the simulation is live, out of the
-    nominal properties read from it, and from then on the environment writes back whatever :meth:`resample`
-    hands over and reads the current parameters off the properties below, so that the same randomizer serves
-    any quadruped.
+    The seen parameters are exposed to the agent through the observation. The unseen ones are an additional
+    noise applied on top of them, which the agent does not observe. Some parameters only have a seen value.
 
     """
-    def __init__(self, n_envs, n_joints, n_feet, nominal_values, params=None):
+    def __init__(self, n_envs, n_joints, nominal_values, params=None):
         """
         Constructor.
 
         Args:
             n_envs (int): Number of parallel environments.
             n_joints (int): The number of controlled joints of the robot.
-            n_feet (int): The number of feet of the robot.
             nominal_values (dict): The value every randomized parameter is centered on: the properties read
                 out of the live simulation, keyed by the name they are declared under in the additional data
                 specification, together with the ``joint_nominal_pos``, ``joint_max_vel``, ``p_gain``,
@@ -187,7 +167,6 @@ class QuadrupedRandomizer:
 
         self._n_envs = n_envs
         self._n_joints = n_joints
-        self._n_feet = n_feet
         self._params = QuadrupedRandomizationParams() if params is None else params
 
         self._default = dict(
@@ -228,13 +207,14 @@ class QuadrupedRandomizer:
             position_offset=torch.zeros(shape, device=device)
         )
 
-        self._mixed = False
-        self._n_delay_steps = 0
+        self._mixed = torch.zeros((n_envs, ), dtype=torch.bool, device=device)
+        self._n_delay_steps = torch.zeros((n_envs, ), dtype=torch.long, device=device)
+        self._time_to_push = torch.zeros((n_envs, ), device=device)
 
-    def resample(self, env_indices):
+    def resample_startup(self, env_indices):
         """
-        Draws every randomized parameter again, for the given environments. The unseen noise is drawn first,
-        since the seen parameters are perturbed by it before reaching the simulation.
+        Draws the parameters describing the robot itself, which are fixed for the whole run: its mass, its
+        center of mass and its actuator gains.
 
         Args:
             env_indices (torch.tensor): The environments to draw for.
@@ -244,64 +224,100 @@ class QuadrupedRandomizer:
             the additional data specification.
 
         """
-        noise = self._sample_simulator_noise(env_indices)
-        noise.update(self._sample_controller_noise(env_indices))
-        simulator_values = self._sample_simulator_params(env_indices, noise)
-        self._sample_controller_params(env_indices, noise)
+        noise = self._sample_trunk_noise(env_indices)
+        noise.update(self._sample_gain_noise(env_indices))
+
+        simulator_values = self._sample_trunk_params(env_indices, noise)
+        self._sample_gain_params(env_indices, noise)
 
         return simulator_values
 
-    def sample_disturbance(self, env_indices, episode_length):
+    def resample_reset(self, env_indices):
+        """
+        Draws the parameters that vary from episode to episode: the joint properties, the actuation and the
+        action latency.
+
+        Args:
+            env_indices (torch.tensor): The environments to draw for.
+
+        Returns:
+            The properties the simulation has to be set up with, keyed by the name they are declared under in
+            the additional data specification.
+
+        """
+        noise = self._sample_joint_noise(env_indices)
+
+        simulator_values = self._sample_joint_params(env_indices, noise)
+        self._sample_actuation_params(env_indices)
+        self._sample_latency_regime(env_indices)
+
+        return simulator_values
+
+    def sample_friction(self, n_envs):
+        """
+        Draws the friction of the ground each of the given environments walks on for its next episode.
+
+        Args:
+            n_envs (int): How many environments to draw a friction for.
+
+        Returns:
+            The static and dynamic friction of each of them, as two tensors on the host.
+
+        """
+        shape = (n_envs, 1)
+        return (torch_rand_float(*self._params["static_friction"], shape, "cpu"),
+                torch_rand_float(*self._params["dynamic_friction"], shape, "cpu"))
+
+    def sample_disturbance(self, env_indices, episode_length, dt):
         """
         Draws the random push that knocks the robot off balance, applied only to the environments that have
-        been alive long enough for a push to be meaningful.
+        been alive long enough.
 
         Args:
             env_indices (torch.tensor): The environments a push may be applied to.
             episode_length (torch.tensor): The number of steps every environment has been alive for.
+            dt (float): The duration of a control step.
 
         Returns:
             The indices of the environments to push and the horizontal velocity to push each of them with.
 
         """
         device = TorchUtils.get_device()
+        interval_range = self._params["push_interval_range"]
 
-        do_push = torch_rand_float(0., 1., (len(env_indices), 1), device).squeeze(-1) \
-            < self._params["push_probability"]
+        if interval_range is None:
+            do_push = torch_rand_float(0., 1., (len(env_indices), 1), device).squeeze(-1) \
+                < self._params["push_probability"]
+        else:
+            self._time_to_push[env_indices] -= dt
+            do_push = self._time_to_push[env_indices] <= 0.
+
         push_indices = env_indices[do_push]
         push_indices = push_indices[episode_length[push_indices] > self._params["push_min_episode_length"]]
+
+        if interval_range is not None:
+            self._time_to_push[env_indices[do_push]] = torch_rand_float(
+                *interval_range, (int(do_push.sum()), 1), device
+            ).squeeze(1)
 
         max_velocity = self._params["push_max_velocity"]
         velocities = torch_rand_float(-max_velocity, max_velocity, (push_indices.shape[0], 2), device)
 
         return push_indices, velocities
 
-    def sample_resampling(self):
-        """
-        Returns:
-            Whether every randomized parameter should be drawn again at this step.
-
-        """
-        return torch.rand(()).item() < self._params["resample_probability"]
-
-    def resample_latency(self):
-        """
-        Occasionally switches the actuation latency between a fixed and a "mixed" regime, in which the delay is
-        redrawn at every single action.
-
-        """
-        if torch.rand(()).item() < self._params["latency_resample_probability"]:
-            self._mixed = torch.rand(()).item() < self._params["mixed_chance"]
-            self._n_delay_steps = 0
-
     def sample_latency(self):
         """
+        Redraws the action delay of the environments in the mixed regime, leaving the others with the delay
+        drawn at the start of their episode.
+
         Returns:
-            The number of steps the action about to be applied is delayed by.
+            The number of physics steps the next action is delayed by, per environment.
 
         """
-        if self._mixed:
-            self._n_delay_steps = torch.randint(0, self._params["max_delay_steps"] + 1, (1,)).item()
+        if torch.any(self._mixed):
+            redrawn = torch.randint(0, self._params["max_delay_steps"] + 1, (self._n_envs, ),
+                                    device=TorchUtils.get_device())
+            self._n_delay_steps = torch.where(self._mixed, redrawn, self._n_delay_steps)
 
         return self._n_delay_steps
 
@@ -309,8 +325,7 @@ class QuadrupedRandomizer:
     def params(self):
         """
         Returns:
-            The randomization ranges, so that the environment can derive the bounds of the observations
-            exposing the randomized parameters from the very numbers the sampling draws from.
+            The randomization ranges.
 
         """
         return self._params
@@ -328,7 +343,7 @@ class QuadrupedRandomizer:
     def default_parameters(self):
         """
         Returns:
-            The nominal value of every randomized parameter, the drawn ones are spread around.
+            The nominal value of every randomized parameter.
 
         """
         return self._default
@@ -373,8 +388,7 @@ class QuadrupedRandomizer:
     def p_gain(self):
         """
         Returns:
-            The proportional gain the control law currently runs on, which is the unseen one: the agent is
-            told the seen gain instead, and has to be robust to the mismatch.
+            The unseen proportional gain the control law currently runs on.
 
         """
         return self._unseen["p_gain"]
@@ -383,7 +397,7 @@ class QuadrupedRandomizer:
     def d_gain(self):
         """
         Returns:
-            The derivative gain the control law currently runs on, unseen just like :meth:`p_gain`.
+            The unseen derivative gain the control law currently runs on.
 
         """
         return self._unseen["d_gain"]
@@ -406,59 +420,55 @@ class QuadrupedRandomizer:
         """
         return self._unseen["position_offset"]
 
-    def _sample_simulator_noise(self, env_indices):
+    def _sample_trunk_noise(self, env_indices):
         """
-        Draws the unseen multiplicative noise the simulated properties are perturbed by, on top of the seen
-        values :meth:`_sample_simulator_params` draws.
+        Draws the unseen multiplicative noise perturbing the mass and the center of mass, on top of the seen
+        values :meth:`_sample_trunk_params` draws.
 
         Returns:
             The noise factors, of shape (len(env_indices), 1), keyed by the property they perturb.
 
         """
         return {name: self._sample_noise_factor(env_indices.shape[0], f"{name}_factor")
-                for name in ("trunk_mass", "trunk_com", "foot_size", "joint_damping", "joint_stiffness",
-                             "joint_armature", "joint_frictionloss")}
+                for name in ("trunk_mass", "trunk_com")}
 
-    def _sample_controller_noise(self, env_indices):
+    def _sample_gain_noise(self, env_indices):
         """
-        Draws the unseen perturbations of the control law: multiplicative noise on the gains and on the motor
-        strength, and an additive offset on the joint position the controller believes it reads. The motor
-        strength and the offset are applied directly by the control law, so they are stored rather than
-        returned.
+        Draws the unseen multiplicative noise on the gains the control law actually runs on.
 
         Returns:
-            The gain noise factors, of shape (len(env_indices), 1).
+            The noise factors, of shape (len(env_indices), 1).
 
         """
         n_envs = env_indices.shape[0]
-        position_offset = self._params["position_offset"]
 
-        noise = dict(p_gain=self._sample_noise_factor(n_envs, "p_gain_factor"),
-                     d_gain=self._sample_noise_factor(n_envs, "d_gain_factor"))
+        return dict(p_gain=self._sample_noise_factor(n_envs, "p_gain_factor"),
+                    d_gain=self._sample_noise_factor(n_envs, "d_gain_factor"))
 
-        self._unseen["motor_strength"][env_indices] = self._sample_noise_factor(n_envs, "motor_strength_factor")
-        self._unseen["position_offset"][env_indices] = torch_rand_float(
-            -position_offset, position_offset, (n_envs, self._n_joints), TorchUtils.get_device()
-        )
-
-        return noise
-
-    def _sample_simulator_params(self, env_indices, noise):
+    def _sample_joint_noise(self, env_indices):
         """
-        Draws the seen values of the simulated properties, around the nominal values the robot is authored
-        with, and returns the unseen values the simulation is actually set up with. The joint properties are
-        either drawn from an absolute range or left at their nominal value, with the probability the
-        ``stay_at_default_percentage`` parameter sets.
+        Draws the unseen multiplicative noise the joint properties reaching the simulation are perturbed by.
+
+        Returns:
+            The noise factors, of shape (len(env_indices), 1), keyed by the property they perturb.
+
+        """
+        return {name: self._sample_noise_factor(env_indices.shape[0], f"{name}_factor")
+                for name in ("joint_damping", "joint_stiffness", "joint_armature", "joint_frictionloss")}
+
+    def _sample_trunk_params(self, env_indices, noise):
+        """
+        Draws the seen mass and center of mass of the trunk, around the nominal values the robot is authored
+        with, and returns the unseen values the simulation is actually set up with.
 
         """
         device = TorchUtils.get_device()
         n_envs = env_indices.shape[0]
-        n_joints = self._n_joints
 
         trunk_mass = self._default["trunk_mass"] \
             + torch_rand_float(*self._params["add_trunk_mass"], (n_envs, 1), device)
         unseen_trunk_mass = trunk_mass * noise["trunk_mass"]
-        unseen_trunk_inertia = self._default["trunk_inertia"] + (unseen_trunk_mass / self._default["trunk_mass"])
+        unseen_trunk_inertia = self._default["trunk_inertia"] * (unseen_trunk_mass / self._default["trunk_mass"])
         self._body_masses[env_indices, 0] = trunk_mass.squeeze(1)
         self._seen["mass"] = torch.sum(self._body_masses, dim=1).unsqueeze(1)
 
@@ -466,8 +476,39 @@ class QuadrupedRandomizer:
             + torch_rand_float(*self._params["add_com_displacement"], (n_envs, 1), device)
         unseen_trunk_com = trunk_com * noise["trunk_com"]
 
-        foot_scaling = torch_rand_float(*self._params["foot_scaling"], (n_envs, self._n_feet), device)
-        unseen_foot_scaling = foot_scaling * noise["foot_size"]
+        return {
+            "trunk_mass": unseen_trunk_mass,
+            "trunk_inertia": unseen_trunk_inertia.unsqueeze(1),
+            "trunk_com": unseen_trunk_com.unsqueeze(1)
+        }
+
+    def _sample_gain_params(self, env_indices, noise):
+        """
+        Draws the seen gains of the control law, as additive offsets around their nominal values, and the
+        unseen gains it is actually run with.
+
+        """
+        device = TorchUtils.get_device()
+        shape = (env_indices.shape[0], self._n_joints)
+
+        self._seen["p_gain"][env_indices] = self._default["p_gain"] \
+            + torch_rand_float(*self._params["add_p_gain"], shape, device)
+        self._seen["d_gain"][env_indices] = self._default["d_gain"] \
+            + torch_rand_float(*self._params["add_d_gain"], shape, device)
+
+        self._unseen["p_gain"][env_indices] = self._seen["p_gain"][env_indices] * noise["p_gain"]
+        self._unseen["d_gain"][env_indices] = self._seen["d_gain"][env_indices] * noise["d_gain"]
+
+    def _sample_joint_params(self, env_indices, noise):
+        """
+        Draws the seen values of the joint properties, and returns the unseen values the simulation is
+        actually set up with. Each is either drawn from an absolute range or left nominal, with the
+        probability ``stay_at_default_percentage`` sets.
+
+        """
+        device = TorchUtils.get_device()
+        n_envs = env_indices.shape[0]
+        n_joints = self._n_joints
 
         self._seen["joint_nominal_position"][env_indices] = self._default["joint_nominal_pos"] \
             + torch_rand_float(*self._params["add_joint_nominal_position"], (n_envs, n_joints), device)
@@ -489,9 +530,6 @@ class QuadrupedRandomizer:
             )
 
         unseen_values = {
-            "trunk_mass": unseen_trunk_mass,
-            "trunk_inertia": unseen_trunk_inertia.unsqueeze(1),
-            "trunk_com": unseen_trunk_com.unsqueeze(1),
             "torque_limit": self._seen["torque_limit"][env_indices],
             "max_joint_vel": self._seen["joint_max_velocity"][env_indices],
             "joint_damping": self._seen["joint_damping"][env_indices] * noise["joint_damping"],
@@ -502,29 +540,40 @@ class QuadrupedRandomizer:
             "joint_frictionloss":
                 self._seen["joint_frictionloss"][env_indices] * noise["joint_frictionloss"]
         }
-        for i in range(self._n_feet):
-            unseen_values[f"foot_scale_{i}"] = unseen_foot_scaling[:, i].unsqueeze(1).repeat(1, 3)
 
         return unseen_values
 
-    def _sample_controller_params(self, env_indices, noise):
+    def _sample_actuation_params(self, env_indices):
         """
-        Draws the seen parameters of the control law, as additive offsets around their nominal values, and the
-        unseen gains the control law is actually run with.
+        Draws how the actuation of an episode departs from the nominal one: the factor the action is scaled by,
+        the strength of the motors, and the offset corrupting the joint position the controller reads.
 
         """
         device = TorchUtils.get_device()
-        shape = (env_indices.shape[0], self._n_joints)
+        n_envs = env_indices.shape[0]
+        position_offset = self._params["position_offset"]
 
-        self._seen["p_gain"][env_indices] = self._default["p_gain"] \
-            + torch_rand_float(*self._params["add_p_gain"], shape, device)
-        self._seen["d_gain"][env_indices] = self._default["d_gain"] \
-            + torch_rand_float(*self._params["add_d_gain"], shape, device)
         self._seen["action_scaling_factor"][env_indices] = self._default["action_scaling_factor"] \
-            + torch_rand_float(*self._params["add_scaling_factor"], shape, device)
+            + torch_rand_float(*self._params["add_scaling_factor"], (n_envs, self._n_joints), device)
 
-        self._unseen["p_gain"][env_indices] = self._seen["p_gain"][env_indices] * noise["p_gain"]
-        self._unseen["d_gain"][env_indices] = self._seen["d_gain"][env_indices] * noise["d_gain"]
+        self._unseen["motor_strength"][env_indices] = self._sample_noise_factor(n_envs, "motor_strength_factor")
+        self._unseen["position_offset"][env_indices] = torch_rand_float(
+            -position_offset, position_offset, (n_envs, self._n_joints), device
+        )
+
+    def _sample_latency_regime(self, env_indices):
+        """
+        Draws how late the actions of an episode arrive: a fixed delay for most environments, and a delay
+        redrawn at every single action for the few that land in the mixed regime.
+
+        """
+        device = TorchUtils.get_device()
+        n_envs = env_indices.shape[0]
+
+        self._mixed[env_indices] = torch_rand_float(0., 1., (n_envs, 1), device).squeeze(1) \
+            < self._params["mixed_chance"]
+        self._n_delay_steps[env_indices] = torch.randint(0, self._params["max_delay_steps"] + 1, (n_envs, ),
+                                                         device=device)
 
     def _sample_symmetric_offset(self, n_envs, param_name):
         """

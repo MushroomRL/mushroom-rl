@@ -13,7 +13,7 @@ IsaacLauncher.launch(headless=True, disable_rendering=True)
 TorchUtils.set_default_device("cuda:0")
 
 from mushroom_rl.environments.isaacsim_envs import CartPoleIsaac
-from mushroom_rl.environments.isaacsim_envs import A1Isaac, HoneyBadgerIsaac, SilverBadgerIsaac
+from mushroom_rl.environments.isaacsim_envs import A1Isaac, Go2Isaac, HoneyBadgerIsaac, SilverBadgerIsaac
 from mushroom_rl.environments.isaacsim_envs.quadruped_randomizer import QuadrupedRandomizationParams
 
 
@@ -77,7 +77,6 @@ def test_cartpole():
 
     n_envs = 2
     mdp = CartPoleIsaac(n_envs)
-    mdp.seed(1)
 
     assert mdp.number == n_envs
     assert isinstance(mdp.info.observation_space.low, torch.Tensor)
@@ -101,12 +100,26 @@ def test_a1():
 
     n_envs = 2
     mdp = A1Isaac(n_envs, 1000)
-    mdp.seed(1)
 
     assert mdp.number == n_envs
 
     obs = run_env(mdp, 12)
     obs_test = np.load('tests/environments/isaacsim_envs/a1_data.npy')
+
+    assert np.allclose(obs, obs_test)
+
+
+def test_go2():
+    np.random.seed(1)
+    torch.manual_seed(1)
+
+    n_envs = 2
+    mdp = Go2Isaac(n_envs, 1000)
+
+    assert mdp.number == n_envs
+
+    obs = run_env(mdp, 12)
+    obs_test = np.load('tests/environments/isaacsim_envs/go2_data.npy')
 
     assert np.allclose(obs, obs_test)
 
@@ -117,7 +130,6 @@ def test_honey_badger():
 
     n_envs = 2
     mdp = HoneyBadgerIsaac(n_envs, 1000)
-    mdp.seed(1)
 
     assert mdp.number == n_envs
 
@@ -133,7 +145,6 @@ def test_silver_badger():
 
     n_envs = 2
     mdp = SilverBadgerIsaac(n_envs, 1000)
-    mdp.seed(1)
 
     assert mdp.number == n_envs
 
@@ -149,7 +160,6 @@ def test_honey_badger_no_domain_randomization():
 
     n_envs = 2
     mdp = HoneyBadgerIsaac(n_envs, 1000, domain_randomization=False)
-    mdp.seed(1)
 
     assert mdp.number == n_envs
 
@@ -164,10 +174,28 @@ def test_silver_badger_no_domain_randomization():
 
     n_envs = 2
     mdp = SilverBadgerIsaac(n_envs, 1000, domain_randomization=False)
-    mdp.seed(1)
 
     assert mdp.number == n_envs
 
     obs = run_env(mdp, 13)
 
     assert np.all(np.isfinite(obs))
+
+
+def test_observation_indices():
+    np.random.seed(1)
+    torch.manual_seed(1)
+
+    mdp = A1Isaac(2, 1000)
+
+    assert torch.equal(mdp.observation_indices('base_lin_vel', 'base_ang_vel'),
+                       torch.tensor([0, 1, 2, 3, 4, 5], device='cuda:0'))
+    assert torch.equal(mdp.observation_indices('joint_pos'),
+                       torch.tensor([6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17], device='cuda:0'))
+    assert torch.equal(mdp.observation_indices('actions'),
+                       torch.tensor([36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47], device='cuda:0'))
+
+    with pytest.raises(ValueError):
+        mdp.observation_indices('base_lin_vel', 'base_pos')
+
+    mdp.stop(soft=False)
