@@ -8,7 +8,6 @@ import warp as wp
 import isaacsim.core.experimental.utils.app as app_utils
 import isaacsim.core.experimental.utils.stage as stage_utils
 from isaacsim.core.simulation_manager import PhysxGpuCfg, PhysxScene, SimulationManager
-from isaacsim.core.utils.torch.maths import set_seed
 
 from mushroom_rl.core import VectorizedEnvironment, MDPInfo
 from mushroom_rl.core.spaces import Box
@@ -207,6 +206,7 @@ class IsaacSim(VectorizedEnvironment):
         Render all environments. Optionally record the frames.
 
         Args:
+            env_mask (torch.tensor): mask selecting the environments to render.
             record (bool, False): If True, the function returns the rendered image data.
 
         Raises:
@@ -261,20 +261,6 @@ class IsaacSim(VectorizedEnvironment):
         """
         raise NotImplementedError
 
-    def seed(self, seed=-1, torch_deterministic=False):
-        """
-        Sets the random seed for a deterministic behavior.
-
-        Args:
-            seed (int, optional): The seed value to set. If -1, a random seed is used.
-                Defaults to -1.
-
-        Returns:
-            int: The seed value that was set.
-
-        """
-        return set_seed(seed, torch_deterministic)
-
     def stop(self, soft=True):
         """
         Resets simulation and closes viewer.
@@ -295,6 +281,27 @@ class IsaacSim(VectorizedEnvironment):
 
         self._robots.reset_to_default_state()
         self._observation_helper.reapply_consistent_properties()
+
+    def observation_indices(self, *names):
+        """
+        Tells where the named observations sit in the observation vector, so that whoever consumes it can
+        single them out: an asymmetric actor-critic hiding the privileged entries from the policy, a
+        preprocessor normalizing one group apart from the rest, or a plot of one signal.
+
+        Args:
+            *names (str): The names of the observations to locate, as declared in the observation
+                specification or added by the environment on top of it.
+
+        Returns:
+            The indices the named observations occupy, in the order the names are given.
+
+        """
+        unknown = [name for name in names if name not in self._observation_helper.obs_idx_map]
+        if unknown:
+            raise ValueError(f"unknown observations: {unknown}, the environment observes "
+                             f"{sorted(self._observation_helper.obs_idx_map)}")
+
+        return torch.concatenate([self._observation_helper.obs_idx_map[name] for name in names])
 
     @property
     def dt(self):
@@ -445,7 +452,6 @@ class IsaacSim(VectorizedEnvironment):
         Useful to add control signals simulated directly in python.
 
         Args:
-            obs (torch.tensor): current state of the simulation;
             action (torch.tensor): the actions, provided at every step.
 
         Returns:

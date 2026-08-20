@@ -16,6 +16,7 @@ For Mushroom 2.0:
 
 
 For Mushroom 2.1:
+    * make utils/angles.py backend-agnostic and drop QuadrupedIsaac.wrap_to_pi
     * Improve the HistoryManager:
         - support HasNextAction agents with history_length > 1: HasNextAction.draw_action returns the stored next
           action without calling the history manager, so the manager's buffer is not advanced on that step
