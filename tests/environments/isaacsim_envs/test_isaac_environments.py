@@ -19,7 +19,7 @@ from mushroom_rl.environments.isaacsim_envs.quadruped_randomizer import Quadrupe
 
 def run_env(mdp, num_joints):
     n_envs = mdp.number
-    mask = torch.ones(n_envs, device="cuda:0")
+    mask = torch.ones(n_envs, dtype=torch.bool, device="cuda:0")
 
     obs, _ = mdp.reset_all(mask)
     assert isinstance(obs, torch.Tensor) and obs.is_cuda
