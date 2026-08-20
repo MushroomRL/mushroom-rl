@@ -7,6 +7,7 @@ exclude =
     dist
 per-file-ignores =
     examples/environments/isaacsim/cartpole_ppo.py: E402
+    examples/environments/isaacsim/go2_curriculum.py: E402
     examples/environments/isaacsim/quadruped_locomotion_ppo.py: E402
     tests/environments/isaacsim_envs/test_isaac_environments.py: E402
     tests/environments/mujoco_envs/test_air_hockey.py: E402

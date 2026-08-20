@@ -6,12 +6,18 @@ from mushroom_rl.utils import TorchUtils
 from mushroom_rl.utils.isaac_sim import ObservationType
 
 
-class A1Isaac(QuadrupedIsaac):
+class Go2Isaac(QuadrupedIsaac):
     """
-    A learning environment for training the A1 quadruped to walk.
+    A learning environment for training the Unitree Go2 quadruped to walk.
 
-    Resembles environment implemented by Rudin et al. for
-    "Learning to Walk in Minutes Using Massively Parallel Deep Reinforcement Learning"
+    The geometry of the robot comes from the model Unitree ships for MuJoCo, and its inertial properties and
+    actuator limits from the urdf Unitree publishes, which describes the motor rotors the MuJoCo model leaves
+    out and keeps the feet apart from the calves carrying them.
+
+    On top of what every quadruped observes, this one observes the position of its trunk, of which only the
+    height means anything: the reward term on the height of the trunk reads it, and a critic can be given it.
+    A policy meant to be deployed should not, since the real robot cannot measure it, any more than it can
+    measure the linear velocity of its trunk -- see the training example for how to hide both from it.
 
     Args:
         num_envs (int): Number of parallel environments.
@@ -24,15 +30,14 @@ class A1Isaac(QuadrupedIsaac):
     """
     def __init__(self, num_envs, horizon, domain_randomization=True, camera_position=None, camera_target=None,
                  **quadruped_params):
-        usd_path = str(Path(__file__).resolve().parent / "robots_usds/a1/a1.usd")
+        usd_path = str(Path(__file__).resolve().parent / "robots_usds/go2/go2.usd")
         device = TorchUtils.get_device()
 
-        action_spec = [
-            "FL_hip_joint", "FL_thigh_joint", "FL_calf_joint",
-            "FR_hip_joint", "FR_thigh_joint", "FR_calf_joint",
-            "RL_hip_joint", "RL_thigh_joint", "RL_calf_joint",
-            "RR_hip_joint", "RR_thigh_joint", "RR_calf_joint"
-        ]
+        legs = ("FL", "FR", "RL", "RR")
+        thigh_paths = {leg: f"/Geometry/base_link/{leg}_hip/{leg}_thigh" for leg in legs}
+        calf_paths = {leg: f"{thigh_paths[leg]}/{leg}_calf" for leg in legs}
+
+        action_spec = [f"{leg}_{joint}_joint" for leg in legs for joint in ("hip", "thigh", "calf")]
         default_joint_angles = torch.tensor([
             0.1, 0.8, -1.5,
             -0.1, 0.8, -1.5,
@@ -40,7 +45,7 @@ class A1Isaac(QuadrupedIsaac):
             -0.1, 1., -1.5
         ], device=device)
         trunk_body = "base_link"
-        foot_bodies = ["/FL_foot", "/FR_foot", "/RL_foot", "/RR_foot"]
+        foot_bodies = [f"{calf_paths[leg]}/{leg}_foot" for leg in legs]
         sub_bodies = [
             "base_link",
             "FL_hip", "FR_hip", "RL_hip", "RR_hip",
@@ -53,7 +58,9 @@ class A1Isaac(QuadrupedIsaac):
             ("base_ang_vel", "", ObservationType.BODY_ANG_VEL, None),
 
             ("joint_pos", "", ObservationType.JOINT_POS, action_spec),
-            ("joint_vel", "", ObservationType.JOINT_VEL, action_spec)
+            ("joint_vel", "", ObservationType.JOINT_VEL, action_spec),
+
+            ("base_pos", "", ObservationType.BODY_POS, None)
         ]
         additional_data_spec = [
             ("body_rot", "", ObservationType.BODY_ROT, None),
@@ -61,10 +68,9 @@ class A1Isaac(QuadrupedIsaac):
         ]
 
         collision_groups = [
-            ("feet", ["/FL_foot", "/FR_foot", "/RL_foot", "/RR_foot"]),
-            ("body", ["/base_link"]),
-            ("lower_body", ["/FL_thigh", "/FR_thigh", "/RL_thigh", "/RR_thigh",
-                            "/FL_calf", "/FR_calf", "/RL_calf", "/RR_calf"])
+            ("feet", list(foot_bodies)),
+            ("body", ["/Geometry/base_link"]),
+            ("lower_body", [thigh_paths[leg] for leg in legs] + [calf_paths[leg] for leg in legs])
         ]
 
         super().__init__(usd_path, action_spec, default_joint_angles, trunk_body, foot_bodies, sub_bodies,
@@ -75,6 +81,17 @@ class A1Isaac(QuadrupedIsaac):
         trunk_forces = self._collision_helper.get_net_contact_forces("body", dt=self._timestep)[:, 0]
         fallen = torch.norm(trunk_forces, dim=-1) > 1.
         return fallen
+
+    # observations ------------------------------------------------------------------------------------------------
+
+    def _create_observation(self, obs):
+        obs = super()._create_observation(obs)
+
+        # only the height of the trunk means anything: where in the world the robot walks does not
+        base_pos_indices = self._observation_helper.obs_idx_map["base_pos"]
+        obs[:, base_pos_indices[:2]] = 0
+
+        return obs
 
     # reward function -----------------------------------------------------------------------------------------
 

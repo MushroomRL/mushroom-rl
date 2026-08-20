@@ -18,6 +18,7 @@ For Mushroom 2.0:
 
 
 For Mushroom 2.1:
+    * make utils/angles.py backend-agnostic and drop QuadrupedIsaac.wrap_to_pi
     * HistoryManager subclass for complex per-stream specifications
       - the base HistoryManager handles only the `offset` option; delegate richer specs to a subclass
         (strides, structured/general lookbacks)

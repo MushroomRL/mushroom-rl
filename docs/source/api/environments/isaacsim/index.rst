@@ -22,6 +22,7 @@ robots. These are the environments that can be instantiated:
 
    ~mushroom_rl.environments.isaacsim_envs.cartpole.CartPoleIsaac
    ~mushroom_rl.environments.isaacsim_envs.a1.A1Isaac
+   ~mushroom_rl.environments.isaacsim_envs.go2.Go2Isaac
    ~mushroom_rl.environments.isaacsim_envs.honey_badger.HoneyBadgerIsaac
    ~mushroom_rl.environments.isaacsim_envs.silver_badger.SilverBadgerIsaac
 
