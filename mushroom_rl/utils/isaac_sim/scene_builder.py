@@ -9,7 +9,7 @@ import isaacsim.core.experimental.utils.stage as stage_utils
 from isaacsim.core.cloner import GridCloner
 from isaacsim.core.experimental.materials import RigidBodyMaterial
 from isaacsim.core.experimental.objects import DistantLight, GroundPlane
-from isaacsim.core.experimental.prims import Articulation, GeomPrim, RigidPrim
+from isaacsim.core.experimental.prims import Articulation, RigidPrim
 from pxr import PhysxSchema
 
 from mushroom_rl.utils import TorchUtils
@@ -28,8 +28,7 @@ class SceneBuilder:
     """
 
     def __init__(self, usd_path, num_envs, env_spacing=3., collisions_between_envs=False,
-                 solver_pos_it_count=None, solver_vel_it_count=None, ground_plane_friction=None,
-                 physics_material_spec=None):
+                 solver_pos_it_count=None, solver_vel_it_count=None, ground_plane_friction=None):
         """
         Constructor.
 
@@ -46,9 +45,6 @@ class SceneBuilder:
                 performance. If None, the value stored in the USD file is kept.
             ground_plane_friction (tuple, None): The static friction, dynamic friction and restitution of the
                 ground plane. If None, the Isaac Sim defaults are kept.
-            physics_material_spec (list, None): A list of (name, dynamic friction, static friction, restitution)
-                tuples, one per environment, describing the material applied to that environment's rigid bodies.
-                If None, the materials stored in the USD file are kept.
 
         """
         self._usd_path = usd_path
@@ -58,11 +54,7 @@ class SceneBuilder:
         self._solver_pos_it_count = solver_pos_it_count
         self._solver_vel_it_count = solver_vel_it_count
         self._ground_plane_friction = ground_plane_friction
-        self._physics_material_spec = physics_material_spec
 
-        # The robot of environment 'i' lives at <base>/env_i/Robot. Note the two pattern flavors: the
-        # isaacsim.core.experimental prims match prim paths as regular expressions, while the physics tensor
-        # views underneath match them as wildcards.
         self._base_env_path = "/World/envs"
         self._template_env_path = self._base_env_path + "/env"
         self._zero_env_robot_path = self._template_env_path + "_0/Robot"
@@ -70,6 +62,10 @@ class SceneBuilder:
         self._robot_glob = self._base_env_path + "/env_*/Robot"
 
         self._prim_paths = None
+        self._robots = None
+        self._physics_view = None
+        self._material_buffer = None
+        self._material_properties = None
 
     def build(self, specifications, collision_helper):
         """
@@ -98,9 +94,8 @@ class SceneBuilder:
 
         env_pos = self._clone_envs(stage)
 
-        robots = Articulation(self._robot_regex, reset_xform_op_properties=False)
+        robots = self._robots = Articulation(self._robot_regex, reset_xform_op_properties=False)
 
-        # low iteration counts lead to performance improvements, can have sideffects
         pos_counts, vel_counts = self._solver_pos_it_count, self._solver_vel_it_count
         if pos_counts is not None or vel_counts is not None:
             robots.set_solver_iteration_counts(
@@ -112,11 +107,32 @@ class SceneBuilder:
 
         views = self._create_views(stage, specifications, robots)
 
-        # apply physics materials
-        if self._physics_material_spec is not None:
-            self._apply_physics_materials(self._physics_material_spec)
-
         return robots, views, env_pos
+
+    def set_robot_friction(self, static_friction, dynamic_friction, env_indices):
+        """
+        Gives the collision shapes of the given environments' robots a new friction, so that a property as
+        coarse as how slippery the ground is can change from episode to episode.
+
+        The write goes through the physics view of the articulation rather than through the material prims of
+        the stage: those are read once, when the simulation starts, so authoring them afterwards has no effect
+        on what is simulated.
+
+        Args:
+            static_friction (torch.tensor): The static friction of each of the environments, on the host.
+            dynamic_friction (torch.tensor): The dynamic friction of each of the environments, on the host.
+            env_indices (torch.tensor): The environments to write, as an integer tensor.
+
+        """
+        if self._material_buffer is None:
+            self._physics_view = self._robots._physics_articulation_view
+            self._material_buffer = self._physics_view.get_material_properties()
+            self._material_properties = wp.to_torch(self._material_buffer)
+
+        env_indices = env_indices.to(device="cpu", dtype=torch.int32)
+        self._material_properties[env_indices, :, 0] = static_friction
+        self._material_properties[env_indices, :, 1] = dynamic_friction
+        self._physics_view.set_material_properties(self._material_buffer, wp.from_torch(env_indices))
 
     @property
     def zero_env_robot_path(self):
@@ -140,7 +156,7 @@ class SceneBuilder:
         cloner = GridCloner(spacing=self._env_spacing)
         cloner.define_base_env(self._base_env_path)
         self._prim_paths = cloner.generate_paths(self._template_env_path, self._num_envs)
-        # create source prim
+        
         stage.DefinePrim(self._prim_paths[0], "Xform")
 
         env_pos = cloner.clone(
@@ -204,29 +220,3 @@ class SceneBuilder:
                 restitutions=restitution
             )
             ground_plane.planes.apply_physics_materials(material)
-
-    def _apply_physics_materials(self, values):
-        """
-        Creates and assigns physics materials to the robot geometries based on the provided
-        material properties.
-
-        Args:
-            values (list of tuples): A list where each entry is a tuple containing:
-                - name (str): The name of the physics material.
-                - dynamic_friction (float): The dynamic friction coefficient.
-                - static_friction (float): The static friction coefficient.
-                - restitution (float): The restitution coefficient.
-
-        """
-        materials = {}
-        for i, (name, dynamic_friction, static_friction, restitution) in enumerate(values):
-
-            if name not in materials:
-                materials[name] = RigidBodyMaterial(
-                    f"/World/Physics_Materials/{name}",
-                    static_frictions=static_friction,
-                    dynamic_frictions=dynamic_friction,
-                    restitutions=restitution
-                )
-            view = GeomPrim(self._prim_paths[i] + "/Robot", reset_xform_op_properties=False)
-            view.apply_physics_materials(materials[name])

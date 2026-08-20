@@ -8,12 +8,25 @@ from mushroom_rl.utils.isaac_sim import ObservationType
 
 class HoneyBadgerIsaac(QuadrupedIsaac):
     """
-    A learning environment for training the Honey Badger quadroped to walk.
+    A learning environment for training the Honey Badger quadruped to walk.
     Honey Badger is a Robot from MAB Robotics: https://www.mabrobotics.pl/
+
+    Args:
+        num_envs (int): Number of parallel environments.
+        horizon (int): The maximum horizon for the environment.
+        domain_randomization (bool): Whether the domain randomization is enabled.
+        camera_pos (tuple, None): The position of the camera looking at the scene.
+        camera_target (tuple, None): The point the camera looking at the scene points to.
+        reward_weights (dict, None): Overrides for the reward weights, on top of the ones this robot sets.
+        **quadruped_params: Further parameters of :class:`QuadrupedIsaac`.
+
     """
-    def __init__(self, num_envs, horizon, domain_randomization=True, camera_pos=None, camera_target=None):
+    def __init__(self, num_envs, horizon, domain_randomization=True, camera_pos=None, camera_target=None,
+                 reward_weights=None, **quadruped_params):
         usd_path, action_spec, default_joint_angles, default_joint_max_vel, trunk_body, foot_bodies, \
             sub_bodies, collision_groups = self._robot_config()
+
+        reward_weights = dict() if reward_weights is None else reward_weights
 
         observation_spec = [
             ("base_lin_vel", "", ObservationType.BODY_LIN_VEL, None),
@@ -31,7 +44,8 @@ class HoneyBadgerIsaac(QuadrupedIsaac):
                          observation_spec, additional_data_spec, collision_groups, num_envs, horizon,
                          domain_randomization, camera_pos, camera_target,
                          default_joint_max_vel=default_joint_max_vel,
-                         reward_weights=dict(torques=-0.0001, height=-4.0))
+                         reward_weights=dict(torques=-0.0001, height=-4.0, **reward_weights),
+                         **quadruped_params)
 
     def is_absorbing(self, obs):
         forces = self._collision_helper.get_net_contact_forces("body", dt=self._timestep)
@@ -70,18 +84,8 @@ class HoneyBadgerIsaac(QuadrupedIsaac):
         contact = torch.norm(forces, dim=-1) > 0.1
         return torch.sum(contact, dim=1)
 
-    def _reward_feet_air_time(self):
-        # Reward long steps
-        contact = self._collision_helper.get_net_contact_forces("feet", dt=self._timestep)[:, :, 2] > 1.
-        contact_filt = torch.logical_or(contact, self._last_contacts)
-        self._last_contacts = contact
-        first_contact = (self._feet_air_time > 0.) * contact_filt
-        self._feet_air_time += self.dt
-        # reward only on first contact with the ground
-        rew_airTime = torch.sum((self._feet_air_time - 0.5) * first_contact, dim=1)
-        rew_airTime *= torch.norm(self._commands[:, :2], dim=1) > 0.1  # no reward for zero command
-        self._feet_air_time *= ~contact_filt
-        return rew_airTime
+    def _foot_contacts(self):
+        return self._collision_helper.get_net_contact_forces("feet", dt=self._timestep)[:, :, 2] > 1.
 
     def _reward_height(self, base_z):
         # nominal_base_z = 0.316
@@ -115,10 +119,10 @@ class HoneyBadgerIsaac(QuadrupedIsaac):
             -0.1, 1., -1.5
         ], device=device)
         default_joint_max_vel = torch.tensor([25.] * 12, device=device)
-        trunk_body = "body"
+        trunk_body = "base_link"
         foot_bodies = ["/fl_foot", "/fr_foot", "/rl_foot", "/rr_foot"]
         sub_bodies = [
-            "body",
+            "base_link",
             "fl_l0", "fr_l0", "rl_l0", "rr_l0",
             "fl_l1", "fr_l1", "rl_l1", "rr_l1",
             "fl_l2", "fr_l2", "rl_l2", "rr_l2",
@@ -126,7 +130,7 @@ class HoneyBadgerIsaac(QuadrupedIsaac):
         ]
         collision_groups = [
             ("feet", ["/fl_foot", "/fr_foot", "/rl_foot", "/rr_foot"]),
-            ("body", ["/body", "/fl_l1", "/fr_l1", "/rl_l1", "/rr_l1"]),
+            ("body", ["/base_link", "/fl_l1", "/fr_l1", "/rl_l1", "/rr_l1"]),
             ("lower_body", ["/fl_l2", "/fr_l2", "/rl_l2", "/rr_l2"])
         ]
         return usd_path, action_spec, default_joint_angles, default_joint_max_vel, trunk_body, foot_bodies, \

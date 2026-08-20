@@ -27,7 +27,7 @@ class CollisionHelper:
             robot_glob (str): Wildcard matching the robot of every environment. Note that this is a wildcard
                 and not a regular expression: the physics tensor views the contact views are built on match
                 prim paths differently from ``isaacsim.core.experimental``.
-            n_envs (int): Number of parallel environments.
+            num_envs (int): Number of parallel environments.
             n_intermediate_steps (int): Number of intermediate control steps. Defaults to 1.
 
         """
