@@ -7,7 +7,7 @@ from mushroom_rl.utils import TorchUtils
 
 class SilverBadgerIsaac(HoneyBadgerIsaac):
     """
-    A learning environment for training the Silver Badger quadroped to walk.
+    A learning environment for training the Silver Badger quadruped to walk.
     Silver Badger is a Robot from MAB Robotics: https://www.mabrobotics.pl/
 
     Same robot family as :class:`HoneyBadgerIsaac`, only differing in the robot-specific configuration
@@ -33,10 +33,10 @@ class SilverBadgerIsaac(HoneyBadgerIsaac):
             0
         ], device=device)
         default_joint_max_vel = torch.tensor([25.] * 13, device=device)
-        trunk_body = "body"
+        trunk_body = "base_link"
         foot_bodies = ["/fl_foot", "/fr_foot", "/rl_foot", "/rr_foot"]
         sub_bodies = [
-            "body", "rear",
+            "base_link", "rear",
             "fl_l0", "fr_l0", "rl_l0", "rr_l0",
             "fl_l1", "fr_l1", "rl_l1", "rr_l1",
             "fl_l2", "fr_l2", "rl_l2", "rr_l2",
@@ -44,7 +44,7 @@ class SilverBadgerIsaac(HoneyBadgerIsaac):
         ]
         collision_groups = [
             ("feet", ["/fl_foot", "/fr_foot", "/rl_foot", "/rr_foot"]),
-            ("body", ["/body", "/rear", "/fl_l1", "/fr_l1", "/rl_l1", "/rr_l1"]),
+            ("body", ["/base_link", "/rear", "/fl_l1", "/fr_l1", "/rl_l1", "/rr_l1"]),
             ("lower_body", ["/fl_l2", "/fr_l2", "/rl_l2", "/rr_l2"])
         ]
         return usd_path, action_spec, default_joint_angles, default_joint_max_vel, trunk_body, foot_bodies, \
