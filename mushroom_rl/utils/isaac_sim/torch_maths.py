@@ -41,6 +41,28 @@ def quat_apply(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
 
 
 @torch.jit.script
+def quat_mul(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    """
+    Composes two rotations, applying ``b`` first and ``a`` second.
+
+    Args:
+        a (torch.tensor): The second quaternions, of shape ``(N, 4)`` and in ``[w, x, y, z]`` order.
+        b (torch.tensor): The first quaternions, of shape ``(N, 4)`` and in ``[w, x, y, z]`` order.
+
+    Returns:
+        The composed quaternions, of shape ``(N, 4)`` and in ``[w, x, y, z]`` order.
+
+    """
+    aw, ax, ay, az = a[:, 0], a[:, 1], a[:, 2], a[:, 3]
+    bw, bx, by, bz = b[:, 0], b[:, 1], b[:, 2], b[:, 3]
+
+    return torch.stack((aw * bw - ax * bx - ay * by - az * bz,
+                        aw * bx + ax * bw + ay * bz - az * by,
+                        aw * by - ax * bz + ay * bw + az * bx,
+                        aw * bz + ax * by - ay * bx + az * bw), dim=-1)
+
+
+@torch.jit.script
 def quat_rotate_inverse(q: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
     """
     Rotates vectors by the inverse of quaternions.

@@ -73,6 +73,8 @@ class Go2Isaac(QuadrupedIsaac):
             ("lower_body", [thigh_paths[leg] for leg in legs] + [calf_paths[leg] for leg in legs])
         ]
 
+        quadruped_params.setdefault("observed_randomization", ("actual_delay", "joint_calib_offset"))
+
         super().__init__(usd_path, action_spec, default_joint_angles, trunk_body, foot_bodies, sub_bodies,
                          observation_spec, additional_data_spec, collision_groups, num_envs, horizon,
                          domain_randomization, camera_position, camera_target, **quadruped_params)
@@ -81,6 +83,27 @@ class Go2Isaac(QuadrupedIsaac):
         trunk_forces = self._collision_helper.get_net_contact_forces("body", dt=self._timestep)[:, 0]
         fallen = torch.norm(trunk_forces, dim=-1) > 1.
         return fallen
+
+    # construction-time hooks -------------------------------------------------------------------------------------
+
+    def _domain_randomization_obs_bounds(self):
+        bounds = super()._domain_randomization_obs_bounds()
+        params = self._randomization_params
+        position_offset = params["position_offset"]
+
+        bounds["actual_delay"] = (1, 0., float(params["max_delay_steps"]))
+        bounds["joint_calib_offset"] = (len(self._action_spec), -position_offset, position_offset)
+
+        return bounds
+
+    def _domain_randomization_obs_value(self, name):
+        if name == "actual_delay":
+            return self._randomizer.delay_steps.unsqueeze(1).float()
+
+        if name == "joint_calib_offset":
+            return self._randomizer.position_offset
+
+        return super()._domain_randomization_obs_value(name)
 
     # observations ------------------------------------------------------------------------------------------------
 
