@@ -43,7 +43,7 @@ def run_env(mdp, num_joints):
         assert reward.shape == (n_envs, )
         assert absorbing.shape == (n_envs, )
 
-    mdp.stop(soft=False)
+    mdp.stop()
 
     return obs.cpu().numpy()
 
@@ -51,9 +51,9 @@ def run_env(mdp, num_joints):
 def test_randomization_params():
     params = QuadrupedRandomizationParams()
 
-    assert params["torque_limit_factor"] == 0.3
+    assert params["torque_limit_factor"] == 0.
     assert params["joint_damping"] == (0.0, 0.3)
-    assert "add_p_gain" in params
+    assert "p_gain_scale" in params
     assert "nominal_p_gain" not in params
     assert "torque_limt_factor" not in params
 
@@ -61,8 +61,8 @@ def test_randomization_params():
 
     assert overridden["torque_limit_factor"] == 0.5
     assert overridden["joint_damping"] == (0.1, 0.2)
-    assert overridden["add_p_gain"] == (-3.0, 3.0)
-    assert params["torque_limit_factor"] == 0.3
+    assert overridden["p_gain_scale"] == (0.85, 1.15)
+    assert params["torque_limit_factor"] == 0.
 
     with pytest.raises(ValueError):
         QuadrupedRandomizationParams(torque_limt_factor=0.5)
@@ -182,6 +182,31 @@ def test_silver_badger_no_domain_randomization():
     assert np.all(np.isfinite(obs))
 
 
+def test_observed_randomization():
+    np.random.seed(1)
+    torch.manual_seed(1)
+
+    mdp = A1Isaac(2, 1000)
+    for name in ("p_gain", "torque_limit", "mass", "joint_damping"):
+        assert name not in mdp._observation_helper.obs_idx_map
+    mdp.stop()
+
+    mdp = Go2Isaac(2, 1000)
+    assert len(mdp._observation_helper.obs_idx_map["actual_delay"]) == 1
+    assert len(mdp._observation_helper.obs_idx_map["joint_calib_offset"]) == 12
+    for name in ("p_gain", "torque_limit", "mass", "joint_damping"):
+        assert name not in mdp._observation_helper.obs_idx_map
+    mdp.stop()
+
+    mdp = A1Isaac(2, 1000, observed_randomization=("p_gain", "mass"))
+    assert len(mdp._observation_helper.obs_idx_map["p_gain"]) == 12
+    assert len(mdp._observation_helper.obs_idx_map["mass"]) == 1
+    mdp.stop()
+
+    with pytest.raises(ValueError):
+        A1Isaac(2, 1000, observed_randomization=("p_gian", ))
+
+
 def test_observation_indices():
     np.random.seed(1)
     torch.manual_seed(1)
@@ -198,4 +223,4 @@ def test_observation_indices():
     with pytest.raises(ValueError):
         mdp.observation_indices('base_lin_vel', 'base_pos')
 
-    mdp.stop(soft=False)
+    mdp.stop()

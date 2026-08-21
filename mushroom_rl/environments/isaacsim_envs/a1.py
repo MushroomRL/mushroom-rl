@@ -2,6 +2,7 @@ import torch
 from pathlib import Path
 
 from mushroom_rl.environments.isaacsim_envs.quadruped import QuadrupedIsaac
+from mushroom_rl.environments.isaacsim_envs.quadruped_randomizer import QuadrupedRandomizationParams
 from mushroom_rl.utils import TorchUtils
 from mushroom_rl.utils.isaac_sim import ObservationType
 
@@ -66,6 +67,9 @@ class A1Isaac(QuadrupedIsaac):
             ("lower_body", ["/FL_thigh", "/FR_thigh", "/RL_thigh", "/RR_thigh",
                             "/FL_calf", "/FR_calf", "/RL_calf", "/RR_calf"])
         ]
+
+        quadruped_params.setdefault("randomization_params",
+                                    QuadrupedRandomizationParams(add_trunk_mass=(-1.3, 2.6)))
 
         super().__init__(usd_path, action_spec, default_joint_angles, trunk_body, foot_bodies, sub_bodies,
                          observation_spec, additional_data_spec, collision_groups, num_envs, horizon,
