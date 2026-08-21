@@ -1,7 +1,7 @@
 import math
 import torch
 
-from mushroom_rl.utils.isaac_sim.torch_maths import torch_rand_float, quat_apply, quat_rotate_inverse
+from mushroom_rl.utils.isaac_sim.torch_maths import torch_rand_float, quat_apply, quat_mul, quat_rotate_inverse
 
 from mushroom_rl.core.spaces import Box
 from mushroom_rl.environments.isaacsim_env import IsaacSim
@@ -27,7 +27,7 @@ class QuadrupedIsaac(IsaacSim):
                  domain_randomization, camera_position, camera_target,
                  default_joint_max_vel=None,
                  nominal_p_gain=20., nominal_d_gain=0.5, nominal_scaling_factor=0.25, reward_weights=None,
-                 normalization_scales=None, randomization_params=None, max_command_ranges=None,
+                 randomization_params=None, observed_randomization=(), max_command_ranges=None,
                  reward_params=None, clamp_reward=True,
                  command_ranges=None, tracking_stds=None, command_dead_zone=0.2,
                  command_resampling_time_range=None, heading_control_stiffness=0.5, rel_heading_envs=1.,
@@ -64,10 +64,10 @@ class QuadrupedIsaac(IsaacSim):
             reward_params (dict, None): Overrides for the thresholds and targets the optional reward terms are
                 shaped by. Only the given keys are overridden; an unknown one raises.
             clamp_reward (bool): Whether the total reward is clamped to be non-negative, as in Rudin et al.
-            normalization_scales (dict, None): Overrides for the values the observations of the randomized
-                parameters are divided by. Only the given keys are overridden.
             randomization_params (QuadrupedRandomizationParams, None): The randomization ranges, forwarded to
                 :class:`QuadrupedRandomizer`.
+            observed_randomization (tuple): The names of the randomized parameters the agent is told about
+                through an observation. Every parameter is hidden from it by default.
             max_command_ranges (dict, None): The widest velocity command ranges the environment will ever
                 sample from, keyed ``lin_vel_x``, ``lin_vel_y``, ``ang_vel_z`` and ``heading``. They bound the
                 command observation and every range :meth:`command_ranges` can be set to.
@@ -101,6 +101,7 @@ class QuadrupedIsaac(IsaacSim):
         self._nominal_p_gain = nominal_p_gain
         self._nominal_d_gain = nominal_d_gain
         self._nominal_scaling_factor = nominal_scaling_factor
+        self._observed_randomization = observed_randomization
 
         self._max_command_ranges = dict(lin_vel_x=(-1., 1.), lin_vel_y=(-1., 1.), ang_vel_z=(-math.pi, math.pi),
                                         heading=(-3.14, 3.14))
@@ -156,14 +157,6 @@ class QuadrupedIsaac(IsaacSim):
             self._reward_params.update(reward_params)
 
         self._clamp_reward = clamp_reward
-
-        self._normalization_scales = dict(
-            joint_nominal_position=4.6, torque_limit=1000.0 / 2, joint_max_velocity=35.0 / 2,
-            joint_damping=10.0 / 2, joint_stiffness=30.0 / 2, joint_armature=0.2 / 2,
-            joint_frictionloss=1.2 / 2, p_gain=100.0 / 2, d_gain=2.0 / 2, action_scaling_factor=0.8 / 2,
-            mass=170.0 / 2
-        )
-        self._normalization_scales |= normalization_scales or {}
 
         self._randomization_params = \
             QuadrupedRandomizationParams() if randomization_params is None else randomization_params
@@ -246,8 +239,7 @@ class QuadrupedIsaac(IsaacSim):
         self._observation_helper.write_data("joint_pos", joint_pos, env_indices)
         self._observation_helper.write_data("joint_vel", joint_vel, env_indices)
 
-        body_vel = torch_rand_float(-0.5, 0.5, (len(env_indices), 6), device=TorchUtils.get_device())
-        self._observation_helper.write_data("body_vel", body_vel, env_indices)
+        self._sample_setup_base_state(env_indices)
 
         self._setup_joint_pos = joint_pos
         self._setup_joint_vel = joint_vel
@@ -409,12 +401,11 @@ class QuadrupedIsaac(IsaacSim):
         self._observation_helper.add_obs("commands", 3, -commands_upper, commands_upper)
 
         self._action_position_limits = self._compute_action_position_limits()
-        self._observation_helper.add_obs("actions", len(self._action_spec), *self._action_position_limits)
+        self._observation_helper.add_obs("actions", len(self._action_spec), -torch.inf, torch.inf)
 
-        if self._domain_randomization:
+        if self._observed_randomization:
             self._add_domain_randomization_obs_spec()
 
-        self._normalization_obs_vec = self._get_obs_normalization_vec()
         self._noise_scale_vec = self._get_noise_scale_vec()
         self._soft_joint_pos_limits = self._get_soft_joint_pos_limit()
 
@@ -451,8 +442,8 @@ class QuadrupedIsaac(IsaacSim):
     def _build_observation_space(self, observation_space):
         """
         Builds the observation space by offsetting the joint position bounds to match the default-pose-relative
-        observation and rescaling and widening every bound the same way :meth:`_modify_observation` transforms
-        the runtime observation.
+        observation and widening every bound by the noise the same way :meth:`_modify_observation` corrupts the
+        runtime observation.
 
         Args:
             observation_space: the observation space computed from every registered observation, before this
@@ -464,147 +455,112 @@ class QuadrupedIsaac(IsaacSim):
         """
         obs_low, obs_high = observation_space.low, observation_space.high
         joint_pos_indices = self._observation_helper.obs_idx_map["joint_pos"]
-        obs_low[joint_pos_indices] -= self._default_joint_angles
-        obs_high[joint_pos_indices] -= self._default_joint_angles
-        new_obs_low = obs_low * self._normalization_obs_vec - self._noise_scale_vec
-        new_obs_high = obs_high * self._normalization_obs_vec + self._noise_scale_vec
+        position_offset = self._randomization_params["position_offset"]
+        obs_low[joint_pos_indices] -= self._default_joint_angles + position_offset
+        obs_high[joint_pos_indices] -= self._default_joint_angles - position_offset
+        new_obs_low = obs_low - self._noise_scale_vec
+        new_obs_high = obs_high + self._noise_scale_vec
         return Box(new_obs_low, new_obs_high, data_type=new_obs_high.dtype)
 
     def _add_domain_randomization_obs_spec(self):
         """
-        Registers one observation per seen domain-randomized parameter, bounded by the very ranges the
-        randomizer draws them from.
+        Registers an observation for every randomized parameter the environment was asked to expose, in the
+        physical units the randomizer draws it in, bounded by the very range it draws it from.
+
+        Raises:
+            ValueError: if a name that is not a randomized parameter was asked for.
+
+        """
+        bounds = self._domain_randomization_obs_bounds()
+
+        unknown = set(self._observed_randomization) - set(bounds)
+        if unknown:
+            raise ValueError(f"unknown randomized parameters to observe: {sorted(unknown)}")
+
+        for name in self._observed_randomization:
+            length, min_value, max_value = bounds[name]
+            self._observation_helper.add_obs(name=name, length=length, min_value=min_value, max_value=max_value)
+
+    def _domain_randomization_obs_bounds(self):
+        """
+        Returns:
+            The length and the bounds of the observation exposing every randomized parameter, keyed by the
+            name the parameter is drawn under. The bounds of the joint properties also cover their nominal
+            value, which the randomizer leaves them at with a fixed probability.
 
         """
         n_joints = len(self._action_spec)
         params = self._randomization_params
-        scales = self._normalization_scales
         nominal_torque_limit = self._observation_helper.read_data("torque_limit")[0]
         nominal_joint_max_vel = self._nominal_joint_max_vel()
+        nominal_mass = self._observation_helper.read_data("robot_mass")[0].sum().item()
 
         joint_nominal_position_min, joint_nominal_position_max = params["add_joint_nominal_position"]
-        self._observation_helper.add_obs(
-            name="joint_nominal_position",
-            length=n_joints,
-            min_value=(self._default_joint_angles + joint_nominal_position_min) / scales["joint_nominal_position"],
-            max_value=(self._default_joint_angles + joint_nominal_position_max) / scales["joint_nominal_position"]
-        )
         torque_limit_factor = params["torque_limit_factor"]
-        self._observation_helper.add_obs(
-            name="torque_limit",
-            length=n_joints,
-            min_value=(nominal_torque_limit * (1 - torque_limit_factor)) / scales["torque_limit"] - 1.0,
-            max_value=(nominal_torque_limit * (1. + torque_limit_factor)) / scales["torque_limit"] - 1.0
-        )
         joint_velocity_factor = params["joint_velocity_factor"]
-        self._observation_helper.add_obs(
-            name="joint_max_velocity",
-            length=n_joints,
-            min_value=(nominal_joint_max_vel * (1 - joint_velocity_factor)) / scales["joint_max_velocity"] - 1.0,
-            max_value=(nominal_joint_max_vel * (1 + joint_velocity_factor)) / scales["joint_max_velocity"] - 1.0
-        )
-        joint_damping_min, joint_damping_max = params["joint_damping"]
-        self._observation_helper.add_obs(
-            name="joint_damping",
-            length=n_joints,
-            min_value=joint_damping_min / scales["joint_damping"] - 1.0,
-            max_value=joint_damping_max / scales["joint_damping"] - 1.0
-        )
-        joint_stiffness_min, joint_stiffness_max = params["joint_stiffness"]
-        self._observation_helper.add_obs(
-            name="joint_stiffness",
-            length=n_joints,
-            min_value=joint_stiffness_min / scales["joint_stiffness"] - 1.0,
-            max_value=joint_stiffness_max / scales["joint_stiffness"] - 1.0
-        )
-        joint_armature_min, joint_armature_max = params["joint_armature"]
-        self._observation_helper.add_obs(
-            name="joint_armature",
-            length=n_joints,
-            min_value=joint_armature_min / scales["joint_armature"] - 1.0,
-            max_value=joint_armature_max / scales["joint_armature"] - 1.0
-        )
-        joint_frictionloss_min, joint_frictionloss_max = params["joint_frictionloss"]
-        self._observation_helper.add_obs(
-            name="joint_frictionloss",
-            length=n_joints,
-            min_value=joint_frictionloss_min / scales["joint_frictionloss"] - 1.0,
-            max_value=joint_frictionloss_max / scales["joint_frictionloss"] - 1.0
-        )
-        add_p_gain_min, add_p_gain_max = params["add_p_gain"]
-        self._observation_helper.add_obs(
-            name="p_gain",
-            length=n_joints,
-            min_value=self._nominal_p_gain + add_p_gain_min / scales["p_gain"] - 1.0,
-            max_value=self._nominal_p_gain + add_p_gain_max / scales["p_gain"] - 1.0
-        )
-        add_d_gain_min, add_d_gain_max = params["add_d_gain"]
-        self._observation_helper.add_obs(
-            name="d_gain",
-            length=n_joints,
-            min_value=self._nominal_d_gain + add_d_gain_min / scales["d_gain"] - 1.0,
-            max_value=self._nominal_d_gain + add_d_gain_max / scales["d_gain"] - 1.0
-        )
-        add_scaling_factor_min, add_scaling_factor_max = params["add_scaling_factor"]
-        self._observation_helper.add_obs(
-            name="action_scaling_factor",
-            length=n_joints,
-            min_value=self._nominal_scaling_factor
-            + add_scaling_factor_min / scales["action_scaling_factor"] - 1.0,
-            max_value=self._nominal_scaling_factor
-            + add_scaling_factor_max / scales["action_scaling_factor"] - 1.0
-        )
-        self._observation_helper.add_obs(
-            name="mass",
-            length=1,
-            min_value=-torch.inf,
-            max_value=torch.inf
-        )
+        p_gain_min, p_gain_max = params["p_gain_scale"]
+        d_gain_min, d_gain_max = params["d_gain_scale"]
+        scaling_factor_min, scaling_factor_max = params["add_scaling_factor"]
+        trunk_mass_min, trunk_mass_max = params["add_trunk_mass"]
 
-    def _get_obs_normalization_vec(self):
-        """
-        Builds the vector every observation is scaled by, before the noise is added, to bring it to a
-        comparable range.
+        bounds = {
+            "joint_nominal_position": (n_joints, self._default_joint_angles + joint_nominal_position_min,
+                                       self._default_joint_angles + joint_nominal_position_max),
+            "torque_limit": (n_joints, nominal_torque_limit * (1. - torque_limit_factor),
+                             nominal_torque_limit * (1. + torque_limit_factor)),
+            "joint_max_velocity": (n_joints, nominal_joint_max_vel * (1. - joint_velocity_factor),
+                                   nominal_joint_max_vel * (1. + joint_velocity_factor)),
+            "p_gain": (n_joints, self._nominal_p_gain * p_gain_min, self._nominal_p_gain * p_gain_max),
+            "d_gain": (n_joints, self._nominal_d_gain * d_gain_min, self._nominal_d_gain * d_gain_max),
+            "action_scaling_factor": (n_joints, self._nominal_scaling_factor + scaling_factor_min,
+                                      self._nominal_scaling_factor + scaling_factor_max),
+            "mass": (1, nominal_mass + trunk_mass_min, nominal_mass + trunk_mass_max)
+        }
+        for name in ("joint_damping", "joint_stiffness", "joint_armature", "joint_frictionloss"):
+            nominal = self._observation_helper.read_data(name)[0]
+            range_min, range_max = params[name]
+            bounds[name] = (n_joints, torch.clamp(nominal, max=range_min), torch.clamp(nominal, min=range_max))
 
-        Returns:
-            A tensor of shape (obs_length, ).
-
-        """
-        v = torch.ones((self._observation_helper.obs_length), device=TorchUtils.get_device())
-
-        lin_vel = self._observation_helper.obs_idx_map["base_lin_vel"]
-        ang_vel = self._observation_helper.obs_idx_map["base_ang_vel"]
-        joint_positions = self._observation_helper.obs_idx_map["joint_pos"]
-        joint_velocities = self._observation_helper.obs_idx_map["joint_vel"]
-        gravity = self._observation_helper.obs_idx_map["projected_gravity"]
-        commands = self._observation_helper.obs_idx_map["commands"]
-        actions = self._observation_helper.obs_idx_map["actions"]
-
-        v[lin_vel] = 2.0
-        v[ang_vel] = 0.25
-        v[joint_positions] = 1.00
-        v[joint_velocities] = 0.05
-        v[gravity] = 1.
-        v[commands[0:2]] = 2.0
-        v[commands[2]] = 0.25
-        v[actions] = 1.
-
-        if self._domain_randomization:
-            for name, scale in self._normalization_scales.items():
-                v[self._observation_helper.obs_idx_map[name]] = 1. / scale
-
-        return v
+        return bounds
 
     # per-step hooks ------------------------------------------------------------------------------------------
 
+    def _sample_setup_base_state(self, env_indices):
+        """
+        Draws the pose and the velocity a reset environment's trunk starts with, offsetting the spawn the
+        robot was authored with, and writes them into the simulation.
+
+        """
+        device = TorchUtils.get_device()
+        n_envs = len(env_indices)
+        params = self._randomization_params
+
+        offset_x, offset_y, offset_yaw = params["reset_base_pose_range"]
+        base_pos = self._observation_helper.read_data("body_pos", env_indices)
+        base_pos[:, 0] += torch_rand_float(-offset_x, offset_x, (n_envs, 1), device).squeeze(1)
+        base_pos[:, 1] += torch_rand_float(-offset_y, offset_y, (n_envs, 1), device).squeeze(1)
+        self._observation_helper.write_data("body_pos", base_pos, env_indices)
+
+        yaw = torch_rand_float(-offset_yaw, offset_yaw, (n_envs, 1), device).squeeze(1)
+        yaw_rotation = torch.zeros((n_envs, 4), device=device)
+        yaw_rotation[:, 0] = torch.cos(yaw / 2)
+        yaw_rotation[:, 3] = torch.sin(yaw / 2)
+        base_rot = self._observation_helper.read_data("body_rot", env_indices)
+        self._observation_helper.write_data("body_rot", quat_mul(yaw_rotation, base_rot), env_indices)
+
+        velocity_range = torch.tensor(params["reset_base_velocity_range"], device=device)
+        body_vel = (2 * torch.rand((n_envs, 6), device=device) - 1) * velocity_range
+        self._observation_helper.write_data("body_vel", body_vel, env_indices)
+
     def _sample_setup_joint_pos(self, env_indices):
         """
-        Samples the joint configuration a reset environment starts in: the seen nominal pose when the domain
-        randomization is enabled, a randomly scaled nominal pose otherwise.
+        Samples the joint configuration a reset environment starts in: the pose the robot was authored with
+        when the domain randomization is enabled, so that the randomized nominal the control law works from is
+        an offset the robot starts out of, a randomly scaled pose otherwise.
 
         """
         if self._domain_randomization:
-            return self._randomizer.joint_nominal_pos[env_indices]
+            return self._default_joint_angles.expand(len(env_indices), -1)
 
         r_factors = torch_rand_float(0.5, 1.5, (len(env_indices), len(self._action_spec)),
                                      device=TorchUtils.get_device())
@@ -766,30 +722,33 @@ class QuadrupedIsaac(IsaacSim):
 
     def _add_domain_randomization_observations(self, obs):
         """
-        Fills in the observations telling the agent the seen domain-randomized parameters it currently runs
-        with. Leaves obs untouched when the domain randomization is disabled, since no such observation is
-        registered then.
+        Fills in the observations telling the agent the randomized parameters it currently runs with. Leaves
+        obs untouched when the environment exposes none, since no such observation is registered then.
 
         """
-        if self._domain_randomization:
-            for name, value in self._randomizer.seen_parameters.items():
-                obs[:, self._observation_helper.obs_idx_map[name]] = value
+        for name in self._observed_randomization:
+            obs[:, self._observation_helper.obs_idx_map[name]] = self._domain_randomization_obs_value(name)
 
         return obs
+
+    def _domain_randomization_obs_value(self, name):
+        """
+        Returns:
+            The current value of the randomized parameter the ``name`` observation exposes.
+
+        """
+        return self._randomizer.seen_parameters[name]
 
     def _modify_observation(self, obs):
         obs = self._add_domain_randomization_observations(obs)
 
         joint_pos_indices = self._observation_helper.obs_idx_map["joint_pos"]
-        obs[:, joint_pos_indices] -= self._default_joint_angles
+        obs[:, joint_pos_indices] -= self._default_joint_angles + self._randomizer.position_offset
 
         command_indices = self._observation_helper.obs_idx_map["commands"]
         obs[:, command_indices] = self._commands[:, :3]
 
-        obs *= self._normalization_obs_vec
         obs += (2 * torch.rand_like(obs) - 1) * self._noise_scale_vec
-
-        obs = torch.clamp(obs, max=100., min=-100.)
 
         return obs
 
@@ -816,7 +775,6 @@ class QuadrupedIsaac(IsaacSim):
         return action
 
     def _preprocess_action(self, action):
-        action = torch.clip(action, min=-100., max=100.)
         self._actions[:] = action[:]
         return action
 
@@ -829,8 +787,9 @@ class QuadrupedIsaac(IsaacSim):
     def _compute_torque(self, action, joint_vels, joint_pos):
         """
         Converts the (possibly delayed) action and the current joint state into the torque to apply, through a
-        PD law whose gains, action scaling, joint position offset, motor strength and torque limit are the
-        domain-randomized ones.
+        PD law whose gains, action scaling, motor strength and torque limit are the domain-randomized ones.
+        The target pose is offset by the randomized miscalibration of the joint encoders, which
+        :meth:`_modify_observation` takes back out of the joint position the agent reads.
 
         Args:
             action (torch.tensor): the action provided at every intermediate step.
@@ -842,10 +801,9 @@ class QuadrupedIsaac(IsaacSim):
 
         """
         action_scaled = action * self._randomizer.scaling_factor
-        target_joint_pos = self._randomizer.joint_nominal_pos + action_scaled
+        target_joint_pos = self._randomizer.joint_nominal_pos + self._randomizer.position_offset + action_scaled
 
-        self._torques = self._randomizer.p_gain \
-            * (target_joint_pos - joint_pos + self._randomizer.position_offset) \
+        self._torques = self._randomizer.p_gain * (target_joint_pos - joint_pos) \
             - self._randomizer.d_gain * joint_vels
         self._torques *= self._randomizer.motor_strength
         self._torques = torch.clip(self._torques, -self._randomizer.torque_limit, self._randomizer.torque_limit)
@@ -1094,10 +1052,10 @@ class QuadrupedIsaac(IsaacSim):
         commands = self._observation_helper.obs_idx_map["commands"]
         actions = self._observation_helper.obs_idx_map["actions"]
 
-        v[lin_vel] = 0.1 * 2.0
-        v[ang_vel] = 0.2 * 0.25
-        v[joint_positions] = 0.01 * 1.00
-        v[joint_velocities] = 1.5 * 0.05
+        v[lin_vel] = 0.1
+        v[ang_vel] = 0.2
+        v[joint_positions] = 0.01
+        v[joint_velocities] = 1.5
         v[gravity] = 0.05
         v[commands[:3]] = 0
         v[actions] = 0
@@ -1245,7 +1203,8 @@ class QuadrupedIsaac(IsaacSim):
             ("joint_damping", "", ObservationType.JOINT_GAIN_DAMPING, action_spec),
             ("joint_stiffness", "", ObservationType.JOINT_GAIN_STIFFNESS, action_spec),
             ("joint_default_pos", "", ObservationType.JOINT_DEFAULT_POS, action_spec),
-            ("robot_mass", "", ObservationType.SUB_BODY_MASS, sub_bodies)
+            ("robot_mass", "", ObservationType.SUB_BODY_MASS, sub_bodies),
+            ("body_pos", "", ObservationType.BODY_POS, None)
         ]
 
     @staticmethod

@@ -261,23 +261,12 @@ class IsaacSim(VectorizedEnvironment):
         """
         raise NotImplementedError
 
-    def stop(self, soft=True):
+    def stop(self):
         """
-        Resets simulation and closes viewer.
-
-        If `soft` is False, the function additionally clears the consistent properties before resetting the
-        simulation.
-
-        Args:
-            soft (bool): Defaults to True.
-                - True: Performs soft reset of the simulation.
-                - False: Perform reset of the simulation and clears consistent properties.
+        Resets the simulation and closes the viewer, keeping the properties the robot was set up with.
 
         """
         self._viewer.close()
-
-        if not soft:
-            self._observation_helper.clear_consistent_properties()
 
         self._robots.reset_to_default_state()
         self._observation_helper.reapply_consistent_properties()

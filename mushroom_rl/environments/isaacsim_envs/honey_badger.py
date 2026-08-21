@@ -2,6 +2,7 @@ import torch
 from pathlib import Path
 
 from mushroom_rl.environments.isaacsim_envs.quadruped import QuadrupedIsaac
+from mushroom_rl.environments.isaacsim_envs.quadruped_randomizer import QuadrupedRandomizationParams
 from mushroom_rl.utils import TorchUtils
 from mushroom_rl.utils.isaac_sim import ObservationType
 
@@ -40,6 +41,13 @@ class HoneyBadgerIsaac(QuadrupedIsaac):
             ("body_vel", "", ObservationType.BODY_VEL, None),
         ]
 
+        quadruped_params.setdefault("randomization_params", QuadrupedRandomizationParams(
+            add_trunk_mass=(-1.5, 3.0), stay_at_default_percentage=0.3,
+            torque_limit_factor=0.3, joint_velocity_factor=0.15, add_scaling_factor=(-0.03, 0.03),
+            joint_damping_factor=0.5, joint_stiffness_factor=0.5, joint_armature_factor=0.5,
+            joint_frictionloss_factor=0.5, motor_strength_factor=0.25
+        ))
+
         super().__init__(usd_path, action_spec, default_joint_angles, trunk_body, foot_bodies, sub_bodies,
                          observation_spec, additional_data_spec, collision_groups, num_envs, horizon,
                          domain_randomization, camera_pos, camera_target,
@@ -51,15 +59,6 @@ class HoneyBadgerIsaac(QuadrupedIsaac):
         forces = self._collision_helper.get_net_contact_forces("body", dt=self._timestep)
         fallen = torch.any(torch.norm(forces, dim=-1) > 0., dim=-1)
         return fallen
-
-    # construction-time hooks -------------------------------------------------------------------------------------
-
-    def _get_obs_normalization_vec(self):
-        v = super()._get_obs_normalization_vec()
-
-        v[self._observation_helper.obs_idx_map["base_pos"]] = 1 / 0.4
-
-        return v
 
     # observations ------------------------------------------------------------------------------------------------
 

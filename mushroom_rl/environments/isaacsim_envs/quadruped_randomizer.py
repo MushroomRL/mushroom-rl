@@ -1,3 +1,4 @@
+import math
 import torch
 
 from mushroom_rl.utils.isaac_sim.torch_maths import torch_rand_float
@@ -21,54 +22,58 @@ class QuadrupedRandomizationParams:
        "``push_interval_range``", "``None``", "Range, in seconds, between two pushes of the same environment"
        "``push_min_episode_length``", "``50``", "Steps an environment must have been alive to be pushed"
        "``push_max_velocity``", "``1.``", "Half-width of the horizontal velocity the push imparts"
-       "``static_friction``", "``(0.5, 1.25)``", "Static friction of the ground the robot walks on"
-       "``dynamic_friction``", "``(0.5, 0.5)``", "Dynamic friction of the ground the robot walks on"
-       "``mixed_chance``", "``0.05``", "Chance an episode redraws the delay at every single action"
+       "``static_friction``", "``(0.4, 1.4)``", "Static friction of the ground the robot walks on"
+       "``dynamic_friction``", "``(0.3, 1.2)``", "Dynamic friction of the ground the robot walks on"
+       "``mixed_chance``", "``0.``", "Chance an episode redraws the delay at every single action"
        "``max_delay_steps``", "``4``", "Largest number of physics steps an action can be delayed by"
+       "``reset_base_pose_range``", "``(0.5, 0.5, pi)``", "Half-widths of the x, y and yaw offset a reset
+       robot is spawned with"
+       "``reset_base_velocity_range``", "``(0., ) * 6``", "Half-widths of the six base velocity components a
+       reset robot starts with"
 
-    .. rubric:: Seen ranges
+    .. rubric:: Robot and actuation ranges
 
-    The table below lists the parameters exposed to the agent through the observation.
+    The table below lists the ranges the properties of the robot and of its actuation are drawn from.
 
     .. csv-table::
        :header: "Parameter", "Default", "Meaning"
        :widths: 30, 18, 52
 
-       "``stay_at_default_percentage``", "``0.3``", "Chance the four joint properties below stay nominal
+       "``stay_at_default_percentage``", "``1.``", "Chance the four joint properties below stay nominal
        instead of being drawn"
-       "``add_trunk_mass``", "``(-0.8, 0.8)``", "Offset on the mass of the trunk"
-       "``add_com_displacement``", "``(-0.0025, 0.0025)``", "Offset on the center of mass of the trunk"
-       "``add_joint_nominal_position``", "``(-0.01, 0.01)``", "Offset on the nominal pose actions are relative
-       to"
-       "``torque_limit_factor``", "``0.3``", "Spread of the torque limit around its nominal value"
-       "``joint_velocity_factor``", "``0.15``", "Spread of the maximum joint velocity"
+       "``add_trunk_mass``", "``(-2.0, 4.0)``", "Offset on the mass of the trunk"
+       "``add_com_displacement``", "``(-0.05, 0.05)``", "Offset on each axis of the center of mass of the
+       trunk"
+       "``add_joint_nominal_position``", "``(0., 0.)``", "Offset on the nominal pose actions are relative to"
+       "``torque_limit_factor``", "``0.``", "Spread of the torque limit around its nominal value"
+       "``joint_velocity_factor``", "``0.``", "Spread of the maximum joint velocity"
        "``joint_damping``", "``(0.0, 0.3)``", "Damping of every joint"
        "``joint_stiffness``", "``(0.0, 0.5)``", "Stiffness of every joint"
        "``joint_armature``", "``(0.009, 0.023)``", "Armature of every joint"
        "``joint_frictionloss``", "``(0.0, 0.1)``", "Friction loss of every joint"
-       "``add_p_gain``", "``(-3.0, 3.0)``", "Offset on the proportional gain"
-       "``add_d_gain``", "``(-0.1, 0.1)``", "Offset on the derivative gain"
-       "``add_scaling_factor``", "``(-0.03, 0.03)``", "Offset on the action scaling factor"
+       "``p_gain_scale``", "``(0.85, 1.15)``", "Factor on the proportional gain"
+       "``d_gain_scale``", "``(0.85, 1.15)``", "Factor on the derivative gain"
+       "``add_scaling_factor``", "``(0., 0.)``", "Offset on the action scaling factor"
 
     .. rubric:: Unseen noise
 
-    The table below lists the noise applied on top of the seen values, which is not exposed to the agent.
-    Every entry but the last is a half-width around ``1``.
+    The table below lists the noise applied on top of the drawn values. Every entry but the last is a
+    half-width around ``1``, so a value of ``0.`` leaves the property it perturbs untouched.
 
     .. csv-table::
        :header: "Parameter", "Default", "Meaning"
        :widths: 30, 18, 52
 
-       "``trunk_mass_factor``", "``0.25``", "Noise on the trunk mass reaching the simulation"
-       "``trunk_com_factor``", "``0.25``", "Noise on the trunk center of mass"
-       "``joint_damping_factor``", "``0.5``", "Noise on the joint damping"
-       "``joint_stiffness_factor``", "``0.5``", "Noise on the joint stiffness"
-       "``joint_armature_factor``", "``0.5``", "Noise on the joint armature"
-       "``joint_frictionloss_factor``", "``0.5``", "Noise on the joint friction loss"
-       "``p_gain_factor``", "``0.25``", "Noise on the proportional gain the control law runs on"
-       "``d_gain_factor``", "``0.25``", "Noise on the derivative gain the control law runs on"
-       "``motor_strength_factor``", "``0.25``", "Noise on the computed torque"
-       "``position_offset``", "``0.05``", "Half-width of the offset corrupting the joint position read"
+       "``trunk_mass_factor``", "``0.``", "Noise on the trunk mass reaching the simulation"
+       "``trunk_com_factor``", "``0.``", "Noise on the trunk center of mass"
+       "``joint_damping_factor``", "``0.``", "Noise on the joint damping"
+       "``joint_stiffness_factor``", "``0.``", "Noise on the joint stiffness"
+       "``joint_armature_factor``", "``0.``", "Noise on the joint armature"
+       "``joint_frictionloss_factor``", "``0.``", "Noise on the joint friction loss"
+       "``p_gain_factor``", "``0.``", "Noise on the proportional gain the control law runs on"
+       "``d_gain_factor``", "``0.``", "Noise on the derivative gain the control law runs on"
+       "``motor_strength_factor``", "``0.``", "Noise on the computed torque"
+       "``position_offset``", "``0.04``", "Half-width of the offset corrupting the joint position read"
 
     """
     def __init__(self, **overrides):
@@ -111,31 +116,33 @@ class QuadrupedRandomizationParams:
         return dict(
             push_probability=1. / 750., push_min_episode_length=50, push_max_velocity=1.,
             push_interval_range=None,
-            static_friction=(0.5, 1.25), dynamic_friction=(0.5, 0.5),
-            mixed_chance=0.05, max_delay_steps=4,
-            stay_at_default_percentage=0.3,
-            add_trunk_mass=(-0.8, 0.8),
-            add_com_displacement=(-0.0025, 0.0025),
-            add_joint_nominal_position=(-0.01, 0.01),
-            torque_limit_factor=0.3,
-            joint_velocity_factor=0.15,
+            static_friction=(0.4, 1.4), dynamic_friction=(0.3, 1.2),
+            mixed_chance=0., max_delay_steps=4,
+            reset_base_pose_range=(0.5, 0.5, math.pi),
+            reset_base_velocity_range=(0., 0., 0., 0., 0., 0.),
+            stay_at_default_percentage=1.,
+            add_trunk_mass=(-2.0, 4.0),
+            add_com_displacement=(-0.05, 0.05),
+            add_joint_nominal_position=(0., 0.),
+            torque_limit_factor=0.,
+            joint_velocity_factor=0.,
             joint_damping=(0.0, 0.3),
             joint_stiffness=(0.0, 0.5),
             joint_armature=(0.009, 0.023),
             joint_frictionloss=(0.0, 0.1),
-            add_p_gain=(-3.0, 3.0),
-            add_d_gain=(-0.1, 0.1),
-            add_scaling_factor=(-0.03, 0.03),
-            trunk_mass_factor=0.25,
-            trunk_com_factor=0.25,
-            joint_damping_factor=0.5,
-            joint_stiffness_factor=0.5,
-            joint_armature_factor=0.5,
-            joint_frictionloss_factor=0.5,
-            p_gain_factor=0.25,
-            d_gain_factor=0.25,
-            motor_strength_factor=0.25,
-            position_offset=0.05
+            p_gain_scale=(0.85, 1.15),
+            d_gain_scale=(0.85, 1.15),
+            add_scaling_factor=(0., 0.),
+            trunk_mass_factor=0.,
+            trunk_com_factor=0.,
+            joint_damping_factor=0.,
+            joint_stiffness_factor=0.,
+            joint_armature_factor=0.,
+            joint_frictionloss_factor=0.,
+            p_gain_factor=0.,
+            d_gain_factor=0.,
+            motor_strength_factor=0.,
+            position_offset=0.04
         )
 
 
@@ -143,8 +150,10 @@ class QuadrupedRandomizer:
     """
     Class for sampling and storing the domain randomization parameters of every parallel environment.
 
-    The seen parameters are exposed to the agent through the observation. The unseen ones are an additional
-    noise applied on top of them, which the agent does not observe. Some parameters only have a seen value.
+    Every parameter is drawn as a value the control law and the observations work from, and some carry a
+    second, hidden draw on top: the simulation is then set up with the perturbed value while the value the
+    environment reports stays the first one. Every ``*_factor`` range governs one such hidden layer, and
+    setting it to ``0.`` collapses the two.
 
     """
     def __init__(self, n_envs, n_joints, nominal_values, params=None):
@@ -412,6 +421,15 @@ class QuadrupedRandomizer:
         return self._unseen["motor_strength"]
 
     @property
+    def delay_steps(self):
+        """
+        Returns:
+            The number of physics steps the next action of every environment is delayed by.
+
+        """
+        return self._n_delay_steps
+
+    @property
     def position_offset(self):
         """
         Returns:
@@ -473,7 +491,7 @@ class QuadrupedRandomizer:
         self._seen["mass"] = torch.sum(self._body_masses, dim=1).unsqueeze(1)
 
         trunk_com = self._default["trunk_com"] \
-            + torch_rand_float(*self._params["add_com_displacement"], (n_envs, 1), device)
+            + torch_rand_float(*self._params["add_com_displacement"], (n_envs, 3), device)
         unseen_trunk_com = trunk_com * noise["trunk_com"]
 
         return {
@@ -492,9 +510,9 @@ class QuadrupedRandomizer:
         shape = (env_indices.shape[0], self._n_joints)
 
         self._seen["p_gain"][env_indices] = self._default["p_gain"] \
-            + torch_rand_float(*self._params["add_p_gain"], shape, device)
+            * torch_rand_float(*self._params["p_gain_scale"], shape, device)
         self._seen["d_gain"][env_indices] = self._default["d_gain"] \
-            + torch_rand_float(*self._params["add_d_gain"], shape, device)
+            * torch_rand_float(*self._params["d_gain_scale"], shape, device)
 
         self._unseen["p_gain"][env_indices] = self._seen["p_gain"][env_indices] * noise["p_gain"]
         self._unseen["d_gain"][env_indices] = self._seen["d_gain"][env_indices] * noise["d_gain"]
