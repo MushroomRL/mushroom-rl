@@ -6,9 +6,10 @@ The curriculum deliberately lives here rather than in the environment. `Go2Isaac
 for the velocity command ranges, the tolerance of the tracking rewards and the ceiling on the actuation
 delay -- and the decision of when to change them is the training script's.
 
-The asymmetry is the other half of the training setup: the robot can measure neither its own linear velocity
-nor the height it holds its trunk at, so the policy is given neither, while the critic, which only ever runs
-in simulation, is given both.
+The asymmetry is the other half of the training setup: the robot can measure neither its own linear velocity,
+nor the height it holds its trunk at, nor how late its actions arrive and how far its joint encoders are out
+of calibration, so the policy is given none of them, while the critic, which only ever runs in simulation, is
+given all four.
 
 """
 import argparse
@@ -158,7 +159,8 @@ def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_par
     policy = GaussianTorchPolicy(PolicyNetwork,
                                  mdp.info.observation_space.shape,
                                  mdp.info.action_space.shape,
-                                 observed_indices=observed_indices(mdp, 'base_lin_vel', 'base_pos'),
+                                 observed_indices=observed_indices(mdp, 'base_lin_vel', 'base_pos',
+                                                                   'actual_delay', 'joint_calib_offset'),
                                  **policy_params)
 
     # Agent
