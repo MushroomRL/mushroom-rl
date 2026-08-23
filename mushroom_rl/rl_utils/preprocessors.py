@@ -98,8 +98,8 @@ class MinMaxPreprocessor(StandardizationPreprocessor):
         """
         super(MinMaxPreprocessor, self).__init__(mdp_info, clip_obs, alpha)
 
-        obs_low, obs_high = (self._array_backend.convert(mdp_info.observation_space.low.copy(),
-                                                         mdp_info.observation_space.high.copy()))
+        obs_low, obs_high = self._array_backend.convert(mdp_info.observation_space.low,
+                                                        mdp_info.observation_space.high)
 
         self._obs_mask = self._array_backend.where((self._array_backend.abs(obs_low) < 1e20) &
                                                    (self._array_backend.abs(obs_high) < 1e20))
@@ -130,7 +130,7 @@ class MinMaxPreprocessor(StandardizationPreprocessor):
         if self._run_norm_obs:
             obs = super(MinMaxPreprocessor, self).__call__(obs)
 
-        obs[self._obs_mask] = \
-            ((orig_obs - self._obs_mean) / self._obs_delta)[self._obs_mask]
+        obs[..., self._obs_mask] = \
+            ((orig_obs - self._obs_mean) / self._obs_delta)[..., self._obs_mask]
 
         return obs
