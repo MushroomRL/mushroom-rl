@@ -59,10 +59,13 @@ class RunningStandardization(MushroomObject):
         """
         value = self._array_backend.atleast_2d(value)
         batch_size = len(value)
+        batch_mean = value.mean(0)
+        batch_m2 = ((value - batch_mean) ** 2).sum(0)
+        n_old = self._n
         self._n += batch_size
         alpha = max(batch_size / self._n, self._alpha)
-        new_m = (1 - alpha) * self._m + alpha * value.mean(0)
-        new_s = self._s + (value.mean(0) - self._m) * (value.mean(0) - new_m)
+        new_m = (1 - alpha) * self._m + alpha * batch_mean
+        new_s = self._s + batch_m2 + (batch_mean - self._m) ** 2 * n_old * batch_size / self._n
         self._m, self._s = new_m, new_s
 
     @property
