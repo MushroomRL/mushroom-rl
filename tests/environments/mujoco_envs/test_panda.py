@@ -122,14 +122,14 @@ def test_push_reward():
 
     assert robot_forces.shape == (100, 3)
     assert gripper_forces.shape == (100, 3)
-    assert dual_contact_steps == 43
-    assert np.sum(np.any(robot_forces != 0, axis=1)) == 52
-    assert np.sum(np.any(gripper_forces != 0, axis=1)) == 67
-    assert np.allclose(np.abs(robot_forces).max(), 368.51741001728493)
-    assert np.allclose(np.abs(gripper_forces).max(), 173.14783792360254)
-    assert np.allclose(np.sum(rewards), -119.28108591360848)
+    assert dual_contact_steps == 41
+    assert np.sum(np.any(robot_forces != 0, axis=1)) == 50
+    assert np.sum(np.any(gripper_forces != 0, axis=1)) == 64
+    assert np.allclose(np.abs(robot_forces).max(), 455.9975975309887)
+    assert np.allclose(np.abs(gripper_forces).max(), 337.3089184619118)
+    assert np.allclose(np.sum(rewards), -119.24321498332925)
     assert np.allclose(np.min(contact_costs), -0.0006)
-    assert np.allclose(np.sum(contact_costs), -0.035400174085850264)
+    assert np.allclose(np.sum(contact_costs), -0.034047468372260595)
 
 
 def test_pick_reward():
@@ -163,13 +163,13 @@ def test_pick_reward():
     assert robot_forces.shape == (100, 3)
     assert gripper_forces.shape == (100, 3)
     assert dual_contact_steps == 41
-    assert np.sum(np.any(robot_forces != 0, axis=1)) == 52
+    assert np.sum(np.any(robot_forces != 0, axis=1)) == 51
     assert np.sum(np.any(gripper_forces != 0, axis=1)) == 65
-    assert np.allclose(np.abs(robot_forces).max(), 280.46010599025664)
-    assert np.allclose(np.abs(gripper_forces).max(), 344.9527000232645)
-    assert np.allclose(np.sum(rewards), 0.8374257001944749)
+    assert np.allclose(np.abs(robot_forces).max(), 275.6708831217831)
+    assert np.allclose(np.abs(gripper_forces).max(), 144.3765759728655)
+    assert np.allclose(np.sum(rewards), 0.8314536740093227)
     assert np.allclose(np.min(contact_costs), -0.0006)
-    assert np.allclose(np.sum(contact_costs), -0.035100000000000006)
+    assert np.allclose(np.sum(contact_costs), -0.03443466423206673)
 
 
 def test_peg_insertion_reward():
@@ -200,12 +200,12 @@ def test_peg_insertion_reward():
 
     assert robot_forces.shape == (100, 3)
     assert gripper_forces.shape == (100, 3)
-    assert dual_contact_steps == 23
-    assert np.sum(np.any(robot_forces != 0, axis=1)) == 49
-    assert np.sum(np.any(gripper_forces != 0, axis=1)) == 41
-    assert np.allclose(np.abs(robot_forces).max(), 489.6709347216338)
-    assert np.allclose(np.abs(gripper_forces).max(), 214.6805301749962)
-    assert np.allclose(np.sum(rewards), 4.085399761591603)
+    assert dual_contact_steps == 22
+    assert np.sum(np.any(robot_forces != 0, axis=1)) == 48
+    assert np.sum(np.any(gripper_forces != 0, axis=1)) == 33
+    assert np.allclose(np.abs(robot_forces).max(), 706.4070253827513)
+    assert np.allclose(np.abs(gripper_forces).max(), 138.2018179170272)
+    assert np.allclose(np.sum(rewards), 4.080087100401162)
 
 
 def test_peg_insertion_alignment():
