@@ -1,10 +1,20 @@
 For Mushroom 2.0:
-    * reorganize example folder
-      - Use logger everywhere.
-      - agree on where results go: double_chain writes into a logs/ folder next to the script, while taxi_mellow and
-        minigrid_dqn write into the current working directory
-      - try to simplify experiments functions
     * linting as much as possible
+    * Check MuJoCo envs (in particular air hockey)
+    * Fix environment examples showing poor learning
+        - dm_control
+        - Mujoco: air hockey, manipulation, locomotion
+    * Fix or check properly paper examples missing:
+        - MellowMax
+        - Atari
+            - check MaxminDQN: mean_reward ~9.3 at 10M steps vs 36-42 for DQN/DoubleDQN/AveragedDQN
+              (atari_maxmin_dqn_10m, 2026-08-07). Min-over-ensemble is deliberately pessimistic per
+              Lan et al. 2020, so a slower start is expected, but this gap is large enough to be worth
+              a real look once all 9 variants are in, not just written off as the paper's expected effect
+    * Update Mujoco class interface
+    * New Mujoco viewer needs testing on macOS.
+    * After release: Put back latest as default ReadTheDocs config and as default badge in the main readme.rts
+    * Port Isaac to 6.0
 
 
 For Mushroom 2.1:
@@ -18,3 +28,10 @@ For Mushroom 2.1:
       - currently ignored in circular-buffer phase; info is never read back during sampling
     * vectorized env rendering
       - render a single window by default instead of one per active env; optionally a grid viewer compositing all envs
+    * Implement diff properly for recurrent approximators
+      - TorchApproximator.diff is written for the feedforward calling convention, so it fails on
+        RecurrentTorchApproximator: `lengths` is padded to 2-D and breaks pack_padded_sequence, `lengths` is not
+        defaulted to ones as predict does, and the observation gets only the batch pad instead of the batch and
+        sequence pads applied by _pad_sequence
+      - multi-output networks (e.g. RecurrentActorNetwork, returning action and next hidden state) are rejected by
+        an assertion, since there is no single matrix packing gradients of outputs of different shapes

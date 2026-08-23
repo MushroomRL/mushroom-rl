@@ -205,7 +205,7 @@ While the numpy evaluation logging is typically driven by the experiment script,
 meant to be driven from inside the algorithms, which log their internal metrics (e.g. losses, entropy, KL
 divergence) during the fit, once the logger is attached to the agent through the ``Core`` (via
 ``set_logger`` or the constructor) as shown above. A complete runnable example with metric logging is
-available in ``examples/wandb_logging.py``.
+available in ``examples/tools/wandb_logging.py``.
 
 When the logger is attached, it is automatically forwarded down the agent's loggable components, so that
 their relevant quantities are logged under a hierarchy of grouped metric names without any extra code: the
@@ -220,8 +220,9 @@ Video Recording
 ---------------
 
 The Logger includes a ``VideoLogger`` mixin that handles video recording. Videos are saved in a
-``videos/`` subfolder of the logging directory. The recorder is created lazily on the first frame,
-so no resources are allocated until recording actually starts.
+``videos/`` subfolder of the logging directory, or in ``./logs/videos`` when the logger was built
+without a results directory. The recorder is created lazily on the first frame, so no resources are
+allocated until recording actually starts.
 
 To record during evaluation or learning, pass ``record=True`` (and ``render=True``) to the ``Core``
 methods. The ``Core`` delegates recording to the agent's logger:
@@ -244,8 +245,8 @@ The fps is automatically set from the environment when the logger is attached to
 By default, the ``VideoRecorder`` class from ``mushroom_rl.utils.record`` is used, which writes
 ``.mp4`` files using OpenCV with the VP9 codec. The codec can be changed through the
 ``recorder_kwargs`` argument (e.g. ``recorder_kwargs=dict(codec='avc1')`` for H.264).
-A custom recorder class can be provided through the ``recorder_class`` argument.
-The class must implement ``__call__(frame)`` and ``stop()`` methods:
+A custom recorder class can be provided through the ``recorder_class`` argument, and must implement
+the same interface as ``VideoRecorder``:
 
 .. code-block:: python
 

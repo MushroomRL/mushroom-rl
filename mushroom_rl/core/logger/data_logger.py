@@ -1,7 +1,6 @@
 import re
+import json
 import numpy as np
-
-from pathlib import Path
 
 
 class DataLogger(object):
@@ -93,6 +92,24 @@ class DataLogger(object):
 
             np.save(path, data)
 
+    def log_hyperparameters(self, **hyperparams):
+        """
+        Store the experiment hyperparameters on disk, as a ``params.json`` file inside the logging
+        directory, so that a results folder describes the run that produced it. If no results directory
+        is set, the call has no effect.
+
+        Args:
+            **hyperparams: set of named hyperparameters describing the experiment.
+
+        """
+        if self._results_dir is not None:
+            path = self._get_folder() / f'params{self._suffix}.json'
+
+            formatted_hyperparams = self._format_hyperparameter(hyperparams)
+
+            with open(path, 'w') as params_file:
+                json.dump(formatted_hyperparams, params_file, indent=4, default=str)
+
     def log_agent(self, agent, epoch=None, full_save=False):
         """
         Log agent into the log folder.
@@ -157,3 +174,30 @@ class DataLogger(object):
                 key = folder + '/' + name if folder else name
                 data = np.load(str(file)).tolist()
                 self._data_dict[key] = data
+
+    @staticmethod
+    def _format_hyperparameter(value):
+        """
+        Convert a hyperparameter value into a representation suitable for logging, replacing every class
+        and function it contains by its full name. Dictionaries, lists and tuples are converted
+        element-wise.
+
+        Args:
+            value (object): the hyperparameter value to be converted.
+
+        Returns:
+            The converted hyperparameter value.
+
+        """
+        if hasattr(value, 'full_name') and callable(value.full_name):
+            return value.full_name()
+        elif callable(value) and hasattr(value, '__module__') and hasattr(value, '__qualname__'):
+            return f'{value.__module__}.{value.__qualname__}'
+        elif isinstance(value, dict):
+            return {name: DataLogger._format_hyperparameter(item) for name, item in value.items()}
+        elif isinstance(value, list):
+            return [DataLogger._format_hyperparameter(item) for item in value]
+        elif isinstance(value, tuple):
+            return tuple(DataLogger._format_hyperparameter(item) for item in value)
+        else:
+            return value

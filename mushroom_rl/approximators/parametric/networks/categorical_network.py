@@ -55,9 +55,7 @@ class CategoricalNetwork(nn.Module):
         a_p = torch.stack(a_p, dim=1)
 
         if not get_distribution:
-            q = torch.empty(a_p.shape[:-1])
-            for i in range(a_p.shape[0]):
-                q[i] = a_p[i] @ self._a_values
+            q = a_p @ self._a_values
 
             if action is not None:
                 return torch.squeeze(q.gather(1, action))

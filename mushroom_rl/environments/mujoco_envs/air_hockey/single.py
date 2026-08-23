@@ -75,7 +75,8 @@ class AirHockeySingle(AirHockeyBase):
         new_obs = obs.copy()
         self._puck_2d_in_robot_frame(self.obs_helper.get_from_obs(new_obs, "puck_pos"), self.agents[0]["frame"])
 
-        self._puck_2d_in_robot_frame(self.obs_helper.get_from_obs(new_obs, "puck_vel"), self.agents[0]["frame"], type='vel')
+        self._puck_2d_in_robot_frame(self.obs_helper.get_from_obs(new_obs, "puck_vel"), self.agents[0]["frame"],
+                                     type='vel')
 
         if self.obs_noise:
             self.obs_helper.get_from_obs(new_obs, "puck_pos")[:] += np.random.randn(2) * 0.001

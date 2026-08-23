@@ -9,7 +9,6 @@ from mushroom_rl.algorithms.value import DQN
 
 from mushroom_rl.core import Core
 
-from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import QNetwork
 from torch import optim
 
@@ -46,7 +45,7 @@ def test_normalizing_preprocessor(tmpdir):
     alg_params = dict(batch_size=5, initial_replay_size=10,
                       max_replay_size=500, target_update_frequency=50)
 
-    agent = DQN(mdp.info, pi, TorchApproximator, approximator_params=approximator_params, **alg_params)
+    agent = DQN(mdp.info, pi, approximator_params=approximator_params, **alg_params)
 
     norm_box = MinMaxPreprocessor(mdp_info=mdp.info, clip_obs=5.0, alpha=0.001)
     agent.add_core_preprocessor(norm_box)

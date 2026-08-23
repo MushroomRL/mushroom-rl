@@ -98,9 +98,8 @@ class PPO_BPTT(OnPolicyDeepAC):
                                                 action_history=prev_action_seq)
         old_log_p = old_pol_dist.log_prob(action)[:, None].detach()
 
-        critic_args = (state_seq, policy_state_seq, lengths)
-        critic_args += (prev_action_seq,) if self._history_manager.uses_action else ()
-        self._V.fit(*critic_args, v_target, **self._critic_fit_params)
+        self._V.fit(state_seq, policy_state_seq, lengths, v_target, action_history=prev_action_seq,
+                    **self._critic_fit_params)
 
         self._update_policy(state_seq, policy_state_seq, action, lengths, adv, old_log_p, prev_action_seq)
 
@@ -153,16 +152,19 @@ class PPO_BPTT(OnPolicyDeepAC):
 
     def _transform_to_sequences(self, states_old, states, policy_states, actions, next_states, policy_next_states,
                                 prev_actions, last, absorbing):
+        device = TorchUtils.get_device()
+
         with torch.no_grad():
             # array preallocation
-            s_old = torch.empty(len(states), self._truncation_length, *states_old.shape[1:])
-            s = torch.empty(len(states), self._truncation_length, *states.shape[1:])
-            ps = torch.empty(len(states), policy_states.shape[-1])
-            a = torch.empty(len(actions), self._truncation_length, *actions.shape[1:])
-            ss = torch.empty(len(states), self._truncation_length, *next_states.shape[1:])
-            pss = torch.empty(len(states), policy_states.shape[-1])
-            pa = torch.empty(len(states), self._truncation_length, *prev_actions.shape[1:]) \
+            s_old = torch.empty(len(states), self._truncation_length, *states_old.shape[1:], device=device)
+            s = torch.empty(len(states), self._truncation_length, *states.shape[1:], device=device)
+            ps = torch.empty(len(states), *policy_states.shape[1:], device=device)
+            a = torch.empty(len(actions), self._truncation_length, *actions.shape[1:], device=device)
+            ss = torch.empty(len(states), self._truncation_length, *next_states.shape[1:], device=device)
+            pss = torch.empty(len(states), *policy_states.shape[1:], device=device)
+            pa = torch.empty(len(states), self._truncation_length, *prev_actions.shape[1:], device=device) \
                 if self._history_manager.uses_action else None
+            # the sequence lengths stay on the CPU, as pack_padded_sequence requires
             lengths = torch.empty(len(states), dtype=torch.long)
 
             for i in range(len(states)):
@@ -187,16 +189,16 @@ class PPO_BPTT(OnPolicyDeepAC):
                 length_seq = len(states_seq)
                 padded_states_old = torch.concatenate([states_old_seq,
                                                        torch.zeros((self._truncation_length - states_old_seq.shape[0],
-                                                                    *states_old_seq.shape[1:]))])
+                                                                    *states_old_seq.shape[1:]), device=device)])
                 padded_states = torch.concatenate([states_seq,
                                                    torch.zeros((self._truncation_length - states_seq.shape[0],
-                                                                *states_seq.shape[1:]))])
+                                                                *states_seq.shape[1:]), device=device)])
                 padded_next_states = torch.concatenate([next_states_seq,
                                                         torch.zeros((self._truncation_length - next_states_seq.shape[0],
-                                                                     *next_states_seq.shape[1:]))])
+                                                                     *next_states_seq.shape[1:]), device=device)])
                 padded_action_seq = torch.concatenate([actions_seq,
                                                        torch.zeros((self._truncation_length - actions_seq.shape[0],
-                                                                    *actions_seq.shape[1:]))])
+                                                                    *actions_seq.shape[1:]), device=device)])
 
                 s_old[i] = padded_states_old
                 s[i] = padded_states
@@ -209,24 +211,19 @@ class PPO_BPTT(OnPolicyDeepAC):
                     prev_action_seq = prev_actions[begin_seq:end_seq]
                     pa[i] = torch.concatenate([prev_action_seq,
                                                torch.zeros((self._truncation_length - prev_action_seq.shape[0],
-                                                            *prev_action_seq.shape[1:]))])
+                                                            *prev_action_seq.shape[1:]), device=device)])
 
                 lengths[i] = length_seq
 
             return s_old, s, ps, a, ss, pss, pa, lengths
 
     def _update_policy(self, obs, pi_h, act, lengths, adv, old_log_p, prev_action):
+        tensors = (obs, pi_h, act, lengths, adv, old_log_p) if not self._history_manager.uses_action \
+            else (obs, pi_h, act, lengths, adv, old_log_p, prev_action)
         for epoch in range(self._n_epochs_policy()):
-            if self._history_manager.uses_action:
-                batches = minibatch_generator(self._batch_size(), obs, pi_h, act, lengths, adv, old_log_p, prev_action)
-            else:
-                batches = minibatch_generator(self._batch_size(), obs, pi_h, act, lengths, adv, old_log_p)
-            for batch in batches:
-                if self._history_manager.uses_action:
-                    obs_i, pi_h_i, act_i, length_i, adv_i, old_log_p_i, prev_action_i = batch
-                else:
-                    obs_i, pi_h_i, act_i, length_i, adv_i, old_log_p_i = batch
-                    prev_action_i = None
+            for batch in minibatch_generator(self._batch_size(), *tensors):
+                obs_i, pi_h_i, act_i, length_i, adv_i, old_log_p_i, *rest = batch
+                prev_action_i = rest[0] if rest else None
                 self._optimizer.zero_grad()
                 log_p = self.policy.log_prob(obs_i, act_i, pi_h_i, length_i, action_history=prev_action_i)
                 prob_ratio = torch.exp(log_p - old_log_p_i)

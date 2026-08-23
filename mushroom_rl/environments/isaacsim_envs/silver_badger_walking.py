@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from pathlib import Path
 
-from mushroom_rl.environments import IsaacSim
+from mushroom_rl.environments.isaacsim_env import IsaacSim
 from mushroom_rl.utils.isaac_sim import ObservationType, ActionType
 from mushroom_rl.environments.isaacsim_envs.honey_badger_walking import HoneyBadgerWalking
 from mushroom_rl.core.spaces import Box

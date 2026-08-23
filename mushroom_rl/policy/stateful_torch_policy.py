@@ -75,31 +75,30 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
     methods together with the sequence ``lengths``.
 
     """
-    def __init__(self, network, input_shape, output_shape, policy_state_shape, std_0=1.,
+    def __init__(self, network, input_shape, output_shape, std_0=1.,
                  log_std_min=-20, log_std_max=2, **params):
         """
         Constructor.
 
         Args:
-            network (object): the network class used to implement the mean regressor. Its
-                ``forward`` must return ``(action_mean, next_policy_state)``;
+            network (RecurrentNetwork): the network class used to implement the mean regressor. Its
+                ``forward`` must return ``(action_mean, next_policy_state)``, so it must declare
+                ``returns_policy_state``;
             input_shape (tuple): the shape of the state space;
-            output_shape (tuple): the shape of the action space (the network internally also
-                receives ``policy_state_shape`` as its second output shape);
-            policy_state_shape (tuple): the shape of the hidden state of the recurrent network;
+            output_shape (tuple): the shape of the action space;
             std_0 (float, 1.): initial standard deviation;
             log_std_min ([float, Parameter], -20): min value for the policy log std;
             log_std_max ([float, Parameter], 2): max value for the policy log std;
             **params: parameters used by the network constructor.
 
         """
-        super().__init__(policy_state_shape)
-
         self._action_dim = output_shape[0]
 
-        self._mu = RecurrentTorchApproximator(input_shape=input_shape,
-                                              output_shape=[output_shape, policy_state_shape],
-                                              network=network, policy_state_shape=policy_state_shape, **params)
+        self._mu = RecurrentTorchApproximator(input_shape=input_shape, output_shape=output_shape,
+                                              network=network, **params)
+
+        super().__init__(self._mu.policy_state_shape)
+
         self._predict_params = dict()
 
         log_sigma_init = torch.ones(self._action_dim, device=TorchUtils.get_device()) \
@@ -163,13 +162,14 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
         return chain(self._mu.parameters(), [self._log_sigma])
 
     def reset(self):
-        self._policy_state = torch.zeros(self.policy_state_shape)
+        self._policy_state = torch.zeros(self.policy_state_shape, device=TorchUtils.get_device())
 
         return self._policy_state
 
     def reset_vectorized(self, start_mask):
         if self._policy_state is None:
-            self._policy_state = torch.zeros((len(start_mask),) + self.policy_state_shape)
+            self._policy_state = torch.zeros((len(start_mask),) + self.policy_state_shape,
+                                             device=TorchUtils.get_device())
         self._policy_state[start_mask] = 0.
 
         return self._policy_state

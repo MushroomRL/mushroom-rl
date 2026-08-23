@@ -1,38 +1,35 @@
 try:
-    Atari = None
     from .atari import Atari
 
     Atari.register()
 except ImportError:
-    pass
+    Atari = None
 
 try:
-    Gymnasium = None
     from .gymnasium_env import Gymnasium
 
     Gymnasium.register()
 except ImportError:
-    pass
+    Gymnasium = None
 
 try:
-    DMControl = None
     from .dm_control_env import DMControl
 
     DMControl.register()
 except ImportError:
-    pass
+    DMControl = None
 
 try:
-    MiniGrid = None
-    MiniGridRGB = None
     from .minigrid_env import MiniGrid, MiniGridRGB
 
     MiniGrid.register()
     MiniGridRGB.register()
 except ImportError:
-    pass
+    MiniGrid = None
+    MiniGridRGB = None
 
 try:
+
     iGibson = None
     from .igibson_env import iGibson
 
@@ -52,22 +49,18 @@ except ImportError:
 
 try:
     MuJoCo = None
+
     from .mujoco import MuJoCo, MultiMuJoCo
-    from .mujoco_envs import *
+    from .mujoco_envs import *  # noqa: F401,F403
 except ImportError:
-    pass
+    MuJoCo = None
+    MultiMuJoCo = None
 
 try:
-    OmniIsaacGymEnv = None
-    from .omni_isaac_gym_env import OmniIsaacGymEnv
-except ImportError:
-    pass
-
-try:
-    PyBullet = None
     from .pybullet import PyBullet
-    from .pybullet_envs import *
+    from .pybullet_envs import *  # noqa: F401,F403
 except ImportError:
+
     pass
 
 try:
@@ -75,3 +68,31 @@ try:
     from .isaacsim_env import IsaacSim
 except ImportError:
     pass
+
+    PyBullet = None
+
+from .car_on_hill import CarOnHill
+from .cart_pole import CartPole
+from .finite_mdp import FiniteMDP
+from .grid_world import GridWorld
+from .grid_world_van_hasselt import GridWorldVanHasselt
+from .inverted_pendulum import InvertedPendulum
+from .lqr import LQR
+from .puddle_world import PuddleWorld
+from .segway import Segway
+from .ship_steering import ShipSteering
+from .simple_chain import SimpleChain
+from .taxi import Taxi
+
+CarOnHill.register()
+CartPole.register()
+FiniteMDP.register()
+GridWorld.register()
+GridWorldVanHasselt.register()
+InvertedPendulum.register()
+LQR.register()
+PuddleWorld.register()
+Segway.register()
+ShipSteering.register()
+SimpleChain.register()
+Taxi.register()

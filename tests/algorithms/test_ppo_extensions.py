@@ -10,7 +10,9 @@ from mushroom_rl.core import Agent, Core
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import PPO_BPTT, RudinPPO
 from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.policy import GaussianTorchPolicy, RecurrentGaussianTorchPolicy
-from mushroom_rl.approximators.parametric.networks import ActorNetwork, RecurrentActorNetwork, RecurrentCriticNetwork
+from mushroom_rl.approximators.parametric.networks import (
+    FeedForwardNetwork, ActorNetwork, RecurrentActorNetwork, RecurrentCriticNetwork
+)
 
 
 def learn(alg, policy, alg_params):
@@ -21,7 +23,7 @@ def learn(alg, policy, alg_params):
     return agent
 
 
-def make_bptt_setup(use_prev_action=False):
+def make_bptt_setup(use_prev_action=False, rnn_type='gru', num_hidden_layers=1):
     n_features, n_hidden = 4, 4
     dim_env_state, dim_action = 2, 1  # InvertedPendulum
 
@@ -29,10 +31,10 @@ def make_bptt_setup(use_prev_action=False):
         network=RecurrentActorNetwork,
         input_shape=(dim_env_state,),
         output_shape=(dim_action,),
-        policy_state_shape=(n_hidden,),
         n_features=n_features,
         n_hidden_features=n_hidden,
-        rnn_type='gru',
+        rnn_type=rnn_type,
+        num_hidden_layers=num_hidden_layers,
         action_history_shape=(dim_action,) if use_prev_action else None,
     )
 
@@ -44,10 +46,10 @@ def make_bptt_setup(use_prev_action=False):
             loss=F.mse_loss,
             input_shape=(dim_env_state,),
             output_shape=(1,),
-            policy_state_shape=(n_hidden,),
             n_features=n_features,
             n_hidden_features=n_hidden,
-            rnn_type='gru',
+            rnn_type=rnn_type,
+            num_hidden_layers=num_hidden_layers,
             action_history_shape=(dim_action,) if use_prev_action else None,
         ),
         n_epochs_policy=2, batch_size=64, eps_ppo=.2, lam=.95,
@@ -69,7 +71,7 @@ def make_rudin_setup():
     alg_params = dict(
         actor_optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
         critic_params=dict(
-            network=ActorNetwork,
+            network=FeedForwardNetwork,
             optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
             loss=F.mse_loss,
             n_features=None, n_layers=0,
@@ -77,6 +79,64 @@ def make_rudin_setup():
         ),
         n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95,
         clip_grad_norm=1., schedule='adaptive', desired_kl=0.01,
+    )
+
+    return policy, alg_params
+
+
+def make_rudin_history_setup(history_length):
+    dim_env_state, dim_action = 2, 1  # InvertedPendulum
+    window_shape = (history_length, dim_env_state)
+
+    policy = GaussianTorchPolicy(
+        ActorNetwork,
+        window_shape,
+        (dim_action,),
+        std_0=1., n_features=None, n_layers=0,
+    )
+
+    alg_params = dict(
+        actor_optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
+        critic_params=dict(
+            network=FeedForwardNetwork,
+            optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
+            loss=F.mse_loss,
+            input_shape=window_shape, output_shape=(1,),
+            n_features=None, n_layers=0,
+        ),
+        n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95,
+        clip_grad_norm=1., schedule='adaptive', desired_kl=0.01,
+        history_length=history_length,
+    )
+
+    return policy, alg_params
+
+
+def make_rudin_action_history_setup(action_history_length):
+    dim_env_state, dim_action = 2, 1  # InvertedPendulum
+    action_history_shape = (dim_action,)
+
+    policy = GaussianTorchPolicy(
+        ActorNetwork,
+        (dim_env_state,),
+        (dim_action,),
+        std_0=1., n_features=None, n_layers=0,
+        action_history_shape=action_history_shape,
+    )
+
+    alg_params = dict(
+        actor_optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
+        critic_params=dict(
+            network=FeedForwardNetwork,
+            optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
+            loss=F.mse_loss,
+            n_features=None, n_layers=0,
+            input_shape=(dim_env_state,), output_shape=(1,),
+            action_history_shape=action_history_shape,
+        ),
+        n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95,
+        clip_grad_norm=1., schedule='adaptive', desired_kl=0.01,
+        action_history_length=action_history_length,
     )
 
     return policy, alg_params
@@ -146,3 +206,55 @@ def test_RudinPPO_save(tmpdir):
 
     for att in vars(agent_save):
         tu.assert_eq(getattr(agent_save, att), getattr(agent_load, att))
+
+
+def test_RudinPPO_history_length():
+    np.random.seed(1)
+    torch.manual_seed(1)
+    torch.cuda.manual_seed(1)
+    policy, alg_params = make_rudin_history_setup(history_length=3)
+
+    agent = learn(RudinPPO, policy, alg_params)
+    w = agent.policy.get_weights()
+    w_test = torch.tensor([0.4686, 0.1263, -0.1158, 0.2544, 0.0432, 0.3357, -0.0864, -0.0024])
+
+    assert agent.history_length == 3
+    assert torch.allclose(w, w_test, atol=1e-4), f"actual={w}, expected={w_test}, diff={w - w_test}"
+
+
+def test_RudinPPO_action_history_length():
+    np.random.seed(1)
+    torch.manual_seed(1)
+    torch.cuda.manual_seed(1)
+    policy, alg_params = make_rudin_action_history_setup(action_history_length=1)
+
+    agent = learn(RudinPPO, policy, alg_params)
+    w = agent.policy.get_weights()
+    w_test = torch.tensor([-1.1555, 0.7321, -0.2495, 0.2686, -0.0024])
+
+    assert agent._history_manager.uses_action
+    assert torch.allclose(w, w_test, atol=1e-4), f"actual={w}, expected={w_test}, diff={w - w_test}"
+
+
+def test_PPO_BPTT_lstm():
+    np.random.seed(1)
+    torch.manual_seed(1)
+    torch.cuda.manual_seed(1)
+    policy, alg_params = make_bptt_setup(rnn_type='lstm')
+
+    agent = learn(PPO_BPTT, policy, alg_params)
+
+    assert agent.policy.policy_state_shape == (2, 1, 4)
+    assert torch.all(torch.isfinite(agent.policy.get_weights()))
+
+
+def test_PPO_BPTT_multi_layer():
+    np.random.seed(1)
+    torch.manual_seed(1)
+    torch.cuda.manual_seed(1)
+    policy, alg_params = make_bptt_setup(num_hidden_layers=2)
+
+    agent = learn(PPO_BPTT, policy, alg_params)
+
+    assert agent.policy.policy_state_shape == (2, 4)
+    assert torch.all(torch.isfinite(agent.policy.get_weights()))

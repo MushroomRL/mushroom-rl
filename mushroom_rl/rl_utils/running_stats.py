@@ -1,12 +1,12 @@
-import numpy as np
 from collections import deque
 from mushroom_rl.core import MushroomObject, ArrayBackend
 
 
 class RunningStandardization(MushroomObject):
     """
-    Compute a running standardization of values according to Welford's online
-    algorithm: https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
+    Compute a running standardization of values according to Welford's online algorithm.
+
+    See https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
 
     """
     def __init__(self, shape, backend, alpha=1e-32):

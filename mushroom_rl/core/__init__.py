@@ -10,7 +10,7 @@ from .dataset import Dataset, VectorizedDataset, DatasetInfo
 from .extra_info import ExtraInfo
 from .logger import Logger
 
-import mushroom_rl.environments
+import mushroom_rl.environments  # noqa: F401
 
 __all__ = [
     'ArrayBackend',

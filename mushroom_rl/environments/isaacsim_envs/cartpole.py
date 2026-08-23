@@ -1,12 +1,21 @@
-from mushroom_rl.environments import IsaacSim
+from mushroom_rl.environments.isaacsim_env import IsaacSim
 from mushroom_rl.utils.isaac_sim import ObservationType
 from mushroom_rl.core import ArrayBackend
 
 import numpy as np
 from pathlib import Path
 
+
 class CartPole(IsaacSim):
-    def __init__(self, num_envs, headless=True, backend="torch", device="cuda:0", camera_pos=(20, 0, 4), camera_target=(10, 0, 0)):
+    """
+    Cart-pole balancing task simulated with Isaac Sim.
+
+    The agent is rewarded for keeping the cart close to the origin, and the episode ends when the pole falls past
+    the horizontal.
+
+    """
+    def __init__(self, num_envs, headless=True, backend="torch", device="cuda:0", camera_pos=(20, 0, 4),
+                 camera_target=(10, 0, 0)):
         usd_path = str(Path(__file__).resolve().parent / "robots_usds/cartpole/cartpole.usd")
         action_spec = ["rail_cart_joint"]
         observation_spec = [
@@ -22,12 +31,12 @@ class CartPole(IsaacSim):
         ]
         collision_between_envs = False
         env_spacing = 2.5
-        super().__init__(usd_path, action_spec, observation_spec, backend, device, collision_between_envs, num_envs, 
+        super().__init__(usd_path, action_spec, observation_spec, backend, device, collision_between_envs, num_envs,
                          env_spacing, 0.99, 200, additional_data_spec=additional_data_spec, headless=headless,
                          camera_position=camera_pos, camera_target=camera_target)
-        
+
         self.backend = ArrayBackend.get_array_backend(backend)
-        
+
     def reward(self, obs, action, next_obs, absorbing):
         pole_joint_pos = self.observation_helper.get_from_obs(next_obs, "poleJointPos").squeeze()
         cart_joint_pos = self.observation_helper.get_from_obs(next_obs, "cartJointPos").squeeze()
@@ -55,7 +64,7 @@ class CartPole(IsaacSim):
         self._write_data("poleJointPos", pole_joint_pos, env_indices)
         self._write_data("cartJointVel", cart_joint_vel, env_indices)
         self._write_data("poleJointVel", pole_joint_vel, env_indices)
-    
+
     def _create_info_dictionary(self, obs):
         info = {}
         info["cartPosition"] = self._read_data("cartPos")

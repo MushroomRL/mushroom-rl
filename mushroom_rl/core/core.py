@@ -73,7 +73,7 @@ class Core(object):
         """
         assert (render and record) or (not record), "To record, the render flag must be set to true"
         if record:
-            assert self.agent.logger is not None, "To record, a logger must be set on the agent via set_logger"
+            assert self.agent.logger is not None, "To record, a logger must be set via Core.set_logger"
 
         self._core_logic.initialize_learn(n_steps_per_fit, n_episodes_per_fit)
 
@@ -105,7 +105,7 @@ class Core(object):
         """
         assert (render and record) or (not record), "To record, the render flag must be set to true"
         if record:
-            assert self.agent.logger is not None, "To record, a logger must be set on the agent via set_logger"
+            assert self.agent.logger is not None, "To record, a logger must be set via Core.set_logger"
 
         self._core_logic.initialize_evaluate()
 
@@ -361,7 +361,7 @@ class VectorizedCore(Core):
             frame = self.env.render_all(mask, record=record)
 
             if record:
-                self.agent.logger.record_frame(frame)
+                self.agent.logger.record_frame(frame, mask)
 
         last = absorbing | (self._episode_steps >= self.env.info.horizon)
 

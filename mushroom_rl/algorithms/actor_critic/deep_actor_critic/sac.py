@@ -24,7 +24,7 @@ class SAC(DeepAC):
 
     def __init__(self, mdp_info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params, batch_size,
                  initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha, use_log_alpha_loss=False,
-                 log_std_min=-20, log_std_max=2, target_entropy=None, critic_fit_params=None):
+                 log_std_min=-20, log_std_max=2, target_entropy=None, critic_fit_params=None, history_length=1):
         """
         Constructor.
 
@@ -45,7 +45,8 @@ class SAC(DeepAC):
             log_std_min ([float, Parameter]): Min value for the policy log std;
             log_std_max ([float, Parameter]): Max value for the policy log std;
             target_entropy (float, None): target entropy for the policy, if None a default value is computed;
-            critic_fit_params (dict, None): parameters of the fitting algorithm of the critic approximator.
+            critic_fit_params (dict, None): parameters of the fitting algorithm of the critic approximator;
+            history_length (int, 1): number of consecutive observations stacked as policy input.
 
         """
         self._critic_fit_params = dict() if critic_fit_params is None else critic_fit_params
@@ -85,9 +86,10 @@ class SAC(DeepAC):
 
         policy_parameters = chain(actor_mu_approximator.parameters(), actor_sigma_approximator.parameters())
 
-        super().__init__(mdp_info, policy, actor_optimizer, policy_parameters)
+        super().__init__(mdp_info, policy, actor_optimizer, policy_parameters, history_length=history_length)
 
-        self._replay_memory = ReplayMemory(mdp_info, self.info, initial_replay_size, max_replay_size)
+        self._replay_memory = ReplayMemory(mdp_info, self.info, initial_replay_size, max_replay_size,
+                                           history_manager=self.history_manager)
 
         self._add_save_attr(
             _critic_fit_params='pickle',

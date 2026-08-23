@@ -1,21 +1,27 @@
-from mushroom_rl.environments.mujoco import MuJoCo, ObservationType
+import mujoco
 import numpy as np
+
 from pathlib import Path
 from copy import deepcopy
 
-import mujoco
+from mushroom_rl.environments.mujoco import MuJoCo, ObservationType
+from mushroom_rl.utils.mujoco import MujocoViewer
 
 
 class BallInACup(MuJoCo):
     """
-    Mujoco simulation of Ball In A Cup task, using Barret WAM robot.
+    MuJoCo simulation of Ball In A Cup task, using Barret WAM robot.
 
     """
-    def __init__(self):
+    def __init__(self, **viewer_params):
         """
         Constructor.
 
         """
+        viewer_params.setdefault("camera_params", MujocoViewer.get_default_camera_params())
+        viewer_params["camera_params"]["static"].update(
+            dict(distance=2.0, elevation=-25.0, azimuth=45.0, lookat=np.array([0.0, -0.4, 1.1])))
+
         xml_path = (Path(__file__).resolve().parent / "data" / "ball_in_a_cup" / "model.xml").as_posix()
         action_spec = ["act/wam/base_yaw_joint", "act/wam/shoulder_pitch_joint", "act/wam/shoulder_yaw_joint",
                        "act/wam/elbow_pitch_joint", "act/wam/wrist_yaw_joint", "act/wam/wrist_pitch_joint",
@@ -52,7 +58,8 @@ class BallInACup(MuJoCo):
                                        "forearm_link_convex_decomposition_p2_geom"])]
 
         super().__init__(xml_path, action_spec, observation_spec, 0.9999, 2000, n_intermediate_steps=4,
-                         additional_data_spec=additional_data_spec, collision_groups=collision_groups)
+                         additional_data_spec=additional_data_spec, collision_groups=collision_groups,
+                         **viewer_params)
 
         self.init_robot_pos = np.array([0.0, 0.58760536, 0.0, 1.36004913, 0.0, -0.32072943, -1.57])
         self.p_gains = np.array([200, 400, 100, 100, 10, 10, 5])
@@ -86,10 +93,9 @@ class BallInACup(MuJoCo):
 
             self._reset_state = deepcopy(self._data)
         else:
-            self._data = deepcopy(self._reset_state)
+            mujoco.mj_copyData(self._data, self._model, self._reset_state)
 
     @staticmethod
     def linear_movement(start, end, n_steps, i):
         t = np.minimum(1., float(i) / float(n_steps))
         return start + (end - start) * t
-

@@ -1,5 +1,8 @@
 import torch
 import torch.nn as nn
+import torch.optim as optim
+
+from pytest import raises
 
 from mushroom_rl.utils.torch_utils import TorchUtils
 
@@ -46,3 +49,27 @@ def test_compute_output_shape_does_not_consume_rng_or_mutate_module():
     assert torch.equal(module.weight, weight_before)
     assert torch.equal(torch.get_rng_state(), rng_state_before)
     assert module.weight.device == torch.device('cpu')
+
+
+def test_get_optimizer():
+    adam = TorchUtils.get_optimizer('adam', 1e-3, eps=1e-8)
+    assert adam == {'class': optim.Adam, 'params': dict(lr=1e-3, eps=1e-8)}
+
+    adadelta = TorchUtils.get_optimizer('adadelta', 1e-3)
+    assert adadelta == {'class': optim.Adadelta, 'params': dict(lr=1e-3)}
+
+    rmsprop = TorchUtils.get_optimizer('rmsprop', 1e-3, eps=1e-8, decay=.95)
+    assert rmsprop == {'class': optim.RMSprop, 'params': dict(lr=1e-3, eps=1e-8, alpha=.95)}
+
+    centered = TorchUtils.get_optimizer('rmspropcentered', 1e-3, eps=1e-8, decay=.95)
+    assert centered == {'class': optim.RMSprop,
+                        'params': dict(lr=1e-3, eps=1e-8, alpha=.95, centered=True)}
+
+
+def test_get_optimizer_case_insensitive():
+    assert TorchUtils.get_optimizer('Adam', 1e-3) == TorchUtils.get_optimizer('adam', 1e-3)
+
+
+def test_get_optimizer_unknown():
+    with raises(ValueError):
+        TorchUtils.get_optimizer('sgd', 1e-3)

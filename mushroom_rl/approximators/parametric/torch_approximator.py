@@ -7,8 +7,7 @@ from torch.func import stack_module_state, functional_call, vmap, grad
 from mushroom_rl.core.mushroom_object import MushroomObject
 from mushroom_rl.approximators.approximator import Approximator, Ensemble
 from mushroom_rl.utils.minibatches import minibatch_generator, ensemble_minibatch_generator
-from mushroom_rl.utils.torch_utils import TorchUtils
-from mushroom_rl.utils.torch_training import TorchTrainer
+from mushroom_rl.utils.torch_utils import TorchUtils, TorchTrainer
 
 
 class TorchApproximator(Approximator):
@@ -118,6 +117,17 @@ class TorchApproximator(Approximator):
             TorchUtils.update_optimizer_parameters(self._optimizer, list(self.network.parameters()))
         self._trainer.set_callbacks(self._fit_epoch, self._compute_val_loss, self._store_loss)
 
+    def _pad_inputs(self, args, kwargs):
+        n_declared = len(self._input_ndims)
+        args = [a.unsqueeze(0) if i < n_declared and a.ndim == self._input_ndims[i] else a
+                for i, a in enumerate(args)]
+        for name, ndim in self._kwargs_ndims.items():
+            value = kwargs[name]
+            if value.ndim == ndim:
+                kwargs[name] = value.unsqueeze(0)
+
+        return args, kwargs
+
     @staticmethod
     def _parse_single_output(out):
         return out.squeeze(0)
@@ -141,13 +151,8 @@ class TorchApproximator(Approximator):
             The predictions of the model.
 
         """
-        n_declared = len(self._input_ndims)
-        args = [a.unsqueeze(0) if i < n_declared and a.ndim == self._input_ndims[i] else a
-                for i, a in enumerate(args)]
-        for name, ndim in self._kwargs_ndims.items():
-            value = kwargs[name]
-            if value.ndim == ndim:
-                kwargs[name] = value.unsqueeze(0)
+        args, kwargs = self._pad_inputs(args, kwargs)
+
         return self._parse_output(self.network(*args, **kwargs))
 
     def fit(self, *args, n_epochs=None, weights=None, epsilon=None, patience=1, validation_split=1., **kwargs):
@@ -162,7 +167,8 @@ class TorchApproximator(Approximator):
             epsilon (float, None): the coefficient used for early stopping;
             patience (float, 1.): the number of epochs to wait until stop the learning if not improving;
             validation_split (float, 1.): the percentage of the dataset to use as training set;
-            **kwargs: other parameters used by the fit method of the regressor.
+            **kwargs: other parameters used by the fit method of the regressor, including any keyword input
+                declared via ``kwargs_shape``/``action_history_shape``.
 
         """
         if self._trainer.reinitialize:
@@ -170,6 +176,10 @@ class TorchApproximator(Approximator):
 
         if self._trainer.dropout:
             self.network.train()
+
+        n_targets = self._trainer.n_fit_targets
+        kwargs_data = tuple(kwargs.pop(name) for name in self._kwargs_ndims)
+        args = args[:-n_targets] + kwargs_data + args[-n_targets:]
 
         self._trainer.fit(args, n_epochs, weights, epsilon, patience, validation_split, kwargs)
         self._dirty = True
@@ -207,10 +217,14 @@ class TorchApproximator(Approximator):
         else:
             weights = None
 
-        torch_args = [torch.as_tensor(x, device=TorchUtils.get_device()) for x in batch]
-        x = torch_args[:-self._trainer.n_fit_targets]
-        y_hat = self.network(*x, **network_kwargs)
-        y = [y_i.clone().detach().to(TorchUtils.get_device()) for y_i in torch_args[-self._trainer.n_fit_targets:]]
+        n_kwargs = len(self._kwargs_ndims)
+        x_end = len(batch) - self._trainer.n_fit_targets - n_kwargs
+        x = batch[:x_end]
+        kwargs_data = dict(zip(self._kwargs_ndims, batch[x_end:x_end + n_kwargs]))
+        y = batch[-self._trainer.n_fit_targets:]
+
+        y_hat = self.network(*x, **network_kwargs, **kwargs_data)
+        y = [y_i.clone().detach() for y_i in y]
 
         return self._trainer.compute_loss_from_output(y_hat, y, weights)
 
@@ -281,7 +295,12 @@ class TorchApproximator(Approximator):
 
     def diff(self, *args, **kwargs):
         """
-        Compute the derivative of the output w.r.t. ``state``, and ``action`` if provided.
+        Compute the derivative of the output w.r.t. ``state``, and ``action`` if provided. The positional
+        inputs and the keyword inputs declared via ``kwargs_shape`` / ``action_history_shape`` are
+        batch-padded when a single (unbatched) sample is provided, exactly as by ``predict``. Positional
+        inputs beyond the declared ones, such as the ``action`` a Q-network gathers with, carry no declared
+        rank and are padded to two dimensions instead. Only single-output networks are supported, since
+        there is no single matrix packing the gradients of outputs of different shape.
 
         Args:
             *args: input;
@@ -291,9 +310,13 @@ class TorchApproximator(Approximator):
             The derivative of the output w.r.t. ``state``, and ``action`` if provided.
 
         """
-        torch_args = [torch.atleast_2d(x) for x in args]
+        assert not isinstance(self._output_shape, list), 'diff is not supported by multi-output networks.'
 
-        y_hat = self.network(*torch_args, **kwargs)
+        n_declared = len(self._input_ndims)
+        args, kwargs = self._pad_inputs(args, kwargs)
+        args = args[:n_declared] + [torch.atleast_2d(a) for a in args[n_declared:]]
+
+        y_hat = self.network(*args, **kwargs)
         n_outs = 1 if len(y_hat.shape) == 0 else y_hat.shape[-1]
         y_hat = y_hat.view(-1, n_outs)
 
@@ -322,7 +345,8 @@ class TorchEnsemble(Ensemble):
 
     def __init__(self, network, input_shape, output_shape, optimizer=None, loss=None, batch_size=0,
                  n_fit_targets=1, reinitialize=False, dropout=False, quiet=True, n_models=None,
-                 prediction=None, **params):
+                 prediction='mean', randomness='different', action_history_shape=None,
+                 kwargs_shape=None, **params):
         """
         Constructor.
 
@@ -343,8 +367,19 @@ class TorchEnsemble(Ensemble):
             dropout (bool, False): if True, dropout is applied only during train;
             quiet (bool, True): if False, shows a progress bar over epochs;
             n_models (int): number of models in the ensemble;
-            prediction (str, None): how to aggregate predictions across models. One of
-                ``'mean'``, ``'min'``, ``'max'``, ``'sum'``, or ``None`` to return all predictions;
+            prediction (str, 'mean'): how to aggregate predictions across models. One of ``'mean'``,
+                ``'min'``, ``'max'``, ``'sum'``, or ``'all'`` to return all predictions;
+            randomness (str, 'different'): how random operations inside the network (e.g. the noise of a
+                noisy layer, or dropout) behave across the models of the ensemble. ``'different'`` draws
+                independent randomness per model, ``'same'`` shares a single draw across all models, and
+                ``'error'`` forbids random operations altogether;
+            action_history_shape (tuple, None): the per-timestep shape of the ``action_history``
+                keyword input, when the network consumes the previous action. Convenience shortcut
+                for ``kwargs_shape={'action_history': action_history_shape}``;
+            kwargs_shape (dict, None): mapping ``{name: shape}`` declaring keyword inputs of the
+                network. Declared keyword inputs are batch-padded by ``predict`` exactly like the
+                positional inputs, and each shape is forwarded to the network constructor under the
+                ``{name}_shape`` keyword (e.g. ``action_history`` -> ``action_history_shape``);
             **params: dictionary of parameters needed to construct the network.
 
         """
@@ -352,7 +387,16 @@ class TorchEnsemble(Ensemble):
                          input_shape=input_shape, output_shape=output_shape, network=network,
                          optimizer=optimizer, loss=loss, batch_size=batch_size,
                          n_fit_targets=n_fit_targets, reinitialize=reinitialize,
-                         dropout=dropout, quiet=quiet, **params)
+                         dropout=dropout, quiet=quiet, action_history_shape=action_history_shape,
+                         kwargs_shape=kwargs_shape, **params)
+
+        self._randomness = randomness
+        self._input_ndims = [len(s) for s in input_shape] if isinstance(input_shape, list) else [len(input_shape)]
+
+        kwargs_shape = dict(kwargs_shape) if kwargs_shape is not None else dict()
+        if action_history_shape is not None:
+            kwargs_shape['action_history'] = action_history_shape
+        self._kwargs_ndims = {name: len(shape) for name, shape in kwargs_shape.items()}
 
         self._base_model = deepcopy(self._models[0].network).to('meta').eval()
         self._params, self._buffers = stack_module_state([m.network for m in self._models])
@@ -360,7 +404,12 @@ class TorchEnsemble(Ensemble):
                                      self._fit_epoch, self._compute_val_loss,
                                      self._store_loss, quiet)
 
-        self._add_save_attr(_trainer='mushroom')
+        self._add_save_attr(
+            _randomness='primitive',
+            _input_ndims='primitive',
+            _kwargs_ndims='primitive',
+            _trainer='mushroom',
+        )
 
     def _sync_params(self):
         if any(m._dirty for m in self._models):
@@ -369,50 +418,65 @@ class TorchEnsemble(Ensemble):
                 m._dirty = False
 
     def _post_load(self):
+        super()._post_load()
+
         self._base_model = deepcopy(self._models[0].network).to('meta').eval()
         for m in self._models:
             m._dirty = True
         self._sync_params()
         self._trainer.set_callbacks(self._fit_epoch, self._compute_val_loss, self._store_loss)
 
-    def predict(self, *args, idx=None, prediction=None, **kwargs):
+    def _parse_single_output(self, out, prediction, compute_variance):
+        return self._aggregate(out.squeeze(1), prediction, compute_variance)
+
+    def _parse_multi_output(self, out, prediction, compute_variance):
+        return tuple(self._aggregate(o.squeeze(1), prediction, compute_variance) for o in out)
+
+    def predict(self, *args, idx=None, prediction=None, compute_variance=False, **kwargs):
         """
-        Predict.
+        Predict. The positional inputs and the keyword inputs declared via ``kwargs_shape`` /
+        ``action_history_shape`` are batch-padded when a single (unbatched) sample is provided, exactly as by
+        a single model. A declared keyword input that is not passed raises a ``KeyError``.
 
         Args:
             *args: input;
             idx (int, None): if provided, use only the model at that index;
-            prediction (str, None): aggregation mode, overrides the constructor default.
-                One of ``'mean'``, ``'min'``, ``'max'``, ``'sum'``, or ``None`` to return all;
-            **kwargs: other parameters used by the predict method of the regressor.
+            prediction (str, None): aggregation mode, overrides the constructor default. One of ``'mean'``,
+                ``'min'``, ``'max'``, ``'sum'``, or ``'all'`` to return all predictions. ``None`` uses the
+                constructor default;
+            compute_variance (bool, False): if ``True``, also return the variance across models.
+            **kwargs: other parameters used by the predict method of the regressor, including any declared
+                keyword input.
 
         Returns:
-            The predictions of the model, aggregated according to ``prediction``.
+            The predictions of the model, aggregated according to ``prediction``. An aggregated prediction has
+            the same shape as the prediction of a single model, while an un-aggregated one carries an
+            additional leading model axis. If ``compute_variance`` is ``True``, a list
+            ``[predictions, variance]`` is returned instead.
 
         """
+        assert not compute_variance or prediction != 'all'
         if idx is not None:
             return self._models[idx].predict(*args, **kwargs)
 
         self._sync_params()
-        torch_args = tuple(torch.atleast_2d(torch.as_tensor(x, device=TorchUtils.get_device())) for x in args)
+
+        n_declared = len(self._input_ndims)
+        torch_args = tuple(torch.as_tensor(x, device=TorchUtils.get_device()) for x in args)
+        torch_args = tuple(a.unsqueeze(0) if i < n_declared and a.ndim == self._input_ndims[i] else a
+                           for i, a in enumerate(torch_args))
+        for name, ndim in self._kwargs_ndims.items():
+            value = kwargs[name]
+            if value.ndim == ndim:
+                kwargs[name] = value.unsqueeze(0)
 
         def fwd(params, buffers):
             return functional_call(self._base_model, (params, buffers), torch_args, kwargs=kwargs)
 
-        predictions = vmap(fwd)(self._params, self._buffers)
-
         prediction = prediction if prediction is not None else self._prediction
-        if prediction is None:
-            return predictions
-        if prediction == 'mean':
-            return predictions.mean(0)
-        elif prediction == 'min':
-            return predictions.min(0).values
-        elif prediction == 'max':
-            return predictions.max(0).values
-        elif prediction == 'sum':
-            return predictions.sum(0)
-        raise ValueError
+
+        return self._parse_output(vmap(fwd, randomness=self._randomness)(self._params, self._buffers),
+                                  prediction, compute_variance)
 
     def fit(self, *args, idx=None, n_epochs=None, weights=None, epsilon=None, patience=1,
             validation_split=1., **kwargs):
@@ -428,7 +492,8 @@ class TorchEnsemble(Ensemble):
             epsilon (float, None): the coefficient used for early stopping;
             patience (float, 1.): the number of epochs to wait until stop the learning if not improving;
             validation_split (float, 1.): the percentage of the dataset to use as training set;
-            **kwargs: other parameters used by the fit method of the regressor.
+            **kwargs: other parameters used by the fit method of the regressor, including any keyword input
+                declared via ``kwargs_shape``/``action_history_shape``.
 
         """
         if idx is not None:
@@ -445,6 +510,10 @@ class TorchEnsemble(Ensemble):
             self._base_model.train()
             for m in self._models:
                 m.network.train()
+
+        n_targets = self._trainer.n_fit_targets
+        kwargs_data = tuple(kwargs.pop(name) for name in self._kwargs_ndims)
+        args = args[:-n_targets] + kwargs_data + args[-n_targets:]
 
         self._trainer.fit(args, n_epochs, weights, epsilon, patience, validation_split, kwargs)
 
@@ -480,28 +549,35 @@ class TorchEnsemble(Ensemble):
             stacked_w = None
             stacked_data = stacked_batch
 
-        stacked_x = tuple(stacked_data[:-self._trainer.n_fit_targets])
+        n_kwargs = len(self._kwargs_ndims)
+        x_end = len(stacked_data) - self._trainer.n_fit_targets - n_kwargs
+        stacked_x = tuple(stacked_data[:x_end])
+        stacked_kwargs_data = tuple(stacked_data[x_end:x_end + n_kwargs])
         stacked_y = [yi.clone().detach() for yi in stacked_data[-self._trainer.n_fit_targets:]]
 
         base = self._base_model
         nx = len(stacked_x)
+        nk = len(stacked_kwargs_data)
         ny = len(stacked_y)
+        kwargs_names = tuple(self._kwargs_ndims)
         trainer = self._trainer
 
         def compute_loss(params, buffers, *data_w):
             x_in = data_w[:nx]
-            y_in = data_w[nx:nx + ny]
+            k_in = data_w[nx:nx + nk]
+            y_in = data_w[nx + nk:nx + nk + ny]
             w = data_w[-1] if stacked_w is not None else None
-            y_hat = functional_call(base, (params, buffers), x_in, kwargs=network_kwargs)
+            call_kwargs = {**network_kwargs, **dict(zip(kwargs_names, k_in))}
+            y_hat = functional_call(base, (params, buffers), x_in, kwargs=call_kwargs)
             loss = trainer.compute_loss_from_output(y_hat, list(y_in), w)
             return loss, loss
 
-        all_data = stacked_x + tuple(stacked_y)
+        all_data = stacked_x + stacked_kwargs_data + tuple(stacked_y)
         if stacked_w is not None:
             all_data = all_data + (stacked_w,)
 
         per_model_grads, per_model_losses = vmap(
-            grad(compute_loss, has_aux=True)
+            grad(compute_loss, has_aux=True), randomness=self._randomness
         )(self._params, self._buffers, *all_data)
 
         for i, m in enumerate(self._models):
@@ -521,18 +597,21 @@ class TorchEnsemble(Ensemble):
             weights = None
 
         torch_batch = [torch.as_tensor(x, device=TorchUtils.get_device()) for x in val_args]
-        x_inputs = tuple(torch_batch[:-self._trainer.n_fit_targets])
+        n_kwargs = len(self._kwargs_ndims)
+        x_end = len(torch_batch) - self._trainer.n_fit_targets - n_kwargs
+        x_inputs = tuple(torch_batch[:x_end])
+        kwargs_data = dict(zip(self._kwargs_ndims, torch_batch[x_end:x_end + n_kwargs]))
         y_targets = [yi.clone().detach() for yi in torch_batch[-self._trainer.n_fit_targets:]]
 
         base = self._base_model
         trainer = self._trainer
 
         def compute_loss(params, buffers):
-            y_hat = functional_call(base, (params, buffers), x_inputs, kwargs=network_kwargs)
+            y_hat = functional_call(base, (params, buffers), x_inputs, kwargs={**network_kwargs, **kwargs_data})
             return trainer.compute_loss_from_output(y_hat, y_targets, weights)
 
         with torch.no_grad():
-            losses = vmap(compute_loss)(self._params, self._buffers)
+            losses = vmap(compute_loss, randomness=self._randomness)(self._params, self._buffers)
         return float(losses.mean().item())
 
     def _store_loss(self, losses):

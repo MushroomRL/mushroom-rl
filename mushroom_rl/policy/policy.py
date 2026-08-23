@@ -100,9 +100,10 @@ class Policy(MushroomObject):
 
 class StatefulPolicy(Policy):
     """
-    Interface representing a stateful policy, i.e. a policy carrying a latent internal state (e.g. the hidden state of
-    a recurrent network, the noise of an Ornstein-Uhlenbeck process, or the phase of a movement primitive) that is
-    updated at every step.
+    Interface representing a stateful policy, i.e. a policy carrying a latent internal state updated at every step.
+
+    Such a state is, for instance, the hidden state of a recurrent network, the noise of an Ornstein-Uhlenbeck
+    process, or the phase of a movement primitive.
 
     The current policy state is stored inside the policy and exposed through the ``policy_state`` property, so that the
     :class:`~mushroom_rl.core.Core` can record it into the dataset for logging and learning. The query methods, instead,
@@ -318,10 +319,11 @@ class HasWeights:
 
 class HasGradient(HasWeights, is_mixin=True):
     """
-    Mixin for a parametric policy that is also differentiable, i.e. one for which the gradient of the log-probability
-    w.r.t. the policy weights can be computed. It extends :class:`HasWeights` with the derivative of the
-    log-probability; policies that carry weights but are not differentiable should use :class:`HasWeights`
-    directly.
+    Mixin for a parametric policy that is also differentiable.
+
+    It applies to the policies for which the gradient of the log-probability w.r.t. the policy weights can be
+    computed, and extends :class:`HasWeights` with that derivative; policies that carry weights but are not
+    differentiable should use :class:`HasWeights` directly.
 
     """
     def diff_log(self, state, action, policy_state=None):

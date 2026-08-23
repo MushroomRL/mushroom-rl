@@ -67,7 +67,7 @@ class AirHockeySingleBullet(AirHockeyBaseBullet):
         puck_vel_2d = self._puck_2d_in_robot_frame(np.concatenate([puck_lin_vel, puck_ang_vel]),
                                                    self.agents[0]['frame'], type='vel')
         robot_vel = np.zeros(3)
-        robot_vel[0] = self.get_sim_state(state, self.agents[0]['name'] + "/joint_1", 
+        robot_vel[0] = self.get_sim_state(state, self.agents[0]['name'] + "/joint_1",
                                           PyBulletObservationType.JOINT_VEL).item()
         robot_vel[1] = self.get_sim_state(state, self.agents[0]['name'] + "/joint_2",
                                           PyBulletObservationType.JOINT_VEL).item()

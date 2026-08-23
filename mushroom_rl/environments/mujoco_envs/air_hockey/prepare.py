@@ -51,7 +51,6 @@ class AirHockeyPrepare(AirHockeySingle):
 
         super(AirHockeyPrepare, self).setup(obs)
 
-
     def reward(self, state, action, next_state, absorbing):
         puck_pos, puck_vel, _ = self.get_puck(next_state)
         puck_pos = puck_pos[:2]

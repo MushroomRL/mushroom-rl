@@ -41,8 +41,7 @@ class Segway(Environment):
         # MDP properties
         dt = 1e-2
         observation_space = Box(low=-high, high=high)
-        action_space = Box(low=np.array([-self._max_u]),
-                                  high=np.array([self._max_u]))
+        action_space = Box(low=np.array([-self._max_u]), high=np.array([self._max_u]))
         horizon = 300
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
@@ -101,7 +100,7 @@ class Segway(Environment):
 
         omegaP = d_alpha
 
-        dOmegaP = -(h2 * self._l * self._Mp * self._r * np.sin( alpha) * omegaP**2
+        dOmegaP = -(h2 * self._l * self._Mp * self._r * np.sin(alpha) * omegaP**2
                     - self._g * h1 * self._l * self._Mp * np.sin(alpha) + (h2 + h1) * u) / (h1 * h3 - h2**2)
         dOmegaR = (h3 * self._l * self._Mp * self._r * np.sin(alpha) * omegaP**2
                    - self._g * h2 * self._l * self._Mp * np.sin(alpha) + (h3 + h2) * u) / (h1 * h3 - h2**2)
@@ -128,7 +127,7 @@ class Segway(Environment):
         end[0] += -2 * self._l * np.sin(self._state[0]) + self._last_x
         end[1] += 2 * self._l * np.cos(self._state[0])
 
-        if (start[0] > 5 * self._l and end[0] > 5 * self._l)  or (start[0] < 0 and end[0] < 0):
+        if (start[0] > 5 * self._l and end[0] > 5 * self._l) or (start[0] < 0 and end[0] < 0):
             start[0] = start[0] % 5 * self._l
             end[0] = end[0] % 5 * self._l
 
@@ -143,6 +142,3 @@ class Segway(Environment):
 
     def stop(self):
         self._viewer.close()
-
-
-

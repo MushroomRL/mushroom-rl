@@ -1,10 +1,7 @@
 import numpy as np
-import warnings
 
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
-    from dm_control import suite
-    from dm_control.suite.wrappers import pixels
+from dm_control import suite
+from dm_control.suite.wrappers import pixels
 
 
 from mushroom_rl.core import Environment, MDPInfo
@@ -28,8 +25,8 @@ class DMControl(Environment):
         Args:
              domain_name (str): name of the environment;
              task_name (str): name of the task of the environment;
-             horizon (int): the horizon;
-             gamma (float): the discount factor;
+             horizon (int, None): the horizon;
+             gamma (float, 0.99): the discount factor;
              task_kwargs (dict, None): parameters of the task;
              dt (float, .01): duration of a control step;
              width_screen (int, 480): width of the screen;
@@ -42,6 +39,9 @@ class DMControl(Environment):
 
         """
         # MDP creation
+        self._domain_name = domain_name
+        self._task_name = task_name
+
         self.env = suite.load(domain_name, task_name, task_kwargs=task_kwargs)
         if use_pixels:
             self.env = pixels.Wrapper(self.env, render_kwargs={'width': pixels_width, 'height': pixels_height})
@@ -73,6 +73,9 @@ class DMControl(Environment):
         super().__init__(mdp_info)
 
         self._state = None
+
+    def full_name(self):
+        return f'{self.name()}.{self._domain_name}.{self._task_name}'
 
     def reset(self, state=None):
         if state is None:
@@ -122,7 +125,7 @@ class DMControl(Environment):
     def _convert_observation_space_pixels(observation_space):
         img_size = observation_space['pixels'].shape
 
-        return Box(low=0., high=255., shape=(3, img_size[0], img_size[1]))
+        return Box(low=0., high=255., shape=(3, img_size[0], img_size[1]), data_type=np.uint8)
 
     @staticmethod
     def _convert_action_space(action_space):

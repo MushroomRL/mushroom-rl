@@ -46,8 +46,8 @@ class Logger(DataLogger, ConsoleLogger, VideoLogger, WandbLogger):
                 ``log`` method are also stored on disk as numpy arrays (only if a
                 results directory is set);
             recorder_class (class, None): the class used to record video. By default,
-                the ``VideoRecorder`` class is used. The class must implement the
-                ``__call__`` and ``stop`` methods;
+                the ``VideoRecorder`` class is used, and any class implementing its
+                interface can be used instead;
             fps (int, None): frames per second for video recording. If None, the
                 value is set automatically by ``Core.set_logger`` from the environment;
             recorder_kwargs (dict, None): additional keyword arguments forwarded to
@@ -96,6 +96,31 @@ class Logger(DataLogger, ConsoleLogger, VideoLogger, WandbLogger):
                     wandb_kwargs = dict(wandb_kwargs, name=log_name + '_' + str(seed))
 
         WandbLogger.__init__(self, wandb_kwargs, base_results_dir, log_dir=results_dir, append=append)
+
+    def log_experiment_info(self, agent, mdp=None, **hyperparams):
+        """
+        Log the header of an experiment: the algorithm name, the environment name and the experiment
+        hyperparameters. The hyperparameters are also stored on disk through ``log_hyperparameters``.
+
+        Args:
+            agent (Agent, class): the agent used by the experiment, either the class or an instance;
+            mdp (Environment, None): the environment used by the experiment, either the class or an
+                instance. If None, no environment line is logged;
+            **hyperparams: set of named hyperparameters describing the experiment.
+
+        """
+        self.strong_line()
+        self.info('Experiment Algorithm: ' + self._object_name(agent))
+
+        if mdp is not None:
+            self.info('Environment: ' + self._object_name(mdp))
+
+        for name, value in hyperparams.items():
+            self.info(f'{name}: {self._format_hyperparameter(value)}')
+
+        self.weak_line()
+
+        self.log_hyperparameters(**hyperparams)
 
     def log_training(self, prefix=None, **kwargs):
         """
@@ -166,3 +191,18 @@ class Logger(DataLogger, ConsoleLogger, VideoLogger, WandbLogger):
             video = self._recorded_videos[-1]
 
         self.log_wandb_video(wandb_name, video, epoch)
+
+    @staticmethod
+    def _object_name(obj):
+        """
+        Return the name identifying the given object. An instance is described by its full name, which
+        also states which environment or task it was built with, while a class only knows its own name.
+
+        Args:
+            obj (object, class): the object to be named.
+
+        Returns:
+            The name of the object.
+
+        """
+        return obj.name() if isinstance(obj, type) else obj.full_name()

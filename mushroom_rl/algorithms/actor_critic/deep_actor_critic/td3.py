@@ -2,6 +2,7 @@ import torch
 
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DDPG
 from mushroom_rl.rl_utils.parameters import Parameter
+from mushroom_rl.utils.torch_utils import TorchUtils
 
 
 class TD3(DDPG):
@@ -14,7 +15,7 @@ class TD3(DDPG):
     def __init__(self, mdp_info, policy_class, policy_params, actor_params,
                  actor_optimizer, critic_params, batch_size,
                  initial_replay_size, max_replay_size, tau, policy_delay=2,
-                 noise_std=.2, noise_clip=.5, critic_fit_params=None):
+                 noise_std=.2, noise_clip=.5, critic_fit_params=None, history_length=1):
         """
         Constructor.
 
@@ -40,7 +41,8 @@ class TD3(DDPG):
             noise_clip ([float, Parameter], .5): maximum absolute value for policy smoothing
                 noise;
             critic_fit_params (dict, None): parameters of the fitting algorithm
-                of the critic approximator.
+                of the critic approximator;
+            history_length (int, 1): number of consecutive observations stacked as policy input.
 
         """
         self._noise_std = Parameter.make(noise_std, backend='torch')
@@ -52,7 +54,8 @@ class TD3(DDPG):
             critic_params['n_models'] = 2
 
         super().__init__(mdp_info, policy_class, policy_params, actor_params, actor_optimizer, critic_params,
-                         batch_size, initial_replay_size, max_replay_size, tau, policy_delay, critic_fit_params)
+                         batch_size, initial_replay_size, max_replay_size, tau, policy_delay, critic_fit_params,
+                         history_length=history_length)
 
         self._add_save_attr(
             _noise_std='mushroom',
@@ -83,8 +86,8 @@ class TD3(DDPG):
         eps = torch.randn_like(a) * self._noise_std()
         eps_clipped = torch.clamp(eps, -self._noise_clip(), self._noise_clip.get_value())
 
-        low = torch.from_numpy(self.mdp_info.action_space.low)
-        high = torch.from_numpy(self.mdp_info.action_space.high)
+        low = torch.as_tensor(self.mdp_info.action_space.low, device=TorchUtils.get_device())
+        high = torch.as_tensor(self.mdp_info.action_space.high, device=TorchUtils.get_device())
         a_smoothed = torch.clamp(a + eps_clipped, low, high)
 
         q = self._target_critic_approximator.predict(next_state, a_smoothed,

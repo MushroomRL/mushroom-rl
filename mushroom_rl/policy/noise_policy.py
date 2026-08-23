@@ -2,14 +2,15 @@ import torch
 import numpy as np
 
 from mushroom_rl.policy.policy import Policy, StatefulPolicy, HasWeights
+from mushroom_rl.utils.torch_utils import TorchUtils
 
 
 class OrnsteinUhlenbeckPolicy(HasWeights, StatefulPolicy):
     """
-    Ornstein-Uhlenbeck process as implemented in:
-    https://github.com/openai/baselines/blob/master/baselines/ddpg/noise.py.
+    Exploration policy adding temporally correlated noise drawn from an Ornstein-Uhlenbeck process.
 
-    This policy is commonly used in the Deep Deterministic Policy Gradient algorithm.
+    This policy is commonly used in the Deep Deterministic Policy Gradient algorithm. The process is implemented
+    as in https://github.com/openai/baselines/blob/master/baselines/ddpg/noise.py.
 
     """
     def __init__(self, mu, sigma, theta, dt, x0=None):
@@ -28,10 +29,10 @@ class OrnsteinUhlenbeckPolicy(HasWeights, StatefulPolicy):
 
         self._approximator = mu
         self._predict_params = dict()
-        self._sigma = sigma
+        self._sigma = torch.as_tensor(sigma, device=TorchUtils.get_device())
         self._theta = theta
         self._dt = dt
-        self._x0 = x0
+        self._x0 = torch.as_tensor(x0, device=TorchUtils.get_device()) if x0 is not None else None
 
         self._add_save_attr(
             _approximator='mushroom',
@@ -72,13 +73,15 @@ class OrnsteinUhlenbeckPolicy(HasWeights, StatefulPolicy):
         return self._approximator.weights_size
 
     def reset(self):
-        self._policy_state = self._x0.clone() if self._x0 is not None else torch.zeros(self._approximator.output_shape)
+        self._policy_state = self._x0.clone() if self._x0 is not None \
+            else torch.zeros(self._approximator.output_shape, device=TorchUtils.get_device())
 
         return self._policy_state
 
     def reset_vectorized(self, start_mask):
         if self._policy_state is None:
-            self._policy_state = torch.zeros((len(start_mask),) + tuple(self._approximator.output_shape))
+            self._policy_state = torch.zeros((len(start_mask),) + tuple(self._approximator.output_shape),
+                                             device=TorchUtils.get_device())
         self._policy_state[start_mask] = self._x0 if self._x0 is not None else 0.
 
         return self._policy_state
@@ -86,10 +89,11 @@ class OrnsteinUhlenbeckPolicy(HasWeights, StatefulPolicy):
 
 class ClippedGaussianPolicy(HasWeights, Policy):
     """
-    Clipped Gaussian policy, as used in:
+    Gaussian policy whose sampled action is clipped to a given action range.
 
+    This policy was introduced used in:
     "Addressing Function Approximation Error in Actor-Critic Methods".
-    Fujimoto S. et al.. 2018.
+    Fujimoto S. et al. 2018.
 
     This is a non-differentiable policy for continuous action spaces.
     The policy samples an action in every state following a gaussian distribution, where the mean is computed in the
@@ -112,9 +116,9 @@ class ClippedGaussianPolicy(HasWeights, Policy):
         """
         self._approximator = mu
         self._predict_params = dict()
-        self._chol_sigma = torch.linalg.cholesky(sigma)
-        self._low = torch.as_tensor(low)
-        self._high = torch.as_tensor(high)
+        self._chol_sigma = torch.linalg.cholesky(torch.as_tensor(sigma, device=TorchUtils.get_device()))
+        self._low = torch.as_tensor(low, device=TorchUtils.get_device())
+        self._high = torch.as_tensor(high, device=TorchUtils.get_device())
 
         self._add_save_attr(
             _approximator='mushroom',

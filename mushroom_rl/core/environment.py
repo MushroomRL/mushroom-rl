@@ -1,5 +1,4 @@
 import warnings
-import numpy as np
 
 from mushroom_rl.core.mushroom_object import MushroomObject
 from mushroom_rl.core.array_backend import ArrayBackend
@@ -70,10 +69,31 @@ class Environment(object):
         Register an environment in the environment list.
 
         """
-        env_name = cls.__name__
+        env_name = cls.name()
 
         if env_name not in Environment._registered_envs:
             Environment._registered_envs[env_name] = cls
+
+    @classmethod
+    def name(cls):
+        """
+        Returns:
+            The name of the class.
+
+        """
+        return cls.__name__
+
+    def full_name(self):
+        """
+        Return a name identifying the specific environment, and not only its class. Environments wrapping a
+        suite of tasks override this method to append the task they were built with, using the same '.'
+        separator accepted by the ``make`` method, so that the returned string rebuilds the environment.
+
+        Returns:
+            The name of the environment.
+
+        """
+        return self.name()
 
     @staticmethod
     def list_registered():
@@ -132,7 +152,8 @@ class Environment(object):
         Set the seed of the environment.
 
         Args:
-            seed (float): the value of the seed.
+            seed (int, None): the value of the seed. If None, the random number generator of the environment
+                is left untouched.
 
         """
         warnings.warn('This environment has no custom seed. The call will have no effect. '

@@ -48,6 +48,9 @@ class ConsoleLogger(object):
                                       datefmt='%d/%m/%Y %H:%M:%S')
 
         self._logger = logging.getLogger(self._log_id)
+
+        assert not self._logger.handlers, f'A logger named {self._log_id} already exists'
+
         self._logger.setLevel(min(console_log_level, file_log_level))
         self._logger.propagate = False
         ch = TqdmHandler()
@@ -145,9 +148,6 @@ class ConsoleLogger(object):
             msg += ' ' + name + ': ' + str(data)
 
         self.info(msg)
-
-    def __del__(self):
-        self._logger.handlers.clear()
 
     def _log_line(self, msg, debug):
         if debug:

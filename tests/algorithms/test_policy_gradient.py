@@ -4,7 +4,7 @@ from datetime import datetime
 from helper.utils import TestUtils as tu
 
 from mushroom_rl.core import Agent
-from mushroom_rl.algorithms.policy_search import *
+from mushroom_rl.algorithms.policy_search import REINFORCE, GPOMDP, eNAC
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.core import Core
 from mushroom_rl.environments.lqr import LQR
@@ -41,7 +41,7 @@ def learn(alg, alg_params):
 def test_REINFORCE():
     params = dict(optimizer=AdaptiveOptimizer(eps=.01))
     policy = learn(REINFORCE, params).policy
-    w = np.array([-0.0084793 ,  2.00536528])
+    w = np.array([-0.0084793,  2.00536528])
 
     assert np.allclose(w, policy.get_weights())
 

@@ -93,10 +93,10 @@ class AirHockeyDefendBullet(AirHockeySingleBullet):
                     r = r_x + r_y + r_vel + 1
 
                 # If we did not yet hit the puck, reward is controlled by the distance between end effector and puck
-                # on the x axis
+                # on the x-axis
             else:
                 ee_pos = self.get_sim_state(next_state, "planar_robot_1/link_striker_ee",
-                                                PyBulletObservationType.LINK_POS)[:2]
+                                            PyBulletObservationType.LINK_POS)[:2]
 
                 # Maybe change -0.6 to -0.4 so the puck is stopped a bit higher, could improve performance because
                 # we don't run into the constraints at the bottom
@@ -158,4 +158,3 @@ class AirHockeyDefendBullet(AirHockeySingleBullet):
     def _create_observation(self, state):
         obs = super(AirHockeyDefendBullet, self)._create_observation(state)
         return np.append(obs, [self.has_hit, self.has_bounce])
-

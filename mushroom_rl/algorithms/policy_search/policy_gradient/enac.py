@@ -26,9 +26,9 @@ class eNAC(PolicyGradient):
         self.sum_grad_log_list = list()
 
         self._add_save_attr(
-            phi_c='pickle', 
-            sum_grad_log='numpy', 
-            psi_ext='pickle', 
+            phi_c='pickle',
+            sum_grad_log='numpy',
+            psi_ext='pickle',
             sum_grad_log_list='pickle'
         )
 

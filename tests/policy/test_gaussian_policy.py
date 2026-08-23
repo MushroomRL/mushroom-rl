@@ -1,4 +1,6 @@
-from mushroom_rl.policy.gaussian_policy import *
+import numpy as np
+from mushroom_rl.policy.gaussian_policy import (GaussianPolicy, DiagonalGaussianPolicy,
+                                                StateStdGaussianPolicy, StateLogStdGaussianPolicy)
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.utils.numerical_gradient import numerical_diff_policy
 

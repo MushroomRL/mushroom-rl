@@ -15,7 +15,7 @@ class VideoLogger(object):
 
         Args:
             recorder_class (class, None): the class used to record the video. By default, the ``VideoRecorder`` class
-                is used. The class must implement the ``__call__`` and ``stop`` methods;
+                is used, and any class implementing its interface can be used instead;
             fps (int, None): frames per second for the video. If None, the default of the recorder class is used;
             video_path (Path, None): path where videos are stored. If None, videos go to the default location
                 of the recorder class;
@@ -34,13 +34,14 @@ class VideoLogger(object):
         if append:
             self._load_videos()
 
-    def record_frame(self, frame):
+    def record_frame(self, frame, mask=None):
         """
-        Record a single frame. An environment that draws nothing records nothing. The recorder is created lazily on
-        the first frame that is actually recorded.
+        Record a single frame, or one frame per active environment.
 
         Args:
-            frame: the frame to record (np.ndarray, H x W x RGB), or None when the environment drew nothing.
+            frame: the frame to record (np.ndarray, H x W x RGB), the frames of the active environments
+                (np.ndarray, N x H x W x RGB), or None when the environment drew nothing;
+            mask (None): the mask of the active environments, telling which environment every frame belongs to.
 
         """
         if frame is None:
@@ -48,10 +49,13 @@ class VideoLogger(object):
 
             return
 
-        if self._recorder is None:
-            self._build_recorder()
+        if frame.ndim == 4 and len(frame) == 1:
+            frame = frame[0]
 
-        self._recorder(frame)
+        if self._recorder is None:
+            self._build_recorder(frame.ndim == 4)
+
+        self._recorder(frame, mask)
 
     def stop_recording(self):
         """
@@ -82,16 +86,11 @@ class VideoLogger(object):
         if self._recorder_fps is None:
             self._recorder_fps = fps
 
-    def _build_recorder(self):
-        kwargs = dict(self._recorder_kwargs)
-
-        if self._recorder_fps is not None:
-            kwargs['fps'] = self._recorder_fps
+    def _build_recorder(self, vectorized):
+        kwargs = dict(fps=self._recorder_fps, path=self._video_path, vectorized=vectorized)
+        kwargs.update(self._recorder_kwargs)
 
         recorder_class = self._recorder_class if self._recorder_class is not None else VideoRecorder
-
-        if recorder_class is VideoRecorder and self._video_path is not None:
-            kwargs['path'] = str(self._video_path)
 
         self._recorder = recorder_class(**kwargs)
 

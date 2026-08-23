@@ -23,30 +23,32 @@ class RecurrentTorchApproximator(TorchApproximator):
         else:
             return MushroomObject.__new__(cls)
 
-    def __init__(self, network, input_shape, output_shape, policy_state_shape, optimizer=None, loss=None,
+    def __init__(self, network, input_shape, output_shape, optimizer=None, loss=None,
                  batch_size=0, n_fit_targets=1, reinitialize=False, dropout=False, quiet=True, n_models=None,
                  action_history_shape=None, **params):
         """
         Constructor.
 
         Args:
-            network (torch.nn.Module): the recurrent network class to use;
+            network (RecurrentNetwork): the recurrent network class to use;
             input_shape (tuple): the per-timestep shape of the observation;
-            output_shape (tuple, list): shape of the output of the network. A list of shape tuples for a
-                network returning several tensors (e.g. an actor returning ``[action, next_policy_state]``);
-            policy_state_shape (tuple): the shape of the recurrent hidden state carried as policy state;
+            output_shape (tuple): shape of the main output of the network. A network that also returns the
+                next policy state has its shape appended automatically, see
+                :meth:`~mushroom_rl.approximators.parametric.networks.RecurrentNetwork.resolve_output_shape`;
             action_history_shape (tuple, None): the per-timestep shape of the previous-action input, when the
                 network consumes the action history;
             **params: parameters forwarded to :class:`TorchApproximator` and the network constructor.
 
         """
+        output_shape = network.resolve_output_shape(output_shape, **params)
+
         super().__init__(network, input_shape, output_shape, optimizer=optimizer, loss=loss,
                          batch_size=batch_size, n_fit_targets=n_fit_targets, reinitialize=reinitialize,
                          dropout=dropout, quiet=quiet, action_history_shape=action_history_shape, **params)
 
-        self._policy_state_ndim = len(policy_state_shape)
+        self._policy_state_shape = network.compute_policy_state_shape(**params)
 
-        self._add_save_attr(_policy_state_ndim='primitive')
+        self._add_save_attr(_policy_state_shape='primitive')
 
     def predict(self, state, policy_state, lengths=None, **kwargs):
         """
@@ -75,6 +77,22 @@ class RecurrentTorchApproximator(TorchApproximator):
 
         return self._parse_output(self.network(state, policy_state, lengths, **kwargs))
 
+    def diff(self, *args, **kwargs):
+        """
+        Not supported: ``diff`` follows the feedforward calling convention, which does not carry the sequence
+        lengths a recurrent network needs.
+
+        """
+        raise NotImplementedError('diff is not supported by recurrent approximators.')
+
+    @property
+    def policy_state_shape(self):
+        """
+        The shape of the policy state the network carries.
+
+        """
+        return self._policy_state_shape
+
     @staticmethod
     def _pad_sequence(x, ndim):
         if x.ndim == ndim:
@@ -87,6 +105,10 @@ class RecurrentTorchApproximator(TorchApproximator):
     def _pad_batch(x, ndim):
         return x.unsqueeze(0) if x.ndim == ndim else x
 
+    @property
+    def _policy_state_ndim(self):
+        return len(self.policy_state_shape)
+
 
 class RecurrentTorchEnsemble(Ensemble):
     """
@@ -96,22 +118,24 @@ class RecurrentTorchEnsemble(Ensemble):
 
     """
 
-    def __init__(self, network, input_shape, output_shape, policy_state_shape, optimizer=None, loss=None,
+    def __init__(self, network, input_shape, output_shape, optimizer=None, loss=None,
                  batch_size=0, n_fit_targets=1, reinitialize=False, dropout=False, quiet=True, n_models=None,
-                 prediction=None, action_history_shape=None, **params):
+                 prediction='mean', action_history_shape=None, **params):
         """
         Constructor.
 
         Args:
             n_models (int): number of models in the ensemble;
-            prediction (str, None): how to aggregate predictions across models. One of ``'mean'``, ``'min'``,
-                ``'max'``, ``'sum'``, or ``None`` to return all predictions;
+            prediction (str, 'mean'): how to aggregate predictions across models. One of ``'mean'``, ``'min'``,
+                ``'max'``, ``'sum'``, or ``'all'`` to return all predictions;
             **params: parameters forwarded to each :class:`RecurrentTorchApproximator`.
 
         """
+        output_shape = network.resolve_output_shape(output_shape, **params)
+
         super().__init__(RecurrentTorchApproximator, n_models, prediction=prediction, backend='torch',
                          input_shape=input_shape, output_shape=output_shape, network=network,
-                         policy_state_shape=policy_state_shape, optimizer=optimizer, loss=loss,
+                         optimizer=optimizer, loss=loss,
                          batch_size=batch_size, n_fit_targets=n_fit_targets, reinitialize=reinitialize,
                          dropout=dropout, quiet=quiet, action_history_shape=action_history_shape, **params)
 
@@ -175,6 +199,14 @@ class RecurrentTorchEnsemble(Ensemble):
 
         """
         return self._models[0].network
+
+    @property
+    def policy_state_shape(self):
+        """
+        The shape of the policy state the network carries.
+
+        """
+        return self._models[0].policy_state_shape
 
     @property
     def loss_fit(self):

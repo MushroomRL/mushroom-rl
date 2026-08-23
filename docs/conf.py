@@ -21,7 +21,7 @@
 # sys.path.insert(0, os.path.abspath('.'))
 
 from mushroom_rl import __version__
-
+import datetime
 
 # -- General configuration ------------------------------------------------
 
@@ -34,6 +34,7 @@ from mushroom_rl import __version__
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
     'sphinx.ext.doctest',
     'sphinx.ext.todo',
@@ -56,9 +57,11 @@ source_suffix = {'.rst': 'restructuredtext'}
 master_doc = 'index'
 
 # General information about the project.
-project = u'MushroomRL'
-copyright = u'2018-2021 Carlo D\'Eramo, Davide Tateo'
-author = u'Carlo D\'Eramo'
+project = 'MushroomRL'
+current_year = datetime.datetime.now().year
+copyright = f'2018-{current_year}, Carlo D\'Eramo, Davide Tateo'
+author = 'Davide Tateo, Carlo D\'Eramo'
+
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -120,6 +123,7 @@ html_sidebars = {
 }
 
 html_show_sourcelink = False
+html_use_index = False
 
 # -- Options for HTMLHelp output ------------------------------------------
 
@@ -130,26 +134,21 @@ htmlhelp_basename = 'MushroomRLdoc'
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
-    # The paper size ('letterpaper' or 'a4paper').
-    #
-    # 'papersize': 'letterpaper',
-
-    # The font size ('10pt', '11pt' or '12pt').
-    #
-    # 'pointsize': '10pt',
-
-    # Additional stuff for the LaTeX preamble.
-    #
-    # 'preamble': '',
-
-    # Latex figure (float) alignment
-    #
-    # 'figure_align': 'htbp',
-    'inputenc': '\\usepackage[utf8x]{inputenc}',
+    'papersize': 'letterpaper',
+    'pointsize': '10pt',
     'preamble': r'''
-\DeclareUnicodeCharacter{9989}{\checkmark}
-\DeclareUnicodeCharacter{10060}{X}
-''',
+        \usepackage{seqsplit}
+        \usepackage{microtype}
+        \PassOptionsToPackage{hyphens}{url}
+        \usepackage{newunicodechar}
+        \newunicodechar{Λ}{\ensuremath{\Lambda}}
+        \newunicodechar{λ}{\ensuremath{\lambda}}
+        \usepackage{etoolbox}
+        \makeatletter
+        \@addtoreset{chapter}{part}
+        \makeatother
+    ''',
+    'inputenc': '\\usepackage[utf8]{inputenc}',
     'makeindex': '\\usepackage[columns=1]{idxlayout}\\makeindex',
     'printindex': '\\def\\twocolumn[#1]{#1}\\footnotesize\\raggedright\\printindex',
 }
@@ -157,9 +156,19 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
+# 1. Promote your captions (Getting started, Tutorials, API) to LaTeX \part{} dividers
+latex_toplevel_sectioning = "part"
+
+# 2. Add True as the 6th tuple element
 latex_documents = [
-    (master_doc, 'MushroomRL.tex', u'MushroomRL Documentation',
-     u'Carlo D\'Eramo, Davide Tateo', 'manual'),
+    (
+        "latex_index",
+        "MushroomRL.tex",
+        "MushroomRL Documentation",
+        "Davide Tateo, Carlo D'Eramo",
+        "manual",
+        False,
+    ),
 ]
 
 
@@ -209,18 +218,20 @@ epub_exclude_files = ['search.html']
 # -- Options for autodoc ---------------------------------------------------
 
 autodoc_member_order = 'bysource'
-autodoc_mock_imports = ['torch', 'scipy', 'sklearn', 'ale_py', 'pybullet', 'pybullet_data', 'pybullet_utils',
-                        'dm_control', 'minigrid', 'mujoco', 'glfw',
-                        'omni', 'omniisaacgymenvs']
+autodoc_mock_imports = ['scipy', 'sklearn', 'ale_py', 'pybullet', 'pybullet_data', 'pybullet_utils',
+                        'dm_control', 'minigrid', 'mujoco', 'glfw', 'av', 'cv2',
+                        'omni', 'pyqtgraph', 'PySide6']
 add_module_names = False
 
-
-# Low-level serialization helpers hidden from the API documentation.
-_UNDOCUMENTED_MEMBERS = {
-    '_join_prefix', '_append_folder', '_get_serialization_method',
-    '_load_list', '_load_pickle', '_load_numpy', '_load_torch', '_load_json', '_load_mushroom',
-    '_save_pickle', '_save_numpy', '_save_torch', '_save_json', '_save_mushroom',
+autodoc_default_options = {
+    'members': True,
+    'show-inheritance': True,
 }
+
+
+# torch.nn.Module members that MushroomRL overrides without documenting. Autodoc would fall back to the inherited
+# docstring, which documents PyTorch rather than MushroomRL.
+_UNDOCUMENTED_MEMBERS = {'forward', 'extra_repr'}
 
 
 # Interface methods documented only on their defining base class, not on every override.
@@ -237,10 +248,25 @@ def skip(app, what, name, obj, skip, options):
         return False
     return skip
 
+def configure_builder(app):
+    if 'latex' in app.builder.name:
+        app.config.exclude_patterns.append('index.rst')
+        app.config.master_doc = 'latex_index'
+    else:
+        app.config.exclude_patterns.append('latex_index.rst')
 
 def setup(app):
+    app.connect('builder-inited', configure_builder)
     app.connect("autodoc-skip-member", skip)
     app.add_css_file('theme_overrides.css')
+
+
+# -- Options for modindex -----------------------------------------------
+modindex_common_prefix = ['mushroom_rl.']
+
+# -- Options for autosummary -----------------------------------------------
+
+autosummary_generate = False
 
 
 # -- Options for intersphinx ---------------------------------------------------

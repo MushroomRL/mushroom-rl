@@ -1,3 +1,5 @@
+import math
+
 import torch
 import torch.nn as nn
 
@@ -11,7 +13,7 @@ class CriticNetwork(nn.Module):
     """
     def __init__(self, input_shape, output_shape, n_features, n_layers=2,
                  activation='relu', gain_scale=1.0, weights_init='xavier',
-                 bias_init=None, **kwargs):
+                 bias_init=None, action_history_shape=None, **kwargs):
         """
         Constructor.
 
@@ -25,6 +27,8 @@ class CriticNetwork(nn.Module):
             gain_scale (float, 1.0): scaling factor for the weights initialization gain;
             weights_init (str, 'xavier'): weights initialization method;
             bias_init (str, None): bias initialization method;
+            action_history_shape (tuple, None): shape of the previous-action input; when set, the flattened
+                previous action is concatenated to ``state`` and ``action``;
             **kwargs: other parameters (unused).
 
         """
@@ -33,7 +37,11 @@ class CriticNetwork(nn.Module):
         assert isinstance(input_shape, list) and len(input_shape) == 2, \
             'CriticNetwork requires input_shape=[state_shape, action_shape].'
 
+        self._action_history_shape = action_history_shape
+
         n_input = input_shape[0][-1] + input_shape[1][-1]
+        if action_history_shape is not None:
+            n_input += math.prod(action_history_shape)
         n_output = output_shape[0]
 
         if n_features is None:
@@ -62,8 +70,13 @@ class CriticNetwork(nn.Module):
             TorchUtils.init_weights(layer, hidden_gain, weights_init, bias_init)
         TorchUtils.init_weights(self._layers[-1], output_gain, weights_init, bias_init)
 
-    def forward(self, state, action, **kwargs):
-        x = torch.cat((state.float(), action.float()), dim=1)
+    def forward(self, state, action, action_history=None, **kwargs):
+        inputs = [state.float(), action.float()]
+        if self._action_history_shape is not None:
+            flat_action_history = action_history.float().flatten(
+                start_dim=action_history.dim() - len(self._action_history_shape))
+            inputs.append(flat_action_history)
+        x = torch.cat(inputs, dim=1)
         for layer in self._layers[:-1]:
             x = self._activation(layer(x))
         q = self._layers[-1](x)
