@@ -22,20 +22,13 @@ class MaxminDQN(DQN):
         """
         assert n_approximators > 1
 
-        self._n_approximators = n_approximators
+        params['approximator_params'] = dict(params['approximator_params'])
+        params['approximator_params']['n_models'] = n_approximators
+        params['approximator_params']['prediction'] = 'min'
 
         super().__init__(mdp_info, policy, approximator, **params)
 
     def fit(self, dataset):
-        self._fit_params['idx'] = torch.randint(self._n_approximators, (1,)).item()
+        self._fit_params['idx'] = torch.randint(len(self.approximator), (1,)).item()
 
         super().fit(dataset)
-
-    def _initialize_regressors(self, approximator, apprx_params_train, apprx_params_target):
-        self.approximator = approximator(n_models=self._n_approximators, prediction='min', **apprx_params_train)
-        self.target_approximator = approximator(n_models=self._n_approximators, prediction='min',
-                                                **apprx_params_target)
-        self._update_target()
-
-    def _update_target(self):
-        self.target_approximator.set_weights(self.approximator.get_weights())

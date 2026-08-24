@@ -22,7 +22,7 @@ class QuantileHuberLoss:
         tau = torch.arange(self._n_quantiles + 1, device=TorchUtils.get_device()) / self._n_quantiles
         return (tau[:-1] + tau[1:]) / 2
 
-    def __call__(self, input, target):
+    def __call__(self, input, target, reduction='mean'):
         tau = self._tau_hat.repeat(input.shape[0], 1)
 
         target = target.t().unsqueeze(-1).repeat(1, 1, tau.shape[-1])
@@ -32,8 +32,14 @@ class QuantileHuberLoss:
         huber_loss = F.smooth_l1_loss(input, target, reduction='none')
 
         loss = torch.abs(tau - indicator) * huber_loss
+        per_sample_loss = loss.sum(-1).mean(0)
 
-        return loss.sum(-1).mean()
+        if reduction == 'mean':
+            return per_sample_loss.mean()
+        elif reduction == 'none':
+            return per_sample_loss
+        else:
+            raise ValueError
 
     def __getstate__(self):
         return {'_n_quantiles': self._n_quantiles}
@@ -65,38 +71,29 @@ class QuantileDQN(AbstractDQN):
         params['approximator_params']['n_quantiles'] = n_quantiles
 
         self._n_quantiles = n_quantiles
+        self._loss = QuantileHuberLoss(n_quantiles)
 
-        params['approximator_params']['loss'] = QuantileHuberLoss(n_quantiles)
+        params['approximator_params']['loss'] = self._loss
 
         self._add_save_attr(
-            _n_quantiles='primitive'
+            _n_quantiles='primitive',
+            _loss='pickle'
         )
 
         super().__init__(mdp_info, policy, TorchApproximator, **params)
 
-    def fit(self, dataset):
-        self._replay_memory.add(dataset)
-        if self._replay_memory.initialized:
-            state, action, reward, next_state, absorbing, *_ =\
-                self._replay_memory.get(self._batch_size())
+        self._fit_params['get_quantiles'] = True
 
-            if self._clip_reward:
-                reward = torch.clip(reward, -1, 1)
+    def _compute_target(self, reward, next_state, absorbing):
+        q_next = self.target_approximator.predict(next_state, **self._predict_params)
+        a_max = torch.argmax(q_next, 1).unsqueeze(1)
+        quant_next = self.target_approximator.predict(next_state, a_max, get_quantiles=True,
+                                                      **self._predict_params)
+        quant_next *= (~absorbing).unsqueeze(1)
 
-            with torch.no_grad():
-                q_next = self.target_approximator.predict(next_state, **self._predict_params)
-                a_max = torch.argmax(q_next, 1).unsqueeze(1)
-                quant_next = self.target_approximator.predict(next_state, a_max, get_quantiles=True,
-                                                              **self._predict_params)
-                quant_next *= (~absorbing).unsqueeze(1)
-                quant = reward.unsqueeze(1) + self.mdp_info.gamma * quant_next
+        return reward.unsqueeze(1) + self.mdp_info.gamma * quant_next
 
-            self.approximator.fit(state, action, quant, get_quantiles=True, **self._fit_params)
+    def _compute_priority(self, state, action, target):
+        pred = self.approximator.predict(state, action, get_quantiles=True, **self._predict_params)
 
-            self._n_updates += 1
-
-            if self._n_updates % self._target_update_frequency == 0:
-                self._update_target()
-
-            if self._logger:
-                self._logger.advance_step()
+        return self._loss(pred, target, reduction='none')

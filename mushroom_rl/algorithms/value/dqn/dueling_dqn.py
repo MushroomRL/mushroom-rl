@@ -17,6 +17,9 @@ class DuelingDQN(DQN):
         """
         Constructor.
 
+        Args:
+            avg_advantage (bool, True): whether to subtract the mean (True) or the max (False) advantage.
+
         """
         features_network = approximator_params['network']
         params['approximator_params'] = deepcopy(approximator_params)

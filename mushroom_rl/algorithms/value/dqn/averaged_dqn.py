@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from mushroom_rl.algorithms.value.dqn import AbstractDQN
 from mushroom_rl.approximators.parametric import TorchApproximator
 
@@ -20,7 +22,8 @@ class AveragedDQN(AbstractDQN):
         """
         assert n_approximators > 1
 
-        self._n_approximators = n_approximators
+        params['approximator_params'] = dict(params['approximator_params'])
+        params['approximator_params']['n_models'] = n_approximators
 
         super().__init__(mdp_info, policy, approximator, **params)
 
@@ -28,19 +31,24 @@ class AveragedDQN(AbstractDQN):
 
         self._add_save_attr(_n_fitted_target_models='primitive')
 
-    def _initialize_regressors(self, approximator, apprx_params_train,
-                               apprx_params_target):
-        self.approximator = approximator(**apprx_params_train)
-        self.target_approximator = approximator(n_models=self._n_approximators, prediction='all',
-                                                **apprx_params_target)
+    def _initialize_regressors(self, approximator, approximator_params):
+        # the online approximator is a single model, only the target is an ensemble of n_models
+        train_params = deepcopy(approximator_params)
+        n_approximators = train_params.pop('n_models')
+
+        self.approximator = approximator(**train_params)
+        self.target_approximator = approximator(prediction='all', **deepcopy(approximator_params))
+
         w = self.approximator.get_weights()
-        self.target_approximator.set_weights(w.repeat(self._n_approximators, 1))
+        self.target_approximator.set_weights(w.repeat(n_approximators, 1))
 
     def _update_target(self):
-        idx = self._n_updates // self._target_update_frequency % self._n_approximators
+        n_approximators = len(self.target_approximator)
+
+        idx = self._n_updates // self._target_update_frequency % n_approximators
         self.target_approximator[idx].set_weights(self.approximator.get_weights())
 
-        if self._n_fitted_target_models < self._n_approximators:
+        if self._n_fitted_target_models < n_approximators:
             self._n_fitted_target_models += 1
 
     def _next_q(self, next_state, absorbing):

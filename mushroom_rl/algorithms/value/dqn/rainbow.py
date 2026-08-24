@@ -42,9 +42,9 @@ class Rainbow(AbstractCategoricalDQN):
         self._n_steps_return = n_steps_return
         self._sigma_coeff = sigma_coeff
 
-        params['replay_memory'] = {"class": PrioritizedReplayMemory,
-                                   "params": dict(alpha=alpha_coeff, beta=beta,
-                                                  n_steps_return=n_steps_return)}
+        params.setdefault('replay_memory', {"class": PrioritizedReplayMemory,
+                                            "params": dict(alpha=alpha_coeff, beta=beta,
+                                                           n_steps_return=n_steps_return)})
 
         super().__init__(mdp_info, policy, approximator_params, n_atoms, v_min, v_max, **params)
 
@@ -53,34 +53,10 @@ class Rainbow(AbstractCategoricalDQN):
             _sigma_coeff='primitive'
         )
 
-    def fit(self, dataset):
-        self._replay_memory.add(dataset)
-        if self._replay_memory.initialized:
-            state, action, reward, next_state, absorbing, *_, idxs, is_weight = \
-                self._replay_memory.get(self._batch_size())
+    def _compute_target(self, reward, next_state, absorbing):
+        q_next = self.approximator.predict(next_state, **self._predict_params)
+        a_max = torch.argmax(q_next, 1).unsqueeze(1)
+        gamma = self.mdp_info.gamma ** self._n_steps_return * ~absorbing
+        p_next = self.target_approximator.predict(next_state, a_max, get_distribution=True, **self._predict_params)
 
-            if self._clip_reward:
-                reward = torch.clip(reward, -1, 1)
-
-            with torch.no_grad():
-                q_next = self.approximator.predict(next_state, **self._predict_params)
-                a_max = torch.argmax(q_next, 1).unsqueeze(1)
-                gamma = self.mdp_info.gamma ** self._n_steps_return * ~absorbing
-                p_next = self.target_approximator.predict(next_state, a_max, get_distribution=True,
-                                                          **self._predict_params)
-                m = self._categorical_projection(reward, gamma, p_next)
-
-                kl = -torch.sum(m * torch.log(self.approximator.predict(state, action, get_distribution=True,
-                                                                        **self._predict_params).clip(1e-5)), 1)
-            self._replay_memory.update(kl, idxs)
-
-            self.approximator.fit(state, action, m, weights=is_weight,
-                                  get_distribution=True, **self._fit_params)
-
-            self._n_updates += 1
-
-            if self._n_updates % self._target_update_frequency == 0:
-                self._update_target()
-
-            if self._logger:
-                self._logger.advance_step()
+        return self._categorical_projection(reward, gamma, p_next)

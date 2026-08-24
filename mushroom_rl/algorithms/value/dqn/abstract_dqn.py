@@ -43,8 +43,14 @@ class AbstractDQN(Agent):
             f"backend='{self._agent_backend.get_backend_name()}', e.g. " \
             f"EpsGreedy(epsilon, backend='{self._agent_backend.get_backend_name()}')."
 
-        self._fit_params = dict() if fit_params is None else fit_params
-        self._predict_params = dict() if predict_params is None else predict_params
+        self._fit_params = dict()
+        self._predict_params = dict()
+
+        if fit_params is not None:
+            self._fit_params.update(fit_params)
+
+        if predict_params is not None:
+            self._predict_params.update(predict_params)
 
         self._batch_size = Parameter.make(batch_size, backend='torch')
         self._clip_reward = clip_reward
@@ -70,10 +76,7 @@ class AbstractDQN(Agent):
 
         self._n_updates = 0
 
-        apprx_params_train = deepcopy(approximator_params)
-        apprx_params_target = deepcopy(approximator_params)
-
-        self._initialize_regressors(approximator, apprx_params_train, apprx_params_target)
+        self._initialize_regressors(approximator, approximator_params)
 
         policy.set_q(self.approximator)
 
@@ -81,7 +84,6 @@ class AbstractDQN(Agent):
             _fit_params='pickle',
             _predict_params='pickle',
             _batch_size='mushroom',
-            _n_approximators='primitive',
             _clip_reward='primitive',
             _target_update_frequency='primitive',
             _replay_memory='mushroom',
@@ -95,9 +97,10 @@ class AbstractDQN(Agent):
     def fit(self, dataset):
         self._fit(dataset)
 
-        self._n_updates += 1
-        if self._n_updates % self._target_update_frequency == 0:
-            self._update_target()
+        if self._replay_memory.initialized:
+            self._n_updates += 1
+            if self._n_updates % self._target_update_frequency == 0:
+                self._update_target()
 
         if self._logger:
             self._logger.advance_step()
@@ -111,10 +114,9 @@ class AbstractDQN(Agent):
                 reward = torch.clip(reward, -1, 1)
 
             with torch.no_grad():
-                q_next = self._next_q(next_state, absorbing)
-                q = reward + self.mdp_info.gamma * q_next
+                target = self._compute_target(reward, next_state, absorbing)
 
-            self.approximator.fit(state, action, q, **self._fit_params)
+            self.approximator.fit(state, action, target, **self._fit_params)
 
     def _fit_prioritized(self, dataset):
         self._replay_memory.add(dataset)
@@ -126,17 +128,25 @@ class AbstractDQN(Agent):
                 reward = torch.clip(reward, -1, 1)
 
             with torch.no_grad():
-                q_next = self._next_q(next_state, absorbing)
-                q = reward + self.mdp_info.gamma * q_next
-                td_error = q - self.approximator.predict(state, action, **self._predict_params)
+                target = self._compute_target(reward, next_state, absorbing)
+                priority = self._compute_priority(state, action, target)
 
-            self._replay_memory.update(td_error, idxs)
+            self._replay_memory.update(priority, idxs)
 
-            self.approximator.fit(state, action, q, weights=is_weight, **self._fit_params)
+            self.approximator.fit(state, action, target, weights=is_weight, **self._fit_params)
 
-    def _initialize_regressors(self, approximator, apprx_params_train, apprx_params_target):
-        self.approximator = approximator(**apprx_params_train)
-        self.target_approximator = approximator(**apprx_params_target)
+    def _initialize_regressors(self, approximator, approximator_params):
+        """
+        Build the online and target approximators.
+
+        Args:
+            approximator (class): the approximator class to instantiate;
+            approximator_params (dict): parameters of the approximators to build. Each approximator is built from
+                its own deep copy, so the two never share a nested object.
+
+        """
+        self.approximator = approximator(**deepcopy(approximator_params))
+        self.target_approximator = approximator(**deepcopy(approximator_params))
         self._update_target()
 
     def _update_target(self):
@@ -146,8 +156,43 @@ class AbstractDQN(Agent):
         """
         self.target_approximator.set_weights(self.approximator.get_weights())
 
+    def _compute_target(self, reward, next_state, absorbing):
+        """
+        Compute the regression target the approximator is fitted on.
+
+        Args:
+            reward (torch.Tensor): batch of rewards;
+            next_state (torch.Tensor): the states where next action has to be
+                evaluated;
+            absorbing (torch.Tensor): the absorbing flag for the states in
+                ``next_state``.
+
+        Returns:
+            The bootstrapped target of each sample of the batch.
+
+        """
+        q_next = self._next_q(next_state, absorbing)
+        return reward + self.mdp_info.gamma * q_next
+
+    def _compute_priority(self, state, action, target):
+        """
+        Compute the priority of the batch samples for a ``PrioritizedReplayMemory``.
+
+        Args:
+            state (torch.Tensor): batch of states;
+            action (torch.Tensor): batch of actions;
+            target (torch.Tensor): batch of regression targets.
+
+        Returns:
+            The priority of each sample of the batch.
+
+        """
+        return target - self.approximator.predict(state, action, **self._predict_params)
+
     def _next_q(self, next_state, absorbing):
         """
+        Compute the value of the next states, bootstrapped by :meth:`_compute_target`.
+
         Args:
             next_state (torch.Tensor): the states where next action has to be
                 evaluated;
@@ -155,7 +200,7 @@ class AbstractDQN(Agent):
                 ``next_state``.
 
         Returns:
-            Maximum action-value for each state in ``next_state``.
+            The value of each state in ``next_state``, zero where the state is absorbing.
 
         """
         raise NotImplementedError

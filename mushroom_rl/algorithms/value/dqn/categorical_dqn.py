@@ -10,12 +10,12 @@ from mushroom_rl.utils.torch_utils import TorchUtils
 eps = torch.finfo(torch.float32).eps
 
 
-def categorical_loss(input, target, reduction='sum'):
+def categorical_loss(input, target, reduction='mean'):
     input = input.clamp(1e-5)
 
     loss = -torch.sum(target * torch.log(input), 1)
 
-    if reduction == 'sum':
+    if reduction == 'mean':
         return loss.mean()
     elif reduction == 'none':
         return loss
@@ -44,7 +44,8 @@ class AbstractCategoricalDQN(AbstractDQN):
         self._delta = (v_max - v_min) / (n_atoms - 1)
         self._a_values = torch.arange(v_min, v_max + eps, self._delta, device=TorchUtils.get_device())
 
-        approximator_params['loss'] = categorical_loss
+        approximator_params = dict(approximator_params)
+        approximator_params.update(loss=categorical_loss)
 
         self._add_save_attr(
             _n_atoms='primitive',
@@ -55,6 +56,8 @@ class AbstractCategoricalDQN(AbstractDQN):
         )
 
         super().__init__(mdp_info, policy, TorchApproximator, approximator_params=approximator_params, **params)
+
+        self._fit_params['get_distribution'] = True
 
     def _categorical_projection(self, reward, gamma, p_next):
         """
@@ -87,6 +90,11 @@ class AbstractCategoricalDQN(AbstractDQN):
 
         return m
 
+    def _compute_priority(self, state, action, target):
+        p = self.approximator.predict(state, action, get_distribution=True, **self._predict_params)
+
+        return categorical_loss(p, target, reduction='none')
+
 
 class CategoricalDQN(AbstractCategoricalDQN):
     """
@@ -116,30 +124,11 @@ class CategoricalDQN(AbstractCategoricalDQN):
 
         super().__init__(mdp_info, policy, approximator_params, n_atoms, v_min, v_max, **params)
 
-    def fit(self, dataset):
-        self._replay_memory.add(dataset)
-        if self._replay_memory.initialized:
-            state, action, reward, next_state, absorbing, *_ =\
-                self._replay_memory.get(self._batch_size())
+    def _compute_target(self, reward, next_state, absorbing):
+        q_next = self.target_approximator.predict(next_state, **self._predict_params)
+        a_max = torch.argmax(q_next, 1).unsqueeze(1)
+        gamma = self.mdp_info.gamma * ~absorbing
+        p_next = self.target_approximator.predict(next_state, a_max, get_distribution=True,
+                                                  **self._predict_params)
 
-            if self._clip_reward:
-                reward = torch.clip(reward, -1, 1)
-
-            with torch.no_grad():
-                q_next = self.target_approximator.predict(next_state, **self._predict_params)
-                a_max = torch.argmax(q_next, 1).unsqueeze(1)
-                gamma = self.mdp_info.gamma * ~absorbing
-                p_next = self.target_approximator.predict(next_state, a_max, get_distribution=True,
-                                                          **self._predict_params)
-                m = self._categorical_projection(reward, gamma, p_next)
-
-            self.approximator.fit(state, action, m, get_distribution=True,
-                                  **self._fit_params)
-
-            self._n_updates += 1
-
-            if self._n_updates % self._target_update_frequency == 0:
-                self._update_target()
-
-            if self._logger:
-                self._logger.advance_step()
+        return self._categorical_projection(reward, gamma, p_next)

@@ -88,8 +88,8 @@ def test_dqn():
     approximator = learn(DQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = torch.tensor([-0.19200534, 0.24389042, -0.00848553, 0.3319371, -0.36971146,
-                           -0.0203344, -0.07255276, 0.43228102, 0.17088246])
+    w_test = torch.tensor([-0.192002, 0.24389659, -0.00820864, 0.33209562, -0.3692264,
+                           -0.01977555, -0.07253735, 0.43182647, 0.17043342])
 
     assert torch.allclose(w, w_test)
 
@@ -122,7 +122,7 @@ def test_dqn_logger(tmpdir):
 
     assert loss_file.shape == (81,)
     assert np.allclose(loss_file[0], 0.6862927079200745)
-    assert np.allclose(loss_file[-1], 0.6511316895484924)
+    assert np.allclose(loss_file[-1], 0.6281029582023621)
 
 
 def test_prioritized_dqn():
@@ -135,8 +135,8 @@ def test_prioritized_dqn():
     approximator = learn(DQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = torch.tensor([-0.1949389, 0.24404983, -0.02552294, 0.32007575, -0.3530751,
-                           -0.00599685, -0.07104248, 0.4382063, 0.16815822])
+    w_test = torch.tensor([-0.1997187, 0.23901853, -0.02347298, 0.32159477, -0.35603976,
+                           -0.00871724, -0.06996532, 0.4368977, 0.16555829])
 
     assert torch.allclose(w, w_test)
 
@@ -166,8 +166,8 @@ def test_double_dqn():
     approximator = learn(DoubleDQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = torch.tensor([-0.19200534, 0.24389042, -0.00847956, 0.33193585, -0.36971503,
-                           -0.02033439, -0.07255276, 0.43226764, 0.17087594])
+    w_test = torch.tensor([-0.19200195, 0.24389662, -0.00819397, 0.33209211, -0.36922678,
+                           -0.01977558, -0.07253741, 0.43180698, 0.17043276])
 
     assert torch.allclose(w, w_test)
 
@@ -195,8 +195,8 @@ def test_averaged_dqn():
     approximator = learn(AveragedDQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = torch.tensor([-0.19112705, 0.24443369, -0.00192504, 0.3365183, -0.36826974,
-                           -0.02310302, -0.06729474, 0.43261513, 0.17063351])
+    w_test = torch.tensor([-0.19113483, 0.24442753, -0.00193313, 0.33645973, -0.36852428,
+                           -0.02368798, -0.06728531, 0.43250641, 0.17080002])
 
     assert torch.allclose(w, w_test)
 
@@ -224,8 +224,8 @@ def test_maxmin_dqn():
     approximator = learn(MaxminDQN, params).approximator
 
     w = approximator[0].get_weights()
-    w_test = torch.tensor([-0.14843702, 0.29001242, 0.03975038, 0.38547155, -0.41254845,
-                           -0.06506725, -0.15931359, 0.34374514, 0.0826805])
+    w_test = torch.tensor([-0.14844167, 0.29000255, 0.03975032, 0.38547155, -0.41255197,
+                           -0.06506653, -0.1593183, 0.34374532, 0.08268036])
 
     assert torch.allclose(w, w_test)
 
@@ -253,10 +253,10 @@ def test_dueling_dqn():
     approximator = learn(DuelingDQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = torch.tensor([-0.29283327, 0.55574864, 0.22541833, -0.0875193, -0.73231137,
-                           0.5023717, -0.18161395, -0.53954935, -0.33074442, 0.07271275,
-                           0.63677883, 0.65162057, 0.02478503, 0.0478552, 0.68452716,
-                           -1.3329868, 0.9104391, -0.35360464])
+    w_test = torch.tensor([-0.29178128, 0.55463171, 0.22557013, -0.08695056, -0.73201102,
+                           0.50301647, -0.18293807, -0.53910583, -0.33002707, 0.07241649,
+                           0.63779509, 0.65126824, 0.02539234, 0.04835916, 0.68402201,
+                           -1.33267581, 0.90949267, -0.35305756])
 
     assert torch.allclose(w, w_test)
 
@@ -268,10 +268,10 @@ def test_dueling_dqn_max_advantage():
     approximator = learn(DuelingDQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = torch.tensor([-0.2719743, 0.5613536, 0.2201571, -0.09746218, -0.71286273,
-                           0.50259686, -0.17259271, -0.528971, -0.3208862, 0.03267539,
-                           0.6074301, 0.6597853, 0.03088126, 0.00268685, 0.68195426,
-                           -1.341527, 0.8975734, -0.360234])
+    w_test = torch.tensor([-0.27162558, 0.55981463, 0.22016869, -0.09739858, -0.71308094,
+                           0.50259709, -0.17256802, -0.52853751, -0.32069674, 0.03300169,
+                           0.60702407, 0.6589216, 0.03202675, 0.00282796, 0.68064702,
+                           -1.34077501, 0.89765507, -0.3596119])
 
     assert torch.allclose(w, w_test)
 
@@ -341,6 +341,25 @@ def test_categorical_dqn_ensemble():
     assert torch.allclose(w, w_test, rtol=1e-4)
 
 
+def test_categorical_dqn_prioritized():
+    replay_memory = {"class": PrioritizedReplayMemory,
+                     "params": dict(alpha=.6, beta=LinearParameter(.4, threshold_value=1, n=500 // 5))}
+    params = dict(batch_size=50, initial_replay_size=100,
+                  max_replay_size=500, target_update_frequency=50,
+                  replay_memory=replay_memory)
+    agent = learn(CategoricalDQN, params)
+
+    w = agent.approximator.get_weights()
+    w_test = torch.tensor([0.99492681, 0.30372638, -0.38039818, -0.6622963, -0.70050967, 0.45887721,
+                           -0.12906331, -0.45170408, -0.46869081, -0.01793555, 0.13370971, 0.09729694,
+                           0.66298205, 0.59981567, -1.13012791, 0.82512254, 0.02841161, 0.0712545])
+
+    assert torch.allclose(w, w_test, rtol=1e-4)
+
+    leaves = agent._replay_memory._tree._tree[-agent._replay_memory._max_size:]
+    assert len(np.unique(leaves)) == 492
+
+
 def test_quantile_dqn():
     params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=5000, target_update_frequency=50)
@@ -354,6 +373,27 @@ def test_quantile_dqn():
                            0.4542169, -0.49865612, 0.47680384, 0.4611693])
 
     assert torch.allclose(w, w_test, rtol=1e-4)
+
+
+def test_quantile_dqn_prioritized():
+    replay_memory = {"class": PrioritizedReplayMemory,
+                     "params": dict(alpha=.6, beta=LinearParameter(.4, threshold_value=1, n=500 // 5))}
+    params = dict(batch_size=50, initial_replay_size=100,
+                  max_replay_size=500, target_update_frequency=50,
+                  replay_memory=replay_memory)
+    agent = learn(QuantileDQN, params)
+
+    w = agent.approximator.get_weights()
+    w_test = torch.tensor([-0.32953724, 0.54472113, 0.2416994, -0.07950477, -0.61509699,
+                           0.35881355, -1.12328517, 0.69162154, 0.36370972, 1.23972535,
+                           -0.11985977, 0.01031534, 0.73459566, -1.04432285, -1.09142709,
+                           -0.51700956, -0.19440261, -0.34549186, 0.99952668, -0.13364422,
+                           0.45050237, -0.49673495, 0.46826643, 0.46266884])
+
+    assert torch.allclose(w, w_test, rtol=1e-4)
+
+    leaves = agent._replay_memory._tree._tree[-agent._replay_memory._max_size:]
+    assert len(np.unique(leaves)) == 485
 
 
 def test_quantile_dqn_save(tmpdir):
@@ -379,11 +419,11 @@ def test_noisy_dqn():
     approximator = learn(NoisyDQN, params).approximator
 
     w = approximator.get_weights()
-    w_test = torch.tensor([-0.30767578, 0.56588894, 0.14080539, -0.17563716, -0.60002732,
-                           0.46806017, 0.13817938, 0.09937383, 0.18325211, -0.19386475,
-                           0.00053908, -0.12810652, 0.30581218, 0.40659443, 0.28652766,
-                           0.4319292, 0.39860207, 0.28698882, 0.16350792, 0.0747801,
-                           0.54863387, 0.41095498, 0.43024299, 0.28844392])
+    w_test = torch.tensor([-0.30684721, 0.56686342, 0.14087328, -0.17538731, -0.60078925,
+                           0.46820533, 0.13880453, 0.09881935, 0.18416016, -0.19479546,
+                           0.00113559, -0.12921767, 0.30625999, 0.40629369, 0.28734064,
+                           0.43081486, 0.39919993, 0.28532007, 0.16328686, 0.07399006,
+                           0.54874563, 0.41084078, 0.429299, 0.28834155])
 
     assert torch.allclose(w, w_test, rtol=1e-4)
 
@@ -411,16 +451,16 @@ def test_noisy_dqn_ensemble():
     approximator = learn(NoisyDQN, params, n_models=2).approximator
 
     w = approximator.get_weights()
-    w_test = torch.tensor([[-0.31128243, 0.56742239, 0.14685135, -0.16481605, -0.61745375,
-                            0.41514882, 0.14010701, 0.09320547, 0.18906650, -0.19923376,
-                            0.00755294, -0.13527167, 0.30086264, 0.40413558, 0.29461730,
-                            0.41600201, 0.40639064, 0.29105210, 0.14933082, 0.07377291,
-                            0.54131001, 0.39827541, 0.42120215, 0.28398669],
-                           [0.06294403, 0.76217669, 0.69013655, -1.15468574, -0.24574728,
-                            -0.16705115, 0.39663973, 0.20313065, 0.71676534, 0.42320797,
-                            -0.66667509, -0.64505261, 0.31736046, 0.33818042, 0.39665458,
-                            0.30461195, 0.33025485, 0.36893621, -0.27435872, 0.59338033,
-                            -0.16370605, 0.41478497, 0.31813756, 0.30946082]])
+    w_test = torch.tensor([[-0.30898598, 0.56966251, 0.14830196, -0.16330893, -0.61583519,
+                            0.41710711, 0.14109634, 0.09312337, 0.18974943, -0.19954745,
+                            0.00823867, -0.13557191, 0.30167395, 0.40422878, 0.29510283,
+                            0.41567451, 0.4070498, 0.29075122, 0.15064237, 0.07357291,
+                            0.54149288, 0.39983037, 0.42101696, 0.28405854],
+                           [0.06439685, 0.76319039, 0.69043452, -1.15463042, -0.24546584,
+                            -0.166899, 0.3968434, 0.2026937, 0.71823609, 0.42156425,
+                            -0.66523796, -0.64652872, 0.31756073, 0.33784986, 0.3988432,
+                            0.30376759, 0.33161837, 0.36747232, -0.27429023, 0.59443343,
+                            -0.16265249, 0.41489264, 0.31877431, 0.31075183]])
 
     assert torch.allclose(w, w_test, rtol=1e-4)
 
