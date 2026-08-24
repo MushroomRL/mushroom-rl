@@ -16,10 +16,10 @@ from tqdm import trange
 
 from mushroom_rl.algorithms.actor_critic import PPO
 from mushroom_rl.core import Core, Logger, MultiprocessEnvironment
-from mushroom_rl.environments.mujoco_envs.hopper import Hopper
-from mushroom_rl.environments.mujoco_envs.walker_2d import Walker2D
-from mushroom_rl.environments.mujoco_envs.half_cheetah import HalfCheetah
-from mushroom_rl.environments.mujoco_envs.ant import Ant
+from mushroom_rl.environments.mujoco_envs.locomotion.hopper import Hopper
+from mushroom_rl.environments.mujoco_envs.locomotion.walker_2d import Walker2D
+from mushroom_rl.environments.mujoco_envs.locomotion.half_cheetah import HalfCheetah
+from mushroom_rl.environments.mujoco_envs.locomotion.ant import Ant
 from mushroom_rl.environments.mujoco_warp_envs import (
     AntWarp,
     HopperWarp,
