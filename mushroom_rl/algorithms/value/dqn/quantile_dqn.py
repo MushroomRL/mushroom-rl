@@ -33,7 +33,7 @@ class QuantileHuberLoss:
 
         loss = torch.abs(tau - indicator) * huber_loss
 
-        return loss.mean()
+        return loss.sum(-1).mean()
 
     def __getstate__(self):
         return {'_n_quantiles': self._n_quantiles}
