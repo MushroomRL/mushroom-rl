@@ -1,6 +1,7 @@
 """
 This script trains the Unitree Go2 to walk with RudinPPO: the full reward set, the biased velocity command
-sampling, an asymmetric actor-critic, and a curriculum that tightens the task as training goes on.
+sampling, an asymmetric actor-critic, an eight-step observation history, and a curriculum that tightens the
+task as training goes on.
 
 The curriculum deliberately lives here rather than in the environment. `Go2Isaac` only accepts new values --
 for the velocity command ranges, the tolerance of the tracking rewards and the ceiling on the actuation
@@ -50,13 +51,14 @@ class PolicyNetwork(ActorNetwork):
         Constructor.
 
         Args:
-            input_shape (tuple): shape of the full observation, of which only part is read;
+            input_shape (tuple): shape of the network input, whose last axis is the full observation and whose
+                leading axes, if any, are the stacked history;
             output_shape (tuple): shape of the output (e.g. the action);
             observed_indices (torch.tensor): the entries of the observation the policy is allowed to see;
             **kwargs: other parameters of :class:`ActorNetwork`.
 
         """
-        super().__init__((len(observed_indices),), output_shape, **kwargs)
+        super().__init__(tuple(input_shape[:-1]) + (len(observed_indices),), output_shape, **kwargs)
 
         self.register_buffer('_observed_indices', observed_indices)
 
@@ -140,6 +142,51 @@ def observed_indices(mdp, *privileged):
                         device=TorchUtils.get_device())
 
 
+def initial_value(agent, dataset):
+    """
+    Returns the mean value the critic assigns to the initial states of the dataset, stacked into the history
+    the critic reads: the entry of the current step, preceded by the zeros the history manager pads the
+    beginning of an episode with.
+
+    """
+    states = dataset.get_init_states()
+    history = states.new_zeros((len(states), agent.history_length) + tuple(states.shape[1:]))
+    history[:, -1] = states
+
+    return agent._V(history).mean().item()
+
+
+def episode_metrics(dataset):
+    """
+    Returns the mean length of the episodes of the dataset and the fraction of them that ended in a fall
+    rather than at the horizon.
+
+    """
+    n_episodes = int(dataset.n_episodes)
+
+    return len(dataset) / n_episodes, dataset.absorbing.sum().item() / n_episodes
+
+
+def tracking_errors(mdp, dataset):
+    """
+    Returns the mean linear and angular velocity tracking errors over the dataset, that is how far the base
+    velocity of the robot stays from the commanded one.
+
+    Args:
+        mdp (Go2Isaac): the environment the dataset was collected on;
+        dataset (Dataset): the dataset to measure.
+
+    """
+    commands = dataset.state[:, mdp.observation_indices('commands')]
+    lin_vel = dataset.state[:, mdp.observation_indices('base_lin_vel')]
+    ang_vel = dataset.state[:, mdp.observation_indices('base_ang_vel')]
+
+    lin_error = torch.linalg.norm(commands[:, :2] - lin_vel[:, :2], dim=1).mean().item()
+    ang_error = (commands[:, 2] - ang_vel[:, 2]).abs().mean().item()
+
+    return lin_error, ang_error
+
+
 def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_params, policy_params, mdp_params,
                curriculum_params, n_envs=4096, horizon=1000, render=True, seed=None):
     np.random.seed(seed)
@@ -156,8 +203,10 @@ def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_par
                                **alg_params, **policy_params)
 
     # Policy
+    network_input_shape = (alg_params['history_length'],) + mdp.info.observation_space.shape
+
     policy = GaussianTorchPolicy(PolicyNetwork,
-                                 mdp.info.observation_space.shape,
+                                 network_input_shape,
                                  mdp.info.action_space.shape,
                                  observed_indices=observed_indices(mdp, 'base_lin_vel', 'base_pos',
                                                                    'actual_delay', 'joint_calib_offset'),
@@ -169,9 +218,10 @@ def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_par
                                     'params': {'lr': 1e-3}},
                          loss=F.mse_loss,
                          n_features=[512, 256, 128],
+                         gain_scale=0.5,
                          batch_size=int((4096 * 24) / 16),
                          use_cuda=True,
-                         input_shape=mdp.info.observation_space.shape,
+                         input_shape=network_input_shape,
                          output_shape=(1,))
 
     agent = alg(mdp.info, policy, critic_params=critic_params, **alg_params)
@@ -185,9 +235,13 @@ def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_par
     J = dataset.discounted_return.mean().item()
     R = dataset.undiscounted_return.mean().item()
     E = agent.policy.entropy().item()
-    V = agent._V(dataset.get_init_states()).mean().detach().item()
+    V = initial_value(agent, dataset)
 
-    logger.log_evaluation(0, J=J, R=R, entropy=E, V=V, stage=curriculum.stage, progress=curriculum.progress)
+    L, falls = episode_metrics(dataset)
+    lin_error, ang_error = tracking_errors(mdp, dataset)
+
+    logger.log_evaluation(0, J=J, R=R, entropy=E, V=V, length=L, falls=falls, lin_error=lin_error,
+                          ang_error=ang_error, stage=curriculum.stage, progress=curriculum.progress)
 
     for it in trange(n_epochs, leave=False):
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit)
@@ -199,10 +253,13 @@ def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_par
         J = dataset.discounted_return.mean().item()
         R = dataset.undiscounted_return.mean().item()
         E = agent.policy.entropy().item()
-        V = agent._V(dataset.get_init_states()).mean().detach().item()
+        V = initial_value(agent, dataset)
 
-        logger.log_evaluation(it + 1, J=J, R=R, entropy=E, V=V, stage=curriculum.stage,
-                              progress=curriculum.progress)
+        L, falls = episode_metrics(dataset)
+        lin_error, ang_error = tracking_errors(mdp, dataset)
+
+        logger.log_evaluation(it + 1, J=J, R=R, entropy=E, V=V, length=L, falls=falls, lin_error=lin_error,
+                              ang_error=ang_error, stage=curriculum.stage, progress=curriculum.progress)
 
         del dataset
 
@@ -242,9 +299,10 @@ if __name__ == '__main__':
                       batch_size=int((4096 * 24) / 16),
                       eps_ppo=.2,
                       lam=.95,
-                      ent_coeff=0.01)
+                      ent_coeff=0.01,
+                      history_length=8)
 
-    policy_params = dict(std_0=1., n_features=[512, 256, 128], use_cuda=True)
+    policy_params = dict(std_0=1., n_features=[512, 256, 128], gain_scale=0.5, use_cuda=True)
 
     experiment(alg=RudinPPO, n_epochs=60, n_steps=4096 * 24 * 50, n_steps_per_fit=4096 * 24,
                n_episodes_test=256, alg_params=ppo_params, policy_params=policy_params, mdp_params=mdp_params,
