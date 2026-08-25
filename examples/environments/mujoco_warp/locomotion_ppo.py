@@ -1,5 +1,6 @@
 """
-PPO Script for MuJoCo Warp
+PPO training script for MuJoCo Warp locomotion envs.
+
 """
 
 import argparse
@@ -29,6 +30,7 @@ from mushroom_rl.environments.mujoco_warp_envs import (
 from mushroom_rl.policy import GaussianTorchPolicy
 from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
 from mushroom_rl.utils import TorchUtils
+
 
 ENV_TABLE = {
     "hopper": (Hopper, HopperWarp),
@@ -75,8 +77,7 @@ def make_env(env_name, backend, n_envs, use_graph_capture):
     same regardless of simulator.
 
     Vanilla at large n_envs uses MultiprocessEnvironment, which forks
-    n_envs workers. That is only sane at parity-scale (n_envs<=~16);
-    the vanilla path is not intended for scaled training.
+    n_envs workers; only sensible at small scale (n_envs<=~16).
     """
     assert n_envs >= 2, "n_envs=1 hits the batch-of-1 squeeze bug in dev"
     if env_name not in ENV_TABLE:
@@ -88,7 +89,7 @@ def make_env(env_name, backend, n_envs, use_graph_capture):
         if n_envs > 16:
             warnings.warn(
                 f"vanilla backend at n_envs={n_envs} forks {n_envs} processes; "
-                "this is only sensible for parity runs (n_envs<=16). "
+                "this is only sensible at small scale (n_envs<=16). "
                 "For scaled training use --backend warp.",
                 stacklevel=2,
             )
@@ -114,90 +115,49 @@ def compute_entropy(agent, dataset):
 
 
 # ---------------------------------------------------------------------------
-# Presets
-# ---------------------------------------------------------------------------
-
-
-def parity_preset():
-    """mushroom-rl-benchmark Hopper-v3/Walker2d-v3 PPO config exactly."""
-    return dict(
-        actor_lr=3e-4,
-        critic_lr=3e-4,
-        n_features=32,
-        batch_size=32,
-        n_epochs_policy=10,
-        eps_ppo=0.2,
-        lam=0.95,
-        ent_coeff=0.0,
-        std_0=1.0,
-        n_steps=30000,
-        n_steps_per_fit=2000,
-        n_episodes_test=10,
-        n_envs=2,
-        use_graph_capture=False,
-        use_wandb=False,
-    )
-
-
-def scaled_preset(num_envs):
-    """
-    Scaled training config. n_steps_per_fit is sized to give a longer
-    on-policy fragment per env than the earlier 7.5 steps/env/fit (which
-    was almost certainly the cause of the R plateau in earlier scaled
-    runs). Default target: ~200 env-steps per env per fit.
-    """
-    steps_per_env_per_fit = 200
-    n_steps_per_fit = num_envs * steps_per_env_per_fit
-    # keep roughly 10 fits per epoch, matching the old normal_ppo cadence
-    n_steps = n_steps_per_fit * 10
-    return dict(
-        actor_lr=1e-4,
-        critic_lr=1e-3,
-        n_features=64,
-        batch_size=1024,
-        n_epochs_policy=10,
-        eps_ppo=0.2,
-        lam=0.95,
-        ent_coeff=0.01,
-        std_0=1.0,
-        n_steps=n_steps,
-        n_steps_per_fit=n_steps_per_fit,
-        n_episodes_test=5,
-        n_envs=num_envs,
-        use_graph_capture=True,
-        use_wandb=True,
-    )
-
-
-# ---------------------------------------------------------------------------
 # Experiment
 # ---------------------------------------------------------------------------
 
 
-def experiment(
-    env_name, backend, seed, n_epochs, cfg, mode, device, save_agent, results_dir
-):
-    TorchUtils.set_default_device(device)
+def experiment(env_name, args):
+    TorchUtils.set_default_device(args.device)
 
-    torch.manual_seed(seed)
+    torch.manual_seed(args.seed)
     if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
-    np.random.seed(seed)
+        torch.cuda.manual_seed_all(args.seed)
+    np.random.seed(args.seed)
 
-    mdp = make_env(env_name, backend, cfg["n_envs"], cfg["use_graph_capture"])
+    mdp = make_env(env_name, args.backend, args.n_envs, args.graph_capture)
     if hasattr(mdp, "seed"):
         try:
-            mdp.seed(seed)
+            mdp.seed(args.seed)
         except Exception:
             pass
 
-    run_name = f"{mode}_{env_name}_{backend}_seed{seed}"
+    run_name = f"{env_name}_{args.backend}_seed{args.seed}"
     hyperparams = dict(
-        cfg, env=env_name, backend=backend, seed=seed, n_epochs=n_epochs, mode=mode
+        env=env_name,
+        backend=args.backend,
+        seed=args.seed,
+        n_envs=args.n_envs,
+        n_epochs=args.n_epochs,
+        n_steps=args.n_steps,
+        n_steps_per_fit=args.n_steps_per_fit,
+        n_epochs_policy=args.n_epochs_policy,
+        n_episodes_test=args.n_episodes_test,
+        actor_lr=args.actor_lr,
+        critic_lr=args.critic_lr,
+        n_features=args.n_features,
+        batch_size=args.batch_size,
+        eps_ppo=args.eps_ppo,
+        lam=args.lam,
+        ent_coeff=args.ent_coeff,
+        std_0=args.std_0,
+        graph_capture=args.graph_capture,
     )
 
-    logger_kwargs = dict(results_dir=results_dir, use_timestamp=True)
-    if cfg["use_wandb"]:
+    logger_kwargs = dict(results_dir=args.results_dir, use_timestamp=True)
+    if args.wandb:
         try:
             logger_kwargs["wandb_kwargs"] = Logger.default_wandb_kwargs(
                 f"mushroom_rl_{env_name}",
@@ -210,22 +170,22 @@ def experiment(
     logger = Logger(run_name, **logger_kwargs)
     logger.strong_line()
     logger.info(
-        f"{mode.upper()}  env={env_name}  backend={backend}  "
-        f"seed={seed}  n_envs={cfg['n_envs']}"
+        f"env={env_name}  backend={args.backend}  "
+        f"seed={args.seed}  n_envs={args.n_envs}"
     )
     logger.info(
-        f"lr={cfg['actor_lr']}/{cfg['critic_lr']} feat={cfg['n_features']} "
-        f"batch={cfg['batch_size']} spf={cfg['n_steps_per_fit']} "
-        f"n_steps={cfg['n_steps']} standardization=on "
-        f"graph_capture={cfg['use_graph_capture']}"
+        f"lr={args.actor_lr}/{args.critic_lr} feat={args.n_features} "
+        f"batch={args.batch_size} spf={args.n_steps_per_fit} "
+        f"n_steps={args.n_steps} ent_coeff={args.ent_coeff} "
+        f"standardization=on graph_capture={args.graph_capture}"
     )
 
     critic_params = dict(
         network=Network,
-        optimizer={"class": optim.Adam, "params": {"lr": cfg["critic_lr"]}},
+        optimizer={"class": optim.Adam, "params": {"lr": args.critic_lr}},
         loss=F.mse_loss,
-        n_features=cfg["n_features"],
-        batch_size=cfg["batch_size"],
+        n_features=args.n_features,
+        batch_size=args.batch_size,
         input_shape=mdp.info.observation_space.shape,
         output_shape=(1,),
         use_cuda=torch.cuda.is_available(),
@@ -234,13 +194,13 @@ def experiment(
     alg_params = dict(
         actor_optimizer={
             "class": optim.Adam,
-            "params": {"lr": cfg["actor_lr"], "eps": 1e-5},
+            "params": {"lr": args.actor_lr, "eps": 1e-5},
         },
-        n_epochs_policy=cfg["n_epochs_policy"],
-        batch_size=cfg["batch_size"],
-        eps_ppo=cfg["eps_ppo"],
-        lam=cfg["lam"],
-        ent_coeff=cfg["ent_coeff"],
+        n_epochs_policy=args.n_epochs_policy,
+        batch_size=args.batch_size,
+        eps_ppo=args.eps_ppo,
+        lam=args.lam,
+        ent_coeff=args.ent_coeff,
         critic_params=critic_params,
     )
 
@@ -248,8 +208,8 @@ def experiment(
         Network,
         mdp.info.observation_space.shape,
         mdp.info.action_space.shape,
-        std_0=cfg["std_0"],
-        n_features=cfg["n_features"],
+        std_0=args.std_0,
+        n_features=args.n_features,
         use_cuda=torch.cuda.is_available(),
     )
 
@@ -259,8 +219,8 @@ def experiment(
     core = Core(agent, mdp)
     core.set_logger(logger)
 
-    os.makedirs(results_dir, exist_ok=True)
-    csv_path = os.path.join(results_dir, f"{run_name}.csv")
+    os.makedirs(args.results_dir, exist_ok=True)
+    csv_path = os.path.join(args.results_dir, f"{run_name}.csv")
     csv_file = open(csv_path, "w", newline="")
     writer = csv.writer(csv_file)
     writer.writerow(["epoch", "J", "R", "entropy", "mean_ep_len"])
@@ -269,7 +229,7 @@ def experiment(
 
     def evaluate(epoch):
         nonlocal best_J
-        dataset = core.evaluate(n_episodes=cfg["n_episodes_test"], render=False)
+        dataset = core.evaluate(n_episodes=args.n_episodes_test, render=False)
         J = to_scalar(dataset.discounted_return)
         R = to_scalar(dataset.undiscounted_return)
         E = compute_entropy(agent, dataset)
@@ -280,7 +240,7 @@ def experiment(
             else np.asarray(lengths, dtype=np.float64)
         )
         logger.epoch_info(epoch, J=J, R=R, entropy=E, mean_ep_len=L)
-        if cfg["use_wandb"]:
+        if args.wandb:
             try:
                 logger.log_evaluation(epoch, J=J, R=R, entropy=E, mean_ep_len=L)
             except Exception:
@@ -288,7 +248,7 @@ def experiment(
         writer.writerow([epoch, J, R, E, L])
         csv_file.flush()
 
-        if save_agent and J > best_J:
+        if args.save_agent and J > best_J:
             best_J = J
             try:
                 logger.log_best_agent(agent, J)
@@ -297,8 +257,8 @@ def experiment(
 
     evaluate(0)
 
-    for it in trange(n_epochs, leave=False):
-        core.learn(n_steps=cfg["n_steps"], n_steps_per_fit=cfg["n_steps_per_fit"])
+    for it in trange(args.n_epochs, leave=False):
+        core.learn(n_steps=args.n_steps, n_steps_per_fit=args.n_steps_per_fit)
         evaluate(it + 1)
 
     csv_file.close()
@@ -311,36 +271,14 @@ def experiment(
 # ---------------------------------------------------------------------------
 
 
-def apply_overrides(cfg, args):
-    """Any --lr / --n_features / ... flags override the preset."""
-    overrides = {
-        "actor_lr": args.actor_lr,
-        "critic_lr": args.critic_lr,
-        "n_features": args.n_features,
-        "batch_size": args.batch_size,
-        "n_epochs_policy": args.n_epochs_policy,
-        "eps_ppo": args.eps_ppo,
-        "lam": args.lam,
-        "ent_coeff": args.ent_coeff,
-        "std_0": args.std_0,
-        "n_steps": args.n_steps,
-        "n_steps_per_fit": args.n_steps_per_fit,
-        "n_episodes_test": args.n_episodes_test,
-        "n_envs": args.n_envs,
-    }
-    for k, v in overrides.items():
-        if v is not None:
-            cfg[k] = v
-    if args.graph_capture is not None:
-        cfg["use_graph_capture"] = args.graph_capture
-    if args.wandb is not None:
-        cfg["use_wandb"] = args.wandb
-    return cfg
+def bool_flag(s):
+    return s.lower() in ("1", "true", "yes")
 
 
 def main():
-
     parser = argparse.ArgumentParser()
+
+    # env / backend / seed / run control
     parser.add_argument(
         "--envs",
         nargs="+",
@@ -357,69 +295,37 @@ def main():
     )
     parser.add_argument("--backend", choices=["vanilla", "warp"], default="warp")
     parser.add_argument("--seed", type=int, default=1)
-    parser.add_argument("--n_epochs", type=int, default=50)
     parser.add_argument("--device", type=str, default="cuda:0")
-    parser.add_argument(
-        "--parity",
-        action="store_true",
-        help="Use the mushroom-rl-benchmark PPO preset (small n_envs, "
-        "matched hyperparams) instead of the scaled training preset.",
-    )
-    parser.add_argument(
-        "--num_envs_scaled",
-        type=int,
-        default=4000,
-        help="n_envs used by the scaled preset. Ignored in --parity mode "
-        "unless --n_envs is also passed.",
-    )
-    parser.add_argument("--save_agent", action="store_true")
     parser.add_argument("--results_dir", type=str, default="./logs")
 
-    # per-hyperparam overrides
-    parser.add_argument("--n_envs", type=int, default=None)
-    parser.add_argument("--actor_lr", type=float, default=None)
-    parser.add_argument("--critic_lr", type=float, default=None)
-    parser.add_argument("--n_features", type=int, default=None)
-    parser.add_argument("--batch_size", type=int, default=None)
-    parser.add_argument("--n_epochs_policy", type=int, default=None)
-    parser.add_argument("--eps_ppo", type=float, default=None)
-    parser.add_argument("--lam", type=float, default=None)
-    parser.add_argument("--ent_coeff", type=float, default=None)
-    parser.add_argument("--std_0", type=float, default=None)
-    parser.add_argument("--n_steps", type=int, default=None)
-    parser.add_argument("--n_steps_per_fit", type=int, default=None)
-    parser.add_argument("--n_episodes_test", type=int, default=None)
-    parser.add_argument(
-        "--graph_capture",
-        type=lambda s: s.lower() in ("1", "true", "yes"),
-        default=None,
-        help="Override preset's graph capture default.",
-    )
-    parser.add_argument(
-        "--wandb",
-        type=lambda s: s.lower() in ("1", "true", "yes"),
-        default=None,
-        help="Override preset's wandb default.",
-    )
+    # training regime
+    parser.add_argument("--n_envs", type=int, default=100)
+    parser.add_argument("--n_steps", type=int, default=1_000_000)
+    parser.add_argument("--n_steps_per_fit", type=int, default=100_000)
+    parser.add_argument("--n_epochs", type=int, default=50)
+    parser.add_argument("--n_epochs_policy", type=int, default=10)
+    parser.add_argument("--n_episodes_test", type=int, default=10)
+
+    # PPO / policy hyperparams
+    parser.add_argument("--actor_lr", type=float, default=3e-4)
+    parser.add_argument("--critic_lr", type=float, default=3e-4)
+    parser.add_argument("--n_features", type=int, default=32)
+    parser.add_argument("--batch_size", type=int, default=1024)
+    parser.add_argument("--eps_ppo", type=float, default=0.2)
+    parser.add_argument("--lam", type=float, default=0.95)
+    parser.add_argument("--ent_coeff", type=float, default=0.001)
+    parser.add_argument("--std_0", type=float, default=1.0)
+
+    # toggles (default on; pass --flag false to disable)
+    parser.add_argument("--graph_capture", type=bool_flag, default=True)
+    parser.add_argument("--save_agent", type=bool_flag, default=True)
+    parser.add_argument("--wandb", type=bool_flag, default=False)
 
     args = parser.parse_args()
     envs = [args.single_env] if args.single_env else args.envs
 
     for env_name in envs:
-        cfg = parity_preset() if args.parity else scaled_preset(args.num_envs_scaled)
-        cfg = apply_overrides(cfg, args)
-        mode = "parity" if args.parity else "scaled"
-        experiment(
-            env_name=env_name,
-            backend=args.backend,
-            seed=args.seed,
-            n_epochs=args.n_epochs,
-            cfg=cfg,
-            mode=mode,
-            device=args.device,
-            save_agent=args.save_agent,
-            results_dir=args.results_dir,
-        )
+        experiment(env_name, args)
 
 
 if __name__ == "__main__":
