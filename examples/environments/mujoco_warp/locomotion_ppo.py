@@ -1,11 +1,8 @@
 """
 PPO training script for MuJoCo Warp locomotion envs.
-
 """
 
 import argparse
-import csv
-import os
 import warnings
 
 import numpy as np
@@ -30,7 +27,6 @@ from mushroom_rl.environments.mujoco_warp_envs import (
 from mushroom_rl.policy import GaussianTorchPolicy
 from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
 from mushroom_rl.utils import TorchUtils
-
 
 ENV_TABLE = {
     "hopper": (Hopper, HopperWarp),
@@ -108,10 +104,7 @@ def compute_entropy(agent, dataset):
     state = dataset.state
     if not isinstance(state, torch.Tensor):
         state = torch.from_numpy(np.asarray(state))
-    try:
-        return agent.policy.entropy(state).item()
-    except TypeError:
-        return agent.policy.entropy().item()
+    return agent.policy.entropy(state).item()
 
 
 # ---------------------------------------------------------------------------
@@ -128,17 +121,11 @@ def experiment(env_name, args):
     np.random.seed(args.seed)
 
     mdp = make_env(env_name, args.backend, args.n_envs, args.graph_capture)
-    if hasattr(mdp, "seed"):
-        try:
-            mdp.seed(args.seed)
-        except Exception:
-            pass
+    mdp.seed(args.seed)
 
-    run_name = f"{env_name}_{args.backend}_seed{args.seed}"
     hyperparams = dict(
         env=env_name,
         backend=args.backend,
-        seed=args.seed,
         n_envs=args.n_envs,
         n_epochs=args.n_epochs,
         n_steps=args.n_steps,
@@ -156,18 +143,23 @@ def experiment(env_name, args):
         graph_capture=args.graph_capture,
     )
 
-    logger_kwargs = dict(results_dir=args.results_dir, use_timestamp=True)
-    if args.wandb:
-        try:
-            logger_kwargs["wandb_kwargs"] = Logger.default_wandb_kwargs(
-                f"mushroom_rl_{env_name}",
-                config=hyperparams,
-                name=run_name,
-            )
-        except Exception as e:
-            print(f"wandb setup failed ({e}); continuing without wandb.")
+    # wandb logging is enabled by passing wandb init arguments to the Logger;
+    # with wandb_kwargs=None every wandb call is a safe no-op. The Logger sets
+    # the wandb group to the experiment name and appends the seed to the run
+    # name automatically when `seed` is given.
+    wandb_kwargs = (
+        Logger.default_wandb_kwargs(f"mushroom_rl_{env_name}", config=hyperparams)
+        if args.wandb
+        else None
+    )
 
-    logger = Logger(run_name, **logger_kwargs)
+    logger = Logger(
+        f"{env_name}_{args.backend}",
+        results_dir=args.results_dir,
+        use_timestamp=True,
+        seed=args.seed,
+        wandb_kwargs=wandb_kwargs,
+    )
     logger.strong_line()
     logger.info(
         f"env={env_name}  backend={args.backend}  "
@@ -216,44 +208,24 @@ def experiment(env_name, args):
     agent = PPO(mdp.info, policy, **alg_params)
     agent.add_core_preprocessor(StandardizationPreprocessor(mdp.info))
 
-    core = Core(agent, mdp)
-    core.set_logger(logger)
-
-    os.makedirs(args.results_dir, exist_ok=True)
-    csv_path = os.path.join(args.results_dir, f"{run_name}.csv")
-    csv_file = open(csv_path, "w", newline="")
-    writer = csv.writer(csv_file)
-    writer.writerow(["epoch", "J", "R", "entropy", "mean_ep_len"])
-
-    best_J = float("-inf")
+    core = Core(agent, mdp, logger=logger)
 
     def evaluate(epoch):
-        nonlocal best_J
         dataset = core.evaluate(n_episodes=args.n_episodes_test, render=False)
         J = to_scalar(dataset.discounted_return)
         R = to_scalar(dataset.undiscounted_return)
         E = compute_entropy(agent, dataset)
         lengths = dataset.episodes_length
-        L = to_scalar(
-            lengths
-            if isinstance(lengths, (np.ndarray, torch.Tensor))
-            else np.asarray(lengths, dtype=np.float64)
-        )
-        logger.epoch_info(epoch, J=J, R=R, entropy=E, mean_ep_len=L)
-        if args.wandb:
-            try:
-                logger.log_evaluation(epoch, J=J, R=R, entropy=E, mean_ep_len=L)
-            except Exception:
-                pass
-        writer.writerow([epoch, J, R, E, L])
-        csv_file.flush()
+        if not isinstance(lengths, (np.ndarray, torch.Tensor)):
+            lengths = np.asarray(lengths, dtype=np.float64)
+        L = to_scalar(lengths)
 
-        if args.save_agent and J > best_J:
-            best_J = J
-            try:
-                logger.log_best_agent(agent, J)
-            except Exception as e:
-                logger.info(f"log_best_agent failed: {e}")
+        # log_evaluation prints to the console via epoch_info, stores the
+        # metrics on disk as numpy arrays, and logs to wandb when enabled.
+        logger.log_evaluation(epoch, J=J, R=R, entropy=E, mean_ep_len=L)
+
+        if args.save_agent:
+            logger.log_best_agent(agent, J)
 
     evaluate(0)
 
@@ -261,9 +233,8 @@ def experiment(env_name, args):
         core.learn(n_steps=args.n_steps, n_steps_per_fit=args.n_steps_per_fit)
         evaluate(it + 1)
 
-    csv_file.close()
     mdp.stop()
-    logger.info(f"done. results -> {csv_path}")
+    logger.info("done.")
 
 
 # ---------------------------------------------------------------------------
@@ -319,7 +290,7 @@ def main():
     # toggles (default on; pass --flag false to disable)
     parser.add_argument("--graph_capture", type=bool_flag, default=True)
     parser.add_argument("--save_agent", type=bool_flag, default=True)
-    parser.add_argument("--wandb", type=bool_flag, default=False)
+    parser.add_argument("--wandb", type=bool_flag, default=True)
 
     args = parser.parse_args()
     envs = [args.single_env] if args.single_env else args.envs
