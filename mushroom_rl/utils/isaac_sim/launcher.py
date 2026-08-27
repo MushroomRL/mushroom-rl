@@ -27,8 +27,6 @@ class IsaacLauncher:
 
     """
     _app = None
-    _disable_rendering = None
-    _carb_overrides = None
 
     def __new__(cls, *args, **kwargs):
         """
@@ -41,7 +39,7 @@ class IsaacLauncher:
                         f"Call {cls.__name__}.launch() on the class itself.")
 
     @classmethod
-    def launch(cls, headless=True, physics_engine='physx', disable_rendering=False, carb_settings=None):
+    def launch(cls, headless=True, physics_engine='physx', carb_settings=None):
         """
         Starts Isaac Sim, so that its modules and the MushroomRL environments built on them can be imported.
 
@@ -52,8 +50,6 @@ class IsaacLauncher:
             physics_engine (str, 'physx'): The physics engine to simulate with, either 'physx' or 'newton'. Isaac Sim
                 documents Newton as experimental, and MushroomRL does not test it: the robot assets shipped
                 here are tuned for PhysX and the two engines do not produce the same dynamics.
-            disable_rendering (booli, False): Whether to skip the carb settings that make the viewer/recorder show
-                live data (see :meth:`_apply_carb_settings`), independently of ``headless``.
             carb_settings (dict, None): Overrides for the default carb settings applied at startup, see
                 :meth:`_apply_carb_settings`. Keys are carb setting paths (e.g. ``"/physics/fabricEnabled"``);
                 values override the corresponding default, and unknown keys are simply added.
@@ -64,8 +60,7 @@ class IsaacLauncher:
         """
         if cls._app is None:
             cls._app = SimulationApp({"headless": headless, "hide_ui": False, "renderer": "RaytracedLighting"})
-            cls._carb_overrides = carb_settings
-            cls.activate_rendering(not disable_rendering)
+            cls._apply_carb_settings(cls._app, carb_settings)
             cls._select_physics_engine(physics_engine)
 
             atexit.register(cls.shutdown)
@@ -134,73 +129,43 @@ class IsaacLauncher:
         """
         return cls.get().config["headless"]
 
-    @classmethod
-    def is_rendering_disabled(cls):
-        """
-        Returns:
-            Whether the carb settings that make the viewer/recorder show live data are currently off.
-
-        """
-        cls.require_running()
-
-        return cls._disable_rendering
-
-    @classmethod
-    def activate_rendering(cls, flag=True):
-        """
-        Toggles whether the viewer/recorder show live data, independently of ``headless``. Only affects
-        environments created *after* this call: Isaac Sim's render product is bound to whatever this was
-        at the time it was built, so an already-running environment keeps showing stale data regardless.
-
-        Args:
-            flag (bool, True): Whether to activate rendering (True) or deactivate it (False), i.e. whether
-                to apply the carb settings that make the viewer/recorder show live data, see
-                :meth:`_apply_carb_settings`.
-
-        """
-        cls.require_running()
-
-        cls._disable_rendering = not flag
-        cls._apply_carb_settings(cls._app, cls._disable_rendering, cls._carb_overrides)
-
     @staticmethod
-    def _apply_carb_settings(simulation_app, disable_rendering, overrides=None):
+    def _apply_carb_settings(simulation_app, overrides=None):
         """
         Apply mushroom default settings for optimization.
 
         Args:
             simulation_app: The running simulation app.
-            disable_rendering (bool): Whether to skip the three groups above.
             overrides (dict, None): Carb setting paths overriding the defaults below, or adding new ones.
 
         """
         headless = simulation_app.config["headless"]
         settings = {
-            "/app/useFabricSceneDelegate": not disable_rendering,
+            "/app/useFabricSceneDelegate": True,
             "/app/runLoops/main/rateLimitEnabled": False,
             "/persistent/omnihydra/useSceneGraphInstancing": True,
             "/persistent/simulation/minFrameRate": 15,
-            "/exts/omni.replicator.core/Orchestrator/enabled": headless and not disable_rendering,
+            "/exts/omni.replicator.core/Orchestrator/enabled": headless,
             "/metricsAssembler/changeListenerEnabled": False,
             "/physics/physxDispatcher": True,
             "/physics/disableContactProcessing": True,
             "/physics/collisionConeCustomGeometry": False,
             "/physics/collisionCylinderCustomGeometry": False,
             "/physics/fabricEnabled": True,
-            "/physics/updateToUsd": not disable_rendering,
-            "/physics/updateParticlesToUsd": not disable_rendering,
-            "/physics/updateVelocitiesToUsd": not disable_rendering,
-            "/physics/updateForceSensorsToUsd": not disable_rendering,
+            "/physics/updateToUsd": False,
+            "/physics/updateParticlesToUsd": False,
+            "/physics/updateVelocitiesToUsd": False,
+            "/physics/updateForceSensorsToUsd": False,
             "/physics/outputVelocitiesLocalSpace": False,
             "/physics/useFastCache": False,
             "/physics/visualizationDisplayJoints": False,
-            "/physics/fabricUpdateTransformations": not disable_rendering,
-            "/physics/fabricUpdateVelocities": not disable_rendering,
-            "/physics/fabricUpdateForceSensors": not disable_rendering,
-            "/physics/fabricUpdateJointStates": not disable_rendering,
+            "/physics/fabricUpdateTransformations": not headless,
+            "/physics/fabricUpdateVelocities": not headless,
+            "/physics/fabricUpdateForceSensors": not headless,
+            "/physics/fabricUpdateJointStates": not headless,
             "/physics/fabricUseGPUInterop": True,
             "/physics/resourcemonitor/timeBetweenQueries": 100,
-            "/rtx/hydra/readTransformsFromFabricInRenderDelegate": not disable_rendering,
+            "/rtx/hydra/readTransformsFromFabricInRenderDelegate": True,
             "/rtx/translucency/enabled": False,
             "/rtx/reflections/enabled": False,
             "/rtx/indirectDiffuse/enabled": False,
@@ -226,8 +191,7 @@ class IsaacLauncher:
             physics_engine (str): The physics engine to simulate with, either 'physx' or 'newton'.
 
         """
-        # this module has to be importable before Isaac Sim runs, since it is what starts it, so these two are
-        # the one place in the layer where an Isaac import cannot sit at the top of a file
+        # Import basic Isaac Sim libraries.
         import isaacsim.core.experimental.utils.app as app_utils
         from isaacsim.core.simulation_manager import SimulationManager
 
