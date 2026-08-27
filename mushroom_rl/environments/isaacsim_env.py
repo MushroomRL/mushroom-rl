@@ -1,5 +1,7 @@
 import sys
 
+import carb
+
 import mushroom_rl.utils.isaac_sim._require_launched  # noqa: F401 -- raises if Isaac Sim hasn't been launched yet
 
 import torch
@@ -12,7 +14,7 @@ from isaacsim.core.simulation_manager import PhysxGpuCfg, PhysxScene, Simulation
 from mushroom_rl.core import VectorizedEnvironment, MDPInfo
 from mushroom_rl.core.spaces import Box
 from mushroom_rl.utils import TorchUtils
-from mushroom_rl.utils.isaac_sim import IsaacLauncher, ObservationHelper, ActuationHelper, ActuationType
+from mushroom_rl.utils.isaac_sim import ObservationHelper, ActuationHelper, ActuationType
 from mushroom_rl.utils.isaac_sim.collision_helper import CollisionHelper
 from mushroom_rl.utils.isaac_sim.scene_builder import SceneBuilder
 from mushroom_rl.utils.isaac_sim.viewer import IsaacViewer
@@ -26,7 +28,7 @@ class IsaacSim(VectorizedEnvironment):
     def __init__(self, usd_path, actuation_spec, observation_spec, num_envs, gamma, horizon,
                  timestep=None, n_substeps=1, n_intermediate_steps=1, additional_data_spec=None,
                  collision_groups=None, actuation_type=ActuationType.EFFORT, sim_params=None, scene_params=None,
-                 viewer_params=None, force_fabric_update=False):
+                 viewer_params=None):
         """
         Constructor.
 
@@ -62,12 +64,8 @@ class IsaacSim(VectorizedEnvironment):
             viewer_params (dict, None): The parameters of the camera looking at the scene, passed to
                 :class:`~mushroom_rl.utils.isaac_sim.viewer.IsaacViewer`, which documents them. The ``camera_target``
                 parameter defaults to env 0's position.
-            force_fabric_update (bool): If True, syncs Fabric after every intermediate step regardless of
-                whether rendering is disabled, instead of only before the final viewer refresh.
 
         """
-        self._force_fabric_update = force_fabric_update
-
         # Isaac Sim overrides sys.stderr, which breaks tqdm — restore the original
         sys.stderr = sys.__stderr__
 
@@ -140,17 +138,14 @@ class IsaacSim(VectorizedEnvironment):
 
         ctrl_action = None
 
-        for i in range(self._n_intermediate_steps):
+        for _ in range(self._n_intermediate_steps):
             if self._recompute_action_per_step or ctrl_action is None:
                 ctrl_action = self._compute_action(action)
 
             self._simulation_pre_step()
 
             self._actuation_helper.apply(ctrl_action[env_indices], env_indices)
-            is_last_intermediate_step = i == self._n_intermediate_steps - 1
-            update_fabric = self._force_fabric_update or \
-                (not IsaacLauncher.is_rendering_disabled() and is_last_intermediate_step)
-            SimulationManager.step(steps=1, update_fabric=update_fabric)
+            SimulationManager.step(steps=1)
 
             self._simulation_post_step()
 
@@ -205,20 +200,18 @@ class IsaacSim(VectorizedEnvironment):
         """
         Render all environments. Optionally record the frames.
 
+        The frame read back is the last one the renderer finished, so it trails the simulation by a pass or
+        two: rendering every step shows the run as it goes, while a single call on its own shows the state a
+        couple of passes back.
+
         Args:
             env_mask (torch.tensor): mask selecting the environments to render.
             record (bool, False): If True, the function returns the rendered image data.
 
-        Raises:
-            RuntimeError: If ``record`` is True while rendering is disabled (see
-                :meth:`~mushroom_rl.utils.isaac_sim.IsaacLauncher.activate_rendering`).
-
         """
-        if IsaacLauncher.is_rendering_disabled():
-            if record:
-                raise RuntimeError("Cannot record: rendering is disabled. Call "
-                                   "IsaacLauncher.activate_rendering() first.")
-            return None
+        written = self._enable_fabric_updates(True)
+        self._fabric.force_update(SimulationManager.get_simulation_time(), SimulationManager.get_physics_dt())
+        self._enable_fabric_updates(written)
 
         data = self._viewer.render()
 
@@ -315,6 +308,10 @@ class IsaacSim(VectorizedEnvironment):
         # setting a cuda device also enables fabric, GPU dynamics and the GPU broadphase
         SimulationManager.setup_simulation(device=TorchUtils.get_device())
 
+        # Fabric is brought up by the call above
+        import omni.physxfabric
+        self._fabric = omni.physxfabric.get_physx_fabric_interface()
+
         self._physics_scene = SimulationManager.get_physics_scenes()[0]
         if isinstance(self._physics_scene, PhysxScene):
             self._physics_scene.set_enabled_ccd(False)
@@ -385,6 +382,29 @@ class IsaacSim(VectorizedEnvironment):
 
         velocity = wp.from_torch(torch.zeros(len(env_indices), 3, device=TorchUtils.get_device()))
         self._robots.set_velocities(velocity, velocity, indices=indices)
+
+    def _enable_fabric_updates(self, active):
+        """
+        Sets whether PhysX writes the pose of every body into Fabric, which is what the renderer draws from.
+        A window needs those writes throughout, while a headless run only needs them around the frames it
+        draws, which are far fewer than its steps.
+
+        Args:
+            active (bool): Whether the poses are handed over.
+
+        Returns:
+            Whether they were handed over before this call.
+
+        """
+        settings = carb.settings.get_settings()
+        written = ("/physics/fabricUpdateTransformations", "/physics/fabricUpdateVelocities",
+                   "/physics/fabricUpdateJointStates")
+        was_active = settings.get_as_bool(written[0])
+
+        for setting in written:
+            settings.set_bool(setting, active)
+
+        return was_active
 
     def _teleport_away(self, env_mask):
         """
