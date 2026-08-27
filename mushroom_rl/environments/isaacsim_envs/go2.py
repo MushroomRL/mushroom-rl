@@ -34,8 +34,8 @@ class Go2Isaac(QuadrupedIsaac):
         device = TorchUtils.get_device()
 
         legs = ("FL", "FR", "RL", "RR")
-        thigh_paths = {leg: f"/Geometry/base_link/{leg}_hip/{leg}_thigh" for leg in legs}
-        calf_paths = {leg: f"{thigh_paths[leg]}/{leg}_calf" for leg in legs}
+        thigh_paths = {leg: f"/Geometry/{leg}_thigh" for leg in legs}
+        calf_paths = {leg: f"/Geometry/{leg}_calf" for leg in legs}
 
         action_spec = [f"{leg}_{joint}_joint" for leg in legs for joint in ("hip", "thigh", "calf")]
         default_joint_angles = torch.tensor([
@@ -45,7 +45,7 @@ class Go2Isaac(QuadrupedIsaac):
             -0.1, 1., -1.5
         ], device=device)
         trunk_body = "base_link"
-        foot_bodies = [f"{calf_paths[leg]}/{leg}_foot" for leg in legs]
+        foot_bodies = [f"/Geometry/{leg}_foot" for leg in legs]
         sub_bodies = [
             "base_link",
             "FL_hip", "FR_hip", "RL_hip", "RR_hip",
