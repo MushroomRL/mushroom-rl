@@ -1,27 +1,23 @@
 try:
     from .atari import Atari
-
     Atari.register()
 except ImportError:
     Atari = None
 
 try:
     from .gymnasium_env import Gymnasium
-
     Gymnasium.register()
 except ImportError:
     Gymnasium = None
 
 try:
     from .dm_control_env import DMControl
-
     DMControl.register()
 except ImportError:
     DMControl = None
 
 try:
     from .minigrid_env import MiniGrid, MiniGridRGB
-
     MiniGrid.register()
     MiniGridRGB.register()
 except ImportError:
@@ -29,27 +25,6 @@ except ImportError:
     MiniGridRGB = None
 
 try:
-
-    iGibson = None
-    from .igibson_env import iGibson
-
-    iGibson.register()
-except ImportError:
-    import logging
-
-    logging.disable(logging.NOTSET)
-
-try:
-    Habitat = None
-    from .habitat_env import Habitat
-
-    Habitat.register()
-except ImportError:
-    pass
-
-try:
-    MuJoCo = None
-
     from .mujoco import MuJoCo, MultiMuJoCo
     from .mujoco_envs import *  # noqa: F401,F403
 except ImportError:
@@ -60,15 +35,6 @@ try:
     from .pybullet import PyBullet
     from .pybullet_envs import *  # noqa: F401,F403
 except ImportError:
-
-    pass
-
-try:
-    IsaacSim = None
-    from .isaacsim_env import IsaacSim
-except ImportError:
-    pass
-
     PyBullet = None
 
 from .car_on_hill import CarOnHill

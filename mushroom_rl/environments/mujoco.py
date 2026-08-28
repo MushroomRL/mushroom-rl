@@ -1,9 +1,8 @@
 import mujoco
 import numpy as np
-from dm_control import mjcf
 from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.core.spaces import Box
-from mushroom_rl.utils.mujoco import *
+from mushroom_rl.utils.mujoco import ObservationHelper, ObservationType, MujocoViewer
 
 
 class MuJoCo(Environment):
@@ -72,7 +71,7 @@ class MuJoCo(Environment):
 
         # Read the observation spec to build a mapping at every step. It is
         # ensured that the values appear in the order they are specified.
-        self.obs_helper = ObservationHelper(observation_spec, self._model, max_joint_velocity=max_joint_vel)
+        self.obs_helper = ObservationHelper(observation_spec, self._model, self._data, max_joint_velocity=max_joint_vel)
 
         observation_space = Box(*self.obs_helper.get_obs_limits())
 
@@ -84,15 +83,7 @@ class MuJoCo(Environment):
                 self.additional_data[key] = (name, ot)
 
         # Pre-process the collision groups for "fast" detection of contacts
-        self.collision_groups = {}
-        if collision_groups is not None:
-            for name, geom_names in collision_groups:
-                col_group = list()
-                for geom_name in geom_names:
-                    mj_id = mujoco.mj_name2id(self._model, mujoco.mjtObj.mjOBJ_GEOM, geom_name)
-                    assert mj_id != -1, f"geom \"{geom_name}\" not found! Can't be used for collision-checking."
-                    col_group.append(mj_id)
-                self.collision_groups[name] = set(col_group)
+        self.collision_groups = self._build_collision_groups(collision_groups)
 
         # Finally, we create the MDP information and call the constructor of
         # the parent class
@@ -119,7 +110,7 @@ class MuJoCo(Environment):
         mujoco.mj_resetData(self._model, self._data)
         self.setup(obs)
 
-        self._obs = self._create_observation(self.obs_helper.build_obs(self._data))
+        self._obs = self._create_observation(self.obs_helper._build_obs(self._model, self._data))
         return self._modify_observation(self._obs), {}
 
     def step(self, action):
@@ -144,10 +135,10 @@ class MuJoCo(Environment):
             self._simulation_post_step()
 
             if self._recompute_action_per_step:
-                cur_obs = self._create_observation(self.obs_helper.build_obs(self._data))
+                cur_obs = self._create_observation(self.obs_helper._build_obs(self._model, self._data))
 
         if not self._recompute_action_per_step:
-            cur_obs = self._create_observation(self.obs_helper.build_obs(self._data))
+            cur_obs = self._create_observation(self.obs_helper._build_obs(self._model, self._data))
 
         self._step_finalize()
 
@@ -184,6 +175,30 @@ class MuJoCo(Environment):
 
         """
         return mdp_info
+
+    def _build_collision_groups(self, collision_groups):
+        """
+        Resolves a collision_groups spec (see the constructor) into geom ids against the currently
+        loaded model, for fast collision-checking via _check_collision.
+
+        Args:
+            collision_groups (list, None): See the constructor's collision_groups argument.
+
+        Returns:
+            Dictionary mapping each key to the set of geom ids in that group.
+
+        """
+        result = {}
+        if collision_groups is not None:
+            for name, geom_names in collision_groups:
+                col_group = list()
+                for geom_name in geom_names:
+                    mj_id = mujoco.mj_name2id(self._model, mujoco.mjtObj.mjOBJ_GEOM, geom_name)
+                    assert mj_id != -1, f"geom \"{geom_name}\" not found! Can't be used for collision-checking."
+                    col_group.append(mj_id)
+                result[name] = set(col_group)
+
+        return result
 
     def _create_observation(self, obs):
         """
@@ -305,7 +320,7 @@ class MuJoCo(Environment):
 
         """
         data_id, otype = self.additional_data[name]
-        return np.array(self.obs_helper.get_state(self._data, data_id, otype))
+        return np.array(self.obs_helper.get_state(self._model, self._data, data_id, otype))
 
     def _write_data(self, name, value):
         """
@@ -324,7 +339,7 @@ class MuJoCo(Environment):
         elif otype == ObservationType.JOINT_VEL:
             self._data.joint(data_id).qvel = value
         else:
-            data_buffer = self.obs_helper.get_state(self._data, data_id, otype)
+            data_buffer = self.obs_helper.get_state(self._model, self._data, data_id, otype)
             data_buffer[:] = value
 
     def _check_collision(self, group1, group2):
@@ -427,7 +442,7 @@ class MuJoCo(Environment):
 
         """
         if obs is not None:
-            self.obs_helper._modify_data(self._data, obs)
+            self.obs_helper._modify_data(self._model, self._data, obs)
 
     def get_all_observation_keys(self):
         """
@@ -515,17 +530,16 @@ class MuJoCo(Environment):
         Takes an xml_file and compiles and loads the model.
 
         Args:
-            xml_file (str/xml handle): A string with a path to the xml or an Mujoco xml handle.
+            xml_file (str/mujoco.MjSpec): A string with a path to the xml, or an already-built MjSpec.
 
         Returns:
             Mujoco model.
 
         """
-        if type(xml_file) == mjcf.element.RootElement:
-            # load from xml handle
-            model = mujoco.MjModel.from_xml_string(xml=xml_file.to_xml_string(),
-                                                   assets=xml_file.get_assets())
-        elif type(xml_file) == str:
+        if isinstance(xml_file, mujoco.MjSpec):
+            # compile a programmatically-built spec
+            model = xml_file.compile()
+        elif isinstance(xml_file, str):
             # load from path
             model = mujoco.MjModel.from_xml_path(xml_file)
         else:
@@ -608,29 +622,18 @@ class MultiMuJoCo(MuJoCo):
         action_space = self.get_action_space(self._action_indices, self._model)
 
         # all env need to have the same action space, do sanity check
-        for m, d in zip(self._models, self._datas):
-            action_ind = self.get_action_indices(m, d, actuation_spec)
-            action_sp = self.get_action_space(action_ind, m)
-            if not np.array_equal(action_ind, self._action_indices) or \
-                    not np.array_equal(action_space.low, action_sp.low) or\
-                    not np.array_equal(action_space.high, action_sp.high):
-                raise ValueError("The provided environments differ in the their action spaces. "
-                                 "This is not allowed.")
+        self._check_uniform_action_spaces(actuation_spec, action_space)
 
         # Read the observation spec to build a mapping at every step. It is
         # ensured that the values appear in the order they are specified.
-        self.obs_helpers = [ObservationHelper(observation_spec, m, max_joint_velocity=max_joint_vel)
-                            for m in self._models]
+        self.obs_helpers = [ObservationHelper(observation_spec, m, d, max_joint_velocity=max_joint_vel)
+                            for m, d in zip(self._models, self._datas)]
         self.obs_helper = self.obs_helpers[self._current_model_idx]
 
         observation_space = Box(*self.obs_helper.get_obs_limits())
 
-        # multi envs with different obs limits are now allowed, do sanity check
-        for oh in self.obs_helpers:
-            low, high = self.obs_helper.get_obs_limits()
-            if not np.array_equal(low, observation_space.low) or not np.array_equal(high, observation_space.high):
-                raise ValueError("The provided environments differ in the their observation limits. "
-                                 "This is not allowed.")
+        # all envs need to have the same observation limits, do sanity check
+        self._check_uniform_observation_limits(observation_space)
 
         # Pre-process the additional data to allow easier writing and reading
         # to and from arrays in MuJoCo
@@ -640,15 +643,7 @@ class MultiMuJoCo(MuJoCo):
                 self.additional_data[key] = (name, ot)
 
         # Pre-process the collision groups for "fast" detection of contacts
-        self.collision_groups = {}
-        if collision_groups is not None:
-            for name, geom_names in collision_groups:
-                col_group = list()
-                for geom_name in geom_names:
-                    mj_id = mujoco.mj_name2id(self._model, mujoco.mjtObj.mjOBJ_GEOM, geom_name)
-                    assert mj_id != -1, f"geom \"{geom_name}\" not found! Can't be used for collision-checking."
-                    col_group.append(mj_id)
-                self.collision_groups[name] = set(col_group)
+        self.collision_groups = self._build_collision_groups(collision_groups)
 
         # Finally, we create the MDP information and call the constructor of
         # the parent class
@@ -686,8 +681,42 @@ class MultiMuJoCo(MuJoCo):
         if self._viewer is not None and self.more_than_one_env:
             self._viewer.load_new_model(self._model)
 
-        self._obs = self._create_observation(self.obs_helper.build_obs(self._data))
+        self._obs = self._create_observation(self.obs_helper._build_obs(self._model, self._data))
         return self._modify_observation(self._obs)
+
+    def _check_uniform_action_spaces(self, actuation_spec, action_space):
+        """
+        Asserts that every model shares the same action indices and action space bounds as the
+        currently loaded one.
+
+        Args:
+            actuation_spec (list): See the constructor's actuation_spec argument.
+            action_space (Box): the action space computed from the currently loaded model.
+
+        """
+        for m, d in zip(self._models, self._datas):
+            action_ind = self.get_action_indices(m, d, actuation_spec)
+            action_sp = self.get_action_space(action_ind, m)
+            if not np.array_equal(action_ind, self._action_indices) or \
+                    not np.array_equal(action_space.low, action_sp.low) or\
+                    not np.array_equal(action_space.high, action_sp.high):
+                raise ValueError("The provided environments differ in the their action spaces. "
+                                 "This is not allowed.")
+
+    def _check_uniform_observation_limits(self, observation_space):
+        """
+        Asserts that every model's observation helper shares the same observation limits as the
+        currently loaded one.
+
+        Args:
+            observation_space (Box): the observation space computed from the currently loaded model.
+
+        """
+        for oh in self.obs_helpers:
+            low, high = oh.get_obs_limits()
+            if not np.array_equal(low, observation_space.low) or not np.array_equal(high, observation_space.high):
+                raise ValueError("The provided environments differ in the their observation limits. "
+                                 "This is not allowed.")
 
     @property
     def more_than_one_env(self):
