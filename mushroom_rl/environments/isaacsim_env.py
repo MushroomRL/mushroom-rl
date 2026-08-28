@@ -306,6 +306,7 @@ class IsaacSim(VectorizedEnvironment):
         stage_utils.set_stage_units(meters_per_unit=1.0)
 
         # setting a cuda device also enables fabric, GPU dynamics and the GPU broadphase
+        SimulationManager.set_backend('torch')
         SimulationManager.setup_simulation(device=TorchUtils.get_device())
 
         # Fabric is brought up by the call above
