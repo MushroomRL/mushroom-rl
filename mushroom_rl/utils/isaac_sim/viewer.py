@@ -1,7 +1,5 @@
 from . import _require_launched  # noqa: F401 -- raises if Isaac Sim hasn't been launched yet
 
-import numpy as np
-
 import omni.replicator.core as rep
 from isaacsim.core.rendering_manager import RenderingManager
 from omni.kit.viewport.utility import get_viewport_from_window_name
@@ -35,6 +33,7 @@ class IsaacViewer:
 
         self._rp_size = render_product_size
         self._image_viewer = None
+        self._primed = False
 
         viewport_api = get_viewport_from_window_name("Viewport")
         viewport_api.set_active_camera("/OmniverseKit_Persp")
@@ -43,9 +42,8 @@ class IsaacViewer:
         self._camera_state.set_position_world(Gf.Vec3d(camera_position), True)
         self._camera_state.set_target_world(Gf.Vec3d(camera_target), True)
 
-        rp = rep.create.render_product("/OmniverseKit_Persp", self._rp_size)
+        self._render_product = rep.create.render_product("/OmniverseKit_Persp", self._rp_size)
         self._rgb_annot = rep.AnnotatorRegistry.get_annotator("rgb", do_array_copy=False, device="cuda")
-        self._rgb_annot.attach(rp)
 
     def render(self):
         """
@@ -55,11 +53,11 @@ class IsaacViewer:
             The rendered frame, as a (height, width, 3) array of bytes.
 
         """
+        if not self._primed:
+            self._prime()
+
         self.refresh()
         data = self._rgb_annot.get_data().numpy()[..., :3]
-
-        if data.size == 0:
-            data = np.zeros((self._rp_size[1], self._rp_size[0], 3), dtype=np.uint8)  # must be Height, Width, rgb
 
         if self._image_viewer is None:
             self._image_viewer = ImageViewer(self._rp_size, 0)
@@ -87,3 +85,19 @@ class IsaacViewer:
     @property
     def render_product_size(self):
         return self._rp_size
+
+    def _prime(self):
+        """
+        Binds the annotator to the render product and runs the passes it needs before it yields a frame.
+
+        Attaching in the constructor, before there is a scene to draw, leaves the annotator without the render
+        variable it reads, which Isaac Sim reports as a missing ``LdrColorSDbuff``. Reading it before three
+        passes have gone through returns an empty array; two run here and :meth:`render` runs the third.
+
+        """
+        self._rgb_annot.attach(self._render_product)
+
+        self.refresh()
+        self.refresh()
+
+        self._primed = True

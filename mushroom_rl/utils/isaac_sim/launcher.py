@@ -59,7 +59,8 @@ class IsaacLauncher:
 
         """
         if cls._app is None:
-            cls._app = SimulationApp({"headless": headless, "hide_ui": False, "renderer": "RaytracedLighting"})
+            cls._app = SimulationApp({"headless": headless, "hide_ui": False, "renderer": "RaytracedLighting",
+                                      "extra_args": ["--/persistent/app/usd/muteUsdDiagnostics=false"]})
             cls._apply_carb_settings(cls._app, carb_settings)
             cls._select_physics_engine(physics_engine)
 
