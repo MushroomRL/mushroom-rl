@@ -1,303 +1,180 @@
 """
-PPO training script for MuJoCo Warp locomotion envs.
+This script shows how to run the MushroomRL MuJoCo Warp locomotion environments, solving them with PPO.
+
 """
 
 import argparse
-import warnings
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+
 from tqdm import trange
 
+from mushroom_rl.core import Core, Logger
 from mushroom_rl.algorithms.actor_critic import PPO
-from mushroom_rl.core import Core, Logger, MultiprocessEnvironment
-from mushroom_rl.environments.mujoco_envs.locomotion.hopper import Hopper
-from mushroom_rl.environments.mujoco_envs.locomotion.walker_2d import Walker2D
-from mushroom_rl.environments.mujoco_envs.locomotion.half_cheetah import HalfCheetah
-from mushroom_rl.environments.mujoco_envs.locomotion.ant import Ant
 from mushroom_rl.environments.mujoco_warp_envs import (
     AntWarp,
-    HopperWarp,
     HalfCheetahWarp,
+    HopperWarp,
     Walker2DWarp,
 )
 from mushroom_rl.policy import GaussianTorchPolicy
+from mushroom_rl.approximators.parametric.networks import (
+    FeedForwardNetwork,
+    ActorNetwork,
+)
 from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
-from mushroom_rl.utils import TorchUtils
-
-ENV_TABLE = {
-    "hopper": (Hopper, HopperWarp),
-    "walker": (Walker2D, Walker2DWarp),
-    "half_cheetah": (HalfCheetah, HalfCheetahWarp),
-    "ant": (Ant, AntWarp),
-}
+from mushroom_rl.utils.torch_utils import TorchUtils
+from mushroom_rl.utils.experiments import select_class
 
 
-class Network(nn.Module):
-    def __init__(self, input_shape, output_shape, n_features, **kwargs):
-        super().__init__()
-
-        n_input = input_shape[-1]
-        n_output = output_shape[0]
-
-        self._h1 = nn.Linear(n_input, n_features)
-        self._h2 = nn.Linear(n_features, n_features)
-        self._h3 = nn.Linear(n_features, n_output)
-
-        nn.init.xavier_uniform_(
-            self._h1.weight, gain=nn.init.calculate_gain("relu") / 10
-        )
-        nn.init.xavier_uniform_(
-            self._h2.weight, gain=nn.init.calculate_gain("relu") / 10
-        )
-        nn.init.xavier_uniform_(
-            self._h3.weight, gain=nn.init.calculate_gain("linear") / 10
-        )
-
-    def forward(self, state, **kwargs):
-        device = next(self.parameters()).device
-        state = torch.as_tensor(state, dtype=torch.float32, device=device)
-        state = torch.squeeze(state, 1) if state.dim() > 2 else state
-        x = F.relu(self._h1(state))
-        x = F.relu(self._h2(x))
-        return self._h3(x)
+def get_environments():
+    return [AntWarp, HalfCheetahWarp, HopperWarp, Walker2DWarp]
 
 
-def make_env(env_name, backend, n_envs, use_graph_capture):
-    """
-    Both backends run as VectorizedEnvironment at the same n_envs so the
-    entire VectorizedCore collection path (masks, fit boundaries) is the
-    same regardless of simulator.
+def experiment(
+    env,
+    n_epochs,
+    n_steps,
+    n_steps_per_fit,
+    n_episodes_test,
+    n_envs,
+    use_graph_capture=True,
+    seed=None,
+):
+    np.random.seed(seed)
+    if seed is not None:
+        torch.manual_seed(seed)
 
-    Vanilla at large n_envs uses MultiprocessEnvironment, which forks
-    n_envs workers; only sensible at small scale (n_envs<=~16).
-    """
-    assert n_envs >= 2, "n_envs=1 hits the batch-of-1 squeeze bug in dev"
-    if env_name not in ENV_TABLE:
-        raise ValueError(f"unknown env: {env_name}")
+    assert torch.cuda.is_available(), "MuJoCo Warp requires a CUDA device."
+    assert n_envs >= 2, "n_envs must be at least 2."
 
-    Vanilla, Warp = ENV_TABLE[env_name]
+    TorchUtils.set_default_device("cuda:0")
 
-    if backend == "vanilla":
-        if n_envs > 16:
-            warnings.warn(
-                f"vanilla backend at n_envs={n_envs} forks {n_envs} processes; "
-                "this is only sensible at small scale (n_envs<=16). "
-                "For scaled training use --backend warp.",
-                stacklevel=2,
-            )
-        return MultiprocessEnvironment(Vanilla, n_envs=n_envs)
+    # MDP
+    mdp = env(num_envs=n_envs, use_graph_capture=use_graph_capture)
 
-    return Warp(num_envs=n_envs, use_graph_capture=use_graph_capture)
-
-
-def to_scalar(x):
-    if isinstance(x, torch.Tensor):
-        return x.float().mean().item()
-    return float(np.mean(x))
-
-
-def compute_entropy(agent, dataset):
-    state = dataset.state
-    if not isinstance(state, torch.Tensor):
-        state = torch.from_numpy(np.asarray(state))
-    return agent.policy.entropy(state).item()
-
-
-# ---------------------------------------------------------------------------
-# Experiment
-# ---------------------------------------------------------------------------
-
-
-def experiment(env_name, args):
-    TorchUtils.set_default_device(args.device)
-
-    torch.manual_seed(args.seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(args.seed)
-    np.random.seed(args.seed)
-
-    mdp = make_env(env_name, args.backend, args.n_envs, args.graph_capture)
-    mdp.seed(args.seed)
-
-    hyperparams = dict(
-        env=env_name,
-        backend=args.backend,
-        n_envs=args.n_envs,
-        n_epochs=args.n_epochs,
-        n_steps=args.n_steps,
-        n_steps_per_fit=args.n_steps_per_fit,
-        n_epochs_policy=args.n_epochs_policy,
-        n_episodes_test=args.n_episodes_test,
-        actor_lr=args.actor_lr,
-        critic_lr=args.critic_lr,
-        n_features=args.n_features,
-        batch_size=args.batch_size,
-        eps_ppo=args.eps_ppo,
-        lam=args.lam,
-        ent_coeff=args.ent_coeff,
-        std_0=args.std_0,
-        graph_capture=args.graph_capture,
+    logger = Logger(f"{PPO.name()}_{mdp.name()}", results_dir=None, seed=seed)
+    logger.log_experiment_info(
+        PPO,
+        mdp,
+        n_epochs=n_epochs,
+        n_steps=n_steps,
+        n_steps_per_fit=n_steps_per_fit,
+        n_episodes_test=n_episodes_test,
+        n_envs=n_envs,
     )
 
-    # wandb logging is enabled by passing wandb init arguments to the Logger;
-    # with wandb_kwargs=None every wandb call is a safe no-op. The Logger sets
-    # the wandb group to the experiment name and appends the seed to the run
-    # name automatically when `seed` is given.
-    wandb_kwargs = (
-        Logger.default_wandb_kwargs(f"mushroom_rl_{env_name}", config=hyperparams)
-        if args.wandb
-        else None
-    )
+    # Settings
+    actor_lr = 3e-4
+    critic_lr = 3e-4
+    n_features = 32
+    batch_size = 1024
+    n_epochs_policy = 10
+    eps = 0.2
+    lam = 0.95
+    std_0 = 1.0
+    ent_coeff = 0.001
 
-    logger = Logger(
-        f"{env_name}_{args.backend}",
-        results_dir=args.results_dir,
-        use_timestamp=True,
-        seed=args.seed,
-        wandb_kwargs=wandb_kwargs,
-    )
-    logger.strong_line()
-    logger.info(
-        f"env={env_name}  backend={args.backend}  "
-        f"seed={args.seed}  n_envs={args.n_envs}"
-    )
-    logger.info(
-        f"lr={args.actor_lr}/{args.critic_lr} feat={args.n_features} "
-        f"batch={args.batch_size} spf={args.n_steps_per_fit} "
-        f"n_steps={args.n_steps} ent_coeff={args.ent_coeff} "
-        f"standardization=on graph_capture={args.graph_capture}"
-    )
-
-    critic_params = dict(
-        network=Network,
-        optimizer={"class": optim.Adam, "params": {"lr": args.critic_lr}},
-        loss=F.mse_loss,
-        n_features=args.n_features,
-        batch_size=args.batch_size,
-        input_shape=mdp.info.observation_space.shape,
-        output_shape=(1,),
-        use_cuda=torch.cuda.is_available(),
-    )
-
-    alg_params = dict(
-        actor_optimizer={
-            "class": optim.Adam,
-            "params": {"lr": args.actor_lr, "eps": 1e-5},
-        },
-        n_epochs_policy=args.n_epochs_policy,
-        batch_size=args.batch_size,
-        eps_ppo=args.eps_ppo,
-        lam=args.lam,
-        ent_coeff=args.ent_coeff,
-        critic_params=critic_params,
-    )
-
+    # Policy
     policy = GaussianTorchPolicy(
-        Network,
+        ActorNetwork,
         mdp.info.observation_space.shape,
         mdp.info.action_space.shape,
-        std_0=args.std_0,
-        n_features=args.n_features,
-        use_cuda=torch.cuda.is_available(),
+        std_0=std_0,
+        n_features=n_features,
+        gain_scale=0.1,
     )
 
-    agent = PPO(mdp.info, policy, **alg_params)
+    # Agent
+    critic_params = dict(
+        network=FeedForwardNetwork,
+        optimizer={"class": optim.Adam, "params": {"lr": critic_lr}},
+        loss=F.mse_loss,
+        n_features=n_features,
+        gain_scale=0.1,
+        batch_size=batch_size,
+        input_shape=mdp.info.observation_space.shape,
+        output_shape=(1,),
+    )
+
+    agent = PPO(
+        mdp.info,
+        policy,
+        critic_params=critic_params,
+        actor_optimizer={"class": optim.Adam, "params": {"lr": actor_lr}},
+        n_epochs_policy=n_epochs_policy,
+        batch_size=batch_size,
+        eps_ppo=eps,
+        lam=lam,
+        ent_coeff=ent_coeff,
+    )
+
     agent.add_core_preprocessor(StandardizationPreprocessor(mdp.info))
 
+    # Algorithm
     core = Core(agent, mdp, logger=logger)
 
-    def evaluate(epoch):
-        dataset = core.evaluate(n_episodes=args.n_episodes_test, render=False)
-        J = to_scalar(dataset.discounted_return)
-        R = to_scalar(dataset.undiscounted_return)
-        E = compute_entropy(agent, dataset)
-        lengths = dataset.episodes_length
-        if not isinstance(lengths, (np.ndarray, torch.Tensor)):
-            lengths = np.asarray(lengths, dtype=np.float64)
-        L = to_scalar(lengths)
+    # RUN
+    dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
 
-        # log_evaluation prints to the console via epoch_info, stores the
-        # metrics on disk as numpy arrays, and logs to wandb when enabled.
-        logger.log_evaluation(epoch, J=J, R=R, entropy=E, mean_ep_len=L)
+    J = dataset.discounted_return.mean()
+    R = dataset.undiscounted_return.mean()
+    E = agent.policy.entropy().item()
 
-        if args.save_agent:
-            logger.log_best_agent(agent, J)
+    logger.log_evaluation(0, J=J, R=R, entropy=E)
 
-    evaluate(0)
+    for it in trange(n_epochs, leave=False):
+        core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit)
+        dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
 
-    for it in trange(args.n_epochs, leave=False):
-        core.learn(n_steps=args.n_steps, n_steps_per_fit=args.n_steps_per_fit)
-        evaluate(it + 1)
+        J = dataset.discounted_return.mean()
+        R = dataset.undiscounted_return.mean()
+        E = agent.policy.entropy().item()
 
-    mdp.stop()
-    logger.info("done.")
+        logger.log_evaluation(it + 1, J=J, R=R, entropy=E)
 
 
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
-
-
-def bool_flag(s):
-    return s.lower() in ("1", "true", "yes")
-
-
-def main():
-    parser = argparse.ArgumentParser()
-
-    # env / backend / seed / run control
-    parser.add_argument(
-        "--envs",
-        nargs="+",
-        default=["hopper"],
-        choices=list(ENV_TABLE.keys()),
-        help="One or more envs to train sequentially.",
-    )
+def parse_args():
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--env",
-        dest="single_env",
-        default=None,
-        choices=list(ENV_TABLE.keys()),
-        help="Convenience alias for --envs with one entry.",
+        choices=[env.name() for env in get_environments()],
+        default=HopperWarp.name(),
+        help="the locomotion environment to solve",
     )
-    parser.add_argument("--backend", choices=["vanilla", "warp"], default="warp")
-    parser.add_argument("--seed", type=int, default=1)
-    parser.add_argument("--device", type=str, default="cuda:0")
-    parser.add_argument("--results_dir", type=str, default="./logs")
+    parser.add_argument(
+        "--n-envs", type=int, default=100, help="number of parallel environments"
+    )
+    parser.add_argument(
+        "--no-graph-capture",
+        action="store_false",
+        dest="graph_capture",
+        help="disable CUDA graph capture",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="seed of the experiment, random when not given",
+    )
 
-    # training regime
-    parser.add_argument("--n_envs", type=int, default=100)
-    parser.add_argument("--n_steps", type=int, default=1_000_000)
-    parser.add_argument("--n_steps_per_fit", type=int, default=100_000)
-    parser.add_argument("--n_epochs", type=int, default=50)
-    parser.add_argument("--n_epochs_policy", type=int, default=10)
-    parser.add_argument("--n_episodes_test", type=int, default=10)
-
-    # PPO / policy hyperparams
-    parser.add_argument("--actor_lr", type=float, default=3e-4)
-    parser.add_argument("--critic_lr", type=float, default=3e-4)
-    parser.add_argument("--n_features", type=int, default=32)
-    parser.add_argument("--batch_size", type=int, default=1024)
-    parser.add_argument("--eps_ppo", type=float, default=0.2)
-    parser.add_argument("--lam", type=float, default=0.95)
-    parser.add_argument("--ent_coeff", type=float, default=0.001)
-    parser.add_argument("--std_0", type=float, default=1.0)
-
-    # toggles (default on; pass --flag false to disable)
-    parser.add_argument("--graph_capture", type=bool_flag, default=True)
-    parser.add_argument("--save_agent", type=bool_flag, default=True)
-    parser.add_argument("--wandb", type=bool_flag, default=True)
-
-    args = parser.parse_args()
-    envs = [args.single_env] if args.single_env else args.envs
-
-    for env_name in envs:
-        experiment(env_name, args)
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
-    main()
+    args = parse_args()
+    env = select_class(args.env, get_environments())
+
+    experiment(
+        env=env,
+        n_epochs=50,
+        n_steps=1_000_000,
+        n_steps_per_fit=100_000,
+        n_episodes_test=10,
+        n_envs=args.n_envs,
+        use_graph_capture=args.graph_capture,
+        seed=args.seed,
+    )
