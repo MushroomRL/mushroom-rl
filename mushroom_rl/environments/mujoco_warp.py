@@ -81,8 +81,9 @@ class MuJoCoWarp(VectorizedEnvironment):
         self.obs_helper = ObservationHelper(
             observation_spec,
             self._model,
-            is_warp=True,
+            _tmp_data,
             max_joint_velocity=max_joint_vel,
+            is_warp=True,
         )
         observation_space = Box(*self.obs_helper.get_obs_limits())
 
@@ -259,7 +260,7 @@ class MuJoCoWarp(VectorizedEnvironment):
 
     def setup(self, env_indices, obs):
         if obs is not None:
-            self.obs_helper._modify_data(self._data_wp, obs, env_indices)
+            self.obs_helper._modify_warp_data(self._data_wp, obs, env_indices)
         self._mj_warp.forward(self._model_wp, self._data_wp)
 
     # ------------------------------------------------------------------

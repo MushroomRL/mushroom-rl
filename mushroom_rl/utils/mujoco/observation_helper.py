@@ -8,7 +8,8 @@ class ObservationType(Enum):
     """
     An enum indicating the type of data that should be added to the observation
     of the environment, can be Joint-/Body-/Site- positions, rotations, and velocities.
-    The Observation have the following returns:
+    The Observation have the following returns::
+
         BODY_POS: (3,) x, y, z position of the body
         BODY_ROT: (4,) quaternion of the body
         BODY_VEL: (6,) first angular velocity around x, y, z. Then linear velocity for x, y, z, in local frame
@@ -30,49 +31,42 @@ class ObservationType(Enum):
 
 
 class ObservationHelper:
-    def __init__(self, observation_spec, model, is_warp=False, max_joint_velocity=None):
-        """
-        Args:
-            observation_spec (list): list of (key, name, ObservationType) tuples.
-            model: MuJoCo model (MjModel).
-            is_warp (bool): True when used with a mujoco_warp batched environment.
-            max_joint_velocity: optional iterator/list of max velocities for JOINT_VEL entries.
-        """
+    def __init__(self, observation_spec, model, data, max_joint_velocity, is_warp=False):
         if len(observation_spec) == 0:
             raise AttributeError("No Environment observations were specified. "
                                  "Add at least one observation to the observation_spec.")
-
-        self._is_warp = is_warp
 
         self.obs_low = []
         self.obs_high = []
         self.joint_pos_idx = []
         self.joint_vel_idx = []
+        self.joint_mujoco_idx = []
 
         self.obs_idx_map = {}
+
         self.build_omit_idx = {}
+
         self.observation_spec = observation_spec
 
         if max_joint_velocity is not None:
             max_joint_velocity = iter(max_joint_velocity)
 
-        self._precomputed = []
-
         current_idx = 0
         for key, name, ot in observation_spec:
-            assert key not in self.obs_idx_map.keys(), f"Found duplicate key in observation specification: \"{key}\""
-            obs_count = self._obs_size(model, name, ot)
+            assert key not in self.obs_idx_map.keys(), "Found duplicate key in observation specification: \"%s\"" % key
+            obs_count = len(self.get_state(model, data, name, ot))
             self.obs_idx_map[key] = list(range(current_idx, current_idx + obs_count))
             self.build_omit_idx[key] = []
-
             if obs_count == 1 and ot == ObservationType.JOINT_POS:
                 self.joint_pos_idx.append(current_idx)
+                self.joint_mujoco_idx.append(model.joint(name).id)
                 if model.joint(name).limited:
                     self.obs_low.append(model.joint(name).range[0])
                     self.obs_high.append(model.joint(name).range[1])
                 else:
                     self.obs_low.append(-np.inf)
                     self.obs_high.append(np.inf)
+
             elif obs_count == 1 and ot == ObservationType.JOINT_VEL:
                 self.joint_vel_idx.append(current_idx)
                 if max_joint_velocity is None:
@@ -86,57 +80,16 @@ class ObservationHelper:
                 self.obs_low.extend([-np.inf] * obs_count)
                 self.obs_high.extend([np.inf] * obs_count)
 
-            # Precompute static indices
-            if ot in (ObservationType.BODY_POS, ObservationType.BODY_ROT,
-                      ObservationType.BODY_VEL, ObservationType.BODY_VEL_WORLD):
-                self._precomputed.append((key, ot, model.body(name).id, 0))
-            elif ot == ObservationType.JOINT_POS:
-                jnt = model.joint(name)
-                self._precomputed.append((key, ot, model.jnt_qposadr[jnt.id], obs_count))
-            elif ot == ObservationType.JOINT_VEL:
-                jnt = model.joint(name)
-                self._precomputed.append((key, ot, model.jnt_dofadr[jnt.id], obs_count))
-            elif ot in (ObservationType.SITE_POS, ObservationType.SITE_ROT):
-                self._precomputed.append((key, ot, model.site(name).id, 0))
-
             current_idx += obs_count
 
         self.obs_low = np.array(self.obs_low)
         self.obs_high = np.array(self.obs_high)
 
-    @staticmethod
-    def _obs_size(model, name, ot):
-        """
-        Return the number of scalar values for this observation entry.
-        """
-        if ot == ObservationType.BODY_POS:
-            return 3
-        elif ot == ObservationType.BODY_ROT:
-            return 4
-        elif ot in (ObservationType.BODY_VEL, ObservationType.BODY_VEL_WORLD):
-            return 6
-        elif ot == ObservationType.JOINT_POS:
-            jnt_type = model.jnt_type[model.joint(name).id]
-            if jnt_type == mujoco.mjtJoint.mjJNT_FREE:
-                return 7
-            elif jnt_type == mujoco.mjtJoint.mjJNT_BALL:
-                return 4
-            else:
-                return 1
-        elif ot == ObservationType.JOINT_VEL:
-            jnt_type = model.jnt_type[model.joint(name).id]
-            if jnt_type == mujoco.mjtJoint.mjJNT_FREE:
-                return 6
-            elif jnt_type == mujoco.mjtJoint.mjJNT_BALL:
-                return 3
-            else:
-                return 1
-        elif ot == ObservationType.SITE_POS:
-            return 3
-        elif ot == ObservationType.SITE_ROT:
-            return 9
-        else:
-            raise ValueError(f'Invalid observation type: {ot}')
+        # --- MuJoCo Warp support (additive; no effect on the standard path) ---
+        self._is_warp = is_warp
+        self._precomputed = []
+        if is_warp:
+            self._precompute_warp_indices(model)
 
     def remove_obs(self, key, index):
         """
@@ -186,6 +139,10 @@ class ObservationHelper:
             self.obs_high = np.append(self.obs_high, [max_value] * length)
 
     def get_from_obs(self, obs, key):
+        # Cannot use advanced indexing because it returns a copy.....
+        # We want this data to be writeable
+        # The Ellipsis makes the same slice work for batched (nworld, obs_dim)
+        # observations coming from mujoco_warp; for 1-D obs it is equivalent.
         return obs[..., self.obs_idx_map[key][0]:self.obs_idx_map[key][-1] + 1]
 
     def get_joint_pos_from_obs(self, obs):
@@ -203,129 +160,146 @@ class ObservationHelper:
     def get_joint_vel_limits(self):
         return self.obs_low[self.joint_vel_idx], self.obs_high[self.joint_vel_idx]
 
-    def get_all_observation_keys(self):
-        return list(self.obs_idx_map.keys())
-
-    def build_obs(self, data):
+    def _build_obs(self, model, data):
         """
-        Build the observation vector from simulation data.
-
+        Builds the observation given the true state of the simulation. The ObservationType documentation
+        describes the different returns in detail
         Args:
-            data: mujoco.MjData  → returns np.ndarray of shape (obs_dim,)
-                  mujoco_warp.Data → returns torch.Tensor of shape (nworld, obs_dim)
-        """
-        if self._is_warp:
-            return self._build_obs_warp(data)
-        return self._build_obs(data)
+            data: The data of the mujoco sim
 
-    def _modify_data(self, data, obs, env_indices=None):
-        """
-        Write joint states from obs back into the simulation.
-
-        Args:
-            data: mujoco.MjData or mujoco_warp.Data
-            obs: observation array/tensor
-            env_indices: only used for warp — 1-D array of world indices to update
-        """
-        if self._is_warp:
-            self._modify_warp_data(data, obs, env_indices)
-        else:
-            self._modify_mujoco_data(data, obs)
-
-    def _build_obs(self, data):
-        """
-        Build a 1-D numpy observation for one environment using precomputed indices.
+        Returns: np.array with all the observations defined by observation_spec
         """
         observations = []
-        for key, ot, idx1, idx2 in self._precomputed:
+        for key, name, o_type in self.observation_spec:
             omit = np.array(self.build_omit_idx[key])
-
-            if ot == ObservationType.BODY_POS:
-                obs = np.atleast_1d(data.xpos[idx1])
-            elif ot == ObservationType.BODY_ROT:
-                obs = np.atleast_1d(data.xquat[idx1])
-            elif ot == ObservationType.BODY_VEL_WORLD:
-                obs = np.atleast_1d(data.cvel[idx1])
-            elif ot == ObservationType.BODY_VEL:
-                # Rotate world-frame cvel into body-local frame via xmat
-                cvel = data.cvel[idx1]
-                R = data.xmat[idx1].reshape(3, 3)
-                obs = np.concatenate([R.T @ cvel[:3], R.T @ cvel[3:]])
-            elif ot == ObservationType.JOINT_POS:
-                obs = np.atleast_1d(data.qpos[idx1:idx1 + idx2])
-            elif ot == ObservationType.JOINT_VEL:
-                obs = np.atleast_1d(data.qvel[idx1:idx1 + idx2])
-            elif ot == ObservationType.SITE_POS:
-                obs = np.atleast_1d(data.site_xpos[idx1])
-            elif ot == ObservationType.SITE_ROT:
-                obs = np.atleast_1d(data.site_xmat[idx1])
-            else:
-                raise ValueError(f'Invalid observation type: {ot}')
-
+            obs = self.get_state(model, data, name, o_type)
             if len(omit) != 0:
                 obs = np.delete(obs, omit)
             observations.append(obs)
-
         return np.concatenate(observations)
 
-    def _modify_mujoco_data(self, data, obs):
+    def _modify_data(self, model, data, obs):
         """
-        Write obs values into a standard MjData object.
+        Write the values of the observation into the provided mujoco data object. ONLY joint_pos / joint_vel
+        observations will have an effect on the simulation when overwritten. Everything else is just discarded by mujoco
         """
         current_idx = 0
-        for key, ot, idx1, idx2 in self._precomputed:
+        for key, name, o_type in self.observation_spec:
             omit = np.array(self.build_omit_idx[key])
+            current_obs = self.get_state(model, data, name, o_type)
+            for i in range(len(current_obs)):
+                if i not in omit:
+                    current_obs[i] = obs[current_idx]
+                    current_idx += 1
 
-            if ot == ObservationType.JOINT_POS:
-                qpos_view = data.qpos[idx1:idx1 + idx2]
-                for i in range(idx2):
-                    if i not in omit:
-                        qpos_view[i] = obs[current_idx]
-                        current_idx += 1
-            elif ot == ObservationType.JOINT_VEL:
-                qvel_view = data.qvel[idx1:idx1 + idx2]
-                for i in range(idx2):
-                    if i not in omit:
-                        qvel_view[i] = obs[current_idx]
-                        current_idx += 1
-            else:
-                current_idx += len(self.obs_idx_map[key])
-
-    def get_state(self, data, name, o_type):
+    def get_state(self, model, data, name, o_type):
         """
-        Read a single observation entry from a standard MjData object.
-        Returns a 1-D numpy array.
+        Get a single observation from data, given it's name and observation type. The ObservationType documentation
+        describes the different returns in detail
         """
         if o_type == ObservationType.BODY_POS:
-            return np.atleast_1d(data.body(name).xpos)
+            obs = data.body(name).xpos
         elif o_type == ObservationType.BODY_ROT:
-            return np.atleast_1d(data.body(name).xquat)
-        elif o_type == ObservationType.BODY_VEL_WORLD:
-            return np.atleast_1d(data.cvel[data.body(name).id])
-        elif o_type == ObservationType.BODY_VEL:
-            body_id = data.body(name).id
-            cvel = data.cvel[body_id]
-            R = data.xmat[body_id].reshape(3, 3)
-            return np.concatenate([R.T @ cvel[:3], R.T @ cvel[3:]])
+            obs = data.body(name).xquat
+        elif o_type == ObservationType.BODY_VEL or o_type == ObservationType.BODY_VEL_WORLD:
+            local = o_type == ObservationType.BODY_VEL
+            obs = np.empty(6)
+            mujoco.mj_objectVelocity(model, data, mujoco.mjtObj.mjOBJ_XBODY, data.body(name).id, obs, local)
         elif o_type == ObservationType.JOINT_POS:
-            return np.atleast_1d(data.joint(name).qpos)
+            obs = data.joint(name).qpos
         elif o_type == ObservationType.JOINT_VEL:
-            return np.atleast_1d(data.joint(name).qvel)
+            obs = data.joint(name).qvel
         elif o_type == ObservationType.SITE_POS:
-            return np.atleast_1d(data.site(name).xpos)
+            obs = data.site(name).xpos
         elif o_type == ObservationType.SITE_ROT:
-            return np.atleast_1d(data.site(name).xmat)
+            # Sites don't have rotation quaternion for some reason...
+            # x_mat is rotation matrix with shape (9,)
+            obs = data.site(name).xmat
         else:
             raise ValueError('Invalid observation type')
 
-    def _build_obs_warp(self, data_wp):
+        return np.atleast_1d(obs)
+
+    def get_all_observation_keys(self):
+        return list(self.obs_idx_map.keys())
+
+    # ------------------------------------------------------------------
+    # MuJoCo Warp support
+    #
+    # Everything below is only used when the helper is constructed with
+    # is_warp=True by a mujoco_warp batched environment. The standard
+    # MuJoCo path above is unaffected.
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _obs_size(model, name, ot):
         """
-        Build batched observations from a MuJoCo Warp data object.
-        Uses wp.to_torch for zero-copy GPU tensor access.
+        Return the number of scalar values for this observation entry,
+        computed from the model alone (no MjData required).
+        """
+        if ot == ObservationType.BODY_POS:
+            return 3
+        elif ot == ObservationType.BODY_ROT:
+            return 4
+        elif ot in (ObservationType.BODY_VEL, ObservationType.BODY_VEL_WORLD):
+            return 6
+        elif ot == ObservationType.JOINT_POS:
+            jnt_type = model.jnt_type[model.joint(name).id]
+            if jnt_type == mujoco.mjtJoint.mjJNT_FREE:
+                return 7
+            elif jnt_type == mujoco.mjtJoint.mjJNT_BALL:
+                return 4
+            else:
+                return 1
+        elif ot == ObservationType.JOINT_VEL:
+            jnt_type = model.jnt_type[model.joint(name).id]
+            if jnt_type == mujoco.mjtJoint.mjJNT_FREE:
+                return 6
+            elif jnt_type == mujoco.mjtJoint.mjJNT_BALL:
+                return 3
+            else:
+                return 1
+        elif ot == ObservationType.SITE_POS:
+            return 3
+        elif ot == ObservationType.SITE_ROT:
+            return 9
+        else:
+            raise ValueError(f'Invalid observation type: {ot}')
+
+    def _precompute_warp_indices(self, model):
+        """
+        Precompute static model indices so that batched observations can be
+        assembled with tensor slicing instead of per-step name lookups.
+        """
+        self._precomputed = []
+        for key, name, ot in self.observation_spec:
+            obs_count = len(self.obs_idx_map[key])
+            if ot in (ObservationType.BODY_POS, ObservationType.BODY_ROT,
+                      ObservationType.BODY_VEL, ObservationType.BODY_VEL_WORLD):
+                self._precomputed.append((key, ot, model.body(name).id, 0))
+            elif ot == ObservationType.JOINT_POS:
+                jnt = model.joint(name)
+                self._precomputed.append((key, ot, model.jnt_qposadr[jnt.id], obs_count))
+            elif ot == ObservationType.JOINT_VEL:
+                jnt = model.joint(name)
+                self._precomputed.append((key, ot, model.jnt_dofadr[jnt.id], obs_count))
+            elif ot in (ObservationType.SITE_POS, ObservationType.SITE_ROT):
+                self._precomputed.append((key, ot, model.site(name).id, 0))
+
+    def build_obs(self, data_wp):
+        """
+        Build batched observations from a MuJoCo Warp data object. Only
+        available when the helper was constructed with is_warp=True; the
+        standard MuJoCo path uses _build_obs(model, data) instead.
 
         Returns:
             torch.Tensor of shape (nworld, obs_dim).
         """
+        assert self._is_warp, "build_obs is only available with is_warp=True; " \
+                              "use _build_obs(model, data) for standard MuJoCo."
+        return self._build_obs_warp(data_wp)
+
+    def _build_obs_warp(self, data_wp):
         import warp as wp
         import torch
 
@@ -358,13 +332,13 @@ class ObservationHelper:
                     torch.einsum('nij,nj->ni', Rt, vel[:, 3:]),
                 ], dim=-1)                                                  # (nworld, 6)
             elif ot == ObservationType.JOINT_POS:
-                chunk = qpos[:, idx1:idx1 + idx2]                         # (nworld, size)
+                chunk = qpos[:, idx1:idx1 + idx2]                          # (nworld, size)
             elif ot == ObservationType.JOINT_VEL:
-                chunk = qvel[:, idx1:idx1 + idx2]                         # (nworld, size)
+                chunk = qvel[:, idx1:idx1 + idx2]                          # (nworld, size)
             elif ot == ObservationType.SITE_POS:
                 chunk = site_xpos[:, idx1, :]                              # (nworld, 3)
             elif ot == ObservationType.SITE_ROT:
-                chunk = site_xmat[:, idx1, :, :].reshape(-1, 9)           # (nworld, 9)
+                chunk = site_xmat[:, idx1, :, :].reshape(-1, 9)            # (nworld, 9)
             else:
                 raise ValueError(f'Invalid observation type: {ot}')
 
@@ -378,9 +352,9 @@ class ObservationHelper:
 
     def _modify_warp_data(self, data_wp, obs, env_indices):
         """
-        Write joint states from obs into the warp data for the specified environments.
-        Uses wp.to_torch views for zero-copy in-place writes on the GPU.
-        Only JOINT_POS and JOINT_VEL affect simulation state.
+        Write joint states from obs into the warp data for the specified
+        environments. Uses wp.to_torch views for zero-copy in-place writes
+        on the GPU. Only JOINT_POS and JOINT_VEL affect simulation state.
         """
         import warp as wp
 
