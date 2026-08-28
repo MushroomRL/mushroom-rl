@@ -1,8 +1,7 @@
 import torch
 
 
-@torch.jit.script
-def torch_rand_float(lower: float, upper: float, shape: tuple[int, int], device: str) -> torch.Tensor:
+def torch_rand_float(lower, upper, shape, device):
     """
     Draws floats uniformly distributed in ``[lower, upper]``.
 
@@ -19,8 +18,7 @@ def torch_rand_float(lower: float, upper: float, shape: tuple[int, int], device:
     return (upper - lower) * torch.rand(*shape, device=device) + lower
 
 
-@torch.jit.script
-def quat_apply(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+def quat_apply(a, b):
     """
     Rotates vectors by quaternions.
 
@@ -40,8 +38,7 @@ def quat_apply(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     return (b + a[:, 0:1] * t + xyz.cross(t, dim=-1)).view(shape)
 
 
-@torch.jit.script
-def quat_mul(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+def quat_mul(a, b):
     """
     Composes two rotations, applying ``b`` first and ``a`` second.
 
@@ -62,8 +59,7 @@ def quat_mul(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
                         aw * bz + ax * by - ay * bx + az * bw), dim=-1)
 
 
-@torch.jit.script
-def quat_rotate_inverse(q: torch.Tensor, v: torch.Tensor) -> torch.Tensor:
+def quat_rotate_inverse(q, v):
     """
     Rotates vectors by the inverse of quaternions.
 
