@@ -156,21 +156,16 @@ class SceneBuilder:
         cloner = GridCloner(spacing=self._env_spacing)
         cloner.define_base_env(self._base_env_path)
         self._prim_paths = cloner.generate_paths(self._template_env_path, self._num_envs)
-        
+
         stage.DefinePrim(self._prim_paths[0], "Xform")
 
         env_pos = cloner.clone(
             source_prim_path=self._prim_paths[0],
             prim_paths=self._prim_paths,
             replicate_physics=True,
-            copy_from_source=False  # Faster, but changes made to source prim will also reflect in the cloned prims
-        )
-
-        cloner.replicate_physics(
-            source_prim_path=self._prim_paths[0],
-            prim_paths=self._prim_paths,
             base_env_path=self._base_env_path,
             root_path=self._template_env_path + "_",
+            copy_from_source=False,  # Faster, but changes made to source prim will also reflect in the cloned prims
             enable_env_ids=not self._collisions_between_envs
         )
 
