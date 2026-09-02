@@ -405,11 +405,17 @@ class ObservationHelper:
         return torch.cat(obs_chunks, dim=-1)  # (nworld, obs_dim)
 
     def _modify_warp_data(self, data_wp, obs, env_indices):
-        """
-        Write joint states from obs into the warp data for the specified
-        environments. Uses wp.to_torch views for zero-copy in-place writes
-        on the GPU. Only JOINT_POS and JOINT_VEL affect simulation state.
-        """
+         """
+        Write the values of the observation into the given mujoco_warp data
+        object, for the environments listed in env_indices.ONLY joint_pos /
+        joint_vel observations will have an effect on the simulation when
+        overwritten. Everything else is just discarded by mujoco. 
+
+        Args:
+            data_wp: the batched data of the mujoco_warp sim;
+            obs: observations for the environments being written;
+            env_indices: indices of the environments to update.
+        """        
         import warp as wp
 
         qpos_view = wp.to_torch(data_wp.qpos)
