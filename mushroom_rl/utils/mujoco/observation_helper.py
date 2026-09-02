@@ -19,6 +19,7 @@ class ObservationType(Enum):
         SITE_POS: (3,) x, y, z position of the body
         SITE_ROT: (9,) rotation matrix of the site
     """
+
     __order__ = "BODY_POS BODY_ROT BODY_VEL BODY_VEL_WORLD JOINT_POS JOINT_VEL SITE_POS SITE_ROT"
     BODY_POS = 0
     BODY_ROT = 1
@@ -31,10 +32,14 @@ class ObservationType(Enum):
 
 
 class ObservationHelper:
-    def __init__(self, observation_spec, model, data, max_joint_velocity, is_warp=False):
+    def __init__(
+        self, observation_spec, model, data, max_joint_velocity, is_warp=False
+    ):
         if len(observation_spec) == 0:
-            raise AttributeError("No Environment observations were specified. "
-                                 "Add at least one observation to the observation_spec.")
+            raise AttributeError(
+                "No Environment observations were specified. "
+                "Add at least one observation to the observation_spec."
+            )
 
         self.obs_low = []
         self.obs_high = []
@@ -53,7 +58,9 @@ class ObservationHelper:
 
         current_idx = 0
         for key, name, ot in observation_spec:
-            assert key not in self.obs_idx_map.keys(), "Found duplicate key in observation specification: \"%s\"" % key
+            assert key not in self.obs_idx_map.keys(), (
+                'Found duplicate key in observation specification: "%s"' % key
+            )
             obs_count = len(self.get_state(model, data, name, ot))
             self.obs_idx_map[key] = list(range(current_idx, current_idx + obs_count))
             self.build_omit_idx[key] = []
@@ -126,7 +133,9 @@ class ObservationHelper:
         appended to the original observation via _create_observation(self, state), but can get be accessed via
         get_from_obs(self, obs, name, o_type) and is in obs_low / obs_high
         """
-        self.obs_idx_map[key] = list(range(len(self.obs_low), len(self.obs_low) + length))
+        self.obs_idx_map[key] = list(
+            range(len(self.obs_low), len(self.obs_low) + length)
+        )
 
         if hasattr(min_value, "__len__"):
             self.obs_low = np.append(self.obs_low, min_value)
@@ -143,7 +152,7 @@ class ObservationHelper:
         # We want this data to be writeable
         # The Ellipsis makes the same slice work for batched (nworld, obs_dim)
         # observations coming from mujoco_warp; for 1-D obs it is equivalent.
-        return obs[..., self.obs_idx_map[key][0]:self.obs_idx_map[key][-1] + 1]
+        return obs[..., self.obs_idx_map[key][0] : self.obs_idx_map[key][-1] + 1]
 
     def get_joint_pos_from_obs(self, obs):
         return obs[self.joint_pos_idx]
@@ -201,10 +210,15 @@ class ObservationHelper:
             obs = data.body(name).xpos
         elif o_type == ObservationType.BODY_ROT:
             obs = data.body(name).xquat
-        elif o_type == ObservationType.BODY_VEL or o_type == ObservationType.BODY_VEL_WORLD:
+        elif (
+            o_type == ObservationType.BODY_VEL
+            or o_type == ObservationType.BODY_VEL_WORLD
+        ):
             local = o_type == ObservationType.BODY_VEL
             obs = np.empty(6)
-            mujoco.mj_objectVelocity(model, data, mujoco.mjtObj.mjOBJ_XBODY, data.body(name).id, obs, local)
+            mujoco.mj_objectVelocity(
+                model, data, mujoco.mjtObj.mjOBJ_XBODY, data.body(name).id, obs, local
+            )
         elif o_type == ObservationType.JOINT_POS:
             obs = data.joint(name).qpos
         elif o_type == ObservationType.JOINT_VEL:
@@ -216,7 +230,7 @@ class ObservationHelper:
             # x_mat is rotation matrix with shape (9,)
             obs = data.site(name).xmat
         else:
-            raise ValueError('Invalid observation type')
+            raise ValueError("Invalid observation type")
 
         return np.atleast_1d(obs)
 
@@ -264,7 +278,7 @@ class ObservationHelper:
         elif ot == ObservationType.SITE_ROT:
             return 9
         else:
-            raise ValueError(f'Invalid observation type: {ot}')
+            raise ValueError(f"Invalid observation type: {ot}")
 
     def _precompute_warp_indices(self, model):
         """
@@ -274,12 +288,20 @@ class ObservationHelper:
         self._precomputed = []
         for key, name, ot in self.observation_spec:
             obs_count = len(self.obs_idx_map[key])
-            if ot in (ObservationType.BODY_POS, ObservationType.BODY_ROT,
-                      ObservationType.BODY_VEL, ObservationType.BODY_VEL_WORLD):
+            if ot in (
+                ObservationType.BODY_POS,
+                ObservationType.BODY_ROT,
+                ObservationType.BODY_VEL,
+                ObservationType.BODY_VEL_WORLD,
+            ):
+                body_id = model.body(name).id
+                root_id = model.body_rootid[body_id]
                 self._precomputed.append((key, ot, model.body(name).id, 0))
             elif ot == ObservationType.JOINT_POS:
                 jnt = model.joint(name)
-                self._precomputed.append((key, ot, model.jnt_qposadr[jnt.id], obs_count))
+                self._precomputed.append(
+                    (key, ot, model.jnt_qposadr[jnt.id], obs_count)
+                )
             elif ot == ObservationType.JOINT_VEL:
                 jnt = model.joint(name)
                 self._precomputed.append((key, ot, model.jnt_dofadr[jnt.id], obs_count))
@@ -295,8 +317,10 @@ class ObservationHelper:
         Returns:
             torch.Tensor of shape (nworld, obs_dim).
         """
-        assert self._is_warp, "build_obs is only available with is_warp=True; " \
-                              "use _build_obs(model, data) for standard MuJoCo."
+        assert self._is_warp, (
+            "build_obs is only available with is_warp=True; "
+            "use _build_obs(model, data) for standard MuJoCo."
+        )
         return self._build_obs_warp(data_wp)
 
     def _build_obs_warp(self, data_wp):
@@ -305,42 +329,62 @@ class ObservationHelper:
 
         needed = {ot for _, ot, _, _ in self._precomputed}
 
-        xpos      = wp.to_torch(data_wp.xpos)      if ObservationType.BODY_POS in needed else None
-        xquat     = wp.to_torch(data_wp.xquat)     if ObservationType.BODY_ROT in needed else None
-        needs_vel = ObservationType.BODY_VEL in needed or ObservationType.BODY_VEL_WORLD in needed
-        cvel      = wp.to_torch(data_wp.cvel)      if needs_vel else None
-        xmat      = wp.to_torch(data_wp.xmat)      if ObservationType.BODY_VEL in needed else None
-        qpos      = wp.to_torch(data_wp.qpos)      if ObservationType.JOINT_POS in needed else None
-        qvel      = wp.to_torch(data_wp.qvel)      if ObservationType.JOINT_VEL in needed else None
-        site_xpos = wp.to_torch(data_wp.site_xpos) if ObservationType.SITE_POS in needed else None
-        site_xmat = wp.to_torch(data_wp.site_xmat) if ObservationType.SITE_ROT in needed else None
+        xpos = wp.to_torch(data_wp.xpos) if ObservationType.BODY_POS in needed else None
+        xquat = (
+            wp.to_torch(data_wp.xquat) if ObservationType.BODY_ROT in needed else None
+        )
+        needs_vel = (
+            ObservationType.BODY_VEL in needed
+            or ObservationType.BODY_VEL_WORLD in needed
+        )
+        cvel = wp.to_torch(data_wp.cvel) if needs_vel else None
+        xmat = wp.to_torch(data_wp.xmat) if ObservationType.BODY_VEL in needed else None
+        qpos = (
+            wp.to_torch(data_wp.qpos) if ObservationType.JOINT_POS in needed else None
+        )
+        qvel = (
+            wp.to_torch(data_wp.qvel) if ObservationType.JOINT_VEL in needed else None
+        )
+        site_xpos = (
+            wp.to_torch(data_wp.site_xpos)
+            if ObservationType.SITE_POS in needed
+            else None
+        )
+        site_xmat = (
+            wp.to_torch(data_wp.site_xmat)
+            if ObservationType.SITE_ROT in needed
+            else None
+        )
 
         obs_chunks = []
         for key, ot, idx1, idx2 in self._precomputed:
             if ot == ObservationType.BODY_POS:
-                chunk = xpos[:, idx1, :]                                   # (nworld, 3)
+                chunk = xpos[:, idx1, :]  # (nworld, 3)
             elif ot == ObservationType.BODY_ROT:
-                chunk = xquat[:, idx1, :]                                  # (nworld, 4)
+                chunk = xquat[:, idx1, :]  # (nworld, 4)
             elif ot == ObservationType.BODY_VEL_WORLD:
-                chunk = cvel[:, idx1, :]                                   # (nworld, 6)
+                chunk = cvel[:, idx1, :]  # (nworld, 6)
             elif ot == ObservationType.BODY_VEL:
-                R   = xmat[:, idx1, :, :]                                  # (nworld, 3, 3)
-                Rt  = R.transpose(-2, -1)
-                vel = cvel[:, idx1, :]                                     # (nworld, 6)
-                chunk = torch.cat([
-                    torch.einsum('nij,nj->ni', Rt, vel[:, :3]),
-                    torch.einsum('nij,nj->ni', Rt, vel[:, 3:]),
-                ], dim=-1)                                                  # (nworld, 6)
+                R = xmat[:, idx1, :, :]  # (nworld, 3, 3)
+                Rt = R.transpose(-2, -1)
+                vel = cvel[:, idx1, :]  # (nworld, 6)
+                chunk = torch.cat(
+                    [
+                        torch.einsum("nij,nj->ni", Rt, vel[:, :3]),
+                        torch.einsum("nij,nj->ni", Rt, vel[:, 3:]),
+                    ],
+                    dim=-1,
+                )  # (nworld, 6)
             elif ot == ObservationType.JOINT_POS:
-                chunk = qpos[:, idx1:idx1 + idx2]                          # (nworld, size)
+                chunk = qpos[:, idx1 : idx1 + idx2]  # (nworld, size)
             elif ot == ObservationType.JOINT_VEL:
-                chunk = qvel[:, idx1:idx1 + idx2]                          # (nworld, size)
+                chunk = qvel[:, idx1 : idx1 + idx2]  # (nworld, size)
             elif ot == ObservationType.SITE_POS:
-                chunk = site_xpos[:, idx1, :]                              # (nworld, 3)
+                chunk = site_xpos[:, idx1, :]  # (nworld, 3)
             elif ot == ObservationType.SITE_ROT:
-                chunk = site_xmat[:, idx1, :, :].reshape(-1, 9)            # (nworld, 9)
+                chunk = site_xmat[:, idx1, :, :].reshape(-1, 9)  # (nworld, 9)
             else:
-                raise ValueError(f'Invalid observation type: {ot}')
+                raise ValueError(f"Invalid observation type: {ot}")
 
             omit = np.array(self.build_omit_idx[key])
             if len(omit) != 0:
@@ -364,10 +408,14 @@ class ObservationHelper:
         current_idx = 0
         for key, ot, idx1, idx2 in self._precomputed:
             if ot == ObservationType.JOINT_POS:
-                qpos_view[env_indices, idx1:idx1 + idx2] = obs[:, current_idx:current_idx + idx2]
+                qpos_view[env_indices, idx1 : idx1 + idx2] = obs[
+                    :, current_idx : current_idx + idx2
+                ]
                 current_idx += idx2
             elif ot == ObservationType.JOINT_VEL:
-                qvel_view[env_indices, idx1:idx1 + idx2] = obs[:, current_idx:current_idx + idx2]
+                qvel_view[env_indices, idx1 : idx1 + idx2] = obs[
+                    :, current_idx : current_idx + idx2
+                ]
                 current_idx += idx2
             else:
                 current_idx += len(self.obs_idx_map[key])
