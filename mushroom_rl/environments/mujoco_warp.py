@@ -307,15 +307,11 @@ class MuJoCoWarp(VectorizedEnvironment):
         ctrl_action_t = ctrl_action_t.to(device=device, dtype=ctrl.dtype)
 
         action_indices_t = self._action_indices_t.to(device)
+        env_indices = torch.nonzero(env_mask.to(device), as_tuple=True)[0]
 
-        # In-place update via torch view. If wp.to_torch returns a copy on your warp version,
-        # replace with explicit assign pattern (see comment below).
-        ctrl[env_mask] = ctrl_action_t[env_mask][:, action_indices_t]
-
-        # Fallback if the above doesn't propagate to warp memory:
-        # ctrl_new = wp.to_torch(self._data_wp.ctrl).clone()
-        # ctrl_new[env_mask_t] = ctrl_action_t[env_mask_t][:, action_indices_t]
-        # self._data_wp.ctrl.assign(wp.from_torch(ctrl_new))
+        ctrl[env_indices.unsqueeze(1), action_indices_t.unsqueeze(0)] = ctrl_action_t[
+            env_indices
+        ]
 
     def _read_data(self, name, env_indices=None):
         field_name, ot = self.additional_data[name]
