@@ -367,15 +367,21 @@ class ObservationHelper:
             elif ot == ObservationType.BODY_ROT:
                 chunk = xquat[:, idx1, :]  # (nworld, 4)
             elif ot == ObservationType.BODY_VEL_WORLD:
-                chunk = cvel[:, idx1, :]  # (nworld, 6)
+                vel = cvel[:, idx1, :]
+                offset = xpos[:, idx1, :] - subtree_com[:, idx2, :]
+                ang = vel[:, :3]
+                lin = vel[:, 3:] + torch.cross(ang, offset, dim=-1)
+                chunk = torch.cat([ang, lin], dim=-1)  # (nworld, 6)
             elif ot == ObservationType.BODY_VEL:
-                R = xmat[:, idx1, :, :]  # (nworld, 3, 3)
-                Rt = R.transpose(-2, -1)
-                vel = cvel[:, idx1, :]  # (nworld, 6)
+                vel = cvel[:, idx1, :]
+                offset = xpos[:, idx1, :] - subtree_com[:, idx2, :]
+                ang = vel[:, :3]
+                lin = vel[:, 3:] + torch.cross(ang, offset, dim=-1)
+                Rt = xmat[:, idx1, :, :].transpose(-2, -1)
                 chunk = torch.cat(
                     [
-                        torch.einsum("nij,nj->ni", Rt, vel[:, :3]),
-                        torch.einsum("nij,nj->ni", Rt, vel[:, 3:]),
+                        torch.einsum("nij,nj->ni", Rt, ang),
+                        torch.einsum("nij,nj->ni", Rt, lin),
                     ],
                     dim=-1,
                 )  # (nworld, 6)
