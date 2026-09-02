@@ -370,13 +370,7 @@ class MuJoCoWarp(VectorizedEnvironment):
             return wp.to_torch(self._data_wp.xpos)[:, self._model.body(name).id, :]
         elif ot == ObservationType.BODY_ROT:
             return wp.to_torch(self._data_wp.xquat)[:, self._model.body(name).id, :]
-        elif ot == ObservationType.BODY_VEL_WORLD:
-            body_id = self._model.body(name).id
-            root_id = self._model.body_rootid[body_id]
-            cvel = wp.to_torch(self._data_wp.cvel)[:, body_id, :]
-            xpos = wp.to_torch(self._data_wp.xpos)[:, body_id, :]
-            subtree_com = wp.to_torch(self._data_wp.subtree_com)[:, root_id, :]
-            offset = xpos - subtree_com
+
         elif ot == ObservationType.BODY_VEL_WORLD:
             body_id = self._model.body(name).id
             root_id = self._model.body_rootid[body_id]
