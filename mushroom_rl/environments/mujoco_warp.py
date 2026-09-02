@@ -206,12 +206,7 @@ class MuJoCoWarp(VectorizedEnvironment):
             return
 
         if self._reset_graph is None:
-            self._reset_build_count += 1
-            print(f"[reset] building graph (build_count={self._reset_build_count})")
-            for _ in range(self._warmup_steps):
-                self._mj_warp.reset_data(
-                    self._model_wp, self._data_wp, reset=reset_mask_wp
-                )
+            print(f"[reset] building graph") 
             with self._wp.ScopedCapture() as cap:
                 self._mj_warp.reset_data(
                     self._model_wp, self._data_wp, reset=reset_mask_wp
@@ -219,7 +214,6 @@ class MuJoCoWarp(VectorizedEnvironment):
             self._reset_graph = cap.graph
             print(f"[reset] graph built")
 
-        self._reset_launch_count += 1
         self._wp.capture_launch(self._reset_graph)
 
     def render_all(self, env_mask, record=False):
