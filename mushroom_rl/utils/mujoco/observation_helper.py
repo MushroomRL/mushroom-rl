@@ -337,6 +337,10 @@ class ObservationHelper:
             ObservationType.BODY_VEL in needed
             or ObservationType.BODY_VEL_WORLD in needed
         )
+        needs_xpos = ObservationType.BODY_POS in needed or needs_vel
+
+        xpos = wp.to_torch(data_wp.xpos) if needs_xpos else None
+        subtree_com = wp.to_torch(data_wp.subtree_com) if needs_vel else None
         cvel = wp.to_torch(data_wp.cvel) if needs_vel else None
         xmat = wp.to_torch(data_wp.xmat) if ObservationType.BODY_VEL in needed else None
         qpos = (
