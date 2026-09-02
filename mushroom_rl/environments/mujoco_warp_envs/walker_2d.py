@@ -69,6 +69,7 @@ class Walker2DWarp(MuJoCoWarp):
 
         additional_data_spec = [
             ("x_pos", "rootx", ObservationType.JOINT_POS),
+            ("torso_vel", "torso", ObservationType.BODY_VEL_WORLD),
         ]
 
         self._forward_reward_weight = forward_reward_weight
@@ -140,10 +141,7 @@ class Walker2DWarp(MuJoCoWarp):
             healthy | self._terminate_when_unhealthy
         ).float() * self._healthy_reward
 
-        # qvel[0] = rootx generalized velocity = world-frame linear x velocity.
-        # Ground truth. Do NOT use torso_vel/cvel — body-local in mujoco_warp,
-        # sign flips under torso pitch. Verified during hopper debugging.
-        qvel = wp.to_torch(self._data_wp.qvel)
+        torso_vel = self._read_data("torso_vel")
         forward_r = self._forward_reward_weight * torso_vel[:, 3]
 
         action_t = torch.as_tensor(
