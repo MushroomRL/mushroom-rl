@@ -109,7 +109,7 @@ class Walker2DWarp(MuJoCoWarp):
         # foot_left) then 9 velocity obs (x_vel, z_vel, y_vel + 6 joint vels).
         # Clip all velocities including root vels — matches cpu Hopper's [5:]
         # pattern, scaled to walker's observation layout.
-        obs[:, 8:] = torch.clamp(obs[:, 8:], -10.0, 10.0)
+        obs[:, 9:] = torch.clamp(obs[:, 9:], -10.0, 10.0)
         if not self._exclude_current_positions_from_observation:
             x_pos = self._read_data("x_pos")
             obs = torch.cat([obs, x_pos], dim=1)
