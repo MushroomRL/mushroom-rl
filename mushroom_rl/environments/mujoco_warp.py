@@ -172,9 +172,6 @@ class MuJoCoWarp(VectorizedEnvironment):
                 self._mj_warp.step(self._model_wp, self._data_wp)
             return
         if self._sim_step_graph is None:
-            for _ in range(self._warmup_steps):
-                for _ in range(self._n_substeps):
-                    self._mj_warp.step(self._model_wp, self._data_wp)
             with self._wp.ScopedCapture() as cap:
                 for _ in range(self._n_substeps):
                     self._mj_warp.step(self._model_wp, self._data_wp)
