@@ -144,7 +144,7 @@ class Walker2DWarp(MuJoCoWarp):
         # Ground truth. Do NOT use torso_vel/cvel — body-local in mujoco_warp,
         # sign flips under torso pitch. Verified during hopper debugging.
         qvel = wp.to_torch(self._data_wp.qvel)
-        forward_r = self._forward_reward_weight * qvel[:, 0]
+        forward_r = self._forward_reward_weight * torso_vel[:, 3]
 
         action_t = torch.as_tensor(
             action, dtype=healthy_r.dtype, device=healthy_r.device
