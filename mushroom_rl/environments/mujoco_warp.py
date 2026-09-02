@@ -258,7 +258,7 @@ class MuJoCoWarp(VectorizedEnvironment):
     def setup(self, env_indices, obs):
         if obs is not None:
             self.obs_helper._modify_warp_data(self._data_wp, obs, env_indices)
-        self._mj_warp.forward(self._model_wp, self._data_wp)
+        
 
     # ------------------------------------------------------------------
     # Overridable hooks
