@@ -206,7 +206,7 @@ class MuJoCoWarp(VectorizedEnvironment):
             return
 
         if self._reset_graph is None:
-            print(f"[reset] building graph") 
+            print(f"[reset] building graph")
             with self._wp.ScopedCapture() as cap:
                 self._mj_warp.reset_data(
                     self._model_wp, self._data_wp, reset=reset_mask_wp
@@ -252,7 +252,6 @@ class MuJoCoWarp(VectorizedEnvironment):
     def setup(self, env_indices, obs):
         if obs is not None:
             self.obs_helper._modify_warp_data(self._data_wp, obs, env_indices)
-        
 
     # ------------------------------------------------------------------
     # Overridable hooks
@@ -372,16 +371,37 @@ class MuJoCoWarp(VectorizedEnvironment):
         elif ot == ObservationType.BODY_ROT:
             return wp.to_torch(self._data_wp.xquat)[:, self._model.body(name).id, :]
         elif ot == ObservationType.BODY_VEL_WORLD:
-            return wp.to_torch(self._data_wp.cvel)[:, self._model.body(name).id, :]
+            body_id = self._model.body(name).id
+            root_id = self._model.body_rootid[body_id]
+            cvel = wp.to_torch(self._data_wp.cvel)[:, body_id, :]
+            xpos = wp.to_torch(self._data_wp.xpos)[:, body_id, :]
+            subtree_com = wp.to_torch(self._data_wp.subtree_com)[:, root_id, :]
+            offset = xpos - subtree_com
+        elif ot == ObservationType.BODY_VEL_WORLD:
+            body_id = self._model.body(name).id
+            root_id = self._model.body_rootid[body_id]
+            cvel = wp.to_torch(self._data_wp.cvel)[:, body_id, :]
+            xpos = wp.to_torch(self._data_wp.xpos)[:, body_id, :]
+            subtree_com = wp.to_torch(self._data_wp.subtree_com)[:, root_id, :]
+            offset = xpos - subtree_com
+            lin = cvel[:, 3:] + torch.cross(cvel[:, :3], offset, dim=-1)
+            return torch.cat([cvel[:, :3], lin], dim=-1)
+
         elif ot == ObservationType.BODY_VEL:
             body_id = self._model.body(name).id
+            root_id = self._model.body_rootid[body_id]
             cvel = wp.to_torch(self._data_wp.cvel)[:, body_id, :]
+            xpos = wp.to_torch(self._data_wp.xpos)[:, body_id, :]
+            subtree_com = wp.to_torch(self._data_wp.subtree_com)[:, root_id, :]
+            offset = xpos - subtree_com
+            ang = cvel[:, :3]
+            lin = cvel[:, 3:] + torch.cross(ang, offset, dim=-1)
             R = wp.to_torch(self._data_wp.xmat)[:, body_id, :, :]
             Rt = R.transpose(-2, -1)
             return torch.cat(
                 [
-                    torch.einsum("nij,nj->ni", Rt, cvel[:, :3]),
-                    torch.einsum("nij,nj->ni", Rt, cvel[:, 3:]),
+                    torch.einsum("nij,nj->ni", Rt, ang),
+                    torch.einsum("nij,nj->ni", Rt, lin),
                 ],
                 dim=-1,
             )
