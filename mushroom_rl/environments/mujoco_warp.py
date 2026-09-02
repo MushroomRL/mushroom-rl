@@ -184,9 +184,7 @@ class MuJoCoWarp(VectorizedEnvironment):
 
         self._reset_mask_t.zero_()
         self._reset_mask_t[env_indices] = True
-        # self._mj_warp.reset_data(self._model_wp, self._data_wp, reset=self._reset_mask_wp)
         self._reset_data(self._reset_mask_wp)
-        # self._mj_warp.reset_data(self._model_wp, self._data_wp, reset=reset_mask)
         self.setup(env_indices, state)
 
         obs = self._create_observation(self.obs_helper.build_obs(self._data_wp))
