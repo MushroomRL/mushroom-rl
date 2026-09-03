@@ -94,5 +94,5 @@ registered only if that dependency imports successfully, so an environment missi
 The Isaac Sim environments are **not** registered: ``mushroom_rl/environments/__init__.py`` does not import
 ``isaacsim_envs``, so they are not reachable through :meth:`~mushroom_rl.core.Environment.make` and must be
 imported from their module explicitly, e.g.
-``from mushroom_rl.environments.isaacsim_envs.cartpole import CartPole``. They are vectorized environments: they
-step a batch of simulated copies at once, and are driven through the vectorized ``Core``.
+``from mushroom_rl.environments.isaacsim_envs.cartpole import CartPoleIsaac``. They are vectorized environments:
+they step a batch of simulated copies at once, and are driven through the vectorized ``Core``.

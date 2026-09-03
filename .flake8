@@ -6,10 +6,14 @@ exclude =
     build,
     dist
 per-file-ignores =
-    tests/environments/isaacsim_envs/test_envs.py: E402
+    examples/environments/isaacsim/cartpole_ppo.py: E402
+    examples/environments/isaacsim/go2_curriculum.py: E402
+    examples/environments/isaacsim/quadruped_locomotion_ppo.py: E402
+    tests/environments/isaacsim_envs/test_isaac_environments.py: E402
     tests/environments/mujoco_envs/test_air_hockey.py: E402
     tests/environments/mujoco_envs/test_ball_in_a_cup.py: E402
     tests/environments/mujoco_envs/test_locomotion.py: E402
     tests/environments/mujoco_envs/test_panda.py: E402
     tests/environments/pybullet_envs/test_air_hockey_bullet.py: E402
     tests/environments/test_dm_control.py: E402
+
