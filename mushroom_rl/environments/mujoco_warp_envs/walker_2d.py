@@ -187,8 +187,9 @@ class Walker2DWarp(MuJoCoWarp):
         healthy_r = (
             healthy | self._terminate_when_unhealthy
         ).float() * self._healthy_reward
-        qvel = wp.to_torch(self._data_wp.qvel)
-        forward_r = self._forward_reward_weight * qvel[:, 0]
+        torso_vel = self._read_data("torso_vel")
+
+        forward_r = self._forward_reward_weight * torso_vel[:, 3]
         return {
             "healthy_reward": healthy_r,
             "forward_reward": forward_r,
