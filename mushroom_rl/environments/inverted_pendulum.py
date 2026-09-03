@@ -68,7 +68,7 @@ class InvertedPendulum(Environment):
             self._state[1] = self._bound(self._state[1], -self._max_omega, self._max_omega)
 
         self._last_u = 0.0
-        return self._state, {}
+        return self._state.copy(), {}
 
     def step(self, action):
         u = self._bound(action[0], -self._max_u, self._max_u)
@@ -82,7 +82,7 @@ class InvertedPendulum(Environment):
 
         self._last_u = u.item()
 
-        return self._state, reward, False, {}
+        return self._state.copy(), reward, False, {}
 
     def render(self, record=False):
         start = 1.25 * self._l * np.ones(2)

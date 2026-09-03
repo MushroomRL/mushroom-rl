@@ -63,7 +63,7 @@ class CartPole(Environment):
             self._state[0] = normalize_angle(self._state[0])
 
         self._last_u = 0
-        return self._state, {}
+        return self._state.copy(), {}
 
     def step(self, action):
         if action == 0:
@@ -88,7 +88,7 @@ class CartPole(Environment):
             reward = 0.
             absorbing = False
 
-        return self._state, reward, absorbing, {}
+        return self._state.copy(), reward, absorbing, {}
 
     def render(self, record=False):
         start = 1.25 * self._l * np.ones(2)

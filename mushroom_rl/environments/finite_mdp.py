@@ -123,7 +123,7 @@ class FiniteMDP(Environment):
         else:
             self._state = state
 
-        return self._state, {}
+        return self._state.copy(), {}
 
     def step(self, action):
         p = self.p[self._state[0], action[0], :]
@@ -133,7 +133,7 @@ class FiniteMDP(Environment):
 
         self._state = next_state
 
-        return self._state, reward, absorbing, {}
+        return self._state.copy(), reward, absorbing, {}
 
     def render(self, record=False):
         if self._viewer is None:

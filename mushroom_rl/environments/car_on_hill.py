@@ -46,7 +46,7 @@ class CarOnHill(Environment):
         else:
             self._state = state
 
-        return self._state, {}
+        return self._state.copy(), {}
 
     def step(self, action):
         action = self._discrete_actions[action[0]]
@@ -65,7 +65,7 @@ class CarOnHill(Environment):
             reward = 0.
             absorbing = False
 
-        return self._state, reward, absorbing, {}
+        return self._state.copy(), reward, absorbing, {}
 
     def render(self, record=False):
         # Slope

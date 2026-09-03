@@ -67,7 +67,7 @@ class ShipSteering(Environment):
         else:
             self._state = state
 
-        return self._state, {}
+        return self._state.copy(), {}
 
     def step(self, action):
 
@@ -101,7 +101,7 @@ class ShipSteering(Environment):
 
         self._state = new_state
 
-        return self._state, reward, absorbing, {}
+        return self._state.copy(), reward, absorbing, {}
 
     def render(self, record=False):
         self._viewer.line(self._gate_s, self._gate_e,

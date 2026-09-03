@@ -121,9 +121,9 @@ class LQR(Environment):
                 init_value = .9 * self._max_pos if np.isfinite(self._max_pos) else 10
                 self._state = init_value * np.ones(self.A.shape[0])
         else:
-            self._state = state
+            self._state = np.array(state)
 
-        return self._state, {}
+        return self._state.copy(), {}
 
     def step(self, action):
         x = self._state
@@ -142,4 +142,4 @@ class LQR(Environment):
                 self._state = self._bound(self._state, self.info.observation_space.low,
                                           self.info.observation_space.high)
 
-        return self._state, reward, absorbing, {}
+        return self._state.copy(), reward, absorbing, {}

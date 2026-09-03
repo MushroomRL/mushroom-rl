@@ -65,7 +65,7 @@ class Segway(Environment):
 
         self._last_x = 0
 
-        return self._state, {}
+        return self._state.copy(), {}
 
     def step(self, action):
         u = self._bound(action[0], -self._max_u, self._max_u)
@@ -87,7 +87,7 @@ class Segway(Environment):
 
             reward = -J
 
-        return self._state, reward, absorbing, {}
+        return self._state.copy(), reward, absorbing, {}
 
     def _dynamics(self, state, t, u):
 
