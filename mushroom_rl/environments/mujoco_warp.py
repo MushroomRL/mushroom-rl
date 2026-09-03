@@ -34,7 +34,6 @@ class MuJoCoWarp(VectorizedEnvironment):
         nconmax=None,
         njmax=None,
         use_graph_capture=False,
-        warmup_steps=3,
         **viewer_params,
     ):
         self._mj_warp = mj_warp
@@ -55,7 +54,7 @@ class MuJoCoWarp(VectorizedEnvironment):
         self._obs = None
 
         self._use_graph_capture = use_graph_capture
-        self._warmup_steps = warmup_steps
+
         self._sim_step_graph = None
 
         self._model_wp = mj_warp.put_model(self._model)
