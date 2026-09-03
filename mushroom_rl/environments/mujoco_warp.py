@@ -69,8 +69,6 @@ class MuJoCoWarp(VectorizedEnvironment):
         self._reset_mask_wp = wp.from_torch(self._reset_mask_t)
 
         self._reset_graph = None
-        self._reset_build_count = 0  # diagnostic
-        self._reset_launch_count = 0  # diagnostic
 
         _tmp_data = mujoco.MjData(self._model)
         self._action_indices = MuJoCo.get_action_indices(
