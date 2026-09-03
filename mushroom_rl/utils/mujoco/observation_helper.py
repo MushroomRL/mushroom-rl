@@ -296,7 +296,7 @@ class ObservationHelper:
             ):
                 body_id = model.body(name).id
                 root_id = model.body_rootid[body_id]
-                self._precomputed.append((key, ot, model.body(name).id, 0))
+                self._precomputed.append((key, ot, body_id, root_id))
             elif ot == ObservationType.JOINT_POS:
                 jnt = model.joint(name)
                 self._precomputed.append(
