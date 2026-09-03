@@ -405,7 +405,7 @@ class ObservationHelper:
         return torch.cat(obs_chunks, dim=-1)  # (nworld, obs_dim)
 
     def _modify_warp_data(self, data_wp, obs, env_indices):
-         """
+        """
         Write the values of the observation into the given mujoco_warp data
         object, for the environments listed in env_indices.ONLY joint_pos /
         joint_vel observations will have an effect on the simulation when
