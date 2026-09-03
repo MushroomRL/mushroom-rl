@@ -19,6 +19,7 @@ class DoubleFQI(FQI):
                          approximator_params, fit_params, quiet)
 
     def fit(self, dataset):
+        self._history_manager.update_preprocessors(dataset)
         for _ in trange(self._n_iterations(), dynamic_ncols=True, disable=self._quiet, leave=False):
             state = list()
             action = list()
@@ -28,7 +29,7 @@ class DoubleFQI(FQI):
 
             half = len(dataset) // 2
             for i in range(2):
-                s, a, r, ss, ab, _ = dataset[i * half:(i + 1) * half].parse(to='numpy')
+                s, a, r, ss, ab, _, _ = self._history_manager.parse_history(dataset[i * half:(i + 1) * half])
                 state.append(s)
                 action.append(a)
                 reward.append(r)

@@ -67,3 +67,25 @@ def test_running_averaged_window_reset():
         raw.update_stats(np.array([float(i), float(i * 2)]))
     raw.reset()
     assert np.allclose(raw.mean, [0., 0.])
+
+
+def test_running_standardization_reset_matches_a_fresh_instance():
+    rs = RunningStandardization(shape=(3,), backend='numpy')
+    fresh = RunningStandardization(shape=(3,), backend='numpy')
+    np.random.seed(42)
+    data = np.random.randn(20, 3)
+
+    for row in data:
+        rs.update_stats(row)
+    rs.reset()
+
+    assert rs._m.shape == fresh._m.shape
+    assert rs._s.shape == fresh._s.shape
+
+    for row in data:
+        rs.update_stats(row)
+        fresh.update_stats(row)
+
+    assert rs._m.shape == fresh._m.shape
+    assert np.allclose(rs.mean, fresh.mean)
+    assert np.allclose(rs.std, fresh.std)

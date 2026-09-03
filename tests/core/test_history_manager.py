@@ -1,9 +1,11 @@
-import numpy as np
+import pytest
 import torch
+import numpy as np
 
 from mushroom_rl.core import MDPInfo, AgentInfo, Dataset
 from mushroom_rl.core.spaces import Box
 from mushroom_rl.core.history_manager import HistoryManager
+from mushroom_rl.rl_utils.preprocessors import Preprocessor, StandardizationPreprocessor
 
 
 def _make_infos(obs_shape=(2,), act_shape=(1,)):
@@ -507,3 +509,274 @@ def test_parse_nstep_history_stops_at_episode_boundary():
     assert np.allclose(absorb, np.array([1.0, 1.0, 1.0]))
     assert np.allclose(lst, np.array([1.0, 1.0, 1.0]))
     assert np.allclose(action.ravel(), np.array([0.0, 1.0, 2.0]))
+
+
+def _make_fitted_preprocessor(obs_shape=(2,), backend='numpy'):
+    obs_space = Box(np.full(obs_shape, -1.0), np.full(obs_shape, 1.0), obs_shape)
+    act_space = Box(np.full((1,), -1.0), np.full((1,), 1.0), (1,))
+    mdp_info = MDPInfo(obs_space, act_space, gamma=0.99, horizon=100)
+    preprocessor = StandardizationPreprocessor(mdp_info, backend=backend)
+    samples = np.array([[4.0, 8.0], [6.0, 12.0]])
+    preprocessor.update(torch.from_numpy(samples) if backend == 'torch' else samples)
+    return preprocessor
+
+
+def test_preprocessor_applied_before_stacking_keeps_padding_at_zero():
+    mdp_info, agent_info = _make_infos(obs_shape=(2,), act_shape=(1,))
+    hm = HistoryManager.default_streams(mdp_info, agent_info, history_length=3)
+    hm.add_preprocessor(_make_fitted_preprocessor())
+
+    states = np.array([[4.0, 8.0], [6.0, 12.0]])
+    actions = np.array([[1.0], [2.0]])
+    rewards = np.array([0.1, 0.2])
+    next_states = np.array([[6.0, 12.0], [8.0, 16.0]])
+    absorbing = np.array([0.0, 1.0])
+    last = np.array([0.0, 1.0])
+    dataset = _make_dataset(states, actions, rewards, next_states, absorbing, last)
+
+    state = hm.parse_state(dataset)
+
+    assert state.shape == (2, 3, 2)
+    assert np.allclose(state[0, :2], 0.0)
+    assert np.allclose(state[1, 0], 0.0)
+    assert not np.allclose(state[0, 2], 0.0)
+
+
+def test_preprocessor_online_offline_equivalence():
+    mdp_info, agent_info = _make_infos(obs_shape=(2,), act_shape=(1,))
+    hm = HistoryManager.default_streams(mdp_info, agent_info, history_length=3)
+    hm.add_preprocessor(_make_fitted_preprocessor())
+
+    states = np.array([[4.0, 8.0], [6.0, 12.0], [5.0, 9.0]])
+    actions = np.array([[1.0], [2.0], [3.0]])
+    rewards = np.array([0.1, 0.2, 0.3])
+    next_states = np.array([[6.0, 12.0], [5.0, 9.0], [7.0, 11.0]])
+    absorbing = np.array([0.0, 0.0, 1.0])
+    last = np.array([0.0, 0.0, 1.0])
+    dataset = _make_dataset(states, actions, rewards, next_states, absorbing, last)
+
+    hm.reset()
+    online = np.array([hm(state)[0] for state in states])
+
+    assert np.allclose(online, hm.parse_state(dataset))
+
+
+def test_preprocessor_build_history_paths_agree():
+    mdp_info, agent_info = _make_infos(obs_shape=(2,), act_shape=(1,))
+    hm = HistoryManager.default_streams(mdp_info, agent_info, history_length=3)
+    hm.add_preprocessor(_make_fitted_preprocessor())
+
+    states = np.array([[4.0, 8.0], [6.0, 12.0], [5.0, 9.0], [7.0, 11.0]])
+    last = np.array([0.0, 0.0, 1.0, 0.0])
+
+    flat_path = hm.build_history('obs_history', states, last)
+    gather_path = hm.build_history_circular_buffer('obs_history', states, last, np.arange(4), size=4, full=False,
+                                                   max_size=4)
+
+    assert np.allclose(flat_path, gather_path)
+
+
+def test_update_preprocessors_uses_the_flat_stream():
+    mdp_info, agent_info = _make_infos(obs_shape=(2,), act_shape=(1,))
+    hm = HistoryManager.default_streams(mdp_info, agent_info, history_length=4)
+    preprocessor = StandardizationPreprocessor(mdp_info)
+    hm.add_preprocessor(preprocessor)
+
+    states = np.array([[4.0, 8.0], [6.0, 12.0], [5.0, 9.0], [7.0, 11.0]])
+    actions = np.array([[1.0], [2.0], [3.0], [4.0]])
+    rewards = np.array([0.1, 0.2, 0.3, 0.4])
+    next_states = states + 1.0
+    absorbing = np.array([0.0, 0.0, 0.0, 1.0])
+    last = np.array([0.0, 0.0, 0.0, 1.0])
+    dataset = _make_dataset(states, actions, rewards, next_states, absorbing, last)
+
+    hm.update_preprocessors(dataset)
+
+    assert preprocessor._obs_runstand.mean.shape == (2,)
+    assert preprocessor._obs_runstand._n == 5
+    assert np.allclose(preprocessor._obs_runstand.mean, np.array([4.4, 8.0]))
+
+
+def test_parse_state_matches_parse_history_state():
+    mdp_info, agent_info = _make_infos(obs_shape=(2,), act_shape=(1,))
+    hm = HistoryManager.default_streams(mdp_info, agent_info, history_length=3)
+    hm.add_preprocessor(_make_fitted_preprocessor())
+
+    states = np.array([[4.0, 8.0], [6.0, 12.0], [5.0, 9.0]])
+    actions = np.array([[1.0], [2.0], [3.0]])
+    rewards = np.array([0.1, 0.2, 0.3])
+    next_states = states + 1.0
+    absorbing = np.array([0.0, 0.0, 1.0])
+    last = np.array([0.0, 0.0, 1.0])
+    dataset = _make_dataset(states, actions, rewards, next_states, absorbing, last)
+
+    state, _, _, _, _, _, _ = hm.parse_history(dataset)
+
+    assert np.allclose(hm.parse_state(dataset), state)
+
+
+def test_parse_initial_state_matches_episode_starts():
+    mdp_info, agent_info = _make_infos(obs_shape=(2,), act_shape=(1,))
+    hm = HistoryManager.default_streams(mdp_info, agent_info, history_length=3)
+    hm.add_preprocessor(_make_fitted_preprocessor())
+
+    states = np.array([[4.0, 8.0], [6.0, 12.0], [5.0, 9.0], [7.0, 11.0]])
+    actions = np.array([[1.0], [2.0], [3.0], [4.0]])
+    rewards = np.array([0.1, 0.2, 0.3, 0.4])
+    next_states = states + 1.0
+    absorbing = np.array([0.0, 1.0, 0.0, 1.0])
+    last = np.array([0.0, 1.0, 0.0, 1.0])
+    dataset = _make_dataset(states, actions, rewards, next_states, absorbing, last)
+
+    initial = hm.parse_initial_state(dataset)
+
+    assert initial.shape == (2, 3, 2)
+    assert np.allclose(initial, hm.parse_state(dataset)[[0, 2]])
+
+
+def test_parse_initial_state_no_active_stream():
+    mdp_info, agent_info = _make_infos(obs_shape=(2,), act_shape=(1,))
+    hm = HistoryManager.default_streams(mdp_info, agent_info)
+    hm.add_preprocessor(_make_fitted_preprocessor())
+
+    states = np.array([[4.0, 8.0], [6.0, 12.0]])
+    actions = np.array([[1.0], [2.0]])
+    rewards = np.array([0.1, 0.2])
+    next_states = states + 1.0
+    absorbing = np.array([1.0, 1.0])
+    last = np.array([1.0, 1.0])
+    dataset = _make_dataset(states, actions, rewards, next_states, absorbing, last)
+
+    assert np.allclose(hm.parse_initial_state(dataset), hm.preprocess(states))
+
+
+def test_parse_state_returns_the_agent_backend_for_a_numpy_dataset():
+    mdp_info, _ = _make_infos(obs_shape=(2,), act_shape=(1,))
+    agent_info = AgentInfo(is_episodic=False, policy_state_shape=None, backend='torch')
+    hm = HistoryManager.default_streams(mdp_info, agent_info, history_length=3)
+    hm.add_preprocessor(_make_fitted_preprocessor(backend='torch'))
+
+    states = np.array([[4.0, 8.0], [6.0, 12.0]])
+    actions = np.array([[1.0], [2.0]])
+    rewards = np.array([0.1, 0.2])
+    next_states = states + 1.0
+    absorbing = np.array([0.0, 1.0])
+    last = np.array([0.0, 1.0])
+    dataset = _make_dataset(states, actions, rewards, next_states, absorbing, last)
+
+    state = hm.parse_state(dataset)
+
+    assert isinstance(state, torch.Tensor)
+    assert state.shape == (2, 3, 2)
+    assert torch.allclose(state, torch.tensor([[[0.0, 0.0], [0.0, 0.0], [0.26037782, 0.26548932]],
+                                               [[0.0, 0.0], [0.26037782, 0.26548932], [1.04151129, 1.06195730]]],
+                                              dtype=state.dtype))
+
+
+def test_add_preprocessor_appends_in_order():
+    mdp_info, agent_info = _make_infos(obs_shape=(2,), act_shape=(1,))
+    hm = HistoryManager.default_streams(mdp_info, agent_info)
+    first = _make_fitted_preprocessor()
+    second = _make_fitted_preprocessor()
+
+    hm.add_preprocessor(first)
+    hm.add_preprocessor(second)
+
+    assert hm.preprocessors == [first, second]
+    assert np.allclose(hm.preprocess(np.array([[4.0, 8.0]])), second(first(np.array([[4.0, 8.0]]))))
+
+
+def test_state_old_uses_pre_update_statistics_and_next_state_post_update():
+    mdp_info, agent_info = _make_infos(obs_shape=(2,), act_shape=(1,))
+    hm = HistoryManager.default_streams(mdp_info, agent_info, history_length=3)
+    preprocessor = StandardizationPreprocessor(mdp_info)
+    hm.add_preprocessor(preprocessor)
+
+    states = np.array([[0.4, 0.8], [0.6, 1.2], [0.5, 0.9]])
+    actions = np.array([[1.0], [2.0], [3.0]])
+    rewards = np.array([0.1, 0.2, 0.3])
+    next_states = states + 0.1
+    absorbing = np.array([0.0, 0.0, 1.0])
+    last = np.array([0.0, 0.0, 1.0])
+    dataset = _make_dataset(states, actions, rewards, next_states, absorbing, last)
+
+    expected_old = preprocessor(states)
+    state_old = hm.parse_state(dataset)
+
+    hm.update_preprocessors(dataset)
+
+    state, _, _, next_state, _, _, _ = hm.parse_history(dataset)
+
+    assert not np.allclose(preprocessor(states), expected_old)
+    assert np.allclose(state_old[:, -1], expected_old)
+    assert np.allclose(state[:, -1], preprocessor(states))
+    assert np.allclose(next_state[:, -1], preprocessor(next_states))
+
+
+def test_add_preprocessor_rejects_a_mismatched_backend():
+    obs_space = Box(np.full((2,), -1.0), np.full((2,), 1.0), (2,))
+    act_space = Box(np.full((1,), -1.0), np.full((1,), 1.0), (1,))
+    mdp_info = MDPInfo(obs_space, act_space, gamma=0.99, horizon=100, backend='numpy')
+    agent_info = AgentInfo(is_episodic=False, policy_state_shape=None, backend='torch')
+    hm = HistoryManager.default_streams(mdp_info, agent_info, history_length=3)
+
+    with pytest.raises(AssertionError):
+        hm.add_preprocessor(StandardizationPreprocessor(mdp_info))
+
+    hm.add_preprocessor(StandardizationPreprocessor(mdp_info, backend='torch'))
+
+    assert len(hm.preprocessors) == 1
+
+
+def test_add_preprocessor_accepts_a_backend_agnostic_preprocessor():
+    mdp_info, agent_info = _make_infos(obs_shape=(2,), act_shape=(1,))
+    hm = HistoryManager.default_streams(mdp_info, agent_info, history_length=3)
+
+    class Identity(Preprocessor):
+        def __call__(self, obs):
+            return obs
+
+    preprocessor = Identity()
+    assert preprocessor.backend is None
+
+    hm.add_preprocessor(preprocessor)
+
+    assert hm.preprocessors == [preprocessor]
+
+
+def test_parse_to_backend_changes_only_the_container_not_the_values():
+    mdp_info, agent_info = _make_infos(obs_shape=(2,), act_shape=(1,))
+    hm = HistoryManager.default_streams(mdp_info, agent_info, history_length=3, action_history_length=2)
+    hm.add_preprocessor(_make_fitted_preprocessor())
+
+    states = np.array([[0.4, 0.8], [0.6, 1.2], [0.5, 0.9]])
+    actions = np.array([[1.0], [2.0], [3.0]])
+    rewards = np.array([0.1, 0.2, 0.3])
+    next_states = states + 0.1
+    absorbing = np.array([0.0, 0.0, 1.0])
+    last = np.array([0.0, 0.0, 1.0])
+    dataset = _make_dataset(states, actions, rewards, next_states, absorbing, last)
+
+    native_state, _, _, native_next, _, _, native_extra = hm.parse_history(dataset)
+    state, action, reward, next_state, absorb, lst, extra = hm.parse_history(dataset, to='torch')
+
+    assert all(isinstance(x, torch.Tensor) for x in (state, action, reward, next_state, absorb, lst))
+    assert isinstance(extra['action_history'], torch.Tensor)
+    assert np.allclose(state.numpy(), native_state)
+    assert np.allclose(next_state.numpy(), native_next)
+    assert np.allclose(extra['action_history'].numpy(), native_extra['action_history'])
+    assert np.allclose(hm.parse_state(dataset, to='torch').numpy(), hm.parse_state(dataset))
+    assert np.allclose(hm.parse_initial_state(dataset, to='torch').numpy(), hm.parse_initial_state(dataset))
+
+    anchors = np.arange(3)
+    circular = hm.parse_history_circular_buffer(dataset, anchors, 3, False, 3, to='torch')[0]
+    nstep = hm.parse_nstep_history(dataset, gamma=0.9, n_steps_return=2, to='torch')[0]
+    nstep_circular = hm.parse_nstep_history_circular_buffer(dataset, anchors, 0.9, 2, 3, False, 3, 0, to='torch')[0]
+
+    assert isinstance(circular, torch.Tensor)
+    assert isinstance(nstep, torch.Tensor)
+    assert isinstance(nstep_circular, torch.Tensor)
+    assert np.allclose(circular.numpy(), hm.parse_history_circular_buffer(dataset, anchors, 3, False, 3)[0])
+    assert np.allclose(nstep.numpy(), hm.parse_nstep_history(dataset, gamma=0.9, n_steps_return=2)[0])
+    assert np.allclose(nstep_circular.numpy(),
+                       hm.parse_nstep_history_circular_buffer(dataset, anchors, 0.9, 2, 3, False, 3, 0)[0])

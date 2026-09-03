@@ -79,8 +79,10 @@ class PPO_BPTT(OnPolicyDeepAC):
     def fit(self, dataset):
         self._log_iteration_start()
 
+        state_old = self._history_manager.parse_state(dataset)
+        self._history_manager.update_preprocessors(dataset)
+
         state, action, reward, next_state, absorbing, last, extra = self._history_manager.parse_history(dataset)
-        state, next_state, state_old = self._preprocess_state(state, next_state)
         prev_action = extra.get('action_history')
 
         policy_state, policy_next_state = dataset.parse_policy_state(to='torch')

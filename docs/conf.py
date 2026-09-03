@@ -248,12 +248,14 @@ def skip(app, what, name, obj, skip, options):
         return False
     return skip
 
+
 def configure_builder(app):
     if 'latex' in app.builder.name:
         app.config.exclude_patterns.append('index.rst')
         app.config.master_doc = 'latex_index'
     else:
         app.config.exclude_patterns.append('latex_index.rst')
+
 
 def setup(app):
     app.connect('builder-inited', configure_builder)

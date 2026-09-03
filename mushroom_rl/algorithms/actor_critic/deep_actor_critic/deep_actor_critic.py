@@ -23,21 +23,6 @@ class OnPolicyDeepAC(Agent):
 
         self._add_save_attr(_iter='primitive')
 
-    def _preprocess_state(self, state, next_state, output_old=True):
-        state_old = None
-
-        if output_old:
-            state_old = self._agent_preprocess(state)
-
-        self._update_agent_preprocessor(state)
-        state = self._agent_preprocess(state)
-        next_state = self._agent_preprocess(next_state)
-
-        if output_old:
-            return state, next_state, state_old
-        else:
-            return state, next_state
-
     def _log_iteration_start(self):
         """
         Open the log block of the current iteration. To be called at the beginning of the fit, so that

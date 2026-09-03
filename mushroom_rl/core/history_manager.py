@@ -4,8 +4,13 @@ from mushroom_rl.core.array_backend import ArrayBackend
 
 class HistoryManager(MushroomObject):
     """
-    Object in charge of assembling the per-timestep context fed to the policy, i.e. the stacked window of the most
-    recent entries of one or more streams.
+    Object in charge of assembling the per-timestep context fed to the policy: the observation is preprocessed and
+    then stacked with the most recent entries of one or more streams.
+
+    The manager owns the agent preprocessors and applies them wherever an observation becomes policy input,
+    online in :meth:`__call__` and offline in the ``parse_*`` methods, so the two cannot disagree. Preprocessing
+    happens before the stacking, hence the zero padding of a window shorter than its stream stays zero. The
+    statistics are advanced only by :meth:`update_preprocessors`, on the flat observation stream of a dataset.
 
     The context is a deterministic function of the observed trajectory, hence it is always reconstructable from the
     stored transitions and is not part of the (latent) policy state. The manager holds an ordered set of named streams,
@@ -29,13 +34,15 @@ class HistoryManager(MushroomObject):
     lengths/offsets are wired up from the MDP and action spaces by the :meth:`default_streams` factory.
 
     """
-    def __init__(self, agent_info, streams=None):
+    def __init__(self, agent_info, streams=None, preprocessors=None):
         """
         Constructor.
 
         Args:
             agent_info (AgentInfo): information about the agent, providing the array backend in which the manager keeps
                 its buffers and returns the stacked windows;
+            preprocessors (list, None): preprocessors applied to every observation before it is stacked, both online
+                in :meth:`__call__` and offline in the ``parse_*`` methods;
             streams (dict, None): the named streams assembled by the manager, given as a mapping ``name -> spec``,
                 where each ``spec`` is a dictionary with the keys ``length``, ``shape`` and ``dtype`` and, optionally,
                 ``offset`` (default 0), the number of steps behind the current one at which the window ends. Each spec
@@ -48,6 +55,7 @@ class HistoryManager(MushroomObject):
         """
         self._agent_backend = ArrayBackend.get_array_backend(agent_info.backend)
         self._stream_specs = dict()
+        self._preprocessors = list(preprocessors) if preprocessors else list()
         self._buffers = None
         self._last_action = None
         self._n_envs = None
@@ -55,6 +63,7 @@ class HistoryManager(MushroomObject):
         self._add_save_attr(
             _agent_backend='primitive',
             _stream_specs='primitive',
+            _preprocessors='mushroom',
             _buffers='none',
             _last_action='none',
             _n_envs='none'
@@ -67,8 +76,9 @@ class HistoryManager(MushroomObject):
         """
         Append the current entries to the buffers and return the per-timestep context split for the policy call: the
         observation input to be passed positionally as ``state`` and a dictionary of the additional conditioning
-        streams to be forwarded as keyword arguments. The reserved ``obs_history`` stream, when active, replaces
-        ``state`` with its stacked window; otherwise the raw ``state`` is passed through unchanged. The
+        streams to be forwarded as keyword arguments. The observation is preprocessed before being stacked. The
+        reserved ``obs_history`` stream, when active, replaces ``state`` with its stacked window; otherwise the
+        preprocessed ``state`` is passed through unstacked. The
         ``action_history`` stream is sourced from the last action recorded through :meth:`record_action`. Each
         remaining stream is forwarded under its own name.
 
@@ -83,6 +93,9 @@ class HistoryManager(MushroomObject):
             squeezed along the ``length`` axis when the stream length is 1.
 
         """
+        if state is not None:
+            state = self.preprocess(state)
+
         windows = dict()
         for name in self._stream_specs:
             if name == 'obs_history':
@@ -113,6 +126,23 @@ class HistoryManager(MushroomObject):
         """
         self._stream_specs[name] = dict(length=length, shape=tuple(shape),
                                         dtype=self._agent_backend.to_backend_dtype(dtype), offset=offset, **options)
+
+    def add_preprocessor(self, preprocessor):
+        """
+        Append a preprocessor to the list applied to every observation before it is stacked. The preprocessors are
+        applied in the order they are added.
+
+        Args:
+            preprocessor (Preprocessor): the preprocessor to apply to the observations, operating either in the agent
+                backend or in any backend.
+
+        """
+        backend = self._agent_backend.get_backend_name()
+        assert preprocessor.backend in (None, backend), \
+            f"The preprocessor operates on '{preprocessor.backend}' arrays, but the observations reaching it are " \
+            f"in the agent backend '{backend}'. Build it with backend='{backend}'."
+
+        self._preprocessors.append(preprocessor)
 
     def reset(self):
         """
@@ -153,6 +183,86 @@ class HistoryManager(MushroomObject):
         """
         self._last_action = action
 
+    def preprocess(self, obs):
+        """
+        Apply every preprocessor, in order, to the given observations. Per-observation parameters broadcast over any
+        leading axes, so the same call works on a single observation, on a batch and on a stack of windows.
+
+        Args:
+            obs: the observations to preprocess, already in the agent backend.
+
+        Returns:
+            The preprocessed observations.
+
+        """
+        for p in self._preprocessors:
+            obs = p(obs)
+        return obs
+
+    def update_preprocessors(self, dataset):
+        """
+        Update the statistics of every preprocessor from the observations of a dataset, counting each of them once.
+        Takes the dataset rather than an array so that the flat observation stream, and never a stacked window, is
+        used for the update.
+
+        Args:
+            dataset (Dataset): the dataset whose observations update the statistics.
+
+        """
+        state = self._agent_backend.convert(dataset.state)
+        for i, p in enumerate(self._preprocessors, 1):
+            p.update(state)
+            if i < len(self._preprocessors):
+                state = p(state)
+
+    def parse_state(self, dataset, to=None):
+        """
+        Rebuild the preprocessed observation windows of a dataset, i.e. the ``state`` of :meth:`parse_history` without
+        also rebuilding the next-state and the other stream windows.
+
+        Args:
+            dataset (Dataset): the dataset to parse;
+            to (str, None): the backend of the returned array; when ``None`` the agent backend is used.
+
+        Returns:
+            The stacked observation windows, preprocessed. A stream stacking a single entry collapses to the raw
+            value.
+
+        """
+        states, last = self._agent_backend.convert(dataset.state, dataset.last)
+
+        if 'obs_history' in self._stream_specs:
+            state = self.build_history('obs_history', states, last)
+        else:
+            state = self.preprocess(states)
+
+        return self._convert_output(to, state)
+
+    def parse_initial_state(self, dataset, to=None):
+        """
+        Build the preprocessed observation window of each episode start of a dataset, i.e. :meth:`parse_state`
+        restricted to the observations returned by :meth:`~mushroom_rl.core.dataset.Dataset.get_init_states`. These
+        windows have no history behind them, so the older entries are zero-padded.
+
+        Args:
+            dataset (Dataset): the dataset to parse;
+            to (str, None): the backend of the returned array; when ``None`` the agent backend is used.
+
+        Returns:
+            The stacked observation windows of the initial states, preprocessed. A stream stacking a single entry
+            collapses to the raw value.
+
+        """
+        states = self._agent_backend.convert(dataset.get_init_states())
+
+        if 'obs_history' in self._stream_specs:
+            last = self._agent_backend.ones(len(states), dtype=bool)
+            state = self.build_history('obs_history', states, last)
+        else:
+            state = self.preprocess(states)
+
+        return self._convert_output(to, state)
+
     def parse_history(self, dataset, to=None):
         """
         Parse a dataset into its arrays, the analog of :meth:`Dataset.parse` with the history stacking rules applied:
@@ -170,21 +280,21 @@ class HistoryManager(MushroomObject):
             stacked windows. A stream stacking a single entry collapses to the raw value.
 
         """
-        backend = ArrayBackend.get_array_backend(to) if to else self._agent_backend
-        dataset = dataset.to_backend(backend.get_backend_name())
+        dataset = dataset.to_backend(self._agent_backend.get_backend_name())
         states, actions, reward = dataset.state, dataset.action, dataset.reward
         next_states, absorbing, last = dataset.next_state, dataset.absorbing, dataset.last
 
         if 'obs_history' in self._stream_specs:
-            state = self.build_history('obs_history', states, last, backend=backend)
-            next_state = self.build_history('obs_history', next_states, last, backend=backend)
+            state = self.build_history('obs_history', states, last)
+            next_state = self.build_history('obs_history', next_states, last)
         else:
-            state, next_state = states, next_states
+            state, next_state = self.preprocess(states), self.preprocess(next_states)
 
         extra = dict()
         if self.uses_action:
-            extra['action_history'] = self.build_history('action_history', actions, last, backend=backend)
-        return state, actions, reward, next_state, absorbing, last, extra
+            extra['action_history'] = self.build_history('action_history', actions, last)
+
+        return self._convert_parsed(to, state, actions, reward, next_state, absorbing, last, extra)
 
     def parse_history_circular_buffer(self, dataset, anchor_idxs, size, full, max_size, to=None):
         """
@@ -204,13 +314,12 @@ class HistoryManager(MushroomObject):
             The tuple ``(state, action, reward, next_state, absorbing, last, extra)``, as in :meth:`parse_history`.
 
         """
-        backend = ArrayBackend.get_array_backend(to) if to else self._agent_backend
-        dataset = dataset.to_backend(backend.get_backend_name())
+        dataset = dataset.to_backend(self._agent_backend.get_backend_name())
         state, next_state, extra = self._transition_history(dataset.state, dataset.next_state, dataset.action,
                                                             dataset.last, anchor_idxs, anchor_idxs, size, full,
-                                                            max_size, backend)
-        return (state, dataset.action[anchor_idxs], dataset.reward[anchor_idxs], next_state,
-                dataset.absorbing[anchor_idxs], dataset.last[anchor_idxs], extra)
+                                                            max_size, self._agent_backend)
+        return self._convert_parsed(to, state, dataset.action[anchor_idxs], dataset.reward[anchor_idxs], next_state,
+                                    dataset.absorbing[anchor_idxs], dataset.last[anchor_idxs], extra)
 
     def parse_nstep_history(self, dataset, gamma=1., n_steps_return=1, anchor_idxs=None, to=None):
         """
@@ -232,18 +341,17 @@ class HistoryManager(MushroomObject):
             :meth:`parse_nstep_history_circular_buffer`.
 
         """
-        backend = ArrayBackend.get_array_backend(to) if to else self._agent_backend
-        dataset = dataset.to_backend(backend.get_backend_name())
+        dataset = dataset.to_backend(self._agent_backend.get_backend_name())
         size = len(dataset)
         reduced_reward, anchor, endpoint = self.build_nstep_return(
-            dataset.reward, dataset.absorbing, dataset.last, anchor_idxs, gamma, n_steps_return, backend=backend)
+            dataset.reward, dataset.absorbing, dataset.last, anchor_idxs, gamma, n_steps_return)
         state, next_state, extra = self._transition_history(dataset.state, dataset.next_state, dataset.action,
                                                             dataset.last, anchor, endpoint, size, full=False,
-                                                            max_size=size, backend=backend)
+                                                            max_size=size, backend=self._agent_backend)
         extra['endpoint'] = endpoint
         extra['anchor'] = anchor
-        return (state, dataset.action[anchor], reduced_reward, next_state,
-                dataset.absorbing[endpoint], dataset.last[endpoint], extra)
+        return self._convert_parsed(to, state, dataset.action[anchor], reduced_reward, next_state,
+                                    dataset.absorbing[endpoint], dataset.last[endpoint], extra)
 
     def parse_nstep_history_circular_buffer(self, dataset, anchor_idxs, gamma, n_steps_return, size, full, max_size,
                                             write_head, to=None):
@@ -271,25 +379,25 @@ class HistoryManager(MushroomObject):
             ``extra['anchor']``.
 
         """
-        backend = ArrayBackend.get_array_backend(to) if to else self._agent_backend
-        dataset = dataset.to_backend(backend.get_backend_name())
+        dataset = dataset.to_backend(self._agent_backend.get_backend_name())
         reduced_reward, anchor, endpoint = self.build_nstep_return_circular_buffer(
             dataset.reward, dataset.absorbing, dataset.last, anchor_idxs, gamma, n_steps_return, size, full, max_size,
-            write_head, backend=backend)
+            write_head)
         state, next_state, extra = self._transition_history(dataset.state, dataset.next_state, dataset.action,
                                                             dataset.last, anchor, endpoint, size, full, max_size,
-                                                            backend)
+                                                            self._agent_backend)
         extra['endpoint'] = endpoint
         extra['anchor'] = anchor
-        return (state, dataset.action[anchor], reduced_reward, next_state,
-                dataset.absorbing[endpoint], dataset.last[endpoint], extra)
+        return self._convert_parsed(to, state, dataset.action[anchor], reduced_reward, next_state,
+                                    dataset.absorbing[endpoint], dataset.last[endpoint], extra)
 
     def build_history(self, name, buffer, last, anchor_idxs=None, backend=None):
         """
         Rebuild the ``name`` stream window offline for a batch of anchor indices, reading from a regular (non-circular)
         buffer such as an in-memory dataset. Each window is built by walking backwards from its anchor up to the stream
         length, stopping at the start of the buffer or at an episode boundary and zero-padding the missing older
-        entries, which reproduces exactly the window assembled online by :meth:`__call__`.
+        entries, which reproduces exactly the window assembled online by :meth:`__call__`. The observation stream is
+        preprocessed before being stacked, so the zero padding stays zero.
 
         Args:
             name (str): the stream to rebuild, providing its length and offset;
@@ -309,6 +417,9 @@ class HistoryManager(MushroomObject):
         if anchor_idxs is not None:
             return self.build_history_circular_buffer(name, buffer, last, anchor_idxs, size, full=False, max_size=size,
                                                       backend=backend)
+
+        if name == 'obs_history':
+            buffer = self.preprocess(buffer)
 
         spec = self._stream_specs[name]
         length, offset = spec['length'], spec['offset']
@@ -352,6 +463,9 @@ class HistoryManager(MushroomObject):
             max_size (int): the maximum size of the circular buffer;
             backend (ArrayBackend, None): the required array backend; when ``None`` the agent backend is used.
 
+        The observation stream is preprocessed as it is read, at the gather rather than over the whole buffer, so the
+        cost follows the batch and not the buffer capacity.
+
         Returns:
             An array of shape ``(n_samples, length, *entry_shape)`` (squeezed along ``length`` when it is 1), with older
             entries at lower indices.
@@ -362,7 +476,9 @@ class HistoryManager(MushroomObject):
         backend = backend or self._agent_backend
         n_samples = len(anchor_idxs)
         mask_shape = (n_samples,) + (1,) * (len(buffer.shape) - 1)
-        out = backend.zeros(n_samples, length, *buffer.shape[1:], dtype=buffer.dtype)
+        preprocess = name == 'obs_history'
+        dtype = self.preprocess(buffer[:1]).dtype if preprocess else buffer.dtype
+        out = backend.zeros(n_samples, length, *buffer.shape[1:], dtype=dtype)
 
         walk_anchors = anchor_idxs - offset
         active = backend.ones(n_samples, dtype=bool)
@@ -374,8 +490,8 @@ class HistoryManager(MushroomObject):
             else:
                 valid = active & (pos >= 0) & (pos < size)
                 gather_idx, prev_idx = backend.clip(pos, 0, size - 1), backend.clip(pos - 1, 0, size - 1)
-            out[:, length - 1 - t] = backend.where(valid.reshape(mask_shape), buffer[gather_idx],
-                                                   out[:, length - 1 - t])
+            gathered = self.preprocess(buffer[gather_idx]) if preprocess else buffer[gather_idx]
+            out[:, length - 1 - t] = backend.where(valid.reshape(mask_shape), gathered, out[:, length - 1 - t])
             boundary = last[prev_idx] > 0
             if not full:
                 boundary = (pos == 0) | boundary
@@ -564,6 +680,14 @@ class HistoryManager(MushroomObject):
         return cls(agent_info, streams=streams)
 
     @property
+    def preprocessors(self):
+        """
+        The preprocessors applied to every observation before it is stacked.
+
+        """
+        return self._preprocessors
+
+    @property
     def history_length(self):
         """
         The number of observations stacked as policy input, or 1 when the observation stream is not active.
@@ -598,6 +722,26 @@ class HistoryManager(MushroomObject):
         return max((spec['offset'] + spec['length'] - 1
                     for spec in self._stream_specs.values()), default=0)
 
+    def _convert_output(self, to, *arrays):
+        """
+        Convert the parsed arrays from the agent backend, in which the manager always works, to the one requested by
+        the caller. Returns them untouched when no backend is requested or it is the agent's own.
+
+        """
+        if to is None or to == self._agent_backend.get_backend_name():
+            return arrays[0] if len(arrays) == 1 else arrays
+
+        return ArrayBackend.get_array_backend(to).convert(*arrays, backend=self._agent_backend)
+
+    def _convert_parsed(self, to, state, action, reward, next_state, absorbing, last, extra):
+        """
+        Convert a whole parse result, the ``extra`` windows included, as in :meth:`_convert_output`.
+
+        """
+        converted = self._convert_output(to, state, action, reward, next_state, absorbing, last)
+
+        return (*converted, {name: self._convert_output(to, window) for name, window in extra.items()})
+
     def _allocate_buffers(self, n_envs):
         self._n_envs = n_envs
         lead = () if n_envs is None else (n_envs,)
@@ -628,7 +772,8 @@ class HistoryManager(MushroomObject):
             next_state = self.build_history_circular_buffer('obs_history', next_states, last, next_anchor_idxs, size,
                                                             full, max_size, backend=backend)
         else:
-            state, next_state = states[anchor_idxs], next_states[next_anchor_idxs]
+            state = self.preprocess(states[anchor_idxs])
+            next_state = self.preprocess(next_states[next_anchor_idxs])
 
         extra = dict()
         if self.uses_action:

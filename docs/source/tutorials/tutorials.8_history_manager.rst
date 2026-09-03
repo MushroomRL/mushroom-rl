@@ -45,7 +45,7 @@ identity manager (no stacking) when no stream is active (``history_length`` 1 an
 In the following we construct a manager directly and exercise it, to illustrate its behaviour:
 
 .. literalinclude:: code/history_manager.py
-   :lines: 1-17
+   :lines: 1-18
 
 The :attr:`~mushroom_rl.core.history_manager.HistoryManager.max_reach` property reports the deepest backward
 reach across all streams (the maximum of ``offset + length - 1``); it is how a circular replay buffer knows how
@@ -66,7 +66,7 @@ acting), then get fed back to it in bulk further down, to show that the offline 
 whole-dataset parse reproduce *exactly* the same windows.
 
 .. literalinclude:: code/history_manager.py
-   :lines: 19-27
+   :lines: 20-28
 
 Stacking online
 ---------------
@@ -84,7 +84,7 @@ each iteration ``obs`` simulates the observation an ``env.step()`` call would ha
 sample dataset built above:
 
 .. literalinclude:: code/history_manager.py
-   :lines: 29-40
+   :lines: 30-41
 
 Running this prints the windows growing step by step. Note the effect of the ``offset``: at step 3 the
 ``obs_history`` window ends at the current observation (``offset`` 0), whereas the ``action_history`` window ends
@@ -101,7 +101,7 @@ Feeding it the same dataset's ``state``, ``action`` and ``last`` columns reprodu
 assembled online:
 
 .. literalinclude:: code/history_manager.py
-   :lines: 42-51
+   :lines: 43-52
 
 The offline ``obs_history`` and ``action_history`` windows match the online ones step for step. The agent injects
 the manager into the replay memory (via :attr:`~mushroom_rl.core.Agent.history_manager`), and the memory rebuilds
@@ -125,7 +125,7 @@ and ``last`` are the raw per-transition values, not stacked. As with :meth:`~mus
 ``to`` argument picks the backend of the returned arrays, defaulting to the manager's own agent backend:
 
 .. literalinclude:: code/history_manager.py
-   :lines: 53-61
+   :lines: 54-62
 
 ``PPO_BPTT`` is one such algorithm: it calls :meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_history`
 once per ``fit`` to get the stacked states and previous-action windows of the whole collected dataset before
@@ -143,7 +143,7 @@ is returned under ``extra['endpoint']``. The return never crosses an episode bou
 terminal transition instead of stitching in rewards from the next episode.
 
 .. literalinclude:: code/history_manager.py
-   :lines: 63-69
+   :lines: 64-70
 
 With ``gamma`` 0.9 and ``n_steps_return`` 2, the reward of a transition becomes ``r_t + 0.9 * r_{t+1}`` and its
 endpoint is ``t + 1``. Only the transitions whose n-step return is well-defined are returned: the last transition of
@@ -173,3 +173,35 @@ timestep of a sampled sequence is itself a stacked window, so the sampled states
 ``(n_samples, truncation_length, *obs_shape)`` when no observation stacking is used. The sequence axis is
 contributed by the replay memory and the window axis by the history manager, and each may be enabled
 independently of the other.
+
+Preprocessing the observation
+-----------------------------
+
+The manager also owns the agent's observation preprocessors (see :doc:`../api/rl_utils/preprocessors`) and applies
+them wherever an observation becomes policy input: online in
+:meth:`~mushroom_rl.core.history_manager.HistoryManager.__call__` and offline in every ``parse_*`` method. Because
+one object does it in both places, the window assembled while acting and the one rebuilt from a stored dataset
+cannot disagree. Preprocessors are registered with
+:meth:`~mushroom_rl.core.history_manager.HistoryManager.add_preprocessor`, or through
+:meth:`~mushroom_rl.core.Agent.add_agent_preprocessor` which forwards to the agent's manager.
+
+A preprocessor must be built for the backend of the arrays it will see, which for an agent preprocessor is the
+agent backend, not necessarily the environment one: pass it as the ``backend`` argument of the preprocessor's
+constructor, which otherwise defaults to the MDP backend.
+
+The observation is preprocessed **before** it is stacked, so the zero padding of a window shorter than its stream
+stays zero instead of being normalized into some other constant. Statistics never advance on their own: they are
+updated only by :meth:`~mushroom_rl.core.history_manager.HistoryManager.update_preprocessors`, which an algorithm
+calls once per ``fit`` on the dataset it is fitting. It takes the dataset rather than an array so that the flat
+observation stream, and never a stacked window, feeds the update — a stacked window would rebind the statistics to
+the wrong shape and count each observation ``history_length`` times.
+
+Two helpers return policy-ready observations straight from a dataset, both preprocessed, stacked and converted to
+the agent backend: :meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_state` rebuilds the window of every
+stored transition, and :meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_initial_state` builds the
+windows of the episode starts, which have no history behind them and are therefore zero-padded. They are what an
+on-policy algorithm uses to snapshot the states before updating the statistics, and what a script should use to
+feed stored observations back to the policy or the critic, e.g. to log an entropy or a value estimate.
+
+.. literalinclude:: code/history_manager.py
+   :lines: 72-80

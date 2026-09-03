@@ -2,6 +2,7 @@ import numpy as np
 
 from mushroom_rl.core import MDPInfo, AgentInfo, Box, Dataset
 from mushroom_rl.core.history_manager import HistoryManager
+from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
 
 # MDP and agent info
 observation_space = Box(low=-1., high=1., shape=(2,))
@@ -67,3 +68,13 @@ print('#' * 40)
 print('parse_nstep_history (n_steps_return=2)')
 print('n-step reward:\n', nstep_reward)
 print('endpoint:\n', nstep_extra['endpoint'])
+
+# Observation preprocessing, applied before the stacking
+preprocessor = StandardizationPreprocessor(mdp_info)
+history.add_preprocessor(preprocessor)
+history.update_preprocessors(dataset)
+print('#' * 40)
+print('preprocessing')
+print('statistics mean:\n', preprocessor._obs_runstand.mean)
+print('preprocessed state window:\n', history.parse_state(dataset)[-1])
+print('initial state window:\n', history.parse_initial_state(dataset))

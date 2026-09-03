@@ -6,6 +6,7 @@ from mushroom_rl.rl_utils.parameters import Parameter
 from mushroom_rl.policy import EpsGreedy
 
 from mushroom_rl.algorithms.value import DQN
+from mushroom_rl.core import Agent
 
 from mushroom_rl.core import Core
 
@@ -112,3 +113,105 @@ def test_normalizing_preprocessor_backend():
 
         if absorbing:
             mdp.reset()
+
+
+def test_minmax_preprocessor_does_not_mutate_its_input():
+    from mushroom_rl.core import MDPInfo
+    from mushroom_rl.core.spaces import Box
+
+    bounded = MDPInfo(Box(np.zeros(3), 2 * np.ones(3)), Box(-np.ones(1), np.ones(1)), .99, 100)
+    partly_unbounded = MDPInfo(Box(np.array([0., -np.inf, 0.]), np.array([2., np.inf, 2.])),
+                               Box(-np.ones(1), np.ones(1)), .99, 100)
+
+    for mdp_info in (bounded, partly_unbounded):
+        preprocessor = MinMaxPreprocessor(mdp_info=mdp_info)
+        obs = np.array([[0.5, 1.5, 0.25]])
+        original = obs.copy()
+
+        normalized = preprocessor(obs)
+
+        assert np.array_equal(obs, original)
+        assert not np.array_equal(normalized, original)
+
+
+def test_agent_preprocessor_with_history_keeps_flat_statistics(tmpdir):
+    from mushroom_rl.algorithms.actor_critic import PPO
+    from mushroom_rl.approximators.parametric.networks import FeedForwardNetwork, ActorNetwork
+    from mushroom_rl.environments import InvertedPendulum
+    from mushroom_rl.policy import GaussianTorchPolicy
+    from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
+
+    np.random.seed(1)
+    torch.manual_seed(1)
+
+    mdp = InvertedPendulum(horizon=50)
+    history_length = 4
+    window_shape = (history_length,) + mdp.info.observation_space.shape
+
+    critic_params = dict(network=FeedForwardNetwork,
+                         optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
+                         loss=F.mse_loss, n_features=None, n_layers=0,
+                         input_shape=window_shape, output_shape=(1,))
+
+    policy = GaussianTorchPolicy(ActorNetwork, window_shape, mdp.info.action_space.shape,
+                                 std_0=1., n_features=None, n_layers=0)
+
+    agent = PPO(mdp.info, policy, actor_optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
+                n_epochs_policy=2, batch_size=32, eps_ppo=.2, lam=.95,
+                critic_params=critic_params, history_length=history_length)
+
+    preprocessor = StandardizationPreprocessor(mdp.info, backend='torch')
+    agent.add_agent_preprocessor(preprocessor)
+
+    core = Core(agent, mdp)
+    core.learn(n_episodes=2, n_episodes_per_fit=1, quiet=True)
+
+    assert preprocessor._obs_runstand.mean.shape == mdp.info.observation_space.shape
+    assert preprocessor._obs_runstand.std.shape == mdp.info.observation_space.shape
+    assert preprocessor._obs_runstand._n == 101
+
+    dataset = core.evaluate(n_episodes=1, quiet=True)
+    assert len(dataset) == 50
+
+    agent.save(tmpdir / 'agent_history_preprocessor.msh')
+    agent_new = Agent.load(tmpdir / 'agent_history_preprocessor.msh')
+
+    assert len(agent_new.history_manager.preprocessors) == 1
+    loaded = agent_new.history_manager.preprocessors[0]
+    assert np.allclose(loaded._obs_runstand.mean, preprocessor._obs_runstand.mean)
+    assert np.allclose(loaded._obs_runstand.std, preprocessor._obs_runstand.std)
+
+    agent_new.add_agent_preprocessor(StandardizationPreprocessor(mdp.info, backend='torch'))
+    assert len(agent_new.history_manager.preprocessors) == 2
+
+
+def test_minmax_preprocessor_multi_dimensional_observation():
+    from mushroom_rl.core import MDPInfo
+    from mushroom_rl.core.spaces import Box
+
+    mdp_info = MDPInfo(Box(np.zeros((2, 2)), 2 * np.ones((2, 2))), Box(-np.ones(1), np.ones(1)), .99, 100)
+    preprocessor = MinMaxPreprocessor(mdp_info=mdp_info)
+
+    assert preprocessor._obs_mask.shape == (2, 2)
+    assert not preprocessor._run_norm_obs
+
+    normalized = preprocessor(np.array([[[0., 1.], [2., 0.5]]]))
+
+    assert np.allclose(normalized, np.array([[[-1., 0.], [1., -0.5]]]))
+
+
+def test_minmax_preprocessor_single_bounded_component():
+    from mushroom_rl.core import MDPInfo
+    from mushroom_rl.core.spaces import Box
+
+    low = np.array([-np.inf, 0., -np.inf])
+    high = np.array([np.inf, 4., np.inf])
+    mdp_info = MDPInfo(Box(low, high), Box(-np.ones(1), np.ones(1)), .99, 100)
+    preprocessor = MinMaxPreprocessor(mdp_info=mdp_info)
+
+    assert preprocessor._run_norm_obs
+    assert preprocessor._obs_mask.sum() == 1
+
+    normalized = preprocessor(np.array([[1., 1., 1.]]))
+
+    assert np.isclose(normalized[0, 1], -0.5)

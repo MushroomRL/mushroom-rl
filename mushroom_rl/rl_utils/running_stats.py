@@ -19,7 +19,10 @@ class RunningStandardization(MushroomObject):
             alpha (float, 1e-32): minimum learning rate.
 
         """
-        assert backend in ["numpy", "torch"]
+        self._s = None
+        self._m = None
+        self._n = None
+
         self._shape = shape
 
         assert 0. < alpha < 1.
@@ -27,9 +30,7 @@ class RunningStandardization(MushroomObject):
 
         self._array_backend = ArrayBackend.get_array_backend(backend)
 
-        self._n = 1
-        self._m = self._array_backend.zeros(*self._shape)
-        self._s = self._array_backend.ones(*self._shape)
+        self.reset()
 
         self._add_save_attr(
             _shape='primitive',
@@ -46,8 +47,8 @@ class RunningStandardization(MushroomObject):
 
         """
         self._n = 1
-        self._m = self._array_backend.zeros(1, *self._shape)
-        self._s = self._array_backend.ones(1, *self._shape)
+        self._m = self._array_backend.zeros(*self._shape)
+        self._s = self._array_backend.ones(*self._shape)
 
     def update_stats(self, value):
         """
@@ -103,7 +104,8 @@ class RunningExpWeightedAverage(MushroomObject):
             init_value (np.ndarray): initial value of the filter.
 
         """
-        assert backend in ["numpy", "torch"]
+        self._avg_value = None
+
         self._shape = shape
         self._alpha = alpha
         self._array_backend = ArrayBackend.get_array_backend(backend)
@@ -168,7 +170,8 @@ class RunningAveragedWindow(MushroomObject):
             init_value (np.ndarray): initial value of the filter.
 
         """
-        assert backend in ["numpy", "torch"]
+        self._avg_buffer = None
+
         self._shape = shape
         self._window_size = window_size
         self._array_backend = ArrayBackend.get_array_backend(backend)

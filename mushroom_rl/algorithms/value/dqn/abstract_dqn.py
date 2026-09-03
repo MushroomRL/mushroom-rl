@@ -95,6 +95,7 @@ class AbstractDQN(Agent):
         self._add_logger_attr('approximator', group='critic')
 
     def fit(self, dataset):
+        self._history_manager.update_preprocessors(dataset)
         self._fit(dataset)
 
         if self._replay_memory.initialized:

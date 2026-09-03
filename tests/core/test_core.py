@@ -300,3 +300,31 @@ def test_vectorized_core_record_passes_mask():
     assert all(frame.shape == (2, 100, 100, 3) for frame in logger.video_recorder.frames)
     assert all(np.all(mask == np.array([True, True, False])) for mask in logger.video_recorder.masks)
     assert logger.video_recorder.n_stops == 1
+
+
+def test_environments_do_not_hand_out_their_internal_state():
+    from mushroom_rl.environments import (LQR, CartPole, InvertedPendulum, ShipSteering, PuddleWorld,
+                                          Segway, CarOnHill)
+    from mushroom_rl.environments.finite_mdp import FiniteMDP
+
+    p = np.zeros((2, 2, 2))
+    p[0, 0, 1] = 1.
+    p[0, 1, 0] = 1.
+    p[1, 0, 1] = 1.
+    p[1, 1, 0] = 1.
+
+    mdps = [LQR.generate(dimensions=2, max_pos=10., max_action=5., episodic=True), CartPole(),
+            InvertedPendulum(), ShipSteering(), PuddleWorld(), Segway(), CarOnHill(),
+            FiniteMDP(p, np.zeros((2, 2, 2)))]
+
+    for mdp in mdps:
+        state, _ = mdp.reset()
+        internal = np.array(mdp._state, dtype=float, copy=True)
+        np.asarray(state)[...] = np.asarray(state) + 100.
+        assert np.allclose(np.array(mdp._state, dtype=float), internal)
+
+        mdp.reset()
+        next_state, _, _, _ = mdp.step(np.array([0]))
+        internal = np.array(mdp._state, dtype=float, copy=True)
+        np.asarray(next_state)[...] = np.asarray(next_state) + 100.
+        assert np.allclose(np.array(mdp._state, dtype=float), internal)

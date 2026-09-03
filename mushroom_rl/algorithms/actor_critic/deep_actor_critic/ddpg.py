@@ -93,6 +93,7 @@ class DDPG(DeepAC):
         self._add_logger_attr('_critic_approximator', group='critic')
 
     def fit(self, dataset):
+        self._history_manager.update_preprocessors(dataset)
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
             state, action, reward, next_state, absorbing, *_ = self._replay_memory.get(self._batch_size())

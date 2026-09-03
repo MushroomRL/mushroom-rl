@@ -32,6 +32,15 @@ class Preprocessor(MushroomObject):
         # TODO: Support vectorized environment and batch update.
         pass
 
+    @property
+    def backend(self):
+        """
+        Returns:
+            The name of the array backend the preprocessor operates in, or ``None`` when it accepts any.
+
+        """
+        return None
+
 
 class StandardizationPreprocessor(Preprocessor):
     """
@@ -39,18 +48,20 @@ class StandardizationPreprocessor(Preprocessor):
     standardization.
 
     """
-    def __init__(self, mdp_info, clip_obs=10., alpha=1e-32):
+    def __init__(self, mdp_info, clip_obs=10., alpha=1e-32, backend=None):
         """
         Constructor.
 
         Args:
             mdp_info (MDPInfo): information of the MDP;
             clip_obs (float, 10.): values to clip the normalized observations;
-            alpha (float, 1e-32): moving average catchup parameter for the
-                normalization.
+            alpha (float, 1e-32): moving average catchup parameter for the normalization;
+            backend (str, None): array backend of the observations the preprocessor is applied to; when
+                ``None`` the MDP backend is used, which is the one a core preprocessor receives. An agent
+                preprocessor must be given the agent backend instead.
 
         """
-        backend = mdp_info.backend
+        backend = mdp_info.backend if backend is None else backend
         self._clip_obs = clip_obs
         self._obs_shape = mdp_info.observation_space.shape
         self._array_backend = ArrayBackend.get_array_backend(backend)
@@ -77,6 +88,10 @@ class StandardizationPreprocessor(Preprocessor):
     def update(self, obs):
         self._obs_runstand.update_stats(obs)
 
+    @property
+    def backend(self):
+        return self._array_backend.get_backend_name()
+
 
 class MinMaxPreprocessor(StandardizationPreprocessor):
     """
@@ -85,7 +100,7 @@ class MinMaxPreprocessor(StandardizationPreprocessor):
     falls back to using running mean standardization.
 
     """
-    def __init__(self, mdp_info, clip_obs=10., alpha=1e-32):
+    def __init__(self, mdp_info, clip_obs=10., alpha=1e-32, backend=None):
         """
         Constructor.
 
@@ -93,23 +108,23 @@ class MinMaxPreprocessor(StandardizationPreprocessor):
             mdp_info (MDPInfo): information of the MDP;
             clip_obs (float, 10.): values to clip the normalized observations;
             alpha (float, 1e-32): moving average catchup parameter for the
-                normalization.
+                normalization;
+            backend (str, None): array backend of the observations the preprocessor is applied to; when
+                ``None`` the MDP backend is used, which is the one a core preprocessor receives. An agent
+                preprocessor must be given the agent backend instead.
 
         """
-        super(MinMaxPreprocessor, self).__init__(mdp_info, clip_obs, alpha)
+        super().__init__(mdp_info, clip_obs, alpha, backend)
 
         obs_low, obs_high = self._array_backend.convert(mdp_info.observation_space.low,
                                                         mdp_info.observation_space.high)
 
-        self._obs_mask = self._array_backend.where((self._array_backend.abs(obs_low) < 1e20) &
-                                                   (self._array_backend.abs(obs_high) < 1e20))
-
-        self._obs_mask = self._array_backend.concatenate(self._obs_mask)
+        self._obs_mask = (self._array_backend.abs(obs_low) < 1e20) & (self._array_backend.abs(obs_high) < 1e20)
 
         assert self._obs_mask.sum() > 0, "All observations have unlimited/extremely large range, " \
                                          "you should use StandardizationPreprocessor instead."
 
-        self._run_norm_obs = len(self._array_backend.squeeze(self._obs_mask)) != obs_low.shape[0]
+        self._run_norm_obs = not bool(self._obs_mask.all())
 
         self._obs_mean = self._array_backend.zeros_like(obs_low)
         self._obs_delta = self._array_backend.ones_like(obs_low)
@@ -125,12 +140,8 @@ class MinMaxPreprocessor(StandardizationPreprocessor):
         )
 
     def __call__(self, obs):
-        orig_obs = self._array_backend.copy(obs)
+        bounded = self._obs_mask
+        norm_obs = super().__call__(obs) if self._run_norm_obs else self._array_backend.copy(obs)
+        norm_obs[..., bounded] = (obs[..., bounded] - self._obs_mean[..., bounded]) / self._obs_delta[..., bounded]
 
-        if self._run_norm_obs:
-            obs = super(MinMaxPreprocessor, self).__call__(obs)
-
-        obs[..., self._obs_mask] = \
-            ((orig_obs - self._obs_mean) / self._obs_delta)[..., self._obs_mask]
-
-        return obs
+        return norm_obs

@@ -66,9 +66,11 @@ class PPO(OnPolicyDeepAC):
     def fit(self, dataset):
         self._log_iteration_start()
 
+        state_old = self._history_manager.parse_state(dataset)
+        self._history_manager.update_preprocessors(dataset)
+
         state, action, reward, next_state, absorbing, last, extra = self._history_manager.parse_history(dataset)
         prev_action = extra.get('action_history')
-        state, next_state, state_old = self._preprocess_state(state, next_state)
 
         v_target, adv = compute_gae(self._V, state, next_state, reward, absorbing, last, self.mdp_info.gamma,
                                     self._lambda(), action_history=prev_action, action=action)

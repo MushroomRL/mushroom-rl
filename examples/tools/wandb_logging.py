@@ -106,7 +106,7 @@ def experiment(n_epochs, n_steps, n_steps_test, save_agent=False, agent_dir=None
 
     J = dataset.discounted_return.mean()
     R = dataset.undiscounted_return.mean()
-    E = agent.policy.entropy(torch.from_numpy(dataset.state)).item()
+    E = agent.policy.entropy(agent.history_manager.parse_state(dataset)).item()
 
     logger.log_evaluation(0, J=J, R=R, entropy=E)
 
@@ -122,7 +122,7 @@ def experiment(n_epochs, n_steps, n_steps_test, save_agent=False, agent_dir=None
 
         J = dataset.discounted_return.mean()
         R = dataset.undiscounted_return.mean()
-        E = agent.policy.entropy(torch.from_numpy(dataset.state)).item()
+        E = agent.policy.entropy(agent.history_manager.parse_state(dataset)).item()
 
         logger.log_evaluation(it + 1, J=J, R=R, entropy=E)
 

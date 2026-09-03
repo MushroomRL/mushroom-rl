@@ -68,7 +68,6 @@ class Agent(MushroomObject):
                                                                    action_history_length)
 
         self._core_preprocessors = list()
-        self._agent_preprocessors = list()
 
         self._add_logger_attr('policy')
 
@@ -79,8 +78,7 @@ class Agent(MushroomObject):
             _history_manager='mushroom',
             _agent_backend='primitive',
             _env_backend='primitive',
-            _core_preprocessors='mushroom',
-            _agent_preprocessors='mushroom'
+            _core_preprocessors='mushroom'
         )
 
     def fit(self, dataset):
@@ -189,14 +187,18 @@ class Agent(MushroomObject):
 
     def add_agent_preprocessor(self, preprocessor):
         """
-        Add preprocessor to the agent's preprocessor list. The preprocessors are applied in order.
+        Add a preprocessor to the agent's preprocessor list, managed by
+        :class:`~mushroom_rl.core.history_manager.HistoryManager`. The preprocessors are applied in order.
 
         Args:
-            preprocessor (object): state preprocessors to be applied
-                to state variables before feeding them to the agent.
+            preprocessor (Preprocessor): state preprocessor to be applied to the observations. It must operate in the
+                agent backend, as the observations reach it already converted.
+
+        Raises:
+            AssertionError: if the preprocessor operates in a different backend than the agent.
 
         """
-        self._agent_preprocessors.append(preprocessor)
+        self._history_manager.add_preprocessor(preprocessor)
 
     @property
     def core_preprocessors(self):
@@ -241,7 +243,6 @@ class Agent(MushroomObject):
 
         """
         state = self._convert_to_agent_backend(state)
-        state = self._agent_preprocess(state)
 
         state, policy_kwargs = self._history_manager(state)
 
@@ -256,34 +257,6 @@ class Agent(MushroomObject):
 
     def _convert_to_agent_backend(self, array):
         return self._agent_backend.convert_to_backend(self._env_backend, array)
-
-    def _agent_preprocess(self, state):
-        """
-        Applies all the agent's preprocessors to the state.
-
-        Args:
-            state (Array): the state where the agent is;
-
-        Returns:
-            The preprocessed state.
-
-        """
-        for p in self._agent_preprocessors:
-            state = p(state)
-        return state
-
-    def _update_agent_preprocessor(self, state):
-        """
-        Updates the stats of all the agent's preprocessors given the state.
-
-        Args:
-            state (Array): the state where the agent is;
-
-        """
-        for i, p in enumerate(self._agent_preprocessors, 1):
-            p.update(state)
-            if i < len(self._agent_preprocessors):
-                state = p(state)
 
 
 class HasNextAction:

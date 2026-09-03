@@ -56,6 +56,8 @@ class A2C(DeepAC):
         self._add_logger_attr('_V', group='critic')
 
     def fit(self, dataset):
+        self._history_manager.update_preprocessors(dataset)
+
         state, action, reward, next_state, absorbing, last, extra = self._history_manager.parse_history(dataset)
         prev_action = extra.get('action_history')
 
