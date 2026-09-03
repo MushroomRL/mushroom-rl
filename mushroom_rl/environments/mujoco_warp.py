@@ -204,13 +204,12 @@ class MuJoCoWarp(VectorizedEnvironment):
             return
 
         if self._reset_graph is None:
-            print(f"[reset] building graph")
+
             with self._wp.ScopedCapture() as cap:
                 self._mj_warp.reset_data(
                     self._model_wp, self._data_wp, reset=reset_mask_wp
                 )
             self._reset_graph = cap.graph
-            print(f"[reset] graph built")
 
         self._wp.capture_launch(self._reset_graph)
 
