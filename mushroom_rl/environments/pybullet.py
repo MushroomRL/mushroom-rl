@@ -93,7 +93,7 @@ class PyBullet(Environment):
         self._state = self._indexer.create_sim_state()
         observation = self._create_observation(self._state)
 
-        return observation, {}
+        return observation.copy(), {}
 
     def render(self, record=False):
         frame = self._viewer.display()
@@ -135,7 +135,7 @@ class PyBullet(Environment):
 
         self._state = curr_state
 
-        return observation, reward, absorbing, {}
+        return observation.copy(), reward, absorbing, {}
 
     def get_sim_state_index(self, name, obs_type):
         return self._indexer.get_index(name, obs_type)

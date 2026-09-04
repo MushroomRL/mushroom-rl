@@ -111,7 +111,7 @@ class MuJoCo(Environment):
         self.setup(obs)
 
         self._obs = self._create_observation(self.obs_helper._build_obs(self._model, self._data))
-        return self._modify_observation(self._obs), {}
+        return self._modify_observation(self._obs).copy(), {}
 
     def step(self, action):
         cur_obs = self._obs.copy()
@@ -148,7 +148,7 @@ class MuJoCo(Environment):
 
         self._obs = cur_obs
 
-        return self._modify_observation(cur_obs), reward, absorbing, info
+        return self._modify_observation(cur_obs).copy(), reward, absorbing, info
 
     def render(self, record=False):
         if self._viewer is None:
@@ -682,7 +682,7 @@ class MultiMuJoCo(MuJoCo):
             self._viewer.load_new_model(self._model)
 
         self._obs = self._create_observation(self.obs_helper._build_obs(self._model, self._data))
-        return self._modify_observation(self._obs)
+        return self._modify_observation(self._obs).copy()
 
     def _check_uniform_action_spaces(self, actuation_spec, action_space):
         """

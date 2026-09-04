@@ -68,7 +68,6 @@ class Atari(Environment):
         self._viewer = ImageViewer((self.original_state_width, self.original_state_height), dt, headless=self._headless)
 
         self._seed = None
-        self.state_ = None
 
         super().__init__(mdp_info)
 
@@ -88,11 +87,9 @@ class Atari(Environment):
             self.env.unwrapped.ale.getScreenGrayscale(self.screen_buffer[0])
             self.screen_buffer[1].fill(0)
 
-            self.state_ = self.resize()
-        else:
-            self.state_ = state
+            state = self.resize()
 
-        return self.state_, info
+        return state, info
 
     def step(self, action):
         action = action[0]
@@ -110,11 +107,11 @@ class Atari(Environment):
             if absorbing:
                 break
 
-        self.state_ = self.pool_and_resize()
+        state = self.pool_and_resize()
 
         self.n_steps += 1
 
-        return self.state_, reward, absorbing, info
+        return state, reward, absorbing, info
 
     def pool_and_resize(self) -> np.ndarray:
         np.maximum(self.screen_buffer[0], self.screen_buffer[1], out=self.screen_buffer[0])
