@@ -1,7 +1,6 @@
 *.DS_store
 build/
 dist/
-exp/
 examples/mushroom_rl_recordings/
 mushroom_rl.egg-info/
 mushroom_rl_recordings/

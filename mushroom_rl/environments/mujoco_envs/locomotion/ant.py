@@ -141,9 +141,7 @@ class Ant(MuJoCo):
         return absorbing
 
     def _get_healthy_reward(self, obs):
-        return (
-            self._terminate_when_unhealthy and self._is_healthy()
-        ) * self._healthy_reward
+        return self._is_healthy() * self._healthy_reward
 
     def _get_forward_reward(self):
         forward_reward = self._read_data("torso_vel")[3]

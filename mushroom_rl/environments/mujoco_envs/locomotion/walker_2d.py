@@ -137,9 +137,7 @@ class Walker2D(MuJoCo):
         Return the healthy reward if the agent is healthy, else 0.
 
         """
-        return (
-            self._is_healthy(obs) or self._terminate_when_unhealthy
-        ) * self._healthy_reward
+        return self._is_healthy(obs) * self._healthy_reward
 
     def _get_forward_reward(self):
         forward_reward = self._read_data("torso_vel")[3]

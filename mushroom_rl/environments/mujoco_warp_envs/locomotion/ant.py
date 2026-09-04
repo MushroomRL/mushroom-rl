@@ -11,6 +11,8 @@ class AntWarp(MuJoCoWarp):
     """
     Mujoco WARP simulation of the Ant task.
 
+    As presented in:
+    "High-Dimensional Continuous Control Using Generalized Advantage Estimation". John Schulman et al. 2015.
     """
 
     def __init__(
@@ -34,12 +36,8 @@ class AntWarp(MuJoCoWarp):
         njmax=200,
         **viewer_params,
     ):
-        """
-        Constructor.
-
-        """
         xml_path = (
-            Path(__file__).resolve().parent.parent
+            Path(__file__).resolve().parent.parent.parent
             / "mujoco_envs"
             / "data"
             / "ant"
@@ -136,13 +134,12 @@ class AntWarp(MuJoCoWarp):
         return obs
 
     def _is_finite(self, obs):
-        qpos = wp.to_torch(self._data_wp.qpos)  # zero-copy torch view on gpu
+        qpos = wp.to_torch(self._data_wp.qpos)
         qvel = wp.to_torch(self._data_wp.qvel)
         states = torch.cat([qpos, qvel], dim=1)
         return torch.isfinite(states).all(dim=1)
 
     def _is_within_z_range(self, obs):
-        """Check if Z position of torso is within the healthy range."""
         min_z, max_z = self._healthy_z_range
         z_position = self._read_data("torso_pos")[:, 2]
         return (z_position >= min_z) & (z_position <= max_z)
@@ -155,9 +152,7 @@ class AntWarp(MuJoCoWarp):
 
     def reward(self, obs, action, next_obs, absorbing):
         healthy = self._is_healthy(next_obs)
-        healthy_r = (
-            healthy | self._terminate_when_unhealthy
-        ).float() * self._healthy_reward
+        healthy_r = healthy.float() * self._healthy_reward
 
         torso_vel = self._read_data("torso_vel")
         forward_r = self._forward_reward_weight * torso_vel[:, 3]
@@ -178,7 +173,6 @@ class AntWarp(MuJoCoWarp):
         return healthy_r + forward_r - cost
 
     def setup(self, env_indices, obs):
-        """Reset with noise on qpos (uniform) and qvel (gaussian) for the given environments."""
         super().setup(env_indices, obs)
 
         qpos = wp.to_torch(self._data_wp.qpos)
@@ -206,9 +200,7 @@ class AntWarp(MuJoCoWarp):
 
     def _create_info_dictionary(self, obs):
         healthy = self._is_healthy(obs)
-        healthy_r = (
-            healthy | self._terminate_when_unhealthy
-        ).float() * self._healthy_reward
+        healthy_r = healthy.float() * self._healthy_reward
         torso_vel = self._read_data("torso_vel")
         forward_r = self._forward_reward_weight * torso_vel[:, 3]
         return {

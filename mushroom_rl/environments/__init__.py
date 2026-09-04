@@ -32,6 +32,12 @@ except ImportError:
     MultiMuJoCo = None
 
 try:
+    from .mujoco_warp import MuJoCoWarp
+    from .mujoco_warp_envs import *  # noqa: F401,F403
+except ImportError:
+    MuJoCoWarp = None
+
+try:
     from .pybullet import PyBullet
     from .pybullet_envs import *  # noqa: F401,F403
 except ImportError:

@@ -15,6 +15,10 @@ class MuJoCoWarp(VectorizedEnvironment):
     """
     Class to create N parallel environments using MuJoCo Warp for GPU-accelerated batch simulation.
 
+    Simulation is not bit-reproducible run to run beyond the first couple of steps: the GPU contact solver's
+    parallel reduction order isn't fixed, so identical seeds can diverge by ~1e-6 after a handful of steps.
+    Call ``warp.set_device('cpu')`` before construction for bit-reproducible results.
+
     """
 
     def __init__(
@@ -36,6 +40,47 @@ class MuJoCoWarp(VectorizedEnvironment):
         use_graph_capture=False,
         **viewer_params,
     ):
+        """
+        Constructor.
+
+        Args:
+            xml_file (str/xml handle): A string with a path to the xml or an Mujoco xml handle.
+            actuation_spec (list): A list specifying the names of the joints which should be controllable by the
+               agent. Can be left empty when all actuators should be used;
+            observation_spec (list): A list containing the names of data that should be made available to the agent
+               as an observation and their type (ObservationType). They are combined with a key, which is used to
+               access the data. An entry in the list is given by: (key, name, type). The name can later be used to
+               retrieve specific observations;
+            gamma (float): The discounting factor of the environment;
+            horizon (int): The maximum horizon for the environment;
+            num_envs (int): The number of parallel worlds to simulate;
+            timestep (float): The timestep used by the MuJoCo simulator. If None, the default timestep specified in
+               the XML will be used;
+            n_substeps (int, 1): The number of substeps to use by the MuJoCo simulator. An action given by the agent
+               will be applied for n_substeps before the agent receives the next observation and can act accordingly;
+            n_intermediate_steps (int, 1): The number of steps between every action taken by the agent. Similar to
+               n_substeps but allows the user to modify, control and access intermediate states.
+            additional_data_spec (list, None): A list containing the data fields of interest, which should be read
+               from or written to during simulation. The entries are given as the following tuples: (key, name,
+               type) key is a string for later referencing in the "_read_data" and "_write_data" methods. The name
+               is the name of the object in the XML specification and the type is the ObservationType;
+            collision_groups (list, None): A list containing groups of geoms for which collisions should be checked
+               during simulation via ``_check_collision``. The entries are given as: ``(key, geom_names)``, where
+               key is a string for later referencing in the "_check_collision" method, and geom_names is a list of
+               geom names in the XML specification.
+            max_joint_vel (list, None): A list with the maximum joint velocities which are provided in the mdp_info.
+               The list has to define a maximum velocity for every occurrence of JOINT_VEL in the observation_spec.
+               The velocity will not be limited in mujoco;
+            nconmax (int, None): Number of contacts to allocate per world. If None, mujoco_warp picks a default
+               based on the model;
+            njmax (int, None): Number of constraints to allocate per world. If None, mujoco_warp picks a default
+               based on the model;
+            use_graph_capture (bool, False): Whether to run the simulation and reset steps as captured CUDA graphs
+               instead of dispatching each Warp kernel launch individually;
+            **viewer_params: other parameters to be passed to the viewer.
+               See MujocoViewer documentation for the available options.
+
+        """
         self._mj_warp = mj_warp
         self._wp = wp
 
@@ -114,7 +159,6 @@ class MuJoCoWarp(VectorizedEnvironment):
             type(self)._compute_action != MuJoCoWarp._compute_action
         )
 
-        # Cache action_indices as torch tensor on the target device
         self._action_indices_t = torch.as_tensor(
             self._action_indices, device=TorchUtils.get_device(), dtype=torch.long
         )
@@ -238,12 +282,46 @@ class MuJoCoWarp(VectorizedEnvironment):
     # ------------------------------------------------------------------
 
     def reward(self, obs, action, next_obs, absorbing):
+        """
+        Compute the reward based on the given transition, for every world.
+
+        Args:
+            obs (torch.Tensor): the current observation, shape (num_envs, obs_dim);
+            action (torch.Tensor): the action applied in the current observation, shape (num_envs, action_dim);
+            next_obs (torch.Tensor): the observation reached after applying the given action, shape
+                (num_envs, obs_dim);
+            absorbing (torch.Tensor): boolean tensor of shape (num_envs,) indicating, for each world, whether
+                next_obs is an absorbing state or not.
+
+        Returns:
+            The reward for every world, as a torch.Tensor of shape (num_envs,).
+
+        """
         raise NotImplementedError
 
     def is_absorbing(self, obs):
+        """
+        Check, for every world, whether the given observation is an absorbing state or not.
+
+        Args:
+            obs (torch.Tensor): the observation of every world, shape (num_envs, obs_dim).
+
+        Returns:
+            A boolean torch.Tensor of shape (num_envs,) indicating, for each world, whether that observation is
+            absorbing or not.
+
+        """
         raise NotImplementedError
 
     def setup(self, env_indices, obs):
+        """
+        Execute setup code after a reset, for the given worlds.
+
+        Args:
+            env_indices (torch.Tensor): indices of the worlds being reset;
+            obs (torch.Tensor, None): observation to write into the worlds being reset, or None.
+
+        """
         if obs is not None:
             self.obs_helper._modify_warp_data(self._data_wp, obs, env_indices)
 
@@ -252,33 +330,116 @@ class MuJoCoWarp(VectorizedEnvironment):
     # ------------------------------------------------------------------
 
     def _modify_mdp_info(self, mdp_info):
+        """
+        This method can be overridden to modify the automatically generated MDPInfo data structure.
+        By default, returns the given mdp_info structure unchanged.
+
+        Args:
+            mdp_info (MDPInfo): the MDPInfo structure automatically computed by the environment.
+
+        Returns:
+            The modified MDPInfo data structure.
+
+        """
         return mdp_info
 
     def _create_observation(self, obs):
+        """
+        This method can be overridden to create a custom observation. Should be used to append observations which
+        have been registered via obs_helper.add_obs(self, name, o_type, length, min_value, max_value).
+
+        Args:
+            obs (torch.Tensor): the generated observation, shape (num_envs, obs_dim).
+
+        Returns:
+            The environment observation.
+
+        """
         return obs
 
     def _modify_observation(self, obs):
+        """
+        This method can be overridden to edit the created observation. This is done after the reward and absorbing
+        functions are evaluated. Especially useful to transform the observation into different frames. If the
+        original observation order is not preserved, the helper functions in ObservationHelper break.
+
+        Args:
+            obs (torch.Tensor): the generated observation, shape (num_envs, obs_dim).
+
+        Returns:
+            The environment observation.
+
+        """
         return obs
 
     def _create_info_dictionary(self, obs):
+        """
+        This method can be overridden to create a custom info dictionary.
+
+        Args:
+            obs (torch.Tensor): the generated observation, shape (num_envs, obs_dim).
+
+        Returns:
+            The information dictionary.
+
+        """
         return {}
 
     def _preprocess_action(self, action):
+        """
+        Compute a transformation of the action provided to the environment.
+
+        Args:
+            action (torch.Tensor): the actions provided to the environment, shape (num_envs, action_dim).
+
+        Returns:
+            The action to be used for the current step.
+
+        """
         return action
 
     def _compute_action(self, obs, action):
+        """
+        Compute a transformation of the action at every intermediate step.
+
+        Args:
+            obs (torch.Tensor): the current observation of every world;
+            action (torch.Tensor): the action provided at every step.
+
+        Returns:
+            The action to be set as the simulation control signal.
+
+        """
         return action
 
     def _step_init(self, obs, action):
+        """
+        Allows information to be initialized at the start of a step.
+
+        """
         pass
 
     def _simulation_pre_step(self):
+        """
+        Allows information to be accessed and changed at every intermediate step before taking a step in the
+        mujoco_warp simulation.
+
+        """
         pass
 
     def _simulation_post_step(self):
+        """
+        Allows information to be accessed at every intermediate step after taking a step in the mujoco_warp
+        simulation.
+
+        """
         pass
 
     def _step_finalize(self):
+        """
+        Allows information to be accessed at the end of a step.
+
+        """
         pass
 
     # ------------------------------------------------------------------
@@ -287,8 +448,13 @@ class MuJoCoWarp(VectorizedEnvironment):
 
     def _set_ctrl(self, ctrl_action, env_mask):
         """
-        Write ctrl_action into the warp data for active environments.
-        Inactive environments (env_mask=False) keep their previous control signal.
+        Write ctrl_action into the warp data for active environments. Inactive environments (env_mask=False) keep
+        their previous control signal.
+
+        Args:
+            ctrl_action (torch.Tensor): the control signal for every world, shape (num_envs, len(actuation_spec));
+            env_mask (torch.Tensor): boolean tensor of shape (num_envs,) selecting the worlds to write to.
+
         """
         ctrl = wp.to_torch(self._data_wp.ctrl)
         device = ctrl.device
@@ -308,6 +474,18 @@ class MuJoCoWarp(VectorizedEnvironment):
         ]
 
     def _read_data(self, name, env_indices=None):
+        """
+        Read data from the mujoco_warp data structure.
+
+        Args:
+            name (string): A name referring to an entry contained in the additional_data_spec list handed to the
+                constructor;
+            env_indices (torch.Tensor, None): indices of the worlds to read; if None, all worlds are returned.
+
+        Returns:
+            The desired data as a torch.Tensor, shape (len(env_indices) or num_envs, ...).
+
+        """
         field_name, ot = self.additional_data[name]
         data = self._read_warp_field(field_name, ot)
         if env_indices is not None:
@@ -319,6 +497,16 @@ class MuJoCoWarp(VectorizedEnvironment):
         return data
 
     def _write_data(self, name, value, env_indices=None):
+        """
+        Write data to the mujoco_warp data structure. Only JOINT_POS and JOINT_VEL entries are supported.
+
+        Args:
+            name (string): A name referring to an entry contained in the additional_data_spec list handed to the
+                constructor;
+            value (torch.Tensor): The data to write, shape (len(env_indices) or num_envs, ...);
+            env_indices (torch.Tensor, None): indices of the worlds to write to; if None, all worlds are written.
+
+        """
         field_name, ot = self.additional_data[name]
         device = TorchUtils.get_device()
 
@@ -355,7 +543,17 @@ class MuJoCoWarp(VectorizedEnvironment):
             )
 
     def _read_warp_field(self, name, ot):
-        """Return a torch tensor for a given named object and observation type."""
+        """
+        Return a torch tensor for a given named object and observation type.
+
+        Args:
+            name (string): the name of the object in the XML specification;
+            ot (ObservationType): the type of data to read.
+
+        Returns:
+            The requested data for every world, as a torch.Tensor of shape (num_envs, ...).
+
+        """
         if ot == ObservationType.BODY_POS:
             return wp.to_torch(self._data_wp.xpos)[:, self._model.body(name).id, :]
         elif ot == ObservationType.BODY_ROT:
@@ -393,12 +591,12 @@ class MuJoCoWarp(VectorizedEnvironment):
             jnt = self._model.joint(name)
             adr = self._model.jnt_qposadr[jnt.id]
             size = ObservationHelper._obs_size(self._model, name, ot)
-            return wp.to_torch(self._data_wp.qpos)[:, adr : adr + size]
+            return wp.to_torch(self._data_wp.qpos)[:, adr:adr + size]
         elif ot == ObservationType.JOINT_VEL:
             jnt = self._model.joint(name)
             adr = self._model.jnt_dofadr[jnt.id]
             size = ObservationHelper._obs_size(self._model, name, ot)
-            return wp.to_torch(self._data_wp.qvel)[:, adr : adr + size]
+            return wp.to_torch(self._data_wp.qvel)[:, adr:adr + size]
         elif ot == ObservationType.SITE_POS:
             return wp.to_torch(self._data_wp.site_xpos)[:, self._model.site(name).id, :]
         elif ot == ObservationType.SITE_ROT:
@@ -410,12 +608,24 @@ class MuJoCoWarp(VectorizedEnvironment):
             raise ValueError(f"Unsupported observation type for _read_warp_field: {ot}")
 
     # ------------------------------------------------------------------
-    # Collision detection — left as numpy for now.
-    # Contacts are variable-length and small; vectorizing to torch is complex
-    # and the win is minor. Refactor later if needed.
+    # Collision helpers
     # ------------------------------------------------------------------
 
     def _check_collision(self, group1, group2):
+        """
+        Check, for every world, whether a collision occurred between the specified groups.
+
+        Args:
+            group1 (string): A name referring to an entry contained in the collision_groups list handed to the
+                constructor;
+            group2 (string): A name referring to an entry contained in the collision_groups list handed to the
+                constructor.
+
+        Returns:
+            A boolean torch.Tensor of shape (num_envs,) indicating, for each world, whether a collision occurred
+            between the given groups or not.
+
+        """
         ids1 = self.collision_groups[group1]
         ids2 = self.collision_groups[group2]
         device = TorchUtils.get_device()
@@ -424,10 +634,9 @@ class MuJoCoWarp(VectorizedEnvironment):
         if ncon == 0:
             return torch.zeros(self._num_envs, dtype=torch.bool, device=device)
 
-        geom = wp.to_torch(self._data_wp.contact.geom)[:ncon]  # (ncon, 2)
-        worldid = wp.to_torch(self._data_wp.contact.worldid)[:ncon]  # (ncon,)
+        geom = wp.to_torch(self._data_wp.contact.geom)[:ncon]
+        worldid = wp.to_torch(self._data_wp.contact.worldid)[:ncon]
 
-        # Build boolean lookup tensors: which geom ids belong to each group
         ngeoms = self._model.ngeom
         ids1_mask = torch.zeros(ngeoms, dtype=torch.bool, device=device)
         ids2_mask = torch.zeros(ngeoms, dtype=torch.bool, device=device)
@@ -436,13 +645,8 @@ class MuJoCoWarp(VectorizedEnvironment):
 
         g1 = geom[:, 0].long()
         g2 = geom[:, 1].long()
+        match = (ids1_mask[g1] & ids2_mask[g2]) | (ids1_mask[g2] & ids2_mask[g1])
 
-        # Match either direction
-        match = (ids1_mask[g1] & ids2_mask[g2]) | (
-            ids1_mask[g2] & ids2_mask[g1]
-        )  # (ncon,)
-
-        # Scatter into per-env result: any match in world_id sets that env to True
         result = torch.zeros(self._num_envs, dtype=torch.bool, device=device)
         if match.any():
             matched_envs = worldid[match].long()
@@ -450,6 +654,21 @@ class MuJoCoWarp(VectorizedEnvironment):
         return result
 
     def _get_collision_force(self, group1, group2):
+        """
+        Return the collision force and torques between the specified groups, for every world.
+
+        Args:
+            group1 (string): A name referring to an entry contained in the collision_groups list handed to the
+                constructor;
+            group2 (string): A name referring to an entry contained in the collision_groups list handed to the
+                constructor.
+
+        Returns:
+            A torch.Tensor of shape (num_envs, 6) specifying the collision forces/torques [3D force + 3D torque]
+            between the given groups, for every world. Zero vector for worlds with no collision between the groups.
+            http://mujoco.org/book/programming.html#siContact
+
+        """
         ids1 = self.collision_groups[group1]
         ids2 = self.collision_groups[group2]
         device = TorchUtils.get_device()
@@ -459,9 +678,9 @@ class MuJoCoWarp(VectorizedEnvironment):
         if ncon == 0:
             return result
 
-        geom = wp.to_torch(self._data_wp.contact.geom)[:ncon]  # (ncon, 2)
-        worldid = wp.to_torch(self._data_wp.contact.worldid)[:ncon]  # (ncon,)
-        frame = wp.to_torch(self._data_wp.contact.frame)[:ncon]  # (ncon, ...)
+        geom = wp.to_torch(self._data_wp.contact.geom)[:ncon]
+        worldid = wp.to_torch(self._data_wp.contact.worldid)[:ncon]
+        frame = wp.to_torch(self._data_wp.contact.frame)[:ncon]
 
         ngeoms = self._model.ngeom
         ids1_mask = torch.zeros(ngeoms, dtype=torch.bool, device=device)
@@ -476,7 +695,7 @@ class MuJoCoWarp(VectorizedEnvironment):
         if match.any():
             matched_worldids = worldid[match].long()
             matched_frames = frame[match, :6].to(result.dtype)
-            # scatter: overwrites; if multiple matches per env, last one wins (matches original behavior)
+            # multiple contacts in the same env: last match wins
             result[matched_worldids] = matched_frames
 
         return result

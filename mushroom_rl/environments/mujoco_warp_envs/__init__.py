@@ -1,4 +1,6 @@
-from .hopper import HopperWarp
-from .walker_2d import Walker2DWarp
-from .ant import AntWarp
-from .half_cheetah import HalfCheetahWarp
+from .locomotion import HopperWarp, Walker2DWarp, AntWarp, HalfCheetahWarp
+
+HopperWarp.register()
+Walker2DWarp.register()
+AntWarp.register()
+HalfCheetahWarp.register()

@@ -11,11 +11,10 @@ class HopperWarp(MuJoCoWarp):
     """
     Vectorized Hopper locomotion task using MuJoCo Warp.
 
-    All num_envs worlds are stepped in parallel on the GPU. The reward function
-    and termination conditions match the single-environment Hopper.
+    The reward function and termination conditions match the reference implementation.
 
-    Reference:
-        "Infinite-Horizon Model Predictive Control for Periodic Tasks with Contacts". Tom Erez et al. 2012.
+    As presented in:
+    "Infinite-Horizon Model Predictive Control for Periodic Tasks with Contacts". Tom Erez et al. 2012.
     """
 
     def __init__(
@@ -33,12 +32,13 @@ class HopperWarp(MuJoCoWarp):
         reset_noise_scale=5e-3,
         n_substeps=4,
         exclude_current_positions_from_observation=True,
+        use_graph_capture=False,
         nconmax=200,
         njmax=200,
         **viewer_params,
     ):
         xml_path = (
-            Path(__file__).resolve().parent.parent
+            Path(__file__).resolve().parent.parent.parent
             / "mujoco_envs"
             / "data"
             / "hopper"
@@ -61,10 +61,7 @@ class HopperWarp(MuJoCoWarp):
             ("foot_vel", "foot_joint", ObservationType.JOINT_VEL),
         ]
 
-        # Match vanilla Hopper's additional_data_spec exactly. torso_vel is
-        # BODY_VEL_WORLD (cvel of the torso body), which vanilla uses for the
-        # forward reward. Keeping the signal identical to vanilla is required
-        # for the warp/vanilla parity comparison.
+        # torso_vel is BODY_VEL_WORLD (cvel of the torso body), matching vanilla Hopper's forward reward signal.
         additional_data_spec = [
             ("x_pos", "rootx", ObservationType.JOINT_POS),
             ("torso_vel", "torso", ObservationType.BODY_VEL_WORLD),
@@ -91,6 +88,7 @@ class HopperWarp(MuJoCoWarp):
             num_envs=num_envs,
             n_substeps=n_substeps,
             additional_data_spec=additional_data_spec,
+            use_graph_capture=use_graph_capture,
             nconmax=nconmax,
             njmax=njmax,
             **viewer_params,
@@ -129,9 +127,8 @@ class HopperWarp(MuJoCoWarp):
     def _is_within_angle_range(self, obs):
         min_a, max_a = self._healthy_angle_range
         y_angle = self.obs_helper.get_from_obs(obs, "y_pos")[:, 0]
-        # Wrap angle to [-pi, pi] before comparison. Without wrapping, a hopper
-        # that somersaults gets angle=4.5rad and is permanently outside the
-        # (-0.2, 0.2) range even after physically returning upright.
+        # Wrap to [-pi, pi] before comparison: an unwrapped angle stays outside the healthy
+        # range after a somersault even once the hopper is physically upright again.
         y_wrapped = torch.atan2(torch.sin(y_angle), torch.cos(y_angle))
         result = (y_wrapped > min_a) & (y_wrapped < max_a)
 
@@ -149,20 +146,11 @@ class HopperWarp(MuJoCoWarp):
 
     def reward(self, obs, action, next_obs, absorbing):
         healthy = self._is_healthy(next_obs)
-        healthy_r = (
-            healthy | self._terminate_when_unhealthy
-        ).float() * self._healthy_reward
+        healthy_r = healthy.float() * self._healthy_reward
 
-        # Match vanilla Hopper exactly: forward reward = torso_vel[3], where
-        # torso_vel is BODY_VEL_WORLD (data.cvel[torso, :]).
-        # NOTE: This is CoM linear velocity of the torso in the world frame,
-        # NOT rootx slide velocity. The two differ by omega x r_com when the
-        # torso pitches. Vanilla uses this signal, so warp must too for a
-        # meaningful parity comparison.
-        # If matched-config sanity run still shows a J/R gap vs vanilla,
-        # investigate whether mujoco_warp's cvel semantics diverge from
-        # numpy mujoco's on the same state (that would be a warp-level bug,
-        # not a reward-design decision).
+        # forward reward = torso_vel[3], the torso's CoM linear velocity in the world
+        # frame (BODY_VEL_WORLD); this differs from rootx slide velocity by omega x r_com
+        # when the torso pitches, matching vanilla Hopper's reward signal.
         torso_vel = self._read_data("torso_vel")
         forward_r = self._forward_reward_weight * torso_vel[:, 3]
 
@@ -174,11 +162,6 @@ class HopperWarp(MuJoCoWarp):
         return healthy_r + forward_r - ctrl_cost
 
     def setup(self, env_indices, obs):
-        """Reset with uniform noise on qpos and qvel for the given environments.
-
-        GPU-native to avoid host-device roundtrips and to keep buffers stable
-        for graph capture compatibility.
-        """
         super().setup(env_indices, obs)
 
         qpos = wp.to_torch(self._data_wp.qpos)
@@ -210,9 +193,7 @@ class HopperWarp(MuJoCoWarp):
 
     def _create_info_dictionary(self, obs):
         healthy = self._is_healthy(obs)
-        healthy_r = (
-            healthy | self._terminate_when_unhealthy
-        ).float() * self._healthy_reward
+        healthy_r = healthy.float() * self._healthy_reward
         torso_vel = self._read_data("torso_vel")
         forward_r = self._forward_reward_weight * torso_vel[:, 3]
         return {

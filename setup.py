@@ -28,6 +28,7 @@ extras = {
     'box2d': ['box2d-py'],
     'bullet': ['pybullet'],
     'mujoco': ['mujoco>=3.11'],
+    'mujoco_warp': ['mujoco-warp'],
     'dm_control': ['dm_control>=1.0.44'],
     'monitors': ['pyqtgraph', 'PySide6'],
     'wandb': ['wandb']

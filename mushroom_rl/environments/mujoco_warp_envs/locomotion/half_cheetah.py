@@ -7,9 +7,12 @@ from mushroom_rl.environments.mujoco import ObservationType
 from mushroom_rl.core.spaces import Box
 
 
-class Walker2DWarp(MuJoCoWarp):
+class HalfCheetahWarp(MuJoCoWarp):
     """
-    Mujoco WARP simulation of Walker2d task based on the Hopper environment.
+    Mujoco WARP simulation of the HalfCheetah task.
+
+    As presented in:
+    "A Cat-Like Robot Real-Time Learning to Run". Pawel Wawrzynski. 2009.
     """
 
     def __init__(
@@ -18,53 +21,43 @@ class Walker2DWarp(MuJoCoWarp):
         gamma=0.99,
         horizon=1000,
         forward_reward_weight=1.0,
-        ctrl_cost_weight=1e-3,
-        healthy_reward=1.0,
-        terminate_when_unhealthy=True,
-        healthy_z_range=(0.8, 2.0),
-        healthy_angle_range=(-1.0, 1.0),
-        reset_noise_scale=5e-3,
+        ctrl_cost_weight=0.1,
+        reset_noise_scale=0.1,
+        n_substeps=5,
         exclude_current_positions_from_observation=True,
-        n_substeps=4,
+        use_graph_capture=False,
         nconmax=200,
         njmax=200,
         **viewer_params,
     ):
         xml_path = (
-            Path(__file__).resolve().parent.parent
+            Path(__file__).resolve().parent.parent.parent
             / "mujoco_envs"
             / "data"
-            / "walker_2d"
+            / "half_cheetah"
             / "model.xml"
         ).as_posix()
 
-        actuation_spec = [
-            "thigh_joint",
-            "leg_joint",
-            "foot_joint",
-            "thigh_left_joint",
-            "leg_left_joint",
-            "foot_left_joint",
-        ]
+        actuation_spec = ["bthigh", "bshin", "bfoot", "fthigh", "fshin", "ffoot"]
 
         observation_spec = [
             ("z_pos", "rootz", ObservationType.JOINT_POS),
             ("y_pos", "rooty", ObservationType.JOINT_POS),
-            ("thigh_pos", "thigh_joint", ObservationType.JOINT_POS),
-            ("leg_pos", "leg_joint", ObservationType.JOINT_POS),
-            ("foot_pos", "foot_joint", ObservationType.JOINT_POS),
-            ("thigh_left_pos", "thigh_left_joint", ObservationType.JOINT_POS),
-            ("leg_left_pos", "leg_left_joint", ObservationType.JOINT_POS),
-            ("foot_left_pos", "foot_left_joint", ObservationType.JOINT_POS),
+            ("bthigh_pos", "bthigh", ObservationType.JOINT_POS),
+            ("bshin_pos", "bshin", ObservationType.JOINT_POS),
+            ("bfoot_pos", "bfoot", ObservationType.JOINT_POS),
+            ("fthigh_pos", "fthigh", ObservationType.JOINT_POS),
+            ("fshin_pos", "fshin", ObservationType.JOINT_POS),
+            ("ffoot_pos", "ffoot", ObservationType.JOINT_POS),
             ("x_vel", "rootx", ObservationType.JOINT_VEL),
             ("z_vel", "rootz", ObservationType.JOINT_VEL),
             ("y_vel", "rooty", ObservationType.JOINT_VEL),
-            ("thigh_vel", "thigh_joint", ObservationType.JOINT_VEL),
-            ("leg_vel", "leg_joint", ObservationType.JOINT_VEL),
-            ("foot_vel", "foot_joint", ObservationType.JOINT_VEL),
-            ("thigh_left_vel", "thigh_left_joint", ObservationType.JOINT_VEL),
-            ("leg_left_vel", "leg_left_joint", ObservationType.JOINT_VEL),
-            ("foot_left_vel", "foot_left_joint", ObservationType.JOINT_VEL),
+            ("bthigh_vel", "bthigh", ObservationType.JOINT_VEL),
+            ("bshin_vel", "bshin", ObservationType.JOINT_VEL),
+            ("bfoot_vel", "bfoot", ObservationType.JOINT_VEL),
+            ("fthigh_vel", "fthigh", ObservationType.JOINT_VEL),
+            ("fshin_vel", "fshin", ObservationType.JOINT_VEL),
+            ("ffoot_vel", "ffoot", ObservationType.JOINT_VEL),
         ]
 
         additional_data_spec = [
@@ -74,10 +67,6 @@ class Walker2DWarp(MuJoCoWarp):
 
         self._forward_reward_weight = forward_reward_weight
         self._ctrl_cost_weight = ctrl_cost_weight
-        self._healthy_reward = healthy_reward
-        self._terminate_when_unhealthy = terminate_when_unhealthy
-        self._healthy_z_range = healthy_z_range
-        self._healthy_angle_range = healthy_angle_range
         self._reset_noise_scale = reset_noise_scale
         self._exclude_current_positions_from_observation = (
             exclude_current_positions_from_observation
@@ -92,6 +81,7 @@ class Walker2DWarp(MuJoCoWarp):
             actuation_spec=actuation_spec,
             additional_data_spec=additional_data_spec,
             n_substeps=n_substeps,
+            use_graph_capture=use_graph_capture,
             nconmax=nconmax,
             njmax=njmax,
             **viewer_params,
@@ -106,53 +96,27 @@ class Walker2DWarp(MuJoCoWarp):
 
     def _create_observation(self, obs):
         obs = obs.clone()
-        # Walker: 8 position obs (z, y, thigh, leg, foot, thigh_left, leg_left,
-        # foot_left) then 9 velocity obs (x_vel, z_vel, y_vel + 6 joint vels).
-        # Clip all velocities including root vels — matches cpu Hopper's [5:]
-        # pattern, scaled to walker's observation layout.
-        obs[:, 9:] = torch.clamp(obs[:, 9:], -10.0, 10.0)
+
         if not self._exclude_current_positions_from_observation:
             x_pos = self._read_data("x_pos")
             obs = torch.cat([obs, x_pos], dim=1)
         return obs
 
-    def _is_within_z_range(self, obs):
-        min_z, max_z = self._healthy_z_range
-        z_position = self.obs_helper.get_from_obs(obs, "z_pos")[:, 0]
-        return (z_position > min_z) & (z_position < max_z)
-
-    def _is_within_angle_range(self, obs):
-        min_angle, max_angle = self._healthy_angle_range
-        y_angle = self.obs_helper.get_from_obs(obs, "y_pos")[:, 0]
-        # Wrap to [-pi, pi] before comparison — defensive against somersault
-        # accumulation that we hit debugging hopper.
-        y_wrapped = torch.atan2(torch.sin(y_angle), torch.cos(y_angle))
-        return (y_wrapped > min_angle) & (y_wrapped < max_angle)
-
-    def _is_healthy(self, obs):
-        return self._is_within_z_range(obs) & self._is_within_angle_range(obs)
-
     def is_absorbing(self, obs):
-        return self._terminate_when_unhealthy & ~self._is_healthy(obs)
+        return torch.zeros(self._num_envs, dtype=torch.bool, device=obs.device)
 
     def reward(self, obs, action, next_obs, absorbing):
-        healthy = self._is_healthy(next_obs)
-        healthy_r = (
-            healthy | self._terminate_when_unhealthy
-        ).float() * self._healthy_reward
-
         torso_vel = self._read_data("torso_vel")
         forward_r = self._forward_reward_weight * torso_vel[:, 3]
 
         action_t = torch.as_tensor(
-            action, dtype=healthy_r.dtype, device=healthy_r.device
+            action, dtype=forward_r.dtype, device=forward_r.device
         )
         ctrl_cost = self._ctrl_cost_weight * (action_t**2).sum(dim=-1)
 
-        return healthy_r + forward_r - ctrl_cost
+        return forward_r - ctrl_cost
 
     def setup(self, env_indices, obs):
-        """Reset with uniform noise on qpos and qvel for the given environments."""
         super().setup(env_indices, obs)
 
         qpos = wp.to_torch(self._data_wp.qpos)
@@ -166,10 +130,6 @@ class Walker2DWarp(MuJoCoWarp):
         )
 
         n = len(env_indices)
-        if n == 0:
-            self._mj_warp.forward(self._model_wp, self._data_wp)
-            return
-
         noise_pos = (
             torch.rand(n, self._model.nq, device=device) * 2 - 1
         ) * self._reset_noise_scale
@@ -183,14 +143,8 @@ class Walker2DWarp(MuJoCoWarp):
         self._mj_warp.forward(self._model_wp, self._data_wp)
 
     def _create_info_dictionary(self, obs):
-        healthy = self._is_healthy(obs)
-        healthy_r = (
-            healthy | self._terminate_when_unhealthy
-        ).float() * self._healthy_reward
         torso_vel = self._read_data("torso_vel")
-
         forward_r = self._forward_reward_weight * torso_vel[:, 3]
         return {
-            "healthy_reward": healthy_r,
             "forward_reward": forward_r,
         }

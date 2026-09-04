@@ -11,5 +11,7 @@ per-file-ignores =
     tests/environments/mujoco_envs/test_ball_in_a_cup.py: E402
     tests/environments/mujoco_envs/test_locomotion.py: E402
     tests/environments/mujoco_envs/test_panda.py: E402
+    tests/environments/mujoco_warp_envs/test_warp_locomotion.py: E402
     tests/environments/pybullet_envs/test_air_hockey_bullet.py: E402
     tests/environments/test_dm_control.py: E402
+    tests/environments/test_mujoco_warp.py: E402
