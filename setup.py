@@ -29,6 +29,7 @@ extras = {
     'bullet': ['pybullet'],
     'mujoco': ['mujoco>=3.11'],
     'mujoco_warp': ['mujoco-warp'],
+    'isaacsim': ['isaacsim[all,extscache]>=6.0'],
     'dm_control': ['dm_control>=1.0.44'],
     'monitors': ['pyqtgraph', 'PySide6'],
     'wandb': ['wandb']
@@ -36,11 +37,9 @@ extras = {
 
 all_deps = []
 for group_name in extras:
-    if group_name not in ['box2d', 'bullet']:
+    if group_name not in ['box2d', 'bullet', 'isaacsim']:
         all_deps += extras[group_name]
 extras['all'] = all_deps
-
-print(extras['all'])
 
 long_description = 'MushroomRL is a Python Reinforcement Learning (RL) library' \
                    ' whose modularity allows to easily use well-known Python' \
