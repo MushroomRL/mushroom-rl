@@ -26,6 +26,7 @@ from tqdm import trange
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.algorithms.actor_critic import RudinPPO
 from mushroom_rl.policy import GaussianTorchPolicy
+from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
 from mushroom_rl.utils.isaac_sim import IsaacLauncher
 from mushroom_rl.utils import TorchUtils
 from mushroom_rl.utils.experiments import get_log_dir
@@ -144,16 +145,11 @@ def observed_indices(mdp, *privileged):
 
 def initial_value(agent, dataset):
     """
-    Returns the mean value the critic assigns to the initial states of the dataset, stacked into the history
-    the critic reads: the entry of the current step, preceded by the zeros the history manager pads the
-    beginning of an episode with.
+    Returns the mean value the critic assigns to the initial states of the dataset, stacked and normalized
+    the way the critic reads them.
 
     """
-    states = dataset.get_init_states()
-    history = states.new_zeros((len(states), agent.history_length) + tuple(states.shape[1:]))
-    history[:, -1] = states
-
-    return agent._V(history).mean().item()
+    return agent._V(agent.history_manager.parse_initial_state(dataset)).mean().item()
 
 
 def episode_metrics(dataset):
@@ -217,7 +213,8 @@ def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_par
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': 1e-3}},
                          loss=F.mse_loss,
-                         n_features=[512, 256, 128],
+                         n_features=[256, 256, 128],
+                         activation='elu',
                          gain_scale=0.5,
                          batch_size=int((4096 * 24) / 16),
                          use_cuda=True,
@@ -225,6 +222,7 @@ def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_par
                          output_shape=(1,))
 
     agent = alg(mdp.info, policy, critic_params=critic_params, **alg_params)
+    agent.add_agent_preprocessor(StandardizationPreprocessor(mdp.info, backend='torch'))
 
     # Algorithm
     core = Core(agent, mdp, callbacks_fit=[curriculum], logger=logger)
@@ -282,7 +280,8 @@ if __name__ == '__main__':
                       max_command_ranges=dict(lin_vel_x=(-2.5, 2.5), lin_vel_y=(-2.5, 2.5),
                                               ang_vel_z=(-1.5, 1.5)),
                       command_ranges=dict(ang_vel_z=(-1.5, 1.5)),
-                      command_resampling_time_range=(5., 10.), rel_heading_envs=0.5, rel_standing_envs=0.1,
+                      command_resampling_time_range=(5., 10.), heading_control_stiffness=1.,
+                      rel_heading_envs=0.5, rel_standing_envs=0.1, command_dead_zone=0.,
                       frac_rotating_envs=0.15, frac_low_speed_envs=0.35, low_speed_threshold=0.5)
 
     curriculum_params = dict(command_steps=[24000, 48000],
@@ -300,9 +299,14 @@ if __name__ == '__main__':
                       eps_ppo=.2,
                       lam=.95,
                       ent_coeff=0.01,
+                      critic_fit_params=dict(n_epochs=5),
                       history_length=8)
 
-    policy_params = dict(std_0=1., n_features=[512, 256, 128], gain_scale=0.5, use_cuda=True)
+    policy_params = dict(std_0=1.,
+                         n_features=[512, 512, 256],
+                         activation='elu',
+                         gain_scale=0.5,
+                         use_cuda=True)
 
     experiment(alg=RudinPPO, n_epochs=60, n_steps=4096 * 24 * 50, n_steps_per_fit=4096 * 24,
                n_episodes_test=256, alg_params=ppo_params, policy_params=policy_params, mdp_params=mdp_params,

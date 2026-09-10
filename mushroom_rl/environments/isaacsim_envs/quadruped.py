@@ -8,7 +8,7 @@ from mushroom_rl.environments.isaacsim_env import IsaacSim
 from mushroom_rl.environments.isaacsim_envs.quadruped_randomizer import QuadrupedRandomizationParams, \
     QuadrupedRandomizer
 from mushroom_rl.utils import TorchUtils
-from mushroom_rl.utils.isaac_sim import ActuationType, ObservationType
+from mushroom_rl.utils.isaac_sim import ActuationType, ObservationType, IsaacGpuParams
 
 
 class QuadrupedIsaac(IsaacSim):
@@ -31,7 +31,8 @@ class QuadrupedIsaac(IsaacSim):
                  reward_params=None, clamp_reward=True,
                  command_ranges=None, tracking_stds=None, command_dead_zone=0.2,
                  command_resampling_time_range=None, heading_control_stiffness=0.5, rel_heading_envs=1.,
-                 rel_standing_envs=0., frac_rotating_envs=0., frac_low_speed_envs=0., low_speed_threshold=0.5):
+                 rel_standing_envs=0., frac_rotating_envs=0., frac_low_speed_envs=0., low_speed_threshold=0.5,
+                 gpu_params=None):
         """
         Constructor.
 
@@ -89,6 +90,8 @@ class QuadrupedIsaac(IsaacSim):
             frac_low_speed_envs (float): The fraction of the moving environments commanded to move below
                 ``low_speed_threshold``.
             low_speed_threshold (float): The velocity below which a command counts as a low speed one.
+            gpu_params (IsaacGpuParams, None): The GPU configuration parameters of the physics scene.
+                Defaults to ``IsaacGpuParams.per_env(num_envs)``.
 
         """
         device = TorchUtils.get_device()
@@ -161,12 +164,7 @@ class QuadrupedIsaac(IsaacSim):
         self._randomization_params = \
             QuadrupedRandomizationParams() if randomization_params is None else randomization_params
 
-        sim_params = {
-            "gpu_found_lost_aggregate_pairs_capacity": 128 * 1024,
-            "gpu_total_aggregate_pairs_capacity": 128 * 1024,
-            "gpu_temp_buffer_capacity": 16777216,
-            "gpu_max_rigid_patch_count": 2 * 81920,
-        }
+        gpu_params = IsaacGpuParams.per_env(num_envs) if gpu_params is None else gpu_params
         scene_params = dict(env_spacing=3.,
                             solver_pos_it_count=torch.full((num_envs, ), 4, device=device),
                             solver_vel_it_count=torch.full((num_envs, ), 0, device=device))
@@ -182,7 +180,7 @@ class QuadrupedIsaac(IsaacSim):
         super().__init__(usd_path, action_spec, observation_spec, num_envs, 0.99, horizon,
                          additional_data_spec=additional_data_spec, collision_groups=collision_groups,
                          actuation_type=ActuationType.EFFORT, n_intermediate_steps=4, timestep=0.005,
-                         sim_params=sim_params, scene_params=scene_params, viewer_params=viewer_params)
+                         gpu_params=gpu_params, scene_params=scene_params, viewer_params=viewer_params)
 
         self._randomizer = self._build_randomizer()
         self._observation_helper.write_data("max_joint_vel", self._randomizer.joint_max_vel,

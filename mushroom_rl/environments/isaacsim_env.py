@@ -27,7 +27,7 @@ class IsaacSim(VectorizedEnvironment):
 
     def __init__(self, usd_path, actuation_spec, observation_spec, num_envs, gamma, horizon,
                  timestep=None, n_substeps=1, n_intermediate_steps=1, additional_data_spec=None,
-                 collision_groups=None, actuation_type=ActuationType.EFFORT, sim_params=None, scene_params=None,
+                 collision_groups=None, actuation_type=ActuationType.EFFORT, gpu_params=None, scene_params=None,
                  viewer_params=None):
         """
         Constructor.
@@ -54,11 +54,8 @@ class IsaacSim(VectorizedEnvironment):
                 during simulation. The entries are given as ``(key, prim_paths)``, where key is a string for later
                 reference and prim_paths is a list of paths to the prims.
             actuation_type (ActuationType): Control type of the joints (effort, position, velocity).
-            sim_params (dict): Dictionary of simulation parameters for the physics scene.
-                Intended to set gpu_collision_stack_size, gpu_found_lost_aggregate_pairs_capacity,
-                gpu_found_lost_pairs_capacity, gpu_heap_capacity, gpu_max_num_partitions, gpu_max_particle_contacts,
-                gpu_max_rigid_contact_count, gpu_max_rigid_patch_count, gpu_max_soft_body_contacts,
-                gpu_temp_buffer_capacity, gpu_total_aggregate_pairs_capacity.
+            gpu_params (IsaacGpuParams, None): The GPU configuration parameters of the physics scene,
+                defaulting to the Isaac Sim ones.
             scene_params (dict, None): The parameters describing the scene to simulate, passed to
                 :class:`~mushroom_rl.utils.isaac_sim.scene_builder.SceneBuilder`, which documents them.
             viewer_params (dict, None): The parameters of the camera looking at the scene, passed to
@@ -81,7 +78,7 @@ class IsaacSim(VectorizedEnvironment):
         self._collision_helper = CollisionHelper(collision_groups, self._scene_builder.zero_env_robot_path,
                                                  self._scene_builder.robot_glob, num_envs, n_intermediate_steps)
 
-        self._setup_simulation(timestep, sim_params)
+        self._setup_simulation(timestep, gpu_params)
 
         specifications = observation_spec + additional_data_spec
         self._robots, views, self._env_pos = self._scene_builder.build(specifications, self._collision_helper)
@@ -293,13 +290,13 @@ class IsaacSim(VectorizedEnvironment):
     def render_product_size(self):
         return self._viewer.render_product_size
 
-    def _setup_simulation(self, timestep, custom_sim_params=None):
+    def _setup_simulation(self, timestep, gpu_params=None):
         """
         Create the stage and configure the physics simulation.
 
         Args:
             timestep (float, None): The physics timestep. If None, the default physics timestep is used.
-            custom_sim_params (dict, None): A dictionary of GPU capacity parameters overriding the defaults.
+            gpu_params (IsaacGpuParams, None): The GPU configuration parameters to apply to the scene.
 
         """
         stage_utils.create_new_stage()
@@ -316,8 +313,8 @@ class IsaacSim(VectorizedEnvironment):
         self._physics_scene = SimulationManager.get_physics_scenes()[0]
         if isinstance(self._physics_scene, PhysxScene):
             self._physics_scene.set_enabled_ccd(False)
-            if custom_sim_params is not None:
-                self._physics_scene.set_gpu_configuration(PhysxGpuCfg(**custom_sim_params))
+            if gpu_params is not None:
+                self._physics_scene.set_gpu_configuration(PhysxGpuCfg(**gpu_params))
 
         if timestep is None:
             self._timestep = self._physics_scene.get_dt() / self._n_substeps
@@ -384,7 +381,8 @@ class IsaacSim(VectorizedEnvironment):
         velocity = wp.from_torch(torch.zeros(len(env_indices), 3, device=TorchUtils.get_device()))
         self._robots.set_velocities(velocity, velocity, indices=indices)
 
-    def _enable_fabric_updates(self, active):
+    @staticmethod
+    def _enable_fabric_updates(active):
         """
         Sets whether PhysX writes the pose of every body into Fabric, which is what the renderer draws from.
         A window needs those writes throughout, while a headless run only needs them around the frames it
@@ -541,7 +539,7 @@ class IsaacSim(VectorizedEnvironment):
 
     def _step_finalize(self, env_indices):
         """
-        Allows information to be accesed at the end of a step.
+        Allows information to be accessed at the end of a step.
 
         """
         pass
