@@ -61,7 +61,7 @@ class AirHockeyBase(MuJoCo):
             additional_data += [("robot_1/ee_pos", "planar_robot_1/body_ee", ObservationType.BODY_POS),
                                 ("robot_1/ee_vel", "planar_robot_1/body_ee", ObservationType.BODY_VEL_WORLD)]
 
-            collision_spec += [("robot_1/ee", ["planar_robot_1/ee"])]
+            collision_spec += [("robot_1/ee", ["planar_robot_1/ee_collision"])]
 
             if self.n_agents == 2:
                 scene = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey", "double.xml")
@@ -80,7 +80,7 @@ class AirHockeyBase(MuJoCo):
                 additional_data += [("robot_2/ee_pos", "planar_robot_2/body_ee", ObservationType.BODY_POS),
                                     ("robot_2/ee_vel", "planar_robot_2/body_ee", ObservationType.BODY_VEL_WORLD)]
 
-                collision_spec += [("robot_2/ee", ["planar_robot_2/ee"])]
+                collision_spec += [("robot_2/ee", ["planar_robot_2/ee_collision"])]
         else:
             raise ValueError('n_agents should be 1 or 2')
 

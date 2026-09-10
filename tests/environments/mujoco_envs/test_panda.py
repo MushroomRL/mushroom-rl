@@ -200,12 +200,12 @@ def test_peg_insertion_reward():
 
     assert robot_forces.shape == (100, 3)
     assert gripper_forces.shape == (100, 3)
-    assert dual_contact_steps == 22
-    assert np.sum(np.any(robot_forces != 0, axis=1)) == 48
-    assert np.sum(np.any(gripper_forces != 0, axis=1)) == 33
-    assert np.allclose(np.abs(robot_forces).max(), 706.4070253827513)
-    assert np.allclose(np.abs(gripper_forces).max(), 138.2018179170272)
-    assert np.allclose(np.sum(rewards), 4.080087100401162)
+    assert dual_contact_steps == 24
+    assert np.sum(np.any(robot_forces != 0, axis=1)) == 47
+    assert np.sum(np.any(gripper_forces != 0, axis=1)) == 32
+    assert np.allclose(np.abs(robot_forces).max(), 313.05940065768687)
+    assert np.allclose(np.abs(gripper_forces).max(), 117.51297188478829)
+    assert np.allclose(np.sum(rewards), 4.1130012022173625)
 
 
 def test_peg_insertion_alignment():

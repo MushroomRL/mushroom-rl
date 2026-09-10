@@ -31,8 +31,8 @@
             <geom name="rim_home_r" class="rim" size="0.045 0.198 0.005" pos="-1.0245 -0.323 0.005"/>
             <geom name="rim_home_top" class="rim" size="0.045 0.521 0.01" pos="-1.0245 0 0.02"/>
 
-            <geom name="rim_left" class="rim" size="1.0695 0.045 0.015" pos="0 0.566 0.015"/>
-            <geom name="rim_right" class="rim" size="1.0695 0.045 0.015" pos="0 -0.566 0.015"/>
+            <geom name="rim_left" class="rim" size="1.0695 0.045 0.025" pos="0 0.566 0.005"/>
+            <geom name="rim_right" class="rim" size="1.0695 0.045 0.025" pos="0 -0.566 0.005"/>
 
             <geom name="rim_away_l" class="rim" size="0.045 0.198 0.005" pos="1.0245 0.323 0.005"/>
             <geom name="rim_away_r" class="rim" size="0.045 0.198 0.005" pos="1.0245 -0.323 0.005"/>
