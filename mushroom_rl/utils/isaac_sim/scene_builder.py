@@ -28,7 +28,7 @@ class SceneBuilder:
     """
 
     def __init__(self, usd_path, num_envs, env_spacing=3., collisions_between_envs=False,
-                 solver_pos_it_count=None, solver_vel_it_count=None, ground_plane_friction=None):
+                 solver_pos_it_count=None, solver_vel_it_count=None, ground_plane_friction=(1., 1., 0.)):
         """
         Constructor.
 
@@ -210,8 +210,9 @@ class SceneBuilder:
             static_friction, dynamic_friction, restitution = self._ground_plane_friction
             material = RigidBodyMaterial(
                 "/World/Physics_Materials/groundPlane",
-                static_frictions=static_friction,
-                dynamic_frictions=dynamic_friction,
-                restitutions=restitution
+                static_frictions=[static_friction],
+                dynamic_frictions=[dynamic_friction],
+                restitutions=[restitution]
             )
-            ground_plane.planes.apply_physics_materials(material)
+            material.set_combine_modes(frictions=["multiply"], restitutions=["multiply"])
+            ground_plane.apply_physics_materials(material)
