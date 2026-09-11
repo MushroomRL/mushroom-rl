@@ -77,7 +77,7 @@ class DatasetInfo(MushroomObject):
         )
 
     @staticmethod
-    def create_dataset_info(mdp_info, agent_info, n_envs=1, device=None):
+    def create_dataset_info(mdp_info, agent_info, n_envs=1):
         """
         Build the dataset info for on-policy collection: the environment data uses ``mdp_info.backend`` (forced
         to ``'list'`` for infinite-horizon MDPs) and the agent data uses ``agent_info.backend``.
@@ -85,8 +85,7 @@ class DatasetInfo(MushroomObject):
         Args:
             mdp_info (MDPInfo): information about the MDP;
             agent_info (AgentInfo): information about the agent;
-            n_envs (int, 1): number of parallel environments;
-            device (str, None): torch device used by the torch-backed data groups.
+            n_envs (int, 1): number of parallel environments.
 
         Returns:
             The dataset info.
@@ -95,8 +94,10 @@ class DatasetInfo(MushroomObject):
         env_backend = mdp_info.backend
         if not np.isfinite(mdp_info.horizon):
             assert env_backend != 'torch', "Infinite-horizon collection is not supported for the torch backend."
+            assert agent_info.policy_state_shape is None or agent_info.backend != 'torch', \
+                "Infinite-horizon collection is not supported for a stateful torch agent."
             env_backend = 'list'
-        env_device = device if env_backend == 'torch' else None
+        env_device = mdp_info.device
         horizon = mdp_info.horizon
         gamma = mdp_info.gamma
         state_shape = mdp_info.observation_space.shape
@@ -104,13 +105,13 @@ class DatasetInfo(MushroomObject):
         action_shape = mdp_info.action_space.shape
         action_dtype = mdp_info.action_space.data_type
         policy_state_shape = agent_info.policy_state_shape
-        agent_device = device if agent_info.backend == 'torch' else None
+        agent_device = agent_info.device
 
         return DatasetInfo(env_backend, agent_info.backend, env_device, agent_device, horizon, gamma,
                            state_shape, state_dtype, action_shape, action_dtype, policy_state_shape, n_envs=n_envs)
 
     @staticmethod
-    def create_replay_memory_info(mdp_info, agent_info, store_policy_state=True, device=None):
+    def create_replay_memory_info(mdp_info, agent_info, store_policy_state=True):
         """
         Build the dataset info for a replay memory: the whole buffer (both the transition data and the policy
         state) lives in the agent backend, so the environment and agent backends/devices coincide.
@@ -118,8 +119,7 @@ class DatasetInfo(MushroomObject):
         Args:
             mdp_info (MDPInfo): information about the MDP;
             agent_info (AgentInfo): information about the agent;
-            store_policy_state (bool, True): whether the policy state is stored;
-            device (str, None): torch device used by the buffer.
+            store_policy_state (bool, True): whether the policy state is stored.
 
         Returns:
             The dataset info.
@@ -127,7 +127,7 @@ class DatasetInfo(MushroomObject):
         """
         backend = agent_info.backend
         array_backend = ArrayBackend.get_array_backend(backend)
-        device = device if backend == 'torch' else None
+        device = agent_info.device
         horizon = mdp_info.horizon
         gamma = mdp_info.gamma
         state_shape = mdp_info.observation_space.shape
@@ -430,7 +430,7 @@ class Dataset(MushroomObject):
             if pick:
                 x_0.append(step[0])
             pick = step[-1]
-        return self._dataset_info.env_array_backend.from_list(x_0)
+        return self._dataset_info.env_array_backend.from_list(x_0, device=self._dataset_info.env_device)
 
     def compute_J(self, gamma=1.):
         """
@@ -444,7 +444,9 @@ class Dataset(MushroomObject):
 
         """
         backend = self._dataset_info.env_array_backend
-        _, r_ep = split_episodes(backend.as_array(self.last), backend.as_array(self.reward))
+        device = self._dataset_info.env_device
+        _, r_ep = split_episodes(backend.as_array(self.last, device=device),
+                                 backend.as_array(self.reward, device=device))
 
         if len(r_ep.shape) == 1:
             r_ep = backend.expand_dims(r_ep, 0)
@@ -657,7 +659,7 @@ class Dataset(MushroomObject):
                 lengths.append(length)
                 length = 0
 
-        return self._dataset_info.env_array_backend.as_array(lengths)
+        return self._dataset_info.env_array_backend.as_array(lengths, device=self._dataset_info.env_device)
 
     @property
     def n_episodes(self):
@@ -973,15 +975,19 @@ class VectorizedDataset(Dataset):
         next_states = env_backend.pack_padded_sequence(self.next_state, mask)
         absorbings = env_backend.pack_padded_sequence(self.absorbing, mask)
 
-        last_padded = env_backend.copy(env_backend.as_array(self.last))
-        last_padded[-1, :] = True
+        steps = env_backend.expand_dims(env_backend.arange(0, len(mask), device=self._dataset_info.env_device), 1)
+        block_end = mask & (steps == env_backend.max(env_backend.where(mask, steps, -1), dim=0))
+
+        last_padded = env_backend.copy(env_backend.as_array(self.last, device=self._dataset_info.env_device))
+        last_padded[block_end] = True
         lasts = env_backend.pack_padded_sequence(last_padded, mask)
 
         policy_state = None
         policy_next_state = None
 
         if self.is_stateful:
-            policy_mask = agent_backend.convert_to_backend(env_backend, mask)
+            policy_mask = agent_backend.convert_to_backend(env_backend, mask,
+                                                           device=self._dataset_info.agent_device)
             policy_state = agent_backend.pack_padded_sequence(self.policy_state, policy_mask)
             policy_next_state = agent_backend.pack_padded_sequence(self.policy_next_state, policy_mask)
 
@@ -1015,7 +1021,8 @@ class VectorizedDataset(Dataset):
         Boolean mask marking, for every stored step, which environments were active.
 
         """
-        return self._dataset_info.env_array_backend.as_array(self._mask_data.column())
+        return self._dataset_info.env_array_backend.as_array(self._mask_data.column(),
+                                                             device=self._dataset_info.env_device)
 
     def _merge_theta_list(self, other):
         return [theta + other_theta for theta, other_theta in zip(self._theta_list, other._theta_list)]

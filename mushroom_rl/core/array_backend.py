@@ -97,6 +97,18 @@ class ArrayBackend(object):
 
         return None
 
+    @staticmethod
+    def get_device(array):
+        """
+        Args:
+            array: an array in this backend's format.
+
+        Returns:
+            The device ``array`` is stored on, or ``None`` for the backends that do not support devices.
+
+        """
+        return None
+
     @classmethod
     def convert(cls, *arrays, to=None, backend=None):
         """
@@ -125,7 +137,7 @@ class ArrayBackend(object):
             raise NotImplementedError(f"Conversion to the {to} backend is not supported.")
 
     @staticmethod
-    def convert_to_backend(backend, array):
+    def convert_to_backend(backend, array, device=None):
         """
         Convert a single array from another backend into this backend's native array type. Unlike
         :meth:`convert`, this is a static method called on the destination backend, taking the source backend
@@ -191,10 +203,11 @@ class ArrayBackend(object):
         raise NotImplementedError
 
     @staticmethod
-    def to_torch(array):
+    def to_torch(array, device=None):
         """
         Args:
-            array: an array in this backend's format.
+            array: an array in this backend's format;
+            device (str, None): torch device the result is placed on, or ``None`` for the default one.
 
         Returns:
             ``array`` converted to a PyTorch ``Tensor``.
@@ -214,28 +227,33 @@ class ArrayBackend(object):
         """
         raise NotImplementedError
 
-    @staticmethod
-    def as_array(array):
+    @classmethod
+    def as_array(cls, array, device=None):
         """
         Cast ``array`` to this backend's native array type without changing its backend, materializing it if
         needed (e.g. wrapping a plain Python list into a NumPy/PyTorch array).
 
         Args:
-            array: an array-like object.
+            array: an array-like object;
+            device (str, None): device the result is placed on, or ``None`` for this backend's default one.
 
         Returns:
             ``array`` as a native object of this backend.
 
+        Raises:
+            ValueError: if ``device`` is not ``None`` and the backend does not support devices.
+
         """
         raise NotImplementedError
 
-    @staticmethod
-    def from_list(array):
+    @classmethod
+    def from_list(cls, array, device=None):
         """
         Build a backend array from a plain Python list (the inverse of :meth:`to_list`).
 
         Args:
-            array (list): a plain Python list.
+            array (list): a plain Python list;
+            device (str, None): device the result is placed on, or ``None`` for this backend's default one.
 
         Returns:
             ``array`` converted to this backend's native array type.
@@ -269,12 +287,13 @@ class ArrayBackend(object):
         """
         raise NotImplementedError
 
-    @staticmethod
-    def full(shape, value):
+    @classmethod
+    def full(cls, shape, value, device=None):
         """
         Args:
             shape: shape of the array to create;
-            value: fill value.
+            value: fill value;
+            device (str, None): device the result is placed on, or ``None`` for this backend's default one.
 
         Returns:
             A new array of the given ``shape``, filled with ``value``.
@@ -354,8 +373,8 @@ class ArrayBackend(object):
         """
         raise NotImplementedError
 
-    @staticmethod
-    def masked_init(mask, values):
+    @classmethod
+    def masked_init(cls, mask, values, device=None):
         """
         Build an array of shape ``(len(mask), *values.shape[1:])`` where the entries selected by ``mask`` are
         filled, in order, with ``values``, and the remaining entries are left uninitialized.
@@ -363,7 +382,8 @@ class ArrayBackend(object):
         Args:
             mask: a boolean array of shape ``(N,)``;
             values: an array of shape ``(M, ...)``, with ``M`` equal to the number of ``True`` entries in
-                ``mask``.
+                ``mask``;
+            device (str, None): device the result is placed on, or ``None`` for this backend's default one.
 
         Returns:
             An array of shape ``(N, ...)`` with ``values`` scattered at the positions where ``mask`` is
@@ -771,12 +791,13 @@ class ArrayBackend(object):
         """
         raise NotImplementedError
 
-    @staticmethod
-    def uniform(low, high):
+    @classmethod
+    def uniform(cls, low, high, device=None):
         """
         Args:
             low: lower bound(s) of the uniform distribution;
-            high: upper bound(s) of the uniform distribution.
+            high: upper bound(s) of the uniform distribution;
+            device (str, None): device the result is placed on, or ``None`` for this backend's default one.
 
         Returns:
             An array sampled uniformly between ``low`` and ``high``.
@@ -811,8 +832,9 @@ class NumpyBackend(ArrayBackend):
     def get_backend_serialization():
         return 'numpy'
 
-    @staticmethod
-    def convert_to_backend(backend, array):
+    @classmethod
+    def convert_to_backend(cls, backend, array, device=None):
+        cls.check_device(device)
         return backend.to_numpy(array)
 
     @staticmethod
@@ -820,22 +842,24 @@ class NumpyBackend(ArrayBackend):
         return array
 
     @staticmethod
-    def to_torch(array):
+    def to_torch(array, device=None):
         if array is None:
             return None
         torch_dtype = TorchBackend.to_backend_dtype(array.dtype)
-        return torch.as_tensor(array, dtype=torch_dtype, device=TorchUtils.get_device())
+        return torch.as_tensor(array, dtype=torch_dtype, device=TorchBackend.check_device(device))
 
     @staticmethod
     def to_list(array):
         return array.tolist()
 
-    @staticmethod
-    def as_array(array):
+    @classmethod
+    def as_array(cls, array, device=None):
+        cls.check_device(device)
         return np.asarray(array)
 
-    @staticmethod
-    def from_list(array):
+    @classmethod
+    def from_list(cls, array, device=None):
+        cls.check_device(device)
         return np.array(array)
 
     @classmethod
@@ -850,8 +874,9 @@ class NumpyBackend(ArrayBackend):
     def empty(shape, device=None):
         return np.empty(shape)
 
-    @staticmethod
-    def full(shape, value):
+    @classmethod
+    def full(cls, shape, value, device=None):
+        cls.check_device(device)
         return np.full(shape, value)
 
     @classmethod
@@ -879,8 +904,9 @@ class NumpyBackend(ArrayBackend):
         cls.check_device(device)
         return np.arange(start, stop, step, dtype=dtype)
 
-    @staticmethod
-    def masked_init(mask, values):
+    @classmethod
+    def masked_init(cls, mask, values, device=None):
+        cls.check_device(device)
         result = np.empty((mask.shape[0],) + values.shape[1:])
         result[mask] = values
         return result
@@ -1017,8 +1043,9 @@ class NumpyBackend(ArrayBackend):
     def multinomial(p):
         return np.array([np.random.choice(len(p), p=p)])
 
-    @staticmethod
-    def uniform(low, high):
+    @classmethod
+    def uniform(cls, low, high, device=None):
+        cls.check_device(device)
         return np.random.uniform(low, high)
 
 
@@ -1053,31 +1080,35 @@ class TorchBackend(ArrayBackend):
         return TorchUtils.get_device() if device is None else device
 
     @staticmethod
-    def convert_to_backend(backend, array):
-        return backend.to_torch(array)
+    def get_device(array):
+        return array.device
+
+    @staticmethod
+    def convert_to_backend(backend, array, device=None):
+        return backend.to_torch(array, device=device)
 
     @staticmethod
     def to_numpy(array):
         return None if array is None else array.detach().cpu().numpy()
 
-    @staticmethod
-    def to_torch(array):
-        return array
+    @classmethod
+    def to_torch(cls, array, device=None):
+        return array if device is None else array.to(cls.check_device(device))
 
     @staticmethod
     def to_list(array):
         return array.tolist()
 
-    @staticmethod
-    def as_array(array):
-        return torch.as_tensor(array, device=TorchUtils.get_device())
+    @classmethod
+    def as_array(cls, array, device=None):
+        return torch.as_tensor(array, device=cls.check_device(device))
 
-    @staticmethod
-    def from_list(array):
+    @classmethod
+    def from_list(cls, array, device=None):
         if len(array) > 0 and isinstance(array[0], torch.Tensor):
             return torch.stack(array)
         else:
-            return torch.tensor(array).to(TorchUtils.get_device())
+            return torch.tensor(array).to(cls.check_device(device))
 
     @classmethod
     def to_backend_dtype(cls, dtype):
@@ -1090,9 +1121,9 @@ class TorchBackend(ArrayBackend):
         device = cls.check_device(device)
         return torch.empty(shape, device=device)
 
-    @staticmethod
-    def full(shape, value):
-        return torch.full(shape, value).to(device=TorchUtils.get_device())
+    @classmethod
+    def full(cls, shape, value, device=None):
+        return torch.full(shape, value).to(device=cls.check_device(device))
 
     @classmethod
     def zeros(cls, *dims, dtype=torch.float32, device=None):
@@ -1119,10 +1150,11 @@ class TorchBackend(ArrayBackend):
         device = cls.check_device(device)
         return torch.arange(start, stop, step, dtype=dtype, device=device)
 
-    @staticmethod
-    def masked_init(mask, values):
-        result = torch.empty((mask.shape[0],) + values.shape[1:], device=TorchUtils.get_device())
-        result[mask] = torch.as_tensor(values, dtype=result.dtype, device=TorchUtils.get_device())
+    @classmethod
+    def masked_init(cls, mask, values, device=None):
+        device = cls.check_device(device)
+        result = torch.empty((mask.shape[0],) + values.shape[1:], device=device)
+        result[mask] = torch.as_tensor(values, dtype=result.dtype, device=device)
         return result
 
     @staticmethod
@@ -1260,10 +1292,11 @@ class TorchBackend(ArrayBackend):
     def multinomial(p):
         return torch.multinomial(p, 1)
 
-    @staticmethod
-    def uniform(low, high):
-        low = torch.as_tensor(low, device=TorchUtils.get_device())
-        high = torch.as_tensor(high, device=TorchUtils.get_device())
+    @classmethod
+    def uniform(cls, low, high, device=None):
+        device = cls.check_device(device)
+        low = torch.as_tensor(low, device=device)
+        high = torch.as_tensor(high, device=device)
         return low + (high - low) * torch.rand_like(low)
 
 
@@ -1284,8 +1317,9 @@ class ListBackend(ArrayBackend):
     def get_backend_serialization():
         return 'numpy'
 
-    @staticmethod
-    def convert_to_backend(backend, array):
+    @classmethod
+    def convert_to_backend(cls, backend, array, device=None):
+        cls.check_device(device)
         return array
 
     @staticmethod
@@ -1293,19 +1327,21 @@ class ListBackend(ArrayBackend):
         return np.array(array)
 
     @staticmethod
-    def to_torch(array):
-        return None if array is None else torch.as_tensor(array, device=TorchUtils.get_device())
+    def to_torch(array, device=None):
+        return None if array is None else torch.as_tensor(array, device=TorchBackend.check_device(device))
 
     @staticmethod
     def to_list(array):
         return array
 
-    @staticmethod
-    def as_array(array):
+    @classmethod
+    def as_array(cls, array, device=None):
+        cls.check_device(device)
         return np.array(array)
 
-    @staticmethod
-    def from_list(array):
+    @classmethod
+    def from_list(cls, array, device=None):
+        cls.check_device(device)
         return array
 
     @staticmethod
@@ -1318,8 +1354,9 @@ class ListBackend(ArrayBackend):
             return None
         return [ListBackend.empty(shape[1:]) for _ in range(shape[0])]
 
-    @staticmethod
-    def full(shape, value):
+    @classmethod
+    def full(cls, shape, value, device=None):
+        cls.check_device(device)
         if len(shape) == 0:
             return value
         return [ListBackend.full(shape[1:], value) for _ in range(shape[0])]
@@ -1349,8 +1386,9 @@ class ListBackend(ArrayBackend):
         cls.check_device(device)
         return NumpyBackend.arange(start, stop, step, dtype=dtype)
 
-    @staticmethod
-    def masked_init(mask, values):
+    @classmethod
+    def masked_init(cls, mask, values, device=None):
+        cls.check_device(device)
         result = [None] * len(mask)
         for j, i in enumerate(NumpyBackend.nonzero(mask)):
             result[int(i)] = copy.deepcopy(values[j])
@@ -1485,6 +1523,7 @@ class ListBackend(ArrayBackend):
     def multinomial(p):
         return NumpyBackend.multinomial(p)
 
-    @staticmethod
-    def uniform(low, high):
+    @classmethod
+    def uniform(cls, low, high, device=None):
+        cls.check_device(device)
         return NumpyBackend.uniform(low, high)

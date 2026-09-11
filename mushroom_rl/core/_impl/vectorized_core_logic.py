@@ -3,10 +3,11 @@ from .core_logic import CoreLogic
 
 
 class VectorizedCoreLogic(CoreLogic):
-    def __init__(self, backend, n_envs):
+    def __init__(self, backend, n_envs, device=None):
         self._array_backend = ArrayBackend.get_array_backend(backend)
         self._n_envs = n_envs
-        self._running_envs = self._array_backend.zeros(n_envs, dtype=bool)
+        self._device = device
+        self._running_envs = self._array_backend.zeros(n_envs, dtype=bool, device=device)
         self._n_active_envs = 0
         self._started_counter = 0
 
@@ -19,7 +20,7 @@ class VectorizedCoreLogic(CoreLogic):
         first_batch = running_episodes == 0 and terminated_episodes == 0
 
         if first_batch:
-            mask = self._array_backend.ones(self._n_envs, dtype=bool)
+            mask = self._array_backend.ones(self._n_envs, dtype=bool, device=self._device)
             terminated_episodes = self._n_envs
         else:
             mask = self._running_envs
@@ -34,7 +35,7 @@ class VectorizedCoreLogic(CoreLogic):
             missing_episodes_fit = max(self._n_episodes_per_fit - self._current_episodes_counter - running_episodes, 0)
             max_runs = min(missing_episodes_fit, max_runs)
 
-        new_mask = self._array_backend.ones(terminated_episodes, dtype=bool)
+        new_mask = self._array_backend.ones(terminated_episodes, dtype=bool, device=self._device)
         new_mask[max_runs:] = False
 
         if first_batch:
@@ -55,7 +56,7 @@ class VectorizedCoreLogic(CoreLogic):
         selected = initial_states[self._started_counter:self._started_counter + n_reset]
         self._started_counter += n_reset
 
-        return self._array_backend.masked_init(reset_mask, selected)
+        return self._array_backend.masked_init(reset_mask, selected, device=self._device)
 
     def after_step(self, last):
         self._total_steps_counter += self._n_active_envs
@@ -72,15 +73,15 @@ class VectorizedCoreLogic(CoreLogic):
     def after_fit_vectorized(self, last, n_carry_forward_steps):
         super().after_fit(n_carry_forward_steps)
         if self._n_episodes_per_fit is not None:
-            self._running_envs = self._array_backend.zeros(self._n_envs, dtype=bool)
+            self._running_envs = self._array_backend.zeros(self._n_envs, dtype=bool, device=self._device)
             self._n_active_envs = 0
-            return self._array_backend.ones(self._n_envs, dtype=bool)
+            return self._array_backend.ones(self._n_envs, dtype=bool, device=self._device)
         else:
             return last
 
     def _reset_counters(self):
         super()._reset_counters()
-        self._running_envs = self._array_backend.zeros(self._n_envs, dtype=bool)
+        self._running_envs = self._array_backend.zeros(self._n_envs, dtype=bool, device=self._device)
         self._n_active_envs = 0
         self._started_counter = 0
 

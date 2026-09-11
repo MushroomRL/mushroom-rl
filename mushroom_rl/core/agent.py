@@ -4,21 +4,24 @@ from mushroom_rl.core.history_manager import HistoryManager
 
 
 class AgentInfo(MushroomObject):
-    def __init__(self, is_episodic, policy_state_shape, backend):
+    def __init__(self, is_episodic, policy_state_shape, backend, device=None):
         assert isinstance(is_episodic, bool)
         assert policy_state_shape is None or isinstance(policy_state_shape, tuple)
         assert isinstance(backend, str)
+        assert backend == 'torch' or device is None
 
         self.is_episodic = is_episodic
         self.is_stateful = policy_state_shape is not None
         self.policy_state_shape = policy_state_shape
         self.backend = backend
+        self.device = device
 
         self._add_save_attr(
             is_episodic='primitive',
             is_stateful='primitive',
             policy_state_shape='primitive',
-            backend='primitive'
+            backend='primitive',
+            device='primitive'
         )
 
 
@@ -28,7 +31,7 @@ class Agent(MushroomObject):
 
     """
 
-    def __init__(self, mdp_info, policy, is_episodic=False, backend='numpy', history_length=None,
+    def __init__(self, mdp_info, policy, is_episodic=False, backend='numpy', device=None, history_length=None,
                  action_history_length=None, history_manager=None):
         """
         Constructor.
@@ -38,6 +41,7 @@ class Agent(MushroomObject):
             policy (Policy): the policy followed by the agent;
             is_episodic (bool, False): whether the agent is learning in an episodic fashion or not;
             backend (str, 'numpy'): array backend to be used by the algorithm;
+            device (str, None): device the agent data is stored on, only allowed with the torch backend;
             history_length (int, None): number of observations stacked as input to the policy. When greater than 1 the
                 agent builds a :class:`~mushroom_rl.core.history_manager.HistoryManager` that assembles the stacked
                 observation on the fly; the history is reconstructable and never stored as policy state.
@@ -55,7 +59,8 @@ class Agent(MushroomObject):
         self._info = AgentInfo(
             is_episodic=is_episodic,
             policy_state_shape=policy.policy_state_shape if policy.is_stateful else None,
-            backend=backend
+            backend=backend,
+            device=device
         )
         self.policy = policy
         self._agent_backend = ArrayBackend.get_array_backend(backend)

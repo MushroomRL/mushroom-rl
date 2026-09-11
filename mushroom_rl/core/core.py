@@ -285,7 +285,7 @@ class VectorizedCore(Core):
 
     """
     def _create_core_logic(self):
-        return VectorizedCoreLogic(self.env.info.backend, self.env.number)
+        return VectorizedCoreLogic(self.env.info.backend, self.env.number, self.env.info.device)
 
     def _prepare_dataset(self, n_steps, n_episodes, core_counts_episodes):
         return VectorizedDataset.generate(self.env.info, self.agent.info, n_steps, n_episodes,
