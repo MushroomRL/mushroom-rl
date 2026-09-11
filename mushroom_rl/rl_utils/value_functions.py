@@ -56,16 +56,18 @@ def compute_advantage_montecarlo(V, s, ss, r, absorbing, last, gamma, action_his
         next_action_history = _next_action_history(action_history, action, last) if action_history is not None \
             else None
         arrays = (r, absorbing, ss) if next_action_history is None else (r, absorbing, ss, next_action_history)
-        r_ep, absorbing_ep, ss_ep, *rest = split_episodes(last, *arrays)
+        last_ep, r_ep, absorbing_ep, ss_ep, *rest = split_episodes(last, *arrays)
         next_ah_ep = rest[0] if rest else None
         q_ep = torch.zeros_like(r_ep, dtype=torch.float32)
-        step_axis = r_ep.dim() - 1
-        next_ah = next_ah_ep.select(step_axis, -1) if next_ah_ep is not None else None
-        q_next_ep = V(ss_ep.select(step_axis, -1), action_history=next_ah).squeeze()
+        next_ah = next_ah_ep[last_ep] if next_ah_ep is not None else None
+        q_end = V(ss_ep[last_ep], action_history=next_ah).squeeze()
+        q_next_ep = torch.zeros_like(q_end)
 
-        for rev_k in range(r_ep.shape[-1]):
-            k = r_ep.shape[-1] - rev_k - 1
-            q_next_ep = r_ep[..., k] + gamma * q_next_ep * (1 - absorbing_ep[..., k].int())
+        not_absorbing_ep = ~absorbing_ep
+
+        for k in range(r_ep.shape[-1] - 1, -1, -1):
+            q_next_ep = torch.where(last_ep[..., k], q_end, q_next_ep)
+            q_next_ep = r_ep[..., k] + gamma * q_next_ep * not_absorbing_ep[..., k]
             q_ep[..., k] = q_next_ep
 
         q = unsplit_episodes(last, q_ep)
@@ -98,7 +100,7 @@ def compute_advantage(V, s, ss, r, absorbing, last, gamma, action_history=None, 
         next_action_history = _next_action_history(action_history, action, last) if action_history is not None \
             else None
         v = V(s, action_history=action_history).squeeze()
-        v_next = V(ss, action_history=next_action_history).squeeze() * (1 - absorbing.int())
+        v_next = V(ss, action_history=next_action_history).squeeze() * ~absorbing
 
         q = r + gamma * v_next
         adv = q - v
@@ -137,17 +139,13 @@ def compute_gae(V, s, ss, r, absorbing, last, gamma, lam, action_history=None, a
         v = V(s, action_history=action_history)
         v_next = V(ss, action_history=next_action_history)
 
-        v_ep, v_next_ep, r_ep, absorbing_ep = split_episodes(last, v.squeeze(), v_next.squeeze(), r, absorbing)
+        _, v_ep, v_next_ep, r_ep, absorbing_ep = split_episodes(last, v.squeeze(), v_next.squeeze(), r, absorbing)
+        delta_ep = r_ep - v_ep + ~absorbing_ep * gamma * v_next_ep
+
         gen_adv_ep = torch.zeros_like(v_ep)
-        for rev_k in range(v_ep.shape[-1]):
-            k = v_ep.shape[-1] - rev_k - 1
-            if rev_k == 0:
-                gen_adv_ep[..., k] = r_ep[..., k] - v_ep[..., k] + \
-                                     (1 - absorbing_ep[..., k].int()) * gamma * v_next_ep[..., k]
-            else:
-                gen_adv_ep[..., k] = r_ep[..., k] - v_ep[..., k] + \
-                                     (1 - absorbing_ep[..., k].int()) * gamma * v_next_ep[..., k] + \
-                                     gamma * lam * gen_adv_ep[..., k + 1]
+        gen_adv_ep[..., -1] = delta_ep[..., -1]
+        for k in range(v_ep.shape[-1] - 2, -1, -1):
+            gen_adv_ep[..., k] = delta_ep[..., k] + gamma * lam * gen_adv_ep[..., k + 1]
 
         gen_adv = unsplit_episodes(last, gen_adv_ep).unsqueeze(-1)
 

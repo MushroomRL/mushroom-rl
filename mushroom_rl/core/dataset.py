@@ -444,7 +444,7 @@ class Dataset(MushroomObject):
 
         """
         backend = self._dataset_info.env_array_backend
-        r_ep = split_episodes(backend.as_array(self.last), backend.as_array(self.reward))
+        _, r_ep = split_episodes(backend.as_array(self.last), backend.as_array(self.reward))
 
         if len(r_ep.shape) == 1:
             r_ep = backend.expand_dims(r_ep, 0)

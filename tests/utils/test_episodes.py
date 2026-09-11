@@ -30,9 +30,14 @@ def test_torch_split():
     mdp = Segway()
     state, action, reward, next_state, absorbing, last = get_episodes(mdp, to='torch')
 
-    ep_arrays = split_episodes(last, state, action, reward, next_state, absorbing, last)
+    last_flags, *ep_arrays = split_episodes(last, state, action, reward, next_state, absorbing, last)
     un_state, un_action, un_reward, un_next_state, un_absorbing, un_last = unsplit_episodes(last, *ep_arrays)
 
+    expected_flags = last.clone()
+    expected_flags[-1] = True
+
+    assert (last_flags.sum(-1) == 1).all()
+    assert torch.equal(unsplit_episodes(last, last_flags), expected_flags)
     assert torch.allclose(state, un_state)
     assert torch.allclose(action, un_action)
     assert torch.allclose(reward, un_reward)
@@ -48,12 +53,47 @@ def test_numpy_split():
     mdp = Segway()
     state, action, reward, next_state, absorbing, last = get_episodes(mdp)
 
-    ep_arrays = split_episodes(last, state, action, reward, next_state, absorbing, last)
+    last_flags, *ep_arrays = split_episodes(last, state, action, reward, next_state, absorbing, last)
     un_state, un_action, un_reward, un_next_state, un_absorbing, un_last = unsplit_episodes(last, *ep_arrays)
 
+    expected_flags = last.copy()
+    expected_flags[-1] = True
+
+    assert (last_flags.sum(-1) == 1).all()
+    assert np.array_equal(unsplit_episodes(last, last_flags), expected_flags)
     assert np.allclose(state, un_state)
     assert np.allclose(action, un_action)
     assert np.allclose(reward, un_reward)
     assert np.allclose(next_state, un_next_state)
     assert np.allclose(absorbing, un_absorbing)
     assert np.allclose(last, un_last)
+
+
+def test_torch_split_truncated_episode():
+    last = torch.tensor([False, False, True, False, False])
+    reward = torch.arange(1., 6.)
+
+    last_flags, reward_ep = split_episodes(last, reward)
+
+    expected_flags = last.clone()
+    expected_flags[-1] = True
+
+    assert last_flags.shape == (2, 3)
+    assert torch.equal(last_flags.sum(-1), torch.tensor([1, 1]))
+    assert torch.equal(unsplit_episodes(last, last_flags), expected_flags)
+    assert torch.equal(unsplit_episodes(last, reward_ep), reward)
+
+
+def test_numpy_split_truncated_episode():
+    last = np.array([False, False, True, False, False])
+    reward = np.arange(1., 6.)
+
+    last_flags, reward_ep = split_episodes(last, reward)
+
+    expected_flags = last.copy()
+    expected_flags[-1] = True
+
+    assert last_flags.shape == (2, 3)
+    assert np.array_equal(last_flags.sum(-1), np.array([1, 1]))
+    assert np.array_equal(unsplit_episodes(last, last_flags), expected_flags)
+    assert np.array_equal(unsplit_episodes(last, reward_ep), reward)

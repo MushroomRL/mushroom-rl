@@ -76,9 +76,11 @@ class FeedForwardNetwork(nn.Module):
             flat_action_history = action_history.float().flatten(
                 start_dim=action_history.dim() - len(self._action_history_shape))
             x = torch.cat([x, flat_action_history], dim=-1)
-        for layer in self._layers[:-1]:
-            x = self._activation(layer(x))
-        return self._layers[-1](x)
+        *hidden_layers, output_layer = self._layers
+        activation = self._activation
+        for layer in hidden_layers:
+            x = activation(layer(x))
+        return output_layer(x)
 
 
 class ActorNetwork(FeedForwardNetwork):

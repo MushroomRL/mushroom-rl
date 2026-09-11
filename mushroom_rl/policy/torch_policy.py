@@ -173,7 +173,6 @@ class GaussianTorchPolicy(TorchPolicy):
         return torch.distributions.MultivariateNormal(loc=mu, scale_tril=chol_sigma, validate_args=False)
 
     def get_mean_and_chol(self, state, action_history=None):
-        assert torch.all(torch.exp(self._log_sigma) > 0)
         mean = self._mu(state, action_history=action_history, **self._predict_params)
         return mean, torch.diag(torch.exp(self._log_sigma))
 

@@ -77,7 +77,9 @@ class CriticNetwork(nn.Module):
                 start_dim=action_history.dim() - len(self._action_history_shape))
             inputs.append(flat_action_history)
         x = torch.cat(inputs, dim=1)
-        for layer in self._layers[:-1]:
-            x = self._activation(layer(x))
-        q = self._layers[-1](x)
+        *hidden_layers, output_layer = self._layers
+        activation = self._activation
+        for layer in hidden_layers:
+            x = activation(layer(x))
+        q = output_layer(x)
         return torch.squeeze(q)

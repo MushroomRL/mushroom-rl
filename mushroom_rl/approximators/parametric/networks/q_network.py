@@ -61,9 +61,11 @@ class QNetwork(nn.Module):
 
     def forward(self, state, action=None, **kwargs):
         x = state.float()
-        for layer in self._layers[:-1]:
-            x = self._activation(layer(x))
-        q = self._layers[-1](x)
+        *hidden_layers, output_layer = self._layers
+        activation = self._activation
+        for layer in hidden_layers:
+            x = activation(layer(x))
+        q = output_layer(x)
 
         if action is None:
             return q

@@ -1,6 +1,8 @@
 import math
 import torch
 
+from mushroom_rl.utils.torch_utils import TorchUtils
+
 
 def minibatch_number(size, batch_size):
     """
@@ -31,7 +33,7 @@ def minibatch_generator(batch_size, *dataset_vectors):
     """
     size = len(dataset_vectors[0])
     num_batches = minibatch_number(size, batch_size)
-    indexes = torch.randperm(size)
+    indexes = torch.randperm(size).to(TorchUtils.get_device())
     batches = [(i * batch_size, min(size, (i + 1) * batch_size))
                for i in range(0, num_batches)]
 
@@ -61,7 +63,7 @@ def ensemble_minibatch_generator(batch_size, n_models, *dataset_vectors):
     num_batches = minibatch_number(size, batch_size)
     batches = [(i * batch_size, min(size, (i + 1) * batch_size)) for i in range(num_batches)]
 
-    all_indexes = [torch.randperm(size) for _ in range(n_models)]
+    all_indexes = [torch.randperm(size).to(TorchUtils.get_device()) for _ in range(n_models)]
 
     for batch_start, batch_end in batches:
         yield [
