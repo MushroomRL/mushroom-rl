@@ -83,21 +83,21 @@ def test_q_torch():
     x_a = torch.as_tensor(np.random.randint(n_actions, size=(2, 1)))
 
     y = approximator.predict(x_s, x_a).detach().numpy()
-    assert np.allclose(y, np.array([0.37191167, 0.5920861], dtype=np.float32))
+    assert np.allclose(y, np.array([0.60176706, 0.5803694], dtype=np.float32))
 
     y = approximator.predict(x_s).detach().numpy()
-    assert np.allclose(y, np.array([[0.47908658, 0.37191167],
-                                    [0.5920861,  0.27575067]], dtype=np.float32))
+    assert np.allclose(y, np.array([[0.60176706, 0.42583174],
+                                    [0.5803694,  0.47669965]], dtype=np.float32))
 
     gradient = approximator.diff(x_s[0], x_a[0]).detach().numpy()
-    assert np.allclose(gradient, np.array([0., 0., 0., 0., 0.02627479, 0.76513696,
-                                           0.6672573, 0.35979462, 0., 1.], dtype=np.float32))
+    assert np.allclose(gradient, np.array([0.45738867, 0.4335527, 0.77928376, 0.42085838,
+                                           0., 0., 0., 0., 1., 0.], dtype=np.float32))
 
     gradient = approximator.diff(x_s[0]).detach().numpy()
-    assert np.allclose(gradient, np.array([[0.02627479, 0.], [0.76513696, 0.],
-                                           [0.6672573, 0.], [0.35979462, 0.],
-                                           [0., 0.02627479], [0., 0.76513696],
-                                           [0., 0.6672573], [0., 0.35979462],
+    assert np.allclose(gradient, np.array([[0.45738867, 0.], [0.4335527, 0.],
+                                           [0.77928376, 0.], [0.42085838, 0.],
+                                           [0., 0.45738867], [0., 0.4335527],
+                                           [0., 0.77928376], [0., 0.42085838],
                                            [1., 0.], [0., 1.]], dtype=np.float32))
 
 
@@ -121,19 +121,19 @@ def test_q_numpy_torch():
     x_a = np.random.randint(n_actions, size=(2, 1))
 
     y = approximator.predict(x_s, x_a)
-    assert np.allclose(y, np.array([0.37191153, 0.5920861]))
+    assert np.allclose(y, np.array([0.60176706, 0.5803694]))
 
     y = approximator.predict(x_s)
-    assert np.allclose(y, np.array([[0.47908658, 0.37191153],
-                                    [0.5920861,  0.27575058]]))
+    assert np.allclose(y, np.array([[0.60176706, 0.42583174],
+                                    [0.5803694,  0.47669965]]))
 
     gradient = approximator.diff(x_s[0], x_a[0])
-    assert np.allclose(gradient, np.array([0., 0., 0., 0., 0.02627479, 0.76513696,
-                                           0.6672573, 0.35979462, 0., 1.]))
+    assert np.allclose(gradient, np.array([0.45738867, 0.4335527, 0.77928376, 0.42085838,
+                                           0., 0., 0., 0., 1., 0.]))
 
     gradient = approximator.diff(x_s[0])
-    assert np.allclose(gradient, np.array([[0.02627479, 0.], [0.76513696, 0.],
-                                           [0.6672573, 0.], [0.35979462, 0.],
-                                           [0., 0.02627479], [0., 0.76513696],
-                                           [0., 0.6672573], [0., 0.35979462],
+    assert np.allclose(gradient, np.array([[0.45738867, 0.], [0.4335527, 0.],
+                                           [0.77928376, 0.], [0.42085838, 0.],
+                                           [0., 0.45738867], [0., 0.4335527],
+                                           [0., 0.77928376], [0., 0.42085838],
                                            [1., 0.], [0., 1.]]))

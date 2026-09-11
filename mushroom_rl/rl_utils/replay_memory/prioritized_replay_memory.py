@@ -86,7 +86,7 @@ class PrioritizedReplayMemory(ReplayMemory):
 
         """
         idxs = np.zeros(n_samples, dtype=int)
-        priorities = np.zeros(n_samples, dtype=float)
+        priorities = self._dataset.array_backend.zeros(n_samples)
 
         total_p = self._tree.total_p
         segment = total_p / n_samples

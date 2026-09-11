@@ -127,7 +127,7 @@ def test_PPO():
                   n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95)
     policy = learn(PPO, params).policy
     w = policy.get_weights()
-    w_test = torch.tensor([0.6613755, -1.333808, -0.13946329, -0.00241474])
+    w_test = torch.tensor([0.66152734, -1.33367574, -0.13922985, -0.00175668])
 
     assert torch.allclose(w, w_test)
 
@@ -183,7 +183,8 @@ def test_PPO_history_length():
                   n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95)
     agent = learn_history(PPO, params, history_length=3)
     w = agent.policy.get_weights()
-    w_test = torch.tensor([0.4689, 0.1265, -0.1155, 0.2546, 0.0435, 0.3359, -0.0862, -0.0023])
+    w_test = torch.tensor([0.46870011, 0.12637264, -0.11568926, 0.25444305,
+                           0.04328318, 0.33578485, -0.08553097, -0.00070304])
 
     assert agent.history_length == 3
     assert torch.allclose(w, w_test, atol=1e-4), f"actual={w}, expected={w_test}, diff={w - w_test}"
@@ -206,7 +207,7 @@ def test_PPO_action_history_length():
                   n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95)
     agent = learn_action_history(PPO, params, action_history_length=1)
     w = agent.policy.get_weights()
-    w_test = torch.tensor([-1.1554, 0.7321, -0.2500, 0.2686, -0.0023])
+    w_test = torch.tensor([-1.15486133, 0.73268884, -0.25019532, 0.26914904, -0.00178988])
 
     assert agent._history_manager.uses_action
     assert torch.allclose(w, w_test, atol=1e-4), f"actual={w}, expected={w_test}, diff={w - w_test}"

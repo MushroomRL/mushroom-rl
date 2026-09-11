@@ -163,7 +163,7 @@ class TorchApproximator(Approximator):
             *args: input, where the last ``n_fit_targets`` elements are considered as the target,
                 while the others are considered as input;
             n_epochs (int, None): the number of training epochs;
-            weights (np.ndarray, None): the weights of each sample in the computation of the loss;
+            weights (torch.Tensor, None): the weights of each sample in the computation of the loss;
             epsilon (float, None): the coefficient used for early stopping;
             patience (float, 1.): the number of epochs to wait until stop the learning if not improving;
             validation_split (float, 1.): the percentage of the dataset to use as training set;
@@ -488,7 +488,7 @@ class TorchEnsemble(Ensemble):
                 while the others are considered as input;
             idx (int, None): if provided, fit only the model at that index;
             n_epochs (int, None): the number of training epochs;
-            weights (np.ndarray, None): the weights of each sample in the computation of the loss;
+            weights (torch.Tensor, None): the weights of each sample in the computation of the loss;
             epsilon (float, None): the coefficient used for early stopping;
             patience (float, 1.): the number of epochs to wait until stop the learning if not improving;
             validation_split (float, 1.): the percentage of the dataset to use as training set;

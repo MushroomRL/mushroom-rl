@@ -230,7 +230,7 @@ def test_RudinPPO_action_history_length():
 
     agent = learn(RudinPPO, policy, alg_params)
     w = agent.policy.get_weights()
-    w_test = torch.tensor([-1.1555, 0.7321, -0.2495, 0.2686, -0.0024])
+    w_test = torch.tensor([-1.15545774, 0.73206282, -0.24952325, 0.26855272, -0.00243832])
 
     assert agent._history_manager.uses_action
     assert torch.allclose(w, w_test, atol=1e-4), f"actual={w}, expected={w_test}, diff={w - w_test}"

@@ -112,7 +112,7 @@ class Environment(object):
         Generate an environment given an environment name and parameters.
         The environment is created using the generate method, if available. Otherwise, the constructor is used.
         The generate method has a simpler interface than the constructor, making it easier to generate a standard
-        version of the environment. If the environment name contains a '.' separator, the string is splitted, the first
+        version of the environment. If the environment name contains a '.' separator, the string is split, the first
         element is used to select the environment and the other elements are passed as positional parameters.
 
         Args:
