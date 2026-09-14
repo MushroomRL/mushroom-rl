@@ -133,11 +133,17 @@ class ReplayMemory(MushroomObject):
 
         """
         ds = self._dataset
-        state, action, reward, next_state, absorbing, last, extra = \
-            self._history_manager.parse_nstep_history_circular_buffer(
-                ds, idxs, self._mdp_info.gamma, self._n_steps_return, len(ds), self._full, self._max_size, self._idx)
-        anchor = extra.pop('anchor')
-        endpoint = extra.pop('endpoint')
+        size = len(ds)
+        if self._n_steps_return > 1:
+            state, action, reward, next_state, absorbing, last, extra = \
+                self._history_manager.parse_nstep_history_circular_buffer(
+                    ds, idxs, self._mdp_info.gamma, self._n_steps_return, size, self._full, self._max_size, self._idx)
+            anchor = extra.pop('anchor')
+            endpoint = extra.pop('endpoint')
+        else:
+            state, action, reward, next_state, absorbing, last, extra = \
+                self._history_manager.parse_history_circular_buffer(ds, idxs, size, self._full, self._max_size)
+            anchor = endpoint = idxs
 
         policy_state = [ds.policy_state[anchor], ds.policy_next_state[endpoint]] if ds.is_stateful else []
 

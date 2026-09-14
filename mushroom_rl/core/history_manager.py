@@ -286,7 +286,7 @@ class HistoryManager(MushroomObject):
 
         if 'obs_history' in self._stream_specs:
             state = self.build_history('obs_history', states, last)
-            next_state = self.build_history('obs_history', next_states, last)
+            next_state = self._next_obs_history(state, next_states, self._agent_backend)
         else:
             state, next_state = self.preprocess(states), self.preprocess(next_states)
 
@@ -316,8 +316,8 @@ class HistoryManager(MushroomObject):
         """
         dataset = dataset.to_backend(self._agent_backend.get_backend_name())
         state, next_state, extra = self._transition_history(dataset.state, dataset.next_state, dataset.action,
-                                                            dataset.last, anchor_idxs, anchor_idxs, size, full,
-                                                            max_size, self._agent_backend)
+                                                            dataset.last, anchor_idxs, size, full, max_size,
+                                                            self._agent_backend)
         return self._convert_parsed(to, state, dataset.action[anchor_idxs], dataset.reward[anchor_idxs], next_state,
                                     dataset.absorbing[anchor_idxs], dataset.last[anchor_idxs], extra)
 
@@ -346,8 +346,8 @@ class HistoryManager(MushroomObject):
         reduced_reward, anchor, endpoint = self.build_nstep_return(
             dataset.reward, dataset.absorbing, dataset.last, anchor_idxs, gamma, n_steps_return)
         state, next_state, extra = self._transition_history(dataset.state, dataset.next_state, dataset.action,
-                                                            dataset.last, anchor, endpoint, size, full=False,
-                                                            max_size=size, backend=self._agent_backend)
+                                                            dataset.last, anchor, size, full=False, max_size=size,
+                                                            backend=self._agent_backend, next_anchor_idxs=endpoint)
         extra['endpoint'] = endpoint
         extra['anchor'] = anchor
         return self._convert_parsed(to, state, dataset.action[anchor], reduced_reward, next_state,
@@ -384,8 +384,8 @@ class HistoryManager(MushroomObject):
             dataset.reward, dataset.absorbing, dataset.last, anchor_idxs, gamma, n_steps_return, size, full, max_size,
             write_head)
         state, next_state, extra = self._transition_history(dataset.state, dataset.next_state, dataset.action,
-                                                            dataset.last, anchor, endpoint, size, full, max_size,
-                                                            self._agent_backend)
+                                                            dataset.last, anchor, size, full, max_size,
+                                                            self._agent_backend, next_anchor_idxs=endpoint)
         extra['endpoint'] = endpoint
         extra['anchor'] = anchor
         return self._convert_parsed(to, state, dataset.action[anchor], reduced_reward, next_state,
@@ -764,22 +764,34 @@ class HistoryManager(MushroomObject):
         if self._last_action is not None:
             self._last_action[mask] = 0
 
-    def _transition_history(self, states, next_states, actions, last, anchor_idxs, next_anchor_idxs, size, full,
-                            max_size, backend):
+    def _transition_history(self, states, next_states, actions, last, anchor_idxs, size, full, max_size, backend,
+                            next_anchor_idxs=None):
+        endpoint_idxs = anchor_idxs if next_anchor_idxs is None else next_anchor_idxs
+
         if 'obs_history' in self._stream_specs:
             state = self.build_history_circular_buffer('obs_history', states, last, anchor_idxs, size, full, max_size,
                                                        backend=backend)
-            next_state = self.build_history_circular_buffer('obs_history', next_states, last, next_anchor_idxs, size,
-                                                            full, max_size, backend=backend)
+            if next_anchor_idxs is None:
+                endpoint_state = state
+            else:
+                endpoint_state = self.build_history_circular_buffer('obs_history', states, last, next_anchor_idxs, size,
+                                                                    full, max_size, backend=backend)
+            next_state = self._next_obs_history(endpoint_state, next_states[endpoint_idxs], backend)
         else:
             state = self.preprocess(states[anchor_idxs])
-            next_state = self.preprocess(next_states[next_anchor_idxs])
+            next_state = self.preprocess(next_states[endpoint_idxs])
 
         extra = dict()
         if self.uses_action:
             extra['action_history'] = self.build_history_circular_buffer('action_history', actions, last, anchor_idxs,
                                                                          size, full, max_size, backend=backend)
         return state, next_state, extra
+
+    def _next_obs_history(self, state_history, next_states, backend):
+        next_obs = self.preprocess(next_states)
+        if self._stream_specs['obs_history']['length'] == 1:
+            return next_obs
+        return backend.concatenate([state_history[:, 1:], next_obs[:, None]], dim=1)
 
     def _stack(self, name, value):
         spec = self._stream_specs[name]

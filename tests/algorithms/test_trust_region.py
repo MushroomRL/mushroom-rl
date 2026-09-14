@@ -183,8 +183,8 @@ def test_PPO_history_length():
                   n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95)
     agent = learn_history(PPO, params, history_length=3)
     w = agent.policy.get_weights()
-    w_test = torch.tensor([0.46870011, 0.12637264, -0.11568926, 0.25444305,
-                           0.04328318, 0.33578485, -0.08553097, -0.00070304])
+    w_test = torch.tensor([0.46873438, 0.12638518, -0.11563689, 0.25445520,
+                           0.04333199, 0.33579704, -0.08567944, -0.00061753])
 
     assert agent.history_length == 3
     assert torch.allclose(w, w_test, atol=1e-4), f"actual={w}, expected={w_test}, diff={w - w_test}"
@@ -195,7 +195,8 @@ def test_TRPO_history_length():
                   n_epochs_cg=10, cg_damping=1e-2, cg_residual_tol=1e-10)
     agent = learn_history(TRPO, params, history_length=3)
     w = agent.policy.get_weights()
-    w_test = torch.tensor([0.4595, 0.1035, -0.1322, 0.2626, -0.0210, 0.3771, 0.0137, -0.0177])
+    w_test = torch.tensor([0.46534720, 0.10432260, -0.13507554, 0.26350110,
+                           -0.02306816, 0.37749213, 0.01202566, -0.01654112])
 
     assert agent.history_length == 3
     assert torch.allclose(w, w_test, atol=1e-4), f"actual={w}, expected={w_test}, diff={w - w_test}"
