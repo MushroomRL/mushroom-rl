@@ -110,7 +110,7 @@ class ArrayBackend(object):
         return None
 
     @classmethod
-    def convert(cls, *arrays, to=None, backend=None):
+    def convert(cls, *arrays, to=None, backend=None, device=None):
         """
         Convert one or more arrays from their current backend to another one.
 
@@ -119,7 +119,9 @@ class ArrayBackend(object):
             to (str, None): name of the destination backend. If ``None``, the backend calling this method
                 (``cls``) is used;
             backend (ArrayBackend, None): backend of the input arrays. If ``None``, it is autodetected from
-                the first element of ``arrays``.
+                the first element of ``arrays``;
+            device (str, None): device the converted arrays are placed on, or ``None`` for the default one.
+                Only allowed when converting to torch.
 
         Returns:
             The converted array, or a tuple of converted arrays if more than one was passed in ``arrays``.
@@ -129,12 +131,16 @@ class ArrayBackend(object):
             to = cls.get_backend_name()
         if backend is None:
             backend = ArrayBackend.get_array_backend_from(arrays[0])
+        ArrayBackend.get_array_backend(to).check_device(device)
+
         if to == 'numpy':
-            return backend.arrays_to_numpy(*arrays) if len(arrays) > 1 else backend.arrays_to_numpy(*arrays)[0]
+            converted = backend.arrays_to_numpy(*arrays)
         elif to == 'torch':
-            return backend.arrays_to_torch(*arrays) if len(arrays) > 1 else backend.arrays_to_torch(*arrays)[0]
+            converted = backend.arrays_to_torch(*arrays, device=device)
         else:
-            raise NotImplementedError(f"Conversion to the {to} backend is not supported.")
+            converted = backend.arrays_to_list(*arrays)
+
+        return converted if len(arrays) > 1 else converted[0]
 
     @staticmethod
     def convert_to_backend(backend, array, device=None):
@@ -167,16 +173,17 @@ class ArrayBackend(object):
         return tuple(cls.to_numpy(array) for array in arrays)
 
     @classmethod
-    def arrays_to_torch(cls, *arrays):
+    def arrays_to_torch(cls, *arrays, device=None):
         """
         Args:
-            *arrays: one or more arrays in this backend's format.
+            *arrays: one or more arrays in this backend's format;
+            device (str, None): device the results are placed on, or ``None`` for the default one.
 
         Returns:
             A tuple with the arrays converted to PyTorch ``Tensor``.
 
         """
-        return tuple(cls.to_torch(array) for array in arrays)
+        return tuple(cls.to_torch(array, device=device) for array in arrays)
 
     @classmethod
     def arrays_to_list(cls, *arrays):

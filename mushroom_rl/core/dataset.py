@@ -327,11 +327,12 @@ class Dataset(MushroomObject):
         assert len(self) == 1
         return self[0]
 
-    def parse(self, to=None):
+    def parse(self, to=None, device=None):
         """
         Return the dataset as set of arrays.
         Args:
-            to (str, None):  the backend to be used for the returned arrays. By default, the dataset backend is used.
+            to (str, None):  the backend to be used for the returned arrays. By default, the dataset backend is used;
+            device (str, None): device the returned arrays are placed on, or ``None`` for the default one.
 
         Returns:
             A tuple containing the arrays that define the dataset, i.e. state, action, next state, absorbing and last
@@ -339,14 +340,16 @@ class Dataset(MushroomObject):
         """
         if to is None:
             to = self._dataset_info.env_array_backend.get_backend_name()
-        return self._convert(self.state, self.action, self.reward, self.next_state, self.absorbing, self.last, to=to)
+        return self._convert(self.state, self.action, self.reward, self.next_state, self.absorbing, self.last,
+                             to=to, device=device)
 
-    def parse_policy_state(self, to=None):
+    def parse_policy_state(self, to=None, device=None):
         """
         Return the policy state arrays of the dataset.
 
         Args:
-            to (str, None): the backend to be used for the returned arrays. By default, the policy's backend is used.
+            to (str, None): the backend to be used for the returned arrays. By default, the policy's backend is used;
+            device (str, None): device the returned arrays are placed on, or ``None`` for the default one.
 
         Returns:
             A tuple containing the policy state and policy next state arrays.
@@ -355,28 +358,33 @@ class Dataset(MushroomObject):
         backend = self._dataset_info.agent_array_backend
         if to is None:
             to = backend.get_backend_name()
-        return self._convert(self.policy_state, self.policy_next_state, to=to, backend=backend)
+        return self._convert(self.policy_state, self.policy_next_state, to=to, backend=backend, device=device)
 
-    def to_backend(self, backend):
+    def to_backend(self, backend, device=None):
         """
         Return a copy of this dataset converted to the given backend.
 
         Args:
-            backend (str): target backend (``'numpy'``, ``'torch'``, or ``'list'``).
+            backend (str): target backend (``'numpy'``, ``'torch'``, or ``'list'``);
+            device (str, None): device the converted dataset is placed on, or ``None`` for the default one.
 
         Returns:
-            A new Dataset in the requested backend, or ``self`` if the backend already matches.
+            A new Dataset in the requested backend, or ``self`` if the backend and the device already match.
 
         """
         if self._dataset_info.env_array_backend.get_backend_name() == backend \
-                and self._dataset_info.agent_array_backend.get_backend_name() == backend:
+                and self._dataset_info.agent_array_backend.get_backend_name() == backend \
+                and device in (None, self._dataset_info.env_device) \
+                and device in (None, self._dataset_info.agent_device):
             return self
-        state, action, reward, next_state, absorbing, last = self.parse(to=backend)
-        policy_state, policy_next_state = (self.parse_policy_state(to=backend) if self.is_stateful else (None, None))
+        state, action, reward, next_state, absorbing, last = self.parse(to=backend, device=device)
+        policy_state, policy_next_state = (self.parse_policy_state(to=backend, device=device) if self.is_stateful
+                                           else (None, None))
         return Dataset.from_array(state, action, reward, next_state, absorbing, last,
                                   policy_state=policy_state, policy_next_state=policy_next_state,
                                   info=self._info, episode_info=self._episode_info,
-                                  theta_list=self._theta_list, backend=backend, policy_backend=backend)
+                                  theta_list=self._theta_list, backend=backend, policy_backend=backend,
+                                  device=device, agent_device=device)
 
     def select_first_episodes(self, n_episodes):
         """
@@ -528,7 +536,7 @@ class Dataset(MushroomObject):
     @classmethod
     def from_array(cls, states, actions, rewards, next_states, absorbings, lasts,
                    policy_state=None, policy_next_state=None, info=None, episode_info=None, theta_list=None,
-                   horizon=None, gamma=0.99, backend='numpy', policy_backend=None, device=None):
+                   horizon=None, gamma=0.99, backend='numpy', policy_backend=None, device=None, agent_device=None):
         """
         Creates a dataset of transitions from the provided arrays.
 
@@ -547,7 +555,9 @@ class Dataset(MushroomObject):
             horizon (int, None): horizon of the mdp;
             gamma (float, 0.99): discount factor;
             backend (str, 'numpy'): backend to be used by the dataset;
-            policy_backend (str, None): backend to be used for the policy state arrays; defaults to ``backend``.
+            policy_backend (str, None): backend to be used for the policy state arrays; defaults to ``backend``;
+            device (str, None): device the environment arrays are stored on, or ``None`` for the default one;
+            agent_device (str, None): device the policy state arrays are stored on, or ``None`` for the default one.
 
         Returns:
             The list of transitions.
@@ -578,12 +588,12 @@ class Dataset(MushroomObject):
         else:
             dataset._theta_list = theta_list
 
-        env_class = cls._container_class(backend)
-        dataset._data = env_class.from_array([states, actions, rewards, next_states, absorbings, lasts])
+        env_arrays = [states, actions, rewards, next_states, absorbings, lasts]
+        dataset._data = cls._container_from_array(backend, env_arrays, device)
 
         if policy_state is not None:
-            policy_class = cls._container_class(policy_backend)
-            dataset._agent_data = policy_class.from_array([policy_state, policy_next_state])
+            agent_arrays = [policy_state, policy_next_state]
+            dataset._agent_data = cls._container_from_array(policy_backend, agent_arrays, agent_device)
         else:
             dataset._agent_data = None
 
@@ -593,7 +603,7 @@ class Dataset(MushroomObject):
         action_dtype = cls._infer_dtype(actions)
         policy_state_shape = None if policy_state is None else cls._infer_shape(policy_state)
 
-        dataset._dataset_info = DatasetInfo(backend, policy_backend, device, None, horizon, gamma,
+        dataset._dataset_info = DatasetInfo(backend, policy_backend, device, agent_device, horizon, gamma,
                                             state_shape, state_dtype, action_shape, action_dtype, policy_state_shape)
 
         return dataset
@@ -697,13 +707,15 @@ class Dataset(MushroomObject):
     def _merge_theta_list(self, other):
         return self._theta_list + other._theta_list
 
-    def _convert(self, *arrays, to='numpy', backend=None):
+    def _convert(self, *arrays, to='numpy', backend=None, device=None):
         backend = backend if backend is not None else self._dataset_info.env_array_backend
         if to == 'numpy':
+            ArrayBackend.get_array_backend(to).check_device(device)
             return backend.arrays_to_numpy(*arrays)
         elif to == 'torch':
-            return backend.arrays_to_torch(*arrays)
+            return backend.arrays_to_torch(*arrays, device=device)
         elif to == 'list':
+            ArrayBackend.get_array_backend(to).check_device(device)
             return backend.arrays_to_list(*arrays)
         else:
             raise NotImplementedError
@@ -736,11 +748,11 @@ class Dataset(MushroomObject):
         elif n_episodes:
             horizon = dataset_info.horizon
             x = math.ceil(n_episodes / dataset_info.n_envs)
-            return (x * horizon, min(n_episodes, dataset_info.n_envs))
+            return x * horizon, min(n_episodes, dataset_info.n_envs)
         elif core_counts_episodes:
-            return (math.ceil(n_samples / dataset_info.n_envs) + 1 + dataset_info.horizon, dataset_info.n_envs)
+            return math.ceil(n_samples / dataset_info.n_envs) + 1 + dataset_info.horizon, dataset_info.n_envs
         else:
-            return (math.ceil(n_samples / dataset_info.n_envs) + 1, dataset_info.n_envs)
+            return math.ceil(n_samples / dataset_info.n_envs) + 1, dataset_info.n_envs
 
     @staticmethod
     def _env_specs(dataset_info, base_shape):
@@ -778,13 +790,13 @@ class Dataset(MushroomObject):
             return ListDataset(len(shapes), n_envs=n_envs)
 
     @staticmethod
-    def _container_class(backend_name):
+    def _container_from_array(backend_name, arrays, device=None):
         if backend_name == 'numpy':
-            return NumpyDataset
+            return NumpyDataset.from_array(arrays)
         elif backend_name == 'torch':
-            return TorchDataset
+            return TorchDataset.from_array(arrays, device=device)
         else:
-            return ListDataset
+            return ListDataset.from_array(arrays)
 
     @staticmethod
     def _append_info(info, step_info):
@@ -1001,7 +1013,9 @@ class VectorizedDataset(Dataset):
                                   info=flat_info, episode_info=flat_episode_info, theta_list=flat_theta_list,
                                   horizon=self._dataset_info.horizon, gamma=self._dataset_info.gamma,
                                   backend=env_backend.get_backend_name(),
-                                  policy_backend=agent_backend.get_backend_name())
+                                  policy_backend=agent_backend.get_backend_name(),
+                                  device=self._dataset_info.env_device,
+                                  agent_device=self._dataset_info.agent_device)
 
     def get_view(self, index, copy=False):
         dataset = super().get_view(index, copy)

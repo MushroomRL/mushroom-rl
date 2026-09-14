@@ -582,10 +582,8 @@ def test_backend_not_supported():
     low = np.array([0., -.5])
     high = np.array([1., .5])
 
-    features = Features(GaussianRBF.generate([3, 3], low, high), backend='list')
-
-    with pytest.raises(NotImplementedError):
-        features(np.random.rand(4, 2))
+    with pytest.raises(AssertionError):
+        Features(GaussianRBF.generate([3, 3], low, high), backend='list')
 
 
 def test_torch_backend():

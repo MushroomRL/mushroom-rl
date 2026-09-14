@@ -64,31 +64,35 @@ class SequenceReplayMemory(ReplayMemory):
         min_offset = self._history_manager.max_reach if self._full else 0
 
         stacked_shape = (h, *obs_shape) if h > 1 else obs_shape
-        s = backend.zeros(n_samples, self._truncation_length, *stacked_shape, dtype=obs_dtype)
-        ss = backend.zeros(n_samples, self._truncation_length, *stacked_shape, dtype=obs_dtype)
+        s = backend.zeros(n_samples, self._truncation_length, *stacked_shape, dtype=obs_dtype,
+                          device=self._agent_info.device)
+        ss = backend.zeros(n_samples, self._truncation_length, *stacked_shape, dtype=obs_dtype,
+                           device=self._agent_info.device)
         a = backend.zeros(n_samples, self._truncation_length, *self._mdp_info.action_space.shape,
-                          dtype=action_dtype)
-        r = backend.zeros(n_samples, 1)
-        ab = backend.zeros(n_samples, 1, dtype=int)
-        last = backend.zeros(n_samples, dtype=int)
-        ps = backend.zeros(n_samples, self._truncation_length, *self._agent_info.policy_state_shape)
-        nps = backend.zeros(n_samples, self._truncation_length, *self._agent_info.policy_state_shape)
+                          dtype=action_dtype, device=self._agent_info.device)
+        r = backend.zeros(n_samples, 1, device=self._agent_info.device)
+        ab = backend.zeros(n_samples, 1, dtype=int, device=self._agent_info.device)
+        last = backend.zeros(n_samples, dtype=int, device=self._agent_info.device)
+        ps = backend.zeros(n_samples, self._truncation_length, *self._agent_info.policy_state_shape,
+                           device=self._agent_info.device)
+        nps = backend.zeros(n_samples, self._truncation_length, *self._agent_info.policy_state_shape,
+                            device=self._agent_info.device)
 
         extra_buffers = dict()
         lengths = list()
 
-        for num, c_anchor in enumerate(backend.randint(min_offset, size, (n_samples,))):
+        for num, c_anchor in enumerate(backend.randint(min_offset, size, (n_samples,), device=self._agent_info.device)):
             c_anchor = int(c_anchor)
             c_begin = max(c_anchor - self._truncation_length + 1, min_offset)
 
-            window = backend.arange(c_begin, c_anchor)
+            window = backend.arange(c_begin, c_anchor, device=self._agent_info.device)
             if len(window) > 0:
                 boundary = backend.where(self._dataset.last[(start + window) % max_size] > 0)
                 if len(boundary[0]) > 0:
                     c_begin = c_begin + int(boundary[0][-1]) + 1
 
             length = c_anchor - c_begin + 1
-            positions = (start + backend.arange(c_begin, c_anchor + 1)) % max_size
+            positions = (start + backend.arange(c_begin, c_anchor + 1, device=self._agent_info.device)) % max_size
 
             state_seq, action_seq, reward_seq, next_state_seq, absorbing_seq, last_seq, extra = \
                 self._history_manager.parse_history_circular_buffer(
@@ -103,7 +107,7 @@ class SequenceReplayMemory(ReplayMemory):
                 for name, value in extra.items():
                     if name not in extra_buffers:
                         extra_buffers[name] = backend.zeros(n_samples, self._truncation_length, *value.shape[1:],
-                                                            dtype=value.dtype)
+                                                            dtype=value.dtype, device=self._agent_info.device)
                     extra_buffers[name][num, :length] = value
             r[num] = reward_seq[-1]
             ab[num] = absorbing_seq[-1]

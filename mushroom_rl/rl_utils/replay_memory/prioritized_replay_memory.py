@@ -62,10 +62,10 @@ class PrioritizedReplayMemory(ReplayMemory):
         assert not self._dataset.is_stateful or dataset.is_stateful, \
             "The replay memory is configured to store the policy state, but the dataset does not provide it."
 
-        dataset = dataset.to_backend(self._agent_info.backend)
+        dataset = dataset.to_backend(self._agent_info.backend, device=self._agent_info.device)
 
         if p is None:
-            p = self._dataset.array_backend.full((len(dataset),), self.max_priority)
+            p = self._dataset.array_backend.full((len(dataset),), self.max_priority, device=self._agent_info.device)
 
         positions = self._write_to_buffer(dataset)
         tree_idxs = ArrayBackend.convert(positions, to='numpy') + self._max_size - 1
@@ -86,7 +86,7 @@ class PrioritizedReplayMemory(ReplayMemory):
 
         """
         idxs = np.zeros(n_samples, dtype=int)
-        priorities = self._dataset.array_backend.zeros(n_samples)
+        priorities = self._dataset.array_backend.zeros(n_samples, device=self._agent_info.device)
 
         total_p = self._tree.total_p
         segment = total_p / n_samples
@@ -101,7 +101,8 @@ class PrioritizedReplayMemory(ReplayMemory):
         is_weight = (self.size * priorities / total_p) ** -self._beta()
         is_weight /= is_weight.max()
 
-        data_idxs = ArrayBackend.convert(idxs - self._max_size + 1, to=self._agent_info.backend)
+        data_idxs = ArrayBackend.convert(idxs - self._max_size + 1, to=self._agent_info.backend,
+                                         device=self._agent_info.device)
         out = self._assemble_batch(data_idxs)
         out += [idxs, is_weight]
 

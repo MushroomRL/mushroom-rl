@@ -70,6 +70,8 @@ class Features(MushroomObject):
                 The raw input is converted into it before computing the features.
 
         """
+        assert backend in ["numpy", "torch"], f"{backend} backend currently not supported in the features class."
+
         self._backend = backend
         self._internal_backend = internal_backend
 
