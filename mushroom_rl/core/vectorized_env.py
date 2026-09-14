@@ -26,11 +26,11 @@ class VectorizedEnvironment(Environment):
 
         """
         arraybackend = ArrayBackend.get_array_backend(self._mdp_info.backend)
-        env_mask = arraybackend.zeros(self._n_envs, dtype=bool)
+        env_mask = arraybackend.zeros(self._n_envs, dtype=bool, device=self._mdp_info.device)
         env_mask[self._default_env] = True
 
         if state is not None:
-            states = arraybackend.zeros(self._n_envs, *arraybackend.shape(state))
+            states = arraybackend.zeros(self._n_envs, *arraybackend.shape(state), device=self._mdp_info.device)
             states[self._default_env] = state
         else:
             states = None
@@ -52,16 +52,17 @@ class VectorizedEnvironment(Environment):
 
         """
         arraybackend = ArrayBackend.get_array_backend(self._mdp_info.backend)
-        env_mask = arraybackend.zeros(self._n_envs, dtype=bool)
+        env_mask = arraybackend.zeros(self._n_envs, dtype=bool, device=self._mdp_info.device)
         env_mask[self._default_env] = True
 
-        actions = arraybackend.zeros(self._n_envs, *arraybackend.shape(action))
+        actions = arraybackend.zeros(self._n_envs, *arraybackend.shape(action), device=self._mdp_info.device)
         actions[self._default_env] = action
 
         return self.step_all(env_mask, actions)
 
     def render(self, record=False):
-        env_mask = ArrayBackend.get_array_backend(self._mdp_info.backend).zeros(self._n_envs, dtype=bool)
+        arraybackend = ArrayBackend.get_array_backend(self._mdp_info.backend)
+        env_mask = arraybackend.zeros(self._n_envs, dtype=bool, device=self._mdp_info.device)
         env_mask[self._default_env] = True
 
         return self.render_all(env_mask, record=record)

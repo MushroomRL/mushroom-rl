@@ -17,6 +17,9 @@ For Mushroom 2.0:
 
 
 For Mushroom 2.1:
+    * HasNextAction agents with history_length > 1
+      - HasNextAction.draw_action returns the stored next action without calling the history manager, so the
+        manager's buffer is not advanced on that step; unsupported for now, make it advance the manager
     * HistoryManager subclass for complex per-stream specifications
       - the base HistoryManager handles only the `offset` option; delegate richer specs to a subclass
         (strides, structured/general lookbacks)

@@ -17,7 +17,7 @@ class MuJoCoWarp(VectorizedEnvironment):
 
     Simulation is not bit-reproducible run to run beyond the first couple of steps: the GPU contact solver's
     parallel reduction order isn't fixed, so identical seeds can diverge by ~1e-6 after a handful of steps.
-    Call ``warp.set_device('cpu')`` before construction for bit-reproducible results.
+    Construct the environment with ``device='cpu'`` for bit-reproducible results.
 
     """
 
@@ -38,6 +38,7 @@ class MuJoCoWarp(VectorizedEnvironment):
         nconmax=None,
         njmax=None,
         use_graph_capture=False,
+        device=None,
         **viewer_params,
     ):
         """
@@ -77,12 +78,18 @@ class MuJoCoWarp(VectorizedEnvironment):
                based on the model;
             use_graph_capture (bool, False): Whether to run the simulation and reset steps as captured CUDA graphs
                instead of dispatching each Warp kernel launch individually;
+            device (str, None): the device the simulation data and every tensor returned by the environment live
+               on. If None, the default torch device is used;
             **viewer_params: other parameters to be passed to the viewer.
                See MujocoViewer documentation for the available options.
 
         """
         self._mj_warp = mj_warp
         self._wp = wp
+
+        wp.init()
+        self._device = TorchUtils.get_device(device)
+        wp.set_device(wp.device_from_torch(self._device))
 
         self._model = MuJoCo.load_model(xml_file)
         if timestep is not None:
@@ -108,7 +115,7 @@ class MuJoCoWarp(VectorizedEnvironment):
         )
 
         self._reset_mask_t = torch.zeros(
-            self._num_envs, dtype=torch.bool, device=TorchUtils.get_device()
+            self._num_envs, dtype=torch.bool, device=self._device
         )
         self._reset_mask_wp = wp.from_torch(self._reset_mask_t)
 
@@ -149,7 +156,13 @@ class MuJoCoWarp(VectorizedEnvironment):
                 self.collision_groups[name] = set(col_group)
 
         mdp_info = MDPInfo(
-            observation_space, action_space, gamma, horizon, self.dt, backend="torch"
+            observation_space,
+            action_space,
+            gamma,
+            horizon,
+            self.dt,
+            backend="torch",
+            device=self._device,
         )
         mdp_info = self._modify_mdp_info(mdp_info)
 
@@ -160,7 +173,7 @@ class MuJoCoWarp(VectorizedEnvironment):
         )
 
         self._action_indices_t = torch.as_tensor(
-            self._action_indices, device=TorchUtils.get_device(), dtype=torch.long
+            self._action_indices, device=self._device, dtype=torch.long
         )
 
         super().__init__(mdp_info, num_envs)
@@ -198,14 +211,7 @@ class MuJoCoWarp(VectorizedEnvironment):
 
         self._obs = cur_obs.clone()
 
-        out_device = TorchUtils.get_device()
-
-        return (
-            self._modify_observation(cur_obs).to(out_device),
-            reward.to(out_device),
-            (absorbing & env_mask).to(out_device),
-            info,
-        )
+        return self._modify_observation(cur_obs), reward, absorbing & env_mask, info
 
     def step_graph(self):
         if not self._use_graph_capture:
@@ -457,21 +463,17 @@ class MuJoCoWarp(VectorizedEnvironment):
 
         """
         ctrl = wp.to_torch(self._data_wp.ctrl)
-        device = ctrl.device
 
         ctrl_action_t = (
             ctrl_action
             if isinstance(ctrl_action, torch.Tensor)
-            else torch.as_tensor(ctrl_action, device=device, dtype=ctrl.dtype)
+            else torch.as_tensor(ctrl_action, device=self._device, dtype=ctrl.dtype)
         )
-        ctrl_action_t = ctrl_action_t.to(device=device, dtype=ctrl.dtype)
+        ctrl_action_t = ctrl_action_t.to(ctrl.dtype)
 
-        action_indices_t = self._action_indices_t.to(device)
-        env_indices = torch.nonzero(env_mask.to(device), as_tuple=True)[0]
+        env_indices = torch.nonzero(env_mask, as_tuple=True)[0]
 
-        ctrl[env_indices.unsqueeze(1), action_indices_t.unsqueeze(0)] = ctrl_action_t[
-            env_indices
-        ]
+        ctrl[env_indices.unsqueeze(1), self._action_indices_t.unsqueeze(0)] = ctrl_action_t[env_indices]
 
     def _read_data(self, name, env_indices=None):
         """
@@ -508,15 +510,14 @@ class MuJoCoWarp(VectorizedEnvironment):
 
         """
         field_name, ot = self.additional_data[name]
-        device = TorchUtils.get_device()
 
         if env_indices is None:
-            env_indices = torch.arange(self._num_envs, device=device, dtype=torch.long)
+            env_indices = torch.arange(self._num_envs, device=self._device, dtype=torch.long)
 
         value_t = (
             value
             if isinstance(value, torch.Tensor)
-            else torch.as_tensor(value, device=device)
+            else torch.as_tensor(value, device=self._device)
         )
 
         if ot == ObservationType.JOINT_POS:
@@ -524,7 +525,7 @@ class MuJoCoWarp(VectorizedEnvironment):
             adr = self._model.jnt_qposadr[jnt.id]
             size = ObservationHelper._obs_size(self._model, field_name, ot)
             qpos = wp.to_torch(self._data_wp.qpos)
-            col_idx = torch.arange(adr, adr + size, device=device, dtype=torch.long)
+            col_idx = torch.arange(adr, adr + size, device=self._device, dtype=torch.long)
             qpos[env_indices.unsqueeze(1), col_idx.unsqueeze(0)] = value_t.to(
                 qpos.dtype
             )
@@ -533,7 +534,7 @@ class MuJoCoWarp(VectorizedEnvironment):
             adr = self._model.jnt_dofadr[jnt.id]
             size = ObservationHelper._obs_size(self._model, field_name, ot)
             qvel = wp.to_torch(self._data_wp.qvel)
-            col_idx = torch.arange(adr, adr + size, device=device, dtype=torch.long)
+            col_idx = torch.arange(adr, adr + size, device=self._device, dtype=torch.long)
             qvel[env_indices.unsqueeze(1), col_idx.unsqueeze(0)] = value_t.to(
                 qvel.dtype
             )
@@ -628,18 +629,17 @@ class MuJoCoWarp(VectorizedEnvironment):
         """
         ids1 = self.collision_groups[group1]
         ids2 = self.collision_groups[group2]
-        device = TorchUtils.get_device()
 
         ncon = int(wp.to_torch(self._data_wp.ncollision)[0].item())
         if ncon == 0:
-            return torch.zeros(self._num_envs, dtype=torch.bool, device=device)
+            return torch.zeros(self._num_envs, dtype=torch.bool, device=self._device)
 
         geom = wp.to_torch(self._data_wp.contact.geom)[:ncon]
         worldid = wp.to_torch(self._data_wp.contact.worldid)[:ncon]
 
         ngeoms = self._model.ngeom
-        ids1_mask = torch.zeros(ngeoms, dtype=torch.bool, device=device)
-        ids2_mask = torch.zeros(ngeoms, dtype=torch.bool, device=device)
+        ids1_mask = torch.zeros(ngeoms, dtype=torch.bool, device=self._device)
+        ids2_mask = torch.zeros(ngeoms, dtype=torch.bool, device=self._device)
         ids1_mask[list(ids1)] = True
         ids2_mask[list(ids2)] = True
 
@@ -647,7 +647,7 @@ class MuJoCoWarp(VectorizedEnvironment):
         g2 = geom[:, 1].long()
         match = (ids1_mask[g1] & ids2_mask[g2]) | (ids1_mask[g2] & ids2_mask[g1])
 
-        result = torch.zeros(self._num_envs, dtype=torch.bool, device=device)
+        result = torch.zeros(self._num_envs, dtype=torch.bool, device=self._device)
         if match.any():
             matched_envs = worldid[match].long()
             result[matched_envs] = True
@@ -671,10 +671,9 @@ class MuJoCoWarp(VectorizedEnvironment):
         """
         ids1 = self.collision_groups[group1]
         ids2 = self.collision_groups[group2]
-        device = TorchUtils.get_device()
 
         ncon = int(wp.to_torch(self._data_wp.ncollision)[0].item())
-        result = torch.zeros((self._num_envs, 6), dtype=torch.float64, device=device)
+        result = torch.zeros((self._num_envs, 6), dtype=torch.float64, device=self._device)
         if ncon == 0:
             return result
 
@@ -683,8 +682,8 @@ class MuJoCoWarp(VectorizedEnvironment):
         frame = wp.to_torch(self._data_wp.contact.frame)[:ncon]
 
         ngeoms = self._model.ngeom
-        ids1_mask = torch.zeros(ngeoms, dtype=torch.bool, device=device)
-        ids2_mask = torch.zeros(ngeoms, dtype=torch.bool, device=device)
+        ids1_mask = torch.zeros(ngeoms, dtype=torch.bool, device=self._device)
+        ids2_mask = torch.zeros(ngeoms, dtype=torch.bool, device=self._device)
         ids1_mask[list(ids1)] = True
         ids2_mask[list(ids2)] = True
 
