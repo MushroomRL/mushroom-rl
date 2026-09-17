@@ -10,6 +10,7 @@ For Mushroom 2.0:
               (atari_maxmin_dqn_10m, 2026-08-07). Min-over-ensemble is deliberately pessimistic per
               Lan et al. 2020, so a slower start is expected, but this gap is large enough to be worth
               a real look once all 9 variants are in, not just written off as the paper's expected effect
+    * make the extra info lazy: it is materialized on every fit even when nothing reads it
     * Update Mujoco class interface
     * New Mujoco viewer needs testing on macOS.
     * After release: Put back latest as default ReadTheDocs config and as default badge in the main readme.rts
@@ -26,6 +27,8 @@ For Mushroom 2.1:
     * Improve replay memory:
         - vectorize SequenceReplayMemory.get
         - remove host-device sync each iteration (int(c_anchor)/int(boundary[...])) in SequenceReplayMemory for the frame-stacking path
+    * decide what `Dataset.clear(keep_leftovers=True)` should do with the policy parameters
+    * decide how the episode info should be collected in the dataset
     * handle ExtraInfo correctly in ReplayMemory
       - currently ignored in circular-buffer phase; info is never read back during sampling
     * vectorized env rendering

@@ -32,6 +32,9 @@ class CoreLogic(object):
             self.fit_required = self._fit_episodes_condition
 
     def initialize_evaluate(self):
+        self._n_steps_per_fit = None
+        self._n_episodes_per_fit = None
+
         self.fit_required = lambda: False
 
     def initialize_run(self, n_steps, n_episodes, initial_states, quiet):

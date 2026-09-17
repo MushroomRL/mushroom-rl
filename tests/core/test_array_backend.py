@@ -56,6 +56,8 @@ def test_abstract_backend_not_implemented():
         lambda: ArrayBackend.sqrt(None),
         lambda: ArrayBackend.from_list(None),
         lambda: ArrayBackend.pack_padded_sequence(None, None),
+        lambda: ArrayBackend.masked_select(None, None),
+        lambda: ArrayBackend.masked_assign(None, None, None),
         lambda: ArrayBackend.flatten(None),
         lambda: ArrayBackend.empty(2),
         lambda: ArrayBackend.none(),
@@ -130,6 +132,19 @@ def test_list_backend():
     assert ListBackend.flatten([[[1, 2], [3]], [[4], [5, 6, 7]]]) == [[1, 2], [4], [3], [5, 6, 7]]
     assert ListBackend.pack_padded_sequence([[10, 11], [12, 13], [14, 15]],
                                             np.array([[True, True], [True, False], [False, True]])) == [10, 12, 11, 15]
+
+    selection_mask = np.array([True, False, True])
+    assert ListBackend.masked_select([[1, 2], [3, 4], [5, 6]], selection_mask) == [[1, 2], [5, 6]]
+
+    target = [[1, 2], [3, 4], [5, 6]]
+    written = [[7, 8], [9, 10]]
+    ListBackend.masked_assign(target, selection_mask, written)
+    assert target == [[7, 8], [3, 4], [9, 10]]
+    target[0].append(99)
+    assert written == [[7, 8], [9, 10]]
+
+    ListBackend.masked_assign(target, np.array([False, False, False]), [])
+    assert target == [[7, 8, 99], [3, 4], [9, 10]]
     assert ListBackend.inf() == np.inf
 
     x = np.array([1.0, 4.0])
@@ -184,6 +199,13 @@ def test_backend_ops_numpy():
     assert NumpyBackend.sum(np.array([1.0, 2.0, 3.0])) == 6.0
     assert NumpyBackend.median(np.array([3.0, 1.0, 2.0])) == 2.0
 
+    selection_mask = np.array([True, False, True])
+    array = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+    assert np.array_equal(NumpyBackend.masked_select(array, selection_mask), np.array([[1.0, 2.0], [5.0, 6.0]]))
+
+    NumpyBackend.masked_assign(array, selection_mask, np.array([[7.0, 8.0], [9.0, 10.0]]))
+    assert np.array_equal(array, np.array([[7.0, 8.0], [3.0, 4.0], [9.0, 10.0]]))
+
     np.random.seed(42)
     u = NumpyBackend.uniform(0.0, 1.0)
     assert 0.0 <= u <= 1.0
@@ -205,6 +227,13 @@ def test_backend_ops_torch():
     assert torch.equal(TorchBackend.squeeze(torch.ones(2, 1), 1), torch.ones(2))
     kept = torch.tensor([1, 2])
     assert TorchBackend.as_array(kept) is kept
+
+    selection_mask = torch.tensor([True, False, True])
+    array = torch.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+    assert torch.equal(TorchBackend.masked_select(array, selection_mask), torch.tensor([[1.0, 2.0], [5.0, 6.0]]))
+
+    TorchBackend.masked_assign(array, selection_mask, torch.tensor([[7.0, 8.0], [9.0, 10.0]]))
+    assert torch.equal(array, torch.tensor([[7.0, 8.0], [3.0, 4.0], [9.0, 10.0]]))
 
 
 def test_to_backend_dtype_numpy():

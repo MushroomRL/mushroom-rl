@@ -76,6 +76,16 @@ class DatasetInfo(MushroomObject):
             n_envs='primitive'
         )
 
+    def flat(self):
+        """
+        Returns:
+            A copy of this dataset info describing a single, non-vectorized environment.
+
+        """
+        return DatasetInfo(self.env_backend, self.agent_backend, self.env_device, self.agent_device, self.horizon,
+                           self.gamma, self.state_shape, self.state_dtype, self.action_shape, self.action_dtype,
+                           self.policy_state_shape)
+
     @staticmethod
     def create_dataset_info(mdp_info, agent_info, n_envs=1):
         """
@@ -453,6 +463,10 @@ class Dataset(MushroomObject):
         """
         backend = self._dataset_info.env_array_backend
         device = self._dataset_info.env_device
+
+        if len(self) == 0:
+            return backend.zeros(0, device=device)
+
         _, r_ep = split_episodes(backend.as_array(self.last, device=device),
                                  backend.as_array(self.reward, device=device))
 
@@ -971,11 +985,11 @@ class VectorizedDataset(Dataset):
         mask and concatenating the environments end to end.
 
         Returns:
-            A flat :class:`Dataset`, or ``None`` if the dataset is empty.
+            A flat :class:`Dataset`.
 
         """
         if len(self) == 0:
-            return None
+            return Dataset(self._dataset_info.flat(), n_steps=0)
 
         mask = self.mask
         env_backend = self._dataset_info.env_array_backend

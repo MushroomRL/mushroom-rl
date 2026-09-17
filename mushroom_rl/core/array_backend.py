@@ -573,6 +573,39 @@ class ArrayBackend(object):
         raise NotImplementedError
 
     @staticmethod
+    def masked_select(array, mask):
+        """
+        Select the entries of an array marked by a boolean mask over its first axis.
+
+        Args:
+            array: an array of shape ``(N, ...)``;
+            mask: a boolean array of shape ``(N,)``.
+
+        Returns:
+            An array of shape ``(M, ...)``, with ``M`` equal to the number of ``True`` entries in ``mask``,
+            holding the selected entries in the order they appear in ``array``.
+
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def masked_assign(array, mask, values):
+        """
+        Overwrite in place the entries of an array marked by a boolean mask over its first axis.
+
+        Args:
+            array: an array of shape ``(N, ...)``;
+            mask: a boolean array of shape ``(N,)``;
+            values: an array of shape ``(M, ...)``, with ``M`` equal to the number of ``True`` entries in
+                ``mask``, whose entries are written, in order, at the marked positions. The written entries
+                are independent of ``values`` (:class:`NumpyBackend`/:class:`TorchBackend` copy the underlying
+                numeric buffer; :class:`ListBackend` deep-copies each written element, since it can hold
+                nested/ragged Python containers).
+
+        """
+        raise NotImplementedError
+
+    @staticmethod
     def where(cond, x=None, y=None):
         """
         Args:
@@ -976,6 +1009,14 @@ class NumpyBackend(ArrayBackend):
         return array.reshape(new_shape, order='F')[mask.flatten(order='F')]
 
     @staticmethod
+    def masked_select(array, mask):
+        return array[mask]
+
+    @staticmethod
+    def masked_assign(array, mask, values):
+        array[mask] = values
+
+    @staticmethod
     def where(cond, x=None, y=None):
         assert (x is None) == (y is None), "Either both or neither of x and y should be given."
         if x is None:
@@ -1226,6 +1267,14 @@ class TorchBackend(ArrayBackend):
         return array.transpose(0, 1).reshape(new_shape)[mask.transpose(0, 1).flatten()]
 
     @staticmethod
+    def masked_select(array, mask):
+        return array[mask]
+
+    @staticmethod
+    def masked_assign(array, mask, values):
+        array[mask] = values
+
+    @staticmethod
     def where(cond, x=None, y=None):
         assert (x is None) == (y is None), "Either both or neither of x and y should be given."
         if x is None:
@@ -1459,6 +1508,15 @@ class ListBackend(ArrayBackend):
         n_steps = len(array)
         n_envs = mask.shape[1]
         return [array[s][e] for e in range(n_envs) for s in range(n_steps) if mask[s, e]]
+
+    @staticmethod
+    def masked_select(array, mask):
+        return [array[int(i)] for i in NumpyBackend.nonzero(mask)]
+
+    @staticmethod
+    def masked_assign(array, mask, values):
+        for j, i in enumerate(NumpyBackend.nonzero(mask)):
+            array[int(i)] = copy.deepcopy(values[j])
 
     @staticmethod
     def where(cond, x=None, y=None):

@@ -3,6 +3,7 @@ import numpy as np
 from mushroom_rl.core import Agent, Core, Environment, VectorizedEnvironment, MDPInfo, Box
 from mushroom_rl.environments import Gymnasium
 from mushroom_rl.policy import Policy
+from mushroom_rl.rl_utils.preprocessors import Preprocessor
 
 
 def dummy_agent(mdp_info, action_fn):
@@ -10,6 +11,33 @@ def dummy_agent(mdp_info, action_fn):
     agent.draw_action = action_fn
     agent.fit = lambda dataset: None
     return agent
+
+
+class CountingListPreprocessor(Preprocessor):
+    def __init__(self):
+        self.batch_sizes = list()
+        self._offset = 0
+        super().__init__()
+
+    def __call__(self, obs):
+        return [o + self._offset for o in obs]
+
+    def update(self, obs):
+        self.batch_sizes.append(len(obs))
+        self._offset += 1
+
+
+class ListStepRecorder(object):
+    def __init__(self):
+        self.states = list()
+        self.next_states = list()
+        self.lasts = list()
+
+    def __call__(self, samples):
+        state, _, _, next_state, _, last = samples[:6]
+        self.states.append(np.array(state))
+        self.next_states.append(np.array(next_state))
+        self.lasts.append(np.array(last))
 
 
 class VariableLengthEnv(Environment):
@@ -90,6 +118,35 @@ class ListVecEnv(VectorizedEnvironment):
         pass
 
 
+class StaggeredListVecEnv(VectorizedEnvironment):
+    def __init__(self):
+        n_envs = 3
+        mdp_info = MDPInfo(Box(-np.inf, np.inf, shape=(2,)), Box(-1.0, 1.0, shape=(1,)),
+                           gamma=0.9, horizon=10, backend='list')
+        self._episode_lengths = np.array([2, 3, 5])
+        self._t = np.zeros(n_envs, dtype=int)
+        super().__init__(mdp_info, n_envs)
+
+    def reset_all(self, env_mask, state=None):
+        self._t[np.asarray(env_mask)] = 0
+        return self._obs(), [{} for _ in self._t]
+
+    def step_all(self, env_mask, action):
+        self._t[np.asarray(env_mask)] += 1
+        reward = np.ones(self._n_envs)
+        absorbing = (self._t >= self._episode_lengths) & np.asarray(env_mask)
+        return self._obs(), reward, absorbing, [{} for _ in self._t]
+
+    def render_all(self, env_mask, record=False):
+        pass
+
+    def stop(self):
+        pass
+
+    def _obs(self):
+        return [np.array([float(t), float(t)]) for t in self._t]
+
+
 def test_variable_length_state_action():
     mdp = VariableLengthEnv()
     agent = dummy_agent(mdp.info, lambda state: list(range(len(state))))
@@ -155,6 +212,40 @@ def test_vectorized_no_extra_info():
     assert dataset.array_backend.get_backend_name() == 'list'
     assert len(dataset) == 30
     assert list(dataset.info.keys()) == []
+
+
+def test_vectorized_empty_dataset():
+    mdp = ListVecEnv(with_info=True)
+    agent = dummy_agent(mdp.info, lambda state: [np.array([0.0]) for _ in state])
+    core = Core(agent, mdp)
+
+    dataset = core.evaluate(n_steps=0, quiet=True)
+
+    assert len(dataset) == 0
+    assert dataset.n_episodes == 0
+    assert dataset.array_backend.get_backend_name() == 'list'
+
+
+def test_vectorized_reset_preprocessing():
+    np.random.seed(42)
+
+    mdp = StaggeredListVecEnv()
+    agent = dummy_agent(mdp.info, lambda state: [np.array([0.0]) for _ in state])
+    preprocessor = CountingListPreprocessor()
+    agent.add_core_preprocessor(preprocessor)
+
+    recorder = ListStepRecorder()
+    core = Core(agent, mdp, callback_step=recorder)
+
+    core.evaluate(n_steps=90, quiet=True)
+
+    assert sum(preprocessor.batch_sizes) == 121
+    assert min(preprocessor.batch_sizes) > 0
+
+    for t in range(1, len(recorder.states)):
+        for e in range(mdp.number):
+            if not recorder.lasts[t - 1][e]:
+                assert np.array_equal(recorder.next_states[t - 1][e], recorder.states[t][e])
 
 
 def test_infinite_horizon_uses_list_backend():

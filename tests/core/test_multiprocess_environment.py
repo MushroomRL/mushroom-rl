@@ -97,11 +97,11 @@ def test_multiprocess_environment_default_env_interface():
     mdp = MultiprocessEnvironment(LQR, dimensions=2, n_envs=n_envs, use_generator=True)
     mdp.set_default_env(default_env)
 
-    initial_states, _ = mdp.reset(np.array([1., 2.]))
-    states, rewards, absorbing, _ = mdp.step(np.array([10., 20.]))
+    initial_state, _ = mdp.reset(np.array([1., 2.]))
+    state, reward, absorbing, _ = mdp.step(np.array([10., 20.]))
     mdp.close_all()
 
-    assert np.array_equal(initial_states[default_env], np.array([1., 2.]))
-    assert np.array_equal(states[default_env], np.array([11., 22.]))
-    assert rewards[default_env] == -371.3
-    assert not absorbing[default_env]
+    assert np.array_equal(initial_state, np.array([1., 2.]))
+    assert np.array_equal(state, np.array([11., 22.]))
+    assert reward == -371.3
+    assert not absorbing

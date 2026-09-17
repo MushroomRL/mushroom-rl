@@ -8,15 +8,15 @@ class Core(object):
     """
     Implements the functions to run a generic algorithm.
 
-    This is a facade that, depending on the type of environment provided, dispatches to a
-    single-environment (:class:`SequentialCore`) or a vectorized (:class:`VectorizedCore`)
-    implementation. Both expose the same interface, so user code only ever instantiates ``Core``.
+    This is a facade that, depending on the environment provided, dispatches to a single-environment
+    (:class:`SequentialCore`) or a vectorized (:class:`VectorizedCore`) implementation.
+    Both expose the same interface, so user code only ever instantiates ``Core``.
 
     """
     def __new__(cls, agent, env, *args, **kwargs):
         if cls is not Core:
             return super().__new__(cls)
-        if isinstance(env, VectorizedEnvironment):
+        if isinstance(env, VectorizedEnvironment) and env.number > 1:
             return super().__new__(VectorizedCore)
         return super().__new__(SequentialCore)
 
@@ -27,7 +27,8 @@ class Core(object):
         Args:
             agent (Agent): the agent moving according to a policy;
             env (Environment): the environment in which the agent moves;
-            callbacks_fit (list): list of callbacks to execute at the end of each fit;
+            callbacks_fit (list): list of callbacks to execute at the end of each fit. The dataset view they receive
+                is only valid for the duration of the callback;
             callback_step (Callback): callback to execute after each step;
             logger (Logger, None): the logger to be used by the agent. If provided, it is set on the agent via
                 ``agent.set_logger`` and the video fps is configured from the environment.
@@ -62,7 +63,7 @@ class Core(object):
             n_steps (int, None): number of steps to move the agent;
             n_episodes (int, None): number of episodes to move the agent;
             n_steps_per_fit (int, None): number of steps between each fit of the
-                policy;
+                policy. With a vectorized environment it cannot be lower than the number of environments;
             n_episodes_per_fit (int, None): number of episodes between each fit
                 of the policy;
             render (bool, False): whether to render the environment or not;
@@ -296,13 +297,13 @@ class VectorizedCore(Core):
 
         draw_action = self.agent.draw_action_greedy if greedy else self.agent.draw_action
 
-        last = self._core_logic.converter.ones(self.env.number, dtype=bool)
-        mask = None
+        last = self._core_logic.converter.ones(self.env.number, dtype=bool, device=self.env.info.device)
         need_reset = True
 
         while self._core_logic.move_required():
+            mask = self._core_logic.get_mask(last)
+
             if need_reset:
-                mask = self._core_logic.get_mask(last)
                 current_theta, reset_mask = self._reset(initial_states, last, mask, greedy)
 
                 if self.agent.info.is_episodic and reset_mask.any():
@@ -366,7 +367,7 @@ class VectorizedCore(Core):
         last = absorbing | (self._episode_steps >= self.env.info.horizon)
 
         state = self._state
-        next_state = self._preprocess(next_state)
+        next_state = self._preprocess_masked(next_state, mask, self._core_logic.n_active_envs)
         self._state = next_state
 
         policy_state = self._policy_state
@@ -386,13 +387,15 @@ class VectorizedCore(Core):
 
         state, episode_info = self.env.reset_all(reset_mask, initial_state)
 
-        self._state = self._preprocess(state)
+        self._state = self._preprocess_masked(state, reset_mask, self._core_logic.n_reset_envs)
+
         policy_state, current_theta = self.agent.episode_start_vectorized(self._state, episode_info, reset_mask,
                                                                           greedy)
         self._policy_state = policy_state
 
         if self._episode_steps is None:
-            self._episode_steps = self._core_logic.converter.zeros(self.env.number, dtype=int)
+            self._episode_steps = self._core_logic.converter.zeros(self.env.number, dtype=int,
+                                                                   device=self.env.info.device)
         else:
             self._episode_steps[last] = 0
 
@@ -407,3 +410,31 @@ class VectorizedCore(Core):
             self.agent.logger.stop_recording()
 
         self._core_logic.terminate_run()
+
+    def _preprocess_masked(self, state, mask, n_selected):
+        """
+        Apply the state preprocessors to the observations of the environments selected by the mask, leaving
+        the observations of the other environments unprocessed.
+
+        Args:
+            state (Array): the observations of every environment;
+            mask (Array): mask selecting the environments whose observations must be preprocessed;
+            n_selected (int): the number of environments selected by the mask.
+
+        Returns:
+            The state of every environment, in a new array.
+
+        """
+        if n_selected == self.env.number:
+            return self._preprocess(state)
+
+        carried_state = state if self._state is None else self._state
+
+        if n_selected > 0:
+            converter = self._core_logic.converter
+            selected_state = converter.masked_select(state, mask)
+            preprocessed_state = self._preprocess(selected_state)
+            carried_state = converter.copy(carried_state)
+            converter.masked_assign(carried_state, mask, preprocessed_state)
+
+        return carried_state

@@ -17,7 +17,9 @@ def split_episodes(last, *arrays):
     backend = ArrayBackend.get_array_backend_from(last)
 
     last = backend.copy(last)
-    last[-1] = True
+
+    if len(last) > 0:
+        last[-1] = True
 
     if last.sum().item() <= 1:
         return (last, *arrays)
@@ -68,7 +70,9 @@ def _get_episode_idx(last, backend=None):
     device = backend.get_device(last)
 
     last = backend.copy(last)
-    last[-1] = True
+
+    if len(last) > 0:
+        last[-1] = True
 
     n_episodes = last.sum()
     last_idx = backend.nonzero(last).squeeze()
