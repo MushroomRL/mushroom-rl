@@ -175,11 +175,12 @@ class PPO_BPTT(OnPolicyDeepAC):
                 end_seq = i + 1
 
                 # the sequence may contain more than one trajectory, we need to cut it so that it contains only one
-                lasts_absorbing = last[begin_seq - 1: i].int() + absorbing[begin_seq - 1: i].int()
+                begin_scan = max(begin_seq - 1, 0)
+                lasts_absorbing = last[begin_scan: i].int() + absorbing[begin_scan: i].int()
                 begin_traj = torch.where(lasts_absorbing > 0)
                 sequence_is_shorter_than_requested = len(*begin_traj) > 0
                 if sequence_is_shorter_than_requested:
-                    begin_seq = begin_seq + begin_traj[0][-1]
+                    begin_seq = begin_scan + begin_traj[0][-1] + 1
 
                 # get the sequences
                 states_old_seq = states_old[begin_seq:end_seq]

@@ -259,3 +259,26 @@ def test_PPO_BPTT_multi_layer():
 
     assert agent.policy.policy_state_shape == (2, 4)
     assert torch.all(torch.isfinite(agent.policy.get_weights()))
+
+
+def test_PPO_BPTT_sequence_cut():
+    np.random.seed(1)
+    torch.manual_seed(1)
+    torch.cuda.manual_seed(1)
+    policy, alg_params = make_bptt_setup()
+    mdp = InvertedPendulum(horizon=50)
+    agent = PPO_BPTT(mdp.info, policy, **alg_params)
+
+    n_samples, dim_env_state, dim_action = 8, 2, 1
+    states = torch.arange(n_samples * dim_env_state, dtype=torch.float32).reshape(n_samples, dim_env_state)
+    actions = torch.arange(n_samples * dim_action, dtype=torch.float32).reshape(n_samples, dim_action)
+    policy_states = torch.arange(n_samples * 4, dtype=torch.float32).reshape(n_samples, *policy.policy_state_shape)
+    last = torch.tensor([0, 0, 1, 0, 0, 0, 0, 1])
+    absorbing = torch.zeros(n_samples)
+
+    _, state_seq, policy_state_seq, _, _, _, _, lengths = agent._transform_to_sequences(
+        states, states, policy_states, actions, states, policy_states, None, last, absorbing)
+
+    assert torch.equal(lengths, torch.tensor([1, 2, 3, 1, 2, 3, 4, 5]))
+    assert torch.equal(state_seq[4][:2], states[3:5])
+    assert torch.equal(policy_state_seq[4], policy_states[3])
