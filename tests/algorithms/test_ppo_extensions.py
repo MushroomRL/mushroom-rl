@@ -8,15 +8,14 @@ from helper.utils import TestUtils as tu
 
 from mushroom_rl.core import Agent, Core
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import PPO_BPTT, RudinPPO
-from mushroom_rl.environments import InvertedPendulum
+from mushroom_rl.environments import InvertedPendulum, LQR
 from mushroom_rl.policy import GaussianTorchPolicy, RecurrentGaussianTorchPolicy
 from mushroom_rl.approximators.parametric.networks import (
     FeedForwardNetwork, ActorNetwork, RecurrentActorNetwork, RecurrentCriticNetwork
 )
 
 
-def learn(alg, policy, alg_params):
-    mdp = InvertedPendulum(horizon=50)
+def learn(alg, policy, alg_params, mdp):
     agent = alg(mdp.info, policy, **alg_params)
     core = Core(agent, mdp)
     core.learn(n_steps=50, n_steps_per_fit=50)
@@ -148,10 +147,10 @@ def test_PPO_BPTT():
     torch.cuda.manual_seed(1)
     policy, alg_params = make_bptt_setup()
 
-    w = learn(PPO_BPTT, policy, alg_params).policy.get_weights().numpy()
+    w = learn(PPO_BPTT, policy, alg_params, LQR.generate(s_dim=2, a_dim=1, horizon=50)).policy.get_weights().numpy()
     w_test = np.load('tests/algorithms/test_ppo_bptt.npy')
 
-    assert np.allclose(w, w_test, atol=1e-4), f'max discrepancy: {np.max(np.abs(w - w_test))}, w[:5]={w[:5]}'
+    assert np.allclose(w, w_test, atol=1e-6), f'max discrepancy: {np.max(np.abs(w - w_test))}, w[:5]={w[:5]}'
 
 
 def test_PPO_BPTT_prev_action():
@@ -160,10 +159,10 @@ def test_PPO_BPTT_prev_action():
     torch.cuda.manual_seed(1)
     policy, alg_params = make_bptt_setup(use_prev_action=True)
 
-    w = learn(PPO_BPTT, policy, alg_params).policy.get_weights().numpy()
+    w = learn(PPO_BPTT, policy, alg_params, LQR.generate(s_dim=2, a_dim=1, horizon=50)).policy.get_weights().numpy()
     w_test = np.load('tests/algorithms/test_ppo_bptt_prev_action.npy')
 
-    assert np.allclose(w, w_test, atol=6e-4), f'max discrepancy: {np.max(np.abs(w - w_test))}, w[:5]={w[:5]}'
+    assert np.allclose(w, w_test, atol=1e-6), f'max discrepancy: {np.max(np.abs(w - w_test))}, w[:5]={w[:5]}'
 
 
 def test_PPO_BPTT_save(tmpdir):
@@ -173,7 +172,7 @@ def test_PPO_BPTT_save(tmpdir):
     torch.cuda.manual_seed(1)
     policy, alg_params = make_bptt_setup()
 
-    agent_save = learn(PPO_BPTT, policy, alg_params)
+    agent_save = learn(PPO_BPTT, policy, alg_params, LQR.generate(s_dim=2, a_dim=1, horizon=50))
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
@@ -187,7 +186,7 @@ def test_RudinPPO():
     torch.cuda.manual_seed(1)
     policy, alg_params = make_rudin_setup()
 
-    w = learn(RudinPPO, policy, alg_params).policy.get_weights()
+    w = learn(RudinPPO, policy, alg_params, InvertedPendulum(horizon=50)).policy.get_weights()
     w_test = torch.tensor([0.6614, -1.3338, -0.1395, -0.0024])
 
     assert torch.allclose(w, w_test, atol=1e-4)
@@ -200,7 +199,7 @@ def test_RudinPPO_save(tmpdir):
     torch.cuda.manual_seed(1)
     policy, alg_params = make_rudin_setup()
 
-    agent_save = learn(RudinPPO, policy, alg_params)
+    agent_save = learn(RudinPPO, policy, alg_params, InvertedPendulum(horizon=50))
     agent_save.save(agent_path)
     agent_load = Agent.load(agent_path)
 
@@ -214,7 +213,7 @@ def test_RudinPPO_history_length():
     torch.cuda.manual_seed(1)
     policy, alg_params = make_rudin_history_setup(history_length=3)
 
-    agent = learn(RudinPPO, policy, alg_params)
+    agent = learn(RudinPPO, policy, alg_params, InvertedPendulum(horizon=50))
     w = agent.policy.get_weights()
     w_test = torch.tensor([0.46858000, 0.12627189, -0.11577988, 0.25435323,
                            0.04324655, 0.33570240, -0.08642038, -0.00241854])
@@ -229,7 +228,7 @@ def test_RudinPPO_action_history_length():
     torch.cuda.manual_seed(1)
     policy, alg_params = make_rudin_action_history_setup(action_history_length=1)
 
-    agent = learn(RudinPPO, policy, alg_params)
+    agent = learn(RudinPPO, policy, alg_params, InvertedPendulum(horizon=50))
     w = agent.policy.get_weights()
     w_test = torch.tensor([-1.15545774, 0.73206282, -0.24952325, 0.26855272, -0.00243832])
 
@@ -243,7 +242,7 @@ def test_PPO_BPTT_lstm():
     torch.cuda.manual_seed(1)
     policy, alg_params = make_bptt_setup(rnn_type='lstm')
 
-    agent = learn(PPO_BPTT, policy, alg_params)
+    agent = learn(PPO_BPTT, policy, alg_params, LQR.generate(s_dim=2, a_dim=1, horizon=50))
 
     assert agent.policy.policy_state_shape == (2, 1, 4)
     assert torch.all(torch.isfinite(agent.policy.get_weights()))
@@ -255,7 +254,7 @@ def test_PPO_BPTT_multi_layer():
     torch.cuda.manual_seed(1)
     policy, alg_params = make_bptt_setup(num_hidden_layers=2)
 
-    agent = learn(PPO_BPTT, policy, alg_params)
+    agent = learn(PPO_BPTT, policy, alg_params, LQR.generate(s_dim=2, a_dim=1, horizon=50))
 
     assert agent.policy.policy_state_shape == (2, 4)
     assert torch.all(torch.isfinite(agent.policy.get_weights()))
@@ -266,7 +265,7 @@ def test_PPO_BPTT_sequence_cut():
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
     policy, alg_params = make_bptt_setup()
-    mdp = InvertedPendulum(horizon=50)
+    mdp = LQR.generate(s_dim=2, a_dim=1, horizon=50)
     agent = PPO_BPTT(mdp.info, policy, **alg_params)
 
     n_samples, dim_env_state, dim_action = 8, 2, 1
