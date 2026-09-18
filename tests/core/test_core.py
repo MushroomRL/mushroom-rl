@@ -328,3 +328,90 @@ def test_environments_do_not_hand_out_their_internal_state():
         internal = np.array(mdp._state, dtype=float, copy=True)
         np.asarray(next_state)[...] = np.asarray(next_state) + 100.
         assert np.allclose(np.array(mdp._state, dtype=float), internal)
+
+
+class InfoEnv(Environment):
+    def __init__(self):
+        mdp_info = MDPInfo(Box(np.full((2,), -10.), np.full((2,), 10.), (2,)), Discrete(2), gamma=.99, horizon=10,
+                           backend='numpy')
+        self._t = 0
+        self._episode = 0
+        super().__init__(mdp_info)
+
+    def reset(self, state=None):
+        self._t = 0
+        self._episode += 1
+        return np.zeros(2), {'episode': float(self._episode)}
+
+    def step(self, action):
+        self._t += 1
+        return np.full(2, float(self._t)), 1., self._t >= 4, {'t': float(self._t)}
+
+
+class InfoVecEnv(VectorizedEnvironment):
+    def __init__(self, n_envs=2):
+        mdp_info = MDPInfo(Box(np.full((2,), -10.), np.full((2,), 10.), (2,)), Discrete(2), gamma=.99, horizon=10,
+                           backend='numpy')
+        self._t = np.zeros(n_envs)
+        self._episode = np.zeros(n_envs)
+        super().__init__(mdp_info, n_envs)
+
+    def reset_all(self, env_mask, state=None):
+        self._t[env_mask] = 0.
+        self._episode[env_mask] += 1.
+        return np.tile(self._t, (2, 1)).T.copy(), [{'episode': e} for e in self._episode]
+
+    def step_all(self, env_mask, action):
+        self._t[env_mask] += 1
+        absorbing = self._t >= 4
+        return (np.tile(self._t, (2, 1)).T.copy(), np.ones(self._n_envs), absorbing & env_mask,
+                [{'t': t} for t in self._t])
+
+
+class InfoAgent(Agent):
+    def __init__(self, mdp_info):
+        self.seen = list()
+        super().__init__(mdp_info, RandomDiscretePolicy(mdp_info.action_space.n))
+
+    def fit(self, dataset):
+        self.seen.append(np.asarray(dataset.info['t']).copy())
+
+
+def test_fit_reads_the_step_info():
+    np.random.seed(42)
+    agent = InfoAgent(InfoEnv().info)
+    Core(agent, InfoEnv()).learn(n_steps=8, n_steps_per_fit=4, quiet=True)
+
+    assert len(agent.seen) == 2
+    assert np.array_equal(agent.seen[0], np.array([1., 2., 3., 4.]))
+    assert np.array_equal(agent.seen[1], np.array([1., 2., 3., 4.]))
+
+    np.random.seed(42)
+    vec_agent = InfoAgent(InfoVecEnv().info)
+    Core(vec_agent, InfoVecEnv()).learn(n_steps=8, n_steps_per_fit=4, quiet=True)
+
+    assert len(vec_agent.seen) == 2
+    assert np.array_equal(vec_agent.seen[0], np.array([1., 2., 1., 2.]))
+    assert np.array_equal(vec_agent.seen[1], np.array([3., 4., 3., 4.]))
+
+
+def test_episode_info_reaches_the_dataset():
+    np.random.seed(42)
+    dataset = Core(InfoAgent(InfoEnv().info), InfoEnv()).evaluate(n_episodes=3, quiet=True)
+
+    assert np.array_equal(dataset.episode_info['episode'], np.array([1., 2., 3.]))
+
+    np.random.seed(42)
+    vec_dataset = Core(InfoAgent(InfoVecEnv().info), InfoVecEnv()).evaluate(n_steps=8, quiet=True)
+
+    assert np.array_equal(vec_dataset.episode_info['episode'], np.array([1., 1.]))
+    assert np.array_equal(np.asarray(vec_dataset.info['t']), np.array([1., 2., 3., 4., 1., 2., 3., 4.]))
+
+
+def test_step_slice_drops_the_episode_info():
+    np.random.seed(42)
+    dataset = Core(InfoAgent(InfoEnv().info), InfoEnv()).evaluate(n_episodes=3, quiet=True)
+
+    assert np.array_equal(dataset.episode_info['episode'], np.array([1., 2., 3.]))
+    assert dataset[2:6].episode_info == {}
+    assert np.array_equal(np.asarray(dataset[2:6].info['t']), np.array([3., 4., 1., 2.]))

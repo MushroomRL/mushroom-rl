@@ -55,14 +55,17 @@ class CountdownVectorizedEnv(VectorizedEnvironment):
         idxs = np.arange(self._n_envs)[env_mask]
         self._state[idxs, 0] = self._lengths[idxs]
 
-        return self._state.copy(), [{}] * self._n_envs
+        return self._state.copy(), self._step_info()
 
     def step_all(self, env_mask, action):
         self._state[env_mask, 0] -= 1
         reward = np.ones(self._n_envs)
         absorbing = self._state[:, 0] <= 0
 
-        return self._state.copy(), reward, absorbing & env_mask, [{}] * self._n_envs
+        return self._state.copy(), reward, absorbing & env_mask, self._step_info()
+
+    def _step_info(self):
+        return [{'remaining': float(remaining)} for remaining in self._state[:, 0]]
 
 
 class RecordFlattenedLast(Callback):
@@ -175,6 +178,7 @@ def test_collect_dataset_vectorized():
     assert len(dataset) == len(reference_flags)
     assert dataset.n_episodes == sum(reference_flags)
     assert sorted(dataset.episodes_length.tolist()) == sorted(episode_lengths_from_flags(reference_flags))
+    assert np.array_equal(np.asarray(dataset.info['remaining']), dataset.next_state[:, 0])
 
 
 def test_collect_Q():

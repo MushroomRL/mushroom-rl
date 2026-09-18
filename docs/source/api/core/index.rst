@@ -27,6 +27,8 @@ to store it is selected per component through the ``backend`` declared in ``MDPI
    ~mushroom_rl.core.dataset.Dataset
    ~mushroom_rl.core.dataset.VectorizedDataset
    ~mushroom_rl.core.extra_info.ExtraInfo
+   ~mushroom_rl.core.extra_info.StepInfo
+   ~mushroom_rl.core.extra_info.EpisodeInfo
    ~mushroom_rl.core.history_manager.HistoryManager
    ~mushroom_rl.core.array_backend.ArrayBackend
    ~mushroom_rl.core.mushroom_object.MushroomObject

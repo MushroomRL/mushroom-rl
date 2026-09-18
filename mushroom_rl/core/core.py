@@ -190,7 +190,7 @@ class SequentialCore(Core):
         last = True
         while self._core_logic.move_required():
             if last:
-                self._reset(initial_states, greedy)
+                self._reset(dataset, initial_states, greedy)
                 if self.agent.info.is_episodic:
                     dataset.append_theta(self._current_theta)
 
@@ -215,8 +215,6 @@ class SequentialCore(Core):
 
         self._end(record)
 
-        dataset.info.parse()
-        dataset.episode_info.parse()
         return dataset
 
     def _step(self, draw_action, render, record):
@@ -255,14 +253,20 @@ class SequentialCore(Core):
 
         return (state, action, reward, next_state, absorbing, last, policy_state, policy_next_state), step_info
 
-    def _reset(self, initial_states, greedy=False):
+    def _reset(self, dataset, initial_states, greedy=False):
         """
-        Reset the state of the agent.
+        Reset the state of the agent and store the information the environment reports.
+
+        Args:
+            dataset (Dataset): the dataset the episode information is appended to;
+            initial_states (Array, None): the states the episodes are started from;
+            greedy (bool, False): whether the agent acts greedily.
 
         """
         initial_state = self._core_logic.get_initial_state(initial_states)
 
         state, episode_info = self.env.reset(initial_state)
+        dataset.append_episode_info(episode_info)
         self._state = self._preprocess(state)
         self._policy_state, self._current_theta = self.agent.episode_start(self._state, episode_info, greedy)
 
@@ -304,7 +308,7 @@ class VectorizedCore(Core):
             mask = self._core_logic.get_mask(last)
 
             if need_reset:
-                current_theta, reset_mask = self._reset(initial_states, last, mask, greedy)
+                current_theta, reset_mask = self._reset(dataset, initial_states, last, mask, greedy)
 
                 if self.agent.info.is_episodic and reset_mask.any():
                     dataset.append_theta_vectorized(current_theta, reset_mask)
@@ -376,9 +380,16 @@ class VectorizedCore(Core):
 
         return (state, action, rewards, next_state, absorbing, last, policy_state, policy_next_state), step_info
 
-    def _reset(self, initial_states, last, mask, greedy=False):
+    def _reset(self, dataset, initial_states, last, mask, greedy=False):
         """
-        Reset the states of the agent.
+        Reset the states of the agent and store the information the environments that reset report.
+
+        Args:
+            dataset (VectorizedDataset): the dataset the episode information is appended to;
+            initial_states (Array, None): the states the episodes are started from;
+            last (Array): boolean mask marking the environments whose episode ended;
+            mask (Array): boolean mask marking the active environments;
+            greedy (bool, False): whether the agent acts greedily.
 
         """
         reset_mask = last & mask
@@ -386,6 +397,7 @@ class VectorizedCore(Core):
         initial_state = self._core_logic.get_initial_state(initial_states, reset_mask)
 
         state, episode_info = self.env.reset_all(reset_mask, initial_state)
+        dataset.append_episode_info(episode_info, reset_mask)
 
         self._state = self._preprocess_masked(state, reset_mask, self._core_logic.n_reset_envs)
 

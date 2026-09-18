@@ -1,7 +1,6 @@
 import numpy as np
 import math
 
-from collections import defaultdict
 from enum import IntEnum
 
 import torch
@@ -212,10 +211,9 @@ class Dataset(MushroomObject):
 
         info_n_envs = min(n_episodes, dataset_info.n_envs) if n_episodes else dataset_info.n_envs
         vectorized = dataset_info.n_envs > 1
-        self._info = ExtraInfo(info_n_envs, dataset_info.env_backend, dataset_info.env_device, vectorized=vectorized)
-        self._episode_info = ExtraInfo(info_n_envs, dataset_info.env_backend, dataset_info.env_device,
-                                       vectorized=vectorized)
-        self._theta_list = list()
+        self._extras = ExtraInfo(info_n_envs, dataset_info.env_backend, dataset_info.env_device,
+                                 vectorized=vectorized, theta_backend=dataset_info.agent_backend,
+                                 theta_device=dataset_info.agent_device)
 
         n_envs = (min(n_episodes, dataset_info.n_envs) if n_episodes else dataset_info.n_envs) if vectorized else None
 
@@ -247,9 +245,7 @@ class Dataset(MushroomObject):
     def __add__(self, other):
         result = self.create_raw_instance(dataset=self)
 
-        result._info = self._info + other._info
-        result._episode_info = self._episode_info + other._episode_info
-        result._theta_list = self._merge_theta_list(other)
+        result._extras = self._extras + other._extras
         result._data = self._data + other._data
         result._agent_data = (self._agent_data + other._agent_data) if self._agent_data is not None else None
 
@@ -261,8 +257,7 @@ class Dataset(MushroomObject):
             return self + other
 
         self.append_batch(other)
-        self._episode_info += other._episode_info
-        self._theta_list = self._merge_theta_list(other)
+        self._extras += other._extras
 
         return self
 
@@ -271,12 +266,13 @@ class Dataset(MushroomObject):
 
     def append(self, step, info):
         self._store_step(step)
-        self._info.append(info)
+        self._extras.append_step(info)
 
     def append_batch(self, other):
         """
-        Append the transitions of another dataset in place without copying data. Only the transition data is merged
-        (env data, policy state and step info); the per-episode information and the policy parameters are not updated.
+        Append the transitions of another dataset in place without copying data. Only the transition data is
+        merged (env data and policy state); the step information, the per-episode information and the policy
+        parameters are not updated.
 
         Args:
             other (Dataset): dataset whose transitions will be appended.
@@ -285,7 +281,6 @@ class Dataset(MushroomObject):
         self._data.append_batch(other._data)
         if self._agent_data is not None:
             self._agent_data.append_batch(other._agent_data)
-        self._info += other._info
 
     def reserve(self, capacity):
         """
@@ -301,22 +296,35 @@ class Dataset(MushroomObject):
         if self._agent_data is not None:
             self._agent_data.reserve(capacity)
 
-    def append_episode_info(self, info):
-        self._append_info(self._episode_info, info)
+    def append_episode_info(self, info, mask=None):
+        """
+        Append the information an environment reported when resetting.
+
+        Args:
+            info (dict or list): the information the reset reported;
+            mask (Array, None): boolean mask selecting the environments that were reset.
+
+        """
+        self._extras.append_episode(info, mask)
 
     def append_theta(self, theta):
-        self._theta_list.append(theta)
+        """
+        Append the policy parameters of the episode that is starting.
+
+        Args:
+            theta (Array): the policy parameters.
+
+        """
+        self._extras.append_theta(theta)
 
     def get_info(self, field, index=None):
         if index is None:
-            return self._info[field]
+            return self.info[field]
         else:
-            return self._info[field][index]
+            return self.info[field][index]
 
     def clear(self):
-        self._episode_info.clear()
-        self._theta_list = list()
-        self._info.clear()
+        self._extras.clear()
 
         self._data.clear()
         if self._agent_data is not None:
@@ -325,11 +333,9 @@ class Dataset(MushroomObject):
     def get_view(self, index, copy=False):
         dataset = self.create_raw_instance(dataset=self)
 
-        dataset._info = self._info.get_view(index, copy)
-        dataset._episode_info = self._episode_info.get_view(index, copy)
+        dataset._extras = self._extras.get_view(index, copy)
         dataset._data = self._data.get_view(index, copy)
         dataset._agent_data = self._agent_data.get_view(index, copy) if self._agent_data is not None else None
-        dataset._theta_list = []
 
         return dataset
 
@@ -392,8 +398,7 @@ class Dataset(MushroomObject):
                                            else (None, None))
         return Dataset.from_array(state, action, reward, next_state, absorbing, last,
                                   policy_state=policy_state, policy_next_state=policy_next_state,
-                                  info=self._info, episode_info=self._episode_info,
-                                  theta_list=self._theta_list, backend=backend, policy_backend=backend,
+                                  extras=self._extras, backend=backend, policy_backend=backend,
                                   device=device, agent_device=device)
 
     def select_first_episodes(self, n_episodes):
@@ -536,11 +541,9 @@ class Dataset(MushroomObject):
         new_dataset._dataset_info = dataset._dataset_info if dataset is not None else None
 
         new_dataset._base_shape = None
-        new_dataset._info = None
-        new_dataset._episode_info = None
+        new_dataset._extras = None
         new_dataset._data = None
         new_dataset._agent_data = None
-        new_dataset._theta_list = None
 
         new_dataset._add_all_save_attr()
 
@@ -548,7 +551,7 @@ class Dataset(MushroomObject):
 
     @classmethod
     def from_array(cls, states, actions, rewards, next_states, absorbings, lasts,
-                   policy_state=None, policy_next_state=None, info=None, episode_info=None, theta_list=None,
+                   policy_state=None, policy_next_state=None, extras=None,
                    horizon=None, gamma=0.99, backend='numpy', policy_backend=None, device=None, agent_device=None):
         """
         Creates a dataset of transitions from the provided arrays.
@@ -562,9 +565,7 @@ class Dataset(MushroomObject):
             lasts (array): array of last flags;
             policy_state (array, None): array of policy internal states;
             policy_next_state (array, None): array of next policy internal states;
-            info (dict, None): dictiornay of step info;
-            episode_info (dict, None): dictiornary of episode info;
-            theta_list (list, None): list of policy parameters;
+            extras (ExtraInfo, None): step info, episode info and policy parameters to copy into the dataset;
             horizon (int, None): horizon of the mdp;
             gamma (float, 0.99): discount factor;
             backend (str, 'numpy'): backend to be used by the dataset;
@@ -586,20 +587,7 @@ class Dataset(MushroomObject):
 
         dataset = cls.create_raw_instance()
 
-        if info is None:
-            dataset._info = ExtraInfo(1, backend)
-        else:
-            dataset._info = info.copy()
-
-        if episode_info is None:
-            dataset._episode_info = ExtraInfo(1, backend)
-        else:
-            dataset._episode_info = episode_info.copy()
-
-        if theta_list is None:
-            dataset._theta_list = list()
-        else:
-            dataset._theta_list = theta_list
+        dataset._extras = ExtraInfo(1, backend) if extras is None else extras.copy()
 
         env_arrays = [states, actions, rewards, next_states, absorbings, lasts]
         dataset._data = cls._container_from_array(backend, env_arrays, device)
@@ -655,15 +643,33 @@ class Dataset(MushroomObject):
 
     @property
     def info(self):
-        return self._info
+        """
+        Returns:
+            A flat dictionary holding an array per key of the step information. It describes the dataset as of
+            this call and does not update as further steps are collected.
+
+        """
+        return self._extras.parse_steps()
 
     @property
     def episode_info(self):
-        return self._episode_info
+        """
+        Returns:
+            A flat dictionary holding an array per key of the episode information. It describes the dataset as
+            of this call and does not update as further episodes are collected.
+
+        """
+        return self._extras.parse_episodes()
 
     @property
     def theta_list(self):
-        return self._theta_list
+        """
+        Returns:
+            The policy parameters, one entry per episode, kept in one list per environment when they are
+            collected from a vectorized environment.
+
+        """
+        return self._extras.theta
 
     @property
     def episodes_length(self):
@@ -717,9 +723,6 @@ class Dataset(MushroomObject):
         if self._agent_data is not None:
             self._agent_data.append(*step[len(self._Field):])
 
-    def _merge_theta_list(self, other):
-        return self._theta_list + other._theta_list
-
     def _convert(self, *arrays, to='numpy', backend=None, device=None):
         backend = backend if backend is not None else self._dataset_info.env_array_backend
         if to == 'numpy':
@@ -735,9 +738,7 @@ class Dataset(MushroomObject):
 
     def _add_all_save_attr(self):
         self._add_save_attr(
-            _info='mushroom',
-            _episode_info='mushroom',
-            _theta_list='pickle',
+            _extras='mushroom',
             _data='mushroom',
             _agent_data='mushroom',
             _base_shape='primitive',
@@ -812,18 +813,6 @@ class Dataset(MushroomObject):
             return ListDataset.from_array(arrays)
 
     @staticmethod
-    def _append_info(info, step_info):
-        for key, value in step_info.items():
-            info[key].append(value)
-
-    @staticmethod
-    def _merge_info(info, other_info):
-        new_info = defaultdict(list)
-        for key in info.keys():
-            new_info[key] = info[key] + other_info[key]
-        return new_info
-
-    @staticmethod
     def _infer_shape(data):
         if hasattr(data, 'shape'):
             return data.shape[1:]
@@ -851,8 +840,6 @@ class VectorizedDataset(Dataset):
         self._mask_data = self._make_container(dataset_info.env_backend, [mask_shape],
                                                [self._dataset_info.env_array_backend.to_backend_dtype(bool)],
                                                dataset_info.env_device, self._data.n_envs)
-
-        self._initialize_theta_list(self._dataset_info.n_envs)
 
     def __add__(self, other):
         result = super().__add__(other)
@@ -884,7 +871,7 @@ class VectorizedDataset(Dataset):
         """
         self._store_step(step)
         self._mask_data.append(mask)
-        self._info.append(info)
+        self._extras.append_step(info)
 
     def append_theta_vectorized(self, theta, mask):
         """
@@ -895,9 +882,7 @@ class VectorizedDataset(Dataset):
             mask (Array): boolean mask selecting the environments that are currently active.
 
         """
-        for i in range(len(theta)):
-            if mask[i]:
-                self._theta_list[i].append(theta[i])
+        self._extras.append_theta_vectorized(theta, mask)
 
     def consume(self, n_steps):
         """
@@ -931,9 +916,7 @@ class VectorizedDataset(Dataset):
             mask_column[:] = leftover_mask
 
         view = self.create_raw_instance(dataset=self)
-        view._info = self._info
-        view._episode_info = self._episode_info
-        view._theta_list = self._theta_list
+        view._extras = self._extras
         view._data = self._data
         view._agent_data = self._agent_data
         view._mask_data = self._mask_data.from_array([consumed_mask])
@@ -953,8 +936,6 @@ class VectorizedDataset(Dataset):
             The number of steps kept.
 
         """
-        n_envs = len(self._theta_list)
-
         if keep_leftovers:
             backend = self._dataset_info.env_array_backend
             row_active = backend.sum(self.mask, dim=1)
@@ -966,15 +947,12 @@ class VectorizedDataset(Dataset):
                 if self._agent_data is not None:
                     self._agent_data.compact(split_row)
                 self._mask_data.compact(split_row)
-                self._info = self._info.get_view(slice(split_row, None), copy=True)
-                self._episode_info = self._episode_info.get_view(slice(split_row, None), copy=True)
-                self._initialize_theta_list(n_envs)
+                self._extras.keep_from(split_row)
 
                 return n_carry
 
         super().clear()
         self._mask_data.clear()
-        self._initialize_theta_list(n_envs)
 
         return 0
 
@@ -1016,15 +994,12 @@ class VectorizedDataset(Dataset):
             policy_state = agent_backend.pack_padded_sequence(self.policy_state, policy_mask)
             policy_next_state = agent_backend.pack_padded_sequence(self.policy_next_state, policy_mask)
 
-        flat_theta_list = self._flatten_theta_list()
-
-        flat_info = self._info.flatten(mask)
-        flat_episode_info = self._episode_info.flatten(mask)
+        flat_extras = self._extras.flatten(mask)
 
         return Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
                                   policy_state=policy_state, policy_next_state=policy_next_state,
-                                  info=flat_info, episode_info=flat_episode_info, theta_list=flat_theta_list,
-                                  horizon=self._dataset_info.horizon, gamma=self._dataset_info.gamma,
+                                  extras=flat_extras, horizon=self._dataset_info.horizon,
+                                  gamma=self._dataset_info.gamma,
                                   backend=env_backend.get_backend_name(),
                                   policy_backend=agent_backend.get_backend_name(),
                                   device=self._dataset_info.env_device,
@@ -1050,22 +1025,6 @@ class VectorizedDataset(Dataset):
         """
         return self._dataset_info.env_array_backend.as_array(self._mask_data.column(),
                                                              device=self._dataset_info.env_device)
-
-    def _merge_theta_list(self, other):
-        return [theta + other_theta for theta, other_theta in zip(self._theta_list, other._theta_list)]
-
-    def _flatten_theta_list(self):
-        flat_theta_list = list()
-
-        for env_theta_list in self._theta_list:
-            flat_theta_list += env_theta_list
-
-        return flat_theta_list
-
-    def _initialize_theta_list(self, n_envs):
-        self._theta_list = list()
-        for i in range(n_envs):
-            self._theta_list.append(list())
 
     def _add_all_save_attr(self):
         super()._add_all_save_attr()

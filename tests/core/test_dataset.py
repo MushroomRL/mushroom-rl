@@ -311,22 +311,16 @@ def build_info_dataset(n, first_reward, capacity):
     lasts = np.zeros(n, dtype=bool)
     lasts[-1] = True
 
-    info = ExtraInfo(1, 'numpy')
+    extras = ExtraInfo(1, 'numpy')
     for i in range(n):
-        info.append({'idx': float(i + first_reward)})
-    episode_info = ExtraInfo(1, 'numpy')
-    episode_info.append({'ep': float(first_reward)})
-    theta_list = [np.array([float(first_reward)])]
+        extras.append_step({'idx': float(i + first_reward)})
+    extras.append_episode({'ep': float(first_reward)})
+    extras.append_theta(np.array([float(first_reward)]))
 
     dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
-                                 info=info, episode_info=episode_info, theta_list=theta_list, gamma=0.9)
+                                 extras=extras, gamma=0.9)
     dataset.reserve(capacity)
     return dataset
-
-
-def parsed_info(extra_info, key):
-    extra_info.parse()
-    return extra_info[key]
 
 
 def test_dataset_iadd_matches_add_in_place():
@@ -340,8 +334,8 @@ def test_dataset_iadd_matches_add_in_place():
     assert len(a) == 5
     assert np.array_equal(a.last, reference.last)
     assert np.array_equal(a.reward, reference.reward)
-    assert np.array_equal(parsed_info(a.info, 'idx'), parsed_info(reference.info, 'idx'))
-    assert np.array_equal(parsed_info(a.episode_info, 'ep'), parsed_info(reference.episode_info, 'ep'))
+    assert np.array_equal(a.info['idx'], reference.info['idx'])
+    assert np.array_equal(a.episode_info['ep'], reference.episode_info['ep'])
     assert np.array_equal(np.array(a.theta_list), np.array(reference.theta_list))
 
 
@@ -369,8 +363,8 @@ def test_dataset_iadd_falls_back_when_over_capacity():
     assert len(a) == 5
     assert np.array_equal(a.last, reference.last)
     assert np.array_equal(a.reward, reference.reward)
-    assert np.array_equal(parsed_info(a.info, 'idx'), parsed_info(reference.info, 'idx'))
-    assert np.array_equal(parsed_info(a.episode_info, 'ep'), parsed_info(reference.episode_info, 'ep'))
+    assert np.array_equal(a.info['idx'], reference.info['idx'])
+    assert np.array_equal(a.episode_info['ep'], reference.episode_info['ep'])
 
 
 def test_dataset_capacity_and_reserve():
