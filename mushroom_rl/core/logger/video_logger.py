@@ -49,8 +49,11 @@ class VideoLogger(object):
 
             return
 
-        if frame.ndim == 4 and len(frame) == 1:
-            frame = frame[0]
+        if frame.ndim == 4:
+            n_envs = len(mask) if mask is not None else len(frame)
+
+            if n_envs == 1:
+                frame = frame[0]
 
         if self._recorder is None:
             self._build_recorder(frame.ndim == 4)

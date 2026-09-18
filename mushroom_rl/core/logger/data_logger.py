@@ -167,13 +167,29 @@ class DataLogger(object):
         if not self._results_dir.exists():
             return
         for file in self._results_dir.rglob('*.npy'):
-            if file.is_file() and file.stem.endswith(self._suffix):
-                name = re.split(r'-\d+$', file.stem)[0]
+            if file.is_file() and self._is_own_file(file.stem):
+                name = file.stem.removesuffix(self._suffix)
                 rel = file.parent.relative_to(self._results_dir)
                 folder = str(rel) if str(rel) != '.' else ''
                 key = folder + '/' + name if folder else name
                 data = np.load(str(file)).tolist()
                 self._data_dict[key] = data
+
+    def _is_own_file(self, stem):
+        """
+        Tell whether a data file was written by a logger with the same suffix. A logger without a suffix owns
+        only the files whose name does not end with a seed suffix.
+
+        Args:
+            stem (str): name of the file, without its extension.
+
+        Returns:
+            True if the file belongs to this logger, False otherwise.
+
+        """
+        suffix = re.search(r'-\d+$', stem)
+
+        return (suffix.group() if suffix else '') == self._suffix
 
     @staticmethod
     def _format_hyperparameter(value):

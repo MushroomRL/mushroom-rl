@@ -286,7 +286,7 @@ def test_vectorized_core_record_passes_mask():
     core.evaluate(n_episodes=1, render=True, record=True, quiet=True)
 
     assert len(logger.video_recorder.frames) == 3
-    assert all(frame.shape == (100, 100, 3) for frame in logger.video_recorder.frames)
+    assert all(frame.shape == (1, 100, 100, 3) for frame in logger.video_recorder.frames)
     assert all(np.all(mask == np.array([True, False, False])) for mask in logger.video_recorder.masks)
     assert logger.video_recorder.n_stops == 1
 
