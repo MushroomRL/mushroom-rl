@@ -75,6 +75,60 @@ def test_partial_reset_leaves_other_envs_untouched():
         TorchUtils.set_default_device('cpu')
 
 
+def test_partial_reset_with_initial_states():
+    TorchUtils.set_default_device('cpu')
+    wp.set_device('cpu')
+    try:
+        torch.manual_seed(3)
+        num_envs = 4
+        mdp = HopperWarp(num_envs=num_envs, use_graph_capture=False, reset_noise_scale=0.0)
+        obs_dim = mdp.info.observation_space.shape[0]
+
+        mdp.reset_all(torch.ones(num_envs, dtype=torch.bool, device='cpu'))
+
+        reset_mask = torch.tensor([False, True, False, True], device='cpu')
+        state = torch.full((num_envs, obs_dim), 99.0, device='cpu')
+        state[1] = torch.arange(1, obs_dim + 1, device='cpu') * 0.01
+        state[3] = -torch.arange(1, obs_dim + 1, device='cpu') * 0.01
+
+        obs, _ = mdp.reset_all(reset_mask, state)
+
+        assert torch.equal(obs[1], state[1])
+        assert torch.equal(obs[3], state[3])
+        assert (obs[0] != 99.0).all()
+        assert (obs[2] != 99.0).all()
+    finally:
+        TorchUtils.set_default_device('cpu')
+
+
+def test_partial_reset_with_initial_states_and_removed_obs():
+    TorchUtils.set_default_device('cpu')
+    wp.set_device('cpu')
+    try:
+        torch.manual_seed(7)
+        num_envs = 4
+        mdp = AntWarp(num_envs=num_envs, use_graph_capture=False, reset_noise_scale=0.0)
+        obs_dim = mdp.info.observation_space.shape[0]
+
+        assert mdp.obs_helper.build_omit_idx['root_pose'] == [0, 1]
+
+        mdp.reset_all(torch.ones(num_envs, dtype=torch.bool, device='cpu'))
+
+        reset_mask = torch.tensor([False, True, False, True], device='cpu')
+        state = torch.full((num_envs, obs_dim), 99.0, device='cpu')
+        state[1] = torch.arange(1, obs_dim + 1, device='cpu') * 0.01
+        state[3] = -torch.arange(1, obs_dim + 1, device='cpu') * 0.01
+
+        obs, _ = mdp.reset_all(reset_mask, state)
+
+        assert torch.equal(obs[1], state[1])
+        assert torch.equal(obs[3], state[3])
+        assert (obs[0] != 99.0).all()
+        assert (obs[2] != 99.0).all()
+    finally:
+        TorchUtils.set_default_device('cpu')
+
+
 def test_seed_reproducibility():
     TorchUtils.set_default_device('cpu')
     wp.set_device('cpu')

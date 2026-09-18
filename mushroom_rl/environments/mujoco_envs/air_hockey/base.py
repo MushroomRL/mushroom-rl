@@ -4,8 +4,7 @@ import numpy as np
 import mujoco
 
 from mushroom_rl.environments.mujoco import MuJoCo
-from mushroom_rl.environments.mujoco import ObservationType
-from mushroom_rl.utils.mujoco import MujocoViewer
+from mushroom_rl.utils.mujoco import MujocoViewer, ObservationType
 
 from mushroom_rl.environments.mujoco_envs import __file__ as path_robots
 

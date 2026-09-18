@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import mujoco
 
-from mushroom_rl.environments.mujoco import ObservationType
+from mushroom_rl.utils.mujoco import ObservationType
 from mushroom_rl.core.spaces import Box
 from mushroom_rl.utils.quaternions import quaternion_distance
 from mushroom_rl.environments.mujoco_envs.manipulation.panda import Panda
@@ -46,7 +46,6 @@ class PegInsertion(Panda):
             ("peg_rot", "peg", ObservationType.BODY_ROT),
             ("goal_pos", "hole", ObservationType.SITE_POS),
             ("goal_rot", "hole", ObservationType.BODY_ROT),
-            ("goal_pose", "hole", ObservationType.JOINT_POS),
         ]
 
         collision_groups = [

@@ -2,7 +2,7 @@ import mujoco
 import numpy as np
 from mushroom_rl.core import Environment, MDPInfo
 from mushroom_rl.core.spaces import Box
-from mushroom_rl.utils.mujoco import ObservationHelper, ObservationType, MujocoViewer
+from mushroom_rl.utils.mujoco import MuJoCoObservationHelper, MujocoViewer
 
 
 class MuJoCo(Environment):
@@ -71,7 +71,8 @@ class MuJoCo(Environment):
 
         # Read the observation spec to build a mapping at every step. It is
         # ensured that the values appear in the order they are specified.
-        self.obs_helper = ObservationHelper(observation_spec, self._model, self._data, max_joint_velocity=max_joint_vel)
+        self.obs_helper = MuJoCoObservationHelper(observation_spec, self._model, self._data,
+                                                  max_joint_velocity=max_joint_vel)
 
         observation_space = Box(*self.obs_helper.get_obs_limits())
 
@@ -110,7 +111,7 @@ class MuJoCo(Environment):
         mujoco.mj_resetData(self._model, self._data)
         self.setup(obs)
 
-        self._obs = self._create_observation(self.obs_helper._build_obs(self._model, self._data))
+        self._obs = self._create_observation(self.obs_helper.build_obs())
         return self._modify_observation(self._obs).copy(), {}
 
     def step(self, action):
@@ -135,10 +136,10 @@ class MuJoCo(Environment):
             self._simulation_post_step()
 
             if self._recompute_action_per_step:
-                cur_obs = self._create_observation(self.obs_helper._build_obs(self._model, self._data))
+                cur_obs = self._create_observation(self.obs_helper.build_obs())
 
         if not self._recompute_action_per_step:
-            cur_obs = self._create_observation(self.obs_helper._build_obs(self._model, self._data))
+            cur_obs = self._create_observation(self.obs_helper.build_obs())
 
         self._step_finalize()
 
@@ -320,7 +321,7 @@ class MuJoCo(Environment):
 
         """
         data_id, otype = self.additional_data[name]
-        return np.array(self.obs_helper.get_state(self._model, self._data, data_id, otype))
+        return np.array(self.obs_helper.get_state(data_id, otype))
 
     def _write_data(self, name, value):
         """
@@ -334,13 +335,7 @@ class MuJoCo(Environment):
         """
 
         data_id, otype = self.additional_data[name]
-        if otype == ObservationType.JOINT_POS:
-            self._data.joint(data_id).qpos = value
-        elif otype == ObservationType.JOINT_VEL:
-            self._data.joint(data_id).qvel = value
-        else:
-            data_buffer = self.obs_helper.get_state(self._model, self._data, data_id, otype)
-            data_buffer[:] = value
+        self.obs_helper.set_state(data_id, otype, value)
 
     def _check_collision(self, group1, group2):
         """
@@ -442,7 +437,7 @@ class MuJoCo(Environment):
 
         """
         if obs is not None:
-            self.obs_helper._modify_data(self._model, self._data, obs)
+            self.obs_helper.modify_data(obs)
 
     def get_all_observation_keys(self):
         """
@@ -626,7 +621,7 @@ class MultiMuJoCo(MuJoCo):
 
         # Read the observation spec to build a mapping at every step. It is
         # ensured that the values appear in the order they are specified.
-        self.obs_helpers = [ObservationHelper(observation_spec, m, d, max_joint_velocity=max_joint_vel)
+        self.obs_helpers = [MuJoCoObservationHelper(observation_spec, m, d, max_joint_velocity=max_joint_vel)
                             for m, d in zip(self._models, self._datas)]
         self.obs_helper = self.obs_helpers[self._current_model_idx]
 
@@ -681,8 +676,8 @@ class MultiMuJoCo(MuJoCo):
         if self._viewer is not None and self.more_than_one_env:
             self._viewer.load_new_model(self._model)
 
-        self._obs = self._create_observation(self.obs_helper._build_obs(self._model, self._data))
-        return self._modify_observation(self._obs).copy()
+        self._obs = self._create_observation(self.obs_helper.build_obs())
+        return self._modify_observation(self._obs).copy(), {}
 
     def _check_uniform_action_spaces(self, actuation_spec, action_space):
         """

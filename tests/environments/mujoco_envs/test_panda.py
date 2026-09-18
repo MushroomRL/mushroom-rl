@@ -92,6 +92,21 @@ def test_peg_insertion():
     assert np.allclose(obs, obs_test)
 
 
+def test_peg_insertion_additional_data():
+    np.random.seed(42)
+    random.seed(42)
+    torch.manual_seed(42)
+
+    mdp = PegInsertion()
+    mdp.reset()
+
+    sizes = {key: len(mdp._read_data(key)) for key in mdp.additional_data}
+
+    assert sizes == {'peg_pos': 3, 'peg_rot': 4, 'goal_pos': 3, 'goal_rot': 4, 'joint1_pos': 1, 'joint2_pos': 1,
+                     'joint3_pos': 1, 'joint4_pos': 1, 'joint5_pos': 1, 'joint6_pos': 1, 'joint7_pos': 1,
+                     'finger_joint1_pos': 1, 'finger_joint2_pos': 1, 'gripper_pos': 3, 'gripper_rot': 9}
+
+
 def test_push_reward():
     np.random.seed(42)
     random.seed(42)

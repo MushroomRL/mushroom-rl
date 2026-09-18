@@ -2,7 +2,8 @@ import numpy as np
 from pathlib import Path
 import mujoco
 
-from mushroom_rl.environments.mujoco import MuJoCo, ObservationType
+from mushroom_rl.environments.mujoco import MuJoCo
+from mushroom_rl.utils.mujoco import ObservationType
 from mushroom_rl.core.spaces import Box
 
 

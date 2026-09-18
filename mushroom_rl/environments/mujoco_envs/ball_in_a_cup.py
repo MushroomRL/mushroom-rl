@@ -4,8 +4,8 @@ import numpy as np
 from pathlib import Path
 from copy import deepcopy
 
-from mushroom_rl.environments.mujoco import MuJoCo, ObservationType
-from mushroom_rl.utils.mujoco import MujocoViewer
+from mushroom_rl.environments.mujoco import MuJoCo
+from mushroom_rl.utils.mujoco import MujocoViewer, ObservationType
 
 
 class BallInACup(MuJoCo):

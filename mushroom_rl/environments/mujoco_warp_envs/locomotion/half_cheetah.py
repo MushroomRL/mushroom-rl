@@ -3,7 +3,7 @@ import warp as wp
 from pathlib import Path
 
 from mushroom_rl.environments.mujoco_warp import MuJoCoWarp
-from mushroom_rl.environments.mujoco import ObservationType
+from mushroom_rl.utils.mujoco import ObservationType
 from mushroom_rl.core.spaces import Box
 
 

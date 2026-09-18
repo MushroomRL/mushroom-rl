@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import mujoco
 
-from mushroom_rl.environments.mujoco import ObservationType
+from mushroom_rl.utils.mujoco import ObservationType
 from mushroom_rl.core.spaces import Box
 from mushroom_rl.utils.quaternions import quaternion_distance
 from mushroom_rl.utils.angles import euler_to_quat

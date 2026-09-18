@@ -6,7 +6,7 @@ import warp as wp
 
 from mushroom_rl.core import VectorizedEnvironment, MDPInfo
 from mushroom_rl.core.spaces import Box
-from mushroom_rl.utils.mujoco import ObservationHelper, ObservationType, MujocoViewer
+from mushroom_rl.utils.mujoco import WarpObservationHelper, MujocoViewer
 from mushroom_rl.utils.torch_utils import TorchUtils
 from mushroom_rl.environments.mujoco import MuJoCo
 
@@ -127,12 +127,11 @@ class MuJoCoWarp(VectorizedEnvironment):
         )
         action_space = MuJoCo.get_action_space(self._action_indices, self._model)
 
-        self.obs_helper = ObservationHelper(
+        self.obs_helper = WarpObservationHelper(
             observation_spec,
             self._model,
-            _tmp_data,
+            self._data_wp,
             max_joint_velocity=max_joint_vel,
-            is_warp=True,
         )
         observation_space = Box(*self.obs_helper.get_obs_limits())
 
@@ -201,7 +200,7 @@ class MuJoCoWarp(VectorizedEnvironment):
 
             self._simulation_post_step()
 
-        cur_obs = self._create_observation(self.obs_helper.build_obs(self._data_wp))
+        cur_obs = self._create_observation(self.obs_helper.build_obs())
 
         self._step_finalize()
 
@@ -234,7 +233,7 @@ class MuJoCoWarp(VectorizedEnvironment):
         self._reset_data(self._reset_mask_wp)
         self.setup(env_indices, state)
 
-        obs = self._create_observation(self.obs_helper.build_obs(self._data_wp))
+        obs = self._create_observation(self.obs_helper.build_obs())
         obs = self._modify_observation(obs)
 
         if self._obs is None:
@@ -325,11 +324,11 @@ class MuJoCoWarp(VectorizedEnvironment):
 
         Args:
             env_indices (torch.Tensor): indices of the worlds being reset;
-            obs (torch.Tensor, None): observation to write into the worlds being reset, or None.
+            obs (torch.Tensor, None): observations of every world, shape (num_envs, obs_dim), or None.
 
         """
         if obs is not None:
-            self.obs_helper._modify_warp_data(self._data_wp, obs, env_indices)
+            self.obs_helper.modify_data(obs, env_indices)
 
     # ------------------------------------------------------------------
     # Overridable hooks
@@ -489,14 +488,8 @@ class MuJoCoWarp(VectorizedEnvironment):
 
         """
         field_name, ot = self.additional_data[name]
-        data = self._read_warp_field(field_name, ot)
-        if env_indices is not None:
-            if not isinstance(env_indices, torch.Tensor):
-                env_indices = torch.as_tensor(
-                    env_indices, device=data.device, dtype=torch.long
-                )
-            return data[env_indices]
-        return data
+
+        return self.obs_helper.get_state(field_name, ot, env_indices)
 
     def _write_data(self, name, value, env_indices=None):
         """
@@ -511,102 +504,7 @@ class MuJoCoWarp(VectorizedEnvironment):
         """
         field_name, ot = self.additional_data[name]
 
-        if env_indices is None:
-            env_indices = torch.arange(self._num_envs, device=self._device, dtype=torch.long)
-
-        value_t = (
-            value
-            if isinstance(value, torch.Tensor)
-            else torch.as_tensor(value, device=self._device)
-        )
-
-        if ot == ObservationType.JOINT_POS:
-            jnt = self._model.joint(field_name)
-            adr = self._model.jnt_qposadr[jnt.id]
-            size = ObservationHelper._obs_size(self._model, field_name, ot)
-            qpos = wp.to_torch(self._data_wp.qpos)
-            col_idx = torch.arange(adr, adr + size, device=self._device, dtype=torch.long)
-            qpos[env_indices.unsqueeze(1), col_idx.unsqueeze(0)] = value_t.to(
-                qpos.dtype
-            )
-        elif ot == ObservationType.JOINT_VEL:
-            jnt = self._model.joint(field_name)
-            adr = self._model.jnt_dofadr[jnt.id]
-            size = ObservationHelper._obs_size(self._model, field_name, ot)
-            qvel = wp.to_torch(self._data_wp.qvel)
-            col_idx = torch.arange(adr, adr + size, device=self._device, dtype=torch.long)
-            qvel[env_indices.unsqueeze(1), col_idx.unsqueeze(0)] = value_t.to(
-                qvel.dtype
-            )
-        else:
-            raise ValueError(
-                f"_write_data only supports JOINT_POS and JOINT_VEL; got {ot}."
-            )
-
-    def _read_warp_field(self, name, ot):
-        """
-        Return a torch tensor for a given named object and observation type.
-
-        Args:
-            name (string): the name of the object in the XML specification;
-            ot (ObservationType): the type of data to read.
-
-        Returns:
-            The requested data for every world, as a torch.Tensor of shape (num_envs, ...).
-
-        """
-        if ot == ObservationType.BODY_POS:
-            return wp.to_torch(self._data_wp.xpos)[:, self._model.body(name).id, :]
-        elif ot == ObservationType.BODY_ROT:
-            return wp.to_torch(self._data_wp.xquat)[:, self._model.body(name).id, :]
-
-        elif ot == ObservationType.BODY_VEL_WORLD:
-            body_id = self._model.body(name).id
-            root_id = self._model.body_rootid[body_id]
-            cvel = wp.to_torch(self._data_wp.cvel)[:, body_id, :]
-            xpos = wp.to_torch(self._data_wp.xpos)[:, body_id, :]
-            subtree_com = wp.to_torch(self._data_wp.subtree_com)[:, root_id, :]
-            offset = xpos - subtree_com
-            lin = cvel[:, 3:] + torch.cross(cvel[:, :3], offset, dim=-1)
-            return torch.cat([cvel[:, :3], lin], dim=-1)
-
-        elif ot == ObservationType.BODY_VEL:
-            body_id = self._model.body(name).id
-            root_id = self._model.body_rootid[body_id]
-            cvel = wp.to_torch(self._data_wp.cvel)[:, body_id, :]
-            xpos = wp.to_torch(self._data_wp.xpos)[:, body_id, :]
-            subtree_com = wp.to_torch(self._data_wp.subtree_com)[:, root_id, :]
-            offset = xpos - subtree_com
-            ang = cvel[:, :3]
-            lin = cvel[:, 3:] + torch.cross(ang, offset, dim=-1)
-            R = wp.to_torch(self._data_wp.xmat)[:, body_id, :, :]
-            Rt = R.transpose(-2, -1)
-            return torch.cat(
-                [
-                    torch.einsum("nij,nj->ni", Rt, ang),
-                    torch.einsum("nij,nj->ni", Rt, lin),
-                ],
-                dim=-1,
-            )
-        elif ot == ObservationType.JOINT_POS:
-            jnt = self._model.joint(name)
-            adr = self._model.jnt_qposadr[jnt.id]
-            size = ObservationHelper._obs_size(self._model, name, ot)
-            return wp.to_torch(self._data_wp.qpos)[:, adr:adr + size]
-        elif ot == ObservationType.JOINT_VEL:
-            jnt = self._model.joint(name)
-            adr = self._model.jnt_dofadr[jnt.id]
-            size = ObservationHelper._obs_size(self._model, name, ot)
-            return wp.to_torch(self._data_wp.qvel)[:, adr:adr + size]
-        elif ot == ObservationType.SITE_POS:
-            return wp.to_torch(self._data_wp.site_xpos)[:, self._model.site(name).id, :]
-        elif ot == ObservationType.SITE_ROT:
-            mat = wp.to_torch(self._data_wp.site_xmat)[
-                :, self._model.site(name).id, :, :
-            ]
-            return mat.reshape(mat.shape[0], 9)
-        else:
-            raise ValueError(f"Unsupported observation type for _read_warp_field: {ot}")
+        self.obs_helper.set_state(field_name, ot, value, env_indices)
 
     # ------------------------------------------------------------------
     # Collision helpers
