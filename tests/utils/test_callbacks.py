@@ -121,7 +121,7 @@ def test_collect_dataset():
     assert len(dataset) == 15
 
     assert np.array_equal(dataset.last, np.array(last_flags))
-    assert dataset.n_episodes == sum(last_flags) + (0 if last_flags[-1] else 1)
+    assert dataset.n_episodes == sum(last_flags)
     assert np.array_equal(dataset.episodes_length, np.array(episode_lengths_from_flags(last_flags)))
 
     callback.clean()
@@ -153,7 +153,7 @@ def test_collect_dataset_small_initial_capacity():
     assert len(dataset) == 20
     assert dataset.capacity >= 20
     assert np.array_equal(dataset.last, np.array(last_flags))
-    assert dataset.n_episodes == sum(last_flags) + (0 if last_flags[-1] else 1)
+    assert dataset.n_episodes == sum(last_flags)
     assert np.array_equal(dataset.episodes_length, np.array(episode_lengths_from_flags(last_flags)))
 
 
@@ -173,7 +173,7 @@ def test_collect_dataset_vectorized():
     reference_flags = reference.get()
 
     assert len(dataset) == len(reference_flags)
-    assert dataset.n_episodes == sum(reference_flags) + (0 if reference_flags[-1] else 1)
+    assert dataset.n_episodes == sum(reference_flags)
     assert sorted(dataset.episodes_length.tolist()) == sorted(episode_lengths_from_flags(reference_flags))
 
 

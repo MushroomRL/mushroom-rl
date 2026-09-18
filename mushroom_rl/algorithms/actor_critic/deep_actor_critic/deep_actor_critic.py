@@ -52,7 +52,7 @@ class OnPolicyDeepAC(Agent):
                 new_pol_dist = self.policy.distribution(x, *args, **kwargs)
                 kl = torch.mean(torch.distributions.kl.kl_divergence(old_pol_dist, new_pol_dist))
 
-                self._logger.log_training(R=dataset.undiscounted_return.mean().item())
+                self._logger.log_training(R=dataset.compute_J(skip_incomplete=False).mean().item())
                 self._logger.log_training('actor', entropy=self.policy.entropy(x).item(), kl=kl.item())
                 self._logger.advance_step()
 

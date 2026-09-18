@@ -18,29 +18,29 @@ al., 2015*). We import ``AtariNetwork`` from the networks package and define
 a few helper functions:
 
 .. literalinclude:: code/dqn.py
-   :lines: 1-24
+   :lines: 1-23
 
 We then set some hyperparameters and create the ``mdp`` and the policy ``pi``.
 Differently from the literature, we use ``Adam`` as the optimizer:
 
 .. literalinclude:: code/dqn.py
-   :lines: 27-52
+   :lines: 26-51
 
 Then, the ``approximator``:
 
 .. literalinclude:: code/dqn.py
-   :lines: 54-66
+   :lines: 53-65
 
 Finally, the ``agent`` and the ``core``:
 
 .. literalinclude:: code/dqn.py
-   :lines: 68-83
+   :lines: 67-82
 
 Eventually, the learning loop is performed. As done in literature, learning and
 evaluation steps are alternated:
 
 .. literalinclude:: code/dqn.py
-   :lines: 87-107
+   :lines: 86-106
 
 Solving MuJoCo with DDPG
 ------------------------

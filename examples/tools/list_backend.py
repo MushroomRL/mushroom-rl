@@ -61,7 +61,7 @@ def experiment(alpha, n_episodes, n_steps_test, seed=0):
     # Evaluate
     logger.info(f'- Evaluating the random policy for {n_steps_test} steps')
     dataset = core.evaluate(n_steps=n_steps_test, render=False)
-    R = dataset.undiscounted_return.mean()
+    R = dataset.compute_J(skip_incomplete=False).mean()
     logger.info(f'R: {R}')
 
     episode_length = dataset.episodes_length

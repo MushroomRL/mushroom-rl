@@ -19,7 +19,7 @@ from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNe
 from mushroom_rl.utils.torch_utils import TorchUtils
 
 
-def experiment(n_epochs, n_steps, n_steps_test, render=True, use_cuda=False, seed=None):
+def experiment(n_epochs, n_steps, n_episodes_test, render=True, use_cuda=False, seed=None):
     np.random.seed(seed)
     if seed is not None:
         torch.manual_seed(seed)
@@ -35,7 +35,7 @@ def experiment(n_epochs, n_steps, n_steps_test, render=True, use_cuda=False, see
     mdp = AirHockeyHit(n_intermediate_steps=4, gamma=gamma, horizon=horizon)
 
     logger = Logger(SAC.name(), results_dir=None)
-    logger.log_experiment_info(SAC, mdp, n_epochs=n_epochs, n_steps=n_steps, n_steps_test=n_steps_test)
+    logger.log_experiment_info(SAC, mdp, n_epochs=n_epochs, n_steps=n_steps, n_episodes_test=n_episodes_test)
 
     # Settings
     initial_replay_size = 5000
@@ -77,7 +77,7 @@ def experiment(n_epochs, n_steps, n_steps_test, render=True, use_cuda=False, see
     core = Core(agent, mdp, logger=logger)
 
     # RUN
-    dataset = core.evaluate(n_steps=n_steps_test, render=False)
+    dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
 
     J = dataset.discounted_return.mean()
     R = dataset.undiscounted_return.mean()
@@ -89,7 +89,7 @@ def experiment(n_epochs, n_steps, n_steps_test, render=True, use_cuda=False, see
 
     for n in trange(n_epochs, leave=False):
         core.learn(n_steps=n_steps, n_steps_per_fit=1)
-        dataset = core.evaluate(n_steps=n_steps_test, render=False)
+        dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
 
         J = dataset.discounted_return.mean()
         R = dataset.undiscounted_return.mean()
@@ -115,5 +115,5 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
 
-    experiment(n_epochs=100, n_steps=4000, n_steps_test=3000, render=args.render, use_cuda=args.use_cuda,
+    experiment(n_epochs=100, n_steps=4000, n_episodes_test=25, render=args.render, use_cuda=args.use_cuda,
                seed=args.seed)

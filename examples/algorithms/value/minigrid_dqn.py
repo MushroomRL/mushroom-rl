@@ -199,8 +199,7 @@ def evaluate(core, logger, epoch, test_episodes, args):
     dataset = core.evaluate(n_episodes=test_episodes, render=args.render, quiet=args.quiet)
     score = dataset.compute_metrics()
 
-    logger.log_evaluation(epoch, min_reward=score[0], max_reward=score[1], mean_reward=score[2],
-                          median_reward=score[3], episodes_completed=score[4])
+    logger.log_evaluation(epoch, **score)
 
     return score
 

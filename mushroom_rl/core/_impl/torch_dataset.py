@@ -94,7 +94,7 @@ class TorchDataset(MushroomObject):
             index = 0
         return self._arrays[index][:self._len]
 
-    def n_episodes(self, last_index):
+    def n_episodes(self, last_index, skip_incomplete=True):
         last = self.column(last_index)
 
         if len(last) == 0:
@@ -102,7 +102,7 @@ class TorchDataset(MushroomObject):
 
         n_episodes = last.sum()
 
-        if not last[-1]:
+        if not skip_incomplete and not last[-1]:
             n_episodes += 1
 
         return n_episodes

@@ -76,7 +76,7 @@ def experiment(n_epochs, n_steps, n_steps_test, render=True, use_cuda=False, see
 
     # RUN
     dataset = core.evaluate(n_steps=n_steps_test, render=False, greedy=True)
-    R = dataset.undiscounted_return.mean()
+    R = dataset.compute_J(skip_incomplete=False).mean()
 
     logger.log_evaluation(0, R=R)
 
@@ -84,7 +84,7 @@ def experiment(n_epochs, n_steps, n_steps_test, render=True, use_cuda=False, see
     for n in trange(n_epochs):
         core.learn(n_steps=n_steps, n_steps_per_fit=train_frequency)
         dataset = core.evaluate(n_steps=n_steps_test, render=False, greedy=True)
-        R = dataset.undiscounted_return.mean()
+        R = dataset.compute_J(skip_incomplete=False).mean()
 
         logger.log_evaluation(n + 1, R=R)
 

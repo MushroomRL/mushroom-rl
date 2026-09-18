@@ -18,8 +18,7 @@ def print_epoch(epoch):
 
 def get_stats(dataset):
     score = dataset.compute_metrics()
-    print(('min_reward: %f, max_reward: %f, mean_reward: %f,'
-          ' median_reward: %f, games_completed: %d' % score))
+    print(', '.join(f'{name}: {value}' for name, value in score.items()))
 
     return score
 

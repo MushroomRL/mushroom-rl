@@ -514,7 +514,7 @@ def test_vectorized_core_empty_dataset():
         assert dataset.n_episodes == 0
         assert len(dataset.episodes_length) == 0
         assert len(dataset.compute_J()) == 0
-        assert dataset.compute_metrics() == (0, 0, 0, 0, 0)
+        assert dataset.compute_metrics() == dict(n_episodes=0)
 
 
 def test_vectorized_core_moves_exactly_n_steps():

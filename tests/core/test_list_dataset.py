@@ -142,7 +142,8 @@ def test_list_dataset_n_episodes_terminal():
 def test_list_dataset_n_episodes_open():
     dataset = ListDataset.from_array(build_columns(4, terminal_last=False))
 
-    assert dataset.n_episodes(5) == 1
+    assert dataset.n_episodes(5) == 0
+    assert dataset.n_episodes(5, skip_incomplete=False) == 1
 
 
 def test_list_dataset_ragged_content():

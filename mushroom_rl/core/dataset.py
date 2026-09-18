@@ -450,12 +450,14 @@ class Dataset(MushroomObject):
             pick = step[-1]
         return self._dataset_info.env_array_backend.from_list(x_0, device=self._dataset_info.env_device)
 
-    def compute_J(self, gamma=1.):
+    def compute_J(self, gamma=1., skip_incomplete=True):
         """
         Compute the cumulative discounted reward of each episode in the dataset.
 
         Args:
-            gamma (float, 1.): discount factor.
+            gamma (float, 1.): discount factor;
+            skip_incomplete (bool, True): whether to leave out the trailing episode when the dataset ends before
+                it does.
 
         Returns:
             The cumulative discounted reward of each episode in the dataset.
@@ -464,11 +466,19 @@ class Dataset(MushroomObject):
         backend = self._dataset_info.env_array_backend
         device = self._dataset_info.env_device
 
-        if len(self) == 0:
+        last = backend.as_array(self.last, device=device)
+        reward = backend.as_array(self.reward, device=device)
+
+        if skip_incomplete:
+            last_idx = backend.nonzero(last)
+            n_complete_steps = last_idx[-1].item() + 1 if len(last_idx) > 0 else 0
+            last = last[:n_complete_steps]
+            reward = reward[:n_complete_steps]
+
+        if len(last) == 0:
             return backend.zeros(0, device=device)
 
-        _, r_ep = split_episodes(backend.as_array(self.last, device=device),
-                                 backend.as_array(self.reward, device=device))
+        _, r_ep = split_episodes(last, reward)
 
         if len(r_ep.shape) == 1:
             r_ep = backend.expand_dims(r_ep, 0)
@@ -490,29 +500,18 @@ class Dataset(MushroomObject):
             gamma (float, 1.): the discount factor.
 
         Returns:
-            The minimum score reached in an episode,
-            the maximum score reached in an episode,
-            the mean score reached,
-            the median score reached,
-            the number of completed episodes.
-
-            If no episode has been completed, it returns 0 for all values.
+            A dictionary with the number of completed episodes under ``n_episodes`` and, unless that number is
+            zero, the minimum, maximum, mean and median return reached in an episode under ``min_J``, ``max_J``,
+            ``mean_J`` and ``median_J``.
 
         """
-        i = 0
-        for i in reversed(range(len(self))):
-            if self.last[i]:
-                i += 1
-                break
+        J = self.compute_J(gamma)
 
-        dataset = self[:i]
-
-        if len(dataset) > 0:
-            J = dataset.compute_J(gamma)
+        if len(J) > 0:
             median = self._dataset_info.env_array_backend.median(J)
-            return J.min(), J.max(), J.mean(), median, len(J)
+            return dict(min_J=J.min(), max_J=J.max(), mean_J=J.mean(), median_J=median, n_episodes=len(J))
         else:
-            return 0, 0, 0, 0, 0
+            return dict(n_episodes=0)
 
     @classmethod
     def generate(cls, mdp_info, agent_info, n_steps=None, n_episodes=None, n_envs=1, core_counts_episodes=False):

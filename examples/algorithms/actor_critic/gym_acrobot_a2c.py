@@ -72,14 +72,14 @@ def experiment(n_epochs, n_steps, n_steps_per_fit, n_steps_test, render=True, us
 
     # RUN
     dataset = core.evaluate(n_steps=n_steps_test, render=False)
-    R = dataset.undiscounted_return.mean()
+    R = dataset.compute_J(skip_incomplete=False).mean()
 
     logger.log_evaluation(0, R=R)
 
     for n in trange(n_epochs):
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit)
         dataset = core.evaluate(n_steps=n_steps_test, render=False)
-        R = dataset.undiscounted_return.mean()
+        R = dataset.compute_J(skip_incomplete=False).mean()
 
         logger.log_evaluation(n + 1, R=R)
 

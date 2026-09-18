@@ -64,12 +64,12 @@ def test_dataset():
     assert np.array_equal(s0, s0_test)
 
     index = np.sum(L_test[:3]) + L_test[3]//2
-    min_J, max_J, mean_J, median_J, n_episodes = dataset[:index].compute_metrics(mdp.info.gamma)
-    assert min_J == 5.3144100000000005
-    assert max_J == 6.561
-    assert mean_J == 5.72994
-    assert median_J == 5.3144100000000005
-    assert n_episodes == 3
+    metrics = dataset[:index].compute_metrics(mdp.info.gamma)
+    assert metrics['min_J'] == 5.3144100000000005
+    assert metrics['max_J'] == 6.561
+    assert metrics['mean_J'] == 5.72994
+    assert metrics['median_J'] == 5.3144100000000005
+    assert metrics['n_episodes'] == 3
 
 
 def test_dataset_creation():
@@ -147,8 +147,45 @@ def test_list_dataset_compute_j_metrics():
     metrics_numpy = dataset.compute_metrics(mdp.info.gamma)
     metrics_list = list_dataset.compute_metrics(mdp.info.gamma)
 
-    assert np.allclose(metrics_list[:4], metrics_numpy[:4])
-    assert metrics_list[4] == metrics_numpy[4]
+    assert metrics_list.keys() == metrics_numpy.keys()
+    for name in metrics_numpy:
+        assert np.allclose(metrics_list[name], metrics_numpy[name])
+
+
+def test_compute_j_skips_incomplete_episode():
+    states = np.arange(12).reshape(6, 2).astype(float)
+    actions = np.zeros((6, 1))
+    rewards = np.ones(6)
+    next_states = states + 1
+    absorbings = np.zeros(6, dtype=bool)
+    lasts = np.array([False, False, True, False, False, False])
+
+    dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts, gamma=0.9)
+
+    assert np.array_equal(dataset.compute_J(), np.array([3.0]))
+    assert np.array_equal(dataset.compute_J(skip_incomplete=False), np.array([3.0, 3.0]))
+    assert np.array_equal(dataset.undiscounted_return, np.array([3.0]))
+    assert dataset.n_episodes == 1
+    assert np.array_equal(dataset.episodes_length, np.array([3]))
+    assert dataset.compute_metrics() == dict(min_J=3.0, max_J=3.0, mean_J=3.0, median_J=3.0, n_episodes=1)
+
+
+def test_compute_j_without_complete_episodes():
+    states = np.arange(6).reshape(3, 2).astype(float)
+    actions = np.zeros((3, 1))
+    rewards = np.ones(3)
+    next_states = states + 1
+    absorbings = np.zeros(3, dtype=bool)
+    lasts = np.zeros(3, dtype=bool)
+
+    dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts, gamma=0.9)
+
+    assert len(dataset.compute_J()) == 0
+    assert len(dataset.undiscounted_return) == 0
+    assert np.array_equal(dataset.compute_J(skip_incomplete=False), np.array([3.0]))
+    assert dataset.n_episodes == 0
+    assert len(dataset.episodes_length) == 0
+    assert dataset.compute_metrics() == dict(n_episodes=0)
 
 
 def test_from_array_list_backend():

@@ -146,11 +146,13 @@ def test_numpy_dataset_n_episodes():
     for i in range(4):
         dataset.append(np.array([0.0, 0.0]), 0.0, i in (1, 3))
     assert dataset.n_episodes(2) == 2
+    assert dataset.n_episodes(2, skip_incomplete=False) == 2
 
     open_dataset = make_dataset()
     for i in range(3):
         open_dataset.append(np.array([0.0, 0.0]), 0.0, False)
-    assert open_dataset.n_episodes(2) == 1
+    assert open_dataset.n_episodes(2) == 0
+    assert open_dataset.n_episodes(2, skip_incomplete=False) == 1
 
 
 def test_numpy_dataset_from_array():
