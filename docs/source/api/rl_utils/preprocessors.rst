@@ -19,5 +19,10 @@ agent whose backend differs from the environment's must be given it explicitly::
 
     agent.add_agent_preprocessor(StandardizationPreprocessor(mdp.info, backend='torch'))
 
+The ``device`` argument works the same way for the statistics the preprocessor keeps: it defaults to the MDP
+device, so an agent preprocessor running on a device other than the environment's must be given it explicitly::
+
+    agent.add_agent_preprocessor(StandardizationPreprocessor(mdp.info, backend='torch', device='cuda'))
+
 .. automodule:: mushroom_rl.rl_utils.preprocessors
     :private-members:

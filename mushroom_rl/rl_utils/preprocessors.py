@@ -48,7 +48,7 @@ class StandardizationPreprocessor(Preprocessor):
     standardization.
 
     """
-    def __init__(self, mdp_info, clip_obs=10., alpha=1e-32, backend=None):
+    def __init__(self, mdp_info, clip_obs=10., alpha=1e-32, backend=None, device=None):
         """
         Constructor.
 
@@ -58,21 +58,26 @@ class StandardizationPreprocessor(Preprocessor):
             alpha (float, 1e-32): moving average catchup parameter for the normalization;
             backend (str, None): array backend of the observations the preprocessor is applied to; when
                 ``None`` the MDP backend is used, which is the one a core preprocessor receives. An agent
-                preprocessor must be given the agent backend instead.
+                preprocessor must be given the agent backend instead;
+            device (str, None): device the statistics are stored on, defaulting to the MDP one.
 
         """
         backend = mdp_info.backend if backend is None else backend
+        device = mdp_info.device if device is None else device
         self._clip_obs = clip_obs
         self._obs_shape = mdp_info.observation_space.shape
         self._array_backend = ArrayBackend.get_array_backend(backend)
+        self._device = device
         self._obs_runstand = RunningStandardization(shape=self._obs_shape,
+                                                    alpha=alpha,
                                                     backend=backend,
-                                                    alpha=alpha)
+                                                    device=device)
 
         self._add_save_attr(
             _clip_obs='primitive',
             _obs_shape='primitive',
             _array_backend='pickle',
+            _device='primitive',
             _obs_runstand='mushroom'
         )
 
@@ -100,7 +105,7 @@ class MinMaxPreprocessor(StandardizationPreprocessor):
     falls back to using running mean standardization.
 
     """
-    def __init__(self, mdp_info, clip_obs=10., alpha=1e-32, backend=None):
+    def __init__(self, mdp_info, clip_obs=10., alpha=1e-32, backend=None, device=None):
         """
         Constructor.
 
@@ -111,13 +116,14 @@ class MinMaxPreprocessor(StandardizationPreprocessor):
                 normalization;
             backend (str, None): array backend of the observations the preprocessor is applied to; when
                 ``None`` the MDP backend is used, which is the one a core preprocessor receives. An agent
-                preprocessor must be given the agent backend instead.
+                preprocessor must be given the agent backend instead;
+            device (str, None): device the statistics are stored on, defaulting to the MDP one.
 
         """
-        super().__init__(mdp_info, clip_obs, alpha, backend)
+        super().__init__(mdp_info, clip_obs, alpha, backend, device)
 
         obs_low, obs_high = self._array_backend.convert(mdp_info.observation_space.low,
-                                                        mdp_info.observation_space.high)
+                                                        mdp_info.observation_space.high, device=self._device)
 
         self._obs_mask = (self._array_backend.abs(obs_low) < 1e20) & (self._array_backend.abs(obs_high) < 1e20)
 

@@ -878,3 +878,27 @@ def test_parse_nstep_history_single_step_reuses_the_anchor_window():
 
     assert np.allclose(state, parsed_state)
     assert np.allclose(next_state, parsed_next_state)
+
+
+def test_preprocessor_on_the_agent_device_parses_under_a_cpu_default():
+    if not torch.cuda.is_available():
+        return
+
+    mdp_info, _ = _make_infos(obs_shape=(2,), act_shape=(1,))
+    agent_info = AgentInfo(is_episodic=False, policy_state_shape=None, backend='torch', device='cuda')
+    hm = HistoryManager.default_streams(mdp_info, agent_info, history_length=3)
+    hm.add_preprocessor(StandardizationPreprocessor(mdp_info, backend='torch', device='cuda'))
+
+    states = torch.tensor([[4.0, 8.0], [6.0, 12.0]], device='cuda')
+    actions = torch.tensor([[1.0], [2.0]], device='cuda')
+    rewards = torch.tensor([0.1, 0.2], device='cuda')
+    next_states = torch.tensor([[6.0, 12.0], [8.0, 16.0]], device='cuda')
+    absorbing = torch.tensor([0.0, 1.0], device='cuda')
+    last = torch.tensor([0.0, 1.0], device='cuda')
+    dataset = _make_dataset(states, actions, rewards, next_states, absorbing, last, backend='torch')
+
+    hm.update_preprocessors(dataset)
+    state = hm.parse_state(dataset)
+
+    assert state.device.type == 'cuda'
+    assert hm.preprocessors[0]._obs_runstand.mean.device.type == 'cuda'

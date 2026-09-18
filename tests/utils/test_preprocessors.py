@@ -215,3 +215,44 @@ def test_minmax_preprocessor_single_bounded_component():
     normalized = preprocessor(np.array([[1., 1., 1.]]))
 
     assert np.isclose(normalized[0, 1], -0.5)
+
+
+def test_preprocessors_allocate_statistics_on_the_requested_device():
+    if not torch.cuda.is_available():
+        return
+
+    from mushroom_rl.core import MDPInfo
+    from mushroom_rl.core.spaces import Box
+    from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
+
+    mdp_info = MDPInfo(Box(np.zeros(3), 2 * np.ones(3)), Box(-np.ones(1), np.ones(1)), .99, 100)
+    obs = torch.ones(1, 3, device='cuda')
+
+    standardization = StandardizationPreprocessor(mdp_info, backend='torch', device='cuda')
+    standardization.update(obs)
+
+    assert standardization._obs_runstand.mean.device.type == 'cuda'
+    assert standardization(obs).device.type == 'cuda'
+
+    min_max = MinMaxPreprocessor(mdp_info, backend='torch', device='cuda')
+
+    assert min_max._obs_mask.device.type == 'cuda'
+    assert min_max._obs_mean.device.type == 'cuda'
+    assert min_max._obs_delta.device.type == 'cuda'
+    assert min_max(obs).device.type == 'cuda'
+
+
+def test_preprocessor_statistics_follow_the_mdp_device():
+    if not torch.cuda.is_available():
+        return
+
+    from mushroom_rl.core import MDPInfo
+    from mushroom_rl.core.spaces import Box
+
+    mdp_info = MDPInfo(Box(np.zeros(3), 2 * np.ones(3)), Box(-np.ones(1), np.ones(1)), .99, 100,
+                       backend='torch', device='cuda')
+    preprocessor = MinMaxPreprocessor(mdp_info=mdp_info)
+
+    assert preprocessor._obs_runstand.mean.device.type == 'cuda'
+    assert preprocessor._obs_mean.device.type == 'cuda'
+    assert preprocessor(torch.ones(1, 3, device='cuda')).device.type == 'cuda'

@@ -9,14 +9,15 @@ class RunningStandardization(MushroomObject):
     See https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
 
     """
-    def __init__(self, shape, backend, alpha=1e-32):
+    def __init__(self, shape, alpha=1e-32, backend='numpy', device=None):
         """
         Constructor.
 
         Args:
             shape (tuple): shape of the data to standardize;
-            backend (str): name of the backend to be used;
-            alpha (float, 1e-32): minimum learning rate.
+            alpha (float, 1e-32): minimum learning rate;
+            backend (str, 'numpy'): name of the backend to be used;
+            device (str, None): device the statistics are stored on.
 
         """
         self._s = None
@@ -29,6 +30,7 @@ class RunningStandardization(MushroomObject):
         self._alpha = alpha
 
         self._array_backend = ArrayBackend.get_array_backend(backend)
+        self._device = device
 
         self.reset()
 
@@ -36,6 +38,7 @@ class RunningStandardization(MushroomObject):
             _shape='primitive',
             _alpha='primitive',
             _array_backend='pickle',
+            _device='primitive',
             _n='primitive',
             _m=self._array_backend.get_backend_serialization(),
             _s=self._array_backend.get_backend_serialization()
@@ -47,8 +50,8 @@ class RunningStandardization(MushroomObject):
 
         """
         self._n = 1
-        self._m = self._array_backend.zeros(*self._shape)
-        self._s = self._array_backend.ones(*self._shape)
+        self._m = self._array_backend.zeros(*self._shape, device=self._device)
+        self._s = self._array_backend.ones(*self._shape, device=self._device)
 
     def update_stats(self, value):
         """
@@ -93,7 +96,7 @@ class RunningExpWeightedAverage(MushroomObject):
     Compute an exponentially weighted moving average.
 
     """
-    def __init__(self, shape, alpha, backend, init_value=None):
+    def __init__(self, shape, alpha, backend, device=None, init_value=None):
         """
         Constructor.
 
@@ -101,6 +104,7 @@ class RunningExpWeightedAverage(MushroomObject):
             shape (tuple): shape of the data to standardize;
             alpha (float): learning rate;
             backend (str): name of the backend to be used;
+            device (str, None): device the statistics are stored on;
             init_value (np.ndarray): initial value of the filter.
 
         """
@@ -109,12 +113,14 @@ class RunningExpWeightedAverage(MushroomObject):
         self._shape = shape
         self._alpha = alpha
         self._array_backend = ArrayBackend.get_array_backend(backend)
+        self._device = device
         self.reset(init_value)
 
         self._add_save_attr(
             _shape='primitive',
             _alpha='primitive',
             _array_backend="pickle",
+            _device='primitive',
             _avg_value=self._array_backend.get_backend_serialization(),
         )
 
@@ -127,9 +133,10 @@ class RunningExpWeightedAverage(MushroomObject):
 
         """
         if init_value is None:
-            self._avg_value = self._array_backend.zeros(1, *self._shape)
+            self._avg_value = self._array_backend.zeros(1, *self._shape, device=self._device)
         else:
-            self._avg_value = self._array_backend.atleast_2d(self._array_backend.convert(init_value))
+            init_value = self._array_backend.convert(init_value, device=self._device)
+            self._avg_value = self._array_backend.atleast_2d(init_value)
 
     def update_stats(self, value):
         """
@@ -159,7 +166,7 @@ class RunningAveragedWindow(MushroomObject):
     Compute the running average using a window of fixed size.
 
     """
-    def __init__(self, shape, window_size, backend, init_value=None):
+    def __init__(self, shape, window_size, backend, device=None, init_value=None):
         """
         Constructor.
 
@@ -167,6 +174,7 @@ class RunningAveragedWindow(MushroomObject):
             shape (tuple): shape of the data to standardize;
             window_size (int): size of the windows;
             backend (str): name of the backend to be used;
+            device (str, None): device the statistics are stored on;
             init_value (np.ndarray): initial value of the filter.
 
         """
@@ -175,12 +183,14 @@ class RunningAveragedWindow(MushroomObject):
         self._shape = shape
         self._window_size = window_size
         self._array_backend = ArrayBackend.get_array_backend(backend)
+        self._device = device
         self.reset(init_value)
 
         self._add_save_attr(
             _shape='primitive',
             _window_size='primitive',
             _array_backend='pickle',
+            _device='primitive',
             _avg_buffer='primitive',
         )
 
@@ -193,10 +203,11 @@ class RunningAveragedWindow(MushroomObject):
 
         """
         if init_value is None:
-            self._avg_buffer = deque(self._array_backend.zeros(1, *self._shape),
+            self._avg_buffer = deque(self._array_backend.zeros(1, *self._shape, device=self._device),
                                      maxlen=self._window_size)
         else:
-            self._avg_buffer = deque([self._array_backend.convert(init_value)], maxlen=self._window_size)
+            self._avg_buffer = deque([self._array_backend.convert(init_value, device=self._device)],
+                                     maxlen=self._window_size)
 
     def update_stats(self, value):
         """
@@ -218,4 +229,4 @@ class RunningAveragedWindow(MushroomObject):
             The estimated mean value.
 
         """
-        return self._array_backend.convert(self._avg_buffer).mean(0)
+        return self._array_backend.convert(self._avg_buffer, device=self._device).mean(0)
