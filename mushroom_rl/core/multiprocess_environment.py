@@ -229,7 +229,7 @@ class MultiprocessEnvironment(VectorizedEnvironment):
                 frame = remote.recv()
                 frames.append(frame)
 
-        return np.array(frames)
+        return np.array(frames) if record else None
 
     def seed(self, seed):
         """

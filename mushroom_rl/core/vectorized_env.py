@@ -18,7 +18,7 @@ class VectorizedEnvironment(Environment):
         Reset the state of the default environment, leaving the other copies untouched.
 
         Args:
-            state (np.ndarray, None): the optional initial state to impose to the default environment.
+            state (Array, None): the optional initial state to impose to the default environment.
 
         Returns:
             The initial state of the default environment, and its episode info dictionary.
@@ -36,7 +36,7 @@ class VectorizedEnvironment(Environment):
 
         states, episode_infos = self.reset_all(env_mask, states)
 
-        return states[self._default_env], episode_infos[self._default_env]
+        return states[self._default_env], self._default_env_info(episode_infos)
 
     def step(self, action):
         """
@@ -44,7 +44,7 @@ class VectorizedEnvironment(Environment):
         untouched.
 
         Args:
-            action (np.ndarray): the action to execute in the default environment.
+            action (Array): the action to execute in the default environment.
 
         Returns:
             The state reached by the default environment, the reward obtained, the absorbing flag, and its step
@@ -61,7 +61,7 @@ class VectorizedEnvironment(Environment):
         next_states, rewards, absorbings, step_infos = self.step_all(env_mask, actions)
 
         return (next_states[self._default_env], rewards[self._default_env], absorbings[self._default_env],
-                step_infos[self._default_env])
+                self._default_env_info(step_infos))
 
     def render(self, record=False):
         array_backend = ArrayBackend.get_array_backend(self._mdp_info.backend)
@@ -69,6 +69,9 @@ class VectorizedEnvironment(Environment):
         env_mask[self._default_env] = True
 
         frame = self.render_all(env_mask, record=record)
+
+        if not record:
+            return None
 
         if frame is not None and frame.ndim == 4:
             frame = frame[0]
@@ -133,3 +136,18 @@ class VectorizedEnvironment(Environment):
     @property
     def number(self):
         return self._n_envs
+
+    def _default_env_info(self, info):
+        """
+        Args:
+            info (dict, list): the information of every environment, either as a list of dictionaries, one per
+                environment, or as a dictionary of arrays.
+
+        Returns:
+            The information of the default environment, as a dictionary.
+
+        """
+        if isinstance(info, dict):
+            return {key: value[self._default_env] for key, value in info.items()}
+
+        return info[self._default_env]

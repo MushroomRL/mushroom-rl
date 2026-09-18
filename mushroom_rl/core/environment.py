@@ -169,7 +169,7 @@ class Environment(object):
         Reset the environment to the initial state.
 
         Args:
-            state (np.ndarray, None): the state to set to the current state.
+            state (Array, None): the state to set to the current state.
 
         Returns:
             The initial state and a dictionary containing the info for the episode.
@@ -182,7 +182,7 @@ class Environment(object):
         Move the agent from its current state according to the action.
 
         Args:
-            action (np.ndarray): the action to execute.
+            action (Array): the action to execute.
 
         Returns:
             The state reached by the agent executing ``action`` in its current  state, the reward obtained in the

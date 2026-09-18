@@ -1202,7 +1202,7 @@ class TorchBackend(ArrayBackend):
     def masked_init(cls, mask, values, device=None):
         device = cls.check_device(device)
         result = torch.empty((mask.shape[0],) + values.shape[1:], device=device)
-        result[mask] = torch.as_tensor(values, dtype=result.dtype, device=device)
+        result[mask] = values
         return result
 
     @staticmethod

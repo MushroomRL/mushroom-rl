@@ -192,11 +192,13 @@ def run_exp(env_backend, agent_backend):
     assert len(dataset.episodes_length) == 1
 
     print('- evaluate single initial state')
-    initial_states = np.array([[4., 5., 6.]])
+    expected_states = np.array([[4., 5., 6.]], dtype=np.float32)
+    initial_states = torch.from_numpy(expected_states).to(TorchUtils.get_device()) \
+        if env_backend == 'torch' else expected_states
     dataset = core.evaluate(initial_states=initial_states)
     assert len(dataset.episodes_length) == 1
     init_states = dataset.array_backend.to_numpy(dataset.get_init_states())
-    assert sorted(tuple(row) for row in init_states) == sorted(tuple(row) for row in initial_states)
+    assert sorted(tuple(row) for row in init_states) == sorted(tuple(row) for row in expected_states)
 
     print('- learn n_episodes=5 n_episodes_per_fit=1')
     core.learn(n_episodes=5, n_episodes_per_fit=1)
@@ -240,13 +242,16 @@ def run_exp_initial_states(env_backend, agent_backend):
 
     core = Core(agent, env)
 
-    initial_states = np.array([[5., 9., 7.],
-                               [3., 8., 6.],
-                               [10., 4., 11.],
-                               [12., 7., 5.],
-                               [6., 6., 9.],
-                               [8., 5., 4.],
-                               [9., 3., 10.]])
+    expected_states = np.array([[5., 9., 7.],
+                                [3., 8., 6.],
+                                [10., 4., 11.],
+                                [12., 7., 5.],
+                                [6., 6., 9.],
+                                [8., 5., 4.],
+                                [9., 3., 10.]], dtype=np.float32)
+
+    initial_states = torch.from_numpy(expected_states).to(TorchUtils.get_device()) \
+        if env_backend == 'torch' else expected_states
 
     dataset = core.evaluate(initial_states=initial_states)
 
@@ -255,7 +260,7 @@ def run_exp_initial_states(env_backend, agent_backend):
     init_states = dataset.array_backend.to_numpy(dataset.get_init_states())
 
     assert len(init_states) == 7
-    assert sorted(tuple(row) for row in init_states) == sorted(tuple(row) for row in initial_states)
+    assert sorted(tuple(row) for row in init_states) == sorted(tuple(row) for row in expected_states)
 
 
 def run_exp_greedy(env_backend, agent_backend):
@@ -410,6 +415,61 @@ class StaleAbsorbingVecEnv(VectorizedEnvironment):
 
     def _observation(self):
         return self._t.reshape(-1, 1).astype(float)
+
+
+class DictInfoVecEnv(VectorizedEnvironment):
+    def __init__(self, n_envs):
+        self._t = np.zeros(n_envs, dtype=int)
+        mdp_info = MDPInfo(Box(-np.inf, np.inf, shape=(1,)), Box(-1., 1., shape=(1,)),
+                           gamma=.99, horizon=10, backend='numpy')
+        super().__init__(mdp_info, n_envs)
+
+    def reset_all(self, env_mask, state=None):
+        self._t[np.asarray(env_mask)] = 0
+        return self._observation(), {'k': self._t.copy()}
+
+    def step_all(self, env_mask, action):
+        self._t[np.asarray(env_mask)] += 1
+        absorbing = (self._t >= 3) & np.asarray(env_mask)
+        return self._observation(), np.ones(self._n_envs), absorbing, {'k': self._t.copy()}
+
+    def render_all(self, env_mask, record=False):
+        pass
+
+    def stop(self):
+        pass
+
+    def _observation(self):
+        return self._t.reshape(-1, 1).astype(float)
+
+
+def test_vectorized_env_info_as_dict_of_arrays():
+    env = DictInfoVecEnv(3)
+    env.set_default_env(1)
+
+    state, episode_info = env.reset()
+    next_state, reward, absorbing, step_info = env.step(np.zeros(1))
+
+    assert np.array_equal(state, np.array([0.]))
+    assert np.array_equal(next_state, np.array([1.]))
+    assert episode_info == {'k': 0}
+    assert step_info == {'k': 1}
+
+    env = DictInfoVecEnv(1)
+    agent = dict_info_agent(env.info)
+
+    dataset = Core(agent, env).evaluate(n_steps=6, quiet=True)
+
+    assert len(dataset) == 6
+    assert np.array_equal(dataset.info['k'], np.array([1, 2, 3, 1, 2, 3]))
+
+
+def dict_info_agent(mdp_info):
+    agent = Agent(mdp_info, Policy())
+    agent.draw_action = lambda state: np.zeros(1) if state.ndim == 1 else np.zeros((state.shape[0], 1))
+    agent.fit = lambda dataset: None
+
+    return agent
 
 
 def test_core_routes_single_env_vectorized_to_sequential():

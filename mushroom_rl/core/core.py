@@ -90,7 +90,7 @@ class Core(object):
         episode. The environment is reset at the beginning of the learning process.
 
         Args:
-            initial_states (np.ndarray, None): the starting states of each episode;
+            initial_states (Array, None): the starting states of each episode;
             n_steps (int, None): number of steps to move the agent;
             n_episodes (int, None): number of episodes to move the agent;
             render (bool, False): whether to render the environment or not;
@@ -157,7 +157,7 @@ class Core(object):
         Method to apply state preprocessors.
 
         Args:
-            state (np.ndarray): the state to be preprocessed.
+            state (Array): the state to be preprocessed.
 
         Returns:
              The preprocessed state.
