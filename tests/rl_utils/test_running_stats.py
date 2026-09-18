@@ -69,6 +69,32 @@ def test_running_averaged_window_reset():
     assert np.allclose(raw.mean, [0., 0.])
 
 
+def test_running_stats_save_the_arrays_with_the_backend_method(tmpdir):
+    standardization = RunningStandardization(shape=(2,), backend='torch')
+    standardization.update_stats(torch.ones(1, 2))
+
+    average = RunningExpWeightedAverage(shape=(2,), alpha=0.1, backend='torch')
+    average.update_stats(torch.ones(2))
+
+    assert standardization._save_attributes['_m'] == 'torch'
+    assert standardization._save_attributes['_s'] == 'torch'
+    assert average._save_attributes['_avg_value'] == 'torch'
+
+    standardization.save(tmpdir / 'standardization.msh')
+    average.save(tmpdir / 'average.msh')
+
+    loaded_standardization = RunningStandardization.load(tmpdir / 'standardization.msh')
+    loaded_average = RunningExpWeightedAverage.load(tmpdir / 'average.msh')
+
+    assert torch.equal(loaded_standardization.mean, standardization.mean)
+    assert torch.equal(loaded_standardization.std, standardization.std)
+    assert torch.equal(loaded_average.mean, average.mean)
+
+    numpy_standardization = RunningStandardization(shape=(2,), backend='numpy')
+
+    assert numpy_standardization._save_attributes['_m'] == 'numpy'
+
+
 def test_running_standardization_reset_matches_a_fresh_instance():
     rs = RunningStandardization(shape=(3,), backend='numpy')
     fresh = RunningStandardization(shape=(3,), backend='numpy')

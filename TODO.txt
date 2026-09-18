@@ -27,6 +27,8 @@ For Mushroom 2.1:
     * Improve replay memory:
         - vectorize SequenceReplayMemory.get
         - remove host-device sync each iteration (int(c_anchor)/int(boundary[...])) in SequenceReplayMemory for the frame-stacking path
+    * vectorization of the TD policies: `EpsGreedy` and `Boltzmann` draw a single action regardless of the
+      batch size, so a TD algorithm cannot run on a vectorized environment
     * decide what `Dataset.clear(keep_leftovers=True)` should do with the policy parameters
     * decide how the episode info should be collected in the dataset
     * handle ExtraInfo correctly in ReplayMemory

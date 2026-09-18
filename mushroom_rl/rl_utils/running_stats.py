@@ -37,8 +37,8 @@ class RunningStandardization(MushroomObject):
             _alpha='primitive',
             _array_backend='pickle',
             _n='primitive',
-            _m='primitive',
-            _s='primitive'
+            _m=self._array_backend.get_backend_serialization(),
+            _s=self._array_backend.get_backend_serialization()
         )
 
     def reset(self):
@@ -115,7 +115,7 @@ class RunningExpWeightedAverage(MushroomObject):
             _shape='primitive',
             _alpha='primitive',
             _array_backend="pickle",
-            _avg_value='primitive',
+            _avg_value=self._array_backend.get_backend_serialization(),
         )
 
     def reset(self, init_value=None):
