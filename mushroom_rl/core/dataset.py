@@ -398,8 +398,8 @@ class Dataset(MushroomObject):
                                            else (None, None))
         return Dataset.from_array(state, action, reward, next_state, absorbing, last,
                                   policy_state=policy_state, policy_next_state=policy_next_state,
-                                  extras=self._extras, backend=backend, policy_backend=backend,
-                                  device=device, agent_device=device)
+                                  extras=self._extras.to_backend(backend, device), backend=backend,
+                                  policy_backend=backend, device=device, agent_device=device)
 
     def select_first_episodes(self, n_episodes):
         """

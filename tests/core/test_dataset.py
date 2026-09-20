@@ -447,3 +447,25 @@ def test_dataset_save_load_policy_split(tmpdir):
     assert np.array_equal(new_dataset.state, states)
     assert torch.equal(new_dataset.policy_state, torch.from_numpy(policy_states))
     assert new_dataset.n_episodes == 2
+
+
+def test_to_backend_converts_the_extra_info():
+    extras = ExtraInfo(1, 'torch')
+    extras.append_step({'x': torch.tensor(1.)})
+    extras.append_step({'x': torch.tensor(2.)})
+
+    n_steps = 2
+    state = torch.zeros(n_steps, 1)
+    action = torch.zeros(n_steps, 1)
+    reward = torch.zeros(n_steps)
+    next_state = torch.zeros(n_steps, 1)
+    absorbing = torch.zeros(n_steps, dtype=torch.bool)
+    last = torch.zeros(n_steps, dtype=torch.bool)
+    last[-1] = True
+
+    dataset = Dataset.from_array(state, action, reward, next_state, absorbing, last, extras=extras, backend='torch')
+    converted = dataset.to_backend('numpy')
+
+    assert isinstance(converted.state, np.ndarray)
+    assert isinstance(converted.info['x'], np.ndarray)
+    assert np.array_equal(converted.info['x'], np.array([1., 2.]))

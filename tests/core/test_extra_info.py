@@ -1,4 +1,5 @@
 from mushroom_rl.core.extra_info import StepInfo, EpisodeInfo
+import pytest
 import torch
 import numpy as np
 
@@ -939,3 +940,220 @@ def test_merging_after_drop_before_pads_the_missing_key():
     assert np.array_equal(content['x'], np.array([1., 2.]))
     assert np.isnan(content['rare'][0])
     assert content['rare'][1] == 8.
+
+
+def test_merging_an_unparsed_flattened_info_keeps_its_rows():
+    first = StepInfo(2, 'numpy')
+    first.append({'x': np.array([0., 1.])})
+    first.append({'x': np.array([2., 3.])})
+
+    second = StepInfo(2, 'numpy')
+    second.append({'x': np.array([10., 11.])})
+    second.append({'x': np.array([12., 13.])})
+
+    flat = first.flatten()
+    flat += second.flatten()
+
+    assert np.array_equal(flat.parse()['x'], np.array([0., 2., 1., 3., 10., 12., 11., 13.]))
+
+
+def test_merging_an_unparsed_flattened_info_keeps_its_rows_when_parsed_first():
+    first = StepInfo(2, 'numpy')
+    first.append({'x': np.array([0., 1.])})
+
+    second = StepInfo(2, 'numpy')
+    second.append({'x': np.array([10., 11.])})
+
+    flat = first.flatten()
+    flat.parse()
+    flat += second.flatten()
+
+    assert np.array_equal(flat.parse()['x'], np.array([0., 1., 10., 11.]))
+
+
+def test_a_key_merged_into_a_flattened_info_survives_the_resolution():
+    info = StepInfo(2, 'numpy')
+    info.append({'t': np.array([1., 2.])})
+
+    other = StepInfo(1, 'numpy', vectorized=False)
+    other.append({'t': 5., 'final': 7.})
+
+    flat = info.flatten()
+    flat += other
+    content = flat.parse()
+
+    assert np.array_equal(content['t'], np.array([1., 2., 5.]))
+    assert np.isnan(content['final'][0])
+    assert np.isnan(content['final'][1])
+    assert content['final'][2] == 7.
+
+
+def test_a_key_appended_to_a_flattened_info_survives_the_resolution():
+    info = StepInfo(2, 'numpy')
+    info.append({'t': np.array([1., 2.])})
+
+    flat = info.flatten()
+    flat.append({'t': 5., 'final': 7.})
+    content = flat.parse()
+
+    assert np.array_equal(content['t'], np.array([1., 2., 5.]))
+    assert np.isnan(content['final'][0])
+    assert np.isnan(content['final'][1])
+    assert content['final'][2] == 7.
+
+
+def test_drop_before_forgets_a_key_of_a_copy():
+    info = StepInfo(1, 'numpy')
+    info.append({'x': 1.})
+    info.append({'y': 2.})
+
+    duplicate = info.copy()
+    duplicate.drop_before(1)
+
+    assert np.array_equal(duplicate.parse()['y'], np.array([2.]))
+    assert 'x' not in duplicate.parse()
+
+
+def test_drop_before_forgets_a_key_taken_from_a_merge():
+    info = StepInfo(1, 'numpy')
+    info.append({'x': 1.})
+
+    other = StepInfo(1, 'numpy')
+    other.append({'x': 2., 'y': 9.})
+    other.append({'x': 3.})
+
+    info += other
+    info.drop_before(2)
+
+    assert np.array_equal(info.parse()['x'], np.array([3.]))
+    assert 'y' not in info.parse()
+
+
+def test_parse_to_another_backend_drops_the_device():
+    info = StepInfo(1, 'torch', device='cpu')
+    info.append({'x': 1.})
+
+    content = info.parse(to='numpy')
+
+    assert np.array_equal(content['x'], np.array([1.]))
+
+
+def test_merging_a_missing_key_keeps_the_device():
+    info = StepInfo(1, 'torch', device='meta')
+    info.append({'x': torch.tensor(1.)})
+    info.parse()
+
+    other = StepInfo(1, 'torch', device='meta')
+    other.append({'x': torch.tensor(2.), 'extra': torch.tensor(3.)})
+    other.parse()
+
+    info += other
+    content = info.parse()
+
+    assert content['x'].device.type == 'meta'
+    assert content['extra'].device.type == 'meta'
+
+
+def test_drop_before_refuses_an_unresolved_flattened_info():
+    info = StepInfo(2, 'numpy')
+    info.append({'x': np.array([1., 2.])})
+
+    flat = info.flatten()
+
+    with pytest.raises(AssertionError):
+        flat.drop_before(1)
+
+
+def test_a_parse_without_keys_keeps_the_step_count():
+    info = StepInfo(1, 'numpy')
+    for _ in range(5):
+        info.append({})
+
+    info.parse()
+
+    for t in range(3):
+        info.append({'episode_r': float(t)})
+
+    content = info.parse()
+
+    assert content['episode_r'].shape == (8,)
+    assert np.isnan(content['episode_r'][:5]).all()
+    assert np.array_equal(content['episode_r'][5:], np.array([0., 1., 2.]))
+
+
+def test_drop_before_after_a_parse_without_keys():
+    info = StepInfo(1, 'numpy')
+    for _ in range(4):
+        info.append({})
+
+    info.parse()
+
+    info.append({'k': 7.})
+    info.append({'k': 8.})
+    info.drop_before(2)
+
+    content = info.parse()
+
+    assert content['k'].shape == (4,)
+    assert np.array_equal(content['k'][2:], np.array([7., 8.]))
+
+
+def test_merging_an_info_without_keys_keeps_its_steps():
+    keyless = StepInfo(1, 'numpy')
+    for _ in range(3):
+        keyless.append({})
+    keyless.parse()
+
+    other = StepInfo(1, 'numpy')
+    other.append({'k': 5.})
+    other.parse()
+
+    keyless += other
+    content = keyless.parse()
+
+    assert content['k'].shape == (4,)
+    assert content['k'][3] == 5.
+
+
+def test_to_backend_converts_the_parsed_arrays():
+    info = StepInfo(1, 'torch')
+    info.append({'x': torch.tensor(1.)})
+
+    converted = info.to_backend('numpy')
+
+    assert isinstance(converted.parse()['x'], np.ndarray)
+    assert isinstance(info.parse()['x'], torch.Tensor)
+
+
+def test_to_backend_defers_the_conversion():
+    info = StepInfo(1, 'numpy')
+    info.append({'x': 1.})
+
+    converted = info.to_backend('torch')
+
+    assert converted._parsed == {}
+    assert converted._pending_steps == 1
+    assert isinstance(converted.parse()['x'], torch.Tensor)
+    assert isinstance(info.parse()['x'], np.ndarray)
+
+
+def test_to_backend_converts_the_episode_info():
+    info = EpisodeInfo(1, 'numpy')
+    info.append({'ep': np.array([3.])})
+
+    converted = info.to_backend('torch')
+
+    assert isinstance(converted.parse()['ep'], torch.Tensor)
+    assert isinstance(info.parse()['ep'], np.ndarray)
+
+
+def test_flatten_after_to_backend():
+    info = StepInfo(2, 'numpy')
+    info.append({'x': np.array([1., 2.])})
+    info.append({'x': np.array([3., 4.])})
+
+    flat = info.to_backend('torch').flatten()
+    content = flat.parse()
+
+    assert isinstance(content['x'], torch.Tensor)
+    assert torch.equal(content['x'], torch.tensor([1., 3., 2., 4.]))
