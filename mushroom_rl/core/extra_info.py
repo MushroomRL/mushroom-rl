@@ -278,13 +278,15 @@ class StepInfo(MushroomObject):
 
     @property
     def n_steps(self):
+        steps = self._n_parsed + self._pending_steps
+
         if self._source is not None:
             if self._mask is None:
-                return self._source.n_steps * self._source.n_envs
+                steps += self._source.n_steps * self._source.n_envs
+            else:
+                steps += int(ArrayBackend.get_array_backend_from(self._mask).sum(self._mask))
 
-            return int(ArrayBackend.get_array_backend_from(self._mask).sum(self._mask))
-
-        return self._n_parsed + self._pending_steps
+        return steps
 
     def _add_all_save_attr(self):
         self._add_save_attr(
