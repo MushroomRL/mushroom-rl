@@ -47,6 +47,7 @@ def test_list_of_dict():
     assert content["prop3_x"].dim() == 2 and content["prop3_x"].size(0) == 2 and content["prop3_x"].size(1) == 6
     assert content["prop3_y"].dim() == 2 and content["prop3_y"].size(0) == 2 and content["prop3_y"].size(1) == 6
 
+    info = info.to_backend('torch')
     info = info.flatten()
 
     content = info.parse()
@@ -110,6 +111,7 @@ def test_dict_of_torch():
     assert prop2.ndim == 3 and prop2.shape[0] == 2 and prop2.shape[1] == 4 and prop2.shape[2] == 2
     assert content["prop3_x"].ndim == 2 and content["prop3_x"].shape[0] == 2 and content["prop3_x"].shape[1] == 4
 
+    info = info.to_backend('numpy')
     info = info.flatten()
 
     content = info.parse()
@@ -216,7 +218,7 @@ def test_changing_properties_dict():
     info.append(data1)
     info.append(data2)
     info.append(data3)
-    info.parse(to='torch')
+    info = info.to_backend('torch')
     info = info.flatten()
 
     print(info)
@@ -442,8 +444,8 @@ def test_add():
     info2.append(data1)
     info2.append(data2)
 
-    info1.parse('torch')
-    info2.parse('numpy')
+    info1 = info1.to_backend('torch')
+    info2 = info2.to_backend('numpy')
 
     info = info1 + info2
 

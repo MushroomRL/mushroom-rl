@@ -161,6 +161,52 @@ class ArrayBackend(object):
         raise NotImplementedError
 
     @classmethod
+    def convert_mask(cls, *masks, to=None, backend=None, device=None):
+        """
+        Convert one or more boolean masks from their current backend to the one the destination backend uses
+        for masks, which is not necessarily the one it uses for arrays.
+
+        Args:
+            *masks: one or more masks to convert;
+            to (str, None): name of the destination backend. If ``None``, the backend calling this method
+                (``cls``) is used;
+            backend (ArrayBackend, None): backend of the input masks. If ``None``, it is autodetected from
+                the first element of ``masks``;
+            device (str, None): device the converted masks are placed on, or ``None`` for the default one.
+
+        Returns:
+            The converted mask, or a tuple of converted masks if more than one was passed in ``masks``.
+
+        """
+        if to is None:
+            to = cls.get_backend_name()
+        if backend is None:
+            backend = ArrayBackend.get_array_backend_from(masks[0])
+
+        destination = ArrayBackend.get_array_backend(to)
+        converted = tuple(destination.convert_to_backend_mask(backend, mask, device) for mask in masks)
+
+        return converted if len(masks) > 1 else converted[0]
+
+    @classmethod
+    def convert_to_backend_mask(cls, backend, mask, device=None):
+        """
+        Convert a single boolean mask from another backend into the array type this backend uses for masks.
+        Like :meth:`convert_to_backend`, it is called on the destination backend and takes the source backend
+        as an explicit positional argument. Backends whose masks are not of their own array type override it.
+
+        Args:
+            backend (ArrayBackend): the backend ``mask`` currently belongs to;
+            mask: the mask to convert;
+            device (str, None): device the converted mask is placed on, or ``None`` for the default one.
+
+        Returns:
+            ``mask`` converted into the array type this backend uses for masks.
+
+        """
+        return cls.convert_to_backend(backend, mask, device)
+
+    @classmethod
     def arrays_to_numpy(cls, *arrays):
         """
         Args:
@@ -1377,6 +1423,10 @@ class ListBackend(ArrayBackend):
     def convert_to_backend(cls, backend, array, device=None):
         cls.check_device(device)
         return array
+
+    @classmethod
+    def convert_to_backend_mask(cls, backend, mask, device=None):
+        return NumpyBackend.convert_to_backend(backend, mask, device)
 
     @staticmethod
     def to_numpy(array):
