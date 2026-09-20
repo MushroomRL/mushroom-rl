@@ -989,8 +989,7 @@ class VectorizedDataset(Dataset):
         policy_next_state = None
 
         if self.is_stateful:
-            policy_mask = agent_backend.convert_to_backend(env_backend, mask,
-                                                           device=self._dataset_info.agent_device)
+            policy_mask = agent_backend.convert_mask(mask, backend=env_backend, device=self._dataset_info.agent_device)
             policy_state = agent_backend.pack_padded_sequence(self.policy_state, policy_mask)
             policy_next_state = agent_backend.pack_padded_sequence(self.policy_next_state, policy_mask)
 

@@ -763,7 +763,7 @@ class HistoryManager(MushroomObject):
         self._last_action = None
 
     def _zero_buffers_vectorized(self, mask):
-        mask = self._agent_backend.convert(mask, device=self._device)
+        mask = self._agent_backend.convert_mask(mask, device=self._device)
         for buffer in self._buffers.values():
             buffer[mask] = 0
         if self._last_action is not None:
