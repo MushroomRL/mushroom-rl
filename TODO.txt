@@ -21,8 +21,9 @@ For Mushroom 2.1:
           action without calling the history manager, so the manager's buffer is not advanced on that step
         - subclass for complex per-stream specifications: the base handles only the `offset` option, delegate
           richer specs (strides, structured/general lookbacks) to a subclass
-        - support the list backend: the offline parse_* paths index their input as numpy (`.shape`, elementwise
-          arithmetic) and raise on a list dataset; only the online paths work
+        - support a list agent backend: the vectorized online path and every offline parse_* path raise, only
+          the single-env online path works. A list dataset handed to a numpy/torch agent is unaffected, since
+          parse_* converts it before walking it
     * Improve replay memory:
         - vectorize SequenceReplayMemory.get
         - remove host-device sync each iteration (int(c_anchor)/int(boundary[...])) in SequenceReplayMemory for the frame-stacking path
