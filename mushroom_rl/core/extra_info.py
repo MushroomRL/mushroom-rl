@@ -472,10 +472,9 @@ class StepInfo(MushroomObject):
             A flat dictionary holding the consolidated arrays converted to the given backend and device.
 
         """
-        destination = ArrayBackend.get_array_backend(to)
-        device = destination.check_device(device)
+        device = ArrayBackend.get_array_backend(to).check_device(device)
 
-        return {key: destination.convert_to_backend(self._array_backend, value, device)
+        return {key: ArrayBackend.convert(value, to=to, backend=self._array_backend, device=device)
                 for key, value in self._parsed.items()}
 
     def _parsed_steps(self):
