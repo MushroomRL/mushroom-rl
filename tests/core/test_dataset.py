@@ -251,6 +251,28 @@ def test_from_array_list_backend_ragged():
     assert np.array_equal(dataset.compute_J(), np.array([3.0]))
 
 
+def test_list_dataset_parse_to_torch():
+    states = np.arange(12).reshape(6, 2).astype(float)
+    actions = np.zeros((6, 1))
+    rewards = np.ones(6)
+    next_states = states + 1
+    absorbings = np.zeros(6)
+    lasts = np.array([0, 0, 1, 0, 0, 1])
+
+    list_dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
+                                      backend='list', gamma=0.9)
+    numpy_dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
+                                       gamma=0.9)
+
+    for from_list, from_numpy in zip(list_dataset.parse(to='torch'), numpy_dataset.parse(to='torch')):
+        assert from_list.dtype == from_numpy.dtype
+        assert torch.equal(from_list, from_numpy)
+
+    for from_list, from_numpy in zip(list_dataset.parse(to='numpy'), numpy_dataset.parse(to='numpy')):
+        assert from_list.dtype == from_numpy.dtype
+        assert np.array_equal(from_list, from_numpy)
+
+
 def test_dataset_policy_backend_split():
     n = 4
     states = np.arange(n * 2).reshape(n, 2).astype(float)

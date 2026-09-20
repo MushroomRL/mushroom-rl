@@ -820,6 +820,8 @@ class HistoryManager(MushroomObject):
             buffer[:] = stacked[:, 1:]
         else:
             stacked = self._agent_backend.concatenate([buffer, value[None]], dim=0)
+            if isinstance(stacked, list):
+                stacked = self._agent_backend.copy(stacked)
             buffer[:] = stacked[1:]
 
         return stacked

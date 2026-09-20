@@ -377,3 +377,49 @@ def test_pack_sequence_torch():
         print(desired_array)
 
         assert torch.equal(packed_array, desired_array)
+
+
+def test_list_backend_to_torch_dtype():
+    data = [np.array([0.5, 1.5]), np.array([2.5, 3.5])]
+
+    converted = ListBackend.to_torch(data)
+
+    assert converted.dtype == torch.float32
+    assert converted.dtype == NumpyBackend.to_torch(np.array(data)).dtype
+    assert torch.equal(converted, torch.tensor([[0.5, 1.5], [2.5, 3.5]]))
+
+    assert ListBackend.to_torch([[1, 2], [3, 4]]).dtype == torch.int64
+    assert ListBackend.to_torch([True, False]).dtype == torch.bool
+    assert ListBackend.to_torch(None) is None
+
+
+def test_list_backend_concatenate_dim():
+    assert ListBackend.concatenate([[1, 2], [3]]) == [1, 2, 3]
+    assert ListBackend.concatenate([[1, 2], [3]], dim=0) == [1, 2, 3]
+
+    first = [np.array([1.0, 2.0]), np.array([3.0, 4.0])]
+    second = [np.array([5.0, 6.0]), np.array([7.0, 8.0])]
+
+    concatenated = ListBackend.concatenate([first, second], dim=1)
+
+    assert np.array_equal(concatenated, NumpyBackend.concatenate([np.array(first), np.array(second)], dim=1))
+    assert np.array_equal(concatenated, np.array([[1.0, 2.0, 5.0, 6.0], [3.0, 4.0, 7.0, 8.0]]))
+
+
+def test_convert_mask():
+    numpy_mask = np.array([True, False, True])
+    torch_mask = torch.tensor([True, False, True])
+
+    assert torch.equal(TorchBackend.convert_mask(numpy_mask), torch_mask)
+    assert np.array_equal(NumpyBackend.convert_mask(torch_mask), numpy_mask)
+
+    converted = ListBackend.convert_mask(torch_mask)
+    assert isinstance(converted, np.ndarray)
+    assert np.array_equal(converted, numpy_mask)
+
+    first, second = ListBackend.convert_mask(torch_mask, torch_mask)
+    assert isinstance(first, np.ndarray)
+    assert isinstance(second, np.ndarray)
+
+    assert isinstance(ArrayBackend.convert_mask(numpy_mask, to='list'), np.ndarray)
+    assert np.array_equal(ListBackend.convert_to_backend_mask(TorchBackend, torch_mask), numpy_mask)

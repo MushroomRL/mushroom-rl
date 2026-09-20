@@ -1432,9 +1432,9 @@ class ListBackend(ArrayBackend):
     def to_numpy(array):
         return np.array(array)
 
-    @staticmethod
-    def to_torch(array, device=None):
-        return None if array is None else torch.as_tensor(array, device=TorchBackend.check_device(device))
+    @classmethod
+    def to_torch(cls, array, device=None):
+        return None if array is None else NumpyBackend.to_torch(cls.to_numpy(array), device=device)
 
     @staticmethod
     def to_list(array):
@@ -1540,8 +1540,10 @@ class ListBackend(ArrayBackend):
     def stack(lst, dim):
         return NumpyBackend.stack(lst, dim)
 
-    @staticmethod
-    def concatenate(list_of_arrays, dim=0):
+    @classmethod
+    def concatenate(cls, list_of_arrays, dim=0):
+        if dim != 0:
+            return NumpyBackend.concatenate([cls.as_array(array) for array in list_of_arrays], dim)
         result = []
         for array in list_of_arrays:
             result += list(array)

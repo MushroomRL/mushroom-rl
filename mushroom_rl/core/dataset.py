@@ -1022,8 +1022,8 @@ class VectorizedDataset(Dataset):
         Boolean mask marking, for every stored step, which environments were active.
 
         """
-        return self._dataset_info.env_array_backend.as_array(self._mask_data.column(),
-                                                             device=self._dataset_info.env_device)
+        return self._dataset_info.env_array_backend.convert_mask(self._mask_data.column(),
+                                                                 device=self._dataset_info.env_device)
 
     def _add_all_save_attr(self):
         super()._add_all_save_attr()
