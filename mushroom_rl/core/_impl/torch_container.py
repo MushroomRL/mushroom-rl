@@ -1,16 +1,20 @@
 import numpy as np
+import torch
 
-from mushroom_rl.core.mushroom_object import MushroomObject
+from mushroom_rl.core._impl.containers import Container
+from mushroom_rl.utils.torch_utils import TorchUtils
 
 
-class NumpyDataset(MushroomObject):
+class TorchContainer(Container, backend='torch'):
     """
-    Preallocated storage using numpy arrays. Holds an ordered list of equal-length columns (one array per column), each
-    independently shaped and typed, plus a shared length counter.
+    Preallocated storage using torch tensors. Holds an ordered list of equal-length columns (one tensor per column),
+    each independently shaped and typed, plus a shared length counter.
 
     """
-    def __init__(self, shapes, dtypes, n_envs=None):
-        self._arrays = [np.empty(shape, dtype=dtype) for shape, dtype in zip(shapes, dtypes)]
+    def __init__(self, shapes, dtypes, device=None, n_envs=None):
+        self._device = TorchUtils.get_device(device)
+        self._arrays = [torch.empty(shape, dtype=dtype, device=self._device)
+                        for shape, dtype in zip(shapes, dtypes)]
         self._n_envs = n_envs
         self._len = 0
 
@@ -25,7 +29,7 @@ class NumpyDataset(MushroomObject):
     def __add__(self, other):
         result = self.create_new_instance(self)
 
-        result._arrays = [np.concatenate((array[:self._len], other_array[:len(other)]))
+        result._arrays = [torch.concatenate((array[:self._len], other_array[:len(other)]))
                           for array, other_array in zip(self._arrays, other._arrays)]
         result._len = self._len + len(other)
 
@@ -46,14 +50,14 @@ class NumpyDataset(MushroomObject):
         self._len += n
 
     def clear(self):
-        self._arrays = [np.empty_like(array) for array in self._arrays]
+        self._arrays = [torch.empty_like(array) for array in self._arrays]
         self._len = 0
 
     def reserve(self, capacity):
         if capacity > self.capacity:
             new_arrays = list()
             for array in self._arrays:
-                buffer = np.empty((capacity,) + array.shape[1:], dtype=array.dtype)
+                buffer = torch.empty((capacity,) + array.shape[1:], dtype=array.dtype, device=array.device)
                 buffer[:self._len] = array[:self._len]
                 new_arrays.append(buffer)
             self._arrays = new_arrays
@@ -61,7 +65,8 @@ class NumpyDataset(MushroomObject):
     def compact(self, start):
         n = self._len - start
         for array in self._arrays:
-            array[:n] = array[start:start + n]
+            # torch forbids an overlapping in-place copy, so clone the source when the ranges overlap
+            array[:n] = array[start:start + n] if start >= n else array[start:start + n].clone()
         self._len = n
 
     def get_view(self, index, copy=False):
@@ -71,7 +76,7 @@ class NumpyDataset(MushroomObject):
             view._arrays = list()
             new_len = 0
             for array in self._arrays:
-                buffer = np.empty_like(array)
+                buffer = torch.empty_like(array)
                 sliced = array[:self._len][index, ...]
                 new_len = sliced.shape[0]
                 buffer[:new_len] = sliced
@@ -108,7 +113,7 @@ class NumpyDataset(MushroomObject):
         Creates an empty instance of the dataset and populates essential data structures.
 
         Args:
-            dataset (NumpyDataset, None): a template dataset to be used to create the new instance.
+            dataset (TorchContainer, None): a template dataset to be used to create the new instance.
 
         Returns:
             A new empty instance of the dataset.
@@ -116,6 +121,7 @@ class NumpyDataset(MushroomObject):
         """
         new_dataset = cls.__new__(cls)
 
+        new_dataset._device = dataset._device if dataset is not None else None
         new_dataset._arrays = None
         new_dataset._n_envs = dataset._n_envs if dataset is not None else None
         new_dataset._len = None
@@ -125,10 +131,15 @@ class NumpyDataset(MushroomObject):
         return new_dataset
 
     @classmethod
-    def from_array(cls, arrays):
+    def _allocate(cls, shapes, dtypes, device, n_envs):
+        return cls(shapes, dtypes, device=device, n_envs=n_envs)
+
+    @classmethod
+    def _from_array_impl(cls, arrays, device):
         dataset = cls.create_new_instance()
 
-        dataset._arrays = [array if isinstance(array, np.ndarray) else array.numpy() for array in arrays]
+        dataset._device = TorchUtils.get_device(device)
+        dataset._arrays = [dataset._to_tensor(array) for array in arrays]
         dataset._len = len(dataset._arrays[0])
 
         return dataset
@@ -149,9 +160,15 @@ class NumpyDataset(MushroomObject):
     def capacity(self):
         return self._arrays[0].shape[0]
 
+    def _to_tensor(self, array):
+        if isinstance(array, torch.Tensor):
+            return array.to(device=self._device)
+        return torch.from_numpy(np.asarray(array)).to(device=self._device)
+
     def _add_all_save_attr(self):
         self._add_save_attr(
-            _arrays='numpy',
+            _device='primitive',
+            _arrays='torch',
             _n_envs='primitive',
             _len='primitive'
         )

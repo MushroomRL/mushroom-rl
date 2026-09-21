@@ -208,7 +208,7 @@ class SequentialCore(Core):
                 for c in self.callbacks_fit:
                     c(dataset)
 
-                dataset.clear()
+                dataset.clear(self.agent.history_manager.history_context())
 
         self.agent.stop()
         self.env.stop()
@@ -324,13 +324,14 @@ class VectorizedCore(Core):
             need_reset = completed > 0
 
             if self._core_logic.fit_required():
-                consumed = dataset.consume(self._core_logic.n_steps_per_fit)
-                self.agent.fit(consumed.flatten())
+                flat = dataset.flatten(self._core_logic.n_steps_per_fit)
+                self.agent.fit(flat)
 
                 for c in self.callbacks_fit:
-                    c(consumed)
+                    c(flat)
 
-                n_carry_forward_steps = dataset.clear(keep_leftovers=True)
+                n_carry_forward_steps = dataset.clear(keep_leftovers=True,
+                                                      history_context=self.agent.history_manager.history_context())
                 last = self._core_logic.after_fit_vectorized(last, n_carry_forward_steps)
                 if self._core_logic.n_episodes_per_fit is not None:
                     need_reset = True

@@ -1,15 +1,15 @@
 import torch
 
-from mushroom_rl.core._impl.torch_dataset import TorchDataset
+from mushroom_rl.core._impl.torch_container import TorchContainer
 
 
 def make_dataset(capacity=8):
     shapes = [(capacity, 2), (capacity,), (capacity,)]
     dtypes = [torch.float, torch.float, torch.bool]
-    return TorchDataset(shapes, dtypes)
+    return TorchContainer(shapes, dtypes)
 
 
-def test_torch_dataset_append_and_column():
+def test_torch_container_append_and_column():
     dataset = make_dataset()
     dataset.append(torch.tensor([0.0, 1.0]), 0.5, False)
     dataset.append(torch.tensor([2.0, 3.0]), 1.5, True)
@@ -21,7 +21,7 @@ def test_torch_dataset_append_and_column():
     assert torch.equal(dataset.column(2), torch.tensor([False, True]))
 
 
-def test_torch_dataset_clear():
+def test_torch_container_clear():
     dataset = make_dataset()
     dataset.append(torch.tensor([0.0, 0.0]), 0.0, False)
 
@@ -30,7 +30,7 @@ def test_torch_dataset_clear():
     assert len(dataset) == 0
 
 
-def test_torch_dataset_get_view():
+def test_torch_container_get_view():
     dataset = make_dataset()
     for i in range(4):
         dataset.append(torch.tensor([float(i), float(i)]), float(i), i == 3)
@@ -40,7 +40,7 @@ def test_torch_dataset_get_view():
     assert torch.equal(view.column(1), torch.tensor([1.0, 2.0]))
 
 
-def test_torch_dataset_get_view_copy_isolation():
+def test_torch_container_get_view_copy_isolation():
     dataset = make_dataset()
     for i in range(4):
         dataset.append(torch.tensor([float(i), float(i)]), float(i), False)
@@ -51,7 +51,7 @@ def test_torch_dataset_get_view_copy_isolation():
     assert dataset.column(1)[0] == 0.0
 
 
-def test_torch_dataset_add():
+def test_torch_container_add():
     a = make_dataset()
     a.append(torch.tensor([0.0, 0.0]), 0.0, False)
     a.append(torch.tensor([1.0, 1.0]), 1.0, True)
@@ -64,7 +64,7 @@ def test_torch_dataset_add():
     assert torch.equal(result.column(1), torch.tensor([0.0, 1.0, 2.0]))
 
 
-def test_torch_dataset_append_batch():
+def test_torch_container_append_batch():
     a = make_dataset()
     a.append(torch.tensor([0.0, 0.0]), 0.0, False)
     b = make_dataset()
@@ -77,14 +77,14 @@ def test_torch_dataset_append_batch():
     assert torch.equal(a.column(1), torch.tensor([0.0, 1.0, 2.0]))
 
 
-def test_torch_dataset_capacity():
+def test_torch_container_capacity():
     dataset = make_dataset(capacity=5)
     dataset.append(torch.tensor([0.0, 0.0]), 0.0, False)
 
     assert dataset.capacity == 5
 
 
-def test_torch_dataset_append_batch_past_capacity_raises():
+def test_torch_container_append_batch_past_capacity_raises():
     a = make_dataset(capacity=2)
     a.append(torch.tensor([0.0, 0.0]), 0.0, False)
     a.append(torch.tensor([1.0, 1.0]), 1.0, True)
@@ -99,7 +99,7 @@ def test_torch_dataset_append_batch_past_capacity_raises():
     assert caught
 
 
-def test_torch_dataset_reserve_grows_and_preserves():
+def test_torch_container_reserve_grows_and_preserves():
     dataset = make_dataset(capacity=2)
     dataset.append(torch.tensor([0.0, 1.0]), 0.5, False)
     dataset.append(torch.tensor([2.0, 3.0]), 1.5, True)
@@ -117,7 +117,7 @@ def test_torch_dataset_reserve_grows_and_preserves():
     assert torch.equal(dataset.column(1), torch.tensor([0.5, 1.5, 2.5]))
 
 
-def test_torch_dataset_reserve_noop_when_enough():
+def test_torch_container_reserve_noop_when_enough():
     dataset = make_dataset(capacity=8)
     dataset.append(torch.tensor([0.0, 0.0]), 0.0, False)
 
@@ -126,7 +126,7 @@ def test_torch_dataset_reserve_noop_when_enough():
     assert dataset.capacity == 8
 
 
-def test_torch_dataset_n_episodes():
+def test_torch_container_n_episodes():
     dataset = make_dataset()
     for i in range(4):
         dataset.append(torch.tensor([0.0, 0.0]), 0.0, i in (1, 3))
@@ -142,20 +142,20 @@ def test_torch_dataset_n_episodes():
     assert open_dataset.n_episodes(2, skip_incomplete=False) == 1
 
 
-def test_torch_dataset_from_array():
+def test_torch_container_from_array():
     states = torch.arange(6).reshape(3, 2).float()
     rewards = torch.arange(3).float()
     lasts = torch.tensor([False, False, True])
 
-    dataset = TorchDataset.from_array([states, rewards, lasts])
+    dataset = TorchContainer.from_array([states, rewards, lasts])
 
     assert len(dataset) == 3
     assert torch.equal(dataset.column(0), states)
     assert dataset.n_episodes(2) == 1
 
 
-def test_torch_dataset_truncates_to_n_envs():
-    dataset = TorchDataset([(4, 2)], [torch.float], n_envs=2)
+def test_torch_container_truncates_to_n_envs():
+    dataset = TorchContainer([(4, 2)], [torch.float], n_envs=2)
     dataset.append(torch.tensor([10.0, 20.0, 30.0]))
 
     assert torch.equal(dataset.column(0), torch.tensor([[10.0, 20.0]]))

@@ -582,6 +582,22 @@ class ArrayBackend(object):
         """
         raise NotImplementedError
 
+    @classmethod
+    def concatenate_arrays(cls, list_of_arrays, dim=0):
+        """
+        :meth:`concatenate` for numeric arrays: the result is an array even when this backend stores its data as
+        lists.
+
+        Args:
+            list_of_arrays: a list of numeric arrays to concatenate;
+            dim (int, 0): dimension along which the arrays are concatenated.
+
+        Returns:
+            The arrays in ``list_of_arrays`` concatenated along ``dim``.
+
+        """
+        return cls.concatenate(list_of_arrays, dim)
+
     @staticmethod
     def flatten(array):
         """
@@ -617,6 +633,22 @@ class ArrayBackend(object):
 
         """
         raise NotImplementedError
+
+    @classmethod
+    def pack_padded_arrays(cls, array, mask):
+        """
+        :meth:`pack_padded_sequence` for a numeric array: the result is an array even when this backend stores its
+        data as lists.
+
+        Args:
+            array: a numeric array of shape ``(A, B, ...)``;
+            mask: a boolean array of shape ``(A, B)`` marking the entries of ``array`` to keep.
+
+        Returns:
+            The entries of ``array`` selected by ``mask``, as in :meth:`pack_padded_sequence`.
+
+        """
+        return cls.pack_padded_sequence(array, mask)
 
     @staticmethod
     def masked_select(array, mask):
@@ -738,6 +770,19 @@ class ArrayBackend(object):
 
         Returns:
             The sum of ``array`` along ``dim``.
+
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def cumsum(array, dim=0):
+        """
+        Args:
+            array: an array;
+            dim (int, 0): dimension along which the cumulative sum is computed.
+
+        Returns:
+            The cumulative sum of ``array`` along ``dim``.
 
         """
         raise NotImplementedError
@@ -1095,6 +1140,10 @@ class NumpyBackend(ArrayBackend):
         return np.sum(array, axis=dim)
 
     @staticmethod
+    def cumsum(array, dim=0):
+        return np.cumsum(array, axis=dim)
+
+    @staticmethod
     def median(array):
         return np.median(array)
 
@@ -1353,6 +1402,10 @@ class TorchBackend(ArrayBackend):
         return torch.sum(array, dim=dim)
 
     @staticmethod
+    def cumsum(array, dim=0):
+        return torch.cumsum(array, dim=dim)
+
+    @staticmethod
     def median(array):
         return array.median()
 
@@ -1549,6 +1602,10 @@ class ListBackend(ArrayBackend):
             result += list(array)
         return result
 
+    @classmethod
+    def concatenate_arrays(cls, list_of_arrays, dim=0):
+        return NumpyBackend.concatenate(list_of_arrays, dim)
+
     @staticmethod
     def flatten(array):
         n_steps = len(array)
@@ -1560,6 +1617,10 @@ class ListBackend(ArrayBackend):
         n_steps = len(array)
         n_envs = mask.shape[1]
         return [array[s][e] for e in range(n_envs) for s in range(n_steps) if mask[s, e]]
+
+    @classmethod
+    def pack_padded_arrays(cls, array, mask):
+        return NumpyBackend.pack_padded_sequence(array, mask)
 
     @staticmethod
     def masked_select(array, mask):
@@ -1597,6 +1658,10 @@ class ListBackend(ArrayBackend):
     @staticmethod
     def sum(array, dim=None):
         return NumpyBackend.sum(array, dim)
+
+    @staticmethod
+    def cumsum(array, dim=0):
+        return NumpyBackend.cumsum(array, dim)
 
     @staticmethod
     def median(array):

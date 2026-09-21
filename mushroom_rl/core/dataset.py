@@ -9,7 +9,9 @@ from mushroom_rl.core.mushroom_object import MushroomObject
 from mushroom_rl.core.array_backend import ArrayBackend
 from mushroom_rl.core.extra_info import ExtraInfo
 
-from ._impl import NumpyDataset, TorchDataset, ListDataset
+from ._impl.containers import Container
+from ._impl.storage_strategy import UntrackedRows, ContiguousRows, GridRows
+from ._impl.history_state import HistoryState, GridHistoryState
 
 from mushroom_rl.utils.episodes import split_episodes
 
@@ -168,8 +170,8 @@ class DatasetInfo(MushroomObject):
 class Dataset(MushroomObject):
     """
     Collection of the transitions gathered while an agent interacts with an environment. The data is split into
-    two backend-aware groups, each delegated to a backend-specific columnar container (``NumpyDataset``,
-    ``TorchDataset`` or ``ListDataset``):
+    two backend-aware groups, each delegated to a backend-specific columnar container (``NumpyContainer``,
+    ``TorchContainer`` or ``ListContainer``):
 
     - The environment data (state, action, reward, next state, absorbing and last flags), kept in the
       environment backend;
@@ -220,17 +222,20 @@ class Dataset(MushroomObject):
         self._base_shape = self._compute_base_shape(dataset_info, n_steps, n_episodes, core_counts_episodes)
 
         env_shapes, env_dtypes = self._env_specs(dataset_info, self._base_shape)
-        self._data = self._make_container(dataset_info.env_backend, env_shapes, env_dtypes,
-                                          dataset_info.env_device, n_envs)
+        self._data = Container.create(dataset_info.env_backend, env_shapes, env_dtypes, dataset_info.env_device,
+                                      n_envs)
 
         if dataset_info.policy_state_shape is not None:
             policy_shapes, policy_dtypes = self._policy_specs(dataset_info, self._base_shape)
             # the policy state lives in the agent backend, but a list (infinite-horizon) env keeps it growable
             agent_backend = 'list' if dataset_info.env_backend == 'list' else dataset_info.agent_backend
-            self._agent_data = self._make_container(agent_backend, policy_shapes, policy_dtypes,
-                                                    dataset_info.agent_device, n_envs)
+            self._agent_data = Container.create(agent_backend, policy_shapes, policy_dtypes,
+                                                dataset_info.agent_device, n_envs)
         else:
             self._agent_data = None
+
+        self._storage_strategy = ContiguousRows()
+        self._history_state = HistoryState(dataset_info.agent_backend, dataset_info.agent_device)
 
         self._add_all_save_attr()
 
@@ -248,6 +253,10 @@ class Dataset(MushroomObject):
         result._extras = self._extras + other._extras
         result._data = self._data + other._data
         result._agent_data = (self._agent_data + other._agent_data) if self._agent_data is not None else None
+        last, other_last = self._last_array(), other._last_array()
+        stitched = self._storage_strategy.stitches(other._storage_strategy, last, other_last)
+        result._storage_strategy = self._storage_strategy.concatenate(other._storage_strategy, last, other_last)
+        result._history_state = self._history_state.concatenate(other._history_state, len(self), stitched)
 
         return result
 
@@ -265,6 +274,7 @@ class Dataset(MushroomObject):
         return len(self._data)
 
     def append(self, step, info):
+        self._storage_strategy = self._storage_strategy.append(self.last)
         self._store_step(step)
         self._extras.append_step(info)
 
@@ -278,9 +288,11 @@ class Dataset(MushroomObject):
             other (Dataset): dataset whose transitions will be appended.
 
         """
-        self._data.append_batch(other._data)
-        if self._agent_data is not None:
-            self._agent_data.append_batch(other._agent_data)
+        last, other_last = self._last_array(), other._last_array()
+        stitched = self._storage_strategy.stitches(other._storage_strategy, last, other_last)
+        self._history_state = self._history_state.concatenate(other._history_state, len(self), stitched)
+        self._storage_strategy = self._storage_strategy.append_batch(other._storage_strategy, last, other_last)
+        self._append_rows(other)
 
     def reserve(self, capacity):
         """
@@ -295,6 +307,7 @@ class Dataset(MushroomObject):
         self._data.reserve(capacity)
         if self._agent_data is not None:
             self._agent_data.reserve(capacity)
+        self._storage_strategy.reserve(capacity)
 
     def append_episode_info(self, info, mask=None):
         """
@@ -323,7 +336,21 @@ class Dataset(MushroomObject):
         else:
             return self.info[field][index]
 
-    def clear(self):
+    def clear(self, history_context=None):
+        """
+        Clear the dataset.
+
+        Args:
+            history_context (HistoryContext, None): the history stream content around the most recent step; when the
+                next row continues the cleared ones, its window is rebuilt from it.
+
+        """
+        self._storage_strategy = self._storage_strategy.clear(self._last_array())
+        if history_context is not None and self._storage_strategy.continues:
+            self._history_state = HistoryState.from_context(self._dataset_info.agent_backend,
+                                                            self._dataset_info.agent_device, history_context)
+        else:
+            self._history_state = self._history_state.clear()
         self._extras.clear()
 
         self._data.clear()
@@ -336,6 +363,8 @@ class Dataset(MushroomObject):
         dataset._extras = self._extras.get_view(index, copy)
         dataset._data = self._data.get_view(index, copy)
         dataset._agent_data = self._agent_data.get_view(index, copy) if self._agent_data is not None else None
+        dataset._storage_strategy = self._storage_strategy.get_view(index, self._last_array())
+        dataset._history_state = self._history_state.get_view(index, len(self))
 
         return dataset
 
@@ -345,19 +374,22 @@ class Dataset(MushroomObject):
 
     def parse(self, to=None, device=None):
         """
-        Return the dataset as set of arrays.
+        Return the dataset as a set of arrays. The returned ``last`` flags mark the final row of every stored
+        segment: every episode end, every row whose successor is not stored right after it, and the final row.
+
         Args:
             to (str, None):  the backend to be used for the returned arrays. By default, the dataset backend is used;
             device (str, None): device the returned arrays are placed on, or ``None`` for the default one.
 
         Returns:
-            A tuple containing the arrays that define the dataset, i.e. state, action, next state, absorbing and last
+            A tuple containing the arrays that define the dataset, i.e. state, action, reward, next state, absorbing
+            and last.
 
         """
         if to is None:
             to = self._dataset_info.env_array_backend.get_backend_name()
-        return self._convert(self.state, self.action, self.reward, self.next_state, self.absorbing, self.last,
-                             to=to, device=device)
+        return self._convert(self.state, self.action, self.reward, self.next_state, self.absorbing,
+                             self.last_or_boundary, to=to, device=device)
 
     def parse_policy_state(self, to=None, device=None):
         """
@@ -393,13 +425,16 @@ class Dataset(MushroomObject):
                 and device in (None, self._dataset_info.env_device) \
                 and device in (None, self._dataset_info.agent_device):
             return self
-        state, action, reward, next_state, absorbing, last = self.parse(to=backend, device=device)
+        state, action, reward, next_state, absorbing, last = self._convert(
+            self.state, self.action, self.reward, self.next_state, self.absorbing, self.last, to=backend, device=device)
         policy_state, policy_next_state = (self.parse_policy_state(to=backend, device=device) if self.is_stateful
                                            else (None, None))
         return Dataset.from_array(state, action, reward, next_state, absorbing, last,
                                   policy_state=policy_state, policy_next_state=policy_next_state,
                                   extras=self._extras.to_backend(backend, device), backend=backend,
-                                  policy_backend=backend, device=device, agent_device=device)
+                                  policy_backend=backend, device=device, agent_device=device,
+                                  storage_strategy=self._storage_strategy.to_backend(backend, device),
+                                  history_state=self._history_state.to_backend(backend, device))
 
     def select_first_episodes(self, n_episodes):
         """
@@ -414,8 +449,19 @@ class Dataset(MushroomObject):
         """
         assert n_episodes > 0, 'Number of episodes must be greater than zero.'
 
-        last_idxs = np.argwhere(self.last).ravel()
-        return self[:last_idxs[n_episodes - 1] + 1]
+        backend = self._dataset_info.env_array_backend
+        last = self._last_array()
+        ends = self._segment_ends(last) > 0
+        flags = ends * 1
+        segment = backend.cumsum(flags) - flags
+        complete = (last[backend.where(ends)[0]] > 0) * 1
+        if int(backend.sum(complete)) < n_episodes:
+            raise IndexError
+        kept = (complete > 0) & (backend.cumsum(complete) <= n_episodes)
+        rows = backend.where(kept[segment])[0]
+        if int(rows[-1]) == len(rows) - 1:
+            return self[:len(rows)]
+        return self[rows]
 
     def select_random_samples(self, n_samples):
         """
@@ -447,12 +493,8 @@ class Dataset(MushroomObject):
             An array of initial states of the considered dataset.
 
         """
-        pick = True
-        x_0 = list()
-        for step in self:
-            if pick:
-                x_0.append(step[0])
-            pick = step[-1]
+        positions, is_episode_start = self._segment_starts(self._last_array())
+        x_0 = [self.state[int(i)] for i in positions[is_episode_start]]
         return self._dataset_info.env_array_backend.from_list(x_0, device=self._dataset_info.env_device)
 
     def compute_J(self, gamma=1., skip_incomplete=True):
@@ -471,22 +513,18 @@ class Dataset(MushroomObject):
         backend = self._dataset_info.env_array_backend
         device = self._dataset_info.env_device
 
-        last = backend.as_array(self.last, device=device)
+        last = self._last_array()
         reward = backend.as_array(self.reward, device=device)
-
-        if skip_incomplete:
-            last_idx = backend.nonzero(last)
-            n_complete_steps = last_idx[-1].item() + 1 if len(last_idx) > 0 else 0
-            last = last[:n_complete_steps]
-            reward = reward[:n_complete_steps]
 
         if len(last) == 0:
             return backend.zeros(0, device=device)
 
-        _, r_ep = split_episodes(last, reward)
+        ends_ep, r_ep, last_ep = split_episodes(self._segment_ends(last), reward, last)
 
         if len(r_ep.shape) == 1:
-            r_ep = backend.expand_dims(r_ep, 0)
+            ends_ep, r_ep, last_ep = (backend.expand_dims(array, 0) for array in (ends_ep, r_ep, last_ep))
+        if skip_incomplete:
+            r_ep = r_ep[last_ep[ends_ep > 0] > 0]
         if self._dataset_info.env_backend == 'torch':
             js = backend.zeros(r_ep.shape[0], dtype=r_ep.dtype, device=r_ep.device)
         else:
@@ -544,6 +582,8 @@ class Dataset(MushroomObject):
         new_dataset._extras = None
         new_dataset._data = None
         new_dataset._agent_data = None
+        new_dataset._storage_strategy = None
+        new_dataset._history_state = None
 
         new_dataset._add_all_save_attr()
 
@@ -552,7 +592,8 @@ class Dataset(MushroomObject):
     @classmethod
     def from_array(cls, states, actions, rewards, next_states, absorbings, lasts,
                    policy_state=None, policy_next_state=None, extras=None,
-                   horizon=None, gamma=0.99, backend='numpy', policy_backend=None, device=None, agent_device=None):
+                   horizon=None, gamma=0.99, backend='numpy', policy_backend=None, device=None, agent_device=None,
+                   storage_strategy=None, history_state=None):
         """
         Creates a dataset of transitions from the provided arrays.
 
@@ -571,7 +612,11 @@ class Dataset(MushroomObject):
             backend (str, 'numpy'): backend to be used by the dataset;
             policy_backend (str, None): backend to be used for the policy state arrays; defaults to ``backend``;
             device (str, None): device the environment arrays are stored on, or ``None`` for the default one;
-            agent_device (str, None): device the policy state arrays are stored on, or ``None`` for the default one.
+            agent_device (str, None): device the policy state arrays are stored on, or ``None`` for the default one;
+            storage_strategy (StorageStrategy, None): how the rows are linked into trajectories; by default consecutive
+                rows are consecutive steps of one stream and row 0 continues nothing;
+            history_state (HistoryState, None): the policy input windows attached to the rows that start a segment
+                continuing rows stored elsewhere; empty by default.
 
         Returns:
             The list of transitions.
@@ -590,13 +635,16 @@ class Dataset(MushroomObject):
         dataset._extras = ExtraInfo(1, backend) if extras is None else extras.copy()
 
         env_arrays = [states, actions, rewards, next_states, absorbings, lasts]
-        dataset._data = cls._container_from_array(backend, env_arrays, device)
+        dataset._data = Container.from_array(env_arrays, device=device, backend=backend)
 
         if policy_state is not None:
             agent_arrays = [policy_state, policy_next_state]
-            dataset._agent_data = cls._container_from_array(policy_backend, agent_arrays, agent_device)
+            dataset._agent_data = Container.from_array(agent_arrays, device=agent_device, backend=policy_backend)
         else:
             dataset._agent_data = None
+
+        dataset._storage_strategy = ContiguousRows() if storage_strategy is None else storage_strategy
+        dataset._history_state = HistoryState(policy_backend, agent_device) if history_state is None else history_state
 
         state_shape = cls._infer_shape(states)
         action_shape = cls._infer_shape(actions)
@@ -632,6 +680,18 @@ class Dataset(MushroomObject):
     @property
     def last(self):
         return self._data.column(self._Field.LAST)
+
+    @property
+    def last_or_boundary(self):
+        """
+        The flags marking the final row of every stored segment: every ``last`` plus every row whose successor is not
+        stored right after it, and the final row. The ``last`` of :meth:`parse`.
+
+        """
+        ends = self._storage_strategy.segment_ends(self._last_array())
+        if self._dataset_info.env_backend == 'list':
+            return list(ends)
+        return ends
 
     @property
     def policy_state(self):
@@ -680,15 +740,16 @@ class Dataset(MushroomObject):
             An array with the length of each episode in the dataset.
 
         """
-        lengths = list()
-        length = 0
-        for sample in self:
-            length += 1
-            if sample[-1] == 1:
-                lengths.append(length)
-                length = 0
+        backend = self._dataset_info.env_array_backend
+        device = self._dataset_info.env_device
 
-        return self._dataset_info.env_array_backend.as_array(lengths, device=self._dataset_info.env_device)
+        last = self._last_array()
+        if len(last) == 0:
+            return backend.as_array(list(), device=device)
+
+        end = backend.where(self._segment_ends(last) > 0)[0]
+        start = backend.concatenate([backend.zeros(1, dtype=int, device=device), end[:-1] + 1])
+        return (end - start + 1)[last[end] > 0]
 
     @property
     def n_episodes(self):
@@ -718,6 +779,36 @@ class Dataset(MushroomObject):
         """
         return self._data.capacity
 
+    @property
+    def storage_strategy(self):
+        """
+        How the rows are linked into trajectories.
+
+        """
+        return self._storage_strategy
+
+    @property
+    def history_state(self):
+        """
+        The history stream entries attached to the rows that start a segment continuing rows stored elsewhere.
+
+        """
+        return self._history_state
+
+    def _last_array(self):
+        return self._dataset_info.env_array_backend.as_array(self.last, device=self._dataset_info.env_device)
+
+    def _segment_ends(self, last):
+        return self._storage_strategy.segment_ends(last)
+
+    def _segment_starts(self, last):
+        return self._storage_strategy.segment_starts(last)
+
+    def _append_rows(self, other):
+        self._data.append_batch(other._data)
+        if self._agent_data is not None:
+            self._agent_data.append_batch(other._agent_data)
+
     def _store_step(self, step):
         self._data.append(*step[:len(self._Field)])
         if self._agent_data is not None:
@@ -741,6 +832,8 @@ class Dataset(MushroomObject):
             _extras='mushroom',
             _data='mushroom',
             _agent_data='mushroom',
+            _storage_strategy='mushroom',
+            _history_state='mushroom',
             _base_shape='primitive',
             _dataset_info='mushroom'
         )
@@ -795,24 +888,6 @@ class Dataset(MushroomObject):
         return shapes, dtypes
 
     @staticmethod
-    def _make_container(backend_name, shapes, dtypes, device=None, n_envs=None):
-        if backend_name == 'numpy':
-            return NumpyDataset(shapes, dtypes, n_envs=n_envs)
-        elif backend_name == 'torch':
-            return TorchDataset(shapes, dtypes, device=device, n_envs=n_envs)
-        else:
-            return ListDataset(len(shapes), n_envs=n_envs)
-
-    @staticmethod
-    def _container_from_array(backend_name, arrays, device=None):
-        if backend_name == 'numpy':
-            return NumpyDataset.from_array(arrays)
-        elif backend_name == 'torch':
-            return TorchDataset.from_array(arrays, device=device)
-        else:
-            return ListDataset.from_array(arrays)
-
-    @staticmethod
     def _infer_shape(data):
         if hasattr(data, 'shape'):
             return data.shape[1:]
@@ -823,6 +898,29 @@ class Dataset(MushroomObject):
         if hasattr(data, 'dtype'):
             return data.dtype
         return data[0].dtype if len(data) and hasattr(data[0], 'dtype') else None
+
+
+class CircularDataset(Dataset):
+    """
+    :class:`Dataset` variant backing a circular replay buffer. Its rows are not stored as one stream: their links are
+    not tracked, its parsed ``last`` flags are the stored ones and no history entries are attached.
+
+    """
+    def __init__(self, dataset_info, max_size):
+        """
+        Constructor.
+
+        Args:
+            dataset_info (DatasetInfo): the static information used to build the dataset;
+            max_size (int): the capacity of the buffer.
+
+        """
+        super().__init__(dataset_info, n_steps=max_size)
+
+        self._storage_strategy = UntrackedRows()
+
+    def append_batch(self, other):
+        self._append_rows(other)
 
 
 class VectorizedDataset(Dataset):
@@ -837,9 +935,12 @@ class VectorizedDataset(Dataset):
         super().__init__(dataset_info, n_steps, n_episodes, core_counts_episodes)
 
         mask_shape = self._base_shape if self._base_shape is not None else ()
-        self._mask_data = self._make_container(dataset_info.env_backend, [mask_shape],
-                                               [self._dataset_info.env_array_backend.to_backend_dtype(bool)],
-                                               dataset_info.env_device, self._data.n_envs)
+        self._mask_data = Container.create(dataset_info.env_backend, [mask_shape],
+                                           [self._dataset_info.env_array_backend.to_backend_dtype(bool)],
+                                           dataset_info.env_device, self._data.n_envs)
+        self._storage_strategy = GridRows(self._data.n_envs, dataset_info.env_backend, dataset_info.env_device)
+        self._history_state = GridHistoryState(self._data.n_envs, dataset_info.agent_backend,
+                                               dataset_info.agent_device)
 
     def __add__(self, other):
         result = super().__add__(other)
@@ -884,60 +985,24 @@ class VectorizedDataset(Dataset):
         """
         self._extras.append_theta_vectorized(theta, mask)
 
-    def consume(self, n_steps):
-        """
-        Split off the first ``n_steps`` steps in collection (row-major) order (or all of them when ``n_steps``
-        is ``None``): return a lightweight vectorized dataset that shares this one's data but whose mask keeps
-        only those consumed steps, and mark those same steps inactive in this dataset's own mask so that only the
-        leftover remains active.
-
-        Args:
-            n_steps (int, None): number of steps to consume.
-
-        Returns:
-            A vectorized dataset masked to the consumed steps.
-
-        """
-        backend = self._dataset_info.env_array_backend
-        mask = self.mask
-        active = backend.where(mask.reshape(-1))[0]
-        n_steps = len(active) if n_steps is None else n_steps
-        assert 0 <= n_steps <= len(active)
-
-        consumed_mask = backend.copy(mask)
-        consumed_mask.reshape(-1)[active[n_steps:]] = False
-
-        leftover_mask = backend.copy(mask)
-        leftover_mask.reshape(-1)[active[:n_steps]] = False
-        mask_column = self._mask_data.column()
-        if isinstance(mask_column, list):
-            mask_column[:] = list(leftover_mask)
-        else:
-            mask_column[:] = leftover_mask
-
-        view = self.create_raw_instance(dataset=self)
-        view._extras = self._extras
-        view._data = self._data
-        view._agent_data = self._agent_data
-        view._mask_data = self._mask_data.from_array([consumed_mask])
-
-        return view
-
-    def clear(self, keep_leftovers=False):
+    def clear(self, keep_leftovers=False, history_context=None):
         """
         Clear the dataset. By default, the whole dataset is wiped. With ``keep_leftovers=True`` the steps still
-        active after a :meth:`consume` (the leftover the fit did not consume) are compacted to the front and
+        active after a :meth:`flatten` (the leftover the fit did not consume) are compacted to the front and
         kept, so the next fit starts with them.
 
         Args:
-            keep_leftovers (bool, False): whether to keep the leftover steps instead of wiping everything.
+            keep_leftovers (bool, False): whether to keep the leftover steps instead of wiping everything;
+            history_context (HistoryContext, None): the history stream content around the most recent step; the
+                first row of every environment in the next flat dataset that continues the cleared rows gets its
+                window rebuilt from it.
 
         Returns:
             The number of steps kept.
 
         """
+        backend = self._dataset_info.env_array_backend
         if keep_leftovers:
-            backend = self._dataset_info.env_array_backend
             row_active = backend.sum(self.mask, dim=1)
             n_carry = int(row_active.sum().item())
 
@@ -948,61 +1013,32 @@ class VectorizedDataset(Dataset):
                     self._agent_data.compact(split_row)
                 self._mask_data.compact(split_row)
                 self._extras.keep_from(split_row)
+                self._history_state.reset(history_context, self.mask[0], backend)
 
                 return n_carry
 
         super().clear()
         self._mask_data.clear()
+        self._history_state.reset(history_context, backend.zeros(self._data.n_envs, dtype=bool,
+                                                                 device=self._dataset_info.env_device), backend)
 
         return 0
 
-    def flatten(self):
+    def flatten(self, n_steps=None):
         """
         Turn the padded per-environment data into a flat :class:`Dataset`, dropping the inactive entries via the
-        mask and concatenating the environments end to end.
+        mask and concatenating the environments end to end. The flattened steps are the first ``n_steps`` active
+        ones in collection (row-major) order, or every active step when ``n_steps`` is ``None``, and they are marked
+        inactive in this dataset's mask so that only the leftover remains active.
+
+        Args:
+            n_steps (int, None): number of steps to split off.
 
         Returns:
             A flat :class:`Dataset`.
 
         """
-        if len(self) == 0:
-            return Dataset(self._dataset_info.flat(), n_steps=0)
-
-        mask = self.mask
-        env_backend = self._dataset_info.env_array_backend
-        agent_backend = self._dataset_info.agent_array_backend
-
-        states = env_backend.pack_padded_sequence(self.state, mask)
-        actions = env_backend.pack_padded_sequence(self.action, mask)
-        rewards = env_backend.pack_padded_sequence(self.reward, mask)
-        next_states = env_backend.pack_padded_sequence(self.next_state, mask)
-        absorbings = env_backend.pack_padded_sequence(self.absorbing, mask)
-
-        steps = env_backend.expand_dims(env_backend.arange(0, len(mask), device=self._dataset_info.env_device), 1)
-        block_end = mask & (steps == env_backend.max(env_backend.where(mask, steps, -1), dim=0))
-
-        last_padded = env_backend.copy(env_backend.as_array(self.last, device=self._dataset_info.env_device))
-        last_padded[block_end] = True
-        lasts = env_backend.pack_padded_sequence(last_padded, mask)
-
-        policy_state = None
-        policy_next_state = None
-
-        if self.is_stateful:
-            policy_mask = agent_backend.convert_mask(mask, backend=env_backend, device=self._dataset_info.agent_device)
-            policy_state = agent_backend.pack_padded_sequence(self.policy_state, policy_mask)
-            policy_next_state = agent_backend.pack_padded_sequence(self.policy_next_state, policy_mask)
-
-        flat_extras = self._extras.flatten(mask)
-
-        return Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
-                                  policy_state=policy_state, policy_next_state=policy_next_state,
-                                  extras=flat_extras, horizon=self._dataset_info.horizon,
-                                  gamma=self._dataset_info.gamma,
-                                  backend=env_backend.get_backend_name(),
-                                  policy_backend=agent_backend.get_backend_name(),
-                                  device=self._dataset_info.env_device,
-                                  agent_device=self._dataset_info.agent_device)
+        return self._consume(n_steps)._flatten()
 
     def get_view(self, index, copy=False):
         dataset = super().get_view(index, copy)
@@ -1024,6 +1060,75 @@ class VectorizedDataset(Dataset):
         """
         return self._dataset_info.env_array_backend.convert_mask(self._mask_data.column(),
                                                                  device=self._dataset_info.env_device)
+
+    def _consume(self, n_steps):
+        backend = self._dataset_info.env_array_backend
+        mask = self.mask
+        active = backend.where(mask.reshape(-1))[0]
+        n_steps = len(active) if n_steps is None else n_steps
+        assert 0 <= n_steps <= len(active)
+
+        consumed_mask = backend.copy(mask)
+        consumed_mask.reshape(-1)[active[n_steps:]] = False
+
+        leftover_mask = backend.copy(mask)
+        leftover_mask.reshape(-1)[active[:n_steps]] = False
+        mask_column = self._mask_data.column()
+        if isinstance(mask_column, list):
+            mask_column[:] = list(leftover_mask)
+        else:
+            mask_column[:] = leftover_mask
+
+        view = self.create_raw_instance(dataset=self)
+        view._extras = self._extras
+        view._data = self._data
+        view._agent_data = self._agent_data
+        view._storage_strategy = self._storage_strategy
+        view._history_state = self._history_state
+        view._mask_data = self._mask_data.from_array([consumed_mask])
+
+        return view
+
+    def _flatten(self):
+        if len(self) == 0:
+            return Dataset(self._dataset_info.flat(), n_steps=0)
+
+        mask = self.mask
+        env_backend = self._dataset_info.env_array_backend
+        agent_backend = self._dataset_info.agent_array_backend
+
+        states = env_backend.pack_padded_sequence(self.state, mask)
+        actions = env_backend.pack_padded_sequence(self.action, mask)
+        rewards = env_backend.pack_padded_sequence(self.reward, mask)
+        next_states = env_backend.pack_padded_sequence(self.next_state, mask)
+        absorbings = env_backend.pack_padded_sequence(self.absorbing, mask)
+
+        last = self._last_array()
+        lasts = env_backend.pack_padded_sequence(last, mask)
+        storage_strategy, env_of_row = self._storage_strategy.stamp(mask, last)
+        positions, is_episode_start = storage_strategy.segment_starts(lasts)
+        history_state = self._history_state.emit(positions, env_of_row[positions], is_episode_start,
+                                                 storage_strategy.array_backend)
+
+        policy_state = None
+        policy_next_state = None
+
+        if self.is_stateful:
+            policy_mask = agent_backend.convert_mask(mask, backend=env_backend, device=self._dataset_info.agent_device)
+            policy_state = agent_backend.pack_padded_sequence(self.policy_state, policy_mask)
+            policy_next_state = agent_backend.pack_padded_sequence(self.policy_next_state, policy_mask)
+
+        flat_extras = self._extras.flatten(mask)
+
+        return Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
+                                  policy_state=policy_state, policy_next_state=policy_next_state,
+                                  extras=flat_extras, horizon=self._dataset_info.horizon,
+                                  gamma=self._dataset_info.gamma,
+                                  backend=env_backend.get_backend_name(),
+                                  policy_backend=agent_backend.get_backend_name(),
+                                  device=self._dataset_info.env_device,
+                                  agent_device=self._dataset_info.agent_device,
+                                  storage_strategy=storage_strategy, history_state=history_state)
 
     def _add_all_save_attr(self):
         super()._add_all_save_attr()

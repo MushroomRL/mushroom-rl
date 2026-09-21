@@ -1,6 +1,6 @@
 import numpy as np
 
-from mushroom_rl.core._impl.list_dataset import ListDataset
+from mushroom_rl.core._impl.list_container import ListContainer
 
 
 def build_columns(n, terminal_last=True):
@@ -15,10 +15,10 @@ def build_columns(n, terminal_last=True):
     return [states, actions, rewards, next_states, absorbing, last]
 
 
-def test_list_dataset_from_array_columns():
+def test_list_container_from_array_columns():
     n = 5
     columns = build_columns(n)
-    dataset = ListDataset.from_array(columns)
+    dataset = ListContainer.from_array(columns)
 
     assert len(dataset) == n
     assert dataset.n_columns == 6
@@ -28,8 +28,8 @@ def test_list_dataset_from_array_columns():
     assert len(dataset.data) == 6
 
 
-def test_list_dataset_append_and_len():
-    dataset = ListDataset(6)
+def test_list_container_append_and_len():
+    dataset = ListContainer(6)
 
     dataset.append(np.zeros(2), np.zeros(1), 1.0, np.ones(2), False, False)
     dataset.append(np.ones(2), np.ones(1), 2.0, np.ones(2) * 2, False, True)
@@ -39,8 +39,8 @@ def test_list_dataset_append_and_len():
     assert dataset.column(5) == [False, True]
 
 
-def test_list_dataset_append_isolation():
-    dataset = ListDataset(6)
+def test_list_container_append_isolation():
+    dataset = ListContainer(6)
 
     state = np.zeros(2)
     dataset.append(state, np.zeros(1), 0.0, np.zeros(2), False, False)
@@ -49,9 +49,9 @@ def test_list_dataset_append_isolation():
     assert dataset.column(0)[0][0] == 0.0
 
 
-def test_list_dataset_append_batch():
-    dataset = ListDataset.from_array(build_columns(3))
-    other = ListDataset.from_array(build_columns(2))
+def test_list_container_append_batch():
+    dataset = ListContainer.from_array(build_columns(3))
+    other = ListContainer.from_array(build_columns(2))
 
     dataset.append_batch(other)
 
@@ -59,8 +59,8 @@ def test_list_dataset_append_batch():
     assert dataset.column(2) == [0.0, 1.0, 2.0, 0.0, 1.0]
 
 
-def test_list_dataset_clear():
-    dataset = ListDataset.from_array(build_columns(3))
+def test_list_container_clear():
+    dataset = ListContainer.from_array(build_columns(3))
 
     dataset.clear()
 
@@ -68,8 +68,8 @@ def test_list_dataset_clear():
     assert dataset.n_columns == 6
 
 
-def test_list_dataset_get_view():
-    dataset = ListDataset.from_array(build_columns(6))
+def test_list_container_get_view():
+    dataset = ListContainer.from_array(build_columns(6))
 
     view_slice = dataset.get_view(slice(0, 3))
     assert len(view_slice) == 3
@@ -80,8 +80,8 @@ def test_list_dataset_get_view():
     assert view_index.column(2) == [0.0, 2.0, 4.0]
 
 
-def test_list_dataset_get_view_copy_isolation():
-    dataset = ListDataset.from_array(build_columns(4))
+def test_list_container_get_view_copy_isolation():
+    dataset = ListContainer.from_array(build_columns(4))
 
     view_copy = dataset.get_view(slice(0, 2), copy=True)
     view_copy.column(0)[0][0] = 123.0
@@ -89,8 +89,8 @@ def test_list_dataset_get_view_copy_isolation():
     assert dataset.column(0)[0][0] == 0.0
 
 
-def test_list_dataset_getitem_returns_step():
-    dataset = ListDataset.from_array(build_columns(4))
+def test_list_container_getitem_returns_step():
+    dataset = ListContainer.from_array(build_columns(4))
 
     step = dataset[1]
 
@@ -99,9 +99,9 @@ def test_list_dataset_getitem_returns_step():
     assert step[2] == 1.0
 
 
-def test_list_dataset_add():
-    dataset_a = ListDataset.from_array(build_columns(3, terminal_last=False))
-    dataset_b = ListDataset.from_array(build_columns(2))
+def test_list_container_add():
+    dataset_a = ListContainer.from_array(build_columns(3, terminal_last=False))
+    dataset_b = ListContainer.from_array(build_columns(2))
 
     result = dataset_a + dataset_b
 
@@ -110,14 +110,14 @@ def test_list_dataset_add():
     assert dataset_a.column(5) == [0.0, 0.0, 0.0]
 
 
-def test_list_dataset_capacity_is_none():
-    dataset = ListDataset.from_array(build_columns(3))
+def test_list_container_capacity_is_none():
+    dataset = ListContainer.from_array(build_columns(3))
 
     assert dataset.capacity is None
 
 
-def test_list_dataset_reserve_is_noop():
-    dataset = ListDataset.from_array(build_columns(3))
+def test_list_container_reserve_is_noop():
+    dataset = ListContainer.from_array(build_columns(3))
 
     dataset.reserve(100)
 
@@ -125,29 +125,29 @@ def test_list_dataset_reserve_is_noop():
     assert dataset.capacity is None
 
 
-def test_list_dataset_column_single():
-    dataset = ListDataset(1)
+def test_list_container_column_single():
+    dataset = ListContainer(1)
     dataset.append(np.array([True, False]))
     dataset.append(np.array([True, True]))
 
     assert np.array_equal(np.array(dataset.column()), np.array([[True, False], [True, True]]))
 
 
-def test_list_dataset_n_episodes_terminal():
-    dataset = ListDataset.from_array(build_columns(5))
+def test_list_container_n_episodes_terminal():
+    dataset = ListContainer.from_array(build_columns(5))
 
     assert dataset.n_episodes(5) == 1
 
 
-def test_list_dataset_n_episodes_open():
-    dataset = ListDataset.from_array(build_columns(4, terminal_last=False))
+def test_list_container_n_episodes_open():
+    dataset = ListContainer.from_array(build_columns(4, terminal_last=False))
 
     assert dataset.n_episodes(5) == 0
     assert dataset.n_episodes(5, skip_incomplete=False) == 1
 
 
-def test_list_dataset_ragged_content():
-    dataset = ListDataset(6)
+def test_list_container_ragged_content():
+    dataset = ListContainer(6)
     dataset.append([0.0], 0, 0.0, [0.0, 1.0], False, False)
     dataset.append([0.0, 1.0, 2.0], 1, 1.0, [0.0], False, True)
 
@@ -156,8 +156,8 @@ def test_list_dataset_ragged_content():
     assert dataset.n_episodes(5) == 1
 
 
-def test_list_dataset_truncates_to_n_envs():
-    dataset = ListDataset(1, n_envs=2)
+def test_list_container_truncates_to_n_envs():
+    dataset = ListContainer(1, n_envs=2)
     dataset.append([10.0, 20.0, 30.0])
 
     assert dataset.column(0)[0] == [10.0, 20.0]

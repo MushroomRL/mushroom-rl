@@ -196,7 +196,7 @@ def test_vectorized_extra_info():
     assert dataset.info['v'] == [1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0, 4.0, 1.0, 2.0,
                                  1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0, 4.0, 1.0, 2.0,
                                  1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0, 4.0, 1.0, 2.0]
-    assert np.array_equal(dataset.compute_J(), np.array([4., 4., 2., 4., 4., 2., 4., 4., 2.]))
+    assert np.array_equal(dataset.compute_J(), np.array([4., 4., 4., 4., 4., 4.]))
 
     core.learn(n_steps=40, n_steps_per_fit=7, quiet=True)
     core.learn(n_episodes=6, n_episodes_per_fit=2, quiet=True)

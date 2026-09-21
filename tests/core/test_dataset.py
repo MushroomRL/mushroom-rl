@@ -51,7 +51,7 @@ def test_dataset():
     r_test = np.zeros(2)
     ss_test = np.array([[1], [2]])
     ab_test = np.zeros(2)
-    last_test = np.zeros(2)
+    last_test = np.ones(2)
     assert np.array_equal(s, s_test)
     assert np.array_equal(a, a_test)
     assert np.array_equal(r, r_test)

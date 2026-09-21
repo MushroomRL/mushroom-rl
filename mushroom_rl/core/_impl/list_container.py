@@ -1,9 +1,9 @@
 from copy import deepcopy
 
-from mushroom_rl.core.mushroom_object import MushroomObject
+from mushroom_rl.core._impl.containers import Container
 
 
-class ListDataset(MushroomObject):
+class ListContainer(Container, backend='list'):
     """
     Growable storage using plain Python lists. It grows without pre-allocation (which allows collecting episodes of
     unbounded/infinite horizon) and can hold ragged or non-array content. Holds an ordered list of equal-length columns
@@ -85,7 +85,7 @@ class ListDataset(MushroomObject):
         Creates an empty instance of the dataset and populates essential data structures.
 
         Args:
-            dataset (ListDataset, None): a template dataset to be used to create the new instance.
+            dataset (ListContainer, None): a template dataset to be used to create the new instance.
 
         Returns:
             A new empty instance of the dataset.
@@ -101,7 +101,11 @@ class ListDataset(MushroomObject):
         return new_dataset
 
     @classmethod
-    def from_array(cls, arrays):
+    def _allocate(cls, shapes, dtypes, device, n_envs):
+        return cls(len(shapes), n_envs=n_envs)
+
+    @classmethod
+    def _from_array_impl(cls, arrays, device):
         dataset = cls.create_new_instance()
 
         dataset._columns = [list(array) for array in arrays]

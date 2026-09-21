@@ -95,10 +95,14 @@ Reconstructing offline
 
 The same stacking rule is exposed offline through
 :meth:`~mushroom_rl.core.history_manager.HistoryManager.build_history`, which rebuilds one window per timestep
-from a stored buffer, walking backwards from each anchor up to the stream length and stopping at episode
-boundaries (given by the ``last`` flags) or at the start of the buffer, zero-padding the missing older entries.
-Feeding it the same dataset's ``state``, ``action`` and ``last`` columns reproduces *exactly* the windows
-assembled online:
+from a stored buffer, walking backwards from each anchor up to the stream length and stopping at segment
+boundaries (the ``last`` flags returned by :meth:`~mushroom_rl.core.Dataset.parse`: every episode end plus the end
+of every stored segment) or at the start of the buffer, zero-padding the missing older entries. Where a segment
+continues rows stored elsewhere, e.g. the first rows of an environment in a fit block, the dataset carries the
+stream entries that preceded it (:attr:`~mushroom_rl.core.Dataset.history_state`), and
+:meth:`~mushroom_rl.core.history_manager.HistoryManager.build_history` reads the older entries from them instead
+of zero-padding. Feeding it the same dataset's ``state``, ``action`` and parsed ``last`` columns reproduces
+*exactly* the windows assembled online:
 
 .. literalinclude:: code/history_manager.py
    :lines: 43-52
@@ -120,8 +124,9 @@ whole dataset at once through
 absorbing, last, extra)``: ``state`` and ``next_state`` carry the stacked ``obs_history`` window (or the raw
 observation, unchanged, when the stream is not active) in place of the single-step observation, and ``extra`` maps
 every other active stream (e.g. ``action_history``) to its window, exactly as returned by
-:meth:`~mushroom_rl.core.history_manager.HistoryManager.__call__` while acting. ``action``, ``reward``, ``absorbing``
-and ``last`` are the raw per-transition values, not stacked. As with :meth:`~mushroom_rl.core.Dataset.parse`, the
+:meth:`~mushroom_rl.core.history_manager.HistoryManager.__call__` while acting. ``action``, ``reward`` and
+``absorbing`` are the raw per-transition values, not stacked, and ``last`` is the segment-end flag of
+:meth:`~mushroom_rl.core.Dataset.parse`. As with :meth:`~mushroom_rl.core.Dataset.parse`, the
 ``to`` argument picks the backend of the returned arrays, defaulting to the manager's own agent backend:
 
 .. literalinclude:: code/history_manager.py

@@ -1,5 +1,4 @@
 from mushroom_rl.utils.callbacks.callback import Callback
-from mushroom_rl.core.dataset import VectorizedDataset
 
 
 class CollectDataset(Callback):
@@ -36,6 +35,4 @@ class CollectDataset(Callback):
         self._dataset.clear()
 
     def get(self):
-        if isinstance(self._dataset, VectorizedDataset):
-            return self._dataset.flatten()
         return self._dataset

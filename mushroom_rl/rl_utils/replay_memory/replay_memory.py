@@ -1,4 +1,5 @@
-from mushroom_rl.core import DatasetInfo, Dataset, MushroomObject
+from mushroom_rl.core import DatasetInfo, MushroomObject
+from mushroom_rl.core.dataset import CircularDataset
 from mushroom_rl.core.history_manager import HistoryManager
 
 
@@ -98,7 +99,7 @@ class ReplayMemory(MushroomObject):
         self._full = False
         dataset_info = DatasetInfo.create_replay_memory_info(self._mdp_info, self._agent_info,
                                                              self._store_policy_state)
-        self._dataset = Dataset(dataset_info, n_steps=self._max_size)
+        self._dataset = CircularDataset(dataset_info, self._max_size)
 
     @property
     def size(self):

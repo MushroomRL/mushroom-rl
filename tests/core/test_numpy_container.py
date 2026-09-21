@@ -1,15 +1,15 @@
 import numpy as np
 
-from mushroom_rl.core._impl.numpy_dataset import NumpyDataset
+from mushroom_rl.core._impl.numpy_container import NumpyContainer
 
 
 def make_dataset(capacity=8):
     shapes = [(capacity, 2), (capacity,), (capacity,)]
     dtypes = [float, float, bool]
-    return NumpyDataset(shapes, dtypes)
+    return NumpyContainer(shapes, dtypes)
 
 
-def test_numpy_dataset_append_and_column():
+def test_numpy_container_append_and_column():
     dataset = make_dataset()
     dataset.append(np.array([0.0, 1.0]), 0.5, False)
     dataset.append(np.array([2.0, 3.0]), 1.5, True)
@@ -22,7 +22,7 @@ def test_numpy_dataset_append_and_column():
     assert len(dataset.data) == 3
 
 
-def test_numpy_dataset_getitem_step():
+def test_numpy_container_getitem_step():
     dataset = make_dataset()
     dataset.append(np.array([4.0, 5.0]), 2.0, True)
 
@@ -33,7 +33,7 @@ def test_numpy_dataset_getitem_step():
     assert bool(step[2])
 
 
-def test_numpy_dataset_clear():
+def test_numpy_container_clear():
     dataset = make_dataset()
     dataset.append(np.array([0.0, 0.0]), 0.0, False)
 
@@ -42,7 +42,7 @@ def test_numpy_dataset_clear():
     assert len(dataset) == 0
 
 
-def test_numpy_dataset_get_view():
+def test_numpy_container_get_view():
     dataset = make_dataset()
     for i in range(4):
         dataset.append(np.array([float(i), float(i)]), float(i), i == 3)
@@ -55,7 +55,7 @@ def test_numpy_dataset_get_view():
     assert np.array_equal(view_idx.column(1), np.array([0.0, 3.0]))
 
 
-def test_numpy_dataset_get_view_copy_isolation():
+def test_numpy_container_get_view_copy_isolation():
     dataset = make_dataset()
     for i in range(4):
         dataset.append(np.array([float(i), float(i)]), float(i), False)
@@ -66,7 +66,7 @@ def test_numpy_dataset_get_view_copy_isolation():
     assert dataset.column(1)[0] == 0.0
 
 
-def test_numpy_dataset_add():
+def test_numpy_container_add():
     a = make_dataset()
     a.append(np.array([0.0, 0.0]), 0.0, False)
     a.append(np.array([1.0, 1.0]), 1.0, True)
@@ -79,7 +79,7 @@ def test_numpy_dataset_add():
     assert np.array_equal(result.column(1), np.array([0.0, 1.0, 2.0]))
 
 
-def test_numpy_dataset_append_batch():
+def test_numpy_container_append_batch():
     a = make_dataset()
     a.append(np.array([0.0, 0.0]), 0.0, False)
     b = make_dataset()
@@ -92,14 +92,14 @@ def test_numpy_dataset_append_batch():
     assert np.array_equal(a.column(1), np.array([0.0, 1.0, 2.0]))
 
 
-def test_numpy_dataset_capacity():
+def test_numpy_container_capacity():
     dataset = make_dataset(capacity=5)
     dataset.append(np.array([0.0, 0.0]), 0.0, False)
 
     assert dataset.capacity == 5
 
 
-def test_numpy_dataset_append_batch_past_capacity_raises():
+def test_numpy_container_append_batch_past_capacity_raises():
     a = make_dataset(capacity=2)
     a.append(np.array([0.0, 0.0]), 0.0, False)
     a.append(np.array([1.0, 1.0]), 1.0, True)
@@ -114,7 +114,7 @@ def test_numpy_dataset_append_batch_past_capacity_raises():
     assert caught
 
 
-def test_numpy_dataset_reserve_grows_and_preserves():
+def test_numpy_container_reserve_grows_and_preserves():
     dataset = make_dataset(capacity=2)
     dataset.append(np.array([0.0, 1.0]), 0.5, False)
     dataset.append(np.array([2.0, 3.0]), 1.5, True)
@@ -132,7 +132,7 @@ def test_numpy_dataset_reserve_grows_and_preserves():
     assert np.array_equal(dataset.column(1), np.array([0.5, 1.5, 2.5]))
 
 
-def test_numpy_dataset_reserve_noop_when_enough():
+def test_numpy_container_reserve_noop_when_enough():
     dataset = make_dataset(capacity=8)
     dataset.append(np.array([0.0, 0.0]), 0.0, False)
 
@@ -141,7 +141,7 @@ def test_numpy_dataset_reserve_noop_when_enough():
     assert dataset.capacity == 8
 
 
-def test_numpy_dataset_n_episodes():
+def test_numpy_container_n_episodes():
     dataset = make_dataset()
     for i in range(4):
         dataset.append(np.array([0.0, 0.0]), 0.0, i in (1, 3))
@@ -155,20 +155,20 @@ def test_numpy_dataset_n_episodes():
     assert open_dataset.n_episodes(2, skip_incomplete=False) == 1
 
 
-def test_numpy_dataset_from_array():
+def test_numpy_container_from_array():
     states = np.arange(6).reshape(3, 2).astype(float)
     rewards = np.arange(3).astype(float)
     lasts = np.array([False, False, True])
 
-    dataset = NumpyDataset.from_array([states, rewards, lasts])
+    dataset = NumpyContainer.from_array([states, rewards, lasts])
 
     assert len(dataset) == 3
     assert np.array_equal(dataset.column(0), states)
     assert dataset.n_episodes(2) == 1
 
 
-def test_numpy_dataset_truncates_to_n_envs():
-    dataset = NumpyDataset([(4, 2)], [float], n_envs=2)
+def test_numpy_container_truncates_to_n_envs():
+    dataset = NumpyContainer([(4, 2)], [float], n_envs=2)
     dataset.append(np.array([10.0, 20.0, 30.0]))
     dataset.append(np.array([1.0, 2.0, 3.0]))
 

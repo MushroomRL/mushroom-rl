@@ -45,7 +45,7 @@ def test_vectorized_dataset_clear_residual_carry():
     dataset = VectorizedDataset(make_info(), n_steps=10)
     append_steps(dataset, 3)
 
-    dataset.consume(5)
+    dataset.flatten(5)
     n_carry = dataset.clear(keep_leftovers=True)
 
     assert int(n_carry) == 1
@@ -56,7 +56,7 @@ def test_vectorized_dataset_clear_residual_carry():
     assert np.array_equal(dataset.state[0], np.full((2, 2), 2.0))
 
 
-def test_vectorized_dataset_flatten_closes_every_environment_block():
+def test_vectorized_dataset_flatten_keeps_last_untouched_at_block_ends():
     info = DatasetInfo(env_backend='numpy', agent_backend='numpy', env_device=None, agent_device=None,
                        horizon=10, gamma=0.9, state_shape=(1,), state_dtype=np.float64,
                        action_shape=(1,), action_dtype=np.float64, policy_state_shape=None, n_envs=3)
@@ -72,8 +72,7 @@ def test_vectorized_dataset_flatten_closes_every_environment_block():
     flat = dataset.flatten()
 
     assert np.array_equal(np.asarray(flat.reward), np.array([0., 10., 20., 30., 1., 11., 2., 12., 22.]))
-    assert np.array_equal(np.asarray(flat.last).astype(bool),
-                          np.array([False, False, False, True, False, True, False, False, True]))
+    assert np.array_equal(np.asarray(flat.last).astype(bool), np.zeros(9, dtype=bool))
 
 
 def test_vectorized_dataset_flatten_keeps_episode_ends_inside_a_block():
@@ -94,4 +93,4 @@ def test_vectorized_dataset_flatten_keeps_episode_ends_inside_a_block():
     flat = dataset.flatten()
 
     assert np.array_equal(np.asarray(flat.last).astype(bool),
-                          np.array([False, True, False, True, False, True, True, False, True]))
+                          np.array([False, True, False, False, False, False, True, False, False]))

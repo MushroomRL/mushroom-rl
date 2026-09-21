@@ -24,6 +24,8 @@ For Mushroom 2.1:
         - support a list agent backend: the vectorized online path and every offline parse_* path raise, only
           the single-env online path works. A list dataset handed to a numpy/torch agent is unaffected, since
           parse_* converts it before walking it
+    * Register array backends from the class statement, as the dataset containers do, so adding a backend means
+      editing both. fix the similar issue with the to_<backend> method if possible
     * Improve replay memory:
         - vectorize SequenceReplayMemory.get
         - remove host-device sync each iteration (int(c_anchor)/int(boundary[...])) in SequenceReplayMemory for the frame-stacking path
