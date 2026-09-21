@@ -142,14 +142,6 @@ class Container(MushroomObject):
         target = cls._by_backend[backend] if cls is Container else cls
         return target._from_array_impl(arrays, device)
 
-    @classmethod
-    def _allocate(cls, shapes, dtypes, device, n_envs):
-        raise NotImplementedError
-
-    @classmethod
-    def _from_array_impl(cls, arrays, device):
-        raise NotImplementedError
-
     @property
     def data(self):
         """
@@ -172,4 +164,12 @@ class Container(MushroomObject):
         The number of rows the container can hold, or ``None`` when it grows without bound.
 
         """
+        raise NotImplementedError
+
+    @classmethod
+    def _allocate(cls, shapes, dtypes, device, n_envs):
+        raise NotImplementedError
+
+    @classmethod
+    def _from_array_impl(cls, arrays, device):
         raise NotImplementedError

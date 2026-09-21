@@ -665,6 +665,31 @@ class HistoryManager(MushroomObject):
                                     write_head, backend)
         return valid
 
+    def history_context(self):
+        """
+        Returns:
+            A :class:`~mushroom_rl.core._impl.history_state.HistoryContext` with, for the observation and the
+            previous-action streams, the entries preceding the next step and the entries preceding the most recent
+            step, with the environment axis first when the manager is vectorized.
+
+        """
+        before_next, before_last = dict(), dict()
+        axis = 0 if self._n_envs is None else 1
+        for name, window in self._last_windows.items():
+            spec = self._stream_specs[name]
+            if spec['length'] == 1:
+                window = self._agent_backend.expand_dims(window, axis)
+            head = (slice(None),) * axis
+            if spec['offset'] == 0:
+                before_last[name] = window[head + (slice(None, -1),)]
+                before_next[name] = window[head + (slice(1, None),)]
+            elif name == 'action_history':
+                before_last[name] = window
+                newest = self._agent_backend.expand_dims(self._last_action, axis)
+                before_next[name] = self._agent_backend.concatenate([window[head + (slice(1, None),)], newest],
+                                                                    dim=axis)
+        return HistoryContext(before_next, before_last)
+
     @classmethod
     def default_streams(cls, mdp_info, agent_info, history_length=None, action_history_length=None):
         """
@@ -704,31 +729,6 @@ class HistoryManager(MushroomObject):
 
         """
         return self._preprocessors
-
-    def history_context(self):
-        """
-        Returns:
-            A :class:`~mushroom_rl.core._impl.history_state.HistoryContext` with, for the observation and the
-            previous-action streams, the entries preceding the next step and the entries preceding the most recent
-            step, with the environment axis first when the manager is vectorized.
-
-        """
-        before_next, before_last = dict(), dict()
-        axis = 0 if self._n_envs is None else 1
-        for name, window in self._last_windows.items():
-            spec = self._stream_specs[name]
-            if spec['length'] == 1:
-                window = self._agent_backend.expand_dims(window, axis)
-            head = (slice(None),) * axis
-            if spec['offset'] == 0:
-                before_last[name] = window[head + (slice(None, -1),)]
-                before_next[name] = window[head + (slice(1, None),)]
-            elif name == 'action_history':
-                before_last[name] = window
-                newest = self._agent_backend.expand_dims(self._last_action, axis)
-                before_next[name] = self._agent_backend.concatenate([window[head + (slice(1, None),)], newest],
-                                                                    dim=axis)
-        return HistoryContext(before_next, before_last)
 
     @property
     def history_length(self):
@@ -830,29 +830,6 @@ class HistoryManager(MushroomObject):
                                                                          size, full, max_size, backend=backend)
         return state, next_state, extra
 
-    @staticmethod
-    def _attach(out, windows, positions, last, length, offset, backend, device):
-        size = len(last)
-        rows = backend.arange(0, size, device=device)
-        is_start = backend.concatenate([backend.ones(1, dtype=bool, device=device), last[:-1] > 0])
-        start_of = backend.where(is_start)[0][backend.cumsum(is_start * 1) - 1]
-        entry_of_start = backend.zeros(size, dtype=int, device=device) - 1
-        entry_of_start[positions] = backend.arange(0, len(positions), device=device)
-        entry = entry_of_start[start_of]
-        attached = entry >= 0
-        table = backend.concatenate([windows, backend.zeros_like(windows[:1])])
-        entry = backend.where(attached, entry, backend.zeros(size, dtype=int, device=device) + len(windows))
-        distance = rows - start_of
-        reach = windows.shape[1]
-        mask_shape = (size,) + (1,) * (len(windows.shape) - 2)
-        for t in range(length):
-            frame = rows - offset - t
-            window_index = distance + length - 1 - t
-            use = attached & (frame < start_of) & (window_index >= 0) & (window_index < reach)
-            gathered = table[entry, backend.clip(window_index, 0, reach - 1)]
-            out[:, length - 1 - t] = backend.where(use.reshape(mask_shape), gathered, out[:, length - 1 - t])
-        return out
-
     def _next_obs_history(self, state_history, next_states, backend):
         next_obs = self.preprocess(next_states)
         if self._stream_specs['obs_history']['length'] == 1:
@@ -886,6 +863,29 @@ class HistoryManager(MushroomObject):
             buffer[:] = stacked[1:]
 
         return stacked
+
+    @staticmethod
+    def _attach(out, windows, positions, last, length, offset, backend, device):
+        size = len(last)
+        rows = backend.arange(0, size, device=device)
+        is_start = backend.concatenate([backend.ones(1, dtype=bool, device=device), last[:-1] > 0])
+        start_of = backend.where(is_start)[0][backend.cumsum(is_start * 1) - 1]
+        entry_of_start = backend.zeros(size, dtype=int, device=device) - 1
+        entry_of_start[positions] = backend.arange(0, len(positions), device=device)
+        entry = entry_of_start[start_of]
+        attached = entry >= 0
+        table = backend.concatenate([windows, backend.zeros_like(windows[:1])])
+        entry = backend.where(attached, entry, backend.zeros(size, dtype=int, device=device) + len(windows))
+        distance = rows - start_of
+        reach = windows.shape[1]
+        mask_shape = (size,) + (1,) * (len(windows.shape) - 2)
+        for t in range(length):
+            frame = rows - offset - t
+            window_index = distance + length - 1 - t
+            use = attached & (frame < start_of) & (window_index >= 0) & (window_index < reach)
+            gathered = table[entry, backend.clip(window_index, 0, reach - 1)]
+            out[:, length - 1 - t] = backend.where(use.reshape(mask_shape), gathered, out[:, length - 1 - t])
+        return out
 
     @staticmethod
     def _nstep_walk(absorbing, last, anchor_idxs, n_steps_return, size, full, max_size, write_head, backend):
