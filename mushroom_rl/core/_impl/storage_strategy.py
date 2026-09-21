@@ -152,7 +152,8 @@ class UntrackedRows(StorageStrategy):
         return ArrayBackend.get_array_backend_from(last).copy(last)
 
     def segment_starts(self, last):
-        raise NotImplementedError
+        raise NotImplementedError("The rows of this dataset are not stored as one stream, so their segment starts "
+                                  "are unknown.")
 
     def get_view(self, index, last):
         return self
@@ -502,7 +503,8 @@ class GridRows(StorageStrategy):
         return ArrayBackend.get_array_backend_from(last).copy(last)
 
     def segment_starts(self, last):
-        raise NotImplementedError
+        raise NotImplementedError("The rows of this dataset are one grid row per step, not a single stream. "
+                                  "Flatten it first.")
 
     def get_view(self, index, last):
         return self.copy()

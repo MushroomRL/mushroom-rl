@@ -446,6 +446,9 @@ class Dataset(MushroomObject):
         Returns:
             A subset of the dataset containing the first ``n_episodes`` episodes.
 
+        Raises:
+            IndexError: if the dataset holds fewer than ``n_episodes`` complete episodes.
+
         """
         assert n_episodes > 0, 'Number of episodes must be greater than zero.'
 
@@ -455,8 +458,9 @@ class Dataset(MushroomObject):
         flags = ends * 1
         segment = backend.cumsum(flags) - flags
         complete = (last[backend.where(ends)[0]] > 0) * 1
-        if int(backend.sum(complete)) < n_episodes:
-            raise IndexError
+        n_complete = int(backend.sum(complete))
+        if n_complete < n_episodes:
+            raise IndexError(f"The dataset holds {n_complete} complete episodes, {n_episodes} were requested.")
         kept = (complete > 0) & (backend.cumsum(complete) <= n_episodes)
         rows = backend.where(kept[segment])[0]
         if int(rows[-1]) == len(rows) - 1:
