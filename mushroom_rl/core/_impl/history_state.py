@@ -46,11 +46,14 @@ class HistoryState(MushroomObject):
         self._positions = self._array_backend.zeros(0, dtype=int, device=device) if positions is None else positions
         self._windows = dict() if windows is None else windows
 
+        # numpy's save method cannot round-trip a dict, torch's can and relocates the device on load
+        dict_serialization = 'torch' if self._array_backend.get_backend_serialization() == 'torch' else 'pickle'
+
         self._add_save_attr(
             _array_backend='primitive',
-            _device='primitive',
+            _device='none',
             _positions=self._array_backend.get_backend_serialization(),
-            _windows='pickle'
+            _windows=dict_serialization
         )
 
     def __len__(self):
@@ -107,6 +110,9 @@ class HistoryState(MushroomObject):
         Returns:
             The entries of the concatenated dataset.
 
+        Raises:
+            AssertionError: if the two datasets hold entries for different streams.
+
         """
         backend = self._array_backend
         other_positions = other._positions
@@ -119,6 +125,10 @@ class HistoryState(MushroomObject):
             return self._wrap(backend.copy(self._positions), dict(self._windows))
         if len(self) == 0:
             return self._wrap(other_positions + n_rows, other_windows)
+        assert self._windows.keys() == other_windows.keys(), \
+            "The concatenated datasets hold entries for different streams: " \
+            f"{sorted(self._windows)} and {sorted(other_windows)}."
+
         positions = backend.concatenate_arrays([self._positions, other_positions + n_rows])
         windows = {name: backend.concatenate_arrays([window, other_windows[name]])
                    for name, window in self._windows.items()}
@@ -181,6 +191,9 @@ class HistoryState(MushroomObject):
     def _wrap(self, positions, windows):
         return HistoryState(self._array_backend.get_backend_name(), self._device, positions, windows)
 
+    def _post_load(self):
+        self._device = self._array_backend.check_device(None)
+
 
 class GridHistoryState(MushroomObject):
     """
@@ -204,11 +217,14 @@ class GridHistoryState(MushroomObject):
         self._n_envs = n_envs
         self._slots = dict()
 
+        # numpy's save method cannot round-trip a dict, torch's can and relocates the device on load
+        dict_serialization = 'torch' if self._array_backend.get_backend_serialization() == 'torch' else 'pickle'
+
         self._add_save_attr(
             _array_backend='primitive',
-            _device='primitive',
+            _device='none',
             _n_envs='primitive',
-            _slots='pickle'
+            _slots=dict_serialization
         )
 
     def reset(self, history_context, leftover, mask_backend):
@@ -277,3 +293,6 @@ class GridHistoryState(MushroomObject):
         state._slots = {name: state._array_backend.convert_to_backend(self._array_backend, slot, device)
                         for name, slot in self._slots.items()}
         return state
+
+    def _post_load(self):
+        self._device = self._array_backend.check_device(None)

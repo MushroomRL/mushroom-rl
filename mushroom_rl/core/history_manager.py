@@ -123,13 +123,22 @@ class HistoryManager(MushroomObject):
         Args:
             name (str): the name under which the stream's window is returned by :meth:`__call__` (``obs_history`` is
                 reserved for the in-band observation stream);
-            length (int): number of entries stacked in the stream's window;
+            length (int): number of entries stacked in the stream's window; may be 1 only at a non-zero ``offset``;
             shape (tuple): shape of a single entry of the stream;
             dtype: data type of the stream, converted to the agent backend;
-            offset (int, 0): number of steps behind the current one at which the window ends;
+            offset (int, 0): number of steps behind the current one at which the window ends, at most 1;
             **options: additional per-stream options stored in the specification; ignored by the base class.
 
+        Raises:
+            AssertionError: if ``offset`` is greater than 1, or if the stream stacks nothing (``length`` 1 at
+                ``offset`` 0).
+
         """
+        assert length > 1 or offset > 0, "A stream of length 1 at offset 0 returns the current entry unchanged. " \
+                                         "Leave it unregistered instead."
+        assert offset <= 1, "A stream offset greater than 1 is not supported: the manager retains no entry older " \
+                            "than the ones its window holds, plus the current one."
+
         self._stream_specs[name] = dict(length=length, shape=tuple(shape),
                                         dtype=self._agent_backend.to_backend_dtype(dtype), offset=offset, **options)
 
@@ -863,6 +872,9 @@ class HistoryManager(MushroomObject):
             buffer[:] = stacked[1:]
 
         return stacked
+
+    def _post_load(self):
+        self._last_windows = dict()
 
     @staticmethod
     def _attach(out, windows, positions, last, length, offset, backend, device):
