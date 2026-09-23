@@ -1018,6 +1018,76 @@ def test_link_to_an_overwritten_step_ends_the_window():
     assert np.array_equal(windows(rm, [4, 0])[:, :, 0], np.array([[0., 0., 2.], [10., 11., 12.]]))
 
 
+def test_link_mode_mask_excludes_only_anchors_whose_history_was_overwritten():
+    history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), make_agent_info(), history_length=3)
+    rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=1, max_size=6,
+                      history_manager=history_manager)
+    first, second = vectorized_blocks([0, 1], [2, 3])
+
+    rm.add(first)
+    rm.add(second)
+
+    assert np.array_equal(rm._dataset.state[:, 0], np.array([12., 13., 10., 11., 2., 3.]))
+    assert np.array_equal(rm._compute_mask(np.arange(6)), np.array([False, False, False, False, True, True]))
+    assert np.array_equal(windows(rm, [0, 1, 2, 3])[:, :, 0],
+                          np.array([[10., 11., 12.], [11., 12., 13.], [0., 0., 10.], [0., 10., 11.]]))
+
+
+def test_prioritized_link_mode_tree_mask_follows_the_overwritten_history():
+    history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), make_agent_info(), history_length=3)
+    beta = LinearParameter(1.0, threshold_value=0.0, n=100)
+    rm = PrioritizedReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=1, max_size=6, alpha=0.6,
+                                 beta=beta, history_manager=history_manager)
+    first, second = vectorized_blocks([0, 1], [2, 3])
+
+    rm.add(first)
+    rm.add(second)
+
+    assert np.array_equal(rm._tree._masked[5:], np.array([False, False, False, False, True, True]))
+
+
+def test_overwritten_open_tail_keeps_the_links_of_the_new_rows():
+    rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=1, max_size=10, n_steps_return=2)
+    first, second = vectorized_blocks([0, 1, 2], [3, 4, 5, 6])
+
+    rm.add(first)
+    rm.add(second)
+    state, _, reward, *_ = rm._assemble_batch(np.arange(10))
+
+    assert np.array_equal(rm._dataset.state[:, 0], np.array([13., 14., 15., 16., 11., 12., 3., 4., 5., 6.]))
+    assert rm._dataset.links[1][2] == 1
+    assert np.array_equal(state[:, 0], np.array([13., 14., 15., 11., 12., 3., 4., 5.]))
+    assert np.array_equal(reward, np.array([155., 156.5, 158., 152., 153.5, 5., 6.5, 8.]))
+
+
+def test_block_larger_than_the_buffer_keeps_its_last_rows_and_their_links():
+    history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), make_agent_info(), history_length=3)
+    rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=1, max_size=10,
+                      history_manager=history_manager, n_steps_return=2)
+    first, second = vectorized_blocks([0, 1], [2, 3, 4, 5, 6, 7])
+
+    rm.add(first)
+    rm.add(second)
+    mask = rm._compute_mask(np.arange(10))
+    state, _, reward, *_ = rm._assemble_batch(np.arange(10)[~mask])
+
+    assert rm._dataset.write_head == 6
+    assert np.array_equal(rm._dataset.state[:, 0], np.array([12., 13., 14., 15., 16., 17., 4., 5., 6., 7.]))
+    assert np.array_equal(mask, np.array([True, True, False, False, False, True, True, True, False, True]))
+    assert np.array_equal(state[:, :, 0], np.array([[12., 13., 14.], [13., 14., 15.], [14., 15., 16.], [4., 5., 6.]]))
+    assert np.array_equal(reward, np.array([156.5, 158., 159.5, 9.5]))
+
+
+def test_block_larger_than_twice_the_buffer_is_written():
+    rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=1, max_size=5)
+
+    rm.add(make_block([0, 1, 2], [False, False, False]))
+    rm.add(make_block(np.arange(3, 27), [False] * 24, continuing=True))
+
+    assert rm._dataset.full and rm._dataset.write_head == 2
+    assert np.array_equal(rm._dataset.state[:, 0], np.array([25., 26., 22., 23., 24.]))
+
+
 def test_sequences_follow_the_environment_across_vectorized_blocks():
     policy_state_shape = (1,)
     agent_info = make_agent_info(policy_state_shape)

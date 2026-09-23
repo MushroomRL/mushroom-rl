@@ -269,7 +269,7 @@ class Dataset(MushroomObject):
         result._boundary_data = self._boundary_data + other._boundary_data
         result._history_state = self._history_state.concatenate(other._history_state, len(self), stitched)
         result._open_heads, result._open_tails = heads, tails
-        result._parent = self._parent
+        result._parent = self._parent if len(self) > 0 else other._parent
         if stitched:
             result._boundary_data.column()[len(self)] = int(self._Boundary.NONE)
 
@@ -305,6 +305,8 @@ class Dataset(MushroomObject):
         """
         stitched, self._open_heads, self._open_tails = self._pair(other)
         n = len(self)
+        if n == 0:
+            self._parent = other._parent
         self._history_state = self._history_state.concatenate(other._history_state, n, stitched)
         self._append_rows(other)
         if stitched:
@@ -907,6 +909,8 @@ class Dataset(MushroomObject):
 
     def _pair(self, other):
         n = len(self)
+        if len(other) == 0:
+            return False, self._open_heads, self._open_tails
         if n == 0:
             return False, other._open_heads, other._open_tails
         heads, tails = other._pending_heads(), self._pending_tails()
@@ -1120,8 +1124,8 @@ class CircularDataset(Dataset):
             dataset (Dataset): the dataset to write, in the backend and device of the buffer.
 
         Returns:
-            The buffer position of every written row, and the positions of the open episode ends of the previous
-            write that the dataset continues.
+            The buffer position of every written row, the positions of the open episode ends of the previous write
+            that the dataset continues, and the positions of the stored steps whose previous step was overwritten.
 
         Raises:
             ValueError: if the dataset continues a number of episodes different from the number left open.
@@ -1130,16 +1134,20 @@ class CircularDataset(Dataset):
         n = len(dataset)
         backend = self._dataset_info.env_array_backend
         device = self._dataset_info.env_device
-        positions = (backend.arange(0, n, device=device) + self._write_head) % self._max_size
+        start = self._write_head
+        positions = (backend.arange(0, n, device=device) + start) % self._max_size
+        n_written = min(n, self._max_size)
+        first_kept = n - n_written
 
         heads = dataset._pending_heads()
         pairs = list()
         if self.size > 0:
             if len(heads) == 0:
-                if len(self._ring_tails) > 0:
-                    self.last[list(self._ring_tails)] = True
+                open_tails = [tail for tail in self._ring_tails if tail is not None]
+                if len(open_tails) > 0:
+                    self.last[open_tails] = True
             elif len(heads) == len(self._ring_tails):
-                pairs = [(tail, int(positions[head])) for tail, head in zip(self._ring_tails, heads)]
+                pairs = list(zip(self._ring_tails, heads))
             else:
                 raise ValueError(f"Cannot write a dataset continuing {len(heads)} episodes to a buffer with "
                                  f"{len(self._ring_tails)} open episodes.")
@@ -1147,28 +1155,24 @@ class CircularDataset(Dataset):
         boundary = dataset._boundary_array()
         last = dataset._last_array()
         continues = (boundary[1:] == int(self._Boundary.NONE)) & ~(last[:-1] > 0)
-        adjacent = all((head - tail) % self._max_size == 1 for tail, head in pairs)
+        adjacent = all(tail is not None and (int(positions[head]) - tail) % self._max_size == 1
+                       for tail, head in pairs)
         inner_break = bool(((boundary[1:] > 0) & ~(last[:-1] > 0)).any()) if n > 1 else False
         if self._links is None and (not adjacent or inner_break):
             self._links = self._contiguous_links()
 
+        orphans = self._orphans(positions, start, n_written) if self._links is not None else positions[:0]
+
         self._write_rows(dataset)
 
+        relinked = list()
         if self._links is not None:
-            prev, following = self._links
-            steps = backend.zeros(n, dtype=int, device=device)
-            steps[1:] = continues * 1
-            prev[positions] = steps
-            steps = backend.zeros(n, dtype=int, device=device)
-            steps[:-1] = continues * 1
-            following[positions] = steps
-            for tail, head in pairs:
-                prev[head] = (head - tail) % self._max_size
-                following[tail] = (head - tail) % self._max_size
+            relinked = self._write_links(positions, continues, pairs, start, n_written)
 
-        self._ring_tails = tuple(int(positions[tail]) for tail in dataset._pending_tails())
+        self._ring_tails = tuple(int(positions[tail]) if tail >= first_kept else None
+                                 for tail in dataset._pending_tails())
 
-        return positions, [tail for tail, _ in pairs]
+        return positions, relinked, orphans
 
     def append_batch(self, other):
         self._append_rows(other)
@@ -1228,6 +1232,39 @@ class CircularDataset(Dataset):
             following[order[:-1]] = open_rows
         return prev, following
 
+    def _orphans(self, positions, start, n_written):
+        following = self._links[1]
+        live = positions if self._full else positions[positions < self.size]
+        continued = live[following[live] > 0]
+        successors = (continued + following[continued]) % self._max_size
+        return successors[(successors - start) % self._max_size >= n_written]
+
+    def _write_links(self, positions, continues, pairs, start, n_written):
+        backend = self._dataset_info.env_array_backend
+        device = self._dataset_info.env_device
+        n = len(positions)
+        first_kept = n - n_written
+        prev, following = self._links
+        kept = positions[first_kept:]
+        steps = backend.zeros(n, dtype=int, device=device)
+        steps[1:] = continues * 1
+        prev[kept] = steps[first_kept:]
+        steps = backend.zeros(n, dtype=int, device=device)
+        steps[:-1] = continues * 1
+        following[kept] = steps[first_kept:]
+
+        relinked = list()
+        for tail, head in pairs:
+            if head >= first_kept:
+                head_position = int(positions[head])
+                if tail is None or (tail - start) % self._max_size < n_written:
+                    prev[head_position] = self._max_size
+                else:
+                    prev[head_position] = (head_position - tail) % self._max_size
+                    following[tail] = (head_position - tail) % self._max_size
+                    relinked.append(tail)
+        return relinked
+
     def _write_rows(self, dataset):
         n = len(dataset)
 
@@ -1246,6 +1283,11 @@ class CircularDataset(Dataset):
             self._write_head = 0
             dataset = dataset[remaining:]
             n -= remaining
+
+        if n > self._max_size:
+            self._write_head = (self._write_head + n - self._max_size) % self._max_size
+            dataset = dataset[n - self._max_size:]
+            n = self._max_size
 
         columns = ['state', 'action', 'reward', 'next_state', 'absorbing', 'last']
         if self.is_stateful:
@@ -1358,12 +1400,14 @@ class VectorizedDataset(Dataset):
         active.
 
         Args:
-            n_steps (int, None): number of steps to split off.
+            n_steps (int, None): number of steps to split off, at least the number of environments.
 
         Returns:
             A vectorized dataset sharing this one's data and holding only the steps split off.
 
         """
+        assert n_steps is None or n_steps >= self._data.n_envs, \
+            f"Cannot split off {n_steps} steps from {self._data.n_envs} environments."
         backend = self._dataset_info.env_array_backend
         mask = self.mask
         active = backend.where(mask.reshape(-1))[0]
@@ -1444,7 +1488,7 @@ class VectorizedDataset(Dataset):
         active step when ``n_steps`` is ``None``.
 
         Args:
-            n_steps (int, None): number of steps to split off.
+            n_steps (int, None): number of steps to split off, at least the number of environments.
 
         Returns:
             A flat :class:`Dataset`.

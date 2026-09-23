@@ -206,6 +206,36 @@ def test_continuing_block_after_a_closed_tail_cannot_be_appended():
         closed + make_block([False], 2, continuing=True)
 
 
+def test_consume_rejects_fewer_steps_than_environments():
+    dataset = VectorizedDataset(make_grid_info(2), n_steps=12)
+    fill_grid(dataset, active_steps=[2, 2], episode_ends=set())
+
+    with pytest.raises(AssertionError):
+        dataset.consume(1)
+    with pytest.raises(AssertionError):
+        dataset.flatten(1)
+
+    assert np.array_equal(dataset.mask, np.ones((2, 2), dtype=bool))
+    assert np.array_equal(dataset.flatten(2).reward, np.array([0., 1.]))
+
+
+def test_empty_block_is_neutral_in_a_concatenation():
+    first = make_block([False, True, False], 0)
+    second = make_block([False, True], 3, continuing=True)
+    vectorized = VectorizedDataset(make_grid_info(2), n_steps=12)
+    fill_grid(vectorized, active_steps=[2, 2], episode_ends=set())
+    first_flat, second_flat = vectorized.flatten(2), vectorized.flatten()
+    empty_flat = VectorizedDataset(make_grid_info(2), n_steps=12).flatten()
+
+    with_empty_slice = (first + first[0:0]) + second
+    with_empty_flat = first_flat + empty_flat + second_flat
+
+    assert np.array_equal(with_empty_slice.parse()[5], np.array([False, True, False, False, True]))
+    assert np.array_equal(with_empty_slice.parse()[5], (first + second).parse()[5])
+    assert np.array_equal(with_empty_flat.parse()[5], np.array([True, True, True, True]))
+    assert np.array_equal(with_empty_flat.parse()[5], (first_flat + second_flat).parse()[5])
+
+
 def test_continuing_block_survives_a_backend_conversion():
     joined = (make_block([False, True, False], 0) + make_block([False, True], 3, continuing=True)).to_backend('torch')
 
@@ -225,6 +255,19 @@ def test_slice_starting_mid_episode_keeps_the_parent_window():
     assert np.array_equal(mid_episode[0], np.array([[0.], [1.], [2.]]))
     assert np.array_equal(after_episode_end[0], np.array([[0.], [0.], [4.]]))
     assert np.array_equal(history_manager.parse_history(dataset[2:])[0], history_manager.parse_history(dataset)[0][2:])
+
+
+def test_empty_dataset_extended_by_a_mid_episode_slice_keeps_the_parent_window():
+    dataset = make_block([False, False, False, True, False, False], 0)
+    history_manager = make_history_manager(3)
+
+    joined = dataset[0:0] + dataset[2:]
+    accumulated = dataset[0:0].copy()
+    accumulated += dataset[2:]
+
+    assert np.array_equal(history_manager.parse_state(joined), history_manager.parse_state(dataset[2:]))
+    assert np.array_equal(history_manager.parse_state(accumulated), history_manager.parse_state(dataset[2:]))
+    assert np.array_equal(history_manager.parse_state(joined)[0], np.array([[0.], [1.], [2.]]))
 
 
 def test_scattered_view_ends_a_segment_at_every_row():

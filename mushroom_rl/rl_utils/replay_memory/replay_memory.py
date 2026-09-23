@@ -171,16 +171,18 @@ class ReplayMemory(MushroomObject):
         valid = idxs[~self._compute_mask(idxs)]
         return valid[backend.randint(0, len(valid), (n_samples,), device=self._agent_info.device)]
 
-    def _affected_window(self, positions, relinked):
+    def _affected_window(self, positions, relinked, orphans):
         """
         The buffer positions whose sampling mask can change after a batch was written at ``positions``: the newly
         written anchors, their forward n-step window (the ``n-1`` anchors ending in the new batch), the backward
-        history reserve that trails the moved write head and, for every open episode end the batch continued away
-        from the write head, the ``n-1`` anchors ending there. Every other entry keeps its mask.
+        history reserve that trails the moved write head, for every open episode end the batch continued away
+        from the write head the ``n-1`` anchors ending there and, for every stored step whose previous step was
+        overwritten, that step and the steps whose history window reaches it. Every other entry keeps its mask.
 
         Args:
             positions: the buffer positions where the last batch was written;
-            relinked (list): the buffer positions of the open episode ends the batch continued.
+            relinked (list): the buffer positions of the open episode ends the batch continued;
+            orphans: the buffer positions of the stored steps whose previous step was overwritten.
 
         Returns:
             The affected buffer positions, or ``None`` when no masking is in use.
@@ -200,13 +202,16 @@ class ReplayMemory(MushroomObject):
         if len(relinked) > 0 and self._dataset.links is not None:
             ends = backend.as_array(relinked, device=self._agent_info.device)
             window = backend.concatenate([window, ends] + self._walk_back(ends, self._n_steps_return - 1))
+        if len(orphans) > 0 and self._history_manager.max_reach > 0:
+            window = backend.concatenate([window, orphans] +
+                                         self._walk_forward(orphans, self._history_manager.max_reach - 1))
         return window
 
     def _compute_mask(self, anchor_idxs):
         """
         Compute the sampling mask for a batch of anchors: True where the anchor cannot be sampled because its n-step
         window would cross a truncation or the write head, or because its backward history window would cross the write
-        head of a full buffer.
+        head of a full buffer or reach an overwritten step.
 
         Args:
             anchor_idxs: buffer positions of the anchors to evaluate.
@@ -223,9 +228,35 @@ class ReplayMemory(MushroomObject):
                 ds.absorbing, ds.last, anchor_idxs, self._n_steps_return, len(ds), ds.full, self._max_size,
                 ds.write_head, links=ds.links)
             mask = mask | ~valid
-        if self._history_manager.max_reach > 0 and ds.full:
-            mask = mask | ((anchor_idxs - ds.write_head) % self._max_size < self._history_manager.max_reach)
+        if self._history_manager.max_reach > 0:
+            if ds.links is not None:
+                mask = mask | self._history_cut(anchor_idxs)
+            elif ds.full:
+                mask = mask | ((anchor_idxs - ds.write_head) % self._max_size < self._history_manager.max_reach)
         return mask
+
+    def _history_cut(self, anchor_idxs):
+        """
+        Args:
+            anchor_idxs: buffer positions of the anchors to evaluate.
+
+        Returns:
+            Whether walking back the history window of each anchor reaches a step that is not stored anymore.
+
+        """
+        ds = self._dataset
+        backend = ds.array_backend
+        prev = ds.links[0]
+        pos = anchor_idxs
+        active = backend.ones(len(anchor_idxs), dtype=bool, device=self._agent_info.device)
+        cut = backend.zeros(len(anchor_idxs), dtype=bool, device=self._agent_info.device)
+        for _ in range(self._history_manager.max_reach):
+            distance = prev[pos]
+            age = (pos - ds.write_head) % self._max_size if ds.full else pos
+            cut = cut | (active & (distance > age))
+            active = active & (distance > 0) & (distance <= age)
+            pos = (pos - distance) % self._max_size
+        return cut
 
     def _walk_back(self, positions, n_hops):
         """
@@ -243,6 +274,25 @@ class ReplayMemory(MushroomObject):
         current = positions
         for _ in range(n_hops):
             current = (current - prev[current]) % self._max_size
+            reached.append(current)
+        return reached
+
+    def _walk_forward(self, positions, n_hops):
+        """
+        Args:
+            positions: buffer positions;
+            n_hops (int): the number of steps to walk forward.
+
+        Returns:
+            The list of the buffer positions reached walking forward 1 to ``n_hops`` steps of the episode of each
+            position, the ones that cannot be reached replaced by the last one reached.
+
+        """
+        following = self._dataset.links[1]
+        reached = list()
+        current = positions
+        for _ in range(n_hops):
+            current = (current + following[current]) % self._max_size
             reached.append(current)
         return reached
 

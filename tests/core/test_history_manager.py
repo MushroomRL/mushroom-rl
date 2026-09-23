@@ -580,6 +580,27 @@ def test_parse_nstep_history_n_steps_return_one_matches_immediate_transition():
     assert np.array_equal(extra['endpoint'], np.arange(6))
 
 
+def test_parse_nstep_history_of_a_dataset_shorter_than_the_return():
+    hm = _make_manager(history_length=1, obs_shape=(1,))
+    two_rows = _make_dataset(np.array([[0.], [1.]]), np.zeros((2, 1)), np.ones(2), np.array([[1.], [2.]]),
+                             np.array([False, True]), np.array([False, True]))
+    one_row = _make_dataset(np.array([[0.]]), np.zeros((1, 1)), np.ones(1), np.array([[1.]]),
+                            np.array([True]), np.array([True]))
+
+    _, _, reward, _, _, _, extra = hm.parse_nstep_history(two_rows, gamma=0.5, n_steps_return=3)
+    _, _, indexed_reward, _, _, _, indexed_extra = hm.parse_nstep_history(two_rows, gamma=0.5, n_steps_return=3,
+                                                                          anchor_idxs=np.arange(2))
+    _, _, single_reward, _, _, _, single_extra = hm.parse_nstep_history(one_row, gamma=0.5, n_steps_return=2)
+
+    assert np.array_equal(extra['anchor'], np.array([0, 1]))
+    assert np.array_equal(extra['endpoint'], np.array([1, 1]))
+    assert np.array_equal(reward, np.array([1.5, 1.]))
+    assert np.array_equal(indexed_extra['anchor'], extra['anchor'])
+    assert np.array_equal(indexed_reward, reward)
+    assert np.array_equal(single_extra['anchor'], np.array([0]))
+    assert np.array_equal(single_reward, np.array([1.]))
+
+
 def test_parse_nstep_history_stops_at_episode_boundary():
     mdp_info, agent_info = _make_infos(obs_shape=(1,), act_shape=(1,))
     hm = HistoryManager.default_streams(mdp_info, agent_info)
@@ -1087,6 +1108,24 @@ def test_next_state_window_at_a_block_start():
     assert np.array_equal(next_state[0], np.array([[0., 7., 7.], [0., 8., 8.], [0., 9., 9.]]))
     assert np.array_equal(next_state[1], np.array([[0., 8., 8.], [0., 9., 9.], [0., 10., 10.]]))
     assert np.array_equal(state[1], next_state[0])
+
+
+def test_nstep_windows_at_a_block_start():
+    env = CountingEnv(horizon=10)
+    agent = BlockRecordingAgent(env.info, history_length=3)
+    core = Core(agent, env)
+
+    core.learn(n_steps=16, n_steps_per_fit=8, quiet=True)
+
+    dataset = agent.blocks[1]['dataset']
+    state, _, _, next_state, _, _, _ = agent.history_manager.parse_history(dataset)
+    nstep_state, _, _, nstep_next_state, _, _, extra = agent.history_manager.parse_nstep_history(
+        dataset, gamma=0.99, n_steps_return=2)
+
+    assert np.array_equal(extra['anchor'], np.array([0, 2, 3, 4, 5, 6]))
+    assert np.array_equal(nstep_state[0], np.array([[0., 6., 6.], [0., 7., 7.], [0., 8., 8.]]))
+    assert np.array_equal(nstep_state, state[extra['anchor']])
+    assert np.array_equal(nstep_next_state, next_state[extra['endpoint']])
 
 
 def test_attachment_survives_to_backend_views_concatenation_and_save(tmpdir):

@@ -375,9 +375,25 @@ class HistoryManager(MushroomObject):
             bootstrap[-1] = False
         reduced_reward, anchor, endpoint = self.build_nstep_return(reward, absorbing, last, anchor_idxs, gamma,
                                                                    n_steps_return, bootstrap=bootstrap)
-        state, next_state, extra = self._transition_history(states, next_states, actions, last, anchor, size,
-                                                            full=False, max_size=size, backend=self._agent_backend,
-                                                            next_anchor_idxs=endpoint)
+        source, skip = self._history_source(dataset)
+        source_states, source_actions, source_last = states, actions, last
+        if skip > 0:
+            source_states, source_actions, _, _, _, source_last = source.parse(
+                to=self._agent_backend.get_backend_name(), device=self._device)
+
+        if 'obs_history' in self._stream_specs:
+            windows = self.build_history('obs_history', source_states, source_last,
+                                         attachment=source.history_state)[skip:]
+            state = windows[anchor]
+            next_state = self._next_obs_history(windows[endpoint], next_states[endpoint], self._agent_backend)
+        else:
+            state = self.preprocess(states[anchor])
+            next_state = self.preprocess(next_states[endpoint])
+
+        extra = dict()
+        if self.uses_action:
+            extra['action_history'] = self.build_history('action_history', source_actions, source_last,
+                                                         attachment=source.history_state)[skip:][anchor]
         extra['endpoint'] = endpoint
         extra['anchor'] = anchor
         return self._convert_parsed(to, state, actions[anchor], reduced_reward, next_state, absorbing[endpoint],
@@ -607,7 +623,7 @@ class HistoryManager(MushroomObject):
         acc = reward * gamma ** 0
         for t in range(1, n_steps_return):
             tail = size - t
-            if tail <= 0:
+            if tail < 0:
                 valid = valid & ~active
                 break
             stop = active[:tail + 1] & (last[t - 1:] > 0)
