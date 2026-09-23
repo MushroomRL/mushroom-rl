@@ -634,22 +634,6 @@ class ArrayBackend(object):
         """
         raise NotImplementedError
 
-    @classmethod
-    def pack_padded_arrays(cls, array, mask):
-        """
-        :meth:`pack_padded_sequence` for a numeric array: the result is an array even when this backend stores its
-        data as lists.
-
-        Args:
-            array: a numeric array of shape ``(A, B, ...)``;
-            mask: a boolean array of shape ``(A, B)`` marking the entries of ``array`` to keep.
-
-        Returns:
-            The entries of ``array`` selected by ``mask``, as in :meth:`pack_padded_sequence`.
-
-        """
-        return cls.pack_padded_sequence(array, mask)
-
     @staticmethod
     def masked_select(array, mask):
         """
@@ -1617,10 +1601,6 @@ class ListBackend(ArrayBackend):
         n_steps = len(array)
         n_envs = mask.shape[1]
         return [array[s][e] for e in range(n_envs) for s in range(n_steps) if mask[s, e]]
-
-    @classmethod
-    def pack_padded_arrays(cls, array, mask):
-        return NumpyBackend.pack_padded_sequence(array, mask)
 
     @staticmethod
     def masked_select(array, mask):

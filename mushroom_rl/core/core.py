@@ -324,11 +324,11 @@ class VectorizedCore(Core):
             need_reset = completed > 0
 
             if self._core_logic.fit_required():
-                flat = dataset.flatten(self._core_logic.n_steps_per_fit)
-                self.agent.fit(flat)
+                consumed = dataset.consume(self._core_logic.n_steps_per_fit)
+                self.agent.fit(consumed.flatten())
 
                 for c in self.callbacks_fit:
-                    c(flat)
+                    c(consumed)
 
                 n_carry_forward_steps = dataset.clear(keep_leftovers=True,
                                                       history_context=self.agent.history_manager.history_context())

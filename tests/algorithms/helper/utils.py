@@ -29,85 +29,81 @@ class TestUtils:
         """
         Check and compare two objects for equality
         """
-        if cls._check_type(this, that, list):
+        for check, kind, compare in cls._eq_rules():
+            if check(this, that, kind):
+                compare(this, that)
+                return
+        assert this == that
+
+    @classmethod
+    def _eq_rules(cls):
+        """
+        The ordered ``(check, type, compare)`` rules of :meth:`assert_eq`: the first rule whose check holds compares
+        the two objects.
+        """
+        def asserting(equal):
+            def compare(this, that):
+                assert equal(this, that)
+            return compare
+
+        def pairwise(this, that):
+            assert len(this) == len(that)
             for a, b in zip(this, that):
                 cls.assert_eq(a, b)
-        elif cls._check_type(this, that, dict):
-            for a, b in zip(this.values(), that.values()):
-                cls.assert_eq(a, b)
-        elif cls._check_subtype(this, that, Ensemble):
+
+        def mapping(this, that):
+            assert this.keys() == that.keys()
+            pairwise(list(this.values()), list(that.values()))
+
+        def ensemble(this, that):
             assert len(this) == len(that)
-            for a, b in zip(this._models, that._models):
-                cls.assert_eq(a, b)
-        elif cls._check_subtype(this, that, QApproximator):
-            assert len(this._models) == len(that._models)
-            for a, b in zip(this._models, that._models):
-                cls.assert_eq(a, b)
-        elif cls._check_type(this, that, Table):
-            assert cls._eq_numpy(this.table, that.table)
-        elif cls._check_subtype(this, that, Approximator):
-            assert cls.eq_weights(this, that)
-        elif cls._check_subtype(this, that, TorchPolicy) \
-                or cls._check_subtype(this, that, HasWeights):
-            assert cls.eq_weights(this, that)
-        elif cls._check_subtype(this, that, TDPolicy):
-            cls.assert_eq(this.get_q(), that.get_q())
-        elif cls._check_type(this, that, torch.optim.Optimizer):
-            assert cls.eq_save_dict(this.state_dict(), that.state_dict())
-        elif cls._check_type(this, that, itertools.chain):
-            assert cls.eq_chain(this, that)
-        elif cls._check_type(this, that, MDPInfo):
-            assert cls.eq_mdp_info(this, that)
-        elif cls._check_type(this, that, AgentInfo):
-            assert cls.eq_agent_info(this, that)
-        elif cls._check_type(this, that, Dataset):
-            assert cls.eq_dataset(this, that)
-        elif cls._check_type(this, that, ReplayMemory):
-            assert cls.eq_replay_memory(this, that)
-        elif cls._check_type(this, that, PrioritizedReplayMemory):
-            assert cls.eq_prioritized_replay_memory(this, that)
-        elif cls._check_type(this, that, OrnsteinUhlenbeckPolicy):
-            assert cls.eq_ornstein_uhlenbeck_policy(this, that)
-        elif cls._check_type(this, that, TilesFeatures):
-            assert cls.eq_tiles_features(this, that)
-        elif cls._check_type(this, that, LinearParameter):
-            assert cls.eq_linear_parameter(this, that)
-        elif cls._check_type(this, that, DecayParameter):
-            assert cls.eq_decay_parameter(this, that)
-        elif cls._check_type(this, that, WindowedVarianceParameter):
-            assert cls.eq_windowed_variance_parameter(this, that)
-        elif cls._check_type(this, that, VarianceParameter):
-            assert cls.eq_variance_parameter(this, that)
-        elif cls._check_type(this, that, VariableParameter):
-            assert cls.eq_variable_parameter(this, that)
-        elif cls._check_type(this, that, Parameter):
-            assert cls.eq_parameter(this, that)
-        elif cls._check_type(this, that, AdaptiveOptimizer):
-            assert cls.eq_adaptive_optimizer(this, that)
-        elif cls._check_type(this, that, SGDOptimizer):
-            assert cls.eq_sgd_optimizer(this, that)
-        elif cls._check_type(this, that, AdamOptimizer):
-            assert cls.eq_adam_optimizer(this, that)
-        elif cls._check_type(this, that, GaussianDiagonalDistribution):
-            assert cls.eq_gaussian_diagonal_dist(this, that)
-        elif cls._check_type(this, that, Discrete):
-            assert cls.eq_discrete(this, that)
-        elif cls._check_type(this, that, FunctionalFeatures):
-            assert cls._eq_functional_features(this, that)
-        elif cls._check_type(this, that, BasisFeatures):
-            assert cls._eq_basis_features(this, that)
-        elif cls._check_type(this, that, ExtraTreesRegressor):
-            pass  # Equality of ExtraTreeRegressor is not tested
-        elif callable(this) and callable(that):
-            pass  # Equality of Functions is not tested
-        elif cls._check_type(this, that, torch.nn.parameter.Parameter):
-            assert cls._eq_torch(this, that)
-        elif cls._check_type(this, that, torch.Tensor):
-            assert cls._eq_torch(this, that)
-        elif cls._check_type(this, that, np.ndarray):
-            assert cls._eq_numpy(this, that)
-        else:
-            assert this == that
+            pairwise(this._models, that._models)
+
+        def ignored(this, that):
+            pass
+
+        def both_callable(this, that, kind):
+            return callable(this) and callable(that)
+
+        exact, sub = cls._check_type, cls._check_subtype
+        return [
+            (exact, list, pairwise),
+            (exact, dict, mapping),
+            (sub, Ensemble, ensemble),
+            (sub, QApproximator, lambda a, b: pairwise(a._models, b._models)),
+            (exact, Table, asserting(lambda a, b: cls._eq_numpy(a.table, b.table))),
+            (sub, Approximator, asserting(cls.eq_weights)),
+            (sub, TorchPolicy, asserting(cls.eq_weights)),
+            (sub, HasWeights, asserting(cls.eq_weights)),
+            (sub, TDPolicy, lambda a, b: cls.assert_eq(a.get_q(), b.get_q())),
+            (exact, torch.optim.Optimizer, asserting(lambda a, b: cls.eq_save_dict(a.state_dict(), b.state_dict()))),
+            (exact, itertools.chain, asserting(cls.eq_chain)),
+            (exact, MDPInfo, asserting(cls.eq_mdp_info)),
+            (exact, AgentInfo, asserting(cls.eq_agent_info)),
+            (exact, Dataset, asserting(cls.eq_dataset)),
+            (exact, ReplayMemory, asserting(cls.eq_replay_memory)),
+            (exact, PrioritizedReplayMemory, asserting(cls.eq_prioritized_replay_memory)),
+            (exact, OrnsteinUhlenbeckPolicy, asserting(cls.eq_ornstein_uhlenbeck_policy)),
+            (exact, TilesFeatures, asserting(cls.eq_tiles_features)),
+            (exact, LinearParameter, asserting(cls.eq_linear_parameter)),
+            (exact, DecayParameter, asserting(cls.eq_decay_parameter)),
+            (exact, WindowedVarianceParameter, asserting(cls.eq_windowed_variance_parameter)),
+            (exact, VarianceParameter, asserting(cls.eq_variance_parameter)),
+            (exact, VariableParameter, asserting(cls.eq_variable_parameter)),
+            (exact, Parameter, asserting(cls.eq_parameter)),
+            (exact, AdaptiveOptimizer, asserting(cls.eq_adaptive_optimizer)),
+            (exact, SGDOptimizer, asserting(cls.eq_sgd_optimizer)),
+            (exact, AdamOptimizer, asserting(cls.eq_adam_optimizer)),
+            (exact, GaussianDiagonalDistribution, asserting(cls.eq_gaussian_diagonal_dist)),
+            (exact, Discrete, asserting(cls.eq_discrete)),
+            (exact, FunctionalFeatures, asserting(cls._eq_functional_features)),
+            (exact, BasisFeatures, asserting(cls._eq_basis_features)),
+            (exact, ExtraTreesRegressor, ignored),
+            (both_callable, None, ignored),
+            (exact, torch.nn.parameter.Parameter, asserting(cls._eq_torch)),
+            (exact, torch.Tensor, asserting(cls._eq_torch)),
+            (exact, np.ndarray, asserting(cls._eq_numpy)),
+        ]
 
     @classmethod
     def eq_weights(cls, this, that):
@@ -253,8 +249,8 @@ class TestUtils:
         res &= this._max_size == that._max_size
         res &= cls.eq_mdp_info(this._mdp_info, that._mdp_info)
         res &= cls.eq_agent_info(this._agent_info, that._agent_info)
-        res &= this._idx == that._idx
-        res &= this._full == that._full
+        res &= this._dataset.write_head == that._dataset.write_head
+        res &= this._dataset.full == that._dataset.full
 
         if this._dataset is not None and that._dataset is not None:
             res &= cls.eq_dataset(this._dataset, that._dataset)

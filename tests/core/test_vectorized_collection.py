@@ -1,6 +1,6 @@
 import numpy as np
 
-from mushroom_rl.core import Core, MDPInfo, Box, VectorizedEnvironment, Agent
+from mushroom_rl.core import Core, MDPInfo, Box, VectorizedEnvironment, Agent, VectorizedDataset
 from mushroom_rl.policy import Policy
 from mushroom_rl.utils.callbacks import CollectDataset
 
@@ -90,6 +90,27 @@ class HorizonTruncatingVectorizedEnv(VectorizedEnvironment):
                 self.terminal_ids.add(ids[e])
 
         return self._counter.reshape(-1, 1).astype(float), reward, absorbing, [{}] * self._n_envs
+
+
+class CountingVecEnv(VectorizedEnvironment):
+    def __init__(self, n_envs, horizon):
+        mdp_info = MDPInfo(Box(0, 1e6, shape=(3,)), Box(-1e6, 1e6, shape=(1,)), 0.99, horizon)
+        self._t = np.full(n_envs, -1.)
+        self._ep_t = np.zeros(n_envs)
+        super().__init__(mdp_info, n_envs)
+
+    def reset_all(self, env_mask, state=None):
+        self._t[env_mask] += 1
+        self._ep_t[env_mask] = 0
+        return self._obs(), [{}] * self._n_envs
+
+    def step_all(self, env_mask, action):
+        self._t[env_mask] += 1
+        self._ep_t[env_mask] += 1
+        return self._obs(), np.zeros(self._n_envs), np.zeros(self._n_envs, dtype=bool), [{}] * self._n_envs
+
+    def _obs(self):
+        return np.stack([np.arange(self._n_envs), self._t, self._ep_t], axis=1).astype(float)
 
 
 class RecordingAgent(Agent):
@@ -238,3 +259,19 @@ def test_collect_dataset_collects_each_consumed_transition_once_episodes_per_fit
 
     assert real_terminals_closed
     assert spurious <= env._n_envs
+
+
+def test_fit_callbacks_receive_the_consumed_grid():
+    env = CountingVecEnv(3, horizon=10)
+    agent = RecordingAgent(env.info)
+    kinds = list()
+    collector = CollectDataset(initial_capacity=8)
+    core = Core(agent, env, callbacks_fit=[lambda dataset: kinds.append(type(dataset)), collector])
+
+    core.learn(n_steps=60, n_steps_per_fit=30, quiet=True)
+    collected = collector.get()
+
+    assert kinds == [VectorizedDataset, VectorizedDataset]
+    assert len(collected) == 60
+    assert collected.n_episodes == 6
+    assert np.array_equal(collected.episodes_length, np.full(6, 10))

@@ -244,12 +244,12 @@ class HistoryManager(MushroomObject):
             value.
 
         """
-        states, last = self._agent_backend.convert(dataset.state, dataset.last_or_boundary, device=self._device)
-
         if 'obs_history' in self._stream_specs:
-            state = self.build_history('obs_history', states, last, attachment=dataset.history_state)
+            source, skip = self._history_source(dataset)
+            states, last = self._agent_backend.convert(source.state, source.last_or_boundary, device=self._device)
+            state = self.build_history('obs_history', states, last, attachment=source.history_state)[skip:]
         else:
-            state = self.preprocess(states)
+            state = self.preprocess(self._agent_backend.convert(dataset.state, device=self._device))
 
         return self._convert_output(to, state)
 
@@ -297,21 +297,28 @@ class HistoryManager(MushroomObject):
         """
         states, actions, reward, next_states, absorbing, last = dataset.parse(
             to=self._agent_backend.get_backend_name(), device=self._device)
+        source, skip = self._history_source(dataset)
+        source_states, source_actions, source_last = states, actions, last
+        if skip > 0:
+            source_states, source_actions, _, _, _, source_last = source.parse(
+                to=self._agent_backend.get_backend_name(), device=self._device)
 
         if 'obs_history' in self._stream_specs:
-            state = self.build_history('obs_history', states, last, attachment=dataset.history_state)
+            state = self.build_history('obs_history', source_states, source_last,
+                                       attachment=source.history_state)[skip:]
             next_state = self._next_obs_history(state, next_states, self._agent_backend)
         else:
             state, next_state = self.preprocess(states), self.preprocess(next_states)
 
         extra = dict()
         if self.uses_action:
-            extra['action_history'] = self.build_history('action_history', actions, last,
-                                                         attachment=dataset.history_state)
+            extra['action_history'] = self.build_history('action_history', source_actions, source_last,
+                                                         attachment=source.history_state)[skip:]
 
         return self._convert_parsed(to, state, actions, reward, next_state, absorbing, last, extra)
 
-    def parse_history_circular_buffer(self, dataset, anchor_idxs, size, full, max_size, to=None):
+    def parse_history_circular_buffer(self, dataset, anchor_idxs, size, full, max_size, to=None, links=None,
+                                      write_head=0):
         """
         Parse the transitions at ``anchor_idxs`` of a dataset stored in a circular replay buffer, as in
         :meth:`parse_history`. A circular buffer overwrites its oldest entry once full, so a window is read modulo the
@@ -323,7 +330,11 @@ class HistoryManager(MushroomObject):
             size (int): the number of entries currently stored;
             full (bool): whether the buffer has wrapped around;
             max_size (int): the buffer capacity;
-            to (str, None): the backend of the returned arrays; when ``None`` the agent backend is used.
+            to (str, None): the backend of the returned arrays; when ``None`` the agent backend is used;
+            links (tuple, None): the ``(prev, next)`` step distances of the buffer (see
+                :attr:`~mushroom_rl.core.dataset.CircularDataset.links`); when ``None`` the episodes are stored in
+                consecutive positions, delimited by the ``last`` flags;
+            write_head (int, 0): the next write position of the buffer, used with ``links``.
 
         Returns:
             The tuple ``(state, action, reward, next_state, absorbing, last, extra)``, as in :meth:`parse_history`.
@@ -332,7 +343,7 @@ class HistoryManager(MushroomObject):
         dataset = dataset.to_backend(self._agent_backend.get_backend_name(), device=self._device)
         state, next_state, extra = self._transition_history(dataset.state, dataset.next_state, dataset.action,
                                                             dataset.last, anchor_idxs, size, full, max_size,
-                                                            self._agent_backend)
+                                                            self._agent_backend, links=links, write_head=write_head)
         return self._convert_parsed(to, state, dataset.action[anchor_idxs], dataset.reward[anchor_idxs], next_state,
                                     dataset.absorbing[anchor_idxs], dataset.last[anchor_idxs], extra)
 
@@ -359,8 +370,11 @@ class HistoryManager(MushroomObject):
         states, actions, reward, next_states, absorbing, last = dataset.parse(
             to=self._agent_backend.get_backend_name(), device=self._device)
         size = len(last)
+        bootstrap = (last > 0) & ~(self._agent_backend.convert(dataset.last, device=self._device) > 0)
+        if size > 0:
+            bootstrap[-1] = False
         reduced_reward, anchor, endpoint = self.build_nstep_return(reward, absorbing, last, anchor_idxs, gamma,
-                                                                   n_steps_return)
+                                                                   n_steps_return, bootstrap=bootstrap)
         state, next_state, extra = self._transition_history(states, next_states, actions, last, anchor, size,
                                                             full=False, max_size=size, backend=self._agent_backend,
                                                             next_anchor_idxs=endpoint)
@@ -370,7 +384,7 @@ class HistoryManager(MushroomObject):
                                     last[endpoint], extra)
 
     def parse_nstep_history_circular_buffer(self, dataset, anchor_idxs, gamma, n_steps_return, size, full, max_size,
-                                            write_head, to=None):
+                                            write_head, to=None, links=None):
         """
         Parse the transitions at ``anchor_idxs`` of a dataset stored in a circular replay buffer into their n-step
         arrays, as in :meth:`parse_nstep_history`. Only the valid transitions are returned; ``extra`` carries the
@@ -386,7 +400,9 @@ class HistoryManager(MushroomObject):
             full (bool): whether the buffer has wrapped around;
             max_size (int): the buffer capacity;
             write_head (int): the next write position of the buffer;
-            to (str, None): the backend of the returned arrays; when ``None`` the agent backend is used.
+            to (str, None): the backend of the returned arrays; when ``None`` the agent backend is used;
+            links (tuple, None): the ``(prev, next)`` step distances of the buffer, as in
+                :meth:`parse_history_circular_buffer`.
 
         Returns:
             The tuple ``(state, action, reward, next_state, absorbing, last, extra)``, as :meth:`parse_history` but
@@ -398,10 +414,11 @@ class HistoryManager(MushroomObject):
         dataset = dataset.to_backend(self._agent_backend.get_backend_name(), device=self._device)
         reduced_reward, anchor, endpoint = self.build_nstep_return_circular_buffer(
             dataset.reward, dataset.absorbing, dataset.last, anchor_idxs, gamma, n_steps_return, size, full, max_size,
-            write_head)
+            write_head, links=links)
         state, next_state, extra = self._transition_history(dataset.state, dataset.next_state, dataset.action,
                                                             dataset.last, anchor, size, full, max_size,
-                                                            self._agent_backend, next_anchor_idxs=endpoint)
+                                                            self._agent_backend, next_anchor_idxs=endpoint,
+                                                            links=links, write_head=write_head)
         extra['endpoint'] = endpoint
         extra['anchor'] = anchor
         return self._convert_parsed(to, state, dataset.action[anchor], reduced_reward, next_state,
@@ -471,7 +488,8 @@ class HistoryManager(MushroomObject):
             out = out[:, 0]
         return out
 
-    def build_history_circular_buffer(self, name, buffer, last, anchor_idxs, size, full, max_size, backend=None):
+    def build_history_circular_buffer(self, name, buffer, last, anchor_idxs, size, full, max_size, backend=None,
+                                      links=None, write_head=0):
         """
         Same as :meth:`build_history`, but reading from a circular replay buffer: positions are taken modulo the buffer
         size, the walk stops both at episode boundaries and at the buffer limits (the start of a not-yet-wrapped buffer,
@@ -486,7 +504,11 @@ class HistoryManager(MushroomObject):
             size (int): the number of valid entries currently stored in the buffer;
             full (bool): whether the circular buffer has wrapped around;
             max_size (int): the maximum size of the circular buffer;
-            backend (ArrayBackend, None): the required array backend; when ``None`` the agent backend is used.
+            backend (ArrayBackend, None): the required array backend; when ``None`` the agent backend is used;
+            links (tuple, None): the ``(prev, next)`` step distances of the buffer, as in
+                :meth:`parse_history_circular_buffer`; the walk then follows them and stops at a step that is not
+                stored anymore;
+            write_head (int, 0): the next write position of the buffer, used with ``links``.
 
         The observation stream is preprocessed as it is read, at the gather rather than over the whole buffer, so the
         cost follows the batch and not the buffer capacity.
@@ -505,6 +527,18 @@ class HistoryManager(MushroomObject):
         dtype = self.preprocess(buffer[:1]).dtype if preprocess else buffer.dtype
         device = backend.get_device(buffer)
         out = backend.zeros(n_samples, length, *buffer.shape[1:], dtype=dtype, device=device)
+
+        if links is not None:
+            prev = links[0]
+            pos = anchor_idxs
+            active = backend.ones(n_samples, dtype=bool, device=device)
+            for _ in range(offset):
+                pos, active = self._step_back(prev, pos, active, full, max_size, write_head)
+            for t in range(length):
+                gathered = self.preprocess(buffer[pos]) if preprocess else buffer[pos]
+                out[:, length - 1 - t] = backend.where(active.reshape(mask_shape), gathered, out[:, length - 1 - t])
+                pos, active = self._step_back(prev, pos, active, full, max_size, write_head)
+            return out[:, 0] if length == 1 else out
 
         walk_anchors = anchor_idxs - offset
         active = backend.ones(n_samples, dtype=bool, device=device)
@@ -534,7 +568,8 @@ class HistoryManager(MushroomObject):
             out = out[:, 0]
         return out
 
-    def build_nstep_return(self, reward, absorbing, last, anchor_idxs=None, gamma=1., n_steps_return=1, backend=None):
+    def build_nstep_return(self, reward, absorbing, last, anchor_idxs=None, gamma=1., n_steps_return=1, backend=None,
+                           bootstrap=None):
         """
         Compute the n-step return of a batch of transitions, keeping only the valid ones. The n-step return of a
         transition is the discounted sum of the rewards collected over the next ``n_steps_return`` steps; its bootstrap
@@ -549,7 +584,9 @@ class HistoryManager(MushroomObject):
             anchor_idxs (None): the buffer position of each transition; when ``None`` every stored transition is used;
             gamma (float, 1.): the discount factor;
             n_steps_return (int, 1): the number of steps summed in the return;
-            backend (ArrayBackend, None): the required array backend; when ``None`` the agent backend is used.
+            backend (ArrayBackend, None): the required array backend; when ``None`` the agent backend is used;
+            bootstrap (None): the flags of the non-absorbing boundaries the return may end at, bootstrapping from
+                their next state; by default every non-absorbing boundary makes the transitions reaching it invalid.
 
         Returns:
             The tuple ``(reduced_reward, anchor, endpoint)`` restricted to the valid transitions: the discounted n-step
@@ -561,7 +598,7 @@ class HistoryManager(MushroomObject):
         if anchor_idxs is not None:
             return self.build_nstep_return_circular_buffer(reward, absorbing, last, anchor_idxs, gamma,
                                                            n_steps_return, size, full=False, max_size=size,
-                                                           write_head=size, backend=backend)
+                                                           write_head=size, backend=backend, bootstrap=bootstrap)
 
         device = backend.get_device(reward)
         offset = backend.zeros(size, dtype=int, device=device)
@@ -574,7 +611,10 @@ class HistoryManager(MushroomObject):
                 valid = valid & ~active
                 break
             stop = active[:tail + 1] & (last[t - 1:] > 0)
-            valid[:tail + 1] = valid[:tail + 1] & ~(stop & (absorbing[t - 1:] <= 0))
+            truncated = stop & (absorbing[t - 1:] <= 0)
+            if bootstrap is not None:
+                truncated = truncated & ~bootstrap[t - 1:]
+            valid[:tail + 1] = valid[:tail + 1] & ~truncated
             active[:tail + 1] = active[:tail + 1] & ~stop
             valid[tail:] = valid[tail:] & ~active[tail:]
             active[tail:] = False
@@ -587,7 +627,7 @@ class HistoryManager(MushroomObject):
         return acc[valid], anchor_idxs[valid], endpoint[valid]
 
     def build_nstep_return_circular_buffer(self, reward, absorbing, last, anchor_idxs, gamma, n_steps_return, size,
-                                           full, max_size, write_head, backend=None):
+                                           full, max_size, write_head, backend=None, links=None, bootstrap=None):
         """
         Compute the n-step return of a batch of transitions stored in a circular replay buffer, keeping only the valid
         ones, as in :meth:`build_nstep_return`. An absorbing terminal ends the return early and is the bootstrap
@@ -605,7 +645,11 @@ class HistoryManager(MushroomObject):
             full (bool): whether the buffer has wrapped around;
             max_size (int): the buffer capacity;
             write_head (int): the next write position; the newest stored transition is the one before it;
-            backend (ArrayBackend, None): the required array backend; when ``None`` the agent backend is used.
+            backend (ArrayBackend, None): the required array backend; when ``None`` the agent backend is used;
+            links (tuple, None): the ``(prev, next)`` step distances of the buffer, as in
+                :meth:`parse_history_circular_buffer`;
+            bootstrap (None): the flags of the non-absorbing boundaries the return may end at, as in
+                :meth:`build_nstep_return`.
 
         Returns:
             The tuple ``(reduced_reward, anchor, endpoint)`` restricted to the valid transitions, as in
@@ -613,8 +657,17 @@ class HistoryManager(MushroomObject):
 
         """
         backend = backend or self._agent_backend
+        if links is not None:
+            positions, endpoint_step, valid = self._nstep_walk_links(absorbing, last, anchor_idxs, n_steps_return,
+                                                                     links[1], max_size, backend)
+            acc = reward[anchor_idxs] * gamma ** 0
+            for d in range(1, n_steps_return):
+                acc = backend.where(d <= endpoint_step, acc + gamma ** d * reward[positions[:, d]], acc)
+            rows = backend.arange(0, len(anchor_idxs), device=backend.get_device(reward))
+            endpoint = positions[rows, endpoint_step]
+            return acc[valid], anchor_idxs[valid], endpoint[valid]
         endpoint_offset, valid = self._nstep_walk(absorbing, last, anchor_idxs, n_steps_return, size, full, max_size,
-                                                  write_head, backend)
+                                                  write_head, backend, bootstrap)
         acc = reward[anchor_idxs] * gamma ** 0
         for d in range(1, n_steps_return):
             cur = (anchor_idxs + d) % max_size if full else backend.clip(anchor_idxs + d, 0, size - 1)
@@ -649,7 +702,7 @@ class HistoryManager(MushroomObject):
                                                 max_size=size, write_head=size, backend=backend)
 
     def nstep_valid_circular_buffer(self, absorbing, last, anchor_idxs, n_steps_return, size, full, max_size,
-                                    write_head, backend=None):
+                                    write_head, backend=None, links=None):
         """
         Compute whether the n-step return of a batch of transitions stored in a circular replay buffer is well-defined,
         as in :meth:`nstep_valid`.
@@ -663,13 +716,17 @@ class HistoryManager(MushroomObject):
             full (bool): whether the buffer has wrapped around;
             max_size (int): the buffer capacity;
             write_head (int): the next write position; the newest stored transition is the one before it;
-            backend (ArrayBackend, None): the required array backend; when ``None`` the agent backend is used.
+            backend (ArrayBackend, None): the required array backend; when ``None`` the agent backend is used;
+            links (tuple, None): the ``(prev, next)`` step distances of the buffer, as in
+                :meth:`parse_history_circular_buffer`.
 
         Returns:
             The boolean ``valid`` flag aligned to ``anchor_idxs``, as in :meth:`nstep_valid`.
 
         """
         backend = backend or self._agent_backend
+        if links is not None:
+            return self._nstep_walk_links(absorbing, last, anchor_idxs, n_steps_return, links[1], max_size, backend)[2]
         _, valid = self._nstep_walk(absorbing, last, anchor_idxs, n_steps_return, size, full, max_size,
                                     write_head, backend)
         return valid
@@ -774,6 +831,21 @@ class HistoryManager(MushroomObject):
         return max((spec['offset'] + spec['length'] - 1
                     for spec in self._stream_specs.values()), default=0)
 
+    def _history_source(self, dataset):
+        """
+        Returns:
+            The dataset the windows of ``dataset`` are built on and the number of its leading rows that precede
+            ``dataset``: the rows of the dataset it is a slice of reaching back :attr:`max_reach` rows, when it starts
+            in the middle of an episode.
+
+        """
+        parent = dataset.parent_slice
+        if parent is None or self.max_reach == 0:
+            return dataset, 0
+        root, start = parent
+        begin = max(0, start - self.max_reach)
+        return root[begin:start + len(dataset)], start - begin
+
     def _convert_output(self, to, *arrays):
         """
         Convert the parsed arrays from the agent backend, in which the manager always works, to the one requested by
@@ -817,17 +889,18 @@ class HistoryManager(MushroomObject):
             self._last_action[mask] = 0
 
     def _transition_history(self, states, next_states, actions, last, anchor_idxs, size, full, max_size, backend,
-                            next_anchor_idxs=None):
+                            next_anchor_idxs=None, links=None, write_head=0):
         endpoint_idxs = anchor_idxs if next_anchor_idxs is None else next_anchor_idxs
 
         if 'obs_history' in self._stream_specs:
             state = self.build_history_circular_buffer('obs_history', states, last, anchor_idxs, size, full, max_size,
-                                                       backend=backend)
+                                                       backend=backend, links=links, write_head=write_head)
             if next_anchor_idxs is None:
                 endpoint_state = state
             else:
                 endpoint_state = self.build_history_circular_buffer('obs_history', states, last, next_anchor_idxs, size,
-                                                                    full, max_size, backend=backend)
+                                                                    full, max_size, backend=backend, links=links,
+                                                                    write_head=write_head)
             next_state = self._next_obs_history(endpoint_state, next_states[endpoint_idxs], backend)
         else:
             state = self.preprocess(states[anchor_idxs])
@@ -836,7 +909,8 @@ class HistoryManager(MushroomObject):
         extra = dict()
         if self.uses_action:
             extra['action_history'] = self.build_history_circular_buffer('action_history', actions, last, anchor_idxs,
-                                                                         size, full, max_size, backend=backend)
+                                                                         size, full, max_size, backend=backend,
+                                                                         links=links, write_head=write_head)
         return state, next_state, extra
 
     def _next_obs_history(self, state_history, next_states, backend):
@@ -900,7 +974,38 @@ class HistoryManager(MushroomObject):
         return out
 
     @staticmethod
-    def _nstep_walk(absorbing, last, anchor_idxs, n_steps_return, size, full, max_size, write_head, backend):
+    def _step_back(prev, pos, active, full, max_size, write_head):
+        distance = prev[pos]
+        age = (pos - write_head) % max_size if full else pos
+        active = active & (distance > 0) & (distance <= age)
+        return (pos - distance) % max_size, active
+
+    @staticmethod
+    def _nstep_walk_links(absorbing, last, anchor_idxs, n_steps_return, following, max_size, backend):
+        n_samples = len(anchor_idxs)
+        device = backend.get_device(last)
+        positions = backend.zeros(n_samples, n_steps_return, dtype=int, device=device)
+        positions[:, 0] = anchor_idxs
+        endpoint_step = backend.zeros(n_samples, dtype=int, device=device)
+        valid = backend.zeros(n_samples, dtype=bool, device=device)
+        running = backend.ones(n_samples, dtype=bool, device=device)
+        pos = anchor_idxs
+        for step in range(n_steps_return - 1):
+            ends = last[pos] > 0
+            distance = following[pos]
+            stop = running & (ends | (distance == 0))
+            valid = backend.where(running & ends, absorbing[pos] > 0, valid)
+            endpoint_step = backend.where(stop, step, endpoint_step)
+            running = running & ~stop
+            pos = backend.where(running, (pos + distance) % max_size, pos)
+            positions[:, step + 1] = pos
+        endpoint_step = backend.where(running, n_steps_return - 1, endpoint_step)
+        valid = valid | running
+        return positions, endpoint_step, valid
+
+    @staticmethod
+    def _nstep_walk(absorbing, last, anchor_idxs, n_steps_return, size, full, max_size, write_head, backend,
+                    bootstrap=None):
         n_samples = len(anchor_idxs)
         max_offset = (write_head - 1 - anchor_idxs) % max_size if full else size - 1 - anchor_idxs
         device = backend.get_device(last)
@@ -921,5 +1026,8 @@ class HistoryManager(MushroomObject):
 
         boundary_pos = anchor_idxs + first_boundary
         boundary_pos = boundary_pos % max_size if full else backend.clip(boundary_pos, 0, size - 1)
-        valid = backend.where(has_boundary, absorbing[boundary_pos] > 0, max_offset >= n_steps_return - 1)
+        ends_ok = absorbing[boundary_pos] > 0
+        if bootstrap is not None:
+            ends_ok = ends_ok | bootstrap[boundary_pos]
+        valid = backend.where(has_boundary, ends_ok, max_offset >= n_steps_return - 1)
         return endpoint_offset, valid

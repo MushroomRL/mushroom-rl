@@ -59,9 +59,10 @@ class SequenceReplayMemory(ReplayMemory):
         obs_dtype = backend.to_backend_dtype(self._mdp_info.observation_space.data_type)
         action_dtype = backend.to_backend_dtype(self._mdp_info.action_space.data_type)
 
-        start = self._idx if self._full else 0
+        ds = self._dataset
+        start = ds.write_head if ds.full else 0
         size = self.size
-        min_offset = self._history_manager.max_reach if self._full else 0
+        min_offset = self._history_manager.max_reach if ds.full else 0
 
         stacked_shape = (h, *obs_shape) if h > 1 else obs_shape
         s = backend.zeros(n_samples, self._truncation_length, *stacked_shape, dtype=obs_dtype,
@@ -83,20 +84,24 @@ class SequenceReplayMemory(ReplayMemory):
 
         for num, c_anchor in enumerate(backend.randint(min_offset, size, (n_samples,), device=self._agent_info.device)):
             c_anchor = int(c_anchor)
-            c_begin = max(c_anchor - self._truncation_length + 1, min_offset)
+            if ds.links is None:
+                c_begin = max(c_anchor - self._truncation_length + 1, min_offset)
 
-            window = backend.arange(c_begin, c_anchor, device=self._agent_info.device)
-            if len(window) > 0:
-                boundary = backend.where(self._dataset.last[(start + window) % max_size] > 0)
-                if len(boundary[0]) > 0:
-                    c_begin = c_begin + int(boundary[0][-1]) + 1
+                window = backend.arange(c_begin, c_anchor, device=self._agent_info.device)
+                if len(window) > 0:
+                    boundary = backend.where(ds.last[(start + window) % max_size] > 0)
+                    if len(boundary[0]) > 0:
+                        c_begin = c_begin + int(boundary[0][-1]) + 1
 
-            length = c_anchor - c_begin + 1
-            positions = (start + backend.arange(c_begin, c_anchor + 1, device=self._agent_info.device)) % max_size
+                length = c_anchor - c_begin + 1
+                positions = (start + backend.arange(c_begin, c_anchor + 1, device=self._agent_info.device)) % max_size
+            else:
+                positions = self._sequence_positions((start + c_anchor) % max_size, start, min_offset)
+                length = len(positions)
 
             state_seq, action_seq, reward_seq, next_state_seq, absorbing_seq, last_seq, extra = \
                 self._history_manager.parse_history_circular_buffer(
-                    self._dataset, positions, len(self._dataset), self._full, self._max_size)
+                    ds, positions, len(ds), ds.full, self._max_size, links=ds.links, write_head=ds.write_head)
 
             s[num, :length] = state_seq
             ss[num, :length] = next_state_seq
@@ -119,3 +124,24 @@ class SequenceReplayMemory(ReplayMemory):
         if self._return_extra:
             out.append(extra_buffers)
         return tuple(out)
+
+    def _sequence_positions(self, anchor, start, min_offset):
+        """
+        Args:
+            anchor (int): the buffer position of the final step of the sequence;
+            start (int): the buffer position of the oldest stored step;
+            min_offset (int): the number of oldest stored steps a sequence cannot include.
+
+        Returns:
+            The buffer positions of the steps of the episode of ``anchor`` ending at it, oldest first, at most
+            ``truncation_length`` of them.
+
+        """
+        prev = self._dataset.links[0]
+        steps = [anchor]
+        while len(steps) < self._truncation_length:
+            distance = int(prev[steps[-1]])
+            if distance == 0 or distance > (steps[-1] - start) % self._max_size - min_offset:
+                break
+            steps.append((steps[-1] - distance) % self._max_size)
+        return self._dataset.array_backend.as_array(steps[::-1], device=self._agent_info.device)

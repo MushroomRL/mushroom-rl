@@ -67,10 +67,10 @@ class PrioritizedReplayMemory(ReplayMemory):
         if p is None:
             p = self._dataset.array_backend.full((len(dataset),), self.max_priority, device=self._agent_info.device)
 
-        positions = self._write_to_buffer(dataset)
+        positions, relinked = self._dataset.write(dataset)
         tree_idxs = ArrayBackend.convert(positions, to='numpy') + self._max_size - 1
         self._tree.update(tree_idxs, ArrayBackend.convert(p, to='numpy'))
-        self._sync_tree_mask(self._affected_window(positions))
+        self._sync_tree_mask(self._affected_window(positions, relinked))
 
     def get(self, n_samples):
         """
