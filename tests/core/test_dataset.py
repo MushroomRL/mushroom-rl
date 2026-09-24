@@ -3,6 +3,7 @@ import torch
 
 from mushroom_rl.core import Core, Dataset
 from mushroom_rl.core.extra_info import ExtraInfo
+from mushroom_rl.core._impl.layout import StreamLayout, CodedLayout
 from mushroom_rl.algorithms.value import SARSA
 from mushroom_rl.environments import GridWorld
 from mushroom_rl.rl_utils.parameters import Parameter
@@ -491,3 +492,56 @@ def test_to_backend_converts_the_extra_info():
     assert isinstance(converted.state, np.ndarray)
     assert isinstance(converted.info['x'], np.ndarray)
     assert np.array_equal(converted.info['x'], np.array([1., 2.]))
+
+
+def make_stream(states, lasts, continuing=False):
+    n = len(states)
+    states = np.array(states, dtype=float)[:, None]
+    return Dataset.from_array(states, np.zeros((n, 1)), np.zeros(n), states + 0.5, np.zeros(n, dtype=bool),
+                              np.array(lasts, dtype=bool), gamma=0.5, continuing=continuing)
+
+
+def test_walk_back_and_forward_stop_at_the_episode_ends():
+    dataset = make_stream([0, 1, 2, 3, 4, 5], [0, 0, 1, 0, 0, 1])
+
+    back, back_valid = dataset.walk_back(np.array([1, 4, 5]), 3)
+    forward, forward_valid = dataset.walk_forward(np.array([0, 3]), 3)
+
+    assert np.array_equal(back, np.array([[1, 0, 0, 0], [4, 3, 3, 3], [5, 4, 3, 3]]))
+    assert np.array_equal(back_valid, np.array([[True, True, False, False], [True, True, False, False],
+                                                [True, True, True, False]]))
+    assert np.array_equal(forward, np.array([[0, 1, 2, 2], [3, 4, 5, 5]]))
+    assert np.array_equal(forward_valid, np.array([[True, True, True, False], [True, True, True, False]]))
+
+
+def test_boundary_codes_are_stored_only_for_a_break():
+    stitched = make_stream([0, 1], [0, 0]) + make_stream([2], [1], continuing=True)
+    closed_then_fresh = make_stream([0, 1], [0, 1]) + make_stream([2], [1])
+    open_then_fresh = make_stream([0, 1], [0, 0]) + make_stream([2], [1])
+
+    assert isinstance(make_stream([0, 1, 2], [0, 0, 1])._layout, StreamLayout)
+    assert isinstance(stitched._layout, StreamLayout)
+    assert isinstance(closed_then_fresh._layout, StreamLayout)
+    assert isinstance(open_then_fresh._layout, CodedLayout)
+    assert np.array_equal(stitched.last_or_boundary, np.array([False, False, True]))
+    assert np.array_equal(closed_then_fresh.last_or_boundary, np.array([False, True, True]))
+    assert np.array_equal(open_then_fresh.last_or_boundary, np.array([False, True, True]))
+
+
+def test_contiguous_without_joins_is_the_dataset_itself():
+    dataset = make_stream([0, 1, 2], [0, 0, 1])
+    stitched = make_stream([0, 1], [0, 0]) + make_stream([2], [1], continuing=True)
+
+    assert dataset.contiguous() is dataset
+    assert stitched.contiguous() is stitched
+
+
+def test_to_backend_keeps_the_horizon_and_the_discount_factor():
+    dataset = Dataset.from_array(np.zeros((3, 2)), np.zeros((3, 1)), np.ones(3), np.zeros((3, 2)),
+                                 np.zeros(3, dtype=bool), np.array([False, False, True]), horizon=50, gamma=0.5)
+
+    converted = dataset.to_backend('torch')
+
+    assert converted._dataset_info.horizon == 50
+    assert converted._dataset_info.gamma == 0.5
+    assert torch.allclose(converted.discounted_return, torch.tensor([1.75]))

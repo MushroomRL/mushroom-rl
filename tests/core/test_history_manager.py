@@ -202,7 +202,7 @@ def test_online_offline_equivalence():
     last = np.zeros(5)
     last[-1] = 1.0
     anchors = np.arange(5)
-    offline = hm.build_history_circular_buffer('obs_history', states, last, anchors, size=5, full=False, max_size=50)
+    offline = hm.build_history('obs_history', states, last, anchors)
 
     assert offline.shape == (5, history_length, *obs_shape)
     assert np.allclose(online, offline)
@@ -224,8 +224,7 @@ def test_online_offline_equivalence_across_episodes():
         online.append(hm(states[t])[0])
     online = np.stack(online)
 
-    offline = hm.build_history_circular_buffer('obs_history', states, last, np.arange(5),
-                                               size=5, full=False, max_size=50)
+    offline = hm.build_history('obs_history', states, last, np.arange(5))
 
     assert np.allclose(online, offline)
     # the second episode (starting at index 3) is zero-padded, never stitched to the first episode
@@ -240,8 +239,7 @@ def test_build_history_batch_stops_at_episode_boundary():
     last[2] = 1.0
 
     hm = _make_manager(history_length=history_length, obs_shape=(2,))
-    offline = hm.build_history_circular_buffer('obs_history', states, last, np.array([4]),
-                                               size=5, full=False, max_size=50)
+    offline = hm.build_history('obs_history', states, last, np.array([4]))
 
     assert np.allclose(offline[0], np.array([[0.0, 0.0], states[3], states[4]]))
 
@@ -684,8 +682,7 @@ def test_preprocessor_build_history_paths_agree():
     last = np.array([0.0, 0.0, 1.0, 0.0])
 
     flat_path = hm.build_history('obs_history', states, last)
-    gather_path = hm.build_history_circular_buffer('obs_history', states, last, np.arange(4), size=4, full=False,
-                                                   max_size=4)
+    gather_path = hm.build_history('obs_history', states, last, np.arange(4))
 
     assert np.allclose(flat_path, gather_path)
 
@@ -883,17 +880,17 @@ def test_parse_to_backend_changes_only_the_container_not_the_values():
     assert np.allclose(hm.parse_initial_state(dataset, to='torch').numpy(), hm.parse_initial_state(dataset))
 
     anchors = np.arange(3)
-    circular = hm.parse_history_circular_buffer(dataset, anchors, 3, False, 3, to='torch')[0]
+    circular = hm.parse_history(dataset, anchor_idxs=anchors, to='torch')[0]
     nstep = hm.parse_nstep_history(dataset, gamma=0.9, n_steps_return=2, to='torch')[0]
-    nstep_circular = hm.parse_nstep_history_circular_buffer(dataset, anchors, 0.9, 2, 3, False, 3, 0, to='torch')[0]
+    nstep_circular = hm.parse_nstep_history(dataset, gamma=0.9, n_steps_return=2, anchor_idxs=anchors, to='torch')[0]
 
     assert isinstance(circular, torch.Tensor)
     assert isinstance(nstep, torch.Tensor)
     assert isinstance(nstep_circular, torch.Tensor)
-    assert np.allclose(circular.numpy(), hm.parse_history_circular_buffer(dataset, anchors, 3, False, 3)[0])
+    assert np.allclose(circular.numpy(), hm.parse_history(dataset, anchor_idxs=anchors)[0])
     assert np.allclose(nstep.numpy(), hm.parse_nstep_history(dataset, gamma=0.9, n_steps_return=2)[0])
     assert np.allclose(nstep_circular.numpy(),
-                       hm.parse_nstep_history_circular_buffer(dataset, anchors, 0.9, 2, 3, False, 3, 0)[0])
+                       hm.parse_nstep_history(dataset, gamma=0.9, n_steps_return=2, anchor_idxs=anchors)[0])
 
 
 def test_parse_history_next_state_window_at_episode_start():
@@ -921,7 +918,7 @@ def test_parse_history_next_state_window_at_episode_start():
                                                       [12.0, 13.0, 14.0],
                                                       [13.0, 14.0, 15.0]]))
 
-    circular = hm.parse_history_circular_buffer(dataset, np.arange(5), 5, False, 5)[3]
+    circular = hm.parse_history(dataset, anchor_idxs=np.arange(5))[3]
 
     assert np.allclose(circular, next_state)
 

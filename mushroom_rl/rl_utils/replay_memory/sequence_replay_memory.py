@@ -54,15 +54,12 @@ class SequenceReplayMemory(ReplayMemory):
         """
         backend = self._dataset.array_backend
         h = self._history_manager.history_length
-        max_size = self._max_size
         obs_shape = self._mdp_info.observation_space.shape
         obs_dtype = backend.to_backend_dtype(self._mdp_info.observation_space.data_type)
         action_dtype = backend.to_backend_dtype(self._mdp_info.action_space.data_type)
 
         ds = self._dataset
-        start = ds.write_head if ds.full else 0
         size = self.size
-        min_offset = self._history_manager.max_reach if ds.full else 0
 
         stacked_shape = (h, *obs_shape) if h > 1 else obs_shape
         s = backend.zeros(n_samples, self._truncation_length, *stacked_shape, dtype=obs_dtype,
@@ -82,33 +79,17 @@ class SequenceReplayMemory(ReplayMemory):
         extra_buffers = dict()
         lengths = list()
 
-        if ds.links is None:
-            anchors = backend.randint(min_offset, size, (n_samples,), device=self._agent_info.device)
-        else:
-            cut = self._history_cut(backend.arange(0, size, device=self._agent_info.device))
-            candidates = backend.arange(0, size, device=self._agent_info.device)[~cut]
-            anchors = candidates[backend.randint(0, len(candidates), (n_samples,), device=self._agent_info.device)]
+        stored = backend.arange(0, size, device=self._agent_info.device)
+        cut = ds.history_cut(stored, self._history_manager.max_reach)
+        candidates = stored[~cut]
+        anchors = candidates[backend.randint(0, len(candidates), (n_samples,), device=self._agent_info.device)]
 
-        for num, c_anchor in enumerate(anchors):
-            c_anchor = int(c_anchor)
-            if ds.links is None:
-                c_begin = max(c_anchor - self._truncation_length + 1, min_offset)
-
-                window = backend.arange(c_begin, c_anchor, device=self._agent_info.device)
-                if len(window) > 0:
-                    boundary = backend.where(ds.last[(start + window) % max_size] > 0)
-                    if len(boundary[0]) > 0:
-                        c_begin = c_begin + int(boundary[0][-1]) + 1
-
-                length = c_anchor - c_begin + 1
-                positions = (start + backend.arange(c_begin, c_anchor + 1, device=self._agent_info.device)) % max_size
-            else:
-                positions = self._sequence_positions(c_anchor, cut)
-                length = len(positions)
+        for num in range(n_samples):
+            positions = self._sequence_positions(anchors[num:num + 1], cut)
+            length = len(positions)
 
             state_seq, action_seq, reward_seq, next_state_seq, absorbing_seq, last_seq, extra = \
-                self._history_manager.parse_history_circular_buffer(
-                    ds, positions, len(ds), ds.full, self._max_size, links=ds.links, write_head=ds.write_head)
+                self._history_manager.parse_history(ds, anchor_idxs=positions)
 
             s[num, :length] = state_seq
             ss[num, :length] = next_state_seq
@@ -134,8 +115,10 @@ class SequenceReplayMemory(ReplayMemory):
 
     def _sequence_positions(self, anchor, cut):
         """
+        Collect the buffer positions of the sequence ending at an anchor.
+
         Args:
-            anchor (int): the buffer position of the final step of the sequence;
+            anchor (Array): the buffer position of the final step of the sequence, as a one-element array;
             cut: for every stored position, whether its history window reaches a step that is not stored anymore.
 
         Returns:
@@ -143,14 +126,6 @@ class SequenceReplayMemory(ReplayMemory):
             ``truncation_length`` of them, all stored and with a stored history window.
 
         """
-        ds = self._dataset
-        prev = ds.links[0]
-        steps = [anchor]
-        while len(steps) < self._truncation_length:
-            distance = int(prev[steps[-1]])
-            age = (steps[-1] - ds.write_head) % self._max_size if ds.full else steps[-1]
-            previous = (steps[-1] - distance) % self._max_size
-            if distance == 0 or distance > age or bool(cut[previous]):
-                break
-            steps.append(previous)
-        return ds.array_backend.as_array(steps[::-1], device=self._agent_info.device)
+        positions, valid = self._dataset.walk_back(anchor, self._truncation_length - 1)
+        steps = positions[0][valid[0] & ~cut[positions[0]]]
+        return self._dataset.array_backend.as_array([int(step) for step in steps][::-1], device=self._agent_info.device)

@@ -34,7 +34,7 @@ class NumpyContainer(Container, backend='numpy'):
     def append(self, *values):
         i = self._len
         for array, value in zip(self._arrays, values):
-            array[i] = value if self._n_envs is None else value[:self._n_envs]
+            array[i] = value if self._n_envs is None or np.isscalar(value) else value[:self._n_envs]
         self._len += 1
 
     def append_batch(self, other):

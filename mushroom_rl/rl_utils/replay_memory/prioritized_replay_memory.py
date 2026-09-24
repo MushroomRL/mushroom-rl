@@ -62,8 +62,6 @@ class PrioritizedReplayMemory(ReplayMemory):
         assert not self._dataset.is_stateful or dataset.is_stateful, \
             "The replay memory is configured to store the policy state, but the dataset does not provide it."
 
-        dataset = dataset.to_backend(self._agent_info.backend, device=self._agent_info.device)
-
         if p is None:
             p = self._dataset.array_backend.full((len(dataset),), self.max_priority, device=self._agent_info.device)
 

@@ -152,6 +152,8 @@ class StepInfo(MushroomObject):
 
     def to_backend(self, backend, device=None):
         """
+        Copy the step information, to be parsed in another backend.
+
         Args:
             backend (str): name of the array backend the arrays are built in;
             device (str, None): device the arrays are placed on, or ``None`` for the default one.
@@ -362,6 +364,8 @@ class StepInfo(MushroomObject):
 
     def _can_take_pending(self, other):
         """
+        Check whether the unparsed rows of another step information can be appended as they are.
+
         Args:
             other (StepInfo): StepInfo whose rows are to be appended.
 
@@ -464,6 +468,8 @@ class StepInfo(MushroomObject):
 
     def _convert_parsed(self, to, device):
         """
+        Convert the parsed arrays to another backend.
+
         Args:
             to (str): name of the array backend the resulting arrays are built in;
             device (str, None): device the resulting arrays are placed on, or ``None`` for the default one.
@@ -666,6 +672,8 @@ class StepInfo(MushroomObject):
 
     def _selection_length(self, index, selected):
         """
+        Count the steps held by a selection.
+
         Args:
             index (int, slice, ndarray, tensor): the selection applied to the stored steps;
             selected (dict): the selected content.
@@ -810,6 +818,8 @@ class EpisodeInfo(MushroomObject):
 
     def to_backend(self, backend, device=None):
         """
+        Copy the episode information, to be parsed in another backend.
+
         Args:
             backend (str): name of the array backend the parsed arrays are built in;
             device (str, None): device the parsed arrays are placed on, or ``None`` for the default one.
@@ -922,6 +932,8 @@ class EpisodeInfo(MushroomObject):
 
     def _entry(self, entry, env):
         """
+        Extract the entry of one environment from a batched entry.
+
         Args:
             entry (dict, list, Array): the appended entry;
             env (int): the environment to take the entry of.
@@ -1069,6 +1081,8 @@ class ExtraInfo(MushroomObject):
 
     def to_backend(self, backend, device=None):
         """
+        Copy the information, to be parsed in another backend.
+
         Args:
             backend (str): name of the array backend the parsed arrays are built in;
             device (str, None): device the parsed arrays are placed on, or ``None`` for the default one.
@@ -1132,6 +1146,22 @@ class ExtraInfo(MushroomObject):
         extras._step_info = self._step_info.flatten(mask)
         extras._episode_info = self._episode_info.flatten()
         extras._theta = self._theta.flatten()
+
+        return extras
+
+    def reorder_steps(self, index):
+        """
+        Copy the information with the steps reordered.
+
+        Args:
+            index (Array): the step placed at every position.
+
+        Returns:
+            A copy with the steps in the given order and the same episode information and policy parameters.
+
+        """
+        extras = self.copy()
+        extras._step_info = self._step_info.get_view(index, copy=True)
 
         return extras
 

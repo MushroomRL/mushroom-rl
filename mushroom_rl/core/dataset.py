@@ -10,6 +10,7 @@ from mushroom_rl.core.array_backend import ArrayBackend
 from mushroom_rl.core.extra_info import ExtraInfo
 
 from ._impl.containers import Container
+from ._impl.layout import EpisodeLayout, StreamLayout, CodedLayout, RingLayout
 from ._impl.history_state import HistoryState, GridHistoryState
 
 from mushroom_rl.utils.episodes import split_episodes
@@ -193,11 +194,6 @@ class Dataset(MushroomObject):
         POLICY_STATE = 0
         POLICY_NEXT_STATE = 1
 
-    class _Boundary(IntEnum):
-        NONE = 0  # the row follows the previous row
-        FRESH = 1  # the row starts an episode with no past
-        CONTINUING = 2  # the row continues an episode whose past rows are not the previous row
-
     def __init__(self, dataset_info, n_steps=None, n_episodes=None, core_counts_episodes=False):
         """
         Constructor. Exactly one of ``n_steps`` and ``n_episodes`` must be given; it sizes the preallocated
@@ -238,13 +234,7 @@ class Dataset(MushroomObject):
         else:
             self._agent_data = None
 
-        boundary_shape = self._base_shape if self._base_shape is not None else ()
-        self._boundary_data = Container.create(dataset_info.env_backend, [boundary_shape],
-                                               [dataset_info.env_array_backend.to_backend_dtype(np.int8)],
-                                               dataset_info.env_device, n_envs)
-        self._next_boundary = int(self._Boundary.FRESH)
-        self._open_heads = None
-        self._open_tails = None
+        self._layout = self._create_layout(dataset_info, n_steps, n_envs)
         self._history_state = HistoryState(dataset_info.agent_backend, dataset_info.agent_device)
 
         self._add_all_save_attr()
@@ -263,18 +253,15 @@ class Dataset(MushroomObject):
         if len(self) == 0:
             return other.copy()
 
-        stitched, heads, tails = self._pair(other)
+        layout, stitched = self._layout.concatenate(other._layout, self.last)
 
         result = self.create_raw_instance(dataset=self)
 
         result._extras = self._extras + other._extras
         result._data = self._data + other._data
         result._agent_data = (self._agent_data + other._agent_data) if self._agent_data is not None else None
-        result._boundary_data = self._boundary_data + other._boundary_data
+        result._layout = layout
         result._history_state = self._history_state.concatenate(other._history_state, len(self), stitched)
-        result._open_heads, result._open_tails = heads, tails
-        if stitched:
-            result._boundary_data.column()[len(self)] = int(self._Boundary.NONE)
 
         return result
 
@@ -297,7 +284,7 @@ class Dataset(MushroomObject):
         return len(self._data)
 
     def append(self, step, info):
-        self._boundary_data.append(self._next_boundary if len(self) == 0 else int(self._Boundary.NONE))
+        self._layout.append()
         self._store_step(step)
         self._extras.append_step(info)
 
@@ -311,12 +298,12 @@ class Dataset(MushroomObject):
             other (Dataset): dataset whose transitions will be appended.
 
         """
-        stitched, self._open_heads, self._open_tails = self._pair(other)
         n = len(self)
+        self._layout, stitched = self._layout.append_batch(other._layout, self.last)
         self._history_state = self._history_state.concatenate(other._history_state, n, stitched)
-        self._append_rows(other)
-        if stitched:
-            self._boundary_data.column()[n] = int(self._Boundary.NONE)
+        self._data.append_batch(other._data)
+        if self._agent_data is not None:
+            self._agent_data.append_batch(other._agent_data)
 
     def reserve(self, capacity):
         """
@@ -331,7 +318,7 @@ class Dataset(MushroomObject):
         self._data.reserve(capacity)
         if self._agent_data is not None:
             self._agent_data.reserve(capacity)
-        self._boundary_data.reserve(capacity)
+        self._layout.reserve(capacity)
 
     def append_episode_info(self, info, mask=None):
         """
@@ -369,9 +356,8 @@ class Dataset(MushroomObject):
                 next row continues the cleared ones, its window is rebuilt from it.
 
         """
-        if len(self) > 0:
-            self._next_boundary = int(self._Boundary.FRESH if bool(self.last[-1]) else self._Boundary.CONTINUING)
-        if history_context is not None and self._next_boundary == self._Boundary.CONTINUING:
+        self._layout.clear(self.last)
+        if history_context is not None and self._layout.first == EpisodeLayout.Boundary.CONTINUING:
             self._history_state = HistoryState.from_context(self._dataset_info.agent_backend,
                                                             self._dataset_info.agent_device, history_context)
         else:
@@ -391,20 +377,7 @@ class Dataset(MushroomObject):
             The dataset of the selected transitions.
 
         """
-        dataset = self._view_rows(index, copy)
-        n = len(self)
-
-        if isinstance(index, slice) and index.step in (None, 1):
-            start, stop, _ = index.indices(n)
-            self._view_slice_start(dataset, start, max(start, stop))
-        else:
-            boundary = self._dataset_info.env_array_backend.zeros(len(dataset), dtype=self._boundary_dtype(),
-                                                                  device=self._dataset_info.env_device)
-            boundary[:] = int(self._Boundary.CONTINUING)
-            boundary[self._row_starts()[index]] = int(self._Boundary.FRESH)
-            dataset._boundary_data = Container.from_array([boundary], device=self._dataset_info.env_device,
-                                                          backend=self._dataset_info.env_backend)
-        dataset._open_heads, dataset._open_tails = tuple(), tuple()
+        dataset = self._view_rows(index, copy, self._layout.standalone_view(index, self._last_array()))
         dataset._history_state = HistoryState(self._dataset_info.agent_backend, self._dataset_info.agent_device)
 
         return dataset
@@ -466,18 +439,74 @@ class Dataset(MushroomObject):
                 and device in (None, self._dataset_info.env_device) \
                 and device in (None, self._dataset_info.agent_device):
             return self
-        state, action, reward, next_state, absorbing, last, boundary = self._convert(
-            self.state, self.action, self.reward, self.next_state, self.absorbing, self.last,
-            self._boundary_data.column(), to=backend, device=device)
+        state, action, reward, next_state, absorbing, last = self._convert(
+            self.state, self.action, self.reward, self.next_state, self.absorbing, self.last, to=backend, device=device)
         policy_state, policy_next_state = (self.parse_policy_state(to=backend, device=device) if self.is_stateful
                                            else (None, None))
-        dataset = Dataset.from_array(state, action, reward, next_state, absorbing, last,
-                                     policy_state=policy_state, policy_next_state=policy_next_state,
-                                     extras=self._extras.to_backend(backend, device), backend=backend,
-                                     policy_backend=backend, device=device, agent_device=device,
-                                     history_state=self._history_state.to_backend(backend, device),
-                                     boundary=boundary, open_heads=self._open_heads, open_tails=self._open_tails)
-        dataset._next_boundary = self._next_boundary
+        return Dataset._from_components(state, action, reward, next_state, absorbing, last,
+                                        self._layout.to_backend(backend, device),
+                                        policy_state=policy_state, policy_next_state=policy_next_state,
+                                        extras=self._extras.to_backend(backend, device),
+                                        horizon=self._dataset_info.horizon, gamma=self._dataset_info.gamma,
+                                        backend=backend, policy_backend=backend, device=device, agent_device=device,
+                                        history_state=self._history_state.to_backend(backend, device))
+
+    def walk_back(self, anchors, n_hops, last=None):
+        """
+        Walk back from each anchor along its episode.
+
+        Args:
+            anchors (Array): the starting row of each walk;
+            n_hops (int): the number of steps to walk;
+            last (None): the flags of the final row of every stored segment; by default the ones of this dataset. The
+                walk runs on their backend and device.
+
+        Returns:
+            The ``(positions, valid)`` arrays of shape ``(len(anchors), n_hops + 1)``: column ``k`` holds the row
+            reached after ``k`` steps, column 0 the anchor, and whether that step is stored. A missing step holds the
+            last row reached.
+
+        """
+        return self._layout.walk_back(self._walk_last() if last is None else last, anchors, n_hops)
+
+    def walk_forward(self, anchors, n_hops, last=None):
+        """
+        Walk forward from each anchor along its episode.
+
+        Args:
+            anchors (Array): the starting row of each walk;
+            n_hops (int): the number of steps to walk;
+            last (None): the flags of the final row of every stored segment, as in :meth:`walk_back`.
+
+        Returns:
+            The ``(positions, valid)`` arrays, as in :meth:`walk_back`.
+
+        """
+        return self._layout.walk_forward(self._walk_last() if last is None else last, anchors, n_hops)
+
+    def contiguous(self):
+        """
+        Reorder the rows so that every episode continued across a join (``+`` or ``+=``) follows its past rows. The
+        open episodes of each joined dataset pair, in order, with the continuing episodes of the next one; the other
+        rows keep their order.
+
+        Returns:
+            The reordered dataset, or this dataset when no join has episodes to pair.
+
+        Raises:
+            ValueError: if a joined dataset continues a number of episodes different from the number left open before
+            it.
+
+        """
+        if self._layout.n_joins == 0:
+            return self
+        order, layout, glued = self._layout.glue(self._last_array())
+        dataset = self.create_raw_instance(dataset=self)
+        dataset._extras = self._extras.reorder_steps(order)
+        dataset._data = self._data.get_view(order, copy=True)
+        dataset._agent_data = self._agent_data.get_view(order, copy=True) if self._agent_data is not None else None
+        dataset._layout = layout
+        dataset._history_state = self._history_state.drop(glued, len(self)).get_view(order, len(self))
         return dataset
 
     def select_first_episodes(self, n_episodes):
@@ -630,10 +659,7 @@ class Dataset(MushroomObject):
         new_dataset._extras = None
         new_dataset._data = None
         new_dataset._agent_data = None
-        new_dataset._boundary_data = None
-        new_dataset._next_boundary = int(cls._Boundary.FRESH)
-        new_dataset._open_heads = None
-        new_dataset._open_tails = None
+        new_dataset._layout = None
         new_dataset._history_state = None
 
         new_dataset._add_all_save_attr()
@@ -644,7 +670,7 @@ class Dataset(MushroomObject):
     def from_array(cls, states, actions, rewards, next_states, absorbings, lasts,
                    policy_state=None, policy_next_state=None, extras=None,
                    horizon=None, gamma=0.99, backend='numpy', policy_backend=None, device=None, agent_device=None,
-                   continuing=False, history_state=None, boundary=None, open_heads=None, open_tails=None):
+                   continuing=False):
         """
         Creates a dataset of transitions from the provided arrays.
 
@@ -666,60 +692,17 @@ class Dataset(MushroomObject):
             agent_device (str, None): device the policy state arrays are stored on, or ``None`` for the default one;
             continuing (bool, False): whether row 0 continues the episode left open at the end of the dataset this
                 one is appended to. By default the dataset is standalone: consecutive rows are consecutive steps of
-                one stream and row 0 continues nothing;
-            history_state (HistoryState, None): the policy input windows attached to the rows that start a segment
-                continuing rows stored elsewhere; empty by default;
-            boundary (array, None): the segment start kind of every row, replacing the one ``continuing`` builds;
-            open_heads (tuple, None): the rows continuing the open episodes of the dataset this one is appended to,
-                by default row 0 when it continues;
-            open_tails (tuple, None): the rows whose episode the next appended dataset continues, by default the
-                final row when its episode is open.
+                one stream and row 0 continues nothing.
 
         Returns:
             The list of transitions.
 
         """
-        assert len(states) == len(actions) == len(rewards) == len(next_states) == len(absorbings) == len(lasts)
-
-        if policy_state is not None:
-            assert len(states) == len(policy_state) == len(policy_next_state)
-
-        if policy_backend is None:
-            policy_backend = backend
-
-        dataset = cls.create_raw_instance()
-
-        dataset._extras = ExtraInfo(1, backend) if extras is None else extras.copy()
-
-        env_arrays = [states, actions, rewards, next_states, absorbings, lasts]
-        dataset._data = Container.from_array(env_arrays, device=device, backend=backend)
-
-        if policy_state is not None:
-            agent_arrays = [policy_state, policy_next_state]
-            dataset._agent_data = Container.from_array(agent_arrays, device=agent_device, backend=policy_backend)
-        else:
-            dataset._agent_data = None
-
-        if boundary is None:
-            array_backend = ArrayBackend.get_array_backend(backend)
-            boundary = array_backend.zeros(len(states), dtype=array_backend.to_backend_dtype(np.int8), device=device)
-            if len(states) > 0:
-                boundary[0] = int(cls._Boundary.CONTINUING if continuing else cls._Boundary.FRESH)
-        dataset._boundary_data = Container.from_array([boundary], device=device, backend=backend)
-        dataset._open_heads = open_heads
-        dataset._open_tails = open_tails
-        dataset._history_state = HistoryState(policy_backend, agent_device) if history_state is None else history_state
-
-        state_shape = cls._infer_shape(states)
-        action_shape = cls._infer_shape(actions)
-        state_dtype = cls._infer_dtype(states)
-        action_dtype = cls._infer_dtype(actions)
-        policy_state_shape = None if policy_state is None else cls._infer_shape(policy_state)
-
-        dataset._dataset_info = DatasetInfo(backend, policy_backend, device, agent_device, horizon, gamma,
-                                            state_shape, state_dtype, action_shape, action_dtype, policy_state_shape)
-
-        return dataset
+        layout = StreamLayout.from_rows(len(states), backend, device, continuing=continuing)
+        return cls._from_components(states, actions, rewards, next_states, absorbings, lasts, layout,
+                                    policy_state=policy_state, policy_next_state=policy_next_state, extras=extras,
+                                    horizon=horizon, gamma=gamma, backend=backend, policy_backend=policy_backend,
+                                    device=device, agent_device=agent_device)
 
     @property
     def state(self):
@@ -836,6 +819,14 @@ class Dataset(MushroomObject):
         return self._agent_data is not None
 
     @property
+    def is_circular(self):
+        """
+        Whether the dataset is a circular buffer.
+
+        """
+        return False
+
+    @property
     def capacity(self):
         """
         The number of transitions the dataset can hold, or ``None`` when it grows without bound (list backend).
@@ -854,105 +845,41 @@ class Dataset(MushroomObject):
     def _last_array(self):
         return self._dataset_info.env_array_backend.as_array(self.last, device=self._dataset_info.env_device)
 
-    def _boundary_array(self):
-        return self._dataset_info.env_array_backend.as_array(self._boundary_data.column(),
-                                                             device=self._dataset_info.env_device)
-
     def _boundary_dtype(self):
         return self._dataset_info.env_array_backend.to_backend_dtype(np.int8)
 
     def _segment_ends(self, last):
-        backend = ArrayBackend.get_array_backend_from(last)
-        ends = backend.copy(last)
-        if len(ends) > 0:
-            ends[:-1][self._boundary_array()[1:] > 0] = True
-            ends[-1] = True
-        return ends
+        return self._layout.segment_ends(last)
+
+    def _walk_last(self):
+        return self._segment_ends(self._last_array())
+
+    def _create_layout(self, dataset_info, n_steps, n_envs):
+        boundary_shape = self._base_shape if self._base_shape is not None else ()
+        return StreamLayout(dataset_info.env_backend, boundary_shape, dataset_info.env_device, n_envs)
 
     def _segment_starts(self, last):
-        backend = ArrayBackend.get_array_backend_from(last)
-        device = backend.get_device(last)
-        n = len(last)
-        if n == 0:
-            return backend.zeros(0, dtype=int, device=device), backend.zeros(0, dtype=bool, device=device)
-        boundary = self._boundary_array()
-        after = backend.where((last[:-1] > 0) | (boundary[1:] > 0))[0] + 1
-        positions = backend.concatenate([backend.zeros(1, dtype=int, device=device), after])
-        kind = boundary[positions]
-        return positions, kind != int(self._Boundary.CONTINUING)
+        return self._layout.segment_starts(last)
 
-    def _row_starts(self):
-        last = self._last_array()
-        backend = ArrayBackend.get_array_backend_from(last)
-        boundary = self._boundary_array()
-        after_last = backend.concatenate([backend.zeros(1, dtype=bool, device=backend.get_device(last)), last[:-1] > 0])
-        return (boundary == int(self._Boundary.FRESH)) | ((boundary == int(self._Boundary.NONE)) & after_last)
-
-    def _pending_heads(self):
-        if self._open_heads is not None:
-            return self._open_heads
-        if len(self) > 0 and int(self._boundary_data.column()[0]) == self._Boundary.CONTINUING:
-            return 0,
-        return tuple()
-
-    def _pending_tails(self):
-        if self._open_tails is not None:
-            return self._open_tails
-        if len(self) > 0 and not bool(self.last[-1]):
-            return len(self) - 1,
-        return tuple()
-
-    def _pair(self, other):
-        n = len(self)
-        if len(other) == 0:
-            return False, self._open_heads, self._open_tails
-        if n == 0:
-            return False, other._open_heads, other._open_tails
-        heads, tails = other._pending_heads(), self._pending_tails()
-        if len(heads) > 0 and len(heads) != len(tails):
-            raise ValueError(f"Cannot append a dataset continuing {len(heads)} episodes to a dataset ending with "
-                             f"{len(tails)} open episodes.")
-        stitched = len(heads) == 1 and heads[0] == 0 and tails[0] == n - 1
-        other_tails = None if other._open_tails is None else tuple(t + n for t in other._open_tails)
-        return stitched, self._open_heads, other_tails
-
-    def _view_rows(self, index, copy):
+    def _view_rows(self, index, copy, layout):
         dataset = self.create_raw_instance(dataset=self)
 
         dataset._extras = self._extras.get_view(index, copy)
         dataset._data = self._data.get_view(index, copy)
         dataset._agent_data = self._agent_data.get_view(index, copy) if self._agent_data is not None else None
-        dataset._boundary_data = self._boundary_data.get_view(index, copy=True)
+        dataset._layout = layout
         dataset._history_state = self._history_state.get_view(index, len(self))
 
         return dataset
-
-    def _view_slice_start(self, dataset, start, stop):
-        if stop > start and start > 0 and int(self._boundary_data.column()[start]) == self._Boundary.NONE:
-            kind = self._Boundary.FRESH if bool(self.last[start - 1]) else self._Boundary.CONTINUING
-            dataset._boundary_data.column()[0] = int(kind)
 
     def _clear_rows(self):
         self._extras.clear()
         self._data.clear()
         if self._agent_data is not None:
             self._agent_data.clear()
-        self._boundary_data.clear()
-        self._open_heads = None
-        self._open_tails = None
 
     def _view_episodes(self, rows):
-        boundary = self._boundary_array()
-        kind = self._dataset_info.env_array_backend.zeros(len(rows), dtype=self._boundary_dtype(),
-                                                          device=self._dataset_info.env_device)
-        kind[:] = int(self._Boundary.CONTINUING)
-        kind[self._row_starts()[rows]] = int(self._Boundary.FRESH)
-        linked = (rows[1:] == rows[:-1] + 1) & (boundary[rows[1:]] == int(self._Boundary.NONE))
-        kind[1:][linked] = int(self._Boundary.NONE)
-        dataset = self._view_rows(rows, False)
-        dataset._boundary_data = Container.from_array([kind], device=self._dataset_info.env_device,
-                                                      backend=self._dataset_info.env_backend)
-        dataset._open_heads, dataset._open_tails = tuple(), tuple()
+        dataset = self._view_rows(rows, False, self._layout.episodes_view(rows, self._last_array()))
         dataset._history_state = HistoryState(self._dataset_info.agent_backend, self._dataset_info.agent_device)
         return dataset
 
@@ -960,7 +887,7 @@ class Dataset(MushroomObject):
         self._data.append_batch(other._data)
         if self._agent_data is not None:
             self._agent_data.append_batch(other._agent_data)
-        self._boundary_data.append_batch(other._boundary_data)
+        self._layout = self._layout.append_rows(other._layout)
 
     def _store_step(self, step):
         self._data.append(*step[:len(self._Field)])
@@ -985,14 +912,50 @@ class Dataset(MushroomObject):
             _extras='mushroom',
             _data='mushroom',
             _agent_data='mushroom',
-            _boundary_data='mushroom',
-            _next_boundary='primitive',
-            _open_heads='primitive',
-            _open_tails='primitive',
+            _layout='mushroom',
             _history_state='mushroom',
             _base_shape='primitive',
             _dataset_info='mushroom'
         )
+
+    @classmethod
+    def _from_components(cls, states, actions, rewards, next_states, absorbings, lasts, layout,
+                         policy_state=None, policy_next_state=None, extras=None, horizon=None, gamma=0.99,
+                         backend='numpy', policy_backend=None, device=None, agent_device=None, history_state=None):
+        assert len(states) == len(actions) == len(rewards) == len(next_states) == len(absorbings) == len(lasts)
+
+        if policy_state is not None:
+            assert len(states) == len(policy_state) == len(policy_next_state)
+
+        if policy_backend is None:
+            policy_backend = backend
+
+        dataset = cls.create_raw_instance()
+
+        dataset._extras = ExtraInfo(1, backend) if extras is None else extras.copy()
+
+        env_arrays = [states, actions, rewards, next_states, absorbings, lasts]
+        dataset._data = Container.from_array(env_arrays, device=device, backend=backend)
+
+        if policy_state is not None:
+            agent_arrays = [policy_state, policy_next_state]
+            dataset._agent_data = Container.from_array(agent_arrays, device=agent_device, backend=policy_backend)
+        else:
+            dataset._agent_data = None
+
+        dataset._layout = layout
+        dataset._history_state = HistoryState(policy_backend, agent_device) if history_state is None else history_state
+
+        state_shape = cls._infer_shape(states)
+        action_shape = cls._infer_shape(actions)
+        state_dtype = cls._infer_dtype(states)
+        action_dtype = cls._infer_dtype(actions)
+        policy_state_shape = None if policy_state is None else cls._infer_shape(policy_state)
+
+        dataset._dataset_info = DatasetInfo(backend, policy_backend, device, agent_device, horizon, gamma,
+                                            state_shape, state_dtype, action_shape, action_dtype, policy_state_shape)
+
+        return dataset
 
     @staticmethod
     def _compute_base_shape(dataset_info, n_steps, n_episodes, core_counts_episodes):
@@ -1075,26 +1038,13 @@ class CircularDataset(Dataset):
         """
         super().__init__(dataset_info, n_steps=max_size)
 
-        self._max_size = max_size
-        self._write_head = 0
-        self._full = False
-        self._ring_tails = tuple()
-        self._links = None
-
-        self._add_save_attr(
-            _max_size='primitive',
-            _write_head='primitive',
-            _full='primitive',
-            _ring_tails='primitive',
-            _links='pickle'
-        )
-
     def write(self, dataset):
         """
-        Write a dataset at the write head, moving it forward.
+        Write a dataset at the write head, moving it forward. The dataset is converted to the backend and device of
+        the buffer, and the episodes of joined datasets are reordered as by :meth:`Dataset.contiguous`.
 
         Args:
-            dataset (Dataset): the dataset to write, in the backend and device of the buffer.
+            dataset (Dataset): the dataset to write.
 
         Returns:
             The buffer position of every written row, the positions of the open episode ends of the previous write
@@ -1104,51 +1054,57 @@ class CircularDataset(Dataset):
             ValueError: if the dataset continues a number of episodes different from the number left open.
 
         """
+        dataset = dataset.contiguous().to_backend(self._dataset_info.env_backend, device=self._dataset_info.env_device)
         n = len(dataset)
+        max_size = self._layout.max_size
         backend = self._dataset_info.env_array_backend
         device = self._dataset_info.env_device
-        start = self._write_head
-        positions = (backend.arange(0, n, device=device) + start) % self._max_size
-        n_written = min(n, self._max_size)
+        start = self._layout.write_head
+        positions = (backend.arange(0, n, device=device) + start) % max_size
+        n_written = min(n, max_size)
         first_kept = n - n_written
 
-        heads = dataset._pending_heads()
-        pairs = list()
-        if self.size > 0:
-            if len(heads) == 0:
-                open_tails = [tail for tail in self._ring_tails if tail is not None]
-                if len(open_tails) > 0:
-                    self.last[open_tails] = True
-            elif len(heads) == len(self._ring_tails):
-                pairs = list(zip(self._ring_tails, heads))
-            else:
-                raise ValueError(f"Cannot write a dataset continuing {len(heads)} episodes to a buffer with "
-                                 f"{len(self._ring_tails)} open episodes.")
+        to_close, pairs = self._layout.pair(dataset._layout.pending_heads())
+        if len(to_close) > 0:
+            self.last[to_close] = True
 
-        boundary = dataset._boundary_array()
         last = dataset._last_array()
-        continues = (boundary[1:] == int(self._Boundary.NONE)) & ~(last[:-1] > 0)
-        adjacent = all(tail is not None and (int(positions[head]) - tail) % self._max_size == 1
+        continues = dataset._layout.continues(last)
+        adjacent = all(tail is not None and (int(positions[head]) - tail) % max_size == 1
                        for tail, head in pairs)
-        inner_break = bool(((boundary[1:] > 0) & ~(last[:-1] > 0)).any()) if n > 1 else False
-        if self._links is None and (not adjacent or inner_break):
-            self._links = self._contiguous_links()
+        if self._layout.links is None and (not adjacent or dataset._layout.has_inner_break(last)):
+            self._layout = self._layout.promote(self._last_array())
 
-        orphans = self._orphans(positions, start, n_written) if self._links is not None else positions[:0]
+        orphans = self._layout.orphans(positions, n_written)
 
         self._write_rows(dataset)
 
-        relinked = list()
-        if self._links is not None:
-            relinked = self._write_links(positions, continues, pairs, start, n_written)
+        relinked = self._layout.link(positions, continues, pairs, start, n_written)
 
-        self._ring_tails = tuple(int(positions[tail]) if tail >= first_kept else None
-                                 for tail in dataset._pending_tails())
+        self._layout.set_tails(dataset._layout.pending_tails(dataset.last), positions, first_kept)
 
         return positions, relinked, orphans
 
     def append_batch(self, other):
         self._append_rows(other)
+
+    def history_cut(self, anchors, n_hops):
+        """
+        Check which anchors have a history window reaching a step that is no longer stored.
+
+        Args:
+            anchors (Array): the buffer position of each walk;
+            n_hops (int): the number of steps to walk back.
+
+        Returns:
+            Whether walking back ``n_hops`` steps of the episode of each anchor reaches a step that is no longer stored.
+
+        """
+        return self._layout.history_cut(self._last_array(), anchors, n_hops)
+
+    @property
+    def is_circular(self):
+        return True
 
     @property
     def max_size(self):
@@ -1156,7 +1112,7 @@ class CircularDataset(Dataset):
         The capacity of the buffer.
 
         """
-        return self._max_size
+        return self._layout.max_size
 
     @property
     def write_head(self):
@@ -1164,7 +1120,7 @@ class CircularDataset(Dataset):
         The buffer position the next row is written at.
 
         """
-        return self._write_head
+        return self._layout.write_head
 
     @property
     def full(self):
@@ -1172,7 +1128,7 @@ class CircularDataset(Dataset):
         Whether the buffer has wrapped around.
 
         """
-        return self._full
+        return self._layout.full
 
     @property
     def size(self):
@@ -1180,7 +1136,7 @@ class CircularDataset(Dataset):
         The number of rows stored.
 
         """
-        return self._max_size if self._full else self._write_head
+        return self._layout.size
 
     @property
     def links(self):
@@ -1190,101 +1146,52 @@ class CircularDataset(Dataset):
         positions, delimited by the stored ``last`` flags.
 
         """
-        return self._links
-
-    def _contiguous_links(self):
-        backend = self._dataset_info.env_array_backend
-        device = self._dataset_info.env_device
-        prev = backend.zeros(self._max_size, dtype=int, device=device)
-        following = backend.zeros(self._max_size, dtype=int, device=device)
-        size = self.size
-        if size > 0:
-            order = (backend.arange(0, size, device=device) + (self._write_head if self._full else 0)) % self._max_size
-            open_rows = ~(self._last_array()[order[:-1]] > 0) * 1
-            prev[order[1:]] = open_rows
-            following[order[:-1]] = open_rows
-        return prev, following
-
-    def _orphans(self, positions, start, n_written):
-        following = self._links[1]
-        live = positions if self._full else positions[positions < self.size]
-        continued = live[following[live] > 0]
-        successors = (continued + following[continued]) % self._max_size
-        return successors[(successors - start) % self._max_size >= n_written]
-
-    def _write_links(self, positions, continues, pairs, start, n_written):
-        backend = self._dataset_info.env_array_backend
-        device = self._dataset_info.env_device
-        n = len(positions)
-        first_kept = n - n_written
-        prev, following = self._links
-        kept = positions[first_kept:]
-        steps = backend.zeros(n, dtype=int, device=device)
-        steps[1:] = continues * 1
-        prev[kept] = steps[first_kept:]
-        steps = backend.zeros(n, dtype=int, device=device)
-        steps[:-1] = continues * 1
-        following[kept] = steps[first_kept:]
-
-        relinked = list()
-        for tail, head in pairs:
-            if head >= first_kept:
-                head_position = int(positions[head])
-                if tail is None or (tail - start) % self._max_size < n_written:
-                    prev[head_position] = self._max_size
-                else:
-                    prev[head_position] = (head_position - tail) % self._max_size
-                    following[tail] = (head_position - tail) % self._max_size
-                    relinked.append(tail)
-        return relinked
+        return self._layout.links
 
     def _write_rows(self, dataset):
-        n = len(dataset)
+        n_total = len(dataset)
+        n = n_total
+        max_size = self._layout.max_size
+        head = self._layout.write_head
 
-        if not self._full:
-            remaining = self._max_size - len(self)
+        if not self._layout.full:
+            remaining = max_size - len(self)
             if n <= remaining:
                 self.append_batch(dataset)
-                self._write_head += n
-                if self._write_head == self._max_size:
-                    self._full = True
-                    self._write_head = 0
+                self._layout.advance(n_total)
                 return
 
             self.append_batch(dataset[:remaining])
-            self._full = True
-            self._write_head = 0
+            head = 0
             dataset = dataset[remaining:]
             n -= remaining
 
-        if n > self._max_size:
-            self._write_head = (self._write_head + n - self._max_size) % self._max_size
-            dataset = dataset[n - self._max_size:]
-            n = self._max_size
+        if n > max_size:
+            head = (head + n - max_size) % max_size
+            dataset = dataset[n - max_size:]
+            n = max_size
 
         columns = ['state', 'action', 'reward', 'next_state', 'absorbing', 'last']
         if self.is_stateful:
             columns += ['policy_state', 'policy_next_state']
-        end = self._write_head + n
-        if end <= self._max_size:
+        end = head + n
+        if end <= max_size:
             for column in columns:
-                getattr(self, column)[self._write_head:end] = getattr(dataset, column)
-            self._write_head = end % self._max_size
+                getattr(self, column)[head:end] = getattr(dataset, column)
         else:
-            first = self._max_size - self._write_head
+            first = max_size - head
             rest = n - first
             for column in columns:
                 values = getattr(dataset, column)
-                getattr(self, column)[self._write_head:] = values[:first]
+                getattr(self, column)[head:] = values[:first]
                 getattr(self, column)[:rest] = values[first:]
-            self._write_head = rest
+        self._layout.advance(n_total)
 
-    def _segment_ends(self, last):
-        return ArrayBackend.get_array_backend_from(last).copy(last)
+    def _walk_last(self):
+        return self._last_array()
 
-    def _segment_starts(self, last):
-        raise NotImplementedError("The rows of this dataset are not stored as one stream, so their segment starts "
-                                  "are unknown.")
+    def _create_layout(self, dataset_info, n_steps, n_envs):
+        return RingLayout(dataset_info.env_backend, n_steps, dataset_info.env_device)
 
 
 class VectorizedDataset(Dataset):
@@ -1304,9 +1211,8 @@ class VectorizedDataset(Dataset):
                                            [env_backend.to_backend_dtype(bool)],
                                            dataset_info.env_device, self._data.n_envs)
         self._tail_open = env_backend.zeros(self._data.n_envs, dtype=bool, device=dataset_info.env_device)
-        self._zero_boundary = env_backend.zeros(self._data.n_envs, dtype=self._boundary_dtype(),
-                                                device=dataset_info.env_device)
         self._consumed = False
+        self._mask_shared = False
         self._history_state = GridHistoryState(self._data.n_envs, dataset_info.agent_backend,
                                                dataset_info.agent_device)
 
@@ -1321,11 +1227,10 @@ class VectorizedDataset(Dataset):
         result._extras = self._extras + other._extras
         result._data = self._data + other._data
         result._agent_data = (self._agent_data + other._agent_data) if self._agent_data is not None else None
-        result._boundary_data = self._boundary_data + other._boundary_data
+        result._layout = self._layout.join_rows(other._layout)
         result._mask_data = self._mask_data + other._mask_data
-        result._history_state = (self if len(self) > 0 else other)._history_state.copy()
+        result._history_state = self._history_state.copy()
         result._tail_open = self._dataset_info.env_array_backend.copy(self._tail_open)
-        result._zero_boundary = self._zero_boundary
         result._consumed = self._consumed or other._consumed
 
         return result
@@ -1357,7 +1262,11 @@ class VectorizedDataset(Dataset):
         """
         self._store_step(step)
         self._mask_data.append(mask)
-        self._boundary_data.append(self._zero_boundary)
+        if self._dataset_info.env_backend == 'list':
+            self._layout.append(self._dataset_info.env_array_backend.zeros(self._data.n_envs,
+                                                                           dtype=self._boundary_dtype()))
+        else:
+            self._layout.append(int(EpisodeLayout.Boundary.NONE))
         self._extras.append_step(info)
 
     def append_theta_vectorized(self, theta, mask):
@@ -1397,6 +1306,9 @@ class VectorizedDataset(Dataset):
 
         leftover_mask = backend.copy(mask)
         leftover_mask.reshape(-1)[active[:n_steps]] = False
+        if self._mask_shared:
+            self._mask_data = self._mask_data.get_view(slice(None), copy=True)
+            self._mask_shared = False
         mask_column = self._mask_data.column()
         if isinstance(mask_column, list):
             mask_column[:] = list(leftover_mask)
@@ -1409,11 +1321,10 @@ class VectorizedDataset(Dataset):
         view._extras = self._extras
         view._data = self._data
         view._agent_data = self._agent_data
-        view._boundary_data = self._boundary_data
+        view._layout = self._layout
         view._history_state = self._history_state
-        view._mask_data = self._mask_data.from_array([consumed_mask])
+        view._mask_data = self._allocate_mask(consumed_mask)
         view._tail_open = self._tail_open
-        view._zero_boundary = self._zero_boundary
         view._consumed = True
 
         return view
@@ -1445,13 +1356,14 @@ class VectorizedDataset(Dataset):
                 if self._agent_data is not None:
                     self._agent_data.compact(split_row)
                 self._mask_data.compact(split_row)
-                self._boundary_data.compact(split_row)
+                self._layout.compact(split_row)
                 self._extras.keep_from(split_row)
                 self._history_state.reset(history_context, self.mask[0], backend)
 
                 return n_carry
 
         self._clear_rows()
+        self._layout.clear()
         self._mask_data.clear()
         self._history_state.reset(history_context, backend.zeros(self._data.n_envs, dtype=bool,
                                                                  device=self._dataset_info.env_device), backend)
@@ -1478,10 +1390,10 @@ class VectorizedDataset(Dataset):
         return self.consume(n_steps)._flatten()
 
     def get_view(self, index, copy=False):
-        dataset = self._view_rows(index, copy)
+        dataset = self._view_rows(index, copy, self._layout.view(index))
         dataset._mask_data = self._mask_data.get_view(index, copy)
+        dataset._mask_shared = not copy
         dataset._tail_open = self._dataset_info.env_array_backend.copy(self._tail_open)
-        dataset._zero_boundary = self._zero_boundary
         dataset._consumed = self._consumed
         return dataset
 
@@ -1490,8 +1402,8 @@ class VectorizedDataset(Dataset):
         new_dataset = super().create_raw_instance(dataset)
 
         new_dataset._mask_data = None
+        new_dataset._mask_shared = False
         new_dataset._tail_open = None
-        new_dataset._zero_boundary = None
         new_dataset._consumed = False
 
         return new_dataset
@@ -1512,6 +1424,22 @@ class VectorizedDataset(Dataset):
         return self._dataset_info.env_array_backend.convert_mask(self._mask_data.column(),
                                                                  device=self._dataset_info.env_device)
 
+    def _create_layout(self, dataset_info, n_steps, n_envs):
+        boundary_shape = self._base_shape if self._base_shape is not None else ()
+        return CodedLayout(dataset_info.env_backend, boundary_shape, dataset_info.env_device, n_envs)
+
+    def _allocate_mask(self, mask):
+        rows = Container.from_array([mask], device=self._dataset_info.env_device,
+                                    backend=self._dataset_info.env_backend)
+        capacity = self._data.capacity
+        if capacity is None:
+            return rows
+        container = Container.create(self._dataset_info.env_backend, [(capacity,) + tuple(mask.shape[1:])],
+                                     [self._dataset_info.env_array_backend.to_backend_dtype(bool)],
+                                     self._dataset_info.env_device, self._data.n_envs)
+        container.append_batch(rows)
+        return container
+
     def _mark_heads(self, consumed_mask):
         backend = self._dataset_info.env_array_backend
         device = self._dataset_info.env_device
@@ -1523,10 +1451,10 @@ class VectorizedDataset(Dataset):
             last_row = backend.max(backend.where(consumed_mask, steps, -1), dim=0)[active]
             envs = backend.arange(0, len(active), device=device)[active]
             kinds = backend.zeros(len(active), dtype=self._boundary_dtype(), device=device)
-            kinds[:] = int(self._Boundary.FRESH)
-            kinds[self._tail_open] = int(self._Boundary.CONTINUING)
+            kinds[:] = int(EpisodeLayout.Boundary.FRESH)
+            kinds[self._tail_open] = int(EpisodeLayout.Boundary.CONTINUING)
 
-            column = self._boundary_data.column()
+            column = self._layout.column()
             if isinstance(column, list):
                 grid = backend.as_array(column, device=device)
                 grid[first_row, envs] = kinds[active]
@@ -1553,14 +1481,15 @@ class VectorizedDataset(Dataset):
         lasts = env_backend.pack_padded_sequence(self._last_array(), mask)
 
         flags = ArrayBackend.get_array_backend_from(mask)
-        boundary = flags.as_array(env_backend.pack_padded_sequence(self._boundary_array(), mask), device=device)
+        boundary = flags.as_array(env_backend.pack_padded_sequence(self._layout.array(), mask), device=device)
         counts = flags.sum(mask, dim=0)
         env_of_row = flags.repeat(flags.arange(0, len(counts), device=device), counts)
         same_env = env_of_row[1:] == env_of_row[:-1]
-        boundary[1:][(boundary[1:] == int(self._Boundary.CONTINUING)) & same_env] = int(self._Boundary.NONE)
+        continuing = boundary[1:] & int(EpisodeLayout.Boundary.CONTINUING) > 0
+        boundary[1:][continuing & same_env] = int(EpisodeLayout.Boundary.NONE)
         env_end = flags.concatenate([~same_env, flags.ones(1, dtype=bool, device=device)])
         open_end = env_end & ~(flags.as_array(lasts, device=device) > 0)
-        open_heads = tuple(int(i) for i in flags.where(boundary == int(self._Boundary.CONTINUING))[0])
+        open_heads = tuple(int(i) for i in flags.where(boundary & int(EpisodeLayout.Boundary.CONTINUING) > 0)[0])
         open_tails = tuple(int(i) for i in flags.where(open_end)[0])
 
         policy_state = None
@@ -1578,15 +1507,16 @@ class VectorizedDataset(Dataset):
 
         flat_extras = self._extras.flatten(mask)
 
-        flat = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
-                                  policy_state=policy_state, policy_next_state=policy_next_state,
-                                  extras=flat_extras, horizon=self._dataset_info.horizon,
-                                  gamma=self._dataset_info.gamma,
-                                  backend=env_backend.get_backend_name(),
-                                  policy_backend=agent_backend.get_backend_name(),
-                                  device=device,
-                                  agent_device=self._dataset_info.agent_device,
-                                  boundary=boundary, open_heads=open_heads, open_tails=open_tails)
+        layout = CodedLayout.from_array(boundary, env_backend.get_backend_name(), device, open_heads=open_heads,
+                                        open_tails=open_tails)
+        flat = Dataset._from_components(states, actions, rewards, next_states, absorbings, lasts, layout,
+                                        policy_state=policy_state, policy_next_state=policy_next_state,
+                                        extras=flat_extras, horizon=self._dataset_info.horizon,
+                                        gamma=self._dataset_info.gamma,
+                                        backend=env_backend.get_backend_name(),
+                                        policy_backend=agent_backend.get_backend_name(),
+                                        device=device,
+                                        agent_device=self._dataset_info.agent_device)
         positions, is_episode_start = flat._segment_starts(flat._last_array())
         flat._history_state = self._history_state.emit(positions, env_of_row[positions], is_episode_start, flags)
 
@@ -1599,6 +1529,6 @@ class VectorizedDataset(Dataset):
         self._add_save_attr(
             _mask_data='mushroom',
             _tail_open=serialization,
-            _zero_boundary=serialization,
-            _consumed='primitive'
+            _consumed='primitive',
+            _mask_shared='primitive'
         )

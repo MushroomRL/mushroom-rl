@@ -61,6 +61,8 @@ class HistoryState(MushroomObject):
 
     def windows(self, name):
         """
+        Get the stacked entries of one stream.
+
         Args:
             name (str): a stream name.
 
@@ -73,6 +75,8 @@ class HistoryState(MushroomObject):
 
     def get_view(self, index, n_rows):
         """
+        Select the entries of the rows of a view of the dataset.
+
         Args:
             index (slice or Array): the rows selected by the view;
             n_rows (int): the number of rows of the dataset the view is taken from.
@@ -99,8 +103,30 @@ class HistoryState(MushroomObject):
         keep = new_positions >= 0
         return self._select(keep, new_positions[keep])
 
+    def drop(self, rows, n_rows):
+        """
+        Copy the entries, leaving out the ones attached to the given rows.
+
+        Args:
+            rows (Array): the rows whose entries are left out;
+            n_rows (int): the number of rows of the dataset.
+
+        Returns:
+            A new HistoryState holding the entries of every other row, at unchanged positions.
+
+        """
+        backend = self._array_backend
+        if len(self) == 0 or len(rows) == 0:
+            return self._wrap(self._positions, dict(self._windows))
+        dropped = backend.zeros(n_rows, dtype=bool, device=self._device)
+        dropped[backend.as_array(rows, device=self._device)] = True
+        keep = ~dropped[self._positions]
+        return self._select(keep, self._positions[keep])
+
     def concatenate(self, other, n_rows, stitched):
         """
+        Join these entries with the ones of a dataset appended after this one.
+
         Args:
             other (HistoryState): the entries of the dataset appended after this one;
             n_rows (int): the number of rows of this dataset;
@@ -144,6 +170,8 @@ class HistoryState(MushroomObject):
 
     def to_backend(self, backend, device=None):
         """
+        Convert the entries to another backend.
+
         Args:
             backend (str): the target backend name;
             device (str, None): the target device.

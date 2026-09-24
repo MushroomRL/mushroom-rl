@@ -85,10 +85,7 @@ def vectorized_blocks(first_steps, second_steps, policy_state_shape=None):
 
 
 def windows(rm, anchors):
-    return rm._history_manager.parse_history_circular_buffer(rm._dataset, np.array(anchors), len(rm._dataset),
-                                                             rm._dataset.full, rm._dataset.max_size,
-                                                             links=rm._dataset.links,
-                                                             write_head=rm._dataset.write_head)[0]
+    return rm._history_manager.parse_history(rm._dataset, anchor_idxs=np.array(anchors))[0]
 
 
 def test_replay_memory_add_get():
@@ -611,7 +608,7 @@ def test_history_manager_nstep_return_dataset():
                                                  1.0 + gamma, 1.0]))
 
 
-def test_build_nstep_return_slicing_matches_circular_buffer():
+def test_build_nstep_return_slicing_matches_anchor_walk():
     obs_shape = (2,)
     act_shape = (1,)
     size = 20
@@ -632,9 +629,8 @@ def test_build_nstep_return_slicing_matches_circular_buffer():
         for gamma in [1.0, 0.9]:
             reduced, anchor, endpoint = history_manager.build_nstep_return(
                 reward, absorbing, last, gamma=gamma, n_steps_return=n_steps)
-            reduced_buf, anchor_buf, endpoint_buf = history_manager.build_nstep_return_circular_buffer(
-                reward, absorbing, last, anchor_idxs, gamma, n_steps, size, full=False, max_size=size,
-                write_head=size)
+            reduced_buf, anchor_buf, endpoint_buf = history_manager.build_nstep_return(
+                reward, absorbing, last, anchor_idxs, gamma, n_steps)
             assert np.array_equal(anchor, anchor_buf)
             assert np.array_equal(endpoint, endpoint_buf)
             assert np.array_equal(reduced, reduced_buf)
@@ -1138,3 +1134,69 @@ def test_sequences_follow_the_environment_across_vectorized_blocks():
 
     sequences = {tuple(s[k, :length, 0]) for k, length in enumerate(lengths)}
     assert sequences == {(0.,), (0., 1.), (0., 1., 2.), (10.,), (10., 11.), (10., 11., 12.)}
+
+
+def test_contiguous_follows_every_environment_across_joined_blocks():
+    first, second = vectorized_blocks([0, 1], [2, 3])
+
+    joined = first + second
+    glued = joined.contiguous()
+
+    assert first.contiguous() is first
+    assert np.array_equal(joined.state[:, 0], np.array([0., 1., 10., 11., 2., 3., 12., 13.]))
+    assert np.array_equal(glued.state[:, 0], np.array([0., 1., 2., 3., 10., 11., 12., 13.]))
+    assert np.array_equal(glued.reward, np.array([0., 1., 2., 3., 100., 101., 102., 103.]))
+    assert np.array_equal(glued.last_or_boundary, np.array([False, False, False, True, False, False, False, True]))
+    assert glued._layout.open_tails == (3, 7)
+
+
+def test_replay_memory_add_of_joined_blocks_keeps_every_window():
+    history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), make_agent_info(), history_length=3)
+    rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=2, max_size=100,
+                      history_manager=history_manager)
+    first, second = vectorized_blocks([0, 1], [2, 3])
+
+    rm.add(first + second)
+
+    assert np.array_equal(rm._dataset.state[:rm.size, 0], np.array([0., 1., 2., 3., 10., 11., 12., 13.]))
+    assert np.array_equal(windows(rm, np.arange(8))[:, :, 0],
+                          np.array([[0., 0., 0.], [0., 0., 1.], [0., 1., 2.], [1., 2., 3.],
+                                    [0., 0., 10.], [0., 10., 11.], [10., 11., 12.], [11., 12., 13.]]))
+
+
+def test_history_cut_marks_the_windows_reaching_an_overwritten_step():
+    history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), make_agent_info(), history_length=3)
+    rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=2, max_size=6,
+                      history_manager=history_manager)
+
+    rm.add(make_block([0, 1, 2, 3], [0, 0, 1, 0]))
+    rm.add(make_block([4, 5, 6], [0, 1, 0], continuing=True))
+    positions, valid = rm._dataset.walk_back(np.arange(6), 2)
+
+    assert np.array_equal(rm._dataset.state[:, 0], np.array([6., 1., 2., 3., 4., 5.]))
+    assert np.array_equal(rm._dataset.history_cut(np.arange(6), 2),
+                          np.array([False, True, True, False, False, False]))
+    assert np.array_equal(positions, np.array([[0, 0, 0], [1, 1, 1], [2, 1, 1], [3, 3, 3], [4, 3, 3], [5, 4, 3]]))
+    assert np.array_equal(valid, np.array([[True, False, False], [True, False, False], [True, True, False],
+                                           [True, False, False], [True, True, False], [True, True, True]]))
+
+
+def test_flattening_a_view_leaves_the_parent_mask():
+    grid = make_grid(2)
+    fill_grid(grid, [0, 1, 2])
+
+    grid[0:2].flatten()
+
+    assert np.array_equal(grid.mask, np.ones((3, 2), dtype=bool))
+
+
+def test_consumed_steps_join_without_reserving():
+    grid = make_grid(2)
+    fill_grid(grid, [0, 1, 2])
+
+    joined = grid.consume(2).copy()
+    joined += grid.consume()
+
+    assert len(joined) == 6
+    assert np.array_equal(joined.mask, np.array([[True, True], [False, False], [False, False],
+                                                 [False, False], [True, True], [True, True]]))

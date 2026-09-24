@@ -71,7 +71,6 @@ class ReplayMemory(MushroomObject):
         assert not self._dataset.is_stateful or dataset.is_stateful, \
             "The replay memory is configured to store the policy state, but the dataset does not provide it."
 
-        dataset = dataset.to_backend(self._agent_info.backend, device=self._agent_info.device)
         self._dataset.write(dataset)
 
     def get(self, n_samples):
@@ -130,18 +129,14 @@ class ReplayMemory(MushroomObject):
 
         """
         ds = self._dataset
-        size = len(ds)
         if self._n_steps_return > 1:
-            state, action, reward, next_state, absorbing, last, extra = \
-                self._history_manager.parse_nstep_history_circular_buffer(
-                    ds, idxs, self._mdp_info.gamma, self._n_steps_return, size, ds.full, self._max_size,
-                    ds.write_head, links=ds.links)
+            state, action, reward, next_state, absorbing, last, extra = self._history_manager.parse_nstep_history(
+                ds, self._mdp_info.gamma, self._n_steps_return, anchor_idxs=idxs)
             anchor = extra.pop('anchor')
             endpoint = extra.pop('endpoint')
         else:
-            state, action, reward, next_state, absorbing, last, extra = \
-                self._history_manager.parse_history_circular_buffer(ds, idxs, size, ds.full, self._max_size,
-                                                                    links=ds.links, write_head=ds.write_head)
+            state, action, reward, next_state, absorbing, last, extra = self._history_manager.parse_history(
+                ds, anchor_idxs=idxs)
             anchor = endpoint = idxs
 
         policy_state = [ds.policy_state[anchor], ds.policy_next_state[endpoint]] if ds.is_stateful else []
@@ -203,10 +198,11 @@ class ReplayMemory(MushroomObject):
         window = raw % self._max_size if full else raw[(raw >= 0) & (raw < size)]
         if len(relinked) > 0 and self._dataset.links is not None:
             ends = backend.as_array(relinked, device=self._agent_info.device)
-            window = backend.concatenate([window, ends] + self._walk_back(ends, self._n_steps_return - 1))
+            reached = self._dataset.walk_back(ends, self._n_steps_return - 1)[0]
+            window = backend.concatenate([window, reached.T.reshape(-1)])
         if len(orphans) > 0 and self._history_manager.max_reach > 0:
-            window = backend.concatenate([window, orphans] +
-                                         self._walk_forward(orphans, self._history_manager.max_reach - 1))
+            reached = self._dataset.walk_forward(orphans, self._history_manager.max_reach - 1)[0]
+            window = backend.concatenate([window, reached.T.reshape(-1)])
         return window
 
     def _compute_mask(self, anchor_idxs):
@@ -226,77 +222,15 @@ class ReplayMemory(MushroomObject):
         mask = backend.zeros(len(anchor_idxs), dtype=bool, device=self._agent_info.device)
         ds = self._dataset
         if self._n_steps_return > 1:
-            valid = self._history_manager.nstep_valid_circular_buffer(
-                ds.absorbing, ds.last, anchor_idxs, self._n_steps_return, len(ds), ds.full, self._max_size,
-                ds.write_head, links=ds.links)
+            valid = self._history_manager.nstep_valid(ds.absorbing, ds.last, anchor_idxs, self._n_steps_return,
+                                                      dataset=ds)
             mask = mask | ~valid
         if self._history_manager.max_reach > 0:
             if ds.links is not None:
-                mask = mask | self._history_cut(anchor_idxs)
+                mask = mask | ds.history_cut(anchor_idxs, self._history_manager.max_reach)
             elif ds.full:
                 mask = mask | ((anchor_idxs - ds.write_head) % self._max_size < self._history_manager.max_reach)
         return mask
-
-    def _history_cut(self, anchor_idxs):
-        """
-        Args:
-            anchor_idxs: buffer positions of the anchors to evaluate.
-
-        Returns:
-            Whether walking back the history window of each anchor reaches a step that is not stored anymore.
-
-        """
-        ds = self._dataset
-        backend = ds.array_backend
-        prev = ds.links[0]
-        pos = anchor_idxs
-        active = backend.ones(len(anchor_idxs), dtype=bool, device=self._agent_info.device)
-        cut = backend.zeros(len(anchor_idxs), dtype=bool, device=self._agent_info.device)
-        for _ in range(self._history_manager.max_reach):
-            distance = prev[pos]
-            age = (pos - ds.write_head) % self._max_size if ds.full else pos
-            cut = cut | (active & (distance > age))
-            active = active & (distance > 0) & (distance <= age)
-            pos = (pos - distance) % self._max_size
-        return cut
-
-    def _walk_back(self, positions, n_hops):
-        """
-        Args:
-            positions: buffer positions;
-            n_hops (int): the number of steps to walk back.
-
-        Returns:
-            The list of the buffer positions reached walking back 1 to ``n_hops`` steps of the episode of each
-            position, the ones that cannot be reached replaced by their starting position.
-
-        """
-        prev = self._dataset.links[0]
-        reached = list()
-        current = positions
-        for _ in range(n_hops):
-            current = (current - prev[current]) % self._max_size
-            reached.append(current)
-        return reached
-
-    def _walk_forward(self, positions, n_hops):
-        """
-        Args:
-            positions: buffer positions;
-            n_hops (int): the number of steps to walk forward.
-
-        Returns:
-            The list of the buffer positions reached walking forward 1 to ``n_hops`` steps of the episode of each
-            position, the ones that cannot be reached replaced by the last one reached.
-
-        """
-        following = self._dataset.links[1]
-        reached = list()
-        current = positions
-        for _ in range(n_hops):
-            current = (current + following[current]) % self._max_size
-            reached.append(current)
-        return reached
 
     def _post_load(self):
         if self._dataset is None:

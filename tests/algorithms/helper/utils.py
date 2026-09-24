@@ -81,8 +81,8 @@ class TestUtils:
             (exact, MDPInfo, asserting(cls.eq_mdp_info)),
             (exact, AgentInfo, asserting(cls.eq_agent_info)),
             (exact, Dataset, asserting(cls.eq_dataset)),
-            (exact, ReplayMemory, asserting(cls.eq_replay_memory)),
             (exact, PrioritizedReplayMemory, asserting(cls.eq_prioritized_replay_memory)),
+            (exact, ReplayMemory, asserting(cls.eq_replay_memory)),
             (exact, OrnsteinUhlenbeckPolicy, asserting(cls.eq_ornstein_uhlenbeck_policy)),
             (exact, TilesFeatures, asserting(cls.eq_tiles_features)),
             (exact, LinearParameter, asserting(cls.eq_linear_parameter)),
@@ -230,15 +230,69 @@ class TestUtils:
         Compare two dataset classes
         """
 
-        res = this._dataset_info.env_array_backend == that._dataset_info.env_array_backend
+        res = type(this) is type(that)
+        res &= this._dataset_info.env_array_backend == that._dataset_info.env_array_backend
         res &= cls.eq_dataset_info(this._dataset_info, that._dataset_info)
+        res &= len(this) == len(that) and this.capacity == that.capacity
 
-        # res &= this._info == that._info TODO fix this equality check
-        # res &= this._episode_info == that._episode_info
-        # res &= this._theta_list == that._theta_list
-        # res &= this._data == that._data
+        columns = ['state', 'action', 'reward', 'next_state', 'absorbing', 'last']
+        if this.is_stateful or that.is_stateful:
+            columns += ['policy_state', 'policy_next_state']
+        for column in columns:
+            res &= cls._eq_value(getattr(this, column), getattr(that, column))
+        if hasattr(this, 'mask'):
+            res &= cls._eq_value(this.mask, that.mask)
+            res &= cls._eq_value(this._tail_open, that._tail_open) and this._consumed == that._consumed
+
+        res &= cls._eq_value(this.info, that.info)
+        res &= cls._eq_value(this.episode_info, that.episode_info)
+        res &= cls._eq_value(this.theta_list, that.theta_list)
+
+        res &= cls._eq_layout(this._layout, that._layout)
+        if hasattr(this.history_state, '_slots'):
+            res &= cls._eq_value(this.history_state._slots, that.history_state._slots)
+        else:
+            res &= cls._eq_value(this.history_state.positions, that.history_state.positions)
+            res &= cls._eq_value(this.history_state._windows, that.history_state._windows)
 
         return res
+
+    @classmethod
+    def _eq_layout(cls, this, that):
+        """
+        Compare the row structure of two datasets
+        """
+        res = type(this) is type(that) and len(this) == len(that)
+        res &= this.first == that.first and this.n_joins == that.n_joins
+        res &= this.open_heads == that.open_heads and this.open_tails == that.open_tails
+        res &= this.pending_heads() == that.pending_heads()
+        if hasattr(this, 'array'):
+            res &= cls._eq_value(this.array(), that.array())
+        if hasattr(this, 'write_head'):
+            res &= this.max_size == that.max_size and this.write_head == that.write_head and this.full == that.full
+            res &= this._ring_tails == that._ring_tails
+            res &= cls._eq_value(this.links, that.links)
+        return res
+
+    @classmethod
+    def _eq_value(cls, this, that):
+        """
+        Compare two values that may be nested dictionaries, lists or tuples of arrays
+        """
+        if this is None or that is None:
+            return this is None and that is None
+        if isinstance(this, dict):
+            return isinstance(that, dict) and this.keys() == that.keys() and \
+                all(cls._eq_value(this[key], that[key]) for key in this if not key.startswith('_add'))
+        if isinstance(this, (list, tuple)) and isinstance(that, (list, tuple)) and \
+                not (len(this) > 0 and np.isscalar(this[0])):
+            return len(this) == len(that) and all(cls._eq_value(a, b) for a, b in zip(this, that))
+        if isinstance(this, torch.Tensor) or isinstance(that, torch.Tensor):
+            return isinstance(this, torch.Tensor) and isinstance(that, torch.Tensor) and \
+                this.device == that.device and torch.equal(this, that)
+        if isinstance(this, (np.ndarray, list, tuple)) or isinstance(that, (np.ndarray, list, tuple)):
+            return np.array_equal(np.asarray(this), np.asarray(that), equal_nan=True)
+        return this == that
 
     @classmethod
     def eq_replay_memory(cls, this, that):
@@ -263,8 +317,7 @@ class TestUtils:
         Compare two PrioritizedReplayMemory objects for equality
         """
 
-        res = this._initial_size == that._initial_size
-        res &= this._max_size == that._max_size
+        res = cls.eq_replay_memory(this, that)
         res &= this._alpha == that._alpha
         res &= cls.eq_linear_parameter(this._beta, that._beta)
         res &= this._epsilon == that._epsilon
@@ -279,9 +332,7 @@ class TestUtils:
 
         res = this._max_size == that._max_size
         res &= cls._eq_numpy(this._tree, that._tree)
-        res &= cls.eq_dataset(this.dataset, that.dataset)
-        res &= this._idx == that._idx
-        res &= this._full == that._full
+        res &= cls._eq_numpy(this._masked, that._masked)
         return res
 
     @classmethod
