@@ -56,7 +56,7 @@ class RingLayout(StreamLayout):
         pairs = list()
         if self.size > 0:
             if len(heads) == 0:
-                to_close = [tail for tail in self._ring_tails if tail is not None]
+                to_close = list(self._ring_tails)
             elif len(heads) == len(self._ring_tails):
                 pairs = list(zip(self._ring_tails, heads))
             else:
@@ -81,13 +81,12 @@ class RingLayout(StreamLayout):
         layout._links = layout._contiguous_links(last)
         return self._copy_state(layout)
 
-    def orphans(self, positions, n_written):
+    def orphans(self, positions):
         """
         Find the stored steps whose previous step is about to be overwritten.
 
         Args:
-            positions (Array): the buffer position of every row about to be written;
-            n_written (int): the number of those rows that are stored.
+            positions (Array): the buffer position of every row about to be written.
 
         Returns:
             The positions of the stored steps whose previous step is about to be overwritten, none while the stored
@@ -107,7 +106,7 @@ class RingLayout(StreamLayout):
         self._full = self._full or self._write_head + n >= self._max_size
         self._write_head = (self._write_head + n) % self._max_size
 
-    def link(self, positions, continues, pairs, start, n_written):
+    def link(self, positions, continues, pairs, start):
         """
         Store the step links of the rows just written; there are none to store while the stored episodes occupy
         consecutive positions.
@@ -117,8 +116,7 @@ class RingLayout(StreamLayout):
             continues (Array): for every written row but the first, whether it continues the episode of the previous
                 one;
             pairs (list): the ``(tail, head)`` pairs of the continued open episodes;
-            start (int): the write head before the write;
-            n_written (int): the number of written rows that are stored.
+            start (int): the write head before the write.
 
         Returns:
             The positions of the open episode ends linked to their continuation.
@@ -126,17 +124,16 @@ class RingLayout(StreamLayout):
         """
         return list()
 
-    def set_tails(self, tails, positions, first_kept):
+    def set_tails(self, tails, positions):
         """
         Record the open episodes of the rows just written.
 
         Args:
             tails (tuple): the rows of the written dataset whose episode is open;
-            positions (Array): the buffer position of every written row;
-            first_kept (int): the first written row that is stored.
+            positions (Array): the buffer position of every written row.
 
         """
-        self._ring_tails = tuple(int(positions[tail]) if tail >= first_kept else None for tail in tails)
+        self._ring_tails = tuple(int(positions[tail]) for tail in tails)
 
     def walk_back(self, last, anchors, n_hops):
         """
@@ -290,13 +287,12 @@ class LinkedRingLayout(RingLayout):
         """
         return self
 
-    def orphans(self, positions, n_written):
+    def orphans(self, positions):
         """
         Find the stored steps whose previous step is about to be overwritten.
 
         Args:
-            positions (Array): the buffer position of every row about to be written;
-            n_written (int): the number of those rows that are stored.
+            positions (Array): the buffer position of every row about to be written.
 
         Returns:
             The positions of the stored steps whose previous step is about to be overwritten.
@@ -306,9 +302,9 @@ class LinkedRingLayout(RingLayout):
         live = positions if self._full else positions[positions < self.size]
         continued = live[following[live] > 0]
         successors = (continued + following[continued]) % self._max_size
-        return successors[(successors - self._write_head) % self._max_size >= n_written]
+        return successors[(successors - self._write_head) % self._max_size >= len(positions)]
 
-    def link(self, positions, continues, pairs, start, n_written):
+    def link(self, positions, continues, pairs, start):
         """
         Store the step links of the rows just written.
 
@@ -317,8 +313,7 @@ class LinkedRingLayout(RingLayout):
             continues (Array): for every written row but the first, whether it continues the episode of the previous
                 one;
             pairs (list): the ``(tail, head)`` pairs of the continued open episodes;
-            start (int): the write head before the write;
-            n_written (int): the number of written rows that are stored.
+            start (int): the write head before the write.
 
         Returns:
             The positions of the open episode ends linked to their continuation.
@@ -327,26 +322,23 @@ class LinkedRingLayout(RingLayout):
         backend = ArrayBackend.get_array_backend(self._backend)
         device = self._device
         n = len(positions)
-        first_kept = n - n_written
         prev, following = self._links
-        kept = positions[first_kept:]
         steps = backend.zeros(n, dtype=int, device=device)
         steps[1:] = continues * 1
-        prev[kept] = steps[first_kept:]
+        prev[positions] = steps
         steps = backend.zeros(n, dtype=int, device=device)
         steps[:-1] = continues * 1
-        following[kept] = steps[first_kept:]
+        following[positions] = steps
 
         relinked = list()
         for tail, head in pairs:
-            if head >= first_kept:
-                head_position = int(positions[head])
-                if tail is None or (tail - start) % self._max_size < n_written:
-                    prev[head_position] = self._max_size
-                else:
-                    prev[head_position] = (head_position - tail) % self._max_size
-                    following[tail] = (head_position - tail) % self._max_size
-                    relinked.append(tail)
+            head_position = int(positions[head])
+            if (tail - start) % self._max_size < n:
+                prev[head_position] = self._max_size
+            else:
+                prev[head_position] = (head_position - tail) % self._max_size
+                following[tail] = (head_position - tail) % self._max_size
+                relinked.append(tail)
         return relinked
 
     def walk_back(self, last, anchors, n_hops):

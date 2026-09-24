@@ -1070,32 +1070,15 @@ def test_overwritten_open_tail_keeps_the_links_of_the_new_rows():
     assert np.array_equal(reward, np.array([155., 156.5, 158., 152., 153.5, 5., 6.5, 8.]))
 
 
-def test_block_larger_than_the_buffer_keeps_its_last_rows_and_their_links():
-    history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), make_agent_info(), history_length=3)
-    rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=2, max_size=10,
-                      history_manager=history_manager, n_steps_return=2)
-    first, second = vectorized_blocks([0, 1], [2, 3, 4, 5, 6, 7])
-
-    rm.add(first)
-    rm.add(second)
-    mask = rm._compute_mask(np.arange(10))
-    state, _, reward, *_ = rm._assemble_batch(np.arange(10)[~mask])
-
-    assert rm._dataset.write_head == 6
-    assert np.array_equal(rm._dataset.state[:, 0], np.array([12., 13., 14., 15., 16., 17., 4., 5., 6., 7.]))
-    assert np.array_equal(mask, np.array([True, True, False, False, False, True, True, True, False, True]))
-    assert np.array_equal(state[:, :, 0], np.array([[12., 13., 14.], [13., 14., 15.], [14., 15., 16.], [4., 5., 6.]]))
-    assert np.array_equal(reward, np.array([156.5, 158., 159.5, 9.5]))
-
-
-def test_block_larger_than_twice_the_buffer_is_written():
+def test_block_larger_than_the_buffer_is_refused():
     rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=1, max_size=5)
 
     rm.add(make_block([0, 1, 2], [False, False, False]))
-    rm.add(make_block(np.arange(3, 27), [False] * 24, continuing=True))
+    with pytest.raises(ValueError):
+        rm.add(make_block(np.arange(3, 9), [False] * 6, continuing=True))
 
-    assert rm._dataset.full and rm._dataset.write_head == 2
-    assert np.array_equal(rm._dataset.state[:, 0], np.array([25., 26., 22., 23., 24.]))
+    assert rm.size == 3 and rm._dataset.write_head == 3
+    assert np.array_equal(rm._dataset.state[:3, 0], np.array([0., 1., 2.]))
 
 
 def test_link_mode_sequences_skip_steps_whose_history_was_overwritten():

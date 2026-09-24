@@ -1056,9 +1056,12 @@ class CircularDataset(Dataset):
             was overwritten.
 
         Raises:
-            ValueError: if the dataset continues a number of episodes different from the number left open.
+            ValueError: if the dataset holds more rows than the buffer, or continues a number of episodes different
+                from the number left open.
 
         """
+        if len(dataset) > self._layout.max_size:
+            raise ValueError(f"Cannot write {len(dataset)} rows to a buffer of {self._layout.max_size} rows.")
         dataset, order = dataset._glued()
         dataset = dataset.to_backend(self._dataset_info.env_backend, device=self._dataset_info.env_device)
         n = len(dataset)
@@ -1067,8 +1070,6 @@ class CircularDataset(Dataset):
         device = self._dataset_info.env_device
         start = self._layout.write_head
         positions = (backend.arange(0, n, device=device) + start) % max_size
-        n_written = min(n, max_size)
-        first_kept = n - n_written
 
         to_close, pairs = self._layout.pair(dataset._layout.pending_heads())
         if len(to_close) > 0:
@@ -1076,18 +1077,17 @@ class CircularDataset(Dataset):
 
         last = dataset._last_array()
         continues = dataset._layout.continues(last)
-        adjacent = all(tail is not None and (int(positions[head]) - tail) % max_size == 1
-                       for tail, head in pairs)
+        adjacent = all((int(positions[head]) - tail) % max_size == 1 for tail, head in pairs)
         if self._layout.links is None and (not adjacent or dataset._layout.has_inner_break(last)):
             self._layout = self._layout.promote(self._last_array())
 
-        orphans = self._layout.orphans(positions, n_written)
+        orphans = self._layout.orphans(positions)
 
         self._write_rows(dataset)
 
-        relinked = self._layout.link(positions, continues, pairs, start, n_written)
+        relinked = self._layout.link(positions, continues, pairs, start)
 
-        self._layout.set_tails(dataset._layout.pending_tails(dataset.last), positions, first_kept)
+        self._layout.set_tails(dataset._layout.pending_tails(dataset.last), positions)
 
         if order is not None:
             order = ArrayBackend.convert(order, to=self._dataset_info.env_backend, device=device)
@@ -1177,11 +1177,6 @@ class CircularDataset(Dataset):
             head = 0
             dataset = dataset[remaining:]
             n -= remaining
-
-        if n > max_size:
-            head = (head + n - max_size) % max_size
-            dataset = dataset[n - max_size:]
-            n = max_size
 
         columns = ['state', 'action', 'reward', 'next_state', 'absorbing', 'last']
         if self.is_stateful:

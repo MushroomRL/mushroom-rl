@@ -4,6 +4,7 @@ import torch
 from mushroom_rl.core import Core, Dataset
 from mushroom_rl.core.extra_info import ExtraInfo
 from mushroom_rl.core._impl.layout import StreamLayout, CodedLayout
+from mushroom_rl.core._impl.history_state import HistoryState
 from mushroom_rl.algorithms.value import SARSA
 from mushroom_rl.environments import GridWorld
 from mushroom_rl.rl_utils.parameters import Parameter
@@ -571,3 +572,18 @@ def test_list_dataset_converted_to_torch_keeps_int8_boundary_codes():
 
     assert converted._layout.array().dtype == torch.int8
     assert torch.equal(glued.state[:, 0], torch.tensor([0., 1., 2., 3.]))
+
+
+def test_history_state_takes_row_indices_from_another_device():
+    if not torch.cuda.is_available():
+        return
+
+    entries = HistoryState('numpy', None, np.array([0, 3]), {'obs_history': np.array([[1.], [2.]])})
+
+    view = entries.get_view(torch.tensor([3, 1], device='cuda'), 5)
+    kept = entries.drop(torch.tensor([0], device='cuda'), 5)
+
+    assert np.array_equal(view.positions, np.array([0]))
+    assert np.array_equal(view.windows('obs_history'), np.array([[2.]]))
+    assert np.array_equal(kept.positions, np.array([3]))
+    assert np.array_equal(kept.windows('obs_history'), np.array([[2.]]))

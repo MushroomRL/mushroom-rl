@@ -94,7 +94,7 @@ class HistoryState(MushroomObject):
                 keep = (self._positions >= start) & (self._positions < stop)
                 return self._select(keep, self._positions[keep] - start)
             index = backend.arange(start, stop, step, device=self._device)
-        index = backend.as_array(index, device=self._device)
+        index = self._rows(index)
         if index.dtype == bool:
             index = backend.where(index)[0]
         inverse = backend.zeros(n_rows, dtype=int, device=self._device) - 1
@@ -119,7 +119,7 @@ class HistoryState(MushroomObject):
         if len(self) == 0 or len(rows) == 0:
             return self._wrap(self._positions, dict(self._windows))
         dropped = backend.zeros(n_rows, dtype=bool, device=self._device)
-        dropped[backend.as_array(rows, device=self._device)] = True
+        dropped[self._rows(rows)] = True
         keep = ~dropped[self._positions]
         return self._select(keep, self._positions[keep])
 
@@ -212,6 +212,11 @@ class HistoryState(MushroomObject):
 
         """
         return self._positions
+
+    def _rows(self, rows):
+        backend = self._array_backend
+        return backend.as_array(ArrayBackend.convert(rows, to=backend.get_backend_name(), device=self._device),
+                                device=self._device)
 
     def _select(self, keep, positions):
         return self._wrap(positions, {name: window[keep] for name, window in self._windows.items()})
