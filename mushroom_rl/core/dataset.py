@@ -840,6 +840,11 @@ class Dataset(MushroomObject):
         """
         return self._history_state
 
+    def _agent_rows(self, rows):
+        if isinstance(rows, (int, slice)):
+            return rows
+        return ArrayBackend.convert(rows, to=self._dataset_info.agent_backend, device=self._dataset_info.agent_device)
+
     def _last_array(self):
         return self._dataset_info.env_array_backend.as_array(self.last, device=self._dataset_info.env_device)
 
@@ -859,7 +864,8 @@ class Dataset(MushroomObject):
         dataset = self.create_raw_instance(dataset=self)
         dataset._extras = self._extras.reorder_steps(order)
         dataset._data = self._data.get_view(order, copy=True)
-        dataset._agent_data = self._agent_data.get_view(order, copy=True) if self._agent_data is not None else None
+        dataset._agent_data = (self._agent_data.get_view(self._agent_rows(order), copy=True)
+                               if self._agent_data is not None else None)
         dataset._layout = layout
         dataset._history_state = self._history_state.drop(glued, len(self)).get_view(order, len(self))
         return dataset, order
@@ -876,7 +882,8 @@ class Dataset(MushroomObject):
 
         dataset._extras = self._extras.get_view(index, copy)
         dataset._data = self._data.get_view(index, copy)
-        dataset._agent_data = self._agent_data.get_view(index, copy) if self._agent_data is not None else None
+        dataset._agent_data = (self._agent_data.get_view(self._agent_rows(index), copy)
+                               if self._agent_data is not None else None)
         dataset._layout = layout
         dataset._history_state = self._history_state.get_view(index, len(self))
 

@@ -1,14 +1,15 @@
 import numpy as np
 import torch
 
-from mushroom_rl.core import Core, Dataset
+from mushroom_rl.core import Agent, Core, Dataset, MDPInfo, VectorizedEnvironment
+from mushroom_rl.core.spaces import Box
 from mushroom_rl.core.extra_info import ExtraInfo
 from mushroom_rl.core._impl.layout import StreamLayout, CodedLayout
 from mushroom_rl.core._impl.history_state import HistoryState
 from mushroom_rl.algorithms.value import SARSA
 from mushroom_rl.environments import GridWorld
 from mushroom_rl.rl_utils.parameters import Parameter
-from mushroom_rl.policy import EpsGreedy
+from mushroom_rl.policy import EpsGreedy, StatefulPolicy
 
 
 def generate_dataset(mdp, n_episodes):
@@ -587,3 +588,70 @@ def test_history_state_takes_row_indices_from_another_device():
     assert np.array_equal(view.windows('obs_history'), np.array([[2.]]))
     assert np.array_equal(kept.positions, np.array([3]))
     assert np.array_equal(kept.windows('obs_history'), np.array([[2.]]))
+
+
+class CudaCountingVecEnv(VectorizedEnvironment):
+    def __init__(self):
+        super().__init__(MDPInfo(Box(-1000, 1000, shape=(1,)), Box(-1000, 1000, shape=(1,)), 0.9, 100,
+                                 backend='torch', device='cuda'), 3)
+        self._s = torch.zeros(3, 1, device='cuda')
+        self._t = torch.zeros(3, device='cuda')
+
+    def reset_all(self, env_mask, state=None):
+        self._s[env_mask] = 100. * (1 + torch.arange(3, device='cuda')[env_mask, None].float())
+        self._t[env_mask] = 0
+        return self._s.clone(), [{}] * 3
+
+    def step_all(self, env_mask, action):
+        self._s[env_mask] += 1
+        self._t[env_mask] += 1
+        return self._s.clone(), torch.ones(3, device='cuda'), (self._t >= 4) & env_mask, [{}] * 3
+
+
+class StateTrackingPolicy(StatefulPolicy):
+    def __init__(self):
+        super().__init__((1,))
+
+    def reset_vectorized(self, start_mask):
+        self._policy_state = np.zeros((len(start_mask), 1))
+        return self._policy_state
+
+    def _draw_action(self, state, policy_state, **kwargs):
+        return state[:, :1], state[:, :1].copy()
+
+
+class FitCollectingAgent(Agent):
+    def __init__(self, mdp_info):
+        super().__init__(mdp_info, StateTrackingPolicy(), backend='numpy')
+        self.fits = list()
+
+    def fit(self, dataset):
+        self.fits.append(dataset)
+
+
+def test_policy_states_follow_row_indices_from_the_env_device():
+    if not torch.cuda.is_available():
+        return
+
+    env = CudaCountingVecEnv()
+    agent = FitCollectingAgent(env.info)
+    Core(agent, env).learn(n_steps=30, n_steps_per_fit=7, quiet=True)
+
+    view = agent.fits[1][torch.tensor([3, 0], device='cuda')]
+    glued = (agent.fits[1] + agent.fits[2]).contiguous()
+
+    assert np.array_equal(view.policy_next_state[:, 0], np.array([203., 103.]))
+    assert torch.equal(glued.state[:, 0].cpu(), torch.tensor([103., 100., 101., 102., 202., 203., 200., 201., 202.,
+                                                              302., 303., 300., 301., 302.]))
+    assert np.array_equal(glued.policy_next_state[:, 0], glued.state[:, 0].cpu().numpy())
+
+
+def test_history_state_takes_boolean_row_masks():
+    entries = HistoryState('torch', None, torch.tensor([0, 3]), {'obs_history': torch.tensor([[1.], [2.]])})
+
+    torch_view = entries.get_view(torch.tensor([False, True, False, True, True]), 5)
+    numpy_view = entries.get_view(np.array([False, True, False, True, True]), 5)
+
+    for view in (torch_view, numpy_view):
+        assert torch.equal(view.positions, torch.tensor([1]))
+        assert torch.equal(view.windows('obs_history'), torch.tensor([[2.]]))

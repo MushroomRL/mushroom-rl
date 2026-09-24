@@ -537,7 +537,8 @@ class HistoryManager(MushroomObject):
         Returns:
             A :class:`~mushroom_rl.core._impl.history_state.HistoryContext` with, for the observation and the
             previous-action streams, the entries preceding the next step and the entries preceding the most recent
-            step, with the environment axis first when the manager is vectorized.
+            step, with the environment axis first when the manager is vectorized; ``None`` when no stream has
+            entries to carry.
 
         """
         before_next, before_last = dict(), dict()
@@ -555,7 +556,7 @@ class HistoryManager(MushroomObject):
                 newest = self._agent_backend.expand_dims(self._last_action, axis)
                 before_next[name] = self._agent_backend.concatenate([window[head + (slice(1, None),)], newest],
                                                                     dim=axis)
-        return HistoryContext(before_next, before_last)
+        return HistoryContext(before_next, before_last) if len(before_next) > 0 else None
 
     @classmethod
     def default_streams(cls, mdp_info, agent_info, history_length=None, action_history_length=None):

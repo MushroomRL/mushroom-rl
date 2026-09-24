@@ -1163,3 +1163,18 @@ def test_stitching_concatenation_drops_the_attached_entry():
     assert len(second.history_state) == 1
     assert len(both.history_state) == 0
     assert np.array_equal(agent.history_manager.parse_state(both)[8], agent.blocks[1]['parse_state'][0])
+
+
+def test_manager_without_streams_attaches_no_history_entries():
+    cases = ((CountingEnv(horizon=100), [6., 7., 8., 9., 10., 11.]),
+             (CountingVecEnv(2, horizon=100), [3., 4., 5., 3., 4., 5.]))
+    for env, steps in cases:
+        agent = BlockRecordingAgent(env.info)
+        core = Core(agent, env)
+
+        core.learn(n_steps=12, n_steps_per_fit=6, quiet=True)
+        converted = agent.blocks[1]['dataset'].to_backend('list')
+
+        assert agent.history_manager.history_context() is None
+        assert [len(block['dataset'].history_state) for block in agent.blocks] == [0, 0]
+        assert [state[1] for state in converted.state] == steps

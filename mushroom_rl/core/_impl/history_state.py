@@ -95,7 +95,7 @@ class HistoryState(MushroomObject):
                 return self._select(keep, self._positions[keep] - start)
             index = backend.arange(start, stop, step, device=self._device)
         index = self._rows(index)
-        if index.dtype == bool:
+        if index.dtype == backend.to_backend_dtype(bool):
             index = backend.where(index)[0]
         inverse = backend.zeros(n_rows, dtype=int, device=self._device) - 1
         inverse[index] = backend.arange(0, len(index), device=self._device)
@@ -293,16 +293,18 @@ class GridHistoryState(MushroomObject):
             positions_backend (ArrayBackend): the backend of the three arrays.
 
         Returns:
-            The :class:`HistoryState` of the flat dataset.
+            The :class:`HistoryState` of the flat dataset, empty when no window is retained.
 
         """
         backend = self._array_backend
-        positions = backend.convert_to_backend(positions_backend, positions, self._device)
-        envs = backend.convert_to_backend(positions_backend, envs, self._device)
-        keep = backend.convert_to_backend(positions_backend, ~is_episode_start, self._device)
-        positions, envs = positions[keep], envs[keep]
-        windows = {name: slot[envs] for name, slot in self._slots.items()}
-        return HistoryState(backend.get_backend_name(), self._device, positions, windows)
+        if len(self._slots) > 0:
+            positions = backend.convert_to_backend(positions_backend, positions, self._device)
+            envs = backend.convert_to_backend(positions_backend, envs, self._device)
+            keep = backend.convert_to_backend(positions_backend, ~is_episode_start, self._device)
+            positions, envs = positions[keep], envs[keep]
+            windows = {name: slot[envs] for name, slot in self._slots.items()}
+            return HistoryState(backend.get_backend_name(), self._device, positions, windows)
+        return HistoryState(backend.get_backend_name(), self._device)
 
     def get_view(self, index, n_rows):
         return self.copy()
