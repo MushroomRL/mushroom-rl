@@ -130,5 +130,6 @@ class ListContainer(Container, backend='list'):
 
     def _add_all_save_attr(self):
         self._add_save_attr(
-            _columns='pickle'
+            _columns='pickle',
+            _n_envs='primitive'
         )

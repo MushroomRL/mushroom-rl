@@ -138,3 +138,18 @@ def test_join_with_an_empty_block_is_a_no_op():
         assert np.array_equal(np.asarray(joined.state), np.asarray(flat.state))
         assert np.array_equal(joined.parse_policy_state()[0], flat.parse_policy_state()[0])
         assert np.array_equal(joined.parse()[5], flat.parse()[5])
+
+
+def test_loaded_list_dataset_keeps_appending_per_environment(tmpdir):
+    dataset = VectorizedDataset(make_infinite_horizon_info(), n_steps=10)
+    append_stateful_steps(dataset, 3)
+    path = tmpdir / 'list_dataset.msh'
+
+    dataset.save(path)
+    loaded = VectorizedDataset.load(path)
+    append_stateful_steps(loaded, 1)
+    flat = loaded.flatten()
+
+    assert loaded._data.n_envs == 2
+    assert np.array_equal(np.asarray(flat.state)[:, 0], np.array([0., 1., 2., 0., 10., 11., 12., 10.]))
+    assert np.array_equal(flat.parse_policy_state()[0][:, 0], np.array([0., 1., 2., 0., 10., 11., 12., 10.]))
