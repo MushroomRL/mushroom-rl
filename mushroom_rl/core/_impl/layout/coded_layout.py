@@ -220,10 +220,10 @@ class CodedLayout(EpisodeLayout):
             one.
 
         """
-        backend = ArrayBackend.get_array_backend(self._backend)
+        codes = self.array()
+        backend = ArrayBackend.get_array_backend_from(codes)
         device = self._device
         n = len(self)
-        codes = self.array()
 
         is_start = codes > 0
         is_start[0] = True
@@ -286,8 +286,10 @@ class CodedLayout(EpisodeLayout):
             A new layout holding the same rows and open episodes in the given backend.
 
         """
-        column = ArrayBackend.convert(self._boundary.column(), to=backend,
-                                      backend=ArrayBackend.get_array_backend(self._backend), device=device)
+        target = ArrayBackend.get_array_backend(backend)
+        column = target.zeros(len(self), dtype=target.to_backend_dtype('int8'), device=device)
+        column[:] = ArrayBackend.convert(self._boundary.column(), to=backend,
+                                         backend=ArrayBackend.get_array_backend(self._backend), device=device)
         layout = CodedLayout.from_array(column, backend, device)
         return self._copy_state(layout)
 

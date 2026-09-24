@@ -498,15 +498,7 @@ class Dataset(MushroomObject):
             it.
 
         """
-        if self._layout.n_joins == 0:
-            return self
-        order, layout, glued = self._layout.glue(self._last_array())
-        dataset = self.create_raw_instance(dataset=self)
-        dataset._extras = self._extras.reorder_steps(order)
-        dataset._data = self._data.get_view(order, copy=True)
-        dataset._agent_data = self._agent_data.get_view(order, copy=True) if self._agent_data is not None else None
-        dataset._layout = layout
-        dataset._history_state = self._history_state.drop(glued, len(self)).get_view(order, len(self))
+        dataset, _ = self._glued()
         return dataset
 
     def select_first_episodes(self, n_episodes):
@@ -854,6 +846,18 @@ class Dataset(MushroomObject):
     def _walk_last(self):
         return self._segment_ends(self._last_array())
 
+    def _glued(self):
+        if self._layout.n_joins == 0:
+            return self, None
+        order, layout, glued = self._layout.glue(self._last_array())
+        dataset = self.create_raw_instance(dataset=self)
+        dataset._extras = self._extras.reorder_steps(order)
+        dataset._data = self._data.get_view(order, copy=True)
+        dataset._agent_data = self._agent_data.get_view(order, copy=True) if self._agent_data is not None else None
+        dataset._layout = layout
+        dataset._history_state = self._history_state.drop(glued, len(self)).get_view(order, len(self))
+        return dataset, order
+
     def _create_layout(self, dataset_info, n_steps, n_envs):
         boundary_shape = self._base_shape if self._base_shape is not None else ()
         return StreamLayout(dataset_info.env_backend, boundary_shape, dataset_info.env_device, n_envs)
@@ -1047,14 +1051,16 @@ class CircularDataset(Dataset):
             dataset (Dataset): the dataset to write.
 
         Returns:
-            The buffer position of every written row, the positions of the open episode ends of the previous write
-            that the dataset continues, and the positions of the stored steps whose previous step was overwritten.
+            The buffer position of every row of ``dataset``, in its order, the positions of the open episode ends of
+            the previous write that the dataset continues, and the positions of the stored steps whose previous step
+            was overwritten.
 
         Raises:
             ValueError: if the dataset continues a number of episodes different from the number left open.
 
         """
-        dataset = dataset.contiguous().to_backend(self._dataset_info.env_backend, device=self._dataset_info.env_device)
+        dataset, order = dataset._glued()
+        dataset = dataset.to_backend(self._dataset_info.env_backend, device=self._dataset_info.env_device)
         n = len(dataset)
         max_size = self._layout.max_size
         backend = self._dataset_info.env_array_backend
@@ -1082,6 +1088,12 @@ class CircularDataset(Dataset):
         relinked = self._layout.link(positions, continues, pairs, start, n_written)
 
         self._layout.set_tails(dataset._layout.pending_tails(dataset.last), positions, first_kept)
+
+        if order is not None:
+            order = ArrayBackend.convert(order, to=self._dataset_info.env_backend, device=device)
+            written = positions
+            positions = backend.zeros(n, dtype=int, device=device)
+            positions[order] = written
 
         return positions, relinked, orphans
 

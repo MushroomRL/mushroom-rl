@@ -1,7 +1,5 @@
 from enum import IntFlag
 
-import numpy as np
-
 from mushroom_rl.core.array_backend import ArrayBackend
 from mushroom_rl.core.mushroom_object import MushroomObject
 
@@ -309,7 +307,7 @@ class EpisodeLayout(MushroomObject):
         The data type of the boundary codes.
 
         """
-        return ArrayBackend.get_array_backend(self._backend).to_backend_dtype(np.int8)
+        return ArrayBackend.get_array_backend(self._backend).to_backend_dtype('int8')
 
     def _coded_from_array(self, boundary, open_heads=None, open_tails=None):
         raise NotImplementedError

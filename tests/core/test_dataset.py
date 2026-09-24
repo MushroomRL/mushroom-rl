@@ -545,3 +545,29 @@ def test_to_backend_keeps_the_horizon_and_the_discount_factor():
     assert converted._dataset_info.horizon == 50
     assert converted._dataset_info.gamma == 0.5
     assert torch.allclose(converted.discounted_return, torch.tensor([1.75]))
+
+
+def make_list_stream(states, lasts, continuing=False):
+    n = len(states)
+    states = list(np.array(states, dtype=float)[:, None])
+    return Dataset.from_array(states, [np.zeros(1)] * n, list(np.zeros(n)), states, [False] * n,
+                              [bool(last) for last in lasts], gamma=0.5, backend='list', continuing=continuing)
+
+
+def test_contiguous_of_a_joined_list_dataset():
+    joined = make_list_stream([1, 2, 3], [0, 1, 0]) + make_list_stream([5, 6], [1, 0])
+
+    glued = joined.contiguous()
+
+    assert np.array_equal(np.array(glued.state)[:, 0], np.array([1., 2., 3., 5., 6.]))
+    assert np.array_equal(glued.last_or_boundary, np.array([False, True, True, True, True]))
+
+
+def test_list_dataset_converted_to_torch_keeps_int8_boundary_codes():
+    joined = make_list_stream([0, 1], [0, 0]) + make_list_stream([2, 3], [0, 1])
+
+    converted = joined.to_backend('torch')
+    glued = converted.contiguous()
+
+    assert converted._layout.array().dtype == torch.int8
+    assert torch.equal(glued.state[:, 0], torch.tensor([0., 1., 2., 3.]))

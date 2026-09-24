@@ -168,16 +168,17 @@ class ReplayMemory(MushroomObject):
         valid = idxs[~self._compute_mask(idxs)]
         return valid[backend.randint(0, len(valid), (n_samples,), device=self._agent_info.device)]
 
-    def _affected_window(self, positions, relinked, orphans):
+    def _affected_window(self, start, n_written, relinked, orphans):
         """
-        The buffer positions whose sampling mask can change after a batch was written at ``positions``: the newly
+        Find the buffer positions whose sampling mask can change after a batch was written from ``start``: the newly
         written anchors, their forward n-step window (the ``n-1`` anchors ending in the new batch), the backward
         history reserve that trails the moved write head, for every open episode end the batch continued away
         from the write head the ``n-1`` anchors ending there and, for every stored step whose previous step was
         overwritten, that step and the steps whose history window reaches it. Every other entry keeps its mask.
 
         Args:
-            positions: the buffer positions where the last batch was written;
+            start (int): the write head before the batch was written;
+            n_written (int): the number of rows of the batch;
             relinked (list): the buffer positions of the open episode ends the batch continued;
             orphans: the buffer positions of the stored steps whose previous step was overwritten.
 
@@ -192,9 +193,9 @@ class ReplayMemory(MushroomObject):
         size = len(self._dataset)
         full = self._dataset.full
         history_reserve = self._history_manager.max_reach if full else 0
-        window_length = len(positions) + (self._n_steps_return - 1) + history_reserve
+        window_length = n_written + (self._n_steps_return - 1) + history_reserve
         range_vec = backend.arange(0, window_length, device=self._agent_info.device)
-        raw = (positions[0] - (self._n_steps_return - 1)) + range_vec
+        raw = (start - (self._n_steps_return - 1)) + range_vec
         window = raw % self._max_size if full else raw[(raw >= 0) & (raw < size)]
         if len(relinked) > 0 and self._dataset.links is not None:
             ends = backend.as_array(relinked, device=self._agent_info.device)

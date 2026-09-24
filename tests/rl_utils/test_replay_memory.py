@@ -1200,3 +1200,15 @@ def test_consumed_steps_join_without_reserving():
     assert len(joined) == 6
     assert np.array_equal(joined.mask, np.array([[True, True], [False, False], [False, False],
                                                  [False, False], [True, True], [True, True]]))
+
+
+def test_prioritized_replay_memory_keeps_the_priorities_of_joined_blocks():
+    rm = PrioritizedReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=2, max_size=100, alpha=1.,
+                                 beta=1.)
+    first, second = vectorized_blocks([0, 1], [2, 3])
+    joined = first + second
+
+    rm.add(joined, p=joined.state[:, 0] + 1.)
+
+    assert np.array_equal(rm._dataset.state[:rm.size, 0], np.array([0., 1., 2., 3., 10., 11., 12., 13.]))
+    assert np.array_equal(rm._tree._tree[99:107], np.array([1., 2., 3., 4., 11., 12., 13., 14.]))
