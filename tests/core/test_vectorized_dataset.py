@@ -94,3 +94,47 @@ def test_vectorized_dataset_flatten_keeps_episode_ends_inside_a_block():
 
     assert np.array_equal(np.asarray(flat.last).astype(bool),
                           np.array([False, True, False, False, False, False, True, False, False]))
+
+
+def make_infinite_horizon_info():
+    return DatasetInfo(env_backend='list', agent_backend='numpy', env_device=None, agent_device=None,
+                       horizon=np.inf, gamma=0.9, state_shape=(1,), state_dtype=np.float64,
+                       action_shape=(1,), action_dtype=np.float64, policy_state_shape=(1,), n_envs=2)
+
+
+def append_stateful_steps(dataset, n_steps):
+    mask = np.array([True, True])
+    for t in range(n_steps):
+        values = 10. * np.arange(2)[:, None] + t
+        step = (values, np.zeros((2, 1)), np.ones(2), values + 1, np.zeros(2, dtype=bool), np.zeros(2, dtype=bool),
+                values, values + 0.5)
+        dataset.append_vectorized(step, [{}, {}], mask)
+
+
+def test_infinite_horizon_flatten_keeps_the_policy_state_of_every_row():
+    dataset = VectorizedDataset(make_infinite_horizon_info(), n_steps=10)
+    append_stateful_steps(dataset, 3)
+
+    flat = dataset.flatten()
+    policy_state, policy_next_state = flat.parse_policy_state()
+
+    assert np.array_equal(np.asarray(flat.state)[:, 0], np.array([0., 1., 2., 10., 11., 12.]))
+    assert np.array_equal(policy_state[:, 0], np.array([0., 1., 2., 10., 11., 12.]))
+    assert np.array_equal(policy_next_state[:, 0], np.array([0.5, 1.5, 2.5, 10.5, 11.5, 12.5]))
+
+
+def test_join_with_an_empty_block_is_a_no_op():
+    dataset = VectorizedDataset(make_infinite_horizon_info(), n_steps=10)
+    append_stateful_steps(dataset, 3)
+    flat = dataset.flatten()
+    empty = VectorizedDataset(make_infinite_horizon_info(), n_steps=10).flatten()
+
+    accumulated = empty
+    accumulated += flat
+    extended = flat.copy()
+    extended += empty
+
+    for joined in (flat + empty, empty + flat, accumulated, extended):
+        assert np.array_equal(np.asarray(joined.state), np.asarray(flat.state))
+        assert np.array_equal(joined.parse_policy_state()[0], flat.parse_policy_state()[0])
+        assert np.array_equal(joined.parse()[5], flat.parse()[5])

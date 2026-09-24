@@ -82,7 +82,14 @@ class SequenceReplayMemory(ReplayMemory):
         extra_buffers = dict()
         lengths = list()
 
-        for num, c_anchor in enumerate(backend.randint(min_offset, size, (n_samples,), device=self._agent_info.device)):
+        if ds.links is None:
+            anchors = backend.randint(min_offset, size, (n_samples,), device=self._agent_info.device)
+        else:
+            cut = self._history_cut(backend.arange(0, size, device=self._agent_info.device))
+            candidates = backend.arange(0, size, device=self._agent_info.device)[~cut]
+            anchors = candidates[backend.randint(0, len(candidates), (n_samples,), device=self._agent_info.device)]
+
+        for num, c_anchor in enumerate(anchors):
             c_anchor = int(c_anchor)
             if ds.links is None:
                 c_begin = max(c_anchor - self._truncation_length + 1, min_offset)
@@ -96,7 +103,7 @@ class SequenceReplayMemory(ReplayMemory):
                 length = c_anchor - c_begin + 1
                 positions = (start + backend.arange(c_begin, c_anchor + 1, device=self._agent_info.device)) % max_size
             else:
-                positions = self._sequence_positions((start + c_anchor) % max_size, start, min_offset)
+                positions = self._sequence_positions(c_anchor, cut)
                 length = len(positions)
 
             state_seq, action_seq, reward_seq, next_state_seq, absorbing_seq, last_seq, extra = \
@@ -125,23 +132,25 @@ class SequenceReplayMemory(ReplayMemory):
             out.append(extra_buffers)
         return tuple(out)
 
-    def _sequence_positions(self, anchor, start, min_offset):
+    def _sequence_positions(self, anchor, cut):
         """
         Args:
             anchor (int): the buffer position of the final step of the sequence;
-            start (int): the buffer position of the oldest stored step;
-            min_offset (int): the number of oldest stored steps a sequence cannot include.
+            cut: for every stored position, whether its history window reaches a step that is not stored anymore.
 
         Returns:
             The buffer positions of the steps of the episode of ``anchor`` ending at it, oldest first, at most
-            ``truncation_length`` of them.
+            ``truncation_length`` of them, all stored and with a stored history window.
 
         """
-        prev = self._dataset.links[0]
+        ds = self._dataset
+        prev = ds.links[0]
         steps = [anchor]
         while len(steps) < self._truncation_length:
             distance = int(prev[steps[-1]])
-            if distance == 0 or distance > (steps[-1] - start) % self._max_size - min_offset:
+            age = (steps[-1] - ds.write_head) % self._max_size if ds.full else steps[-1]
+            previous = (steps[-1] - distance) % self._max_size
+            if distance == 0 or distance > age or bool(cut[previous]):
                 break
-            steps.append((steps[-1] - distance) % self._max_size)
-        return self._dataset.array_backend.as_array(steps[::-1], device=self._agent_info.device)
+            steps.append(previous)
+        return ds.array_backend.as_array(steps[::-1], device=self._agent_info.device)

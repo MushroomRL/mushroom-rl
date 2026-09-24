@@ -245,9 +245,8 @@ class HistoryManager(MushroomObject):
 
         """
         if 'obs_history' in self._stream_specs:
-            source, skip = self._history_source(dataset)
-            states, last = self._agent_backend.convert(source.state, source.last_or_boundary, device=self._device)
-            state = self.build_history('obs_history', states, last, attachment=source.history_state)[skip:]
+            states, last = self._agent_backend.convert(dataset.state, dataset.last_or_boundary, device=self._device)
+            state = self.build_history('obs_history', states, last, attachment=dataset.history_state)
         else:
             state = self.preprocess(self._agent_backend.convert(dataset.state, device=self._device))
 
@@ -297,23 +296,17 @@ class HistoryManager(MushroomObject):
         """
         states, actions, reward, next_states, absorbing, last = dataset.parse(
             to=self._agent_backend.get_backend_name(), device=self._device)
-        source, skip = self._history_source(dataset)
-        source_states, source_actions, source_last = states, actions, last
-        if skip > 0:
-            source_states, source_actions, _, _, _, source_last = source.parse(
-                to=self._agent_backend.get_backend_name(), device=self._device)
 
         if 'obs_history' in self._stream_specs:
-            state = self.build_history('obs_history', source_states, source_last,
-                                       attachment=source.history_state)[skip:]
+            state = self.build_history('obs_history', states, last, attachment=dataset.history_state)
             next_state = self._next_obs_history(state, next_states, self._agent_backend)
         else:
             state, next_state = self.preprocess(states), self.preprocess(next_states)
 
         extra = dict()
         if self.uses_action:
-            extra['action_history'] = self.build_history('action_history', source_actions, source_last,
-                                                         attachment=source.history_state)[skip:]
+            extra['action_history'] = self.build_history('action_history', actions, last,
+                                                         attachment=dataset.history_state)
 
         return self._convert_parsed(to, state, actions, reward, next_state, absorbing, last, extra)
 
@@ -375,15 +368,9 @@ class HistoryManager(MushroomObject):
             bootstrap[-1] = False
         reduced_reward, anchor, endpoint = self.build_nstep_return(reward, absorbing, last, anchor_idxs, gamma,
                                                                    n_steps_return, bootstrap=bootstrap)
-        source, skip = self._history_source(dataset)
-        source_states, source_actions, source_last = states, actions, last
-        if skip > 0:
-            source_states, source_actions, _, _, _, source_last = source.parse(
-                to=self._agent_backend.get_backend_name(), device=self._device)
 
         if 'obs_history' in self._stream_specs:
-            windows = self.build_history('obs_history', source_states, source_last,
-                                         attachment=source.history_state)[skip:]
+            windows = self.build_history('obs_history', states, last, attachment=dataset.history_state)
             state = windows[anchor]
             next_state = self._next_obs_history(windows[endpoint], next_states[endpoint], self._agent_backend)
         else:
@@ -392,8 +379,8 @@ class HistoryManager(MushroomObject):
 
         extra = dict()
         if self.uses_action:
-            extra['action_history'] = self.build_history('action_history', source_actions, source_last,
-                                                         attachment=source.history_state)[skip:][anchor]
+            extra['action_history'] = self.build_history('action_history', actions, last,
+                                                         attachment=dataset.history_state)[anchor]
         extra['endpoint'] = endpoint
         extra['anchor'] = anchor
         return self._convert_parsed(to, state, actions[anchor], reduced_reward, next_state, absorbing[endpoint],
@@ -846,21 +833,6 @@ class HistoryManager(MushroomObject):
         """
         return max((spec['offset'] + spec['length'] - 1
                     for spec in self._stream_specs.values()), default=0)
-
-    def _history_source(self, dataset):
-        """
-        Returns:
-            The dataset the windows of ``dataset`` are built on and the number of its leading rows that precede
-            ``dataset``: the rows of the dataset it is a slice of reaching back :attr:`max_reach` rows, when it starts
-            in the middle of an episode.
-
-        """
-        parent = dataset.parent_slice
-        if parent is None or self.max_reach == 0:
-            return dataset, 0
-        root, start = parent
-        begin = max(0, start - self.max_reach)
-        return root[begin:start + len(dataset)], start - begin
 
     def _convert_output(self, to, *arrays):
         """

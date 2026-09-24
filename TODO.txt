@@ -31,6 +31,10 @@ For Mushroom 2.1:
         - remove host-device sync each iteration (int(c_anchor)/int(boundary[...])) in SequenceReplayMemory for the frame-stacking path
     * vectorization of the TD policies: `EpsGreedy` and `Boltzmann` draw a single action regardless of the
       batch size, so a TD algorithm cannot run on a vectorized environment
+    * vectorization of the numpy policy gradient algorithms (REINFORCE, GPOMDP, eNAC):
+        - the parametric numpy policies (e.g. the Gaussian ones) draw a single action regardless of the batch size
+        - `PolicyGradient.fit` iterates the samples and splits episodes on the stored `last`, which on a flat
+          multi-env block runs one env's open episode into the next env's rows; it should use the parsed `last`
     * handle ExtraInfo correctly in ReplayMemory
       - currently ignored in circular-buffer phase; info is never read back during sampling
     * vectorized env rendering

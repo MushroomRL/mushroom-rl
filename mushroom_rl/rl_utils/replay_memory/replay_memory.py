@@ -32,6 +32,8 @@ class ReplayMemory(MushroomObject):
         """
         assert agent_info.backend in ["numpy", "torch"], \
             f"{agent_info.backend} backend currently not supported in the replay memory class."
+        assert initial_size >= n_steps_return, \
+            f"The initial size {initial_size} is smaller than the {n_steps_return} steps of the n-step return."
 
         self._initial_size = initial_size
         self._max_size = max_size

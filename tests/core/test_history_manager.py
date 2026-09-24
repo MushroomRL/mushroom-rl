@@ -1128,7 +1128,7 @@ def test_nstep_windows_at_a_block_start():
     assert np.array_equal(nstep_next_state, next_state[extra['endpoint']])
 
 
-def test_attachment_survives_to_backend_views_concatenation_and_save(tmpdir):
+def test_attachment_survives_to_backend_concatenation_and_save_but_not_views(tmpdir):
     env = CountingVecEnv(3, horizon=10)
     agent = BlockRecordingAgent(env.info, history_length=3)
     core = Core(agent, env)
@@ -1141,9 +1141,7 @@ def test_attachment_survives_to_backend_views_concatenation_and_save(tmpdir):
     assert torch.equal(converted.history_state.positions, torch.tensor([0, 9, 18]))
     assert torch.equal(converted.history_state.windows('obs_history'), torch.from_numpy(window))
 
-    view = block[1:]
-    assert np.array_equal(view.history_state.positions, np.array([8, 17]))
-    assert np.array_equal(view.history_state.windows('obs_history'), window[1:])
+    assert len(block[1:].history_state) == 0
 
     both = block + agent.blocks[2]['dataset']
     assert np.array_equal(both.history_state.positions, np.array([0, 9, 18, 27, 36, 45]))

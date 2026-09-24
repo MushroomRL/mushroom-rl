@@ -243,31 +243,21 @@ def test_continuing_block_survives_a_backend_conversion():
     assert torch.equal(joined.episodes_length, torch.tensor([2, 3]))
 
 
-def test_slice_starting_mid_episode_keeps_the_parent_window():
+def test_slice_is_a_standalone_block():
     dataset = make_block([False, False, False, True, False, False], 0)
     history_manager = make_history_manager(3)
 
-    full = history_manager.parse_state(dataset)
-    mid_episode = history_manager.parse_state(dataset[2:])
-    after_episode_end = history_manager.parse_state(dataset[4:])
+    mid_episode = dataset[2:]
+    rejoined = dataset[:2] + dataset[2:]
 
-    assert np.array_equal(mid_episode, full[2:])
-    assert np.array_equal(mid_episode[0], np.array([[0.], [1.], [2.]]))
-    assert np.array_equal(after_episode_end[0], np.array([[0.], [0.], [4.]]))
-    assert np.array_equal(history_manager.parse_history(dataset[2:])[0], history_manager.parse_history(dataset)[0][2:])
-
-
-def test_empty_dataset_extended_by_a_mid_episode_slice_keeps_the_parent_window():
-    dataset = make_block([False, False, False, True, False, False], 0)
-    history_manager = make_history_manager(3)
-
-    joined = dataset[0:0] + dataset[2:]
-    accumulated = dataset[0:0].copy()
-    accumulated += dataset[2:]
-
-    assert np.array_equal(history_manager.parse_state(joined), history_manager.parse_state(dataset[2:]))
-    assert np.array_equal(history_manager.parse_state(accumulated), history_manager.parse_state(dataset[2:]))
-    assert np.array_equal(history_manager.parse_state(joined)[0], np.array([[0.], [1.], [2.]]))
+    assert np.array_equal(history_manager.parse_state(mid_episode)[0], np.array([[0.], [0.], [2.]]))
+    assert np.array_equal(history_manager.parse_state(dataset[4:])[0], np.array([[0.], [0.], [4.]]))
+    assert np.array_equal(mid_episode.parse()[5], np.array([False, True, False, True]))
+    assert np.array_equal(mid_episode.get_init_states(), np.array([[4.]]))
+    assert len(mid_episode.history_state) == 0
+    assert np.array_equal(rejoined.parse()[5], np.array([False, True, False, True, False, True]))
+    with pytest.raises(ValueError):
+        mid_episode + make_block([True], 6, continuing=True)
 
 
 def test_scattered_view_ends_a_segment_at_every_row():

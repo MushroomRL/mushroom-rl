@@ -245,7 +245,6 @@ class Dataset(MushroomObject):
         self._next_boundary = int(self._Boundary.FRESH)
         self._open_heads = None
         self._open_tails = None
-        self._parent = None
         self._history_state = HistoryState(dataset_info.agent_backend, dataset_info.agent_device)
 
         self._add_all_save_attr()
@@ -259,6 +258,11 @@ class Dataset(MushroomObject):
             raise IndexError
 
     def __add__(self, other):
+        if len(other) == 0:
+            return self.copy()
+        if len(self) == 0:
+            return other.copy()
+
         stitched, heads, tails = self._pair(other)
 
         result = self.create_raw_instance(dataset=self)
@@ -269,13 +273,17 @@ class Dataset(MushroomObject):
         result._boundary_data = self._boundary_data + other._boundary_data
         result._history_state = self._history_state.concatenate(other._history_state, len(self), stitched)
         result._open_heads, result._open_tails = heads, tails
-        result._parent = self._parent if len(self) > 0 else other._parent
         if stitched:
             result._boundary_data.column()[len(self)] = int(self._Boundary.NONE)
 
         return result
 
     def __iadd__(self, other):
+        if len(other) == 0:
+            return self
+        if len(self) == 0:
+            return other.copy()
+
         capacity = self._data.capacity
         if capacity is not None and len(self) + len(other) > capacity:
             return self + other
@@ -305,8 +313,6 @@ class Dataset(MushroomObject):
         """
         stitched, self._open_heads, self._open_tails = self._pair(other)
         n = len(self)
-        if n == 0:
-            self._parent = other._parent
         self._history_state = self._history_state.concatenate(other._history_state, n, stitched)
         self._append_rows(other)
         if stitched:
@@ -374,16 +380,15 @@ class Dataset(MushroomObject):
 
     def get_view(self, index, copy=False):
         """
-        Select a subset of the rows. A slice gives a contiguous subset that keeps the episode structure and, when it
-        starts mid-episode, the history of the rows before it. Any other index gives a set of scattered transitions:
-        every row is the end of a segment and no episode continues across the selected rows.
+        Select a subset of the transitions. The selection is a new standalone dataset: it does not continue any
+        episode of the original one. A contiguous subset keeps the episode structure of the selected transitions.
 
         Args:
-            index (slice or Array): the rows selected;
-            copy (bool, False): whether the view owns a copy of the selected rows.
+            index (slice or Array): the transitions to select;
+            copy (bool, False): whether the returned dataset owns a copy of the selected data.
 
         Returns:
-            The dataset holding the selected rows.
+            The dataset of the selected transitions.
 
         """
         dataset = self._view_rows(index, copy)
@@ -391,7 +396,7 @@ class Dataset(MushroomObject):
 
         if isinstance(index, slice) and index.step in (None, 1):
             start, stop, _ = index.indices(n)
-            self._view_slice_structure(dataset, start, max(start, stop))
+            self._view_slice_start(dataset, start, max(start, stop))
         else:
             boundary = self._dataset_info.env_array_backend.zeros(len(dataset), dtype=self._boundary_dtype(),
                                                                   device=self._dataset_info.env_device)
@@ -399,7 +404,8 @@ class Dataset(MushroomObject):
             boundary[self._row_starts()[index]] = int(self._Boundary.FRESH)
             dataset._boundary_data = Container.from_array([boundary], device=self._dataset_info.env_device,
                                                           backend=self._dataset_info.env_backend)
-            dataset._open_heads, dataset._open_tails = tuple(), tuple()
+        dataset._open_heads, dataset._open_tails = tuple(), tuple()
+        dataset._history_state = HistoryState(self._dataset_info.agent_backend, self._dataset_info.agent_device)
 
         return dataset
 
@@ -472,7 +478,6 @@ class Dataset(MushroomObject):
                                      history_state=self._history_state.to_backend(backend, device),
                                      boundary=boundary, open_heads=self._open_heads, open_tails=self._open_tails)
         dataset._next_boundary = self._next_boundary
-        dataset._parent = self._parent
         return dataset
 
     def select_first_episodes(self, n_episodes):
@@ -629,7 +634,6 @@ class Dataset(MushroomObject):
         new_dataset._next_boundary = int(cls._Boundary.FRESH)
         new_dataset._open_heads = None
         new_dataset._open_tails = None
-        new_dataset._parent = None
         new_dataset._history_state = None
 
         new_dataset._add_all_save_attr()
@@ -840,15 +844,6 @@ class Dataset(MushroomObject):
         return self._data.capacity
 
     @property
-    def parent_slice(self):
-        """
-        The dataset this one is a contiguous slice of, together with the row it starts at, when it starts in the
-        middle of an episode; ``None`` otherwise.
-
-        """
-        return self._parent
-
-    @property
     def history_state(self):
         """
         The history stream entries attached to the rows that start a segment continuing rows stored elsewhere.
@@ -932,31 +927,10 @@ class Dataset(MushroomObject):
 
         return dataset
 
-    def _view_slice_structure(self, dataset, start, stop):
-        if stop == start:
-            dataset._open_heads, dataset._open_tails = tuple(), tuple()
-            return
-        boundary = self._boundary_data.column()
-        kind = int(boundary[start])
-        mid_chunk = start > 0 and kind == self._Boundary.NONE
-        if mid_chunk:
-            kind = int(self._Boundary.FRESH if bool(self.last[start - 1]) else self._Boundary.CONTINUING)
-            dataset._boundary_data.column()[0] = kind
-        if start == 0:
-            dataset._parent = self._parent
-        elif mid_chunk and kind == self._Boundary.CONTINUING:
-            root, offset = self._parent if self._parent is not None else (self, 0)
-            dataset._parent = (root, offset + start)
-        if self._open_heads is not None:
-            heads = tuple(h - start for h in self._open_heads if start <= h < stop)
-            if mid_chunk and kind == self._Boundary.CONTINUING:
-                heads = (0,) + heads
-            dataset._open_heads = heads
-        if self._open_tails is not None:
-            tails = tuple(t - start for t in self._open_tails if start <= t < stop)
-            if stop < len(self) and not bool(self.last[stop - 1]) and (stop - start - 1) not in tails:
-                tails = tails + (stop - start - 1,)
-            dataset._open_tails = tails
+    def _view_slice_start(self, dataset, start, stop):
+        if stop > start and start > 0 and int(self._boundary_data.column()[start]) == self._Boundary.NONE:
+            kind = self._Boundary.FRESH if bool(self.last[start - 1]) else self._Boundary.CONTINUING
+            dataset._boundary_data.column()[0] = int(kind)
 
     def _clear_rows(self):
         self._extras.clear()
@@ -966,7 +940,6 @@ class Dataset(MushroomObject):
         self._boundary_data.clear()
         self._open_heads = None
         self._open_tails = None
-        self._parent = None
 
     def _view_episodes(self, rows):
         boundary = self._boundary_array()
@@ -980,6 +953,7 @@ class Dataset(MushroomObject):
         dataset._boundary_data = Container.from_array([kind], device=self._dataset_info.env_device,
                                                       backend=self._dataset_info.env_backend)
         dataset._open_heads, dataset._open_tails = tuple(), tuple()
+        dataset._history_state = HistoryState(self._dataset_info.agent_backend, self._dataset_info.agent_device)
         return dataset
 
     def _append_rows(self, other):
@@ -1015,7 +989,6 @@ class Dataset(MushroomObject):
             _next_boundary='primitive',
             _open_heads='primitive',
             _open_tails='primitive',
-            _parent='none',
             _history_state='mushroom',
             _base_shape='primitive',
             _dataset_info='mushroom'
@@ -1338,6 +1311,11 @@ class VectorizedDataset(Dataset):
                                                dataset_info.agent_device)
 
     def __add__(self, other):
+        if len(other) == 0:
+            return self.copy()
+        if len(self) == 0:
+            return other.copy()
+
         result = self.create_raw_instance(dataset=self)
 
         result._extras = self._extras + other._extras
@@ -1590,8 +1568,13 @@ class VectorizedDataset(Dataset):
 
         if self.is_stateful:
             policy_mask = agent_backend.convert_mask(mask, backend=env_backend, device=self._dataset_info.agent_device)
-            policy_state = agent_backend.pack_padded_sequence(self.policy_state, policy_mask)
-            policy_next_state = agent_backend.pack_padded_sequence(self.policy_next_state, policy_mask)
+            policy_state, policy_next_state = self.policy_state, self.policy_next_state
+            if self._dataset_info.env_backend == 'list':
+                agent_device = self._dataset_info.agent_device
+                policy_state = agent_backend.from_list(policy_state, device=agent_device)
+                policy_next_state = agent_backend.from_list(policy_next_state, device=agent_device)
+            policy_state = agent_backend.pack_padded_sequence(policy_state, policy_mask)
+            policy_next_state = agent_backend.pack_padded_sequence(policy_next_state, policy_mask)
 
         flat_extras = self._extras.flatten(mask)
 

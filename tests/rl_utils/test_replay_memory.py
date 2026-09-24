@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 import torch
 
 from mushroom_rl.core import MDPInfo, AgentInfo, Dataset
@@ -157,6 +158,19 @@ def test_replay_memory_initialized_at_boundary():
     assert rm.initialized
 
 
+def test_replay_memory_initial_size_covers_the_n_step_return():
+    mdp_info = make_mdp_info((4,), (2,))
+    agent_info = make_agent_info()
+
+    with pytest.raises(AssertionError):
+        ReplayMemory(mdp_info, agent_info, initial_size=2, max_size=50, n_steps_return=3)
+    with pytest.raises(AssertionError):
+        PrioritizedReplayMemory(mdp_info, agent_info, initial_size=2, max_size=50, alpha=0.6,
+                                beta=LinearParameter(1.0, threshold_value=0.0, n=100), n_steps_return=3)
+
+    assert not ReplayMemory(mdp_info, agent_info, initial_size=3, max_size=50, n_steps_return=3).initialized
+
+
 def test_replay_memory_wrapping_when_full():
     obs_shape = (4,)
     act_shape = (2,)
@@ -200,7 +214,7 @@ def test_replay_memory_n_steps_return():
 
     mdp_info = make_mdp_info(obs_shape, act_shape, gamma=gamma)
     agent_info = make_agent_info()
-    rm = ReplayMemory(mdp_info, agent_info, initial_size=1, max_size=50, n_steps_return=n_steps)
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=n_steps, max_size=50, n_steps_return=n_steps)
     rm.add(dataset)
 
     assert rm.size == n
@@ -237,7 +251,7 @@ def test_replay_memory_n_steps_history_absorbing():
     mdp_info = make_mdp_info(obs_shape, act_shape, gamma=gamma)
     agent_info = make_agent_info()
     history_manager = HistoryManager.default_streams(mdp_info, agent_info, history_length=history_length)
-    rm = ReplayMemory(mdp_info, agent_info, initial_size=1, max_size=50,
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=n_steps, max_size=50,
                       history_manager=history_manager, n_steps_return=n_steps)
     rm.add(dataset)
 
@@ -274,7 +288,7 @@ def test_replay_memory_n_steps_truncation_masked():
 
     mdp_info = make_mdp_info(obs_shape, act_shape)
     agent_info = make_agent_info()
-    rm = ReplayMemory(mdp_info, agent_info, initial_size=1, max_size=50, n_steps_return=n_steps)
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=n_steps, max_size=50, n_steps_return=n_steps)
     rm.add(dataset)
 
     np.random.seed(0)
@@ -960,7 +974,7 @@ def test_replay_memory_opt_out_drops_policy_state():
 
 def test_standalone_block_closes_the_open_episode_of_the_previous_run():
     history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), make_agent_info(), history_length=3)
-    rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=1, max_size=100,
+    rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=3, max_size=100,
                       history_manager=history_manager, n_steps_return=3)
 
     rm.add(make_block([1, 2, 3, 4, 5, 7, 8], [False, False, False, False, True, False, False],
@@ -990,7 +1004,7 @@ def test_continuing_block_keeps_the_episode_of_the_previous_block():
 
 def test_vectorized_blocks_continue_every_environment_in_the_ring():
     history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), make_agent_info(), history_length=3)
-    rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=1, max_size=100,
+    rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=2, max_size=100,
                       history_manager=history_manager, n_steps_return=2)
     first, second = vectorized_blocks([0, 1], [2])
 
@@ -1047,7 +1061,7 @@ def test_prioritized_link_mode_tree_mask_follows_the_overwritten_history():
 
 
 def test_overwritten_open_tail_keeps_the_links_of_the_new_rows():
-    rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=1, max_size=10, n_steps_return=2)
+    rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=2, max_size=10, n_steps_return=2)
     first, second = vectorized_blocks([0, 1, 2], [3, 4, 5, 6])
 
     rm.add(first)
@@ -1062,7 +1076,7 @@ def test_overwritten_open_tail_keeps_the_links_of_the_new_rows():
 
 def test_block_larger_than_the_buffer_keeps_its_last_rows_and_their_links():
     history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), make_agent_info(), history_length=3)
-    rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=1, max_size=10,
+    rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=2, max_size=10,
                       history_manager=history_manager, n_steps_return=2)
     first, second = vectorized_blocks([0, 1], [2, 3, 4, 5, 6, 7])
 
@@ -1086,6 +1100,27 @@ def test_block_larger_than_twice_the_buffer_is_written():
 
     assert rm._dataset.full and rm._dataset.write_head == 2
     assert np.array_equal(rm._dataset.state[:, 0], np.array([25., 26., 22., 23., 24.]))
+
+
+def test_link_mode_sequences_skip_steps_whose_history_was_overwritten():
+    policy_state_shape = (1,)
+    agent_info = make_agent_info(policy_state_shape)
+    history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), agent_info, history_length=2)
+    rm = SequenceReplayMemory(make_scalar_mdp_info(), agent_info, initial_size=1, max_size=6, truncation_length=2,
+                              history_manager=history_manager)
+    grid = make_grid(2, policy_state_shape)
+    for steps in ([0, 1], [2], [3]):
+        fill_grid(grid, steps, policy_state_shape)
+        rm.add(grid.flatten())
+        grid.clear(keep_leftovers=True)
+
+    np.random.seed(1)
+    s, a, r, ss, ab, last, ps, nps, lengths = rm.get(40)
+
+    sequences = {tuple(tuple(window) for window in s[k, :length, :, 0]) for k, length in enumerate(lengths)}
+    assert np.array_equal(rm._dataset.state[:, 0], np.array([3., 13., 10., 11., 2., 12.]))
+    assert sequences == {((2., 3.),), ((0., 10.),), ((0., 10.), (10., 11.)), ((10., 11.), (11., 12.)),
+                         ((11., 12.), (12., 13.))}
 
 
 def test_sequences_follow_the_environment_across_vectorized_blocks():
