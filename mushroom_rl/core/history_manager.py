@@ -131,9 +131,12 @@ class HistoryManager(MushroomObject):
 
         Raises:
             AssertionError: if ``offset`` is greater than 1, or if the stream stacks nothing (``length`` 1 at
-                ``offset`` 0).
+                ``offset`` 0);
+            NotImplementedError: if the agent backend is ``'list'``.
 
         """
+        if self._agent_backend.get_backend_name() == 'list':
+            raise NotImplementedError("History stacking is not currently supported with the list agent backend.")
         assert length > 1 or offset > 0, "A stream of length 1 at offset 0 returns the current entry unchanged. " \
                                          "Leave it unregistered instead."
         assert offset <= 1, "A stream offset greater than 1 is not supported: the manager retains no entry older " \
@@ -341,7 +344,12 @@ class HistoryManager(MushroomObject):
             The tuple ``(state, action, reward, next_state, absorbing, last, extra)`` of the kept transitions, with
             their rows under ``extra['anchor']`` and their endpoints under ``extra['endpoint']``.
 
+        Raises:
+            NotImplementedError: if the agent backend is ``'list'``.
+
         """
+        if self._agent_backend.get_backend_name() == 'list':
+            raise NotImplementedError("n-step parsing is not currently supported with the list agent backend.")
         if dataset.is_circular:
             dataset = dataset.to_backend(self._agent_backend.get_backend_name(), device=self._device)
             if anchor_idxs is None:
@@ -664,7 +672,10 @@ class HistoryManager(MushroomObject):
         for buffer in self._buffers.values():
             buffer[mask] = 0
         if self._last_action is not None:
-            self._last_action[mask] = 0
+            if self._agent_backend.get_backend_name() == 'list':
+                self._last_action = [None if reset else action for action, reset in zip(self._last_action, mask)]
+            else:
+                self._last_action[mask] = 0
 
     def _transition_history(self, states, next_states, actions, last, anchor_idxs, backend, next_anchor_idxs=None,
                             dataset=None):

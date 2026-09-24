@@ -1,6 +1,9 @@
 import numpy as np
+import pytest
 
-from mushroom_rl.core import Agent, Core, Environment, VectorizedEnvironment, MDPInfo, Box
+from mushroom_rl.core import Agent, AgentInfo, Core, Dataset, Environment, VectorizedEnvironment, MDPInfo, Box
+from mushroom_rl.core._impl.history_state import HistoryState
+from mushroom_rl.core.history_manager import HistoryManager
 from mushroom_rl.environments import Gymnasium
 from mushroom_rl.policy import Policy
 from mushroom_rl.rl_utils.preprocessors import Preprocessor
@@ -260,3 +263,76 @@ def test_infinite_horizon_uses_list_backend():
     assert dataset.array_backend.get_backend_name() == 'list'
     assert dataset.n_episodes == 2
     assert np.array_equal(dataset.compute_J(), np.array([-124., -122.]))
+
+
+class ListActionPolicy(Policy):
+    def draw_action(self, state, **kwargs):
+        return [np.array([float(s[0])]) for s in state]
+
+
+class FitRecorderAgent(Agent):
+    def __init__(self, mdp_info, policy, backend='list', history_length=None):
+        super().__init__(mdp_info, policy, backend=backend, history_length=history_length)
+        self.fit_actions = list()
+
+    def fit(self, dataset):
+        self.fit_actions.append([float(a[0]) for a in dataset.action])
+
+
+def test_vectorized_list_agent_learns_through_episode_resets():
+    mdp = ListVecEnv(with_info=False)
+    agent = FitRecorderAgent(mdp.info, ListActionPolicy())
+    core = Core(agent, mdp)
+
+    core.learn(n_steps=30, n_steps_per_fit=6, quiet=True)
+
+    assert agent.fit_actions == [[0., 1., 0., 1., 0., 1.], [2., 3., 2., 3., 2., 3.], [0., 1., 0., 1., 0., 1.],
+                                 [2., 3., 2., 3., 2., 3.], [0., 1., 0., 1., 0., 1.]]
+
+
+def test_list_agent_history_stacking_is_not_supported():
+    mdp = ListVecEnv(with_info=False)
+
+    with pytest.raises(NotImplementedError):
+        FitRecorderAgent(mdp.info, ListActionPolicy(), history_length=2)
+
+
+def test_list_agent_nstep_parsing_is_not_supported():
+    mdp = ListVecEnv(with_info=False)
+    agent = FitRecorderAgent(mdp.info, ListActionPolicy())
+    dataset = Dataset.from_array([[0.], [1.]], [[0.], [0.]], [1., 1.], [[1.], [2.]], [False, False], [False, True],
+                                 gamma=0.9, backend='list')
+
+    with pytest.raises(NotImplementedError):
+        agent.history_manager.parse_nstep_history(dataset, gamma=0.9, n_steps_return=1)
+
+
+def test_agent_data_conversion_to_list_is_not_supported():
+    states = np.array([[0.], [1.]])
+    actions = np.array([[0.], [0.]])
+    rewards = np.array([1., 1.])
+    absorbings = np.array([False, False])
+    lasts = np.array([False, True])
+    stateful = Dataset.from_array(states, actions, rewards, states + 1, absorbings, lasts,
+                                  policy_state=np.zeros((2, 1)), policy_next_state=np.zeros((2, 1)), gamma=0.9)
+    with_history = Dataset.from_array(states, actions, rewards, states + 1, absorbings, lasts, gamma=0.9)
+    with_history._history_state = HistoryState('numpy', None, np.array([0]), {'obs_history': np.array([[1.]])})
+    plain = Dataset.from_array(states, actions, rewards, states + 1, absorbings, lasts, gamma=0.9)
+
+    with pytest.raises(NotImplementedError):
+        stateful.to_backend('list')
+    with pytest.raises(NotImplementedError):
+        with_history.to_backend('list')
+    assert plain.to_backend('list').state == [[0.], [1.]]
+
+
+def test_list_agent_reset_clears_the_last_action_of_the_reset_envs_only():
+    history_manager = HistoryManager(AgentInfo(is_episodic=False, policy_state_shape=None, backend='list'))
+    action = [{'move': 0}, {'move': 1}, {'move': 2}]
+
+    history_manager.reset_vectorized(np.array([True, True, True]))
+    history_manager.record_action(action)
+    history_manager.reset_vectorized(np.array([False, True, False]))
+
+    assert history_manager._last_action == [{'move': 0}, None, {'move': 2}]
+    assert action == [{'move': 0}, {'move': 1}, {'move': 2}]

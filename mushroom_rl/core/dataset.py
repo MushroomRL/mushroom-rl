@@ -433,12 +433,18 @@ class Dataset(MushroomObject):
         Returns:
             A new Dataset in the requested backend, or ``self`` if the backend and the device already match.
 
+        Raises:
+            NotImplementedError: if converting to ``'list'`` a dataset holding policy states or history entries.
+
         """
         if self._dataset_info.env_array_backend.get_backend_name() == backend \
                 and self._dataset_info.agent_array_backend.get_backend_name() == backend \
                 and device in (None, self._dataset_info.env_device) \
                 and device in (None, self._dataset_info.agent_device):
             return self
+        if backend == 'list' and (self.is_stateful or len(self._history_state) > 0):
+            raise NotImplementedError("Converting policy states or history entries to the list backend is not "
+                                      "currently supported.")
         state, action, reward, next_state, absorbing, last = self._convert(
             self.state, self.action, self.reward, self.next_state, self.absorbing, self.last, to=backend, device=device)
         policy_state, policy_next_state = (self.parse_policy_state(to=backend, device=device) if self.is_stateful
