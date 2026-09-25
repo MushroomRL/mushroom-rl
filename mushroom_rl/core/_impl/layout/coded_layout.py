@@ -156,8 +156,8 @@ class CodedLayout(EpisodeLayout):
         boundary = self.array()
         after = backend.where((last[:-1] > 0) | (boundary[1:] > 0))[0] + 1
         positions = backend.concatenate([backend.zeros(1, dtype=int, device=device), after])
-        kind = boundary[positions]
-        return positions, kind & int(self.Boundary.CONTINUING) == 0
+        boundary_code = boundary[positions]
+        return positions, boundary_code & int(self.Boundary.CONTINUING) == 0
 
     def row_starts(self, last):
         """

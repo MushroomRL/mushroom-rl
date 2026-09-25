@@ -147,12 +147,12 @@ class EpisodeLayout(MushroomObject):
 
         """
         array_backend = ArrayBackend.get_array_backend(self._backend)
-        kind = array_backend.zeros(len(rows), dtype=self.dtype, device=self._device)
-        kind[:] = int(self.Boundary.CONTINUING)
-        kind[self.row_starts(last)[rows]] = int(self.Boundary.FRESH)
+        boundary_code = array_backend.zeros(len(rows), dtype=self.dtype, device=self._device)
+        boundary_code[:] = int(self.Boundary.CONTINUING)
+        boundary_code[self.row_starts(last)[rows]] = int(self.Boundary.FRESH)
         linked = (rows[1:] == rows[:-1] + 1) & self._follow_previous(rows[1:])
-        kind[1:][linked] = int(self.Boundary.NONE)
-        return self._coded_from_array(kind, open_heads=tuple(), open_tails=tuple())
+        boundary_code[1:][linked] = int(self.Boundary.NONE)
+        return self._coded_from_array(boundary_code, open_heads=tuple(), open_tails=tuple())
 
     def walk_back(self, last, anchors, n_hops):
         """
