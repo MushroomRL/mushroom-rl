@@ -1,6 +1,6 @@
-from .array_backend import ArrayBackend
+from mushroom_rl.core.array_backend import ArrayBackend
 from ._impl.layout import RingLayout
-from .dataset import Dataset
+from mushroom_rl.core.dataset import Dataset
 
 
 class CircularDataset(Dataset):

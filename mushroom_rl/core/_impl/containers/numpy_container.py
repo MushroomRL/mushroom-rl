@@ -124,19 +124,6 @@ class NumpyContainer(Container, backend='numpy'):
 
         return new_dataset
 
-    @classmethod
-    def _allocate(cls, shapes, dtypes, device, n_envs):
-        return cls(shapes, dtypes, n_envs=n_envs)
-
-    @classmethod
-    def _from_array_impl(cls, arrays, device):
-        dataset = cls.create_new_instance()
-
-        dataset._arrays = [array if isinstance(array, np.ndarray) else array.numpy() for array in arrays]
-        dataset._len = len(dataset._arrays[0])
-
-        return dataset
-
     @property
     def data(self):
         return [array[:self._len] for array in self._arrays]
@@ -159,3 +146,16 @@ class NumpyContainer(Container, backend='numpy'):
             _n_envs='primitive',
             _len='primitive'
         )
+
+    @classmethod
+    def _allocate(cls, shapes, dtypes, device, n_envs):
+        return cls(shapes, dtypes, n_envs=n_envs)
+
+    @classmethod
+    def _from_array_impl(cls, arrays, device):
+        dataset = cls.create_new_instance()
+
+        dataset._arrays = [array if isinstance(array, np.ndarray) else array.numpy() for array in arrays]
+        dataset._len = len(dataset._arrays[0])
+
+        return dataset

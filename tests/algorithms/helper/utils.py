@@ -36,76 +36,6 @@ class TestUtils:
         assert this == that
 
     @classmethod
-    def _eq_rules(cls):
-        """
-        The ordered ``(check, type, compare)`` rules of :meth:`assert_eq`: the first rule whose check holds compares
-        the two objects.
-        """
-        def asserting(equal):
-            def compare(this, that):
-                assert equal(this, that)
-            return compare
-
-        def pairwise(this, that):
-            assert len(this) == len(that)
-            for a, b in zip(this, that):
-                cls.assert_eq(a, b)
-
-        def mapping(this, that):
-            assert this.keys() == that.keys()
-            pairwise(list(this.values()), list(that.values()))
-
-        def ensemble(this, that):
-            assert len(this) == len(that)
-            pairwise(this._models, that._models)
-
-        def ignored(this, that):
-            pass
-
-        def both_callable(this, that, kind):
-            return callable(this) and callable(that)
-
-        exact, sub = cls._check_type, cls._check_subtype
-        return [
-            (exact, list, pairwise),
-            (exact, dict, mapping),
-            (sub, Ensemble, ensemble),
-            (sub, QApproximator, lambda a, b: pairwise(a._models, b._models)),
-            (exact, Table, asserting(lambda a, b: cls._eq_numpy(a.table, b.table))),
-            (sub, Approximator, asserting(cls.eq_weights)),
-            (sub, TorchPolicy, asserting(cls.eq_weights)),
-            (sub, HasWeights, asserting(cls.eq_weights)),
-            (sub, TDPolicy, lambda a, b: cls.assert_eq(a.get_q(), b.get_q())),
-            (exact, torch.optim.Optimizer, asserting(lambda a, b: cls.eq_save_dict(a.state_dict(), b.state_dict()))),
-            (exact, itertools.chain, asserting(cls.eq_chain)),
-            (exact, MDPInfo, asserting(cls.eq_mdp_info)),
-            (exact, AgentInfo, asserting(cls.eq_agent_info)),
-            (exact, Dataset, asserting(cls.eq_dataset)),
-            (exact, PrioritizedReplayMemory, asserting(cls.eq_prioritized_replay_memory)),
-            (exact, ReplayMemory, asserting(cls.eq_replay_memory)),
-            (exact, OrnsteinUhlenbeckPolicy, asserting(cls.eq_ornstein_uhlenbeck_policy)),
-            (exact, TilesFeatures, asserting(cls.eq_tiles_features)),
-            (exact, LinearParameter, asserting(cls.eq_linear_parameter)),
-            (exact, DecayParameter, asserting(cls.eq_decay_parameter)),
-            (exact, WindowedVarianceParameter, asserting(cls.eq_windowed_variance_parameter)),
-            (exact, VarianceParameter, asserting(cls.eq_variance_parameter)),
-            (exact, VariableParameter, asserting(cls.eq_variable_parameter)),
-            (exact, Parameter, asserting(cls.eq_parameter)),
-            (exact, AdaptiveOptimizer, asserting(cls.eq_adaptive_optimizer)),
-            (exact, SGDOptimizer, asserting(cls.eq_sgd_optimizer)),
-            (exact, AdamOptimizer, asserting(cls.eq_adam_optimizer)),
-            (exact, GaussianDiagonalDistribution, asserting(cls.eq_gaussian_diagonal_dist)),
-            (exact, Discrete, asserting(cls.eq_discrete)),
-            (exact, FunctionalFeatures, asserting(cls._eq_functional_features)),
-            (exact, BasisFeatures, asserting(cls._eq_basis_features)),
-            (exact, ExtraTreesRegressor, ignored),
-            (both_callable, None, ignored),
-            (exact, torch.nn.parameter.Parameter, asserting(cls._eq_torch)),
-            (exact, torch.Tensor, asserting(cls._eq_torch)),
-            (exact, np.ndarray, asserting(cls._eq_numpy)),
-        ]
-
-    @classmethod
     def eq_weights(cls, this, that):
         """
         Compare the weights of two objects for equality
@@ -256,43 +186,6 @@ class TestUtils:
             res &= cls._eq_value(this.history_state._windows, that.history_state._windows)
 
         return res
-
-    @classmethod
-    def _eq_layout(cls, this, that):
-        """
-        Compare the row structure of two datasets
-        """
-        res = type(this) is type(that) and len(this) == len(that)
-        res &= this.first == that.first and this.n_joins == that.n_joins
-        res &= this.open_heads == that.open_heads and this.open_tails == that.open_tails
-        res &= this.pending_heads() == that.pending_heads()
-        if hasattr(this, 'array'):
-            res &= cls._eq_value(this.array(), that.array())
-        if hasattr(this, 'write_head'):
-            res &= this.max_size == that.max_size and this.write_head == that.write_head and this.full == that.full
-            res &= this._ring_tails == that._ring_tails
-            res &= cls._eq_value(this.links, that.links)
-        return res
-
-    @classmethod
-    def _eq_value(cls, this, that):
-        """
-        Compare two values that may be nested dictionaries, lists or tuples of arrays
-        """
-        if this is None or that is None:
-            return this is None and that is None
-        if isinstance(this, dict):
-            return isinstance(that, dict) and this.keys() == that.keys() and \
-                all(cls._eq_value(this[key], that[key]) for key in this if not key.startswith('_add'))
-        if isinstance(this, (list, tuple)) and isinstance(that, (list, tuple)) and \
-                not (len(this) > 0 and np.isscalar(this[0])):
-            return len(this) == len(that) and all(cls._eq_value(a, b) for a, b in zip(this, that))
-        if isinstance(this, torch.Tensor) or isinstance(that, torch.Tensor):
-            return isinstance(this, torch.Tensor) and isinstance(that, torch.Tensor) and \
-                this.device == that.device and torch.equal(this, that)
-        if isinstance(this, (np.ndarray, list, tuple)) or isinstance(that, (np.ndarray, list, tuple)):
-            return np.array_equal(np.asarray(this), np.asarray(that), equal_nan=True)
-        return this == that
 
     @classmethod
     def eq_replay_memory(cls, this, that):
@@ -472,6 +365,113 @@ class TestUtils:
 
         res = cls._eq_numpy(this.get_parameters(), that.get_parameters())
         return res
+
+    @classmethod
+    def _eq_rules(cls):
+        """
+        The ordered ``(check, type, compare)`` rules of :meth:`assert_eq`: the first rule whose check holds compares
+        the two objects.
+        """
+        def asserting(equal):
+            def compare(this, that):
+                assert equal(this, that)
+            return compare
+
+        def pairwise(this, that):
+            assert len(this) == len(that)
+            for a, b in zip(this, that):
+                cls.assert_eq(a, b)
+
+        def mapping(this, that):
+            assert this.keys() == that.keys()
+            pairwise(list(this.values()), list(that.values()))
+
+        def ensemble(this, that):
+            assert len(this) == len(that)
+            pairwise(this._models, that._models)
+
+        def ignored(this, that):
+            pass
+
+        def both_callable(this, that, kind):
+            return callable(this) and callable(that)
+
+        exact, sub = cls._check_type, cls._check_subtype
+        return [
+            (exact, list, pairwise),
+            (exact, dict, mapping),
+            (sub, Ensemble, ensemble),
+            (sub, QApproximator, lambda a, b: pairwise(a._models, b._models)),
+            (exact, Table, asserting(lambda a, b: cls._eq_numpy(a.table, b.table))),
+            (sub, Approximator, asserting(cls.eq_weights)),
+            (sub, TorchPolicy, asserting(cls.eq_weights)),
+            (sub, HasWeights, asserting(cls.eq_weights)),
+            (sub, TDPolicy, lambda a, b: cls.assert_eq(a.get_q(), b.get_q())),
+            (exact, torch.optim.Optimizer, asserting(lambda a, b: cls.eq_save_dict(a.state_dict(), b.state_dict()))),
+            (exact, itertools.chain, asserting(cls.eq_chain)),
+            (exact, MDPInfo, asserting(cls.eq_mdp_info)),
+            (exact, AgentInfo, asserting(cls.eq_agent_info)),
+            (exact, Dataset, asserting(cls.eq_dataset)),
+            (exact, PrioritizedReplayMemory, asserting(cls.eq_prioritized_replay_memory)),
+            (exact, ReplayMemory, asserting(cls.eq_replay_memory)),
+            (exact, OrnsteinUhlenbeckPolicy, asserting(cls.eq_ornstein_uhlenbeck_policy)),
+            (exact, TilesFeatures, asserting(cls.eq_tiles_features)),
+            (exact, LinearParameter, asserting(cls.eq_linear_parameter)),
+            (exact, DecayParameter, asserting(cls.eq_decay_parameter)),
+            (exact, WindowedVarianceParameter, asserting(cls.eq_windowed_variance_parameter)),
+            (exact, VarianceParameter, asserting(cls.eq_variance_parameter)),
+            (exact, VariableParameter, asserting(cls.eq_variable_parameter)),
+            (exact, Parameter, asserting(cls.eq_parameter)),
+            (exact, AdaptiveOptimizer, asserting(cls.eq_adaptive_optimizer)),
+            (exact, SGDOptimizer, asserting(cls.eq_sgd_optimizer)),
+            (exact, AdamOptimizer, asserting(cls.eq_adam_optimizer)),
+            (exact, GaussianDiagonalDistribution, asserting(cls.eq_gaussian_diagonal_dist)),
+            (exact, Discrete, asserting(cls.eq_discrete)),
+            (exact, FunctionalFeatures, asserting(cls._eq_functional_features)),
+            (exact, BasisFeatures, asserting(cls._eq_basis_features)),
+            (exact, ExtraTreesRegressor, ignored),
+            (both_callable, None, ignored),
+            (exact, torch.nn.parameter.Parameter, asserting(cls._eq_torch)),
+            (exact, torch.Tensor, asserting(cls._eq_torch)),
+            (exact, np.ndarray, asserting(cls._eq_numpy)),
+        ]
+
+    @classmethod
+    def _eq_layout(cls, this, that):
+        """
+        Compare the row structure of two datasets
+        """
+        res = type(this) is type(that) and len(this) == len(that)
+        res &= this.first == that.first and this.n_joins == that.n_joins
+        res &= this.open_heads == that.open_heads and this.open_tails == that.open_tails
+        res &= this.pending_heads() == that.pending_heads()
+        if hasattr(this, 'array'):
+            res &= cls._eq_value(this.array(), that.array())
+        if hasattr(this, 'write_head'):
+            res &= this.max_size == that.max_size and this.write_head == that.write_head and this.full == that.full
+            res &= this._ring_tails == that._ring_tails
+            res &= cls._eq_value(this.links, that.links)
+        return res
+
+    @classmethod
+    def _eq_value(cls, this, that):
+        """
+        Compare two values that may be nested dictionaries, lists or tuples of arrays
+        """
+        if this is None or that is None:
+            return this is None and that is None
+        if isinstance(this, dict):
+            return isinstance(that, dict) and this.keys() == that.keys() and \
+                all(cls._eq_value(this[key], that[key]) for key in this if not key.startswith('_add'))
+        if isinstance(this, (list, tuple)) and isinstance(that, (list, tuple)) and \
+                not (len(this) > 0 and np.isscalar(this[0])):
+            return len(this) == len(that) and all(cls._eq_value(a, b) for a, b in zip(this, that))
+        if isinstance(this, torch.Tensor) or isinstance(that, torch.Tensor):
+            return isinstance(this, torch.Tensor) and isinstance(that, torch.Tensor) and \
+                this.device == that.device and torch.equal(this, that)
+        if isinstance(this, (np.ndarray, list, tuple)) or isinstance(that, (np.ndarray, list, tuple)):
+            return np.array_equal(np.asarray(this), np.asarray(that), equal_nan=True)
+        return this == that
 
     @classmethod
     def _eq_functional_features(cls, this, that):

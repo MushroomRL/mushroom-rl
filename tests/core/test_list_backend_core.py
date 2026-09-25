@@ -98,12 +98,6 @@ class ListVecEnv(VectorizedEnvironment):
         self._t = np.zeros(n_envs, dtype=int)
         super().__init__(mdp_info, n_envs)
 
-    def _obs(self):
-        return [np.array([float(t), float(t)]) for t in self._t]
-
-    def _step_info(self):
-        return [{'v': float(t)} for t in self._t] if self._with_info else [{} for _ in self._t]
-
     def reset_all(self, env_mask, state=None):
         self._t[np.asarray(env_mask)] = 0
         return self._obs(), self._step_info()
@@ -119,6 +113,12 @@ class ListVecEnv(VectorizedEnvironment):
 
     def stop(self):
         pass
+
+    def _obs(self):
+        return [np.array([float(t), float(t)]) for t in self._t]
+
+    def _step_info(self):
+        return [{'v': float(t)} for t in self._t] if self._with_info else [{} for _ in self._t]
 
 
 class StaggeredListVecEnv(VectorizedEnvironment):

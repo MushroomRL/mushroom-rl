@@ -1,7 +1,7 @@
 import numpy as np
 
-from .mushroom_object import MushroomObject
-from .array_backend import ArrayBackend
+from mushroom_rl.core.mushroom_object import MushroomObject
+from mushroom_rl.core.array_backend import ArrayBackend
 
 
 class DatasetInfo(MushroomObject):

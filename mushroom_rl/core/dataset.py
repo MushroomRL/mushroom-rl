@@ -5,10 +5,10 @@ from enum import IntEnum
 
 import torch
 
-from .mushroom_object import MushroomObject
-from .array_backend import ArrayBackend
-from .dataset_info import DatasetInfo
-from .extra_info import ExtraInfo
+from mushroom_rl.core.mushroom_object import MushroomObject
+from mushroom_rl.core.array_backend import ArrayBackend
+from mushroom_rl.core.dataset_info import DatasetInfo
+from mushroom_rl.core.extra_info import ExtraInfo
 
 from ._impl.containers import Container
 from ._impl.layout import EpisodeLayout, StreamLayout

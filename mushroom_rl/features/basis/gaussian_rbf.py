@@ -2,7 +2,7 @@ import numpy as np
 
 from mushroom_rl.utils.features import uniform_grid
 
-from .basis_function import BasisFunction
+from mushroom_rl.features.basis.basis_function import BasisFunction
 
 
 class GaussianRBF(BasisFunction):

@@ -16,12 +16,13 @@ class StepInfo(MushroomObject):
         Constructor.
 
         Args:
-            n_envs (int): Number of parallel environments;
+            n_envs (int): number of parallel environments;
             backend (str): name of the array backend the parsed arrays are built in;
             device (str, None): device the parsed arrays are placed on;
             vectorized (bool, None): whether the step information is provided in vectorized form (a list of dicts or a
                 dict of arrays, one entry per environment) rather than as a single dict. If None, it defaults to
                 ``n_envs > 1``.
+
         """
         self._n_envs = n_envs
         self._vectorized = n_envs > 1 if vectorized is None else vectorized
@@ -203,7 +204,7 @@ class StepInfo(MushroomObject):
 
         Args:
             index (int, slice, ndarray, tensor): the steps the result should contain;
-            copy (bool): whether the content should be copied rather than shared.
+            copy (bool, False): whether the content should be copied rather than shared.
 
         Returns:
             A new StepInfo holding only the selected steps.
@@ -274,6 +275,34 @@ class StepInfo(MushroomObject):
         self._mask = None
         self._clear_pending()
 
+    def drop_before(self, first_step):
+        """
+        Drop the steps before the given one.
+
+        Args:
+            first_step (int): index of the first step to keep.
+
+        """
+        assert self._source is None
+
+        n_parsed = self._parsed_steps()
+
+        if first_step < n_parsed:
+            self._parsed = {key: value[first_step:] for key, value in self._parsed.items()}
+            self._n_parsed -= first_step
+            return
+
+        self._parsed = {}
+        self._n_parsed = 0
+        dropped = first_step - n_parsed
+
+        if self._layout == 'records':
+            del self._records[:dropped]
+        elif self._layout == 'columns':
+            self._drop_columns_before(dropped)
+
+        self._pending_steps = max(self._pending_steps - dropped, 0)
+
     @property
     def n_envs(self):
         return self._n_envs
@@ -311,34 +340,6 @@ class StepInfo(MushroomObject):
             _source='mushroom',
             _mask='primitive'
         )
-
-    def drop_before(self, first_step):
-        """
-        Drop the steps before the given one, keeping the remaining ones unparsed.
-
-        Args:
-            first_step (int): index of the first step to keep.
-
-        """
-        assert self._source is None
-
-        n_parsed = self._parsed_steps()
-
-        if first_step < n_parsed:
-            self._parsed = {key: value[first_step:] for key, value in self._parsed.items()}
-            self._n_parsed -= first_step
-            return
-
-        self._parsed = {}
-        self._n_parsed = 0
-        dropped = first_step - n_parsed
-
-        if self._layout == 'records':
-            del self._records[:dropped]
-        elif self._layout == 'columns':
-            self._drop_columns_before(dropped)
-
-        self._pending_steps = max(self._pending_steps - dropped, 0)
 
     def _drop_columns_before(self, dropped):
         """

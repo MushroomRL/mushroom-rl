@@ -2,7 +2,7 @@ import numpy as np
 
 import mujoco
 
-from .base import ObservationHelper, ObservationType
+from mushroom_rl.utils.mujoco.observation_helper.base import ObservationHelper, ObservationType
 
 
 class MuJoCoObservationHelper(ObservationHelper):

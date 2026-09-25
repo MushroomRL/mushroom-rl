@@ -100,18 +100,6 @@ class ListContainer(Container, backend='list'):
 
         return new_dataset
 
-    @classmethod
-    def _allocate(cls, shapes, dtypes, device, n_envs):
-        return cls(len(shapes), n_envs=n_envs)
-
-    @classmethod
-    def _from_array_impl(cls, arrays, device):
-        dataset = cls.create_new_instance()
-
-        dataset._columns = [list(array) for array in arrays]
-
-        return dataset
-
     @property
     def data(self):
         return list(self._columns)
@@ -133,3 +121,15 @@ class ListContainer(Container, backend='list'):
             _columns='pickle',
             _n_envs='primitive'
         )
+
+    @classmethod
+    def _allocate(cls, shapes, dtypes, device, n_envs):
+        return cls(len(shapes), n_envs=n_envs)
+
+    @classmethod
+    def _from_array_impl(cls, arrays, device):
+        dataset = cls.create_new_instance()
+
+        dataset._columns = [list(array) for array in arrays]
+
+        return dataset

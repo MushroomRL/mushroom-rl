@@ -1,6 +1,6 @@
 import numpy as np
 
-from .basis_function import BasisFunction
+from mushroom_rl.features.basis.basis_function import BasisFunction
 
 
 class FourierBasis(BasisFunction):

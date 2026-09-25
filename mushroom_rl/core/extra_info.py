@@ -1,4 +1,4 @@
-from .mushroom_object import MushroomObject
+from mushroom_rl.core.mushroom_object import MushroomObject
 from ._impl.extra_info import StepInfo, EpisodeInfo
 
 
