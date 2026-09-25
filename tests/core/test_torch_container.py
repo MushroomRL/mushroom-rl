@@ -1,6 +1,6 @@
 import torch
 
-from mushroom_rl.core._impl.torch_container import TorchContainer
+from mushroom_rl.core._impl.containers.torch_container import TorchContainer
 
 
 def make_dataset(capacity=8):

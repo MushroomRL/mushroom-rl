@@ -3,7 +3,8 @@ import pytest
 import torch
 
 from mushroom_rl.core import Dataset, MDPInfo, AgentInfo
-from mushroom_rl.core.dataset import DatasetInfo, VectorizedDataset
+from mushroom_rl.core.dataset_info import DatasetInfo
+from mushroom_rl.core.vectorized_dataset import VectorizedDataset
 from mushroom_rl.core.history_manager import HistoryManager
 from mushroom_rl.core.spaces import Box
 

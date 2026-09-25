@@ -1,4 +1,4 @@
-from mushroom_rl.core.extra_info import StepInfo, EpisodeInfo
+from mushroom_rl.core._impl.extra_info import StepInfo, EpisodeInfo
 import pytest
 import torch
 import numpy as np

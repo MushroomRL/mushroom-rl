@@ -1,6 +1,6 @@
 import numpy as np
 
-from mushroom_rl.core._impl.containers import Container
+from .container import Container
 
 
 class NumpyContainer(Container, backend='numpy'):

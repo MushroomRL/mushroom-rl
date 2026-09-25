@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from mushroom_rl.core import Core, Agent, MDPInfo, Box, VectorizedEnvironment
-from mushroom_rl.core.dataset import VectorizedDataset
+from mushroom_rl.core.vectorized_dataset import VectorizedDataset
 from mushroom_rl.environments import GridWorld
 from mushroom_rl.algorithms.value import SARSA
 from mushroom_rl.policy import EpsGreedy, Policy

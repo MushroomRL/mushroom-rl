@@ -110,9 +110,9 @@ of zero-padding. Feeding it the same dataset's ``state``, ``action`` and parsed 
 The offline ``obs_history`` and ``action_history`` windows match the online ones step for step. The agent injects
 the manager into the replay memory (via :attr:`~mushroom_rl.core.Agent.history_manager`), and the memory rebuilds
 the stacked context for the sampled transitions with the same rule used to collect them, without ever storing the
-redundant stacked windows. The circular replay-buffer variant,
-:meth:`~mushroom_rl.core.history_manager.HistoryManager.build_history_circular_buffer`, does the same for a
-wrapped-around buffer, taking positions modulo the buffer size and stopping at the write head.
+redundant stacked windows. On the circular buffer of a replay memory,
+:meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_history` takes the sampled buffer positions as
+``anchor_idxs``: the windows follow each episode across the wrap-around and stop at the oldest row still stored.
 
 Parsing a dataset
 ------------------
@@ -155,8 +155,8 @@ endpoint is ``t + 1``. Only the transitions whose n-step return is well-defined 
 the dataset has no further step to look ahead to, so it is dropped (its surviving anchor index is returned under
 ``extra['anchor']``). This is the same computation
 :class:`~mushroom_rl.rl_utils.replay_memory.ReplayMemory` performs (through
-:meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_nstep_history_circular_buffer`, its circular-buffer
-counterpart) when it is built with ``n_steps_return`` greater than 1, so that n-step DQN-style targets and history
+:meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_nstep_history`, called on its circular buffer at the
+sampled positions) when it is built with ``n_steps_return`` greater than 1, so that n-step DQN-style targets and history
 stacking compose transparently.
 
 Sequence vs. window

@@ -1,6 +1,6 @@
 import numpy as np
 
-from mushroom_rl.core._impl.list_container import ListContainer
+from mushroom_rl.core._impl.containers.list_container import ListContainer
 
 
 def build_columns(n, terminal_last=True):

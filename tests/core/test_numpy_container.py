@@ -1,6 +1,6 @@
 import numpy as np
 
-from mushroom_rl.core._impl.numpy_container import NumpyContainer
+from mushroom_rl.core._impl.containers.numpy_container import NumpyContainer
 
 
 def make_dataset(capacity=8):

@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-from mushroom_rl.core._impl.containers import Container
+from .container import Container
 
 
 class ListContainer(Container, backend='list'):

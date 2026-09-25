@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from mushroom_rl.core._impl.containers import Container
+from .container import Container
 from mushroom_rl.utils.torch_utils import TorchUtils
 
 

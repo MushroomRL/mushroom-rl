@@ -1,5 +1,5 @@
 from mushroom_rl.core import DatasetInfo, MushroomObject
-from mushroom_rl.core.dataset import CircularDataset
+from mushroom_rl.core.circular_dataset import CircularDataset
 from mushroom_rl.core.history_manager import HistoryManager
 
 

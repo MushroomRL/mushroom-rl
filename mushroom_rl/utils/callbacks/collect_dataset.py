@@ -1,5 +1,5 @@
 from mushroom_rl.utils.callbacks.callback import Callback
-from mushroom_rl.core.dataset import VectorizedDataset
+from mushroom_rl.core.vectorized_dataset import VectorizedDataset
 
 
 class CollectDataset(Callback):

@@ -1,7 +1,8 @@
 import numpy as np
 import torch
 
-from mushroom_rl.core.dataset import DatasetInfo, VectorizedDataset
+from mushroom_rl.core.dataset_info import DatasetInfo
+from mushroom_rl.core.vectorized_dataset import VectorizedDataset
 
 
 def make_info():
