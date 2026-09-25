@@ -110,9 +110,7 @@ of zero-padding. Feeding it the same dataset's ``state``, ``action`` and parsed 
 The offline ``obs_history`` and ``action_history`` windows match the online ones step for step. The agent injects
 the manager into the replay memory (via :attr:`~mushroom_rl.core.Agent.history_manager`), and the memory rebuilds
 the stacked context for the sampled transitions with the same rule used to collect them, without ever storing the
-redundant stacked windows. On the circular buffer of a replay memory,
-:meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_history` takes the sampled buffer positions as
-``anchor_idxs``: the windows follow each episode across the wrap-around and stop at the oldest row still stored.
+redundant stacked windows.
 
 Parsing a dataset
 ------------------
@@ -136,6 +134,11 @@ every other active stream (e.g. ``action_history``) to its window, exactly as re
 once per ``fit`` to get the stacked states and previous-action windows of the whole collected dataset before
 slicing them into the truncated sequences it trains on.
 
+Both :meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_history` and
+:meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_nstep_history` (below) accept either a
+:class:`~mushroom_rl.core.Dataset` or the circular buffer of a replay memory. On the latter, ``anchor_idxs`` are
+buffer positions, and the windows follow each episode across the wrap-around and stop at the oldest row still stored.
+
 The n-step return over a dataset
 ---------------------------------
 
@@ -153,11 +156,9 @@ terminal transition instead of stitching in rewards from the next episode.
 With ``gamma`` 0.9 and ``n_steps_return`` 2, the reward of a transition becomes ``r_t + 0.9 * r_{t+1}`` and its
 endpoint is ``t + 1``. Only the transitions whose n-step return is well-defined are returned: the last transition of
 the dataset has no further step to look ahead to, so it is dropped (its surviving anchor index is returned under
-``extra['anchor']``). This is the same computation
-:class:`~mushroom_rl.rl_utils.replay_memory.ReplayMemory` performs (through
-:meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_nstep_history`, called on its circular buffer at the
-sampled positions) when it is built with ``n_steps_return`` greater than 1, so that n-step DQN-style targets and history
-stacking compose transparently.
+``extra['anchor']``). :class:`~mushroom_rl.rl_utils.replay_memory.ReplayMemory` performs this same parse at the
+sampled positions when it is built with ``n_steps_return`` greater than 1, so that n-step DQN-style targets and
+history stacking compose transparently.
 
 Sequence vs. window
 -------------------
