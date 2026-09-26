@@ -20,8 +20,7 @@ from mushroom_rl.utils.episodes import split_episodes
 class Dataset(MushroomObject):
     """
     Collection of the transitions gathered while an agent interacts with an environment. The data is split into
-    two backend-aware groups, each delegated to a backend-specific columnar container (``NumpyContainer``,
-    ``TorchContainer`` or ``ListContainer``):
+    two backend-aware groups:
 
     - The environment data (state, action, reward, next state, absorbing and last flags), kept in the
       environment backend;
@@ -98,6 +97,7 @@ class Dataset(MushroomObject):
             raise IndexError
 
     def __add__(self, other):
+        other = other._time_ordered()
         if len(other) == 0:
             return self.copy()
         if len(self) == 0:
@@ -116,6 +116,7 @@ class Dataset(MushroomObject):
         return result
 
     def __iadd__(self, other):
+        other = other._time_ordered()
         if len(other) == 0:
             return self
         if len(self) == 0:
@@ -147,7 +148,11 @@ class Dataset(MushroomObject):
         Args:
             other (Dataset): dataset whose transitions will be appended.
 
+        Raises:
+            AssertionError: if ``other`` is a circular dataset.
+
         """
+        assert not other.is_circular, "Cannot append a circular dataset, join it with + or += instead."
         n = len(self)
         self._layout, stitched = self._layout.append_batch(other._layout, self.last)
         self._history_state = self._history_state.concatenate(other._history_state, n, stitched)
@@ -274,7 +279,7 @@ class Dataset(MushroomObject):
 
     def to_backend(self, backend, device=None):
         """
-        Return a copy of this dataset converted to the given backend.
+        Return this dataset converted to the given backend. The converted dataset may share memory with this one.
 
         Args:
             backend (str): target backend (``'numpy'``, ``'torch'``, or ``'list'``);
@@ -287,18 +292,18 @@ class Dataset(MushroomObject):
             NotImplementedError: if converting to ``'list'`` a dataset holding policy states or history entries.
 
         """
-        if self._dataset_info.env_array_backend.get_backend_name() == backend \
-                and self._dataset_info.agent_array_backend.get_backend_name() == backend \
-                and device in (None, self._dataset_info.env_device) \
-                and device in (None, self._dataset_info.agent_device):
+        if self._same_backend(self._dataset_info.env_array_backend, self._dataset_info.env_device, backend, device) \
+                and self._same_backend(self._dataset_info.agent_array_backend, self._dataset_info.agent_device,
+                                       backend, device):
             return self
         if backend == 'list' and (self.is_stateful or len(self._history_state) > 0):
             raise NotImplementedError("Converting policy states or history entries to the list backend is not "
                                       "currently supported.")
         state, action, reward, next_state, absorbing, last = self._convert(
             self.state, self.action, self.reward, self.next_state, self.absorbing, self.last, to=backend, device=device)
-        policy_state, policy_next_state = (self.parse_policy_state(to=backend, device=device) if self.is_stateful
-                                           else (None, None))
+        policy_state, policy_next_state = (self._convert(self.policy_state, self.policy_next_state, to=backend,
+                                                         backend=self._dataset_info.agent_array_backend, device=device)
+                                           if self.is_stateful else (None, None))
         return Dataset._from_components(state, action, reward, next_state, absorbing, last,
                                         self._layout.to_backend(backend, device),
                                         policy_state=policy_state, policy_next_state=policy_next_state,
@@ -707,6 +712,9 @@ class Dataset(MushroomObject):
     def _walk_last(self):
         return self._segment_ends(self._last_array())
 
+    def _time_ordered(self):
+        return self
+
     def _glued(self):
         if self._layout.n_joins == 0:
             return self, None
@@ -888,3 +896,8 @@ class Dataset(MushroomObject):
         if hasattr(data, 'dtype'):
             return data.dtype
         return data[0].dtype if len(data) and hasattr(data[0], 'dtype') else None
+
+    @staticmethod
+    def _same_backend(array_backend, stored_device, backend, device):
+        return array_backend.get_backend_name() == backend \
+            and array_backend.check_device(device) == array_backend.check_device(stored_device)

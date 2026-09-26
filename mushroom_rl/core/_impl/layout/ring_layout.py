@@ -205,7 +205,12 @@ class RingLayout(StreamLayout):
         return backend.zeros(len(anchors), dtype=bool, device=backend.get_device(anchors))
 
     def segment_ends(self, last):
-        return ArrayBackend.get_array_backend_from(last).copy(last)
+        ends = ArrayBackend.get_array_backend_from(last).copy(last)
+        if len(ends) > 0:
+            ends[-1] = True
+            if self._full:
+                ends[(self._write_head - 1) % self._max_size] = True
+        return ends
 
     def segment_starts(self, last):
         raise NotImplementedError("The rows of this dataset are not stored as one stream, so their segment starts "

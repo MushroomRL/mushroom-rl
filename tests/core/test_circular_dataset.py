@@ -80,6 +80,20 @@ def test_append_batch_of_an_empty_dataset_keeps_the_open_episode():
     assert np.array_equal(buffer.episodes_length, np.array([3]))
 
 
+def test_append_replay_batch_of_an_empty_dataset_writes_nothing():
+    buffer = CircularDataset(make_block([0], [False])._dataset_info, 4)
+    buffer.append_replay_batch(make_block([0, 1], [False, False]))
+
+    positions, relinked, orphans = buffer.append_replay_batch(make_block([], []))
+
+    assert len(positions) == 0 and relinked == [] and len(orphans) == 0
+    assert buffer.write_head == 2 and np.array_equal(buffer.last, np.array([False, False]))
+
+    buffer.append_replay_batch(make_block([2], [True], continuing=True))
+
+    assert np.array_equal(buffer.episodes_length, np.array([3]))
+
+
 def test_iadd_writes_in_place_and_add_writes_in_a_copy():
     buffer = make_wrapped_buffer()
     block = make_block([30, 31], [False, True])
@@ -96,6 +110,48 @@ def test_iadd_writes_in_place_and_add_writes_in_a_copy():
     assert buffer is same
     assert np.array_equal(buffer.state[:, 0], np.array([22., 23., 30., 31., 21.]))
     assert buffer.write_head == 4
+
+
+def test_joins_put_a_circular_dataset_in_time_order():
+    source = make_wrapped_buffer()
+    plain = make_block([0, 1], [False, True])
+    in_place = make_block([0, 1], [False, True])
+    buffer = CircularDataset(source._dataset_info, 8)
+
+    joined = plain + source
+    in_place += source
+    buffer += source
+
+    for dataset in (joined, in_place):
+        assert type(dataset) is Dataset
+        assert np.array_equal(dataset.state[:, 0], np.array([0., 1., 12., 20., 21., 22., 23.]))
+        assert np.array_equal(dataset.episodes_length, np.array([2, 1, 4]))
+    assert np.array_equal(buffer.state[:, 0], np.array([12., 20., 21., 22., 23.]))
+    assert np.array_equal(buffer.episodes_length, np.array([1, 4]))
+
+
+def test_a_joined_circular_dataset_keeps_its_open_episodes():
+    states = np.arange(3.)[:, None]
+    source = CircularDataset.from_array(states, np.zeros((3, 1)), np.zeros(3), states, np.zeros(3, dtype=bool),
+                                        np.zeros(3, dtype=bool), max_size=5)
+
+    joined = make_block([9], [True]) + source
+    joined += make_block([3, 4], [False, True], continuing=True)
+
+    assert np.array_equal(joined.state[:, 0], np.array([9., 0., 1., 2., 3., 4.]))
+    assert np.array_equal(joined.episodes_length, np.array([1, 5]))
+
+
+def test_appending_a_circular_dataset_raises():
+    source = make_wrapped_buffer()
+    buffer = CircularDataset(source._dataset_info, 8)
+
+    with pytest.raises(AssertionError):
+        make_block([0, 1], [False, True]).append_batch(source)
+    with pytest.raises(AssertionError):
+        buffer.append_batch(source)
+    with pytest.raises(AssertionError):
+        buffer.append_replay_batch(source)
 
 
 def test_append_continues_the_open_episode_and_wraps():
@@ -249,6 +305,46 @@ def test_per_episode_methods_follow_the_episodes_of_a_linked_ring():
     assert np.array_equal(buffer[0:6].compute_J(skip_incomplete=False), np.array([205., 201., 5.]))
 
 
+def test_parse_returns_the_episodes_in_time_order():
+    wrapped = make_wrapped_buffer().parse()
+    linked = make_linked_buffer().parse()
+
+    assert np.array_equal(wrapped[0][:, 0], np.array([12., 20., 21., 22., 23.]))
+    assert np.array_equal(wrapped[2], np.array([1., 2., 2., 2., 2.]))
+    assert np.array_equal(wrapped[5], np.array([True, False, False, False, True]))
+    assert np.array_equal(linked[0][:, 0], np.array([10., 11., 12., 13., 2., 3.]))
+    assert np.array_equal(linked[5], np.array([False, False, False, True, False, True]))
+
+
+def test_last_or_boundary_marks_every_break_in_buffer_order():
+    wrapped = make_wrapped_buffer()
+    linked = make_linked_buffer()
+
+    assert np.array_equal(wrapped.last_or_boundary, np.array([False, True, True, False, True]))
+    assert np.array_equal(linked.last_or_boundary, np.array([False, True, False, True, False, True]))
+
+
+def test_parse_and_to_backend_keep_the_policy_state_of_every_row():
+    states = np.array([[1.], [2.]])
+    buffer = CircularDataset.from_array(states, np.zeros((2, 1)), np.zeros(2), states, np.zeros(2, dtype=bool),
+                                        np.array([False, True]), policy_state=np.array([[10.], [20.]]),
+                                        policy_next_state=np.array([[11.], [21.]]), max_size=3)
+    states = np.array([[3.], [4.]])
+    buffer.append_replay_batch(Dataset.from_array(states, np.zeros((2, 1)), np.zeros(2), states,
+                                                  np.zeros(2, dtype=bool), np.array([False, True]),
+                                                  policy_state=np.array([[30.], [40.]]),
+                                                  policy_next_state=np.array([[31.], [41.]])))
+
+    converted = buffer.to_backend('torch')
+
+    assert np.array_equal(buffer.parse()[0][:, 0], np.array([2., 3., 4.]))
+    assert np.array_equal(buffer.parse_policy_state()[0][:, 0], np.array([20., 30., 40.]))
+    assert torch.equal(converted.state[:, 0], torch.tensor([4., 2., 3.], dtype=converted.state.dtype))
+    assert torch.equal(converted.policy_state[:, 0], torch.tensor([40., 20., 30.], dtype=converted.policy_state.dtype))
+    assert torch.equal(converted.policy_next_state[:, 0],
+                       torch.tensor([41., 21., 31.], dtype=converted.policy_next_state.dtype))
+
+
 def test_to_backend_keeps_the_ring():
     buffer = make_wrapped_buffer()
 
@@ -263,6 +359,18 @@ def test_to_backend_keeps_the_ring():
     converted.append_replay_batch(make_block([30, 31], [False, True]))
 
     assert torch.equal(converted.state[:, 0], torch.tensor([22., 23., 30., 31., 21.], dtype=converted.state.dtype))
+
+
+def test_to_backend_shares_no_links_with_the_ring():
+    buffer = make_linked_buffer()
+    buffer._dataset_info.agent_backend = 'torch'
+    links = [link.copy() for link in buffer.links]
+
+    converted = buffer.to_backend('numpy')
+    converted.append_replay_batch(make_block([30, 31], [False, True]))
+
+    assert converted is not buffer
+    assert all(np.array_equal(link, original) for link, original in zip(buffer.links, links))
 
 
 def test_to_backend_keeps_the_links_of_a_linked_ring():

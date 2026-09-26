@@ -154,6 +154,12 @@ class LinkedRingLayout(RingLayout):
         positions, valid = self.walk_back(last, anchors, n_hops)
         return ~valid[:, -1] & (self._prev_links[positions[:, -1]] > 0)
 
+    def segment_ends(self, last):
+        ends = (last > 0) | (self._next_links[:len(last)] != 1)
+        if len(ends) > 0:
+            ends[-1] = True
+        return ends
+
     def row_starts(self, last):
         return self._prev_links[:len(last)] == 0
 
@@ -174,8 +180,9 @@ class LinkedRingLayout(RingLayout):
 
     def to_backend(self, backend, device=None):
         layout = super().to_backend(backend, device)
-        layout._prev_links, layout._next_links = ArrayBackend.convert(self._prev_links, self._next_links, to=backend,
-                                                                      device=device)
+        prev_links, next_links = ArrayBackend.convert(self._prev_links, self._next_links, to=backend, device=device)
+        target = ArrayBackend.get_array_backend(backend)
+        layout._prev_links, layout._next_links = target.copy(prev_links), target.copy(next_links)
         return layout
 
     @property

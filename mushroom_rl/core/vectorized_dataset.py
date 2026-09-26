@@ -33,6 +33,7 @@ class VectorizedDataset(Dataset):
             return self.copy()
         if len(self) == 0:
             return other.copy()
+        assert self._consumed and other._consumed, "Only vectorized datasets returned by consume can be joined."
 
         result = self.create_raw_instance(dataset=self)
 
@@ -43,7 +44,7 @@ class VectorizedDataset(Dataset):
         result._mask_data = self._mask_data + other._mask_data
         result._history_state = self._history_state.copy()
         result._tail_open = self._dataset_info.env_array_backend.copy(self._tail_open)
-        result._consumed = self._consumed or other._consumed
+        result._consumed = True
 
         return result
 
@@ -51,11 +52,13 @@ class VectorizedDataset(Dataset):
         raise RuntimeError("Trying to use append on a vectorized dataset")
 
     def append_batch(self, other):
+        assert other._consumed and (self._consumed or len(self) == 0), \
+            "Only vectorized datasets returned by consume can be joined."
         if len(self) == 0:
             self._history_state = other._history_state.copy()
         self._append_rows(other)
         self._mask_data.append_batch(other._mask_data)
-        self._consumed = self._consumed or other._consumed
+        self._consumed = True
 
     def reserve(self, capacity):
         super().reserve(capacity)

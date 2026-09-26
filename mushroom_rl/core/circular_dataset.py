@@ -29,7 +29,7 @@ class CircularDataset(Dataset):
         return result
 
     def __iadd__(self, other):
-        self.append_batch(other)
+        self.append_batch(other._time_ordered())
 
         return self
 
@@ -39,7 +39,7 @@ class CircularDataset(Dataset):
         the buffer, and the episodes of joined datasets are reordered as by :meth:`Dataset.contiguous`. Its step
         information, episode information and policy parameters are dropped. A dataset starting with continuing rows
         continues the episodes left open by the previous write, one per open episode and in order; otherwise they are
-        closed.
+        closed. An empty dataset writes nothing and leaves the open episodes open.
 
         Args:
             dataset (Dataset): the dataset to write.
@@ -50,17 +50,23 @@ class CircularDataset(Dataset):
             was overwritten.
 
         Raises:
+            AssertionError: if ``dataset`` is a circular dataset;
             ValueError: if the dataset holds more rows than the buffer, or continues a number of episodes different
                 from the number left open.
 
         """
+        assert not dataset.is_circular, "Cannot append a circular dataset, join it with + or += instead."
         if len(dataset) > self._layout.max_size:
             raise ValueError(f"Cannot write {len(dataset)} rows to a buffer of {self._layout.max_size} rows.")
-        dataset, order = dataset._glued()
-        dataset = dataset.to_backend(self._dataset_info.env_backend, device=self._dataset_info.env_device)
-        n = len(dataset)
         backend = self._dataset_info.env_array_backend
         device = self._dataset_info.env_device
+        if len(dataset) == 0:
+            nothing = backend.zeros(0, dtype=int, device=device)
+            return nothing, list(), nothing
+
+        dataset, order = dataset._glued()
+        dataset = dataset.to_backend(self._dataset_info.env_backend, device=device)
+        n = len(dataset)
 
         last = dataset._last_array()
         continues = dataset._layout.continues(last)
@@ -112,18 +118,18 @@ class CircularDataset(Dataset):
 
     def append_batch(self, other):
         """
-        Write a dataset at the write head, as :meth:`append_replay_batch`; nothing is written for an empty dataset.
+        Write a dataset at the write head, as :meth:`append_replay_batch`.
 
         Args:
             other (Dataset): the dataset to write.
 
         Raises:
+            AssertionError: if ``other`` is a circular dataset;
             ValueError: if the dataset holds more rows than the buffer, or continues a number of episodes different
                 from the number left open.
 
         """
-        if len(other) > 0:
-            self.append_replay_batch(other)
+        self.append_replay_batch(other)
 
     def append_episode_info(self, info, mask=None):
         """
@@ -161,6 +167,36 @@ class CircularDataset(Dataset):
         self._history_state = self._history_state.clear()
         self._clear_rows()
 
+    def parse(self, to=None, device=None):
+        """
+        Return the stored episodes as a set of arrays, each episode from its oldest stored step on and the episodes
+        oldest first. The returned ``last`` flags mark the final row of every stored segment.
+
+        Args:
+            to (str, None): the backend to be used for the returned arrays. By default, the dataset backend is used;
+            device (str, None): device the returned arrays are placed on, or ``None`` for the default one.
+
+        Returns:
+            A tuple containing the arrays that define the dataset, i.e. state, action, reward, next state, absorbing
+            and last.
+
+        """
+        return self._time_ordered().parse(to, device)
+
+    def parse_policy_state(self, to=None, device=None):
+        """
+        Return the policy state arrays of the stored episodes, in the order of :meth:`parse`.
+
+        Args:
+            to (str, None): the backend to be used for the returned arrays. By default, the policy's backend is used;
+            device (str, None): device the returned arrays are placed on, or ``None`` for the default one.
+
+        Returns:
+            A tuple containing the policy state and policy next state arrays.
+
+        """
+        return self._time_ordered().parse_policy_state(to, device)
+
     def to_backend(self, backend, device=None):
         """
         Return a copy of this dataset converted to the given backend.
@@ -183,7 +219,7 @@ class CircularDataset(Dataset):
 
         dataset = type(self)(converted._dataset_info, self._layout.max_size)
         dataset._append_rows(converted)
-        dataset._layout = self._layout.to_backend(backend, device)
+        dataset._layout = converted._layout
         dataset._history_state = converted._history_state
 
         return dataset
@@ -420,9 +456,16 @@ class CircularDataset(Dataset):
             self._agent_data[start:stop] = dataset._agent_data[rows]
 
     def _time_ordered(self):
+        backend = self._dataset_info.env_array_backend
+        device = self._dataset_info.env_device
         order, boundary_code = self._layout.time_order(self._last_array())
-        layout = CodedLayout.from_array(boundary_code, self._dataset_info.env_backend, self._dataset_info.env_device,
-                                        open_heads=tuple(), open_tails=tuple())
+        tails = tuple()
+        if len(self._layout.ring_tails) > 0:
+            row_of = backend.zeros(self._layout.max_size, dtype=int, device=device)
+            row_of[order] = backend.arange(0, len(order), device=device)
+            tails = tuple(int(row_of[tail]) for tail in self._layout.ring_tails)
+        layout = CodedLayout.from_array(boundary_code, self._dataset_info.env_backend, device, open_heads=tuple(),
+                                        open_tails=tails)
         return self._view_rows(order, False, layout)
 
     def _walk_last(self):

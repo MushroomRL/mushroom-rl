@@ -552,6 +552,13 @@ def test_to_backend_keeps_the_horizon_and_the_discount_factor():
     assert torch.allclose(converted.discounted_return, torch.tensor([1.75]))
 
 
+def test_to_backend_returns_the_dataset_when_the_resolved_device_matches():
+    dataset = make_stream([0, 1, 2], [0, 0, 1]).to_backend('torch')
+
+    assert dataset.to_backend('torch', device='cpu') is dataset
+    assert dataset.to_backend('torch') is dataset
+
+
 def make_list_stream(states, lasts, continuing=False):
     n = len(states)
     states = list(np.array(states, dtype=float)[:, None])

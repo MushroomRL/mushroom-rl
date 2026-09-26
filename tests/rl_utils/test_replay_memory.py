@@ -999,6 +999,19 @@ def test_continuing_block_keeps_the_episode_of_the_previous_block():
     assert np.array_equal(windows(rm, [3])[:, :, 0], np.array([[2., 3., 4.]]))
 
 
+def test_empty_block_keeps_the_episode_of_the_previous_block():
+    history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), make_agent_info(), history_length=3)
+    rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=1, max_size=100,
+                      history_manager=history_manager)
+
+    rm.add(make_block([1, 2, 3], [False, False, False]))
+    rm.add(make_block([], []))
+    rm.add(make_block([4, 5], [False, False], continuing=True))
+
+    assert rm.size == 5 and not rm._dataset.last[2]
+    assert np.array_equal(windows(rm, [3])[:, :, 0], np.array([[2., 3., 4.]]))
+
+
 def test_vectorized_blocks_continue_every_environment_in_the_ring():
     history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), make_agent_info(), history_length=3)
     rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=2, max_size=100,
@@ -1196,3 +1209,19 @@ def test_prioritized_replay_memory_keeps_the_priorities_of_joined_blocks():
 
     assert np.array_equal(rm._dataset.state[:rm.size, 0], np.array([0., 1., 2., 3., 10., 11., 12., 13.]))
     assert np.array_equal(rm._tree._tree[99:107], np.array([1., 2., 3., 4., 11., 12., 13., 14.]))
+
+
+def test_prioritized_replay_memory_add_of_an_empty_block_changes_nothing():
+    rm = PrioritizedReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=2, max_size=100, alpha=1.,
+                                 beta=1.)
+    rm.add(make_block([1, 2, 3], [False, False, False]), p=np.array([1., 2., 3.]))
+    tree = rm._tree._tree.copy()
+
+    rm.add(make_block([], []))
+
+    assert rm.size == 3 and np.array_equal(rm._tree._tree, tree)
+
+    rm.add(make_block([4], [True], continuing=True), p=np.array([4.]))
+
+    assert rm.size == 4 and not rm._dataset.last[2]
+    assert np.array_equal(rm._tree._tree[99:103], np.array([1., 2., 3., 4.]))

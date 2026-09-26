@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 import torch
 
 from mushroom_rl.core.dataset_info import DatasetInfo
@@ -139,6 +140,25 @@ def test_join_with_an_empty_block_is_a_no_op():
         assert np.array_equal(np.asarray(joined.state), np.asarray(flat.state))
         assert np.array_equal(joined.parse_policy_state()[0], flat.parse_policy_state()[0])
         assert np.array_equal(joined.parse()[5], flat.parse()[5])
+
+
+def test_only_consumed_datasets_can_be_joined():
+    first = VectorizedDataset(make_info(), n_steps=10)
+    second = VectorizedDataset(make_info(), n_steps=10)
+    append_steps(first, 2)
+    append_steps(second, 2)
+    consumed = first.consume()
+
+    with pytest.raises(AssertionError):
+        first + second
+    with pytest.raises(AssertionError):
+        consumed + second
+    with pytest.raises(AssertionError):
+        consumed.copy().append_batch(second)
+
+    joined = consumed + second.consume()
+
+    assert len(joined) == 4 and len(joined.flatten()) == 8
 
 
 def test_loaded_list_dataset_keeps_appending_per_environment(tmpdir):
