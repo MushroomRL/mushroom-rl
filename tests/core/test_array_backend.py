@@ -53,6 +53,7 @@ def test_abstract_backend_not_implemented():
         lambda: ArrayBackend.atleast_2d(None),
         lambda: ArrayBackend.copy(None),
         lambda: ArrayBackend.median(None),
+        lambda: ArrayBackend.argsort(None),
         lambda: ArrayBackend.sqrt(None),
         lambda: ArrayBackend.from_list(None),
         lambda: ArrayBackend.pack_padded_sequence(None, None),
@@ -120,6 +121,7 @@ def test_list_backend():
     assert values == [[1, 2], [3, 4]]
 
     assert ListBackend.median(array) == 2.0
+    assert np.array_equal(ListBackend.argsort(np.array([3, 1, 2, 1])), np.array([1, 3, 2, 0]))
     assert ListBackend.from_list(array) is array
     assert ListBackend.empty((3,)) == [None, None, None]
     assert ListBackend.empty((2, 2)) == [[None, None], [None, None]]
@@ -198,6 +200,7 @@ def test_backend_ops_numpy():
                           np.array([True, False]))
     assert NumpyBackend.sum(np.array([1.0, 2.0, 3.0])) == 6.0
     assert NumpyBackend.median(np.array([3.0, 1.0, 2.0])) == 2.0
+    assert np.array_equal(NumpyBackend.argsort(np.array([3, 1, 2, 1])), np.array([1, 3, 2, 0]))
 
     selection_mask = np.array([True, False, True])
     array = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
@@ -224,6 +227,7 @@ def test_backend_ops_torch():
                        torch.tensor([True, False]))
     assert TorchBackend.sum(torch.tensor([1.0, 2.0, 3.0])) == 6.0
     assert TorchBackend.median(torch.tensor([3.0, 1.0, 2.0])) == 2.0
+    assert torch.equal(TorchBackend.argsort(torch.tensor([3, 1, 2, 1])), torch.tensor([1, 3, 2, 0]))
     assert torch.equal(TorchBackend.squeeze(torch.ones(2, 1), 1), torch.ones(2))
     kept = torch.tensor([1, 2])
     assert TorchBackend.as_array(kept) is kept

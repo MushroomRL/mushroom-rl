@@ -784,6 +784,18 @@ class ArrayBackend(object):
         raise NotImplementedError
 
     @staticmethod
+    def argsort(array):
+        """
+        Args:
+            array: a one-dimensional array.
+
+        Returns:
+            The indices that sort ``array`` in ascending order, equal elements keeping their order.
+
+        """
+        raise NotImplementedError
+
+    @staticmethod
     def max(array, dim=None):
         """
         Args:
@@ -1132,6 +1144,10 @@ class NumpyBackend(ArrayBackend):
         return np.median(array)
 
     @staticmethod
+    def argsort(array):
+        return np.argsort(array, kind='stable')
+
+    @staticmethod
     def max(array, dim=None):
         return np.max(array, axis=dim)
 
@@ -1394,6 +1410,10 @@ class TorchBackend(ArrayBackend):
         return array.median()
 
     @staticmethod
+    def argsort(array):
+        return torch.argsort(array, stable=True)
+
+    @staticmethod
     def max(array, dim=None):
         return torch.max(array) if dim is None else torch.max(array, dim=dim).values
 
@@ -1646,6 +1666,10 @@ class ListBackend(ArrayBackend):
     @staticmethod
     def median(array):
         return NumpyBackend.median(array)
+
+    @staticmethod
+    def argsort(array):
+        return NumpyBackend.argsort(array)
 
     @staticmethod
     def max(array, dim=None):
