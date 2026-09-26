@@ -9,9 +9,7 @@ from ._impl.history_state import GridHistoryState
 class VectorizedDataset(Dataset):
     """
     :class:`Dataset` variant for data collected from several environments in parallel. Each step stores a batch
-    of transitions together with a boolean ``mask`` (kept in its own env-backend container) marking which
-    environments were active. The steps are split off with :meth:`consume` and turned into a flat :class:`Dataset`
-    with :meth:`flatten`, typically once per fit.
+    of transitions together with a boolean ``mask`` marking which environments were active.
 
     """
     def __init__(self, dataset_info, n_steps=None, n_episodes=None, core_counts_episodes=False):
@@ -52,6 +50,16 @@ class VectorizedDataset(Dataset):
         raise RuntimeError("Trying to use append on a vectorized dataset")
 
     def append_batch(self, other):
+        """
+        Append the steps of another vectorized dataset in place.
+
+        Args:
+            other (VectorizedDataset): dataset whose steps will be appended.
+
+        Raises:
+            AssertionError: if ``other``, or this dataset when it is not empty, is not returned by :meth:`consume`.
+
+        """
         assert other._consumed and (self._consumed or len(self) == 0), \
             "Only vectorized datasets returned by consume can be joined."
         if len(self) == 0:
