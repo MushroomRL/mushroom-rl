@@ -368,12 +368,8 @@ class HistoryManager(MushroomObject):
 
         states, actions, reward, next_states, absorbing, last = dataset.parse(
             to=self._agent_backend.get_backend_name(), device=self._device)
-        size = len(last)
-        bootstrap = (last > 0) & ~(self._agent_backend.convert(dataset.last, device=self._device) > 0)
-        if size > 0:
-            bootstrap[-1] = False
         reduced_reward, anchor, endpoint = self.build_nstep_return(reward, absorbing, last, anchor_idxs, gamma,
-                                                                   n_steps_return, bootstrap=bootstrap)
+                                                                   n_steps_return)
 
         if 'obs_history' in self._stream_specs:
             windows = self.build_history('obs_history', states, last, attachment=dataset.history_state)
@@ -453,7 +449,7 @@ class HistoryManager(MushroomObject):
         return out
 
     def build_nstep_return(self, reward, absorbing, last, anchor_idxs=None, gamma=1., n_steps_return=1, backend=None,
-                           bootstrap=None, dataset=None):
+                           dataset=None):
         """
         Compute the discounted n-step return of a batch of transitions, dropping the ones whose return crosses a
         non-absorbing episode end or runs past the newest stored step. A return ends early at an absorbing step.
@@ -466,7 +462,6 @@ class HistoryManager(MushroomObject):
             gamma (float, 1.): the discount factor;
             n_steps_return (int, 1): the number of steps of the return;
             backend (ArrayBackend, None): the array backend; by default the agent backend;
-            bootstrap (None): the flags of the non-absorbing segment ends a return may end at;
             dataset (Dataset, None): the dataset whose episodes the return follows with ``anchor_idxs``; by default the
                 rows are one stream delimited by ``last``.
 
@@ -479,7 +474,7 @@ class HistoryManager(MushroomObject):
         if anchor_idxs is not None:
             positions, reached = self._walk_forward(dataset, last, anchor_idxs, n_steps_return - 1)
             endpoint = positions[:, -1]
-            valid = self._nstep_endpoint_valid(absorbing, last, endpoint, reached, bootstrap)
+            valid = self._nstep_endpoint_valid(absorbing, last, endpoint, reached)
             acc = reward[anchor_idxs] * gamma ** 0
             for d in range(1, n_steps_return):
                 acc = backend.where(reached[:, d], acc + gamma ** d * reward[positions[:, d]], acc)
@@ -496,10 +491,7 @@ class HistoryManager(MushroomObject):
                 valid = valid & ~active
                 break
             stop = active[:tail + 1] & (last[t - 1:] > 0)
-            truncated = stop & (absorbing[t - 1:] <= 0)
-            if bootstrap is not None:
-                truncated = truncated & ~bootstrap[t - 1:]
-            valid[:tail + 1] = valid[:tail + 1] & ~truncated
+            valid[:tail + 1] = valid[:tail + 1] & ~(stop & (absorbing[t - 1:] <= 0))
             active[:tail + 1] = active[:tail + 1] & ~stop
             valid[tail:] = valid[tail:] & ~active[tail:]
             active[tail:] = False
@@ -531,7 +523,7 @@ class HistoryManager(MushroomObject):
         if anchor_idxs is None:
             anchor_idxs = backend.arange(0, len(last), device=backend.get_device(last))
         positions, reached = self._walk_forward(dataset, last, anchor_idxs, n_steps_return - 1)
-        return self._nstep_endpoint_valid(absorbing, last, positions[:, -1], reached, None)
+        return self._nstep_endpoint_valid(absorbing, last, positions[:, -1], reached)
 
     def history_context(self):
         """
@@ -793,8 +785,5 @@ class HistoryManager(MushroomObject):
         return dataset.walk_forward(anchor_idxs, n_hops, last)
 
     @staticmethod
-    def _nstep_endpoint_valid(absorbing, last, endpoint, reached, bootstrap):
-        ends_ok = absorbing[endpoint] > 0
-        if bootstrap is not None:
-            ends_ok = ends_ok | bootstrap[endpoint]
-        return reached[:, -1] | ((last[endpoint] > 0) & ends_ok)
+    def _nstep_endpoint_valid(absorbing, last, endpoint, reached):
+        return reached[:, -1] | ((last[endpoint] > 0) & (absorbing[endpoint] > 0))

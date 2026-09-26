@@ -301,7 +301,7 @@ def test_flat_blocks_of_a_vectorized_dataset_keep_their_continuing_chunk():
     assert np.array_equal(joined.get_init_states(), np.array([[0.], [0.], [2.]]))
 
 
-def test_nstep_return_bootstraps_at_a_cut_segment_end_but_not_at_the_buffer_end():
+def test_nstep_return_drops_the_runs_cut_at_a_segment_end_as_at_the_buffer_end():
     dataset = VectorizedDataset(make_grid_info(2), n_steps=12)
     fill_grid(dataset, active_steps=[3, 3], episode_ends=set())
     history_manager = make_history_manager(1)
@@ -309,6 +309,6 @@ def test_nstep_return_bootstraps_at_a_cut_segment_end_but_not_at_the_buffer_end(
     flat = dataset.flatten()
     _, _, reward, _, _, _, extra = history_manager.parse_nstep_history(flat, gamma=0.5, n_steps_return=2)
 
-    assert np.array_equal(extra['anchor'], np.array([0, 1, 2, 3, 4]))
-    assert np.array_equal(extra['endpoint'], np.array([1, 2, 2, 4, 5]))
-    assert np.array_equal(reward, np.array([5., 20., 20., 6.5, 21.5]))
+    assert np.array_equal(extra['anchor'], np.array([0, 1, 3, 4]))
+    assert np.array_equal(extra['endpoint'], np.array([1, 2, 4, 5]))
+    assert np.array_equal(reward, np.array([5., 20., 6.5, 21.5]))
