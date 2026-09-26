@@ -585,7 +585,7 @@ class Dataset(MushroomObject):
     def last_or_boundary(self):
         """
         The flags marking the final row of every stored segment: every ``last`` plus every row whose successor is not
-        stored right after it, and the final row. The ``last`` of :meth:`parse`.
+        stored right after it, and the final row.
 
         """
         ends = self._segment_ends(self._last_array())

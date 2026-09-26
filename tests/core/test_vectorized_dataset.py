@@ -156,8 +156,11 @@ def test_only_consumed_datasets_can_be_joined():
     with pytest.raises(AssertionError):
         consumed.copy().append_batch(second)
 
+    extended = consumed.copy()
+    extended.append_batch(VectorizedDataset(make_info(), n_steps=10))
     joined = consumed + second.consume()
 
+    assert len(extended) == 2
     assert len(joined) == 4 and len(joined.flatten()) == 8
 
 

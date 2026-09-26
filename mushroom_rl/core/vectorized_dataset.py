@@ -51,22 +51,23 @@ class VectorizedDataset(Dataset):
 
     def append_batch(self, other):
         """
-        Append the steps of another vectorized dataset in place.
+        Append the steps of another vectorized dataset in place; nothing is appended for an empty dataset.
 
         Args:
             other (VectorizedDataset): dataset whose steps will be appended.
 
         Raises:
-            AssertionError: if ``other``, or this dataset when it is not empty, is not returned by :meth:`consume`.
+            AssertionError: if a dataset is not returned by :meth:`consume`, unless it is empty.
 
         """
-        assert other._consumed and (self._consumed or len(self) == 0), \
-            "Only vectorized datasets returned by consume can be joined."
-        if len(self) == 0:
-            self._history_state = other._history_state.copy()
-        self._append_rows(other)
-        self._mask_data.append_batch(other._mask_data)
-        self._consumed = True
+        if len(other) > 0:
+            assert other._consumed and (self._consumed or len(self) == 0), \
+                "Only vectorized datasets returned by consume can be joined."
+            if len(self) == 0:
+                self._history_state = other._history_state.copy()
+            self._append_rows(other)
+            self._mask_data.append_batch(other._mask_data)
+            self._consumed = True
 
     def reserve(self, capacity):
         super().reserve(capacity)
