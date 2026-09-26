@@ -14,7 +14,7 @@ class EpisodeInfo(MushroomObject):
         Constructor.
 
         Args:
-            n_envs (int): Number of parallel environments;
+            n_envs (int): number of parallel environments;
             backend (str): name of the array backend the parsed arrays are built in;
             device (str, None): device the parsed arrays are placed on;
             vectorized (bool, None): whether the appended entries cover every environment rather than a single

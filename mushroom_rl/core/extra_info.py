@@ -155,12 +155,11 @@ class ExtraInfo(MushroomObject):
 
     def get_view(self, index, copy=False):
         """
-        Select a subset of the stored steps. The episode information and the policy parameters are dropped,
-        since a range of steps does not identify the episodes they belong to.
+        Select a subset of the stored steps. The episode information and the policy parameters are dropped.
 
         Args:
             index (int, slice, ndarray, tensor): the steps the result should contain;
-            copy (bool): whether the content should be copied rather than shared.
+            copy (bool, False): whether the content should be copied rather than shared.
 
         Returns:
             A new ExtraInfo holding only the selected steps.
