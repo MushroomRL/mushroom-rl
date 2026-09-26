@@ -35,6 +35,8 @@ class RingLayout(StreamLayout):
         )
 
     def append_rows(self, other):
+        if self._n_rows == 0 and len(other) > 0:
+            self._head = int(self.Boundary.CONTINUING if other.continuing else self.Boundary.FRESH)
         self._n_rows += len(other)
         return self
 
@@ -209,6 +211,59 @@ class RingLayout(StreamLayout):
         raise NotImplementedError("The rows of this dataset are not stored as one stream, so their segment starts "
                                   "are unknown.")
 
+    def row_starts(self, last):
+        """
+        Find the rows that start an episode.
+
+        Args:
+            last: the ``last`` flags of the buffer.
+
+        Returns:
+            The flags of the rows known to start an episode.
+
+        """
+        if not self._full:
+            return super().row_starts(last)
+        backend = ArrayBackend.get_array_backend_from(last)
+        starts = backend.concatenate([last[-1:], last[:-1]]) > 0
+        starts[self._write_head] = False
+        return starts
+
+    def standalone_view(self, index, last):
+        if isinstance(index, slice) and index.step in (None, 1):
+            backend = ArrayBackend.get_array_backend(self._backend)
+            rows = backend.arange(0, len(self), device=self._device)[index]
+            return self.episodes_view(rows, last)
+        return super().standalone_view(index, last)
+
+    def time_order(self, last):
+        """
+        Arrange the stored rows by episode, each episode from its oldest stored step on and the episodes by the age
+        of their oldest stored step.
+
+        Args:
+            last: the ``last`` flags of the buffer.
+
+        Returns:
+            The buffer positions of the stored rows in that order, and the boundary code of each of them.
+
+        """
+        backend = ArrayBackend.get_array_backend(self._backend)
+        rows = backend.arange(0, self.size, device=self._device)
+        order = (rows + self._write_head) % self._max_size if self._full else rows
+        starts = self.row_starts(last)[order]
+        boundary_code = backend.zeros(len(order), dtype=self.dtype, device=self._device)
+        boundary_code[starts] = int(self.Boundary.FRESH)
+        if len(order) > 0 and not bool(starts[0]):
+            boundary_code[0] = int(self.Boundary.CONTINUING)
+        return order, boundary_code
+
+    def to_backend(self, backend, device=None):
+        layout = type(self)(backend, self._max_size, device)
+        layout._n_rows, layout._head = self._n_rows, self._head
+        layout._write_head, layout._full, layout._ring_tails = self._write_head, self._full, self._ring_tails
+        return self._copy_state(layout)
+
     @property
     def max_size(self):
         """
@@ -249,6 +304,27 @@ class RingLayout(StreamLayout):
 
         """
         return None
+
+    @property
+    def ring_tails(self):
+        """
+        Returns:
+            The buffer positions of the open episodes of the last write.
+
+        """
+        return self._ring_tails
+
+    def _clear_rows(self):
+        super()._clear_rows()
+        self._write_head = 0
+        self._full = False
+        self._ring_tails = tuple()
+
+    def _follow_previous(self, rows):
+        return self._age(rows) > 0
+
+    def _age(self, rows):
+        return (rows - self._write_head) % self._max_size if self._full else rows
 
 
 class LinkedRingLayout(RingLayout):
@@ -404,6 +480,29 @@ class LinkedRingLayout(RingLayout):
         positions, valid = self.walk_back(last, anchors, n_hops)
         return ~valid[:, -1] & (self._links[0][positions[:, -1]] > 0)
 
+    def row_starts(self, last):
+        return self._links[0][:len(last)] == 0
+
+    def time_order(self, last):
+        backend = ArrayBackend.get_array_backend(self._backend)
+        rows = backend.arange(0, self.size, device=self._device)
+        age = self._age(rows)
+        root = self._previous(last, rows, age)
+        parent = root[root]
+        while bool(backend.sum(parent != root) > 0):
+            root, parent = parent, parent[parent]
+        order = backend.argsort(age[root] * self._max_size + age)
+        first = root[order] == order
+        boundary_code = backend.zeros(len(order), dtype=self.dtype, device=self._device)
+        boundary_code[first] = int(self.Boundary.CONTINUING)
+        boundary_code[first & self.row_starts(last)[order]] = int(self.Boundary.FRESH)
+        return order, boundary_code
+
+    def to_backend(self, backend, device=None):
+        layout = super().to_backend(backend, device)
+        layout._links = ArrayBackend.convert(*self._links, to=backend, device=device)
+        return layout
+
     @property
     def links(self):
         """
@@ -425,3 +524,17 @@ class LinkedRingLayout(RingLayout):
             prev[order[1:]] = open_rows
             following[order[:-1]] = open_rows
         return prev, following
+
+    def _clear_rows(self):
+        super()._clear_rows()
+        backend = ArrayBackend.get_array_backend(self._backend)
+        self._links = tuple(backend.zeros(self._max_size, dtype=int, device=self._device) for _ in range(2))
+
+    def _follow_previous(self, rows):
+        return (self._links[0][rows] == 1) & (self._age(rows) > 0)
+
+    def _previous(self, last, rows, age):
+        backend = ArrayBackend.get_array_backend(self._backend)
+        distance = self._links[0][rows]
+        follows = (distance > 0) & (distance <= age)
+        return backend.where(follows, (rows - distance) % self._max_size, rows)

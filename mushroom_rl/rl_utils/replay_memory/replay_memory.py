@@ -71,7 +71,7 @@ class ReplayMemory(MushroomObject):
         assert not self._dataset.is_stateful or dataset.is_stateful, \
             "The replay memory is configured to store the policy state, but the dataset does not provide it."
 
-        self._dataset.write(dataset)
+        self._dataset.append_replay_batch(dataset)
 
     def get(self, n_samples):
         """

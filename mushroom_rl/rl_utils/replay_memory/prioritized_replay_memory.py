@@ -66,7 +66,7 @@ class PrioritizedReplayMemory(ReplayMemory):
             p = self._dataset.array_backend.full((len(dataset),), self.max_priority, device=self._agent_info.device)
 
         start = self._dataset.write_head
-        positions, relinked, orphans = self._dataset.write(dataset)
+        positions, relinked, orphans = self._dataset.append_replay_batch(dataset)
         tree_idxs = ArrayBackend.convert(positions, to='numpy') + self._max_size - 1
         self._tree.update(tree_idxs, ArrayBackend.convert(p, to='numpy'))
         self._sync_tree_mask(self._affected_window(start, len(positions), relinked, orphans))

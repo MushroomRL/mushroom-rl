@@ -728,7 +728,7 @@ class Dataset(MushroomObject):
         return self._layout.segment_starts(last)
 
     def _view_rows(self, index, copy, layout):
-        dataset = self.create_raw_instance(dataset=self)
+        dataset = self._view_class().create_raw_instance(dataset=self)
 
         dataset._extras = self._extras.get_view(index, copy)
         dataset._data = self._data.get_view(index, copy)
@@ -784,6 +784,10 @@ class Dataset(MushroomObject):
             _base_shape='primitive',
             _dataset_info='mushroom'
         )
+
+    @classmethod
+    def _view_class(cls):
+        return cls
 
     @classmethod
     def _from_components(cls, states, actions, rewards, next_states, absorbings, lasts, layout,
