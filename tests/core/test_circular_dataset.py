@@ -275,6 +275,25 @@ def test_to_backend_keeps_the_links_of_a_linked_ring():
                        torch.tensor([406., 5.], dtype=converted.reward.dtype))
 
 
+@pytest.mark.parametrize('backend', ['numpy', 'torch'])
+def test_save_and_load_keep_the_links_of_a_linked_ring(tmpdir, backend):
+    buffer = make_linked_buffer().to_backend(backend)
+    path = tmpdir / 'linked_ring.msh'
+
+    buffer.save(path)
+    loaded = CircularDataset.load(path)
+
+    assert loaded.write_head == buffer.write_head and loaded.full == buffer.full
+    for original, restored in zip(buffer.links, loaded.links):
+        assert type(restored) is type(original) and bool((restored == original).all())
+    assert bool((loaded.compute_J(skip_incomplete=False) == buffer.compute_J(skip_incomplete=False)).all())
+
+    for dataset in (buffer, loaded):
+        dataset.append_replay_batch(make_block([30, 31], [False, True]))
+    for original, restored in zip(buffer.links, loaded.links):
+        assert bool((restored == original).all())
+
+
 def test_from_array_writes_the_transitions_from_the_start_of_the_buffer():
     states = np.arange(3.)[:, None]
     buffer = CircularDataset.from_array(states, np.zeros((3, 1)), np.ones(3), states, np.zeros(3, dtype=bool),

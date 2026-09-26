@@ -21,10 +21,13 @@ class LinkedRingLayout(RingLayout):
 
         """
         super().__init__(backend, max_size, device)
-        self._links = None
+        self._prev_links = None
+        self._next_links = None
 
+        serialization = ArrayBackend.get_array_backend(backend).get_backend_serialization()
         self._add_save_attr(
-            _links='pickle'
+            _prev_links=serialization,
+            _next_links=serialization
         )
 
     def promote(self, last):
@@ -51,10 +54,9 @@ class LinkedRingLayout(RingLayout):
             The positions of the stored steps whose previous step is about to be overwritten.
 
         """
-        following = self._links[1]
         live = positions if self._full else positions[positions < self.size]
-        continued = live[following[live] > 0]
-        successors = (continued + following[continued]) % self._max_size
+        continued = live[self._next_links[live] > 0]
+        successors = (continued + self._next_links[continued]) % self._max_size
         return successors[(successors - self._write_head) % self._max_size >= len(positions)]
 
     def link(self, positions, continues, pairs, start):
@@ -75,22 +77,21 @@ class LinkedRingLayout(RingLayout):
         backend = ArrayBackend.get_array_backend(self._backend)
         device = self._device
         n = len(positions)
-        prev, following = self._links
         steps = backend.zeros(n, dtype=int, device=device)
         steps[1:] = continues * 1
-        prev[positions] = steps
+        self._prev_links[positions] = steps
         steps = backend.zeros(n, dtype=int, device=device)
         steps[:-1] = continues * 1
-        following[positions] = steps
+        self._next_links[positions] = steps
 
         relinked = list()
         for tail, head in pairs:
             head_position = int(positions[head])
             if (tail - start) % self._max_size < n:
-                prev[head_position] = self._max_size
+                self._prev_links[head_position] = self._max_size
             else:
-                prev[head_position] = (head_position - tail) % self._max_size
-                following[tail] = (head_position - tail) % self._max_size
+                self._prev_links[head_position] = (head_position - tail) % self._max_size
+                self._next_links[tail] = (head_position - tail) % self._max_size
                 relinked.append(tail)
         return relinked
 
@@ -109,10 +110,8 @@ class LinkedRingLayout(RingLayout):
             row reached.
 
         """
-        prev = self._links[0]
-
         def step(pos):
-            distance = prev[pos]
+            distance = self._prev_links[pos]
             age = (pos - self._write_head) % self._max_size if self._full else pos
             return (pos - distance) % self._max_size, (distance > 0) & (distance <= age)
 
@@ -133,10 +132,8 @@ class LinkedRingLayout(RingLayout):
             row reached.
 
         """
-        following = self._links[1]
-
         def step(pos):
-            distance = following[pos]
+            distance = self._next_links[pos]
             return (pos + distance) % self._max_size, distance > 0
 
         return EpisodeLayout._linked_walk(anchors, n_hops, step)
@@ -155,10 +152,10 @@ class LinkedRingLayout(RingLayout):
 
         """
         positions, valid = self.walk_back(last, anchors, n_hops)
-        return ~valid[:, -1] & (self._links[0][positions[:, -1]] > 0)
+        return ~valid[:, -1] & (self._prev_links[positions[:, -1]] > 0)
 
     def row_starts(self, last):
-        return self._links[0][:len(last)] == 0
+        return self._prev_links[:len(last)] == 0
 
     def time_order(self, last):
         backend = ArrayBackend.get_array_backend(self._backend)
@@ -177,7 +174,8 @@ class LinkedRingLayout(RingLayout):
 
     def to_backend(self, backend, device=None):
         layout = super().to_backend(backend, device)
-        layout._links = ArrayBackend.convert(*self._links, to=backend, device=device)
+        layout._prev_links, layout._next_links = ArrayBackend.convert(self._prev_links, self._next_links, to=backend,
+                                                                      device=device)
         return layout
 
     @property
@@ -187,31 +185,32 @@ class LinkedRingLayout(RingLayout):
         its episode, 0 when there is none.
 
         """
-        return self._links
+        return self._prev_links, self._next_links
 
     def _contiguous_links(self, last):
         backend = ArrayBackend.get_array_backend(self._backend)
         device = self._device
-        prev = backend.zeros(self._max_size, dtype=int, device=device)
-        following = backend.zeros(self._max_size, dtype=int, device=device)
+        prev_links = backend.zeros(self._max_size, dtype=int, device=device)
+        next_links = backend.zeros(self._max_size, dtype=int, device=device)
         size = self.size
         if size > 0:
             order = (backend.arange(0, size, device=device) + (self._write_head if self._full else 0)) % self._max_size
             open_rows = ~(last[order[:-1]] > 0) * 1
-            prev[order[1:]] = open_rows
-            following[order[:-1]] = open_rows
-        return prev, following
+            prev_links[order[1:]] = open_rows
+            next_links[order[:-1]] = open_rows
+        return prev_links, next_links
 
     def _clear_rows(self):
         super()._clear_rows()
         backend = ArrayBackend.get_array_backend(self._backend)
-        self._links = tuple(backend.zeros(self._max_size, dtype=int, device=self._device) for _ in range(2))
+        self._prev_links = backend.zeros(self._max_size, dtype=int, device=self._device)
+        self._next_links = backend.zeros(self._max_size, dtype=int, device=self._device)
 
     def _follow_previous(self, rows):
-        return (self._links[0][rows] == 1) & (self._age(rows) > 0)
+        return (self._prev_links[rows] == 1) & (self._age(rows) > 0)
 
     def _previous(self, last, rows, age):
         backend = ArrayBackend.get_array_backend(self._backend)
-        distance = self._links[0][rows]
+        distance = self._prev_links[rows]
         follows = (distance > 0) & (distance <= age)
         return backend.where(follows, (rows - distance) % self._max_size, rows)

@@ -80,7 +80,7 @@ class RingLayout(StreamLayout):
         layout = LinkedRingLayout(self._backend, self._max_size, self._device)
         layout._n_rows, layout._head = self._n_rows, self._head
         layout._write_head, layout._full, layout._ring_tails = self._write_head, self._full, self._ring_tails
-        layout._links = layout._contiguous_links(last)
+        layout._prev_links, layout._next_links = layout._contiguous_links(last)
         return self._copy_state(layout)
 
     def orphans(self, positions):
