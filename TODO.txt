@@ -30,6 +30,8 @@ For Mushroom 2.1:
       editing both. fix the similar issue with the to_<backend> method if possible
     * Improve replay memory:
         - vectorize SequenceReplayMemory.get: build all sequences at once, removing the per-sample host-device syncs
+    * Richer device handling on load: allow choosing the device explicitly when loading an object, and set the
+      `_device` of every loaded object accordingly. Currently everything loads on the default device
     * vectorization of the TD policies: `EpsGreedy` and `Boltzmann` draw a single action regardless of the
       batch size, so a TD algorithm cannot run on a vectorized environment
     * vectorization of the numpy policy gradient algorithms (REINFORCE, GPOMDP, eNAC):

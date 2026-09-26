@@ -224,9 +224,6 @@ class HistoryState(MushroomObject):
     def _wrap(self, positions, windows):
         return HistoryState(self._array_backend.get_backend_name(), self._device, positions, windows)
 
-    def _post_load(self):
-        self._device = self._array_backend.check_device(None)
-
 
 class GridHistoryState(MushroomObject):
     """
@@ -328,6 +325,3 @@ class GridHistoryState(MushroomObject):
         state._slots = {name: state._array_backend.convert_to_backend(self._array_backend, slot, device)
                         for name, slot in self._slots.items()}
         return state
-
-    def _post_load(self):
-        self._device = self._array_backend.check_device(None)

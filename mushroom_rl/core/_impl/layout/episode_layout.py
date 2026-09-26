@@ -40,7 +40,7 @@ class EpisodeLayout(MushroomObject):
         self._add_save_attr(
             _backend='primitive',
             _shape='primitive',
-            _device='primitive',
+            _device='none',
             _n_envs='primitive',
             _first='primitive',
             _open_heads='primitive',

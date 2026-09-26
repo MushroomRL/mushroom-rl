@@ -162,7 +162,7 @@ class TorchContainer(Container, backend='torch'):
 
     def _add_all_save_attr(self):
         self._add_save_attr(
-            _device='primitive',
+            _device='none',
             _arrays='torch',
             _n_envs='primitive',
             _len='primitive'

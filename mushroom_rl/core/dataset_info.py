@@ -53,8 +53,8 @@ class DatasetInfo(MushroomObject):
         self._add_save_attr(
             env_backend='primitive',
             agent_backend='primitive',
-            env_device='primitive',
-            agent_device='primitive',
+            env_device='none',
+            agent_device='none',
             gamma='primitive',
             horizon='primitive',
             state_shape='primitive',
