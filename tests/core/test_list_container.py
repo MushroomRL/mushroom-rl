@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from mushroom_rl.core._impl.containers.list_container import ListContainer
 
@@ -57,6 +58,21 @@ def test_list_container_append_batch():
 
     assert len(dataset) == 5
     assert dataset.column(2) == [0.0, 1.0, 2.0, 0.0, 1.0]
+
+
+def test_list_container_setitem_overwrites_stored_rows():
+    dataset = ListContainer.from_array(build_columns(3))
+    row = [np.array([10.0, 11.0]), np.array([10.0]), 10.0, np.array([11.0, 12.0]), 1.0, 1.0]
+    rows = [[np.array([20.0, 21.0])], [np.array([20.0])], [20.0], [np.array([21.0, 22.0])], [0.0], [0.0]]
+
+    dataset[1] = row
+    dataset[2:3] = rows
+    row[0][0] = -1.0
+
+    assert len(dataset) == 3
+    assert dataset.column(2) == [0.0, 10.0, 20.0]
+    assert np.array_equal(dataset.column(0)[1], np.array([10.0, 11.0]))
+    assert np.array_equal(dataset.column(0)[2], np.array([20.0, 21.0]))
 
 
 def test_list_container_clear():
@@ -161,3 +177,16 @@ def test_list_container_truncates_to_n_envs():
     dataset.append([10.0, 20.0, 30.0])
 
     assert dataset.column(0)[0] == [10.0, 20.0]
+
+
+def test_list_container_assignment_is_bounded_by_the_stored_rows():
+    dataset = ListContainer.from_array(build_columns(3))
+
+    with pytest.raises(IndexError):
+        dataset[3] = [np.zeros(2), np.zeros(1), 0.0, np.zeros(2), 0.0, 0.0]
+    with pytest.raises(IndexError):
+        dataset[2:4] = [[np.zeros(2)] * 2, [np.zeros(1)] * 2, [0.0] * 2, [np.zeros(2)] * 2, [0.0] * 2, [0.0] * 2]
+    with pytest.raises(TypeError):
+        dataset[np.array([0, 1])] = [[np.zeros(2)] * 2, [np.zeros(1)] * 2, [0.0] * 2, [np.zeros(2)] * 2, [0.0] * 2,
+                                     [0.0] * 2]
+    assert len(dataset) == 3

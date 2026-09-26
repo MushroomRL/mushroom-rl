@@ -21,6 +21,21 @@ class Container(MushroomObject):
     def __getitem__(self, index):
         raise NotImplementedError
 
+    def __setitem__(self, index, values):
+        """
+        Overwrite stored rows.
+
+        Args:
+            index (int or slice): the rows overwritten, all of them already stored;
+            values: one value per column, holding the new content of the selected rows.
+
+        Raises:
+            IndexError: if ``index`` reaches beyond the stored rows;
+            TypeError: if ``index`` is neither an int nor a slice.
+
+        """
+        raise NotImplementedError
+
     def __add__(self, other):
         raise NotImplementedError
 
@@ -165,6 +180,27 @@ class Container(MushroomObject):
 
         """
         raise NotImplementedError
+
+    def _resolve_rows(self, index):
+        # an int or a slice as an index of the raw columns covering only the stored rows, None for other indices
+        n = len(self)
+        if isinstance(index, int):
+            if not -n <= index < n:
+                raise IndexError(f"Row {index} is outside the {n} stored rows.")
+            return index % n
+        if isinstance(index, slice):
+            return slice(*index.indices(n))
+        return None
+
+    def _check_rows(self, index):
+        n = len(self)
+        if isinstance(index, slice) and any(bound is not None and not -n <= bound <= n
+                                            for bound in (index.start, index.stop)):
+            raise IndexError(f"Rows {index} are outside the {n} stored rows.")
+        rows = self._resolve_rows(index)
+        if rows is None:
+            raise TypeError(f"Rows can only be overwritten by an int or a slice, not by {type(index).__name__}.")
+        return rows
 
     @classmethod
     def _allocate(cls, shapes, dtypes, device, n_envs):

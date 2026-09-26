@@ -1,3 +1,4 @@
+import pytest
 import torch
 
 from mushroom_rl.core._impl.containers.torch_container import TorchContainer
@@ -75,6 +76,21 @@ def test_torch_container_append_batch():
 
     assert len(a) == 3
     assert torch.equal(a.column(1), torch.tensor([0.0, 1.0, 2.0]))
+
+
+def test_torch_container_setitem_overwrites_stored_rows():
+    dataset = make_dataset()
+    for i in range(3):
+        dataset.append(torch.tensor([float(i), float(i)]), float(i), False)
+
+    dataset[1] = (torch.tensor([10.0, 11.0]), 10.0, True)
+    dataset[0:3:2] = (torch.tensor([[20.0, 21.0], [22.0, 23.0]]), torch.tensor([20.0, 22.0]),
+                      torch.tensor([True, False]))
+
+    assert len(dataset) == 3
+    assert torch.equal(dataset.column(0), torch.tensor([[20.0, 21.0], [10.0, 11.0], [22.0, 23.0]]))
+    assert torch.equal(dataset.column(1), torch.tensor([20.0, 10.0, 22.0]))
+    assert torch.equal(dataset.column(2), torch.tensor([True, True, False]))
 
 
 def test_torch_container_capacity():
@@ -159,3 +175,20 @@ def test_torch_container_truncates_to_n_envs():
     dataset.append(torch.tensor([10.0, 20.0, 30.0]))
 
     assert torch.equal(dataset.column(0), torch.tensor([[10.0, 20.0]]))
+
+
+def test_torch_container_indexing_is_bounded_by_the_stored_rows():
+    dataset = make_dataset()
+    for i in range(3):
+        dataset.append(torch.tensor([float(i), float(i)]), float(i), False)
+
+    assert dataset[-1][1] == 2.0
+    assert torch.equal(dataset[1:8][1], torch.tensor([1.0, 2.0]))
+    with pytest.raises(IndexError):
+        dataset[3]
+    with pytest.raises(IndexError):
+        dataset[3] = (torch.tensor([9.0, 9.0]), 9.0, True)
+    with pytest.raises(IndexError):
+        dataset[2:4] = (torch.zeros(2, 2), torch.zeros(2), torch.zeros(2, dtype=torch.bool))
+    with pytest.raises(TypeError):
+        dataset[torch.tensor([0, 1])] = (torch.zeros(2, 2), torch.zeros(2), torch.zeros(2, dtype=torch.bool))

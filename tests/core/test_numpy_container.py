@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from mushroom_rl.core._impl.containers.numpy_container import NumpyContainer
 
@@ -92,6 +93,20 @@ def test_numpy_container_append_batch():
     assert np.array_equal(a.column(1), np.array([0.0, 1.0, 2.0]))
 
 
+def test_numpy_container_setitem_overwrites_stored_rows():
+    dataset = make_dataset()
+    for i in range(3):
+        dataset.append(np.array([i, i]), float(i), False)
+
+    dataset[1] = (np.array([10.0, 11.0]), 10.0, True)
+    dataset[0:3:2] = (np.array([[20.0, 21.0], [22.0, 23.0]]), np.array([20.0, 22.0]), np.array([True, False]))
+
+    assert len(dataset) == 3
+    assert np.array_equal(dataset.column(0), np.array([[20.0, 21.0], [10.0, 11.0], [22.0, 23.0]]))
+    assert np.array_equal(dataset.column(1), np.array([20.0, 10.0, 22.0]))
+    assert np.array_equal(dataset.column(2), np.array([True, True, False]))
+
+
 def test_numpy_container_capacity():
     dataset = make_dataset(capacity=5)
     dataset.append(np.array([0.0, 0.0]), 0.0, False)
@@ -173,3 +188,20 @@ def test_numpy_container_truncates_to_n_envs():
     dataset.append(np.array([1.0, 2.0, 3.0]))
 
     assert np.array_equal(dataset.column(0), np.array([[10.0, 20.0], [1.0, 2.0]]))
+
+
+def test_numpy_container_indexing_is_bounded_by_the_stored_rows():
+    dataset = make_dataset()
+    for i in range(3):
+        dataset.append(np.array([i, i]), float(i), False)
+
+    assert dataset[-1][1] == 2.0
+    assert np.array_equal(dataset[1:8][1], np.array([1.0, 2.0]))
+    with pytest.raises(IndexError):
+        dataset[3]
+    with pytest.raises(IndexError):
+        dataset[3] = (np.array([9.0, 9.0]), 9.0, True)
+    with pytest.raises(IndexError):
+        dataset[2:4] = (np.zeros((2, 2)), np.zeros(2), np.zeros(2, dtype=bool))
+    with pytest.raises(TypeError):
+        dataset[np.array([0, 1])] = (np.zeros((2, 2)), np.zeros(2), np.zeros(2, dtype=bool))

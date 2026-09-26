@@ -22,6 +22,11 @@ class ListContainer(Container, backend='list'):
     def __getitem__(self, index):
         return tuple(column[index] for column in self._columns)
 
+    def __setitem__(self, index, values):
+        rows = self._check_rows(index)
+        for column, value in zip(self._columns, values):
+            column[rows] = deepcopy(value)
+
     def __add__(self, other):
         result = self.create_new_instance(self)
 

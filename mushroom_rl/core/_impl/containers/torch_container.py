@@ -24,7 +24,15 @@ class TorchContainer(Container, backend='torch'):
         return self._len
 
     def __getitem__(self, index):
-        return tuple(array[index] for array in self._arrays)
+        rows = self._resolve_rows(index)
+        if rows is None:
+            return tuple(array[:self._len][index] for array in self._arrays)
+        return tuple(array[rows] for array in self._arrays)
+
+    def __setitem__(self, index, values):
+        rows = self._check_rows(index)
+        for array, value in zip(self._arrays, values):
+            array[rows] = value
 
     def __add__(self, other):
         result = self.create_new_instance(self)

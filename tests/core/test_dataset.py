@@ -1,8 +1,10 @@
 import numpy as np
+import pytest
 import torch
 
 from mushroom_rl.core import Agent, Core, Dataset, MDPInfo, VectorizedEnvironment
 from mushroom_rl.core.spaces import Box
+from mushroom_rl.core.dataset_info import DatasetInfo
 from mushroom_rl.core.extra_info import ExtraInfo
 from mushroom_rl.core._impl.layout import StreamLayout, CodedLayout
 from mushroom_rl.core._impl.history_state import HistoryState
@@ -655,3 +657,19 @@ def test_history_state_takes_boolean_row_masks():
     for view in (torch_view, numpy_view):
         assert torch.equal(view.positions, torch.tensor([1]))
         assert torch.equal(view.windows('obs_history'), torch.tensor([[2.]]))
+
+
+def test_integer_index_reads_only_the_stored_steps():
+    info = DatasetInfo(env_backend='numpy', agent_backend='numpy', env_device=None, agent_device=None, horizon=10,
+                       gamma=0.9, state_shape=(1,), state_dtype=np.float64, action_shape=(1,),
+                       action_dtype=np.float64, policy_state_shape=None)
+    dataset = Dataset(info, n_steps=10)
+    for value in (1., 2., 3.):
+        dataset.append((np.array([value]), np.zeros(1), value, np.array([value]), False, value == 3.), {})
+
+    assert dataset[-1][0][0] == 3.
+    assert dataset[-3][0][0] == 1.
+    with pytest.raises(IndexError):
+        dataset[3]
+    with pytest.raises(IndexError):
+        dataset[-4]
