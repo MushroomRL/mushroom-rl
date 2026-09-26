@@ -1,4 +1,5 @@
-from mushroom_rl.core import DatasetInfo, Dataset, MushroomObject
+from mushroom_rl.core import DatasetInfo, MushroomObject
+from mushroom_rl.core.circular_dataset import CircularDataset
 from mushroom_rl.core.history_manager import HistoryManager
 
 
@@ -31,6 +32,8 @@ class ReplayMemory(MushroomObject):
         """
         assert agent_info.backend in ["numpy", "torch"], \
             f"{agent_info.backend} backend currently not supported in the replay memory class."
+        assert initial_size >= n_steps_return, \
+            f"The initial size {initial_size} is smaller than the {n_steps_return} steps of the n-step return."
 
         self._initial_size = initial_size
         self._max_size = max_size
@@ -42,8 +45,6 @@ class ReplayMemory(MushroomObject):
         self._mdp_info = mdp_info
         self._agent_info = agent_info
 
-        self._idx = 0
-        self._full = False
         self._dataset = None
         self.reset()
 
@@ -56,8 +57,6 @@ class ReplayMemory(MushroomObject):
             _return_extra='primitive',
             _mdp_info='mushroom',
             _agent_info='mushroom',
-            _idx='primitive!',
-            _full='primitive!',
             _dataset='mushroom!',
         )
 
@@ -72,8 +71,7 @@ class ReplayMemory(MushroomObject):
         assert not self._dataset.is_stateful or dataset.is_stateful, \
             "The replay memory is configured to store the policy state, but the dataset does not provide it."
 
-        dataset = dataset.to_backend(self._agent_info.backend, device=self._agent_info.device)
-        self._write_to_buffer(dataset)
+        self._dataset.append_replay_batch(dataset)
 
     def get(self, n_samples):
         """
@@ -94,11 +92,9 @@ class ReplayMemory(MushroomObject):
         Reset the replay memory.
 
         """
-        self._idx = 0
-        self._full = False
         dataset_info = DatasetInfo.create_replay_memory_info(self._mdp_info, self._agent_info,
                                                              self._store_policy_state)
-        self._dataset = Dataset(dataset_info, n_steps=self._max_size)
+        self._dataset = CircularDataset(dataset_info, self._max_size)
 
     @property
     def size(self):
@@ -107,7 +103,7 @@ class ReplayMemory(MushroomObject):
             The number of elements contained in the replay memory.
 
         """
-        return self._idx if not self._full else self._max_size
+        return self._dataset.size
 
     @property
     def initialized(self):
@@ -133,16 +129,14 @@ class ReplayMemory(MushroomObject):
 
         """
         ds = self._dataset
-        size = len(ds)
         if self._n_steps_return > 1:
-            state, action, reward, next_state, absorbing, last, extra = \
-                self._history_manager.parse_nstep_history_circular_buffer(
-                    ds, idxs, self._mdp_info.gamma, self._n_steps_return, size, self._full, self._max_size, self._idx)
+            state, action, reward, next_state, absorbing, last, extra = self._history_manager.parse_nstep_history(
+                ds, self._mdp_info.gamma, self._n_steps_return, anchor_idxs=idxs)
             anchor = extra.pop('anchor')
             endpoint = extra.pop('endpoint')
         else:
-            state, action, reward, next_state, absorbing, last, extra = \
-                self._history_manager.parse_history_circular_buffer(ds, idxs, size, self._full, self._max_size)
+            state, action, reward, next_state, absorbing, last, extra = self._history_manager.parse_history(
+                ds, anchor_idxs=idxs)
             anchor = endpoint = idxs
 
         policy_state = [ds.policy_state[anchor], ds.policy_next_state[endpoint]] if ds.is_stateful else []
@@ -174,14 +168,19 @@ class ReplayMemory(MushroomObject):
         valid = idxs[~self._compute_mask(idxs)]
         return valid[backend.randint(0, len(valid), (n_samples,), device=self._agent_info.device)]
 
-    def _affected_window(self, positions):
+    def _affected_window(self, start, n_written, relinked, orphans):
         """
-        The buffer positions whose sampling mask can change after a batch was written at ``positions``: the newly
-        written anchors, their forward n-step window (the ``n-1`` anchors ending in the new batch) and the backward
-        history reserve that trails the moved write head. Every other entry keeps its mask.
+        Find the buffer positions whose sampling mask can change after a batch was written from ``start``: the newly
+        written anchors, their forward n-step window (the ``n-1`` anchors ending in the new batch), the backward
+        history reserve that trails the moved write head, for every open episode end the batch continued away
+        from the write head the ``n-1`` anchors ending there and, for every stored step whose previous step was
+        overwritten, that step and the steps whose history window reaches it. Every other entry keeps its mask.
 
         Args:
-            positions: the buffer positions where the last batch was written.
+            start (int): the write head before the batch was written;
+            n_written (int): the number of rows of the batch;
+            relinked (list): the buffer positions of the open episode ends the batch continued;
+            orphans: the buffer positions of the stored steps whose previous step was overwritten.
 
         Returns:
             The affected buffer positions, or ``None`` when no masking is in use.
@@ -192,19 +191,26 @@ class ReplayMemory(MushroomObject):
 
         backend = self._dataset.array_backend
         size = len(self._dataset)
-        history_reserve = self._history_manager.max_reach if self._full else 0
-        window_length = len(positions) + (self._n_steps_return - 1) + history_reserve
+        full = self._dataset.full
+        history_reserve = self._history_manager.max_reach if full else 0
+        window_length = n_written + (self._n_steps_return - 1) + history_reserve
         range_vec = backend.arange(0, window_length, device=self._agent_info.device)
-        raw = (positions[0] - (self._n_steps_return - 1)) + range_vec
-        if self._full:
-            return raw % self._max_size
-        return raw[(raw >= 0) & (raw < size)]
+        raw = (start - (self._n_steps_return - 1)) + range_vec
+        window = raw % self._max_size if full else raw[(raw >= 0) & (raw < size)]
+        if len(relinked) > 0 and self._dataset.links is not None:
+            ends = backend.as_array(relinked, device=self._agent_info.device)
+            reached = self._dataset.walk_back(ends, self._n_steps_return - 1)[0]
+            window = backend.concatenate([window, reached.T.reshape(-1)])
+        if len(orphans) > 0 and self._history_manager.max_reach > 0:
+            reached = self._dataset.walk_forward(orphans, self._history_manager.max_reach - 1)[0]
+            window = backend.concatenate([window, reached.T.reshape(-1)])
+        return window
 
     def _compute_mask(self, anchor_idxs):
         """
         Compute the sampling mask for a batch of anchors: True where the anchor cannot be sampled because its n-step
         window would cross a truncation or the write head, or because its backward history window would cross the write
-        head of a full buffer.
+        head of a full buffer or reach an overwritten step.
 
         Args:
             anchor_idxs: buffer positions of the anchors to evaluate.
@@ -215,86 +221,18 @@ class ReplayMemory(MushroomObject):
         """
         backend = self._dataset.array_backend
         mask = backend.zeros(len(anchor_idxs), dtype=bool, device=self._agent_info.device)
+        ds = self._dataset
         if self._n_steps_return > 1:
-            valid = self._history_manager.nstep_valid_circular_buffer(
-                self._dataset.absorbing, self._dataset.last, anchor_idxs, self._n_steps_return,
-                len(self._dataset), self._full, self._max_size, self._idx)
+            valid = self._history_manager.nstep_valid(ds.absorbing, ds.last, anchor_idxs, self._n_steps_return,
+                                                      dataset=ds)
             mask = mask | ~valid
-        if self._history_manager.max_reach > 0 and self._full:
-            mask = mask | ((anchor_idxs - self._idx) % self._max_size < self._history_manager.max_reach)
+        if self._history_manager.max_reach > 0:
+            if ds.links is not None:
+                mask = mask | ds.history_cut(anchor_idxs, self._history_manager.max_reach)
+            elif ds.full:
+                mask = mask | ((anchor_idxs - ds.write_head) % self._max_size < self._history_manager.max_reach)
         return mask
 
-    def _write_to_buffer(self, dataset):
-        """
-        Write transitions from a dataset into the circular buffer.
-
-        Uses ``append_batch`` while the buffer still has capacity, then switches to
-        direct slice assignment once the buffer is full, wrapping around as needed.
-
-        Args:
-            dataset (Dataset): transitions to write.
-
-        Returns:
-            The buffer positions (indices into the circular buffer) where the
-            transitions were written.
-
-        """
-        n = len(dataset)
-        backend = self._dataset.array_backend
-        positions = (backend.arange(0, n, device=self._agent_info.device) + self._idx) % self._max_size
-
-        if not self._full:
-            remaining = self._max_size - len(self._dataset)
-            if n <= remaining:
-                self._dataset.append_batch(dataset)
-                self._idx += n
-                if self._idx == self._max_size:
-                    self._full = True
-                    self._idx = 0
-                return positions
-
-            self._dataset.append_batch(dataset[:remaining])
-            self._full = True
-            self._idx = 0
-            dataset = dataset[remaining:]
-            n -= remaining
-
-        end = self._idx + n
-        if end <= self._max_size:
-            self._dataset.state[self._idx:end] = dataset.state
-            self._dataset.action[self._idx:end] = dataset.action
-            self._dataset.reward[self._idx:end] = dataset.reward
-            self._dataset.next_state[self._idx:end] = dataset.next_state
-            self._dataset.absorbing[self._idx:end] = dataset.absorbing
-            self._dataset.last[self._idx:end] = dataset.last
-            if self._dataset.is_stateful:
-                self._dataset.policy_state[self._idx:end] = dataset.policy_state
-                self._dataset.policy_next_state[self._idx:end] = dataset.policy_next_state
-            self._idx = end % self._max_size
-        else:
-            first = self._max_size - self._idx
-            rest = n - first
-            self._dataset.state[self._idx:] = dataset.state[:first]
-            self._dataset.state[:rest] = dataset.state[first:]
-            self._dataset.action[self._idx:] = dataset.action[:first]
-            self._dataset.action[:rest] = dataset.action[first:]
-            self._dataset.reward[self._idx:] = dataset.reward[:first]
-            self._dataset.reward[:rest] = dataset.reward[first:]
-            self._dataset.next_state[self._idx:] = dataset.next_state[:first]
-            self._dataset.next_state[:rest] = dataset.next_state[first:]
-            self._dataset.absorbing[self._idx:] = dataset.absorbing[:first]
-            self._dataset.absorbing[:rest] = dataset.absorbing[first:]
-            self._dataset.last[self._idx:] = dataset.last[:first]
-            self._dataset.last[:rest] = dataset.last[first:]
-            if self._dataset.is_stateful:
-                self._dataset.policy_state[self._idx:] = dataset.policy_state[:first]
-                self._dataset.policy_state[:rest] = dataset.policy_state[first:]
-                self._dataset.policy_next_state[self._idx:] = dataset.policy_next_state[:first]
-                self._dataset.policy_next_state[:rest] = dataset.policy_next_state[first:]
-            self._idx = rest
-
-        return positions
-
     def _post_load(self):
-        if self._full is None:
+        if self._dataset is None:
             self.reset()

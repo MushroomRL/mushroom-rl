@@ -1,12 +1,18 @@
 import numpy as np
+import pytest
 import torch
 
-from mushroom_rl.core import Core, Dataset
+from mushroom_rl.core import Agent, Core, Dataset, MDPInfo, VectorizedEnvironment
+from mushroom_rl.core.spaces import Box
+from mushroom_rl.core.dataset_info import DatasetInfo
 from mushroom_rl.core.extra_info import ExtraInfo
 from mushroom_rl.algorithms.value import SARSA
 from mushroom_rl.environments import GridWorld
 from mushroom_rl.rl_utils.parameters import Parameter
-from mushroom_rl.policy import EpsGreedy
+from mushroom_rl.policy import EpsGreedy, StatefulPolicy
+
+from mushroom_rl.core._impl.layout import StreamLayout, CodedLayout
+from mushroom_rl.core._impl.history_state import HistoryState
 
 
 def generate_dataset(mdp, n_episodes):
@@ -51,7 +57,7 @@ def test_dataset():
     r_test = np.zeros(2)
     ss_test = np.array([[1], [2]])
     ab_test = np.zeros(2)
-    last_test = np.zeros(2)
+    last_test = np.ones(2)
     assert np.array_equal(s, s_test)
     assert np.array_equal(a, a_test)
     assert np.array_equal(r, r_test)
@@ -491,3 +497,187 @@ def test_to_backend_converts_the_extra_info():
     assert isinstance(converted.state, np.ndarray)
     assert isinstance(converted.info['x'], np.ndarray)
     assert np.array_equal(converted.info['x'], np.array([1., 2.]))
+
+
+def make_stream(states, lasts, continuing=False):
+    n = len(states)
+    states = np.array(states, dtype=float)[:, None]
+    return Dataset.from_array(states, np.zeros((n, 1)), np.zeros(n), states + 0.5, np.zeros(n, dtype=bool),
+                              np.array(lasts, dtype=bool), gamma=0.5, continuing=continuing)
+
+
+def test_walk_back_and_forward_stop_at_the_episode_ends():
+    dataset = make_stream([0, 1, 2, 3, 4, 5], [0, 0, 1, 0, 0, 1])
+
+    back, back_valid = dataset.walk_back(np.array([1, 4, 5]), 3)
+    forward, forward_valid = dataset.walk_forward(np.array([0, 3]), 3)
+
+    assert np.array_equal(back, np.array([[1, 0, 0, 0], [4, 3, 3, 3], [5, 4, 3, 3]]))
+    assert np.array_equal(back_valid, np.array([[True, True, False, False], [True, True, False, False],
+                                                [True, True, True, False]]))
+    assert np.array_equal(forward, np.array([[0, 1, 2, 2], [3, 4, 5, 5]]))
+    assert np.array_equal(forward_valid, np.array([[True, True, True, False], [True, True, True, False]]))
+
+
+def test_boundary_codes_are_stored_only_for_a_break():
+    stitched = make_stream([0, 1], [0, 0]) + make_stream([2], [1], continuing=True)
+    closed_then_fresh = make_stream([0, 1], [0, 1]) + make_stream([2], [1])
+    open_then_fresh = make_stream([0, 1], [0, 0]) + make_stream([2], [1])
+
+    assert isinstance(make_stream([0, 1, 2], [0, 0, 1])._layout, StreamLayout)
+    assert isinstance(stitched._layout, StreamLayout)
+    assert isinstance(closed_then_fresh._layout, StreamLayout)
+    assert isinstance(open_then_fresh._layout, CodedLayout)
+    assert np.array_equal(stitched.last_or_boundary, np.array([False, False, True]))
+    assert np.array_equal(closed_then_fresh.last_or_boundary, np.array([False, True, True]))
+    assert np.array_equal(open_then_fresh.last_or_boundary, np.array([False, True, True]))
+
+
+def test_contiguous_without_joins_is_the_dataset_itself():
+    dataset = make_stream([0, 1, 2], [0, 0, 1])
+    stitched = make_stream([0, 1], [0, 0]) + make_stream([2], [1], continuing=True)
+
+    assert dataset.contiguous() is dataset
+    assert stitched.contiguous() is stitched
+
+
+def test_to_backend_keeps_the_horizon_and_the_discount_factor():
+    dataset = Dataset.from_array(np.zeros((3, 2)), np.zeros((3, 1)), np.ones(3), np.zeros((3, 2)),
+                                 np.zeros(3, dtype=bool), np.array([False, False, True]), horizon=50, gamma=0.5)
+
+    converted = dataset.to_backend('torch')
+
+    assert converted._dataset_info.horizon == 50
+    assert converted._dataset_info.gamma == 0.5
+    assert torch.allclose(converted.discounted_return, torch.tensor([1.75]))
+
+
+def test_to_backend_returns_the_dataset_when_the_resolved_device_matches():
+    dataset = make_stream([0, 1, 2], [0, 0, 1]).to_backend('torch')
+
+    assert dataset.to_backend('torch', device='cpu') is dataset
+    assert dataset.to_backend('torch') is dataset
+
+
+def make_list_stream(states, lasts, continuing=False):
+    n = len(states)
+    states = list(np.array(states, dtype=float)[:, None])
+    return Dataset.from_array(states, [np.zeros(1)] * n, list(np.zeros(n)), states, [False] * n,
+                              [bool(last) for last in lasts], gamma=0.5, backend='list', continuing=continuing)
+
+
+def test_contiguous_of_a_joined_list_dataset():
+    joined = make_list_stream([1, 2, 3], [0, 1, 0]) + make_list_stream([5, 6], [1, 0])
+
+    glued = joined.contiguous()
+
+    assert np.array_equal(np.array(glued.state)[:, 0], np.array([1., 2., 3., 5., 6.]))
+    assert np.array_equal(glued.last_or_boundary, np.array([False, True, True, True, True]))
+
+
+def test_list_dataset_converted_to_torch_keeps_int8_boundary_codes():
+    joined = make_list_stream([0, 1], [0, 0]) + make_list_stream([2, 3], [0, 1])
+
+    converted = joined.to_backend('torch')
+    glued = converted.contiguous()
+
+    assert converted._layout.array().dtype == torch.int8
+    assert torch.equal(glued.state[:, 0], torch.tensor([0., 1., 2., 3.]))
+
+
+def test_history_state_takes_row_indices_from_another_device():
+    if not torch.cuda.is_available():
+        return
+
+    entries = HistoryState('numpy', None, np.array([0, 3]), {'obs_history': np.array([[1.], [2.]])})
+
+    view = entries.get_view(torch.tensor([3, 1], device='cuda'), 5)
+    kept = entries.drop(torch.tensor([0], device='cuda'), 5)
+
+    assert np.array_equal(view.positions, np.array([0]))
+    assert np.array_equal(view.windows('obs_history'), np.array([[2.]]))
+    assert np.array_equal(kept.positions, np.array([3]))
+    assert np.array_equal(kept.windows('obs_history'), np.array([[2.]]))
+
+
+class CudaCountingVecEnv(VectorizedEnvironment):
+    def __init__(self):
+        super().__init__(MDPInfo(Box(-1000, 1000, shape=(1,)), Box(-1000, 1000, shape=(1,)), 0.9, 100,
+                                 backend='torch', device='cuda'), 3)
+        self._s = torch.zeros(3, 1, device='cuda')
+        self._t = torch.zeros(3, device='cuda')
+
+    def reset_all(self, env_mask, state=None):
+        self._s[env_mask] = 100. * (1 + torch.arange(3, device='cuda')[env_mask, None].float())
+        self._t[env_mask] = 0
+        return self._s.clone(), [{}] * 3
+
+    def step_all(self, env_mask, action):
+        self._s[env_mask] += 1
+        self._t[env_mask] += 1
+        return self._s.clone(), torch.ones(3, device='cuda'), (self._t >= 4) & env_mask, [{}] * 3
+
+
+class StateTrackingPolicy(StatefulPolicy):
+    def __init__(self):
+        super().__init__((1,))
+
+    def reset_vectorized(self, start_mask):
+        self._policy_state = np.zeros((len(start_mask), 1))
+        return self._policy_state
+
+    def _draw_action(self, state, policy_state, **kwargs):
+        return state[:, :1], state[:, :1].copy()
+
+
+class FitCollectingAgent(Agent):
+    def __init__(self, mdp_info):
+        super().__init__(mdp_info, StateTrackingPolicy(), backend='numpy')
+        self.fits = list()
+
+    def fit(self, dataset):
+        self.fits.append(dataset)
+
+
+def test_policy_states_follow_row_indices_from_the_env_device():
+    if not torch.cuda.is_available():
+        return
+
+    env = CudaCountingVecEnv()
+    agent = FitCollectingAgent(env.info)
+    Core(agent, env).learn(n_steps=30, n_steps_per_fit=7, quiet=True)
+
+    view = agent.fits[1][torch.tensor([3, 0], device='cuda')]
+    glued = (agent.fits[1] + agent.fits[2]).contiguous()
+
+    assert np.array_equal(view.policy_next_state[:, 0], np.array([203., 103.]))
+    assert torch.equal(glued.state[:, 0].cpu(), torch.tensor([103., 100., 101., 102., 202., 203., 200., 201., 202.,
+                                                              302., 303., 300., 301., 302.]))
+    assert np.array_equal(glued.policy_next_state[:, 0], glued.state[:, 0].cpu().numpy())
+
+
+def test_history_state_takes_boolean_row_masks():
+    entries = HistoryState('torch', None, torch.tensor([0, 3]), {'obs_history': torch.tensor([[1.], [2.]])})
+
+    torch_view = entries.get_view(torch.tensor([False, True, False, True, True]), 5)
+    numpy_view = entries.get_view(np.array([False, True, False, True, True]), 5)
+
+    for view in (torch_view, numpy_view):
+        assert torch.equal(view.positions, torch.tensor([1]))
+        assert torch.equal(view.windows('obs_history'), torch.tensor([[2.]]))
+
+
+def test_integer_index_reads_only_the_stored_steps():
+    info = DatasetInfo(env_backend='numpy', agent_backend='numpy', env_device=None, agent_device=None, horizon=10,
+                       gamma=0.9, state_shape=(1,), state_dtype=np.float64, action_shape=(1,),
+                       action_dtype=np.float64, policy_state_shape=None)
+    dataset = Dataset(info, n_steps=10)
+    for value in (1., 2., 3.):
+        dataset.append((np.array([value]), np.zeros(1), value, np.array([value]), False, value == 3.), {})
+
+    assert dataset[-1][0][0] == 3.
+    assert dataset[-3][0][0] == 1.
+    with pytest.raises(IndexError):
+        dataset[3]
+    with pytest.raises(IndexError):
+        dataset[-4]

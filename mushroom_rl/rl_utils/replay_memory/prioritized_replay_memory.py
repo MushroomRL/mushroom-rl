@@ -62,15 +62,15 @@ class PrioritizedReplayMemory(ReplayMemory):
         assert not self._dataset.is_stateful or dataset.is_stateful, \
             "The replay memory is configured to store the policy state, but the dataset does not provide it."
 
-        dataset = dataset.to_backend(self._agent_info.backend, device=self._agent_info.device)
+        if len(dataset) > 0:
+            if p is None:
+                p = self._dataset.array_backend.full((len(dataset),), self.max_priority, device=self._agent_info.device)
 
-        if p is None:
-            p = self._dataset.array_backend.full((len(dataset),), self.max_priority, device=self._agent_info.device)
-
-        positions = self._write_to_buffer(dataset)
-        tree_idxs = ArrayBackend.convert(positions, to='numpy') + self._max_size - 1
-        self._tree.update(tree_idxs, ArrayBackend.convert(p, to='numpy'))
-        self._sync_tree_mask(self._affected_window(positions))
+            start = self._dataset.write_head
+            positions, relinked, orphans = self._dataset.append_replay_batch(dataset)
+            tree_idxs = ArrayBackend.convert(positions, to='numpy') + self._max_size - 1
+            self._tree.update(tree_idxs, ArrayBackend.convert(p, to='numpy'))
+            self._sync_tree_mask(self._affected_window(start, len(positions), relinked, orphans))
 
     def get(self, n_samples):
         """

@@ -1,6 +1,6 @@
 import numpy as np
 
-from .abstract_tiles import AbstractTiles
+from mushroom_rl.features.tiles.abstract_tiles import AbstractTiles
 
 
 class VoronoiTiles(AbstractTiles):

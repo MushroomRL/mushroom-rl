@@ -3,7 +3,7 @@ import torch.nn as nn
 
 from mushroom_rl.utils.torch_utils import TorchUtils
 
-from .constant_tensor import ConstantTensor
+from mushroom_rl.features.tensors.constant_tensor import ConstantTensor
 
 
 class RandomFourierTensor(nn.Module):

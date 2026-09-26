@@ -95,10 +95,14 @@ Reconstructing offline
 
 The same stacking rule is exposed offline through
 :meth:`~mushroom_rl.core.history_manager.HistoryManager.build_history`, which rebuilds one window per timestep
-from a stored buffer, walking backwards from each anchor up to the stream length and stopping at episode
-boundaries (given by the ``last`` flags) or at the start of the buffer, zero-padding the missing older entries.
-Feeding it the same dataset's ``state``, ``action`` and ``last`` columns reproduces *exactly* the windows
-assembled online:
+from a stored buffer, walking backwards from each anchor up to the stream length and stopping at segment
+boundaries (the ``last`` flags returned by :meth:`~mushroom_rl.core.Dataset.parse`: every episode end plus the end
+of every stored segment) or at the start of the buffer, zero-padding the missing older entries. Where a segment
+continues rows stored elsewhere, e.g. the first rows of an environment in a fit block, the dataset carries the
+stream entries that preceded it (:attr:`~mushroom_rl.core.Dataset.history_state`), and
+:meth:`~mushroom_rl.core.history_manager.HistoryManager.build_history` reads the older entries from them instead
+of zero-padding. Feeding it the same dataset's ``state``, ``action`` and parsed ``last`` columns reproduces
+*exactly* the windows assembled online:
 
 .. literalinclude:: code/history_manager.py
    :lines: 43-52
@@ -106,9 +110,7 @@ assembled online:
 The offline ``obs_history`` and ``action_history`` windows match the online ones step for step. The agent injects
 the manager into the replay memory (via :attr:`~mushroom_rl.core.Agent.history_manager`), and the memory rebuilds
 the stacked context for the sampled transitions with the same rule used to collect them, without ever storing the
-redundant stacked windows. The circular replay-buffer variant,
-:meth:`~mushroom_rl.core.history_manager.HistoryManager.build_history_circular_buffer`, does the same for a
-wrapped-around buffer, taking positions modulo the buffer size and stopping at the write head.
+redundant stacked windows.
 
 Parsing a dataset
 ------------------
@@ -120,8 +122,9 @@ whole dataset at once through
 absorbing, last, extra)``: ``state`` and ``next_state`` carry the stacked ``obs_history`` window (or the raw
 observation, unchanged, when the stream is not active) in place of the single-step observation, and ``extra`` maps
 every other active stream (e.g. ``action_history``) to its window, exactly as returned by
-:meth:`~mushroom_rl.core.history_manager.HistoryManager.__call__` while acting. ``action``, ``reward``, ``absorbing``
-and ``last`` are the raw per-transition values, not stacked. As with :meth:`~mushroom_rl.core.Dataset.parse`, the
+:meth:`~mushroom_rl.core.history_manager.HistoryManager.__call__` while acting. ``action``, ``reward`` and
+``absorbing`` are the raw per-transition values, not stacked, and ``last`` is the segment-end flag of
+:meth:`~mushroom_rl.core.Dataset.parse`. As with :meth:`~mushroom_rl.core.Dataset.parse`, the
 ``to`` argument picks the backend of the returned arrays, defaulting to the manager's own agent backend:
 
 .. literalinclude:: code/history_manager.py
@@ -130,6 +133,11 @@ and ``last`` are the raw per-transition values, not stacked. As with :meth:`~mus
 ``PPO_BPTT`` is one such algorithm: it calls :meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_history`
 once per ``fit`` to get the stacked states and previous-action windows of the whole collected dataset before
 slicing them into the truncated sequences it trains on.
+
+Both :meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_history` and
+:meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_nstep_history` (below) accept either a
+:class:`~mushroom_rl.core.Dataset` or the circular buffer of a replay memory. On the latter, ``anchor_idxs`` are
+buffer positions, and the windows follow each episode across the wrap-around and stop at the oldest row still stored.
 
 The n-step return over a dataset
 ---------------------------------
@@ -148,11 +156,9 @@ terminal transition instead of stitching in rewards from the next episode.
 With ``gamma`` 0.9 and ``n_steps_return`` 2, the reward of a transition becomes ``r_t + 0.9 * r_{t+1}`` and its
 endpoint is ``t + 1``. Only the transitions whose n-step return is well-defined are returned: the last transition of
 the dataset has no further step to look ahead to, so it is dropped (its surviving anchor index is returned under
-``extra['anchor']``). This is the same computation
-:class:`~mushroom_rl.rl_utils.replay_memory.ReplayMemory` performs (through
-:meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_nstep_history_circular_buffer`, its circular-buffer
-counterpart) when it is built with ``n_steps_return`` greater than 1, so that n-step DQN-style targets and history
-stacking compose transparently.
+``extra['anchor']``). :class:`~mushroom_rl.rl_utils.replay_memory.ReplayMemory` performs this same parse at the
+sampled positions when it is built with ``n_steps_return`` greater than 1, so that n-step DQN-style targets and
+history stacking compose transparently.
 
 Sequence vs. window
 -------------------

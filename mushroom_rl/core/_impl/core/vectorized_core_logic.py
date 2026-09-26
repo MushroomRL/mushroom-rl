@@ -1,4 +1,5 @@
-from mushroom_rl.core import ArrayBackend
+from mushroom_rl.core.array_backend import ArrayBackend
+
 from .core_logic import CoreLogic
 
 
@@ -102,14 +103,6 @@ class VectorizedCoreLogic(CoreLogic):
         else:
             return last
 
-    def _reset_counters(self):
-        super()._reset_counters()
-        self._running_envs = self._array_backend.zeros(self._n_envs, dtype=bool, device=self._device)
-        self._n_active_envs = 0
-        self._n_reset_envs = 0
-        self._n_completed_episodes = 0
-        self._started_counter = 0
-
     @property
     def converter(self):
         return self._array_backend
@@ -121,3 +114,11 @@ class VectorizedCoreLogic(CoreLogic):
     @property
     def n_reset_envs(self):
         return self._n_reset_envs
+
+    def _reset_counters(self):
+        super()._reset_counters()
+        self._running_envs = self._array_backend.zeros(self._n_envs, dtype=bool, device=self._device)
+        self._n_active_envs = 0
+        self._n_reset_envs = 0
+        self._n_completed_episodes = 0
+        self._started_counter = 0

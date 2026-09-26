@@ -84,6 +84,14 @@ class CoreLogic(object):
         self._steps_progress_bar.close()
         self._episodes_progress_bar.close()
 
+    @property
+    def n_steps_per_fit(self):
+        return self._n_steps_per_fit
+
+    @property
+    def n_episodes_per_fit(self):
+        return self._n_episodes_per_fit
+
     def _reset_counters(self):
         self._total_episodes_counter = 0
         self._total_steps_counter = 0
@@ -101,11 +109,3 @@ class CoreLogic(object):
 
     def _fit_episodes_condition(self):
         return self._current_episodes_counter >= self._n_episodes_per_fit
-
-    @property
-    def n_steps_per_fit(self):
-        return self._n_steps_per_fit
-
-    @property
-    def n_episodes_per_fit(self):
-        return self._n_episodes_per_fit

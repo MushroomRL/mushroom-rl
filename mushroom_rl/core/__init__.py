@@ -6,7 +6,9 @@ from .vectorized_env import VectorizedEnvironment
 from .multiprocess_environment import MultiprocessEnvironment
 from .agent import Agent, AgentInfo, HasNextAction
 from .core import Core
-from .dataset import Dataset, VectorizedDataset, DatasetInfo
+from .dataset import Dataset
+from .vectorized_dataset import VectorizedDataset
+from .dataset_info import DatasetInfo
 from .extra_info import ExtraInfo
 from .logger import Logger
 

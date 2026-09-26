@@ -1,7 +1,9 @@
 import numpy as np
+import pytest
 import torch
 
-from mushroom_rl.core.dataset import DatasetInfo, VectorizedDataset
+from mushroom_rl.core.dataset_info import DatasetInfo
+from mushroom_rl.core.vectorized_dataset import VectorizedDataset
 
 
 def make_info():
@@ -45,7 +47,7 @@ def test_vectorized_dataset_clear_residual_carry():
     dataset = VectorizedDataset(make_info(), n_steps=10)
     append_steps(dataset, 3)
 
-    dataset.consume(5)
+    dataset.flatten(5)
     n_carry = dataset.clear(keep_leftovers=True)
 
     assert int(n_carry) == 1
@@ -56,7 +58,7 @@ def test_vectorized_dataset_clear_residual_carry():
     assert np.array_equal(dataset.state[0], np.full((2, 2), 2.0))
 
 
-def test_vectorized_dataset_flatten_closes_every_environment_block():
+def test_vectorized_dataset_flatten_keeps_last_untouched_at_block_ends():
     info = DatasetInfo(env_backend='numpy', agent_backend='numpy', env_device=None, agent_device=None,
                        horizon=10, gamma=0.9, state_shape=(1,), state_dtype=np.float64,
                        action_shape=(1,), action_dtype=np.float64, policy_state_shape=None, n_envs=3)
@@ -72,8 +74,7 @@ def test_vectorized_dataset_flatten_closes_every_environment_block():
     flat = dataset.flatten()
 
     assert np.array_equal(np.asarray(flat.reward), np.array([0., 10., 20., 30., 1., 11., 2., 12., 22.]))
-    assert np.array_equal(np.asarray(flat.last).astype(bool),
-                          np.array([False, False, False, True, False, True, False, False, True]))
+    assert np.array_equal(np.asarray(flat.last).astype(bool), np.zeros(9, dtype=bool))
 
 
 def test_vectorized_dataset_flatten_keeps_episode_ends_inside_a_block():
@@ -94,4 +95,85 @@ def test_vectorized_dataset_flatten_keeps_episode_ends_inside_a_block():
     flat = dataset.flatten()
 
     assert np.array_equal(np.asarray(flat.last).astype(bool),
-                          np.array([False, True, False, True, False, True, True, False, True]))
+                          np.array([False, True, False, False, False, False, True, False, False]))
+
+
+def make_infinite_horizon_info():
+    return DatasetInfo(env_backend='list', agent_backend='numpy', env_device=None, agent_device=None,
+                       horizon=np.inf, gamma=0.9, state_shape=(1,), state_dtype=np.float64,
+                       action_shape=(1,), action_dtype=np.float64, policy_state_shape=(1,), n_envs=2)
+
+
+def append_stateful_steps(dataset, n_steps):
+    mask = np.array([True, True])
+    for t in range(n_steps):
+        values = 10. * np.arange(2)[:, None] + t
+        step = (values, np.zeros((2, 1)), np.ones(2), values + 1, np.zeros(2, dtype=bool), np.zeros(2, dtype=bool),
+                values, values + 0.5)
+        dataset.append_vectorized(step, [{}, {}], mask)
+
+
+def test_infinite_horizon_flatten_keeps_the_policy_state_of_every_row():
+    dataset = VectorizedDataset(make_infinite_horizon_info(), n_steps=10)
+    append_stateful_steps(dataset, 3)
+
+    flat = dataset.flatten()
+    policy_state, policy_next_state = flat.parse_policy_state()
+
+    assert np.array_equal(np.asarray(flat.state)[:, 0], np.array([0., 1., 2., 10., 11., 12.]))
+    assert np.array_equal(policy_state[:, 0], np.array([0., 1., 2., 10., 11., 12.]))
+    assert np.array_equal(policy_next_state[:, 0], np.array([0.5, 1.5, 2.5, 10.5, 11.5, 12.5]))
+
+
+def test_join_with_an_empty_block_is_a_no_op():
+    dataset = VectorizedDataset(make_infinite_horizon_info(), n_steps=10)
+    append_stateful_steps(dataset, 3)
+    flat = dataset.flatten()
+    empty = VectorizedDataset(make_infinite_horizon_info(), n_steps=10).flatten()
+
+    accumulated = empty
+    accumulated += flat
+    extended = flat.copy()
+    extended += empty
+
+    for joined in (flat + empty, empty + flat, accumulated, extended):
+        assert np.array_equal(np.asarray(joined.state), np.asarray(flat.state))
+        assert np.array_equal(joined.parse_policy_state()[0], flat.parse_policy_state()[0])
+        assert np.array_equal(joined.parse()[5], flat.parse()[5])
+
+
+def test_only_consumed_datasets_can_be_joined():
+    first = VectorizedDataset(make_info(), n_steps=10)
+    second = VectorizedDataset(make_info(), n_steps=10)
+    append_steps(first, 2)
+    append_steps(second, 2)
+    consumed = first.consume()
+
+    with pytest.raises(AssertionError):
+        first + second
+    with pytest.raises(AssertionError):
+        consumed + second
+    with pytest.raises(AssertionError):
+        consumed.copy().append_batch(second)
+
+    extended = consumed.copy()
+    extended.append_batch(VectorizedDataset(make_info(), n_steps=10))
+    joined = consumed + second.consume()
+
+    assert len(extended) == 2
+    assert len(joined) == 4 and len(joined.flatten()) == 8
+
+
+def test_loaded_list_dataset_keeps_appending_per_environment(tmpdir):
+    dataset = VectorizedDataset(make_infinite_horizon_info(), n_steps=10)
+    append_stateful_steps(dataset, 3)
+    path = tmpdir / 'list_dataset.msh'
+
+    dataset.save(path)
+    loaded = VectorizedDataset.load(path)
+    append_stateful_steps(loaded, 1)
+    flat = loaded.flatten()
+
+    assert loaded._data.n_envs == 2
+    assert np.array_equal(np.asarray(flat.state)[:, 0], np.array([0., 1., 2., 0., 10., 11., 12., 10.]))
+    assert np.array_equal(flat.parse_policy_state()[0][:, 0], np.array([0., 1., 2., 0., 10., 11., 12., 10.]))

@@ -21,14 +21,23 @@ For Mushroom 2.1:
           action without calling the history manager, so the manager's buffer is not advanced on that step
         - subclass for complex per-stream specifications: the base handles only the `offset` option, delegate
           richer specs (strides, structured/general lookbacks) to a subclass
-        - support a list agent backend: the vectorized online path and every offline parse_* path raise, only
-          the single-env online path works. A list dataset handed to a numpy/torch agent is unaffected, since
-          parse_* converts it before walking it
+    * Support the list agent backend:
+        - ListHistoryManager subclass: per-env windows of arbitrary objects; decide the padding at episode start
+        - list windows in HistoryState / GridHistoryState
+        - offline parse_* on list datasets: walk on numeric copies of reward/absorbing/last, gather the rest by index
+        - then remove the NotImplementedError guards (add_stream, parse_nstep_history, Dataset.to_backend('list'))
+    * Register array backends from the class statement, as the dataset containers do, so adding a backend means
+      editing both. fix the similar issue with the to_<backend> method if possible
     * Improve replay memory:
-        - vectorize SequenceReplayMemory.get
-        - remove host-device sync each iteration (int(c_anchor)/int(boundary[...])) in SequenceReplayMemory for the frame-stacking path
+        - vectorize SequenceReplayMemory.get: build all sequences at once, removing the per-sample host-device syncs
+    * Richer device handling on load: allow choosing the device explicitly when loading an object, and set the
+      `_device` of every loaded object accordingly. Currently everything loads on the default device
     * vectorization of the TD policies: `EpsGreedy` and `Boltzmann` draw a single action regardless of the
       batch size, so a TD algorithm cannot run on a vectorized environment
+    * vectorization of the numpy policy gradient algorithms (REINFORCE, GPOMDP, eNAC):
+        - the parametric numpy policies (e.g. the Gaussian ones) draw a single action regardless of the batch size
+        - `PolicyGradient.fit` iterates the samples and splits episodes on the stored `last`, which on a flat
+          multi-env block runs one env's open episode into the next env's rows; it should use the parsed `last`
     * handle ExtraInfo correctly in ReplayMemory
       - currently ignored in circular-buffer phase; info is never read back during sampling
     * vectorized env rendering

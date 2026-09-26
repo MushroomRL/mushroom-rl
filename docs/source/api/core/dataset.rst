@@ -5,5 +5,14 @@ The ``Dataset`` stores the transitions collected while an agent interacts with a
 environment data and the agent (policy state) data in their respective backends. ``DatasetInfo`` carries the
 static information used to build it, and ``VectorizedDataset`` handles data collected from parallel environments.
 
+.. automodule:: mushroom_rl.core.dataset_info
+    :private-members:
+
 .. automodule:: mushroom_rl.core.dataset
+    :private-members:
+
+.. automodule:: mushroom_rl.core.circular_dataset
+    :private-members:
+
+.. automodule:: mushroom_rl.core.vectorized_dataset
     :private-members:

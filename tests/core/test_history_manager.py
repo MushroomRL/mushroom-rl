@@ -2,9 +2,10 @@ import pytest
 import torch
 import numpy as np
 
-from mushroom_rl.core import MDPInfo, AgentInfo, Dataset
+from mushroom_rl.core import Core, MDPInfo, AgentInfo, Dataset, Environment, VectorizedEnvironment, Agent
 from mushroom_rl.core.spaces import Box
 from mushroom_rl.core.history_manager import HistoryManager
+from mushroom_rl.policy import Policy
 from mushroom_rl.rl_utils.preprocessors import Preprocessor, StandardizationPreprocessor
 
 
@@ -19,6 +20,98 @@ def _make_infos(obs_shape=(2,), act_shape=(1,)):
 def _make_manager(history_length=3, obs_shape=(2,)):
     mdp_info, agent_info = _make_infos(obs_shape=obs_shape)
     return HistoryManager.default_streams(mdp_info, agent_info, history_length=history_length)
+
+
+class RecordingPolicy(Policy):
+    def __init__(self, history_length):
+        super().__init__()
+        self._history_length = history_length
+        self.windows = dict()
+        self.action_windows = dict()
+
+    def draw_action(self, state, **kwargs):
+        if self._history_length > 1:
+            windows = state if state.ndim == 3 else state[None]
+            frames = windows[:, -1]
+        else:
+            windows = state if state.ndim == 2 else state[None]
+            frames = windows
+        action_history = kwargs.get('action_history')
+        for i, frame in enumerate(frames):
+            self.windows[frame.tobytes()] = windows[i].copy()
+            if action_history is not None:
+                self.action_windows[frame.tobytes()] = np.asarray(action_history)[i].copy()
+        action = frames[:, 1:2].copy()
+        return action if state.ndim == windows.ndim else action[0]
+
+
+class BlockRecordingAgent(Agent):
+    def __init__(self, mdp_info, history_length=1, action_history_length=0):
+        super().__init__(mdp_info, RecordingPolicy(history_length), backend='numpy',
+                         history_length=history_length, action_history_length=action_history_length)
+        self.blocks = list()
+
+    def fit(self, dataset):
+        state = self._history_manager.parse_state(dataset)
+        extra = self._history_manager.parse_history(dataset)[6]
+        self.blocks.append(dict(dataset=dataset.copy(), parse_state=np.asarray(state),
+                                action_history=extra.get('action_history')))
+
+
+class CountingEnv(Environment):
+    def __init__(self, horizon):
+        mdp_info = MDPInfo(Box(0, 1e6, shape=(3,)), Box(-1e6, 1e6, shape=(1,)), 0.99, horizon)
+        self._t = -1
+        self._ep_t = 0
+        super().__init__(mdp_info)
+
+    def reset(self, state=None):
+        self._t += 1
+        self._ep_t = 0
+        return self._obs(), {}
+
+    def step(self, action):
+        self._t += 1
+        self._ep_t += 1
+        return self._obs(), 0., False, {}
+
+    def _obs(self):
+        return np.array([0., self._t, self._ep_t])
+
+
+class CountingVecEnv(VectorizedEnvironment):
+    def __init__(self, n_envs, horizon):
+        mdp_info = MDPInfo(Box(0, 1e6, shape=(3,)), Box(-1e6, 1e6, shape=(1,)), 0.99, horizon)
+        self._t = np.full(n_envs, -1.)
+        self._ep_t = np.zeros(n_envs)
+        super().__init__(mdp_info, n_envs)
+
+    def reset_all(self, env_mask, state=None):
+        self._t[env_mask] += 1
+        self._ep_t[env_mask] = 0
+        return self._obs(), [{}] * self._n_envs
+
+    def step_all(self, env_mask, action):
+        self._t[env_mask] += 1
+        self._ep_t[env_mask] += 1
+        return self._obs(), np.zeros(self._n_envs), np.zeros(self._n_envs, dtype=bool), [{}] * self._n_envs
+
+    def _obs(self):
+        return np.stack([np.arange(self._n_envs), self._t, self._ep_t], axis=1).astype(float)
+
+
+def mismatching_rows(agent):
+    mismatches = list()
+    for k, block in enumerate(agent.blocks):
+        states = np.asarray(block['dataset'].state)
+        for row in range(len(states)):
+            key = states[row].tobytes()
+            if not np.array_equal(agent.policy.windows[key], block['parse_state'][row]):
+                mismatches.append((k, row))
+            if block['action_history'] is not None and \
+                    not np.array_equal(agent.policy.action_windows[key], block['action_history'][row]):
+                mismatches.append((k, row))
+    return mismatches
 
 
 def test_history_length_property():
@@ -109,7 +202,7 @@ def test_online_offline_equivalence():
     last = np.zeros(5)
     last[-1] = 1.0
     anchors = np.arange(5)
-    offline = hm.build_history_circular_buffer('obs_history', states, last, anchors, size=5, full=False, max_size=50)
+    offline = hm.build_history('obs_history', states, last, anchors)
 
     assert offline.shape == (5, history_length, *obs_shape)
     assert np.allclose(online, offline)
@@ -131,8 +224,7 @@ def test_online_offline_equivalence_across_episodes():
         online.append(hm(states[t])[0])
     online = np.stack(online)
 
-    offline = hm.build_history_circular_buffer('obs_history', states, last, np.arange(5),
-                                               size=5, full=False, max_size=50)
+    offline = hm.build_history('obs_history', states, last, np.arange(5))
 
     assert np.allclose(online, offline)
     # the second episode (starting at index 3) is zero-padded, never stitched to the first episode
@@ -147,8 +239,7 @@ def test_build_history_batch_stops_at_episode_boundary():
     last[2] = 1.0
 
     hm = _make_manager(history_length=history_length, obs_shape=(2,))
-    offline = hm.build_history_circular_buffer('obs_history', states, last, np.array([4]),
-                                               size=5, full=False, max_size=50)
+    offline = hm.build_history('obs_history', states, last, np.array([4]))
 
     assert np.allclose(offline[0], np.array([[0.0, 0.0], states[3], states[4]]))
 
@@ -487,6 +578,27 @@ def test_parse_nstep_history_n_steps_return_one_matches_immediate_transition():
     assert np.array_equal(extra['endpoint'], np.arange(6))
 
 
+def test_parse_nstep_history_of_a_dataset_shorter_than_the_return():
+    hm = _make_manager(history_length=1, obs_shape=(1,))
+    two_rows = _make_dataset(np.array([[0.], [1.]]), np.zeros((2, 1)), np.ones(2), np.array([[1.], [2.]]),
+                             np.array([False, True]), np.array([False, True]))
+    one_row = _make_dataset(np.array([[0.]]), np.zeros((1, 1)), np.ones(1), np.array([[1.]]),
+                            np.array([True]), np.array([True]))
+
+    _, _, reward, _, _, _, extra = hm.parse_nstep_history(two_rows, gamma=0.5, n_steps_return=3)
+    _, _, indexed_reward, _, _, _, indexed_extra = hm.parse_nstep_history(two_rows, gamma=0.5, n_steps_return=3,
+                                                                          anchor_idxs=np.arange(2))
+    _, _, single_reward, _, _, _, single_extra = hm.parse_nstep_history(one_row, gamma=0.5, n_steps_return=2)
+
+    assert np.array_equal(extra['anchor'], np.array([0, 1]))
+    assert np.array_equal(extra['endpoint'], np.array([1, 1]))
+    assert np.array_equal(reward, np.array([1.5, 1.]))
+    assert np.array_equal(indexed_extra['anchor'], extra['anchor'])
+    assert np.array_equal(indexed_reward, reward)
+    assert np.array_equal(single_extra['anchor'], np.array([0]))
+    assert np.array_equal(single_reward, np.array([1.]))
+
+
 def test_parse_nstep_history_stops_at_episode_boundary():
     mdp_info, agent_info = _make_infos(obs_shape=(1,), act_shape=(1,))
     hm = HistoryManager.default_streams(mdp_info, agent_info)
@@ -570,8 +682,7 @@ def test_preprocessor_build_history_paths_agree():
     last = np.array([0.0, 0.0, 1.0, 0.0])
 
     flat_path = hm.build_history('obs_history', states, last)
-    gather_path = hm.build_history_circular_buffer('obs_history', states, last, np.arange(4), size=4, full=False,
-                                                   max_size=4)
+    gather_path = hm.build_history('obs_history', states, last, np.arange(4))
 
     assert np.allclose(flat_path, gather_path)
 
@@ -769,17 +880,17 @@ def test_parse_to_backend_changes_only_the_container_not_the_values():
     assert np.allclose(hm.parse_initial_state(dataset, to='torch').numpy(), hm.parse_initial_state(dataset))
 
     anchors = np.arange(3)
-    circular = hm.parse_history_circular_buffer(dataset, anchors, 3, False, 3, to='torch')[0]
+    circular = hm.parse_history(dataset, anchor_idxs=anchors, to='torch')[0]
     nstep = hm.parse_nstep_history(dataset, gamma=0.9, n_steps_return=2, to='torch')[0]
-    nstep_circular = hm.parse_nstep_history_circular_buffer(dataset, anchors, 0.9, 2, 3, False, 3, 0, to='torch')[0]
+    nstep_circular = hm.parse_nstep_history(dataset, gamma=0.9, n_steps_return=2, anchor_idxs=anchors, to='torch')[0]
 
     assert isinstance(circular, torch.Tensor)
     assert isinstance(nstep, torch.Tensor)
     assert isinstance(nstep_circular, torch.Tensor)
-    assert np.allclose(circular.numpy(), hm.parse_history_circular_buffer(dataset, anchors, 3, False, 3)[0])
+    assert np.allclose(circular.numpy(), hm.parse_history(dataset, anchor_idxs=anchors)[0])
     assert np.allclose(nstep.numpy(), hm.parse_nstep_history(dataset, gamma=0.9, n_steps_return=2)[0])
     assert np.allclose(nstep_circular.numpy(),
-                       hm.parse_nstep_history_circular_buffer(dataset, anchors, 0.9, 2, 3, False, 3, 0)[0])
+                       hm.parse_nstep_history(dataset, gamma=0.9, n_steps_return=2, anchor_idxs=anchors)[0])
 
 
 def test_parse_history_next_state_window_at_episode_start():
@@ -807,7 +918,7 @@ def test_parse_history_next_state_window_at_episode_start():
                                                       [12.0, 13.0, 14.0],
                                                       [13.0, 14.0, 15.0]]))
 
-    circular = hm.parse_history_circular_buffer(dataset, np.arange(5), 5, False, 5)[3]
+    circular = hm.parse_history(dataset, anchor_idxs=np.arange(5))[3]
 
     assert np.allclose(circular, next_state)
 
@@ -902,3 +1013,168 @@ def test_preprocessor_on_the_agent_device_parses_under_a_cpu_default():
 
     assert state.device.type == 'cuda'
     assert hm.preprocessors[0]._obs_runstand.mean.device.type == 'cuda'
+
+
+def test_sequential_parse_state_matches_the_online_window_across_fit_blocks():
+    env = CountingEnv(horizon=10)
+    agent = BlockRecordingAgent(env.info, history_length=3)
+    core = Core(agent, env)
+
+    core.learn(n_steps=40, n_steps_per_fit=8, quiet=True)
+
+    assert len(agent.blocks) == 5
+    assert mismatching_rows(agent) == []
+    assert np.array_equal(agent.blocks[1]['parse_state'][0], np.array([[0., 6., 6.], [0., 7., 7.], [0., 8., 8.]]))
+    assert np.array_equal(agent.blocks[1]['parse_state'][2], np.array([[0., 0., 0.], [0., 0., 0.], [0., 11., 0.]]))
+    assert len(agent.blocks[0]['dataset'].history_state) == 0
+    assert np.array_equal(agent.blocks[1]['dataset'].history_state.positions, np.array([0]))
+
+
+def test_sequential_one_step_blocks_continue_across_clear():
+    env = CountingEnv(horizon=10)
+    agent = BlockRecordingAgent(env.info, history_length=3)
+    core = Core(agent, env)
+
+    core.learn(n_steps=12, n_steps_per_fit=1, quiet=True)
+
+    assert len(agent.blocks) == 12
+    assert mismatching_rows(agent) == []
+    assert np.array_equal(agent.blocks[5]['parse_state'][0], np.array([[0., 3., 3.], [0., 4., 4.], [0., 5., 5.]]))
+    assert np.array_equal(agent.blocks[10]['parse_state'][0], np.array([[0., 0., 0.], [0., 0., 0.], [0., 11., 0.]]))
+
+
+def test_vectorized_parse_state_matches_the_online_window_across_fit_blocks():
+    env = CountingVecEnv(3, horizon=10)
+    agent = BlockRecordingAgent(env.info, history_length=3)
+    core = Core(agent, env)
+
+    core.learn(n_steps=81, n_steps_per_fit=27, quiet=True)
+
+    assert len(agent.blocks) == 3
+    assert mismatching_rows(agent) == []
+    assert np.array_equal(agent.blocks[1]['parse_state'][9], np.array([[1., 7., 7.], [1., 8., 8.], [1., 9., 9.]]))
+    assert np.array_equal(agent.blocks[1]['parse_state'][10], np.array([[0., 0., 0.], [0., 0., 0.], [1., 11., 0.]]))
+    assert np.array_equal(agent.blocks[1]['dataset'].history_state.positions, np.array([0, 9, 18]))
+
+
+def test_ragged_consume_gives_the_leftover_row_its_own_window():
+    env = CountingVecEnv(3, horizon=10)
+    agent = BlockRecordingAgent(env.info, history_length=3)
+    core = Core(agent, env)
+
+    core.learn(n_steps=100, n_steps_per_fit=25, quiet=True)
+
+    assert len(agent.blocks) == 4
+    assert mismatching_rows(agent) == []
+
+
+def test_episode_budget_leaves_environments_idle_without_breaking_the_windows():
+    env = CountingVecEnv(3, horizon=4)
+    agent = BlockRecordingAgent(env.info, history_length=3)
+    core = Core(agent, env)
+
+    core.learn(n_episodes=5, n_episodes_per_fit=2, quiet=True)
+
+    assert len(agent.blocks) == 2
+    assert mismatching_rows(agent) == []
+
+
+def test_action_history_window_at_a_block_start():
+    env = CountingVecEnv(2, horizon=10)
+    agent = BlockRecordingAgent(env.info, action_history_length=2)
+    core = Core(agent, env)
+
+    core.learn(n_steps=40, n_steps_per_fit=10, quiet=True)
+
+    assert len(agent.blocks) == 4
+    assert mismatching_rows(agent) == []
+    assert np.array_equal(agent.blocks[1]['action_history'][0], np.array([[3.], [4.]]))
+    assert np.array_equal(agent.blocks[1]['action_history'][5], np.array([[3.], [4.]]))
+
+
+def test_next_state_window_at_a_block_start():
+    env = CountingEnv(horizon=10)
+    agent = BlockRecordingAgent(env.info, history_length=3)
+    core = Core(agent, env)
+
+    core.learn(n_steps=16, n_steps_per_fit=8, quiet=True)
+
+    dataset = agent.blocks[1]['dataset']
+    state, _, _, next_state, _, _, _ = agent.history_manager.parse_history(dataset)
+
+    assert np.array_equal(next_state[0], np.array([[0., 7., 7.], [0., 8., 8.], [0., 9., 9.]]))
+    assert np.array_equal(next_state[1], np.array([[0., 8., 8.], [0., 9., 9.], [0., 10., 10.]]))
+    assert np.array_equal(state[1], next_state[0])
+
+
+def test_nstep_windows_at_a_block_start():
+    env = CountingEnv(horizon=10)
+    agent = BlockRecordingAgent(env.info, history_length=3)
+    core = Core(agent, env)
+
+    core.learn(n_steps=16, n_steps_per_fit=8, quiet=True)
+
+    dataset = agent.blocks[1]['dataset']
+    state, _, _, next_state, _, _, _ = agent.history_manager.parse_history(dataset)
+    nstep_state, _, _, nstep_next_state, _, _, extra = agent.history_manager.parse_nstep_history(
+        dataset, gamma=0.99, n_steps_return=2)
+
+    assert np.array_equal(extra['anchor'], np.array([0, 2, 3, 4, 5, 6]))
+    assert np.array_equal(nstep_state[0], np.array([[0., 6., 6.], [0., 7., 7.], [0., 8., 8.]]))
+    assert np.array_equal(nstep_state, state[extra['anchor']])
+    assert np.array_equal(nstep_next_state, next_state[extra['endpoint']])
+
+
+def test_attachment_survives_to_backend_concatenation_and_save_but_not_views(tmpdir):
+    env = CountingVecEnv(3, horizon=10)
+    agent = BlockRecordingAgent(env.info, history_length=3)
+    core = Core(agent, env)
+    core.learn(n_steps=81, n_steps_per_fit=27, quiet=True)
+
+    block = agent.blocks[1]['dataset']
+    window = block.history_state.windows('obs_history')
+
+    converted = block.to_backend('torch')
+    assert torch.equal(converted.history_state.positions, torch.tensor([0, 9, 18]))
+    assert torch.equal(converted.history_state.windows('obs_history'), torch.from_numpy(window))
+
+    assert len(block[1:].history_state) == 0
+
+    both = block + agent.blocks[2]['dataset']
+    assert np.array_equal(both.history_state.positions, np.array([0, 9, 18, 27, 36, 45]))
+
+    path = tmpdir / 'block.msh'
+    block.save(path)
+    loaded = Dataset.load(path)
+    assert np.array_equal(loaded.history_state.positions, block.history_state.positions)
+    assert np.array_equal(loaded.history_state.windows('obs_history'), window)
+    assert np.array_equal(agent.history_manager.parse_state(loaded), agent.blocks[1]['parse_state'])
+
+
+def test_stitching_concatenation_drops_the_attached_entry():
+    env = CountingEnv(horizon=10)
+    agent = BlockRecordingAgent(env.info, history_length=3)
+    core = Core(agent, env)
+    core.learn(n_steps=16, n_steps_per_fit=8, quiet=True)
+
+    first, second = agent.blocks[0]['dataset'], agent.blocks[1]['dataset']
+    both = first + second
+
+    assert len(second.history_state) == 1
+    assert len(both.history_state) == 0
+    assert np.array_equal(agent.history_manager.parse_state(both)[8], agent.blocks[1]['parse_state'][0])
+
+
+def test_manager_without_streams_attaches_no_history_entries():
+    cases = ((CountingEnv(horizon=100), [6., 7., 8., 9., 10., 11.]),
+             (CountingVecEnv(2, horizon=100), [3., 4., 5., 3., 4., 5.]))
+    for env, steps in cases:
+        agent = BlockRecordingAgent(env.info)
+        core = Core(agent, env)
+
+        core.learn(n_steps=12, n_steps_per_fit=6, quiet=True)
+        converted = agent.blocks[1]['dataset'].to_backend('list')
+
+        assert agent.history_manager.history_context() is None
+        assert [len(block['dataset'].history_state) for block in agent.blocks] == [0, 0]
+        assert [state[1] for state in converted.state] == steps

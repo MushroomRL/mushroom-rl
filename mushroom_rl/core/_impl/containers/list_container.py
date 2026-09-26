@@ -1,9 +1,9 @@
 from copy import deepcopy
 
-from mushroom_rl.core.mushroom_object import MushroomObject
+from .container import Container
 
 
-class ListDataset(MushroomObject):
+class ListContainer(Container, backend='list'):
     """
     Growable storage using plain Python lists. It grows without pre-allocation (which allows collecting episodes of
     unbounded/infinite horizon) and can hold ragged or non-array content. Holds an ordered list of equal-length columns
@@ -21,6 +21,11 @@ class ListDataset(MushroomObject):
 
     def __getitem__(self, index):
         return tuple(column[index] for column in self._columns)
+
+    def __setitem__(self, index, values):
+        rows = self._check_rows(index)
+        for column, value in zip(self._columns, values):
+            column[rows] = deepcopy(value)
 
     def __add__(self, other):
         result = self.create_new_instance(self)
@@ -85,7 +90,7 @@ class ListDataset(MushroomObject):
         Creates an empty instance of the dataset and populates essential data structures.
 
         Args:
-            dataset (ListDataset, None): a template dataset to be used to create the new instance.
+            dataset (ListContainer, None): a template dataset to be used to create the new instance.
 
         Returns:
             A new empty instance of the dataset.
@@ -99,14 +104,6 @@ class ListDataset(MushroomObject):
         new_dataset._add_all_save_attr()
 
         return new_dataset
-
-    @classmethod
-    def from_array(cls, arrays):
-        dataset = cls.create_new_instance()
-
-        dataset._columns = [list(array) for array in arrays]
-
-        return dataset
 
     @property
     def data(self):
@@ -126,5 +123,18 @@ class ListDataset(MushroomObject):
 
     def _add_all_save_attr(self):
         self._add_save_attr(
-            _columns='pickle'
+            _columns='pickle',
+            _n_envs='primitive'
         )
+
+    @classmethod
+    def _allocate(cls, shapes, dtypes, device, n_envs):
+        return cls(len(shapes), n_envs=n_envs)
+
+    @classmethod
+    def _from_array_impl(cls, arrays, device):
+        dataset = cls.create_new_instance()
+
+        dataset._columns = [list(array) for array in arrays]
+
+        return dataset

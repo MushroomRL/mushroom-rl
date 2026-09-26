@@ -4,11 +4,12 @@ import pytest
 import torch
 
 from mushroom_rl.features import Features
-from mushroom_rl.features._impl import BasisFeatures, TilesFeatures, TorchFeatures, FunctionalFeatures
 from mushroom_rl.features.tiles import Tiles, VoronoiTiles
 from mushroom_rl.features.basis import GaussianRBF, FourierBasis, PolynomialBasis
 from mushroom_rl.features.tensors import GaussianRBFTensor, VonMisesTensor, RandomFourierTensor, ConstantTensor
 from mushroom_rl.utils.torch_utils import TorchUtils
+
+from mushroom_rl.features._impl import BasisFeatures, TilesFeatures, TorchFeatures, FunctionalFeatures
 
 
 def test_tiles():

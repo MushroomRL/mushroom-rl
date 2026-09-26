@@ -582,6 +582,22 @@ class ArrayBackend(object):
         """
         raise NotImplementedError
 
+    @classmethod
+    def concatenate_arrays(cls, list_of_arrays, dim=0):
+        """
+        :meth:`concatenate` for numeric arrays: the result is an array even when this backend stores its data as
+        lists.
+
+        Args:
+            list_of_arrays: a list of numeric arrays to concatenate;
+            dim (int, 0): dimension along which the arrays are concatenated.
+
+        Returns:
+            The arrays in ``list_of_arrays`` concatenated along ``dim``.
+
+        """
+        return cls.concatenate(list_of_arrays, dim)
+
     @staticmethod
     def flatten(array):
         """
@@ -743,6 +759,19 @@ class ArrayBackend(object):
         raise NotImplementedError
 
     @staticmethod
+    def cumsum(array, dim=0):
+        """
+        Args:
+            array: an array;
+            dim (int, 0): dimension along which the cumulative sum is computed.
+
+        Returns:
+            The cumulative sum of ``array`` along ``dim``.
+
+        """
+        raise NotImplementedError
+
+    @staticmethod
     def median(array):
         """
         Args:
@@ -750,6 +779,18 @@ class ArrayBackend(object):
 
         Returns:
             The median of the elements of ``array``.
+
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def argsort(array):
+        """
+        Args:
+            array: a one-dimensional array.
+
+        Returns:
+            The indices that sort ``array`` in ascending order, equal elements keeping their order.
 
         """
         raise NotImplementedError
@@ -1095,8 +1136,16 @@ class NumpyBackend(ArrayBackend):
         return np.sum(array, axis=dim)
 
     @staticmethod
+    def cumsum(array, dim=0):
+        return np.cumsum(array, axis=dim)
+
+    @staticmethod
     def median(array):
         return np.median(array)
+
+    @staticmethod
+    def argsort(array):
+        return np.argsort(array, kind='stable')
 
     @staticmethod
     def max(array, dim=None):
@@ -1353,8 +1402,16 @@ class TorchBackend(ArrayBackend):
         return torch.sum(array, dim=dim)
 
     @staticmethod
+    def cumsum(array, dim=0):
+        return torch.cumsum(array, dim=dim)
+
+    @staticmethod
     def median(array):
         return array.median()
+
+    @staticmethod
+    def argsort(array):
+        return torch.argsort(array, stable=True)
 
     @staticmethod
     def max(array, dim=None):
@@ -1549,6 +1606,10 @@ class ListBackend(ArrayBackend):
             result += list(array)
         return result
 
+    @classmethod
+    def concatenate_arrays(cls, list_of_arrays, dim=0):
+        return NumpyBackend.concatenate(list_of_arrays, dim)
+
     @staticmethod
     def flatten(array):
         n_steps = len(array)
@@ -1599,8 +1660,16 @@ class ListBackend(ArrayBackend):
         return NumpyBackend.sum(array, dim)
 
     @staticmethod
+    def cumsum(array, dim=0):
+        return NumpyBackend.cumsum(array, dim)
+
+    @staticmethod
     def median(array):
         return NumpyBackend.median(array)
+
+    @staticmethod
+    def argsort(array):
+        return NumpyBackend.argsort(array)
 
     @staticmethod
     def max(array, dim=None):
