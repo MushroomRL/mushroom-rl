@@ -3,11 +3,12 @@ import pytest
 import torch
 
 from mushroom_rl.core import Agent, ArrayBackend, Core, VectorizedEnvironment, MDPInfo, Box
-from mushroom_rl.core._impl.core import VectorizedCoreLogic
 from mushroom_rl.core.core import SequentialCore
 from mushroom_rl.policy import Policy
 from mushroom_rl.rl_utils.preprocessors import Preprocessor
 from mushroom_rl.utils import TorchUtils
+
+from mushroom_rl.core._impl.core import VectorizedCoreLogic
 
 
 class DummyPolicy(Policy):

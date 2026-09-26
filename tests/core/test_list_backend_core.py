@@ -2,11 +2,12 @@ import numpy as np
 import pytest
 
 from mushroom_rl.core import Agent, AgentInfo, Core, Dataset, Environment, VectorizedEnvironment, MDPInfo, Box
-from mushroom_rl.core._impl.history_state import HistoryState
 from mushroom_rl.core.history_manager import HistoryManager
 from mushroom_rl.environments import Gymnasium
 from mushroom_rl.policy import Policy
 from mushroom_rl.rl_utils.preprocessors import Preprocessor
+
+from mushroom_rl.core._impl.history_state import HistoryState
 
 
 def dummy_agent(mdp_info, action_fn):

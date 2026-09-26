@@ -1,8 +1,9 @@
 import numpy as np
 import torch
 
-from .container import Container
 from mushroom_rl.utils.torch_utils import TorchUtils
+
+from .container import Container
 
 
 class TorchContainer(Container, backend='torch'):

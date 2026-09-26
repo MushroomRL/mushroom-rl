@@ -6,12 +6,13 @@ from mushroom_rl.core import Agent, Core, Dataset, MDPInfo, VectorizedEnvironmen
 from mushroom_rl.core.spaces import Box
 from mushroom_rl.core.dataset_info import DatasetInfo
 from mushroom_rl.core.extra_info import ExtraInfo
-from mushroom_rl.core._impl.layout import StreamLayout, CodedLayout
-from mushroom_rl.core._impl.history_state import HistoryState
 from mushroom_rl.algorithms.value import SARSA
 from mushroom_rl.environments import GridWorld
 from mushroom_rl.rl_utils.parameters import Parameter
 from mushroom_rl.policy import EpsGreedy, StatefulPolicy
+
+from mushroom_rl.core._impl.layout import StreamLayout, CodedLayout
+from mushroom_rl.core._impl.history_state import HistoryState
 
 
 def generate_dataset(mdp, n_episodes):

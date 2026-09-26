@@ -1,8 +1,9 @@
 from mushroom_rl.core.array_backend import ArrayBackend
+from mushroom_rl.core.dataset import Dataset
+
 from ._impl.containers import Container
 from ._impl.layout import EpisodeLayout, CodedLayout
 from ._impl.history_state import GridHistoryState
-from mushroom_rl.core.dataset import Dataset
 
 
 class VectorizedDataset(Dataset):
