@@ -1,3 +1,4 @@
+from mushroom_rl.core import ArrayBackend
 from mushroom_rl.core._impl.extra_info import StepInfo, EpisodeInfo
 import pytest
 import torch
@@ -776,6 +777,20 @@ def test_episode_info_merges_environment_by_environment():
     first += second
 
     assert first.episodes == [[0., 2.], [1., 3., 5.]]
+
+
+@pytest.mark.parametrize('backend', ['numpy', 'torch'])
+def test_episode_info_masked_append_keeps_the_environment_order(backend):
+    array = ArrayBackend.get_array_backend(backend)
+    info = EpisodeInfo(3, backend)
+
+    info.append({'ep': array.from_list([0., 1., 2.])}, array.from_list([True, False, True]))
+    info.append({'ep': array.from_list([10., 11., 12.])}, array.from_list([False, True, True]))
+    info.append({'ep': array.from_list([20., 21., 22.])}, array.from_list([False, False, False]))
+
+    assert len(info) == 4
+    assert array.to_list(info.parse()['ep']) == [0., 11., 2., 12.]
+    assert [[e['ep'].item() for e in episodes] for episodes in info.episodes] == [[0.], [11.], [2., 12.]]
 
 
 def test_episode_info_copy_and_clear_are_independent():

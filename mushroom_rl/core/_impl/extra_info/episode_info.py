@@ -1,3 +1,4 @@
+from mushroom_rl.core.array_backend import ArrayBackend
 from mushroom_rl.core.mushroom_object import MushroomObject
 
 from .step_info import StepInfo
@@ -22,19 +23,21 @@ class EpisodeInfo(MushroomObject):
                 one. If None, it defaults to ``n_envs > 1``.
 
         """
+        self._n_envs = n_envs
         self._vectorized = n_envs > 1 if vectorized is None else vectorized
         self._backend = backend
         self._device = device
-        self._episodes = [[] for _ in range(n_envs)]
+        self._blocks = self._initial_blocks()
         self._parsed = None
         self._target_backend = None
         self._target_device = None
 
         self._add_save_attr(
+            _n_envs='primitive',
             _vectorized='primitive',
             _backend='primitive',
             _device='primitive',
-            _episodes='pickle',
+            _blocks='pickle',
             _parsed='none',
             _target_backend='primitive',
             _target_device='primitive'
@@ -66,14 +69,17 @@ class EpisodeInfo(MushroomObject):
         """
         assert self.n_envs == other.n_envs
 
-        for env, episodes in enumerate(other._episodes):
-            self._episodes[env] += episodes
+        if self._vectorized:
+            for block in other._blocks:
+                self._blocks[0] += block
+        else:
+            self._blocks += [block.copy() for block in other._blocks]
         self._parsed = None
 
         return self
 
     def __len__(self):
-        return sum(len(episodes) for episodes in self._episodes)
+        return sum(1 if indices is None else len(indices) for block in self._blocks for _, indices in block)
 
     def append(self, entry, mask=None):
         """
@@ -145,7 +151,7 @@ class EpisodeInfo(MushroomObject):
         info = EpisodeInfo(1, self._backend, self._device, vectorized=False)
         info._target_backend = self._target_backend
         info._target_device = self._target_device
-        info._episodes[0].extend(self._flat_entries())
+        info._blocks = [block.copy() for block in self._blocks if block]
 
         return info
 
@@ -164,7 +170,7 @@ class EpisodeInfo(MushroomObject):
 
         """
         info = self.empty()
-        info._episodes = [episodes.copy() for episodes in self._episodes]
+        info._blocks = [block.copy() for block in self._blocks]
         info._target_backend = self._target_backend
         info._target_device = self._target_device
 
@@ -175,7 +181,7 @@ class EpisodeInfo(MushroomObject):
         Drop the episodes of every environment.
 
         """
-        self._episodes = [[] for _ in range(self.n_envs)]
+        self._blocks = self._initial_blocks()
         self._parsed = None
 
     @property
@@ -186,11 +192,23 @@ class EpisodeInfo(MushroomObject):
             environment when the entries are not vectorized.
 
         """
-        return self._episodes if self._vectorized else self._episodes[0]
+        if self._vectorized:
+            episodes = self._grouped_entries(self._blocks[0])
+            return [episodes.get(env, []) for env in range(self.n_envs)]
+
+        return self._flat_entries()
 
     @property
     def n_envs(self):
-        return len(self._episodes)
+        return self._n_envs
+
+    def _initial_blocks(self):
+        """
+        Returns:
+            The blocks of an empty EpisodeInfo: a single one when the entries are vectorized, none otherwise.
+
+        """
+        return [[]] if self._vectorized else []
 
     def _append_single(self, entry):
         """
@@ -200,7 +218,7 @@ class EpisodeInfo(MushroomObject):
             entry: the entry to append.
 
         """
-        self._episodes[0].append(entry)
+        self._append_chunk(entry, None)
 
     def _append_masked(self, entry, mask):
         """
@@ -211,35 +229,96 @@ class EpisodeInfo(MushroomObject):
             mask (Array): boolean mask selecting the environments to append for.
 
         """
-        for env in range(self.n_envs):
-            if mask[env]:
-                self._episodes[env].append(self._entry(entry, env))
+        indices = ArrayBackend.get_array_backend_from(mask).nonzero(mask).reshape(-1)
+
+        if len(indices) > 0:
+            if isinstance(entry, dict):
+                entry = {key: self._select(value, indices) for key, value in entry.items()}
+            else:
+                entry = self._select(entry, indices)
+
+            self._append_chunk(entry, indices)
+
+    def _append_chunk(self, entry, indices):
+        """
+        Store an appended entry: in the only block when the entries are vectorized, in a new block otherwise.
+
+        Args:
+            entry: the entry, restricted to the selected environments when ``indices`` is given;
+            indices (Array, None): the environments the rows of the entry belong to, or ``None`` for a single
+                entry of the first environment.
+
+        """
+        if self._vectorized:
+            self._blocks[0].append((entry, indices))
+        else:
+            self._blocks.append([(entry, indices)])
 
     def _flat_entries(self):
         """
         Returns:
-            A flat list holding the episodes of every environment, one environment after the other.
+            A flat list holding the episodes of every environment, one environment after the other within each
+            block, and the blocks one after the other.
 
         """
         flat = list()
-        for episodes in self._episodes:
-            flat += episodes
+        for block in self._blocks:
+            episodes = self._grouped_entries(block)
+            for env in sorted(episodes):
+                flat += episodes[env]
 
         return flat
 
-    def _entry(self, entry, env):
+    def _grouped_entries(self, block):
         """
-        Extract the entry of one environment from a batched entry.
-
         Args:
-            entry (dict, list, Array): the appended entry;
-            env (int): the environment to take the entry of.
+            block (list): the chunks of a block.
 
         Returns:
-            The entry of the given environment.
+            A dictionary mapping every environment of the block to its episodes, in the order they were appended.
+
+        """
+        episodes = dict()
+        for entry, indices in block:
+            if indices is None:
+                episodes.setdefault(0, []).append(entry)
+            else:
+                for row, env in enumerate(indices.tolist()):
+                    episodes.setdefault(env, []).append(self._row(entry, row))
+
+        return episodes
+
+    @staticmethod
+    def _select(value, indices):
+        """
+        Args:
+            value (list, Array): a value with one element per environment;
+            indices (Array): the environments to select.
+
+        Returns:
+            The elements of the selected environments, in the same type as ``value``.
+
+        """
+        backend = ArrayBackend.get_array_backend_from(value)
+
+        if backend.get_backend_name() == 'list':
+            return [value[env] for env in indices.tolist()]
+
+        device = backend.get_device(value)
+        return value[backend.convert(indices, device=device)]
+
+    @staticmethod
+    def _row(entry, row):
+        """
+        Args:
+            entry (dict, list, Array): an entry restricted to the selected environments;
+            row (int): the position of an environment among the selected ones.
+
+        Returns:
+            The entry of that environment.
 
         """
         if isinstance(entry, dict):
-            return {key: value[env] for key, value in entry.items()}
+            return {key: value[row] for key, value in entry.items()}
 
-        return entry[env]
+        return entry[row]
