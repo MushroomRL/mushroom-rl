@@ -1201,7 +1201,7 @@ class QuadrupedIsaac(IsaacSim):
 
     def _push_robots(self, env_indices, velocities):
         extended_vels = self._observation_helper.read_data("body_vel", env_indices)
-        extended_vels[:, :2] = velocities
+        extended_vels[:, :2] += velocities
         self._observation_helper.write_data("body_vel", extended_vels, env_indices)
 
     @staticmethod
