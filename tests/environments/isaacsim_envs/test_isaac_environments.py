@@ -182,6 +182,46 @@ def test_silver_badger_no_domain_randomization():
     assert np.all(np.isfinite(obs))
 
 
+def test_set_domain_randomization():
+    np.random.seed(1)
+    torch.manual_seed(1)
+
+    names = ('trunk_mass', 'trunk_inertia', 'trunk_com', 'torque_limit', 'max_joint_vel', 'joint_damping',
+             'joint_stiffness', 'joint_armature', 'joint_frictionloss')
+    envs = torch.arange(2, device='cuda:0')
+    mask = torch.ones(2, dtype=torch.bool, device='cuda:0')
+
+    mdp = Go2Isaac(2, 1000, domain_randomization=False)
+    mdp.set_domain_randomization(False)
+    nominal = {name: mdp._observation_helper.read_data(name, envs).clone() for name in names}
+    nominal_gains = (mdp._randomizer.p_gain.clone(), mdp._randomizer.d_gain.clone())
+    mdp.reset_all(mask)
+    nominal_friction = mdp._robots._physics_articulation_view.get_material_properties().numpy().copy()
+    mdp.stop()
+
+    mdp = Go2Isaac(2, 1000)
+    mdp.reset_all(mask)
+    mdp.reset_all(mask)
+    randomized_mass = mdp._observation_helper.read_data('trunk_mass', envs).clone()
+
+    mdp.set_domain_randomization(False)
+    mdp.reset_all(mask)
+
+    for name in names:
+        assert torch.equal(mdp._observation_helper.read_data(name, envs), nominal[name]), name
+    assert np.array_equal(mdp._robots._physics_articulation_view.get_material_properties().numpy(), nominal_friction)
+    assert torch.equal(mdp._randomizer.p_gain, nominal_gains[0])
+    assert torch.equal(mdp._randomizer.d_gain, nominal_gains[1])
+    assert torch.all(mdp._randomizer.motor_strength == 1.) and torch.all(mdp._randomizer.position_offset == 0.)
+    assert torch.all(mdp._randomizer.delay_steps == 0)
+
+    mdp.set_domain_randomization(True)
+    mass = mdp._observation_helper.read_data('trunk_mass', envs)
+
+    assert not torch.equal(mass, nominal['trunk_mass']) and not torch.equal(mass, randomized_mass)
+    mdp.stop()
+
+
 def test_observed_randomization():
     np.random.seed(1)
     torch.manual_seed(1)

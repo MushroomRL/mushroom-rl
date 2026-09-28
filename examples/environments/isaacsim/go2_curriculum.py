@@ -127,6 +127,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--no-render', action='store_false', dest='render',
                         help='skip rendering/recording the evaluations')
+    parser.add_argument('--tf32', action='store_true',
+                        help='run the matrix multiplications of the networks in TF32 precision')
 
     return parser.parse_args()
 
@@ -266,6 +268,9 @@ if __name__ == '__main__':
     args = parse_args()
 
     TorchUtils.set_default_device('cuda:0')
+    if args.tf32:
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
 
     reward_weights = dict(tracking_lin_vel=1.2, tracking_ang_vel=0.6, lin_vel_z=-1.6, ang_vel_xy=-0.07,
                           torques=-1e-5, joint_acc=-2.5e-7, action_rate=-0.005, joint_pos_limits=-0.1,
