@@ -66,6 +66,7 @@ class SceneBuilder:
         self._physics_view = None
         self._material_buffer = None
         self._material_properties = None
+        self._nominal_material_properties = None
 
     def build(self, specifications, collision_helper):
         """
@@ -124,15 +125,22 @@ class SceneBuilder:
             env_indices (torch.tensor): The environments to write, as an integer tensor.
 
         """
-        if self._material_buffer is None:
-            self._physics_view = self._robots._physics_articulation_view
-            self._material_buffer = self._physics_view.get_material_properties()
-            self._material_properties = wp.to_torch(self._material_buffer)
+        self._acquire_material_properties()
 
         env_indices = env_indices.to(device="cpu", dtype=torch.int32)
         self._material_properties[env_indices, :, 0] = static_friction
         self._material_properties[env_indices, :, 1] = dynamic_friction
         self._physics_view.set_material_properties(self._material_buffer, wp.from_torch(env_indices))
+
+    def reset_robot_friction(self):
+        """
+        Gives the collision shapes of every environment's robot back the friction they were authored with.
+
+        """
+        if self._material_buffer is not None:
+            self._material_properties[:] = self._nominal_material_properties
+            env_indices = torch.arange(self._material_properties.shape[0], dtype=torch.int32)
+            self._physics_view.set_material_properties(self._material_buffer, wp.from_torch(env_indices))
 
     @property
     def zero_env_robot_path(self):
@@ -141,6 +149,18 @@ class SceneBuilder:
     @property
     def robot_glob(self):
         return self._robot_glob
+
+    def _acquire_material_properties(self):
+        """
+        Reads the material properties of the robots' collision shapes the first time they are needed, keeping
+        a copy of the authored ones.
+
+        """
+        if self._material_buffer is None:
+            self._physics_view = self._robots._physics_articulation_view
+            self._material_buffer = self._physics_view.get_material_properties()
+            self._material_properties = wp.to_torch(self._material_buffer)
+            self._nominal_material_properties = self._material_properties.clone()
 
     def _clone_envs(self, stage):
         """

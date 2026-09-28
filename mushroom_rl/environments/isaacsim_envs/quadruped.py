@@ -183,13 +183,12 @@ class QuadrupedIsaac(IsaacSim):
                          gpu_params=gpu_params, scene_params=scene_params, viewer_params=viewer_params)
 
         self._randomizer = self._build_randomizer()
-        self._observation_helper.write_data("max_joint_vel", self._randomizer.joint_max_vel,
-                                            reapply_after_reset=True)
+        self._observation_helper.write_data("max_joint_vel", self._randomizer.joint_max_vel)
 
         if domain_randomization:
             all_indices = torch.arange(0, num_envs, 1, device=device)
             for name, value in self._randomizer.resample_startup(all_indices).items():
-                self._observation_helper.write_data(name, value, all_indices, True)
+                self._observation_helper.write_data(name, value, all_indices)
 
         self._commands = torch.zeros(num_envs, 4, dtype=torch.float, device=device)
         self._is_heading_env = torch.ones((num_envs, ), dtype=torch.bool, device=device)
@@ -302,6 +301,29 @@ class QuadrupedIsaac(IsaacSim):
         self._last_joint_vel = joint_vel.clone().detach()
 
         return reward
+
+    def set_domain_randomization(self, enabled):
+        """
+        Enable or disable the domain randomization of every environment. Disabling it sets the robots of every
+        environment back to their nominal properties; enabling it draws new properties for the robots of every
+        environment, the ones varying from episode to episode being drawn at each environment's next reset. The
+        episodes starting afterwards begin from the initial state of the chosen setting.
+
+        Args:
+            enabled (bool): whether the domain randomization is enabled.
+
+        """
+        self._domain_randomization = enabled
+        all_indices = torch.arange(0, self._n_envs, 1, device=TorchUtils.get_device())
+
+        if enabled:
+            values = self._randomizer.resample_startup(all_indices)
+        else:
+            values = self._randomizer.reset_to_nominal()
+            self._scene_builder.reset_robot_friction()
+
+        for name, value in values.items():
+            self._observation_helper.write_data(name, value, all_indices)
 
     @staticmethod
     def wrap_to_pi(angles):
@@ -614,7 +636,7 @@ class QuadrupedIsaac(IsaacSim):
         """
         if self._domain_randomization:
             for name, value in self._randomizer.resample_reset(env_indices).items():
-                self._observation_helper.write_data(name, value, env_indices, True)
+                self._observation_helper.write_data(name, value, env_indices)
 
             static_friction, dynamic_friction = self._randomizer.sample_friction(len(env_indices))
             self._scene_builder.set_robot_friction(static_friction, dynamic_friction, env_indices)
@@ -1200,6 +1222,7 @@ class QuadrupedIsaac(IsaacSim):
             ("joint_frictionloss", "", ObservationType.JOINT_FRICTION_STATIC, action_spec),
             ("joint_damping", "", ObservationType.JOINT_GAIN_DAMPING, action_spec),
             ("joint_stiffness", "", ObservationType.JOINT_GAIN_STIFFNESS, action_spec),
+            ("joint_gains", "", ObservationType.JOINT_GAIN, action_spec),
             ("joint_default_pos", "", ObservationType.JOINT_DEFAULT_POS, action_spec),
             ("robot_mass", "", ObservationType.SUB_BODY_MASS, sub_bodies),
             ("body_pos", "", ObservationType.BODY_POS, None)

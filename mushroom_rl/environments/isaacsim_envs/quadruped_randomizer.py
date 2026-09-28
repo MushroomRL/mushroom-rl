@@ -262,6 +262,49 @@ class QuadrupedRandomizer:
 
         return simulator_values
 
+    def reset_to_nominal(self):
+        """
+        Sets every parameter of every environment back to its nominal value.
+
+        Returns:
+            The nominal properties the simulation has to be set up with for every environment, keyed by the name
+            they are declared under in the additional data specification.
+
+        """
+        n_envs = self._n_envs
+
+        self._body_masses[:, 0] = self._default["trunk_mass"]
+        self._seen["mass"] = torch.sum(self._body_masses, dim=1).unsqueeze(1)
+
+        self._seen["joint_nominal_position"][:] = self._default["joint_nominal_pos"]
+        self._seen["torque_limit"][:] = self._default["torque_limit"]
+        self._seen["joint_max_velocity"][:] = self._default["joint_max_vel"]
+        for name in ("joint_damping", "joint_stiffness", "joint_armature", "joint_frictionloss"):
+            self._seen[name][:] = self._default[name]
+        self._seen["action_scaling_factor"][:] = self._default["action_scaling_factor"]
+
+        for name in ("p_gain", "d_gain"):
+            self._seen[name][:] = self._default[name]
+            self._unseen[name][:] = self._default[name]
+        self._unseen["motor_strength"][:] = 1.
+        self._unseen["position_offset"][:] = 0.
+
+        self._mixed[:] = False
+        self._n_delay_steps[:] = 0
+        self._time_to_push[:] = 0.
+
+        return {
+            "trunk_mass": self._default["trunk_mass"].repeat((n_envs, 1)),
+            "trunk_inertia": self._default["trunk_inertia"].repeat((n_envs, 1)).unsqueeze(1),
+            "trunk_com": self._default["trunk_com"].repeat((n_envs, 1)).unsqueeze(1),
+            "torque_limit": self._seen["torque_limit"].clone(),
+            "max_joint_vel": self._seen["joint_max_velocity"].clone(),
+            "joint_damping": self._seen["joint_damping"].clone(),
+            "joint_stiffness": self._seen["joint_stiffness"].clone(),
+            "joint_armature": self._seen["joint_armature"].clone(),
+            "joint_frictionloss": self._seen["joint_frictionloss"].clone()
+        }
+
     def sample_friction(self, n_envs):
         """
         Draws the friction of the ground each of the given environments walks on for its next episode.
@@ -274,8 +317,8 @@ class QuadrupedRandomizer:
 
         """
         shape = (n_envs, 1)
-        return (torch_rand_float(*self._params["static_friction"], shape, "cpu"),
-                torch_rand_float(*self._params["dynamic_friction"], shape, "cpu"))
+        return (self._uniform(self._params["static_friction"], shape, "cpu"),
+                self._uniform(self._params["dynamic_friction"], shape, "cpu"))
 
     def sample_disturbance(self, env_indices, episode_length, dt):
         """
@@ -295,8 +338,7 @@ class QuadrupedRandomizer:
         interval_range = self._params["push_interval_range"]
 
         if interval_range is None:
-            do_push = torch_rand_float(0., 1., (len(env_indices), 1), device).squeeze(-1) \
-                < self._params["push_probability"]
+            do_push = self._bernoulli(self._params["push_probability"], len(env_indices))
         else:
             self._time_to_push[env_indices] -= dt
             do_push = self._time_to_push[env_indices] <= 0.
@@ -310,7 +352,7 @@ class QuadrupedRandomizer:
             ).squeeze(1)
 
         max_velocity = self._params["push_max_velocity"]
-        velocities = torch_rand_float(-max_velocity, max_velocity, (push_indices.shape[0], 2), device)
+        velocities = self._uniform((-max_velocity, max_velocity), (push_indices.shape[0], 2))
 
         return push_indices, velocities
 
@@ -480,18 +522,17 @@ class QuadrupedRandomizer:
         with, and returns the unseen values the simulation is actually set up with.
 
         """
-        device = TorchUtils.get_device()
         n_envs = env_indices.shape[0]
 
         trunk_mass = self._default["trunk_mass"] \
-            + torch_rand_float(*self._params["add_trunk_mass"], (n_envs, 1), device)
+            + self._uniform(self._params["add_trunk_mass"], (n_envs, 1))
         unseen_trunk_mass = trunk_mass * noise["trunk_mass"]
         unseen_trunk_inertia = self._default["trunk_inertia"] * (unseen_trunk_mass / self._default["trunk_mass"])
         self._body_masses[env_indices, 0] = trunk_mass.squeeze(1)
         self._seen["mass"] = torch.sum(self._body_masses, dim=1).unsqueeze(1)
 
         trunk_com = self._default["trunk_com"] \
-            + torch_rand_float(*self._params["add_com_displacement"], (n_envs, 3), device)
+            + self._uniform(self._params["add_com_displacement"], (n_envs, 3))
         unseen_trunk_com = trunk_com * noise["trunk_com"]
 
         return {
@@ -506,13 +547,12 @@ class QuadrupedRandomizer:
         unseen gains it is actually run with.
 
         """
-        device = TorchUtils.get_device()
         shape = (env_indices.shape[0], self._n_joints)
 
         self._seen["p_gain"][env_indices] = self._default["p_gain"] \
-            * torch_rand_float(*self._params["p_gain_scale"], shape, device)
+            * self._uniform(self._params["p_gain_scale"], shape)
         self._seen["d_gain"][env_indices] = self._default["d_gain"] \
-            * torch_rand_float(*self._params["d_gain_scale"], shape, device)
+            * self._uniform(self._params["d_gain_scale"], shape)
 
         self._unseen["p_gain"][env_indices] = self._seen["p_gain"][env_indices] * noise["p_gain"]
         self._unseen["d_gain"][env_indices] = self._seen["d_gain"][env_indices] * noise["d_gain"]
@@ -529,35 +569,36 @@ class QuadrupedRandomizer:
         n_joints = self._n_joints
 
         self._seen["joint_nominal_position"][env_indices] = self._default["joint_nominal_pos"] \
-            + torch_rand_float(*self._params["add_joint_nominal_position"], (n_envs, n_joints), device)
+            + self._uniform(self._params["add_joint_nominal_position"], (n_envs, n_joints))
 
         self._seen["torque_limit"][env_indices] = self._default["torque_limit"] \
             * (1 + self._sample_symmetric_offset(n_envs, "torque_limit_factor"))
         self._seen["joint_max_velocity"][env_indices] = self._default["joint_max_vel"] \
             * (1 + self._sample_symmetric_offset(n_envs, "joint_velocity_factor"))
 
-        stay_at_default = torch_rand_float(0, 1, (n_envs, 1), device).squeeze(-1) \
-            < self._params["stay_at_default_percentage"]
+        stay_at_default = self._bernoulli(self._params["stay_at_default_percentage"], n_envs)
         default_indices = env_indices[stay_at_default]
         random_indices = env_indices[torch.logical_not(stay_at_default)]
 
         for name in ("joint_damping", "joint_stiffness", "joint_armature", "joint_frictionloss"):
             self._seen[name][default_indices] = self._default[name]
-            self._seen[name][random_indices] = torch_rand_float(
-                *self._params[name], (random_indices.shape[0], n_joints), device
-            )
+            if random_indices.shape[0] > 0:
+                self._seen[name][random_indices] = torch_rand_float(
+                    *self._params[name], (random_indices.shape[0], n_joints), device
+                )
 
-        unseen_values = {
-            "torque_limit": self._seen["torque_limit"][env_indices],
-            "max_joint_vel": self._seen["joint_max_velocity"][env_indices],
-            "joint_damping": self._seen["joint_damping"][env_indices] * noise["joint_damping"],
-            "joint_stiffness":
-                self._seen["joint_stiffness"][env_indices] * noise["joint_stiffness"],
-            "joint_armature":
-                self._seen["joint_armature"][env_indices] * noise["joint_armature"],
-            "joint_frictionloss":
-                self._seen["joint_frictionloss"][env_indices] * noise["joint_frictionloss"]
-        }
+        unseen_values = dict()
+        if self._params["torque_limit_factor"] != 0.:
+            unseen_values["torque_limit"] = self._seen["torque_limit"][env_indices]
+        if self._params["joint_velocity_factor"] != 0.:
+            unseen_values["max_joint_vel"] = self._seen["joint_max_velocity"][env_indices]
+        for name in ("joint_damping", "joint_stiffness", "joint_armature", "joint_frictionloss"):
+            if self._params["stay_at_default_percentage"] < 1. or self._params[f"{name}_factor"] != 0.:
+                unseen_values[name] = self._seen[name][env_indices] * noise[name]
+
+        if "joint_damping" in unseen_values and "joint_stiffness" in unseen_values:
+            unseen_values["joint_gains"] = torch.stack([unseen_values.pop("joint_stiffness"),
+                                                        unseen_values.pop("joint_damping")], dim=-1)
 
         return unseen_values
 
@@ -567,17 +608,15 @@ class QuadrupedRandomizer:
         the strength of the motors, and the offset corrupting the joint position the controller reads.
 
         """
-        device = TorchUtils.get_device()
         n_envs = env_indices.shape[0]
         position_offset = self._params["position_offset"]
 
         self._seen["action_scaling_factor"][env_indices] = self._default["action_scaling_factor"] \
-            + torch_rand_float(*self._params["add_scaling_factor"], (n_envs, self._n_joints), device)
+            + self._uniform(self._params["add_scaling_factor"], (n_envs, self._n_joints))
 
         self._unseen["motor_strength"][env_indices] = self._sample_noise_factor(n_envs, "motor_strength_factor")
-        self._unseen["position_offset"][env_indices] = torch_rand_float(
-            -position_offset, position_offset, (n_envs, self._n_joints), device
-        )
+        self._unseen["position_offset"][env_indices] = self._uniform(
+            (-position_offset, position_offset), (n_envs, self._n_joints))
 
     def _sample_latency_regime(self, env_indices):
         """
@@ -588,8 +627,7 @@ class QuadrupedRandomizer:
         device = TorchUtils.get_device()
         n_envs = env_indices.shape[0]
 
-        self._mixed[env_indices] = torch_rand_float(0., 1., (n_envs, 1), device).squeeze(1) \
-            < self._params["mixed_chance"]
+        self._mixed[env_indices] = self._bernoulli(self._params["mixed_chance"], n_envs)
         self._n_delay_steps[env_indices] = torch.randint(0, self._params["max_delay_steps"] + 1, (n_envs, ),
                                                          device=device)
 
@@ -599,7 +637,7 @@ class QuadrupedRandomizer:
 
         """
         half_width = self._params[param_name]
-        return torch_rand_float(-half_width, half_width, (n_envs, self._n_joints), TorchUtils.get_device())
+        return self._uniform((-half_width, half_width), (n_envs, self._n_joints))
 
     def _sample_noise_factor(self, n_envs, param_name):
         """
@@ -608,4 +646,31 @@ class QuadrupedRandomizer:
 
         """
         half_width = self._params[param_name]
-        return torch_rand_float(1 - half_width, 1 + half_width, (n_envs, 1), TorchUtils.get_device())
+        return self._uniform((1 - half_width, 1 + half_width), (n_envs, 1))
+
+    def _uniform(self, bounds, shape, device=None):
+        """
+        Draws values uniformly distributed between the given bounds, drawing no random number when the bounds
+        coincide.
+
+        """
+        device = TorchUtils.get_device() if device is None else device
+        lower, upper = bounds
+
+        if lower == upper:
+            return torch.full(shape, float(lower) + 0., device=device)
+
+        return torch_rand_float(lower, upper, shape, device)
+
+    def _bernoulli(self, probability, n_envs):
+        """
+        Draws one boolean per environment, true with the given probability, drawing no random number when the
+        outcome is certain.
+
+        """
+        device = TorchUtils.get_device()
+
+        if probability <= 0. or probability >= 1.:
+            return torch.full((n_envs, ), probability >= 1., dtype=torch.bool, device=device)
+
+        return torch_rand_float(0., 1., (n_envs, 1), device).squeeze(-1) < probability

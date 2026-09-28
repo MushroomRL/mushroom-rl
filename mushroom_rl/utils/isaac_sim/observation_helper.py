@@ -135,7 +135,6 @@ class ObservationHelper:
 
         self._observers = {}
         self._additionals = {}
-        self._consistent_property_storage = {}
 
         self._obs_low = None
         self._obs_high = None
@@ -145,15 +144,12 @@ class ObservationHelper:
 
     def initialize(self):
         """
-        Resolves the specifications into the accessors serving them, and reapplies the properties that survive a
-        reset. Isaac Sim only names the joints and the bodies of a prim once the simulation is running, so this
-        cannot happen at construction.
+        Resolves the specifications into the accessors serving them. Isaac Sim only names the joints and the bodies
+        of a prim once the simulation is running, so this cannot happen at construction.
 
         """
         self._observers = self._create_observer_tuple(self._observation_spec)
         self._additionals = self._create_observer_tuple(self._additional_data_spec)
-
-        self.reapply_consistent_properties()
 
     def compute_obs_limits(self):
         """
@@ -281,7 +277,7 @@ class ObservationHelper:
         view, obs_type, element_idx = self._find_accessor(name)
         return self._read_property(view, obs_type, element_idx=element_idx, env_indices=env_indices)
 
-    def write_data(self, name, value, env_indices=None, reapply_after_reset=False):
+    def write_data(self, name, value, env_indices=None):
         """
         Writes data to isaac sim.
 
@@ -289,17 +285,10 @@ class ObservationHelper:
             name (str): A name referring to an entry contained in additional_data_spec or observation_spec.
             value (torch.tensor): The data that should be written.
             env_indices (torch.tensor, None): The environments to write to, all of them if None.
-            reapply_after_reset (bool): Whether the written property should be reapplied after a world reset.
-                Defaults to False.
 
         """
         view, obs_type, element_idx = self._find_accessor(name)
         self._set_property(view, obs_type, value, element_idx=element_idx, env_indices=env_indices)
-
-        if reapply_after_reset:
-            self._consistent_property_storage[name] = lambda: self._set_property(
-                view, obs_type, value.clone(), element_idx=element_idx, env_indices=env_indices
-            )
 
     def set_joint_data(self, value, type, element_idx=None, env_indices=None):
         """
@@ -318,29 +307,6 @@ class ObservationHelper:
         if element_idx is None and type.is_joint():
             element_idx = self._actuation_helper.controlled_dofs
         self._set_property(self._robots, type, value, element_idx, env_indices)
-
-    def clear_consistent_properties(self, names=None):
-        """
-        Removes properties from the consistent property storage.
-
-        Args:
-            names (list[str], None): List of property names to remove.
-                If None, removes all keys from the consistent property storage.
-
-        """
-        if names is None:
-            self._consistent_property_storage.clear()
-        else:
-            for name in names:
-                self._consistent_property_storage.pop(name, None)
-
-    def reapply_consistent_properties(self):
-        """
-        Reapplies the properties that were written with ``reapply_after_reset``.
-
-        """
-        for reapply_data in self._consistent_property_storage.values():
-            reapply_data()
 
     @property
     def obs_limits(self):
