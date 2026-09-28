@@ -1,8 +1,11 @@
 Torch utils
 ===========
 
-The PyTorch-side helpers: the global device and dtype configuration every torch object in the library reads, the
-distribution wrappers the torch policies sample from, and the training loop shared by the torch approximators.
+The PyTorch-side helpers of the library:
+
+- the global device and dtype configuration every torch object reads;
+- the distributions and distribution utilities, used to sample in the torch policies and in the learning algorithms;
+- the training loop shared by the torch approximators.
 
 .. automodule:: mushroom_rl.utils.torch_utils.torch_utils
     :private-members:

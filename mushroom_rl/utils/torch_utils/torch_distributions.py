@@ -38,6 +38,8 @@ class SquashedGaussian(TransformedDistribution):
             eps (float, 1e-6): small constant used to keep the tanh inverse and its log finite.
 
         """
+        self._low = low
+        self._high = high
         self._delta = .5 * (high - low)
         self._central = .5 * (high + low)
         self._eps = eps
@@ -80,3 +82,108 @@ class SquashedGaussian(TransformedDistribution):
         log_prob = log_prob - torch.log(self._delta).sum()
 
         return a, log_prob
+
+    @property
+    def low(self):
+        """
+        Returns:
+            The minimum value of each action component.
+
+        """
+        return self._low
+
+    @property
+    def high(self):
+        """
+        Returns:
+            The maximum value of each action component.
+
+        """
+        return self._high
+
+    @property
+    def eps(self):
+        """
+        Returns:
+            The constant keeping the tanh inverse and its log finite.
+
+        """
+        return self._eps
+
+
+class DistHelperWrapper:
+    """
+    Wrapper of a batched torch distribution providing tensor operations on its first batch dimension.
+
+    Currently, the supported distributions are ``torch.distributions.MultivariateNormal``, :class:`CategoricalWrapper`
+    and :class:`SquashedGaussian`.
+
+    """
+    def __init__(self, distribution):
+        """
+        Constructor.
+
+        Args:
+            distribution (torch.distributions.Distribution): the distribution to wrap, with the samples along its
+                first batch dimension.
+
+        Raises:
+            NotImplementedError: if the type of the distribution is not supported.
+
+        """
+        self._distribution = distribution
+        self._parameters = self._split()
+
+    def __len__(self):
+        """
+        Returns:
+            The number of samples of the wrapped distribution.
+
+        """
+        return len(self._parameters[0])
+
+    def __getitem__(self, index):
+        """
+        Args:
+            index: the samples to select, indexing the first batch dimension like a tensor index.
+
+        Returns:
+            A distribution of the same type as the wrapped one, restricted to the selected samples.
+
+        """
+        return self._merge([parameter[index] for parameter in self._parameters])
+
+    @property
+    def distribution(self):
+        """
+        Returns:
+            The wrapped distribution.
+
+        """
+        return self._distribution
+
+    def _split(self):
+        distribution = self._distribution
+
+        if type(distribution) is torch.distributions.MultivariateNormal:
+            return distribution.loc, distribution.scale_tril
+        elif type(distribution) is CategoricalWrapper:
+            return distribution.logits,
+        elif type(distribution) is SquashedGaussian:
+            normal = distribution.base_dist.base_dist
+            return normal.loc, normal.scale
+
+        raise NotImplementedError(f'The {type(distribution).__name__} distribution is not supported')
+
+    def _merge(self, parameters):
+        distribution = self._distribution
+
+        if type(distribution) is torch.distributions.MultivariateNormal:
+            loc, scale_tril = parameters
+            return torch.distributions.MultivariateNormal(loc=loc, scale_tril=scale_tril, validate_args=False)
+        elif type(distribution) is CategoricalWrapper:
+            logits, = parameters
+            return CategoricalWrapper(logits)
+        else:
+            loc, scale = parameters
+            return SquashedGaussian(loc, scale, distribution.low, distribution.high, eps=distribution.eps)

@@ -1,7 +1,9 @@
 import math
 import torch
 
-from mushroom_rl.utils.torch_utils import TorchUtils
+from torch.distributions import Distribution
+
+from mushroom_rl.utils.torch_utils import TorchUtils, DistHelperWrapper
 
 
 def minibatch_number(size, batch_size):
@@ -25,12 +27,14 @@ def minibatch_generator(batch_size, *dataset_vectors):
 
     Args:
         batch_size (int): the maximum size of each minibatch;
-        dataset_vectors: the torch tensors to be split.
+        dataset_vectors: the torch tensors and the torch distributions to be split.
 
     Returns:
         The current minibatch.
 
     """
+    dataset_vectors = [DistHelperWrapper(vector) if isinstance(vector, Distribution) else vector
+                       for vector in dataset_vectors]
     size = len(dataset_vectors[0])
     num_batches = minibatch_number(size, batch_size)
     indexes = torch.randperm(size).to(TorchUtils.get_device())
