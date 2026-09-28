@@ -185,19 +185,21 @@ def tracking_errors(mdp, dataset):
     return lin_error, ang_error
 
 
-def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_params, policy_params, mdp_params,
-               curriculum_params, n_envs=4096, horizon=1000, render=True, seed=None):
+def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_params, policy_params, critic_params,
+               mdp_params, curriculum_params, privileged_observations, n_envs, horizon, render=True, seed=None):
     np.random.seed(seed)
     if seed is not None:
         torch.manual_seed(seed)
 
     # MDP
-    mdp = Go2Isaac(n_envs, horizon, True, **mdp_params)
+    mdp = Go2Isaac(n_envs, horizon, domain_randomization=True, **mdp_params)
     curriculum = Curriculum(mdp, **curriculum_params)
 
     logger = Logger('RudinPPO_go2', results_dir=get_log_dir(__file__), log_console=True, use_timestamp=True)
     logger.log_experiment_info(alg, mdp, n_epochs=n_epochs, n_steps=n_steps, n_steps_per_fit=n_steps_per_fit,
                                n_episodes_test=n_episodes_test, n_envs=n_envs, horizon=horizon,
+                               critic_params=critic_params, curriculum_params=curriculum_params,
+                               privileged_observations=privileged_observations,
                                **alg_params, **policy_params)
 
     # Policy
@@ -206,22 +208,11 @@ def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_par
     policy = GaussianTorchPolicy(PolicyNetwork,
                                  network_input_shape,
                                  mdp.info.action_space.shape,
-                                 observed_indices=observed_indices(mdp, 'base_lin_vel', 'base_pos',
-                                                                   'actual_delay', 'joint_calib_offset'),
+                                 observed_indices=observed_indices(mdp, *privileged_observations),
                                  **policy_params)
 
     # Agent
-    critic_params = dict(network=ActorNetwork,
-                         optimizer={'class': optim.Adam,
-                                    'params': {'lr': 1e-3}},
-                         loss=F.mse_loss,
-                         n_features=[256, 256, 128],
-                         activation='elu',
-                         gain_scale=0.5,
-                         batch_size=int((4096 * 24) / 16),
-                         use_cuda=True,
-                         input_shape=network_input_shape,
-                         output_shape=(1,))
+    critic_params = dict(critic_params, input_shape=network_input_shape, output_shape=(1,))
 
     agent = alg(mdp.info, policy, critic_params=critic_params, **alg_params)
     agent.add_agent_preprocessor(StandardizationPreprocessor(mdp.info, backend='torch'))
@@ -297,14 +288,28 @@ if __name__ == '__main__':
                                             dict(lin_vel=0.05, lin_vel_slope=0.2, ang_vel=0.1,
                                                  ang_vel_slope=0.5)))
 
+    n_epochs = 60
+    n_episodes_test = 256
+    n_envs = 4096
+    horizon = 1000
+    n_steps_per_env = 24
+    n_fits_per_epoch = 50
+    n_minibatches = 4
+
+    n_steps_per_fit = n_envs * n_steps_per_env
+    batch_size = n_steps_per_fit // n_minibatches
+
     ppo_params = dict(actor_optimizer={'class': optim.Adam,
                                        'params': {'lr': 1e-3}},
                       n_epochs_policy=5,
-                      batch_size=int((4096 * 24) / 16),
+                      batch_size=batch_size,
                       eps_ppo=.2,
                       lam=.95,
                       ent_coeff=0.01,
                       critic_fit_params=dict(n_epochs=5),
+                      clip_grad_norm=1.,
+                      schedule='adaptive',
+                      desired_kl=0.01,
                       history_length=8)
 
     policy_params = dict(std_0=1.,
@@ -313,6 +318,31 @@ if __name__ == '__main__':
                          gain_scale=0.5,
                          use_cuda=True)
 
-    experiment(alg=RudinPPO, n_epochs=60, n_steps=4096 * 24 * 50, n_steps_per_fit=4096 * 24,
-               n_episodes_test=256, alg_params=ppo_params, policy_params=policy_params, mdp_params=mdp_params,
-               curriculum_params=curriculum_params, render=args.render)
+    critic_params = dict(network=ActorNetwork,
+                         optimizer={'class': optim.Adam,
+                                    'params': {'lr': 1e-3}},
+                         loss=F.mse_loss,
+                         n_features=[256, 256, 128],
+                         activation='elu',
+                         gain_scale=0.5,
+                         batch_size=batch_size,
+                         use_cuda=True)
+
+    privileged_observations = ('base_lin_vel', 'base_pos', 'actual_delay', 'joint_calib_offset')
+
+    experiment(
+        alg=RudinPPO,
+        n_epochs=n_epochs,
+        n_steps=n_steps_per_fit * n_fits_per_epoch,
+        n_steps_per_fit=n_steps_per_fit,
+        n_episodes_test=n_episodes_test,
+        alg_params=ppo_params,
+        policy_params=policy_params,
+        critic_params=critic_params,
+        mdp_params=mdp_params,
+        curriculum_params=curriculum_params,
+        privileged_observations=privileged_observations,
+        n_envs=n_envs,
+        horizon=horizon,
+        render=args.render
+    )
