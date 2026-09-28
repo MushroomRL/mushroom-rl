@@ -259,7 +259,6 @@ class IsaacSim(VectorizedEnvironment):
         self._viewer.close()
 
         self._robots.reset_to_default_state()
-        self._observation_helper.reapply_consistent_properties()
 
     def observation_indices(self, *names):
         """
