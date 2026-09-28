@@ -15,10 +15,10 @@ from mushroom_rl.approximators.parametric.networks import (
 )
 
 
-def learn(alg, policy, alg_params, mdp):
+def learn(alg, policy, alg_params, mdp, n_steps=50):
     agent = alg(mdp.info, policy, **alg_params)
     core = Core(agent, mdp)
-    core.learn(n_steps=50, n_steps_per_fit=50)
+    core.learn(n_steps=n_steps, n_steps_per_fit=n_steps)
     return agent
 
 
@@ -59,7 +59,7 @@ def make_bptt_setup(use_prev_action=False, rnn_type='gru', num_hidden_layers=1):
     return policy, alg_params
 
 
-def make_rudin_setup():
+def make_rudin_setup(desired_kl=0.01):
     policy = GaussianTorchPolicy(
         ActorNetwork,
         (2,),
@@ -77,7 +77,7 @@ def make_rudin_setup():
             input_shape=(2,), output_shape=(1,),
         ),
         n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95,
-        clip_grad_norm=1., schedule='adaptive', desired_kl=0.01,
+        clip_grad_norm=1., schedule='adaptive', desired_kl=desired_kl,
     )
 
     return policy, alg_params
@@ -184,12 +184,12 @@ def test_RudinPPO():
     np.random.seed(1)
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
-    policy, alg_params = make_rudin_setup()
 
-    w = learn(RudinPPO, policy, alg_params, InvertedPendulum(horizon=50)).policy.get_weights()
-    w_test = torch.tensor([0.6614, -1.3338, -0.1395, -0.0024])
+    w = learn(RudinPPO, *make_rudin_setup(), InvertedPendulum(horizon=50)).policy.get_weights()
+    assert torch.allclose(w, torch.tensor([0.6614, -1.3338, -0.1395, -0.0024]), atol=1e-4)
 
-    assert torch.allclose(w, w_test, atol=1e-4)
+    w = learn(RudinPPO, *make_rudin_setup(2e-4), InvertedPendulum(horizon=50), n_steps=150).policy.get_weights()
+    assert torch.allclose(w, torch.tensor([1.25708532, -0.23323905, 0.12646803, -0.00139929]), atol=1e-4), w
 
 
 def test_RudinPPO_save(tmpdir):

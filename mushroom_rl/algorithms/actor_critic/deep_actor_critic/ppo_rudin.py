@@ -50,27 +50,28 @@ class RudinPPO(PPO):
         adv = adv.detach()
         v_target = v_target.detach()
 
-        old_pol_dist = self.policy.distribution(state_old, action_history=prev_action)
+        with torch.no_grad():
+            old_pol_dist = self.policy.distribution(state_old, action_history=prev_action)
 
         old_log_p = old_pol_dist.log_prob(action)[:, None].detach()
 
         self._V.fit(state, v_target, action_history=prev_action, **self._critic_fit_params)
 
-        self._update_policy(state, action, adv, old_log_p, state, old_pol_dist, prev_action)
+        self._update_policy(state, action, adv, old_log_p, old_pol_dist, prev_action)
 
         self._log_info(dataset, state, old_pol_dist, action_history=prev_action)
 
-    def _update_policy(self, obs, act, adv, old_log_p, state, old_pol_dist, action_history=None):
-        tensors = (obs, act, adv, old_log_p) if action_history is None \
-            else (obs, act, adv, old_log_p, action_history)
+    def _update_policy(self, obs, act, adv, old_log_p, old_pol_dist, action_history=None):
+        tensors = (obs, act, adv, old_log_p, old_pol_dist) if action_history is None \
+            else (obs, act, adv, old_log_p, old_pol_dist, action_history)
         for epoch in range(self._n_epochs_policy()):
             for batch in minibatch_generator(self._batch_size(), *tensors):
-                obs_i, act_i, adv_i, old_log_p_i, *rest = batch
+                obs_i, act_i, adv_i, old_log_p_i, old_pol_dist_i, *rest = batch
                 action_history_i = rest[0] if rest else None
 
                 with torch.inference_mode():
-                    new_pol_dist = self.policy.distribution(state, action_history=action_history)
-                    kl = torch.mean(torch.distributions.kl.kl_divergence(old_pol_dist, new_pol_dist))
+                    new_pol_dist = self.policy.distribution(obs_i, action_history=action_history_i)
+                    kl = torch.mean(torch.distributions.kl.kl_divergence(old_pol_dist_i, new_pol_dist))
                     self._adapt_learning_rate(kl)
 
                 self._optimizer.zero_grad()
