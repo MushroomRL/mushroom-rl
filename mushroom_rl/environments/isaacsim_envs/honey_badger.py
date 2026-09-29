@@ -45,7 +45,7 @@ class HoneyBadgerIsaac(QuadrupedIsaac):
             add_trunk_mass=(-1.5, 3.0), stay_at_default_percentage=0.3,
             torque_limit_factor=0.3, joint_velocity_factor=0.15, add_scaling_factor=(-0.03, 0.03),
             joint_damping_factor=0.5, joint_stiffness_factor=0.5, joint_armature_factor=0.5,
-            joint_frictionloss_factor=0.5, motor_strength_factor=0.25
+            motor_strength_factor=0.25
         ))
 
         super().__init__(usd_path, action_spec, default_joint_angles, trunk_body, foot_bodies, sub_bodies,

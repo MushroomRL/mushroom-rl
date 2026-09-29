@@ -300,7 +300,7 @@ if __name__ == '__main__':
     batch_size = n_steps_per_fit // n_minibatches
 
     ppo_params = dict(actor_optimizer={'class': optim.Adam,
-                                       'params': {'lr': 1e-3}},
+                                       'params': {'lr': 1e-3, 'fused': True}},
                       n_epochs_policy=5,
                       batch_size=batch_size,
                       eps_ppo=.2,
@@ -320,7 +320,7 @@ if __name__ == '__main__':
 
     critic_params = dict(network=ActorNetwork,
                          optimizer={'class': optim.Adam,
-                                    'params': {'lr': 1e-3}},
+                                    'params': {'lr': 1e-3, 'fused': True}},
                          loss=F.mse_loss,
                          n_features=[256, 256, 128],
                          activation='elu',
