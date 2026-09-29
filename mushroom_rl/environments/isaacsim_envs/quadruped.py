@@ -129,7 +129,8 @@ class QuadrupedIsaac(IsaacSim):
 
         self._reward_weights = dict(
             tracking_lin_vel=1.0, tracking_ang_vel=0.5, lin_vel_z=-2.0, ang_vel_xy=-0.05, torques=-0.0002,
-            joint_acc=-2.5e-7, feet_air_time=1.0, collision=-1.0, action_rate=-0.01, joint_pos_limits=-10.0
+            joint_acc=-2.5e-7, feet_air_time=1.0, collision=-1.0, action_rate=-0.01, joint_pos_limits=-10.0,
+            termination=0.
         )
         self._optional_reward_terms = (
             "flat_orientation", "joint_vel_limits", "power_draw", "similar_to_default",
@@ -251,7 +252,7 @@ class QuadrupedIsaac(IsaacSim):
         self._extra_info_rewards = {
             "r_tracking_lin_vel": zero, "r_tracking_ang_vel": zero, "r_lin_vel_z": zero,
             "r_ang_vel_xy": zero, "r_torques": zero, "r_joint_acc": zero, "r_feet_air_time": zero,
-            "r_collision": zero, "r_action_rate": zero, "r_joint_pos_limits": zero
+            "r_collision": zero, "r_action_rate": zero, "r_joint_pos_limits": zero, "r_termination": zero
         }
 
     # Taken from https://proceedings.mlr.press/v164/rudin22a.html, implemented in legged_gym:
@@ -296,6 +297,10 @@ class QuadrupedIsaac(IsaacSim):
 
         if self._clamp_reward:
             reward = torch.clamp(reward, min=0.)
+
+        r_termination = absorbing * w["termination"] * self.dt
+        self._extra_info_rewards["termination"] = r_termination
+        reward = reward + r_termination
 
         self._last_actions = action.clone().detach()
         self._last_joint_vel = joint_vel.clone().detach()
@@ -518,6 +523,8 @@ class QuadrupedIsaac(IsaacSim):
         joint_nominal_position_min, joint_nominal_position_max = params["add_joint_nominal_position"]
         torque_limit_factor = params["torque_limit_factor"]
         joint_velocity_factor = params["joint_velocity_factor"]
+        joint_friction_factor = params["joint_friction_factor"]
+        nominal_joint_friction = self._observation_helper.read_data("joint_friction")[0].reshape(-1)
         p_gain_min, p_gain_max = params["p_gain_scale"]
         d_gain_min, d_gain_max = params["d_gain_scale"]
         scaling_factor_min, scaling_factor_max = params["add_scaling_factor"]
@@ -530,13 +537,15 @@ class QuadrupedIsaac(IsaacSim):
                              nominal_torque_limit * (1. + torque_limit_factor)),
             "joint_max_velocity": (n_joints, nominal_joint_max_vel * (1. - joint_velocity_factor),
                                    nominal_joint_max_vel * (1. + joint_velocity_factor)),
+            "joint_friction": (3 * n_joints, nominal_joint_friction * (1. - joint_friction_factor),
+                               nominal_joint_friction * (1. + joint_friction_factor)),
             "p_gain": (n_joints, self._nominal_p_gain * p_gain_min, self._nominal_p_gain * p_gain_max),
             "d_gain": (n_joints, self._nominal_d_gain * d_gain_min, self._nominal_d_gain * d_gain_max),
             "action_scaling_factor": (n_joints, self._nominal_scaling_factor + scaling_factor_min,
                                       self._nominal_scaling_factor + scaling_factor_max),
             "mass": (1, nominal_mass + trunk_mass_min, nominal_mass + trunk_mass_max)
         }
-        for name in ("joint_damping", "joint_stiffness", "joint_armature", "joint_frictionloss"):
+        for name in ("joint_damping", "joint_stiffness", "joint_armature"):
             nominal = self._observation_helper.read_data(name)[0]
             range_min, range_max = params[name]
             bounds[name] = (n_joints, torch.clamp(nominal, max=range_min), torch.clamp(nominal, min=range_max))
@@ -757,7 +766,9 @@ class QuadrupedIsaac(IsaacSim):
             The current value of the randomized parameter the ``name`` observation exposes.
 
         """
-        return self._randomizer.seen_parameters[name]
+        value = self._randomizer.seen_parameters[name]
+
+        return value.reshape(value.shape[0], -1)
 
     def _modify_observation(self, obs):
         obs = self._add_domain_randomization_observations(obs)
@@ -1102,7 +1113,7 @@ class QuadrupedIsaac(IsaacSim):
 
         """
         nominal_names = ("trunk_mass", "trunk_inertia", "trunk_com", "torque_limit", "joint_damping",
-                         "joint_stiffness", "joint_armature", "joint_frictionloss", "robot_mass")
+                         "joint_stiffness", "joint_armature", "joint_friction", "robot_mass")
         nominal_values = {name: self._observation_helper.read_data(name) for name in nominal_names}
         nominal_values.update(joint_nominal_pos=self._default_joint_angles,
                               joint_max_vel=self._nominal_joint_max_vel(),
@@ -1219,7 +1230,7 @@ class QuadrupedIsaac(IsaacSim):
             ("max_joint_vel", "", ObservationType.JOINT_MAX_VELOCITY, action_spec),
             ("joint_range", "", ObservationType.JOINT_MAX_POS, action_spec),
             ("joint_armature", "", ObservationType.JOINT_ARMATURES, action_spec),
-            ("joint_frictionloss", "", ObservationType.JOINT_FRICTION_STATIC, action_spec),
+            ("joint_friction", "", ObservationType.JOINT_FRICTION, action_spec),
             ("joint_damping", "", ObservationType.JOINT_GAIN_DAMPING, action_spec),
             ("joint_stiffness", "", ObservationType.JOINT_GAIN_STIFFNESS, action_spec),
             ("joint_gains", "", ObservationType.JOINT_GAIN, action_spec),

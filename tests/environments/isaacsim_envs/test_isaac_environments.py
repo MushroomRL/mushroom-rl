@@ -187,7 +187,7 @@ def test_set_domain_randomization():
     torch.manual_seed(1)
 
     names = ('trunk_mass', 'trunk_inertia', 'trunk_com', 'torque_limit', 'max_joint_vel', 'joint_damping',
-             'joint_stiffness', 'joint_armature', 'joint_frictionloss')
+             'joint_stiffness', 'joint_armature', 'joint_friction')
     envs = torch.arange(2, device='cuda:0')
     mask = torch.ones(2, dtype=torch.bool, device='cuda:0')
 
@@ -219,6 +219,49 @@ def test_set_domain_randomization():
     mass = mdp._observation_helper.read_data('trunk_mass', envs)
 
     assert not torch.equal(mass, nominal['trunk_mass']) and not torch.equal(mass, randomized_mass)
+    mdp.stop()
+
+
+def test_joint_friction_randomization():
+    np.random.seed(1)
+    torch.manual_seed(1)
+
+    envs = torch.arange(2, device='cuda:0')
+    mask = torch.ones(2, dtype=torch.bool, device='cuda:0')
+
+    mdp = Go2Isaac(2, 1000, randomization_params=QuadrupedRandomizationParams(joint_friction_factor=0.1),
+                   observed_randomization=('joint_friction', ))
+    nominal = mdp._randomizer.default_parameters['joint_friction']
+    mdp.reset_all(mask)
+    friction = mdp._observation_helper.read_data('joint_friction', envs)
+    ratio = friction / nominal
+
+    assert torch.equal(friction, mdp._randomizer.seen_parameters['joint_friction'])
+    assert torch.allclose(ratio[..., 1], ratio[..., 0]) and torch.allclose(ratio[..., 2], ratio[..., 0])
+    assert torch.allclose(friction[0, 0], torch.tensor([0.21405327, 0.21405327, 0.10702664], device='cuda:0'))
+    assert len(mdp._observation_helper.obs_idx_map['joint_friction']) == 36
+
+    mdp.set_domain_randomization(False)
+    mdp.reset_all(mask)
+
+    assert torch.equal(mdp._observation_helper.read_data('joint_friction', envs), nominal.expand(2, -1, -1))
+    mdp.stop()
+
+
+def test_termination_penalty():
+    np.random.seed(1)
+    torch.manual_seed(1)
+
+    mask = torch.ones(2, dtype=torch.bool, device='cuda:0')
+    absorbing = torch.tensor([True, False], device='cuda:0')
+
+    mdp = Go2Isaac(2, 1000, clamp_reward=True, reward_weights=dict(termination=-1000.))
+    obs, _ = mdp.reset_all(mask)
+    next_obs, _, _, _ = mdp.step_all(mask, torch.zeros(2, 12, device='cuda:0'))
+    reward = mdp.reward(obs, torch.zeros(2, 12, device='cuda:0'), next_obs, absorbing)
+
+    assert torch.allclose(mdp._extra_info_rewards['termination'], torch.tensor([-20., 0.], device='cuda:0'))
+    assert torch.allclose(reward, torch.tensor([-20., 0.], device='cuda:0'))
     mdp.stop()
 
 

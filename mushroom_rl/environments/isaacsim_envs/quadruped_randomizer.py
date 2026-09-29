@@ -39,7 +39,7 @@ class QuadrupedRandomizationParams:
        :header: "Parameter", "Default", "Meaning"
        :widths: 30, 18, 52
 
-       "``stay_at_default_percentage``", "``1.``", "Chance the four joint properties below stay nominal
+       "``stay_at_default_percentage``", "``1.``", "Chance the three joint properties below stay nominal
        instead of being drawn"
        "``add_trunk_mass``", "``(-2.0, 4.0)``", "Offset on the mass of the trunk"
        "``add_com_displacement``", "``(-0.05, 0.05)``", "Offset on each axis of the center of mass of the
@@ -47,10 +47,11 @@ class QuadrupedRandomizationParams:
        "``add_joint_nominal_position``", "``(0., 0.)``", "Offset on the nominal pose actions are relative to"
        "``torque_limit_factor``", "``0.``", "Spread of the torque limit around its nominal value"
        "``joint_velocity_factor``", "``0.``", "Spread of the maximum joint velocity"
+       "``joint_friction_factor``", "``0.``", "Spread of the static, dynamic and viscous joint friction
+       around their nominal values"
        "``joint_damping``", "``(0.0, 0.3)``", "Damping of every joint"
        "``joint_stiffness``", "``(0.0, 0.5)``", "Stiffness of every joint"
        "``joint_armature``", "``(0.009, 0.023)``", "Armature of every joint"
-       "``joint_frictionloss``", "``(0.0, 0.1)``", "Friction loss of every joint"
        "``p_gain_scale``", "``(0.85, 1.15)``", "Factor on the proportional gain"
        "``d_gain_scale``", "``(0.85, 1.15)``", "Factor on the derivative gain"
        "``add_scaling_factor``", "``(0., 0.)``", "Offset on the action scaling factor"
@@ -69,7 +70,6 @@ class QuadrupedRandomizationParams:
        "``joint_damping_factor``", "``0.``", "Noise on the joint damping"
        "``joint_stiffness_factor``", "``0.``", "Noise on the joint stiffness"
        "``joint_armature_factor``", "``0.``", "Noise on the joint armature"
-       "``joint_frictionloss_factor``", "``0.``", "Noise on the joint friction loss"
        "``p_gain_factor``", "``0.``", "Noise on the proportional gain the control law runs on"
        "``d_gain_factor``", "``0.``", "Noise on the derivative gain the control law runs on"
        "``motor_strength_factor``", "``0.``", "Noise on the computed torque"
@@ -126,10 +126,10 @@ class QuadrupedRandomizationParams:
             add_joint_nominal_position=(0., 0.),
             torque_limit_factor=0.,
             joint_velocity_factor=0.,
+            joint_friction_factor=0.,
             joint_damping=(0.0, 0.3),
             joint_stiffness=(0.0, 0.5),
             joint_armature=(0.009, 0.023),
-            joint_frictionloss=(0.0, 0.1),
             p_gain_scale=(0.85, 1.15),
             d_gain_scale=(0.85, 1.15),
             add_scaling_factor=(0., 0.),
@@ -138,7 +138,6 @@ class QuadrupedRandomizationParams:
             joint_damping_factor=0.,
             joint_stiffness_factor=0.,
             joint_armature_factor=0.,
-            joint_frictionloss_factor=0.,
             p_gain_factor=0.,
             d_gain_factor=0.,
             motor_strength_factor=0.,
@@ -186,7 +185,7 @@ class QuadrupedRandomizer:
             joint_damping=nominal_values["joint_damping"][0].clone().detach(),
             joint_stiffness=nominal_values["joint_stiffness"][0].clone().detach(),
             joint_armature=nominal_values["joint_armature"][0].clone().detach(),
-            joint_frictionloss=nominal_values["joint_frictionloss"][0].clone().detach(),
+            joint_friction=nominal_values["joint_friction"][0].clone().detach(),
             joint_nominal_pos=nominal_values["joint_nominal_pos"].clone().detach(),
             joint_max_vel=nominal_values["joint_max_vel"].clone().detach(),
             p_gain=nominal_values["p_gain"],
@@ -202,7 +201,7 @@ class QuadrupedRandomizer:
             joint_damping=nominal_values["joint_damping"],
             joint_stiffness=nominal_values["joint_stiffness"],
             joint_armature=nominal_values["joint_armature"],
-            joint_frictionloss=nominal_values["joint_frictionloss"],
+            joint_friction=nominal_values["joint_friction"],
             p_gain=torch.full(shape, self._default["p_gain"], device=device),
             d_gain=torch.full(shape, self._default["d_gain"], device=device),
             action_scaling_factor=torch.full(shape, self._default["action_scaling_factor"], device=device),
@@ -279,7 +278,7 @@ class QuadrupedRandomizer:
         self._seen["joint_nominal_position"][:] = self._default["joint_nominal_pos"]
         self._seen["torque_limit"][:] = self._default["torque_limit"]
         self._seen["joint_max_velocity"][:] = self._default["joint_max_vel"]
-        for name in ("joint_damping", "joint_stiffness", "joint_armature", "joint_frictionloss"):
+        for name in ("joint_damping", "joint_stiffness", "joint_armature", "joint_friction"):
             self._seen[name][:] = self._default[name]
         self._seen["action_scaling_factor"][:] = self._default["action_scaling_factor"]
 
@@ -302,7 +301,7 @@ class QuadrupedRandomizer:
             "joint_damping": self._seen["joint_damping"].clone(),
             "joint_stiffness": self._seen["joint_stiffness"].clone(),
             "joint_armature": self._seen["joint_armature"].clone(),
-            "joint_frictionloss": self._seen["joint_frictionloss"].clone()
+            "joint_friction": self._seen["joint_friction"].clone()
         }
 
     def sample_friction(self, n_envs):
@@ -514,7 +513,7 @@ class QuadrupedRandomizer:
 
         """
         return {name: self._sample_noise_factor(env_indices.shape[0], f"{name}_factor")
-                for name in ("joint_damping", "joint_stiffness", "joint_armature", "joint_frictionloss")}
+                for name in ("joint_damping", "joint_stiffness", "joint_armature")}
 
     def _sample_trunk_params(self, env_indices, noise):
         """
@@ -560,8 +559,9 @@ class QuadrupedRandomizer:
     def _sample_joint_params(self, env_indices, noise):
         """
         Draws the seen values of the joint properties, and returns the unseen values the simulation is
-        actually set up with. Each is either drawn from an absolute range or left nominal, with the
-        probability ``stay_at_default_percentage`` sets.
+        actually set up with. The damping, stiffness and armature are either drawn from an absolute range or
+        left nominal, with the probability ``stay_at_default_percentage`` sets; the friction is spread around
+        its nominal value.
 
         """
         device = TorchUtils.get_device()
@@ -575,12 +575,14 @@ class QuadrupedRandomizer:
             * (1 + self._sample_symmetric_offset(n_envs, "torque_limit_factor"))
         self._seen["joint_max_velocity"][env_indices] = self._default["joint_max_vel"] \
             * (1 + self._sample_symmetric_offset(n_envs, "joint_velocity_factor"))
+        self._seen["joint_friction"][env_indices] = self._default["joint_friction"] \
+            * (1 + self._sample_symmetric_offset(n_envs, "joint_friction_factor")).unsqueeze(-1)
 
         stay_at_default = self._bernoulli(self._params["stay_at_default_percentage"], n_envs)
         default_indices = env_indices[stay_at_default]
         random_indices = env_indices[torch.logical_not(stay_at_default)]
 
-        for name in ("joint_damping", "joint_stiffness", "joint_armature", "joint_frictionloss"):
+        for name in ("joint_damping", "joint_stiffness", "joint_armature"):
             self._seen[name][default_indices] = self._default[name]
             if random_indices.shape[0] > 0:
                 self._seen[name][random_indices] = torch_rand_float(
@@ -592,7 +594,9 @@ class QuadrupedRandomizer:
             unseen_values["torque_limit"] = self._seen["torque_limit"][env_indices]
         if self._params["joint_velocity_factor"] != 0.:
             unseen_values["max_joint_vel"] = self._seen["joint_max_velocity"][env_indices]
-        for name in ("joint_damping", "joint_stiffness", "joint_armature", "joint_frictionloss"):
+        if self._params["joint_friction_factor"] != 0.:
+            unseen_values["joint_friction"] = self._seen["joint_friction"][env_indices]
+        for name in ("joint_damping", "joint_stiffness", "joint_armature"):
             if self._params["stay_at_default_percentage"] < 1. or self._params[f"{name}_factor"] != 0.:
                 unseen_values[name] = self._seen[name][env_indices] * noise[name]
 
