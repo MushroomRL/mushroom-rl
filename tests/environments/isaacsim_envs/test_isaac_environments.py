@@ -15,6 +15,9 @@ TorchUtils.set_default_device("cuda:0")
 from mushroom_rl.environments.isaacsim_envs import CartPoleIsaac
 from mushroom_rl.environments.isaacsim_envs import A1Isaac, Go2Isaac, HoneyBadgerIsaac, SilverBadgerIsaac
 from mushroom_rl.environments.isaacsim_envs.quadruped_randomizer import QuadrupedRandomizationParams
+from mushroom_rl.environments.isaacsim_envs.quadruped_commands import CommandGenerator, VelocityCommandGenerator, \
+    UniformVelocityCommands, EllipticVelocityCommands
+from mushroom_rl.utils.isaac_sim.torch_maths import quat_apply, wrap_to_pi
 
 
 def run_env(mdp, num_joints):
@@ -296,6 +299,131 @@ def test_joint_friction_randomization():
     mdp.reset_all(mask)
 
     assert torch.equal(mdp._observation_helper.read_data('joint_friction', envs), nominal.expand(2, -1, -1))
+    mdp.stop()
+
+
+def test_ground_friction_randomization():
+    np.random.seed(1)
+    torch.manual_seed(1)
+
+    mask = torch.ones(2, dtype=torch.bool, device='cuda:0')
+
+    mdp = Go2Isaac(2, 1000)
+    mdp.reset_all(mask)
+    material = torch.as_tensor(mdp._robots._physics_articulation_view.get_material_properties().numpy())
+
+    assert torch.equal(material[:, :, :2], material[:, :1, :2].expand(-1, material.shape[1], -1))
+    assert torch.allclose(material[..., 1] / material[..., 0], torch.full(material.shape[:2], 0.75 / 0.9))
+    assert torch.allclose(material[:, 0, :2], torch.tensor([[1.15763152, 0.96469295], [0.67931080, 0.56609237]]))
+    mdp.stop()
+
+    mdp = Go2Isaac(2, 1000, randomization_params=QuadrupedRandomizationParams(ground_friction_factor=0.))
+    mdp.reset_all(mask)
+    material = torch.as_tensor(mdp._robots._physics_articulation_view.get_material_properties().numpy())
+
+    assert torch.all(material[..., 0] == np.float32(0.9)) and torch.all(material[..., 1] == np.float32(0.75))
+    mdp.stop()
+
+
+def test_command_generator_interface():
+    generator = CommandGenerator()
+
+    with pytest.raises(NotImplementedError):
+        generator.reset(None, None)
+    with pytest.raises(NotImplementedError):
+        generator.step(None, None)
+    with pytest.raises(NotImplementedError):
+        generator.commands
+    with pytest.raises(NotImplementedError):
+        generator.command_bounds
+    with pytest.raises(NotImplementedError):
+        VelocityCommandGenerator()._sample(None)
+
+    generator = UniformVelocityCommands(max_command_ranges=dict(lin_vel_x=(-2., 1.5), ang_vel_z=(-1.5, 1.5)),
+                                        command_ranges=dict(lin_vel_x=(-2., 0.)))
+
+    assert generator.command_ranges == dict(lin_vel_x=(-2., 0.), lin_vel_y=(-1., 1.), ang_vel_z=(-1., 1.),
+                                            heading=(-3.14, 3.14))
+    assert torch.equal(generator.command_bounds, torch.tensor([2., 1., 1.5], device='cuda:0'))
+
+    generator.command_ranges = dict(lin_vel_y=(-0.5, 0.5))
+
+    assert generator.command_ranges["lin_vel_x"] == (-2., 0.) and generator.command_ranges["lin_vel_y"] == (-0.5, 0.5)
+
+    with pytest.raises(ValueError):
+        generator.command_ranges = dict(lin_vel_z=(-1., 1.))
+    with pytest.raises(ValueError):
+        generator.command_ranges = dict(lin_vel_x=(1., -1.))
+    with pytest.raises(ValueError):
+        generator.command_ranges = dict(lin_vel_x=(-2.5, 1.))
+    with pytest.raises(ValueError):
+        EllipticVelocityCommands(command_ranges=dict(ang_vel_z=(-4., 0.)))
+
+
+def test_command_generator_environment():
+    np.random.seed(1)
+    torch.manual_seed(1)
+
+    mdp = Go2Isaac(2, 1000, domain_randomization=False)
+
+    assert isinstance(mdp.command_generator, UniformVelocityCommands)
+
+    with pytest.raises(AttributeError):
+        mdp.command_generator = UniformVelocityCommands()
+    mdp.stop()
+
+
+def test_reset_commands():
+    np.random.seed(1)
+    torch.manual_seed(1)
+
+    mask = torch.ones(8, dtype=torch.bool, device='cuda:0')
+    reset_mask = torch.tensor([True, True, True, True, False, False, False, False], device='cuda:0')
+    action = torch.zeros(8, 12, device='cuda:0')
+    generator = UniformVelocityCommands(rel_standing_envs=0.5)
+
+    mdp = Go2Isaac(8, 1000, domain_randomization=False, command_generator=generator)
+    mdp.reset_all(mask)
+    for _ in range(30):
+        mdp.step_all(mask, action)
+    obs, _ = mdp.reset_all(reset_mask)
+    commands = obs[:4][:, mdp.observation_indices('commands')]
+
+    base_quat = mdp._observation_helper.read_data("body_rot", torch.arange(2, 4, device='cuda:0'))
+    forward = quat_apply(base_quat, torch.tensor([[1., 0., 0.]], device='cuda:0').repeat(2, 1))
+    heading = torch.atan2(forward[:, 1], forward[:, 0])
+    yaw_rate = torch.clip(0.5 * wrap_to_pi(generator._commands[2:4, 3] - heading), -1., 1.)
+
+    assert torch.equal(commands[:2], torch.zeros(2, 3, device='cuda:0'))
+    assert torch.equal(commands[2:, 2], yaw_rate)
+    assert torch.allclose(commands, torch.tensor([[0., 0., 0.], [0., 0., 0.],
+                                                  [-0.07134497, 0.96022713, 0.19748156],
+                                                  [0.08069193, 0.30225408, -0.17741704]], device='cuda:0'))
+    assert torch.equal(generator._is_standing_env[:4], torch.tensor([True, True, False, False], device='cuda:0'))
+    mdp.stop()
+
+
+def test_elliptic_commands():
+    np.random.seed(1)
+    torch.manual_seed(1)
+
+    mask = torch.ones(8, dtype=torch.bool, device='cuda:0')
+    center = torch.tensor([-0.25, 0., 0.], device='cuda:0')
+    half_width = torch.tensor([0.75, 1., 0.5], device='cuda:0')
+    generator = EllipticVelocityCommands(frac_max_speed_envs=0.5, rel_heading_envs=0., command_dead_zone=0.,
+                                         command_ranges=dict(lin_vel_x=(-1., 0.5), ang_vel_z=(-0.5, 0.5)))
+
+    mdp = Go2Isaac(8, 1000, domain_randomization=False, command_generator=generator)
+    mdp.reset_all(mask)
+    commands = generator.commands
+    radius = torch.sum(torch.square((commands - center) / half_width), dim=1)
+
+    assert torch.all(radius <= 1. + 1e-6)
+    assert torch.allclose(commands[:2], torch.tensor([[-0.74822807, -0.06092291, -0.37248772],
+                                                      [-0.78001875, -0.37573797, -0.29975313]], device='cuda:0'))
+    assert torch.allclose(radius, torch.tensor([1., 1., 0.67065024, 1., 0.48473167, 0.47365901, 0.26068413,
+                                                0.95664150], device='cuda:0'))
+    assert not torch.any(generator._is_heading_env)
     mdp.stop()
 
 

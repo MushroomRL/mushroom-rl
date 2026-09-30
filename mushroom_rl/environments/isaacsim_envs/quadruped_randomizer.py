@@ -22,8 +22,10 @@ class QuadrupedRandomizationParams:
        "``push_interval_range``", "``None``", "Range, in seconds, between two pushes of the same environment"
        "``push_min_episode_length``", "``50``", "Steps an environment must have been alive to be pushed"
        "``push_max_velocity``", "``1.``", "Half-width of the horizontal velocity the push imparts"
-       "``static_friction``", "``(0.4, 1.4)``", "Static friction of the ground the robot walks on"
-       "``dynamic_friction``", "``(0.3, 1.2)``", "Dynamic friction of the ground the robot walks on"
+       "``static_friction``", "``0.9``", "Nominal static friction of the ground the robot walks on"
+       "``dynamic_friction``", "``0.75``", "Nominal dynamic friction of the ground the robot walks on"
+       "``ground_friction_factor``", "``5/9``", "Spread of the static and dynamic ground friction around their
+       nominal values, one factor scaling both"
        "``mixed_chance``", "``0.``", "Chance an episode redraws the delay at every single action"
        "``max_delay_steps``", "``4``", "Largest number of physics steps an action can be delayed by"
        "``reset_base_pose_range``", "``(0.5, 0.5, pi)``", "Half-widths of the x, y and yaw offset a reset
@@ -116,7 +118,7 @@ class QuadrupedRandomizationParams:
         return dict(
             push_probability=1. / 750., push_min_episode_length=50, push_max_velocity=1.,
             push_interval_range=None,
-            static_friction=(0.4, 1.4), dynamic_friction=(0.3, 1.2),
+            static_friction=0.9, dynamic_friction=0.75, ground_friction_factor=5. / 9.,
             mixed_chance=0., max_delay_steps=4,
             reset_base_pose_range=(0.5, 0.5, math.pi),
             reset_base_velocity_range=(0., 0., 0., 0., 0., 0.),
@@ -315,9 +317,10 @@ class QuadrupedRandomizer:
             The static and dynamic friction of each of them, as two tensors on the host.
 
         """
-        shape = (n_envs, 1)
-        return (self._uniform(self._params["static_friction"], shape, "cpu"),
-                self._uniform(self._params["dynamic_friction"], shape, "cpu"))
+        half_width = self._params["ground_friction_factor"]
+        factor = 1 + self._uniform((-half_width, half_width), (n_envs, 1), "cpu")
+
+        return self._params["static_friction"] * factor, self._params["dynamic_friction"] * factor
 
     def sample_disturbance(self, env_indices, episode_length, dt):
         """
