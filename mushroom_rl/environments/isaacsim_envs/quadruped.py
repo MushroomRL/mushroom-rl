@@ -221,6 +221,10 @@ class QuadrupedIsaac(IsaacSim):
         self._setup_joint_pos = None
 
     def setup(self, env_indices, obs):
+        if obs is not None:
+            raise ValueError("a quadruped cannot be reset to a given state: its observation does not determine "
+                             "the state of the simulation")
+
         self._feet_air_time[env_indices] = 0.
         self._episode_length[env_indices] = 0
         self._action_history[:, env_indices, :] = 0
