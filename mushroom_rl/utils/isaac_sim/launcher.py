@@ -1,4 +1,6 @@
 import atexit
+import contextlib
+import os
 
 import isaacsim
 from isaacsim import SimulationApp
@@ -39,7 +41,7 @@ class IsaacLauncher:
                         f"Call {cls.__name__}.launch() on the class itself.")
 
     @classmethod
-    def launch(cls, headless=True, physics_engine='physx', carb_settings=None):
+    def launch(cls, headless=True, physics_engine='physx', log_level='warning', carb_settings=None):
         """
         Starts Isaac Sim, so that its modules and the MushroomRL environments built on them can be imported.
 
@@ -50,6 +52,9 @@ class IsaacLauncher:
             physics_engine (str, 'physx'): The physics engine to simulate with, either 'physx' or 'newton'. Isaac Sim
                 documents Newton as experimental, and MushroomRL does not test it: the robot assets shipped
                 here are tuned for PhysX and the two engines do not produce the same dynamics.
+            log_level (str, 'warning'): The lowest severity Isaac Sim prints to the console, one of 'verbose',
+                'info', 'warning', 'error' or 'fatal'. Below 'info', Isaac Sim's startup messages are not printed
+                either. The log file written by Isaac Sim is not affected.
             carb_settings (dict, None): Overrides for the default carb settings applied at startup, see
                 :meth:`_apply_carb_settings`. Keys are carb setting paths (e.g. ``"/physics/fabricEnabled"``);
                 values override the corresponding default, and unknown keys are simply added.
@@ -59,8 +64,16 @@ class IsaacLauncher:
 
         """
         if cls._app is None:
-            cls._app = SimulationApp({"headless": headless, "hide_ui": False, "renderer": "RaytracedLighting",
-                                      "extra_args": ["--/persistent/app/usd/muteUsdDiagnostics=false"]})
+            log_args = cls._log_args(log_level)
+
+            with open(os.devnull, 'w') as devnull:
+                # Isaac Sim prints its launch arguments with Python's print while starting up
+                stdout = contextlib.nullcontext() if cls._is_verbose(log_level) else contextlib.redirect_stdout(devnull)
+
+                with stdout:
+                    cls._app = SimulationApp({"headless": headless, "hide_ui": False, "renderer": "RaytracedLighting",
+                                              "extra_args": ["--/persistent/app/usd/muteUsdDiagnostics=false",
+                                                             *log_args]})
             cls._apply_carb_settings(cls._app, carb_settings)
             cls._select_physics_engine(physics_engine)
 
@@ -129,6 +142,45 @@ class IsaacLauncher:
 
         """
         return cls.get().config["headless"]
+
+    @staticmethod
+    def _log_args(log_level):
+        """
+        Builds the command line arguments setting the console verbosity of Isaac Sim.
+
+        Args:
+            log_level (str): The lowest severity to print, one of 'verbose', 'info', 'warning', 'error' or 'fatal'.
+
+        Returns:
+            The list of command line arguments to pass to the simulation app.
+
+        Raises:
+            ValueError: If ``log_level`` is not one of the supported levels.
+
+        """
+        carb_levels = dict(verbose='Verbose', info='Info', warning='Warning', error='Error', fatal='Fatal')
+
+        if log_level not in carb_levels:
+            raise ValueError(f"Unknown log_level '{log_level}', expected one of {list(carb_levels)}.")
+
+        # Kit prints its startup messages (extension startups, app ready, ...) straight to stdout, bypassing the
+        # log level, while recording them as Info in its log file
+        verbose_stdout = IsaacLauncher._is_verbose(log_level)
+
+        return [f"--/log/outputStreamLevel={carb_levels[log_level]}",
+                f"--/app/enableStdoutOutput={str(verbose_stdout).lower()}"]
+
+    @staticmethod
+    def _is_verbose(log_level):
+        """
+        Args:
+            log_level (str): The lowest severity to print.
+
+        Returns:
+            Whether Isaac Sim's startup messages are printed at ``log_level``.
+
+        """
+        return log_level in ['verbose', 'info']
 
     @staticmethod
     def _apply_carb_settings(simulation_app, overrides=None):
