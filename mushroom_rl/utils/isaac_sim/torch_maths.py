@@ -1,3 +1,5 @@
+import math
+
 import torch
 
 
@@ -78,3 +80,19 @@ def quat_rotate_inverse(q, v):
     b = torch.cross(q_vec, v, dim=-1) * q_w.unsqueeze(-1) * 2.0
     c = q_vec * torch.bmm(q_vec.view(shape[0], 1, 3), v.view(shape[0], 3, 1)).squeeze(-1) * 2.0
     return a - b + c
+
+
+def wrap_to_pi(angles):
+    """
+    Wraps angles into ``(-pi, pi]``, in place.
+
+    Args:
+        angles (torch.tensor): The angles to wrap, in radians.
+
+    Returns:
+        The wrapped angles, the same tensor as ``angles``.
+
+    """
+    angles %= 2 * math.pi
+    angles -= 2 * math.pi * (angles > math.pi)
+    return angles

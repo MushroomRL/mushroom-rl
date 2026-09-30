@@ -1,10 +1,10 @@
-import math
 import torch
 
-from mushroom_rl.utils.isaac_sim.torch_maths import torch_rand_float, quat_apply, quat_mul, quat_rotate_inverse
+from mushroom_rl.utils.isaac_sim.torch_maths import torch_rand_float, quat_mul, quat_rotate_inverse
 
 from mushroom_rl.core.spaces import Box
 from mushroom_rl.environments.isaacsim_env import IsaacSim
+from mushroom_rl.environments.isaacsim_envs.quadruped_commands import UniformVelocityCommands
 from mushroom_rl.environments.isaacsim_envs.quadruped_randomizer import QuadrupedRandomizationParams, \
     QuadrupedRandomizer
 from mushroom_rl.utils import TorchUtils
@@ -27,12 +27,8 @@ class QuadrupedIsaac(IsaacSim):
                  domain_randomization, camera_position, camera_target,
                  default_joint_max_vel=None,
                  nominal_p_gain=20., nominal_d_gain=0.5, nominal_scaling_factor=0.25, reward_weights=None,
-                 randomization_params=None, observed_randomization=(), max_command_ranges=None,
-                 reward_params=None, clamp_reward=True,
-                 command_ranges=None, tracking_stds=None, command_dead_zone=0.2,
-                 command_resampling_time_range=None, heading_control_stiffness=0.5, rel_heading_envs=1.,
-                 rel_standing_envs=0., frac_rotating_envs=0., frac_low_speed_envs=0., low_speed_threshold=0.5,
-                 gpu_params=None):
+                 randomization_params=None, observed_randomization=(), command_generator=None,
+                 reward_params=None, clamp_reward=True, tracking_stds=None, gpu_params=None):
         """
         Constructor.
 
@@ -69,27 +65,12 @@ class QuadrupedIsaac(IsaacSim):
                 :class:`QuadrupedRandomizer`.
             observed_randomization (tuple): The names of the randomized parameters the agent is told about
                 through an observation. Every parameter is hidden from it by default.
-            max_command_ranges (dict, None): The widest velocity command ranges the environment will ever
-                sample from, keyed ``lin_vel_x``, ``lin_vel_y``, ``ang_vel_z`` and ``heading``. They bound the
-                command observation and every range :meth:`command_ranges` can be set to.
-            command_ranges (dict, None): The velocity command ranges to start sampling from, keyed like
-                ``max_command_ranges`` and bounded by them.
+            command_generator (CommandGenerator, None): The generator of the command the robot is asked to
+                follow. Defaults to a :class:`UniformVelocityCommands` with its default parameters.
             tracking_stds (dict, None): Overrides for the tolerance of the two command tracking reward terms,
                 keyed ``lin_vel`` and ``ang_vel`` for the tightest tolerance, and ``lin_vel_slope`` and
                 ``ang_vel_slope`` for how much it widens with the magnitude of the command. Only the given
                 keys are overridden.
-            command_dead_zone (float): Linear velocity commands whose norm falls below this are set to zero.
-            command_resampling_time_range (tuple, None): The range, in seconds, the time until an environment
-                resamples its command is drawn from. ``None`` resamples with a fixed per-step probability.
-            heading_control_stiffness (float): The gain turning the error on the heading target into the yaw
-                rate command.
-            rel_heading_envs (float): The fraction of environments whose yaw rate command tracks a heading
-                target.
-            rel_standing_envs (float): The fraction of environments commanded to stand still.
-            frac_rotating_envs (float): The fraction of the moving environments commanded to rotate in place.
-            frac_low_speed_envs (float): The fraction of the moving environments commanded to move below
-                ``low_speed_threshold``.
-            low_speed_threshold (float): The velocity below which a command counts as a low speed one.
             gpu_params (IsaacGpuParams, None): The GPU configuration parameters of the physics scene.
                 Defaults to ``IsaacGpuParams.per_env(num_envs)``.
 
@@ -106,23 +87,7 @@ class QuadrupedIsaac(IsaacSim):
         self._nominal_scaling_factor = nominal_scaling_factor
         self._observed_randomization = observed_randomization
 
-        self._max_command_ranges = dict(lin_vel_x=(-1., 1.), lin_vel_y=(-1., 1.), ang_vel_z=(-math.pi, math.pi),
-                                        heading=(-3.14, 3.14))
-        self._max_command_ranges |= max_command_ranges or {}
-
-        self._command_ranges = dict(lin_vel_x=(-1., 1.), lin_vel_y=(-1., 1.), ang_vel_z=(-1., 1.),
-                                    heading=(-3.14, 3.14))
-        self._command_ranges |= command_ranges or {}
-        self._check_command_ranges(self._command_ranges)
-
-        self._command_dead_zone = command_dead_zone
-        self._command_resampling_time_range = command_resampling_time_range
-        self._heading_control_stiffness = heading_control_stiffness
-        self._rel_heading_envs = rel_heading_envs
-        self._rel_standing_envs = rel_standing_envs
-        self._frac_rotating_envs = frac_rotating_envs
-        self._frac_low_speed_envs = frac_low_speed_envs
-        self._low_speed_threshold = low_speed_threshold
+        self._command_generator = UniformVelocityCommands() if command_generator is None else command_generator
 
         self._tracking_stds = dict(lin_vel=0.5, lin_vel_slope=0., ang_vel=0.5, ang_vel_slope=0.)
         self._tracking_stds |= tracking_stds or {}
@@ -147,8 +112,8 @@ class QuadrupedIsaac(IsaacSim):
         self._reward_weights |= reward_weights or {}
 
         self._reward_params = dict(
-            command_threshold=0.05, air_time_threshold_high=0.5, air_time_threshold_low=0.25,
-            air_time_symmetry_std=0.05, clearance_target=0.03, clearance_std=0.02,
+            command_threshold=0.05, low_speed_threshold=0.5, air_time_threshold_high=0.5,
+            air_time_threshold_low=0.25, air_time_symmetry_std=0.05, clearance_target=0.03, clearance_std=0.02,
             clearance_lateral_target=0.05, clearance_lateral_std=0.02,
             clearance_lateral_command_threshold=0.3, long_contact_threshold=0.4, long_contact_ramp_power=2.,
             long_contact_ramp_cap=1., base_height_target=0.3, joint_vel_limits_soft_ratio=0.9,
@@ -191,10 +156,7 @@ class QuadrupedIsaac(IsaacSim):
             for name, value in self._randomizer.resample_startup(all_indices).items():
                 self._observation_helper.write_data(name, value, all_indices)
 
-        self._commands = torch.zeros(num_envs, 4, dtype=torch.float, device=device)
-        self._is_heading_env = torch.ones((num_envs, ), dtype=torch.bool, device=device)
-        self._is_standing_env = torch.zeros((num_envs, ), dtype=torch.bool, device=device)
-        self._time_to_resample = torch.zeros((num_envs, ), device=device)
+        self._command_generator.initialize(num_envs, self.dt)
         self._actions = torch.zeros((num_envs, len(action_spec)), device=device)
         self._feet_air_time = torch.zeros((num_envs, len(foot_bodies)), device=device)
         self._last_actions = torch.zeros((num_envs, len(action_spec)), device=device)
@@ -208,7 +170,6 @@ class QuadrupedIsaac(IsaacSim):
         self._foot_positions = torch.zeros((num_envs, len(foot_bodies), 3), device=device)
         self._foot_velocities = torch.zeros((num_envs, len(foot_bodies), 3), device=device)
         self._episode_length = torch.zeros((num_envs, ), dtype=int, device=device)
-        self._forward_vec = torch.tensor([1., 0., 0.], device=device).repeat((num_envs, 1))
         self._gravity = torch.tensor([0., 0., -1.], device=device).repeat((num_envs, 1))
         self._max_delay_steps_limit = self._randomization_params["max_delay_steps"]
         self._action_history = torch.zeros((self._max_delay_steps_limit + 1, num_envs, len(action_spec)),
@@ -250,7 +211,7 @@ class QuadrupedIsaac(IsaacSim):
         self._last_joint_vel[env_indices] = joint_vel
 
         self._resample_domain_randomization(env_indices)
-        self._resample_commands(env_indices)
+        self._command_generator.reset(env_indices, self._observation_helper)
 
         zero = torch.zeros(self.number, device=TorchUtils.get_device())
         self._extra_info_rewards = {
@@ -334,30 +295,14 @@ class QuadrupedIsaac(IsaacSim):
         for name, value in values.items():
             self._observation_helper.write_data(name, value, all_indices)
 
-    @staticmethod
-    def wrap_to_pi(angles):
-        angles %= 2 * math.pi
-        angles -= 2 * math.pi * (angles > math.pi)
-        return angles
-
     @property
-    def command_ranges(self):
+    def command_generator(self):
         """
         Returns:
-            The velocity command ranges currently sampled from, keyed ``lin_vel_x``, ``lin_vel_y``,
-            ``ang_vel_z`` and ``heading``. Assigning to this overrides only the given keys, which have to stay
-            within the maximum ranges the environment was built with.
+            The generator of the command the robot is asked to follow.
 
         """
-        return dict(self._command_ranges)
-
-    @command_ranges.setter
-    def command_ranges(self, ranges):
-        updated = dict(self._command_ranges)
-        updated.update(ranges)
-        self._check_command_ranges(updated)
-
-        self._command_ranges = updated
+        return self._command_generator
 
     @property
     def tracking_stds(self):
@@ -423,10 +368,7 @@ class QuadrupedIsaac(IsaacSim):
 
     def _extend_observation_spec(self):
         self._observation_helper.add_obs("projected_gravity", 3, -1, 1)
-        ranges = self._max_command_ranges
-        commands_upper = torch.tensor([max(abs(bound) for bound in ranges[name])
-                                       for name in ("lin_vel_x", "lin_vel_y", "ang_vel_z")],
-                                      device=TorchUtils.get_device())
+        commands_upper = self._command_generator.command_bounds
         self._observation_helper.add_obs("commands", 3, -commands_upper, commands_upper)
 
         self._action_position_limits = self._compute_action_position_limits()
@@ -602,33 +544,9 @@ class QuadrupedIsaac(IsaacSim):
     def _step_finalize(self, env_indices):
         self._episode_length += 1
 
-        self._resample_commands(self._environments_to_resample(env_indices))
-
-        base_quat = self._observation_helper.read_data("body_rot")
-        forward = quat_apply(base_quat, self._forward_vec)
-        heading = torch.atan2(forward[:, 1], forward[:, 0])
-        yaw_rate = torch.clip(self._heading_control_stiffness * self.wrap_to_pi(self._commands[:, 3] - heading),
-                              *self._command_ranges["ang_vel_z"])
-        self._commands[:, 2] = torch.where(self._is_heading_env, yaw_rate, self._commands[:, 2])
-        self._commands[self._is_standing_env, :3] = 0.
+        self._command_generator.step(env_indices, self._observation_helper)
 
         self._push_domain_randomization(env_indices)
-
-    def _environments_to_resample(self, env_indices):
-        """
-        Returns:
-            The environments whose velocity command is due to be drawn again, either because their timer ran
-            out or, when no resampling time range is set, because the per-step draw came up for them.
-
-        """
-        if self._command_resampling_time_range is None:
-            do_resample = torch_rand_float(0., 1., (len(env_indices), 1),
-                                           device=TorchUtils.get_device()).squeeze(-1) < (1. / 500.)
-            do_resample *= self._episode_length[env_indices] > 50
-            return env_indices[do_resample]
-
-        self._time_to_resample[env_indices] -= self.dt
-        return env_indices[self._time_to_resample[env_indices] <= 0.]
 
     def _push_domain_randomization(self, env_indices):
         """
@@ -654,71 +572,6 @@ class QuadrupedIsaac(IsaacSim):
             static_friction, dynamic_friction = self._randomizer.sample_friction(len(env_indices))
             self._scene_builder.set_robot_friction(static_friction, dynamic_friction, env_indices)
 
-    def _resample_commands(self, env_ids):
-        device = TorchUtils.get_device()
-        n_envs = len(env_ids)
-        ranges = self._command_ranges
-
-        self._commands[env_ids, 0] = torch_rand_float(*ranges["lin_vel_x"], (n_envs, 1), device=device).squeeze(1)
-        self._commands[env_ids, 1] = torch_rand_float(*ranges["lin_vel_y"], (n_envs, 1), device=device).squeeze(1)
-        self._commands[env_ids, 3] = torch_rand_float(*ranges["heading"], (n_envs, 1), device=device).squeeze(1)
-
-        if self._rel_heading_envs < 1.:
-            self._commands[env_ids, 2] = torch_rand_float(*ranges["ang_vel_z"], (n_envs, 1),
-                                                          device=device).squeeze(1)
-            self._is_heading_env[env_ids] = torch_rand_float(0., 1., (n_envs, 1), device=device).squeeze(1) \
-                <= self._rel_heading_envs
-
-        self._bias_commands(env_ids)
-
-        # set small commands to zero
-        self._commands[env_ids, :2] *= \
-            (torch.norm(self._commands[env_ids, :2], dim=1) > self._command_dead_zone).unsqueeze(1)
-
-        if self._command_resampling_time_range is not None:
-            self._time_to_resample[env_ids] = torch_rand_float(*self._command_resampling_time_range, (n_envs, 1),
-                                                               device=device).squeeze(1)
-
-    def _bias_commands(self, env_ids):
-        """
-        Skews the freshly drawn commands towards the regimes a uniform draw barely covers: standing still,
-        turning on the spot, and walking slowly in an arbitrary direction. Every block is inert, and draws no
-        random number at all, while the fraction driving it is zero.
-
-        """
-        device = TorchUtils.get_device()
-        n_envs = len(env_ids)
-
-        if self._rel_standing_envs > 0.:
-            self._is_standing_env[env_ids] = torch_rand_float(0., 1., (n_envs, 1), device=device).squeeze(1) \
-                <= self._rel_standing_envs
-
-        moving = env_ids[torch.logical_not(self._is_standing_env[env_ids])]
-        n_moving = len(moving)
-
-        if self._frac_low_speed_envs > 0.:
-            is_low_speed = torch_rand_float(0., 1., (n_moving, 1), device=device).squeeze(1) \
-                <= self._frac_low_speed_envs
-            low_speed = moving[is_low_speed]
-
-            direction = torch.randn(len(low_speed), 3, device=device)
-            direction = direction / direction.norm(dim=1, keepdim=True).clamp_min(1e-6)
-            magnitude = torch_rand_float(0., self._low_speed_threshold, (len(low_speed), 1), device=device)
-            self._commands[low_speed, :3] = direction * magnitude
-
-        if self._frac_rotating_envs > 0.:
-            is_rotating = torch_rand_float(0., 1., (n_moving, 1), device=device).squeeze(1) \
-                <= self._frac_rotating_envs
-            rotating = moving[is_rotating]
-
-            is_slow_turn = torch_rand_float(0., 1., (len(rotating), 1), device=device).squeeze(1) <= 0.5
-            slow_turn = rotating[is_slow_turn]
-            self._commands[slow_turn, 2] = torch_rand_float(
-                -self._low_speed_threshold, self._low_speed_threshold, (len(slow_turn), 1), device=device
-            ).squeeze(1)
-
-            self._commands[rotating, :2] = 0.
-
     # observations ----------------------------------------------------------------------------------------------
 
     def _create_observation(self, obs):
@@ -738,7 +591,7 @@ class QuadrupedIsaac(IsaacSim):
         obs[:, gravity_indices] = quat_rotate_inverse(rot, self._gravity)
 
         command_indices = self._observation_helper.obs_idx_map["commands"]
-        obs[:, command_indices] = self._commands[:, :3]
+        obs[:, command_indices] = self._command_generator.commands
 
         action_indices = self._observation_helper.obs_idx_map["actions"]
         obs[:, action_indices] = self._actions
@@ -781,7 +634,7 @@ class QuadrupedIsaac(IsaacSim):
         obs[:, joint_pos_indices] -= self._default_joint_angles + self._randomizer.position_offset
 
         command_indices = self._observation_helper.obs_idx_map["commands"]
-        obs[:, command_indices] = self._commands[:, :3]
+        obs[:, command_indices] = self._command_generator.commands
 
         obs += (2 * torch.rand_like(obs) - 1) * self._noise_scale_vec
 
@@ -903,15 +756,17 @@ class QuadrupedIsaac(IsaacSim):
 
     def _reward_tracking_lin_vel(self, lin_vel_xy):
         # Tracking of linear velocity commands (xy axes)
-        lin_vel_error = torch.sum(torch.square(self._commands[:, :2] - lin_vel_xy), dim=1)
-        std = (self._tracking_stds["lin_vel_slope"] * torch.norm(self._commands[:, :2], dim=1)) \
+        commands = self._command_generator.commands
+        lin_vel_error = torch.sum(torch.square(commands[:, :2] - lin_vel_xy), dim=1)
+        std = (self._tracking_stds["lin_vel_slope"] * torch.norm(commands[:, :2], dim=1)) \
             .clamp(min=self._tracking_stds["lin_vel"])
         return torch.exp(-lin_vel_error/std**2)
 
     def _reward_tracking_ang_vel(self, ang_vel_z):
         # Tracking of angular velocity commands (yaw)
-        ang_vel_error = torch.square(self._commands[:, 2] - ang_vel_z)
-        std = (self._tracking_stds["ang_vel_slope"] * torch.abs(self._commands[:, 2])) \
+        commands = self._command_generator.commands
+        ang_vel_error = torch.square(commands[:, 2] - ang_vel_z)
+        std = (self._tracking_stds["ang_vel_slope"] * torch.abs(commands[:, 2])) \
             .clamp(min=self._tracking_stds["ang_vel"])
         return torch.exp(-ang_vel_error/std**2)
 
@@ -924,7 +779,7 @@ class QuadrupedIsaac(IsaacSim):
         self._feet_air_time += self.dt
         # reward only on first contact with the ground
         rew_air_time = torch.sum((self._feet_air_time - 0.5) * first_contact, dim=1)
-        rew_air_time *= torch.norm(self._commands[:, :2], dim=1) > 0.1  # no reward for zero command
+        rew_air_time *= torch.norm(self._command_generator.commands[:, :2], dim=1) > 0.1  # no reward for zero command
         self._feet_air_time *= ~contact_filt
         return rew_air_time
 
@@ -999,7 +854,7 @@ class QuadrupedIsaac(IsaacSim):
         params = self._reward_params
         reward = torch.sum((self._foot_last_air_time - params["air_time_threshold_high"])
                            * self._foot_first_contact, dim=1)
-        return reward * (self._command_norm() > max(params["command_threshold"], self._low_speed_threshold))
+        return reward * (self._command_norm() > max(params["command_threshold"], params["low_speed_threshold"]))
 
     def _reward_feet_air_time_low(self, next_obs):
         # Reward steps that are long for the commanded speed, while moving slowly enough that short ones are
@@ -1007,13 +862,13 @@ class QuadrupedIsaac(IsaacSim):
         params = self._reward_params
         command_norm = self._command_norm()
 
-        alpha = (command_norm / self._low_speed_threshold).clamp(0., 1.)
+        alpha = (command_norm / params["low_speed_threshold"]).clamp(0., 1.)
         threshold = params["air_time_threshold_low"] \
             + alpha * (params["air_time_threshold_high"] - params["air_time_threshold_low"])
 
         reward = torch.sum((self._foot_last_air_time - threshold.unsqueeze(1)) * self._foot_first_contact, dim=1)
         reward = reward * (command_norm > params["command_threshold"])
-        return reward * (command_norm < self._low_speed_threshold)
+        return reward * (command_norm < params["low_speed_threshold"])
 
     def _reward_feet_air_time_symmetry(self, next_obs):
         # Penalize steps whose duration differs between the feet
@@ -1033,13 +888,14 @@ class QuadrupedIsaac(IsaacSim):
 
         reward = self._foot_clearance_value(params["clearance_target"], params["clearance_std"])
         reward = reward * (command_norm > params["command_threshold"])
-        return reward * (command_norm < self._low_speed_threshold)
+        return reward * (command_norm < params["low_speed_threshold"])
 
     def _reward_feet_clearance_lateral(self, next_obs):
         # Reward lifting the feet while walking sideways, where dragging one means stumbling
         params = self._reward_params
         reward = self._foot_clearance_value(params["clearance_lateral_target"], params["clearance_lateral_std"])
-        return reward * (torch.abs(self._commands[:, 1]) > params["clearance_lateral_command_threshold"])
+        lateral_command = torch.abs(self._command_generator.commands[:, 1])
+        return reward * (lateral_command > params["clearance_lateral_command_threshold"])
 
     def _reward_feet_slide(self, next_obs):
         # Penalize feet moving while they are on the ground
@@ -1047,7 +903,7 @@ class QuadrupedIsaac(IsaacSim):
 
     def _reward_feet_slide_low(self, next_obs):
         # Penalize sliding further while walking slowly, where it should not happen at all
-        return self._reward_feet_slide(next_obs) * (self._command_norm() < self._low_speed_threshold)
+        return self._reward_feet_slide(next_obs) * (self._command_norm() < self._reward_params["low_speed_threshold"])
 
     def _reward_feet_z_velocity(self, next_obs):
         # Penalize feet landing hard
@@ -1186,7 +1042,7 @@ class QuadrupedIsaac(IsaacSim):
             what the optional reward terms gate on.
 
         """
-        return torch.norm(self._commands[:, :3], dim=1)
+        return torch.norm(self._command_generator.commands, dim=1)
 
     def _is_standing_command(self):
         """
@@ -1195,24 +1051,6 @@ class QuadrupedIsaac(IsaacSim):
 
         """
         return self._command_norm() < self._reward_params["command_threshold"]
-
-    def _check_command_ranges(self, ranges):
-        """
-        Raises unless every command range is a known one, ordered, and contained in the maximum range the
-        command observation was bounded by at construction.
-
-        """
-        unknown = set(ranges) - set(self._max_command_ranges)
-        if unknown:
-            raise ValueError(f"unknown command ranges: {sorted(unknown)}")
-
-        for name, (low, high) in ranges.items():
-            max_low, max_high = self._max_command_ranges[name]
-            if low > high:
-                raise ValueError(f"the {name} command range is empty: ({low}, {high})")
-            if low < max_low or high > max_high:
-                raise ValueError(f"the {name} command range ({low}, {high}) is not contained in the maximum "
-                                 f"range ({max_low}, {max_high}) the environment was built with")
 
     def _push_robots(self, env_indices, velocities):
         extended_vels = self._observation_helper.read_data("body_vel", env_indices)
