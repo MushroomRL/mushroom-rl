@@ -1,7 +1,6 @@
 from copy import deepcopy
 
 import torch
-import numpy as np
 from torch.func import stack_module_state, functional_call, vmap, grad
 
 from mushroom_rl.core.mushroom_object import MushroomObject
@@ -702,30 +701,3 @@ class TorchEnsemble(Ensemble):
 
         """
         return torch.stack([m.diff(*args, **kwargs) for m in self._models], dim=0)
-
-
-class NumpyTorchApproximator(TorchApproximator):
-    """
-    Wrapper to get a Numpy interface to the TorchApproximator class.
-    This class allows you to use the torch approximator with numpy backend algorithms.
-
-    """
-    def predict(self, *args, **kwargs):
-        torch_args = [torch.as_tensor(x, device=TorchUtils.get_device()) for x in args]
-        return super().predict(*torch_args, **kwargs).detach().cpu().numpy()
-
-    def fit(self, *args, n_epochs=None, weights=None, epsilon=None, patience=1, validation_split=1., **kwargs):
-        torch_args = [torch.as_tensor(x, device=TorchUtils.get_device()) for x in args]
-        super().fit(*torch_args, n_epochs=n_epochs, weights=weights, epsilon=epsilon, patience=patience,
-                    validation_split=validation_split, **kwargs)
-
-    def diff(self, *args, **kwargs):
-        torch_args = [torch.as_tensor(np.atleast_2d(x), device=TorchUtils.get_device()) for x in args]
-        gradient = super().diff(*torch_args, **kwargs)
-        return gradient.detach().cpu().numpy()
-
-    def set_weights(self, weights):
-        super().set_weights(torch.as_tensor(weights))
-
-    def get_weights(self):
-        return super().get_weights().detach().cpu().numpy()

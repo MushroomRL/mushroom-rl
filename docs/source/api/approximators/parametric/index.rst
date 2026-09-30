@@ -12,6 +12,7 @@ gradient.
    ~mushroom_rl.approximators.parametric.linear.LinearApproximator
    ~mushroom_rl.approximators.parametric.cmac.CMAC
    ~mushroom_rl.approximators.parametric.torch_approximator.TorchApproximator
+   ~mushroom_rl.approximators.parametric.numpy_torch_approximator.NumpyTorchApproximator
    ~mushroom_rl.approximators.parametric.recurrent_torch_approximator.RecurrentTorchApproximator
 
 .. toctree::
@@ -20,5 +21,6 @@ gradient.
    linear
    cmac
    torch_approximator
+   numpy_torch_approximator
    recurrent_torch_approximator
    networks/index

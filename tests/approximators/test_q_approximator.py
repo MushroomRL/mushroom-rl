@@ -137,3 +137,30 @@ def test_q_numpy_torch():
                                            [0., 0.45738867], [0., 0.4335527],
                                            [0., 0.77928376], [0., 0.42085838],
                                            [1., 0.], [0., 1.]]))
+
+
+def test_q_numpy_torch_ensemble():
+    np.random.seed(1)
+    torch.manual_seed(1)
+
+    n_actions = 2
+    approximator = QApproximator(NumpyTorchApproximator, n_actions=n_actions, output_shape=(n_actions,),
+                                 input_shape=(3,), n_models=2, network=QNetwork, n_features=None, n_layers=0,
+                                 optimizer={'class': optim.Adam, 'params': {}}, loss=F.mse_loss,
+                                 batch_size=20, quiet=True)
+
+    s = np.random.rand(100, 3)
+    a = np.random.randint(n_actions, size=(100, 1))
+    q = np.random.rand(100)
+    approximator.fit(s, a, q, n_epochs=5)
+
+    x_s = np.random.rand(2, 3)
+    x_a = np.random.randint(n_actions, size=(2, 1))
+
+    y = approximator.predict(x_s)
+    assert np.allclose(y, np.array([[-0.3145111, 0.42026764],
+                                    [-0.33301038, 0.5050317]]))
+    assert np.allclose(y, (approximator.predict(x_s, idx=0) + approximator.predict(x_s, idx=1)) / 2)
+
+    y = approximator.predict(x_s, x_a)
+    assert np.allclose(y, np.array([0.42026764, -0.33301038]))
