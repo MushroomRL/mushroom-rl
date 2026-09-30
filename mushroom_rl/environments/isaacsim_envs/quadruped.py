@@ -130,7 +130,7 @@ class QuadrupedIsaac(IsaacSim):
         self._reward_weights = dict(
             tracking_lin_vel=1.0, tracking_ang_vel=0.5, lin_vel_z=-2.0, ang_vel_xy=-0.05, torques=-0.0002,
             joint_acc=-2.5e-7, feet_air_time=1.0, collision=-1.0, action_rate=-0.01, joint_pos_limits=-10.0,
-            termination=0.
+            termination=-500.
         )
         self._optional_reward_terms = (
             "flat_orientation", "joint_vel_limits", "power_draw", "similar_to_default",
