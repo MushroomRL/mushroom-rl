@@ -51,12 +51,10 @@ and nothing else.
 `IsaacSim` is natively batched: a single GPU simulation advances thousands of environments at once, rather than running
 many processes. Used here for legged locomotion and a cartpole.
 
-| Script                                                  | Environment                    |
-|---------------------------------------------------------|--------------------------------|
-| [`cartpole_ppo.py`](isaacsim/cartpole_ppo.py)           | 64 cartpoles, PPO              |
-| [`a1_rudin_ppo.py`](isaacsim/a1_rudin_ppo.py)           | 4096 Unitree A1 robots, PPO    |
-| [`honey_badger_ppo.py`](isaacsim/honey_badger_ppo.py)   | 4096 Honey Badger robots, PPO  |
-| [`silver_badger_ppo.py`](isaacsim/silver_badger_ppo.py) | 4096 Silver Badger robots, PPO |
+| Script                                                                | Environment                                                      |
+|-----------------------------------------------------------------------|------------------------------------------------------------------|
+| [`cartpole_ppo.py`](isaacsim/cartpole_ppo.py)                         | 64 cartpoles, PPO                                                |
+| [`quadruped_locomotion_ppo.py`](isaacsim/quadruped_locomotion_ppo.py) | 4096 quadrupeds, PPO — `--robot {a1,honey_badger,silver_badger}` |
 
 These need NVIDIA Isaac Sim, which is a large install and requires a capable GPU. Follow the
 [Isaac Sim installation guide](https://docs.isaacsim.omniverse.nvidia.com/latest/installation/index.html).
